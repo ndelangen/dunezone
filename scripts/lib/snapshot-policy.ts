@@ -109,6 +109,8 @@ export const snapshotPolicy = {
    * The placeholder owner's profile stands in, and it owns every kept row anyway.
    */
   profiles: { drop: "profiles belong to accounts, and the placeholder owner's profile stands in for every one" },
+  play_game_slug_reservations: { drop: 'Game addresses are private Play directory data' },
+  play_game_slug_cursors: { drop: 'Game address allocation is private Play directory data' },
   play_games: { drop: 'Play games carry provisioning secrets and are not published content' },
   homepage_tickets: { drop: 'Homepage editing tickets' },
   play_tickets: { drop: 'Play admission tickets' },

@@ -27,7 +27,7 @@ import {
   SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
-  useAssetNameField,
+  assetNameField,
 } from '../../../assetEditorStates';
 
 /** Every token type a bundle may hold. A bundle mixes shapes freely, which is the point of it. */
@@ -141,21 +141,16 @@ function BundleEditSession({
   const [state, dispatch] = useReducer(reduce, undefined, () => openingState(initialDraft, initialDraft));
   const patch = (update: Partial<BundleDraft>) => dispatch({ kind: 'patch', update });
   const tokens = members.map((entry) => ({ token: entry.member, count: entry.count }));
-  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { nameField, conflictWarnings } = useAssetNameField({
-    type: 'bundle',
+  const nameField = assetNameField({
     name: state.data.name,
     onName: (name) => patch({ name }),
-    currentSlug: asset.slug,
-    source: 'Identity',
-    chapter: 'identity' as BundleChapter,
     canRename: access.viewerAccess.capabilities.rename,
     noun: 'bundle',
   });
   const warnings: (
     | ReturnType<typeof bundleDraftWarnings>[number]
     | { source: string; complaint: string; chapter: BundleChapter }
-  )[] = [...bundleDraftWarnings(state.data, tokens), ...conflictWarnings];
+  )[] = [...bundleDraftWarnings(state.data, tokens)];
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
   const isNameBlank = !state.data.name.trim();

@@ -499,6 +499,60 @@ without an icon. A new layout enters that matrix automatically.
 document using only its emitted styles. The broader ownership rule is convention, not a claim of
 complete static enforcement.*
 
+### Rulebook prototypes use real pages and blocks
+
+A page or chapter prototype in Storybook is a Rulebook document rendered through
+`RulebookDocumentRenderer`, using the supported page layouts and registered blocks. The page size,
+content regions, typography, decoration and clipping limits are part of what the user reviews.
+A custom JSX page, prototype stylesheet or replacement `blockRenderer` would bypass those limits.
+
+Compose existing blocks first. A missing capability may earn a new block when its purpose applies
+to general rulebook authoring. Explain that purpose and give the block its normal data contract,
+renderer and editor support. An isolated block story may exercise the component directly; a chapter
+story may not substitute its own page body. Examples use the example callout block.
+
+A chapter teaching a game phase uses the phase name as its opening page title, such as
+"Shipment and movement". Put its introduction between that title and the first subsections.
+Later pages may use descriptive titles for the part of the phase they explain.
+
+This follows the rejected combat prototypes, which ran in Storybook but used their own page bodies,
+typography and footer. The revised chapter stories parse the render document contract and check
+that every page region fits. Contract validation and fit are automated; choosing real blocks and
+justifying additions remain review obligations.
+
+### Page composition belongs to layouts
+
+The `content-strip` layout keeps the main reading flow above a horizontal bottom strip.
+The strip divides its width among the supplied blocks with flex layout.
+It can hold decorative illustrations or other supporting blocks, without adding row placement options to each block.
+
+When prose and illustrations need independent placement, the page layout owns their slots,
+column widths, row alignment and spacing. Do not add empty illustration columns or procedure
+layout to ordinary text blocks. The paired-rows layout provides opening and closing bands around
+two pairs of content slots. Flex rows take their height from the taller content and keep their
+column proportions aligned. Every slot accepts ordinary rulebook blocks. The band-columns layout
+sizes its band to its content and gives the remaining height to the columns; an empty band
+collapses instead of reserving a fraction of the page.
+
+Battle plans have a standalone visual block so a page can place them beside a numbered list,
+example or other explanation. The existing battle-step block remains available when its combined
+explanation and illustration are useful. Standalone battle plans fill the width of their slot,
+with equal space for each side, instead of imposing a fixed printed width. Neither block dictates
+the page layout.
+
+Piece transfers follow the same separation: the standalone block takes referenced piece groups and
+a direction; the piece-movement block adds its numbered explanation and optional board. Neither
+requires empty strings to suppress unwanted narrative furniture. Board scenes accept author-supplied
+routes, using ordered territory references and optional positions. They draw paths and blocked segments;
+they do not calculate game legality. Compact sizing preserves existing scenes, while fit-width uses
+the available column at the board's natural proportions.
+
+Ordinary illustrated layouts cap bottom clearance at 35 mm. Tall pages retain their smaller
+artwork-based clearance of about 25.7 mm. Paired rows keep their existing 35 mm clearance in either
+design. Decoration may extend behind the content area. The compact sequence layout retains its
+13 mm clearance, and other restrained layouts retain their own margin. A chapter must not introduce
+a stylesheet to alter these rules.
+
 ### Renderers stay isolated
 
 Game-asset renderers must paint identically in a Worker, in print, and in the browser, and none of

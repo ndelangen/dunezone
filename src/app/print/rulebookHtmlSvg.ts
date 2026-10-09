@@ -6,6 +6,7 @@ const tokenSymbols = import.meta.glob<string>(
     '../../../media/vector/generic/*.svg',
     '../../../media/vector/troop/*.svg',
     '../../../media/vector/troop_modifier/*.svg',
+    '../../../media/vector/decal/battlewheel-multicolor.svg',
     '../../../media/vector/decal/combatwheel-multicolor.svg',
   ],
   { query: '?raw', import: 'default', eager: true }
@@ -47,9 +48,9 @@ export function rulebookHtmlSvg(markup: string, canonicalHref: string): string {
       }
     )
   );
-  const withAbsoluteImages = withLocalSymbols.replace(/<image\b[^>]*>/g, (image) =>
+  const withAbsoluteImages = withLocalSymbols.replace(/<(?:image|img)\b[^>]*>/g, (image) =>
     image.replace(
-      /(xlink:href|href)="(\/[^"#]+)"/,
+      /(\s(?:xlink:href|href|src))="(\/[^"#]+)"/,
       (_, attribute, href) =>
         `${attribute}="${new URL(href, canonicalHref).href.replaceAll('&', '&amp;').replaceAll('"', '&quot;')}"`
     )

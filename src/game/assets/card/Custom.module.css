@@ -1,0 +1,31 @@
+.card {
+  position: relative;
+  width: 900px;
+  height: 1263px;
+  overflow: hidden;
+}
+.windowBackground,
+.frame,
+.decal {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.windowBackground {
+  background: url("/image/card/front-decal-bg-large.webp") top center / cover no-repeat;
+}
+.frame {
+  background-size: 100% 100%;
+}
+
+.text {
+  position: absolute;
+  overflow: hidden;
+  transform-origin: center;
+}
+
+.token {
+  position: absolute;
+  filter: drop-shadow(0 9px 8px rgb(0 0 0 / 0.5));
+}

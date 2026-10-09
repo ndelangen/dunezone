@@ -15,8 +15,8 @@ export type CreatableRuleset = Extract<
 >['rulesets'][number];
 
 /** What a game page learns before it opens a socket: whether the viewer may enter and whether the table is ready. */
-export function useGameAccess(gameId: string) {
-  return toLiveQueryResult(useQuery(api.playGames.getGame, { gameId }));
+export function useGameAccess(address: string) {
+  return toLiveQueryResult(useQuery(api.playGames.getGameByAddress, { address }));
 }
 
 /** The lobby's ongoing and past games, as the directory may show them to this viewer. */

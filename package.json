@@ -81,7 +81,8 @@
     "verify:images": "bun run ./scripts/verify-images.ts",
     "verify:storybook-publication": "bun run ./scripts/verify-storybook-publication.ts",
     "verify:vectors": "bun run ./scripts/verify-vectors.ts",
-    "worktree:setup": "bash ./scripts/codex-worktree-setup.sh"
+    "worktree:setup": "bash ./scripts/codex-worktree-setup.sh",
+    "worktree:setup:paperclip": "bash ./scripts/paperclip-worktree-setup.sh"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",
@@ -111,6 +112,7 @@
     "convex-helpers": "^0.1.121",
     "crypto-js": "^4.2.0",
     "fuse.js": "^7.5.0",
+    "jsts": "2.12.1",
     "lucide-react": "^1.28.0",
     "pdf-lib": "1.17.1",
     "react": "^19.2.8",
@@ -139,6 +141,7 @@
     "@types/babel__core": "7.20.5",
     "@types/bun": "^1.4.2",
     "@types/crypto-js": "^4.2.2",
+    "@types/jsts": "0.17.0",
     "@types/node": "^26.1.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
@@ -160,7 +163,7 @@
     "oxlint": "1.77.0",
     "playwright": "^1.62.1",
     "recursive-readdir-files": "^2.3.2",
-    "sharp": "0.35.4",
+    "sharp": "0.35.5",
     "storybook": "10.6.0",
     "svgo": "4.1.0",
     "svgpath": "2.6.0",
@@ -185,9 +188,10 @@
     "picomatch": "4.0.5",
     "postcss": "8.5.25",
     "probe-image-size": "7.4.0",
-    "seroval": "1.5.6",
-    "sharp": "0.35.4",
-    "shell-quote": "1.10.0",
+    "seroval": "1.6.8",
+    "sharp": "0.35.5",
+    "shell-quote": "1.11.0",
+    "tinypool": "2.1.2",
     "ws": "8.21.2"
   },
   "packageManager": "bun@1.4.2",

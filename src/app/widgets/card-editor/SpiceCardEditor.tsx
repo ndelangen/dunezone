@@ -256,7 +256,7 @@ export function SpiceCardEditor({
               {
                 value: 'head',
                 label: 'Head',
-                icon: <TopicIcon topic="text" size={21} />,
+                icon: <TopicIcon topic="head" size={21} />,
                 panel: panel(<HeadFields draft={draft} patch={patch} nameField={nameField} />),
               },
               {

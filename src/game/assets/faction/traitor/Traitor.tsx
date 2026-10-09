@@ -5,9 +5,9 @@ import type { z } from 'zod';
 
 import { backgroundPresets } from '../../../data/backgrounds';
 import styles from '../../card/Card.module.css';
+import { CardText } from '../../card/CardText';
 import { Token } from '../../faction/token/Token';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
-import { FormattedText } from '../../utils/FormattedText';
 import unique from './Traitor.module.css';
 
 export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
@@ -36,16 +36,15 @@ export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
         <Token logo={logo} background={background} />
       </div>
 
-      <div className={styles.body}>
-        <FormattedText
-          value={[
-            'Reveal when Battle Plans are revealed if this leader is used by your opponent.',
-            'You immediately win this battle and lose nothing (even if a Lasgun and Shield are revealed).',
-            'Enemy leader is killed and you receive its fighting strength in spice.',
-            'Both players lose if both their leaders are traitors, and neither player gets any spice.',
-          ].join('\n\n')}
-        />
-      </div>
+      <CardText
+        className={styles.body}
+        value={[
+          'Reveal when Battle Plans are revealed if this leader is used by your opponent.',
+          'You immediately win this battle and lose nothing (even if a Lasgun and Shield are revealed).',
+          'Enemy leader is killed and you receive its fighting strength in spice.',
+          'Both players lose if both their leaders are traitors, and neither player gets any spice.',
+        ].join('\n\n')}
+      />
     </div>
   );
 };

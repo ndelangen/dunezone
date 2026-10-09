@@ -29,6 +29,7 @@ const PROVIDED_ELSEWHERE = [
   ['--contain-fit-height', 'the contain-fit observer, via setProperty'],
   ['--scroll-pct', 'the parallax scroll writer, via setProperty'],
   ['--pile-slot', 'the pile layout, via inline style'],
+  ['--rulebook-aspect', 'RulesetRulebooks in routes/_app/rulesets/$rulesetSlug/index.tsx, via inline style'],
   ['--document-editor-', 'DocumentEditorLayout, via setProperty'],
   ['--editor-plane-width', 'the faction editor plane, via setProperty'],
 ];

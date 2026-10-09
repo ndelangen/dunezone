@@ -10,7 +10,7 @@ import {
   TextInput,
   useCombobox,
 } from '@mantine/core';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { useAssetsByTypes } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
@@ -56,6 +56,8 @@ export interface AssetPickerProps {
   filter?: (entry: AssetListEntry) => boolean;
   /** Which face the row thumbnails draw. The back-pickers pass 'back', because picking a token picks its back and the row should preview the thing the pick takes. */
   previewSide?: AssetFaceSide;
+  /** Focus the search field when the catalogue has loaded. */
+  focusSearch?: boolean;
   copy: AssetPickerCopy;
   /** Fires once per choice. The picker never closes itself; the container that gated its mount decides that. */
   onPick: (picked: PickedAsset) => void;
@@ -76,7 +78,24 @@ export interface AssetPickerProps {
  * It truncates at 200 rows per type without saying so, and search runs client-side over whatever was fetched.
  * A dedicated `assets.listForPicker` lands when a type approaches that, following `factions.listForLoadPicker`.
  */
-export function AssetPicker({ types, excludeIds, filter, copy, onPick, onCancel, previewSide }: AssetPickerProps) {
+export function AssetPicker({
+  types,
+  excludeIds,
+  filter,
+  copy,
+  onPick,
+  onCancel,
+  previewSide,
+  focusSearch,
+}: AssetPickerProps) {
+  const focusSearchInput = useCallback(
+    (input: HTMLInputElement | null) => {
+      if (focusSearch) {
+        input?.focus();
+      }
+    },
+    [focusSearch]
+  );
   const catalogue = useAssetsByTypes(types);
   const combobox = useCombobox();
   const [search, setSearch] = useState('');
@@ -126,6 +145,7 @@ export function AssetPicker({ types, excludeIds, filter, copy, onPick, onCancel,
         >
           <Combobox.EventsTarget>
             <TextInput
+              ref={focusSearchInput}
               label={copy.searchLabel}
               placeholder={copy.searchPlaceholder}
               value={search}

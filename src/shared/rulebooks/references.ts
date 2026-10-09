@@ -16,6 +16,7 @@ export const rulebookResolvedFactionSchema = z.strictObject({
   tokenImageUrl: z.string().optional(),
   token: CanonicalFactionStoredObject.pick({ logo: true, background: true }).optional(),
   troops: z.array(TroopArtwork).optional(),
+  troopSources: z.array(rulebookResolvedSourceSchema).optional(),
   ruler: rulebookResolvedSourceSchema.optional(),
   leaders: z.array(rulebookResolvedSourceSchema).optional(),
 });
@@ -31,11 +32,15 @@ export function collectRulebookReferenceIds(
 ) {
   const assetIds = new Set(requested.assetIds);
   const factionIds = new Set(requested.factionIds);
+  const troopSources = new Map<string, Extract<RulebookSourceReference, { kind: 'faction-troop' }>>();
   const collectSource = (source: RulebookSourceReference | undefined) => {
+    if (source?.kind === 'faction-troop') {
+      troopSources.set(`${source.factionId}.${source.troopId}.${source.face}`, source);
+    }
     if (source?.kind === 'asset') {
       assetIds.add(source.assetId);
     }
-    if (source?.kind === 'faction' || source?.kind === 'faction-member') {
+    if (source?.kind === 'faction' || source?.kind === 'faction-member' || source?.kind === 'faction-troop') {
       factionIds.add(source.factionId);
     }
   };
@@ -77,7 +82,7 @@ export function collectRulebookReferenceIds(
       if (block.kind === 'referenced-illustration' || block.kind === 'card-entry' || block.kind === 'asset-explainer') {
         collectSource(block.source);
       }
-      if (block.kind === 'battle-step') {
+      if (block.kind === 'battle-step' || block.kind === 'battle-plans') {
         collectBattleSide(block.left);
         collectBattleSide(block.right);
       }
@@ -90,7 +95,7 @@ export function collectRulebookReferenceIds(
       if (block.kind === 'board-scene') {
         collectBoard(block);
       }
-      if (block.kind === 'piece-movement') {
+      if (block.kind === 'piece-movement' || block.kind === 'piece-transfer') {
         for (const group of [block.left, block.right]) {
           for (const piece of group.pieces) {
             if (piece.kind === 'source') {
@@ -100,6 +105,8 @@ export function collectRulebookReferenceIds(
             }
           }
         }
+      }
+      if (block.kind === 'piece-movement') {
         for (const note of block.notes ?? []) {
           collectSource(note.source);
         }
@@ -114,5 +121,9 @@ export function collectRulebookReferenceIds(
       }
     }
   }
-  return { assetIds: [...assetIds].sort(), factionIds: [...factionIds].sort() };
+  return {
+    assetIds: [...assetIds].sort(),
+    factionIds: [...factionIds].sort(),
+    ...(troopSources.size ? { troopSources: [...troopSources.values()] } : {}),
+  };
 }

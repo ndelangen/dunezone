@@ -40,6 +40,11 @@ if [[ "$current_head" == "$latest_head" ]]; then
   exit 0
 fi
 
+if git merge-base --is-ancestor "$latest_head" "$current_head"; then
+  echo "Worktree task commits include the current $remote_head ($latest_head)."
+  exit 0
+fi
+
 if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
   echo "Worktree preflight failed: the checkout is stale and contains local changes." >&2
   echo "Refusing to move HEAD from $current_head to $remote_head ($latest_head)." >&2

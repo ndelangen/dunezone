@@ -1,13 +1,7 @@
 import preview from '@sb/preview';
 import { expect, waitFor } from 'storybook/test';
 
-import {
-  battleSequencePage,
-  deathPanel,
-  planningPanel,
-  presciencePanel,
-  revealPanel,
-} from './RulebookBattlePlan.stories.fixture';
+import { battleSequencePage, deathPanel, presciencePanel, revealPanel } from './RulebookBattlePlan.stories.fixture';
 import { geometryCases, GeometryMatrix, regionRects, verifyGeometry } from './RulebookCatalogue.shared.stories.fixture';
 import { createCataloguePage } from './RulebookCatalogue.stories.fixture';
 import { HeadingMatrix, verifyHeadingConsistency } from './RulebookHeading.stories.fixture';
@@ -45,9 +39,13 @@ export const EmptyRegionsAndHiddenHeading = meta.story({
     expect(canvasElement.querySelector('h1')).toBeNull();
     expect(canvasElement.querySelectorAll('[data-rulebook-region]')).toHaveLength(3);
     expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(0);
-    for (const { rect } of regionRects(canvasElement)) {
+    for (const { key, rect } of regionRects(canvasElement)) {
       expect(rect.width).toBeGreaterThan(0);
-      expect(rect.height).toBeGreaterThan(0);
+      if (key === 'band') {
+        expect(rect.height).toBe(0);
+      } else {
+        expect(rect.height).toBeGreaterThan(0);
+      }
     }
   },
 });
@@ -75,7 +73,7 @@ export const StepByStep = meta.story({
   render: () => (
     <div style={{ width: 'min(960px, 100%)' }}>
       <RulebookPageRenderer
-        page={battleSequencePage([presciencePanel, planningPanel, revealPanel, deathPanel])}
+        page={battleSequencePage([presciencePanel, revealPanel, deathPanel])}
         settings={{ size: 'square', design: 'illustrated' }}
       />
     </div>
@@ -84,7 +82,7 @@ export const StepByStep = meta.story({
     await document.fonts.ready;
     const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
     expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
-    expect(region.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(4);
+    expect(region.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(3);
   },
 });
 
@@ -94,4 +92,34 @@ export const HeadingConsistency = meta.story({
     await document.fonts.ready;
     verifyHeadingConsistency(canvasElement);
   },
+});
+
+export const PairedRows = meta.story({
+  render: () => (
+    <div style={{ width: 'min(960px, 100%)' }}>
+      <RulebookPageRenderer
+        page={createCataloguePage('paired-rows')}
+        settings={{ size: 'square', design: 'illustrated' }}
+      />
+    </div>
+  ),
+});
+
+export const ContentWithBottomStrip = meta.story({
+  render: () => (
+    <div style={{ width: 'min(960px, 100%)' }}>
+      <RulebookPageRenderer
+        page={(() => {
+          const page = createCataloguePage('content-strip');
+          page.regions[1]!.blocks = ['First', 'Second', 'Third'].map((name, index) => ({
+            id: `item-${index}`,
+            kind: 'text',
+            text: `${name} supporting block`,
+          }));
+          return page;
+        })()}
+        settings={{ size: 'square', design: 'illustrated' }}
+      />
+    </div>
+  ),
 });

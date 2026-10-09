@@ -1,3 +1,5 @@
+import { ConvexError } from 'convex/values';
+
 import type { QueryCtx } from '../types';
 import { isActiveProfile } from './accountLifecycle';
 import { liveGroupOrNull } from './collaborativeAccess';
@@ -18,7 +20,7 @@ export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
   if (!profile || !isActiveProfile(profile)) {
-    throw new Error(`Profile with slug ${slug} not found`);
+    throw new ConvexError({ code: 'NOT_FOUND', message: `Profile with slug ${slug} not found` });
   }
 
   const memberships = await ctx.db

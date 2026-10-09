@@ -82,6 +82,28 @@ function contents(): RulebookContentsDraftV1 {
 }
 
 describe('Rulebook battle steps', () => {
+  test('keeps standalone plans separate from prose through saved projection and reference collection', () => {
+    const draft = contents();
+    const original = step();
+    const page = draft.pagesById[draft.pageOrder[0]!]!;
+    const diagram = {
+      id: original.id,
+      kind: 'battle-plans' as const,
+      left: original.left,
+      right: original.right,
+      showSideLabels: false,
+    };
+    page.blocksById[original.id] = diagram;
+    const saved = rulebookContentsV1Schema.parse(draft);
+    expect(collectRulebookReferenceIds(saved)).toEqual({
+      assetIds: ['defense', 'weapon'],
+      factionIds: ['left', 'right'],
+    });
+    const projected = projectRulebookDraftRenderBlock(diagram, assets, factions);
+    expect(projected).toMatchObject({ kind: 'battle-plans', left: { faction: { status: 'ready' } } });
+    expect(projected).not.toHaveProperty('caption');
+  });
+
   test('reads a sequence page through draft, saved, edition and render contracts', () => {
     const value = contents();
     expect(rulebookDraftEntitySchemas.page.parse(value.pagesById.PAGE)).toEqual(value.pagesById.PAGE);

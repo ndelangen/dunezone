@@ -1,4 +1,5 @@
 import { Alert, Stack } from '@mantine/core';
+import { FactionNameSchema } from '@shared/factions/schema';
 import { forwardRef, useImperativeHandle, useRef } from 'react';
 
 import type { Faction } from '@db/factions';
@@ -79,6 +80,7 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
 
         <form.Subscribe selector={(state: { values: Faction }) => state.values}>
           {(values) => {
+            const parsedName = FactionNameSchema.safeParse(values.name);
             return (
               <FactionSheetReview ref={reviewRef} faction={values}>
                 <FactionFormFields
@@ -94,7 +96,9 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
                   nameError={
                     isNameBlank
                       ? 'A faction name is required before saving because it determines the faction URL.'
-                      : undefined
+                      : parsedName.success
+                        ? undefined
+                        : parsedName.error.issues[0]?.message
                   }
                 />
               </FactionSheetReview>

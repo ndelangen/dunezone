@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-import { matchPublishedPath } from './asset-publishing/publicationTargets';
+import { publishedR2Key, matchPublishedPath } from './asset-publishing/publicationTargets';
+import { matchUserImagePath } from './user-images/contract';
 
 export const SOCIAL_CARD_PATH = '/social/image.png';
 export const SOCIAL_CARD_WIDTH = 1200;
@@ -11,18 +12,26 @@ const artworkTypes = new Set([
   'faction-token',
   'card-treachery',
   'card-spice',
+  'card-custom',
   'deck',
   'cardback-preset',
   'token-disc',
   'token-tech',
   'token-plate',
   'token-enhance',
+  'rulebook-first-page',
 ]);
 
-/** Only stable JPEG publications used by public faction and asset pages may supply artwork. */
+/** Only public JPEG publications and content-addressed user images may supply artwork. */
 export function socialArtwork(path: string) {
+  const userImageKey = matchUserImagePath(path);
+  if (userImageKey) {
+    return { bucket: 'USER_IMAGE_BUCKET' as const, key: userImageKey };
+  }
   const target = matchPublishedPath(path);
-  return target && artworkTypes.has(target.assetType) ? target : null;
+  return target && artworkTypes.has(target.assetType)
+    ? { bucket: 'ASSET_BUCKET' as const, key: publishedR2Key(target.assetType, target.assetId) }
+    : null;
 }
 
 function normalize(value: string): string {

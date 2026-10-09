@@ -3,7 +3,7 @@
   "name": "faction-sheet-asset-publisher",
   "main": "./index.ts",
   "compatibility_date": "2026-07-17",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "define": { "process.env.NODE_ENV": "\"production\"" },
   "workers_dev": true,
   "preview_urls": false,
@@ -43,6 +43,11 @@
       "/sitemap*",
       "/factions",
       "/factions/*",
+      "/rulesets",
+      "/rulesets/*",
+      "/profiles",
+      "/profiles/*",
+      "/groups/*",
       "/assets",
       "/assets/*"
     ]

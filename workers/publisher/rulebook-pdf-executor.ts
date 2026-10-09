@@ -1,4 +1,5 @@
 import type { AssignedRulebookArtifactJob } from '../../src/shared/rulebooks/editionArtifactWork';
+import { RULEBOOK_PDF_CAPTURE_TIMEOUT_MS } from '../../src/shared/rulebooks/pdfOptimization';
 import { TargetRenderError } from './browser';
 import type { PublisherBrowserSession } from './browser';
 import { publicationWorkBudget } from './config';
@@ -28,7 +29,7 @@ export type RulebookPdfExecution = {
   browserSessionId: string | null;
 };
 
-/** Captures each frozen Edition in bounded Page batches and publishes only the validated composition. */
+/** Captures each complete frozen Edition once and publishes only its validated PDF. */
 export async function executeRulebookPdfWork(
   config: PublisherConfig,
   items: AssignedRulebookArtifactJob<'pdf'>[],
@@ -75,36 +76,20 @@ export async function executeRulebookPdfWork(
       try {
         const staged = await stageRulebookPdfCapture(dependencies.bucket, item, now());
         captureToken = staged.token;
-        const captured = [];
-        /*
-         * An Edition whose batches outlast the window is deferred, not failed and not thrown: its bytes
-         * were never wrong, and the single capture the established executor runs per item had no way to
-         * reach this boundary mid-item. Throwing here would escape the classifier below as an
-         * infrastructure fault and abandon the whole invocation, including the published-asset work that
-         * runs after this executor returns.
-         */
-        let deferred = false;
-        for (const snapshot of staged.bundle.batches) {
-          const remainingMs = budget.workDeadlineAt - now();
-          if (remainingMs <= 0) {
-            deferred = true;
-            break;
-          }
-          const artifact = await browser.captureRulebookPdfBatch(
-            captureToken,
-            snapshot,
-            Math.min(config.browserCaptureTimeoutMs, remainingMs)
-          );
-          captured.push({ batch: snapshot.payload, bytes: artifact.bytes });
-          result.batches += 1;
-          result.pages += snapshot.payload.document.pageOrder.length;
-        }
-        if (deferred) {
-          /* Still `preparing`, so the next invocation takes it again from its first batch. */
+        const snapshot = staged.bundle.batches[0];
+        const remainingMs = budget.workDeadlineAt - now();
+        if (remainingMs <= 0) {
           result.deferred += 1;
           break;
         }
-        const bytes = await composeRulebookPdf(item, captured);
+        const artifact = await browser.captureRulebookPdfBatch(
+          captureToken,
+          snapshot,
+          Math.min(RULEBOOK_PDF_CAPTURE_TIMEOUT_MS, remainingMs)
+        );
+        result.batches += 1;
+        result.pages += snapshot.payload.document.pageOrder.length;
+        const bytes = await composeRulebookPdf(item, [{ batch: snapshot.payload, bytes: artifact.bytes }]);
         const stored = await putImmutableRulebookArtifact(
           dependencies.bucket,
           'pdf',

@@ -23,6 +23,19 @@ function isPublicPage(pathname: string): boolean {
   if (root === 'factions') {
     return !((segments.length === 2 && type === 'create') || (segments.length === 3 && slug === 'edit'));
   }
+  if (root === 'profiles') {
+    return segments.length === 1 || segments.length === 2;
+  }
+  if (root === 'groups') {
+    return segments.length === 2 && type !== 'create';
+  }
+  if (root === 'rulesets') {
+    return (
+      segments.length === 1 ||
+      (segments.length === 2 && type !== 'create') ||
+      (segments.length === 4 && (slug === 'rulebooks' || slug === 'faq') && segments[3] !== 'create')
+    );
+  }
   return root === 'assets' && isPublicAssetPage(segments);
 }
 

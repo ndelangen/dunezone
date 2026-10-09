@@ -1,31 +1,32 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 
 import { groupInputSchema } from '../src/shared/groups/validation';
-import type { Id } from './_generated/dataModel';
-import type { MutationCtx, QueryCtx } from './_generated/server';
+import type { Doc } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
 import { query } from './_generated/server';
 import { mutation } from './functions';
 import { liveGroupOrNull, loadGroupAccessBundle, requireGroupCapability } from './lib/collaborativeAccess';
 import { groupDetailPageValidator } from './lib/collaborativeAccessValidators';
 import { factionRowForClient } from './lib/factionInput';
 import { requireAuthUserId } from './lib/policy';
+import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
 
-async function resolveUniqueGroupSlug(ctx: QueryCtx | MutationCtx, name: string, excludeId?: Id<'groups'>) {
-  const baseSlug = slugify(name) || 'group';
-  let slug = baseSlug;
-  let suffix = 1;
-  while (true) {
+async function resolveUniqueGroupSlug(ctx: MutationCtx, name: string, own?: Doc<'groups'>) {
+  const base = slugify(name) || 'group';
+  if (own && (slugify(own.name) || 'group') === base) {
+    return own.slug;
+  }
+  return await allocateCounterSlug(ctx, `group-slug:${JSON.stringify([base])}`, base, async (slug) => {
+    if (slug === 'create') {
+      return false;
+    }
     const existing = await ctx.db
       .query('groups')
       .withIndex('by_slug', (q) => q.eq('slug', slug))
       .unique();
-    if (!existing || (excludeId && existing._id === excludeId)) {
-      return slug;
-    }
-    suffix += 1;
-    slug = `${baseSlug}-${suffix}`;
-  }
+    return !existing || existing._id === own?._id;
+  });
 }
 
 export const getById = query({
@@ -51,7 +52,7 @@ export const detailBySlug = query({
         .unique()
     );
     if (!group) {
-      throw new Error(`Group with slug ${args.slug} not found`);
+      throw new ConvexError({ code: 'NOT_FOUND', message: `Group with slug ${args.slug} not found` });
     }
 
     const accessBundle = await loadGroupAccessBundle(ctx, group);
@@ -164,7 +165,7 @@ export const update = mutation({
       throw new Error('Group name already exists');
     }
 
-    const slug = await resolveUniqueGroupSlug(ctx, normalizedName, args.id);
+    const slug = await resolveUniqueGroupSlug(ctx, normalizedName, group);
     await ctx.db.patch(group._id, { name: normalizedName, slug });
     const updated = await ctx.db.get(group._id);
     if (!updated) {

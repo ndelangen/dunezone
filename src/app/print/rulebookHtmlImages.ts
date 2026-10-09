@@ -92,7 +92,7 @@ export function rulebookHtmlImages(
         image(item.source);
       }
     }
-    if (block.kind === 'battle-step') {
+    if (block.kind === 'battle-step' || block.kind === 'battle-plans') {
       battleSide(block.left);
       battleSide(block.right);
     }
@@ -104,6 +104,10 @@ export function rulebookHtmlImages(
     }
     if (block.kind === 'board-scene') {
       boardScene(block);
+    }
+    if (block.kind === 'piece-transfer') {
+      movementGroup(block.left);
+      movementGroup(block.right);
     }
     if (block.kind === 'piece-movement') {
       pieceMovement(block);

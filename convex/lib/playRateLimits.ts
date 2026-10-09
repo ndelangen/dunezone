@@ -1,6 +1,7 @@
 import { HOUR, MINUTE, RateLimiter } from '@convex-dev/rate-limiter';
 
 import { components } from '../_generated/api';
+import type { Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 
 export const playRateLimiter = new RateLimiter(components.rateLimiter, {
@@ -10,7 +11,23 @@ export const playRateLimiter = new RateLimiter(components.rateLimiter, {
   playProvisionValidation: { kind: 'token bucket', rate: 60, period: MINUTE, capacity: 20 },
   /* Creation is open to every signed-in player, so each game row and its provisioning are budgeted per account. */
   playCreatePerAccount: { kind: 'token bucket', rate: 10, period: HOUR, capacity: 3 },
+  /* Refused names spend checking capacity, never game-creation capacity. */
+  playNameCheckPerAccount: { kind: 'token bucket', rate: 10, period: MINUTE, capacity: 3 },
+  playNameCheckGlobal: { kind: 'token bucket', rate: 600, period: MINUTE, capacity: 100 },
 });
+
+/** No provider request is issued without capacity in both checking buckets. */
+export async function playNameCheckCapacity(ctx: MutationCtx, userId: Id<'users'>): Promise<boolean> {
+  if (
+    !(await playRateLimiter.check(ctx, 'playNameCheckPerAccount', { key: userId })).ok ||
+    !(await playRateLimiter.check(ctx, 'playNameCheckGlobal')).ok
+  ) {
+    return false;
+  }
+  await playRateLimiter.limit(ctx, 'playNameCheckPerAccount', { key: userId });
+  await playRateLimiter.limit(ctx, 'playNameCheckGlobal');
+  return true;
+}
 
 /**
  * Refuses a game creation once the account has used its creation budget.

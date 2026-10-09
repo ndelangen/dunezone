@@ -358,12 +358,12 @@ function BattleTroopRow({
         />
       </Group>
       <Group grow>
-        {(['supported', 'unsupported', 'uncommitted'] as const).map((field) => (
+        {(['supported', 'unsupported'] as const).map((field) => (
           <NumberInput
             clampBehavior="strict"
             allowLeadingZeros={false}
             key={field}
-            label={field === 'supported' ? 'Supported' : field === 'unsupported' ? 'Unsupported' : 'Uncommitted'}
+            label={field === 'supported' ? 'Supported' : 'Unsupported'}
             aria-label={`${label} troop ${index + 1} ${field}`}
             min={0}
             max={100}
@@ -484,6 +484,37 @@ function BattleSideEdit({ label, value, references, onChange }: BattleSideFields
         value={value.result ?? ''}
         onChange={(event) => update({ result: event.currentTarget.value || undefined })}
       />
+    </Stack>
+  );
+}
+
+export function BattlePlansEdit({
+  value,
+  references = emptyReferences,
+  onChange,
+}: RulebookBlockEditorProps<'battle-plans'>) {
+  return (
+    <Stack gap="md">
+      <Switch
+        label="Show faction names and roles"
+        checked={value.showSideLabels ?? true}
+        onChange={(event) => onChange({ ...value, showSideLabels: event.currentTarget.checked })}
+      />
+      <Accordion multiple defaultValue={['left']}>
+        {(['left', 'right'] as const).map((side) => (
+          <Accordion.Item key={side} value={side}>
+            <Accordion.Control>{side === 'left' ? 'Left battle plan' : 'Right battle plan'}</Accordion.Control>
+            <Accordion.Panel>
+              <BattleSideEdit
+                label={side === 'left' ? 'Left' : 'Right'}
+                value={value[side]}
+                references={references}
+                onChange={(next) => onChange({ ...value, [side]: next })}
+              />
+            </Accordion.Panel>
+          </Accordion.Item>
+        ))}
+      </Accordion>
     </Stack>
   );
 }

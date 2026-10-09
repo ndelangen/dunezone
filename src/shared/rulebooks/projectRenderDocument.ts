@@ -95,6 +95,16 @@ export function projectRulebookSource(
       ? { status: 'ready', reference, name: faction.name, imageUrl: faction.emblemUrl }
       : { status: 'unavailable', reference };
   }
+  if (reference.kind === 'faction-troop') {
+    const troop = factionsById[reference.factionId]?.troopSources?.find(
+      (source) =>
+        source.status !== 'unselected' &&
+        source.reference.kind === 'faction-troop' &&
+        source.reference.troopId === reference.troopId &&
+        source.reference.face === reference.face
+    );
+    return troop ?? { status: 'unavailable', reference };
+  }
   if (reference.kind === 'faction-member') {
     const faction = factionsById[reference.factionId];
     const member = [faction?.ruler, ...(faction?.leaders ?? [])].find(
@@ -150,6 +160,8 @@ function projectBoardScene(
   return {
     boardId: value.boardId,
     caption: value.caption,
+    ...(value.size ? { size: value.size } : {}),
+    ...(value.routes ? { routes: value.routes } : {}),
     ...(value.viewport ? { viewport: value.viewport } : {}),
     ...(value.storm ? { storm: value.storm } : {}),
     board: projectRulebookSource({ kind: 'board', boardId: value.boardId }, assetsById, factionsById),
@@ -239,7 +251,7 @@ export function projectRulebookDraftRenderBlock(
   contents?: RulebookContentsDraftV1
 ): RulebookRenderBlockV1 {
   const identity = { id: block.id, ...(block.anchor ? { anchor: block.anchor } : {}) };
-  if (block.kind === 'battle-step') {
+  if (block.kind === 'battle-step' || block.kind === 'battle-plans') {
     return {
       ...block,
       ...identity,
@@ -249,6 +261,13 @@ export function projectRulebookDraftRenderBlock(
   }
   if (block.kind === 'board-scene') {
     return { ...identity, kind: block.kind, ...projectBoardScene(block, assetsById, factionsById) };
+  }
+  if (block.kind === 'piece-transfer') {
+    return {
+      ...block,
+      left: projectMovementGroup(block.left, assetsById, factionsById),
+      right: projectMovementGroup(block.right, assetsById, factionsById),
+    };
   }
   if (block.kind === 'piece-movement') {
     const { board, notes, ...value } = block;
@@ -304,6 +323,7 @@ export function projectRulebookDraftRenderBlock(
       ...identity,
       kind: block.kind,
       style: block.style,
+      ...(block.start === undefined ? {} : { start: block.start }),
       items: block.itemOrder.flatMap((id) => block.itemsById[id] ?? []),
     };
   }
@@ -533,8 +553,10 @@ function blockTextDiagnostics(pageId: string, blockId: string, block: RulebookBl
     block.kind === 'referenced-illustration' ||
     block.kind === 'credits' ||
     block.kind === 'battle-step' ||
+    block.kind === 'battle-plans' ||
     block.kind === 'board-scene' ||
     block.kind === 'piece-movement' ||
+    block.kind === 'piece-transfer' ||
     block.kind === 'battle-comparison'
   ) {
     return [];

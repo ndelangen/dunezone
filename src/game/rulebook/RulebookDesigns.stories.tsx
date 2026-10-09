@@ -52,6 +52,12 @@ function expectFacingPages({ canvasElement }: { canvasElement: HTMLElement }) {
     const dimensions = getRulebookSize(page.dataset.rulebookSize as RulebookSettings['size']);
     const actual = page.getBoundingClientRect();
     expect(actual.width / actual.height).toBeCloseTo(dimensions.widthMm / dimensions.heightMm, 2);
+    const content = page.querySelector<HTMLElement>('.rulebookPageContent')!;
+    const clearanceMm =
+      (Number.parseFloat(getComputedStyle(content).paddingBottom) / actual.width) * dimensions.widthMm;
+    const expectedClearanceMm =
+      page.dataset.rulebookDesign === 'restrained' ? 17 : dimensions.id === 'tall' ? 25.7375 : 35;
+    expect(clearanceMm).toBeCloseTo(expectedClearanceMm, 1);
     const images = page.querySelectorAll('.rulebookPageArtwork img');
     expect(images).toHaveLength(page.dataset.rulebookDesign === 'illustrated' ? 1 : 0);
   }

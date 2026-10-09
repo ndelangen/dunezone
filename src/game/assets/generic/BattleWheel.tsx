@@ -37,7 +37,8 @@ type Props = {
   | {
       state: 'unrevealed';
       artwork: ComponentProps<typeof Token>;
-      ready: boolean;
+      /** Omit readiness when the wheel illustrates a plan outside a live game. */
+      ready?: boolean;
     }
 );
 
@@ -56,9 +57,11 @@ export function BattleWheel(props: Props) {
           <div className={styles.factionArtwork} aria-hidden="true">
             <Token {...props.artwork} />
           </div>
-          <svg className={styles.readinessRing} data-ready={props.ready} viewBox="0 0 196 196" aria-hidden="true">
-            <circle cx="98" cy="98" r="96" />
-          </svg>
+          {props.ready !== undefined ? (
+            <svg className={styles.readinessRing} data-ready={props.ready} viewBox="0 0 196 196" aria-hidden="true">
+              <circle cx="98" cy="98" r="96" />
+            </svg>
+          ) : null}
         </>
       ) : (
         <div className={styles.revealed}>
@@ -138,7 +141,7 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
           </div>
         </div>
         <svg className={styles.wordmark} viewBox="0 0 100 100" aria-hidden="true">
-          <use href="/vector/decal/combatwheel-multicolor.svg#root" />
+          <use href="/vector/decal/battlewheel-multicolor.svg#root" />
         </svg>
         {!!adjustment && (
           <div

@@ -1,9 +1,12 @@
+import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
+import { rulebookResolvedSourceSchema } from '../src/shared/rulebooks/sources';
 import { query } from './_generated/server';
+import { resolveRulebookTroopSource, rulebookTroopReferences } from './lib/rulebookTroopSources';
 
 /** The Leader picker subscribes only after a faction has been chosen. */
 export const factionMembers = query({
@@ -52,5 +55,38 @@ export const factionMembers = query({
       })
     );
     return { name: parsed.data.name, members };
+  },
+});
+
+/* The troop picker reads only the selected faction, including each authored back face. */
+export const factionTroops = query({
+  args: { faction_id: v.id('factions') },
+  returns: v.union(
+    v.null(),
+    v.object({
+      name: v.string(),
+      troops: v.array(v.object({ name: v.string(), source: zodToConvex(rulebookResolvedSourceSchema) })),
+    })
+  ),
+  handler: async (ctx, { faction_id }) => {
+    const faction = await ctx.db.get('factions', faction_id);
+    if (!faction || faction.is_deleted) {
+      return null;
+    }
+    const parsed = CanonicalFactionStoredSchema.safeParse(faction.data);
+    if (!parsed.success) {
+      return null;
+    }
+    const references = rulebookTroopReferences(faction_id, parsed.data.troops);
+    const troops = await Promise.all(
+      references.map(async (reference) => {
+        const troop = parsed.data.troops.find((troop) => troop.troopId === reference.troopId)!;
+        return {
+          name: reference.face === 'back' ? troop.back!.name : troop.name,
+          source: await resolveRulebookTroopSource(ctx, parsed.data.troops, reference),
+        };
+      })
+    );
+    return { name: parsed.data.name, troops };
   },
 });

@@ -21,8 +21,9 @@ test('downloaded battle diagrams carry troop and star fragments inside the docum
   }
 });
 
-test('a complete exported wheel embeds its decal and spice mask', () => {
+test('exported battle plans embed wheel symbols and load hidden card backs from the website', () => {
   const side = { factionId: 'atreides', role: '', revealed: true, dial: 2, spice: 1, cards: [], troops: [] };
+  const hidden = { ...side, revealed: false, cards: [{ kind: 'asset' as const, assetId: 'card' }] };
   const contents = rulebookContentsV1Schema.parse({
     schemaVersion: 1,
     pageOrder: ['PAGE'],
@@ -34,9 +35,10 @@ test('a complete exported wheel embeds its decal and spice mask', () => {
         layoutId: 'sequence',
         controlValues: {},
         showHeading: true,
-        blockOrderByRegion: { content: ['STEP'] },
+        blockOrderByRegion: { content: ['STEP', 'PLAN'] },
         blocksById: {
           STEP: { id: 'STEP', kind: 'battle-step', step: '1', title: 'Reveal', caption: '', left: side, right: side },
+          PLAN: { id: 'PLAN', kind: 'battle-plans', left: hidden, right: hidden },
         },
       },
     },
@@ -62,8 +64,13 @@ test('a complete exported wheel embeds its decal and spice mask', () => {
     style: '.spice{mask:url("/vector/icon/spice.svg") center/contain no-repeat}',
   });
   const parsed = parseHTML(html).document;
+  const hiddenCards = [...parsed.querySelectorAll('img[alt="Hidden card"]')];
+  expect(hiddenCards).toHaveLength(2);
+  for (const card of hiddenCards) {
+    expect(card.getAttribute('src')).toBe('https://dune.zone/homepage-table/cardback.webp');
+  }
   const uses = [...parsed.querySelectorAll('use')];
-  expect(uses.some((use) => use.getAttribute('href')?.includes('combatwheel-multicolor'))).toBe(true);
+  expect(uses.some((use) => use.getAttribute('href')?.includes('battlewheel-multicolor'))).toBe(true);
   for (const use of uses) {
     const href = use.getAttribute('href') ?? use.getAttribute('xlink:href');
     expect(href?.startsWith('#')).toBe(true);

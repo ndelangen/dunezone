@@ -7,6 +7,7 @@ import {
   CanonicalFactionClientSchema,
   CanonicalFactionStoredSchema,
   FactionInputSchema,
+  FactionWriteSchema,
   HistoricalFactionPublicationSchema,
   toStoredHeroKey,
 } from './schema';
@@ -68,6 +69,11 @@ describe('faction schema', () => {
 
     expect(FactionInputSchema.safeParse(historical).success).toBe(false);
     expect(CanonicalFactionStoredSchema.parse(historical).name).toBe('');
+    historical.name = '家族';
+    expect(FactionWriteSchema.safeParse(historical).success).toBe(false);
+    expect(FactionInputSchema.parse(historical).name).toBe('家族');
+    expect(CanonicalFactionStoredSchema.parse(historical).name).toBe('家族');
+    expect(HistoricalFactionPublicationSchema.parse(historical).name).toBe('家族');
   });
 
   it('reads retired TTS link lists in extras as absent while authoring accepts only catalogue references', () => {

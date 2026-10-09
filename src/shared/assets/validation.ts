@@ -1,5 +1,8 @@
+import { derive } from '../boards/geometry';
+import { BoardAsset } from '../boards/schema';
 import {
   BundleAssetInput,
+  CustomCardAssetInput,
   DeckAssetInput,
   RectangleTokenAssetInput,
   SpiceAssetInput,
@@ -12,12 +15,27 @@ import {
  */
 export function parseAssetDataForWrite(type: string, data: unknown): { data: unknown; name: string } {
   switch (type) {
+    case 'board': {
+      const parsed = BoardAsset.parse(data);
+      const geometry = derive(parsed.board);
+      if (!geometry.faces.length || geometry.unrecoveredSegments) {
+        throw new Error('The board needs closed, renderable territory boundaries');
+      }
+      if (geometry.faces.some((face) => !parsed.board.properties[face.key])) {
+        throw new Error('Every territory needs a name');
+      }
+      return { data: parsed, name: parsed.name };
+    }
     case 'card-treachery': {
       const parsed = TreacheryAssetInput.parse(data);
       return { data: parsed, name: parsed.name };
     }
     case 'card-spice': {
       const parsed = SpiceAssetInput.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
+    case 'card-custom': {
+      const parsed = CustomCardAssetInput.parse(data);
       return { data: parsed, name: parsed.name };
     }
     case 'deck': {

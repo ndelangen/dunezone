@@ -5,6 +5,7 @@ import {
   battleSequencePage,
   deathPanel,
   planningPanel,
+  preparationPanel,
   presciencePanel,
   resultPanel,
   renderedBattleStep,
@@ -15,7 +16,7 @@ import { RulebookPageRenderer } from './RulebookRenderer';
 type Specimen = 'private' | 'reveal' | 'resolution' | 'troops';
 
 const specimenPanels = {
-  private: [presciencePanel, planningPanel, revealPanel, deathPanel],
+  private: [presciencePanel, planningPanel, revealPanel],
   reveal: [planningPanel, revealPanel, deathPanel],
   resolution: [revealPanel, deathPanel, resultPanel],
 };
@@ -104,13 +105,8 @@ export const PrivateInformation = meta.story({
     await expect(
       within(canvas.getByRole('region', { name: 'Step 3: Ask with Battle Prescience' })).queryByAltText('Feyd Rautha')
     ).not.toBeInTheDocument();
-    await expect(canvas.getAllByAltText('Gom Jabbar')).toHaveLength(4);
-    await expect(canvas.getAllByLabelText('Atreides: uncommitted troops')).toHaveLength(3);
-    await expect(canvas.getAllByLabelText('Harkonnen: uncommitted troops')).toHaveLength(2);
-    await expect(canvas.getAllByLabelText('Atreides: uncommitted troops')[0]).toHaveTextContent('Uncommitted: 2');
-    await expect(
-      within(canvas.getByRole('region', { name: 'Step 3: Ask with Battle Prescience' })).queryByText('Uncommitted:')
-    ).not.toBeInTheDocument();
+    await expect(canvas.getAllByAltText('Gom Jabbar')).toHaveLength(3);
+    await expect(canvas.queryByText('Uncommitted:')).not.toBeInTheDocument();
   },
 });
 export const RevealAndWeapons = meta.story({
@@ -125,7 +121,7 @@ export const LeaderDeathAndResult = meta.story({
     await expectSquarePage(canvasElement);
     await expect(canvas.getByText('3 + 4 = 7')).toBeVisible();
     await expect(canvas.getByText('4 + 0 = 4')).toBeVisible();
-    await expect(canvas.getAllByText('Killed', { exact: true })).toHaveLength(2);
+    await expect(canvas.getAllByRole('img', { name: 'Killed' })).toHaveLength(2);
   },
 });
 
@@ -164,5 +160,33 @@ export const IndependentExamples = meta.story({
     expect(Math.abs(leftBox.top - rightBox.top)).toBeLessThan(1);
     expect(leftBox.right).toBeLessThan(rightBox.left);
     expect(canvas.queryByRole('region', { name: /^Step / })).not.toBeInTheDocument();
+  },
+});
+
+export const PreparingThenUsingPrescience = meta.story({
+  render: () => (
+    <RulebookPageRenderer
+      page={battleSequencePage([preparationPanel, presciencePanel])}
+      settings={{ size: 'square', design: 'illustrated' }}
+    />
+  ),
+  play: async ({ canvas, canvasElement }) => {
+    await expectSquarePage(canvasElement);
+    const preparation = within(canvas.getByRole('region', { name: 'Step 2: Prepare a battle plan' }));
+    const prescience = within(canvas.getByRole('region', { name: 'Step 3: Ask with Battle Prescience' }));
+    expect(
+      preparation.queryByLabelText('Atreides: illustrative hidden cards; the opponent does not know their number')
+    ).not.toBeInTheDocument();
+    expect(preparation.getAllByAltText('Hidden card')).toHaveLength(2);
+    expect(preparation.queryByAltText('Gom Jabbar')).not.toBeInTheDocument();
+    expect(
+      within(
+        prescience.getByLabelText('Atreides: illustrative hidden cards; the opponent does not know their number')
+      ).getAllByAltText('Hidden card')
+    ).toHaveLength(2);
+    expect(prescience.getAllByAltText('Hidden card')).toHaveLength(3);
+    expect(prescience.getByAltText('Gom Jabbar')).toBeVisible();
+    expect(prescience.queryByAltText('Maula Pistol')).not.toBeInTheDocument();
+    expect(prescience.queryByAltText('Snooper')).not.toBeInTheDocument();
   },
 });

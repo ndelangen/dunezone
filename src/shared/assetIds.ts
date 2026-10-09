@@ -364,6 +364,8 @@ export const DECAL = z.enum([
   '/vector/decal/barge.svg',
   '/vector/decal/basilia.svg',
   '/vector/decal/bat.svg',
+  '/vector/decal/battlewheel-multicolor.svg',
+  '/vector/decal/battlewheel.svg',
   '/vector/decal/bearer-of-decrees-multicolor.svg',
   '/vector/decal/bearer-of-decrees.svg',
   '/vector/decal/beaurocrat-multicolor.svg',
@@ -766,6 +768,8 @@ export const DECAL = z.enum([
 export const ICON = z.enum([
   '/vector/icon/alliance.svg',
   '/vector/icon/ambassador.svg',
+  '/vector/icon/arrakis-city.svg',
+  '/vector/icon/arrakis-sietch.svg',
   '/vector/icon/balance.svg',
   '/vector/icon/bidding_disc.svg',
   '/vector/icon/bidding_standalone.svg',

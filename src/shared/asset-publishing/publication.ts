@@ -1,6 +1,15 @@
 import { z } from 'zod';
 
-import { CardBack, RectangleTokenFace, SpiceAsset, TokenFace, TreacheryAsset } from '../assets/schema';
+import {
+  CustomCardAsset,
+  CustomCardTokens,
+  CardBack,
+  RectangleTokenFace,
+  SpiceAsset,
+  TokenFace,
+  TreacheryAsset,
+} from '../assets/schema';
+import { BoardDefinition } from '../boards/schema';
 import {
   FactionRowSlugSchema,
   HeroKeyedHistoricalFactionObject,
@@ -26,6 +35,7 @@ export const factionTokenAssetDataSchema = HistoricalFactionPublicationObject.pi
 });
 
 export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
+export const CUSTOM_CARD_ASSET_TYPE = 'card-custom' as const;
 export const SPICE_CARD_ASSET_TYPE = 'card-spice' as const;
 export const DECK_ASSET_TYPE = 'deck' as const;
 export const RULEBOOK_FIRST_PAGE_ASSET_TYPE = 'rulebook-first-page' as const;
@@ -75,6 +85,13 @@ export const treacheryCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: TreacheryAsset,
+});
+
+export const customCardAssetDataSchema = z.strictObject({
+  assetId: z.string().min(1),
+  slug: z.string().min(1),
+  card: CustomCardAsset,
+  tokens: CustomCardTokens.optional(),
 });
 
 /** The same envelope for a spice card, whose stored shape is the renderer's props plus its About. */
@@ -130,7 +147,14 @@ export const rulebookFirstPageAssetDataSchema = z.strictObject({
  * The one place a Publication asset type is turned back into the shape its capture page expects.
  * Convex parses through it before serving a snapshot, and the capture page parses the same schemas on receipt, so a job whose stored `asset_data` no longer satisfies its type fails at the boundary rather than rendering something half-formed.
  */
+export const boardAssetDataSchema = z.strictObject({
+  assetId: z.string().min(1),
+  slug: z.string().min(1),
+  board: BoardDefinition,
+});
+
 const PUBLICATION_ASSET_DATA_SCHEMAS = {
+  board: boardAssetDataSchema,
   [FACTION_SHEET_ASSET_TYPE]: factionSheetAssetDataSchema,
   'faction-leader': factionLeaderAssetDataSchema,
   'faction-token': factionTokenAssetDataSchema,
@@ -139,6 +163,7 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   'faction-alliance': factionAllianceAssetDataSchema,
   [TREACHERY_CARD_ASSET_TYPE]: treacheryCardAssetDataSchema,
   [SPICE_CARD_ASSET_TYPE]: spiceCardAssetDataSchema,
+  [CUSTOM_CARD_ASSET_TYPE]: customCardAssetDataSchema,
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,
   'cardback-preset': deckCardbackAssetDataSchema,
   'token-disc': tokenFaceAssetDataSchema,

@@ -9,8 +9,10 @@ import { ConvexHttpClient } from 'convex/browser';
 import { chromium, errors } from 'playwright';
 import sharp from 'sharp';
 
+import { acceptsPlayGameAddress, hasLocalPlayGameProfanity } from '../convex/lib/playGameNameChecks.ts';
 import { PHASE_VIEWS } from '../src/app/widgets/tabletop/playView';
 import { turnTrackerLayout } from '../src/app/widgets/tabletop/turnTrackerGeometry';
+import { normalizePlayGameSlug } from '../src/shared/play/gameNames.ts';
 import { phaseAt, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
 import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../src/shared/play/protocol.ts';
 import { setupReadyRequired, setupStep } from '../src/shared/play/setup.ts';
@@ -522,6 +524,7 @@ async function signIn(who) {
 }
 /** The id of the real game this flow creates; every account after the creator enters it. */
 let gameId;
+let gameSlug;
 const SPECTATOR = 'neutral';
 /*
  * How long a table entered in play gets to mount, load its artwork and draw it, after its Table view group appears.
@@ -583,8 +586,15 @@ async function createGame(who) {
   await who.page.getByRole('textbox', { name: 'Minimum players', exact: true }).fill('2');
   await who.page.getByRole('button', { name: 'Create game', exact: true }).click();
   await who.page.waitForURL((url) => /^\/play\/(?!create$)[^/]+$/u.test(url.pathname));
-  gameId = new URL(who.page.url()).pathname.split('/').at(-1);
   await admitted(who);
+  gameId = new URL(who.sockets.at(-1).url).pathname.split('/')[3];
+  const [created] = await admin.query('playGameNamesTesting:inspect', { gameIds: [gameId] });
+  assert.ok(created.name && created.slug, 'Compatible creation must assign the game name and address.');
+  assert.equal(hasLocalPlayGameProfanity(created.name), false);
+  assert.equal(acceptsPlayGameAddress(normalizePlayGameSlug(created.name), created.slug), true);
+  gameSlug = created.slug;
+  await who.page.waitForURL((url) => url.pathname === `/play/${gameSlug}`);
+  assert.equal(who.sockets.length, 1, 'Canonical creation opens exactly one ID socket.');
   assert.notEqual(who.view().viewer.viewerSeat, SPECTATOR);
   /*
    * The backend provisions this flow's games at the stage the flow table names (#1594).
@@ -600,6 +610,7 @@ async function enter(who) {
   assert.ok(gameId, 'No real game was created yet.');
   await who.page.goto(`${origin}/play/${gameId}`, { waitUntil: 'domcontentloaded' });
   await admitted(who);
+  await who.page.waitForURL((url) => url.pathname === `/play/${gameSlug}`);
 }
 /** A signed-in synthetic account without the Administrator flag: real games admit every signed-in player. */
 async function account(label) {
@@ -1481,10 +1492,25 @@ async function verifyRegular() {
   );
   const visitor = await peer('visitor');
   await signIn(visitor);
+  const beforeEntry = visitor.page.url();
+  await visitor.page.goto(`${origin}/play/${gameId}?address-proof=1#address-proof`, { waitUntil: 'domcontentloaded' });
+  await admitted(visitor);
+  await visitor.page.waitForURL((url) => url.pathname === `/play/${gameSlug}`);
+  assert.equal(new URL(visitor.page.url()).search, '?address-proof=1');
+  assert.equal(new URL(visitor.page.url()).hash, '#address-proof');
+  assert.equal(visitor.sockets.length, 1);
+  await visitor.page.goBack({ waitUntil: 'domcontentloaded' });
+  assert.equal(
+    visitor.page.url(),
+    beforeEntry,
+    'Canonical replacement must leave Back pointing to the page before entry.'
+  );
+  passed('An ID entry preserves search and fragment, opens one ID socket and replaces history for Back');
+  const visitorSocketsBeforeUnknown = visitor.sockets.length;
   await visitor.page.goto(`${origin}/play/not-a-game`, { waitUntil: 'domcontentloaded' });
   await visitor.page.getByText('This game is not available', { exact: true }).waitFor();
   assert.equal(await visitor.page.locator('canvas').count(), 0);
-  assert.equal(visitor.sockets.length, 0);
+  assert.equal(visitor.sockets.length, visitorSocketsBeforeUnknown);
   await visitor.page.close();
   passed('A signed-in account finds an unknown game id unavailable and opens no socket');
   for (const view of ['left', 'right', 'bottom', 'map']) {
@@ -1534,6 +1560,21 @@ async function verifyRegular() {
   );
   assert.equal(a.view().snapshot.revision, before);
   assert.equal(b.view().snapshot.revision, before);
+  const connectionBeforeAddressChange = a.view().viewer.connectionId;
+  const socketsBeforeAddressChange = a.sockets.length;
+  await a.page.evaluate((legacy) => {
+    window.__addressProofCanvas = document.querySelector('canvas');
+    history.pushState(history.state, '', legacy);
+  }, `/play/${gameId}?address-proof=carry#address-proof`);
+  await a.page.waitForURL((url) => url.pathname === `/play/${gameSlug}` && url.search === '?address-proof=carry');
+  assert.equal(new URL(a.page.url()).hash, '#address-proof');
+  assert.equal(a.view().viewer.connectionId, connectionBeforeAddressChange);
+  assert.equal(a.sockets.length, socketsBeforeAddressChange);
+  assert.ok(await a.page.evaluate(() => window.__addressProofCanvas === document.querySelector('canvas')));
+  assert.ok(await a.page.evaluate(() => window.__duneTable.pieces().some((piece) => piece.localCarried)));
+  assert.equal(a.sent.filter((message) => message.type === 'cancel' && message.carryId === begin.carryId).length, 0);
+  await capture(a, 'after-friendly-address-during-carry');
+  passed('Canonical address replacement retains the mounted canvas, ID connection and active carry');
   await a.page.keyboard.press('Escape');
   await a.page.mouse.up();
   await until(
@@ -1616,6 +1657,29 @@ async function verifyRegular() {
   assert.equal(b.view().snapshot.phase, TABLE_PHASES.length);
   await displayedPhase(b, TABLE_PHASES.length);
   passed('Reload gets a fresh admitted connection while retaining seat and durable revision');
+
+  const blockDirectory = (url) => url.origin === backendSocketOrigin;
+  let directoryOffline = true;
+  await b.page.routeWebSocket(blockDirectory, (socket) => {
+    if (directoryOffline) {
+      return socket.close();
+    }
+    socket.connectToServer();
+  });
+  const sentBeforeOfflineReload = b.sent.length;
+  await b.page.reload({ waitUntil: 'domcontentloaded' });
+  await b.page.getByText('Reconnecting', { exact: true }).waitFor();
+  await b.page.getByRole('group', { name: 'Table view' }).waitFor();
+  assert.equal(new URL(b.page.url()).pathname, `/play/${gameSlug}`);
+  assert.equal(await b.page.locator('[data-connection="authorized"]').count(), 0);
+  assert.equal(b.sent.slice(sentBeforeOfflineReload).filter((message) => message.type === 'command').length, 0);
+  await capture(b, 'after-friendly-reload-directory-unreachable');
+  directoryOffline = false;
+  await b.page.reload({ waitUntil: 'domcontentloaded' });
+  await admitted(b);
+  passed(
+    'A friendly URL reload restores the locked ID table while the directory is unreachable and a fresh view unlocks it'
+  );
 
   await visibleActivity(b, a, 'reloaded-player-b-to-player-a');
   await visibleActivity(a, b, 'player-a-to-reloaded-player-b');

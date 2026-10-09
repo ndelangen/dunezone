@@ -4,6 +4,7 @@ import { componentGeometrySchema } from '../asset-publishing/componentGeometry';
 import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { GEAR_CLIP } from '../assets/tokenOutline';
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
+import { FactionTroopIdSchema } from '../factions/troopIdentity';
 import { RULEBOOK_BOARD_DEFINITIONS } from './boardDefinitions';
 
 export const rulebookCardSourceReferenceSchema = z.strictObject({
@@ -19,6 +20,12 @@ export const rulebookSourceReferenceSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('board'), boardId: z.string().min(1) }),
   z.strictObject({ kind: z.literal('faction'), factionId: z.string().min(1) }),
   z.strictObject({ kind: z.literal('faction-member'), factionId: z.string().min(1), memberId: FactionMemberIdSchema }),
+  z.strictObject({
+    kind: z.literal('faction-troop'),
+    factionId: z.string().min(1),
+    troopId: FactionTroopIdSchema,
+    face: z.enum(['front', 'back']),
+  }),
 ]);
 export type RulebookSourceReference = z.infer<typeof rulebookSourceReferenceSchema>;
 
@@ -107,7 +114,11 @@ export function rulebookSourceClipPath(source: RulebookResolvedSource): string |
   if (source.status !== 'ready') {
     return undefined;
   }
-  if (source.reference.kind === 'faction-member' || source.assetType === 'token-disc') {
+  if (
+    source.reference.kind === 'faction-member' ||
+    source.reference.kind === 'faction-troop' ||
+    source.assetType === 'token-disc'
+  ) {
     return 'circle(50%)';
   }
   if (source.assetType === 'token-tech') {

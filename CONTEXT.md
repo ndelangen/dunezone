@@ -300,3 +300,9 @@ _Avoid_: Status, state, mode
 A catalogue reference a faction declares for setup supply: a deck, a token bundle or a single token, supplied once per faction with the container's member counts. Stored in the faction's `extras` as a type and slug, each listed once; missing or empty Extras mean none. It replaced the unused Tabletop Simulator link lists that field once held (#1226).
 _Avoid_: Extra asset, add-on
 
+
+**Board Asset**:
+An authored circular map saved in the Assets catalogue. Its shared linework forms territories, and each territory owns a unique name, a type, an inset treatment and ordered decals. Saved linework and properties drive both editing and published artwork. Names identify territories for targeting and do not print on the map. Loading a preset or another Board Asset copies its editable geometry into the current draft.
+
+**Board decal**:
+A bundled vector placed within a territory, with position, scale, rotation and an optional white outline. The territory clips it. The decal list sets drawing order and supports drag reordering. Showing a decal before cropping is an editor setting and is never saved.

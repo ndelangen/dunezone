@@ -1,7 +1,7 @@
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { MultiSelect, Select, Stack, TextInput } from '@mantine/core';
+import { MultiSelect, NumberInput, Select, Stack, TextInput } from '@mantine/core';
 import { createRulebookLocalId, rulebookListIconSchema } from '@shared/rulebooks/contents';
 import type { RulebookBlockDraft, RulebookBlockKind } from '@shared/rulebooks/contents';
 import { rulebookReferenceTargets } from '@shared/rulebooks/projectRenderDocument';
@@ -14,12 +14,17 @@ import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import type { ComponentType } from 'react';
 
 import { AssetExplainerEdit } from './rulebookAssetExplainerEdit';
-import { BattleStepEdit } from './rulebookBattleStepEdit';
+import { BattleStepEdit, BattlePlansEdit } from './rulebookBattleStepEdit';
 import styles from './rulebookBlockEditors.module.css';
 import { CardEntryEdit, CardGroupEdit } from './rulebookCardBlockEditors';
 import { rulebookIconOptions } from './rulebookIconOptions';
 import { CreditsEdit, movedOrder, ReferenceTableEdit } from './rulebookReferenceBlockEditors';
-import { BoardSceneEdit, PieceMovementEdit, BattleComparisonEdit } from './rulebookSceneBlockEditors';
+import {
+  BoardSceneEdit,
+  PieceMovementEdit,
+  PieceTransferEdit,
+  BattleComparisonEdit,
+} from './rulebookSceneBlockEditors';
 import {
   ReferencedIllustrationEdit,
   IllustratedInventoryEdit,
@@ -253,6 +258,15 @@ function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
   };
   return (
     <Stack gap="md">
+      {value.style === 'numbered' ? (
+        <NumberInput
+          label="Start at"
+          min={1}
+          allowDecimal={false}
+          value={value.start ?? 1}
+          onChange={(start) => onChange({ ...value, start: typeof start === 'number' ? start : undefined })}
+        />
+      ) : null}
       <ControlBlock
         title="Style"
         description="Number steps that must be followed in order, or use bullets for related points."
@@ -380,8 +394,10 @@ function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
 export const rulebookBlockEditors = {
   text: TextBlockEdit,
   'battle-step': BattleStepEdit,
+  'battle-plans': BattlePlansEdit,
   'board-scene': BoardSceneEdit,
   'piece-movement': PieceMovementEdit,
+  'piece-transfer': PieceTransferEdit,
   'battle-comparison': BattleComparisonEdit,
   'asset-explainer': AssetExplainerEdit,
   'card-entry': CardEntryEdit,

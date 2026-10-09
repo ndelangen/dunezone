@@ -74,12 +74,23 @@ function normalizeReaderPage(raw: RawReaderPage): RulebookReaderPageData {
 }
 
 export async function loadRulebookReader({ rulesetSlug, rulebookSlug, editionNumber }: RulebookReaderLocator) {
-  const raw = await db.query(api.rulebooks.readerPage, {
-    faction_token_images: true,
-    ruleset_slug: rulesetSlug,
-    rulebook_slug: rulebookSlug,
-    ...(editionNumber === undefined ? {} : { edition_number: editionNumber }),
-  });
+  const raw = await db
+    .query(api.rulebooks.readerPage, {
+      faction_token_images: true,
+      ruleset_slug: rulesetSlug,
+      rulebook_slug: rulebookSlug,
+      ...(editionNumber === undefined ? {} : { edition_number: editionNumber }),
+    })
+    .catch((error: unknown) => {
+      if (
+        editionNumber !== undefined &&
+        error instanceof ConvexError &&
+        error.data === `Rulebook Edition ${editionNumber} does not exist`
+      ) {
+        return null;
+      }
+      throw error;
+    });
   return raw ? normalizeReaderPage(raw) : null;
 }
 

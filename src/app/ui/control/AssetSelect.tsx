@@ -13,9 +13,11 @@ import {
 import type { ComboboxProps, TextInputProps } from '@mantine/core';
 import clsx from 'clsx';
 import { SlidersHorizontal } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useReducer, useRef } from 'react';
 
 import styles from './AssetSelect.module.css';
+import { IconAction } from './IconAction';
 
 interface AssetSelectOption {
   value: string;
@@ -46,6 +48,8 @@ export interface AssetSelectProps extends Omit<
   | 'withAsterisk'
   | 'wrapperProps'
 > {
+  /** An icon trigger puts search inside the picker instead of leaving a field on the page. */
+  trigger?: { label: string; icon: ReactNode };
   data: readonly AssetSelectOption[];
   getPreviewSrc: (value: string) => string | null | undefined;
   /** Monochrome glyphs invert in the dark scheme; full-color portraits keep their colors. */
@@ -96,6 +100,7 @@ export function AssetSelect({
   attributes,
   comboboxProps,
   data,
+  trigger,
   getPreviewSrc,
   glyphPreviews = false,
   previewSize = 28,
@@ -117,9 +122,12 @@ export function AssetSelect({
   });
   const combobox = useCombobox({
     opened: dropdownOpened,
-    onDropdownClose: () => {
+    onDropdownClose: (eventSource) => {
       dispatch({ type: 'close' });
       combobox.resetSelectedOption();
+      if (trigger && eventSource === 'keyboard') {
+        combobox.focusTarget();
+      }
     },
   });
   const viewport = useRef<HTMLDivElement>(null);
@@ -153,6 +161,8 @@ export function AssetSelect({
 
   return (
     <Combobox
+      width={trigger ? 360 : undefined}
+      position={trigger ? 'bottom-start' : undefined}
       preventPositionChangeWhenVisible={false}
       middlewares={{
         size: {
@@ -178,124 +188,174 @@ export function AssetSelect({
           onChange?.(allowDeselect && next === value ? null : next, option);
         }
         combobox.closeDropdown();
+        if (trigger) {
+          combobox.focusTarget();
+        }
       }}
     >
-      <Combobox.DropdownTarget>
-        <div>
-          {/* The display-only hover preview shares one anchor across all artwork options. */}
-          <Popover
-            opened={hoveredPreview != null}
-            position="left-start"
-            withinPortal
-            withRoles={false}
-            shadow="md"
-            offset={8}
-          >
-            <Popover.Target>
-              <div>
-                <Combobox.EventsTarget withExpandedAttribute>
-                  <TextInput
-                    {...props}
-                    attributes={{ ...attributes, input: { ...attributes?.input, 'aria-describedby': ariaDescribedBy } }}
-                    value={combobox.dropdownOpened ? browse.search : (value && optionsByValue.get(value)?.label) || ''}
-                    placeholder={
-                      combobox.dropdownOpened
-                        ? choosingCollection
-                          ? 'Search collections...'
-                          : 'Search artwork...'
-                        : placeholder
-                    }
-                    onClick={(event) => {
-                      if (!blocked) {
-                        combobox.openDropdown();
+      {trigger ? (
+        <Combobox.Target>
+          <IconAction
+            label={trigger.label}
+            icon={trigger.icon}
+            emphasis="standard"
+            disabled={blocked}
+            pressed={combobox.dropdownOpened}
+            onClick={() => combobox.toggleDropdown()}
+          />
+        </Combobox.Target>
+      ) : (
+        <Combobox.DropdownTarget>
+          <div>
+            {/* The display-only hover preview shares one anchor across all artwork options. */}
+            <Popover
+              opened={hoveredPreview != null}
+              position="left-start"
+              withinPortal
+              withRoles={false}
+              shadow="md"
+              offset={8}
+            >
+              <Popover.Target>
+                <div>
+                  <Combobox.EventsTarget withExpandedAttribute>
+                    <TextInput
+                      {...props}
+                      attributes={{
+                        ...attributes,
+                        input: { ...attributes?.input, 'aria-describedby': ariaDescribedBy },
+                      }}
+                      value={
+                        combobox.dropdownOpened ? browse.search : (value && optionsByValue.get(value)?.label) || ''
                       }
-                      onClick?.(event);
-                    }}
-                    onChange={(event) => {
-                      dispatch({ type: 'search', value: event.currentTarget.value });
-                      combobox.openDropdown();
-                      combobox.resetSelectedOption();
-                      viewport.current?.scrollTo({ top: 0 });
-                    }}
-                    onBlur={(event) => {
-                      combobox.closeDropdown();
-                      onBlur?.(event);
-                    }}
-                    leftSection={
-                      selectedPreview ? (
-                        <Image
-                          src={selectedPreview}
-                          alt=""
-                          w={previewSize}
-                          h={previewSize}
-                          fit="contain"
-                          className={clsx(styles.previewImg, value && isGlyph(value) && styles.glyph)}
-                        />
-                      ) : undefined
-                    }
-                    leftSectionPointerEvents="none"
-                    rightSectionPointerEvents="all"
-                    rightSectionWidth={clearable && value ? 70 : 42}
-                    rightSection={
-                      <Group gap={0} wrap="nowrap" h="100%" w="100%">
-                        {clearable && value && !blocked ? (
-                          <Combobox.ClearButton
-                            aria-label="Clear artwork"
-                            onClear={() => {
-                              const option = optionsByValue.get(value);
-                              if (option) {
-                                onChange?.(null, option);
-                              }
-                              dispatch({ type: 'close' });
-                            }}
+                      placeholder={
+                        combobox.dropdownOpened
+                          ? choosingCollection
+                            ? 'Search collections...'
+                            : 'Search artwork...'
+                          : placeholder
+                      }
+                      onClick={(event) => {
+                        if (!blocked) {
+                          combobox.openDropdown();
+                        }
+                        onClick?.(event);
+                      }}
+                      onChange={(event) => {
+                        dispatch({ type: 'search', value: event.currentTarget.value });
+                        combobox.openDropdown();
+                        combobox.resetSelectedOption();
+                        viewport.current?.scrollTo({ top: 0 });
+                      }}
+                      onBlur={(event) => {
+                        combobox.closeDropdown();
+                        onBlur?.(event);
+                      }}
+                      leftSection={
+                        selectedPreview ? (
+                          <Image
+                            src={selectedPreview}
+                            alt=""
+                            w={previewSize}
+                            h={previewSize}
+                            fit="contain"
+                            className={clsx(styles.previewImg, value && isGlyph(value) && styles.glyph)}
                           />
-                        ) : null}
-                        {groups.size > 1 ? (
-                          <ActionIcon
-                            aria-label={`Filter ${props['aria-label'] ?? 'artwork'} collections`}
-                            aria-pressed={Boolean(activeCollection) || choosingCollection}
-                            title={activeCollection || 'Filter by collection'}
-                            variant="subtle"
-                            color="gray"
-                            className={styles.filterButton}
-                            disabled={blocked}
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => {
-                              dispatch({ type: 'mode', value: choosingCollection ? 'artwork' : 'collections' });
-                              combobox.resetSelectedOption();
-                              combobox.openDropdown();
-                              combobox.focusTarget();
-                              viewport.current?.scrollTo({ top: 0 });
-                            }}
-                          >
-                            <SlidersHorizontal size={18} aria-hidden />
-                            {activeCollection ? <span className={styles.activeDot} aria-hidden /> : null}
-                          </ActionIcon>
-                        ) : (
-                          <Combobox.Chevron />
-                        )}
-                      </Group>
-                    }
+                        ) : undefined
+                      }
+                      leftSectionPointerEvents="none"
+                      rightSectionPointerEvents="all"
+                      rightSectionWidth={clearable && value ? 70 : 42}
+                      rightSection={
+                        <Group gap={0} wrap="nowrap" h="100%" w="100%">
+                          {clearable && value && !blocked ? (
+                            <Combobox.ClearButton
+                              aria-label="Clear artwork"
+                              onClear={() => {
+                                const option = optionsByValue.get(value);
+                                if (option) {
+                                  onChange?.(null, option);
+                                }
+                                dispatch({ type: 'close' });
+                              }}
+                            />
+                          ) : null}
+                          {groups.size > 1 ? (
+                            <ActionIcon
+                              aria-label={`Filter ${props['aria-label'] ?? 'artwork'} collections`}
+                              aria-pressed={Boolean(activeCollection) || choosingCollection}
+                              title={activeCollection || 'Filter by collection'}
+                              variant="subtle"
+                              color="gray"
+                              className={styles.filterButton}
+                              disabled={blocked}
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => {
+                                dispatch({ type: 'mode', value: choosingCollection ? 'artwork' : 'collections' });
+                                combobox.resetSelectedOption();
+                                combobox.openDropdown();
+                                combobox.focusTarget();
+                                viewport.current?.scrollTo({ top: 0 });
+                              }}
+                            >
+                              <SlidersHorizontal size={18} aria-hidden />
+                              {activeCollection ? <span className={styles.activeDot} aria-hidden /> : null}
+                            </ActionIcon>
+                          ) : (
+                            <Combobox.Chevron />
+                          )}
+                        </Group>
+                      }
+                    />
+                  </Combobox.EventsTarget>
+                </div>
+              </Popover.Target>
+              <Popover.Dropdown role="dialog" aria-label="Artwork preview" p="xs" style={{ pointerEvents: 'none' }}>
+                {hoveredPreview ? (
+                  <Image
+                    src={hoveredPreview}
+                    alt=""
+                    w={144}
+                    h={144}
+                    fit="contain"
+                    className={clsx(browse.hovered && isGlyph(browse.hovered) && styles.glyph)}
                   />
-                </Combobox.EventsTarget>
-              </div>
-            </Popover.Target>
-            <Popover.Dropdown role="dialog" aria-label="Artwork preview" p="xs" style={{ pointerEvents: 'none' }}>
-              {hoveredPreview ? (
-                <Image
-                  src={hoveredPreview}
-                  alt=""
-                  w={144}
-                  h={144}
-                  fit="contain"
-                  className={clsx(browse.hovered && isGlyph(browse.hovered) && styles.glyph)}
-                />
-              ) : null}
-            </Popover.Dropdown>
-          </Popover>
-        </div>
-      </Combobox.DropdownTarget>
+                ) : null}
+              </Popover.Dropdown>
+            </Popover>
+          </div>
+        </Combobox.DropdownTarget>
+      )}
       <Combobox.Dropdown className={styles.dropdown}>
+        {trigger && (
+          <Group gap="xs" wrap="nowrap">
+            <Combobox.Search
+              ref={(input) => {
+                input?.focus();
+              }}
+              aria-label="Search artwork"
+              value={browse.search}
+              placeholder={choosingCollection ? 'Search collections...' : 'Search artwork...'}
+              onChange={(event) => {
+                dispatch({ type: 'search', value: event.currentTarget.value });
+                combobox.resetSelectedOption();
+              }}
+            />
+            {groups.size > 1 && (
+              <IconAction
+                label="Filter artwork collections"
+                emphasis="quiet"
+                icon={<SlidersHorizontal size={17} />}
+                pressed={choosingCollection || !!activeCollection}
+                onClick={() => {
+                  dispatch({ type: 'mode', value: choosingCollection ? 'artwork' : 'collections' });
+                  combobox.resetSelectedOption();
+                }}
+              />
+            )}
+          </Group>
+        )}
+
         <ScrollArea.Autosize mah="min(420px, var(--asset-options-height))" type="auto" viewportRef={viewport}>
           <Combobox.Options aria-label={choosingCollection ? 'Artwork collections' : 'Artwork'}>
             {choosingCollection ? (

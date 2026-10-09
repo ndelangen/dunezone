@@ -22,7 +22,7 @@ type AssetTypeDefinition = {
 export const ASSET_TYPES = {
   'card-treachery': { category: 'cards', label: 'Treachery cards', shortLabel: 'Treachery', status: 'live' },
   'card-spice': { category: 'cards', label: 'Spice cards', shortLabel: 'Spice', status: 'live' },
-  'card-custom': { category: 'cards', label: 'Custom cards', shortLabel: 'Custom', status: 'planned' },
+  'card-custom': { category: 'cards', label: 'Custom cards', shortLabel: 'Custom', status: 'live' },
   'card-leaderability': {
     category: 'cards',
     label: 'Leader ability cards',
@@ -39,7 +39,7 @@ export const ASSET_TYPES = {
   'token-enhance': { category: 'tokens', label: 'Enhance tokens', shortLabel: 'Enhance', status: 'live' },
   /* A container of tokens, so it groups with them rather than earning a fifth category (see CONTEXT.md: Asset category). */
   bundle: { category: 'tokens', label: 'Bundles', shortLabel: 'Bundles', status: 'live' },
-  board: { category: 'boards', label: 'Boards', shortLabel: 'Boards', status: 'planned' },
+  board: { category: 'boards', label: 'Boards', shortLabel: 'Boards', status: 'live' },
 } as const satisfies Record<string, AssetTypeDefinition>;
 
 export type AssetType = keyof typeof ASSET_TYPES;

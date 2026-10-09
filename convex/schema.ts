@@ -40,6 +40,8 @@ export default defineSchema({
    */
   play_games: defineTable({
     fixture_key: v.optional(v.string()),
+    name: v.optional(v.string()),
+    slug: v.optional(v.string()),
     ruleset_id: v.optional(v.id('rulesets')),
     minimum_players: v.optional(zodToConvex(tableSeatCountSchema)),
     creator_id: v.optional(v.id('users')),
@@ -55,8 +57,13 @@ export default defineSchema({
     directory_stage: v.optional(zodToConvex(playStageSchema)),
     directory: v.optional(zodToConvex(playDirectorySummarySchema)),
   })
+    .index('by_slug', ['slug'])
     .index('by_directory_stage', ['directory_stage'])
     .index('by_creator_id', ['creator_id']),
+  /** Permanent reservations survive a future hard deletion of a game. */
+  play_game_slug_reservations: defineTable({ slug: v.string() }).index('by_slug', ['slug']),
+  /** Each base has its own monotonically increasing suffix counter, never a global allocation lock. */
+  play_game_slug_cursors: defineTable({ base: v.string(), next_suffix: v.number() }).index('by_base', ['base']),
   homepage_tickets: defineTable({
     digest: v.string(),
     user_id: v.id('users'),
@@ -199,6 +206,7 @@ export default defineSchema({
     group_id: v.union(v.id('groups'), v.null()),
   })
     .index('by_slug', ['slug'])
+    .index('by_type_and_slug', ['type', 'slug'])
     .index('by_deleted', ['is_deleted'])
     .index('by_type_deleted', ['type', 'is_deleted'])
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])

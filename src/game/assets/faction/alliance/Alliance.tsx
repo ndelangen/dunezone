@@ -7,9 +7,9 @@ import type { z } from 'zod';
 import { backgroundPresets } from '../../../data/backgrounds';
 import { card } from '../../../data/sizes';
 import styles from '../../card/Card.module.css';
+import { CardText } from '../../card/CardText';
 import { FrontDecals } from '../../card/Decals';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
-import { FormattedText } from '../../utils/FormattedText';
 import { StrokedUse } from '../../utils/StrokedUse';
 import { useCountId } from '../../utils/useCountId';
 import unique from './Alliance.module.css';
@@ -89,9 +89,7 @@ export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
         />
       </svg>
 
-      <div className={styles.body}>
-        <FormattedText value={text} />
-      </div>
+      <CardText className={styles.body} value={text} />
     </div>
   );
 };

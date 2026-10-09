@@ -6,7 +6,7 @@ import { INITIAL_SPICE_DRAFT, SpiceCardEditor, spiceDraftWarnings } from '@app/w
 import type { SpiceChapter, SpiceDraft } from '@app/widgets/card-editor/SpiceCardEditor';
 import { SpiceAsset } from '@game/data/objects';
 
-import { useAssetNameField } from '../../assetEditorStates';
+import { assetNameField } from '../../assetEditorStates';
 import { CardCreateFrame, useCardCreate } from './cardCreatePage';
 
 /**
@@ -38,17 +38,14 @@ export function SpiceCreatePage() {
   const [chapter, setChapter] = useState<SpiceChapter>('head');
   const [state, dispatch] = useReducer(reduce, { data: INITIAL_SPICE_DRAFT, baseline: INITIAL_SPICE_DRAFT });
   const patch = (update: Partial<SpiceDraft>) => dispatch({ kind: 'patch', update });
-  const { nameField, conflictWarnings } = useAssetNameField({
+  const nameField = assetNameField({
     /* The viewer is this asset's owner-to-be, so there is nobody to lock out. */
     canRename: true,
-    type: 'card-spice',
     name: state.data.name,
     onName: (name) => patch({ name }),
-    source: 'Head',
-    chapter: 'head' as SpiceChapter,
   });
   const header = useEditPageHeader({
-    warnings: [...spiceDraftWarnings(state.data), ...conflictWarnings],
+    warnings: [...spiceDraftWarnings(state.data)],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
@@ -66,6 +63,13 @@ export function SpiceCreatePage() {
       status={{ isDirty, isNameBlank: !state.data.name.trim(), saveState: saving.saveState }}
       onSave={save}
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
+      load={{
+        schema: SpiceAsset,
+        onLoaded: header.releasing((data) => {
+          dispatch({ kind: 'replace', data });
+          setChapter('head');
+        }),
+      }}
       saveError={saving.error}
     >
       <SpiceCardEditor

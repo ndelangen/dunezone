@@ -2,7 +2,13 @@ import { initialSnapshot } from '@shared/play/commands';
 import type { Viewer } from '@shared/play/protocol';
 import { expect, test } from 'vitest';
 
-import { readStoredTable, STORED_TABLE_MAX_AGE_MS, storedTableText, tokenAccount } from './storedTable';
+import {
+  readStoredTable,
+  sessionTableStore,
+  STORED_TABLE_MAX_AGE_MS,
+  storedTableText,
+  tokenAccount,
+} from './storedTable';
 import type { StoredTable } from './storedTable';
 
 const viewer: Viewer = { connectionId: 'c', userId: 'user', viewerSeat: 'seat-1', displayName: 'One', color: 'red' };
@@ -14,14 +20,63 @@ function storageWith(text: string | null) {
   const entries = new Map(text === null ? [] : [['dunezone-play-table:game', text]]);
   return {
     entries,
+    get length() {
+      return entries.size;
+    },
+    key: (index: number) => [...entries.keys()][index] ?? null,
     getItem: (key: string) => entries.get(key) ?? null,
+    setItem: (key: string, value: string) => void entries.set(key, value),
     removeItem: (key: string) => void entries.delete(key),
+    clear: () => entries.clear(),
   };
 }
 
 test('reads back what it stored for the same game, account and session', () => {
   const storage = storageWith(storedTableText('game', table, account, now));
   expect(readStoredTable(storage, 'game', account, now + 1)).toEqual({ ...table, liveAt: now });
+});
+
+function aliasStore(text: string | null, who = account, at = now) {
+  const storage = storageWith(text);
+  const store = sessionTableStore({ storage: () => storage, account: () => who, now: () => at, onLeave: () => {} });
+  return { storage, store };
+}
+
+test('an address hint uses the ID record and never creates or restamps a table', () => {
+  const { storage, store } = aliasStore(storedTableText('game', table, account, now));
+  expect(store.findGame('hidden-sietch')).toBeNull();
+  store.rememberAddress('game', 'hidden-sietch');
+  expect(store.findGame('hidden-sietch')).toBe('game');
+  expect(store.findGame('game')).toBe('game');
+  expect(store.read('game')).toEqual({ ...table, liveAt: now });
+  expect([...storage.entries.keys()]).toEqual(['dunezone-play-table:game']);
+  expect(JSON.parse(storage.getItem('dunezone-play-table:game')!)).toMatchObject({
+    slug: 'hidden-sietch',
+    savedAt: now,
+  });
+});
+
+test.each([
+  ['another account', { userId: 'other', sessionId: 'session' }, now, (text: string) => text],
+  ['another sign-in', { userId: 'user', sessionId: 'other' }, now, (text: string) => text],
+  ['an old table', account, now + STORED_TABLE_MAX_AGE_MS + 1, (text: string) => text],
+  ['a future table', account, now - 1, (text: string) => text],
+  ['an invalid view', account, now, (text: string) => text.replace('"revision":0', '"revision":"bad"')],
+  ['a mismatched key', account, now, (text: string) => text.replace('"gameId":"game"', '"gameId":"other"')],
+])('an alias rejects %s using the existing restoration guards', (_name, who, at, change) => {
+  const { storage, store } = aliasStore(
+    change(storedTableText('game', table, account, now, 'hidden-sietch')!),
+    who,
+    at
+  );
+  expect(store.findGame('hidden-sietch')).toBeNull();
+  expect(storage.entries.size).toBe(0);
+});
+
+test('ambiguous hints restore neither table', () => {
+  const { storage, store } = aliasStore(storedTableText('game', table, account, now, 'hidden-sietch'));
+  storage.setItem('dunezone-play-table:other', storedTableText('other', table, account, now, 'hidden-sietch')!);
+  expect(store.findGame('hidden-sietch')).toBeNull();
 });
 
 test("refuses to store another account's table", () => {

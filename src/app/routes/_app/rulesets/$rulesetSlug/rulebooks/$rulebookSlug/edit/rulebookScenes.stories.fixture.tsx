@@ -6,7 +6,12 @@ import { useState } from 'react';
 
 import { RulebookBlockCanvas } from '@game/rulebook/RulebookBlockRenderer';
 
-import { BattleComparisonEdit, BoardSceneEdit, PieceMovementEdit } from './rulebookSceneBlockEditors';
+import {
+  BattleComparisonEdit,
+  BoardSceneEdit,
+  PieceMovementEdit,
+  PieceTransferEdit,
+} from './rulebookSceneBlockEditors';
 
 const side = { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] };
 const example = { step: '', title: 'One battle plan', caption: '', left: side, right: side };
@@ -30,6 +35,13 @@ const initialBlocks = {
     left: { label: 'Played cards', pieces: [] },
     right: { label: 'Discard pile', pieces: [] },
   },
+  transfer: {
+    id: 'XFER',
+    kind: 'piece-transfer',
+    direction: 'right',
+    left: { label: 'Reserves', pieces: [] },
+    right: { label: 'Board', pieces: [] },
+  },
   comparison: {
     id: 'CMPR',
     kind: 'battle-comparison',
@@ -44,6 +56,8 @@ export function SceneEditorStory({ kind }: { kind: keyof typeof initialBlocks })
       <BoardSceneEdit value={block} onChange={(value) => setBlock({ ...block, ...value })} />
     ) : block.kind === 'piece-movement' ? (
       <PieceMovementEdit value={block} onChange={(value) => setBlock({ ...block, ...value })} />
+    ) : block.kind === 'piece-transfer' ? (
+      <PieceTransferEdit value={block} onChange={(value) => setBlock({ ...block, ...value })} />
     ) : block.kind === 'battle-comparison' ? (
       <BattleComparisonEdit value={block} onChange={(value) => setBlock({ ...block, ...value })} />
     ) : null;

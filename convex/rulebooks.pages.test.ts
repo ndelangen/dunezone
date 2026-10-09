@@ -33,7 +33,7 @@ describe('Rulebook lifecycle page queries', () => {
       name: 'Create',
       source: { kind: 'starter' },
     });
-    expect(created.rulebook.slug).toBe('create-2');
+    expect(created.rulebook.slug).toBe('create-1');
     await owner.mutation(api.rulebooks.rename, { rulebook_id: created.rulebook._id, name: 'Reference' });
     expect(
       (await owner.mutation(api.rulebooks.rename, { rulebook_id: created.rulebook._id, name: 'Create' })).slug

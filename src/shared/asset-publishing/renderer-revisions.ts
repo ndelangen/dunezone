@@ -1,4 +1,5 @@
 import {
+  CUSTOM_CARD_ASSET_TYPE,
   DECK_ASSET_TYPE,
   FACTION_SHEET_ASSET_TYPE,
   RECTANGLE_TOKEN_ASSET_TYPE,
@@ -12,6 +13,7 @@ import {
  * It never selects a historical Renderer implementation.
  */
 export const CHECKED_IN_RENDERER_REVISIONS = {
+  board: 1,
   /* Revision 2 records measured part metadata for existing Leader publications. */
   'faction-leader': 2,
   /* The first activation publishes tokens for existing factions; revision 2 adds the blocked `.back` face (#1228). */
@@ -23,11 +25,12 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   'faction-alliance': 1,
   // 9: formatted text replaces Markdown while setup and revival stay inline (wayfinder #669).
   [FACTION_SHEET_ASSET_TYPE]: 9,
-  /* Revision 3 fits long Treachery titles inside the printed title band. */
+  /* Revision 4 keeps authored symbols at their chosen size, even when moved within the disc. */
   // 1: cards join the pipeline (wayfinder #516). Activating this is also the backfill for cards that predate it.
-  [TREACHERY_CARD_ASSET_TYPE]: 3,
+  [TREACHERY_CARD_ASSET_TYPE]: 4,
   // 1: spice cards join the pipeline with their editor (#1229).
   [SPICE_CARD_ASSET_TYPE]: 1,
+  [CUSTOM_CARD_ASSET_TYPE]: 1,
   // 1: deck cardbacks join the pipeline (wayfinder #546). Activating this is also the backfill for decks that predate it.
   [DECK_ASSET_TYPE]: 1,
   /* Revision 2 publishes the Prediction preset added for prediction cards (#1753); saved designs are kept. */

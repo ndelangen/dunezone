@@ -5,6 +5,9 @@ import { factionLeaderAssetDataSchema } from './componentPublication';
 import { factionAllianceAssetDataSchema, factionTraitorAssetDataSchema } from './factionCardPublication';
 import { factionTroopAssetDataSchema } from './factionTroopPublication';
 import {
+  CUSTOM_CARD_ASSET_TYPE,
+  customCardAssetDataSchema,
+  boardAssetDataSchema,
   DECK_ASSET_TYPE,
   deckCardbackAssetDataSchema,
   FACTION_SHEET_ASSET_TYPE,
@@ -46,6 +49,7 @@ function captureSnapshot<const AssetType extends string, Payload extends z.ZodTy
  * The union is what lets the capture page dispatch: it fetches this once, before it renders anything, so the type is known by the time there is a subject to draw.
  */
 export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', [
+  captureSnapshot('board', boardAssetDataSchema),
   captureSnapshot('faction-token', factionTokenAssetDataSchema),
   captureSnapshot('faction-troop', factionTroopAssetDataSchema),
   captureSnapshot('faction-traitor', factionTraitorAssetDataSchema),
@@ -54,6 +58,7 @@ export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', 
   captureSnapshot(FACTION_SHEET_ASSET_TYPE, factionSheetAssetDataSchema),
   captureSnapshot(TREACHERY_CARD_ASSET_TYPE, treacheryCardAssetDataSchema),
   captureSnapshot(SPICE_CARD_ASSET_TYPE, spiceCardAssetDataSchema),
+  captureSnapshot(CUSTOM_CARD_ASSET_TYPE, customCardAssetDataSchema),
   z.strictObject({
     ok: z.literal(true),
     assetType: z.enum([DECK_ASSET_TYPE, 'cardback-preset']),

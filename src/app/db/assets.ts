@@ -46,14 +46,6 @@ export function useAssetBrowsePage(type: string, options?: { initialData?: Asset
 }
 
 /**
- * The save guard's slug rule as a live subscription, for the editors' name-conflict warning.
- * Always real args: the caller mounts and unmounts the component holding this, which is how a domain read stays conditional without a skip.
- */
-export function useAssetSlugTaken(args: { type: string; slug: string }) {
-  return useQuery(api.assets.slugTaken, args);
-}
-
-/**
  * Creates an asset of a given type.
  * Unlike the faction and ruleset mutations, this is the raw live mutation: it takes the Convex argument names and sends `data` through untouched.
  * The authoritative parse is the Convex handler's, per the validation standard in `docs/data-layer.md`, so a draft the schema rejects fails at the round trip rather than at this call.
@@ -70,8 +62,16 @@ export async function loadAssetPage(type: string, slug: string): Promise<AssetPa
 }
 
 /** One asset's page, live, taking `loadAssetPage`'s result as `initialData`. */
-export function useAssetPage(type: string, slug: string, options?: { initialData?: AssetPageData }) {
-  const liveData = useQuery(api.assets.getPage, { type, slug });
+export function useAssetPage(
+  type: string,
+  slug: string,
+  options?: { initialData?: AssetPageData; embeddedTokenIds?: string[] }
+) {
+  const liveData = useQuery(api.assets.getPage, {
+    type,
+    slug,
+    ...(options?.embeddedTokenIds ? { embeddedTokenIds: options.embeddedTokenIds as AssetListEntry['id'][] } : {}),
+  });
   return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
@@ -94,5 +94,17 @@ export function useSetAssetGroup() {
 export function useSetMemberCount() {
   return useLiveMutation<{ container_id: AssetListEntry['id']; member_id: AssetListEntry['id']; count: number }, void>(
     api.assets.setMemberCount
+  );
+}
+
+/** The create page holds this read while its current draft embeds tokens. */
+export function useCustomCardTokens(ids: string[]) {
+  return useQuery(api.assets.customCardTokens, { ids: ids as AssetListEntry['id'][] });
+}
+
+/** Changes a treachery card into editable custom-card layers without creating another asset. */
+export function useConvertTreacheryToCustom() {
+  return useLiveMutation<{ id: AssetListEntry['id'] }, { id: string; slug: string }>(
+    api.assets.convertTreacheryToCustom
   );
 }

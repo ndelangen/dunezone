@@ -1,22 +1,10 @@
-import {
-  Alert,
-  Avatar,
-  Badge,
-  Box,
-  Menu,
-  Popover,
-  Select,
-  SimpleGrid,
-  Stack,
-  Text,
-  TextInput,
-  Tooltip,
-} from '@mantine/core';
+import { Alert, Avatar, Badge, Box, Menu, Popover, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
+import { getRulebookSize } from '@shared/rulebooks/settings';
+import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { LoadError } from '@ui/block/LoadError';
@@ -24,7 +12,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
-import { formatRelativeDate } from '@ui/content/dates';
+import { formatStableDate } from '@ui/content/dates';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
@@ -70,7 +58,7 @@ import {
 } from '@db/rulesets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -93,151 +81,153 @@ function RulesetRulebooks({
           <Text c="dimmed">No Rulebooks yet.{canEdit ? ' Add one from the toolbar.' : ''}</Text>
         </Surface>
       ) : (
-        <SimpleGrid
-          type="container"
-          cols={{ base: 2, '32rem': 3 }}
-          spacing="lg"
-          verticalSpacing="xl"
-          role="list"
-          aria-label="Rulebooks"
-        >
-          {rulebooks.map((rulebook) => (
-            <Box key={rulebook._id} role="listitem" pos="relative" miw={0}>
-              <Surface
-                className={styles.rulebookCard}
-                withBorder={false}
-                interactive
-                aria-label={`Read ${rulebook.name}`}
-                renderRoot={(props) => (
-                  <Link
-                    {...props}
-                    to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug"
-                    params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
-                  />
-                )}
+        <Box className={styles.rulebooks} role="list" aria-label="Rulebooks">
+          {rulebooks.map((rulebook) => {
+            const dimensions = getRulebookSize(rulebook.settings.size);
+            return (
+              <Box
+                key={rulebook._id}
+                role="listitem"
+                pos="relative"
+                className={styles.rulebookItem}
+                style={{ '--rulebook-aspect': dimensions.widthMm / dimensions.heightMm }}
               >
-                <Box pos="relative">
-                  <RulebookPreview
-                    name={rulebook.name}
-                    size={rulebook.settings.size}
-                    imageUrl={rulebook.first_page_image_url}
-                    status={rulebook.first_page_capture_status}
-                  />
-                  <Box pos="absolute" bottom={8} right={8}>
-                    <Tooltip label={`Edition ${rulebook.current_edition_number}`}>
-                      <Badge
-                        color="dark"
-                        variant="filled"
-                        radius="sm"
-                        tt="none"
-                        role="img"
-                        aria-label={`Edition ${rulebook.current_edition_number}`}
-                      >
-                        v{rulebook.current_edition_number}
-                      </Badge>
-                    </Tooltip>
-                  </Box>
-                </Box>
-                <Stack gap="xs" p="sm">
-                  <Text fw={600} size="sm" ta="center" lineClamp={2}>
-                    {rulebook.name}
-                  </Text>
-                  <Text size="xs" c="dimmed" ta="center">
-                    {rulebook.edition_published_at ? (
-                      <>
-                        Updated{' '}
-                        <time
-                          dateTime={rulebook.edition_published_at}
-                          title={new Date(rulebook.edition_published_at).toLocaleString()}
-                        >
-                          {formatRelativeDate(rulebook.edition_published_at)}
-                        </time>
-                      </>
-                    ) : (
-                      'Publication date unavailable'
-                    )}
-                  </Text>
-                </Stack>
-              </Surface>
-              {/* The menu is every viewer's, because Edition history is a read path; editing joins it for those who may edit. */}
-              <Box pos="absolute" top={8} left={8}>
-                <Menu position="bottom-end" shadow="md" withinPortal>
-                  <Menu.Target>
-                    <IconAction
-                      label={`Actions for ${rulebook.name}`}
-                      emphasis="standard"
-                      intent="neutral"
-                      size="sm"
-                      icon={<EllipsisVertical size={15} aria-hidden />}
+                <Surface
+                  className={styles.rulebookCard}
+                  withBorder={false}
+                  interactive
+                  aria-label={`Read ${rulebook.name}`}
+                  renderRoot={(props) => (
+                    <Link
+                      {...props}
+                      to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug"
+                      params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
                     />
-                  </Menu.Target>
-                  <Menu.Dropdown>
-                    <Menu.Item
-                      leftSection={<History size={15} aria-hidden />}
-                      renderRoot={(props) => (
-                        <Link
-                          {...props}
-                          to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions"
-                          params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
-                        />
+                  )}
+                >
+                  <Box pos="relative" className={styles.rulebookCover}>
+                    <RulebookPreview
+                      name={rulebook.name}
+                      size={rulebook.settings.size}
+                      imageUrl={rulebook.first_page_image_url}
+                      status={rulebook.first_page_capture_status}
+                    />
+                    <Box pos="absolute" bottom={8} right={8}>
+                      <Tooltip label={`Edition ${rulebook.current_edition_number}`}>
+                        <Badge
+                          color="dark"
+                          variant="filled"
+                          radius="sm"
+                          tt="none"
+                          role="img"
+                          aria-label={`Edition ${rulebook.current_edition_number}`}
+                        >
+                          v{rulebook.current_edition_number}
+                        </Badge>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                  <Stack gap="xs" p="sm">
+                    <Text fw={600} size="sm" ta="center" lineClamp={2}>
+                      {rulebook.name}
+                    </Text>
+                    <Text size="xs" c="dimmed" ta="center">
+                      {rulebook.edition_published_at ? (
+                        <>
+                          Updated{' '}
+                          <time
+                            dateTime={rulebook.edition_published_at}
+                            title={formatStableDate(rulebook.edition_published_at)}
+                          >
+                            {formatStableDate(rulebook.edition_published_at)}
+                          </time>
+                        </>
+                      ) : (
+                        'Publication date unavailable'
                       )}
-                    >
-                      Editions
-                    </Menu.Item>
-                    {/* A file entry appears only once its bytes are ready, so the menu never links to a 404. */}
-                    {rulebook.html.status === 'ready' && rulebook.html.href ? (
+                    </Text>
+                  </Stack>
+                </Surface>
+                {/* The menu is every viewer's, because Edition history is a read path; editing joins it for those who may edit. */}
+                <Box pos="absolute" top={8} left={8}>
+                  <Menu position="bottom-end" shadow="md" withinPortal>
+                    <Menu.Target>
+                      <IconAction
+                        label={`Actions for ${rulebook.name}`}
+                        emphasis="standard"
+                        intent="neutral"
+                        size="sm"
+                        icon={<EllipsisVertical size={15} aria-hidden />}
+                      />
+                    </Menu.Target>
+                    <Menu.Dropdown>
                       <Menu.Item
-                        leftSection={<FileText size={15} aria-hidden />}
-                        renderRoot={(props) => (
-                          <a {...props} href={rulebook.html.href ?? undefined} target="_blank" rel="noreferrer">
-                            {props.children}
-                          </a>
-                        )}
-                      >
-                        Open HTML
-                      </Menu.Item>
-                    ) : null}
-                    {rulebook.pdf.status === 'ready' && rulebook.pdf.href ? (
-                      <Menu.Item
-                        leftSection={<FileDown size={15} aria-hidden />}
-                        renderRoot={(props) => (
-                          <a {...props} href={rulebook.pdf.href ?? undefined} target="_blank" rel="noreferrer">
-                            {props.children}
-                          </a>
-                        )}
-                      >
-                        Open PDF
-                      </Menu.Item>
-                    ) : null}
-                    {canEdit ? (
-                      <Menu.Item
-                        leftSection={<Pencil size={15} aria-hidden />}
+                        leftSection={<History size={15} aria-hidden />}
                         renderRoot={(props) => (
                           <Link
                             {...props}
-                            to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit"
+                            to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions"
                             params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
                           />
                         )}
                       >
-                        Edit
+                        Editions
                       </Menu.Item>
-                    ) : null}
-                    {canEdit && rulebook.first_page_capture_status === 'failed' ? (
-                      <Menu.Item
-                        leftSection={<RefreshCw size={15} aria-hidden />}
-                        disabled={retryPreview.isPending}
-                        onClick={() => retryPreview.mutate({ rulebookId: rulebook._id })}
-                      >
-                        Retry preview
-                      </Menu.Item>
-                    ) : null}
-                  </Menu.Dropdown>
-                </Menu>
+                      {/* A file entry appears only once its bytes are ready, so the menu never links to a 404. */}
+                      {rulebook.html.status === 'ready' && rulebook.html.href ? (
+                        <Menu.Item
+                          leftSection={<FileText size={15} aria-hidden />}
+                          renderRoot={(props) => (
+                            <a {...props} href={rulebook.html.href ?? undefined} target="_blank" rel="noreferrer">
+                              {props.children}
+                            </a>
+                          )}
+                        >
+                          Open HTML
+                        </Menu.Item>
+                      ) : null}
+                      {rulebook.pdf.status === 'ready' && rulebook.pdf.href ? (
+                        <Menu.Item
+                          leftSection={<FileDown size={15} aria-hidden />}
+                          renderRoot={(props) => (
+                            <a {...props} href={rulebook.pdf.href ?? undefined} target="_blank" rel="noreferrer">
+                              {props.children}
+                            </a>
+                          )}
+                        >
+                          Open PDF
+                        </Menu.Item>
+                      ) : null}
+                      {canEdit ? (
+                        <Menu.Item
+                          leftSection={<Pencil size={15} aria-hidden />}
+                          renderRoot={(props) => (
+                            <Link
+                              {...props}
+                              to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit"
+                              params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
+                            />
+                          )}
+                        >
+                          Edit
+                        </Menu.Item>
+                      ) : null}
+                      {canEdit && rulebook.first_page_capture_status === 'failed' ? (
+                        <Menu.Item
+                          leftSection={<RefreshCw size={15} aria-hidden />}
+                          disabled={retryPreview.isPending}
+                          onClick={() => retryPreview.mutate({ rulebookId: rulebook._id })}
+                        >
+                          Retry preview
+                        </Menu.Item>
+                      ) : null}
+                    </Menu.Dropdown>
+                  </Menu>
+                </Box>
               </Box>
-            </Box>
-          ))}
-        </SimpleGrid>
+            );
+          })}
+        </Box>
       )}
     </Section>
   );
@@ -353,6 +343,7 @@ function FactionCardMenu({
 }
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
+  ssr: true,
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
   validateSearch: (params: Record<string, unknown>): { q?: string; tag?: FaqTag; notice?: RouteNoticeCode } => {
     const q = params?.q;
@@ -367,15 +358,23 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   loader: async ({ params }) => {
     const detailPage = await loadRulesetDetailPage(params.rulesetSlug);
     if (!detailPage) {
-      return { notFound: true as const };
+      throw notFound();
     }
-    return { notFound: false as const, detailPage };
+    return detailPage;
   },
   pendingComponent: RulesetDetailPending,
   errorComponent: RulesetDetailError,
-  /* The loader answers a missing ruleset with `notFound: true` rather than throwing, so the head names that page itself. */
-  head: ({ loaderData }) =>
-    pageHead(!loaderData ? 'Ruleset' : loaderData.notFound ? 'Page not found' : loaderData.detailPage.ruleset.name),
+  head: ({ loaderData, params, match }) =>
+    publicPageHead({
+      name: loaderData?.ruleset.name ?? 'Ruleset',
+      pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}`,
+      description:
+        publicDescription(loaderData?.ruleset.about) ||
+        `Explore ${loaderData?.ruleset.name ?? 'this ruleset'} and its published Rulebooks.`,
+      image: loaderData?.ruleset.coverThumbUrl,
+      social: { kind: 'Ruleset', shape: 'portrait' },
+      match,
+    }),
   component: RulesetDetailPage,
 });
 
@@ -404,8 +403,7 @@ function RulesetDetailPage() {
   const search = Route.useSearch();
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
-  const detailSeed = loaderData.notFound ? undefined : loaderData.detailPage;
-  const pageQuery = useRulesetDetailPage(rulesetSlug, { initialData: detailSeed });
+  const pageQuery = useRulesetDetailPage(rulesetSlug, { initialData: loaderData });
   const page = pageQuery.data;
   const profile = useCurrentProfile();
   const deleteRuleset = useDeleteRuleset();
@@ -414,7 +412,9 @@ function RulesetDetailPage() {
   const removeFaction = useRemoveRulesetFaction();
   const routeNotice = resolveRouteNotice(search.notice);
 
-  if (loaderData.notFound || !page) {
+  useLivePageTitle(page?.ruleset.name);
+
+  if (!page) {
     return (
       <PageMessage size="compact" title="Ruleset" back={backToRulesets}>
         <NotAvailable title="Ruleset not found">This ruleset does not exist or was deleted.</NotAvailable>

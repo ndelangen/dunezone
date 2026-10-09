@@ -1,0 +1,60 @@
+.rules {
+  white-space: pre-wrap;
+  line-height: 1.25em;
+}
+
+.rules h1,
+.rules h2,
+.rules h3,
+.rules h4,
+.rules h5,
+.rules h6,
+.rules p,
+.rules img,
+.rules hr,
+.rules ul,
+.rules ol,
+.rules li {
+  margin-top: 0;
+  padding-top: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.rules h1 + *,
+.rules h2 + *,
+.rules h3 + *,
+.rules h4 + *,
+.rules h5 + *,
+.rules h6 + *,
+.rules p + *,
+.rules img + *,
+.rules hr + *,
+.rules ul + *,
+.rules ol + *,
+.rules li + * {
+  margin-top: 0.3em;
+}
+
+.rules h1 {
+  font-family: "C_Copperplate_Gothic", sans-serif;
+  font-size: 35px;
+}
+
+.rules h2,
+.rules h3,
+.rules h4,
+.rules h5,
+.rules h6 {
+  font-family: "C_Trebuchet", sans-serif;
+}
+
+.rules hr {
+  margin: 0;
+  padding: 0;
+  border-top: 0 none;
+  border-left: 0 none;
+  border-right: 0 none;
+  height: 0;
+  border-bottom: 1px solid silver;
+}

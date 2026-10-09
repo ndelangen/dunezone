@@ -4,7 +4,9 @@ import { createFileRoute, notFound } from '@tanstack/react-router';
 import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../assetEditorStates';
+import { BoardCreatePage } from './boardCreate';
 import { BundleCreatePage } from './bundleCreate';
+import { CustomCreatePage } from './customCreate';
 import { DeckCreatePage } from './deckCreate';
 import { RectangleCreatePage } from './rectangleCreate';
 import { SpiceCreatePage } from './spiceCreate';
@@ -33,8 +35,12 @@ function CreateAssetPage() {
 
   /* One branch per type with a landed editor. Everything else says so rather than pretending the type is unknown. */
   switch (type) {
+    case 'board':
+      return <BoardCreatePage />;
     case 'card-treachery':
       return <TreacheryCreatePage />;
+    case 'card-custom':
+      return <CustomCreatePage />;
     case 'card-spice':
       return <SpiceCreatePage />;
     /* One editor for all three shapes: shape is the type, and only the proof's clip differs. */

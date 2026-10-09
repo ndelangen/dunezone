@@ -1,25 +1,26 @@
 import { Alert, Badge, Group, Menu, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
-import { formatRelativeDate, formatStableDate } from '@ui/content/dates';
+import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CalendarPlus, Check, FileText, History, Link2, Pin, PinOff } from 'lucide-react';
+import { ArrowLeft, CalendarPlus, Check, FileText, History, Link2, Pencil, Pin, PinOff } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
-import { loadRulebookReader, useRulebookReader } from '@db/rulebooks';
+import { loadRulebookReader, useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
@@ -53,10 +54,27 @@ function parseReaderSearch(input: Record<string, unknown>): RulebookReaderSearch
 }
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/')({
+  ssr: true,
   validateSearch: parseReaderSearch,
   loaderDeps: ({ search }) => ({ editionNumber: search.edition }),
-  loader: ({ params, deps }) => loadRulebookReader({ ...params, editionNumber: deps.editionNumber }),
-  head: ({ loaderData }) => pageHead(loaderData?.rulebook.name ?? 'Rulebook'),
+  loader: async ({ params, deps }) => {
+    const page = await loadRulebookReader({ ...params, editionNumber: deps.editionNumber });
+    if (!page) {
+      throw notFound();
+    }
+    return page;
+  },
+  head: ({ loaderData, params, match }) =>
+    publicPageHead({
+      name: loaderData?.rulebook.name ?? 'Rulebook',
+      pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}/rulebooks/${encodeURIComponent(loaderData?.rulebook.slug ?? params.rulebookSlug)}${match.loaderDeps.editionNumber === undefined ? '' : `?edition=${match.loaderDeps.editionNumber}`}`,
+      description: loaderData
+        ? `${loaderData.ruleset.name}. Edition ${loaderData.edition.edition_number}. Read the published Rulebook on Dune Zone.`
+        : '',
+      image: loaderData?.edition.first_page_image_url,
+      social: { kind: 'Rulebook', shape: 'portrait' },
+      match,
+    }),
   pendingComponent: () => (
     <PageMessage title="Rulebook">
       <LoadPending title="Loading Rulebook">Loading the selected Edition.</LoadPending>
@@ -228,6 +246,7 @@ function RulebookReaderPage() {
     editionNumber: search.edition,
     initialData,
   });
+  useLivePageTitle(data?.rulebook.name);
   if (!data) {
     return (
       <PageMessage
@@ -246,6 +265,7 @@ function RulebookReaderPage() {
 }
 
 function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
+  const remove = useSoftDeleteRulebook();
   const params = Route.useParams();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -500,7 +520,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
     {
       key: 'published',
       icon: <CalendarPlus size={17} aria-hidden />,
-      value: formatRelativeDate(data.edition.created_at),
+      value: formatStableDate(data.edition.created_at),
       label: `Published ${formatStableDate(data.edition.created_at)}`,
     },
     {
@@ -540,6 +560,18 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                 <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }} />
               )}
             />
+            {data.canEdit ? (
+              <IconAction
+                label="Edit Rulebook"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                icon={<Pencil size={17} aria-hidden />}
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit" params={params} />
+                )}
+              />
+            ) : null}
           </Toolbar.Left>
           <Toolbar.Right label="Rulebook actions">
             {/* A menu behind a glyph rather than a worded select: the header already names the Edition on screen, so the toolbar only offers the change. */}
@@ -583,6 +615,27 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
               icon={<Link2 size={17} aria-hidden />}
               onClick={() => void createSelectionLink()}
             />
+            {data.canDelete ? (
+              <Toolbar.Cluster kind="discard">
+                <ConfirmDeleteAction
+                  label="Delete Rulebook"
+                  pending={remove.isPending}
+                  onConfirm={() =>
+                    remove.mutate(
+                      { rulebookId: data.rulebook._id },
+                      {
+                        onSuccess: () => {
+                          void navigate({
+                            to: '/rulesets/$rulesetSlug',
+                            params: { rulesetSlug: params.rulesetSlug },
+                          });
+                        },
+                      }
+                    )
+                  }
+                />
+              </Toolbar.Cluster>
+            ) : null}
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>
@@ -593,6 +646,11 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
           </VisuallyHidden>
           <Stack gap="sm" className={styles.statuses}>
             <ReaderStatus locatorStatus={locatorStatus} targetMissing={targetMissing} />
+            {remove.error ? (
+              <Alert color="red" title="Rulebook could not be deleted" role="alert">
+                {remove.error.message}
+              </Alert>
+            ) : null}
             {view.selectionMessage ? (
               <Text size="sm" aria-hidden="true">
                 {view.selectionMessage}

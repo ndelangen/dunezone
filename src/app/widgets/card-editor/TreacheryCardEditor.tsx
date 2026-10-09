@@ -1,33 +1,26 @@
-import { Alert, Divider, Grid, Group, NumberInput, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
-import { stockAssetOptions } from '@ui/content/stockAssetOptions';
+import { Alert, Divider, Group, Stack, Text } from '@mantine/core';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { ScrollText, Stamp } from 'lucide-react';
+import { ScrollText } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
-import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
-import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
-import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
-import { hasWorkToLose, sameBackground } from '@app/widgets/background-composer/presetChoice';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
-import { assetOptionToPreviewSrc, decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { backgroundPresets } from '@game/data/backgrounds';
 import type { TreacheryAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
 import styles from './CardEditor.module.css';
-
-/* The icon draws from the same full vector pool the decals do, the schema's ALL union, not just the icon set. */
-const iconOptions = stockAssetOptions(decalAssetOptions);
+import { cardHeadAndSymbolChapters, initialCardHeadMemory } from './CardHeadChapters';
+import type { CardHeadMemory } from './CardHeadChapters';
 
 /* The draft model. */
 /* The draft IS the stored shape: the same TreacheryAsset zod validates on save (server-side
@@ -35,19 +28,6 @@ const iconOptions = stockAssetOptions(decalAssetOptions);
    exactly one field, About, which is the field that never reaches the face. */
 
 export type TreacheryDraft = z.infer<typeof TreacheryAsset>;
-
-/* The four stock treachery looks: a head Background paired with its striped icon Background. */
-const CARD_PRESETS = [
-  { key: 'weapon', label: 'Weapon', head: backgroundPresets.weapon, striped: backgroundPresets.stripedWeapon },
-  { key: 'defense', label: 'Defense', head: backgroundPresets.defense, striped: backgroundPresets.stripedDefense },
-  { key: 'special', label: 'Special', head: backgroundPresets.special, striped: backgroundPresets.stripedSpecial },
-  {
-    key: 'worthless',
-    label: 'Worthless',
-    head: backgroundPresets.worthless,
-    striped: backgroundPresets.stripedWorthless,
-  },
-] as const;
 
 export const INITIAL_TREACHERY_DRAFT: TreacheryDraft = {
   name: '',
@@ -59,16 +39,8 @@ export const INITIAL_TREACHERY_DRAFT: TreacheryDraft = {
   text: '',
 };
 
-/* Field-by-field, not identity or JSON: a head that round-tripped through the database is a clone of its preset with Zod's key order. */
-
-const HEAD_PRESETS = CARD_PRESETS.map(({ key, label, head }) => ({ key, label, background: head }));
-const ICON_BACKGROUND_PRESETS = CARD_PRESETS.map(({ key, label, striped }) => ({ key, label, background: striped }));
-
 /* Center-to-edge slider span: the treachery card is 900 × 1263 in card space. */
 const DECAL_OFFSET_RANGE = [450, 630] as const;
-
-/* The icon disc is 125 card-space pixels; half a disc of nudge per axis, number inputs unclamped. */
-const ICON_OFFSET_RANGE = 60;
 
 /* The rail proof. */
 
@@ -89,275 +61,9 @@ function FillCard({ draft }: { draft: TreacheryDraft }) {
 
 type Patch = (update: Partial<TreacheryDraft>) => void;
 
-/**
- * What this editor's session needs and a stored card has no room for.
- *
- * Each bit is one background control's declared Custom intent: the author said "I will compose my own", which the value cannot say once it happens to equal a preset.
- * It lives here rather than inside the controls because a Reset the controls cannot see must discard it («Reset leaves the validation header open», #587).
- */
-export type TreacheryMemory = {
-  headCustom: boolean;
-  iconCustom: boolean;
-  /** One colour-mode memory per background control, since the head and the icon compose independently. */
-  headModeMemory: BackgroundModeMemory;
-  iconModeMemory: BackgroundModeMemory;
-};
-
-export const INITIAL_TREACHERY_MEMORY: TreacheryMemory = {
-  headCustom: false,
-  iconCustom: false,
-  /* Shared, and safe to share: a mode memory is only ever replaced whole, never mutated in place. */
-  headModeMemory: emptyBackgroundModeMemory(),
-  iconModeMemory: emptyBackgroundModeMemory(),
-};
-
+export type TreacheryMemory = CardHeadMemory;
+export const INITIAL_TREACHERY_MEMORY: TreacheryMemory = initialCardHeadMemory();
 type Remember = (update: Partial<TreacheryMemory>) => void;
-
-/* The card's head: its name, type, and the Background behind them. */
-function HeadFields({
-  draft,
-  patch,
-  memory,
-  remember,
-  nameField,
-}: {
-  draft: TreacheryDraft;
-  patch: Patch;
-  memory: TreacheryMemory;
-  remember: Remember;
-  nameField: ReactNode;
-}) {
-  return (
-    <Stack gap="md">
-      <ControlBlock title="Name" description="Names the card and determines its URL." input={nameField} />
-      <ControlBlock
-        title="Type"
-        description="Shown under the name, e.g. “Weapon - Projectile”."
-        input={
-          <TextInput
-            aria-label="Type"
-            value={draft.subName}
-            onChange={(event) => patch({ subName: event.currentTarget.value })}
-          />
-        }
-      />
-      <BackgroundPresetControl
-        title="Head background"
-        description="The background behind the card's name. The icon's stripes follow it, unless you have composed your own."
-        usedOn="this card's head"
-        presets={HEAD_PRESETS}
-        value={draft.head}
-        declaredCustom={memory.headCustom}
-        onDeclaredCustomChange={(headCustom) => remember({ headCustom })}
-        modeMemory={memory.headModeMemory}
-        onModeMemoryChange={(headModeMemory) => remember({ headModeMemory })}
-        onChange={(head, presetKey) => {
-          patch({ head, ...matchingStripes(presetKey, draft, memory) });
-        }}
-      />
-    </Stack>
-  );
-}
-
-/**
- * The icon background a new head preset brings with it, or nothing when the author has composed their own.
- *
- * Picking a head used to rewrite the icon's background unconditionally.
- * That is a convenience while the icon still wears the stripes a previous head gave it, and a silent discard of the author's work the moment it does not, with no undo and no word at the time it happens.
- * It also became repeatable: the tile control is a radio group, so arrowing across the presets would have rewritten the icon at every step (Norbert, 2026-08-21, choosing to fix the coupling rather than stop arrows selecting).
- *
- * So the stripes still follow the head, and only while there is nothing to lose.
- */
-function matchingStripes(
-  presetKey: string | null,
-  draft: TreacheryDraft,
-  memory: TreacheryMemory
-): Pick<TreacheryDraft, 'icon'> | undefined {
-  const preset = CARD_PRESETS.find((candidate) => candidate.key === presetKey);
-  if (!preset) {
-    return undefined;
-  }
-  const wornHead = CARD_PRESETS.find((candidate) => sameBackground(candidate.head, draft.head));
-  const iconIsStillItsStripes = wornHead ? sameBackground(wornHead.striped, draft.icon[0]) : false;
-  /*
-   * Value equality alone could not see an author who had opened the icon's composer and not yet typed.
-   * D5 on «Work the editors wave» widened the test to the declared intent as well, since opening the composer is the declaration.
-   */
-  const lose = hasWorkToLose({ stillWearsExpected: iconIsStillItsStripes, declaredCustom: memory.iconCustom });
-  return lose ? undefined : { icon: [preset.striped, draft.icon[1]] };
-}
-
-/* The card's icon: the vector in the top-right disc, its Background, and its scale. */
-function IconFields({
-  draft,
-  patch,
-  memory,
-  remember,
-}: {
-  draft: TreacheryDraft;
-  patch: Patch;
-  memory: TreacheryMemory;
-  remember: Remember;
-}) {
-  return (
-    <Stack gap="md">
-      <ControlBlock
-        title="Icon"
-        description="The vector in the top-right disc."
-        input={
-          <AssetSelect
-            aria-label="Icon"
-            allowDeselect={false}
-            data={iconOptions}
-            getPreviewSrc={assetOptionToPreviewSrc}
-            glyphPreviews
-            value={draft.icon[1]}
-            onChange={(value) => {
-              if (value) {
-                patch({ icon: [draft.icon[0], value as TreacheryDraft['icon'][1]] });
-              }
-            }}
-          />
-        }
-      />
-      <Grid>
-        <Grid.Col span={{ base: 12, xs: 6 }}>
-          <ControlBlock
-            title="Invert"
-            description="Flips the icon from dark to light artwork."
-            input={
-              <Switch
-                aria-label="Invert icon"
-                checked={draft.iconInvert ?? false}
-                onChange={(event) => patch({ iconInvert: event.currentTarget.checked })}
-              />
-            }
-          />
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, xs: 6 }}>
-          <ControlBlock
-            title="Opacity"
-            description="Fades the icon; 1 is fully opaque."
-            input={
-              <Slider
-                aria-label="Icon opacity"
-                min={0}
-                max={1}
-                step={0.05}
-                value={draft.iconOpacity ?? 1}
-                onChange={(value) => patch({ iconOpacity: value })}
-                label={(value) => value.toFixed(2)}
-              />
-            }
-          />
-        </Grid.Col>
-      </Grid>
-      <BackgroundPresetControl
-        title="Icon background"
-        description="The background behind the icon, independent of the head background."
-        usedOn="this card's icon"
-        presets={ICON_BACKGROUND_PRESETS}
-        value={draft.icon[0]}
-        declaredCustom={memory.iconCustom}
-        onDeclaredCustomChange={(iconCustom) => remember({ iconCustom })}
-        modeMemory={memory.iconModeMemory}
-        onModeMemoryChange={(iconModeMemory) => remember({ iconModeMemory })}
-        onChange={(background) => patch({ icon: [background, draft.icon[1]] })}
-      />
-      <ControlBlock
-        title="Icon scale"
-        description="Resize the icon within its disc; 1 is the reference size."
-        tool={
-          <NumberInput
-            aria-label="Icon scale"
-            w={96}
-            min={0.5}
-            max={2}
-            step={0.05}
-            decimalScale={2}
-            value={draft.iconScale ?? 1}
-            onChange={(value) => {
-              if (typeof value === 'number') {
-                patch({ iconScale: value });
-              }
-            }}
-          />
-        }
-        input={
-          <Slider
-            aria-label="Icon scale slider"
-            min={0.5}
-            max={2}
-            step={0.05}
-            value={draft.iconScale ?? 1}
-            onChange={(value) => patch({ iconScale: value })}
-            label={(value) => value.toFixed(2)}
-          />
-        }
-      />
-      <Grid>
-        <Grid.Col span={{ base: 12, xs: 6 }}>
-          <ControlBlock
-            title="Horizontal offset"
-            description="Move the icon left with a negative value or right with a positive value."
-            tool={
-              <NumberInput
-                aria-label="Horizontal icon offset"
-                w={96}
-                step={1}
-                value={draft.iconOffset?.[0] ?? 0}
-                onChange={(value) => {
-                  if (typeof value === 'number') {
-                    patch({ iconOffset: [value, draft.iconOffset?.[1] ?? 0] });
-                  }
-                }}
-              />
-            }
-            input={
-              <Slider
-                aria-label="Horizontal icon offset slider"
-                min={-ICON_OFFSET_RANGE}
-                max={ICON_OFFSET_RANGE}
-                step={1}
-                value={draft.iconOffset?.[0] ?? 0}
-                onChange={(value) => patch({ iconOffset: [value, draft.iconOffset?.[1] ?? 0] })}
-              />
-            }
-          />
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, xs: 6 }}>
-          <ControlBlock
-            title="Vertical offset"
-            description="Move the icon up with a negative value or down with a positive value."
-            tool={
-              <NumberInput
-                aria-label="Vertical icon offset"
-                w={96}
-                step={1}
-                value={draft.iconOffset?.[1] ?? 0}
-                onChange={(value) => {
-                  if (typeof value === 'number') {
-                    patch({ iconOffset: [draft.iconOffset?.[0] ?? 0, value] });
-                  }
-                }}
-              />
-            }
-            input={
-              <Slider
-                aria-label="Vertical icon offset slider"
-                min={-ICON_OFFSET_RANGE}
-                max={ICON_OFFSET_RANGE}
-                step={1}
-                value={draft.iconOffset?.[1] ?? 0}
-                onChange={(value) => patch({ iconOffset: [draft.iconOffset?.[0] ?? 0, value] })}
-              />
-            }
-          />
-        </Grid.Col>
-      </Grid>
-    </Stack>
-  );
-}
 
 function DecalFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
   const decals = draft.decals;
@@ -494,20 +200,7 @@ export function TreacheryCardEditor({
             }}
             ariaLabel="Card chapters"
             items={[
-              {
-                value: 'head',
-                label: 'Head',
-                icon: <TopicIcon topic="text" size={21} />,
-                panel: panel(
-                  <HeadFields draft={draft} patch={patch} memory={memory} remember={remember} nameField={nameField} />
-                ),
-              },
-              {
-                value: 'icon',
-                label: 'Symbol',
-                icon: <Stamp size={21} aria-hidden />,
-                panel: panel(<IconFields draft={draft} patch={patch} memory={memory} remember={remember} />),
-              },
+              ...cardHeadAndSymbolChapters({ draft, patch, memory, remember, nameField }),
               {
                 value: 'decals',
                 label: 'Decals',

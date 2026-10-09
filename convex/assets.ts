@@ -10,12 +10,16 @@ import {
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
+import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
+import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import { parseAssetDataForWrite } from '../src/shared/assets/validation';
+import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
-import { mutation } from './functions';
+import { internalMutation, mutation } from './functions';
+import { optionalActiveUserId } from './lib/accountLifecycle';
 import {
   assertReferenceableDeckCardback,
   assertReferenceableTokenBack,
@@ -40,9 +44,17 @@ import {
   assetViewerAccessValidator,
   assignedGroupSummaryValidator,
 } from './lib/collaborativeAccessValidators';
-import { requireAuthUserId } from './lib/policy';
+import {
+  CUSTOM_CARD_TOKEN_RELATION,
+  customCardTokenIds,
+  resolveCustomCardTokens,
+  syncCustomCardTokenRelations,
+  validateCustomCardTokens,
+} from './lib/customCardTokens';
+import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
-import { enqueueAssetPublication } from './lib/publication';
+import { enqueueAssetPublication, supersedePendingPublication } from './lib/publication';
+import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -260,11 +272,14 @@ const rulesetSlotReferenceValidator = v.object({
 });
 
 export const getPage = query({
-  args: { type: v.string(), slug: v.string() },
+  args: { type: v.string(), slug: v.string(), embeddedTokenIds: v.optional(v.array(v.id('assets'))) },
   returns: v.union(
     v.null(),
     v.object({
       asset: assetListEntryValidator,
+      cardTokens: v.optional(zodToConvex(CustomCardTokens)),
+      cardTokensError: v.optional(v.union(v.string(), v.null())),
+      canConvertToCustom: v.boolean(),
       cardbackPresets: v.array(zodToConvex(cardbackPresetSchema)),
       viewerAccess: assetViewerAccessValidator,
       assignableGroups: v.array(assignedGroupSummaryValidator),
@@ -319,8 +334,14 @@ export const getPage = query({
     const backDeckRow = await referencedCardbackDeck(ctx, row);
     /* The entry, the preset list and the resolved back all ask for presets; one memo reads each once. */
     const presets: CardbackPresetMemo = new Map();
+    const resolvedTokens =
+      row.type === 'card-custom'
+        ? await resolveCustomCardTokens(ctx, args.embeddedTokenIds ?? customCardTokenIds(row.data))
+        : null;
     return {
       asset: await toListEntry(ctx, row, { presets }),
+      canConvertToCustom: await canConvertTreachery(ctx, row.type),
+      ...(resolvedTokens ? { cardTokens: resolvedTokens.tokens, cardTokensError: resolvedTokens.error } : {}),
       cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx, presets) : [],
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,
@@ -403,39 +424,43 @@ async function rulesetsSlotting(ctx: QueryCtx, assetId: Id<'assets'>) {
   return entries;
 }
 
-/**
- * Who holds the slug for this type: a living asset, a soft-deleted one whose address stays reserved, or nobody.
- * One rule read twice: the save guard refuses on it, and the editors' live conflict check subscribes to it, so the warning and the refusal can never disagree.
- * The take is safe because per-type uniqueness is guarded on every write, deleted rows included: a slug is held by at most one row per type, so the set is bounded by the type registry's size, far under fifty.
- */
-async function assetSlugHolder(ctx: QueryCtx, type: string, slug: string): Promise<'live' | 'deleted' | null> {
-  const holders = await ctx.db
+/** Exact lookup avoids reading assets of other types that share a slug. */
+async function assetSlugHolder(ctx: QueryCtx, type: string, slug: string): Promise<Doc<'assets'> | null> {
+  return await ctx.db
     .query('assets')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .take(50);
-  const holder = holders.find((row) => row.type === type);
-  if (!holder) {
-    return null;
-  }
-  return holder.is_deleted ? 'deleted' : 'live';
+    .withIndex('by_type_and_slug', (q) => q.eq('type', type).eq('slug', slug))
+    .first();
 }
 
-/** The editors' live name-conflict check: the save guard's rule as a subscription, holder kind included, so the warning can speak the refusal's own words. */
+/** Retained for older deployed editors that check name conflicts before saving. */
 export const slugTaken = query({
   args: { type: v.string(), slug: v.string() },
   returns: v.union(v.literal('live'), v.literal('deleted'), v.null()),
-  handler: async (ctx, args) => await assetSlugHolder(ctx, args.type, args.slug),
+  handler: async (ctx, args) => {
+    const holder = await assetSlugHolder(ctx, args.type, args.slug);
+    if (!holder) {
+      return null;
+    }
+    return holder.is_deleted ? 'deleted' : 'live';
+  },
 });
 
-async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: string) {
-  /* A ConvexError, so the words reach the editor's banner in production; a plain Error is redacted to "Server Error" (Norbert hit exactly that, 2026-08-22). No type noun: the registry's labels are plural pile captions, not singular nouns, and borrowing one produced "another decks". */
-  const holder = await assetSlugHolder(ctx, type, slug);
-  if (holder === 'live') {
-    throw new ConvexError(`The name is taken: another one already lives at "${slug}". Pick a different name.`);
+/** Indexed claims and cursor advances share the asset's write transaction. */
+async function allocateAssetSlug(ctx: MutationCtx, type: string, base: string, own?: Doc<'assets'>): Promise<string> {
+  if (!base) {
+    throw new ConvexError('An asset name is required; it determines the asset URL');
   }
-  if (holder === 'deleted') {
-    throw new ConvexError(`The name is taken: "${slug}" stays reserved by a deleted asset. Pick a different name.`);
+  /* Preserve its existing address even when the unsuffixed address has become free. */
+  if (own && slugify(nameOf(own)) === base) {
+    return own.slug;
   }
+  return await allocateCounterSlug(ctx, `asset-slug:${JSON.stringify([type, base])}`, base, async (slug) => {
+    if (slug === 'create') {
+      return false;
+    }
+    const holder = await assetSlugHolder(ctx, type, slug);
+    return !holder || holder._id === own?._id;
+  });
 }
 
 /**
@@ -494,11 +519,10 @@ export const create = mutation({
     assertKnownAssetType(args.type);
     const parsed = parseAssetDataForWrite(args.type, args.data);
     parsed.data = await withValidatedBack(ctx, { type: args.type }, parsed.data as Record<string, unknown>);
-    const slug = slugify(parsed.name);
-    if (!slug) {
-      throw new ConvexError('An asset name is required; it determines the asset URL');
+    if (args.type === 'card-custom') {
+      await validateCustomCardTokens(ctx, parsed.data);
     }
-    await assertAssetSlugAvailable(ctx, args.type, slug);
+    const slug = await allocateAssetSlug(ctx, args.type, slugify(parsed.name));
     const now = nowIso();
     const id = await ctx.db.insert('assets', {
       owner_id: userId,
@@ -510,6 +534,9 @@ export const create = mutation({
       is_deleted: false,
       group_id: null,
     });
+    if (args.type === 'card-custom') {
+      await syncCustomCardTokenRelations(ctx, id, parsed.data);
+    }
     await enqueueAssetPublication(ctx, { _id: id, type: args.type, slug, data: parsed.data });
     return { id, slug };
   },
@@ -527,22 +554,61 @@ export const update = mutation({
     const parsed = parseAssetDataForWrite(row.type, args.data);
     parsed.data = await withValidatedBack(ctx, row, parsed.data as Record<string, unknown>);
     await requireAssetUpdate(ctx, args.id, parsed.name);
-    const slug = slugify(parsed.name);
-    if (!slug) {
-      throw new ConvexError('An asset name is required; it determines the asset URL');
+    if (row.type === 'card-custom') {
+      await validateCustomCardTokens(ctx, parsed.data, row.data);
     }
-    if (slug !== row.slug) {
-      await assertAssetSlugAvailable(ctx, row.type, slug);
-    }
+    const slug =
+      parsed.name === nameOf(row) ? row.slug : await allocateAssetSlug(ctx, row.type, slugify(parsed.name), row);
     await ctx.db.patch(args.id, { data: parsed.data, slug, updated_at: nowIso() });
+    if (row.type === 'card-custom') {
+      await syncCustomCardTokenRelations(ctx, args.id, parsed.data);
+    }
     await enqueueAssetPublication(ctx, { _id: args.id, type: row.type, slug, data: parsed.data });
+    if (TOKEN_TYPES.has(row.type)) {
+      await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: args.id, cursor: null });
+    }
     return { id: args.id, slug };
+  },
+});
+
+/** Only an active administrator can change a treachery card's asset type. */
+async function canConvertTreachery(ctx: QueryCtx, type: string): Promise<boolean> {
+  if (type !== 'card-treachery') {
+    return false;
+  }
+  const viewerId = await optionalActiveUserId(ctx);
+  return viewerId ? (await ctx.db.get('users', viewerId))?.isAdmin === true : false;
+}
+
+/** Converts one card in place; ownership, deck references and completed publications retain their identity. */
+export const convertTreacheryToCustom = mutation({
+  args: { id: v.id('assets') },
+  returns: v.object({ id: v.id('assets'), slug: v.string() }),
+  handler: async (ctx, args) => {
+    await requireAdminUserId(ctx);
+    const row = await ctx.db.get('assets', args.id);
+    if (!row || row.is_deleted || row.type !== 'card-treachery') {
+      throw new ConvexError('Only a live treachery card can be converted.');
+    }
+    let data;
+    try {
+      data = treacheryToCustomCard(row.data);
+    } catch {
+      throw new ConvexError(
+        'This card cannot fit into custom-card layers. Check its artwork and text before converting.'
+      );
+    }
+    const slug = await allocateAssetSlug(ctx, 'card-custom', row.slug);
+    await ctx.db.patch(row._id, { type: 'card-custom', data, slug, updated_at: nowIso() });
+    await supersedePendingPublication(ctx, 'card-treachery', row._id);
+    await enqueueAssetPublication(ctx, { ...row, type: 'card-custom', data, slug });
+    return { id: row._id, slug };
   },
 });
 
 /**
  * Retires an Asset without removing it: `is_deleted` is the only column that moves.
- * Every read filters on it, the slug stays reserved by `assertAssetSlugAvailable`, and `asset_relations` rows are deliberately left alone.
+ * Every read filters on it, the slug stays reserved by `allocateAssetSlug`, and `asset_relations` rows are deliberately left alone.
  * A deleted card stops appearing in the decks that reference it (decision on the assets map: Deck→card reference mechanism and deletion semantics).
  * Idempotent, the faction convention: deleting twice is not an error.
  */
@@ -555,6 +621,9 @@ export const softDelete = mutation({
       is_deleted: true,
       updated_at: nowIso(),
     });
+    if (TOKEN_TYPES.has(access.subject.type)) {
+      await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: args.id, cursor: null });
+    }
   },
 });
 
@@ -875,4 +944,55 @@ export const browsePage = query({
 
     return { entries, truncated };
   },
+});
+
+/** Refreshes linked cards in bounded batches; token saves never traverse an entire reverse index. */
+export const refreshEmbeddedCards = internalMutation({
+  args: { tokenId: v.id('assets'), cursor: v.union(v.string(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const page = await ctx.db
+      .query('asset_relations')
+      .withIndex('by_to_kind', (q) => q.eq('to_asset_id', args.tokenId).eq('kind', CUSTOM_CARD_TOKEN_RELATION))
+      .paginate({ cursor: args.cursor, numItems: 20 });
+    for (const relation of page.page) {
+      await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCard, {
+        tokenId: args.tokenId,
+        cardId: relation.from_asset_id,
+      });
+    }
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, {
+        tokenId: args.tokenId,
+        cursor: page.continueCursor,
+      });
+    }
+    return null;
+  },
+});
+
+/** Each dependent card refreshes in its own transaction, so a failed card cannot stop the others. */
+export const refreshEmbeddedCard = internalMutation({
+  args: { tokenId: v.id('assets'), cardId: v.id('assets') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const card = await ctx.db.get('assets', args.cardId);
+    if (
+      card &&
+      !card.is_deleted &&
+      card.type === 'card-custom' &&
+      customCardTokenIds(card.data).includes(args.tokenId)
+    ) {
+      await ctx.db.patch(card._id, { updated_at: nowIso() });
+      await enqueueAssetPublication(ctx, card);
+    }
+    return null;
+  },
+});
+
+/** The create page's live token resolution, held only while its draft embeds tokens. */
+export const customCardTokens = query({
+  args: { ids: v.array(v.id('assets')) },
+  returns: zodToConvex(CustomCardTokenResolution),
+  handler: async (ctx, args) => await resolveCustomCardTokens(ctx, args.ids),
 });

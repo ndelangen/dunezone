@@ -837,6 +837,8 @@ function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
   switch (kind) {
     case 'board-scene':
       return { id, kind, boardId: 'arrakis', caption: '', players: [], troops: [], highlights: [], annotations: [] };
+    case 'piece-transfer':
+      return { id, kind, left: { label: '', pieces: [] }, right: { label: '', pieces: [] } };
     case 'piece-movement':
       return {
         id,
@@ -849,6 +851,13 @@ function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
       };
     case 'battle-comparison':
       return { id, kind, examples: [emptyBattleExample(), emptyBattleExample()] };
+    case 'battle-plans':
+      return {
+        id,
+        kind,
+        left: { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] },
+        right: { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] },
+      };
     case 'battle-step':
       return {
         id,
@@ -1268,6 +1277,11 @@ function blockEditorPanel(
       editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
       break;
     }
+    case 'piece-transfer': {
+      const Edit = rulebookBlockEditors['piece-transfer'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
     case 'piece-movement': {
       const Edit = rulebookBlockEditors['piece-movement'];
       editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
@@ -1275,6 +1289,11 @@ function blockEditorPanel(
     }
     case 'battle-comparison': {
       const Edit = rulebookBlockEditors['battle-comparison'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
+    case 'battle-plans': {
+      const Edit = rulebookBlockEditors['battle-plans'];
       editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
       break;
     }

@@ -6,11 +6,12 @@ import type { Id, TableNames } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
+import { isIsolatedLoopbackBackend } from './lib/isolatedBackend';
 import { nowIso, slugify } from './lib/utils';
 
 function assertTestMode() {
-  if (process.env.IS_TEST !== 'true') {
-    throw new Error('E2E helpers are only available when IS_TEST=true');
+  if (!isIsolatedLoopbackBackend()) {
+    throw new Error('E2E helpers require an isolated loopback backend');
   }
 }
 

@@ -110,7 +110,7 @@ test('members create clean Rulebooks and owners manage the saved Ruleset list', 
   await page.getByRole('radio', { name: 'Starter template' }).check();
   await page.getByRole('textbox', { name: 'Rulebook name' }).fill('Battle reference');
   await page.getByRole('button', { name: 'Create Rulebook', exact: true }).click();
-  await expect(page).toHaveURL(/\/rulebooks\/battle-reference-2\/edit/);
+  await expect(page).toHaveURL(/\/rulebooks\/battle-reference-1\/edit/);
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 });
 

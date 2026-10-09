@@ -13,7 +13,9 @@ import { useEffect, useState } from 'react';
 
 import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
+import { BoardMap } from '@game/assets/board/Board';
 import { CardBack } from '@game/assets/card/Back';
+import { CustomCard } from '@game/assets/card/Custom';
 import { SpiceCard } from '@game/assets/card/Spice';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -80,6 +82,8 @@ type CaptureSubject = { documentFlag?: string; node: ReactNode };
 
 function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
   switch (snapshot.assetType) {
+    case 'board':
+      return printedImage('board', <BoardMap board={snapshot.payload.board} />);
     case 'faction_sheet':
       return {
         documentFlag: 'factionSheet',
@@ -91,6 +95,11 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
       };
     case 'card-treachery':
       return printedImage(snapshot.assetType, <TreacheryCard {...snapshot.payload.card} />);
+    case 'card-custom':
+      return printedImage(
+        snapshot.assetType,
+        <CustomCard {...snapshot.payload.card} tokens={snapshot.payload.tokens} />
+      );
     case 'card-spice':
       return printedImage(snapshot.assetType, <SpiceCard {...snapshot.payload.card} />);
     case 'faction-token':

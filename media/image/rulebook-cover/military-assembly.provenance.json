@@ -1,0 +1,15 @@
+{
+  "source": "https://sm.ign.com/ign_jp/photo/default/dune-part-two-4-1688060145496_zfuc.jpg",
+  "sourceSha256": "d5b409338383524dc1ea4dfd544a8f1ee68f63f4849cf4baee70cc3593309bd6",
+  "confirmedBy": "Norbert",
+  "confirmedOn": "2026-10-07",
+  "preparation": "AI recreated the supplied military assembly in the existing covers' angular navy-and-amber style, preserving the troop formations, central avenue, banners and ceremonial platform. The reference and draft remain untouched.",
+  "approvedAssetSha256": "47035579ab2c56a8e894e067bf4f43daeec08eb3caf9fe9d40e0371156f8b5cc",
+  "approvedDimensions": {
+    "width": 1448,
+    "height": 1086
+  },
+  "approval": "Norbert approved adding all three scene covers on 7 October 2026.",
+  "generationMethod": "Built-in image generation",
+  "issue": "https://github.com/ndelangen/dunezone/issues/1929"
+}

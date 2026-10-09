@@ -21,6 +21,7 @@ import {
   factionSheetAssetDataSchema,
   factionTokenAssetDataSchema,
   parsePublicationAssetData,
+  CUSTOM_CARD_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
 } from '../../src/shared/asset-publishing/publication';
@@ -28,9 +29,11 @@ import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/pu
 import { publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import { authoredCardback, DeckAsset, RectangleTokenAsset, TokenAsset } from '../../src/shared/assets/schema';
+import { BoardAsset } from '../../src/shared/boards/schema';
 import { HistoricalFactionPublicationSchema } from '../../src/shared/factions/schema';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { customCardTokenIds, customCardPublicationError, resolveCustomCardTokens } from './customCardTokens';
 
 type PublicationReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 
@@ -201,6 +204,13 @@ export async function enqueueAssetPublication(
   now?: number
 ) {
   switch (asset.type) {
+    case 'board':
+      return await enqueuePublicationJob(ctx, {
+        assetType: 'board',
+        assetId: asset._id,
+        assetData: { assetId: asset._id, slug: asset.slug, board: BoardAsset.parse(asset.data).board },
+        now,
+      });
     case TREACHERY_CARD_ASSET_TYPE:
     case SPICE_CARD_ASSET_TYPE:
       return await enqueuePublicationJob(ctx, {
@@ -209,6 +219,21 @@ export async function enqueueAssetPublication(
         assetData: { assetId: asset._id, slug: asset.slug, card: asset.data },
         now,
       });
+    case CUSTOM_CARD_ASSET_TYPE: {
+      const ids = customCardTokenIds(asset.data);
+      const resolved = ids.length ? await resolveCustomCardTokens(ctx, ids) : undefined;
+      const error = resolved ? customCardPublicationError(asset.data, resolved) : null;
+      if (error) {
+        return await recordCardPublicationError(ctx, asset, error, now);
+      }
+      const tokens = resolved?.tokens;
+      return await enqueuePublicationJob(ctx, {
+        assetType: asset.type,
+        assetId: asset._id,
+        assetData: { assetId: asset._id, slug: asset.slug, card: asset.data, ...(tokens ? { tokens } : {}) },
+        now,
+      });
+    }
     /*
      * The Cardback is lifted out of the stored deck here rather than carried whole, so the payload is exactly the publication's input.
      * `parseAssetDataForWrite` already validated this row on the way in, so the parse is a total function rather than a guard.
@@ -244,6 +269,32 @@ export async function enqueueAssetPublication(
     default:
       return null;
   }
+}
+
+/** A failed dependency keeps its diagnostic without replacing an active capture or publishing incomplete artwork. */
+async function recordCardPublicationError(
+  ctx: MutationCtx,
+  asset: { _id: Id<'assets'>; type: string; slug: string; data: unknown },
+  error: string,
+  now?: number
+) {
+  const jobs = await publicationJobsForAsset(ctx, asset.type, asset._id);
+  for (const job of jobs) {
+    if (job.status !== 'in_progress') {
+      await ctx.db.delete(job._id);
+    }
+  }
+  const timestamp = now ?? Date.now();
+  return await ctx.db.insert('publication_jobs', {
+    asset_type: asset.type,
+    asset_id: asset._id,
+    asset_data: { assetId: asset._id, slug: asset.slug, card: asset.data },
+    status: 'error',
+    error,
+    attempt_counter: 0,
+    created_at: timestamp,
+    updated_at: timestamp,
+  });
 }
 
 /** Both token models store their faces the same way, so scheduling them is one function over whatever a face happens to be. */

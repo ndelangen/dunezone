@@ -11,7 +11,7 @@ import {
 import type { TreacheryChapter, TreacheryDraft, TreacheryMemory } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { TreacheryAsset } from '@game/data/objects';
 
-import { useAssetNameField } from '../../../assetEditorStates';
+import { assetNameField } from '../../../assetEditorStates';
 import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
@@ -66,19 +66,14 @@ function CardEditSession({ asset, initialDraft, access }: CardEditSessionProps<T
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
   const [state, dispatch] = useReducer(reduce, undefined, () => openingState(initialDraft, initialDraft));
   const patch = (update: Partial<TreacheryDraft>) => dispatch({ kind: 'patch', update });
-  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { nameField, conflictWarnings } = useAssetNameField({
-    type: 'card-treachery',
+  const nameField = assetNameField({
     name: state.data.name,
     onName: (name) => patch({ name }),
-    currentSlug: asset.slug,
-    source: 'Head',
-    chapter: 'head' as TreacheryChapter,
     canRename: access.viewerAccess.capabilities.rename,
     noun: 'card',
   });
   const header = useEditPageHeader({
-    warnings: [...treacheryDraftWarnings(state.data), ...conflictWarnings],
+    warnings: [...treacheryDraftWarnings(state.data)],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */

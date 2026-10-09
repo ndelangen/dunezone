@@ -4,7 +4,11 @@ import type { CSSProperties, PropsWithChildren, ReactNode } from 'react';
 import styles from './DocumentEditorLayout.module.css';
 import { warnDroppedChild } from './warnDroppedChild';
 
-const DOCUMENTEDITOR_SLOTS = ['DocumentEditorLayout.Sidebar', 'DocumentEditorLayout.Preview'] as const;
+const DOCUMENTEDITOR_SLOTS = [
+  'DocumentEditorLayout.Sidebar',
+  'DocumentEditorLayout.Preview',
+  'DocumentEditorLayout.PreviewTools',
+] as const;
 
 export type DocumentEditorFit = 'height' | 'width';
 
@@ -13,6 +17,8 @@ export interface DocumentEditorLayoutProps extends PropsWithChildren {
   ratio: number;
   /** The preferred fit. Useful pane widths may overrule it. */
   fit: DocumentEditorFit;
+  /** A narrow inspector leaves the preview most of the available width. */
+  sidebarSize?: 'standard' | 'compact';
 }
 
 function Sidebar(_: PropsWithChildren): null {
@@ -23,11 +29,16 @@ function Preview(_: PropsWithChildren): null {
   return null;
 }
 
+function PreviewTools(_: PropsWithChildren): null {
+  return null;
+}
+
 type StickyPane = 'preview' | 'sidebar' | null;
 
 interface LayoutSlots {
   sidebar: ReactNode;
   preview: ReactNode;
+  previewTools: ReactNode;
 }
 
 interface PaneGeometryDependencies extends LayoutSlots {
@@ -42,6 +53,7 @@ function paneHeight(element: HTMLElement) {
 function readLayoutSlots(children: ReactNode): LayoutSlots {
   let sidebar: ReactNode = null;
   let preview: ReactNode = null;
+  let previewTools: ReactNode = null;
 
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) {
@@ -56,10 +68,14 @@ function readLayoutSlots(children: ReactNode): LayoutSlots {
       preview = (child.props as PropsWithChildren).children;
       return;
     }
+    if (child.type === PreviewTools) {
+      previewTools = (child.props as PropsWithChildren).children;
+      return;
+    }
     warnDroppedChild('DocumentEditorLayout', DOCUMENTEDITOR_SLOTS, child);
   });
 
-  return { sidebar, preview };
+  return { sidebar, preview, previewTools };
 }
 
 function resolveStickyPane(sidebarHeight: number, previewHeight: number): StickyPane {
@@ -157,7 +173,7 @@ function observePaneGeometry(
   };
 }
 
-function usePaneGeometry({ fit, ratio, preview, sidebar }: PaneGeometryDependencies) {
+function usePaneGeometry({ fit, ratio, preview, sidebar, previewTools }: PaneGeometryDependencies) {
   const rootRef = useRef<HTMLDivElement>(null);
   const sidebarContentRef = useRef<HTMLDivElement>(null);
   const previewFrameRef = useRef<HTMLDivElement>(null);
@@ -178,7 +194,7 @@ function usePaneGeometry({ fit, ratio, preview, sidebar }: PaneGeometryDependenc
     }
 
     return observePaneGeometry(root, sidebarContent, previewFrame, setStickyPane);
-  }, [fit, ratio, preview, sidebar]);
+  }, [fit, ratio, preview, sidebar, previewTools]);
 
   return { rootRef, sidebarContentRef, previewFrameRef, stickyPane };
 }
@@ -188,21 +204,26 @@ function usePaneGeometry({ fit, ratio, preview, sidebar }: PaneGeometryDependenc
  * The document owns vertical scrolling. The Layout owns pane allocation, the narrow horizontal track,
  * and which shorter pane can remain visible while its taller neighbour continues through the document.
  */
-function DocumentEditorLayoutBase({ ratio, fit, children }: DocumentEditorLayoutProps) {
+function DocumentEditorLayoutBase({ ratio, fit, sidebarSize = 'standard', children }: DocumentEditorLayoutProps) {
   if (!isValidRatio(ratio)) {
     throw new RangeError('DocumentEditorLayout ratio must be a positive finite number.');
   }
 
-  const { sidebar, preview } = readLayoutSlots(children);
+  const { sidebar, preview, previewTools } = readLayoutSlots(children);
   const { rootRef, sidebarContentRef, previewFrameRef, stickyPane } = usePaneGeometry({
     fit,
     ratio,
     preview,
+    previewTools,
     sidebar,
   });
 
   return (
-    <div className={styles.container} style={{ '--document-editor-ratio': ratio } as CSSProperties}>
+    <div
+      className={styles.container}
+      data-sidebar-size={sidebarSize}
+      style={{ '--document-editor-ratio': ratio } as CSSProperties}
+    >
       <div
         ref={rootRef}
         className={styles.root}
@@ -221,6 +242,7 @@ function DocumentEditorLayoutBase({ ratio, fit, children }: DocumentEditorLayout
             </div>
           </div>
           <div className={styles.previewPane} data-document-editor-preview>
+            {previewTools && <div className={styles.previewTools}>{previewTools}</div>}
             <div
               ref={previewFrameRef}
               className={styles.previewFrame}
@@ -238,9 +260,11 @@ function DocumentEditorLayoutBase({ ratio, fit, children }: DocumentEditorLayout
 type DocumentEditorLayoutComponent = ((props: DocumentEditorLayoutProps) => ReactNode) & {
   Sidebar: typeof Sidebar;
   Preview: typeof Preview;
+  PreviewTools: typeof PreviewTools;
 };
 
 export const DocumentEditorLayout = Object.assign(DocumentEditorLayoutBase, {
   Sidebar,
   Preview,
+  PreviewTools,
 }) as DocumentEditorLayoutComponent;

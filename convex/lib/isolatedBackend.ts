@@ -9,7 +9,9 @@ function isLoopback(value: string | undefined): boolean {
 
 /**
  * Whether this backend is an isolated loopback test backend: test mode and local Password sign-in are on, and both its own URL and its site are on a loopback host.
- * A cloud deployment's own URL is never on a loopback host, so this is false on every hosted deployment whatever its settings.
+ * Hosted deployments use public canonical URLs, so enabling test mode alone cannot enable these controls.
+ * Deployment administrators can override canonical URLs;
+ * this guard does not protect against an administrator deliberately reconfiguring every condition.
  * The hosted load backend's copy replaces `playSynthetic.ts`, which delegates here, but never this module, so code that calls this directly stays loopback-only there too.
  */
 export function isIsolatedLoopbackBackend() {

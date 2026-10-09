@@ -3,6 +3,7 @@ import { initialSnapshot } from '../play/commands';
 import type { StoredPiece } from '../play/model';
 import { factionSupplyLayout } from '../play/setupLayout';
 import { item, piece, place } from '../play/setupSupply';
+import { cardBaySlotPositions } from '../play/tableFurnitureLayout';
 import { BOARD_RADIUS } from '../play/tableGeometry';
 import { tableSeatAngles } from '../play/tableSettings';
 import board from '../rulebooks/boards/arrakis.json';
@@ -80,7 +81,7 @@ function treacheryPieces(artwork: (path: string) => string): StoredPiece[] {
           return item(`treachery-${n}`, card.name, artwork(card.face), back, 'card-treachery', false);
         }),
       },
-      [6.3, 0, 0]
+      cardBaySlotPositions('right')[2]!
     ),
     place(
       {

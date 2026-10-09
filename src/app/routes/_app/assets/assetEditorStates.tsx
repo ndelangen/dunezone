@@ -1,4 +1,4 @@
-import { Alert, Group, Text } from '@mantine/core';
+import { Alert, Group, Text, TextInput } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
@@ -7,15 +7,11 @@ import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import type { StatusInfoItem } from '@ui/control/StatusInfo';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
-import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
-import { AssetNameInput } from '@app/pickers/AssetNameInput';
-import { nameConflictComplaint } from '@app/pickers/UniqueNameInput';
-import type { NameConflict } from '@app/pickers/UniqueNameInput';
 import { groupAccessStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -203,50 +199,27 @@ export function useAssetGroupActions({
   };
 }
 
-/**
- * The route's half of the name field: state for the conflict the Picker reports, the ready warning rows for the validation header, and the field node the editor widget mounts.
- *
- * The field itself is `AssetNameInput`, a Picker (the taxonomy's one fetching control), so no route holds a second page subscription and no widget fetches.
- * Norbert ruled it so on 2026-08-22: the earlier rulebook exception was the wrong answer, and the right one was making the field a Picker.
- * Finding 19 of «Walk findings, round two» is the why: a card named Shield met the reserved slug of the existing Shield card and the reader learned nothing.
- */
-export function useAssetNameField<Chapter extends string>({
-  type,
+/** Asset names may repeat; the save mutation assigns each asset a unique URL. */
+export function assetNameField({
   name,
   onName,
-  currentSlug,
-  source,
-  chapter,
   canRename,
-  noun,
+  noun = 'asset',
 }: {
-  type: string;
   name: string;
   onName: (name: string) => void;
-  currentSlug?: string;
-  /** The validation header group the warning joins, Identity everywhere but the two cards, whose names live in Head. */
-  source: string;
-  chapter: Chapter;
-  /** Whether this viewer may rename the asset, which only its owner may (#605). A create page states `true`: its viewer is the owner-to-be. */
   canRename: boolean;
-  /** What the asset is called in the locked field's explanation, as in "Only the token owner can rename it." */
   noun?: string;
-}): { nameField: ReactNode; conflictWarnings: { source: string; complaint: string; chapter: Chapter }[] } {
-  const [conflict, setConflict] = useState<NameConflict | null>(null);
-  return {
-    nameField: (
-      <AssetNameInput
-        type={type}
-        value={name}
-        onChange={onName}
-        currentSlug={currentSlug}
-        onConflictChange={setConflict}
-        canRename={canRename}
-        noun={noun}
-      />
-    ),
-    conflictWarnings: conflict ? [{ source, complaint: nameConflictComplaint(conflict), chapter }] : [],
-  };
+}): ReactNode {
+  return (
+    <TextInput
+      aria-label="Name"
+      value={name}
+      onChange={(event) => onName(event.currentTarget.value)}
+      disabled={!canRename}
+      description={canRename ? undefined : `Only the ${noun} owner can rename it.`}
+    />
+  );
 }
 
 /**

@@ -1,11 +1,12 @@
 import { Alert, Avatar, Box, Group, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, notFound, Link } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
-import { formatRelativeDate } from '@ui/content/dates';
+import { formatStableDate } from '@ui/content/dates';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
@@ -20,6 +21,7 @@ import { ArrowLeft, BookOpen, Check, Crown, Pencil, Plus, UserPlus, UserRoundMin
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { useSetFactionGroup } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
 import { loadGroupDetailBySlug, useDeleteGroup, useGroupDetailBySlug } from '@db/groups';
@@ -30,7 +32,7 @@ import type { RulesetEntry } from '@db/rulesets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { OwnedFactionAssignPicker, OwnedRulesetAssignPicker } from '@app/pickers/GroupAssignPicker';
 import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
@@ -38,12 +40,25 @@ import styles from './index.module.css';
 type RosterEntry = GroupDetailPageData['roster'][number];
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/')({
+  ssr: true,
   loader: async ({ params }) => {
-    const groupDetail = await loadGroupDetailBySlug(params.groupSlug);
+    const groupDetail = await loadPublicPage(loadGroupDetailBySlug(params.groupSlug));
+    if (!groupDetail) {
+      throw notFound();
+    }
     return { groupDetail };
   },
   errorComponent: GroupDetailError,
-  head: ({ loaderData }) => pageHead(loaderData?.groupDetail.group.name ?? 'Group'),
+  head: ({ loaderData, params, match }) =>
+    publicPageHead({
+      name: loaderData?.groupDetail.group.name ?? 'Group',
+      pathname: `/groups/${encodeURIComponent(params.groupSlug)}`,
+      description: loaderData
+        ? `Members: ${loaderData.groupDetail.roster.filter((member) => member.status === 'active').length}. Factions: ${loaderData.groupDetail.factions.length}. Rulesets: ${loaderData.groupDetail.rulesets.length}. Explore this Group on Dune Zone.`
+        : '',
+      social: { kind: 'Group', shape: 'round' },
+      match,
+    }),
   component: GroupDetailPage,
 });
 
@@ -54,6 +69,13 @@ const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMe
  * A failed Convex query throws to this route boundary, so the live-query result has no separate error state.
  */
 function GroupDetailError({ error }: ErrorComponentProps) {
+  if (isPublicPageNotFound(error)) {
+    return (
+      <PageMessage size="compact" title="Group" back={backToProfiles}>
+        <NotAvailable title="Group not found">This group does not exist or was deleted.</NotAvailable>
+      </PageMessage>
+    );
+  }
   return (
     <PageMessage size="compact" title="Group" back={backToProfiles}>
       <LoadError title="Group could not be loaded" stale={isStaleClientData(error)}>
@@ -72,12 +94,14 @@ function GroupDetailPage() {
   const deleteGroup = useDeleteGroup();
   const setFactionGroup = useSetFactionGroup();
   const setRulesetGroup = useSetRulesetGroup();
+  const [removingMembershipId, setRemovingMembershipId] = useState<string | null>(null);
 
   /* The failed case is the route's `errorComponent` now, since the branch that used to sit here
      could not run. What is left is the wait, which every other page in the tree spells this way:
      the skeleton grid was the only one of its kind and announced nothing to a reader who cannot
      see it. */
   const page = groupData.data;
+  useLivePageTitle(page?.group.name);
   if (!page) {
     return (
       <PageMessage size="compact" title="Group" back={backToProfiles}>
@@ -89,13 +113,16 @@ function GroupDetailPage() {
   const group = page.group;
   const groupId = group._id;
   const viewerAccess = page.viewerAccess;
+  const capabilities = groupData.isPending ? undefined : viewerAccess.capabilities;
   const ownerProfile = page.owner;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   const isOwner = viewerAccess.capabilities.rename;
-  const isActiveMember = membershipStatus === 'active';
+  const isActiveMember = !groupData.isPending && membershipStatus === 'active';
   const factions = page.factions;
   const rulesets = page.rulesets;
-  const roster = page.roster;
+  const roster = groupData.isPending
+    ? page.roster.map((entry) => ({ ...entry, capabilities: { approve: false, reject: false, remove: false } }))
+    : page.roster;
 
   const activeMembers = roster.filter((member) => member.status === 'active');
   const pendingMembers = roster.filter((member) => member.status === 'pending');
@@ -110,7 +137,6 @@ function GroupDetailPage() {
 
   /* No question: the trigger itself is held five seconds, the same commitment every destructive action asks for. */
   /* Which membership's removal is in flight, so only the held row's trigger reads as busy; cleared during render when the round trip ends, the search box's pattern. */
-  const [removingMembershipId, setRemovingMembershipId] = useState<string | null>(null);
   if (!membershipWorkflow.remove.isPending && removingMembershipId !== null) {
     setRemovingMembershipId(null);
   }
@@ -186,7 +212,7 @@ function GroupDetailPage() {
               renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
               icon={<ArrowLeft size={17} aria-hidden />}
             />
-            {viewerAccess.capabilities.rename ? (
+            {capabilities?.rename ? (
               <IconAction
                 label="Edit group"
                 emphasis="standard"
@@ -199,7 +225,7 @@ function GroupDetailPage() {
           </Toolbar.Left>
           <Toolbar.Right label="Group actions">
             <Toolbar.Cluster kind="access">
-              {viewerAccess.capabilities.requestMembership ? (
+              {capabilities?.requestMembership ? (
                 <IconAction
                   label="Request membership"
                   emphasis="standard"
@@ -213,7 +239,7 @@ function GroupDetailPage() {
               ) : null}
             </Toolbar.Cluster>
             <Toolbar.Cluster kind="discard">
-              {viewerAccess.capabilities.delete ? (
+              {capabilities?.delete ? (
                 <ConfirmDeleteAction
                   label="Delete group"
                   pending={deleteGroup.isPending}
@@ -432,7 +458,7 @@ function MemberRow({
         )}
         {isPending && (
           <Text size="xs" c="dimmed">
-            requested {formatRelativeDate(entry.requestedAt)}
+            requested {formatStableDate(entry.requestedAt)}
           </Text>
         )}
       </Group>
