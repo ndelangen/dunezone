@@ -313,9 +313,11 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
       # Every original a PR adds to the raster lock must already be in R2 (#1888 step 6). It reads
-      # the public ingest endpoint and needs no secret, so fork PRs run it too.
+      # the public ingest endpoint and needs no secret, so fork PRs run it too. It warns without
+      # failing until an upload token is handed out, so art PRs are never stuck without a way to pass.
       - name: Check new raster originals are ingested
         if: ${{ !cancelled() }}
+        continue-on-error: true
         env:
           BASE_REF: ${{ github.base_ref }}
         run: bun run media:gate "origin/${BASE_REF}"
