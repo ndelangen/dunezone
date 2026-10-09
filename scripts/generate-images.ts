@@ -171,7 +171,7 @@ function materialize(plan: PlannedVariant[]): void {
 
 const started = performance.now();
 assertLockCoversOriginals();
-const keys = Object.keys(lock).sort();
+const keys = Object.keys(lock).sort((left, right) => left.localeCompare(right));
 const plans = new Map(keys.map((key) => [key, planVariants(key, lock[key], sharp.versions)]));
 const plan = [...plans.values()].flat();
 mkdirSync(storeRoot, { recursive: true });
