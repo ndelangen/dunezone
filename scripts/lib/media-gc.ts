@@ -42,34 +42,25 @@ export type BucketReport = {
 
 type Reason = 'inRelease' | 'inLock' | 'young' | 'unrecognised' | 'candidate';
 
-function classify(
-  object: StoredObject,
-  id: string | undefined,
-  released: ReadonlySet<string>,
-  locked: ReadonlySet<string>,
-  cutoff: number
-): Reason {
+/** What keeps one bucket's objects: the ids release records and locks reference, and the newest upload time a candidate may have. */
+type Retention = { released: ReadonlySet<string>; locked: ReadonlySet<string>; cutoff: number };
+
+function classify(object: StoredObject, id: string | undefined, retention: Retention): Reason {
   if (id === undefined) {
     return 'unrecognised';
   }
-  if (released.has(id)) {
+  if (retention.released.has(id)) {
     return 'inRelease';
   }
-  if (locked.has(id)) {
+  if (retention.locked.has(id)) {
     return 'inLock';
   }
   const uploaded = Date.parse(object.uploaded);
   /* An object with an unreadable upload time is treated as young, so it is never collected on a guess. */
-  return Number.isNaN(uploaded) || uploaded > cutoff ? 'young' : 'candidate';
+  return Number.isNaN(uploaded) || uploaded > retention.cutoff ? 'young' : 'candidate';
 }
 
-function bucketReport(
-  objects: readonly StoredObject[],
-  pattern: RegExp,
-  released: ReadonlySet<string>,
-  locked: ReadonlySet<string>,
-  cutoff: number
-): BucketReport {
+function bucketReport(objects: readonly StoredObject[], pattern: RegExp, retention: Retention): BucketReport {
   const report: BucketReport = {
     objects: objects.length,
     inRelease: 0,
@@ -79,7 +70,7 @@ function bucketReport(
     candidates: [],
   };
   for (const object of objects) {
-    const reason = classify(object, pattern.exec(object.key)?.[1], released, locked, cutoff);
+    const reason = classify(object, pattern.exec(object.key)?.[1], retention);
     if (reason === 'unrecognised') {
       report.unrecognised.push(object.key);
     } else if (reason === 'candidate') {
@@ -99,7 +90,15 @@ export function planCollection(inputs: GcInputs): { sources: BucketReport; varia
   const lockedSources = inputs.locks.flatMap((lock) => Object.values(lock).map((entry) => entry.sha256));
   const lockedVariants = inputs.locks.flatMap((lock) => inputs.planNames(lock));
   return {
-    sources: bucketReport(inputs.sources, SOURCE_KEY, new Set(releasedSources), new Set(lockedSources), cutoff),
-    variants: bucketReport(inputs.variants, VARIANT_KEY, new Set(releasedVariants), new Set(lockedVariants), cutoff),
+    sources: bucketReport(inputs.sources, SOURCE_KEY, {
+      released: new Set(releasedSources),
+      locked: new Set(lockedSources),
+      cutoff,
+    }),
+    variants: bucketReport(inputs.variants, VARIANT_KEY, {
+      released: new Set(releasedVariants),
+      locked: new Set(lockedVariants),
+      cutoff,
+    }),
   };
 }

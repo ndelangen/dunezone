@@ -63,33 +63,59 @@ function cloudflareGet(pathname: string): Promise<Response> {
 type ListedObject = { key: string; size: number; last_modified: string };
 type ListPage = {
   success?: boolean;
-  result?: ListedObject[];
+  result?: Partial<ListedObject>[];
   result_info?: { cursor?: string; is_truncated?: boolean };
 };
+type CompletePage = ListPage & { result: ListedObject[] };
+/** One page request: the bucket, and the cursor the previous page returned. */
+type Listing = { bucket: string; cursor?: string };
 
-function storedObject(item: ListedObject, bucket: string): StoredObject {
-  if (typeof item.key !== 'string' || typeof item.size !== 'number' || typeof item.last_modified !== 'string') {
-    throw new Error(`${bucket} listed an object without a key, size or upload time`);
+function isListedObject(item: Partial<ListedObject>): item is ListedObject {
+  if (typeof item.key !== 'string') {
+    return false;
   }
+  if (typeof item.size !== 'number') {
+    return false;
+  }
+  return typeof item.last_modified === 'string';
+}
+
+function isCompletePage(page: ListPage): page is CompletePage {
+  return Array.isArray(page.result) && page.result.every(isListedObject);
+}
+
+/** One listing page, refused unless the request succeeded and every object has a key, size and upload time. */
+async function readPage(listing: Listing): Promise<CompletePage> {
+  const query = new URLSearchParams({ per_page: '1000', ...(listing.cursor ? { cursor: listing.cursor } : {}) });
+  const response = await cloudflareGet(`/${listing.bucket}/objects?${query}`);
+  if (!response.ok) {
+    throw new Error(`Listing ${listing.bucket} failed with HTTP ${response.status}`);
+  }
+  const page = (await response.json()) as ListPage;
+  if (page.success !== true) {
+    throw new Error(`Listing ${listing.bucket} did not succeed`);
+  }
+  if (!isCompletePage(page)) {
+    throw new Error(`${listing.bucket} listed an object without a key, size or upload time`);
+  }
+  return page;
+}
+
+function storedObject(item: ListedObject): StoredObject {
   return { key: item.key, bytes: item.size, uploaded: item.last_modified };
 }
 
 /** Every object in a bucket, following the cursor until the listing says it is complete. */
-async function listBucket(bucket: string, cursor = '', listed: StoredObject[] = []): Promise<StoredObject[]> {
-  const query = new URLSearchParams({ per_page: '1000', ...(cursor ? { cursor } : {}) });
-  const response = await cloudflareGet(`/${bucket}/objects?${query}`);
-  const page = (await response.json()) as ListPage;
-  if (!response.ok || page.success !== true || !Array.isArray(page.result)) {
-    throw new Error(`Listing ${bucket} failed with HTTP ${response.status}`);
-  }
-  const objects = [...listed, ...page.result.map((item) => storedObject(item, bucket))];
+async function listBucket(listing: Listing, listed: StoredObject[] = []): Promise<StoredObject[]> {
+  const page = await readPage(listing);
+  const objects = [...listed, ...page.result.map(storedObject)];
   if (!page.result_info?.is_truncated) {
     return objects;
   }
   if (!page.result_info.cursor) {
-    throw new Error(`Listing ${bucket} was truncated without a cursor`);
+    throw new Error(`Listing ${listing.bucket} was truncated without a cursor`);
   }
-  return listBucket(bucket, page.result_info.cursor, objects);
+  return listBucket({ bucket: listing.bucket, cursor: page.result_info.cursor }, objects);
 }
 
 /** The variants one prepared release record lists. */
@@ -112,7 +138,9 @@ async function readRelease(key: string): Promise<ReleaseVariant[]> {
   });
 }
 
-function githubGet(pathname: string, accept = 'application/vnd.github+json'): Promise<Response> {
+/** A GitHub API GET, asking for the file itself rather than its JSON description when `raw` is set. */
+function githubGet(pathname: string, raw = false): Promise<Response> {
+  const accept = raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json';
   return get(`${github}${pathname}`, { Authorization: `Bearer ${githubToken}`, Accept: accept });
 }
 
@@ -131,7 +159,7 @@ async function openPullRequests(page = 1, numbers: number[] = []): Promise<numbe
 async function pullRequestLock(pull: number): Promise<RasterLock> {
   const response = await githubGet(
     `/contents/media/raster.lock.json?ref=${encodeURIComponent(`refs/pull/${pull}/head`)}`,
-    'application/vnd.github.raw+json'
+    true
   );
   if (response.status === 404) {
     return {};
@@ -149,9 +177,9 @@ function planNames(lock: RasterLock): string[] {
 }
 
 const [sources, variants, ledger, pulls] = await Promise.all([
-  listBucket(SOURCE_BUCKET),
-  listBucket(VARIANT_BUCKET),
-  listBucket(RELEASE_BUCKET),
+  listBucket({ bucket: SOURCE_BUCKET }),
+  listBucket({ bucket: VARIANT_BUCKET }),
+  listBucket({ bucket: RELEASE_BUCKET }),
   openPullRequests(),
 ]);
 const recordKeys = ledger.map((object) => object.key).filter((key) => key.endsWith('.json'));
