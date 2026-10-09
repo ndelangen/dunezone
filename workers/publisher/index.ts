@@ -8,6 +8,7 @@ import { ConvexPublisherClient } from './convex';
 import { handlePublicAssetRequest } from './delivery';
 import { executeItemList } from './executor';
 import { imagesJpegEncoder } from './image-encode';
+import { handleMediaSourceRequest } from './media-source';
 import { handlePublicDiscovery } from './public-discovery';
 import { rendererManifest } from './renderer-manifest.generated';
 import { executeRulebookHtmlWork } from './rulebook-html-executor';
@@ -126,6 +127,10 @@ const publisherWorker = {
     });
     if (publicAsset) {
       return publicAsset;
+    }
+    const mediaSource = await handleMediaSourceRequest(request, env);
+    if (mediaSource) {
+      return mediaSource;
     }
     const userImage = await handleUserImageRequest(request, env, ctx);
     if (userImage) {

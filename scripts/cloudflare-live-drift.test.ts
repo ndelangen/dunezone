@@ -38,6 +38,7 @@ function liveBindings() {
     },
     { name: 'ASSET_BUCKET', type: 'r2_bucket', bucket_name: 'tanstack-start-faction-sheet-assets' },
     { name: 'USER_IMAGE_BUCKET', type: 'r2_bucket', bucket_name: 'dunezone-user-images' },
+    { name: 'MEDIA_SOURCE_BUCKET', type: 'r2_bucket', bucket_name: 'dunezone-media-src' },
     { name: 'BROWSER', type: 'browser' },
     { name: 'IMAGES', type: 'images' },
     { name: 'ASSETS', type: 'assets' },
@@ -248,7 +249,7 @@ describe('Cloudflare live drift check', () => {
     ).resolves.toEqual({
       worker: WORKER,
       domainCount: 1,
-      bindingCount: 20,
+      bindingCount: 21,
       secretCount: 2,
       retiredSecrets: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET'],
       cronCount: 1,

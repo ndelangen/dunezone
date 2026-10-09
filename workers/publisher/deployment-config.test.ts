@@ -32,7 +32,7 @@ describe('scheduled production deployment shape', () => {
     expect(config).not.toHaveProperty('migrations');
   });
 
-  test('keeps the two private R2 bindings, one per audience', () => {
+  test('keeps the three private R2 bindings, one per audience', () => {
     expect(config.r2_buckets).toEqual([
       {
         binding: 'ASSET_BUCKET',
@@ -41,6 +41,10 @@ describe('scheduled production deployment shape', () => {
       {
         binding: 'USER_IMAGE_BUCKET',
         bucket_name: 'dunezone-user-images',
+      },
+      {
+        binding: 'MEDIA_SOURCE_BUCKET',
+        bucket_name: 'dunezone-media-src',
       },
     ]);
   });
@@ -114,6 +118,8 @@ describe('scheduled production deployment shape', () => {
       '/user-images/*',
       '/__user-images',
       '/__user-images/*',
+      '/__media',
+      '/__media/*',
       '/__play',
       '/__play/*',
       '/sitemap*',

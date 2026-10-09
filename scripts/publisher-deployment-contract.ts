@@ -10,6 +10,7 @@ import { assertActiveDeployment } from './cloudflare-deployment';
 export const PUBLISHER_WORKER_NAME = 'faction-sheet-asset-publisher';
 export const PUBLISHER_BUCKET_NAME = 'tanstack-start-faction-sheet-assets';
 export const USER_IMAGE_BUCKET_NAME = 'dunezone-user-images';
+export const MEDIA_SOURCE_BUCKET_NAME = 'dunezone-media-src';
 export const PUBLISHER_ORIGIN = 'https://faction-sheet-asset-publisher.ndelangen.workers.dev';
 export const APPLICATION_ORIGIN = 'https://dune.zone';
 export const PUBLISHER_PRODUCTION_CONVEX_URL = 'https://exuberant-finch-263.eu-west-1.convex.cloud';
@@ -107,6 +108,8 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/user-images/*',
         '/__user-images',
         '/__user-images/*',
+        '/__media',
+        '/__media/*',
         '/__play',
         '/__play/*',
         '/sitemap*',
@@ -148,6 +151,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
     [
       { binding: 'ASSET_BUCKET', bucket_name: PUBLISHER_BUCKET_NAME },
       { binding: 'USER_IMAGE_BUCKET', bucket_name: USER_IMAGE_BUCKET_NAME },
+      { binding: 'MEDIA_SOURCE_BUCKET', bucket_name: MEDIA_SOURCE_BUCKET_NAME },
     ],
     'R2 binding'
   );
