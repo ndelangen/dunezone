@@ -37,6 +37,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'scripts/lib/threeRendererStack.ts',
   'scripts/generate.ts',
   'scripts/generate-*',
+  'scripts/media-variants.ts',
   'scripts/assemble-publisher-assets.ts',
   'scripts/verify-rulebook-html-runtime.ts',
   'scripts/workerd-exit-record.mjs',
