@@ -77,6 +77,26 @@ describe('media variants', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store');
   });
 
+  test("serves a name R2 lacks from the release's own static copy, without integrity headers", async () => {
+    const assets = {
+      fetch: async (request: Request) =>
+        new URL(request.url).pathname === `/m/${NAME}`
+          ? new Response(BYTES, { headers: { 'Content-Type': 'image/webp' } })
+          : new Response('<html></html>', { headers: { 'Content-Type': 'text/html' } }),
+    };
+    const env = { ...empty(), ASSETS: assets as unknown as Fetcher };
+
+    const bundled = await answer(`/m/${NAME}`, {}, env);
+    expect(bundled.status).toBe(200);
+    expect(bundled.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+    expect(bundled.headers.get('X-Media-SHA256')).toBeNull();
+    expect(new Uint8Array(await bundled.arrayBuffer())).toEqual(BYTES);
+
+    const spaFallback = await answer('/m/ffffffffffffffffffff.ffffffffff.webp', {}, env);
+    expect(spaFallback.status).toBe(404);
+    expect(spaFallback.headers.get('Cache-Control')).toBe('no-store');
+  });
+
   test('refuses a variant stored without integrity metadata rather than serving it unverifiable', async () => {
     const response = await answer(`/m/${NAME}`, {}, stored({}));
 

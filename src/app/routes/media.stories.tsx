@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { LEADERS } from '@shared/assetIds';
+import { resolveAsset } from '@shared/media/resolveAsset';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from './storybookConfig';
@@ -40,7 +41,7 @@ export const LeaderLink = meta.story({
     await expect(page.findByRole('heading', { name: 'Aramsham' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.getByRole('link', { name: 'Open image file' })).toHaveAttribute(
       'href',
-      '/image/leader/official/aramsham-large.webp'
+      resolveAsset('/image/leader/official/aramsham.png', 'large')
     );
     await userEvent.click(page.getByRole('button', { name: 'Close preview' }));
     await expect(page.queryByRole('link', { name: 'Open image file' })).toBeNull();

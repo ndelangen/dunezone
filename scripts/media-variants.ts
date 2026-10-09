@@ -8,9 +8,9 @@
  */
 import { createHash } from 'node:crypto';
 
-import { ASSET_RULES, FORMAT_EXTENSION } from '../src/shared/assetRules';
-import type { AssetFormat, CategoryRule } from '../src/shared/assetRules';
-import type { RasterLockEntry } from '../src/shared/media/rasterLock';
+import { ASSET_RULES, FORMAT_EXTENSION, categoryForKey } from '../src/shared/assetRules';
+import type { AssetFormat, AssetSize, CategoryRule } from '../src/shared/assetRules';
+import type { MediaRecipes, RasterLockEntry } from '../src/shared/media/rasterLock';
 
 /** Bump to re-encode every variant when encoder behaviour changes in a way the versions and rules do not capture. */
 export const ENCODER_REVISION = 1;
@@ -49,15 +49,6 @@ export type PlannedVariant = {
 
 /** The SHA-256 and byte length a variant must match before anything uses it. */
 export type ChecksumRecord = { sha256: string; bytes: number };
-
-function categoryForKey(key: string): string | undefined {
-  const [first, second] = key.replace(/^\//, '').split('/');
-  const nested = `${first}/${second}`;
-  if (ASSET_RULES[nested]) {
-    return nested;
-  }
-  return first && ASSET_RULES[first] ? first : undefined;
-}
 
 function canonicalFormat(key: string): AssetFormat {
   const extension = key.match(RASTER)?.[1]?.toLowerCase();
@@ -106,6 +97,30 @@ export function variantName(sourceSha256: string, recipe: VariantRecipe, version
   return `${sourceSha256.slice(0, 20)}.${recipeHash(recipe, versions)}.${FORMAT_EXTENSION[recipe.format]}`;
 }
 
+/** The declared size tiers of a rule, each with its target width. */
+function declaredTiers(rule: CategoryRule): [AssetSize, number | null][] {
+  return Object.entries(rule.sizes).filter((tier): tier is [AssetSize, number | null] => tier[1] !== undefined);
+}
+
+/**
+ * The recipe name of every declared size tier, by category, for the committed media map.
+ * The runtime resolver joins it to an original's `src20`, so a URL it emits is exactly the name `planVariants` gives that variant.
+ */
+export function tierRecipes(versions: EncoderVersions): Record<string, MediaRecipes> {
+  return Object.fromEntries(
+    Object.keys(ASSET_RULES)
+      .sort((left, right) => left.localeCompare(right))
+      .map((category) => {
+        const rule = ASSET_RULES[category];
+        const recipes = declaredTiers(rule).map(([tier, width]) => [
+          tier,
+          recipeHash(recipeFor(category, rule, { tier, width, format: rule.format }), versions),
+        ]);
+        return [category, Object.fromEntries(recipes)];
+      })
+  );
+}
+
 /** Every variant one original needs: one per declared size tier, plus the capped re-encode at the canonical name. */
 export function planVariants(key: string, entry: RasterLockEntry, versions: EncoderVersions): PlannedVariant[] {
   const category = categoryForKey(key);
@@ -115,12 +130,10 @@ export function planVariants(key: string, entry: RasterLockEntry, versions: Enco
   }
   const relative = key.replace(/^\//, '');
   const base = relative.replace(RASTER, '');
-  const tiers = Object.entries(rule.sizes)
-    .filter((tier): tier is [string, number | null] => tier[1] !== undefined)
-    .map(([tier, width]) => ({
-      recipe: recipeFor(category, rule, { tier: tier as VariantTier, width, format: rule.format }),
-      legacyPath: `${base}-${tier}.${FORMAT_EXTENSION[rule.format]}`,
-    }));
+  const tiers = declaredTiers(rule).map(([tier, width]) => ({
+    recipe: recipeFor(category, rule, { tier, width, format: rule.format }),
+    legacyPath: `${base}-${tier}.${FORMAT_EXTENSION[rule.format]}`,
+  }));
   const canonical = {
     recipe: recipeFor(category, rule, { tier: 'canonical', width: rule.safetyCapPx, format: canonicalFormat(key) }),
     legacyPath: relative,

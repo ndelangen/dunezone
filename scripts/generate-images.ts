@@ -1,12 +1,12 @@
 /**
- * Generates every file under public/image/** and public/web/** from the raster lock and the sources in media/, per src/shared/assetRules.ts, sparing the committed files that `COMMITTED_WEB_FILES` names.
+ * Generates every file under public/m/**, public/image/** and public/web/** from the raster lock and the sources in media/, per src/shared/assetRules.ts, sparing the committed files that `COMMITTED_WEB_FILES` names.
  *
  * Bun run generate:images [--cached-only] [--prune]
  *
  * Per source `media/image/texture/021.jpg` this emits: public/image/texture/021-small.jpg (+ -large, and -print where declared) public/image/texture/021.jpg (safety-net re-encode at the canonical name, capped, same extension).
  * Each variant is first encoded into the content-addressed store `.cache/media/local/v/<src20>.<recipe10>.<ext>`, beside a `<name>.sha256` record of its SHA-256 and byte length (#1888 step 3).
  * The store is never wiped: a variant whose record still matches is reused, so only new originals or changed recipes are encoded.
- * public/ is then rebuilt from the store, so removals in media/ still propagate.
+ * public/ is then rebuilt from the store, so removals in media/ still propagate: each variant at its `/m/<name>`, which `resolveAsset` emits (#1888 step 5), and at its legacy path.
  * `--cached-only` encodes nothing and exits 3 when a variant is missing, so CI can tell whether it needs the original bytes at all.
  * `--prune` deletes stored variants the current plan no longer names, so a store carried between CI runs stays the size of one store.
  * With MEDIA_FILL_ORIGIN set (CI sets https://dune.zone), a variant the store lacks is first downloaded from `/m`, where each deploy publishes them, and kept only when its bytes match the `X-Media-SHA256` and `X-Media-Bytes` it was served with.
@@ -194,18 +194,28 @@ async function pool<T, R>(items: T[], limit: number, work: (item: T) => Promise<
   return results;
 }
 
-function materialize(plan: PlannedVariant[]): void {
+/** Clears the generated trees, sparing the committed files under public/web. */
+function clearGenerated(): void {
   rmSync(path.join(publicRoot, 'image'), { recursive: true, force: true });
+  rmSync(path.join(publicRoot, 'm'), { recursive: true, force: true });
   const committedWebFiles = new Set<string>(COMMITTED_WEB_FILES);
-  for (const entry of readdirSync(path.join(publicRoot, 'web'))) {
-    if (!committedWebFiles.has(entry)) {
-      rmSync(path.join(publicRoot, 'web', entry), { recursive: true, force: true });
-    }
+  const generatedWeb = readdirSync(path.join(publicRoot, 'web')).filter((entry) => !committedWebFiles.has(entry));
+  for (const entry of generatedWeb) {
+    rmSync(path.join(publicRoot, 'web', entry), { recursive: true, force: true });
   }
+}
+
+/** Writes every variant at the legacy path that already-issued URLs still name, and each size tier at the `/m` name `resolveAsset` emits. */
+function materialize(plan: PlannedVariant[]): void {
+  clearGenerated();
+  mkdirSync(path.join(publicRoot, 'm'));
   for (const variant of plan) {
     const target = path.join(publicRoot, variant.legacyPath);
     mkdirSync(path.dirname(target), { recursive: true });
     copyFileSync(path.join(storeRoot, variant.name), target);
+  }
+  for (const variant of plan.filter(({ recipe }) => recipe.tier !== 'canonical')) {
+    copyFileSync(path.join(storeRoot, variant.name), path.join(publicRoot, 'm', variant.name));
   }
 }
 

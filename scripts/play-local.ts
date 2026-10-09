@@ -94,7 +94,7 @@ function markAssetsRead(directory: string) {
 
 if (!values['skip-build']) {
   if (values['skip-generate']) {
-    const generated = ['public/image', 'public/vector'];
+    const generated = ['public/m', 'public/image', 'public/vector'];
     const missing = generated.filter((relative) => !existsSync(path.join(root, relative)));
     if (missing.length > 0) {
       throw new Error(

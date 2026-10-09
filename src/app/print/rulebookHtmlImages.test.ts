@@ -5,6 +5,7 @@ import { factionTokenFixtures } from '../../game/fixtures/factionTokens';
 import { factionMemberPublicationId } from '../../shared/asset-publishing/componentPublication';
 import { publishedHref } from '../../shared/asset-publishing/publicationTargets';
 import { assetPublishingFaction } from '../../shared/factions/fixtures/assetPublishingFaction';
+import { resolveAsset } from '../../shared/media/resolveAsset';
 import type { RulebookContentsDraftV1 } from '../../shared/rulebooks/contents';
 import { rulebookContentsV1Schema } from '../../shared/rulebooks/contents';
 import { rulebookCoverPresetCatalogue } from '../../shared/rulebooks/coverPresets';
@@ -144,8 +145,8 @@ describe('downloaded Rulebook images', () => {
     }
     expect(parsed.querySelectorAll('symbol')).toHaveLength(2);
     expect([...parsed.querySelectorAll('svg image')].map((image) => image.getAttribute('xlink:href'))).toEqual([
-      'https://dune.zone/image/texture/021-large.jpg',
-      'https://dune.zone/image/texture/021-large.jpg',
+      `https://dune.zone${resolveAsset('/image/texture/021.jpg', 'large')}`,
+      `https://dune.zone${resolveAsset('/image/texture/021.jpg', 'large')}`,
     ]);
     expect(html).toContain('Two Houses');
     expect(html).toContain('Expansion rules');
@@ -349,7 +350,7 @@ describe('downloaded Rulebook images', () => {
     expect(serialized).toContain(`https://dune.zone${memberHref}`);
     expect(serialized).toContain(`https://dune.zone${cardHref}`);
     expect(serialized).toContain('https://dune.zone/page/map.svg');
-    expect(serialized).toContain('https://dune.zone/image/leader/official/jessica-large.webp');
+    expect(serialized).toContain(`https://dune.zone${resolveAsset('/image/leader/official/jessica.png', 'large')}`);
     expect(serialized).toContain('https://dune.zone/vector/logo/atreides.svg');
     expect(serialized).toContain(`https://dune.zone${publishedHref('faction-token', factionId, 'token-one')}`);
     expect(serialized).not.toContain('"imageUrl":"/');
