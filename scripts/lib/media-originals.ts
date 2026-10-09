@@ -40,6 +40,13 @@ function fetchSource(original: Original, init: RequestInit = {}) {
   });
 }
 
+/** Refuses the original with the reason unless the condition holds. */
+function demand(condition: boolean, original: Original, reason: string): void {
+  if (!condition) {
+    throw new Error(`${original.key}: ${reason}`);
+  }
+}
+
 function integrity(original: Original) {
   return { sha256: original.hash, bytes: original.entry.bytes };
 }
@@ -50,14 +57,12 @@ async function alreadyStored(original: Original): Promise<boolean> {
   if (head.status === 404) {
     return false;
   }
-  if (head.status !== 200) {
-    throw new Error(`${original.key}: HEAD answered ${head.status}`);
-  }
-  if (!integrityMatches(head.headers, integrity(original))) {
-    throw new Error(
-      `${original.key}: R2 holds an object at ${original.hash} whose integrity headers disagree with the lock`
-    );
-  }
+  demand(head.status === 200, original, `HEAD answered ${head.status}`);
+  demand(
+    integrityMatches(head.headers, integrity(original)),
+    original,
+    `R2 holds an object at ${original.hash} whose integrity headers disagree with the lock`
+  );
   return true;
 }
 
@@ -72,11 +77,11 @@ function checkReceipt(text: string, original: Original): void {
     height: entry.height,
     format: entry.format,
   };
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    throw new Error(
-      `${original.key}: the receipt ${JSON.stringify(actual)} disagrees with the lock ${JSON.stringify(expected)}`
-    );
-  }
+  demand(
+    JSON.stringify(actual) === JSON.stringify(expected),
+    original,
+    `the receipt ${JSON.stringify(actual)} disagrees with the lock ${JSON.stringify(expected)}`
+  );
 }
 
 /** Uploads the original unless R2 already holds it, and checks the ingest receipt against the lock entry. */
@@ -85,9 +90,7 @@ export async function upload(
   bytes: Uint8Array<ArrayBuffer>,
   token: string
 ): Promise<'present' | 'uploaded'> {
-  if (sha256(bytes) !== original.hash) {
-    throw new Error(`${original.key}: the bytes do not match the lock entry`);
-  }
+  demand(sha256(bytes) === original.hash, original, 'the bytes do not match the lock entry');
   if (await alreadyStored(original)) {
     return 'present';
   }
@@ -97,9 +100,7 @@ export async function upload(
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/octet-stream' },
   });
   const text = new TextDecoder().decode(put.bytes);
-  if (put.status !== 201 && put.status !== 200) {
-    throw new Error(`${original.key}: ingest answered ${put.status} ${text}`);
-  }
+  demand(put.status === 201 || put.status === 200, original, `ingest answered ${put.status} ${text}`);
   checkReceipt(text, original);
   return 'uploaded';
 }
@@ -107,15 +108,13 @@ export async function upload(
 /** Downloads the original and proves its bytes and integrity headers match the lock. */
 export async function download(original: Original): Promise<Uint8Array<ArrayBuffer>> {
   const response = await fetchSource(original);
-  if (response.status !== 200) {
-    throw new Error(`${original.key}: GET answered ${response.status}`);
-  }
-  if (sha256(response.bytes) !== original.hash) {
-    throw new Error(`${original.key}: the bytes R2 served do not match the lock`);
-  }
-  if (!integrityMatches(response.headers, integrity(original))) {
-    throw new Error(`${original.key}: the integrity headers do not match the lock`);
-  }
+  demand(response.status === 200, original, `GET answered ${response.status}`);
+  demand(sha256(response.bytes) === original.hash, original, 'the bytes R2 served do not match the lock');
+  demand(
+    integrityMatches(response.headers, integrity(original)),
+    original,
+    'the integrity headers do not match the lock'
+  );
   return response.bytes;
 }
 

@@ -14,9 +14,11 @@ import { distinctOriginals, download, eachWithCounts, mediaOrigin } from './lib/
 import type { Original } from './lib/media-originals';
 import { lockChanges, readRasterLock } from './lib/raster-lock';
 
-const base = process.argv[2];
-if (!base) {
-  console.error('Usage: bun run media:gate <base-ref>');
+/* The ref reaches git as an argument, so only a plain ref name is accepted, never an option. */
+const SAFE_REF = /^\w[\w./-]*$/;
+const base = process.argv[2] ?? '';
+if (!SAFE_REF.test(base)) {
+  console.error('Usage: bun run media:gate <base-ref>, such as origin/main');
   process.exit(1);
 }
 

@@ -52,7 +52,8 @@ if (pending.length > 0 && !token) {
   );
 } else {
   pushed = await eachWithCounts(pending, push);
-  if (!pushed.failed) {
+  /* A failed pull can leave a key out of the tree listing, which would read as a removal. */
+  if (!pushed.failed && !pulled.failed) {
     await writeRasterLock(lock);
   }
 }
