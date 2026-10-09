@@ -484,7 +484,7 @@ This is a single-context repository using root `CONTEXT.md` and `docs/adr/`. See
 ## Image pipeline
 
 Raster originals live in R2, not git (#1888): `media/raster.lock.json` records each by content, and
-git ignores the PNG and JPEG files under `media/`. Everything under `public/image/**`, `public/m/**`
+git ignores the `.png`, `.jpg` and `.jpeg` raster files under `media/`. Everything under `public/image/**`, `public/m/**`
 and `public/web/**` is generated output (gitignored), apart from the committed files named in
 `COMMITTED_WEB_FILES` (`src/shared/assetRules.ts`, read by both the generator and
 `scripts/verify-images.ts`). The committed colour map `src/shared/media/map.generated.ts` is derived
