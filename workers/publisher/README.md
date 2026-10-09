@@ -55,7 +55,9 @@ disagreeing stored object answers 409. Until the secret is set with
 `wrangler secret put MEDIA_UPLOAD_TOKEN`, ingest answers 503 and reads still work.
 `bun run media:backfill` uploads every original the lock lists, and
 `bun run media:backfill --verify` downloads each one back and compares it with the
-lock.
+lock. `bun run media:sync` is the authoring command over the same endpoint: it
+downloads originals missing locally and uploads new or changed ones before writing
+the lock.
 
 ## Raster variants
 

@@ -19,7 +19,7 @@ uncurated vectors by their purpose and subject.
 3. Give a new set a descriptive label and useful search keywords. A source name and a matching set
    answer different questions, so faction sets collect related portraits across source folders. Visual sets use labels such as
    `Custom portraits / Sand uniforms`. Source names remain searchable through their saved paths.
-4. For portraits, run `bun run media:lock` first: it records the new file in `media/raster.lock.json`,
+4. For portraits, run `bun run media:sync` first: it uploads the new file and records it in `media/raster.lock.json`,
    which `bun run generate` reads raster keys from. Then run `bun run generate`, then
    `bun run generate:images` for portraits or `bun run generate:vectors` for SVGs.
    `bun run generate` is the step that rejects missing collection membership, duplicate

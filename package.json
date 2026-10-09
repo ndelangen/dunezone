@@ -45,6 +45,7 @@
     "media:backfill": "bun run ./scripts/media-backfill.ts",
     "media:lock": "bun run ./scripts/media-lock.ts",
     "media:publish": "bun run ./scripts/media-publish.ts",
+    "media:sync": "bun run ./scripts/media-sync.ts",
     "migrations:deploy": "bun run ./scripts/migration-guards.ts deploy 2700000 5000 --prod",
     "migrations:dev-strict": "bun run ./scripts/migration-guards.ts dev-strict 300000 2000",
     "migrations:narrow-check": "bun run ./scripts/migration-guards.ts narrow-check --prod",
