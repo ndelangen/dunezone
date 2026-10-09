@@ -17,7 +17,7 @@ export const IndependentExamples = meta.story({
     await userEvent.clear(first);
     await userEvent.type(first, 'Supported forces');
     await userEvent.click(canvas.getByRole('button', { name: 'Example 2: Another battle plan' }));
-    const second = canvas.getByRole('textbox', { name: 'Example 2 Title' });
+    const second = await canvas.findByRole('textbox', { name: 'Example 2 Title' });
     await userEvent.clear(second);
     await userEvent.type(second, 'Unsupported forces');
     await expect(first).toHaveValue('Supported forces');
