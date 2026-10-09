@@ -17,6 +17,7 @@ import sharp from 'sharp';
 
 import type { RasterLock } from '../src/shared/media/rasterLock';
 import { fetchMedia, integrityMatches } from './lib/media-fetch';
+import type { Fetched } from './lib/media-fetch';
 import { checksumRecord, matchesRecord, planVariants } from './media-variants';
 import type { ChecksumRecord, PlannedVariant } from './media-variants';
 import { describeError } from './retry-transient';
@@ -94,24 +95,26 @@ async function publish(item: Local): Promise<Outcome> {
 }
 
 /** Proves `/m` and the legacy static URL both serve exactly the bytes the store recorded. */
+/** True for a 200 whose body is exactly the recorded bytes. */
+function servedIntact(fetched: Fetched, record: ChecksumRecord): boolean {
+  return fetched.status === 200 && matchesRecord(fetched.bytes, record);
+}
+
 async function verify(item: Local): Promise<Outcome> {
   const { name, legacyPath } = item.variant;
   const variant = await fetchVariant(item);
-  if (
-    variant.status !== 200 ||
-    !matchesRecord(variant.bytes, item.record) ||
-    !integrityMatches(variant.headers, item.record)
-  ) {
+  const headersMatch = integrityMatches(variant.headers, item.record);
+  if (!servedIntact(variant, item.record) || !headersMatch) {
     throw new Error(`${name}: /m answered ${variant.status} with ${JSON.stringify(checksumRecord(variant.bytes))}`);
   }
   const legacy = await fetchMedia(`${origin}/${legacyPath}`, {}, { subject: name, delaysMs: RETRY_DELAYS_MS });
-  if (legacy.status !== 200 || !matchesRecord(legacy.bytes, item.record)) {
+  if (!servedIntact(legacy, item.record)) {
     throw new Error(`${name}: /${legacyPath} answered ${legacy.status} with different bytes from /m`);
   }
   return 'verified';
 }
 
-/* Two keys can share a variant name; R2 holds it once, but every legacy path is still probed. */
+/* Two keys can share a variant name. Publishing sends each name once, and verifying probes every legacy path. */
 const queue = verifyOnly ? [...plan] : [...new Map(plan.map((variant) => [variant.name, variant])).values()];
 const counts: Record<Outcome | 'failed', number> = { present: 0, published: 0, verified: 0, failed: 0 };
 async function worker() {

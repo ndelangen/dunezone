@@ -287,8 +287,8 @@ jobs:
         timeout-minutes: 10
         run: |
           set -euo pipefail
+          trap 'rm -f "$RUNNER_TEMP/media-publish-token" "$RUNNER_TEMP/publisher-secrets.json"' EXIT
           MEDIA_PUBLISH_TOKEN="$(cat "$RUNNER_TEMP/media-publish-token")" bun run media:publish
-          rm -f "$RUNNER_TEMP/media-publish-token" "$RUNNER_TEMP/publisher-secrets.json"
           bun run media:publish --verify
 
   # Production has already shipped when this starts: a failed dev rebuild reddens the run without
