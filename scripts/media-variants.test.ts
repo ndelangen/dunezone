@@ -1,7 +1,11 @@
+import sharp from 'sharp';
 import { describe, expect, test } from 'vitest';
 
-import type { RasterLockEntry } from '../src/shared/media/rasterLock';
-import { checksumRecord, matchesRecord, planVariants, recipeHash, variantName } from './media-variants';
+import lockJson from '../media/raster.lock.json';
+import { MEDIA_RECIPES } from '../src/shared/media/map.generated';
+import type { RasterLock, RasterLockEntry } from '../src/shared/media/rasterLock';
+import { resolveAsset } from '../src/shared/media/resolveAsset';
+import { checksumRecord, matchesRecord, planVariants, recipeHash, tierRecipes, variantName } from './media-variants';
 
 const VERSIONS = { vips: '8.17.2', sharp: '0.34.4', mozjpeg: '4.1.5' };
 const SHA256 = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
@@ -67,5 +71,31 @@ describe('media variants', () => {
     expect(matchesRecord(bytes, record)).toBe(true);
     expect(matchesRecord(new Uint8Array([1, 2, 4]), record)).toBe(false);
     expect(matchesRecord(new Uint8Array([1, 2]), record)).toBe(false);
+  });
+});
+
+describe('the committed media map', () => {
+  const fix = 'run `bun run media:lock`';
+
+  test('carries the recipe names of the installed encoder', () => {
+    expect(MEDIA_RECIPES, fix).toEqual(tierRecipes(sharp.versions));
+  });
+
+  test('makes resolveAsset emit exactly the name the encoder gives each tier', () => {
+    const lock = lockJson as RasterLock;
+    for (const [key, locked] of Object.entries(lock)) {
+      for (const variant of planVariants(key, locked, sharp.versions)) {
+        if (variant.recipe.tier !== 'canonical') {
+          expect(resolveAsset(key, variant.recipe.tier), `${key} ${variant.recipe.tier}: ${fix}`).toBe(
+            `/m/${variant.name}`
+          );
+        }
+      }
+    }
+  });
+
+  test('keeps the legacy path for a raster the lock does not list yet', () => {
+    expect(resolveAsset('/image/texture/not-synced.jpg', 'small')).toBe('/image/texture/not-synced-small.jpg');
+    expect(resolveAsset('/image/leader/new.png', 'print')).toBe('/image/leader/new-large.webp');
   });
 });

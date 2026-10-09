@@ -9,6 +9,9 @@
  * It takes the publish token as a bearer token, checks that the body is the image type its extension names, records the body's SHA-256 and length, and creates the object only if it is absent.
  * An identical re-publish answers 200.
  * A stored object whose bytes differ is a 409 and is never overwritten.
+ *
+ * A name R2 lacks is served from the release's own `m/` static files when the release bundles it, as local and CI Workers do with empty buckets (#1888 step 5).
+ * Such a response carries no integrity headers, so the deploy's parity check still fails for a variant that was never published.
  */
 import { METHOD_NOT_ALLOWED, NOT_FOUND, inNamespace, jsonError, serveImmutable } from './media-response';
 import type { Refusal } from './media-response';
@@ -32,6 +35,8 @@ export type MediaVariantEnv = {
   MEDIA_BUCKET: MediaVariantBucket;
   /** Set by each production deploy (`wrangler deploy --secrets-file`); publishing refuses with 503 while it is unset. */
   MEDIA_PUBLISH_TOKEN?: string;
+  /** The release's static files; consulted only for a name R2 lacks. */
+  ASSETS?: Pick<Fetcher, 'fetch'>;
 };
 
 /** What the Worker stored, and what the publisher checks against its own record. */
@@ -44,7 +49,7 @@ export function mediaVariantKey(name: string): string {
 async function serveVariant(request: Request, env: MediaVariantEnv, name: string, extension: string) {
   const object = await env.MEDIA_BUCKET.get(mediaVariantKey(name));
   if (!object) {
-    return jsonError(NOT_FOUND);
+    return (await bundledVariant(request, env, name, extension)) ?? jsonError(NOT_FOUND);
   }
   const { sha256, bytes } = object.customMetadata ?? {};
   if (!sha256 || !bytes) {
@@ -53,6 +58,23 @@ async function serveVariant(request: Request, env: MediaVariantEnv, name: string
     return jsonError({ status: 502, message: 'The stored variant has no integrity metadata' });
   }
   return await serveImmutable(request, object, CONTENT_TYPES[extension], { sha256, bytes });
+}
+
+/** The release's static copy of a variant, or null when it bundles none: the SPA fallback answers HTML, never the image type. */
+async function bundledVariant(request: Request, env: MediaVariantEnv, name: string, extension: string) {
+  if (!env.ASSETS) {
+    return null;
+  }
+  const url = new URL(`/m/${name}`, request.url);
+  const response = await env.ASSETS.fetch(new Request(url, { method: request.method }));
+  if (response.status !== 200 || response.headers.get('Content-Type')?.split(';')[0] !== CONTENT_TYPES[extension]) {
+    await response.body?.cancel();
+    return null;
+  }
+  const headers = new Headers(response.headers);
+  headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  headers.set('X-Content-Type-Options', 'nosniff');
+  return new Response(request.method === 'HEAD' ? null : response.body, { status: 200, headers });
 }
 
 /** True when the bytes open with the signature of the image type the extension names. */

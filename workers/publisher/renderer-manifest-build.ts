@@ -196,6 +196,7 @@ export function isRendererManifestAsset(relativePath: string): boolean {
     !normalizedPath.startsWith('__storybook/') &&
     !normalizedPath.startsWith('public/') &&
     // Generated image and vector output is identified by ingredients, never by bytes.
+    !normalizedPath.startsWith('m/') &&
     !normalizedPath.startsWith('image/') &&
     !normalizedPath.startsWith('web/') &&
     !normalizedPath.startsWith('vector/') &&

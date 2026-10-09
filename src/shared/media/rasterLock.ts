@@ -3,6 +3,7 @@
  * It is machine-owned and written by `bun run media:lock`.
  * Readers use it instead of the original bytes, so they keep working once the originals leave the git tree.
  */
+import type { AssetSize } from '../assetRules';
 
 export type RasterLockEntry = {
   sha256: string;
@@ -18,6 +19,9 @@ export type RasterLockEntry = {
 
 /** Keyed by canonical asset key, such as `/image/texture/021.jpg`. */
 export type RasterLock = Record<string, RasterLockEntry>;
+
+/** The recipe name (`recipe10`) of each size tier a category declares. */
+export type MediaRecipes = Readonly<Partial<Record<AssetSize, string>>>;
 
 /** The first 20 hex characters of the source SHA-256, which name the variants in R2. */
 export type MediaMapEntry = readonly [src20: string, color: string];

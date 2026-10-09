@@ -154,6 +154,7 @@ describe('current Renderer manifest digest', () => {
     '__storybook/index.html',
     'public/FactionEditor-hash.js',
     // Generated image and vector output: identified by ingredients, never by bytes.
+    'm/0123456789abcdef0123.abcdef0123.webp',
     'image/texture/021.jpg',
     'web/head-large.jpg',
     'vector/icon/karama.svg',

@@ -21,12 +21,14 @@
  * `widthsChecked` in the output says how many were compared.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 import sharp from 'sharp';
 
 import { COMMITTED_WEB_FILES, FORMAT_EXTENSION, ruleForKey } from '../src/shared/assetRules';
+import type { AssetSize } from '../src/shared/assetRules';
+import { resolveAsset } from '../src/shared/media/resolveAsset';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const mediaRoot = path.join(repoRoot, 'media');
@@ -99,6 +101,17 @@ for (const { source } of sources) {
       failures.push(`${key}: tier ${tierRelative} does not decode`);
       continue;
     }
+    /* The URL the app resolves must serve exactly the tier's bytes (#1888 step 5). */
+    const resolved = resolveAsset(key, sizeName as AssetSize).slice(1);
+    if (resolved !== tierRelative) {
+      expectedFiles.add(resolved);
+      const resolvedAbsolute = path.join(publicRoot, resolved);
+      if (!existsSync(resolvedAbsolute)) {
+        failures.push(`${key}: missing ${resolved}, which resolveAsset emits for ${sizeName}`);
+      } else if (!readFileSync(resolvedAbsolute).equals(readFileSync(tierAbsolute))) {
+        failures.push(`${key}: ${resolved} differs from ${tierRelative}`);
+      }
+    }
     const declaredFormat = rule.format === 'jpeg' ? 'jpeg' : rule.format;
     if (metadata.format !== declaredFormat) {
       failures.push(`${key}: tier ${tierRelative} is ${metadata.format}, expected ${declaredFormat}`);
@@ -142,7 +155,7 @@ for (const name of COMMITTED_WEB_FILES) {
   }
 }
 
-for (const generated of [...walk(path.join(publicRoot, 'image')), ...walk(path.join(publicRoot, 'web'))]) {
+for (const generated of ['m', 'image', 'web'].flatMap((directory) => walk(path.join(publicRoot, directory)))) {
   const relative = path.relative(publicRoot, generated).split(path.sep).join('/');
   if (committedWebPaths.has(relative)) {
     continue;

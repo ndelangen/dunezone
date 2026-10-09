@@ -25,6 +25,7 @@ import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishing
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { arrakisBoard } from '../../src/shared/boards/geometry';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
+import { resolveAsset } from '../../src/shared/media/resolveAsset';
 import { createRulebookEditorialStarterContents } from '../../src/shared/rulebooks/fixtures';
 import { planRulebookPdfBatches } from '../../src/shared/rulebooks/pdfPublication';
 import { projectRulebookRenderDocument } from '../../src/shared/rulebooks/projectRenderDocument';
@@ -203,7 +204,7 @@ async function checkCorruptSvgImage(browser: Browser): Promise<void> {
   const page = await newPublisherPage(browser);
   try {
     // The sheet resolves keys to variant URLs (Train 1b): corrupt the variant it loads.
-    await page.route('**/image/leader/official/jessica-large.webp', async (route) => {
+    await page.route(`**${resolveAsset('/image/leader/official/jessica.png', 'large')}`, async (route) => {
       await route.fulfill({ status: 200, contentType: 'image/webp', body: 'not a webp' });
     });
     const result = await openCapture(page);

@@ -460,7 +460,7 @@ jobs:
       - name: Verify generated vectors structurally
         run: bun run verify:vectors
       - name: Log generated output digest
-        run: find public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
+        run: find public/m public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
       - name: Generate OBJ pieces
         run: bun run generate:objs
       - name: Test publisher and delivery

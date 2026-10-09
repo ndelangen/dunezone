@@ -115,8 +115,17 @@ export const COMMITTED_WEB_FILES = [
 ] as const;
 
 /** Category rule for a canonical asset key like `/image/texture/021.jpg` or `/web/head.png`. */
+/** The `ASSET_RULES` category that covers a key: the nested one, such as `web/homepage`, before its parent. */
+export function categoryForKey(key: string): string | undefined {
+  const [first, second] = key.replace(/^\//, '').split('/');
+  const nested = `${first}/${second}`;
+  if (ASSET_RULES[nested]) {
+    return nested;
+  }
+  return first && ASSET_RULES[first] ? first : undefined;
+}
+
 export function ruleForKey(key: string): CategoryRule | undefined {
-  const trimmed = key.replace(/^\//, '');
-  const [first, second] = trimmed.split('/');
-  return ASSET_RULES[`${first}/${second}`] ?? ASSET_RULES[first ?? ''];
+  const category = categoryForKey(key);
+  return category ? ASSET_RULES[category] : undefined;
 }

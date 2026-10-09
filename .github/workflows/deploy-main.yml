@@ -155,7 +155,7 @@ jobs:
       - name: Generate OBJ pieces
         run: bun run generate:objs
       - name: Log generated output digest
-        run: find public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
+        run: find public/m public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
       - name: Build unified Worker release
         run: bun run publisher:assets
         env:

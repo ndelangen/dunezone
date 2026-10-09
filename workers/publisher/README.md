@@ -66,7 +66,11 @@ URL never changes meaning and every hit is served `immutable`. Each variant carr
 its output SHA-256 and byte length as `X-Media-SHA256` and `X-Media-Bytes`; a stored
 variant without them answers 502 instead of an unverifiable body. Any other path
 under `/m`, including the bare namespace, answers an uncacheable JSON 404 rather
-than app HTML.
+than app HTML. A name R2 lacks is served from the release's own `m/` static files
+when it bundles one (local and CI Workers have empty buckets), without integrity
+headers, so the deploy's parity check still catches a variant that was never
+published. `resolveAsset` emits these URLs for every locked raster (#1888 step 5);
+the legacy `/image/...-<tier>.<ext>` paths keep serving for URLs already issued.
 
 `PUT /m/<name>` is the only way in. It takes `MEDIA_PUBLISH_TOKEN` as a bearer
 token, checks the body against the image type its extension names, and creates the
