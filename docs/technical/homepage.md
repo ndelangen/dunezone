@@ -15,7 +15,7 @@ The preview keeps one canvas throughout startup. Leaving the section or hiding t
 
 The three published cards credit their creators beside the images. The Space Orks examples credit BigDave and describe the faction as a work in progress. The Group alliance card is an illustration made for the invitation, not a saved community Asset.
 
-Arrival animations run once as each chapter enters view. The shared motion preference disables arrivals and hover movement. Content remains visible when IntersectionObserver is unavailable.
+Arrival animations run once as each chapter enters view. The Play scene waits until its artwork and first frames are ready, then fades and settles into place over 900 milliseconds. The shared motion preference disables arrivals and hover movement. Content remains visible when IntersectionObserver is unavailable.
 
 ## Social preview
 

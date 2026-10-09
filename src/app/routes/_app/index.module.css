@@ -190,8 +190,8 @@
     animation: marketing-fan 1100ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
     animation-delay: var(--arrival-delay);
   }
-  [data-entered] .wideBoard {
-    animation: board-arrival 1200ms ease-out backwards;
+  [data-live-ready="true"] > .liveBoard {
+    animation: board-arrival 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
 .homepage[data-homepage-motion="off"] {
@@ -224,14 +224,12 @@
 }
 @keyframes board-arrival {
   from {
-    opacity: 0.2;
-    translate: 0 2rem;
-    scale: 0.95;
+    opacity: 0;
+    transform: translateY(1.5rem) scale(0.97);
   }
   to {
     opacity: 1;
-    translate: 0 0;
-    scale: 1;
+    transform: none;
   }
 }
 @container page-frame (width < 48rem) {
@@ -270,7 +268,6 @@
   translate: -50% -20.7%;
   pointer-events: auto;
   opacity: 0;
-  transition: opacity 200ms ease;
 }
 .liveScene {
   position: absolute;
@@ -278,13 +275,4 @@
 }
 [data-live-ready="true"] > .liveBoard {
   opacity: 1;
-}
-@media (prefers-reduced-motion: reduce) {
-  .liveBoard {
-    transition: none;
-  }
-}
-
-.homepage[data-homepage-motion="off"] .liveBoard {
-  transition: none;
 }
