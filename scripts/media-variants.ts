@@ -64,7 +64,10 @@ function canonicalFormat(key: string): AssetFormat {
   return extension === 'png' ? 'png' : 'jpeg';
 }
 
-function recipeFor(category: string, rule: CategoryRule, tier: VariantTier, width: number | null, format: AssetFormat) {
+/** One encoding target of a category: which tier, at what width and in which format. */
+type TierTarget = { tier: VariantTier; width: number | null; format: AssetFormat };
+
+function recipeFor(category: string, rule: CategoryRule, { tier, width, format }: TierTarget) {
   return {
     category,
     tier,
@@ -115,11 +118,11 @@ export function planVariants(key: string, entry: RasterLockEntry, versions: Enco
   const tiers = Object.entries(rule.sizes)
     .filter((tier): tier is [string, number | null] => tier[1] !== undefined)
     .map(([tier, width]) => ({
-      recipe: recipeFor(category, rule, tier as VariantTier, width, rule.format),
+      recipe: recipeFor(category, rule, { tier: tier as VariantTier, width, format: rule.format }),
       legacyPath: `${base}-${tier}.${FORMAT_EXTENSION[rule.format]}`,
     }));
   const canonical = {
-    recipe: recipeFor(category, rule, 'canonical', rule.safetyCapPx, canonicalFormat(key)),
+    recipe: recipeFor(category, rule, { tier: 'canonical', width: rule.safetyCapPx, format: canonicalFormat(key) }),
     legacyPath: relative,
   };
   return [...tiers, canonical].map(({ recipe, legacyPath }) => ({
