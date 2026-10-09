@@ -9,8 +9,7 @@
  */
 import { ImageInspectionError, jpegProfile, pngDimensions } from './image-inspection';
 
-export const MEDIA_SOURCE_NAMESPACE = '/__media';
-export const MEDIA_SOURCE_PREFIX = '/__media/src/';
+const MEDIA_SOURCE_NAMESPACE = '/__media';
 /** The largest original today is 4.6 MB; the bound leaves room without letting one request hold a large buffer. */
 export const MEDIA_SOURCE_MAX_BYTES = 16 * 1024 * 1024;
 
@@ -26,7 +25,7 @@ export type MediaSourceEnv = {
 };
 
 /** What ingest stored, and what the uploader records in the lock. */
-export type MediaSourceReceipt = {
+type MediaSourceReceipt = {
   sha256: string;
   bytes: number;
   width: number;
