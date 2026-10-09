@@ -9,6 +9,7 @@ import { handlePublicAssetRequest } from './delivery';
 import { executeItemList } from './executor';
 import { imagesJpegEncoder } from './image-encode';
 import { handleMediaVariantRequest } from './media';
+import { handleLegacyMediaRequest, mediaFetcher } from './media-legacy';
 import { handleMediaReleaseRequest } from './media-release';
 import { handleMediaSourceRequest } from './media-source';
 import { handlePublicDiscovery } from './public-discovery';
@@ -123,7 +124,7 @@ const publisherWorker = {
       publicBaseUrl: env.PUBLIC_BASE_URL,
       rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
       rulebookIllustrationClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
-      illustrationAssets: env.ASSETS,
+      illustrationAssets: mediaFetcher(env),
       rulebookPdfClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
       componentClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
     });
@@ -133,6 +134,10 @@ const publisherWorker = {
     const mediaVariant = await handleMediaVariantRequest(request, env);
     if (mediaVariant) {
       return mediaVariant;
+    }
+    const legacyMedia = await handleLegacyMediaRequest(request, env);
+    if (legacyMedia) {
+      return legacyMedia;
     }
     const mediaRelease = await handleMediaReleaseRequest(request, env);
     if (mediaRelease) {

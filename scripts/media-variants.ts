@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 
 import { ASSET_RULES, FORMAT_EXTENSION, categoryForKey } from '../src/shared/assetRules';
 import type { AssetFormat, AssetSize, CategoryRule } from '../src/shared/assetRules';
-import type { MediaRecipes, RasterLockEntry } from '../src/shared/media/rasterLock';
+import type { CanonicalRecipes, MediaRecipes, RasterLockEntry } from '../src/shared/media/rasterLock';
 
 /** Bump to re-encode every variant when encoder behaviour changes in a way the versions and rules do not capture. */
 export const ENCODER_REVISION = 1;
@@ -117,6 +117,23 @@ export function tierRecipes(versions: EncoderVersions): Record<string, MediaReci
           recipeHash(recipeFor(category, rule, { tier, width, format: rule.format }), versions),
         ]);
         return [category, Object.fromEntries(recipes)];
+      })
+  );
+}
+
+/**
+ * The recipe name of the capped canonical re-encode, by category and by the original's format, for the committed media map.
+ * The publisher serves a legacy canonical URL such as `/image/texture/021.jpg` from this variant once static media leaves the deploy (#1888 step 7).
+ */
+export function canonicalRecipes(versions: EncoderVersions): Record<string, CanonicalRecipes> {
+  return Object.fromEntries(
+    Object.keys(ASSET_RULES)
+      .sort((left, right) => left.localeCompare(right))
+      .map((category) => {
+        const rule = ASSET_RULES[category];
+        const recipe = (format: 'png' | 'jpeg') =>
+          recipeHash(recipeFor(category, rule, { tier: 'canonical', width: rule.safetyCapPx, format }), versions);
+        return [category, { png: recipe('png'), jpeg: recipe('jpeg') }];
       })
   );
 }

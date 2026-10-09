@@ -20,7 +20,7 @@ import { authorizeBearer, readBounded, sha256Hex } from './media-upload';
 const MEDIA_VARIANT_NAMESPACE = '/m';
 const VARIANT_PATH = /^\/m\/([0-9a-f]{20}\.[0-9a-f]{10}\.(png|jpg|webp))$/;
 
-const CONTENT_TYPES: Record<string, string> = {
+export const CONTENT_TYPES: Record<string, string> = {
   png: 'image/png',
   jpg: 'image/jpeg',
   webp: 'image/webp',

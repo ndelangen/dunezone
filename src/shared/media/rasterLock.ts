@@ -23,6 +23,9 @@ export type RasterLock = Record<string, RasterLockEntry>;
 /** The recipe name (`recipe10`) of each size tier a category declares. */
 export type MediaRecipes = Readonly<Partial<Record<AssetSize, string>>>;
 
+/** The recipe name of the canonical re-encode for each format an original can have. */
+export type CanonicalRecipes = Readonly<Record<RasterLockEntry['format'], string>>;
+
 /** The first 20 hex characters of the source SHA-256, which name the variants in R2. */
 export type MediaMapEntry = readonly [src20: string, color: string];
 
