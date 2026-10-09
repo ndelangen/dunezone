@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { boardMapGeometry } from './boardMapGeometry';
 
@@ -11,6 +11,18 @@ const svg = readFileSync(join(import.meta.dirname, 'assets/arrakis-map.svg'), 'u
 describe('boardMapGeometry', () => {
   const geometry = boardMapGeometry(svg, 4.25);
   const positions = geometry.getAttribute('position');
+
+  it('loads the map without deprecated SVG conversion warnings', () => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      boardMapGeometry(svg, 4.25).dispose();
+      expect(
+        warning.mock.calls.flat().filter((message) => String(message).includes('SVGLoader: createShapes()'))
+      ).toEqual([]);
+    } finally {
+      warning.mockRestore();
+    }
+  });
 
   it('lays every shape flat on the board, within its radius', () => {
     expect(positions.count).toBeGreaterThan(1000);
