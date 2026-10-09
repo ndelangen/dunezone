@@ -37,7 +37,7 @@ console.log(
 );
 if (counts.failed) {
   console.error(
-    'Run `bun run media:sync` with MEDIA_UPLOAD_TOKEN to upload these originals, then commit the lock it writes.'
+    'Art changes run on a maintainer machine, which holds MEDIA_UPLOAD_TOKEN: run `bun run media:sync` there to upload these originals, then commit the lock it writes. A cloud agent hands the branch to that local run instead.'
   );
   process.exit(1);
 }

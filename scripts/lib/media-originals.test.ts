@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+
 import { describe, expect, test } from 'vitest';
 
 import type { RasterLock, RasterLockEntry } from '../../src/shared/media/rasterLock';
@@ -50,5 +52,15 @@ describe('eachWithCounts', () => {
       return item % 2 === 0 ? 'even' : 'odd';
     });
     expect(counts).toEqual({ odd: 1, even: 2, failed: 1 });
+  });
+});
+
+describe('the git tree', () => {
+  /* Raster originals live in R2 (#1888 step 8); `bun run media:sync` puts them in media/ and git ignores them there. */
+  test('tracks no raster under media/', () => {
+    const tracked = execFileSync('/usr/bin/git', ['ls-files', '-z', '--', 'media'], { encoding: 'utf8' })
+      .split('\0')
+      .filter((file) => /\.(png|jpe?g|webp)$/i.test(file));
+    expect(tracked).toEqual([]);
   });
 });

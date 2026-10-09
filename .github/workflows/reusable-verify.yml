@@ -316,11 +316,10 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
       # Every original a PR adds to the raster lock must already be in R2 (#1888 step 6). It reads
-      # the public ingest endpoint and needs no secret, so fork PRs run it too. It warns without
-      # failing until an upload token is handed out, so art PRs are never stuck without a way to pass.
+      # the public ingest endpoint and needs no secret, so fork PRs run it too. A failure is fixed by
+      # running `bun run media:sync` on a maintainer machine, which holds the upload token.
       - name: Check new raster originals are ingested
         if: ${{ !cancelled() }}
-        continue-on-error: true
         run: bun run media:gate
       - name: Enforce static narrow guard contract
         if: ${{ !cancelled() && steps.narrow_check.outputs.changed == 'true' }}
@@ -353,6 +352,9 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+      # This job takes a full shallow checkout, so its size tracks the clone a contributor gets (#1888 aims for 40 MB or less).
+      - name: Record shallow checkout size
+        run: echo "Shallow checkout $(du -sm --exclude=.git . | cut -f1) MB working tree, $(du -sm .git | cut -f1) MB .git" | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/generated-images
       - name: Authoring tool tests

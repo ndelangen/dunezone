@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 import sharp from 'sharp';
@@ -13,20 +13,29 @@ import type { RasterLock } from './rasterLock';
 
 const lock = lockJson as RasterLock;
 const mediaRoot = path.resolve(import.meta.dirname, '../../../media');
-const fix = 'run `bun run media:lock`';
+const fix = 'run `bun run media:sync`';
 
-/* While the originals are still in git (#1888 step 8), the lock must describe exactly those bytes. */
-describe('raster lock', () => {
-  test('lists every raster original under media/', () => {
-    const files = readdirSync(mediaRoot, { recursive: true })
+/*
+ * The originals are not in git (#1888 step 8), so CI checks the lock alone.
+ * Where originals are present locally, such as after `bun run media:sync`, each must be locked and match its entry.
+ */
+const localKeys = existsSync(mediaRoot)
+  ? readdirSync(mediaRoot, { recursive: true })
       .map((file) => `/${String(file).split(path.sep).join('/')}`)
       .filter((key) => RASTER_SOURCE.test(key))
-      .sort();
-    expect(Object.keys(lock).sort(), fix).toEqual(files);
+  : [];
+
+describe('raster lock', () => {
+  test('lists every raster original present under media/', () => {
+    expect(
+      localKeys.filter((key) => !lock[key]),
+      fix
+    ).toEqual([]);
   });
 
-  test('records the bytes and dimensions of each original', async () => {
-    for (const [key, entry] of Object.entries(lock)) {
+  test('records the bytes and dimensions of each original present', async () => {
+    for (const key of localKeys) {
+      const entry = lock[key];
       const bytes = readFileSync(path.join(mediaRoot, key));
       expect(createHash('sha256').update(bytes).digest('hex'), `${key}: ${fix}`).toBe(entry.sha256);
       expect(bytes.length, `${key}: ${fix}`).toBe(entry.bytes);

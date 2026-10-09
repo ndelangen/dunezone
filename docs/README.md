@@ -59,7 +59,8 @@ used by the application or publisher typecheck scripts.
 
 Raster sources are recorded in `media/raster.lock.json`, and the app imports the colour map
 derived from it, `src/shared/media/map.generated.ts`. Both are committed; run `bun run media:sync`
-after adding or changing a raster under `media/` (or `bun run media:lock` to lock offline without uploading).
+after adding or changing a raster under `media/`. `bun run media:lock` only rewrites the map after an
+encoder or rules change, and refuses new or changed originals.
 
 The pinned Fiber patch removes its ambient Three JSX declarations from React's namespaces.
 Those declarations make even a DOM `React.ElementType` enumerate Three's catalogue, which
