@@ -5,7 +5,7 @@ import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
-import { hasHiddenFace, peekersOf } from '@shared/play/peeking';
+import { peekersOf } from '@shared/play/peeking';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
@@ -101,6 +101,7 @@ import { boardMapGeometry } from './boardMapGeometry';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
+import { peekableToken } from './peekableToken';
 import { PhaseSymbol } from './PhaseSymbol';
 import { topFaceHref } from './pieceFaceHref';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
@@ -694,7 +695,6 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
-/* A prediction card's chosen logo and turn, drawn over its published base (#1753). */
 function CardFace({
   piece,
   faceUp,
@@ -1004,11 +1004,6 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
     return canInteract ? 'not-allowed' : 'default';
   }
   return gestureBlocked ? 'not-allowed' : 'grab';
-}
-
-/* A token lying face down, whose other face a faction can peek at; cards always have a menu of their own. */
-function peekableToken(piece: TablePiece) {
-  return piece.kind === 'force' && !isSpicePiece(piece) && hasHiddenFace(piece);
 }
 
 /* Opens a piece's menu at a point; `touch` says a finger asked for it, which has no keyboard shortcut to offer. */
@@ -1353,13 +1348,7 @@ function SceneContents({
   presentation,
 }: Pick<
   TabletopSceneProps,
-  | 'cameraView'
-  | 'onInteractionActiveChange'
-  | 'seatCount'
-  | 'tableProgress'
-  | 'stage'
-  | 'mapVisible'
-  | 'presentation'
+  'cameraView' | 'onInteractionActiveChange' | 'seatCount' | 'tableProgress' | 'stage' | 'mapVisible' | 'presentation'
 > & {
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];

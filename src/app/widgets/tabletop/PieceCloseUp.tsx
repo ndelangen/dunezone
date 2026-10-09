@@ -10,8 +10,6 @@ import { topFaceHref } from './pieceFaceHref';
 import { useTabletopSelector } from './TabletopContext';
 import styles from './TabletopScene.module.css';
 
-/** The published image a piece shows on top: the upper face of its top layer. */
-
 const CARD_HEIGHT_PX = 380;
 const TOKEN_SIZE_PX = 240;
 const CURSOR_GAP_PX = 28;

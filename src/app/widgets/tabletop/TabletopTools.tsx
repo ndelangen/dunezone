@@ -1,11 +1,11 @@
 import { Button, Menu } from '@mantine/core';
-import type { TablePiece } from '@shared/play/model';
 import { hasHiddenFace, peeksWholeDeck } from '@shared/play/peeking';
 import { isSpicePiece } from '@shared/play/spice';
 import { useId } from 'react';
 import type { RefObject } from 'react';
 
 import { deckShuffleHint } from './longPress';
+import { peekableToken } from './peekableToken';
 import { PeekView } from './PeekView';
 import { PieceCloseUp } from './PieceCloseUp';
 import { useTabletopReader, useTabletopSelector } from './TabletopContext';
@@ -116,11 +116,7 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
   );
 }
 
-function peekableToken(piece: TablePiece) {
-  return piece.kind === 'force' && !isSpicePiece(piece) && hasHiddenFace(piece);
-}
-
-/* Opens a piece's menu at a point; `touch` says a finger asked for it, which has no keyboard shortcut to offer. */
+/* Play's menus and close-up views load separately from the scene used by the homepage. */
 export function TabletopTools({
   pieceMenu,
   onMenuChange,
