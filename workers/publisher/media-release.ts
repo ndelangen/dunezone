@@ -53,24 +53,25 @@ export function mediaReleaseMarkerKey(release: string): string {
 /** One request on a release, named by the id in its path. */
 type Release = { request: Request; env: MediaReleaseEnv; release: string };
 
+const isText = (pattern: RegExp) => (value: unknown) => typeof value === 'string' && pattern.test(value);
+
+/** One check per field of a variant entry. */
+const VARIANT_FIELDS: Record<keyof MediaReleaseVariant, (value: unknown) => boolean> = {
+  name: isText(VARIANT_NAME),
+  key: isText(/^\//),
+  source: isText(SHA256),
+  sha256: isText(SHA256),
+  bytes: (value) => Number.isSafeInteger(value) && (value as number) > 0,
+};
+
 function isVariant(value: unknown): value is MediaReleaseVariant {
   if (!value || typeof value !== 'object') {
     return false;
   }
   const variant = value as Record<string, unknown>;
-  return (
-    typeof variant.name === 'string' &&
-    VARIANT_NAME.test(variant.name) &&
-    typeof variant.key === 'string' &&
-    variant.key.startsWith('/') &&
-    typeof variant.source === 'string' &&
-    SHA256.test(variant.source) &&
-    variant.name.startsWith(variant.source.slice(0, 20)) &&
-    typeof variant.sha256 === 'string' &&
-    SHA256.test(variant.sha256) &&
-    Number.isSafeInteger(variant.bytes) &&
-    (variant.bytes as number) > 0
-  );
+  const fields = Object.entries(VARIANT_FIELDS).every(([field, check]) => check(variant[field]));
+  /* A variant is named after its original, so its name must start with the source hash it lists. */
+  return fields && (variant.name as string).startsWith((variant.source as string).slice(0, 20));
 }
 
 /** Returns the reason a record is unacceptable for this release, or null when it is well formed. */
