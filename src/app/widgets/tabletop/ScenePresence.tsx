@@ -6,111 +6,13 @@ import type { PublicPointer } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { CARRIED_BASE_Y, pointOnRayAtHeight } from '@shared/play/tableGeometry';
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import type { Group } from 'three';
 import { Raycaster, Vector2, Vector3 } from 'three';
 
 import { unsettledArtworkLoads } from './artworkLoads';
 import styles from './ScenePresence.module.css';
+import { isCursorTablePoint } from './tablePointerPoint';
 import { useTabletopActions, useTabletopCommands, useTabletopSelector } from './TabletopContext';
-
-function rectangleContainsPoint(bounds: DOMRect, x: number, y: number) {
-  return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
-}
-
-function coveredBy(selector: string, x: number, y: number) {
-  for (const element of document.querySelectorAll<HTMLElement>(selector)) {
-    if (element.hidden || element.getClientRects().length === 0) {
-      continue;
-    }
-    if (rectangleContainsPoint(element.getBoundingClientRect(), x, y)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-export function isPublicTablePoint(canvas: HTMLCanvasElement, x: number, y: number): boolean {
-  if (!rectangleContainsPoint(canvas.getBoundingClientRect(), x, y)) {
-    return false;
-  }
-  /* Pointer capture and inert overlays can both bypass normal DOM hit testing. */
-  return !coveredBy('[data-private-hand]', x, y);
-}
-
-/**
- * Whether a resting pointer shows as a cursor to the other players.
- * Chrome drawn over the scene, such as the header, lets the pointer through to the canvas, so hit testing alone would publish a point the player cannot see (#1665).
- * A drag still follows the pointer under it.
- */
-export function isCursorTablePoint(canvas: HTMLCanvasElement, x: number, y: number): boolean {
-  return isPublicTablePoint(canvas, x, y) && !coveredBy('[data-hides-cursor]', x, y);
-}
-
-type TablePose = { position: Vector3; orientation: number };
-type PoseSmoothing = { active: boolean; wasRemote: boolean };
-
-function retargetPoseSmoothing(smoothing: PoseSmoothing, remote: boolean, immediate: boolean) {
-  smoothing.active = !immediate && (remote || smoothing.wasRemote || smoothing.active);
-  smoothing.wasRemote = remote;
-}
-
-function snapTablePose(group: Group, target: TablePose) {
-  group.position.copy(target.position);
-  group.rotation.y = target.orientation;
-}
-
-/* A frame counts for its real length up to this cap, so a pose settles in about 0.2 s down to 4 fps.
-   One 0.25 s frame already covers 99.75% of the gap, so the cap no longer changes what a player sees.
-   The scheduler's `computeRootDelta`, not this cap, limits the first frame after an idle table. */
-const POSE_SMOOTHING_MAX_FRAME_SECONDS = 0.25;
-
-function advanceTablePose(group: Group, target: TablePose, delta: number): boolean {
-  const rotationDelta = Math.atan2(
-    Math.sin(target.orientation - group.rotation.y),
-    Math.cos(target.orientation - group.rotation.y)
-  );
-  const settled = group.position.distanceToSquared(target.position) < 0.000001 && Math.abs(rotationDelta) < 0.001;
-  if (settled) {
-    snapTablePose(group, target);
-    return false;
-  }
-  const amount = 1 - Math.exp(-24 * Math.min(delta, POSE_SMOOTHING_MAX_FRAME_SECONDS));
-  group.position.lerp(target.position, amount);
-  group.rotation.y += rotationDelta * amount;
-  return true;
-}
-
-export function useTablePose(position: Vector3Tuple, orientation: number, remote: boolean, immediate = false) {
-  const [positionX, positionY, positionZ] = position;
-  const groupRef = useRef<Group>(null);
-  const target = useRef({ position: new Vector3(...position), orientation });
-  const initialized = useRef(false);
-  const smoothing = useRef<PoseSmoothing>({ active: false, wasRemote: false });
-  const invalidate = useThree((state) => state.invalidate);
-  useLayoutEffect(() => {
-    target.current.position.set(positionX, positionY, positionZ);
-    target.current.orientation = orientation;
-    retargetPoseSmoothing(smoothing.current, remote, immediate);
-    const group = groupRef.current;
-    const shouldSnap = !initialized.current || !smoothing.current.active;
-    if (group && shouldSnap) {
-      snapTablePose(group, target.current);
-      initialized.current = true;
-    }
-    invalidate();
-  }, [immediate, invalidate, orientation, positionX, positionY, positionZ, remote]);
-  useFrame((_, delta) => {
-    const group = groupRef.current;
-    if (!group || !smoothing.current.active) {
-      return;
-    }
-    smoothing.current.active = advanceTablePose(group, target.current, delta);
-    if (smoothing.current.active) {
-      invalidate();
-    }
-  });
-  return groupRef;
-}
+import { useTablePose } from './useTablePose';
 
 const HAND_HTML_STYLE = { pointerEvents: 'none' } as const;
 const HAND_Z_RANGE = [6, 0];
