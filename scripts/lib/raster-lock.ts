@@ -47,7 +47,7 @@ function localRasterKeys(): string[] {
  * The originals are not in git (#1888 step 8), so the lock lists every key it already had plus any new file on disk.
  * A key is permanent: deleting its file locally keeps the entry, and `media:sync` fetches the file again.
  */
-function listKeys(previous: RasterLock): string[] {
+export function lockKeys(previous: RasterLock): string[] {
   return [...new Set([...Object.keys(previous), ...localRasterKeys()])];
 }
 
@@ -85,7 +85,7 @@ async function describe(key: string, previous: RasterLock): Promise<RasterLockEn
 /** Describes every raster source under media/, reusing the previous entry of each unchanged file. */
 export async function buildRasterLock(previous: RasterLock): Promise<RasterLock> {
   const lock: RasterLock = {};
-  const keys = listKeys(previous).sort((left, right) => left.localeCompare(right));
+  const keys = lockKeys(previous).sort((left, right) => left.localeCompare(right));
   const queue = [...keys];
   async function worker(): Promise<void> {
     const key = queue.shift();
