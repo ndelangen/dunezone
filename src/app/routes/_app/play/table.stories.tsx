@@ -8,7 +8,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { resetTableGraphics, TABLE_GRAPHICS_UNAVAILABLE } from '../../../widgets/tabletop/useTableGraphics';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
-import { mapViewPoint, openTab } from './playing.stories.fixture';
+import { mapViewPoint, openTab, waitForPlayCamera } from './playing.stories.fixture';
 import { factions, playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
@@ -38,6 +38,7 @@ async function tablePage(canvasElement: HTMLElement, phaseLabel: string = TABLE_
   if (!shell) {
     throw new Error('The Play route did not mount its table.');
   }
+  await waitForPlayCamera(document);
   expect(document.querySelector('[data-page-layout-height="fullscreen"]')).not.toBeNull();
   const header = shell.querySelector('header');
   if (!header) {
@@ -214,6 +215,19 @@ export const ToolbarKeepsLabelsOn = meta.story({
   },
 });
 
+/* A tag's placement rounds to whole pixels, so a glide that settles a hair short of the pose can land one pixel off (#1957). */
+function expectPlacementNear(actual: string | undefined, expected: string | undefined) {
+  const parse = (transform: string | undefined) => {
+    const match = transform?.match(/^translate3d\((-?[\d.]+)px, (-?[\d.]+)px, (-?[\d.]+)px\)(.*)$/);
+    expect(match, `an unexpected placement: ${transform}`).toBeTruthy();
+    return { x: Number(match![1]), y: Number(match![2]), rest: `${match![3]}${match![4]}` };
+  };
+  const [got, want] = [parse(actual), parse(expected)];
+  expect(Math.abs(got.x - want.x), `${actual} against ${expected}`).toBeLessThanOrEqual(1);
+  expect(Math.abs(got.y - want.y), `${actual} against ${expected}`).toBeLessThanOrEqual(1);
+  expect(got.rest).toBe(want.rest);
+}
+
 /* The wheel over the board moves in for a close look and backs out to the view's own pose; Ctrl with the wheel stays the browser's zoom. */
 export const WheelTakesACloseLook = meta.story({
   beforeEach: install(() => productTransport()),
@@ -251,10 +265,10 @@ export const WheelTakesACloseLook = meta.story({
       turnWheel(-600);
     }
     /* The glide needs frames to finish even when the runner draws them late (#1900). */
-    await waitForFrame(() => expect(deckPlacement()).toBe(approved));
+    await waitForFrame(() => expectPlacementNear(deckPlacement(), approved));
     turnWheel(-600);
     await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(deckPlacement()).toBe(approved);
+    expectPlacementNear(deckPlacement(), approved);
   },
 });
 

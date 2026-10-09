@@ -9,7 +9,7 @@ const VERIFY_WORKFLOW = '.github/workflows/reusable-verify.yml';
 
 /**
  * One job of the verify workflow, from its key to the next job's key.
- * The next key may hold any character a job id can: a letter, a digit, `_` or `-`, as in `tool_e2e`.
+ * The next key may hold any character a job id can: a letter, a digit, `_` or `-`, as in `browser_checks`.
  */
 export function verifyJob(id: string, root = process.cwd()): string {
   const workflow = readFileSync(path.join(root, VERIFY_WORKFLOW), 'utf8');

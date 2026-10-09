@@ -381,6 +381,10 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+      - name: Pre-pull Convex images in background
+        # Overlaps the pull with the build; the wait step below serializes before the isolation proof.
+        run: |
+          (docker compose -f docker-compose.convex-local.yml pull -q > /tmp/convex-pull.log 2>&1 || true; touch /tmp/convex-pull.done) &
       - uses: ./.github/actions/setup
       - name: Generate app artifacts
         run: bun run generate
@@ -428,6 +432,16 @@ jobs:
           upload dunezone-pages dist/client/page
           upload dunezone-fonts dist/client/font
           exit "$status"
+      # Proves two local launches never share ports, containers or data. It needs Docker and nothing
+      # of the e2e suite, so it runs once here rather than before every shard, and whatever the build
+      # found (#1925).
+      - name: Wait for Convex image pre-pull
+        if: ${{ !cancelled() }}
+        # Non-fatal on timeout or pull failure: the proof's compose up pulls whatever is missing.
+        run: timeout 120 bash -c 'until [ -f /tmp/convex-pull.done ]; do sleep 1; done' || true
+      - name: Prove concurrent local Convex isolation
+        if: ${{ !cancelled() }}
+        run: bun run test:local-convex-isolation
 
   publisher_release:
     runs-on: ubuntu-latest
@@ -540,11 +554,15 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  # The authoring tool's own end-to-end tests and the script tests that launch Chromium, named in
-  # browser-launch-tests.ts, share the one Playwright install, so the unit job needs no browser (#1590).
-  tool_e2e:
+  # Everything else that drives Chromium, folded into one job so the Playwright install and the
+  # setup are paid once (#1925): the authoring tool's own end-to-end tests, the script tests that
+  # launch Chromium, named in browser-launch-tests.ts, so the unit job needs no browser (#1590), and
+  # the static Storybook build that used to run ahead of the story tests on the run's longest job.
+  # deploy-main.yml runs the Storybook check again before it deploys the artifact. Each check runs
+  # unless the job was cancelled, so one failure does not hide the others' results.
+  browser_checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     if: ${{ !inputs.hosted_only }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -563,7 +581,6 @@ jobs:
       - name: Authoring tool E2E
         run: bun run tool:test:e2e
       - name: Browser-launching script tests
-        # Their result is wanted whatever the authoring tool's step found, so a failure there does not hide theirs.
         if: ${{ !cancelled() }}
         run: bun run test:browser-launch --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-browser-launch.junit.xml
       - name: Upload test results to Codecov
@@ -577,52 +594,11 @@ jobs:
           flags: unit
           disable_search: true
           fail_ci_if_error: false
-
-  # Builds the static Storybook and drives it in Chromium: 52 s that used to run ahead of the story
-  # tests on the run's longest job. On its own runner the two proceed side by side. deploy-main.yml
-  # runs the same script again before it deploys the artifact.
-  storybook_publication:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    if: ${{ !inputs.hosted_only }}
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-          # Leaves the raster originals out (#1923); see the generated-images action.
-          sparse-checkout: |
-            /*
-            !/media/image/
-          sparse-checkout-cone-mode: false
-      - uses: ./.github/actions/setup
       - uses: ./.github/actions/generated-images
-      - uses: ./.github/actions/playwright-chromium
-        with:
-          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
-          with-deps: "false"
+        if: ${{ !cancelled() }}
       - name: Verify the public Storybook artifact
+        if: ${{ !cancelled() }}
         run: bun run verify:storybook-publication
-
-  # Proves two local launches never share ports, containers or data. It needs Docker and
-  # nothing of the e2e suite, so it runs once here rather than before every shard.
-  local_convex_isolation:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: ${{ !inputs.hosted_only }}
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-          # Leaves the raster originals out (#1923); see the generated-images action.
-          sparse-checkout: |
-            /*
-            !/media/image/
-          sparse-checkout-cone-mode: false
-      - uses: ./.github/actions/setup
-      - name: Pull Convex images
-        run: docker compose -f docker-compose.convex-local.yml pull -q
-      - name: Prove concurrent local Convex isolation
-        run: bun run test:local-convex-isolation
 
   e2e_docker:
     runs-on: ubuntu-latest
