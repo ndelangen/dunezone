@@ -3,10 +3,16 @@
  *
  * `GET`/`HEAD /m/<src20>.<recipe10>.<ext>` serves a variant under an immutable URL.
  * `src20` is the first 20 hex digits of the original's SHA-256 and `recipe10` names the encoding recipe, so a key never changes meaning.
- * Only the encoder writes this bucket, never the Worker.
  * A variant whose stored metadata lacks its output SHA-256 and byte length is refused, because readers verify every body against them.
+ *
+ * `PUT /m/<src20>.<recipe10>.<ext>` is how the production deploy publishes what CI encoded (#1888 step 4).
+ * It takes the publish token as a bearer token, checks that the body is the image type its extension names, records the body's SHA-256 and length, and creates the object only if it is absent.
+ * An identical re-publish answers 200.
+ * A stored object whose bytes differ is a 409 and is never overwritten.
  */
 import { METHOD_NOT_ALLOWED, NOT_FOUND, inNamespace, jsonError, serveImmutable } from './media-response';
+import type { Refusal } from './media-response';
+import { authorizeBearer, readBounded, sha256Hex } from './media-upload';
 
 const MEDIA_VARIANT_NAMESPACE = '/m';
 const VARIANT_PATH = /^\/m\/([0-9a-f]{20}\.[0-9a-f]{10}\.(png|jpg|webp))$/;
@@ -17,9 +23,19 @@ const CONTENT_TYPES: Record<string, string> = {
   webp: 'image/webp',
 };
 
-export type MediaVariantBucket = Pick<R2Bucket, 'get'>;
+/** The largest variant today is under 1 MB. */
+export const MEDIA_VARIANT_MAX_BYTES = 8 * 1024 * 1024;
 
-export type MediaVariantEnv = { MEDIA_BUCKET: MediaVariantBucket };
+export type MediaVariantBucket = Pick<R2Bucket, 'get' | 'head' | 'put'>;
+
+export type MediaVariantEnv = {
+  MEDIA_BUCKET: MediaVariantBucket;
+  /** Set by each production deploy (`wrangler deploy --secrets-file`); publishing refuses with 503 while it is unset. */
+  MEDIA_PUBLISH_TOKEN?: string;
+};
+
+/** What the Worker stored, and what the publisher checks against its own record. */
+type MediaVariantReceipt = { name: string; sha256: string; bytes: number; created: boolean };
 
 export function mediaVariantKey(name: string): string {
   return `v/${name}`;
@@ -39,6 +55,64 @@ async function serveVariant(request: Request, env: MediaVariantEnv, name: string
   return await serveImmutable(request, object, CONTENT_TYPES[extension], { sha256, bytes });
 }
 
+/** True when the bytes open with the signature of the image type the extension names. */
+function signatureMatches(bytes: Uint8Array, extension: string): boolean {
+  const ascii = (start: number, end: number) => String.fromCharCode(...bytes.subarray(start, end));
+  if (extension === 'png') {
+    return bytes[0] === 0x89 && ascii(1, 4) === 'PNG';
+  }
+  if (extension === 'jpg') {
+    return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  }
+  return ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
+}
+
+async function readVariant(request: Request, extension: string): Promise<Uint8Array | Refusal> {
+  const bytes = await readBounded(request, MEDIA_VARIANT_MAX_BYTES);
+  if (!bytes) {
+    return { status: 413, message: 'The variant is too large' };
+  }
+  if (bytes.byteLength === 0) {
+    return { status: 400, message: 'The body is empty' };
+  }
+  return signatureMatches(bytes, extension)
+    ? bytes
+    : { status: 415, message: `The body is not the ${extension} the name declares` };
+}
+
+async function publishVariant(request: Request, env: MediaVariantEnv, name: string, extension: string) {
+  const refusal = await authorizeBearer(request, env.MEDIA_PUBLISH_TOKEN, 'Publishing');
+  if (refusal) {
+    return jsonError(refusal);
+  }
+  const bytes = await readVariant(request, extension);
+  if ('status' in bytes) {
+    return jsonError(bytes);
+  }
+  const sha256 = await sha256Hex(bytes);
+  const key = mediaVariantKey(name);
+  const written = await env.MEDIA_BUCKET.put(key, bytes, {
+    onlyIf: { etagDoesNotMatch: '*' },
+    sha256,
+    httpMetadata: { contentType: CONTENT_TYPES[extension] },
+    customMetadata: { sha256, bytes: String(bytes.byteLength) },
+  });
+  /* A null answer means the key already exists. The name is not a hash of the bytes, so the stored metadata decides whether it is the same variant. */
+  const stored = written ?? (await env.MEDIA_BUCKET.head(key));
+  if (!stored) {
+    return jsonError({ status: 503, message: 'The variant was neither written nor found' });
+  }
+  if (stored.customMetadata?.sha256 !== sha256 || stored.size !== bytes.byteLength) {
+    console.error(JSON.stringify({ event: 'media_variant_conflict', key: name }));
+    return jsonError({ status: 409, message: 'A stored variant with this name has different bytes' });
+  }
+  const created = written !== null;
+  return Response.json({ name, sha256, bytes: bytes.byteLength, created } satisfies MediaVariantReceipt, {
+    status: created ? 201 : 200,
+    headers: { 'Cache-Control': 'no-store' },
+  });
+}
+
 /** Answers the `/m` namespace, or returns null for any other path. */
 export async function handleMediaVariantRequest(request: Request, env: MediaVariantEnv): Promise<Response | null> {
   const url = new URL(request.url);
@@ -49,8 +123,11 @@ export async function handleMediaVariantRequest(request: Request, env: MediaVari
   if (!match) {
     return jsonError(NOT_FOUND);
   }
-  if (request.method !== 'GET' && request.method !== 'HEAD') {
-    return jsonError(METHOD_NOT_ALLOWED);
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    return await serveVariant(request, env, match[1], match[2]);
   }
-  return await serveVariant(request, env, match[1], match[2]);
+  if (request.method === 'PUT') {
+    return await publishVariant(request, env, match[1], match[2]);
+  }
+  return jsonError(METHOD_NOT_ALLOWED);
 }

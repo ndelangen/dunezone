@@ -46,6 +46,7 @@ function liveBindings() {
     { name: 'CF_VERSION_METADATA', type: 'version_metadata' },
     { name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' },
     { name: 'ASSET_PUBLISHER_EXECUTOR_SECRET', type: 'secret_text' },
+    { name: 'MEDIA_PUBLISH_TOKEN', type: 'secret_text' },
     { name: 'MEDIA_UPLOAD_TOKEN', type: 'secret_text' },
     {
       name: 'PUBLIC_BASE_URL',
@@ -171,6 +172,7 @@ function liveFetcher(
           ? []
           : [{ name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' }]),
         ...(options.executorSecret === false ? [] : [{ name: 'ASSET_PUBLISHER_EXECUTOR_SECRET', type: 'secret_text' }]),
+        { name: 'MEDIA_PUBLISH_TOKEN', type: 'secret_text' },
         { name: 'MEDIA_UPLOAD_TOKEN', type: 'secret_text' },
         ...(options.extraSecret ? [{ name: 'ASSET_PUBLISHER_POLL_SECRET', type: 'secret_text' }] : []),
       ]);
@@ -253,7 +255,7 @@ describe('Cloudflare live drift check', () => {
       worker: WORKER,
       domainCount: 1,
       bindingCount: 22,
-      secretCount: 3,
+      secretCount: 4,
       retiredSecrets: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET'],
       cronCount: 1,
       queueCount: 1,
@@ -282,7 +284,7 @@ describe('Cloudflare live drift check', () => {
         fetcher: live.fetcher,
       })
     ).resolves.toMatchObject({
-      secretCount: 2,
+      secretCount: 3,
       retiredSecrets: [],
     });
   });
