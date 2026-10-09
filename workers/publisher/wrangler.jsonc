@@ -97,7 +97,7 @@
     { "type": "Data", "globs": ["**/*.woff2", "**/*.woff"], "fallthrough": true }
   ],
   "secrets": {
-    "required": ["ASSET_PUBLISHER_EXECUTOR_SECRET"]
+    "required": ["ASSET_PUBLISHER_EXECUTOR_SECRET", "MEDIA_UPLOAD_TOKEN"]
   },
   "vars": {
     "PUBLIC_BASE_URL": "https://dune.zone",
