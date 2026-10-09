@@ -67,6 +67,7 @@
     "publisher:release:verify": "bun run publisher:dry-run && git diff --exit-code -- workers/publisher/renderer-manifest.generated.ts",
     "publisher:retain-assets": "bun run ./scripts/retain-application-assets.ts",
     "publisher:rulebook-html-runtime:verify": "bun run ./scripts/verify-rulebook-html-runtime.ts",
+    "publisher:secret:publish-token": "wrangler secret put MEDIA_PUBLISH_TOKEN --config workers/publisher/wrangler.jsonc",
     "publisher:startup": "wrangler check startup --cwd workers/publisher --config wrangler.jsonc --outfile /tmp/asset-publisher-startup.cpuprofile",
     "publisher:test": "vitest run workers/publisher",
     "publisher:typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit -p workers/publisher/tsconfig.json",
