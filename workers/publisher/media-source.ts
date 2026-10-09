@@ -196,7 +196,10 @@ async function serveSource(source: Source): Promise<Response> {
   const headers = sourceHeaders(object, source);
   if (source.request.headers.get('If-None-Match') === object.httpEtag) {
     await object.body.cancel();
-    return new Response(null, { status: 304, headers: { ETag: object.httpEtag } });
+    return new Response(null, {
+      status: 304,
+      headers: { ETag: object.httpEtag, 'Cache-Control': IMMUTABLE_CACHE_CONTROL },
+    });
   }
   if (source.request.method === 'HEAD') {
     await object.body.cancel();

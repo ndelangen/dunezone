@@ -208,6 +208,7 @@ describe('media source reads', () => {
     const etag = (await answer(new Request(url), env)).headers.get('ETag');
     const revalidated = await answer(new Request(url, { headers: { 'If-None-Match': String(etag) } }), env);
     expect(revalidated.status).toBe(304);
+    expect(revalidated.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
   });
 
   test('answers 404 that is never cached for an unknown hash, a malformed path or the bare namespace, even on navigation', async () => {
