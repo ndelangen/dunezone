@@ -223,6 +223,30 @@ jobs:
           printf '{"MEDIA_PUBLISH_TOKEN":"%s"}' "$token" > "$RUNNER_TEMP/publisher-secrets.json"
           printf '%s' "$token" > "$RUNNER_TEMP/media-publish-token"
 
+      # The release carries no raster copies, so every variant it names must be in R2 before it goes live
+      # (#1888 step 7b). The live Worker takes this release's token first, then the variants and the
+      # release's prepared record go up through it, and only then does the new Worker deploy, keeping the
+      # same token through --secrets-file. A failure here stops the deploy with the previous release live.
+      # The checks above ran a local Worker with empty buckets, which needs the raster copies.
+      - name: Omit raster copies from the release
+        run: bun run publisher:omit-static-rasters
+
+      - name: Install the variant publish token on the live Worker
+        run: bun run publisher:secret:publish-token < "$RUNNER_TEMP/media-publish-token"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Publish raster variants
+        timeout-minutes: 20
+        env:
+          MEDIA_RELEASE_ID: ${{ github.sha }}-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          MEDIA_PUBLISH_TOKEN="$(cat "$RUNNER_TEMP/media-publish-token")"
+          export MEDIA_PUBLISH_TOKEN
+          bun run media:publish
+
       - name: Deploy exact Worker release
         run: >-
           bunx wrangler deploy
@@ -280,11 +304,9 @@ jobs:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           CONVEX_DEPLOYMENT: ${{ vars.CONVEX_DEPLOYMENT }}
 
-      # Publishes the variants this job encoded to /m and writes the release's prepared record to the
-      # media ledger, proves that /m and the legacy static URLs serve the same bytes for every variant,
-      # then marks the release deployed. Nothing references /m yet, so this runs last
-      # and a failure here never holds back the rest of the release.
-      - name: Publish raster variants
+      # Proves that /m and the legacy URLs, both now answered from R2, serve the bytes this job encoded
+      # for every variant, then marks the release deployed in the media ledger.
+      - name: Verify raster variants and mark the release deployed
         timeout-minutes: 20
         env:
           MEDIA_RELEASE_ID: ${{ github.sha }}-${{ github.run_id }}
@@ -293,7 +315,6 @@ jobs:
           trap 'rm -f "$RUNNER_TEMP/media-publish-token" "$RUNNER_TEMP/publisher-secrets.json"' EXIT
           MEDIA_PUBLISH_TOKEN="$(cat "$RUNNER_TEMP/media-publish-token")"
           export MEDIA_PUBLISH_TOKEN
-          bun run media:publish
           bun run media:publish --verify
           bun run media:publish --deployed
 

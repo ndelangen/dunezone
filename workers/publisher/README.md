@@ -87,10 +87,14 @@ Rulebook illustrations load artwork through the same path.
 token, checks the body against the image type its extension names, and creates the
 object only if it is absent. An identical re-publish answers 200, and a stored
 variant with different bytes answers 409 and is never overwritten. Each production
-deploy installs a fresh random token with the Worker (`--secrets-file`) and runs
-`bun run media:publish`, then `bun run media:publish --verify`, which checks that `/m`
-and the legacy static URL serve the stored bytes for every variant. No person holds
-the token.
+deploy mints a fresh random token, installs it on the live Worker with
+`wrangler secret put`, and runs `bun run media:publish` through that Worker before the
+new release deploys with the same token (`--secrets-file`). The production release
+carries no raster copies (`bun run publisher:omit-static-rasters`, #1888 step 7b), so every
+variant it names is in R2 before it goes live. After the deploy,
+`bun run media:publish --verify` checks that `/m` and the legacy URL serve the stored
+bytes for every variant. No person holds the token. Local and CI Workers keep the
+raster copies, because their buckets are empty.
 
 ## Media release ledger
 
