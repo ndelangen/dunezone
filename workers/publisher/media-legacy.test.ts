@@ -8,8 +8,12 @@ import { memoryR2Bucket } from './test-helpers';
 const ORIGIN = 'https://dune.zone';
 const TIER_URL = '/image/texture/021-small.jpg';
 const CANONICAL_URL = '/image/texture/021.jpg';
-const BYTES = new Uint8Array([0xff, 0xd8, 0xff, 1, 2, 3]);
 const SHA256 = 'e'.repeat(64);
+
+/** Distinct bytes per URL, so a handler that serves the wrong variant fails. */
+function bytesFor(url: string): Uint8Array {
+  return new Uint8Array([0xff, 0xd8, 0xff, ...new TextEncoder().encode(url)]);
+}
 
 /** A static binding that answers listed paths, and the SPA's HTML for everything else. */
 function assets(files: Record<string, string> = {}) {
@@ -30,9 +34,10 @@ function assets(files: Record<string, string> = {}) {
 function env(published: string[] = [], files: Record<string, string> = {}) {
   const bucket = memoryR2Bucket();
   for (const url of published) {
+    const bytes = bytesFor(url);
     bucket.objects.set(mediaVariantKey(legacyVariant(url)!), {
-      bytes: BYTES,
-      options: { customMetadata: { sha256: SHA256, bytes: String(BYTES.byteLength) } },
+      bytes,
+      options: { customMetadata: { sha256: SHA256, bytes: String(bytes.byteLength) } },
     });
   }
   return { MEDIA_BUCKET: bucket, ASSETS: assets(files) };
@@ -48,7 +53,7 @@ async function answer(path: string, environment: ReturnType<typeof env>, init: R
 
 describe('legacy media URLs', () => {
   test('serve a locked tier from its published variant for an hour, with integrity headers', async () => {
-    const environment = env([TIER_URL]);
+    const environment = env([TIER_URL, CANONICAL_URL]);
 
     const response = await answer(TIER_URL, environment);
 
@@ -56,15 +61,29 @@ describe('legacy media URLs', () => {
     expect(response.headers.get('Content-Type')).toBe('image/jpeg');
     expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600');
     expect(response.headers.get('X-Media-SHA256')).toBe(SHA256);
-    expect(new Uint8Array(await response.arrayBuffer())).toEqual(BYTES);
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytesFor(TIER_URL));
     expect(environment.ASSETS.requested).toEqual([]);
   });
 
   test('serve a canonical URL from the capped re-encode', async () => {
-    const response = await answer(CANONICAL_URL, env([CANONICAL_URL]));
+    const response = await answer(CANONICAL_URL, env([TIER_URL, CANONICAL_URL]));
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('image/jpeg');
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytesFor(CANONICAL_URL));
+  });
+
+  test('refuse a stored variant without integrity metadata rather than fall back', async () => {
+    const environment = env([], { [TIER_URL]: 'image/jpeg' });
+    environment.MEDIA_BUCKET.objects.set(mediaVariantKey(legacyVariant(TIER_URL)!), {
+      bytes: bytesFor(TIER_URL),
+      options: {},
+    });
+
+    const response = await answer(TIER_URL, environment);
+
+    expect(response.status).toBe(502);
+    expect(environment.ASSETS.requested).toEqual([]);
   });
 
   test('fall back to the static file while the variant is unpublished', async () => {
@@ -93,7 +112,9 @@ describe('legacy media URLs', () => {
     const environment = env([CANONICAL_URL]);
     const fetcher = mediaFetcher(environment);
 
-    expect((await fetcher.fetch(new Request(`https://rulebook-static.invalid${CANONICAL_URL}`))).status).toBe(200);
+    const illustration = await fetcher.fetch(new Request(`https://rulebook-static.invalid${CANONICAL_URL}`));
+    expect(illustration.headers.get('Content-Type')).toBe('image/jpeg');
+    expect(new Uint8Array(await illustration.arrayBuffer())).toEqual(bytesFor(CANONICAL_URL));
     expect(await (await fetcher.fetch(new Request(`https://rulebook-static.invalid/vector/x.svg`))).text()).toBe(
       '<!doctype html>'
     );

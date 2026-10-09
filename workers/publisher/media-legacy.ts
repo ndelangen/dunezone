@@ -26,7 +26,7 @@ async function publishedVariant(request: Request, env: LegacyMediaEnv, name: str
   if (!sha256 || !bytes) {
     await object.body.cancel();
     console.error(JSON.stringify({ event: 'media_variant_unverifiable', key: name }));
-    return null;
+    return jsonError({ status: 502, message: 'The stored variant has no integrity metadata' });
   }
   const extension = name.split('.').at(-1) ?? '';
   return await serveImmutable(request, object, CONTENT_TYPES[extension], { sha256, bytes }, LEGACY_CACHE_CONTROL);
