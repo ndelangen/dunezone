@@ -1,25 +1,14 @@
 import { pieceCount } from '@shared/play/model';
-import type { TablePiece } from '@shared/play/model';
-import { stackLayerItemIndex } from '@shared/play/pieceFlip';
-import { tokenBoxRatio, visibleLayerCount } from '@shared/play/tableGeometry';
+import { tokenBoxRatio } from '@shared/play/tableGeometry';
 import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 
 import { card } from '@game/data/sizes';
 
 import { PieceArtwork } from './PieceArtwork';
+import { topFaceHref } from './pieceFaceHref';
 import { useTabletopSelector } from './TabletopContext';
 import styles from './TabletopScene.module.css';
-
-/** The published image a piece shows on top: the upper face of its top layer. */
-export function topFaceHref(piece: TablePiece): string | undefined {
-  if (piece.kind === 'marker' || piece.items.length === 0) {
-    return undefined;
-  }
-  const shownLayers = visibleLayerCount(piece);
-  const item = piece.items[stackLayerItemIndex(piece.items.length, shownLayers, shownLayers - 1, piece.flipRevision)];
-  return item?.artwork?.[item.faceUp ? 'front' : 'back'];
-}
 
 const CARD_HEIGHT_PX = 380;
 const TOKEN_SIZE_PX = 240;

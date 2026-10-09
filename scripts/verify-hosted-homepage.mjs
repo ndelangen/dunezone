@@ -96,6 +96,7 @@ export async function verifyHomepage({
     await releaseArtwork.promise;
     await route.continue();
   });
+  let initialCanvas;
   for (const who of [member, guest]) {
     await who.page.goto(origin, { waitUntil: 'domcontentloaded' });
     await who.page.getByRole('link', { name: 'Take a sneak peek', exact: true }).click();
@@ -104,16 +105,24 @@ export async function verifyHomepage({
       await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
       await new Promise((resolve) => setTimeout(resolve, 12_000));
       assert.equal(await who.page.locator('[data-live-ready="true"]').count(), 0);
+      assert.equal(await who.page.locator('#play-preview img[src*="homepage/board"]').count(), 0);
+      initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
+      assert.ok(initialCanvas);
+      await capture(member, 'homepage-waits-for-scene-artwork');
       releaseArtwork.resolve();
     }
     await who.page.locator('[data-live-ready="true"]').waitFor();
     await tableLoaded(who);
     await until(() => who.view(), `${who.label} received no homepage table.`);
     if (who === member) {
+      assert.equal(
+        await initialCanvas.evaluate((canvas) => canvas === document.querySelector('#play-preview canvas')),
+        true
+      );
       await capture(member, 'homepage-member-ready-after-slow-artwork');
     }
   }
-  passed('The homepage becomes interactive after scene artwork takes longer than ten seconds');
+  passed('The homepage draws one canvas without an image handoff and finishes its delayed artwork in place');
   await recordRenderer(member, '#play-preview canvas');
   await until(() => member.view().viewer.viewerSeat !== spectator, 'Signing in did not grant table handling.');
   assert.equal(guest.view().viewer.viewerSeat, spectator);

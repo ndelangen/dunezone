@@ -1,12 +1,11 @@
 /* @jsxImportSource ./three-jsx */
-import { Button, Menu } from '@mantine/core';
-import { Html, Shadow, useTexture } from '@react-three/drei/webgpu';
+import { Shadow, useTexture } from '@react-three/drei/webgpu';
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { isFactionToken } from '@shared/play/factionToken';
-import { gestureBlockReason, pieceCount, topItemFaceUp } from '@shared/play/model';
+import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
-import { hasHiddenFace, peekersOf, peeksWholeDeck } from '@shared/play/peeking';
+import { peekersOf } from '@shared/play/peeking';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
@@ -48,7 +47,6 @@ import {
   MARKER_CONE_HEIGHT,
   MARKER_CONE_RADIUS,
   MARKER_TOP_RADIUS,
-  pieceLabelHeight,
   stackTopHeight,
   visibleLayerCount,
 } from '@shared/play/tableGeometry';
@@ -65,11 +63,11 @@ import { isTroopStack } from '@shared/play/troop';
 import {
   createContext,
   memo,
+  lazy,
   useContext,
   Suspense,
   useCallback,
   useEffect,
-  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -80,7 +78,6 @@ import type { ReactNode } from 'react';
 import type { ExtrudeGeometry, Group, Texture } from 'three';
 import {
   BufferGeometry,
-  CanvasTexture,
   EdgesGeometry,
   Float32BufferAttribute,
   Mesh,
@@ -102,40 +99,34 @@ import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
-import { CameraControls, CameraRelativeFog } from './CameraControls';
-import { deckShuffleHint, swallowLift, watchLongPress } from './longPress';
-import { PeekView } from './PeekView';
+import { swallowLift, watchLongPress } from './longPress';
+import { MapPreviewCamera } from './MapPreviewCamera';
+import { peekableToken } from './peekableToken';
 import { PhaseSymbol } from './PhaseSymbol';
-import { PieceCloseUp, topFaceHref } from './PieceCloseUp';
+import { topFaceHref } from './pieceFaceHref';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
-import type { CardPrediction } from './prediction/predictionFace';
-import { usePredictionFace } from './prediction/predictionFace';
 import { sharedPublishedFaces } from './publishedFaceRetry';
-import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
 import { SpiceBank } from './SpiceBank';
 import { TableFurniture } from './TableFurniture';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { useTableLighting } from './tableLighting';
 import { mapViewFramingPoints } from './tablePlateGeometry';
-import {
-  useTabletop,
-  useTabletopActions,
-  useTabletopCommands,
-  useTabletopReader,
-  useTabletopSelector,
-} from './TabletopContext';
+import { isPublicTablePoint } from './tablePointerPoint';
+import { useTabletop, useTabletopActions, useTabletopCommands, useTabletopSelector } from './TabletopContext';
 import type { TabletopContextValue } from './TabletopContext';
 import styles from './TabletopScene.module.css';
+import type { PieceMenuAnchor } from './TabletopTools';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
 import { TurnTracker } from './TurnTracker';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
 import { useTableGraphics } from './useTableGraphics';
+import { useTablePose } from './useTablePose';
 
-/* The two textures start with the bundle, alongside the connection, so the mounted table has them by the time it needs them. */
+/* The storm marker starts with the bundle, alongside the connection. */
 useTexture.preload(stormMarkerUrl);
 
 type TabletopSceneProps = {
@@ -153,6 +144,14 @@ type TabletopSceneProps = {
   stage?: GameSnapshot['stage'];
   mapVisible?: boolean;
 };
+
+const PieceBadge = lazy(() => import('./PieceBadge').then((module) => ({ default: module.PieceBadge })));
+const ScenePresence = lazy(() => import('./ScenePresence').then((module) => ({ default: module.ScenePresence })));
+const PredictionOverlay = lazy(() =>
+  import('./prediction/PredictionOverlay').then((module) => ({ default: module.PredictionOverlay }))
+);
+const TabletopTools = lazy(() => import('./TabletopTools').then((module) => ({ default: module.TabletopTools })));
+const PlayCamera = lazy(() => import('./PlayCamera').then((module) => ({ default: module.PlayCamera })));
 
 const BOARD_RIM_COLOR = '#15263b';
 /* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */
@@ -488,8 +487,8 @@ function BoardSurface({
       {/* The textured parts suspend while their image loads; the boundary keeps that inside the scene, so the
           rim, the furniture and the pieces stay on screen and the map fills in, instead of the route's
           placeholder replacing a table the visitor has already seen. While it waits it counts as unsettled artwork. */}
+      {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} />}
       <Suspense fallback={<ArtworkPending />}>
-        {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} />}
         {boardFurnitureFor(stage).storm && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
       </Suspense>
       <mesh position={[0, BOARD_SURFACE_Y + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -696,29 +695,6 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
-/* A prediction card's chosen logo and turn, drawn over its published base (#1753). */
-function PredictionOverlay({ prediction }: { prediction: CardPrediction }) {
-  const face = usePredictionFace(prediction);
-  const texture = useMemo(() => {
-    if (!face) {
-      return null;
-    }
-    const value = new CanvasTexture(face);
-    value.colorSpace = SRGBColorSpace;
-    return value;
-  }, [face]);
-  useEffect(() => () => texture?.dispose(), [texture]);
-  if (!texture) {
-    return null;
-  }
-  return (
-    <mesh position={[0, 0, 0.003]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
-      <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
-      <meshBasicMaterial map={texture} transparent depthWrite={false} />
-    </mesh>
-  );
-}
-
 function CardFace({
   piece,
   faceUp,
@@ -739,7 +715,9 @@ function CardFace({
         <PublishedFace href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']!} card />
       )}
       {faceUp && piece.items[itemIndex]?.artwork?.prediction && (
-        <PredictionOverlay prediction={piece.items[itemIndex].artwork.prediction} />
+        <Suspense fallback={null}>
+          <PredictionOverlay prediction={piece.items[itemIndex].artwork.prediction} />
+        </Suspense>
       )}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
@@ -1028,11 +1006,6 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
   return gestureBlocked ? 'not-allowed' : 'grab';
 }
 
-/* A token lying face down, whose other face a faction can peek at; cards always have a menu of their own. */
-function peekableToken(piece: TablePiece) {
-  return piece.kind === 'force' && !isSpicePiece(piece) && hasHiddenFace(piece);
-}
-
 /* Opens a piece's menu at a point; `touch` says a finger asked for it, which has no keyboard shortcut to offer. */
 const PieceMenuContext = createContext<((pieceId: string, x: number, y: number, touch: boolean) => void) | null>(null);
 
@@ -1219,43 +1192,6 @@ function pieceOwnerName(piece: TablePiece, state: Pick<TableState, 'factionNames
   return tieBreak ? `${owner} (${tieBreak})` : owner;
 }
 
-function PieceBadge({
-  piece,
-  owner,
-  peeked,
-  selected,
-  labelRef,
-  badgeRef,
-}: { piece: TablePiece; owner: string | undefined; peeked: string | undefined; selected: boolean } & Pick<
-  ReturnType<typeof usePieceFlipAnimation>,
-  'labelRef' | 'badgeRef'
->) {
-  return (
-    <group ref={labelRef} position={[0, pieceLabelHeight(piece), 0]}>
-      <Html center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
-        {/* The tag is as large as the count, so the count sits where it always has; the name hangs above it while Control is held. */}
-        <span className={`scene-piece-tag ${styles.pieceTag}`}>
-          <span className={`scene-piece-name ${styles.pieceName}`}>
-            <span className="scene-piece-name__label">{piece.label}</span>
-            {owner ? <span className={`scene-piece-name__owner ${styles.pieceNameOwner}`}>{owner}</span> : null}
-            {peeked ? <span className={`scene-piece-name__peeked ${styles.pieceNamePeeked}`}>{peeked}</span> : null}
-          </span>
-          <span
-            ref={badgeRef}
-            className={`scene-piece-count ${styles.pieceCount} ${selected ? `scene-piece-count--selected ${styles.pieceCountSelected}` : ''}`}
-            data-piece-id={piece.id}
-            data-face-up={topItemFaceUp(piece)}
-            data-flip-revision={piece.flipRevision ?? 0}
-            data-flipping="false"
-          >
-            {pieceCount(piece)}
-          </span>
-        </span>
-      </Html>
-    </group>
-  );
-}
-
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
   const { piece, drafted, remoteCarried, locallyCarried, reserved, selected, stackTargeted, owner, peeked } = props;
   const { finishPieceFlip } = useTabletopActions();
@@ -1320,14 +1256,24 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
           </group>
           <PieceLock piece={piece} />
           {props.showLabels !== false && (
-            <PieceBadge
-              piece={piece}
-              owner={owner}
-              peeked={peeked}
-              selected={selected}
-              labelRef={labelRef}
-              badgeRef={badgeRef}
-            />
+            <Suspense fallback={null}>
+              <PieceBadge
+                classNames={{
+                  pieceTag: styles.pieceTag,
+                  pieceName: styles.pieceName,
+                  pieceNameOwner: styles.pieceNameOwner,
+                  pieceNamePeeked: styles.pieceNamePeeked,
+                  pieceCount: styles.pieceCount,
+                  pieceCountSelected: styles.pieceCountSelected,
+                }}
+                piece={piece}
+                owner={owner}
+                peeked={peeked}
+                selected={selected}
+                labelRef={labelRef}
+                badgeRef={badgeRef}
+              />
+            </Suspense>
           )}
         </>
       ) : null}
@@ -1420,10 +1366,13 @@ function SceneContents({
         <>
           <color attach="background" args={['#130d0a']} />
           <fog attach="fog" args={['#130d0a', 10, 22]} />
-          <CameraRelativeFog />
         </>
       )}
-      <ScenePresence showNames={presentation !== 'preview'} showLocal={presentation === 'preview'} />
+      {presentation !== 'preview' && (
+        <Suspense fallback={null}>
+          <ScenePresence showNames />
+        </Suspense>
+      )}
       <TableLights />
       <group onClick={() => selectPiece(null)}>
         <BoardSurface
@@ -1446,119 +1395,15 @@ function SceneContents({
             />
           ))}
       </group>
-      <CameraControls
-        enabled={presentation !== 'preview' && controlsEnabled}
-        command={cameraView}
-        mapFramingPoints={mapFramingPoints}
-      />
+      {presentation === 'preview' ? (
+        <MapPreviewCamera />
+      ) : (
+        <Suspense fallback={<MapPreviewCamera />}>
+          <PlayCamera enabled={controlsEnabled} command={cameraView} mapFramingPoints={mapFramingPoints} />
+        </Suspense>
+      )}
       <SelectionRingWarmup />
     </>
-  );
-}
-
-type PieceMenuAnchor = { pieceId: string; x: number; y: number; touch: boolean };
-
-/* A deck's or a spice pile's menu, opened from the piece; it follows the live table while open, apart from the canvas. */
-function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor | null; onClose: () => void }>) {
-  const menuPiece = useTabletopSelector((table) =>
-    pieceMenu ? table.state.pieces.find((piece) => piece.id === pieceMenu.pieceId) : undefined
-  );
-  const deckControls = useTabletopSelector((table) => (pieceMenu ? table.deckControls : undefined));
-  const spiceReserveControls = useTabletopSelector((table) => (pieceMenu ? table.spiceReserveControls : undefined));
-  const peekControls = useTabletopSelector((table) => (pieceMenu ? table.peekControls : undefined));
-  const pieceMenuName = isSpicePiece(menuPiece)
-    ? 'Spice actions'
-    : menuPiece?.kind === 'card'
-      ? 'Deck actions'
-      : 'Token actions';
-  const peekAvailable =
-    !!peekControls && !!menuPiece && !menuPiece.inventory && !menuPiece.battleOverlay && hasHiddenFace(menuPiece);
-  const peekItem = menuPiece && (
-    <Menu.Item
-      disabled={!peekAvailable}
-      onClick={() => {
-        peekControls?.peek(menuPiece.id);
-        onClose();
-      }}
-    >
-      {peeksWholeDeck(menuPiece) ? 'Peek at the deck' : 'Peek'}
-    </Menu.Item>
-  );
-  const pieceMenuLabelId = useId();
-  const deckAvailable =
-    !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
-  const shuffleHint = deckShuffleHint(pieceMenu?.touch ?? false);
-  return (
-    <Menu
-      opened={!!pieceMenu && !!menuPiece}
-      onChange={(opened) => {
-        if (!opened) {
-          onClose();
-        }
-      }}
-      closeOnItemClick={false}
-      withinPortal
-      position="bottom-start"
-    >
-      <Menu.Target>
-        {/* An empty positioning anchor, not a control: hidden from assistive technology, so Mantine's expanded state on it names nothing. */}
-        <span
-          aria-hidden
-          style={{
-            position: 'fixed',
-            left: pieceMenu?.x ?? 0,
-            top: pieceMenu?.y ?? 0,
-            width: 1,
-            height: 1,
-            pointerEvents: 'none',
-          }}
-        />
-      </Menu.Target>
-      {/* Mantine names the dropdown by its target, here an empty anchor, so the menu points its name at its own hidden label instead. */}
-      <Menu.Dropdown aria-labelledby={pieceMenuLabelId}>
-        <span id={pieceMenuLabelId} hidden>
-          {pieceMenuName}
-        </span>
-        {isSpicePiece(menuPiece) ? (
-          <Menu.Item
-            disabled={!spiceReserveControls || menuPiece.locked || !spiceReserveControls.canCollect(menuPiece.id)}
-            onClick={() => {
-              spiceReserveControls?.collect(menuPiece.id);
-              onClose();
-            }}
-          >
-            Take into spice reserve
-          </Menu.Item>
-        ) : menuPiece && menuPiece.kind !== 'card' ? (
-          peekItem
-        ) : (
-          <>
-            <Menu.Label>{menuPiece ? `${menuPiece.items.length} cards` : 'Deck empty'}</Menu.Label>
-            {peekItem}
-            <Menu.Item disabled={!deckAvailable} onClick={() => pieceMenu && deckControls?.draw(pieceMenu.pieceId)}>
-              Draw a card
-            </Menu.Item>
-            {deckControls?.recipients.map((faction) => (
-              <Menu.Item
-                key={faction.id}
-                disabled={!deckAvailable}
-                onClick={() => pieceMenu && deckControls.draw(pieceMenu.pieceId, faction.id)}
-              >
-                Deal 1 to {faction.name}
-              </Menu.Item>
-            ))}
-            <Menu.Divider />
-            <Menu.Item
-              disabled={!deckAvailable || (menuPiece?.items.length ?? 0) < 2}
-              onClick={() => pieceMenu && deckControls?.shuffle(pieceMenu.pieceId)}
-            >
-              Shuffle
-            </Menu.Item>
-            {shuffleHint && <Menu.Label>{shuffleHint}</Menu.Label>}
-          </>
-        )}
-      </Menu.Dropdown>
-    </Menu>
   );
 }
 
@@ -1576,10 +1421,8 @@ export function TabletopScene({
   mapVisible,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget } = useTabletopCommands();
-  const readTable = useTabletopReader();
   /* The frame around the canvas follows only what it shows, so a held piece moving renders the pieces and not the canvas. */
   const hasDraft = useTabletopSelector((table) => table.state.draftMove !== null);
-  const selectedPieceId = useTabletopSelector((table) => table.state.selectedPieceId);
   const menuAvailable = useTabletopSelector((table) =>
     Boolean(table.deckControls || table.spiceReserveControls || table.peekControls)
   );
@@ -1629,35 +1472,14 @@ export function TabletopScene({
       }}
     >
       {presentation === 'play' && (
-        <>
-          <Button
-            className={styles.keyboardActions}
-            disabled={hasDraft || !selectedPieceId}
-            onClick={(event) => {
-              const { state } = readTable();
-              const piece = state.pieces.find((entry) => entry.id === state.selectedPieceId);
-              if (
-                !piece ||
-                piece.inventory ||
-                (piece.kind !== 'card' && !isSpicePiece(piece) && !peekableToken(piece))
-              ) {
-                return;
-              }
-              const bounds = event.currentTarget.getBoundingClientRect();
-              setPieceMenu({
-                pieceId: piece.id,
-                x: bounds.left,
-                y: bounds.bottom,
-                touch: (event.nativeEvent as Partial<PointerEvent>).pointerType === 'touch',
-              });
-            }}
-          >
-            Selected piece actions
-          </Button>
-          <PieceMenu pieceMenu={pieceMenu} onClose={() => setPieceMenu(null)} />
-          <PeekView />
-          <PieceCloseUp area={areaRef} />
-        </>
+        <Suspense fallback={null}>
+          <TabletopTools
+            pieceMenu={pieceMenu}
+            onMenuChange={setPieceMenu}
+            area={areaRef}
+            keyboardActionsClassName={styles.keyboardActions}
+          />
+        </Suspense>
       )}
       <PieceMenuContext.Provider value={presentation === 'play' && menuAvailable ? openPieceMenu : null}>
         {graphics === 'unavailable' && (
@@ -1679,7 +1501,7 @@ export function TabletopScene({
               onCreated={presentation === 'play' ? onSceneReady : undefined}
             >
               <ReleaseRendererOnUnmount />
-              {presentation === 'preview' && <RenderedTable onReady={onSceneReady} />}
+              {presentation === 'preview' && <PreviewArrival onReady={onSceneReady} />}
               {children}
               <SceneContents
                 presentation={presentation}
@@ -1700,7 +1522,7 @@ export function TabletopScene({
   );
 }
 
-/* Wait through artwork effects and a painted frame before replacing the homepage's image. */
+/* The preview waits for its piece faces and painted frames before opening. */
 function RenderedTable({ onReady }: { onReady?: () => void }) {
   const invalidate = useThree((state) => state.invalidate);
   const pieces = useTabletopSelector((table) => table.renderedPieces);
@@ -1744,4 +1566,23 @@ function RenderedTable({ onReady }: { onReady?: () => void }) {
     }
   });
   return null;
+}
+
+/* Open onto the completed scene once, then load the shared cursors without replacing its canvas. */
+function PreviewArrival({ onReady }: { onReady?: () => void }) {
+  const [ready, setReady] = useState(false);
+  const finish = useCallback(() => {
+    setReady(true);
+    onReady?.();
+  }, [onReady]);
+  return (
+    <>
+      <RenderedTable onReady={finish} />
+      {ready && (
+        <Suspense fallback={null}>
+          <ScenePresence showNames={false} showLocal />
+        </Suspense>
+      )}
+    </>
+  );
 }
