@@ -43,6 +43,20 @@ The Worker uses one executor secret for its Convex calls. Browser capture uses t
 opaque job ID to read the protected embedded render payload. The executor secret is
 not checked in.
 
+## Raster originals
+
+`/__media/src/<sha256>` is the store for raster originals in the private
+`dunezone-media-src` bucket (#1888). `GET` and `HEAD` need no credential and serve
+only what ingest stored, with `X-Media-SHA256` and `X-Media-Bytes` as the integrity
+contract. `PUT` is the maintainer-only ingest: it takes the `MEDIA_UPLOAD_TOKEN`
+Worker secret as a bearer token, re-hashes the body, accepts only PNG or JPEG, and
+creates the object only if it is absent, so an identical re-upload answers 200 and a
+disagreeing stored object answers 409. Until the secret is set with
+`wrangler secret put MEDIA_UPLOAD_TOKEN`, ingest answers 503 and reads still work.
+`bun run media:backfill` uploads every original the lock lists, and
+`bun run media:backfill --verify` downloads each one back and compares it with the
+lock.
+
 ## Renderer revisions
 
 There is one deployed Renderer for each asset type. A checked-in Renderer revision

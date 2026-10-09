@@ -38,6 +38,8 @@
       "/user-images/*",
       "/__user-images",
       "/__user-images/*",
+      "/__media",
+      "/__media/*",
       "/__play",
       "/__play/*",
       "/sitemap*",
@@ -76,6 +78,10 @@
     {
       "binding": "USER_IMAGE_BUCKET",
       "bucket_name": "dunezone-user-images"
+    },
+    {
+      "binding": "MEDIA_SOURCE_BUCKET",
+      "bucket_name": "dunezone-media-src"
     }
   ],
   "triggers": { "crons": ["*/5 * * * *"] },
