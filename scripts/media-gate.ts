@@ -3,7 +3,7 @@
  *
  * Bun run media:gate
  *
- * It compares `media/raster.lock.json` on `origin/main`, the base of every pull request, with the working tree, downloads each new or changed original from `/__media/src/<sha256>`, and checks its bytes and integrity headers against the lock.
+ * It compares `media/raster.lock.json` at the merge base with `origin/main` with the working tree, downloads each new or changed original from `/__media/src/<sha256>`, and checks its bytes and integrity headers against the lock.
  * It needs no token, so it runs on fork pull requests too.
  * `bun run media:sync` is the fix for a failure: it uploads the original before it writes the lock.
  */
@@ -14,8 +14,8 @@ import { distinctOriginals, download, eachWithCounts, mediaOrigin } from './lib/
 import type { Original } from './lib/media-originals';
 import { lockChanges, readRasterLock } from './lib/raster-lock';
 
-/* A fixed ref, so nothing a caller passes reaches the git command line. */
-const BASE = 'origin/main';
+/* The merge base with origin/main, so originals main gained since the branch point are not counted as this branch's; fixed arguments keep caller input off the git command line. */
+const BASE = execFileSync('/usr/bin/git', ['merge-base', 'HEAD', 'origin/main'], { encoding: 'utf8' }).trim();
 
 const baseLock = JSON.parse(
   execFileSync('/usr/bin/git', ['show', `${BASE}:media/raster.lock.json`], { encoding: 'utf8' })

@@ -18,7 +18,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 
 import type { RasterLock } from '../src/shared/media/rasterLock';
-import { fetchMedia, integrityMatches } from './lib/media-fetch';
+import { fetchMedia, integrityMatches, storedState } from './lib/media-fetch';
 import type { Fetched } from './lib/media-fetch';
 import { checksumRecord, matchesRecord, planVariants } from './media-variants';
 import type { ChecksumRecord, PlannedVariant } from './media-variants';
@@ -51,10 +51,15 @@ const plan = Object.keys(lock)
 /** One stored variant and the record it must match everywhere. */
 type Local = { variant: PlannedVariant; bytes: Uint8Array<ArrayBuffer>; record: ChecksumRecord };
 
+/** The checksum record the store keeps beside a variant, read without its bytes. */
+function storedRecord(variant: PlannedVariant): ChecksumRecord {
+  return JSON.parse(readFileSync(path.join(storeRoot, `${variant.name}.sha256`), 'utf8')) as ChecksumRecord;
+}
+
 function local(variant: PlannedVariant): Local {
   const file = path.join(storeRoot, variant.name);
   const bytes = new Uint8Array(readFileSync(file));
-  const record = JSON.parse(readFileSync(`${file}.sha256`, 'utf8')) as ChecksumRecord;
+  const record = storedRecord(variant);
   if (!matchesRecord(bytes, record)) {
     throw new Error(`${variant.name}: the stored bytes do not match their record; run \`bun run generate:images\``);
   }
@@ -70,16 +75,13 @@ function fetchVariant(item: Local, init: RequestInit = {}) {
 
 type Outcome = 'present' | 'published' | 'verified';
 
-/** Reports whether `/m` already serves the variant, refusing one whose integrity headers disagree with the record. */
+/** Reports whether R2 already stores the variant, refusing one whose integrity headers disagree with the record. */
 async function alreadyPublished(item: Local): Promise<boolean> {
-  const head = await fetchVariant(item, { method: 'HEAD' });
-  if (head.status === 404) {
-    return false;
+  try {
+    return storedState(await fetchVariant(item, { method: 'HEAD' }), item.record) === 'stored';
+  } catch (error) {
+    throw new Error(`${item.variant.name}: ${describeError(error)}`);
   }
-  if (head.status !== 200 || !integrityMatches(head.headers, item.record)) {
-    throw new Error(`${item.variant.name}: HEAD answered ${head.status} with integrity that disagrees with the record`);
-  }
-  return true;
 }
 
 async function publish(item: Local): Promise<Outcome> {
@@ -143,7 +145,7 @@ if (markDeployed) {
 }
 
 /** The prepared record lists every variant in plan order, so a repeated run sends identical bytes. */
-function releaseRecord(items: Local[]): string {
+function releaseRecord(items: { variant: PlannedVariant; record: ChecksumRecord }[]): string {
   return JSON.stringify({
     schemaVersion: 1,
     release,
@@ -179,6 +181,9 @@ if (counts.failed > 0) {
 }
 /* The record is written only after every variant it lists is in R2. */
 if (!verifyOnly && release) {
-  const receipt = await writeLedger(`/__media/releases/${release}`, releaseRecord(plan.map(local)));
+  const receipt = await writeLedger(
+    `/__media/releases/${release}`,
+    releaseRecord(plan.map((variant) => ({ variant, record: storedRecord(variant) })))
+  );
   console.log(JSON.stringify({ origin, mode: 'prepared', release, ...receipt }));
 }
