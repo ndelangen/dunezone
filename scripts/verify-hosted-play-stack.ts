@@ -417,7 +417,8 @@ try {
       path.join(runtime, 'backend.sqlite3'),
     ],
     env: { ...environment, DATABASE_UDF_USER_TIMEOUT_SECONDS: String(LOCAL_FUNCTION_LIMIT_SECONDS) },
-    logPath: path.join(runtime, 'backend.log'),
+    /* CI uploads evidence after cleanup deletes the private runtime directory. */
+    logPath: path.join(evidence, 'backend.log'),
   });
   await ready(`${backendUrl}/version`, backend, 30_000);
   const localEnv = { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey };
