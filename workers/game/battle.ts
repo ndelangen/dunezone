@@ -209,29 +209,34 @@ function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: Batt
   });
 }
 
+/* Why a part cannot be revealed now, or nothing when it can. */
+function disclosureRefusal({ disclosed, leaderId, cardIds }: StoredBattlePlan, disclosure: Disclosure) {
+  if (disclosure.element === 'card') {
+    const shown = disclosed.cardIds.includes(disclosure.cardId);
+    return cardIds.includes(disclosure.cardId) && !shown
+      ? null
+      : 'Choose a card in your plan that is not revealed yet.';
+  }
+  if (disclosed[disclosure.element]) {
+    return `Your ${disclosure.element} is already revealed.`;
+  }
+  return disclosure.element === 'leader' && !leaderId ? 'Choose a leader before revealing it.' : null;
+}
+
 /** Shows one part of a faction's own plan to everyone ahead of the reveal; the table checks no faction's right to do so. */
 function disclose({ snapshot, battle, side }: BattleSide, disclosure: Disclosure) {
   if (battle.stage !== 'preparing') {
     return refuse('Plans can only be revealed early while the battle is being prepared.');
   }
   const plan = battle.plans[side]!;
-  const disclosed = { ...plan.disclosed, cardIds: [...plan.disclosed.cardIds] };
-  if (disclosure.element === 'leader') {
-    if (!plan.leaderId || disclosed.leader) {
-      return refuse(plan.leaderId ? 'Your leader is already revealed.' : 'Choose a leader before revealing it.');
-    }
-    disclosed.leader = true;
-  } else if (disclosure.element === 'dial') {
-    if (disclosed.dial) {
-      return refuse('Your dial is already revealed.');
-    }
-    disclosed.dial = true;
-  } else {
-    if (!plan.cardIds.includes(disclosure.cardId) || disclosed.cardIds.includes(disclosure.cardId)) {
-      return refuse('Choose a card in your plan that is not revealed yet.');
-    }
-    disclosed.cardIds.push(disclosure.cardId);
+  const refusal = disclosureRefusal(plan, disclosure);
+  if (refusal) {
+    return refuse(refusal);
   }
+  const disclosed =
+    disclosure.element === 'card'
+      ? { ...plan.disclosed, cardIds: [...plan.disclosed.cardIds, disclosure.cardId] }
+      : { ...plan.disclosed, [disclosure.element]: true };
   battle.plans[side] = { ...plan, disclosed };
   return commit(snapshot, { battleState: battle });
 }
