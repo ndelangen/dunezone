@@ -8,6 +8,11 @@ import { SRGBColorSpace, TextureLoader } from 'three';
 import type { Texture } from 'three';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import {
+  BOARD_RIM_COLOR,
+  BOARD_RIM_METALNESS,
+  BOARD_RIM_ROUGHNESS,
+} from '../../../../widgets/tabletop/boardRimGeometry';
 
 const TOKEN_RADIUS = TROOP_TOP_RADIUS * FACTION_TOKEN_SCALE;
 const CREAM = '#efe3c2';
@@ -39,41 +44,37 @@ function useFaceTexture(href: string | undefined) {
 }
 
 /*
- * Every faction token stands on a coin: a band wider all round, with the cream line the tokens carry inside their rim, in its ally's colour or, standing alone, in dark grey.
- * A thin dark grey collar sits between token and coin, so the token reads as set on the coin rather than sunk into it.
- * A token at its seat overhangs the board's rim and rests at the rim's height, so the coin stands on the table and rises to just under the collar.
- * The rim then covers the coin where they meet, and the coin reads as tucked under the board's edge with the token stacked on it.
+ * Every faction token stands on a coin a band wider all round: in its ally's colour with the cream line the tokens carry inside their rim, or, standing alone, plain in the board rim's colour.
+ * A token at its seat overhangs the board's rim and rests at the rim's height, so the coin stands on the table and rises to a little under the token, leaving the board's rim in view.
  */
 const PLATE_BAND = 0.085;
 const MIN_HEIGHT = 0.018;
-const COLLAR = 0.024;
-const COLLAR_BAND = 0.042;
-const UNALLIED = '#2d2c2b';
-function Plate({ color, index, base }: { color: string; index: number; base: number }) {
+const DROP = 0.024;
+function Plate({ ally, index, base }: { ally: TablePiece | null; index: number; base: number }) {
   const radius = TOKEN_RADIUS + PLATE_BAND * (index + 1);
-  const top = Math.max(TABLE_SURFACE_Y + MIN_HEIGHT, base - COLLAR) - index * 0.003;
+  const top = Math.max(TABLE_SURFACE_Y + MIN_HEIGHT, base - DROP) - index * 0.003;
   const height = top - TABLE_SURFACE_Y;
   return (
     <group position={[0, TABLE_SURFACE_Y, 0]}>
       <mesh raycast={ignoreRaycast} position={[0, height / 2, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[radius, radius + 0.006, height, 96]} />
-        <meshStandardMaterial color={color} roughness={0.56} metalness={0.1} />
+        {ally ? (
+          <meshStandardMaterial color={ally.color} roughness={0.56} metalness={0.1} />
+        ) : (
+          <meshStandardMaterial
+            color={BOARD_RIM_COLOR}
+            roughness={BOARD_RIM_ROUGHNESS}
+            metalness={BOARD_RIM_METALNESS}
+          />
+        )}
       </mesh>
-      <mesh raycast={ignoreRaycast} position={[0, height + 0.0008, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[radius - PLATE_BAND * 0.42, radius - PLATE_BAND * 0.3, 96]} />
-        <meshStandardMaterial color={CREAM} roughness={0.6} metalness={0.05} />
-      </mesh>
+      {ally && (
+        <mesh raycast={ignoreRaycast} position={[0, height + 0.0008, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[radius - PLATE_BAND * 0.42, radius - PLATE_BAND * 0.3, 96]} />
+          <meshStandardMaterial color={CREAM} roughness={0.6} metalness={0.05} />
+        </mesh>
+      )}
     </group>
-  );
-}
-
-function Collar({ base }: { base: number }) {
-  const height = Math.max(base - TABLE_SURFACE_Y, COLLAR);
-  return (
-    <mesh raycast={ignoreRaycast} position={[0, base - height / 2, 0]} castShadow receiveShadow>
-      <cylinderGeometry args={[TOKEN_RADIUS + COLLAR_BAND, TOKEN_RADIUS + COLLAR_BAND, height, 96]} />
-      <meshStandardMaterial color={UNALLIED} roughness={0.7} metalness={0.05} />
-    </mesh>
   );
 }
 
@@ -104,7 +105,7 @@ function Tucked({ ally, index, tangent }: { ally: TablePiece; index: number; tan
   );
 }
 
-/** Under every faction's token, a coin in each ally's colour, or in dark grey for a faction standing alone, so each seat shows at a glance who it is allied with. */
+/** Under every faction's token, a coin in each ally's colour, or in the board rim's colour for a faction standing alone, so each seat shows at a glance who it is allied with. */
 export function AllyBadgesScene({ table }: { table: TableProjection }) {
   const alliances = table.snapshot.alliances;
   const token = (factionId: string) =>
@@ -134,12 +135,11 @@ export function AllyBadgesScene({ table }: { table: TableProjection }) {
         </group>,
       ];
     }
-    const colors = allies.length ? allies.map((ally) => ally.color) : [UNALLIED];
+    const plates = allies.length ? allies : [null];
     return [
       <group key={factionId} position={[x, 0, z]}>
-        <Collar base={y} />
-        {colors.map((color, index) => (
-          <Plate key={index} color={color} index={index} base={y} />
+        {plates.map((ally, index) => (
+          <Plate key={ally?.id ?? 'alone'} ally={ally} index={index} base={y} />
         ))}
       </group>,
     ];

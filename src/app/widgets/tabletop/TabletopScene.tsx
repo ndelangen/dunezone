@@ -98,7 +98,13 @@ import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
-import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
+import {
+  BOARD_RIM_COLOR,
+  BOARD_RIM_DEPTH,
+  BOARD_RIM_METALNESS,
+  BOARD_RIM_ROUGHNESS,
+  createBoardRimShape,
+} from './boardRimGeometry';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
 import { peekableToken } from './peekableToken';
@@ -153,15 +159,12 @@ const PredictionOverlay = lazy(() =>
 const TabletopTools = lazy(() => import('./TabletopTools').then((module) => ({ default: module.TabletopTools })));
 const PlayCamera = lazy(() => import('./PlayCamera').then((module) => ({ default: module.PlayCamera })));
 
-const BOARD_RIM_COLOR = '#15263b';
 /* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */
 const BOARD_MAP_BASE_COLOR = '#000000';
 const BOARD_MAP_LIFT = 0.001;
 const BOARD_RIM_DIVIDER_COLOR = '#050505';
 const BOARD_RIM_DIVIDER_OVERLAP = 0.002;
 const BOARD_RIM_DIVIDER_WIDTH = 0.035;
-const BOARD_RIM_ROUGHNESS = 0.72;
-const BOARD_RIM_METALNESS = 0.06;
 const BOARD_RIM_EXTRUDE_OPTIONS = {
   bevelEnabled: false,
   curveSegments: 64,
