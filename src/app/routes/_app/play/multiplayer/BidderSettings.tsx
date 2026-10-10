@@ -1,7 +1,7 @@
 import { NumberInput } from '@mantine/core';
 import { MAX_BID_SECONDS, MIN_BID_SECONDS, idleBidding } from '@shared/play/bidding';
 import { Section } from '@ui/block/Section';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { biddingPhase } from './Bidder';
@@ -19,7 +19,13 @@ function changedSeconds(draft: number | string, current: number) {
 export function BidderSettings({ client, table }: Props) {
   const seconds = table.snapshot.bidding?.seconds ?? idleBidding().seconds;
   const [draft, setDraft] = useState<number | string>(seconds);
-  useEffect(() => setDraft(seconds), [seconds]);
+  /* Another player's change replaces the shown time, but never one this player is still typing; leaving the field settles it. */
+  const editing = useRef(false);
+  useEffect(() => {
+    if (!editing.current) {
+      setDraft(seconds);
+    }
+  }, [seconds]);
   if (!biddingPhase(table)) {
     return null;
   }
@@ -32,7 +38,11 @@ export function BidderSettings({ client, table }: Props) {
         value={draft}
         disabled={!table.canInteract || !table.snapshot.bank}
         onChange={setDraft}
+        onFocus={() => {
+          editing.current = true;
+        }}
         onBlur={() => {
+          editing.current = false;
           const next = changedSeconds(draft, seconds);
           if (next === null) {
             setDraft(seconds);

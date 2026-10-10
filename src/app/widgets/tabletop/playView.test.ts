@@ -36,7 +36,7 @@ describe('table views', () => {
     const scale = (pose.position[1] - pose.target[1]) / 9.4;
 
     expect(pose.target).toEqual([0, 0.1, 0.8]);
-    expect(scale).toBeGreaterThan(0.9);
+    expect(scale).toBeGreaterThan(0.85);
     expect(scale).toBeLessThan(1);
     expect(pose.position[1]).toBeLessThan(9.5);
     expect((pose.position[1] - pose.target[1]) / (pose.position[2] - pose.target[2])).toBeCloseTo(9.4 / 11.2);
@@ -427,6 +427,27 @@ describe('close look', () => {
       zoom = cameraZoomAfterPanMotion(zoom, base(), [20 * zoom.scale, 0], 1 / 60);
     }
     const target = zoomedCameraPose(base(), zoom).target;
-    expect(Math.hypot(target[0], target[2])).toBeLessThanOrEqual(5.6 + 1e-6);
+    expect(target[0]).toBeLessThanOrEqual(6.9 + 1e-6);
+  });
+
+  test('a close look reaches the card wells and the bottom shelf, but never the empty corners beside them', () => {
+    const slide = (velocity: readonly [number, number]) => {
+      let zoom = zoomIn(5);
+      const base = () => poseAt(cameraTiltForZoom(0, zoom));
+      for (let frame = 0; frame < 300; frame++) {
+        zoom = cameraZoomAfterPanMotion(zoom, base(), [velocity[0] * zoom.scale, velocity[1] * zoom.scale], 1 / 60);
+      }
+      return zoomedCameraPose(base(), zoom).target;
+    };
+    const wells = slide([20, 0]);
+    expect(wells[0]).toBeGreaterThan(6.6);
+    const shelf = slide([-6, 20]);
+    expect(shelf[2]).toBeGreaterThan(7.5);
+    const corner = slide([20, 20]);
+    expect(
+      Math.hypot(corner[0], corner[2]) <= 5.6 + 1e-6 ||
+        Math.abs(corner[2]) <= 2 + 1e-6 ||
+        Math.abs(corner[0]) <= 2.4 + 1e-6
+    ).toBe(true);
   });
 });

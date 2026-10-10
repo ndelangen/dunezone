@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 
-import { PEEK_DECK_LIMIT, peekActionSchema } from '../../src/shared/play/peeking';
+import { hasHiddenFace, PEEK_DECK_LIMIT, peekActionSchema } from '../../src/shared/play/peeking';
 import { piece, place } from '../../src/shared/play/setupSupply';
 import { deckCommand } from './decks';
 import { hostedFixturePlan } from './fixture';
@@ -152,4 +152,41 @@ test('a deck over the limit can be looked through, but not rearranged or pulled 
   expect(peekActionSchema.safeParse({ kind: 'peek-pull', pieceId: 'deck', index: PEEK_DECK_LIMIT }).success).toBe(
     false
   );
+});
+
+test('a card dealt into a hand forgets who peeked at it, so playing it face down later does not name it', () => {
+  const peeked = peekCommand(table(2), 'atreides', { kind: 'peek', pieceId: 'deck' });
+  const dealt = deckCommand(peeked, 'harkonnen', { kind: 'deck-draw', pieceId: 'deck', recipient: 'harkonnen' });
+  const hand = dealt.factionInventories.harkonnen ?? [];
+  expect(hand.at(-1)?.items[0]).toBeDefined();
+  expect(hand.at(-1)?.items[0]?.peekedBy).toBeUndefined();
+});
+
+test('rearranging or pulling from a deck keeps only the marks every card shares, so a partial mark cannot follow its card', () => {
+  const marked = table(3);
+  const [deck] = marked.table.pieces;
+  /* Harkonnen once peeked at card 1 alone, before it was stacked onto this deck. */
+  const items = deck!.items.map((item) => (item.id === 'card-1' ? { ...item, peekedBy: ['harkonnen'] } : item));
+  const start = { ...marked, table: { ...marked.table, pieces: [{ ...deck!, items }] } };
+  const peeked = peekCommand(start, 'atreides', { kind: 'peek', pieceId: 'deck' });
+
+  const arranged = peekCommand(peeked, 'atreides', { kind: 'peek-arrange', pieceId: 'deck', order: [1, 0, 2] });
+  expect(arranged.table.pieces[0]?.items.map((item) => item.peekedBy)).toEqual([
+    ['atreides'],
+    ['atreides'],
+    ['atreides'],
+  ]);
+
+  const pulled = peekCommand(peeked, 'atreides', { kind: 'peek-pull', pieceId: 'deck', index: 1 });
+  expect(pulled.table.pieces.flatMap((piece) => piece.items.map((item) => item.peekedBy))).toEqual([
+    ['atreides'],
+    ['atreides'],
+    ['atreides'],
+  ]);
+});
+
+test("a faction's token turned face down has nothing to peek at: both its sides show the front", () => {
+  const token = { kind: 'force' as const, stackKey: 'faction-token:atreides', items: [{ id: 'token', faceUp: false }] };
+  expect(hasHiddenFace(token)).toBe(false);
+  expect(hasHiddenFace({ ...token, stackKey: 'troops:atreides' })).toBe(true);
 });

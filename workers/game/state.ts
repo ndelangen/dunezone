@@ -20,6 +20,9 @@ import { gameEndingSchema, gameResultSchema } from '../../src/shared/play/result
 import { storedPieceSchema, storedTableSchema, tableCountSchema, tableIdSchema } from '../../src/shared/play/schema';
 import { predictionSchema, predictionChoiceSchema } from '../../src/shared/play/setup';
 
+/** The board layout a stored game's positions are laid out for; see boardLayout.ts. */
+export const BOARD_LAYOUT = 2;
+
 const storedBattleSchema = publicBattleSchema.omit({ revealed: true }).extend({
   plans: z.tuple([storedBattlePlanSchema.nullable(), storedBattlePlanSchema.nullable()]),
 });
@@ -80,6 +83,8 @@ export const storedSnapshotSchema = gameSnapshotSchema
     /* Public card handles change independently of retained card identity. Never serialized. */
     cardHandles: z.record(tableIdSchema, tableIdSchema).default({}),
     pieceHandles: z.record(tableIdSchema, tableIdSchema).default({}),
+    /* The board size the stored positions were laid out for; every snapshot read through this schema is on the current one. */
+    boardLayout: z.literal(BOARD_LAYOUT).default(BOARD_LAYOUT),
   });
 export type StoredSnapshot = z.infer<typeof storedSnapshotSchema>;
 

@@ -214,9 +214,9 @@ describe('server-owned game-name moderation', () => {
     }
   );
 
-  test('a missing key or exhausted checking capacity permits a valid custom name without HTTP', async () => {
+  test('a missing key or exhausted global checking capacity permits a valid custom name without HTTP', async () => {
     vi.stubEnv('TYPESAFE_API_KEY', '');
-    const { t, viewer, person, request } = await world();
+    const { t, viewer, request } = await world();
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     vi.spyOn(console, 'info').mockImplementation(() => {});
@@ -225,8 +225,8 @@ describe('server-owned game-name moderation', () => {
       moderation: 'check_unavailable',
     });
     await t.run(async (ctx) => {
-      await playRateLimiter.reset(ctx, 'playNameCheckPerAccount', { key: person.userId });
-      await playRateLimiter.limit(ctx, 'playNameCheckPerAccount', { key: person.userId, count: 3 });
+      await playRateLimiter.reset(ctx, 'playNameCheckGlobal');
+      await playRateLimiter.limit(ctx, 'playNameCheckGlobal', { count: 100 });
     });
     vi.stubEnv('TYPESAFE_API_KEY', 'private-test-key');
     expect(await viewer.action(api.playGames.createGameWithName, request)).toMatchObject({
@@ -239,6 +239,24 @@ describe('server-owned game-name moderation', () => {
       reason: 'profanity_detected',
     });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test('resubmitting a refused name until the account checking budget runs out is refused, not let through unchecked', async () => {
+    vi.stubEnv('TYPESAFE_API_KEY', 'private-test-key');
+    const { t, viewer, request } = await world();
+    const fetchMock = vi.fn(async () => answer(0.99));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const name = { ...request, name: 'Dune lantern rascal' };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      expect(await viewer.action(api.playGames.createGameWithName, name)).toEqual({
+        ok: false,
+        reason: 'profanity_detected',
+      });
+    }
+    expect(await viewer.action(api.playGames.createGameWithName, name)).toEqual({ ok: false, reason: 'rate_limited' });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect((await writes(t)).games).toHaveLength(0);
   });
 
   test('unavailable checking still skips a profane collision suffix without changing the supplied name', async () => {

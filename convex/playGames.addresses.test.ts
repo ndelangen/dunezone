@@ -34,6 +34,7 @@ test.each(['pending', 'expired', 'ready'] as const)(
     const byId = await player.query(api.playGames.getGameByAddress, { address: gameId });
     const bySlug = await player.query(api.playGames.getGameByAddress, { address: 'hidden-sietch' });
     expect(byId).toEqual(bySlug);
+    expect(await player.query(api.playGames.getGameByAddress, { address: 'Hidden-Sietch' })).toEqual(bySlug);
     expect(byId).toMatchObject({
       gameId,
       name: 'Hidden Sietch',
@@ -63,7 +64,7 @@ test('signed-out and inactive accounts learn no address metadata', async () => {
 
 test('reserved and unknown addresses, and denied hosted fixtures, reveal no game', async () => {
   const { t, player, gameId } = await world();
-  for (const address of ['create', 'demo', 'hosted', 'unknown', 'Hidden-Sietch']) {
+  for (const address of ['create', 'demo', 'hosted', 'unknown']) {
     expect(await player.query(api.playGames.getGameByAddress, { address })).toEqual({ status: 'not_found' });
   }
   await t.run(async (ctx) => ctx.db.patch(gameId, { ruleset_id: undefined, fixture_key: 'hosted' }));

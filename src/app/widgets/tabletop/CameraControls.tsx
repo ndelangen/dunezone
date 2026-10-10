@@ -296,7 +296,8 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
   useFrame((_, delta) => {
     const direction = (zoomedIn && keyboard?.panDirection()) || NO_PAN_DIRECTION;
     const motion = cameraPanMotionAfter(panMotion.current, view.zoom, direction, delta);
-    panMotion.current = motion;
+    /* Without a close look nothing slides, so no leftover speed carries into the next one. */
+    panMotion.current = zoomedIn ? motion : CAMERA_PAN_AT_REST;
     if (motion === CAMERA_PAN_AT_REST || !zoomedIn) {
       panBase.current = null;
       return;
