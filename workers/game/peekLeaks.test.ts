@@ -117,6 +117,11 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   'peek-close': () => [[bob, { kind: 'peek-close' }]],
   'peek-arrange': () => [[alice, { kind: 'peek-arrange', pieceId: DECK, order: [3, 2, 1, 0] }]],
   'peek-pull': () => [[alice, { kind: 'peek-pull', pieceId: DECK, index: 0 }]],
+  /* Splitting a card off the deck closes the peek, and putting it back must not open it again. */
+  undo: () => [
+    [bob, { kind: 'split', pieceId: DECK, count: 1 }],
+    [bob, { kind: 'undo' }],
+  ],
 };
 
 describe('an open peek never shows a card it was not granted', () => {

@@ -18,6 +18,7 @@ type Controls = Pick<
   | 'state'
   | 'takeAdditionalFromTarget'
   | 'toggleLockSelected'
+  | 'undo'
 >;
 type Binding = {
   events: Pick<Window, 'addEventListener' | 'removeEventListener'>;
@@ -161,6 +162,9 @@ export class TableKeyboard {
       this.cancelDraw();
     }
     const controls = this.binding?.read();
+    if (controls && this.undoKey(event, controls)) {
+      return;
+    }
     /* A key a control already answered, such as an arrow moving a peeked card, is not the table's. */
     if (!controls || hasModifier(event) || event.defaultPrevented) {
       return;
@@ -178,6 +182,27 @@ export class TableKeyboard {
       this.tableKey(event, controls);
     }
   };
+
+  /* Ctrl+Z, or Cmd+Z on a Mac, takes back this player's last move; a text field keeps its own undo. */
+  private undoKey(event: KeyboardEvent, controls: Controls) {
+    if (
+      !(event.ctrlKey || event.metaKey) ||
+      event.altKey ||
+      event.shiftKey ||
+      event.key.toLowerCase() !== 'z' ||
+      event.defaultPrevented ||
+      focusKeepsKey(event.target, 'spiceBank')
+    ) {
+      return false;
+    }
+    if (controls.undo) {
+      event.preventDefault();
+      if (!event.repeat) {
+        controls.undo();
+      }
+    }
+    return true;
+  }
 
   /* A pan key held while a close look is open slides it; a focused control keeps its arrow keys, as a tab list does, while only a text field keeps the letters. */
   private panKeyDown(event: KeyboardEvent) {

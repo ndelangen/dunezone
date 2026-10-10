@@ -41,6 +41,7 @@ import {
 import { setupActionSchema, setupStateSchema, predictionsSchema } from './setup';
 import { spiceReserveActionSchema, spiceReserveSchema, spiceTransferSchema } from './spiceReserve';
 import { swapActionSchema, swappingStateSchema } from './swapping';
+import { undoActionSchema } from './undo';
 
 const factionArtworkSchema = z.record(
   z.string(),
@@ -157,6 +158,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...tableActionSchema.options,
   ...deckActionSchema.options,
   ...peekActionSchema.options,
+  undoActionSchema,
 ]);
 export type PieceAction = z.infer<typeof pieceActionSchema>;
 export const clientMessageSchema = z.discriminatedUnion('type', [

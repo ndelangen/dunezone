@@ -50,6 +50,7 @@ import {
   projectCarryAtPosition,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
+import { isUndoAction, NOTHING_TO_UNDO, UNDO_CROSSED, UNDOABLE_KINDS } from '../../src/shared/play/undo';
 import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
@@ -71,6 +72,10 @@ type Carry = Identity & {
   beginPayload: string;
   takes: Map<string, string>;
 };
+/** A player's latest table move as the room accepted it: the pieces before it, and the pieces it left, which must still lie exactly so for it to be undone. */
+type LastMove = { phase: number; before: StoredSnapshot['table']['pieces']; after: string };
+/** A move computed but not yet accepted; `accept` keeps it only when the accepted table is the one it produced. */
+type ProposedMove = { userId: string; phase: number; before: StoredSnapshot['table']['pieces']; after: string };
 type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
 /**
@@ -103,6 +108,8 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'bid-raise',
   'bid-pass',
   'bid-seconds',
+  /* Undo is judged against the live table: it lands only while the table is exactly as the sender's last move left it. */
+  'undo',
 ]);
 
 /** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */
@@ -153,6 +160,9 @@ export class Room {
   readonly pointers = new Map<string, PublicPointer>();
   private readonly usedCarryIds = new Map<string, Set<string>>();
   private readonly flipUntil = new Map<string, number>();
+  /* Each player's latest undoable move, by account; memory only, so a restarted room has nothing to undo. */
+  private readonly lastMoves = new Map<string, LastMove>();
+  private proposedMove: ProposedMove | null = null;
   constructor(
     snapshot: GameSnapshot | StoredSnapshot,
     private readonly seatedPlayers: () => Identity['viewerSeat'][],
@@ -383,6 +393,7 @@ export class Room {
   }
 
   drop(identity: Identity, id: string, position: Vector3Tuple, orientation: number): StoredSnapshot {
+    this.proposedMove = null;
     this.assertTableAvailable();
     const carry = this.carry(identity, id);
     const guarded = this.table(identity, id);
@@ -396,7 +407,38 @@ export class Room {
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
     // Apply to the real table so temporary reservation locks are never persisted.
     const table = requireAccepted(raw, applyDraftToState(raw, settled, seatSubject(identity.viewerSeat)));
-    return nextSnapshot(this.snapshot, table);
+    return this.propose(identity, nextSnapshot(this.snapshot, table));
+  }
+
+  /** Remembers a move until the room accepts it, so its player can take it back. */
+  private propose(identity: Identity, next: StoredSnapshot): StoredSnapshot {
+    this.proposedMove = {
+      userId: identity.userId,
+      phase: this.snapshot.phase,
+      before: this.snapshot.table.pieces,
+      after: JSON.stringify(next.table.pieces),
+    };
+    return next;
+  }
+
+  /** Puts the sender's last move back, while nobody has changed the table since and the phase is the same. */
+  private undo(identity: Identity): StoredSnapshot {
+    const move = this.lastMoves.get(identity.userId);
+    if (!move) {
+      throw new GameRejection(NOTHING_TO_UNDO);
+    }
+    if (move.phase !== this.snapshot.phase || JSON.stringify(this.snapshot.table.pieces) !== move.after) {
+      this.lastMoves.delete(identity.userId);
+      throw new GameRejection(UNDO_CROSSED);
+    }
+    const raw = tableForViewer(this.snapshot, identity.viewerSeat);
+    const restored = { ...raw, pieces: move.before };
+    this.assertReservationsUnchanged(raw, restored);
+    this.lastMoves.delete(identity.userId);
+    return nextSnapshot(
+      this.snapshot,
+      accepted(restored, 'undo', `${seatSubject(identity.viewerSeat)} undid their last move.`)
+    );
   }
 
   /* Phase, battle and catalogue controls belong to play; setup opens only physical handling. */
@@ -445,6 +487,7 @@ export class Room {
         'prediction-lock',
         'prediction-reveal',
         'traitors-gather',
+        'undo',
       ].includes(action.kind)
     ) {
       throw new GameRejection('That control is not available during setup.');
@@ -460,7 +503,9 @@ export class Room {
   }
 
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
-    const next = this.applyCommand(identity, action, expectedRevision, now);
+    this.proposedMove = null;
+    const applied = this.applyCommand(identity, action, expectedRevision, now);
+    const next = UNDOABLE_KINDS.has(action.kind) ? this.propose(identity, applied) : applied;
     /* A new phase forgets who peeked at what, and closes every peek. */
     return next.phase === this.snapshot.phase ? next : forgetPeekers(next);
   }
@@ -468,6 +513,9 @@ export class Room {
   private applyCommand(identity: Identity, action: RoomAction, expectedRevision: number, now: number): StoredSnapshot {
     this.assertActionStage(action);
     this.assertCommand(identity, action, expectedRevision);
+    if (isUndoAction(action)) {
+      return this.undo(identity);
+    }
     /* The turn moves only through the phases, so Mentat pause always asks everyone to be ready (#1683); an older client may still send this. */
     if (action.kind === 'turn') {
       throw new GameRejection(TURN_SELECT_REFUSAL);
@@ -837,6 +885,7 @@ export class Room {
   }
 
   accept(snapshot: StoredSnapshot, carryId?: string, clearAll = false, now = Date.now()) {
+    this.rememberMove(snapshot);
     this.updateFlipDeadlines(snapshot, now);
     this.snapshot = snapshot;
     this.settledRevision = snapshot.revision;
@@ -847,6 +896,19 @@ export class Room {
       }
     } else if (carryId) {
       this.remove(carryId);
+    }
+  }
+
+  /* A proposed move becomes its player's last move only when the table accepted is the one it produced. */
+  private rememberMove(snapshot: StoredSnapshot) {
+    const proposed = this.proposedMove;
+    this.proposedMove = null;
+    if (!proposed) {
+      return;
+    }
+    const after = JSON.stringify(snapshot.table.pieces);
+    if (after === proposed.after && snapshot.phase === proposed.phase) {
+      this.lastMoves.set(proposed.userId, { phase: proposed.phase, before: proposed.before, after });
     }
   }
 

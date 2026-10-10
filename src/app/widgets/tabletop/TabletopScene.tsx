@@ -1478,6 +1478,7 @@ export function TabletopScene({
             onMenuChange={setPieceMenu}
             area={areaRef}
             keyboardActionsClassName={styles.keyboardActions}
+            undoClassName={styles.undo}
           />
         </Suspense>
       )}

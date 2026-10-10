@@ -1,6 +1,7 @@
 import { Button, Menu } from '@mantine/core';
 import { hasHiddenFace, peeksWholeDeck } from '@shared/play/peeking';
 import { isSpicePiece } from '@shared/play/spice';
+import { Undo2 } from 'lucide-react';
 import { useId } from 'react';
 import type { RefObject } from 'react';
 
@@ -122,11 +123,13 @@ export function TabletopTools({
   onMenuChange,
   area,
   keyboardActionsClassName,
+  undoClassName,
 }: {
   pieceMenu: PieceMenuAnchor | null;
   onMenuChange(menu: PieceMenuAnchor | null): void;
   area: RefObject<HTMLDivElement | null>;
   keyboardActionsClassName: string;
+  undoClassName: string;
 }) {
   const readTable = useTabletopReader();
   const hasDraft = useTabletopSelector((table) => table.state.draftMove !== null);
@@ -153,9 +156,33 @@ export function TabletopTools({
       >
         Selected piece actions
       </Button>
+      <UndoButton className={undoClassName} />
       <PieceMenu pieceMenu={pieceMenu} onClose={() => onMenuChange(null)} />
       <PeekView />
       <PieceCloseUp area={area} />
     </>
+  );
+}
+
+/* The same key on every platform's keyboard: Cmd on a Mac, Ctrl elsewhere. */
+const undoShortcut = () => (/Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '') ? '⌘Z' : 'Ctrl+Z');
+
+/* Shown only while the player's last move can still be taken back, which is also when Ctrl+Z does it. */
+function UndoButton({ className }: Readonly<{ className: string }>) {
+  const undo = useTabletopSelector((table) => table.undo);
+  if (!undo) {
+    return null;
+  }
+  return (
+    <Button
+      className={className}
+      variant="default"
+      size="compact-md"
+      leftSection={<Undo2 size={16} aria-hidden />}
+      onClick={undo}
+      aria-keyshortcuts="Control+Z Meta+Z"
+    >
+      Undo move · {undoShortcut()}
+    </Button>
   );
 }

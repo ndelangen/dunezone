@@ -230,3 +230,11 @@
   font-style: italic;
   font-weight: 700;
 }
+
+/* Taking back your own last move, in the table's bottom-left corner while the table still lies as that move left it. */
+.undo {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 10;
+}

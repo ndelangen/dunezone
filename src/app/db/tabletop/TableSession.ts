@@ -22,6 +22,7 @@ import { isRemovalAction } from '@shared/play/removal';
 import { SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
 import { draftForGesture, projectCarryAtPosition, renderedPiecesFor } from '@shared/play/tableState';
+import { UNDOABLE_KINDS } from '@shared/play/undo';
 
 import { ConversationSession } from './ConversationSession';
 import type { ConversationView } from './ConversationSession';
@@ -118,6 +119,8 @@ export type TableProjection = {
   };
   /* Letting go of the peek held open; a seated viewer can, even once the game is finished and the table no longer handles. */
   closePeek?: () => void;
+  /* Taking back this viewer's own last move; present only while the table still lies exactly as that move left it. */
+  undo?: () => void;
   remoteCarriedIds: ReadonlySet<string>;
   reservedPieceIds: ReadonlySet<string>;
   gestureActivePieceId: string | null;
@@ -295,6 +298,10 @@ export class TableSession {
   /* One seat command at a time: a second click before the first settles would only fail the revision gate. */
   private seatCommandInFlight: string | null = null;
   private traitorGatherInFlight: string | null = null;
+  /* This viewer's moves on their way, and the table their latest accepted move left: undo is offered while the table still matches it. */
+  private readonly undoableInFlight = new Set<string>();
+  private moveSettled = false;
+  private lastMove: { versions: string; phase: number } | null = null;
   /* Set when a held piece went back to the table without a drop; the next view shows it, since a fresh view clears older errors. */
   private droppedCarryNotice: string | null = null;
   /* The last live table, kept read-only while a lost connection is restored; its clock stops when the connection drops, not at the last update. */
@@ -600,6 +607,7 @@ export class TableSession {
             }
           : undefined,
       closePeek: canInteract && displayed.peek ? () => this.closePeek(displayed.peek!.piece.id) : undefined,
+      undo: canHandleTable && this.undoAvailable() ? this.undo : undefined,
       remoteCarriedIds: new Set(remote.map((carry) => carry.held.id)),
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
@@ -754,9 +762,34 @@ export class TableSession {
     }
     this.forgetSettledPeekClose();
     this.discardReplacedBattleCommands();
+    this.rememberMove();
     this.flushQueues();
     this.emit();
   }
+  /* The frame that settles a move carries the table it left, which undo compares against. */
+  private rememberMove() {
+    if (!this.moveSettled || !this.saved) {
+      return;
+    }
+    this.moveSettled = false;
+    this.lastMove = { versions: JSON.stringify(this.snapshot.versions), phase: this.snapshot.phase };
+  }
+  private undoAvailable() {
+    return (
+      this.lastMove !== null &&
+      !this.history &&
+      !this.carry &&
+      this.lastMove.phase === this.snapshot.phase &&
+      this.lastMove.versions === JSON.stringify(this.snapshot.versions)
+    );
+  }
+  undo = () => {
+    if (!this.undoAvailable()) {
+      return;
+    }
+    this.lastMove = null;
+    this.command({ kind: 'undo' });
+  };
   private settleRequest(message: TableSubscriptionEvent) {
     const settled = settledRequest(message);
     if (!settled) {
@@ -795,6 +828,9 @@ export class TableSession {
       this.carry = null;
     }
     this.pendingFlips.delete(id);
+    if (this.undoableInFlight.delete(id) && outcome === 'completed') {
+      this.moveSettled = true;
+    }
     /* Refused, the room's order shows again; done, the frame that settles it carries the deck as arranged. */
     if (this.pendingArrangement?.commandId === id) {
       this.pendingArrangement = null;
@@ -1193,6 +1229,7 @@ export class TableSession {
       orientation: carry.draft.orientation,
     });
     if (sent) {
+      this.undoableInFlight.add(carry.pendingDrop);
       const { dropUnsent: _unsent, ...rest } = carry;
       this.carry = rest;
     }
@@ -1307,6 +1344,9 @@ export class TableSession {
     const commandId = crypto.randomUUID();
     if (action.kind === 'flip') {
       this.pendingFlips.set(commandId, action.pieceId);
+    }
+    if (UNDOABLE_KINDS.has(action.kind)) {
+      this.undoableInFlight.add(commandId);
     }
     if (!this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision })) {
       this.pendingFlips.delete(commandId);
