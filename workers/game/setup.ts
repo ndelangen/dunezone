@@ -6,6 +6,7 @@ import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { reserveAngles } from '../../src/shared/play/setupLayout';
 import { factionSupply, place } from '../../src/shared/play/setupSupply';
 import { cardBaySlotPositions } from '../../src/shared/play/tableFurnitureLayout';
 import { tableSeatAngles } from '../../src/shared/play/tableSettings';
@@ -86,11 +87,17 @@ function suppliedSnapshot(
 ): StoredSnapshot {
   const next = structuredClone(snapshot);
   const table = tableForViewer(next, SPECTATOR_SEAT);
-  for (const { capture, angle } of factions) {
-    const { token, reserves, hand, traitors } = factionSupply(capture, angle, {
-      id: () => crypto.randomUUID(),
-      shuffle: shuffledCards,
-    });
+  /* Reserves are laid out for the whole table at once, so one kept clear of a card well never lands on its neighbour's. */
+  const arcs = reserveAngles(
+    factions.map(({ capture, angle }) => ({ angle, troopKinds: capture.components.troops.length }))
+  );
+  for (const [index, { capture, angle }] of factions.entries()) {
+    const { token, reserves, hand, traitors } = factionSupply(
+      capture,
+      angle,
+      { id: () => crypto.randomUUID(), shuffle: shuffledCards },
+      arcs[index]
+    );
     hand.push(...capture.extras.flatMap((slot) => slotPieces(slot, capture.faction.id)));
     table.pieces.push(...token, ...reserves, ...traitors);
     supplyInventory(next, capture, hand);
