@@ -347,11 +347,12 @@ jobs:
       - name: Typecheck
         if: ${{ !cancelled() }}
         run: bun run typecheck
-      - name: Typecheck Workers
+      - name: Typecheck Game Worker
         if: ${{ !cancelled() }}
-        run: |
-          bun run game:typecheck
-          bun run publisher:typecheck
+        run: bun run game:typecheck
+      - name: Typecheck Publisher Worker
+        if: ${{ !cancelled() }}
+        run: bun run publisher:typecheck
       - name: Typecheck authoring tool
         if: ${{ !cancelled() }}
         run: bun run tool:typecheck
