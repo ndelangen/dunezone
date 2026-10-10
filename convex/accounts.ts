@@ -16,6 +16,7 @@ import {
   requireUnlockedAccount,
   signInProviders,
 } from './lib/accountMethods';
+import { revokeAccountSessions } from './lib/authSessionLifecycle';
 import { docValidator } from './lib/collaborativeAccessValidators';
 import { playCredential, playCredentialDigest } from './lib/playAuthorization';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
@@ -178,7 +179,7 @@ export const expireConnection = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const intent = await ctx.db.get(args.connectionId);
-    if (intent?.state === 'pending') {
+    if (intent && intent.state !== 'expired') {
       await ctx.db.patch(intent._id, { state: 'expired' });
     }
     return null;
@@ -246,7 +247,7 @@ export const connection = query({
             targetName: operation.target_name,
             sourceName: operation.source_name,
             sameAccount: false,
-            error: operation.error,
+            error: operation.error ? 'The connection failed. Try again or contact an administrator.' : null,
           }
         : null;
     }
@@ -324,6 +325,9 @@ export const disconnect = mutation({
         await ctx.db.delete(code._id);
       }
       await ctx.db.delete(account._id);
+    }
+    if (accounts.length > 0) {
+      await revokeAccountSessions(ctx, userId);
     }
     return null;
   },

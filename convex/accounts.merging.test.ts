@@ -125,7 +125,7 @@ test('admin merges drain multiple batches, preserve overlapping memberships, cre
     (await t.withIdentity({ subject: `${source.userId}|${source.sessionId}` }).query(api.profiles.session, {})).userId
   ).toBeNull();
   await admin.mutation(api.accounts.disconnect, { provider: 'discord' });
-  await expect(admin.mutation(api.accounts.disconnect, { provider: 'google' })).rejects.toThrow('Keep at least one');
+  await expect(admin.mutation(api.accounts.disconnect, { provider: 'google' })).rejects.toThrow('Not authenticated');
 });
 
 test('a failed partial transfer resumes without undoing completed writes and unlocks the kept account', async () => {
@@ -207,8 +207,9 @@ test.each(['discord', 'reddit'] as const)(
     });
     await verified.mutation(api.accounts.confirmConnection, { token: intent.token });
     await expect(verified.mutation(api.accounts.confirmConnection, { token: intent.token })).rejects.toThrow('expired');
+    expect(await t.query(api.accounts.connection, { token: intent.token })).toMatchObject({ state: 'running' });
     await t.finishAllScheduledFunctions(() => vi.runAllTimers());
-    expect(await t.query(api.accounts.connection, { token: intent.token })).toMatchObject({ state: 'completed' });
+    expect(await t.query(api.accounts.connection, { token: intent.token })).toBeNull();
   }
 );
 
@@ -428,7 +429,12 @@ test('a connected Reddit account protects the last usable method', async () => {
     ctx.db.insert('authAccounts', { userId: owner.userId, provider: 'google', providerAccountId: 'google-extra' })
   );
   await viewer.mutation(api.accounts.disconnect, { provider: 'google' });
-  expect((await viewer.query(api.profiles.settings, {})).account?.methods).toContainEqual({
+  vi.advanceTimersByTime(1);
+  const sessionId = await t.run((ctx) =>
+    ctx.db.insert('authSessions', { userId: owner.userId, expirationTime: Date.now() + 600_000 })
+  );
+  const signedIn = t.withIdentity({ subject: `${owner.userId}|${sessionId}` });
+  expect((await signedIn.query(api.profiles.settings, {})).account?.methods).toContainEqual({
     provider: 'reddit',
     connected: true,
     available: true,

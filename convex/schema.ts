@@ -27,6 +27,10 @@ const accountStateValidator = v.union(
 
 export default defineSchema({
   ...authTables,
+  authSessions: defineTable({
+    ...authTables.authSessions.validator.fields,
+    expiry_job_id: v.optional(v.id('_scheduled_functions')),
+  }).index('userId', ['userId']),
   cardback_presets: defineTable({
     key: zodToConvex(cardbackPresetKeySchema),
     cardback: zodToConvex(CardBack),
@@ -123,6 +127,7 @@ export default defineSchema({
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
     isAdmin: v.optional(v.boolean()),
+    auth_sessions_revoked_through: v.optional(v.number()),
     merged_into_user_id: v.optional(v.id('users')),
     account_merge_operation_id: v.optional(v.id('account_merge_operations')),
     account_state: v.optional(accountStateValidator),

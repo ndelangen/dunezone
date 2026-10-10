@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   beginConnection: vi.fn(),
   signIn: vi.fn(),
+  signOut: vi.fn(),
+  disconnectMethod: vi.fn(),
   mutate: vi.fn(),
   useSessionViewer: vi.fn(),
   useProfileSettings: vi.fn(),
@@ -53,11 +55,11 @@ vi.mock('@db/profiles', () => ({
   },
 }));
 
-vi.mock('@convex-dev/auth/react', () => ({ useAuthActions: () => ({ signIn: mocks.signIn }) }));
+vi.mock('@convex-dev/auth/react', () => ({ useAuthActions: () => ({ signIn: mocks.signIn, signOut: mocks.signOut }) }));
 vi.mock('@db/accounts', async (importOriginal) => ({
   ...(await importOriginal<typeof Accounts>()),
   useBeginAuthConnection: () => mocks.beginConnection,
-  useDisconnectAuthMethod: () => vi.fn(),
+  useDisconnectAuthMethod: () => mocks.disconnectMethod,
 }));
 
 import { Route } from './edit.route';
@@ -121,6 +123,8 @@ beforeEach(() => {
   mocks.navigate.mockReset();
   mocks.beginConnection.mockReset().mockResolvedValue({ slug: 'owner-profile', token: 'connection-token' });
   mocks.signIn.mockReset().mockResolvedValue(undefined);
+  mocks.signOut.mockReset().mockResolvedValue(undefined);
+  mocks.disconnectMethod.mockReset().mockResolvedValue(undefined);
   mocks.mutate.mockReset();
   mocks.useSessionViewer.mockReset();
   mocks.useSessionViewer.mockReturnValue({ kind: 'profile', profile });
@@ -214,6 +218,36 @@ describe('profile settings page', () => {
     expect(view.queryByRole('link', { name: 'Delete account' })).toBeNull();
     await chooseTab(view, 'Account');
     expect(view.getByRole('link', { name: 'Delete account' })).not.toBeNull();
+  });
+
+  it('clears local authentication after disconnecting a method', async () => {
+    mocks.useProfileSettings.mockReturnValue({
+      data: {
+        account: {
+          merging: false,
+          methods: [
+            { provider: 'google', connected: true, available: true },
+            { provider: 'discord', connected: true, available: true },
+          ],
+        },
+      },
+    });
+    const view = await renderPage();
+    await chooseTab(view, 'Sign-in methods');
+    expect(
+      view.getAllByText('Disconnecting signs you out on every device. Sign in again with a remaining method.')
+    ).toHaveLength(2);
+    vi.useFakeTimers();
+    try {
+      fireEvent.keyDown(view.getByRole('button', { name: 'Disconnect Discord' }), { key: 'Enter' });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      expect(mocks.disconnectMethod).toHaveBeenCalledWith({ provider: 'discord' });
+      expect(mocks.signOut).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('connects from its own tab without saving the draft and releases buttons when sign-in settles', async () => {

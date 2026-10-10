@@ -77,6 +77,9 @@ export async function handleApplicationRequest(
   );
   const headers = new Headers(response.headers);
   headers.delete('Set-Cookie');
+  headers.set('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'; object-src 'none'");
+  headers.set('X-Frame-Options', 'SAMEORIGIN');
+  headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Cache-Control', 'no-store');
   headers.set('X-Application-Release', applicationReleaseIdentity(env));
   if (request.method === 'HEAD') {

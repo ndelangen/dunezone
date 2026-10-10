@@ -16,10 +16,14 @@ import {
 
 /* The hosted-play launcher's backend. */
 beforeEach(() => {
+  /* Month-long auth expiry uses the test clock rather than Node's bounded timers. */
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
   stubIsolatedBackend();
   vi.stubEnv('PLAY_TEST_PASSWORD_HASH', 'pbkdf2');
 });
 afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
   vi.unstubAllEnvs();
 });
 

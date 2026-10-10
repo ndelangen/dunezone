@@ -81,6 +81,10 @@ const admissionFailures: Record<
   deleted: (ctx, subject) => ctx.db.patch(subject.userId, { account_state: 'deleted' }),
   anonymous: (ctx, subject) => ctx.db.patch(subject.userId, { isAnonymous: true }),
   missing_session: (ctx, subject) => ctx.db.delete(subject.sessionId),
+  checkpoint_revoked: async (ctx, subject) => {
+    const session = await ctx.db.get(subject.sessionId);
+    await ctx.db.patch(subject.userId, { auth_sessions_revoked_through: session!._creationTime });
+  },
   mismatched_session: async (ctx, subject) => {
     await ctx.db.patch(subject.sessionId, { userId: await ctx.db.insert('users', {}) });
   },
@@ -297,7 +301,7 @@ describe('Play admission', () => {
     });
   });
 
-  test('removing Administrator does not revoke the session, but Auth row deletion does', async () => {
+  test('removing Administrator keeps access, while a revocation checkpoint or Auth row deletion denies the live registration', async () => {
     const subject = await fixture();
     await subject.t.run(async (ctx) => await ctx.db.patch(subject.userId, { isAdmin: true }));
     const { admission } = await admit(subject);
@@ -305,6 +309,13 @@ describe('Play admission', () => {
     expect(
       await subject.t.query(api.playAdmission.watchAuthorizations, watchArgs(subject, [admission.registrationId]))
     ).toMatchObject({ ok: true, entries: [{ allowed: true }] });
+    await subject.t.run(async (ctx) => {
+      const session = await ctx.db.get(subject.sessionId);
+      await ctx.db.patch(subject.userId, { auth_sessions_revoked_through: session!._creationTime });
+    });
+    expect(
+      await subject.t.query(api.playAdmission.watchAuthorizations, watchArgs(subject, [admission.registrationId]))
+    ).toMatchObject({ ok: true, entries: [{ allowed: false }] });
     await subject.t.run(async (ctx) => await ctx.db.delete(subject.sessionId));
     expect(
       await subject.t.query(api.playAdmission.watchAuthorizations, watchArgs(subject, [admission.registrationId]))

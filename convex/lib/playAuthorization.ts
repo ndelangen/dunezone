@@ -6,6 +6,7 @@ import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../_generated/server';
 import { canonicalAccount } from './accountIdentity';
 import { accountStateOf, optionalActiveUserId } from './accountLifecycle';
+import { newestUnusedRefresh } from './authSessionLifecycle';
 
 const encoder = new TextEncoder();
 
@@ -56,26 +57,24 @@ function isActivePlayer(user: Doc<'users'> | null) {
   return accountStateOf(user) === 'active';
 }
 
-export function newestUnusedPlayRefresh(ctx: QueryCtx, sessionId: Id<'authSessions'>) {
-  return ctx.db
-    .query('authRefreshTokens')
-    .withIndex('by_sessionId_and_firstUsedTime', (q) => q.eq('sessionId', sessionId).eq('firstUsedTime', undefined))
-    .order('desc')
-    .first();
-}
-
 /**
- * Auth 0.0.94's newest unused refresh branch bounds inactivity;
+ * The newest unused refresh branch bounds inactivity;
  * the session bounds total lifetime.
  * This read does not extend either deadline.
  * Callers enforce the returned deadline against their clock.
  */
 export async function playSessionAuthorization(ctx: QueryCtx, userId: Id<'users'>, sessionId: Id<'authSessions'>) {
   const [user, session] = await Promise.all([canonicalAccount(ctx, userId), ctx.db.get(sessionId)]);
-  if (!user || !session || !isActivePlayer(user) || session.userId !== user._id) {
+  if (
+    !user ||
+    !session ||
+    !isActivePlayer(user) ||
+    session.userId !== user._id ||
+    session._creationTime <= (user.auth_sessions_revoked_through ?? -1)
+  ) {
     return { allowed: false, authExpiresAt: 0, sessionExpiresAt: 0 };
   }
-  const refresh = await newestUnusedPlayRefresh(ctx, sessionId);
+  const refresh = await newestUnusedRefresh(ctx, sessionId);
   return {
     allowed: refresh !== null,
     authExpiresAt: refresh ? Math.min(session.expirationTime, refresh.expirationTime) : 0,

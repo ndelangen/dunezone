@@ -13,8 +13,14 @@ import {
   syntheticAccount,
 } from './syntheticAccounts.test.fixture';
 
-beforeEach(stubIsolatedBackend);
+beforeEach(() => {
+  /* Month-long auth expiry uses the test clock rather than Node's bounded timers. */
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  stubIsolatedBackend();
+});
 afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
   vi.unstubAllEnvs();
 });
 

@@ -5,6 +5,8 @@ import Reddit from '@auth/core/providers/reddit';
 import { Password } from '@convex-dev/auth/providers/Password';
 import { convexAuth } from '@convex-dev/auth/server';
 
+import { internal } from './_generated/api';
+import type { MutationCtx } from './_generated/server';
 import { accountStateOf } from './lib/accountLifecycle';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { syntheticIdentity } from './lib/playSynthetic';
@@ -101,12 +103,40 @@ if (localE2eAuthEnabled) {
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers,
+  jwt: {
+    async customClaims(ctx, { userId, sessionId }) {
+      const [user, session] = await Promise.all([ctx.db.get(userId), ctx.db.get(sessionId)]);
+      if (
+        !user ||
+        accountStateOf(user) !== 'active' ||
+        !session ||
+        session.userId !== userId ||
+        session._creationTime <= (user.auth_sessions_revoked_through ?? -1)
+      ) {
+        throw new Error('Sign in again.');
+      }
+      return {};
+    },
+  },
   callbacks: {
     async beforeSessionCreation(ctx, { userId }) {
       const user = await ctx.db.get(userId);
       if (!user || accountStateOf(user) !== 'active') {
         throw new Error('This account is no longer active.');
       }
+      /* Auth's callback keeps the data model generic; this deployment uses our schema. */
+      const sessionCtx = ctx as MutationCtx;
+      const latest = await sessionCtx.db
+        .query('authSessions')
+        .withIndex('userId', (q) => q.eq('userId', userId))
+        .order('desc')
+        .first();
+      /* The session and its initial refresh token commit after this callback. */
+      await ctx.scheduler.runAfter(0, internal.authSessions.registerNew, {
+        userId,
+        since: latest?._creationTime ?? 0,
+        cursor: null,
+      });
     },
     async redirect({ redirectTo }) {
       const siteUrl = process.env.SITE_URL;
