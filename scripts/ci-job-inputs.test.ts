@@ -46,6 +46,42 @@ const ENTRY_POINTS: Record<ReusableJob, () => string[]> = {
 
 const JOBS = Object.keys(JOB_INPUTS) as ReusableJob[];
 
+/* Files each job must read, and files it must not, across the lists in scripts/lib/ci-job-inputs.ts. */
+const SAMPLES: Record<ReusableJob, { reads: string[]; skips: string[] }> = {
+  game_release: {
+    reads: [
+      'workers/game/session.ts',
+      'workers/game/session.test.ts',
+      'src/shared/assetIds.ts',
+      'bun.lock',
+      '.github/workflows/reusable-verify.yml',
+    ],
+    skips: ['src/app/ui/control/Button.tsx', '.github/workflows/deploy-main.yml', 'workers/game/README.md'],
+  },
+  publisher_release: {
+    reads: ['src/app/ui/control/Button.tsx', 'media/image/planet/earth.png', 'workers/publisher/index.test.ts'],
+    skips: ['src/app/ui/control/Button.stories.tsx', 'workers/game/session.ts'],
+  },
+  storybook: {
+    reads: ['src/app/ui/control/Button.stories.tsx', 'convex/schema.ts', 'workers/game/session.ts'],
+    skips: [
+      'convex/rulebooks.test.ts',
+      'e2e/profile-edit.spec.ts',
+      'tools/svg-authoring/src/App.tsx',
+      'docs/deployment.md',
+    ],
+  },
+  e2e_docker: {
+    reads: ['e2e/profile-edit.spec.ts', 'src/app/ui/control/Button.tsx', 'some-new-root-file.json'],
+    skips: [
+      'src/app/ui/control/Button.stories.tsx',
+      'src/app/ui/control/Button.test.tsx',
+      'convex/rulebooks.test.ts',
+      'workers/publisher/index.ts',
+    ],
+  },
+};
+
 describe('the verify jobs a pull request run can reuse', () => {
   test.each(JOBS)(
     '%s reads every file its entry points import',
@@ -59,35 +95,12 @@ describe('the verify jobs a pull request run can reuse', () => {
     60_000
   );
 
-  test.each([
-    ['game_release', 'workers/game/session.ts', true],
-    ['game_release', 'workers/game/session.test.ts', true],
-    ['game_release', 'src/shared/assetIds.ts', true],
-    ['game_release', 'src/app/ui/control/Button.tsx', false],
-    ['game_release', 'bun.lock', true],
-    ['game_release', '.github/workflows/reusable-verify.yml', true],
-    ['game_release', '.github/workflows/deploy-main.yml', false],
-    ['game_release', 'workers/game/README.md', false],
-    ['publisher_release', 'src/app/ui/control/Button.tsx', true],
-    ['publisher_release', 'media/image/planet/earth.png', true],
-    ['publisher_release', 'src/app/ui/control/Button.stories.tsx', false],
-    ['publisher_release', 'workers/game/session.ts', false],
-    ['publisher_release', 'workers/publisher/index.test.ts', true],
-    ['storybook', 'src/app/ui/control/Button.stories.tsx', true],
-    ['storybook', 'convex/schema.ts', true],
-    ['storybook', 'workers/game/session.ts', true],
-    ['storybook', 'convex/rulebooks.test.ts', false],
-    ['storybook', 'e2e/profile-edit.spec.ts', false],
-    ['storybook', 'tools/svg-authoring/src/App.tsx', false],
-    ['storybook', 'docs/deployment.md', false],
-    ['e2e_docker', 'e2e/profile-edit.spec.ts', true],
-    ['e2e_docker', 'src/app/ui/control/Button.tsx', true],
-    ['e2e_docker', 'src/app/ui/control/Button.stories.tsx', false],
-    ['e2e_docker', 'src/app/ui/control/Button.test.tsx', false],
-    ['e2e_docker', 'convex/rulebooks.test.ts', false],
-    ['e2e_docker', 'workers/publisher/index.ts', false],
-    ['e2e_docker', 'some-new-root-file.json', true],
-  ] as const)('%s reads %s: %s', (job, file, reads) => {
+  test.each(
+    JOBS.flatMap((job) => [
+      ...SAMPLES[job].reads.map((file) => [job, file, true] as const),
+      ...SAMPLES[job].skips.map((file) => [job, file, false] as const),
+    ])
+  )('%s reads %s: %s', (job, file, reads) => {
     expect(jobReads(job, file)).toBe(reads);
   });
 
