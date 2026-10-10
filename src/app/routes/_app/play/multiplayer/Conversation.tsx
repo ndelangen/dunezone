@@ -71,7 +71,7 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
 export function OfflineConversations({ client }: Readonly<{ client: TableSession }>) {
   const { conversations: view } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const [selected, setSelected] = useState<string | null>(null);
-  const peers = view.context?.peers ?? [];
+  const peers = view.context ? [...view.context.peers, { id: TABLE_CONVERSATION, name: 'Table' }] : [];
   const peerId = peers.find((peer) => peer.id === selected)?.id ?? peers[0]?.id;
   if (!peerId) {
     return null;
