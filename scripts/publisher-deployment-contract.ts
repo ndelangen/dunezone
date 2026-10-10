@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { PUBLICATION_MAX_PICKUP } from '../src/shared/asset-publishing/publication';
+import { compareCodeUnits } from '../src/shared/compareText';
 import { PUBLISHER_RENDERER_CONTRACT } from '../workers/publisher/renderer-contract';
 import { rendererManifest } from '../workers/publisher/renderer-manifest.generated';
 import { assertActiveDeployment } from './cloudflare-deployment';
@@ -186,7 +187,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
 
   invariant(rendererManifest.schemaVersion === 2, 'Renderer manifest schema changed unexpectedly');
   invariant(
-    Object.keys(rendererManifest.components).sort().join(',') === 'code,contract,sources,toolchain' &&
+    Object.keys(rendererManifest.components).sort(compareCodeUnits).join(',') === 'code,contract,sources,toolchain' &&
       Object.values(rendererManifest.components).every((component) => /^[0-9a-f]{64}$/.test(component)),
     'Renderer identity components are invalid'
   );

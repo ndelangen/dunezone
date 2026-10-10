@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { z } from 'zod';
 
+import { compareCodeUnits } from '../src/shared/compareText';
 import { TransientError, retryTransient } from './retry-transient';
 
 const guardEntrySchema = z.object({
@@ -54,7 +55,7 @@ function requiredForAnyNarrow(entries: z.infer<typeof guardManifestSchema>['entr
       }
     }
   }
-  return Array.from(ids).sort();
+  return Array.from(ids).sort(compareCodeUnits);
 }
 
 function deploySet(entries: z.infer<typeof guardManifestSchema>['entries']) {

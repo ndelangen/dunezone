@@ -299,7 +299,7 @@ jobs:
           CONVEX_DEPLOYMENT: ${{ vars.CONVEX_DEPLOYMENT }}
 
       - name: Set canonical Convex site URL
-        run: bunx convex env set SITE_URL https://dune.zone --prod
+        run: bun run convex env set SITE_URL https://dune.zone --prod
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           CONVEX_DEPLOYMENT: ${{ vars.CONVEX_DEPLOYMENT }}

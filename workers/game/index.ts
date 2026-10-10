@@ -2017,7 +2017,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.authorization?.remove(connection.registrationId);
     }
     if (!this.connections.size) {
-      this.closeAuthorization();
+      void this.closeAuthorization();
     }
     if (broadcast) {
       this.reconcileViewers();

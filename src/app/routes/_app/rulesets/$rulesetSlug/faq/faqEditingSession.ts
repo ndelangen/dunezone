@@ -1,3 +1,4 @@
+import { compareCodeUnits } from '@shared/compareText';
 import { DEFAULT_FAQ_TAG } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 
@@ -75,7 +76,8 @@ export function createFaqEditingSession(ports: FaqEditingPorts) {
       }
       const currentTags = tagsOf(item);
       const unchanged =
-        question === item.text && [...state.tagValues].sort().join('|') === [...currentTags].sort().join('|');
+        question === item.text &&
+        [...state.tagValues].sort(compareCodeUnits).join('|') === [...currentTags].sort(compareCodeUnits).join('|');
       if (unchanged) {
         set({ editingQuestion: false });
         return;

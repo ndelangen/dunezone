@@ -1,6 +1,7 @@
 /* The Rulebook editor around its Pages: deep links, renaming, the clipping warnings, publishing, a stale draft and lost access (#1590). */
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { compareCodeUnits } from '@shared/compareText';
 import { rulebookContentsV1Schema, rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -360,7 +361,9 @@ async function checkTitleMeasurements(canvasElement: HTMLElement, expectedPages:
     await userEvent.type(title, 'x');
     /* One keystroke re-measures the edited Page and any Page that displays a reference to its title.
      * Retrying the whole set rather than waiting for it to be non-empty first means an observer that never arrives reports the Pages it measured, not a count of nothing. */
-    await waitFor(() => expect([...measured.observed].sort()).toEqual(expectedPages), { timeout: 30_000 });
+    await waitFor(() => expect([...measured.observed].sort(compareCodeUnits)).toEqual(expectedPages), {
+      timeout: 30_000,
+    });
     expect(renderedPageCount(canvasElement)).toBe(31);
   } finally {
     measured.restore();
