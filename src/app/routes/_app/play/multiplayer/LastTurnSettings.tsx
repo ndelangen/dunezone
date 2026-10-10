@@ -7,11 +7,14 @@ import type { TableProjection, TableSession } from '../../../../db/tabletop/Tabl
 
 type Props = { client: TableSession; table: TableProjection };
 
-/** A typed last turn the table accepts and does not already have, or null. */
+/** A typed last turn, held within the allowed range as the field shows it, when the table does not already have it; else null. */
 function changedTurn(draft: number | string, current: number) {
-  const next = Number(draft);
-  const valid = Number.isInteger(next) && next >= MIN_LAST_TURN && next <= MAX_LAST_TURN;
-  return valid && next !== current ? next : null;
+  const typed = Number(draft);
+  if (!Number.isInteger(typed)) {
+    return null;
+  }
+  const next = Math.min(MAX_LAST_TURN, Math.max(MIN_LAST_TURN, typed));
+  return next !== current ? next : null;
 }
 
 /** The turn the game ends after, which the turn wheel counts up to; play carries on past it if the table wants. */
@@ -20,6 +23,8 @@ export function LastTurnSettings({ client, table }: Props) {
   const [draft, setDraft] = useState<number | string>(lastTurn);
   /* Another player's change replaces the shown turn, but never one this player is still typing; leaving the field settles it. */
   const editing = useRef(false);
+  /* Only a typed change is sent: focusing and leaving the field never undoes a change another player made meanwhile. */
+  const edited = useRef(false);
   useEffect(() => {
     if (!editing.current) {
       setDraft(lastTurn);
@@ -33,13 +38,17 @@ export function LastTurnSettings({ client, table }: Props) {
         max={MAX_LAST_TURN}
         value={draft}
         disabled={!table.canInteract || !table.snapshot.bank}
-        onChange={setDraft}
+        onChange={(value) => {
+          edited.current = true;
+          setDraft(value);
+        }}
         onFocus={() => {
           editing.current = true;
+          edited.current = false;
         }}
         onBlur={() => {
           editing.current = false;
-          const next = changedTurn(draft, lastTurn);
+          const next = edited.current ? changedTurn(draft, lastTurn) : null;
           if (next === null) {
             setDraft(lastTurn);
             return;
