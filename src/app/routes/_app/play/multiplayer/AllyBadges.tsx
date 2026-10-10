@@ -2,12 +2,7 @@
 import { alliesOf } from '@shared/play/alliances';
 import { factionTokenStackKey } from '@shared/play/factionToken';
 import type { TablePiece } from '@shared/play/model';
-import {
-  BOARD_RIM_RADIUS,
-  FACTION_TOKEN_SCALE,
-  TROOP_LAYER_HEIGHT,
-  TROOP_TOP_RADIUS,
-} from '@shared/play/tableGeometry';
+import { FACTION_TOKEN_SCALE, TABLE_SURFACE_Y, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS } from '@shared/play/tableGeometry';
 import { useEffect, useState } from 'react';
 import { SRGBColorSpace, TextureLoader } from 'three';
 import type { Texture } from 'three';
@@ -43,19 +38,22 @@ function useFaceTexture(href: string | undefined) {
   return texture;
 }
 
-/* A plate a band wider than the token, in the ally's colour, with the cream line the tokens carry inside their rim. */
+/*
+ * The ally's token as a coin under the faction's own: a band wider all round, in the ally's colour, with the cream line the tokens carry inside their rim.
+ * A token at its seat overhangs the board's rim and rests at the rim's height, so the coin stands on the table and rises to just under the rim's top.
+ * The rim then covers the coin where they meet, and the coin reads as tucked under the board's edge with the token stacked on it.
+ */
 const PLATE_BAND = 0.085;
-const PLATE_HEIGHT = 0.022;
-const RIM_CLEARANCE = 0.015;
-function Plate({ ally, index, distance }: { ally: TablePiece; index: number; distance: number }) {
+const MIN_HEIGHT = 0.022;
+const UNDER_RIM = 0.006;
+function Plate({ ally, index, base }: { ally: TablePiece; index: number; base: number }) {
   const radius = TOKEN_RADIUS + PLATE_BAND * (index + 1);
-  const height = PLATE_HEIGHT;
-  /* Slid away from the board just far enough that the plate stays clear of the board's dark rim. */
-  const shift = Math.max(0, BOARD_RIM_RADIUS + RIM_CLEARANCE - (distance - radius));
+  const top = Math.max(TABLE_SURFACE_Y + MIN_HEIGHT, base - UNDER_RIM) - index * 0.003;
+  const height = top - TABLE_SURFACE_Y;
   return (
-    <group position={[shift, -index * 0.002, 0]}>
+    <group position={[0, TABLE_SURFACE_Y, 0]}>
       <mesh raycast={ignoreRaycast} position={[0, height / 2, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[radius, radius + 0.008, height, 96]} />
+        <cylinderGeometry args={[radius, radius + 0.006, height, 96]} />
         <meshStandardMaterial color={ally.color} roughness={0.56} metalness={0.1} />
       </mesh>
       <mesh raycast={ignoreRaycast} position={[0, height + 0.0008, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -115,9 +113,8 @@ export function AllyBadgesScene({ table }: { table: TableProjection }) {
       <group key={factionId} position={[x, y, z]}>
         {allies.map((ally, index) =>
           allyStyle.current === 'base' ? (
-            /* Turned to face out from the table's centre, so the plate's shift runs straight away from the board. */
-            <group key={ally.id} rotation={[0, -Math.atan2(z, x), 0]}>
-              <Plate ally={ally} index={index} distance={length} />
+            <group key={ally.id} position={[0, -y, 0]}>
+              <Plate ally={ally} index={index} base={y} />
             </group>
           ) : (
             <group key={ally.id} rotation={[0, own.orientation, 0]}>
