@@ -77,9 +77,7 @@ async function clearAllAppData(ctx: MutationCtx) {
   }
 
   /* A queued bootstrap may have been canceled before marking its retained session. */
-  for (const session of sessions) {
-    await scheduleSessionExpiry(ctx, session);
-  }
+  await Promise.all(sessions.map((session) => scheduleSessionExpiry(ctx, session)));
 
   while (true) {
     const storedFiles = await ctx.db.system.query('_storage').take(128);

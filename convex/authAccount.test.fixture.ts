@@ -16,7 +16,7 @@ export function setup() {
   rateLimiterTest.register(t);
   return t;
 }
-export async function account(
+export function account(
   t: ReturnType<typeof setup>,
   slug: string,
   provider: 'google' | 'discord' | 'reddit',
