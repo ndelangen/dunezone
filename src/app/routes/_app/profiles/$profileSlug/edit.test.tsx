@@ -8,6 +8,8 @@ import type { AnchorHTMLAttributes, ComponentType } from 'react';
 import { useSyncExternalStore } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as Accounts from '@db/accounts';
+
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   beginConnection: vi.fn(),
@@ -52,7 +54,8 @@ vi.mock('@db/profiles', () => ({
 }));
 
 vi.mock('@convex-dev/auth/react', () => ({ useAuthActions: () => ({ signIn: mocks.signIn }) }));
-vi.mock('@db/accounts', () => ({
+vi.mock('@db/accounts', async (importOriginal) => ({
+  ...(await importOriginal<typeof Accounts>()),
   useBeginAuthConnection: () => mocks.beginConnection,
   useDisconnectAuthMethod: () => vi.fn(),
 }));
