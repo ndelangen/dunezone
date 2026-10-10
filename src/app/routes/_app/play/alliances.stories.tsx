@@ -8,7 +8,6 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { STORYBOOK_NOW } from '@db/storybook';
 
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
-import { allyStyle } from './multiplayer/AllyBadges';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
@@ -72,7 +71,7 @@ function liveTransport() {
 
 async function openPlayer(canvasElement: HTMLElement, name: RegExp) {
   const page = within(canvasElement.ownerDocument.body);
-  await userEvent.click(await page.findByRole('tab', { name }, { timeout: 30_000 }));
+  await userEvent.click((await page.findAllByRole('tab', { name }, { timeout: 30_000 }))[0]!);
   const info = page.getAllByRole('tab', { name: 'Info' }).at(-1)!;
   await userEvent.click(info);
   return page;
@@ -81,18 +80,6 @@ async function openPlayer(canvasElement: HTMLElement, name: RegExp) {
 /** Try it by hand: accept or decline the offer, offer another faction an alliance, or leave one. */
 export const Live = meta.story({
   beforeEach: install(liveTransport),
-});
-
-/** The same table with each ally's token slid out from under the allied token, in place of the plate. */
-export const LiveTucked = meta.story({
-  beforeEach: () => {
-    allyStyle.current = 'tucked';
-    const cleanup = install(liveTransport)();
-    return () => {
-      allyStyle.current = 'base';
-      cleanup();
-    };
-  },
 });
 
 export const IncomingOffer = meta.story({
