@@ -19,7 +19,7 @@ import { gameHttpClient } from './authorization';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { Room } from './room';
-import { storedSnapshotSchema } from './state';
+import { onCurrentBoard, storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
 
 type Connection = {
@@ -62,7 +62,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     void ctx.blockConcurrencyWhile(() =>
       this.diagnostics.run('load', async () => {
         const saved = await ctx.storage.get<Saved>('table');
-        const parsed = saved && storedSnapshotSchema.safeParse(saved.snapshot);
+        const parsed = saved && storedSnapshotSchema.safeParse(onCurrentBoard(saved.snapshot));
         this.resetAt = saved?.resetAt ?? 0;
         this.room = new Room(parsed?.success ? parsed.data : homepageSnapshot(env.APPLICATION_ORIGIN), () => []);
         for (const socket of ctx.getWebSockets()) {

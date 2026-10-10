@@ -10,8 +10,8 @@ import {
 
 type PieceFootprint = Pick<TablePiece, 'kind' | 'orientation'> & Partial<Pick<TablePiece, 'owner' | 'stackKey'>>;
 
-export const BOARD_RADIUS = 4.25;
-export const BOARD_RIM_RADIUS = 4.52;
+export const BOARD_RADIUS = 3.98;
+export const BOARD_RIM_RADIUS = 4.23;
 export const TABLE_VISIBLE_RADIUS = 5.47;
 export const BOARD_SURFACE_Y = 0.132;
 export const BOARD_RIM_SURFACE_Y = 0.125;

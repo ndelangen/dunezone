@@ -36,7 +36,7 @@ describe('table views', () => {
     const scale = (pose.position[1] - pose.target[1]) / 9.4;
 
     expect(pose.target).toEqual([0, 0.1, 0.8]);
-    expect(scale).toBeGreaterThan(0.9);
+    expect(scale).toBeGreaterThan(0.85);
     expect(scale).toBeLessThan(1);
     expect(pose.position[1]).toBeLessThan(9.5);
     expect((pose.position[1] - pose.target[1]) / (pose.position[2] - pose.target[2])).toBeCloseTo(9.4 / 11.2);
