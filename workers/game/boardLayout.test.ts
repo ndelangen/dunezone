@@ -3,8 +3,9 @@ import { DatabaseSync } from 'node:sqlite';
 import { expect, test } from 'vitest';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
-import type { Vector3Tuple } from '../../src/shared/play/model';
+import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';
 import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
+import { isOverlapFreePosition } from '../../src/shared/play/tablePhysics';
 import { PLAYER_RING_RADIUS } from '../../src/shared/play/tableSettings';
 import type { ActorDirectory } from './actors';
 import { moveOntoCurrentBoard, moveStoredGameOntoCurrentBoard, onCurrentBoard } from './boardLayout';
@@ -44,7 +45,7 @@ function legacyGame(revision: number, tokenX: number): StoredSnapshot {
         piece('on-territory', [1, 0.13, -2]),
         piece('token', [tokenX, 0.005, 0]),
         piece('reserve', [LEGACY_RING + 0.6592, 0.005, 0]),
-        piece('at-rim', [4.7, 0.005, 0.3]),
+        piece('at-rim', [0, 0.005, 4.7]),
         piece('deck-in-well', [5.72, 0.005, -1.32]),
         piece('on-shelf', [0, 0.005, 7.5]),
       ],
@@ -67,6 +68,16 @@ test('a game stored for the larger board moves its board in with the board, and 
   expect(moved.reserve![0] - moved.token![0]).toBeCloseTo(0.6592);
   expect(moved['deck-in-well']).toEqual([5.72, 0.005, -1.32]);
   expect(moved['on-shelf']).toEqual([0, 0.005, 7.5]);
+});
+
+test('pieces set side by side on the old board still stand clear of each other on the smaller one', () => {
+  const legacy = legacyGame(0, LEGACY_RING);
+  const side = {
+    ...legacy,
+    table: { ...legacy.table, pieces: [piece('left', [1, 0.132, 0]), piece('right', [1.36, 0.132, 0])] },
+  };
+  const moved = moveOntoCurrentBoard(side).table.pieces as TablePiece[];
+  expect(isOverlapFreePosition(moved[0]!, moved[0]!.position, [moved[1]!])).toBe(true);
 });
 
 test('a piece moved off the old board edge rests on what lies under its new place', () => {

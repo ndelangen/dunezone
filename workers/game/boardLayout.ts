@@ -1,5 +1,6 @@
-import type { Vector3Tuple } from '../../src/shared/play/model';
+import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';
 import { BOARD_RADIUS, TABLE_VISIBLE_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
+import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { PLAYER_RING_RADIUS } from '../../src/shared/play/tableSettings';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
@@ -32,16 +33,28 @@ function movedPoint([x, y, z]: Vector3Tuple): Vector3Tuple | null {
 /** A snapshot laid out for the old, larger board, with every piece on the round table moved onto the current one. */
 export function moveOntoCurrentBoard(snapshot: StoredSnapshot): StoredSnapshot {
   const anchor = snapshot.battleState && movedPoint(snapshot.battleState.anchor);
+  const pieces = snapshot.table.pieces.map((piece) => {
+    const moved = movedPoint(piece.position);
+    return moved ? { ...piece, position: moved } : piece;
+  });
+  const movedIds = new Set(
+    pieces.filter((piece, index) => piece !== snapshot.table.pieces[index]).map((piece) => piece.id)
+  );
+  /*
+   * Footprints keep their size while the board shrinks, so pieces set side by side can come to overlap; each moved piece
+   * takes the nearest clear place among the others, as a drop would, and rests on whatever lies under it.
+   */
+  for (const [index, piece] of pieces.entries()) {
+    if (!movedIds.has(piece.id)) {
+      continue;
+    }
+    const others = pieces.filter((other) => other !== piece) as TablePiece[];
+    const clear = nearestCollisionFreePosition(piece as TablePiece, piece.position, others) ?? piece.position;
+    pieces[index] = { ...piece, position: restingPositionAt(clear, piece) };
+  }
   return {
     ...snapshot,
-    table: {
-      ...snapshot.table,
-      pieces: snapshot.table.pieces.map((piece) => {
-        const moved = movedPoint(piece.position);
-        /* A piece that stood at the old board's edge rests on whatever lies under its new place. */
-        return moved ? { ...piece, position: restingPositionAt(moved, piece) } : piece;
-      }),
-    },
+    table: { ...snapshot.table, pieces },
     battleState: snapshot.battleState && anchor ? { ...snapshot.battleState, anchor } : snapshot.battleState,
   };
 }
