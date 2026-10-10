@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-          # Leaves the raster originals out (#1923); see the generated-images action.
+          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
           sparse-checkout: |
             /*
             !/media/image/
@@ -127,7 +127,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-          # Leaves the raster originals out (#1923); see the generated-images action.
+          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
           sparse-checkout: |
             /*
             !/media/image/
@@ -200,7 +200,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-          # Leaves the raster originals out (#1923); see the generated-images action.
+          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
           sparse-checkout: |
             /*
             !/media/image/
@@ -277,7 +277,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-          # Leaves the raster originals out (#1923); see the generated-images action.
+          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
           sparse-checkout: |
             /*
             !/media/image/
@@ -580,7 +580,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-          # Leaves the raster originals out (#1923); see the generated-images action.
+          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
           sparse-checkout: |
             /*
             !/media/image/
@@ -658,7 +658,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-          # Leaves the raster originals out (#1923); see the generated-images action.
+          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
           sparse-checkout: |
             /*
             !/media/image/
@@ -711,7 +711,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-          # Leaves the raster originals out (#1923); see the generated-images action.
+          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
           sparse-checkout: |
             /*
             !/media/image/

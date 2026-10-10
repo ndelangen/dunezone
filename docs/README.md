@@ -423,10 +423,12 @@ Production and the shared cloud dev integration deployment update through the po
 ## Game assets (`src/game`, `media/`)
 
 Dune card/faction rendering and Storybook stories live in `src/game`. **Source** artwork lives in
-`media/**`; everything under `public/image/**` and `public/web/**` is generated output and
+`media/**`: vectors are in git, raster originals are in R2 and listed in `media/raster.lock.json`
+(#1888). `bun run media:sync` downloads them into `media/` and uploads new or changed ones.
+Everything under `public/m/**`, `public/image/**` and `public/web/**` is generated output and
 gitignored, apart from the committed files named in `COMMITTED_WEB_FILES`
 (`src/shared/assetRules.ts`). Run `bun run generate:images` locally, and see the image pipeline
-section of [`AGENTS.md`](../AGENTS.md). `scripts/generate.ts` refreshes `src/shared/assetIds.ts`,
+section of [`AGENTS.md`](../AGENTS.md) and the [media runbooks](./technical/media-runbooks.md). `scripts/generate.ts` refreshes `src/shared/assetIds.ts`,
 the typed public-asset catalog used by game schemas.
 
 ## Detailed documentation
