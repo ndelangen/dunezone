@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import type { playGameProvisionSchema } from '../../src/shared/play/admission';
 import type { CaptureReadiness } from '../../src/shared/play/capture';
 import { emptySnapshot } from '../../src/shared/play/commands';
+import { conversationMembers } from '../../src/shared/play/conversations';
 import type { PlayDirectorySummary } from '../../src/shared/play/directory';
 import type { DraftFaction, DraftState } from '../../src/shared/play/drafting';
 import {
@@ -37,7 +38,7 @@ import { expireBattle } from './battle';
 import { biddingDeadline, expireBidding } from './bidding';
 import { moveStoredGameOntoCurrentBoard } from './boardLayout';
 import { CaptureStore } from './captures';
-import { Conversations } from './conversations';
+import { Conversations, seatedFactions } from './conversations';
 import { DirectoryOutbox } from './directory';
 import {
   applyDraftAction,
@@ -1156,12 +1157,15 @@ export class GameSession {
       return saved;
     });
   }
+  conversationMembers(request: Extract<ClientMessage, { type: 'conversation-send' }>) {
+    return conversationMembers(request.factionId, request.peerId, seatedFactions(this.room!.snapshot)) ?? [];
+  }
   conversationSummaries(viewer: Viewer): Extract<ServerMessage, { type: 'conversations' }> | undefined {
     const factionId = this.conversationFaction(viewer);
     if (!factionId) {
       return;
     }
-    const peers = this.room!.snapshot.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])) ?? [];
+    const peers = seatedFactions(this.room!.snapshot);
     return {
       type: 'conversations',
       factionId,

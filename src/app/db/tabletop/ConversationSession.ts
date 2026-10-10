@@ -1,4 +1,4 @@
-import { conversationsAvailable, conversationTextSchema } from '@shared/play/conversations';
+import { conversationMembers, conversationsAvailable, conversationTextSchema } from '@shared/play/conversations';
 import type { ConversationMessage, ConversationSummary } from '@shared/play/conversations';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { rosterSeat } from '@shared/play/schema';
@@ -232,7 +232,7 @@ export class ConversationSession {
     if (!parsed.success) {
       return false;
     }
-    if (!this.context || !this.context.peers.some((peer) => peer.id === peerId)) {
+    if (!this.context || !this.reaches(peerId)) {
       return false;
     }
     this.pending = [
@@ -252,6 +252,12 @@ export class ConversationSession {
     this.changed();
     return true;
   };
+
+  /** Whether this faction may write to `peerId`: another seated faction, the table, or a group it belongs to. */
+  reaches(peerId: string) {
+    const { factionId, peers } = this.context ?? { factionId: '', peers: [] };
+    return Boolean(conversationMembers(factionId, peerId, [factionId, ...peers.map((peer) => peer.id)]));
+  }
 
   retry = (requestId: string) => {
     this.pending = this.pending.map((entry): Pending =>

@@ -1,4 +1,9 @@
-import { conversationsAvailable } from '../../src/shared/play/conversations';
+import {
+  conversationMembers,
+  conversationsAvailable,
+  isChannel,
+  TABLE_CONVERSATION,
+} from '../../src/shared/play/conversations';
 import type { ConversationMessage } from '../../src/shared/play/conversations';
 import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -17,8 +22,9 @@ type MessageRow = {
   saved_at: number;
   pair: string;
 };
+/* A channel is stored under its own id, which every member shares; a faction pair under both ids, sorted. */
 const pairKey = ({ factionId, peerId }: Pair) =>
-  JSON.stringify([factionId, peerId].sort((a, b) => (a < b ? -1 : Number(a > b))));
+  isChannel(peerId) ? peerId : JSON.stringify([factionId, peerId].sort((a, b) => (a < b ? -1 : Number(a > b))));
 const present = (row: MessageRow): ConversationMessage => ({
   sequence: row.sequence,
   requestId: row.request_id,
@@ -53,11 +59,7 @@ export class Conversations {
 
   authorize(snapshot: StoredSnapshot, viewer: Viewer, pair: Pair) {
     const own = this.faction(snapshot, viewer);
-    if (!own || own !== pair.factionId) {
-      throw new GameRejection('This conversation is not available.');
-    }
-    const peerExists = hasPeer(snapshot, pair);
-    if (pair.peerId === own || !peerExists) {
+    if (!own || own !== pair.factionId || !conversationMembers(own, pair.peerId, seatedFactions(snapshot))) {
       throw new GameRejection('This conversation is not available.');
     }
     return own;
@@ -106,23 +108,27 @@ export class Conversations {
     return { entries: rows.slice(0, 50).reverse().map(present), more: rows.length > 50 };
   }
 
+  /** The faction's pairs and the table, always, and every group it belongs to once someone has written there. */
   summaries(faction: string, peers: string[]) {
-    return peers
-      .filter((peer) => peer !== faction)
-      .map((peerId) => {
-        const pair = pairKey({ factionId: faction, peerId });
-        const row = this.storage.sql
-          .exec<{ latest: number; unread: number }>(
-            'SELECT COALESCE((SELECT sequence FROM conversation_messages WHERE pair=? ORDER BY sequence DESC LIMIT 1),0) AS latest, (SELECT COUNT(*) FROM conversation_messages WHERE pair=? AND sequence>COALESCE((SELECT through FROM conversation_reads WHERE pair=? AND faction=?),0) AND sender_faction<>?) AS unread',
-            pair,
-            pair,
-            pair,
-            faction,
-            faction
-          )
-          .one();
-        return { peerId, ...row };
-      });
+    const groups = this.storage.sql
+      .exec<{ pair: string }>("SELECT DISTINCT pair FROM conversation_messages WHERE pair LIKE '@group.%'")
+      .toArray()
+      .map(({ pair }) => pair)
+      .filter((pair) => conversationMembers(faction, pair, peers));
+    return [...peers.filter((peer) => peer !== faction), TABLE_CONVERSATION, ...groups].map((peerId) => {
+      const pair = pairKey({ factionId: faction, peerId });
+      const row = this.storage.sql
+        .exec<{ latest: number; unread: number }>(
+          'SELECT COALESCE((SELECT sequence FROM conversation_messages WHERE pair=? ORDER BY sequence DESC LIMIT 1),0) AS latest, (SELECT COUNT(*) FROM conversation_messages WHERE pair=? AND sequence>COALESCE((SELECT through FROM conversation_reads WHERE pair=? AND faction=?),0) AND sender_faction<>?) AS unread',
+          pair,
+          pair,
+          pair,
+          faction,
+          faction
+        )
+        .one();
+      return { peerId, ...row };
+    });
   }
 
   read(request: ConversationRequest<'conversation-read'>) {
@@ -158,6 +164,6 @@ export class Conversations {
   }
 }
 
-function hasPeer(snapshot: StoredSnapshot, pair: Pair) {
-  return snapshot.roster?.seats.some((seat) => seat.faction?.id === pair.peerId);
+export function seatedFactions(snapshot: StoredSnapshot) {
+  return snapshot.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])) ?? [];
 }

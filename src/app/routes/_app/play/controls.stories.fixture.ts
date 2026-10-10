@@ -44,7 +44,11 @@ export async function openPanel(canvasElement: HTMLElement, tab: string, subtab?
  * Opens the players pane beside the controls panel on one player and one of their tabs ("Info" or "Conversation").
  * The pane shows once the panel is widened, which the resize handle's End key does.
  */
-export async function openPlayer(canvasElement: HTMLElement, player: string, tab: 'Info' | 'Conversation') {
+export async function openPlayer(
+  canvasElement: HTMLElement,
+  player: string,
+  tab: 'Info' | 'Conversation' | 'Pick factions'
+) {
   const page = within(canvasElement.ownerDocument.body);
   await waitFor(() => expect(page.getByRole('separator', { name: 'Resize controls panel' })).toBeVisible(), {
     timeout: 30_000,

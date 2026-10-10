@@ -1,4 +1,5 @@
 import { Badge, Button, Group, Select, Stack, Text, Textarea, VisuallyHidden } from '@mantine/core';
+import { isChannel } from '@shared/play/conversations';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -43,7 +44,17 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
         >
           <HistoryStatus page={page} load={(before) => client.conversations.load({ peerId, before })} />
           {entries.map((message) => (
-            <SavedMessage key={message.sequence} message={message} factionId={view.context?.factionId} />
+            <SavedMessage
+              key={message.sequence}
+              message={message}
+              factionId={view.context?.factionId}
+              /* Several factions write in a channel, so each message also names its writer's faction. */
+              faction={
+                isChannel(peerId)
+                  ? view.context?.peers.find((peer) => peer.id === message.senderFactionId)?.name
+                  : undefined
+              }
+            />
           ))}
           <div ref={newest} style={{ minHeight: 1 }} aria-hidden />
           {pending.map((entry) => (
@@ -168,10 +179,14 @@ function useArrivalAnnouncement(
   return announcement;
 }
 
-function SavedMessage({ message, factionId }: Readonly<{ message: ConversationMessage; factionId?: string }>) {
+function SavedMessage({
+  message,
+  factionId,
+  faction,
+}: Readonly<{ message: ConversationMessage; factionId?: string; faction?: string }>) {
   return (
     <Stack gap="xs">
-      <SavedMessageHeader message={message} />
+      <SavedMessageHeader message={message} faction={faction} />
       <Text size="sm" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
         {message.text}
       </Text>
@@ -275,11 +290,17 @@ function observeVisible(target: HTMLElement, onVisible: () => void) {
   };
 }
 
-function SavedMessageHeader({ message }: Readonly<{ message: ConversationMessage }>) {
+function SavedMessageHeader({ message, faction }: Readonly<{ message: ConversationMessage; faction?: string }>) {
   return (
     <Group gap="sm" justify="space-between">
       <Text size="sm" fw={700}>
         {message.author}
+        {faction && (
+          <Text span size="sm" c="dimmed" fw={400}>
+            {' · '}
+            {faction}
+          </Text>
+        )}
       </Text>
       <MessageTime savedAt={message.savedAt} />
     </Group>

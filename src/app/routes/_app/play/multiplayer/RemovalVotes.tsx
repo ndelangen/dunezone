@@ -1,4 +1,5 @@
 import { Avatar, Button, Group, Indicator, Stack, Text } from '@mantine/core';
+import { groupConversationId, isChannel } from '@shared/play/conversations';
 import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
@@ -9,9 +10,10 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { NestedTabs } from '@ui/surface/NestedTabs';
 import { Surface } from '@ui/surface/Surface';
 import { MessageCircle } from 'lucide-react';
-import { useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import { channelItems, channelName, NEW_GROUP, NewGroup } from './Channels';
 import { Conversation } from './Conversation';
 import { SwappingSeat } from './Swapping';
 import { useServerNow } from './useServerNow';
@@ -136,6 +138,8 @@ export function PlayerPanel({
     error: string | null;
   }>) {
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  /* Groups this player started this session; one appears for its other members once someone writes in it. */
+  const [started, setStarted] = useState<string[]>([]);
   const occupants = table.snapshot.controls?.players ?? [];
   const players = (
     table.snapshot.roster?.seats.map(
@@ -157,44 +161,88 @@ export function PlayerPanel({
     return null;
   }
   const vote = votes.find((entry) => entry.target.seat === player.seat);
-  const peerId = rosterSeat(table.snapshot.roster, player.seat)?.faction?.id;
-  const canConverse = peerId && conversations.context?.peers.some((peer) => peer.id === peerId);
-  const activeTab = canConverse ? selectedTab : 'public';
   const unread = (seat: string) =>
     conversations.summaries.find((entry) => entry.peerId === rosterSeat(table.snapshot.roster, seat)?.faction?.id)
       ?.unread ?? 0;
+  const playerItems = players.map((entry) => {
+    const active = votes.some((candidate) => candidate.target.seat === entry.seat);
+    const token = table.snapshot.swapping?.tokens[entry.seat];
+    const unreadLabel = unread(entry.seat) ? `, ${unread(entry.seat)} unread` : '';
+    return (
+      <NestedTabs.Item
+        key={entry.seat}
+        as="button"
+        type="button"
+        path={[entry.seat]}
+        label={`${entry.name}${active ? ', removal vote in progress' : ''}${unreadLabel}`}
+        icon={
+          <Indicator
+            color={active ? 'red.6' : undefined}
+            size={16}
+            label={unread(entry.seat) || undefined}
+            disabled={!active && !unread(entry.seat)}
+          >
+            <Avatar src={token ?? entry.avatar} size={26} radius="xl" alt="">
+              {entry.name.slice(0, 1)}
+            </Avatar>
+          </Indicator>
+        }
+        onClick={() => {
+          onSelect(entry.seat, 'conversation');
+        }}
+      />
+    );
+  });
+  const context = conversations.context;
+  const channel = context && selected && (isChannel(selected) || selected === NEW_GROUP) ? selected : null;
+  const peerId = channel ?? rosterSeat(table.snapshot.roster, player.seat)?.faction?.id;
+  const canConverse = peerId && (channel || context?.peers.some((peer) => peer.id === peerId));
+  const activeTab = canConverse ? selectedTab : 'public';
+  const tokens = Object.fromEntries(
+    players.flatMap((entry) => {
+      const faction = rosterSeat(table.snapshot.roster, entry.seat)?.faction?.id;
+      return faction ? [[faction, table.snapshot.swapping?.tokens[entry.seat] ?? entry.avatar]] : [];
+    })
+  );
+  if (channel && context) {
+    return (
+      <NestedTabs activePath={[channel, 'conversation']} ariaLabel="Players" className="seated-controls-tabs">
+        <NestedTabs.Level label="Players">
+          {channelItems({ view: conversations, started, tokens, onSelect: (id) => onSelect(id, 'conversation') })}
+          {playerItems}
+        </NestedTabs.Level>
+        <NestedTabs.Level label={channel === NEW_GROUP ? 'New group' : channelName(context, channel)}>
+          <NestedTabs.Item
+            as="button"
+            type="button"
+            path={[channel, 'conversation']}
+            label={channel === NEW_GROUP ? 'Pick factions' : 'Conversation'}
+            icon={<MessageCircle size={22} aria-hidden />}
+            onClick={() => onSelect(channel, 'conversation')}
+          />
+        </NestedTabs.Level>
+        <NestedTabs.ContentPanel className="seated-controls-tab-content">
+          {channel === NEW_GROUP ? (
+            <NewGroup
+              peers={context.peers}
+              onStart={(members) => {
+                const id = groupConversationId([context.factionId, ...members]);
+                setStarted((previous) => [...previous, id]);
+                onSelect(id, 'conversation');
+              }}
+            />
+          ) : (
+            <Conversation key={`${context.factionId}:${channel}`} client={client} peerId={channel} />
+          )}
+        </NestedTabs.ContentPanel>
+      </NestedTabs>
+    );
+  }
   return (
     <NestedTabs activePath={[player.seat, activeTab]} ariaLabel="Players" className="seated-controls-tabs">
       <NestedTabs.Level label="Players">
-        {players.map((entry) => {
-          const active = votes.some((candidate) => candidate.target.seat === entry.seat);
-          const token = table.snapshot.swapping?.tokens[entry.seat];
-          const unreadLabel = unread(entry.seat) ? `, ${unread(entry.seat)} unread` : '';
-          return (
-            <NestedTabs.Item
-              key={entry.seat}
-              as="button"
-              type="button"
-              path={[entry.seat]}
-              label={`${entry.name}${active ? ', removal vote in progress' : ''}${unreadLabel}`}
-              icon={
-                <Indicator
-                  color={active ? 'red.6' : undefined}
-                  size={16}
-                  label={unread(entry.seat) || undefined}
-                  disabled={!active && !unread(entry.seat)}
-                >
-                  <Avatar src={token ?? entry.avatar} size={26} radius="xl" alt="">
-                    {entry.name.slice(0, 1)}
-                  </Avatar>
-                </Indicator>
-              }
-              onClick={() => {
-                onSelect(entry.seat, 'conversation');
-              }}
-            />
-          );
-        })}
+        {channelItems({ view: conversations, started, tokens, onSelect: (id) => onSelect(id, 'conversation') })}
+        {playerItems}
       </NestedTabs.Level>
       <NestedTabs.Level label={player.name}>
         {canConverse && (

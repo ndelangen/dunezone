@@ -10,7 +10,12 @@ import {
   battleFaceSchema,
 } from './battle';
 import { biddingActionSchema, biddingStateSchema } from './bidding';
-import { conversationMessageSchema, conversationSummarySchema, conversationTextSchema } from './conversations';
+import {
+  conversationMessageSchema,
+  conversationPeerSchema,
+  conversationSummarySchema,
+  conversationTextSchema,
+} from './conversations';
 import { draftActionSchema, draftStateSchema } from './drafting';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
 import { logEntrySchema, logTabSchema } from './log';
@@ -155,15 +160,27 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
 ]);
 export type PieceAction = z.infer<typeof pieceActionSchema>;
 export const clientMessageSchema = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal('conversation-history'), requestId: id, factionId: id, peerId: id, before: count }),
+  z.strictObject({
+    type: z.literal('conversation-history'),
+    requestId: id,
+    factionId: id,
+    peerId: conversationPeerSchema,
+    before: count,
+  }),
   z.strictObject({
     type: z.literal('conversation-send'),
     requestId: id,
     factionId: id,
-    peerId: id,
+    peerId: conversationPeerSchema,
     text: conversationTextSchema,
   }),
-  z.strictObject({ type: z.literal('conversation-read'), requestId: id, factionId: id, peerId: id, through: count }),
+  z.strictObject({
+    type: z.literal('conversation-read'),
+    requestId: id,
+    factionId: id,
+    peerId: conversationPeerSchema,
+    through: count,
+  }),
   z.strictObject({
     type: z.literal('admit'),
     ticket: z.string().regex(/^[a-f0-9]{64}$/),
@@ -238,12 +255,17 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     factionId: id,
     entries: z.array(conversationSummarySchema),
   }),
-  z.object({ type: z.literal('conversation-message'), factionId: id, peerId: id, message: conversationMessageSchema }),
+  z.object({
+    type: z.literal('conversation-message'),
+    factionId: id,
+    peerId: conversationPeerSchema,
+    message: conversationMessageSchema,
+  }),
   z.object({
     type: z.literal('conversation-history'),
     requestId: id,
     factionId: id,
-    peerId: id,
+    peerId: conversationPeerSchema,
     before: count,
     entries: z.array(conversationMessageSchema),
     more: z.boolean(),
