@@ -38,7 +38,18 @@ async function publishedVariant(
   if (cached) {
     return cached;
   }
-  const object = await env.MEDIA_BUCKET.get(mediaVariantKey(name));
+  let object: R2ObjectBody | null;
+  try {
+    object = await env.MEDIA_BUCKET.get(mediaVariantKey(name));
+  } catch {
+    console.error(JSON.stringify({ event: 'media_variant_read_failed', key: name }));
+    const fallback = await staticFile(request, env);
+    if (fallback.ok || fallback.status === 304) {
+      return fallback;
+    }
+    await fallback.body?.cancel();
+    return jsonError({ status: 503, message: 'The stored variant is temporarily unavailable' });
+  }
   if (!object) {
     return null;
   }

@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 
 import type { Id, TableNames } from '../../convex/_generated/dataModel';
 import { SNAPSHOT_REBUILD_CONTRACT } from '../../convex/lib/provisioningContract';
+import { compareCodeUnits } from '../../src/shared/compareText';
 import {
   installedComponents,
   placeholderOwner,
@@ -359,18 +360,22 @@ function readLayout(input: ExportEntries, problems: string[]): Layout {
     problems.push(`the export has no ${TABLE_MAP}`);
   }
   if (unexpected.length > 0) {
-    problems.push(listed('unexpected entries', unexpected.sort()));
+    problems.push(listed('unexpected entries', unexpected.sort(compareCodeUnits)));
   }
   if (unclassifiedComponents.size > 0) {
-    problems.push(listed('components the snapshot policy does not classify', [...unclassifiedComponents].sort()));
+    problems.push(
+      listed('components the snapshot policy does not classify', [...unclassifiedComponents].sort(compareCodeUnits))
+    );
   }
   const unclassified = [...new Set([...layout.tableNumbers.keys(), ...layout.documents.keys()])]
     .filter((table) => tablePolicy(table) === null)
-    .sort();
+    .sort(compareCodeUnits);
   if (unclassified.length > 0) {
     problems.push(listed('tables the snapshot policy does not classify', unclassified));
   }
-  const unmapped = [...layout.documents.keys()].filter((table) => !layout.tableNumbers.has(table)).sort();
+  const unmapped = [...layout.documents.keys()]
+    .filter((table) => !layout.tableNumbers.has(table))
+    .sort(compareCodeUnits);
   if (unmapped.length > 0) {
     problems.push(listed(`tables missing from ${TABLE_MAP}`, unmapped));
   }
@@ -489,9 +494,11 @@ function anonymiseRows(
     }
   }
   if (unclassified.size > 0) {
-    problems.push(listed(`${table}: fields the snapshot policy does not classify`, [...unclassified].sort()));
+    problems.push(
+      listed(`${table}: fields the snapshot policy does not classify`, [...unclassified].sort(compareCodeUnits))
+    );
   }
-  for (const field of [...unprojected.keys()].sort()) {
+  for (const field of [...unprojected.keys()].sort(compareCodeUnits)) {
     problems.push(`${table}: ${unprojected.get(field)} rows whose ${field} the snapshot cannot project`);
   }
   return output;
@@ -572,7 +579,7 @@ function snapshotEntries(layout: Layout, outputs: ReadonlyMap<string, Row[]>, pl
 }
 
 function reportFor(layout: Layout, outputs: ReadonlyMap<string, Row[]>): SnapshotReport {
-  const tables = [...layout.tableNumbers.keys()].sort().map((table) => {
+  const tables = [...layout.tableNumbers.keys()].sort(compareCodeUnits).map((table) => {
     const entry = tablePolicy(table);
     const fields = Object.entries(keptPolicy(table)?.fields ?? {});
     return {
@@ -584,7 +591,7 @@ function reportFor(layout: Layout, outputs: ReadonlyMap<string, Row[]>): Snapsho
     };
   });
   const droppedComponents = [...layout.components]
-    .sort()
+    .sort(compareCodeUnits)
     .map((component) => ({ component, dropReason: componentDropReason(component)! }));
   return { tables, droppedComponents };
 }
@@ -645,7 +652,7 @@ function rowCountProblems(recorded: unknown, rows: ReadonlyMap<string, readonly 
   const unnamed = [...names].filter((name) => !nameable(name)).length;
   const differing = [...names]
     .filter(nameable)
-    .sort()
+    .sort(compareCodeUnits)
     .flatMap((table) => {
       const count = Object.hasOwn(counts, table) ? counts[table] : undefined;
       const held = rows.get(table)?.length;
@@ -673,7 +680,7 @@ function policyProblems(entries: ExportEntries): string[] {
   const placeholderTables: readonly string[] = SNAPSHOT_REBUILD_CONTRACT.placeholderOnly;
   const tables = [
     ...new Set([...entries.keys()].map((path) => TABLE_ENTRY.exec(path)?.[1]).filter((table) => table !== undefined)),
-  ].sort();
+  ].sort(compareCodeUnits);
   const dropped = tables.filter(
     (table) => tablePolicy(table) !== null && keptPolicy(table) === null && !placeholderTables.includes(table)
   );

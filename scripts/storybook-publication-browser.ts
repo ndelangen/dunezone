@@ -23,7 +23,7 @@ type RunBrowserCheckOptions = {
 function waitForProcess(process: BrowserCheckProcess, timeoutMs: number): Promise<BrowserCheckOutcome> {
   return new Promise((resolve) => {
     const timeout = setTimeout(() => resolve({ kind: 'timeout' }), timeoutMs);
-    process.exited.then((status) => {
+    void process.exited.then((status) => {
       clearTimeout(timeout);
       resolve({ kind: 'exit', status });
     });

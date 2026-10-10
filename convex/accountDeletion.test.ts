@@ -42,7 +42,8 @@ async function seedAccount(
       created_at: now,
       updated_at: now,
     });
-    return { userId, profileId };
+    const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 86_400_000 });
+    return { userId, profileId, subject: `${userId}|${sessionId}` };
   });
 }
 
@@ -117,7 +118,7 @@ describe('account deletion', () => {
     const replacement = await seedAccount(t, 'replacement');
     await seedAccount(t, 'pending', { state: 'deletion_pending' });
     await seedOwnedRows(t, source.userId, 'summary');
-    const asSource = t.withIdentity({ subject: source.userId });
+    const asSource = t.withIdentity({ subject: source.subject });
 
     await expect(asSource.query(api.accountDeletion.page, { profileSlug: 'source' })).resolves.toMatchObject({
       kind: 'active',
@@ -153,7 +154,7 @@ describe('account deletion', () => {
     const source = await seedAccount(t, 'transfer-source');
     const replacement = await seedAccount(t, 'transfer-target');
     const rows = await seedOwnedRows(t, source.userId, 'transfer');
-    const asSource = t.withIdentity({ subject: source.userId });
+    const asSource = t.withIdentity({ subject: source.subject });
 
     const first = await asSource.mutation(api.accountDeletion.confirm, { replacementUserId: replacement.userId });
     await expect(
@@ -188,7 +189,7 @@ describe('account deletion', () => {
     const source = await seedAccount(t, 'delete-source');
     const admin = await seedAccount(t, 'admin', { admin: true });
     const rows = await seedOwnedRows(t, source.userId, 'delete');
-    const asSource = t.withIdentity({ subject: source.userId });
+    const asSource = t.withIdentity({ subject: source.subject });
     await asSource.query(api.accountDeletion.page, { profileSlug: 'delete-source' });
     await t.run(async (ctx) => {
       for (let index = 0; index < 36; index += 1) {
@@ -213,7 +214,7 @@ describe('account deletion', () => {
       expect((await ctx.db.get('factions', rows.deletedFactionId))?.is_deleted).toBe(true);
     });
 
-    await t.withIdentity({ subject: admin.userId }).mutation(api.accountDeletion.restore, { operationId });
+    await t.withIdentity({ subject: admin.subject }).mutation(api.accountDeletion.restore, { operationId });
     await t.finishAllScheduledFunctions(() => vi.runAllTimers());
     await t.run(async (ctx) => {
       expect((await ctx.db.get('users', source.userId))?.account_state).toBe('active');
@@ -230,12 +231,14 @@ describe('account deletion', () => {
     const replacement = await seedAccount(t, 'repair-target');
     const admin = await seedAccount(t, 'repair-admin', { admin: true });
     await seedOwnedRows(t, source.userId, 'repair');
-    const asSource = t.withIdentity({ subject: source.userId });
+    const asSource = t.withIdentity({ subject: source.subject });
     const { operationId } = await asSource.mutation(api.accountDeletion.confirm, {
       replacementUserId: replacement.userId,
     });
     await expect(
-      t.withIdentity({ subject: replacement.userId }).mutation(api.accountDeletion.confirm, { replacementUserId: null })
+      t
+        .withIdentity({ subject: replacement.subject })
+        .mutation(api.accountDeletion.confirm, { replacementUserId: null })
     ).rejects.toThrow(/replacement owner/);
     await t.run(async (ctx) => {
       await ctx.db.patch(replacement.userId, { account_state: 'deletion_pending' });
@@ -248,7 +251,7 @@ describe('account deletion', () => {
       await ctx.db.patch(replacement.userId, { account_state: 'active' });
       await ctx.db.patch(replacement.profileId, { account_state: 'active' });
     });
-    await t.withIdentity({ subject: admin.userId }).mutation(api.accountDeletion.resume, { operationId });
+    await t.withIdentity({ subject: admin.subject }).mutation(api.accountDeletion.resume, { operationId });
     await t.finishAllScheduledFunctions(() => vi.runAllTimers());
     await t.run(async (ctx) => {
       expect((await ctx.db.get('account_deletion_operations', operationId))?.state).toBe('completed');
@@ -261,7 +264,7 @@ describe('account deletion', () => {
     const source = await seedAccount(t, 'denial-source');
     const pending = await seedAccount(t, 'denial-pending', { state: 'deletion_pending' });
     const deleted = await seedAccount(t, 'denial-deleted', { state: 'deleted' });
-    const asSource = t.withIdentity({ subject: source.userId });
+    const asSource = t.withIdentity({ subject: source.subject });
     await expect(asSource.mutation(api.accountDeletion.confirm, { replacementUserId: source.userId })).rejects.toThrow(
       /another active profile/
     );

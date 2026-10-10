@@ -1,3 +1,4 @@
+import { compareCodeUnits } from '@shared/compareText';
 import { useReducer, useState } from 'react';
 
 import { useAssetPage } from '@app/db/assets';
@@ -43,7 +44,7 @@ function CustomCardSessionGate({
   );
   const tokenIds = [
     ...new Set(state?.data.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : [])) ?? []),
-  ].sort();
+  ].sort(compareCodeUnits);
   const query = useAssetPage('card-custom', slug, { initialData: loaderData, embeddedTokenIds: tokenIds });
   const data = query.data === undefined ? loaderData : query.data;
   /* A live recovery opens the draft once, before rendering its controls. Later reads never replace local edits. */

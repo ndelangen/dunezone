@@ -179,7 +179,7 @@ phase_serve() {
   # keeps that mapping near-exact (validated on prototype/e2e-coverage-build-serve).
   echo "Building app (vite build --sourcemap --minify false)..."
   VITE_E2E_LOCAL_AUTH="$VITE_E2E_LOCAL_AUTH" VITE_CONVEX_URL="$VITE_CONVEX_URL" \
-    npx vite build --sourcemap --minify false >"$ROOT_DIR/.playwright/build.log" 2>&1 || {
+    bun run vite build --sourcemap --minify false >"$ROOT_DIR/.playwright/build.log" 2>&1 || {
       echo "vite build failed."
       tail -n 60 "$ROOT_DIR/.playwright/build.log" || true
       exit 1
@@ -257,7 +257,7 @@ phase_test() {
   else
     echo "Running Playwright E2E suite..."
   fi
-  if ! npx playwright test ${targets[@]+"${targets[@]}"}; then
+  if ! bun run playwright test ${targets[@]+"${targets[@]}"}; then
     echo "Playwright failed."
     print_app_diagnostics
     close_playwright_browsers

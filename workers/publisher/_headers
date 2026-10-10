@@ -16,3 +16,9 @@
 # Each release reads the previous manifest before retaining its browser bundles.
 /application-assets.json
   Cache-Control: no-store
+
+# Application documents cannot be embedded in another site.
+/*
+  Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; object-src 'none'
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff

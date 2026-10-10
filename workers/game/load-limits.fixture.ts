@@ -126,7 +126,7 @@ export class BoundedLoadRoom extends GameRoom {
     const stored = this.budget();
     /* A budget another activation recorded is never replaced; the room stops instead, so the controller can still read and clear it. */
     this.stopped = stored.stopped ?? (stored.configuration === configuration ? null : 'replaced-budget');
-    ctx.blockConcurrencyWhile(async () => {
+    void ctx.blockConcurrencyWhile(async () => {
       if (this.stopped || Date.now() >= limits.expiresAt) {
         await this.stopLoad(this.stopped ?? 'expiry');
       } else {

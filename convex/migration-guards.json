@@ -323,6 +323,8 @@
       "phase": "widen",
       "requires": ["faction_faction_leader_key_v1"]
     },
+    { "id": "account_connections_expire_v1", "phase": "widen", "requires": [] },
+    { "id": "auth_session_expiry_jobs_v1", "phase": "widen", "requires": [] },
     {
       "id": "play_hosted_fixture_retire_v1",
       "phase": "widen",

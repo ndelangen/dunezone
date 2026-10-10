@@ -624,7 +624,7 @@ function reduceSignInMethods(state: SignInMethodsState, event: SignInMethodsEven
 function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['account']> }) {
   const begin = useBeginAuthConnection();
   const disconnect = useDisconnectAuthMethod();
-  const { signIn } = useAuthActions();
+  const { signIn, signOut } = useAuthActions();
   const [state, dispatch] = useReducer(reduceSignInMethods, { busy: null, error: null });
   const connect = async (provider: AuthProvider) => {
     dispatch({ kind: 'started', provider });
@@ -643,6 +643,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
     dispatch({ kind: 'started', provider });
     try {
       await disconnect({ provider });
+      await signOut();
     } catch (error) {
       dispatch({
         kind: 'failed',
@@ -679,7 +680,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
             title={name}
             description={
               method.connected
-                ? 'Hold to disconnect this sign-in method. You can reconnect it later.'
+                ? 'Disconnecting signs you out on every device. Sign in again with a remaining method.'
                 : 'Authenticate with this provider to connect it. If it already has a profile, review the merge before confirming.'
             }
             input={

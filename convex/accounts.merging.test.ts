@@ -1,63 +1,13 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
-import aggregateTest from '@convex-dev/aggregate/test';
-import rateLimiterTest from '@convex-dev/rate-limiter/test';
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { api, internal } from './_generated/api';
+import { account, setup, stubAuthEnvironment, restoreAuthEnvironment } from './authAccount.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
-import schema from './schema';
 
-const modules = import.meta.glob('./**/*.ts');
-function setup() {
-  const t = convexTest(schema, modules);
-  for (const name of ['statistics', 'profileDiscovery', 'profileActivity']) {
-    aggregateTest.register(t, name);
-  }
-  rateLimiterTest.register(t);
-  return t;
-}
-async function account(
-  t: ReturnType<typeof setup>,
-  slug: string,
-  provider: 'google' | 'discord' | 'reddit',
-  admin = false
-) {
-  return t.run(async (raw) => {
-    const ctx = applicationTriggers.wrapDB(raw);
-    const userId = await ctx.db.insert('users', { name: slug, account_state: 'active', isAdmin: admin });
-    const profileId = await ctx.db.insert('profiles', {
-      user_id: userId,
-      username: slug,
-      slug,
-      avatar_url: null,
-      account_state: 'active',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-    const authId = await ctx.db.insert('authAccounts', { userId, provider, providerAccountId: slug });
-    const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 3_600_000 });
-    await ctx.db.insert('authRefreshTokens', { sessionId, expirationTime: Date.now() + 600_000 });
-    return { userId, profileId, authId, sessionId };
-  });
-}
-beforeEach(() => {
-  vi.useFakeTimers();
-  vi.stubEnv('IS_TEST', 'true');
-  vi.stubEnv('E2E_LOCAL_AUTH', 'true');
-  vi.stubEnv('CONVEX_CLOUD_URL', 'http://127.0.0.1:3210');
-  vi.stubEnv('SITE_URL', 'http://127.0.0.1:8787');
-  vi.stubEnv('AUTH_GOOGLE_ID', 'test-google');
-  vi.stubEnv('AUTH_GOOGLE_SECRET', 'test-google-secret');
-  vi.stubEnv('AUTH_DISCORD_ID', 'test-discord');
-  vi.stubEnv('AUTH_DISCORD_SECRET', 'test-discord-secret');
-});
-afterEach(() => {
-  vi.clearAllTimers();
-  vi.useRealTimers();
-  vi.unstubAllEnvs();
-});
+beforeEach(stubAuthEnvironment);
+afterEach(restoreAuthEnvironment);
 
 test('admin merges drain multiple batches, preserve overlapping memberships, credentials and old profile links, and revoke the source session', async () => {
   const t = setup();
@@ -125,7 +75,7 @@ test('admin merges drain multiple batches, preserve overlapping memberships, cre
     (await t.withIdentity({ subject: `${source.userId}|${source.sessionId}` }).query(api.profiles.session, {})).userId
   ).toBeNull();
   await admin.mutation(api.accounts.disconnect, { provider: 'discord' });
-  await expect(admin.mutation(api.accounts.disconnect, { provider: 'google' })).rejects.toThrow('Keep at least one');
+  await expect(admin.mutation(api.accounts.disconnect, { provider: 'google' })).rejects.toThrow('Not authenticated');
 });
 
 test('a failed partial transfer resumes without undoing completed writes and unlocks the kept account', async () => {
@@ -207,8 +157,9 @@ test.each(['discord', 'reddit'] as const)(
     });
     await verified.mutation(api.accounts.confirmConnection, { token: intent.token });
     await expect(verified.mutation(api.accounts.confirmConnection, { token: intent.token })).rejects.toThrow('expired');
+    expect(await t.query(api.accounts.connection, { token: intent.token })).toMatchObject({ state: 'running' });
     await t.finishAllScheduledFunctions(() => vi.runAllTimers());
-    expect(await t.query(api.accounts.connection, { token: intent.token })).toMatchObject({ state: 'completed' });
+    expect(await t.query(api.accounts.connection, { token: intent.token })).toBeNull();
   }
 );
 
@@ -428,7 +379,12 @@ test('a connected Reddit account protects the last usable method', async () => {
     ctx.db.insert('authAccounts', { userId: owner.userId, provider: 'google', providerAccountId: 'google-extra' })
   );
   await viewer.mutation(api.accounts.disconnect, { provider: 'google' });
-  expect((await viewer.query(api.profiles.settings, {})).account?.methods).toContainEqual({
+  vi.advanceTimersByTime(1);
+  const sessionId = await t.run((ctx) =>
+    ctx.db.insert('authSessions', { userId: owner.userId, expirationTime: Date.now() + 600_000 })
+  );
+  const signedIn = t.withIdentity({ subject: `${owner.userId}|${sessionId}` });
+  expect((await signedIn.query(api.profiles.settings, {})).account?.methods).toContainEqual({
     provider: 'reddit',
     connected: true,
     available: true,

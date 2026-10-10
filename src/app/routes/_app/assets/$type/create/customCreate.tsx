@@ -1,4 +1,5 @@
 import type { CustomCardTokenResolution } from '@shared/assets/schema';
+import { compareCodeUnits } from '@shared/compareText';
 import { useReducer, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
@@ -85,7 +86,7 @@ export function CustomCreatePage() {
 
   const tokenIds = [
     ...new Set(state.data.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : []))),
-  ].sort();
+  ].sort(compareCodeUnits);
   const editor = ({ tokens, error }: z.infer<typeof CustomCardTokenResolution>) => (
     <CustomCardEditor
       tokens={tokens}
