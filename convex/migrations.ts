@@ -1326,11 +1326,10 @@ export const play_hosted_fixture_retire_v1 = migrations.define({
 export const account_connections_expire_v1 = migrations.define({
   table: 'account_connections',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    if (row.state !== 'expired' && row.expires_at <= Date.now()) {
-      return { state: 'expired' as const };
-    }
-  },
+  migrateOne: (_ctx, row) =>
+    Promise.resolve(
+      row.state !== 'expired' && row.expires_at <= Date.now() ? { state: 'expired' as const } : undefined
+    ),
 });
 
 /** Existing sessions receive the same deadline cleanup as new sign-ins. */

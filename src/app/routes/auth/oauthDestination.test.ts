@@ -8,6 +8,8 @@ test.each([
   'https://evil.example/path',
   'javascript:alert(1)',
   'https://user@dune.zone/path',
+  'https://dune.zone//evil.example/',
+  '/.//evil.example/',
 ])('rejects external or credentialed destination %s', (next) => {
   expect(safeAuthDestination(next)).toBe('/');
 });

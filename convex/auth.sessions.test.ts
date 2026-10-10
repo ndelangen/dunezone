@@ -1,95 +1,12 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
-import aggregateTest from '@convex-dev/aggregate/test';
-import rateLimiterTest from '@convex-dev/rate-limiter/test';
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { api, internal } from './_generated/api';
-import { applicationTriggers } from './lib/applicationTriggers';
-import schema from './schema';
+import { account, setup, stubAuthEnvironment, restoreAuthEnvironment } from './authAccount.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
-function setup() {
-  const t = convexTest(schema, modules);
-  for (const name of ['statistics', 'profileDiscovery', 'profileActivity']) {
-    aggregateTest.register(t, name);
-  }
-  rateLimiterTest.register(t);
-  return t;
-}
-async function account(
-  t: ReturnType<typeof setup>,
-  slug: string,
-  provider: 'google' | 'discord' | 'reddit',
-  admin = false
-) {
-  return t.run(async (raw) => {
-    const ctx = applicationTriggers.wrapDB(raw);
-    const userId = await ctx.db.insert('users', { name: slug, account_state: 'active', isAdmin: admin });
-    const profileId = await ctx.db.insert('profiles', {
-      user_id: userId,
-      username: slug,
-      slug,
-      avatar_url: 'https://example.com/avatar.png',
-      account_state: 'active',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-    const authId = await ctx.db.insert('authAccounts', { userId, provider, providerAccountId: slug });
-    const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 3_600_000 });
-    await ctx.db.insert('authRefreshTokens', { sessionId, expirationTime: Date.now() + 600_000 });
-    return { userId, profileId, authId, sessionId };
-  });
-}
-beforeEach(() => {
-  vi.useFakeTimers();
-  vi.stubEnv('IS_TEST', 'true');
-  vi.stubEnv('E2E_LOCAL_AUTH', 'true');
-  vi.stubEnv('CONVEX_CLOUD_URL', 'http://127.0.0.1:3210');
-  vi.stubEnv('SITE_URL', 'http://127.0.0.1:8787');
-  vi.stubEnv('AUTH_GOOGLE_ID', 'test-google');
-  vi.stubEnv('AUTH_GOOGLE_SECRET', 'test-google-secret');
-  vi.stubEnv('AUTH_DISCORD_ID', 'test-discord');
-  vi.stubEnv('AUTH_DISCORD_SECRET', 'test-discord-secret');
-});
-afterEach(() => {
-  vi.clearAllTimers();
-  vi.useRealTimers();
-  vi.unstubAllEnvs();
-});
-
-test.each(['absolute', 'idle'] as const)(
-  '%s expiry rejects writes immediately and removes private reads after cleanup',
-  async (expiry) => {
-    const t = setup();
-    const user = await account(t, 'expired-session', 'google');
-    const caller = t.withIdentity({ subject: `${user.userId}|${user.sessionId}` });
-    await t.run(async (ctx) => {
-      if (expiry === 'absolute') {
-        await ctx.db.patch(user.sessionId, { expirationTime: Date.now() - 1 });
-      } else {
-        const refresh = await ctx.db
-          .query('authRefreshTokens')
-          .withIndex('sessionId', (q) => q.eq('sessionId', user.sessionId))
-          .first();
-        await ctx.db.patch(refresh!._id, { expirationTime: Date.now() - 1 });
-      }
-    });
-    await expect(
-      caller.mutation(api.profiles.updateCurrent, {
-        username: 'Rejected',
-        avatar_url: 'https://example.com/avatar.png',
-      })
-    ).rejects.toThrow('Not authenticated');
-    await expect(caller.mutation(api.accountDeletion.confirm, { replacementUserId: null })).rejects.toThrow(
-      'Not authenticated'
-    );
-    await t.mutation(internal.authSessions.expireOne, { sessionId: user.sessionId });
-    expect((await caller.query(api.profiles.settings, {})).account).toBeNull();
-    expect((await t.run((ctx) => ctx.db.get(user.profileId)))?.username).toBe('expired-session');
-  }
-);
+beforeEach(stubAuthEnvironment);
+afterEach(restoreAuthEnvironment);
 
 test('sign-out revokes the session for account deletion as well as ordinary writes', async () => {
   const t = setup();

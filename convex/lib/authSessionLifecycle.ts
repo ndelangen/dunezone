@@ -38,9 +38,7 @@ export async function removeSessionTokens(ctx: MutationCtx, sessionId: Id<'authS
     .query('authRefreshTokens')
     .withIndex('sessionId', (q) => q.eq('sessionId', sessionId))
     .take(TOKEN_BATCH);
-  for (const token of tokens) {
-    await ctx.db.delete(token._id);
-  }
+  await Promise.all(tokens.map((token) => ctx.db.delete(token._id)));
   if (tokens.length === TOKEN_BATCH) {
     await ctx.scheduler.runAfter(0, internal.authSessions.removeTokens, { sessionId });
   }
@@ -67,9 +65,7 @@ export async function removeRevokedSessions(ctx: MutationCtx, userId: Id<'users'
     .query('authSessions')
     .withIndex('userId', (q) => q.eq('userId', userId).lte('_creationTime', through))
     .take(SESSION_BATCH);
-  for (const session of sessions) {
-    await removeSession(ctx, session._id);
-  }
+  await Promise.all(sessions.map((session) => removeSession(ctx, session._id)));
   if (sessions.length === SESSION_BATCH) {
     await ctx.scheduler.runAfter(0, internal.authSessions.removeRevoked, { userId, through });
   }
