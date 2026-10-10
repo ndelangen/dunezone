@@ -36,6 +36,7 @@ import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, DraftingReadiness } from './Drafting';
 import { DetermineWinner, ResultDecisionBar } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
+import { HandCountsScene } from './HandCounts';
 import { LogEntries } from './Log';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
@@ -804,6 +805,7 @@ function ConnectedTable({
                   <>
                     <BattleScene client={client} table={table} />
                     {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
+                    {inPlay && <HandCountsScene table={table} />}
                   </>
                 )}
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}

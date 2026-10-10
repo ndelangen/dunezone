@@ -205,3 +205,79 @@ test('a game stored before the supported rename reads its battle faces and plan 
   expect(stored.battleState!.plans[0]!.faces).toEqual([supported]);
   expect(JSON.stringify(stored)).not.toMatch(/fundedStrength|fundingCost/);
 });
+
+test('every viewer, spectators included, sees how many Treachery cards each seated faction holds, and nothing else of a hand', () => {
+  const card = (id: string, type: string) => ({
+    id,
+    label: id,
+    owner: 'atreides',
+    color: '#000',
+    accent: '#fff',
+    kind: 'card' as const,
+    stackKey: id,
+    items: [
+      {
+        id: `${id}-item`,
+        faceUp: false,
+        artwork: { front: 'https://dune.zone/f.png', back: 'https://dune.zone/b.png', name: id, type },
+      },
+    ],
+    position: [0, 0, 0] as [number, number, number],
+    orientation: 0,
+    zoneId: null,
+    locked: false,
+  });
+  const parsed = storedSnapshotSchema.parse({
+    ...initialSnapshot(),
+    factionInventories: { atreides: [card('lasgun', 'card-treachery'), card('traitor', 'card-traitor')] },
+  });
+  const stored = {
+    ...parsed,
+    roster: {
+      seatCount: 2,
+      seats: [
+        { position: 0, faction: { id: 'atreides', name: 'Atreides' } },
+        { position: 1, faction: { id: 'fremen', name: 'Fremen' } },
+      ],
+    },
+  } as unknown as typeof parsed;
+  const projection = new RoomProjection('secret');
+
+  expect(projection.snapshot(stored).handCounts).toEqual({ atreides: 1, fremen: 0 });
+  expect(projection.snapshot(stored, 'fremen').handCounts).toEqual({ atreides: 1, fremen: 0 });
+  expect(projection.snapshot(stored, 'fremen').hand).toEqual([]);
+  expect(projection.snapshot(parsed).handCounts).toBeUndefined();
+
+  /* A card committed to a secret battle plan still counts, so editing the plan never shows opponents a change before the reveal. */
+  const plan = (pieces: ReturnType<typeof card>[]) => ({
+    mode: 'max' as const,
+    troops: [],
+    spice: 0,
+    adjustment: 0,
+    leaderId: null,
+    cardIds: pieces.map((piece) => piece.id),
+    strength: 0,
+    pieces,
+    faces: [],
+  });
+  const battle = (stage: 'preparing' | 'revealed') =>
+    ({
+      ...stored,
+      factionInventories: { atreides: [card('traitor', 'card-traitor')] },
+      battleState: {
+        id: 'battle',
+        anchor: [0, 0, 0],
+        territory: 'Arrakeen',
+        stage,
+        sides: [
+          { factionId: 'atreides', ready: false, choice: null },
+          { factionId: 'fremen', ready: false, choice: null },
+        ],
+        deadline: null,
+        plans: [plan([card('lasgun', 'card-treachery')]), plan([])],
+      },
+    }) as unknown as typeof parsed;
+
+  expect(projection.snapshot(battle('preparing'), 'fremen').handCounts).toEqual({ atreides: 1, fremen: 0 });
+  expect(projection.snapshot(battle('revealed'), 'fremen').handCounts).toEqual({ atreides: 0, fremen: 0 });
+});

@@ -86,6 +86,8 @@ export const gameSnapshotSchema = z.object({
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
+  /* How many Treachery cards each seated faction holds, by faction id: public, as the rules make the count of a hand public. */
+  handCounts: z.record(z.string(), count).optional(),
   /* The piece the viewer's faction is peeking at, faces showing; no other viewer's frame carries it. */
   peek: peekSchema.nullable().optional(),
   factionArtwork: factionArtworkSchema.optional(),
@@ -353,6 +355,7 @@ export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewe
     viewerSeat,
     viewerFaction: rosterSeat(snapshot.roster, viewerSeat)?.faction?.id ?? null,
     factionNames: rosterFactionNames(snapshot.roster),
+    ...(snapshot.handCounts ? { handCounts: snapshot.handCounts } : {}),
     selectedPieceId: null,
     draftMove: null,
   };

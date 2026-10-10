@@ -8,6 +8,7 @@ import {
   storedBattlePlanSchema,
   storedBattleResultSchema,
 } from '../../src/shared/play/battle';
+import { treacheryHandCounts } from '../../src/shared/play/handCounts';
 import { storedControlsSchema } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { DraftMove, StoredPiece, TableItem, TablePiece } from '../../src/shared/play/model';
@@ -318,6 +319,14 @@ export class RoomProjection {
               ),
             }
           : {}),
+        ...(roster
+          ? {
+              handCounts: treacheryHandCounts(
+                heldCards(snapshot),
+                roster.seats.flatMap(({ faction }) => (faction ? [faction.id] : []))
+              ),
+            }
+          : {}),
         ...(factionId ? { peek: this.peek(snapshot, factionId) } : {}),
         ...(snapshot.setup ? { setup: snapshot.setup } : {}),
         ...(snapshot.setup
@@ -367,6 +376,25 @@ export class RoomProjection {
     }
     return projected;
   }
+}
+
+/**
+ * Every faction's hand as its count must read: a card committed to a battle plan stays in the count until the reveal puts it on the table.
+ * So editing a secret plan never changes what opponents see (#2021).
+ */
+function heldCards(snapshot: StoredSnapshot): StoredSnapshot['factionInventories'] {
+  const battle = snapshot.battleState;
+  if (!battle || battle.stage === 'revealed') {
+    return snapshot.factionInventories;
+  }
+  const held = { ...snapshot.factionInventories };
+  battle.sides.forEach((side, index) => {
+    const pieces = battle.plans[index]?.pieces ?? [];
+    if (side && pieces.length) {
+      held[side.factionId] = [...(held[side.factionId] ?? []), ...pieces];
+    }
+  });
+  return held;
 }
 
 function publicActor({ seat, name }: { seat: string; name: string }) {
