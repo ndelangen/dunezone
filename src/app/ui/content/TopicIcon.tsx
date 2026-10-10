@@ -74,6 +74,8 @@ const TOPIC_ICON_DEFINITIONS = {
   /* The glossary's topics that no editor had named yet: the turn's phases, the map, and the decks. */
   turn: { kind: 'mask', src: '/vector/icon/turn.svg' },
   board: { kind: 'mask', src: '/vector/icon/landscape.svg' },
+  /* The whole table's conversation in Play: the planet everyone at the table plays on. */
+  planet: { kind: 'mask', src: '/vector/generic/ringworld.svg' },
   cards: { kind: 'mask', src: '/vector/icon/treachery.svg' },
   deals: { kind: 'component', component: Handshake },
 } as const satisfies Record<string, { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }>;

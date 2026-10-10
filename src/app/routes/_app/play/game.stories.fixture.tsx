@@ -246,3 +246,24 @@ export const conversationMessages = () =>
     text: index === 54 ? 'Shall we keep the southern route open?' : `Earlier plan ${index + 1}`,
     savedAt: 1_800_000_000_000 + index * 60_000,
   }));
+
+/* Table talk from several factions, each message by the player in that faction's seat. */
+export const tableMessages = () => {
+  const snapshot = playingSnapshot();
+  const seats = snapshot.roster!.seats;
+  const lines = [
+    [0, 'Who is bidding on this one?'],
+    [2, 'Not me, I am saving for shipping.'],
+    [3, 'I will take it for 3 if nobody else wants it.'],
+    [0, 'Fine by me. Storm moves next, mind Imperial Basin.'],
+    [4, 'Thanks for the warning.'],
+  ] as const;
+  return lines.map(([seat, text], index) => ({
+    sequence: index + 1,
+    requestId: `table-${index}`,
+    senderFactionId: seats[seat]!.faction!.id,
+    author: snapshot.controls?.players.find((player) => player.seat === seats[seat]!.id)?.name ?? `Player ${seat + 1}`,
+    text,
+    savedAt: 1_800_000_000_000 + index * 60_000,
+  }));
+};

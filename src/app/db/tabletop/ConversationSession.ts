@@ -1,10 +1,10 @@
-import { conversationsAvailable, conversationTextSchema } from '@shared/play/conversations';
+import { conversationMembers, conversationsAvailable, conversationTextSchema } from '@shared/play/conversations';
 import type { ConversationMessage, ConversationSummary } from '@shared/play/conversations';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { rosterSeat } from '@shared/play/schema';
 
 type Request = Extract<ClientMessage, { type: 'conversation-send' | 'conversation-history' | 'conversation-read' }>;
-type Context = { userId: string; factionId: string; peers: { id: string; name: string }[] };
+type Context = { userId: string; factionId: string; factionName: string; peers: { id: string; name: string }[] };
 type Delivery = { state: 'unsent' } | { state: 'sent'; at: number } | { state: 'failed'; error: string };
 type Load =
   | { state: 'idle' }
@@ -62,6 +62,7 @@ export class ConversationSession {
     this.context = {
       userId: viewer.userId,
       factionId,
+      factionName: factionName(snapshot, factionId),
       peers: otherFactions(snapshot, factionId),
     };
     this.online = true;
@@ -78,7 +79,12 @@ export class ConversationSession {
     if (!factionId) {
       return;
     }
-    this.context = { userId: viewer.userId, factionId, peers: otherFactions(snapshot, factionId) };
+    this.context = {
+      userId: viewer.userId,
+      factionId,
+      factionName: factionName(snapshot, factionId),
+      peers: otherFactions(snapshot, factionId),
+    };
     this.pending = pending
       .filter((request) => request.factionId === factionId)
       .map((request) => ({ request, delivery: { state: 'unsent' } }));
@@ -232,7 +238,7 @@ export class ConversationSession {
     if (!parsed.success) {
       return false;
     }
-    if (!this.context || !this.context.peers.some((peer) => peer.id === peerId)) {
+    if (!this.context || !this.reaches(peerId)) {
       return false;
     }
     this.pending = [
@@ -252,6 +258,12 @@ export class ConversationSession {
     this.changed();
     return true;
   };
+
+  /** Whether this faction may write to `peerId`: another seated faction, or the table. */
+  reaches(peerId: string) {
+    const { factionId, peers } = this.context ?? { factionId: '', peers: [] };
+    return Boolean(conversationMembers(factionId, peerId, [factionId, ...peers.map((peer) => peer.id)]));
+  }
 
   retry = (requestId: string) => {
     this.pending = this.pending.map((entry): Pending =>
@@ -349,4 +361,8 @@ function otherFactions(snapshot: GameSnapshot, factionId: string) {
   return snapshot.roster!.seats.flatMap((seat) =>
     seat.faction && seat.faction.id !== factionId ? [seat.faction] : []
   );
+}
+
+function factionName(snapshot: GameSnapshot, factionId: string) {
+  return snapshot.roster!.seats.find((seat) => seat.faction?.id === factionId)?.faction?.name ?? factionId;
 }

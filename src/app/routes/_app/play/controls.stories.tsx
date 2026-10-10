@@ -6,6 +6,7 @@ import { openPanel, openPlayer } from './controls.stories.fixture';
 import {
   AUDIT_LOG,
   conversationMessages,
+  tableMessages,
   GAME_LOG,
   gameMeta,
   install,
@@ -257,6 +258,16 @@ export const PlayerConversation = meta.story({
   play: async ({ canvasElement }) => {
     const page = await openPlayer(canvasElement, 'Twaffle', 'Conversation');
     await expect(page.findByText('Shall we keep the southern route open?', {}, WAIT)).resolves.toBeVisible();
+  },
+});
+
+/** The whole table talking together, beside the one-to-one conversations. */
+export const TableConversation = meta.story({
+  globals: { motion: 'reduce' },
+  beforeEach: install(() => productTransport('seat-2', playingSnapshot(), { conversationMessages: tableMessages() })),
+  play: async ({ canvasElement }) => {
+    const page = await openPlayer(canvasElement, 'Table', 'Conversation');
+    await expect(page.findByText('Who is bidding on this one?', {}, WAIT)).resolves.toBeVisible();
   },
 });
 

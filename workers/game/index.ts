@@ -19,6 +19,7 @@ import {
   provisionPlaceholderId,
 } from '../../src/shared/play/admission';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
+import { conversationPeerFor } from '../../src/shared/play/conversations';
 import {
   PLAY_DIRECTORY_RETRY_CEILING_MS,
   PLAY_DIRECTORY_RETRY_MS,
@@ -1367,9 +1368,17 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.sendConversationReads(this.session.markConversationRead(viewer, request));
     } else {
       const saved = this.session.sendConversation(viewer, request);
-      this.publishConversationMessage(request, saved.message);
       if (saved.inserted) {
+        this.publishConversationMessage(request, saved.message);
         this.deliverDirectorySoon();
+      } else {
+        /* A retried request was already delivered to every member; only the retrying connection needs its confirmation. */
+        this.send(socket, {
+          type: 'conversation-message',
+          factionId: request.factionId,
+          peerId: request.peerId,
+          message: saved.message,
+        });
       }
     }
   }
@@ -1387,17 +1396,18 @@ export class GameRoom extends DurableObject<GameEnv> {
     message: Extract<ServerMessage, { type: 'conversation-message' }>['message']
   ) {
     const faction = request.factionId;
-    /* Only current endpoint owners receive the saved message, including the sender's other connections. */
+    const members = this.session.conversationMembers(request);
+    /* Only current members receive the saved message, including the sender's other connections. */
     for (const [peer, identity] of this.connections) {
       if (!identity.viewer || !this.authorized(peer)) {
         continue;
       }
       const own = this.session.conversationFaction(identity.viewer);
-      if (own === faction || own === request.peerId) {
+      if (own && members.includes(own)) {
         this.send(peer, {
           type: 'conversation-message',
           factionId: own,
-          peerId: own === faction ? request.peerId : faction,
+          peerId: conversationPeerFor(own, faction, request.peerId),
           message,
         });
         this.sendConversations(peer, identity.viewer);

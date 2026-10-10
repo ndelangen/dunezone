@@ -55,6 +55,37 @@ describe('Faction conversations in the game database', () => {
   const send = (player, factionId, peerId, text = 'Private plans', requestId) =>
     request(player, { type: 'conversation-send', factionId, peerId, text, requestId });
 
+  it('delivers table talk to every seated faction and never to an observer', async () => {
+    const { a, b, aId, bId } = await setup();
+    const observer = await admit('observer');
+    const offset = b.messages.length;
+    const sent = await send(a, aId, '@table', 'Who is bidding?');
+    expect(sent).toMatchObject({ type: 'conversation-message', peerId: '@table' });
+    const delivered = await eventually(
+      () => b.messages.slice(offset).find((entry) => entry.type === 'conversation-message'),
+      'table message'
+    );
+    expect(delivered).toMatchObject({ factionId: bId, peerId: '@table', message: { text: 'Who is bidding?' } });
+    /* A retry is confirmed to its sender only; the other members already have the message. */
+    const retried = await send(a, aId, '@table', 'Who is bidding?', sent.message.requestId);
+    expect(retried.message).toEqual(sent.message);
+    /* A later message reaches B after anything the retry would have sent, so B's frames are complete once it arrives. */
+    await send(a, aId, '@table', 'Then I bid 2.');
+    const texts = () =>
+      b.messages
+        .slice(offset)
+        .filter((entry) => entry.type === 'conversation-message')
+        .map((entry) => entry.message.text);
+    await eventually(() => texts().includes('Then I bid 2.'), 'later table message');
+    expect(texts()).toEqual(['Who is bidding?', 'Then I bid 2.']);
+    expect((await page(b, bId, '@table')).entries.map((entry) => entry.text)).toEqual([
+      'Who is bidding?',
+      'Then I bid 2.',
+    ]);
+    expect(observer.messages.filter((entry) => entry.type.startsWith('conversation'))).toEqual([]);
+    expect((await page(observer, aId, '@table')).type).toBe('rejected');
+  });
+
   it('opens at setup, saves once, retains every page through visits and cold restore, and stays out of public deliveries', async () => {
     const drafting = await admit('a');
     expect((await send(drafting, 'atreides', 'harkonnen')).type).toBe('rejected');

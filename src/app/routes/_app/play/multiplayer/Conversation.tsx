@@ -1,4 +1,5 @@
 import { Badge, Button, Group, Select, Stack, Text, Textarea, VisuallyHidden } from '@mantine/core';
+import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -43,7 +44,13 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
         >
           <HistoryStatus page={page} load={(before) => client.conversations.load({ peerId, before })} />
           {entries.map((message) => (
-            <SavedMessage key={message.sequence} message={message} factionId={view.context?.factionId} />
+            <SavedMessage
+              key={message.sequence}
+              message={message}
+              factionId={view.context?.factionId}
+              /* Every faction writes at the table, so each message there also names its writer's faction. */
+              faction={peerId === TABLE_CONVERSATION ? senderName(view.context, message.senderFactionId) : undefined}
+            />
           ))}
           <div ref={newest} style={{ minHeight: 1 }} aria-hidden />
           {pending.map((entry) => (
@@ -60,7 +67,7 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
 export function OfflineConversations({ client }: Readonly<{ client: TableSession }>) {
   const { conversations: view } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const [selected, setSelected] = useState<string | null>(null);
-  const peers = view.context?.peers ?? [];
+  const peers = view.context ? [...view.context.peers, { id: TABLE_CONVERSATION, name: 'Table' }] : [];
   const peerId = peers.find((peer) => peer.id === selected)?.id ?? peers[0]?.id;
   if (!peerId) {
     return null;
@@ -68,7 +75,7 @@ export function OfflineConversations({ client }: Readonly<{ client: TableSession
   return (
     <Stack gap="sm" w="min(36rem, 90vw)" h="70vh" style={{ overflow: 'hidden' }}>
       <Select
-        label="Faction conversation"
+        label="Conversation"
         value={peerId}
         onChange={setSelected}
         data={peers.map((peer) => ({ value: peer.id, label: peer.name }))}
@@ -168,10 +175,21 @@ function useArrivalAnnouncement(
   return announcement;
 }
 
-function SavedMessage({ message, factionId }: Readonly<{ message: ConversationMessage; factionId?: string }>) {
+function senderName(context: ConversationView['context'], factionId: string) {
+  if (context?.factionId === factionId) {
+    return context.factionName;
+  }
+  return context?.peers.find((peer) => peer.id === factionId)?.name;
+}
+
+function SavedMessage({
+  message,
+  factionId,
+  faction,
+}: Readonly<{ message: ConversationMessage; factionId?: string; faction?: string }>) {
   return (
     <Stack gap="xs">
-      <SavedMessageHeader message={message} />
+      <SavedMessageHeader message={message} faction={faction} />
       <Text size="sm" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
         {message.text}
       </Text>
@@ -275,11 +293,17 @@ function observeVisible(target: HTMLElement, onVisible: () => void) {
   };
 }
 
-function SavedMessageHeader({ message }: Readonly<{ message: ConversationMessage }>) {
+function SavedMessageHeader({ message, faction }: Readonly<{ message: ConversationMessage; faction?: string }>) {
   return (
     <Group gap="sm" justify="space-between">
       <Text size="sm" fw={700}>
         {message.author}
+        {faction ? (
+          <Text span size="sm" c="dimmed" fw={400}>
+            {' · '}
+            {faction}
+          </Text>
+        ) : null}
       </Text>
       <MessageTime savedAt={message.savedAt} />
     </Group>
