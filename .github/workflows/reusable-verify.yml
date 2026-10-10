@@ -192,6 +192,10 @@ jobs:
       # which Codecov merges.
       matrix:
         shard: [play-table, play-flows, components, pages]
+    permissions:
+      contents: read
+      # The story shard prior-pass step lists and downloads the records of earlier passes.
+      actions: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -201,15 +205,27 @@ jobs:
             /*
             !/media/image/
           sparse-checkout-cone-mode: false
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/generated-images
-      - uses: ./.github/actions/playwright-chromium
+      # Skips the checks below when an earlier run passed the story shard on the same inputs (scripts/lib/ci-job-inputs.ts).
+      - name: Reuse an earlier story shard pass on the same inputs
+        id: prior
+        uses: ./.github/actions/prior-pass
+        with:
+          job: storybook
+          record: storybook-${{ matrix.shard }}
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/setup
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/generated-images
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/playwright-chromium
         with:
           # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
           with-deps: "false"
       - name: Verify generated images structurally
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run verify:images
       - name: Run the ${{ matrix.shard }} story shard with coverage
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run storybook:test:shard ${{ matrix.shard }} --coverage.enabled=true --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-storybook.junit.xml
       - name: Retain Storybook failure evidence
         if: ${{ failure() }}
@@ -240,6 +256,10 @@ jobs:
           flags: storybook
           disable_search: true
           fail_ci_if_error: false
+      - name: Record this story shard pass for runs on the same inputs
+        uses: ./.github/actions/record-pass
+        with:
+          files: coverage/storybook/lcov.info
 
   # The static gates share one job: each of the workflow lint, the Convex skip guard and the static
   # narrow check ran 12 to 14 s on a runner of its own after 5 to 12 s of setup (#1588), and a slot
@@ -459,23 +479,41 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only }}
+    permissions:
+      contents: read
+      # The publisher prior-pass step lists and downloads the records of earlier passes.
+      actions: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/generated-images
+      # Skips the checks below when an earlier run passed the publisher on the same inputs (scripts/lib/ci-job-inputs.ts).
+      - name: Reuse an earlier publisher pass on the same inputs
+        id: prior
+        uses: ./.github/actions/prior-pass
+        with:
+          job: publisher_release
+          record: publisher_release
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/setup
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/generated-images
         with:
           regenerate-vectors: "true"
       - name: Verify generated images structurally
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run verify:images
       - name: Verify generated vectors structurally
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run verify:vectors
       - name: Log generated output digest
+        if: steps.prior.outputs.reuse != 'true'
         run: find public/m public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
       - name: Generate OBJ pieces
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run generate:objs
       - name: Test publisher and delivery
+        if: steps.prior.outputs.reuse != 'true'
         # The src/shared sources join the denominator, extension-scoped as coverage-denominator.ts scopes them, because the root test job no longer runs these files (#1588) and they are the only tests that reach some of those lines.
         run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**/*.ts' '--coverage.include=src/shared/**/*.ts' '--coverage.include=src/shared/**/*.tsx' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-publisher.junit.xml
       - name: Upload publisher coverage to Codecov
@@ -497,27 +535,41 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Typecheck publisher
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run publisher:typecheck
       - name: Build, verify manifest, and dry-run unified Worker release
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run publisher:release:verify
         env:
           VITE_CONVEX_URL: https://exuberant-finch-263.eu-west-1.convex.cloud
-      - uses: ./.github/actions/playwright-chromium
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/playwright-chromium
         with:
           # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
           with-deps: "false"
       - name: Exercise narrow snapshot contract in Chromium
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run workers/publisher/capture-contract-regression.ts
       - name: Verify public application runtime
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run publisher:application-runtime:verify
 
       - name: Check Worker startup
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run publisher:startup
+      - name: Record this publisher pass for runs on the same inputs
+        uses: ./.github/actions/record-pass
+        with:
+          files: coverage/lcov.info
 
   game_release:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only }}
+    permissions:
+      contents: read
+      # The game Worker prior-pass step lists and downloads the records of earlier passes.
+      actions: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -527,12 +579,23 @@ jobs:
             /*
             !/media/image/
           sparse-checkout-cone-mode: false
-      - uses: ./.github/actions/setup
+      # Skips the checks below when an earlier run passed the game Worker on the same inputs (scripts/lib/ci-job-inputs.ts).
+      - name: Reuse an earlier game Worker pass on the same inputs
+        id: prior
+        uses: ./.github/actions/prior-pass
+        with:
+          job: game_release
+          record: game_release
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/setup
       - name: Check generated game Worker types
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run game:types:check
       - name: Typecheck game Worker
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run game:typecheck
       - name: Test game Worker
+        if: steps.prior.outputs.reuse != 'true'
         # The root test job no longer runs these files (#1588), so the coverage they give workers/game, and the src/shared lines only they reach, is collected here.
         run: bun run game:test --coverage.enabled=true '--coverage.include=workers/game/**/*.ts' '--coverage.include=src/shared/**/*.ts' '--coverage.include=src/shared/**/*.tsx' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-game.junit.xml
       - name: Upload game coverage to Codecov
@@ -554,17 +617,23 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Dry-run private game Worker
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run game:dry-run
       - name: Check game Worker startup
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run game:startup
       - name: Retain game test evidence
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.prior.outputs.reuse != 'true' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: game-test-evidence-${{ github.run_id }}
           path: test-results/vitest-game.junit.xml
           if-no-files-found: ignore
           retention-days: 7
+      - name: Record this game Worker pass for runs on the same inputs
+        uses: ./.github/actions/record-pass
+        with:
+          files: coverage/lcov.info
 
   # Everything else that drives Chromium, folded into one job so the Playwright install and the
   # setup are paid once (#1925): the authoring tool's own end-to-end tests, the script tests that
@@ -625,6 +694,10 @@ jobs:
       # job refuses a spec that no shard lists or two do.
       matrix:
         shard: [editor, factions, rulebooks]
+    permissions:
+      contents: read
+      # The e2e shard prior-pass step lists and downloads the records of earlier passes.
+      actions: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -634,22 +707,33 @@ jobs:
             /*
             !/media/image/
           sparse-checkout-cone-mode: false
+      # Skips the checks below when an earlier run passed the e2e shard on the same inputs (scripts/lib/ci-job-inputs.ts).
+      - name: Reuse an earlier e2e shard pass on the same inputs
+        id: prior
+        uses: ./.github/actions/prior-pass
+        with:
+          job: e2e_docker
+          record: e2e_docker-${{ matrix.shard }}
       - name: Pre-pull Convex images in background
+        if: steps.prior.outputs.reuse != 'true'
         # Overlaps the pull with dependency/browser install; the wait step below
         # serializes before e2e-local.sh runs compose.
         run: |
           (docker compose -f docker-compose.convex-local.yml pull -q > /tmp/convex-pull.log 2>&1 || true; touch /tmp/convex-pull.done) &
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/playwright-chromium
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/setup
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/playwright-chromium
         with:
           # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
           with-deps: "false"
-      - uses: ./.github/actions/generated-images
-      - name: Verify generated images structurally
-        run: bun run verify:images
-      - name: Verify generated vectors structurally
-        run: bun run verify:vectors
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/generated-images
+      - name: Verify generated images and vectors structurally
+        if: steps.prior.outputs.reuse != 'true'
+        run: bun run verify:images && bun run verify:vectors
       - name: Create local E2E env file
+        if: steps.prior.outputs.reuse != 'true'
         run: |
           cat > "$RUNNER_TEMP/.env.e2e.local" <<'EOF'
           CONVEX_BACKEND_PORT=3210
@@ -672,6 +756,7 @@ jobs:
           PLAYWRIGHT_USER_PASSWORD=ci-test-password
           EOF
       - name: Wait for Convex image pre-pull
+        if: steps.prior.outputs.reuse != 'true'
         # Non-fatal on timeout or pull failure: compose up pulls whatever is missing.
         run: timeout 120 bash -c 'until [ -f /tmp/convex-pull.done ]; do sleep 1; done' || true
       # The phases below are one flow (scripts/e2e-local.sh), split into steps
@@ -681,14 +766,17 @@ jobs:
       # scripts/e2e-serve-dist.mjs) keeps running into the Playwright step,
       # same as the image pre-pull above.
       - name: Boot Convex backend
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run e2e:local up
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
       - name: Provision Convex deployment
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run e2e:local provision
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
       - name: Verify committed Convex bindings match the provision push
+        if: steps.prior.outputs.reuse != 'true'
         # The provision push regenerates convex/_generated with the pinned CLI against the
         # docker backend, so a PR that changed convex/ without committing its bindings goes
         # red here instead of refusing the production deploy at preflight: nine deploys were
@@ -710,10 +798,12 @@ jobs:
           fi
           echo "convex/_generated matches the provision push."
       - name: Start app server
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run e2e:local serve
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
       - name: Run Playwright E2E
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run e2e:local test
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
@@ -722,7 +812,7 @@ jobs:
           E2E_SHARD: ${{ matrix.shard }}
       - name: Tear down E2E stack
         # Replaces the script's `trap cleanup EXIT`, which cannot span steps.
-        if: always()
+        if: ${{ always() && steps.prior.outputs.reuse != 'true' }}
         run: bun run e2e:local down
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
@@ -745,7 +835,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload E2E artifacts
-        if: always()
+        if: ${{ always() && steps.prior.outputs.reuse != 'true' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: e2e-artifacts-${{ github.run_id }}-shard-${{ matrix.shard }}
@@ -758,3 +848,7 @@ jobs:
             ${{ github.workspace }}/.playwright/app.log
             ${{ github.workspace }}/.playwright/build.log
             ${{ github.workspace }}/.playwright/*.zip
+      - name: Record this e2e shard pass for runs on the same inputs
+        uses: ./.github/actions/record-pass
+        with:
+          files: coverage/e2e/lcov.info

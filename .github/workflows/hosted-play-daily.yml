@@ -30,6 +30,10 @@ concurrency:
 jobs:
   verify:
     uses: ./.github/workflows/reusable-verify.yml
+    # reusable-verify.yml asks for it, and a called job gets no permission its caller withholds.
+    permissions:
+      contents: read
+      actions: read
     with:
       hosted_only: true
 

@@ -1,0 +1,51 @@
+name: Prior pass
+description: >-
+  Computes the job's input key (scripts/lib/ci-job-inputs.ts) and, on a pull request, restores what an earlier
+  run of this repository recorded when it passed the job with the same key. The job skips its own work when
+  `reuse` is true and still uploads the restored coverage, so Codecov receives every flag on every run.
+
+inputs:
+  job:
+    description: The job's id in scripts/lib/ci-job-inputs.ts
+    required: true
+  record:
+    description: The record's name without the key, unique per job and shard
+    required: true
+
+outputs:
+  key:
+    description: The job's input key at HEAD
+    value: ${{ steps.key.outputs.key }}
+  reuse:
+    description: "true when an earlier pass was restored and the job's own work can be skipped"
+    value: ${{ steps.lookup.outputs.reuse }}
+
+runs:
+  using: composite
+  steps:
+    # The key script imports nothing from node_modules, so Bun alone is enough and a reused job never installs dependencies.
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      with:
+        bun-version-file: package.json
+    - name: Compute the input key
+      id: key
+      shell: bash
+      env:
+        JOB: ${{ inputs.job }}
+        RECORD: ${{ inputs.record }}
+      run: |
+        key="$(git ls-tree -r -z HEAD | bun scripts/ci-job-key.ts "$JOB")"
+        echo "key=$key" >> "$GITHUB_OUTPUT"
+        echo "name=ci-pass-$RECORD-$key" >> "$GITHUB_OUTPUT"
+        # record-pass uploads under this name at the end of the job.
+        echo "CI_PASS_NAME=ci-pass-$RECORD-$key" >> "$GITHUB_ENV"
+    - name: Look for an earlier pass
+      id: lookup
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        EVENT: ${{ github.event_name }}
+        REPO: ${{ github.repository }}
+        NAME: ${{ steps.key.outputs.name }}
+      run: bash "$GITHUB_ACTION_PATH/lookup.sh"

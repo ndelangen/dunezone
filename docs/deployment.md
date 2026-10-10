@@ -262,6 +262,16 @@ dispatch through the same action, which skips them when `main`'s tree already ha
 from the last daily run that checked this commit or from the pull request that merged as it when
 that merge was up to date and its diff reached the closure. A red daily run opens or extends one
 issue labelled `hosted-play-daily`.
+Four other verify jobs (`game_release`, `publisher_release`, each story shard and each e2e shard)
+reuse an earlier pass instead of skipping on a diff. Each one hashes the git blobs of the files it
+reads, as
+[`scripts/lib/ci-job-inputs.ts`](../scripts/lib/ci-job-inputs.ts) lists them, and its last step
+uploads a `ci-pass-*` record named by that hash, holding its coverage report. On a pull request, a
+job whose hash matches a record from a run of this repository's own branches restores the record,
+skips its checks, and uploads the restored report under its usual flag. Codecov therefore receives
+every flag on every run, and coverage never depends on carryforward from `main`, which uploads none.
+The unit test of that file holds each job's list to the import graph of its suites and entry
+points. A file a job reads without importing it must be listed by hand.
 Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
 its shard, and each shard runs `--shard <name>`: `regular` runs the regular flow, `catalogue`
 public-controls and battles, and `protocol` private-spice-reserves, decks and results. The `regular` and
