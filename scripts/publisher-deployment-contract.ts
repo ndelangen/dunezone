@@ -267,10 +267,10 @@ function readObservedGitSha(healthValue: unknown): string | undefined {
 }
 
 function assertExactCheckout(githubSha: string): void {
-  const revision = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' });
+  const revision = spawnSync('/usr/bin/git', ['rev-parse', 'HEAD'], { encoding: 'utf8' });
   invariant(revision.status === 0, 'Unable to read the checked-out Git revision');
   invariant(revision.stdout.trim() === githubSha, 'Checked-out revision does not match GITHUB_SHA');
-  const status = spawnSync('git', ['status', '--porcelain'], { encoding: 'utf8' });
+  const status = spawnSync('/usr/bin/git', ['status', '--porcelain'], { encoding: 'utf8' });
   invariant(status.status === 0, 'Unable to inspect the Git worktree');
   invariant(status.stdout.trim() === '', 'Tracked source changed after checkout; refusing to deploy');
 }

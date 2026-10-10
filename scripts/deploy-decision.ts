@@ -150,11 +150,9 @@ function isAncestor(ancestor: string, descendant: string, repository: string): b
   if (!FULL_SHA.test(ancestor) || !FULL_SHA.test(descendant)) {
     return undefined;
   }
-  const { status } = spawnSync(
-    '/usr/bin/git',
-    ['merge-base', '--is-ancestor', '--end-of-options', ancestor, descendant],
-    { cwd: repository }
-  );
+  /* Sonar suppression: both revisions passed FULL_SHA above and follow --end-of-options. */
+  const gitArgs = ['merge-base', '--is-ancestor', '--end-of-options', ancestor, descendant];
+  const { status } = spawnSync('/usr/bin/git', gitArgs, { cwd: repository }); /* NOSONAR */
   switch (status) {
     case 0:
       return true;

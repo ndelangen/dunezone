@@ -7,10 +7,11 @@
  */
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { join, extname, normalize, sep } from 'node:path';
+import { join, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(fileURLToPath(new URL('..', import.meta.url)), 'dist', 'client');
+const SHELL = join(ROOT, '_shell.html');
 const PORT = Number(process.env.E2E_APP_PORT ?? process.argv[2] ?? 6001);
 
 const MIME = {
@@ -32,7 +33,7 @@ const MIME = {
   '.webmanifest': 'application/manifest+json',
 };
 
-if (!existsSync(join(ROOT, '_shell.html'))) {
+if (!existsSync(SHELL)) {
   console.error(`[e2e-serve-dist] ${ROOT}/_shell.html missing; run vite build first`);
   process.exit(1);
 }
@@ -40,13 +41,15 @@ if (!existsSync(join(ROOT, '_shell.html'))) {
 const server = createServer((req, res) => {
   const urlPath = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
   /*
-   * normalize() collapses any ../ (including percent-encoded ones, since the pathname is decoded
+   * resolve() collapses any ../ (including percent-encoded ones, since the pathname is decoded
    * above) and the ROOT + sep prefix check rejects what remains, including sibling-directory
-   * escapes like /%2e%2e%2fclient-server/ which a bare ROOT prefix would let through.
+   * escapes like /%2e%2e%2fclient-server/ which a bare ROOT prefix would let through. Only a path
+   * that passed the check is read; everything else gets the shell.
    */
-  let file = normalize(join(ROOT, urlPath));
-  if (!file.startsWith(ROOT + sep) || !existsSync(file) || statSync(file).isDirectory()) {
-    file = join(ROOT, '_shell.html');
+  const candidate = resolve(ROOT, `.${urlPath}`);
+  let file = SHELL;
+  if (candidate.startsWith(ROOT + sep) && existsSync(candidate) && !statSync(candidate).isDirectory()) {
+    file = candidate;
   }
   try {
     const body = readFileSync(file);
