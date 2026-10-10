@@ -1368,9 +1368,17 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.sendConversationReads(this.session.markConversationRead(viewer, request));
     } else {
       const saved = this.session.sendConversation(viewer, request);
-      this.publishConversationMessage(request, saved.message);
       if (saved.inserted) {
+        this.publishConversationMessage(request, saved.message);
         this.deliverDirectorySoon();
+      } else {
+        /* A retried request was already delivered to every member; only the retrying connection needs its confirmation. */
+        this.send(socket, {
+          type: 'conversation-message',
+          factionId: request.factionId,
+          peerId: request.peerId,
+          message: saved.message,
+        });
       }
     }
   }

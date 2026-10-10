@@ -292,7 +292,7 @@ function tableConversationItem(unread: number, onSelect: () => void) {
       as="button"
       type="button"
       path={[TABLE_CONVERSATION]}
-      label={`Table${unread ? `, ${unread} unread` : ''}`}
+      label={unread ? `Table, ${unread} unread` : 'Table'}
       icon={
         <Indicator size={16} label={unread || undefined} disabled={!unread}>
           <TopicIcon topic="planet" size={26} />

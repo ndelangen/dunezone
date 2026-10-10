@@ -66,7 +66,22 @@ describe('Faction conversations in the game database', () => {
       'table message'
     );
     expect(delivered).toMatchObject({ factionId: bId, peerId: '@table', message: { text: 'Who is bidding?' } });
-    expect((await page(b, bId, '@table')).entries.map((entry) => entry.text)).toEqual(['Who is bidding?']);
+    /* A retry is confirmed to its sender only; the other members already have the message. */
+    const retried = await send(a, aId, '@table', 'Who is bidding?', sent.message.requestId);
+    expect(retried.message).toEqual(sent.message);
+    /* A later message reaches B after anything the retry would have sent, so B's frames are complete once it arrives. */
+    await send(a, aId, '@table', 'Then I bid 2.');
+    const texts = () =>
+      b.messages
+        .slice(offset)
+        .filter((entry) => entry.type === 'conversation-message')
+        .map((entry) => entry.message.text);
+    await eventually(() => texts().includes('Then I bid 2.'), 'later table message');
+    expect(texts()).toEqual(['Who is bidding?', 'Then I bid 2.']);
+    expect((await page(b, bId, '@table')).entries.map((entry) => entry.text)).toEqual([
+      'Who is bidding?',
+      'Then I bid 2.',
+    ]);
     expect(observer.messages.filter((entry) => entry.type.startsWith('conversation'))).toEqual([]);
     expect((await page(observer, aId, '@table')).type).toBe('rejected');
   });
