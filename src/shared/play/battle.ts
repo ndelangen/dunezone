@@ -48,7 +48,6 @@ const disclosedSchema = z.object({
   dial: z.boolean().default(false),
   cardIds: z.array(id).default([]),
 });
-export type Disclosed = z.infer<typeof disclosedSchema>;
 export const battlePlanSchema = battlePlanInputSchema.extend({
   strength: z.number(),
   pieces: z.array(tablePieceSchema),
