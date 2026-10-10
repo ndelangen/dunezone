@@ -1,7 +1,8 @@
-import { Avatar, Button, Group, Stack, Text } from '@mantine/core';
+import { Avatar, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
 import { alliesOf } from '@shared/play/alliances';
 import type { AllianceState } from '@shared/play/alliances';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
+import { factionTokenStackKey } from '@shared/play/factionToken';
 import { rosterSeat } from '@shared/play/schema';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -234,5 +235,52 @@ export function AlliancesPanel({ client, table }: Props) {
         })}
       </Stack>
     </Section>
+  );
+}
+
+/** Every alliance at the table as its factions' tokens side by side, beside the logo in the top bar, so it shows in every view. */
+export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
+  const groups = table.snapshot.alliances?.groups ?? [];
+  if (!groups.length || table.snapshot.stage !== 'play') {
+    return null;
+  }
+  const names = snapshotFactionLabels(table.snapshot);
+  const face = (factionId: string) =>
+    table.state.pieces.find((piece) => piece.stackKey === factionTokenStackKey(factionId))?.items[0]?.artwork?.front;
+  return (
+    <Group gap="xs" wrap="nowrap" aria-label="Alliances">
+      {groups.map((group) => {
+        const label = `${factionList(names, group)} are allied`;
+        return (
+          <Tooltip key={group.join(':')} label={label} withinPortal>
+            <Group
+              gap={0}
+              wrap="nowrap"
+              role="img"
+              aria-label={label}
+              style={{
+                padding: '2px 6px',
+                borderRadius: 999,
+                background: 'rgba(210, 174, 104, 0.14)',
+                border: '1px solid rgba(210, 174, 104, 0.55)',
+              }}
+            >
+              {group.map((factionId, index) => (
+                <Avatar
+                  key={factionId}
+                  src={face(factionId)}
+                  size={26}
+                  radius="xl"
+                  alt=""
+                  style={{ marginLeft: index ? -6 : 0, border: '1px solid #d2ae68' }}
+                >
+                  {(names[factionId] ?? factionId).slice(0, 1)}
+                </Avatar>
+              ))}
+            </Group>
+          </Tooltip>
+        );
+      })}
+    </Group>
   );
 }

@@ -28,8 +28,8 @@ import { FoilConfetti } from '../FoilConfetti';
 import { GameTable } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
-import { AllianceRingsScene } from './AllianceRings';
-import { AllianceDecisionBar, AlliancesPanel } from './Alliances';
+import { AllianceDecisionBar, AlliancesPanel, AllianceStrip } from './Alliances';
+import { AllyBadgesScene } from './AllyBadges';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { BidderSettings } from './BidderSettings';
@@ -782,7 +782,12 @@ function ConnectedTable({
             tableProgress={progress}
             stage={stage}
             mapVisible={setupMapVisible(table.snapshot.setup)}
-            connectionStatus={<ConnectionStatus table={table} />}
+            connectionStatus={
+              <>
+                <ConnectionStatus table={table} />
+                {inPlay && <AllianceStrip table={table} />}
+              </>
+            }
             toolbarControl={
               inPlay || (stage === 'setup' && table.snapshot.setup) ? (
                 <>
@@ -808,7 +813,7 @@ function ConnectedTable({
                     <BattleScene client={client} table={table} />
                     {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
                     {inPlay && <HandCountsScene table={table} />}
-                    {inPlay && <AllianceRingsScene table={table} />}
+                    {inPlay && <AllyBadgesScene table={table} />}
                   </>
                 )}
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
