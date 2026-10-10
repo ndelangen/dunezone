@@ -35,6 +35,7 @@ import { ActorDirectory } from './actors';
 import { HISTORY_REPAIR_VERSION } from './anonymizeHistory';
 import { expireBattle } from './battle';
 import { biddingDeadline, expireBidding } from './bidding';
+import { moveStoredGameOntoCurrentBoard } from './boardLayout';
 import { CaptureStore } from './captures';
 import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
@@ -64,7 +65,7 @@ import { SetupSupply } from './setup';
 import { initialSetup } from './setup-progress';
 import { SpiceLedger } from './spiceLedger';
 import type { StoredSnapshot } from './state';
-import { internalAction, internalPieceId, onCurrentBoard, RoomProjection, storedSnapshotSchema } from './state';
+import { internalAction, internalPieceId, RoomProjection, storedSnapshotSchema } from './state';
 import { Swapping } from './swapping';
 
 /** The opening table records that the creator holds the first seat, so the log starts with the seating and not after it. */
@@ -187,9 +188,10 @@ export class GameSession {
       /* Only a real game keeps a log, and a woken room must keep filing it. */
       this.log.enabled = Boolean(this.metadata.game);
       this.repairDeletedHistory();
+      moveStoredGameOntoCurrentBoard(this.storage);
       const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
       this.room = this.openRoom(
-        this.withRoster(this.spiceLedger.project(storedSnapshotSchema.parse(onCurrentBoard(JSON.parse(stored.data)))))
+        this.withRoster(this.spiceLedger.project(storedSnapshotSchema.parse(JSON.parse(stored.data))))
       );
       this.history.restoreBoundary();
       /* A room evicted mid-attempt wakes owing a deal; the gates are judged again without waiting for a command. */
@@ -487,7 +489,7 @@ export class GameSession {
 
   private storedSnapshot(): StoredSnapshot {
     const row = this.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
-    return storedSnapshotSchema.parse(onCurrentBoard(JSON.parse(row.data)));
+    return storedSnapshotSchema.parse(JSON.parse(row.data));
   }
 
   deleteActor(userId: string, eventId?: string) {

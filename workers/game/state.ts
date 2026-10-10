@@ -18,9 +18,8 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { gameEndingSchema, gameResultSchema } from '../../src/shared/play/result';
 import { storedPieceSchema, storedTableSchema, tableCountSchema, tableIdSchema } from '../../src/shared/play/schema';
 import { predictionSchema, predictionChoiceSchema } from '../../src/shared/play/setup';
-import { BOARD_RADIUS, TABLE_VISIBLE_RADIUS } from '../../src/shared/play/tableGeometry';
 
-/** The board layout a stored game's positions are laid out for; see `onCurrentBoard`. */
+/** The board layout a stored game's positions are laid out for; see boardLayout.ts. */
 export const BOARD_LAYOUT = 2;
 
 const storedBattleSchema = publicBattleSchema.omit({ revealed: true }).extend({
@@ -87,50 +86,6 @@ export const storedSnapshotSchema = gameSnapshotSchema
     boardLayout: z.literal(BOARD_LAYOUT).default(BOARD_LAYOUT),
   });
 export type StoredSnapshot = z.infer<typeof storedSnapshotSchema>;
-
-/*
- * The board shrank (board radius 4.25 to 3.98, seat ring 4.69 to 4.39) so troop reserves clear the card wells.
- * A game stored before that keeps its old positions, so on load everything that stood on the round table moves in with the board,
- * keeping each piece on its territory or behind its seat; the card wells, shelves and trackers beyond the table's edge stay where they are.
- */
-const LEGACY_BOARD_SCALE = BOARD_RADIUS / 4.25;
-const LEGACY_TABLE_RADIUS = TABLE_VISIBLE_RADIUS;
-
-type RawPosition = [number, number, number];
-function scaledLegacyPosition(position: unknown): unknown {
-  if (!Array.isArray(position) || position.length !== 3 || !position.every((value) => typeof value === 'number')) {
-    return position;
-  }
-  const [x, y, z] = position as RawPosition;
-  return Math.hypot(x, z) <= LEGACY_TABLE_RADIUS ? [x * LEGACY_BOARD_SCALE, y, z * LEGACY_BOARD_SCALE] : position;
-}
-
-function withScaledPositions(pieces: unknown): unknown {
-  return Array.isArray(pieces)
-    ? pieces.map((piece) =>
-        piece && typeof piece === 'object' && 'position' in piece
-          ? { ...piece, position: scaledLegacyPosition(piece.position) }
-          : piece
-      )
-    : pieces;
-}
-
-/** A stored snapshot as read from storage, with a game laid out for the old, larger board moved onto the current one. */
-export function onCurrentBoard(stored: unknown): unknown {
-  if (!stored || typeof stored !== 'object' || 'boardLayout' in stored) {
-    return stored;
-  }
-  const snapshot = stored as { table?: { pieces?: unknown }; battleState?: { anchor?: unknown } | null };
-  return {
-    ...snapshot,
-    table: snapshot.table && { ...snapshot.table, pieces: withScaledPositions(snapshot.table.pieces) },
-    battleState: snapshot.battleState && {
-      ...snapshot.battleState,
-      anchor: scaledLegacyPosition(snapshot.battleState.anchor),
-    },
-    boardLayout: BOARD_LAYOUT,
-  };
-}
 
 /** Retired wire handles never name a live piece again; storage and receipts keep their identities. */
 export function internalPieceId(snapshot: StoredSnapshot, wireId: string): string {

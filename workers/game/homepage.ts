@@ -16,10 +16,11 @@ import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { gameHttpClient } from './authorization';
+import { onCurrentBoard } from './boardLayout';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { Room } from './room';
-import { onCurrentBoard, storedSnapshotSchema } from './state';
+import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
 
 type Connection = {
