@@ -8,7 +8,7 @@
  */
 import { createHash } from 'node:crypto';
 
-import { ASSET_RULES, FORMAT_EXTENSION, categoryForKey } from '../src/shared/assetRules';
+import { ASSET_RULES, FORMAT_EXTENSION, categoryForKey, ruleForKey } from '../src/shared/assetRules';
 import type { AssetFormat, AssetSize, CategoryRule } from '../src/shared/assetRules';
 import type { CanonicalRecipes, MediaRecipes, RasterLockEntry } from '../src/shared/media/rasterLock';
 
@@ -161,6 +161,23 @@ export function planVariants(key: string, entry: RasterLockEntry, versions: Enco
     name: variantName(entry.sha256, recipe, versions),
     legacyPath,
   }));
+}
+
+/**
+ * Refuses an original the encoder could not turn into variants: a key no rule covers, or a transparent original in a category declared opaque.
+ * `media:sync` asks before it uploads, and the generator asks before it encodes, so the two agree on what art is acceptable.
+ */
+export function assertEncodable(key: string, entry: Pick<RasterLockEntry, 'isOpaque'>): void {
+  const rule = ruleForKey(key);
+  if (!rule) {
+    throw new Error(`No asset rule covers ${key}`);
+  }
+  if (!rule.transparent && !entry.isOpaque) {
+    throw new Error(
+      `${key} has genuine transparency but its category is declared opaque: ` +
+        `move the file, fix the export, or change the declaration in assetRules.ts`
+    );
+  }
 }
 
 export function checksumRecord(bytes: Uint8Array): ChecksumRecord {

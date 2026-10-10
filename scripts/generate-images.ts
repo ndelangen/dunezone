@@ -33,12 +33,12 @@ import path from 'node:path';
 
 import sharp from 'sharp';
 
-import { COMMITTED_WEB_FILES, ruleForKey } from '../src/shared/assetRules';
+import { COMMITTED_WEB_FILES } from '../src/shared/assetRules';
 import type { RasterLock } from '../src/shared/media/rasterLock';
 import { fetchMedia, integrityMatches } from './lib/media-fetch';
 import { download } from './lib/media-originals';
 import { sourcePath } from './lib/raster-lock';
-import { checksumRecord, matchesRecord, planVariants } from './media-variants';
+import { assertEncodable, checksumRecord, matchesRecord, planVariants } from './media-variants';
 import type { ChecksumRecord, PlannedVariant } from './media-variants';
 import { describeError } from './retry-transient';
 
@@ -177,13 +177,7 @@ async function fillOriginal(key: string, variants: PlannedVariant[]): Promise<nu
   if (missing.length === 0) {
     return 0;
   }
-  const rule = ruleForKey(key);
-  if (!rule?.transparent && !lock[key].isOpaque) {
-    throw new Error(
-      `${key} has genuine transparency but its category is declared opaque: ` +
-        `move the file, fix the export, or change the declaration in assetRules.ts`
-    );
-  }
+  assertEncodable(key, lock[key]);
   const original = await lockedOriginal(key);
   for (const variant of missing) {
     store(variant, await encode(original, variant, lock[key].width));
