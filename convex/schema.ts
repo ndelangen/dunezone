@@ -10,6 +10,7 @@ import { playProvisionFailureReasonSchema, playStageSchema } from '../src/shared
 import { playDirectorySummarySchema } from '../src/shared/play/directory';
 import { tableSeatCountSchema } from '../src/shared/play/schema';
 import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
+import { authProviderValidator } from './lib/accountMethods';
 import { directOwnershipKindValidator } from './lib/directOwnership';
 import { faqTagValidator } from './lib/faqTags';
 import { ingestTokenCapabilityValidator } from './lib/ingestTokens';
@@ -438,7 +439,7 @@ export default defineSchema({
     digest: v.string(),
     user_id: v.id('users'),
     session_id: v.id('authSessions'),
-    provider: v.union(v.literal('google'), v.literal('discord')),
+    provider: authProviderValidator,
     state: v.union(v.literal('pending'), v.literal('expired'), v.literal('accepted')),
     expires_at: v.number(),
     operation_id: v.optional(v.id('account_merge_operations')),

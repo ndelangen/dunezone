@@ -56,6 +56,7 @@ export const convexWorkerOptimizeDeps = {
     '@auth/core',
     '@auth/core/providers/discord',
     '@auth/core/providers/google',
+    '@auth/core/providers/reddit',
     '@convex-dev/aggregate',
     '@convex-dev/auth/providers/Password',
     '@convex-dev/auth/server',

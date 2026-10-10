@@ -1,5 +1,7 @@
+import { customFetch } from '@auth/core';
 import Discord from '@auth/core/providers/discord';
 import Google from '@auth/core/providers/google';
+import Reddit from '@auth/core/providers/reddit';
 import { Password } from '@convex-dev/auth/providers/Password';
 import { convexAuth } from '@convex-dev/auth/server';
 
@@ -71,6 +73,27 @@ if (process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET) {
       },
     })
   );
+}
+
+if (process.env.AUTH_REDDIT_ID && process.env.AUTH_REDDIT_SECRET && process.env.AUTH_REDDIT_USER_AGENT) {
+  providers.push({
+    ...Reddit({
+      clientId: process.env.AUTH_REDDIT_ID,
+      clientSecret: process.env.AUTH_REDDIT_SECRET,
+      /* Convex Auth cannot merge endpoint objects into this provider's string endpoint. */
+      authorization: 'https://www.reddit.com/api/v1/authorize?scope=identity&duration=temporary',
+      profile: (profile) => ({ id: profile.id, name: profile.name }),
+    }),
+    /* Convex Auth's provider options merge excludes symbol keys. */
+    [customFetch]: Object.assign(
+      (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+        const headers = new Headers(init?.headers);
+        headers.set('User-Agent', process.env.AUTH_REDDIT_USER_AGENT!);
+        return fetch(input, { ...init, headers });
+      },
+      { preconnect: fetch.preconnect }
+    ),
+  });
 }
 
 if (localE2eAuthEnabled) {
