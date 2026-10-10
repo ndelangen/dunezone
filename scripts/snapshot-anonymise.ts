@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { compareCodeUnits } from '../src/shared/compareText';
 import type { ExportEntries, SnapshotManifest, SnapshotReport } from './lib/snapshot-anonymiser';
 import { anonymiseExport, scanSnapshot, SnapshotRefused, verifySnapshot } from './lib/snapshot-anonymiser';
 
@@ -55,7 +56,7 @@ function writeZip(entries: ExportEntries, out: string) {
   const staging = mkdtempSync(path.join(tmpdir(), 'dunezone-snapshot-'));
   const partial = `${out}.partial.zip`;
   try {
-    const names = [...entries.keys()].sort();
+    const names = [...entries.keys()].sort(compareCodeUnits);
     for (const name of names) {
       const file = path.join(staging, name);
       mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });

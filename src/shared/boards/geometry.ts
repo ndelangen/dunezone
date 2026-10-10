@@ -9,6 +9,7 @@ import UnaryUnionOp from 'jsts/org/locationtech/jts/operation/union/UnaryUnionOp
 import arrakis from './arrakis.json';
 import { at, arcParameters } from './curves';
 export { at } from './curves';
+import { compareCodeUnits } from '../compareText';
 import type { Board, Point, Edge, Properties, AppearanceContour } from './schema';
 import { territoryId, TERRITORY_NAME_LIMIT } from './schema';
 export type { Board, Point, Edge, Properties, Decal, AppearanceContour } from './schema';
@@ -257,7 +258,9 @@ function insetPath(polygon: Polygon) {
 function recoverFace(board: Board, polygon: Polygon, samples: Sample[], cells: Map<string, Sample[]>) {
   const rings = polygonRings(polygon);
   const recovered = rings.map((ring) => recoverRing(board, ring, samples, cells));
-  const edgeIds = [...new Set(recovered.flatMap((ring) => ring.intervals.map((part) => part.edge.id)))].sort();
+  const edgeIds = [...new Set(recovered.flatMap((ring) => ring.intervals.map((part) => part.edge.id)))].sort(
+    compareCodeUnits
+  );
   const point = InteriorPointArea.getInteriorPoint(polygon) as Coordinate;
   const face: Face = {
     key: edgeIds.join('|'),

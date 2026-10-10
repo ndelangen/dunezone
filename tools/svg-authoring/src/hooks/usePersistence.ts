@@ -27,7 +27,7 @@ export function usePersistence(): { hydrated: boolean } {
       useAppStore.getState().setSteps({ ...current, ...prefs });
     }
 
-    loadSession()
+    void loadSession()
       .then((docs) => {
         /* Restore only while the workspace is still pristine: a whole-array
            replace must never discard documents the user added while the

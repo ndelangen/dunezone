@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { compareCodeUnits } from '../src/shared/compareText';
 import { auditGameWorker } from './cloudflare-game-drift';
 import type { GameDriftReport } from './cloudflare-game-drift';
 import { TransientError, describeError, retryTransient } from './retry-transient';
@@ -251,7 +252,7 @@ function expectedBindings(wrangler: JsonRecord): string[] {
       `${string(binding.name, 'Wrangler rate limit name')}|ratelimit|${string(binding.namespace_id, 'Wrangler rate limit namespace')}|${integer(simple.limit, 'Wrangler rate limit')}|${integer(simple.period, 'Wrangler rate limit period')}`
     );
   }
-  return bindings.sort();
+  return bindings.sort(compareCodeUnits);
 }
 
 function serviceTarget(binding: JsonRecord): string {
@@ -270,7 +271,7 @@ function expectedWorkerDomains(wrangler: JsonRecord, worker: string): string[] {
     }
     domains.push(`${string(route.pattern, 'Wrangler Custom Domain')}|${worker}`);
   }
-  return domains.sort();
+  return domains.sort(compareCodeUnits);
 }
 
 function liveBinding(value: unknown): string | null {
@@ -306,7 +307,7 @@ function difference(expected: string[], actual: string[]): string {
 }
 
 function compareExactSet(failures: string[], label: string, expected: string[], actual: string[]) {
-  const detail = difference([...expected].sort(), [...actual].sort());
+  const detail = difference([...expected].sort(compareCodeUnits), [...actual].sort(compareCodeUnits));
   if (detail) {
     failures.push(`${label}: ${detail}`);
   }
@@ -363,7 +364,7 @@ export async function checkCloudflareLiveDrift(
     .map(liveBinding)
     .filter((binding): binding is string => binding !== null)
     .filter((binding) => !binding.startsWith('GIT_SHA|'))
-    .sort();
+    .sort(compareCodeUnits);
   compareExactSet(failures, 'Worker bindings drift', expectedBindings(wrangler), bindings);
 
   if (settings.compatibility_date !== wrangler.compatibility_date) {

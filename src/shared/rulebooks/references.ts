@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { compareCodeUnits } from '../compareText';
 import { CanonicalFactionStoredObject, TroopArtwork } from '../factions/schema';
 import type { RulebookBattleSideValue } from './battleStep';
 import { getRulebookCoverFooter } from './contents';
@@ -122,8 +123,8 @@ export function collectRulebookReferenceIds(
     }
   }
   return {
-    assetIds: [...assetIds].sort(),
-    factionIds: [...factionIds].sort(),
+    assetIds: [...assetIds].sort(compareCodeUnits),
+    factionIds: [...factionIds].sort(compareCodeUnits),
     ...(troopSources.size ? { troopSources: [...troopSources.values()] } : {}),
   };
 }
