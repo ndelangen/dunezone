@@ -122,13 +122,24 @@ function isArrangementOf(order: readonly number[], count: number) {
   return order.length === count && distinct.size === count;
 }
 
+/*
+ * The deck's cards with only the marks every one of them shares, so a mark held by a few cards cannot follow them to a new place or out of the deck.
+ * Who peeked at only part of the deck loses that mark rather than learn where those cards went.
+ */
+function sharedMarks(items: readonly StoredItem[]): StoredItem[] {
+  const shared = (items[0]?.peekedBy ?? []).filter((factionId) =>
+    items.every((item) => item.peekedBy?.includes(factionId))
+  );
+  return items.map(({ peekedBy: _peekedBy, ...item }) => (shared.length ? { ...item, peekedBy: [...shared] } : item));
+}
+
 function arrange(peeker: Peeker, action: Extract<PeekAction, { kind: 'peek-arrange' }>): StoredSnapshot {
   const { snapshot } = peeker;
   const deck = requireOpenDeck(peeker, action.pieceId);
   if (!isArrangementOf(action.order, deck.items.length)) {
     throw new GameRejection('The deck changed. Try arranging it again.');
   }
-  const arranged = { ...deck, items: action.order.map((index) => deck.items[index]!) };
+  const arranged = { ...deck, items: sharedMarks(action.order.map((index) => deck.items[index]!)) };
   const next = commit(snapshot, replacing(snapshot, arranged), {
     command: 'deck.arrange',
     message: `${peekerName(peeker)} rearranged ${deck.label}.`,
@@ -164,7 +175,8 @@ function deckWithout(snapshot: StoredSnapshot, deck: StoredPiece, index: number)
 
 function pull(peeker: Peeker, action: Extract<PeekAction, { kind: 'peek-pull' }>): StoredSnapshot {
   const { snapshot } = peeker;
-  const deck = requireOpenDeck(peeker, action.pieceId);
+  const opened = requireOpenDeck(peeker, action.pieceId);
+  const deck = { ...opened, items: sharedMarks(opened.items) };
   const item = deck.items[action.index];
   if (!item) {
     throw new GameRejection('The deck changed. Try again.');

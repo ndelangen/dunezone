@@ -1715,6 +1715,17 @@ describe('peeking', () => {
     expect(shownIds(client)).toEqual(items.map((item) => item.id));
   });
 
+  test('closing a peek hides it at once, and peeking again shows it even before the room answers the close', async () => {
+    const client = await connected();
+    socket().deliver(view({ snapshot: peeked() }));
+    table(client).closePeek!();
+    expect(command().action).toEqual({ kind: 'peek-close' });
+    expect(table(client).peek).toBeNull();
+    table(client).peekControls!.peek('treachery-deck');
+    expect(command().action).toEqual({ kind: 'peek', pieceId: 'treachery-deck' });
+    expect(table(client).peek?.piece.id).toBe('treachery-deck');
+  });
+
   test('a peek can be closed while a piece is held', async () => {
     const { client, carried } = await grantedWholeCarry();
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;

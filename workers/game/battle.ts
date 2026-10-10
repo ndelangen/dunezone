@@ -232,7 +232,9 @@ function takeIntoHand(
   if (!canTakeIntoHand(piece)) {
     return refuse('Choose one unlocked card or leader on the table.');
   }
-  const { battleOverlay: _overlay, ...stored } = piece;
+  const { battleOverlay: _overlay, ...taken } = piece;
+  /* A hand forgets who peeked at its cards, so a card later played face down out of it cannot be told apart by its marks. */
+  const stored = { ...taken, items: taken.items.map(({ peekedBy: _peekedBy, ...item }) => item) };
   return commit(
     snapshot,
     {

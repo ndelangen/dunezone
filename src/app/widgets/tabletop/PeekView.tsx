@@ -391,29 +391,16 @@ function useFocusOnOpen(closeButton: RefObject<HTMLButtonElement | null>, shownI
   }, [closeButton, shownId]);
 }
 
-/* Closing a peek: it hides at once, before the room's frame confirms it, and Escape inside it closes it too. */
+/* Closing a peek: the table hides it at once, before the room's frame confirms it, and Escape inside it closes it too. */
 function usePeekClosing(piece: TablePiece | undefined, closePeek: (() => void) | undefined) {
-  const [closedId, setClosedId] = useState<string | null>(null);
   const dialog = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
-  const open = !!piece && piece.id !== closedId;
-
-  useEffect(() => {
-    if (!piece) {
-      setClosedId(null);
-    }
-  }, [piece]);
-  const shown = open ? piece : null;
+  const shown = piece ?? null;
   useFocusOnOpen(closeButton, shown?.id ?? null);
-  const close = useCallback(() => {
-    if (piece) {
-      setClosedId(piece.id);
-      closePeek?.();
-    }
-  }, [piece, closePeek]);
+  const close = useCallback(() => closePeek?.(), [closePeek]);
   useEscapeCloses(dialog, shown, close);
 
-  return { open, close, dialog, closeButton };
+  return { open: !!piece, close, dialog, closeButton };
 }
 
 function deckHint(piece: TablePiece) {

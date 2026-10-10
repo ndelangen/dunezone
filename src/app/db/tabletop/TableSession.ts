@@ -179,6 +179,7 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     Boolean(previous.deckControls) === Boolean(next.deckControls) &&
     Boolean(previous.peekControls) === Boolean(next.peekControls) &&
     Boolean(previous.closePeek) === Boolean(next.closePeek) &&
+    (previous.peek === null) === (next.peek === null) &&
     sameMembers(previous.remoteCarriedIds, next.remoteCarriedIds) &&
     sameMembers(previous.reservedPieceIds, next.reservedPieceIds) &&
     sameMembers(previous.flippingPieceIds, next.flippingPieceIds) &&
@@ -285,6 +286,8 @@ export class TableSession {
   private captureInFlight: string | null = null;
   /* The order this viewer asked for the deck it holds open, shown until the room answers it. */
   private pendingArrangement: { commandId: string; pieceId: string; deck: string; order: number[] } | null = null;
+  /* The peek this viewer closed, hidden at once while the room's frame confirms it; asking to peek again shows it again, whatever the room's answer to the close. */
+  private closedPeekId: string | null = null;
   /* One seat command at a time: a second click before the first settles would only fail the revision gate. */
   private seatCommandInFlight: string | null = null;
   private traitorGatherInFlight: string | null = null;
@@ -577,16 +580,22 @@ export class TableSession {
             }
           : undefined,
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
-      peek: this.history ? null : this.arrangedPeek(displayed.peek ?? null),
+      peek:
+        this.history || displayed.peek?.piece.id === this.closedPeekId
+          ? null
+          : this.arrangedPeek(displayed.peek ?? null),
       peekControls:
         canHandleTable && displayed.bank
           ? {
-              peek: (pieceId) => this.command({ kind: 'peek', pieceId }),
+              peek: (pieceId) => {
+                this.closedPeekId = null;
+                this.command({ kind: 'peek', pieceId });
+              },
               arrange: this.arrange,
               pull: this.pull,
             }
           : undefined,
-      closePeek: canInteract && displayed.peek ? () => this.command({ kind: 'peek-close' }) : undefined,
+      closePeek: canInteract && displayed.peek ? () => this.closePeek(displayed.peek!.piece.id) : undefined,
       remoteCarriedIds: new Set(remote.map((carry) => carry.held.id)),
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
@@ -599,6 +608,13 @@ export class TableSession {
   private arrangementShown(peek: Peek | null) {
     const pending = this.pendingArrangement;
     return !!peek && pending?.pieceId === peek.piece.id && pending.deck === deckKey(peek.piece);
+  }
+  /* A close that never went out, as while reconnecting, leaves the peek showing, so its close button still works. */
+  private closePeek(pieceId: string) {
+    if (this.command({ kind: 'peek-close' })) {
+      this.closedPeekId = pieceId;
+      this.emit();
+    }
   }
   private arrangedPeek(peek: Peek | null): Peek | null {
     if (!peek || !this.arrangementShown(peek)) {
