@@ -4,7 +4,7 @@ import { MantineProvider } from '@mantine/core';
 import type * as TanStackRouter from '@tanstack/react-router';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import type { ComponentType, ReactNode } from 'react';
+import type { AnchorHTMLAttributes, ComponentType } from 'react';
 import { useSyncExternalStore } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -27,7 +27,11 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
       options,
       useParams: () => ({ profileSlug: 'owner-profile' }),
     }),
-    Link: ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
+    Link: ({ children, to, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
+      <a {...props} href={to}>
+        {children}
+      </a>
+    ),
     useNavigate: () => mocks.navigate,
   };
 });
@@ -202,8 +206,8 @@ describe('profile settings page', () => {
       view.getByRole('group', { name: 'Color scheme' }).querySelector('[role="img"][aria-label="Help"]')
     ).not.toBeNull();
     await chooseTab(view, 'Sign-in methods');
-    expect(view.getByRole('button', { name: 'Disconnect' })).toHaveProperty('disabled', true);
-    expect(view.getByRole('button', { name: 'Connect' })).toHaveProperty('type', 'button');
+    expect(view.getByRole('button', { name: 'Disconnect Google' })).toHaveProperty('disabled', true);
+    expect(view.getByRole('button', { name: 'Connect Discord' })).toHaveProperty('type', 'button');
     expect(view.queryByRole('link', { name: 'Delete account' })).toBeNull();
     await chooseTab(view, 'Account');
     expect(view.getByRole('link', { name: 'Delete account' })).not.toBeNull();
@@ -214,14 +218,14 @@ describe('profile settings page', () => {
     fireEvent.change(view.getByRole('textbox', { name: /Display name/ }), { target: { value: 'ChangedOwner' } });
     await chooseTab(view, 'Sign-in methods');
     await act(async () => {
-      fireEvent.click(view.getByRole('button', { name: 'Connect' }));
+      fireEvent.click(view.getByRole('button', { name: 'Connect Discord' }));
     });
     expect(mocks.beginConnection).toHaveBeenCalledWith({ provider: 'discord' });
     expect(mocks.signIn).toHaveBeenCalledWith('discord', {
       redirectTo: '/profiles/owner-profile/connect?connection=connection-token',
     });
     expect(mocks.mutate).not.toHaveBeenCalled();
-    expect(view.getByRole('button', { name: 'Connect' })).toHaveProperty('disabled', false);
+    expect(view.getByRole('button', { name: 'Connect Discord' })).toHaveProperty('disabled', false);
     await chooseTab(view, 'Profile');
     expect(view.getByRole('textbox', { name: /Display name/ })).toHaveProperty('value', 'ChangedOwner');
   });

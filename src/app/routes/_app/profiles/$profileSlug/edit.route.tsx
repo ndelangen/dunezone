@@ -1,17 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import {
-  Alert,
-  Box,
-  Button,
-  Center,
-  Group,
-  Image,
-  SegmentedControl,
-  Select,
-  Stack,
-  Text,
-  TextInput,
-} from '@mantine/core';
+import { Box, Center, Group, Image, SegmentedControl, Select, Stack, Text, TextInput } from '@mantine/core';
 import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/profiles/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -19,12 +7,14 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CircleUserRound, Link2, Palette, Save, Trash2, UsersRound } from 'lucide-react';
+import { ArrowLeft, CircleUserRound, Link2, Palette, Save, Trash2, Unlink, UsersRound } from 'lucide-react';
 import { useId, useReducer, useRef, useState } from 'react';
 
 import { useBeginAuthConnection, useDisconnectAuthMethod } from '@db/accounts';
@@ -445,21 +435,22 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
         <Stack gap="md" align="flex-start">
           {/* Save is reachable from every tab through the toolbar, so its failure must be visible on every tab too. */}
           {panelError}
-          <div>
-            <Text fw={650}>Delete account</Text>
-            <Text c="dimmed" size="sm">
-              Review your direct ownership and choose what happens to it on a dedicated page.
-            </Text>
-          </div>
-          <Button
-            color="red"
-            variant="light"
-            renderRoot={(rootProps) => (
-              <Link {...rootProps} to="/profiles/$profileSlug/delete" params={{ profileSlug: initial.slug }} />
-            )}
-          >
-            Delete account
-          </Button>
+          <ControlBlock
+            title="Delete account"
+            description="Review your direct ownership and choose what happens to it on a dedicated page."
+            input={
+              <IconAction
+                label="Delete account"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                icon={<Trash2 size={17} aria-hidden />}
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/profiles/$profileSlug/delete" params={{ profileSlug: initial.slug }} />
+                )}
+              />
+            }
+          />
         </Stack>
       ),
     },
@@ -571,111 +562,116 @@ function ProfileSettingsPage() {
   return <EditableProfilePage key={viewer.profile.slug} initial={viewer.profile} />;
 }
 
+type SignInMethodsState = { busy: AuthProvider | null; error: string | null };
+type SignInMethodsEvent =
+  | { kind: 'started'; provider: AuthProvider }
+  | { kind: 'failed'; message: string }
+  | { kind: 'settled' };
+
+function reduceSignInMethods(state: SignInMethodsState, event: SignInMethodsEvent): SignInMethodsState {
+  switch (event.kind) {
+    case 'started':
+      return { busy: event.provider, error: null };
+    case 'failed':
+      return { ...state, error: event.message };
+    case 'settled':
+      return { ...state, busy: null };
+  }
+}
+
 function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['account']> }) {
   const begin = useBeginAuthConnection();
   const disconnect = useDisconnectAuthMethod();
   const { signIn } = useAuthActions();
-  const [state, dispatch] = useReducer(
-    (
-      state: { confirming: AuthProvider | null; busy: AuthProvider | null; error: string | null },
-      update: Partial<typeof state>
-    ) => ({ ...state, ...update }),
-    { confirming: null, busy: null, error: null }
-  );
+  const [state, dispatch] = useReducer(reduceSignInMethods, { busy: null, error: null });
   const connect = async (provider: AuthProvider) => {
-    dispatch({ busy: provider, error: null });
+    dispatch({ kind: 'started', provider });
     try {
       const intent = await begin({ provider });
       await signIn(provider, {
         redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect?connection=${intent.token}`,
       });
     } catch (error) {
-      dispatch({ error: error instanceof Error ? error.message : 'The sign-in could not start.' });
+      dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'The sign-in could not start.' });
     } finally {
-      dispatch({ busy: null });
+      dispatch({ kind: 'settled' });
     }
   };
   const remove = async (provider: AuthProvider) => {
-    dispatch({ busy: provider, error: null });
+    dispatch({ kind: 'started', provider });
     try {
       await disconnect({ provider });
-      dispatch({ confirming: null });
     } catch (error) {
-      dispatch({ error: error instanceof Error ? error.message : 'The sign-in method could not be disconnected.' });
+      dispatch({
+        kind: 'failed',
+        message: error instanceof Error ? error.message : 'The sign-in method could not be disconnected.',
+      });
     } finally {
-      dispatch({ busy: null });
+      dispatch({ kind: 'settled' });
     }
   };
   return (
-    <Stack gap="sm">
+    <Stack gap="md">
       <Text size="sm">
         Connect Google or Discord to use either account for this profile. Keep at least one connected.
       </Text>
       {account.merging && (
-        <Text size="sm">A profile merge is in progress. Sign-in methods can be changed when it finishes.</Text>
+        <StatusBadge tone="progress" live>
+          Profile merge in progress. Sign-in methods are locked.
+        </StatusBadge>
       )}
-      {state.error && (
-        <Alert color="red" role="alert">
-          {state.error}
-        </Alert>
-      )}
+      {state.error && <FormError title="Sign-in methods could not be changed">{state.error}</FormError>}
       {account.methods.map((method) => {
         const name = method.provider === 'google' ? 'Google' : 'Discord';
         const canDisconnect = account.methods.some(
           (other) => other.provider !== method.provider && other.connected && other.available
         );
+        const status = method.connected
+          ? canDisconnect
+            ? 'Connected'
+            : 'Connected · keep one sign-in method'
+          : method.available
+            ? 'Not connected'
+            : 'Currently unavailable';
         return (
-          <Stack key={method.provider} gap="xs">
-            <Group justify="space-between">
-              <Text>{name}</Text>
-              <Button
-                type="button"
-                size="xs"
-                variant="default"
-                loading={state.busy === method.provider}
-                disabled={!!state.busy || account.merging || (method.connected ? !canDisconnect : !method.available)}
-                onClick={() =>
-                  method.connected ? dispatch({ confirming: method.provider }) : void connect(method.provider)
-                }
-              >
-                {method.connected ? 'Disconnect' : 'Connect'}
-              </Button>
-            </Group>
-            <Text size="xs" c="dimmed">
-              {method.connected
-                ? canDisconnect
-                  ? 'Connected'
-                  : 'Connected · keep one sign-in method'
-                : method.available
-                  ? 'Not connected'
-                  : 'Currently unavailable'}
-            </Text>
-            {state.confirming === method.provider && (
-              <>
-                <Text size="sm">Disconnect {name}? You can reconnect it later.</Text>
-                <Group>
-                  <Button
-                    type="button"
-                    size="xs"
-                    color="red"
-                    disabled={!!state.busy}
-                    onClick={() => void remove(method.provider)}
-                  >
-                    Disconnect {name}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant="default"
-                    disabled={!!state.busy}
-                    onClick={() => dispatch({ confirming: null })}
-                  >
-                    Cancel
-                  </Button>
-                </Group>
-              </>
-            )}
-          </Stack>
+          <ControlBlock
+            key={method.provider}
+            title={name}
+            description={
+              method.connected
+                ? 'Hold to disconnect this sign-in method. You can reconnect it later.'
+                : 'Authenticate with this provider to connect it. If it already has a profile, review the merge before confirming.'
+            }
+            input={
+              <Group justify="space-between">
+                <StatusBadge tone={method.connected ? 'positive' : 'neutral'} live>
+                  {status}
+                </StatusBadge>
+                {method.connected ? (
+                  <ConfirmDeleteAction
+                    label={`Disconnect ${name}`}
+                    verb="remove"
+                    size="lg"
+                    icon={<Unlink size={17} aria-hidden />}
+                    pending={state.busy === method.provider}
+                    disabled={!!state.busy || account.merging || !canDisconnect}
+                    onConfirm={() => void remove(method.provider)}
+                  />
+                ) : (
+                  <IconAction
+                    label={`Connect ${name}`}
+                    emphasis="standard"
+                    intent="neutral"
+                    size="lg"
+                    icon={<Link2 size={17} aria-hidden />}
+                    loading={state.busy === method.provider}
+                    disabled={!!state.busy || account.merging || !method.available}
+                    onClick={() => void connect(method.provider)}
+                  />
+                )}
+              </Group>
+            }
+          />
         );
       })}
     </Stack>

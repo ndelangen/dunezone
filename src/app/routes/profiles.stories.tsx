@@ -121,9 +121,17 @@ export const DeleteAccountReplacementPicker = meta.story({
 });
 
 export const SignInMethods = meta.story({
-  args: { path: '/profiles/storybook-viewer/edit' },
+  args: { path: '/profiles/central/edit' },
   parameters: {
     database: db((baseline) => {
+      /* Central's public profile fields, copied from production on 2026-10-10. */
+      const profile = baseline.profiles.find((row) => row.slug === 'storybook-viewer');
+      if (profile) {
+        profile.username = 'Central';
+        profile.slug = 'central';
+        profile.avatar_url =
+          'https://dune.zone/user-images/135c0f3ded60c3943f4acb17448c5258a53229f4d6f7f02aab7710610059b0fa.jpg';
+      }
       baseline.authAccounts.push({
         userId: ref('storybook-viewer'),
         provider: 'google',
@@ -137,7 +145,7 @@ export const SignInMethods = meta.story({
     await expect(
       page.findByText('Connected · keep one sign-in method', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    await expect(page.getByRole('button', { name: /^Disconnect$/ })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /^Disconnect Google$/ })).toBeDisabled();
     await userEvent.click(page.getByRole('tab', { name: 'Account' }));
     await expect(page.getByRole('link', { name: /^Delete account$/ })).toBeVisible();
   },
