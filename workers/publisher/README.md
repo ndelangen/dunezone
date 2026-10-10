@@ -82,6 +82,8 @@ hour rather than immutably, because the lock can point the URL at a new original
 other file under those prefixes, such as a committed SVG or a raster not yet published,
 comes from the release's static files, and the SPA fallback's HTML answers 404.
 Rulebook illustrations load artwork through the same path.
+If the R2 read fails, a bundled static copy can still answer the legacy URL.
+Without that copy, the request answers 503 with `Cache-Control: no-store`, so an outage is not mistaken for a missing image.
 
 `PUT /m/<name>` is the only way in. It takes `MEDIA_PUBLISH_TOKEN` as a bearer
 token, checks the body against the image type its extension names, and creates the
