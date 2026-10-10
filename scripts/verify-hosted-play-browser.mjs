@@ -13,6 +13,7 @@ import { acceptsPlayGameAddress, hasLocalPlayGameProfanity } from '../convex/lib
 import { PHASE_VIEWS } from '../src/app/widgets/tabletop/playView';
 import { turnTrackerLayout } from '../src/app/widgets/tabletop/turnTrackerGeometry';
 import { normalizePlayGameSlug } from '../src/shared/play/gameNames.ts';
+import { lastTurnOf, turnCaption } from '../src/shared/play/lastTurn.ts';
 import { phaseAt, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
 import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../src/shared/play/protocol.ts';
 import { setupReadyRequired, setupStep } from '../src/shared/play/setup.ts';
@@ -1108,7 +1109,7 @@ async function displayedPhase(who, index, { held = false } = {}) {
     await who.page.mouse.move(0, 0);
   }
   const header = who.page.locator('.seated-header');
-  await header.getByText(`Turn ${tableProgressFor(index).turn}`, { exact: true }).waitFor();
+  await header.getByText(turnCaption(tableProgressFor(index).turn), { exact: true }).waitFor();
   await header.getByText(phase.label, { exact: true }).waitFor();
   const symbol = header.locator('svg[aria-hidden="true"] use');
   await symbol.waitFor({ state: 'attached' });
@@ -1386,9 +1387,11 @@ async function clickTurnOnWheel(who, current, turn) {
   const { phase, phases } = who.view().snapshot;
   const turnSlot = trackerArcSlots(tableProgressFor(phase, phases).phases.length).find((slot) => slot.kind === 'turn');
   assert.ok(turnSlot, 'The shared layout must include the turn disc.');
-  const sector = turnTrackerLayout({ radius: turnSlot.radius, turn: current }).sectors.find(
-    (value) => value.turn === turn
-  );
+  const sector = turnTrackerLayout({
+    radius: turnSlot.radius,
+    turn: current,
+    lastTurn: lastTurnOf(who.view().snapshot),
+  }).sectors.find((value) => value.turn === turn);
   assert.ok(sector, `Turn ${turn} must be printed on the wheel at turn ${current}.`);
   const wheelPoint = await point(who, [
     turnSlot.position[0] + sector.position[0],

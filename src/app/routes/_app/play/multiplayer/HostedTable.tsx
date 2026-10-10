@@ -2,6 +2,7 @@ import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, 
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
+import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { phaseGate, setupMapVisible, setupStep } from '@shared/play/setup';
@@ -30,7 +31,6 @@ import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
-import { BidderSettings } from './BidderSettings';
 import { BidderToolbar } from './BidderToolbar';
 import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, DraftingReadiness } from './Drafting';
@@ -43,6 +43,7 @@ import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
 import { SwappingReadiness } from './Swapping';
 import { SwapScene } from './SwapScene';
+import { TableSettings } from './TableSettings';
 import { ServerClockContext } from './useServerNow';
 import '../dune-play.css';
 
@@ -111,6 +112,11 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
 }
 
 /* A seat reads by the faction it carries; a seat with no faction yet, or a spectator, by what it is. */
+/** Where the game stands, with the last turn its wheel counts up to. */
+function gameProgress(snapshot: TableProjection['snapshot']) {
+  return { ...tableProgressFor(snapshot.phase, snapshot.phases), lastTurn: lastTurnOf(snapshot) };
+}
+
 function seatLabel(table: TableProjection): string {
   const seat = table.viewer.viewerSeat;
   if (seat === SPECTATOR_SEAT) {
@@ -730,7 +736,7 @@ function ConnectedTable({
   error: string | null;
   connection: string;
 }>) {
-  const progress = tableProgressFor(table.snapshot.phase, table.snapshot.phases);
+  const progress = gameProgress(table.snapshot);
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
@@ -990,7 +996,7 @@ function ConnectedTable({
                   {stage === 'play' || stage === 'finished' ? (
                     <>
                       <DetermineWinner client={client} table={table} />
-                      {stage === 'play' && <BidderSettings client={client} table={table} />}
+                      <TableSettings client={client} table={table} />
                       <PlaybackControls client={client} table={table} />
                       {error && <FormError title="From the table">{error}</FormError>}
                       {stage === 'play' && (table.snapshot.battle || progress.activePhaseId === 'battle') && (
