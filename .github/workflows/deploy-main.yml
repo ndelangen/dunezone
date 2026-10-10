@@ -246,7 +246,7 @@ jobs:
           MEDIA_PUBLISH_TOKEN="$(cat "$RUNNER_TEMP/media-publish-token")"
           export MEDIA_PUBLISH_TOKEN
           bun run media:publish --await-token
-          bun run media:publish
+          bun run media:publish --rotated-token
 
       - name: Deploy exact Worker release
         run: >-

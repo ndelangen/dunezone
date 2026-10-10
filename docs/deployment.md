@@ -414,9 +414,12 @@ deploying. In every other case the `deploy` job runs:
     one minute for the new bearer to reach the Worker. A secret update succeeded before the previous
     token stopped serving requests in the #2037 reproduction; the new token became usable after 9.4
     seconds. An unexpected refusal stops the check, and a token that never becomes usable fails at
-    the deadline. Once ready, `bun run media:publish` uploads the
+    the deadline. Once ready, `bun run media:publish --rotated-token` uploads the
     variants R2 lacks to `/m` and HEADs every variant the release names. A failure here leaves the
     previous release serving; see [Media runbooks](./technical/media-runbooks.md).
+    During that command's first minute, a write that reaches a stale bearer rechecks readiness and
+    retries the identical write. That window is shared by the whole command, and ordinary publishing
+    without `--rotated-token` still refuses an unauthorized request immediately.
 12. Deploy the publisher, then wait for Cloudflare's control plane to report its tagged version as
     the active deployment, reading the deployments list every ten seconds for up to twenty minutes,
     then smoke the workers.dev and `dune.zone` health endpoints. The game health request goes through

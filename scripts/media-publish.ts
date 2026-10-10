@@ -3,6 +3,7 @@
  *
  * `MEDIA_PUBLISH_TOKEN=… bun run media:publish` uploads the variants `/m` lacks.
  * `--await-token` waits up to one minute for a newly installed token without writing media or a release record.
+ * `--rotated-token` permits publishing to recover from stale-bearer 401 responses for its first minute.
  * With MEDIA_RELEASE_ID set it then writes that release's `prepared` record to the ledger, listing every variant the release serves.
  * `bun run media:publish --deployed` writes the release's `deployed` marker, which the Worker accepts only once the record exists.
  * `bun run media:publish --verify` needs no token: it downloads variants from `/m` and from their legacy static URLs and checks both against the local checksum record.
@@ -25,7 +26,7 @@ import type { RasterLock } from '../src/shared/media/rasterLock';
 import { fetchMedia, integrityMatches, storedState } from './lib/media-fetch';
 import type { Fetched } from './lib/media-fetch';
 import { readVerified, selectChecks, verifiedIdentity, writeVerified } from './lib/media-verified';
-import { waitForMediaPublishToken } from './media-publish-token';
+import { fetchMediaAfterTokenRotation, waitForMediaPublishToken } from './media-publish-token';
 import { checksumRecord, matchesRecord, planVariants } from './media-variants';
 import type { ChecksumRecord, PlannedVariant } from './media-variants';
 import { describeError } from './retry-transient';
@@ -41,6 +42,8 @@ const markDeployed = process.argv.includes('--deployed');
 const token = process.env.MEDIA_PUBLISH_TOKEN;
 const release = process.env.MEDIA_RELEASE_ID;
 const awaitToken = process.argv.includes('--await-token');
+const rotatedToken = process.argv.includes('--rotated-token');
+const tokenDeadline = Date.now() + 60_000;
 /* Most requests are HEADs or small downloads; 32 at a time asked about 2.6k variants in about 6 s. */
 const CONCURRENCY = 32;
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
@@ -54,12 +57,14 @@ if (markDeployed && !release) {
   process.exit(1);
 }
 
-if (awaitToken) {
+if (awaitToken || rotatedToken) {
   if (!token || !release || !/^[0-9a-f]{40}-[0-9]{1,20}$/.test(release)) {
     throw new Error('Token readiness requires MEDIA_PUBLISH_TOKEN and a valid MEDIA_RELEASE_ID.');
   }
-  await waitForMediaPublishToken({ origin, token, release });
-  process.exit(0);
+  if (awaitToken) {
+    await waitForMediaPublishToken({ origin, token, release });
+    process.exit(0);
+  }
 }
 
 const lock = JSON.parse(readFileSync(path.join(repoRoot, 'media/raster.lock.json'), 'utf8')) as RasterLock;
@@ -85,11 +90,20 @@ function local(variant: PlannedVariant): Local {
   return { variant, bytes, record };
 }
 
+function fetchPublishingMedia(url: string, init: RequestInit, subject: string) {
+  const options = { subject, delaysMs: RETRY_DELAYS_MS };
+  return rotatedToken && init.method === 'PUT'
+    ? fetchMediaAfterTokenRotation(
+        { origin, token: token!, release: release!, deadline: tokenDeadline },
+        url,
+        init,
+        options
+      )
+    : fetchMedia(url, init, options);
+}
+
 function fetchVariant(item: Local, init: RequestInit = {}) {
-  return fetchMedia(`${origin}/m/${item.variant.name}`, init, {
-    subject: item.variant.name,
-    delaysMs: RETRY_DELAYS_MS,
-  });
+  return fetchPublishingMedia(`${origin}/m/${item.variant.name}`, init, item.variant.name);
 }
 
 type Outcome = 'present' | 'published' | 'verified';
@@ -145,10 +159,10 @@ async function verify(item: Local): Promise<Outcome> {
 
 /** Writes one ledger object through the Worker and checks its receipt. */
 async function writeLedger(pathname: string, body: string): Promise<{ object: string; created: boolean }> {
-  const fetched = await fetchMedia(
+  const fetched = await fetchPublishingMedia(
     `${origin}${pathname}`,
     { method: 'PUT', body, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
-    { subject: pathname, delaysMs: RETRY_DELAYS_MS }
+    pathname
   );
   const text = new TextDecoder().decode(fetched.bytes);
   if (fetched.status !== 201 && fetched.status !== 200) {
