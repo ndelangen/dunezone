@@ -95,7 +95,7 @@ describe('permanent Play names and addresses', () => {
       expect(hasLocalPlayGameProfanity(name)).toBe(false);
       expect(hasLocalPlayGameProfanity(normalizePlayGameSlug(name))).toBe(false);
     }
-    for (const name of ['5h1t storm', 'Spice b1tch', 'a55hole parade']) {
+    for (const name of ['5h1t storm', 'Dune 5h1t storm', 'Big shi7 energy', 'Spice b1tch', 'a55hole parade']) {
       expect(hasLocalPlayGameProfanity(name)).toBe(true);
     }
   });

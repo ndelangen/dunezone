@@ -1726,6 +1726,26 @@ describe('peeking', () => {
     expect(table(client).peek?.piece.id).toBe('treachery-deck');
   });
 
+  test('a closed peek shows again once the room confirms the close, so a later peek at the same deck from another tab shows', async () => {
+    const client = await connected();
+    const snapshot = peeked();
+    socket().deliver(view({ snapshot }));
+    table(client).closePeek!();
+    socket().deliver(view({ sequence: 2, snapshot: { ...snapshot, revision: 1, peek: undefined } }));
+    expect(table(client).peek).toBeNull();
+    socket().deliver(view({ sequence: 3, snapshot: { ...snapshot, revision: 2 } }));
+    expect(table(client).peek?.piece.id).toBe('treachery-deck');
+  });
+
+  test('a refused close shows the peek again', async () => {
+    const client = await connected();
+    socket().deliver(view({ snapshot: peeked() }));
+    table(client).closePeek!();
+    expect(table(client).peek).toBeNull();
+    socket().deliver({ type: 'rejected', requestId: command().commandId, message: 'The table changed.' });
+    expect(table(client).peek?.piece.id).toBe('treachery-deck');
+  });
+
   test('a peek can be closed while a piece is held', async () => {
     const { client, carried } = await grantedWholeCarry();
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;

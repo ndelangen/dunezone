@@ -82,7 +82,8 @@ export function biddingAfterTable(
     return {};
   }
   if (next.phase !== snapshot.phase) {
-    return { bidding: idleBidding(snapshot.bidding.seconds) };
+    /* The round count keeps rising, so a raise or pass sent in an earlier Bidding phase never lands in a later one. */
+    return { bidding: { ...idleBidding(snapshot.bidding.seconds), round: snapshot.bidding.round } };
   }
   return { bidding: reconcileBidding(snapshot.bidding, context(next, now)) };
 }

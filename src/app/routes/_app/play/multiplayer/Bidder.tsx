@@ -6,7 +6,7 @@ import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { stormOrder } from '@shared/play/stormSector';
 import { BOARD_RADIUS, BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
-import { useEffect, useMemo } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { ExtrudeGeometry, Shape } from 'three';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
@@ -15,7 +15,7 @@ import styles from './Bidder.module.css';
 import { OpenRound, RoundResult } from './BidderFace';
 import { faceHalfHeight, faceHalfWidth, faceOnCanvas } from './bidderFacePosition';
 import { useBidderRotation } from './bidderRotation';
-import { useServerNow } from './useServerNow';
+import { ServerClockContext, useServerNow } from './useServerNow';
 
 type Props = { client: TableSession; table: TableProjection; faded?: boolean };
 
@@ -76,11 +76,14 @@ function Bidder({ client, table, faded = false }: Props) {
   const halfWidth = faceHalfWidth(factions);
   const halfHeight = faceHalfHeight(factions);
   const placeFace = useMemo(() => faceOnCanvas(halfWidth, halfHeight), [halfWidth, halfHeight]);
-  const now = useServerNow();
+  const tick = useServerNow();
+  /* The shared reading can be up to a second older than a new deadline, so a new deadline takes a fresh one and never opens a second high. */
+  const serverClock = useContext(ServerClockContext);
+  const reading = useMemo(() => (bidding.deadline === null ? 0 : serverClock()), [serverClock, bidding.deadline]);
+  const now = Math.max(tick, reading);
   const remaining =
     bidding.stage === 'open' && bidding.deadline !== null
-      ? /* The server clock reading is up to a tick older than the deadline's start, so the count is capped at the full time. */
-        Math.min(bidding.seconds, Math.max(0, Math.ceil((bidding.deadline - now) / 1000)))
+      ? Math.max(0, Math.ceil((bidding.deadline - now) / 1000))
       : null;
   return (
     <group position={[0, BIDDER_HOVER_Y, 0]}>

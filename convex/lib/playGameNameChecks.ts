@@ -65,7 +65,7 @@ const LETTER_FORMS: Readonly<Record<string, string>> = {
   u: '[u*]',
 };
 const SEPARATOR_CHARACTER = '[\\s\\p{P}\\p{S}]';
-/* A digit counts as a letter only joined to the letters around it, so a number standing alone, as in "Top 5 hits" or its address top-5-hits, spells nothing. */
+/* A digit counts as a letter unless it stands alone between separators, so "Top 5 hits" and its address top-5-hits spell nothing while "5h1t" still does. */
 function letterForm(letter: string) {
   const form = LETTER_FORMS[letter];
   if (!form) {
@@ -73,7 +73,9 @@ function letterForm(letter: string) {
   }
   const digits = form.slice(1, -1).replace(/\D/g, '');
   const others = form.replace(/\d/g, '');
-  return digits ? `(?:${others}|(?<!${SEPARATOR_CHARACTER})[${digits}](?!${SEPARATOR_CHARACTER}))` : form;
+  const joined = `[^${SEPARATOR_CHARACTER.slice(1, -1)}]`;
+  const alone = `(?<!${joined})[${digits}](?!${joined})`;
+  return digits ? `(?:${others}|(?!${alone})[${digits}])` : form;
 }
 const SEPARATOR = `${SEPARATOR_CHARACTER}{0,3}`;
 const WORD_PATTERNS = PROFANE_WORDS.map((word) => [...word].map(letterForm).join(SEPARATOR)).join('|');
