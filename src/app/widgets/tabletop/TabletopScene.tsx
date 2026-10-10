@@ -165,7 +165,7 @@ const PlayCamera = lazy(() => import('./PlayCamera').then((module) => ({ default
 const BOARD_MAP_BASE_COLOR = '#000000';
 const BOARD_MAP_LIFT = 0.001;
 const BOARD_RIM_DIVIDER_COLOR = '#050505';
-const BOARD_RIM_SHADOW_SPREAD = 0.28;
+const BOARD_RIM_SHADOW_SPREAD = 0.2;
 const BOARD_RIM_DIVIDER_OVERLAP = 0.002;
 const BOARD_RIM_DIVIDER_WIDTH = 0.035;
 const BOARD_RIM_EXTRUDE_OPTIONS = {
@@ -279,7 +279,7 @@ function BoardRimShadow() {
       radius={BOARD_RIM_RADIUS}
       spread={BOARD_RIM_SHADOW_SPREAD}
       y={TABLE_SURFACE_Y + 0.001}
-      opacity={0.85}
+      opacity={0.4}
       size={2048}
     />
   );
