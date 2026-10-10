@@ -5,6 +5,7 @@ import { CanvasTexture } from 'three';
  * A soft shadow painted flat under something round: dark under its `radius` and fading out over `spread` past its edge.
  * The table casts no shadow maps, so a painted disc is all a shadow costs.
  */
+/* Kept for the page's lifetime: one small texture per fade shape, and the table uses only a handful. */
 const shadowTextures = new Map<string, CanvasTexture>();
 function shadowTexture(solid: number, size: number) {
   const key = `${Math.round(solid * 10_000)}:${size}`;

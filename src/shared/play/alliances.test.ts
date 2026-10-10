@@ -39,10 +39,12 @@ describe('alliances', () => {
     state = act(state, 'emperor', { kind: 'alliance-offer', factionId: 'fremen' });
     state = act(state, 'fremen', { kind: 'alliance-accept', factionId: 'emperor' });
     expect(alliesOf(state, 'emperor').sort()).toEqual(['atreides', 'fremen']);
-    state = act(state, 'emperor', { kind: 'alliance-break' });
+    state = act(state, 'emperor', { kind: 'alliance-break', factionId: 'fremen' });
     expect(alliesOf(state, 'atreides')).toEqual(['fremen']);
-    state = act(state, 'atreides', { kind: 'alliance-break' });
+    state = act(state, 'atreides', { kind: 'alliance-break', factionId: 'fremen' });
     expect(state.groups).toEqual([]);
+    /* A break sent for an alliance that has since changed is turned away rather than leaving a newer one. */
+    expect(() => act(state, 'atreides', { kind: 'alliance-break', factionId: 'fremen' })).toThrow('already changed');
   });
 
   test('an offer to yourself, an ally or a faction not at the table is refused', () => {

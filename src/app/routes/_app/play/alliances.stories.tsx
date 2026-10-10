@@ -40,13 +40,18 @@ function liveTransport() {
   let snapshot = alliancesSnapshot();
   const own = faction(snapshot, VIEWER);
   const factions = snapshot.roster!.seats.flatMap(({ faction: entry }) => (entry ? [entry.id] : []));
+  /* A refused command, such as a second click on Accept, leaves the table as it was, as the Worker would. */
   const apply = (factionId: string, action: Parameters<typeof applyAlliance>[1]) => {
-    const alliances: AllianceState = applyAlliance(snapshot.alliances!, action, {
-      factionId,
-      factions,
-      now: Date.now(),
-    });
-    snapshot = { ...snapshot, revision: snapshot.revision + 1, alliances };
+    try {
+      const alliances: AllianceState = applyAlliance(snapshot.alliances!, action, {
+        factionId,
+        factions,
+        now: Date.now(),
+      });
+      snapshot = { ...snapshot, revision: snapshot.revision + 1, alliances };
+    } catch {
+      // The story's other side shows no rejection.
+    }
   };
   const transport = productTransport(VIEWER, snapshot, {
     answerCommand: (message: Extract<ClientMessage, { type: 'command' }>) => {

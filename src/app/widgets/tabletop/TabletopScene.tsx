@@ -280,7 +280,7 @@ function BoardRimShadow() {
       spread={BOARD_RIM_SHADOW_SPREAD}
       y={TABLE_SURFACE_Y + 0.001}
       opacity={0.4}
-      size={2048}
+      size={1024}
     />
   );
 }

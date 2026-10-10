@@ -10,24 +10,21 @@ import { Surface } from '@ui/surface/Surface';
 import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { allianceThemeColor } from './allianceHues';
+import { allianceSlot, allianceThemeColor } from './allianceHues';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
-export function viewerFaction(table: TableProjection): string | undefined {
+function viewerFaction(table: TableProjection): string | undefined {
   return rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
 }
 
 /** The ring colour of the alliance `factionId` belongs to, or undefined when it stands alone. */
-export function allianceHue(alliances: AllianceState | undefined, factionId: string | undefined) {
-  if (!factionId) {
-    return undefined;
-  }
-  const index = alliances?.groups.findIndex((group) => group.includes(factionId)) ?? -1;
-  return index < 0 ? undefined : allianceThemeColor(index);
+export function allianceHue(snapshot: TableProjection['snapshot'], factionId: string | undefined) {
+  const slot = allianceSlot(snapshot, factionId);
+  return slot === undefined ? undefined : allianceThemeColor(slot);
 }
 
-export function factionList(names: Readonly<Record<string, string>>, ids: readonly string[]) {
+function factionList(names: Readonly<Record<string, string>>, ids: readonly string[]) {
   const labels = ids.map((id) => names[id] ?? id);
   return labels.length < 2 ? (labels[0] ?? '') : `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}`;
 }
@@ -84,7 +81,7 @@ export function PlayerAlliance({ client, table, seat }: Props & Readonly<{ seat:
   return (
     <Group gap="sm" justify="space-between" wrap="wrap">
       <Group gap="xs" wrap="nowrap">
-        <AllianceMark hue={allianceHue(table.snapshot.alliances, factionId)} />
+        <AllianceMark hue={allianceHue(table.snapshot, factionId)} />
         <Text size="sm">{rowStatus(table.snapshot.alliances, row, viewerFaction(table), names)}</Text>
       </Group>
       <RowAction client={client} table={table} row={row} />
@@ -176,8 +173,9 @@ function RowAction({ client, table, row }: Props & Readonly<{ row: Row }>) {
     return null;
   }
   const Action = ACTIONS[relationTo(table.snapshot.alliances, own, row.factionId)];
-  const send = (kind: AllianceCommandKind) =>
-    client.command(kind === 'alliance-break' ? { kind } : { kind, factionId: row.factionId });
+  /* Breaking names an ally the viewer saw, so a late click never leaves an alliance formed since. */
+  const target = row.factionId === own ? (alliesOf(table.snapshot.alliances, own)[0] ?? own) : row.factionId;
+  const send = (kind: AllianceCommandKind) => client.command({ kind, factionId: target });
   return <Action disabled={!table.canInteract} send={send} />;
 }
 
@@ -227,7 +225,7 @@ export function AlliancesPanel({ client, table }: Props) {
       <Stack gap="xs">
         {rows.map((row) => {
           const logo = snapshot.factionArtwork?.[row.factionId]?.logo;
-          const hue = allianceHue(snapshot.alliances, row.factionId);
+          const hue = allianceHue(snapshot, row.factionId);
           return (
             <Group key={row.factionId} justify="space-between" gap="sm" wrap="nowrap">
               <Group gap="sm" wrap="nowrap">

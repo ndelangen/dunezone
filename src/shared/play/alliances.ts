@@ -21,7 +21,8 @@ export const allianceActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('alliance-withdraw'), factionId: id }),
   z.strictObject({ kind: z.literal('alliance-accept'), factionId: id }),
   z.strictObject({ kind: z.literal('alliance-decline'), factionId: id }),
-  z.strictObject({ kind: z.literal('alliance-break') }),
+  /* Names one ally the breaking faction saw, so a late break never leaves an alliance formed since. */
+  z.strictObject({ kind: z.literal('alliance-break'), factionId: id }),
 ]);
 export type AllianceAction = z.infer<typeof allianceActionSchema>;
 const kinds: ReadonlySet<string> = new Set(allianceActionSchema.options.map((option) => option.shape.kind.value));
@@ -51,7 +52,7 @@ export type AllianceContext = {
   now: number;
 };
 
-/* Who offered whom: the pair an offer, an answer or a withdrawal is about. */
+/* The two factions an offer, an answer, a withdrawal or a break is about. */
 type Pair = Readonly<{ from: string; to: string }>;
 
 /** Joins the alliances of the two factions, dropping the offers the new alliance answered among its own members. */
@@ -64,6 +65,9 @@ function join(state: AllianceState, { from: a, to: b }: Pair): AllianceState {
 }
 
 function without(state: AllianceState, { from, to }: Pair): AllianceState {
+  if (!state.offers.some((offer) => offer.from === from && offer.to === to)) {
+    return state;
+  }
   return { ...state, offers: state.offers.filter((offer) => offer.from !== from || offer.to !== to) };
 }
 
@@ -93,15 +97,13 @@ function answer(state: AllianceState, from: string, accept: boolean, { factionId
 }
 
 /** Breaking an alliance takes the faction out of it; an alliance left with one faction is over. */
-function breakAway(state: AllianceState, factionId: string): AllianceState {
-  if (!alliesOf(state, factionId).length) {
-    return state;
+function breakAway(state: AllianceState, { from, to }: Pair): AllianceState {
+  if (!alliesOf(state, from).includes(to)) {
+    return refuse('That alliance has already changed.');
   }
   return {
     ...state,
-    groups: state.groups
-      .map((group) => group.filter((member) => member !== factionId))
-      .filter((group) => group.length > 1),
+    groups: state.groups.map((group) => group.filter((member) => member !== from)).filter((group) => group.length > 1),
   };
 }
 
@@ -117,6 +119,6 @@ export function applyAlliance(state: AllianceState, action: AllianceAction, cont
     case 'alliance-decline':
       return answer(state, action.factionId, false, context);
     case 'alliance-break':
-      return breakAway(state, context.factionId);
+      return breakAway(state, { from: context.factionId, to: action.factionId });
   }
 }

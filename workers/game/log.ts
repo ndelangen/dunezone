@@ -404,7 +404,10 @@ function allianceEntries(
     return [];
   }
   const people: Person[] = [];
-  const names = (ids: readonly string[]) => ids.map((id) => faction(id, people)).join(', ');
+  const names = (ids: readonly string[]) => {
+    const labels = ids.map((id) => faction(id, people));
+    return labels.length < 2 ? (labels[0] ?? '') : `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}`;
+  };
   const template = (() => {
     if (message.action.kind === 'alliance-break') {
       const leaver = rosterSeat(before.roster, viewer.viewerSeat)?.faction?.id;

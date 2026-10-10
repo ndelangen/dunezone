@@ -166,7 +166,7 @@ export function PlayerPanel({
     const active = votes.some((candidate) => candidate.target.seat === entry.seat);
     const token = table.snapshot.swapping?.tokens[entry.seat];
     const unreadLabel = unread(entry.seat) ? `, ${unread(entry.seat)} unread` : '';
-    const hue = allianceHue(table.snapshot.alliances, rosterSeat(table.snapshot.roster, entry.seat)?.faction?.id);
+    const hue = allianceHue(table.snapshot, rosterSeat(table.snapshot.roster, entry.seat)?.faction?.id);
     return (
       <NestedTabs.Item
         key={entry.seat}

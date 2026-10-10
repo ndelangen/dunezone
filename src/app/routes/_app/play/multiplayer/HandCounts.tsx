@@ -13,7 +13,7 @@ import {
 } from '@app/widgets/tabletop/tableLabelFont';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
-import { allianceColor } from './allianceHues';
+import { allianceColor, allianceSlot } from './allianceHues';
 
 /* The left card bay leaves its outer bottom slot empty: the counts fill exactly the space a card well would. */
 const [, SURFACE_Y, SLOT_Z] = cardBaySlotPositions('left').at(-1)!;
@@ -156,7 +156,7 @@ function handCountRows(table: TableProjection, order: readonly string[]): Row[] 
   return order.map((id) => {
     const token = table.state.pieces.find((piece) => piece.stackKey === factionTokenStackKey(id));
     const name = table.state.factionNames[id] ?? id;
-    const alliance = table.snapshot.alliances?.groups.findIndex((group) => group.includes(id)) ?? -1;
+    const alliance = allianceSlot(table.snapshot, id);
     return {
       id,
       count: counts[id] ?? 0,
@@ -164,7 +164,7 @@ function handCountRows(table: TableProjection, order: readonly string[]): Row[] 
       front: token?.items[0]?.artwork?.front ?? null,
       color: token?.color ?? '#3a2a22',
       initials: name.slice(0, 2).toUpperCase(),
-      ring: alliance >= 0 ? allianceColor(alliance) : null,
+      ring: alliance === undefined ? null : allianceColor(alliance),
     };
   });
 }

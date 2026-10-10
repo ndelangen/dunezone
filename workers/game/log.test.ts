@@ -106,6 +106,46 @@ describe('the public log', () => {
     ]);
   });
 
+  it('records an alliance forming and breaking, and nothing for an offer', () => {
+    const log = new PublicLog(memoryStorage(), () => 'Turn 1');
+    log.enabled = true;
+    const roster = {
+      seats: [
+        { id: 'seat-1', faction: { id: 'house', name: 'House' } },
+        { id: 'seat-2', faction: { id: 'fremen', name: 'Fremen' } },
+        { id: 'seat-3', faction: { id: 'guild', name: 'Guild' } },
+      ],
+    };
+    const at = (revision: number, groups: string[][]) =>
+      snapshot(revision, { roster, alliances: { groups, offers: [] } } as never);
+    const command = (action: object) => ({ type: 'command', action }) as never;
+    log.recordCommit({
+      holders: [],
+      before: at(1, []),
+      next: at(2, []),
+      message: command({ kind: 'alliance-offer', factionId: 'fremen' }),
+      viewer: viewer as never,
+    });
+    log.recordCommit({
+      holders: [],
+      before: at(2, [['house', 'fremen']]),
+      next: at(3, [['house', 'fremen', 'guild']]),
+      message: command({ kind: 'alliance-accept', factionId: 'house' }),
+      viewer: viewer as never,
+    });
+    log.recordCommit({
+      holders: [],
+      before: at(3, [['house', 'fremen', 'guild']]),
+      next: at(4, [['fremen', 'guild']]),
+      message: command({ kind: 'alliance-break', factionId: 'fremen' }),
+      viewer: viewer as never,
+    });
+    expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
+      'House broke its alliance with Fremen and Guild.',
+      'House, Fremen and Guild are now allied.',
+    ]);
+  });
+
   it('names the player of a faction whose name another seat shares, and forgets them on deletion', () => {
     const log = new PublicLog(memoryStorage(), () => 'Turn 1');
     log.enabled = true;

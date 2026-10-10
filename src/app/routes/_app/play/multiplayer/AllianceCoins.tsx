@@ -30,7 +30,8 @@ const SHADOW_SPREAD = 0.08;
 const SHADOW_OPACITY = 0.75;
 function Coin({ ally, index, base }: { ally: TablePiece | null; index: number; base: number }) {
   const radius = TOKEN_RADIUS + COIN_BAND * (index + 1);
-  const top = Math.max(TABLE_SURFACE_Y + MIN_HEIGHT, base - DROP) - index * 0.003;
+  /* Each wider coin sits a hair lower than the one above it, never thinner than MIN_HEIGHT. */
+  const top = Math.max(TABLE_SURFACE_Y + MIN_HEIGHT, base - DROP - index * 0.003);
   const height = top - TABLE_SURFACE_Y;
   return (
     <group position={[0, TABLE_SURFACE_Y, 0]}>
