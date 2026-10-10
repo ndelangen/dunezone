@@ -85,14 +85,11 @@ if (process.env.AUTH_REDDIT_ID && process.env.AUTH_REDDIT_SECRET && process.env.
       profile: (profile) => ({ id: profile.id, name: profile.name }),
     }),
     /* Convex Auth's provider options merge excludes symbol keys. */
-    [customFetch]: Object.assign(
-      (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
-        const headers = new Headers(init?.headers);
-        headers.set('User-Agent', process.env.AUTH_REDDIT_USER_AGENT!);
-        return fetch(input, { ...init, headers });
-      },
-      { preconnect: fetch.preconnect }
-    ),
+    [customFetch]: Object.assign((input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+      const headers = new Headers(init?.headers);
+      headers.set('User-Agent', process.env.AUTH_REDDIT_USER_AGENT!);
+      return fetch(input, { ...init, headers });
+    }, fetch),
   });
 }
 
