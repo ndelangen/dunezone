@@ -4,7 +4,7 @@ import { factionTokenStackKey } from '@shared/play/factionToken';
 import type { TablePiece } from '@shared/play/model';
 import { FACTION_TOKEN_SCALE, TABLE_SURFACE_Y, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS } from '@shared/play/tableGeometry';
 import { useEffect, useState } from 'react';
-import { SRGBColorSpace, TextureLoader } from 'three';
+import { CanvasTexture, SRGBColorSpace, TextureLoader } from 'three';
 import type { Texture } from 'three';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
@@ -74,7 +74,53 @@ function Plate({ ally, index, base }: { ally: TablePiece | null; index: number; 
           <meshStandardMaterial color={CREAM} roughness={0.6} metalness={0.05} />
         </mesh>
       )}
+      <Shadow radius={radius - PLATE_BAND} y={height + 0.0016} />
+      <Shadow radius={radius} y={0.001} />
     </group>
+  );
+}
+
+/*
+ * A soft shadow under something round of `radius`, fading out just past its edge: the token's on its coin, and the coin's on the table.
+ * The table casts no shadow maps, so it is painted.
+ */
+const SHADOW_SPREAD = 0.08;
+const SHADOW_OPACITY = 0.75;
+const shadowTextures = new Map<number, CanvasTexture>();
+function shadowTexture(solid: number) {
+  const key = Math.round(solid * 1000);
+  const cached = shadowTextures.get(key);
+  if (cached) {
+    return cached;
+  }
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const context = canvas.getContext('2d')!;
+  const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
+  gradient.addColorStop(solid, 'rgba(0, 0, 0, 0.85)');
+  gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, size, size);
+  const texture = new CanvasTexture(canvas);
+  shadowTextures.set(key, texture);
+  return texture;
+}
+
+function Shadow({ radius, y }: { radius: number; y: number }) {
+  const outer = radius + SHADOW_SPREAD;
+  return (
+    <mesh raycast={ignoreRaycast} position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
+      <circleGeometry args={[outer, 96]} />
+      <meshBasicMaterial
+        map={shadowTexture(radius / outer)}
+        transparent
+        opacity={SHADOW_OPACITY}
+        depthWrite={false}
+        color="#000000"
+      />
+    </mesh>
   );
 }
 
