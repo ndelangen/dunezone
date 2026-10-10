@@ -35,6 +35,32 @@ describe('turn tracker layout and selection', () => {
     ]);
   });
 
+  test('a shorter or longer game shows one sector per turn up to its last turn', () => {
+    expect(turnTrackerLayout({ radius: 1, turn: 3, lastTurn: 6 }).sectors.map((sector) => sector.turn)).toEqual([
+      1, 2, 3, 4, 5, 6,
+    ]);
+    expect(turnTrackerLayout({ radius: 1, turn: 1, lastTurn: 15 }).sectors).toHaveLength(15);
+  });
+
+  test('past its last turn the wheel keeps counting in blocks of the same size', () => {
+    expect(turnTrackerLayout({ radius: 1, turn: 7, lastTurn: 6 }).sectors.map((sector) => sector.turn)).toEqual([
+      7, 8, 9, 10, 11, 12,
+    ]);
+  });
+
+  test.each([
+    [4, 1],
+    [6, 5],
+    [15, 12],
+    [1, 1],
+  ])('selects every label on a %i-turn wheel at turn %i', (lastTurn, turn) => {
+    const layout = turnTrackerLayout({ radius: 0.8, turn, lastTurn });
+    for (const sector of layout.sectors) {
+      expect(turnAtTrackerPoint(layout, { x: sector.position[0], z: sector.position[2] })).toBe(sector.turn);
+    }
+    expect(layout.sectors[layout.selectedIndex].turn).toBe(turn);
+  });
+
   test('rejects the hub, positions outside the disc and invalid coordinates', () => {
     const layout = turnTrackerLayout({ radius: 1, turn: 1 });
     expect(turnAtTrackerPoint(layout, { x: 0, z: 0 })).toBeNull();

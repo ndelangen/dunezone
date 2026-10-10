@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 
 import sharp from 'sharp';
 
+import { lastTurnOf, turnCaption } from '../src/shared/play/lastTurn.ts';
 import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, tableProgressFor } from '../src/shared/play/phases.ts';
 
 /**
@@ -235,14 +236,15 @@ export async function verifyPublicControls({
         a.phaseCooldown.ms > PHASE_CHANGE_COOLDOWN_MS / 2,
         `The phase change stated a ${a.phaseCooldown.ms} ms cooldown instead of the real ${PHASE_CHANGE_COOLDOWN_MS} ms.`
       );
-      const { phase, phases } = a.view().snapshot;
+      const { snapshot } = a.view();
+      const { phase, phases } = snapshot;
       await until(() => b.view().snapshot.phase === phase, 'Phase did not reach the other player.');
       /*
        * Each page notes the turn and phase its header named whenever both buttons were disabled.
        * From phase 1 on, a seated player's Previous is disabled only while the cooldown runs or while this page cannot act, as during a suspension, a re-admission or playback.
        * A note naming the new phase is therefore that phase's cooldown or a loss of interaction during that phase, and never the cooldown of the phase before it.
        */
-      const shown = `Turn ${tableProgressFor(phase, phases).turn} ${phaseAt(phase, phases).label}`;
+      const shown = `${turnCaption(tableProgressFor(phase, phases).turn, lastTurnOf(snapshot))} ${phaseAt(phase, phases).label}`;
       for (const who of viewers) {
         await until(
           () => who.page.evaluate((key) => window.hostedPlayCooldowns.has(key), shown),

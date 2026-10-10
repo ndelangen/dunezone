@@ -295,7 +295,9 @@ function TableTrackers({ progress, slots }: { progress: TableProgress; slots: re
               {slot.kind === 'phase' ? (
                 <PhaseSymbol symbol={symbol} radius={slot.radius} faceColor={color} highlighted={highlighted} />
               ) : null}
-              {slot.kind === 'turn' ? <TurnTracker radius={slot.radius} turn={progress.turn} /> : null}
+              {slot.kind === 'turn' ? (
+                <TurnTracker radius={slot.radius} turn={progress.turn} lastTurn={progress.lastTurn} />
+              ) : null}
               {slot.kind === 'spice' ? <SpiceBank radius={slot.radius} /> : null}
             </group>
           </group>

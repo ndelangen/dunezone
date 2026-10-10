@@ -15,8 +15,10 @@ function ignoreRaycast() {
 }
 
 /* The wheel only shows the turn: players change it by moving through the phases (#1683). */
-export function TurnTracker({ radius, turn }: Readonly<{ radius: number; turn: number }>) {
-  const layout = useMemo(() => turnTrackerLayout({ radius, turn }), [radius, turn]);
+export function TurnTracker({ radius, turn, lastTurn }: Readonly<{ radius: number; turn: number; lastTurn?: number }>) {
+  const layout = useMemo(() => turnTrackerLayout({ radius, turn, lastTurn }), [radius, turn, lastTurn]);
+  /* Numbers keep their ten-turn size on a shorter game and shrink to fit the narrower sectors of a longer one. */
+  const labelScale = Math.min(1, 10 / layout.sectorCount);
   const frame = useMemo(() => createTurnTrackerFrame(layout), [layout]);
   const pointer = useMemo(() => createTurnTrackerPointer(layout), [layout]);
   const wedge = useMemo(() => createTurnTrackerWedge(layout), [layout]);
@@ -44,8 +46,8 @@ export function TurnTracker({ radius, turn }: Readonly<{ radius: number; turn: n
           <TableLabel
             key={sector.turn}
             position={sector.position}
-            fontSize={radius * 0.3}
-            maxWidth={radius * 0.32}
+            fontSize={radius * 0.3 * labelScale}
+            maxWidth={radius * 0.32 * labelScale}
             color={PHASE_INK_COLOR}
           >
             {String(sector.turn)}

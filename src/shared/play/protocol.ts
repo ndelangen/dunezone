@@ -18,6 +18,7 @@ import {
 } from './conversations';
 import { draftActionSchema, draftStateSchema } from './drafting';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
+import { lastTurnActionSchema, lastTurnSchema } from './lastTurn';
 import { logEntrySchema, logTabSchema } from './log';
 import type { TableState } from './model';
 import { seatActionSchema } from './participation';
@@ -88,6 +89,8 @@ export const gameSnapshotSchema = z.object({
   bank: spiceReserveSchema.optional(),
   /* The bidder during the Bidding phase; absent until a game first reaches it. */
   bidding: biddingStateSchema.optional(),
+  /* The turn the table agreed the game ends after; absent means the standard ten. */
+  lastTurn: lastTurnSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
@@ -146,6 +149,7 @@ export type DeckAction = z.infer<typeof deckActionSchema>;
 const pieceActionSchema = z.discriminatedUnion('kind', [
   ...battleActionSchema.options,
   ...biddingActionSchema.options,
+  lastTurnActionSchema,
   ...spiceReserveActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,
