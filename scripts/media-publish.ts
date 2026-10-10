@@ -2,6 +2,7 @@
  * Publishes every encoded raster variant to R2 through the publisher Worker, and proves parity with what production serves (#1888 step 4).
  *
  * `MEDIA_PUBLISH_TOKEN=… bun run media:publish` uploads the variants `/m` lacks.
+ * `--await-token` waits up to one minute for a newly installed token without writing media or a release record.
  * With MEDIA_RELEASE_ID set it then writes that release's `prepared` record to the ledger, listing every variant the release serves.
  * `bun run media:publish --deployed` writes the release's `deployed` marker, which the Worker accepts only once the record exists.
  * `bun run media:publish --verify` needs no token: it downloads variants from `/m` and from their legacy static URLs and checks both against the local checksum record.
@@ -24,6 +25,7 @@ import type { RasterLock } from '../src/shared/media/rasterLock';
 import { fetchMedia, integrityMatches, storedState } from './lib/media-fetch';
 import type { Fetched } from './lib/media-fetch';
 import { readVerified, selectChecks, verifiedIdentity, writeVerified } from './lib/media-verified';
+import { waitForMediaPublishToken } from './media-publish-token';
 import { checksumRecord, matchesRecord, planVariants } from './media-variants';
 import type { ChecksumRecord, PlannedVariant } from './media-variants';
 import { describeError } from './retry-transient';
@@ -38,6 +40,7 @@ const verifiedFile = path.resolve(repoRoot, process.env.MEDIA_VERIFIED_FILE ?? '
 const markDeployed = process.argv.includes('--deployed');
 const token = process.env.MEDIA_PUBLISH_TOKEN;
 const release = process.env.MEDIA_RELEASE_ID;
+const awaitToken = process.argv.includes('--await-token');
 /* Most requests are HEADs or small downloads; 32 at a time asked about 2.6k variants in about 6 s. */
 const CONCURRENCY = 32;
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
@@ -49,6 +52,14 @@ if (!verifyOnly && !token) {
 if (markDeployed && !release) {
   console.error('MEDIA_RELEASE_ID is not set; --deployed marks that release.');
   process.exit(1);
+}
+
+if (awaitToken) {
+  if (!token || !release || !/^[0-9a-f]{40}-[0-9]{1,20}$/.test(release)) {
+    throw new Error('Token readiness requires MEDIA_PUBLISH_TOKEN and a valid MEDIA_RELEASE_ID.');
+  }
+  await waitForMediaPublishToken({ origin, token, release });
+  process.exit(0);
 }
 
 const lock = JSON.parse(readFileSync(path.join(repoRoot, 'media/raster.lock.json'), 'utf8')) as RasterLock;

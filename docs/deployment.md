@@ -409,7 +409,12 @@ deploying. In every other case the `deploy` job runs:
     its bound SQLite namespace, configuration and lack of public ingress before deploying the publisher.
 11. Publish the release's raster variants before it goes live (#1888). The job mints a one-off
     `MEDIA_PUBLISH_TOKEN`, drops the raster copies from the release (`publisher:omit-static-rasters`),
-    installs the token on the live publisher Worker and runs `bun run media:publish`, which uploads the
+    installs the token on the live publisher Worker, then runs `bun run media:publish --await-token`.
+    This probes authentication with invalid JSON, which cannot write a release record, and waits up to
+    one minute for the new bearer to reach the Worker. A secret update succeeded before the previous
+    token stopped serving requests in the #2037 reproduction; the new token became usable after 9.4
+    seconds. An unexpected refusal stops the check, and a token that never becomes usable fails at
+    the deadline. Once ready, `bun run media:publish` uploads the
     variants R2 lacks to `/m` and HEADs every variant the release names. A failure here leaves the
     previous release serving; see [Media runbooks](./technical/media-runbooks.md).
 12. Deploy the publisher, then wait for Cloudflare's control plane to report its tagged version as
