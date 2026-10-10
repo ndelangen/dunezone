@@ -79,7 +79,8 @@ function Bidder({ client, table, faded = false }: Props) {
   const now = useServerNow();
   const remaining =
     bidding.stage === 'open' && bidding.deadline !== null
-      ? Math.max(0, Math.ceil((bidding.deadline - now) / 1000))
+      ? /* The server clock reading is up to a tick older than the deadline's start, so the count is capped at the full time. */
+        Math.min(bidding.seconds, Math.max(0, Math.ceil((bidding.deadline - now) / 1000)))
       : null;
   return (
     <group position={[0, BIDDER_HOVER_Y, 0]}>
