@@ -134,9 +134,15 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
                   Edit profile
                 </Menu.Item>
                 {profile.isAdmin ? (
-                  <Menu.Item renderRoot={(props) => <Link {...props} to="/assets/__presets" />}>
-                    Card-back presets
-                  </Menu.Item>
+                  <>
+                    <Menu.Item renderRoot={(props) => <Link {...props} to="/_admin/accounts" />}>Accounts</Menu.Item>
+                    <Menu.Item renderRoot={(props) => <Link {...props} to="/_admin/jobs" />}>
+                      Publication jobs
+                    </Menu.Item>
+                    <Menu.Item renderRoot={(props) => <Link {...props} to="/assets/__presets" />}>
+                      Card-back presets
+                    </Menu.Item>
+                  </>
                 ) : null}
                 <Menu.Item
                   onClick={() => {

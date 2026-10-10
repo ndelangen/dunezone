@@ -1,7 +1,7 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Stack, Text } from '@mantine/core';
+import { Alert, Button, Group, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, notFound, redirect, Link, useNavigate } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
@@ -33,7 +33,10 @@ import {
   UserPlus,
   UsersRound,
 } from 'lucide-react';
+import { useReducer } from 'react';
 
+import { useBeginAuthConnection, useDisconnectAuthMethod } from '@db/accounts';
+import type { AuthProvider } from '@db/accounts';
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { forgetStoredPlayTables } from '@db/playTables';
 import type { ProfilePageData } from '@db/profiles';
@@ -50,6 +53,13 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
     const profilePage = await loadPublicPage(loadProfileBySlug(params.profileSlug));
     if (!profilePage) {
       throw notFound();
+    }
+    if (profilePage.profile.slug !== params.profileSlug) {
+      throw redirect({
+        to: '/profiles/$profileSlug',
+        params: { profileSlug: profilePage.profile.slug },
+        replace: true,
+      });
     }
     return { profilePage };
   },
@@ -403,6 +413,7 @@ function ProfileDetailPage() {
 
           <aside className={styles.sidebar} aria-label="Profile details">
             <Stack gap="sm">
+              {isSelf && page.account ? <SignInMethods account={page.account} slug={page.profile.slug} /> : null}
               <Card icon={<Link2 size={20} aria-hidden />} title="About">
                 <ProposedContent label="Proposed profile fields">
                   <Text size="sm" c="dimmed">
@@ -429,5 +440,111 @@ function ProfileDetailPage() {
         </div>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+function SignInMethods({ account, slug }: { account: NonNullable<ProfilePageData['account']>; slug: string }) {
+  const begin = useBeginAuthConnection();
+  const disconnect = useDisconnectAuthMethod();
+  const { signIn } = useAuthActions();
+  const [state, dispatch] = useReducer(
+    (
+      state: { confirming: AuthProvider | null; busy: AuthProvider | null; error: string | null },
+      update: Partial<typeof state>
+    ) => ({ ...state, ...update }),
+    { confirming: null, busy: null, error: null }
+  );
+  const connect = async (provider: AuthProvider) => {
+    dispatch({ busy: provider, error: null });
+    try {
+      const intent = await begin({ provider });
+      await signIn(provider, {
+        redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect?connection=${intent.token}`,
+      });
+    } catch (error) {
+      dispatch({ error: error instanceof Error ? error.message : 'The sign-in could not start.', busy: null });
+    }
+  };
+  const remove = async (provider: AuthProvider) => {
+    dispatch({ busy: provider, error: null });
+    try {
+      await disconnect({ provider });
+      dispatch({ confirming: null });
+    } catch (error) {
+      dispatch({ error: error instanceof Error ? error.message : 'The sign-in method could not be disconnected.' });
+    } finally {
+      dispatch({ busy: null });
+    }
+  };
+  return (
+    <Card icon={<Link2 size={20} aria-hidden />} title="Sign-in methods">
+      <Stack gap="sm">
+        <Text size="sm">
+          Connect Google or Discord to use either account for this profile. Keep at least one connected.
+        </Text>
+        {account.merging && (
+          <Text size="sm">A profile merge is in progress. Sign-in methods can be changed when it finishes.</Text>
+        )}
+        {state.error && (
+          <Alert color="red" role="alert">
+            {state.error}
+          </Alert>
+        )}
+        {account.methods.map((method) => {
+          const name = method.provider === 'google' ? 'Google' : 'Discord';
+          const canDisconnect = account.methods.some(
+            (other) => other.provider !== method.provider && other.connected && other.available
+          );
+          return (
+            <Stack key={method.provider} gap="xs">
+              <Group justify="space-between">
+                <Text>{name}</Text>
+                <Button
+                  size="xs"
+                  variant="default"
+                  loading={state.busy === method.provider}
+                  disabled={!!state.busy || account.merging || (method.connected ? !canDisconnect : !method.available)}
+                  onClick={() =>
+                    method.connected ? dispatch({ confirming: method.provider }) : void connect(method.provider)
+                  }
+                >
+                  {method.connected ? 'Disconnect' : 'Connect'}
+                </Button>
+              </Group>
+              <Text size="xs" c="dimmed">
+                {method.connected
+                  ? canDisconnect
+                    ? 'Connected'
+                    : 'Connected · keep one sign-in method'
+                  : method.available
+                    ? 'Not connected'
+                    : 'Currently unavailable'}
+              </Text>
+              {state.confirming === method.provider && (
+                <>
+                  <Text size="sm">Disconnect {name}? You can reconnect it later.</Text>
+                  <Group>
+                    <Button size="xs" color="red" disabled={!!state.busy} onClick={() => void remove(method.provider)}>
+                      Disconnect {name}
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="default"
+                      disabled={!!state.busy}
+                      onClick={() => dispatch({ confirming: null })}
+                    >
+                      Cancel
+                    </Button>
+                  </Group>
+                </>
+              )}
+            </Stack>
+          );
+        })}
+        <Link to="/profiles/$profileSlug/delete" params={{ profileSlug: slug }}>
+          Delete account
+        </Link>
+      </Stack>
+    </Card>
   );
 }

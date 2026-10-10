@@ -1,7 +1,8 @@
 import { ConvexError } from 'convex/values';
 
 import type { QueryCtx } from '../types';
-import { isActiveProfile } from './accountLifecycle';
+import { isActiveProfile, optionalActiveUserId } from './accountLifecycle';
+import { accountMethods } from './accountMethods';
 import { liveGroupOrNull } from './collaborativeAccess';
 import { loadFactionCatalogue } from './factionCatalogue';
 import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './faqProfileActivity';
@@ -15,11 +16,14 @@ const PROFILE_DETAIL_LIMIT = 500;
  * the precise TS projection (parsed faction data included) is inferred from this loader.
  */
 export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
-  const profile = await ctx.db
+  let profile = await ctx.db
     .query('profiles')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
-  if (!profile || !isActiveProfile(profile)) {
+  for (let depth = 0; profile?.merged_into_profile_id && depth < 16; depth += 1) {
+    profile = await ctx.db.get(profile.merged_into_profile_id);
+  }
+  if (!profile || !isActiveProfile(profile) || profile.merged_into_profile_id) {
     throw new ConvexError({ code: 'NOT_FOUND', message: `Profile with slug ${slug} not found` });
   }
 
@@ -49,7 +53,13 @@ export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
     ownerId: profile.user_id,
   });
 
+  const viewerId = await optionalActiveUserId(ctx);
+  const user = viewerId === profile.user_id ? await ctx.db.get(viewerId) : null;
   return {
+    account:
+      viewerId === profile.user_id
+        ? { methods: await accountMethods(ctx, profile.user_id), merging: !!user?.account_merge_operation_id }
+        : null,
     profile,
     faqAsked,
     faqAnswers,

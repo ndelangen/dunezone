@@ -3,6 +3,7 @@ import Google from '@auth/core/providers/google';
 import { Password } from '@convex-dev/auth/providers/Password';
 import { convexAuth } from '@convex-dev/auth/server';
 
+import { accountStateOf } from './lib/accountLifecycle';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { syntheticIdentity } from './lib/playSynthetic';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
@@ -81,6 +82,12 @@ if (localE2eAuthEnabled) {
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers,
   callbacks: {
+    async beforeSessionCreation(ctx, { userId }) {
+      const user = await ctx.db.get(userId);
+      if (!user || accountStateOf(user) !== 'active') {
+        throw new Error('This account is no longer active.');
+      }
+    },
     async redirect({ redirectTo }) {
       const siteUrl = process.env.SITE_URL;
       if (!siteUrl) {

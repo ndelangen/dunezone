@@ -17,7 +17,12 @@ import { profileAvatarValidator } from './lib/profileAvatar';
 import { rulebookSettingsValidator } from './lib/rulebookSettings';
 import { rulesetCoverValidator } from './lib/rulesetCover';
 
-const accountStateValidator = v.union(v.literal('active'), v.literal('deletion_pending'), v.literal('deleted'));
+const accountStateValidator = v.union(
+  v.literal('active'),
+  v.literal('merge_pending'),
+  v.literal('deletion_pending'),
+  v.literal('deleted')
+);
 
 export default defineSchema({
   ...authTables,
@@ -45,6 +50,8 @@ export default defineSchema({
     ruleset_id: v.optional(v.id('rulesets')),
     minimum_players: v.optional(zodToConvex(tableSeatCountSchema)),
     creator_id: v.optional(v.id('users')),
+    /* Merging ownership keeps the actor the Worker originally seated as creator. */
+    creator_actor_id: v.optional(v.id('users')),
     state: v.union(v.literal('pending'), v.literal('ready'), v.literal('expired')),
     secret: v.string(),
     attempt_id: v.string(),
@@ -90,6 +97,7 @@ export default defineSchema({
     game_id: v.id('play_games'),
     user_id: v.id('users'),
     deletion_operation_id: v.optional(v.id('account_deletion_operations')),
+    actor_user_ids: v.optional(v.array(v.id('users'))),
   })
     .index('by_game_id_user_id', ['game_id', 'user_id'])
     .index('by_user_id', ['user_id']),
@@ -103,6 +111,7 @@ export default defineSchema({
     created_at: v.number(),
   })
     .index('by_game_id_operation_id', ['game_id', 'operation_id'])
+    .index('by_game_operation_user', ['game_id', 'operation_id', 'user_id'])
     .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
   users: defineTable({
     name: v.optional(v.string()),
@@ -113,18 +122,22 @@ export default defineSchema({
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
     isAdmin: v.optional(v.boolean()),
+    merged_into_user_id: v.optional(v.id('users')),
+    account_merge_operation_id: v.optional(v.id('account_merge_operations')),
     account_state: v.optional(accountStateValidator),
     deleted_at: v.optional(v.string()),
     account_deletion_operation_id: v.optional(v.id('account_deletion_operations')),
   })
     .index('email', ['email'])
-    .index('phone', ['phone']),
+    .index('phone', ['phone'])
+    .index('by_merged_into_user_id', ['merged_into_user_id']),
   counters: defineTable({
     key: v.string(),
     value: v.number(),
   }).index('by_key', ['key']),
   profiles: defineTable({
     user_id: v.id('users'),
+    merged_into_profile_id: v.optional(v.id('profiles')),
     username: v.union(v.string(), v.null()),
     /**
      * Legacy avatar channel: a URL string, external until the row's rehost lands.
@@ -148,7 +161,8 @@ export default defineSchema({
   })
     .index('by_user_id', ['user_id'])
     .index('by_slug', ['slug'])
-    .index('by_account_state_username', ['account_state', 'username']),
+    .index('by_account_state_username', ['account_state', 'username'])
+    .index('by_merged_into_profile_id', ['merged_into_profile_id']),
   groups: defineTable({
     name: v.string(),
     slug: v.string(),
@@ -172,7 +186,8 @@ export default defineSchema({
     .index('by_group', ['group_id'])
     .index('by_user', ['user_id'])
     .index('by_user_status', ['user_id', 'status'])
-    .index('by_group_status', ['group_id', 'status']),
+    .index('by_group_status', ['group_id', 'status'])
+    .index('by_approved_by', ['approved_by']),
   factions: defineTable({
     owner_id: v.id('users'),
     data: v.any(),
@@ -310,7 +325,8 @@ export default defineSchema({
     .index('by_is_deleted', ['is_deleted'])
     .index('by_ruleset_and_slug', ['ruleset_id', 'slug'])
     .index('by_ruleset_and_is_deleted_and_name_key', ['ruleset_id', 'is_deleted', 'name_key'])
-    .index('by_ruleset_and_is_deleted_and_sort_order', ['ruleset_id', 'is_deleted', 'sort_order']),
+    .index('by_ruleset_and_is_deleted_and_sort_order', ['ruleset_id', 'is_deleted', 'sort_order'])
+    .index('by_created_by', ['created_by']),
   /** One mutable saved draft per Rulebook. Every successful Save advances `revision` in the same transaction. */
   rulebook_drafts: defineTable({
     rulebook_id: v.id('rulebooks'),
@@ -318,7 +334,9 @@ export default defineSchema({
     contents: v.any(),
     updated_by: v.id('users'),
     updated_at: v.string(),
-  }).index('by_rulebook', ['rulebook_id']),
+  })
+    .index('by_rulebook', ['rulebook_id'])
+    .index('by_updated_by', ['updated_by']),
   /** Immutable Edition metadata. Creation writes Edition 1 beside the matching saved draft. */
   rulebook_editions: defineTable({
     rulebook_id: v.id('rulebooks'),
@@ -332,7 +350,9 @@ export default defineSchema({
     contents: v.optional(v.any()),
     created_by: v.id('users'),
     created_at: v.string(),
-  }).index('by_rulebook_and_edition_number', ['rulebook_id', 'edition_number']),
+  })
+    .index('by_rulebook_and_edition_number', ['rulebook_id', 'edition_number'])
+    .index('by_created_by', ['created_by']),
   /** One immutable Contents document per Edition, kept separate so history reads touch metadata only. */
   rulebook_edition_contents: defineTable({
     edition_id: v.id('rulebook_editions'),
@@ -413,6 +433,31 @@ export default defineSchema({
     .index('by_ruleset', ['ruleset_id'])
     .index('by_asset', ['asset_id'])
     .index('by_ruleset_slot', ['ruleset_id', 'slot']),
+  account_connections: defineTable({
+    digest: v.string(),
+    user_id: v.id('users'),
+    session_id: v.id('authSessions'),
+    provider: v.union(v.literal('google'), v.literal('discord')),
+    state: v.union(v.literal('pending'), v.literal('expired'), v.literal('accepted')),
+    expires_at: v.number(),
+    operation_id: v.optional(v.id('account_merge_operations')),
+    verified_user_id: v.optional(v.id('users')),
+  }).index('by_digest', ['digest']),
+  account_merge_operations: defineTable({
+    source_user_id: v.id('users'),
+    source_profile_id: v.id('profiles'),
+    target_user_id: v.id('users'),
+    target_profile_id: v.id('profiles'),
+    requested_by: v.id('users'),
+    source_name: v.string(),
+    target_name: v.string(),
+    target_slug: v.string(),
+    state: v.union(v.literal('running'), v.literal('failed'), v.literal('completed')),
+    phase: v.number(),
+    error: v.union(v.string(), v.null()),
+    created_at: v.number(),
+    completed_at: v.union(v.number(), v.null()),
+  }).index('by_state', ['state']),
   account_deletion_operations: defineTable({
     source_user_id: v.id('users'),
     source_profile_id: v.id('profiles'),

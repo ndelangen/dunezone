@@ -4,6 +4,7 @@ import type { Infer } from 'convex/values';
 
 import { assetCaptureStatusSchema } from '../../src/shared/asset-publishing/captureStatus';
 import schema from '../schema';
+import { authMethodValidator } from './accountMethods';
 import { catalogueFactionDataValidator, factionDataValidator } from './factionData';
 import { rulebookListEntryValidator } from './rulebookList';
 
@@ -12,7 +13,7 @@ import { rulebookListEntryValidator } from './rulebookList';
  * faction 'data' derives from the canonical faction Zod schema.
  * Do not restate table shapes by hand here.
  */
-function docValidator<Table extends keyof typeof schema.tables>(table: Table) {
+export function docValidator<Table extends keyof typeof schema.tables>(table: Table) {
   return schema.tables[table].validator.extend({
     _id: v.id(table),
     _creationTime: v.number(),
@@ -182,6 +183,7 @@ const profileFaqAnswerValidator = faqAnswerValidator.extend({
 });
 
 export const profileDetailPageValidator = v.object({
+  account: v.union(v.null(), v.object({ methods: v.array(authMethodValidator), merging: v.boolean() })),
   profile: profileValidator,
   faqAsked: v.array(profileFaqQuestionValidator),
   faqAnswers: v.array(profileFaqAnswerValidator),

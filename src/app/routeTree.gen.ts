@@ -15,9 +15,12 @@ import { Route as AppSplatRouteRouteImport } from './routes/_app/$.route'
 import { Route as App_iconsRouteRouteImport } from './routes/_app/[_]_icons.route'
 import { Route as App_jobsRouteRouteImport } from './routes/_app/[_]_jobs.route'
 import { Route as App_mediaRouteRouteImport } from './routes/_app/[_]_media.route'
+import { Route as AppJobsRouteRouteImport } from './routes/_app/[_]jobs.route'
 import { Route as AppMediaRouteRouteImport } from './routes/_app/media/route'
 import { Route as AppPlayRouteRouteImport } from './routes/_app/play/route'
 import { Route as AuthOauthRouteRouteImport } from './routes/auth/oauth.route'
+import { Route as AppAdminAccountsRouteRouteImport } from './routes/_app/[_]admin/accounts.route'
+import { Route as AppAdminJobsRouteRouteImport } from './routes/_app/[_]admin/jobs.route'
 import { Route as AppAdminMigrationsRouteRouteImport } from './routes/_app/admin/migrations.route'
 import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
 import { Route as AppAssets_presetsRouteRouteImport } from './routes/_app/assets/[_]_presets.route'
@@ -45,6 +48,7 @@ import { Route as AppGroupsGroupSlugIndexRouteImport } from './routes/_app/group
 import { Route as AppGroupsGroupSlugEditRouteRouteImport } from './routes/_app/groups/$groupSlug/edit.route'
 import { Route as AppMediaSourceKindRouteRouteImport } from './routes/_app/media/$source/$kind.route'
 import { Route as AppProfilesProfileSlugIndexRouteImport } from './routes/_app/profiles/$profileSlug/index'
+import { Route as AppProfilesProfileSlugConnectRouteRouteImport } from './routes/_app/profiles/$profileSlug/connect.route'
 import { Route as AppProfilesProfileSlugDeleteRouteRouteImport } from './routes/_app/profiles/$profileSlug/delete.route'
 import { Route as AppProfilesProfileSlugEditRouteRouteImport } from './routes/_app/profiles/$profileSlug/edit.route'
 import { Route as AppRulesetsRulesetSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/index'
@@ -88,6 +92,11 @@ const App_mediaRouteRoute = App_mediaRouteRouteImport.update({
   path: '/__media',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppJobsRouteRoute = AppJobsRouteRouteImport.update({
+  id: '/_jobs',
+  path: '/_jobs',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppMediaRouteRoute = AppMediaRouteRouteImport.update({
   id: '/media',
   path: '/media',
@@ -102,6 +111,16 @@ const AuthOauthRouteRoute = AuthOauthRouteRouteImport.update({
   id: '/auth/oauth',
   path: '/auth/oauth',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppAdminAccountsRouteRoute = AppAdminAccountsRouteRouteImport.update({
+  id: '/_admin/accounts',
+  path: '/_admin/accounts',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppAdminJobsRouteRoute = AppAdminJobsRouteRouteImport.update({
+  id: '/_admin/jobs',
+  path: '/_admin/jobs',
+  getParentRoute: () => AppRouteRoute,
 } as any)
 const AppAdminMigrationsRouteRoute = AppAdminMigrationsRouteRouteImport.update({
   id: '/admin/migrations',
@@ -243,6 +262,12 @@ const AppProfilesProfileSlugIndexRoute =
     path: '/profiles/$profileSlug/',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const AppProfilesProfileSlugConnectRouteRoute =
+  AppProfilesProfileSlugConnectRouteRouteImport.update({
+    id: '/profiles/$profileSlug/connect',
+    path: '/profiles/$profileSlug/connect',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 const AppProfilesProfileSlugDeleteRouteRoute =
   AppProfilesProfileSlugDeleteRouteRouteImport.update({
     id: '/profiles/$profileSlug/delete',
@@ -327,9 +352,12 @@ export interface FileRoutesByFullPath {
   '/__icons': typeof App_iconsRouteRoute
   '/__jobs': typeof App_jobsRouteRoute
   '/__media': typeof App_mediaRouteRoute
+  '/_jobs': typeof AppJobsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
   '/play': typeof AppPlayRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
+  '/_admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/_admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
@@ -353,6 +381,7 @@ export interface FileRoutesByFullPath {
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
   '/media/$source/$kind': typeof AppMediaSourceKindRouteRoute
+  '/profiles/$profileSlug/connect': typeof AppProfilesProfileSlugConnectRouteRoute
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
@@ -376,9 +405,12 @@ export interface FileRoutesByTo {
   '/__icons': typeof App_iconsRouteRoute
   '/__jobs': typeof App_jobsRouteRoute
   '/__media': typeof App_mediaRouteRoute
+  '/_jobs': typeof AppJobsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/': typeof AppIndexRoute
+  '/_admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/_admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
@@ -402,6 +434,7 @@ export interface FileRoutesByTo {
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
   '/media/$source/$kind': typeof AppMediaSourceKindRouteRoute
+  '/profiles/$profileSlug/connect': typeof AppProfilesProfileSlugConnectRouteRoute
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
@@ -427,10 +460,13 @@ export interface FileRoutesById {
   '/_app/__icons': typeof App_iconsRouteRoute
   '/_app/__jobs': typeof App_jobsRouteRoute
   '/_app/__media': typeof App_mediaRouteRoute
+  '/_app/_jobs': typeof AppJobsRouteRoute
   '/_app/media': typeof AppMediaRouteRouteWithChildren
   '/_app/play': typeof AppPlayRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/_admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/_app/_admin/jobs': typeof AppAdminJobsRouteRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/_app/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/_app/auth/error': typeof AppAuthErrorRouteRoute
@@ -454,6 +490,7 @@ export interface FileRoutesById {
   '/_app/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/_app/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
   '/_app/media/$source/$kind': typeof AppMediaSourceKindRouteRoute
+  '/_app/profiles/$profileSlug/connect': typeof AppProfilesProfileSlugConnectRouteRoute
   '/_app/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/_app/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/_app/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
@@ -480,9 +517,12 @@ export interface FileRouteTypes {
     | '/__icons'
     | '/__jobs'
     | '/__media'
+    | '/_jobs'
     | '/media'
     | '/play'
     | '/auth/oauth'
+    | '/_admin/accounts'
+    | '/_admin/jobs'
     | '/admin/migrations'
     | '/assets/__presets'
     | '/auth/error'
@@ -506,6 +546,7 @@ export interface FileRouteTypes {
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
     | '/media/$source/$kind'
+    | '/profiles/$profileSlug/connect'
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
@@ -529,9 +570,12 @@ export interface FileRouteTypes {
     | '/__icons'
     | '/__jobs'
     | '/__media'
+    | '/_jobs'
     | '/media'
     | '/auth/oauth'
     | '/'
+    | '/_admin/accounts'
+    | '/_admin/jobs'
     | '/admin/migrations'
     | '/assets/__presets'
     | '/auth/error'
@@ -555,6 +599,7 @@ export interface FileRouteTypes {
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
     | '/media/$source/$kind'
+    | '/profiles/$profileSlug/connect'
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
@@ -579,10 +624,13 @@ export interface FileRouteTypes {
     | '/_app/__icons'
     | '/_app/__jobs'
     | '/_app/__media'
+    | '/_app/_jobs'
     | '/_app/media'
     | '/_app/play'
     | '/auth/oauth'
     | '/_app/'
+    | '/_app/_admin/accounts'
+    | '/_app/_admin/jobs'
     | '/_app/admin/migrations'
     | '/_app/assets/__presets'
     | '/_app/auth/error'
@@ -606,6 +654,7 @@ export interface FileRouteTypes {
     | '/_app/factions/$factionId/edit'
     | '/_app/groups/$groupSlug/edit'
     | '/_app/media/$source/$kind'
+    | '/_app/profiles/$profileSlug/connect'
     | '/_app/profiles/$profileSlug/delete'
     | '/_app/profiles/$profileSlug/edit'
     | '/_app/rulesets/$rulesetSlug/edit'
@@ -675,6 +724,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof App_mediaRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/_jobs': {
+      id: '/_app/_jobs'
+      path: '/_jobs'
+      fullPath: '/_jobs'
+      preLoaderRoute: typeof AppJobsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/media': {
       id: '/_app/media'
       path: '/media'
@@ -695,6 +751,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/oauth'
       preLoaderRoute: typeof AuthOauthRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/_admin/accounts': {
+      id: '/_app/_admin/accounts'
+      path: '/_admin/accounts'
+      fullPath: '/_admin/accounts'
+      preLoaderRoute: typeof AppAdminAccountsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/_admin/jobs': {
+      id: '/_app/_admin/jobs'
+      path: '/_admin/jobs'
+      fullPath: '/_admin/jobs'
+      preLoaderRoute: typeof AppAdminJobsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/admin/migrations': {
       id: '/_app/admin/migrations'
@@ -885,6 +955,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfilesProfileSlugIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/profiles/$profileSlug/connect': {
+      id: '/_app/profiles/$profileSlug/connect'
+      path: '/profiles/$profileSlug/connect'
+      fullPath: '/profiles/$profileSlug/connect'
+      preLoaderRoute: typeof AppProfilesProfileSlugConnectRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/profiles/$profileSlug/delete': {
       id: '/_app/profiles/$profileSlug/delete'
       path: '/profiles/$profileSlug/delete'
@@ -1023,9 +1100,12 @@ interface AppRouteRouteChildren {
   App_iconsRouteRoute: typeof App_iconsRouteRoute
   App_jobsRouteRoute: typeof App_jobsRouteRoute
   App_mediaRouteRoute: typeof App_mediaRouteRoute
+  AppJobsRouteRoute: typeof AppJobsRouteRoute
   AppMediaRouteRoute: typeof AppMediaRouteRouteWithChildren
   AppPlayRouteRoute: typeof AppPlayRouteRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
+  AppAdminAccountsRouteRoute: typeof AppAdminAccountsRouteRoute
+  AppAdminJobsRouteRoute: typeof AppAdminJobsRouteRoute
   AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
   AppAssets_presetsRouteRoute: typeof AppAssets_presetsRouteRoute
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
@@ -1043,6 +1123,7 @@ interface AppRouteRouteChildren {
   AppRulesetsIndexRoute: typeof AppRulesetsIndexRoute
   AppFactionsFactionIdEditRouteRoute: typeof AppFactionsFactionIdEditRouteRoute
   AppGroupsGroupSlugEditRouteRoute: typeof AppGroupsGroupSlugEditRouteRoute
+  AppProfilesProfileSlugConnectRouteRoute: typeof AppProfilesProfileSlugConnectRouteRoute
   AppProfilesProfileSlugDeleteRouteRoute: typeof AppProfilesProfileSlugDeleteRouteRoute
   AppProfilesProfileSlugEditRouteRoute: typeof AppProfilesProfileSlugEditRouteRoute
   AppRulesetsRulesetSlugEditRouteRoute: typeof AppRulesetsRulesetSlugEditRouteRoute
@@ -1067,9 +1148,12 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   App_iconsRouteRoute: App_iconsRouteRoute,
   App_jobsRouteRoute: App_jobsRouteRoute,
   App_mediaRouteRoute: App_mediaRouteRoute,
+  AppJobsRouteRoute: AppJobsRouteRoute,
   AppMediaRouteRoute: AppMediaRouteRouteWithChildren,
   AppPlayRouteRoute: AppPlayRouteRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
+  AppAdminAccountsRouteRoute: AppAdminAccountsRouteRoute,
+  AppAdminJobsRouteRoute: AppAdminJobsRouteRoute,
   AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,
   AppAssets_presetsRouteRoute: AppAssets_presetsRouteRoute,
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,
@@ -1087,6 +1171,8 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppRulesetsIndexRoute: AppRulesetsIndexRoute,
   AppFactionsFactionIdEditRouteRoute: AppFactionsFactionIdEditRouteRoute,
   AppGroupsGroupSlugEditRouteRoute: AppGroupsGroupSlugEditRouteRoute,
+  AppProfilesProfileSlugConnectRouteRoute:
+    AppProfilesProfileSlugConnectRouteRoute,
   AppProfilesProfileSlugDeleteRouteRoute:
     AppProfilesProfileSlugDeleteRouteRoute,
   AppProfilesProfileSlugEditRouteRoute: AppProfilesProfileSlugEditRouteRoute,

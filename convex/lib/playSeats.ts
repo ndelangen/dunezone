@@ -1,6 +1,7 @@
 import { PLAY_SEAT_LIMIT } from '../../src/shared/play/seatLimit';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../_generated/server';
+import { gameActorIds } from './accountIdentity';
 import { isRealGame } from './playAuthorization';
 
 /*
@@ -73,7 +74,8 @@ async function* candidateGames(ctx: QueryCtx, userId: Id<'users'>, except?: Id<'
 export async function atPlaySeatLimit(ctx: QueryCtx, userId: Id<'users'>, except?: Id<'play_games'>) {
   let seats = 0;
   for await (const game of candidateGames(ctx, userId, except)) {
-    seats += holdsSeat(game, userId) ? 1 : 0;
+    const actors = await gameActorIds(ctx, game._id, userId);
+    seats += actors.some((actor) => holdsSeat(game, actor)) || (!game.directory && holdsSeat(game, userId)) ? 1 : 0;
     if (seats >= PLAY_SEAT_LIMIT) {
       return true;
     }

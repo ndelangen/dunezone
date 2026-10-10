@@ -22,6 +22,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
+import { canonicalAccount, gameActorForAccount } from './lib/accountIdentity';
 import { accountStateOf } from './lib/accountLifecycle';
 import {
   admitsPlayers,
@@ -60,7 +61,7 @@ export const issueTicket = mutation({
     const ticketId = await ctx.db.insert('play_tickets', {
       digest: await playCredentialDigest(ticket),
       game_id: game._id,
-      user_id: session.userId,
+      user_id: await gameActorForAccount(ctx, game._id, session.userId),
       session_id: session.sessionId,
       expires_at: expiresAt,
       consumed: false,
@@ -105,12 +106,20 @@ async function registerSession(ctx: MutationCtx, ticket: Doc<'play_tickets'>, ex
 }
 
 async function retainAccountRouting(ctx: MutationCtx, ticket: Doc<'play_tickets'>) {
+  const user = await canonicalAccount(ctx, ticket.user_id);
+  if (!user) {
+    throw new Error('Account not found');
+  }
   const previous = await ctx.db
     .query('play_game_accounts')
-    .withIndex('by_game_id_user_id', (q) => q.eq('game_id', ticket.game_id).eq('user_id', ticket.user_id))
+    .withIndex('by_game_id_user_id', (q) => q.eq('game_id', ticket.game_id).eq('user_id', user._id))
     .unique();
   if (!previous) {
-    await ctx.db.insert('play_game_accounts', { game_id: ticket.game_id, user_id: ticket.user_id });
+    await ctx.db.insert('play_game_accounts', {
+      game_id: ticket.game_id,
+      user_id: user._id,
+      actor_user_ids: [ticket.user_id],
+    });
   }
 }
 
@@ -134,10 +143,13 @@ async function consumeTicket(
   await ctx.db.patch(ticket._id, { consumed: true });
   const registrationId = await registerSession(ctx, ticket, authorization.sessionExpiresAt);
   await retainAccountRouting(ctx, ticket);
-  const profile = await ctx.db
-    .query('profiles')
-    .withIndex('by_user_id', (q) => q.eq('user_id', ticket.user_id))
-    .unique();
+  const user = await canonicalAccount(ctx, ticket.user_id);
+  const profile = user
+    ? await ctx.db
+        .query('profiles')
+        .withIndex('by_user_id', (q) => q.eq('user_id', user._id))
+        .unique()
+    : null;
   return {
     ok: true as const,
     registrationId,
@@ -149,7 +161,7 @@ async function consumeTicket(
      * Read once per admission, so it is as fresh as the socket: a player who leaves a seat elsewhere reconnects to ask again.
      * Requests pending in several games at once can each be approved, so a player can end up a few seats over the limit.
      */
-    seatLimitReached: await atPlaySeatLimit(ctx, ticket.user_id, ticket.game_id),
+    seatLimitReached: await atPlaySeatLimit(ctx, user!._id, ticket.game_id),
   };
 }
 
@@ -245,7 +257,13 @@ function routedAccountState(routing: Doc<'play_game_accounts'>, user: Doc<'users
   if (routing.deletion_operation_id || !user) {
     return 'deleted' as const;
   }
-  return accountStateOf(user);
+  return accountStateOf(user) === 'merge_pending'
+    ? ('active' as const)
+    : accountStateOf(user) === 'deleted'
+      ? ('deleted' as const)
+      : accountStateOf(user) === 'deletion_pending'
+        ? ('deletion_pending' as const)
+        : ('active' as const);
 }
 
 async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: string) {
@@ -257,20 +275,28 @@ async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: str
     return { userId, state: 'active' as const, deletionOperationId: null };
   }
   const id = ctx.db.normalizeId('users', userId);
-  const routing = id
+  const user = id ? await canonicalAccount(ctx, id) : null;
+  const routing = user
     ? await ctx.db
         .query('play_game_accounts')
-        .withIndex('by_game_id_user_id', (q) => q.eq('game_id', gameId).eq('user_id', id))
+        .withIndex('by_game_id_user_id', (q) => q.eq('game_id', gameId).eq('user_id', user._id))
         .unique()
     : null;
-  if (!routing || !id) {
+  const sourceRouting =
+    id && (!routing || (id !== user?._id && !routing.actor_user_ids?.includes(id)))
+      ? await ctx.db
+          .query('play_game_accounts')
+          .withIndex('by_game_id_user_id', (q) => q.eq('game_id', gameId).eq('user_id', id))
+          .unique()
+      : null;
+  const effectiveRouting = sourceRouting ?? routing;
+  if (!effectiveRouting || !id || (!sourceRouting && id !== user?._id && !routing?.actor_user_ids?.includes(id))) {
     return { userId, state: 'unknown' as const, deletionOperationId: null };
   }
-  const user = await ctx.db.get(id);
-  const deletionOperationId = routing.deletion_operation_id ?? user?.account_deletion_operation_id ?? null;
+  const deletionOperationId = effectiveRouting.deletion_operation_id ?? user?.account_deletion_operation_id ?? null;
   return {
     userId,
-    state: routedAccountState(routing, user),
+    state: routedAccountState(effectiveRouting, user),
     deletionOperationId,
   };
 }

@@ -55,3 +55,30 @@ If a legacy user has no profile, the client's `useCurrentProfile()` calls `profi
 `useProfilesAll()`, `useUpdateCurrentProfile()`. Profile lookups are slug-based, never by id.
 
 **Example**: [`src/app/db/profiles.ts`](../src/app/db/profiles.ts)
+
+## Connected sign-in methods and merges
+
+The profile owner can connect Google or Discord, or disconnect a provider while another configured
+provider remains connected. That last-method check runs in the disconnect transaction. Account
+deletion remains on the profile's deletion page.
+
+Connecting starts with an authenticated, unexpired session. The server issues a random connection
+credential, stores only its digest, and caps its lifetime at ten minutes and the session's expiration.
+After OAuth, a fresh session proves control of the other account. Convex Auth replaces the original
+session during this login, so the saved intent carries the first proof. The original account must
+still be active. The user reviews the two profiles before confirming the merge, and each intent can
+be accepted once. The original profile keeps its name, avatar, address and preferences.
+
+Administrators can choose which profile to keep at `/_admin/accounts`. Both accounts must be active,
+and neither may participate in an unfinished merge or ownership transfer from account deletion.
+The source account stops accepting writes. Indexed batches transfer credentials, ownership,
+memberships and contributions. A failed batch rolls back before the job records failure; an admin
+can resume it. The source's sessions are revoked, and its old profile address resolves to the kept
+profile. Merges cannot be undone through the product.
+
+Play retains historical actor identities and authorizes them through the kept account's session.
+Routing records preserve at most 32 actor identities per game. Account deletion reaches every
+retained identity. A merge refuses two occupied seats in the same ongoing game, more than 200
+source routing or creation records, and a source game whose provisioning has not finished.
+
+Publication jobs now live at `/_admin/jobs`. The former `/__jobs` address and `/_jobs` redirect there.

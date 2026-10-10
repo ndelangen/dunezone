@@ -1,10 +1,11 @@
-import { getAuthSessionId, getAuthUserId } from '@convex-dev/auth/server';
+import { getAuthSessionId } from '@convex-dev/auth/server';
 import type { z } from 'zod';
 
 import type { playProvisionRequestSchema } from '../../src/shared/play/admission';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../_generated/server';
-import { accountStateOf } from './accountLifecycle';
+import { canonicalAccount } from './accountIdentity';
+import { accountStateOf, optionalActiveUserId } from './accountLifecycle';
 
 const encoder = new TextEncoder();
 
@@ -70,8 +71,8 @@ export function newestUnusedPlayRefresh(ctx: QueryCtx, sessionId: Id<'authSessio
  * Callers enforce the returned deadline against their clock.
  */
 export async function playSessionAuthorization(ctx: QueryCtx, userId: Id<'users'>, sessionId: Id<'authSessions'>) {
-  const [user, session] = await Promise.all([ctx.db.get(userId), ctx.db.get(sessionId)]);
-  if (!isActivePlayer(user) || session?.userId !== userId) {
+  const [user, session] = await Promise.all([canonicalAccount(ctx, userId), ctx.db.get(sessionId)]);
+  if (!user || !session || !isActivePlayer(user) || session.userId !== user._id) {
     return { allowed: false, authExpiresAt: 0, sessionExpiresAt: 0 };
   }
   const refresh = await newestUnusedPlayRefresh(ctx, sessionId);
@@ -109,7 +110,7 @@ export function admitsPlayers(game: Pick<Doc<'play_games'>, 'ruleset_id' | 'fixt
 }
 
 export async function currentPlaySession(ctx: QueryCtx) {
-  const [rawUserId, rawSessionId] = await Promise.all([getAuthUserId(ctx), getAuthSessionId(ctx)]);
+  const [rawUserId, rawSessionId] = await Promise.all([optionalActiveUserId(ctx), getAuthSessionId(ctx)]);
   const userId = rawUserId ? ctx.db.normalizeId('users', rawUserId) : null;
   const sessionId = rawSessionId ? ctx.db.normalizeId('authSessions', rawSessionId) : null;
   if (!userId || !sessionId) {

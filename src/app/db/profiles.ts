@@ -36,6 +36,7 @@ export type ProfilePageData = ReturnType<typeof normalizeProfilePage>;
 function normalizeProfilePage(result: ProfileDetailResult) {
   return {
     profile: result.profile,
+    account: result.account,
     groupSummaries: result.groupSummaries,
     faqAsked: result.faqAsked,
     faqAnswers: result.faqAnswers,

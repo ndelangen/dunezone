@@ -12,6 +12,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
 import { mutation } from './functions';
+import { canonicalAccount } from './lib/accountIdentity';
 import { isActiveProfile } from './lib/accountLifecycle';
 import { authenticatedPlayRequest, currentPlaySession, isRealGame } from './lib/playAuthorization';
 
@@ -75,7 +76,8 @@ async function seatedPlayer(
   if (faction && !tokens.has(faction.id)) {
     tokens.set(faction.id, factionToken(ctx, faction.id));
   }
-  const userId = ctx.db.normalizeId('users', seat.userId);
+  const actorId = ctx.db.normalizeId('users', seat.userId);
+  const userId = actorId ? (await canonicalAccount(ctx, actorId))?._id : null;
   const profile = userId
     ? await ctx.db
         .query('profiles')
