@@ -516,7 +516,7 @@ export const SharedPhaseControls = meta.story({
     session.transport.deliver(
       session.transport.view({ ...initialSnapshot(), phase: TABLE_PHASES.length, revision: 2 })
     );
-    await waitForPhase(() => expect(page.getByText('Turn 2', { exact: true })).toBeVisible());
+    await waitForPhase(() => expect(page.getByText('Turn 2 of 10', { exact: true })).toBeVisible());
     await userEvent.click(controls().getByRole('button', { name: 'Previous phase' }));
     const previous = lastCommand();
     expect(previous?.action).toMatchObject({ kind: 'phase', direction: -1 });

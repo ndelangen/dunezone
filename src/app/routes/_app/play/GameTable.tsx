@@ -1,4 +1,5 @@
 import { Button, Group, Stack, Text } from '@mantine/core';
+import { turnCaption } from '@shared/play/lastTurn';
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
 import { standardPhaseOf } from '@shared/play/phases';
@@ -649,7 +650,7 @@ export function GameTable({
                     </div>
                   ) : (
                     <div className="seated-phase-status__copy">
-                      <span>Turn {tableProgress.turn}</span>
+                      <span>{turnCaption(tableProgress.turn, tableProgress.lastTurn)}</span>
                       <strong>{activePhase?.label ?? 'No active phase'}</strong>
                     </div>
                   ))}
