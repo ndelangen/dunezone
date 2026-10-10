@@ -17,6 +17,21 @@ flowchart TD
 
 Convex Auth handles authentication. Domain mutations enforce authorization inside Convex functions.
 
+Stored sessions are checked alongside the signed identity. Revoked sessions cannot read owner-only
+data or start account deletion. Mutations reject both absolute and idle session expiry immediately.
+Each new session receives a scheduled expiry job, and a one-time migration registers existing
+sessions. The job rechecks refreshed deadlines and removes expired sessions and refresh credentials
+in bounded batches. There is no recurring authentication poll. Queries never read the clock and
+lose private access when the job removes the session. A delayed job can therefore allow new private
+reads until removal; mutations and Play enforce their deadlines independently. An unexpired JWT
+retains ordinary account access when its refresh branch has been invalidated, until session cleanup
+or JWT expiry. Play requires an unused refresh token.
+
+Disconnecting a provider revokes every existing session for the account. A revocation checkpoint
+blocks private reads, writes and token refresh before asynchronous cleanup finishes. A later sign-in
+with a remaining provider creates a usable session. The profile edit page clears its local tokens
+after disconnection.
+
 ## Convex Auth
 
 **Client**: [`src/app/db/core/index.ts`](../src/app/db/core/index.ts)
@@ -65,7 +80,7 @@ Only HTTPS BoardGameGeek user-profile URLs are accepted; saves remove query stri
 The kept profile retains its own link during a merge.
 
 The profile owner manages Google, Discord and Reddit in the Sign-in methods tab on the profile edit page.
-They can connect an available provider, or disconnect one while another configured provider remains connected. Disconnection uses the kit's hold-to-remove action. The last-method check runs in the disconnect transaction. Account
+They can connect an available provider, or disconnect one while another configured provider remains connected. Disconnection uses the kit's hold-to-remove action. The last-method check runs in the disconnect transaction. Disconnecting signs the account out on every device. Account
 deletion remains on the profile's deletion page.
 
 Connecting starts with an authenticated, unexpired session. The server issues a random connection
@@ -73,7 +88,9 @@ credential, stores only its digest, and caps its lifetime at ten minutes and the
 After OAuth, a fresh session proves control of the other account. Convex Auth replaces the original
 session during this login, so the saved intent carries the first proof. The original account must
 still be active. The user reviews the two profiles before confirming the merge, and each intent can
-be accepted once. The original profile keeps its name, avatar, address and preferences.
+be accepted once. Its progress credential expires at the same ten-minute deadline, including after
+a completed or failed merge. The deployment backfill expires older accepted credentials whose
+deadlines have already passed. Failure details stay in the administrator view. The original profile keeps its name, avatar, address and preferences.
 
 Administrators can choose which profile to keep at `/_admin/accounts`. Both accounts must be active,
 and neither may participate in an unfinished merge or ownership transfer from account deletion.

@@ -12,12 +12,8 @@ import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
-import {
-  isSyntheticFixtureKey,
-  newestUnusedPlayRefresh,
-  playCredential,
-  syntheticFixtureKey,
-} from './lib/playAuthorization';
+import { newestUnusedRefresh } from './lib/authSessionLifecycle';
+import { isSyntheticFixtureKey, playCredential, syntheticFixtureKey } from './lib/playAuthorization';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import { limitLiveGames, requireSyntheticBackend } from './lib/playSynthetic';
 import { patchStoredAvatar, profileAvatarValidator } from './lib/profileAvatar';
@@ -40,7 +36,7 @@ async function syntheticExpiryTarget(ctx: MutationCtx, sessionId: Id<'authSessio
   if (kind === 'total') {
     return session;
   }
-  const refresh = await newestUnusedPlayRefresh(ctx, sessionId);
+  const refresh = await newestUnusedRefresh(ctx, sessionId);
   if (!refresh) {
     throw new Error('Synthetic refresh token not found');
   }

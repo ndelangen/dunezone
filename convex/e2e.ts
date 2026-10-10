@@ -6,6 +6,7 @@ import type { Id, TableNames } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
+import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { isIsolatedLoopbackBackend } from './lib/isolatedBackend';
 import { nowIso, slugify } from './lib/utils';
 
@@ -61,13 +62,22 @@ async function clearAllAppData(ctx: MutationCtx) {
     await deleteFromTable(ctx, table);
   }
 
+  /* Auth rows survive a fixture reset, so their expiry jobs must survive too. */
+  const sessions = await ctx.db.query('authSessions').collect();
+  const authJobs = sessions.flatMap((session) => (session.expiry_job_id ? [session.expiry_job_id] : []));
   while (true) {
-    const scheduled = await ctx.db.system.query('_scheduled_functions').take(128);
+    const scheduled = await ctx.db.system
+      .query('_scheduled_functions')
+      .filter((q) => q.and(q.eq(q.field('state.kind'), 'pending'), ...authJobs.map((id) => q.neq(q.field('_id'), id))))
+      .take(128);
     if (scheduled.length === 0) {
       break;
     }
     await Promise.all(scheduled.map((job) => ctx.scheduler.cancel(job._id)));
   }
+
+  /* A queued bootstrap may have been canceled before marking its retained session. */
+  await Promise.all(sessions.map((session) => scheduleSessionExpiry(ctx, session)));
 
   while (true) {
     const storedFiles = await ctx.db.system.query('_storage').take(128);

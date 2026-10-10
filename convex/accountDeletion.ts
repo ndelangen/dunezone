@@ -6,7 +6,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { internalAction, query } from './_generated/server';
 import type { ActionCtx, MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
-import { accountStateOf, lifecycleUserId } from './lib/accountLifecycle';
+import { accountStateOf, authenticatedLifecycleUser, lifecycleUserId } from './lib/accountLifecycle';
 import { requireUnlockedAccount } from './lib/accountMethods';
 import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
@@ -204,10 +204,11 @@ export const listReplacementProfiles = query({
 export const confirm = mutation({
   args: { replacementUserId: v.union(v.id('users'), v.null()) },
   handler: async (ctx, args) => {
-    const sourceUserId = await lifecycleUserId(ctx);
-    if (!sourceUserId) {
+    const identity = await authenticatedLifecycleUser(ctx);
+    if (!identity) {
       throw new Error('Not authenticated');
     }
+    const sourceUserId = identity._id;
     const existing = await findNonterminalSourceOperation(ctx, sourceUserId);
     if (existing) {
       if (existing.replacement_user_id === args.replacementUserId) {
@@ -215,7 +216,7 @@ export const confirm = mutation({
       }
       throw new Error('Account deletion already started with a different ownership choice');
     }
-    const sourceUser = await ctx.db.get('users', sourceUserId);
+    const sourceUser = identity;
     if (!sourceUser || accountStateOf(sourceUser) !== 'active') {
       throw new Error('Not authenticated');
     }

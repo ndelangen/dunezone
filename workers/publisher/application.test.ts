@@ -42,6 +42,11 @@ describe('anonymous application dispatch', () => {
     expect(await response?.text()).toBe('public page');
     expect(response?.headers.get('Set-Cookie')).toBeNull();
     expect(response?.headers.get('Cache-Control')).toBe('no-store');
+    expect(response?.headers.get('Content-Security-Policy')).toBe(
+      "frame-ancestors 'self'; base-uri 'self'; object-src 'none'"
+    );
+    expect(response?.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
+    expect(response?.headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(response?.headers.get('X-Application-Release')).toBe('release-a');
   });
 

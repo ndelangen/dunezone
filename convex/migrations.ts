@@ -26,6 +26,7 @@ import { internalQuery, query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { accountStateOf, optionalActiveUserId } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
+import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
@@ -105,6 +106,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   faction_faction_leader_key_v1: internal.migrations.faction_faction_leader_key_v1,
   faction_faction_leader_key_verify_v1: internal.migrations.faction_faction_leader_key_verify_v1,
   play_hosted_fixture_retire_v1: internal.migrations.play_hosted_fixture_retire_v1,
+  account_connections_expire_v1: internal.migrations.account_connections_expire_v1,
+  auth_session_expiry_jobs_v1: internal.migrations.auth_session_expiry_jobs_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -1316,5 +1319,24 @@ export const play_hosted_fixture_retire_v1 = migrations.define({
   table: 'play_games',
   migrateOne: async (ctx, game) => {
     await retireHostedFixture(ctx, game);
+  },
+});
+
+/** Previously accepted connection credentials may have outlived their scheduled expiry. */
+export const account_connections_expire_v1 = migrations.define({
+  table: 'account_connections',
+  batchSize: 50,
+  migrateOne: (_ctx, row) =>
+    Promise.resolve(
+      row.state !== 'expired' && row.expires_at <= Date.now() ? { state: 'expired' as const } : undefined
+    ),
+});
+
+/** Existing sessions receive the same deadline cleanup as new sign-ins. */
+export const auth_session_expiry_jobs_v1 = migrations.define({
+  table: 'authSessions',
+  batchSize: 50,
+  migrateOne: async (ctx, session) => {
+    await scheduleSessionExpiry(ctx, session);
   },
 });
