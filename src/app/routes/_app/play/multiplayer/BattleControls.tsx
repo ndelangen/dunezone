@@ -142,6 +142,11 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
     </Button>
   );
 }
+/*
+ * A dial not revealed yet reads as unknown. The asset prints its numbers as they come; teaching it an unknown value
+ * would change the publisher's capture code and recapture every published asset, so the unknown is a printed "?" here.
+ */
+const UNKNOWN = '?' as unknown as number;
 /** Play owns piece visibility, pointer sessions and the Motion verdict; the asset owns the wheel artwork. */
 function BattleWheel({ plan, factionId, factionName, client, active, artwork, hidden }: WheelProps) {
   const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
@@ -152,7 +157,6 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork, hi
     <BattleWheelAsset
       state="revealed"
       motion={motion}
-      hidden={hidden}
       className={styles.wheel}
       label={
         hidden?.dial
@@ -160,8 +164,8 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork, hi
           : `${factionName} plan, troop strength ${plan.strength}, ${plan.spice} spice`
       }
       background={factionArtwork(factionId, artwork).background}
-      strength={plan.strength}
-      spice={plan.spice}
+      strength={hidden?.dial ? UNKNOWN : plan.strength}
+      spice={hidden?.dial ? UNKNOWN : plan.spice}
       adjustment={plan.adjustment}
       troops={plan.faces
         .filter((face) => face.capable)
@@ -195,7 +199,15 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork, hi
         .map((piece) => (
           <DraggablePiece key={piece.id} piece={piece} client={client} />
         ))}
-      leader={leader && visiblePiece(leader, active) ? <DraggablePiece piece={leader} client={client} /> : undefined}
+      leader={
+        hidden?.leader ? (
+          <span className={styles.unknownLeader} role="img" aria-label="Leader not revealed">
+            ?
+          </span>
+        ) : leader && visiblePiece(leader, active) ? (
+          <DraggablePiece piece={leader} client={client} />
+        ) : undefined
+      }
     />
   );
 }

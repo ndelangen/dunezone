@@ -168,3 +168,16 @@
     transform: translateX(-50%) scale(0.56);
   }
 }
+
+/* A leader not revealed yet holds the leader slot as an unknown disc. */
+.unknownLeader {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px dashed #e7dfc5;
+  color: #e7dfc5;
+  font-size: 28px;
+  font-weight: 700;
+}
