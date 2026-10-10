@@ -732,7 +732,10 @@ function ConnectedTable({
   error: string | null;
   connection: string;
 }>) {
-  const progress = tableProgressFor(table.snapshot.phase, table.snapshot.phases, lastTurnOf(table.snapshot));
+  const progress = {
+    ...tableProgressFor(table.snapshot.phase, table.snapshot.phases),
+    lastTurn: lastTurnOf(table.snapshot),
+  };
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);

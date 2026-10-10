@@ -244,7 +244,8 @@ export async function verifyPublicControls({
        * From phase 1 on, a seated player's Previous is disabled only while the cooldown runs or while this page cannot act, as during a suspension, a re-admission or playback.
        * A note naming the new phase is therefore that phase's cooldown or a loss of interaction during that phase, and never the cooldown of the phase before it.
        */
-      const { turn, lastTurn } = tableProgressFor(phase, phases, lastTurnOf(snapshot));
+      const { turn } = tableProgressFor(phase, phases);
+      const lastTurn = lastTurnOf(snapshot);
       const shown = `Turn ${turn}${turn <= lastTurn ? ` of ${lastTurn}` : ''} ${phaseAt(phase, phases).label}`;
       for (const who of viewers) {
         await until(

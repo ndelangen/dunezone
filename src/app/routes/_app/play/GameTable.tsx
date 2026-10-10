@@ -1,4 +1,5 @@
 import { Button, Group, Stack, Text } from '@mantine/core';
+import { DEFAULT_LAST_TURN } from '@shared/play/lastTurn';
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
 import { standardPhaseOf } from '@shared/play/phases';
@@ -99,7 +100,7 @@ type GameTableProps = {
 };
 
 /** "Turn 4 of 6"; past the last turn the table plays on, so the count drops its "of". */
-function turnCaption({ turn, lastTurn }: TableProgress) {
+function turnCaption({ turn, lastTurn = DEFAULT_LAST_TURN }: TableProgress) {
   return turn <= lastTurn ? `Turn ${turn} of ${lastTurn}` : `Turn ${turn}`;
 }
 

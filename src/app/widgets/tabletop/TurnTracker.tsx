@@ -15,7 +15,7 @@ function ignoreRaycast() {
 }
 
 /* The wheel only shows the turn: players change it by moving through the phases (#1683). */
-export function TurnTracker({ radius, turn, lastTurn }: Readonly<{ radius: number; turn: number; lastTurn: number }>) {
+export function TurnTracker({ radius, turn, lastTurn }: Readonly<{ radius: number; turn: number; lastTurn?: number }>) {
   const layout = useMemo(() => turnTrackerLayout({ radius, turn, lastTurn }), [radius, turn, lastTurn]);
   /* Numbers keep their ten-turn size on a shorter game and shrink to fit the narrower sectors of a longer one. */
   const labelScale = Math.min(1, 10 / layout.sectorCount);
