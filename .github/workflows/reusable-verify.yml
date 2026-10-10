@@ -247,7 +247,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload storybook test results to Codecov
-        if: ${{ !cancelled() && steps.prior.outputs.reuse != 'true' }}
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           report_type: test_results
@@ -528,7 +528,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload publisher test results to Codecov
-        if: ${{ !cancelled() && steps.prior.outputs.reuse != 'true' }}
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           report_type: test_results
@@ -613,7 +613,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload game test results to Codecov
-        if: ${{ !cancelled() && steps.prior.outputs.reuse != 'true' }}
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           report_type: test_results
@@ -738,12 +738,9 @@ jobs:
           with-deps: "false"
       - if: steps.prior.outputs.reuse != 'true'
         uses: ./.github/actions/generated-images
-      - name: Verify generated images structurally
+      - name: Verify generated images and vectors structurally
         if: steps.prior.outputs.reuse != 'true'
-        run: bun run verify:images
-      - name: Verify generated vectors structurally
-        if: steps.prior.outputs.reuse != 'true'
-        run: bun run verify:vectors
+        run: bun run verify:images && bun run verify:vectors
       - name: Create local E2E env file
         if: steps.prior.outputs.reuse != 'true'
         run: |
@@ -829,7 +826,7 @@ jobs:
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
       - name: Upload e2e test results to Codecov
-        if: ${{ !cancelled() && steps.prior.outputs.reuse != 'true' }}
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           report_type: test_results
