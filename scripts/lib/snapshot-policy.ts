@@ -118,6 +118,8 @@ export const snapshotPolicy = {
   play_game_accounts: { drop: 'Play account links' },
   play_account_deletions: { drop: 'Play account deletions' },
   user_image_ingest_tokens: { drop: 'image ingest credentials' },
+  account_connections: { drop: 'sign-in connection credentials' },
+  account_merge_operations: { drop: 'account merge audit records' },
   account_deletion_operations: { drop: 'account deletions' },
   account_deletion_items: { drop: 'account deletions' },
   group_members: { drop: 'excluded by the ruling on #1310' },

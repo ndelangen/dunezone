@@ -3,7 +3,7 @@ import { waitForFrame } from '@sb/storyWaits';
 import { expectFactionColumns } from '@ui/list/factionListPlay';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db } from '@db/storybook';
+import { db, ref } from '@db/storybook';
 
 import { pageStoryMeta } from './storybookConfig';
 
@@ -116,5 +116,26 @@ export const DeleteAccountReplacementPicker = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Choose a replacement owner' }, { timeout: 30_000 }));
     await waitForFrame(() => page.getByText('No other active profiles are available.'), { timeout: 30_000 });
+  },
+});
+
+export const SignInMethods = meta.story({
+  args: { path: '/profiles/storybook-viewer' },
+  parameters: {
+    database: db((baseline) => {
+      baseline.authAccounts.push({
+        userId: ref('storybook-viewer'),
+        provider: 'google',
+        providerAccountId: 'google-story',
+      });
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByText('Connected · keep one sign-in method', {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.getByRole('button', { name: /^Disconnect$/ })).toBeDisabled();
+    await expect(page.getByRole('link', { name: /^Delete account$/ })).toBeVisible();
   },
 });

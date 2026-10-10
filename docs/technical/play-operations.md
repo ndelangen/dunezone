@@ -262,12 +262,12 @@ a fix ships as a new release. Production rows are never edited by hand
 
 First checks: `asset_publisher_cron` events with `result = failed`
 (`workers/publisher/index.ts:219-228`), and `asset_delivery_failure` filtered by `assetId`
-(`docs/deployment.md:110-130`). Open `/__jobs` as an administrator for the pickup switch and error
+(`docs/deployment.md:110-130`). Open `/_admin/jobs` as an administrator for the pickup switch and error
 jobs (`docs/deployment.md:449-463`).
 
 Recovery: follow "Post-deploy observation" (`docs/deployment.md`). The Cron does not retry a
 failed invocation (`workers/publisher/index.ts:143`); the next one runs five minutes later. Turning
-pickup off at `/__jobs` stops new leases but not leased work. Play depends on published faction and
+pickup off at `/_admin/jobs` stops new leases but not leased work. Play depends on published faction and
 deck assets: a real game refuses a faction until its faces are published and sets it aside with the
 reason (`docs/technical/play-hosted.md:320-327`).
 

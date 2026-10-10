@@ -9,6 +9,7 @@
  */
 
 import type * as accountDeletion from "../accountDeletion.js";
+import type * as accounts from "../accounts.js";
 import type * as assetPublishingStatus from "../assetPublishingStatus.js";
 import type * as assets from "../assets.js";
 import type * as auth from "../auth.js";
@@ -24,7 +25,10 @@ import type * as homepage from "../homepage.js";
 import type * as homepageAdmission from "../homepageAdmission.js";
 import type * as http from "../http.js";
 import type * as ingestTokens from "../ingestTokens.js";
+import type * as lib_accountIdentity from "../lib/accountIdentity.js";
 import type * as lib_accountLifecycle from "../lib/accountLifecycle.js";
+import type * as lib_accountMerge from "../lib/accountMerge.js";
+import type * as lib_accountMethods from "../lib/accountMethods.js";
 import type * as lib_applicationTriggers from "../lib/applicationTriggers.js";
 import type * as lib_assetBacks from "../lib/assetBacks.js";
 import type * as lib_assetInput from "../lib/assetInput.js";
@@ -123,6 +127,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   accountDeletion: typeof accountDeletion;
+  accounts: typeof accounts;
   assetPublishingStatus: typeof assetPublishingStatus;
   assets: typeof assets;
   auth: typeof auth;
@@ -138,7 +143,10 @@ declare const fullApi: ApiFromModules<{
   homepageAdmission: typeof homepageAdmission;
   http: typeof http;
   ingestTokens: typeof ingestTokens;
+  "lib/accountIdentity": typeof lib_accountIdentity;
   "lib/accountLifecycle": typeof lib_accountLifecycle;
+  "lib/accountMerge": typeof lib_accountMerge;
+  "lib/accountMethods": typeof lib_accountMethods;
   "lib/applicationTriggers": typeof lib_applicationTriggers;
   "lib/assetBacks": typeof lib_assetBacks;
   "lib/assetInput": typeof lib_assetInput;

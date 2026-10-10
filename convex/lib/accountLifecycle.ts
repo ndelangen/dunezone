@@ -1,9 +1,9 @@
-import { getAuthUserId } from '@convex-dev/auth/server';
+import { getAuthUserId, getAuthSessionId } from '@convex-dev/auth/server';
 
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 
-export const ACCOUNT_STATES = ['active', 'deletion_pending', 'deleted'] as const;
+export const ACCOUNT_STATES = ['active', 'merge_pending', 'deletion_pending', 'deleted'] as const;
 
 export type AccountState = (typeof ACCOUNT_STATES)[number];
 
@@ -27,6 +27,13 @@ export async function optionalActiveUserId(ctx: AnyCtx): Promise<Id<'users'> | n
   const userId = await getAuthUserId(ctx);
   if (!userId) {
     return null;
+  }
+  const sessionId = await getAuthSessionId(ctx);
+  if (sessionId) {
+    const session = await ctx.db.get(sessionId);
+    if (session?.userId !== userId) {
+      return null;
+    }
   }
   const user = await ctx.db.get('users', userId);
   return user && accountStateOf(user) === 'active' ? userId : null;

@@ -18,23 +18,27 @@ async function queueGameDeletion(
   operation: Doc<'account_deletion_operations'>
 ) {
   await ctx.db.patch(routing._id, { deletion_operation_id: operation._id });
-  const previous = await ctx.db
-    .query('play_account_deletions')
-    .withIndex('by_game_id_operation_id', (q) => q.eq('game_id', routing.game_id).eq('operation_id', operation._id))
-    .unique();
-  if (previous) {
-    return;
+  for (const actorId of routing.actor_user_ids ?? [routing.user_id]) {
+    const previous = await ctx.db
+      .query('play_account_deletions')
+      .withIndex('by_game_operation_user', (q) =>
+        q.eq('game_id', routing.game_id).eq('operation_id', operation._id).eq('user_id', actorId)
+      )
+      .unique();
+    if (previous) {
+      continue;
+    }
+    const eventId = await ctx.db.insert('play_account_deletions', {
+      game_id: routing.game_id,
+      user_id: actorId,
+      operation_id: operation._id,
+      state: 'pending',
+      attempts: 0,
+      next_attempt_at: Date.now(),
+      created_at: Date.now(),
+    });
+    await ctx.scheduler.runAfter(0, internal.playDeletion.deliver, { eventId });
   }
-  const eventId = await ctx.db.insert('play_account_deletions', {
-    game_id: routing.game_id,
-    user_id: operation.source_user_id,
-    operation_id: operation._id,
-    state: 'pending',
-    attempts: 0,
-    next_attempt_at: Date.now(),
-    created_at: Date.now(),
-  });
-  await ctx.scheduler.runAfter(0, internal.playDeletion.deliver, { eventId });
 }
 
 async function queueDeletionPage(

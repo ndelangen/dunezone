@@ -7,6 +7,7 @@ import { internalAction, query } from './_generated/server';
 import type { ActionCtx, MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { accountStateOf, lifecycleUserId } from './lib/accountLifecycle';
+import { requireUnlockedAccount } from './lib/accountMethods';
 import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
@@ -40,6 +41,7 @@ async function profileForUser(ctx: AnyCtx, userId: Id<'users'>) {
 }
 
 async function requireActiveReplacement(ctx: AnyCtx, sourceUserId: Id<'users'>, replacementUserId: Id<'users'>) {
+  await requireUnlockedAccount(ctx, replacementUserId, false);
   if (replacementUserId === sourceUserId) {
     throw new Error('Choose another active profile as the replacement owner');
   }
@@ -217,6 +219,7 @@ export const confirm = mutation({
     if (!sourceUser || accountStateOf(sourceUser) !== 'active') {
       throw new Error('Not authenticated');
     }
+    await requireUnlockedAccount(ctx, sourceUserId, false);
     await assertNotActiveReplacement(ctx, sourceUserId);
     const sourceProfile = await profileForUser(ctx, sourceUserId);
     if (!sourceProfile || sourceProfile.account_state !== 'active') {

@@ -351,7 +351,7 @@ export const createAnswer = mutation({
     const existing = await ctx.db
       .query('faq_answers')
       .withIndex('by_faq_item_answered_by', (q) => q.eq('faq_item_id', args.faq_item_id).eq('answered_by', userId))
-      .unique();
+      .first();
     if (existing) {
       throw new Error('You already answered this question');
     }
