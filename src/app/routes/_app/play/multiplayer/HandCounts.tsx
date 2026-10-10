@@ -6,7 +6,11 @@ import { CARD_SLOT_OUTER_SIZE, cardBaySlotPositions } from '@shared/play/tableFu
 import { useEffect, useMemo, useState } from 'react';
 import { CanvasTexture, LinearMipmapLinearFilter, SRGBColorSpace } from 'three';
 
-import { FALLBACK_FONT_FAMILY, loadTableLabelFont, TABLE_LABEL_FONT_FAMILY } from '@app/widgets/tabletop/TableLabel';
+import {
+  FALLBACK_FONT_FAMILY,
+  loadTableLabelFont,
+  TABLE_LABEL_FONT_FAMILY,
+} from '@app/widgets/tabletop/tableLabelFont';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 
@@ -40,10 +44,10 @@ function loadImage(href: string): Promise<HTMLImageElement | null> {
   });
 }
 
-/** The faction token's face in a gold ring, or its initials on its colour when the face cannot load. */
-/* The table's lettering face, or the same fallback the table's labels use when it cannot load. */
+/* `font` is the table's lettering face, or the same fallback the table's labels use when it cannot load. */
 type Disc = { cx: number; cy: number; radius: number; font: string };
 
+/** The faction token's face in a gold ring, or its initials on its colour when the face cannot load. */
 function drawLogo(
   context: CanvasRenderingContext2D,
   row: Row,

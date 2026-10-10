@@ -4,7 +4,7 @@ import type { Vector3Tuple } from '@shared/play/model';
 import { useEffect, useMemo, useState } from 'react';
 import { CanvasTexture, LinearFilter, SRGBColorSpace } from 'three';
 
-import tableLabelFontUrl from './assets/desdemona-black-regular.woff?url';
+import { FALLBACK_FONT_FAMILY, loadTableLabelFont, TABLE_LABEL_FONT_FAMILY } from './tableLabelFont';
 
 type TableLabelProps = {
   children: string;
@@ -21,35 +21,8 @@ type LabelTexture = Readonly<{
   width: number;
 }>;
 
-export const TABLE_LABEL_FONT_FAMILY = 'Dune Play Table Label';
-export const FALLBACK_FONT_FAMILY = 'Georgia, serif';
 const TEXTURE_FONT_SIZE = 160;
 const TEXTURE_PADDING = 12;
-
-let tableLabelFontPromise: Promise<boolean> | undefined;
-
-export function loadTableLabelFont(): Promise<boolean> {
-  if (tableLabelFontPromise) {
-    return tableLabelFontPromise;
-  }
-
-  if (typeof document === 'undefined' || typeof FontFace === 'undefined') {
-    return Promise.resolve(false);
-  }
-  if (!document.fonts) {
-    return Promise.resolve(false);
-  }
-
-  tableLabelFontPromise = new FontFace(TABLE_LABEL_FONT_FAMILY, `url("${tableLabelFontUrl}")`)
-    .load()
-    .then((fontFace) => {
-      document.fonts.add(fontFace);
-      return true;
-    })
-    .catch(() => false);
-
-  return tableLabelFontPromise;
-}
 
 function canvasFont(fontFamily: string): string {
   const family = fontFamily === TABLE_LABEL_FONT_FAMILY ? `"${fontFamily}"` : fontFamily;
