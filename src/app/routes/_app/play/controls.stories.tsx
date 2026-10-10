@@ -156,7 +156,7 @@ function storyLeader(id: string, image: string, name: string) {
 
 /**
  * Battle, a part of each plan shown before the reveal: Harkonnen showed its card and its dial, Atreides its leader and a card.
- * The revealed parts sit under each hidden wheel for everyone, and the plan editor keeps them fixed.
+ * Each side's revealed parts show on its battle wheel for everyone, and the plan editor keeps them fixed while shown.
  */
 function earlyRevealSnapshot() {
   const snapshot = withCardInHand(battleStory('preparing'));
@@ -192,8 +192,8 @@ export const BattleEarlyReveal = meta.story({
   beforeEach: install(() => productTransport('seat-2', earlyRevealSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Battle');
-    await expect(page.findByRole('button', { name: 'Dial revealed' }, WAIT)).resolves.toBeDisabled();
-    await expect(page.findByRole('button', { name: 'Leader' }, WAIT)).resolves.toBeEnabled();
+    await expect(page.findByRole('checkbox', { name: 'Dial' }, WAIT)).resolves.toBeChecked();
+    await expect(page.findByRole('checkbox', { name: 'Leader' }, WAIT)).resolves.not.toBeChecked();
   },
 });
 

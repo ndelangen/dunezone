@@ -1,4 +1,4 @@
-import { Button, Group, Image, NumberInput, SegmentedControl, Select, Stack, Text } from '@mantine/core';
+import { Button, Checkbox, Group, Image, NumberInput, SegmentedControl, Select, Stack, Text } from '@mantine/core';
 import type { ButtonProps, NumberInputProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
@@ -110,6 +110,7 @@ type WheelProps = {
   factionName: string;
   client?: TableSession;
   active?: Set<string>;
+  hidden?: { dial?: boolean; leader?: boolean };
 };
 function factionArtwork(factionId: string, artwork?: FactionArtwork) {
   return artwork?.[factionId] ?? factionTokenFixtures[factionId === 'atreides' ? 'atreides' : 'harkonnen'];
@@ -142,7 +143,7 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
   );
 }
 /** Play owns piece visibility, pointer sessions and the Motion verdict; the asset owns the wheel artwork. */
-function BattleWheel({ plan, factionId, factionName, client, active, artwork }: WheelProps) {
+function BattleWheel({ plan, factionId, factionName, client, active, artwork, hidden }: WheelProps) {
   const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
   const motion = useMotionAllowed();
   const retained = artwork?.[factionId];
@@ -151,8 +152,13 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork }: 
     <BattleWheelAsset
       state="revealed"
       motion={motion}
+      hidden={hidden}
       className={styles.wheel}
-      label={`${factionName} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
+      label={
+        hidden?.dial
+          ? `${factionName} plan, partly revealed`
+          : `${factionName} plan, troop strength ${plan.strength}, ${plan.spice} spice`
+      }
       background={factionArtwork(factionId, artwork).background}
       strength={plan.strength}
       spice={plan.spice}
@@ -333,7 +339,7 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
             >
               <PieceImage piece={piece} />
               <Text component="span" size="xs">
-                {disclosed ? 'Revealed' : selected ? 'In plan' : 'In hand'}
+                {selected ? 'In plan' : 'In hand'}
               </Text>
             </Button>
           );
@@ -348,7 +354,7 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
   );
 }
 
-/** Shows one part of the player's own plan to everyone before the reveal; the table leaves who may do so to the players. */
+/** Shows or hides parts of the player's own plan for everyone before the reveal; the table leaves who may do so to the players. */
 function EarlyReveal({
   client,
   battle,
@@ -362,50 +368,35 @@ function EarlyReveal({
   pieces: TablePiece[];
   disabled: boolean;
 }) {
-  const disclose = (disclosure: Disclosure) =>
-    client.command({ kind: 'battle-disclose', battleId: battle.id, disclosure });
-  const leader = pieces.find((piece) => piece.id === plan.leaderId);
+  const toggle = (disclosure: Disclosure, shown: boolean) =>
+    client.command({ kind: 'battle-disclose', battleId: battle.id, disclosure, shown });
   const cards = plan.cardIds.flatMap((id) => pieces.filter((piece) => piece.id === id));
   return (
-    <Stack gap={4}>
+    <Stack gap="xs" role="group" aria-label="Reveal early">
       <Text size="sm" fw={600}>
         Reveal early
       </Text>
-      <Text size="xs" c="dimmed">
-        Everyone sees a revealed part right away, and it can no longer change.
-      </Text>
-      <Group gap="xs">
-        <Button
-          size="xs"
-          variant="default"
-          disabled={disabled || !leader || plan.disclosed.leader}
-          onClick={() => disclose({ element: 'leader' })}
-        >
-          {plan.disclosed.leader ? 'Leader revealed' : 'Leader'}
-        </Button>
-        <Button
-          size="xs"
-          variant="default"
-          disabled={disabled || plan.disclosed.dial}
-          onClick={() => disclose({ element: 'dial' })}
-        >
-          {plan.disclosed.dial ? 'Dial revealed' : 'Dial'}
-        </Button>
-        {cards.map((piece) => {
-          const revealed = plan.disclosed.cardIds.includes(piece.id);
-          return (
-            <Button
-              key={piece.id}
-              size="xs"
-              variant="default"
-              disabled={disabled || revealed}
-              onClick={() => disclose({ element: 'card', cardId: piece.id })}
-            >
-              {revealed ? `${pieceName(piece)} revealed` : pieceName(piece)}
-            </Button>
-          );
-        })}
-      </Group>
+      <Checkbox
+        label="Leader"
+        disabled={disabled || (!plan.leaderId && !plan.disclosed.leader)}
+        checked={plan.disclosed.leader}
+        onChange={(event) => toggle({ element: 'leader' }, event.currentTarget.checked)}
+      />
+      <Checkbox
+        label="Dial"
+        disabled={disabled}
+        checked={plan.disclosed.dial}
+        onChange={(event) => toggle({ element: 'dial' }, event.currentTarget.checked)}
+      />
+      {cards.map((piece) => (
+        <Checkbox
+          key={piece.id}
+          label={pieceName(piece)}
+          disabled={disabled}
+          checked={plan.disclosed.cardIds.includes(piece.id)}
+          onChange={(event) => toggle({ element: 'card', cardId: piece.id }, event.currentTarget.checked)}
+        />
+      ))}
     </Stack>
   );
 }
@@ -461,15 +452,6 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
               />
             </div>
             <PlanInventory plan={plan} locked={locked} update={update} pieces={pieces} />
-            {battle.stage === 'preparing' && (
-              <EarlyReveal
-                client={client}
-                battle={battle}
-                plan={plan}
-                pieces={pieces}
-                disabled={!table.canHandleTable}
-              />
-            )}
             <Text size="sm">
               {table.snapshot.bank!.balance} in your spice reserve, {plan.spice} set aside. Troop strength excludes
               leader strength.
@@ -482,6 +464,15 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
               >
                 {side.ready ? 'Undo Ready' : 'Ready for battle'}
               </Button>
+            )}
+            {battle.stage === 'preparing' && (
+              <EarlyReveal
+                client={client}
+                battle={battle}
+                plan={plan}
+                pieces={pieces}
+                disabled={!table.canHandleTable}
+              />
             )}
           </Stack>
         </WorkbenchLayout.Chapters>
@@ -853,6 +844,22 @@ function BattleCentre(props: ActiveProps) {
     </Text>
   );
 }
+/** The parts a side revealed early, as a plan the revealed wheel can draw; everything else stays out of it. */
+function disclosedPlan({ leader, dial, cards }: DisclosedPlan): BattlePlan {
+  const cardIds = cards.map((piece) => piece.id);
+  return {
+    mode: dial?.mode ?? 'max',
+    troops: dial?.troops ?? [],
+    spice: dial?.spice ?? 0,
+    adjustment: dial?.adjustment ?? 0,
+    strength: dial?.strength ?? 0,
+    faces: dial?.faces ?? [],
+    leaderId: leader?.id ?? null,
+    cardIds,
+    pieces: [...(leader ? [leader] : []), ...cards],
+    disclosed: { leader: !!leader, dial: !!dial, cardIds },
+  };
+}
 function SideContents({
   client,
   table,
@@ -872,6 +879,18 @@ function SideContents({
         artwork={table.snapshot.factionArtwork}
         client={table.canHandleTable ? client : undefined}
         active={active}
+      />
+    );
+  }
+  const early = battle.disclosed?.[index];
+  if (side && early && (early.leader || early.dial || early.cards.length)) {
+    return (
+      <BattleWheel
+        plan={disclosedPlan(early)}
+        factionId={side.factionId}
+        factionName={rosterName(side.factionId, snapshotFactionLabels(table.snapshot))}
+        artwork={table.snapshot.factionArtwork}
+        hidden={{ dial: !early.dial, leader: !early.leader }}
       />
     );
   }
@@ -899,37 +918,6 @@ function SideContents({
     </Button>
   );
 }
-/** What a side showed before the reveal, under its hidden wheel. */
-function DisclosedParts({ disclosed }: { disclosed: DisclosedPlan | null | undefined }) {
-  if (!disclosed || (!disclosed.leader && !disclosed.dial && !disclosed.cards.length)) {
-    return <div />;
-  }
-  const { leader, dial, cards } = disclosed;
-  return (
-    <Stack gap={2} align="center" className={styles.disclosed}>
-      <Text size="xs" c="dimmed">
-        Revealed early
-      </Text>
-      <Group gap={4} justify="center" wrap="wrap">
-        {leader && (
-          <div className={styles.disclosedPiece}>
-            <PieceImage piece={leader} />
-          </div>
-        )}
-        {cards.map((piece) => (
-          <div key={piece.id} className={styles.disclosedPiece}>
-            <PieceImage piece={piece} />
-          </div>
-        ))}
-      </Group>
-      {dial && (
-        <Text size="xs">
-          Dial {dial.strength}, {dial.spice} spice
-        </Text>
-      )}
-    </Stack>
-  );
-}
 function BattleSides(props: ActiveProps) {
   const { battle, table } = props;
   const active = new Set(
@@ -953,18 +941,6 @@ function BattleSides(props: ActiveProps) {
       <div className={styles.centre}>
         <BattleCentre {...props} />
       </div>
-    </Group>
-  );
-}
-function DisclosedRow({ battle }: { battle: PublicBattle }) {
-  const disclosed = battle.disclosed;
-  if (!disclosed?.some((side) => side && (side.leader || side.dial || side.cards.length))) {
-    return null;
-  }
-  return (
-    <Group justify="space-between" wrap="nowrap" align="start" gap="sm">
-      <DisclosedParts disclosed={disclosed[0]} />
-      <DisclosedParts disclosed={disclosed[1]} />
     </Group>
   );
 }
@@ -995,7 +971,6 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
               }
             >
               <BattleSides {...props} />
-              <DisclosedRow battle={battle} />
             </CalloutSurface>
           </div>
         </DarkSchemeIsland>

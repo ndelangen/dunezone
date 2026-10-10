@@ -175,13 +175,13 @@ const dialOf = ({ mode, troops, spice, adjustment }: BattlePlanInput) =>
 function keepDisclosed(before: StoredBattlePlan, plan: BattlePlanInput) {
   const { disclosed } = before;
   if (disclosed.leader && plan.leaderId !== before.leaderId) {
-    return refuse('Your leader is already revealed and cannot change.');
+    return refuse('Your leader is revealed. Hide it before changing it.');
   }
   if (disclosed.cardIds.some((id) => !plan.cardIds.includes(id))) {
-    return refuse('A revealed card stays in your plan.');
+    return refuse('A revealed card stays in your plan until you hide it.');
   }
   if (disclosed.dial && dialOf(plan) !== dialOf(before)) {
-    return refuse('Your dial is already revealed and cannot change.');
+    return refuse('Your dial is revealed. Hide it before changing it.');
   }
 }
 
@@ -209,35 +209,44 @@ function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: Batt
   });
 }
 
-/* Why a part cannot be revealed now, or nothing when it can. */
-function disclosureRefusal({ disclosed, leaderId, cardIds }: StoredBattlePlan, disclosure: Disclosure) {
-  if (disclosure.element === 'card') {
-    const shown = disclosed.cardIds.includes(disclosure.cardId);
-    return cardIds.includes(disclosure.cardId) && !shown
-      ? null
-      : 'Choose a card in your plan that is not revealed yet.';
+/* Why a part cannot be shown or hidden now, or nothing when it can. */
+function disclosureRefusal({ disclosed, leaderId, cardIds }: StoredBattlePlan, disclosure: Disclosure, shown: boolean) {
+  const showing =
+    disclosure.element === 'card' ? disclosed.cardIds.includes(disclosure.cardId) : disclosed[disclosure.element];
+  if (showing === shown) {
+    return shown ? 'That part of your plan is already revealed.' : 'That part of your plan is not revealed.';
   }
-  if (disclosed[disclosure.element]) {
-    return `Your ${disclosure.element} is already revealed.`;
+  if (!shown) {
+    return null;
+  }
+  if (disclosure.element === 'card') {
+    return cardIds.includes(disclosure.cardId) ? null : 'Choose a card in your plan.';
   }
   return disclosure.element === 'leader' && !leaderId ? 'Choose a leader before revealing it.' : null;
 }
 
-/** Shows one part of a faction's own plan to everyone ahead of the reveal; the table checks no faction's right to do so. */
-function disclose({ snapshot, battle, side }: BattleSide, disclosure: Disclosure) {
+function toggled(disclosed: StoredBattlePlan['disclosed'], disclosure: Disclosure, shown: boolean) {
+  if (disclosure.element !== 'card') {
+    return { ...disclosed, [disclosure.element]: shown };
+  }
+  const others = disclosed.cardIds.filter((id) => id !== disclosure.cardId);
+  return { ...disclosed, cardIds: shown ? [...others, disclosure.cardId] : others };
+}
+
+/** Shows or hides one part of a faction's own plan for everyone ahead of the reveal; the table checks no faction's right to do so. */
+function disclose(
+  { snapshot, battle, side }: BattleSide,
+  { disclosure, shown }: Extract<BattleAction, { kind: 'battle-disclose' }>
+) {
   if (battle.stage !== 'preparing') {
     return refuse('Plans can only be revealed early while the battle is being prepared.');
   }
   const plan = battle.plans[side]!;
-  const refusal = disclosureRefusal(plan, disclosure);
+  const refusal = disclosureRefusal(plan, disclosure, shown);
   if (refusal) {
     return refuse(refusal);
   }
-  const disclosed =
-    disclosure.element === 'card'
-      ? { ...plan.disclosed, cardIds: [...plan.disclosed.cardIds, disclosure.cardId] }
-      : { ...plan.disclosed, [disclosure.element]: true };
-  battle.plans[side] = { ...plan, disclosed };
+  battle.plans[side] = { ...plan, disclosed: toggled(plan.disclosed, disclosure, shown) };
   return commit(snapshot, { battleState: battle });
 }
 
@@ -449,7 +458,7 @@ function sideCommand(
     case 'battle-outcome':
       return chooseOutcome(battlingFaction, action);
     case 'battle-disclose':
-      return disclose(battlingFaction, action.disclosure);
+      return disclose(battlingFaction, action);
   }
 }
 

@@ -422,7 +422,13 @@ function disclosureEntries(
     ? `${who} revealed a card early: ${name(card)}.`
     : plan.disclosed.leader && !was?.leader
       ? `${who} revealed its leader early: ${name(plan.leaderId)}.`
-      : `${who} revealed its dial early: troop strength ${plan.strength}, ${plan.spice} spice.`;
+      : plan.disclosed.dial && !was?.dial
+        ? `${who} revealed its dial early: troop strength ${plan.strength}, ${plan.spice} spice.`
+        : null;
+  /* Hiding a part again tells nobody anything new, so only a part being shown is logged. */
+  if (!template) {
+    return [];
+  }
   return [{ key: `battle-disclose:${next.revision}`, class: 'battle', template, people, context }];
 }
 

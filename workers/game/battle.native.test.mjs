@@ -266,7 +266,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await sendCommand(a, { kind: 'battle-ready', battleId, ready: true })).reply.type).toBe('rejected');
   });
 
-  it('reveals single parts of a plan early to everyone, keeps them fixed until the reveal', async () => {
+  it('reveals single parts of a plan early to everyone, keeps them fixed while shown', async () => {
     await accepted(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
     await accepted(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
     const battleId = await start();
@@ -280,7 +280,12 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(hidden.battle.disclosed[0]).toEqual({ cards: [] });
     expect(JSON.stringify(hidden)).not.toContain('Secret card');
 
-    const card = await accepted(a, { kind: 'battle-disclose', battleId, disclosure: { element: 'card', cardId } });
+    const card = await accepted(a, {
+      kind: 'battle-disclose',
+      battleId,
+      disclosure: { element: 'card', cardId },
+      shown: true,
+    });
     expect(card.snapshot.battlePlan.disclosed.cardIds).toEqual([cardId]);
     const seen = (await syncView(observer)).snapshot.battle.disclosed[0];
     expect(seen.cards.map((piece) => piece.items[0].artwork.name)).toEqual(['Secret card']);
@@ -288,18 +293,21 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(seen).not.toHaveProperty('leader');
     expect(seen).not.toHaveProperty('dial');
 
-    await accepted(a, { kind: 'battle-disclose', battleId, disclosure: { element: 'leader' } });
-    await accepted(a, { kind: 'battle-disclose', battleId, disclosure: { element: 'dial' } });
+    await accepted(a, { kind: 'battle-disclose', battleId, disclosure: { element: 'leader' }, shown: true });
+    await accepted(a, { kind: 'battle-disclose', battleId, disclosure: { element: 'dial' }, shown: true });
     const all = (await syncView(b)).snapshot.battle.disclosed[0];
     expect(all.leader.id).toBe('fixture-leader');
     expect(all.dial).toMatchObject({ spice: 5, strength: 4.75 });
     expect((await syncView(b)).snapshot.battle.disclosed[1]).toEqual({ cards: [] });
 
     for (const disclosure of [{ element: 'leader' }, { element: 'dial' }, { element: 'card', cardId }]) {
-      expect((await sendCommand(a, { kind: 'battle-disclose', battleId, disclosure })).reply.type).toBe('rejected');
+      expect((await sendCommand(a, { kind: 'battle-disclose', battleId, disclosure, shown: true })).reply.type).toBe(
+        'rejected'
+      );
     }
     expect(
-      (await sendCommand(observer, { kind: 'battle-disclose', battleId, disclosure: { element: 'dial' } })).reply.type
+      (await sendCommand(observer, { kind: 'battle-disclose', battleId, disclosure: { element: 'dial' }, shown: true }))
+        .reply.type
     ).toBe('rejected');
     for (const extra of [
       { leaderId: null, cardIds: [cardId] },
@@ -314,9 +322,17 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       'rejected'
     );
 
+    /* Hiding the dial again unlocks it and takes it off the table for everyone. */
+    const dial = { kind: 'battle-disclose', battleId, disclosure: { element: 'dial' }, shown: false };
+    await accepted(a, dial);
+    expect((await sendCommand(a, dial)).reply.type).toBe('rejected');
+    expect((await syncView(observer)).snapshot.battle.disclosed[0]).not.toHaveProperty('dial');
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan(4, 4, fixed) });
+
     await ready(battleId);
     expect(
-      (await sendCommand(b, { kind: 'battle-disclose', battleId, disclosure: { element: 'dial' } })).reply.type
+      (await sendCommand(b, { kind: 'battle-disclose', battleId, disclosure: { element: 'dial' }, shown: true })).reply
+        .type
     ).toBe('rejected');
     const out = await revealed(observer);
     expect(out.battle).not.toHaveProperty('disclosed');

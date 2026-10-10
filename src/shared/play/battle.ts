@@ -42,7 +42,7 @@ const battlePlanInputSchema = z.strictObject({
   leaderId: id.nullable(),
   cardIds: z.array(id),
 });
-/** The parts of a plan its faction showed everyone before the reveal; each stays fixed until the battle ends. */
+/** The parts of a plan its faction shows everyone before the reveal; each stays fixed while it is shown. */
 const disclosedSchema = z.object({
   leader: z.boolean().default(false),
   dial: z.boolean().default(false),
@@ -110,7 +110,12 @@ export const battleActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('battle-claim'), battleId: id, side: battleSideSchema }),
   z.strictObject({ kind: z.literal('battle-plan'), battleId: id, plan: battlePlanInputSchema }),
   z.strictObject({ kind: z.literal('battle-ready'), battleId: id, ready: z.boolean() }),
-  z.strictObject({ kind: z.literal('battle-disclose'), battleId: id, disclosure: disclosureSchema }),
+  z.strictObject({
+    kind: z.literal('battle-disclose'),
+    battleId: id,
+    disclosure: disclosureSchema,
+    shown: z.boolean(),
+  }),
   z.strictObject({ kind: z.literal('battle-cancel'), battleId: id }),
   z.strictObject({ kind: z.literal('battle-outcome'), battleId: id, outcome: battleOutcomeSchema }),
   z.strictObject({ kind: z.literal('hand-take'), pieceId: id }),

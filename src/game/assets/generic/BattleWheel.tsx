@@ -21,6 +21,8 @@ type Revealed = {
   }[];
   cards?: readonly ReactNode[];
   leader?: ReactNode;
+  /** Parts a plan revealed early leaves out: the dial's numbers and troops, or the leader slot, each drawn as unknown. */
+  hidden?: { dial?: boolean; leader?: boolean };
 };
 
 type Props = {
@@ -72,7 +74,7 @@ export function BattleWheel(props: Props) {
   );
 }
 
-function RevealedWheel({ background, strength, spice, adjustment, troops, cards = [], leader }: Revealed) {
+function RevealedWheel({ background, strength, spice, adjustment, troops, cards = [], leader, hidden = {} }: Revealed) {
   return (
     <>
       <div className={styles.cards}>
@@ -104,11 +106,11 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
           />
         </div>
         <div className={styles.strength}>
-          <span>{strength}</span>
+          <span>{hidden.dial ? '?' : strength}</span>
           <small>Strength</small>
         </div>
         <div className={styles.troopReadout}>
-          {troops.map((troop) => (
+          {(hidden.dial ? [] : troops).map((troop) => (
             <div className={styles.troopRow} key={troop.id}>
               <div className={styles.troop} aria-label={troop.name}>
                 <TroopToken {...troop.artwork} />
@@ -125,17 +127,23 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
         <div className={styles.leaderReadout}>
           <div className={styles.spice}>
             <span className={styles.spiceIcon} aria-hidden />
-            <span className={styles.spiceValue}>{spice}</span>
+            <span className={styles.spiceValue}>{hidden.dial ? '?' : spice}</span>
           </div>
           <div className={styles.leader}>
             <div className={styles.leaderPiece}>
-              {leader ?? (
+              {hidden.leader ? (
                 <span className={styles.noLeader}>
-                  <svg viewBox="0 0 100 100" aria-hidden="true">
-                    <use href="/vector/decal/cheap-hero.svg#root" />
-                  </svg>
-                  <span>No leader</span>
+                  <span>?</span>
                 </span>
+              ) : (
+                (leader ?? (
+                  <span className={styles.noLeader}>
+                    <svg viewBox="0 0 100 100" aria-hidden="true">
+                      <use href="/vector/decal/cheap-hero.svg#root" />
+                    </svg>
+                    <span>No leader</span>
+                  </span>
+                ))
               )}
             </div>
           </div>
@@ -143,7 +151,7 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
         <svg className={styles.wordmark} viewBox="0 0 100 100" aria-hidden="true">
           <use href="/vector/decal/battlewheel-multicolor.svg#root" />
         </svg>
-        {!!adjustment && (
+        {!!adjustment && !hidden.dial && (
           <div
             className={clsx(styles.adjustment, adjustment > 0 ? styles.positive : styles.negative)}
             aria-label={`Strength adjustment ${adjustment > 0 ? 'plus' : 'minus'} ${Math.abs(adjustment)}`}
