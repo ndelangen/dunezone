@@ -24,3 +24,19 @@ export function treacheryHandCounts(
     ])
   );
 }
+
+/**
+ * The grid that gives each of `count` cells the largest size inside a `width` by `height` area, for cells `aspect` times as wide as tall.
+ * Six cells in the card slot's portrait area lay out two by three.
+ */
+export function handCountGrid(count: number, aspect: number, width: number, height: number) {
+  let best = { cols: 1, rows: Math.max(count, 1), size: 0 };
+  for (let cols = 1; cols <= count; cols += 1) {
+    const rows = Math.ceil(count / cols);
+    const size = Math.min(width / cols / aspect, height / rows);
+    if (size > best.size + 1e-6) {
+      best = { cols, rows, size };
+    }
+  }
+  return best;
+}

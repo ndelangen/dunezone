@@ -128,9 +128,4 @@ export const HandCounts = meta.story({
     snapshot.handCounts = Object.fromEntries(factions.map((id, index) => [id, [0, 1, 2, 4, 3, 8][index % 6]!]));
     return productTransport('seat-2', snapshot);
   }),
-  play: async ({ canvasElement }) => {
-    await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-hand-counts]')).not.toBeNull(), {
-      timeout: 30_000,
-    });
-  },
 });

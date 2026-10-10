@@ -1,5 +1,6 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
 import { factionTokenFaceUp, factionTokenStackKey } from '@shared/play/factionToken';
+import { handCountGrid } from '@shared/play/handCounts';
 import { stormOrder } from '@shared/play/stormSector';
 import { CARD_SLOT_OUTER_SIZE, cardBaySlotPositions } from '@shared/play/tableFurnitureLayout';
 import { useEffect, useMemo, useState } from 'react';
@@ -9,36 +10,21 @@ import { loadTableLabelFont, TABLE_LABEL_FONT_FAMILY } from '@app/widgets/tablet
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 
-type Variant = '1' | '2' | '3' | '4';
-
-/* PROTOTYPE: the look is picked from the page address while Norbert compares them. */
-function variant(): Variant {
-  const picked = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('ledger');
-  return picked === '2' || picked === '3' || picked === '4' ? picked : '1';
-}
-
-/* The left card bay's empty slot (outer column, bottom row): the counts fill exactly the slot a card well would. */
-const [, SURFACE_Y] = cardBaySlotPositions('left')[0]!;
-const SPOT: [number, number, number] = [-6.72, SURFACE_Y + 0.004, 1.32];
+/* The left card bay leaves its outer bottom slot empty: the counts fill exactly the space a card well would. */
+const [, SURFACE_Y, SLOT_Z] = cardBaySlotPositions('left').at(-1)!;
+const [OUTER_X] = cardBaySlotPositions('left')[1]!;
+const SPOT: [number, number, number] = [OUTER_X, SURFACE_Y + 0.004, SLOT_Z];
 const WIDTH = CARD_SLOT_OUTER_SIZE.width;
 const DEPTH = CARD_SLOT_OUTER_SIZE.depth;
+/* Texture pixels per table unit. */
 const PX = 1024 / DEPTH;
+/* The space kept clear around the whole cluster, as a share of the slot's width (Norbert, #1007). */
+const PADDING = 0.12;
+/* A cell is a logo with its count beside it. */
+const CELL_ASPECT = 1.75;
 const GOLD = '#d2ae68';
 
 type Row = { id: string; count: number; out: boolean; front: string | null; color: string; initials: string };
-
-/** The columns that make each cell largest for a cell of this width-to-height ratio; six fills two by three. */
-function gridFor(count: number, aspect: number, width: number, height: number) {
-  let best = { cols: 1, rows: count, size: 0 };
-  for (let cols = 1; cols <= count; cols += 1) {
-    const rows = Math.ceil(count / cols);
-    const size = Math.min(width / cols / aspect, height / rows);
-    if (size > best.size + 1e-6) {
-      best = { cols, rows, size };
-    }
-  }
-  return best;
-}
 
 function loadImage(href: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
@@ -50,6 +36,7 @@ function loadImage(href: string): Promise<HTMLImageElement | null> {
   });
 }
 
+/** The faction token's face in a gold ring, or its initials on its colour when the face cannot load. */
 function drawLogo(
   context: CanvasRenderingContext2D,
   row: Row,
@@ -61,7 +48,6 @@ function drawLogo(
   context.save();
   context.beginPath();
   context.arc(cx, cy, radius, 0, Math.PI * 2);
-  context.closePath();
   context.clip();
   if (image) {
     context.drawImage(image, cx - radius, cy - radius, radius * 2, radius * 2);
@@ -82,108 +68,50 @@ function drawLogo(
   context.stroke();
 }
 
-function drawNumber(
-  context: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  size: number,
-  align: CanvasTextAlign
-) {
+/** A count pressed into the table: a dark lip above the gold. */
+function drawCount(context: CanvasRenderingContext2D, text: string, x: number, y: number, size: number) {
   context.font = `${size}px "${TABLE_LABEL_FONT_FAMILY}"`;
-  context.textAlign = align;
+  context.textAlign = 'left';
   context.textBaseline = 'middle';
-  /* Pressed into the table: a dark lip above and the gold below. */
   context.fillStyle = 'rgba(0, 0, 0, 0.55)';
   context.fillText(text, x, y - size * 0.03);
   context.fillStyle = GOLD;
   context.fillText(text, x, y);
 }
 
-function paint(
-  canvas: HTMLCanvasElement,
-  rows: readonly Row[],
-  images: Map<string, HTMLImageElement | null>,
-  look: Variant
-) {
+function paint(canvas: HTMLCanvasElement, rows: readonly Row[], images: ReadonlyMap<string, HTMLImageElement | null>) {
   const context = canvas.getContext('2d')!;
-  const width = canvas.width;
-  const height = canvas.height;
-  context.clearRect(0, 0, width, height);
-  let top = 0;
-  let left = 0;
-  let areaWidth = width;
-  let areaHeight = height;
-  if (look === '4') {
-    /* An engraved frame with a title, inset like the card wells' rims. */
-    const inset = width * 0.03;
-    context.strokeStyle = GOLD;
-    context.globalAlpha = 0.7;
-    context.lineWidth = width * 0.012;
-    context.beginPath();
-    context.roundRect(inset, inset, width - inset * 2, height - inset * 2, width * 0.08);
-    context.stroke();
-    context.globalAlpha = 1;
-    const titleSize = width * 0.085;
-    context.font = `${titleSize}px "${TABLE_LABEL_FONT_FAMILY}"`;
-    context.fillStyle = GOLD;
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.fillText('TREACHERY', width / 2, inset + titleSize * 1.1);
-    top = inset + titleSize * 2;
-    left = inset * 2;
-    areaWidth = width - left * 2;
-    areaHeight = height - top - inset * 2;
-  }
-  const aspect = look === '2' ? 0.75 : look === '3' ? 1 : 1.75;
-  const { cols, rows: rowCount } = gridFor(rows.length, aspect, areaWidth, areaHeight);
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  const padding = canvas.width * PADDING;
+  const areaWidth = canvas.width - padding * 2;
+  const areaHeight = canvas.height - padding * 2;
+  const { cols, rows: lines } = handCountGrid(rows.length, CELL_ASPECT, areaWidth, areaHeight);
   const cellWidth = areaWidth / cols;
-  const cellHeight = areaHeight / rowCount;
+  const cellHeight = areaHeight / lines;
   rows.forEach((row, index) => {
     const col = index % cols;
     const line = Math.floor(index / cols);
     /* A short last line is centred. */
-    const lineCount = line === rowCount - 1 ? rows.length - line * cols : cols;
-    const x = left + (cols - lineCount) * (cellWidth / 2) + col * cellWidth;
-    const y = top + line * cellHeight;
+    const lineCount = line === lines - 1 ? rows.length - line * cols : cols;
+    const x = padding + (cols - lineCount) * (cellWidth / 2) + col * cellWidth;
+    const cy = padding + line * cellHeight + cellHeight / 2;
     context.save();
     if (row.out) {
       context.filter = 'grayscale(1)';
       context.globalAlpha = 0.4;
     }
-    const image = row.front ? (images.get(row.front) ?? null) : null;
-    const text = String(row.count);
-    if (look === '2') {
-      const radius = Math.min(cellWidth * 0.36, cellHeight * 0.27);
-      drawLogo(context, row, image, x + cellWidth / 2, y + cellHeight * 0.33, radius);
-      drawNumber(context, text, x + cellWidth / 2, y + cellHeight * 0.8, cellHeight * 0.36, 'center');
-    } else if (look === '3') {
-      const radius = Math.min(cellWidth, cellHeight) * 0.4;
-      const cx = x + cellWidth / 2;
-      const cy = y + cellHeight / 2;
-      drawLogo(context, row, image, cx, cy, radius);
-      const stampX = cx + radius * 0.72;
-      const stampY = cy + radius * 0.72;
-      const stamp = radius * 0.58;
-      context.beginPath();
-      context.arc(stampX, stampY, stamp, 0, Math.PI * 2);
-      context.fillStyle = '#241a16';
-      context.fill();
-      context.lineWidth = Math.max(2, stamp * 0.12);
-      context.strokeStyle = GOLD;
-      context.stroke();
-      drawNumber(context, text, stampX, stampY + stamp * 0.08, stamp * 1.5, 'center');
-    } else {
-      const radius = Math.min(cellHeight * 0.4, cellWidth * 0.27);
-      const cx = x + cellWidth * 0.08 + radius;
-      drawLogo(context, row, image, cx, y + cellHeight / 2, radius);
-      drawNumber(context, text, cx + radius * 1.3, y + cellHeight / 2 + radius * 0.08, radius * 2, 'left');
-    }
+    const radius = Math.min(cellHeight * 0.4, cellWidth * 0.27);
+    const cx = x + cellWidth * 0.08 + radius;
+    drawLogo(context, row, row.front ? (images.get(row.front) ?? null) : null, cx, cy, radius);
+    drawCount(context, String(row.count), cx + radius * 1.3, cy + radius * 0.08, radius * 2);
     context.restore();
   });
 }
 
-/** Every seated faction's Treachery card count, in storm order, painted into the left card bay's empty slot. */
+/**
+ * Every seated faction's Treachery card count, in storm order, painted into the left card bay's empty slot where bidding is watched (#1007).
+ * A faction whose token lies face down sits out the round, so its count is greyed out as the bidder greys it.
+ */
 export function HandCountsScene({ table }: { table: TableProjection }) {
   const roster = table.snapshot.roster;
   const counts = table.snapshot.handCounts;
@@ -204,16 +132,11 @@ export function HandCountsScene({ table }: { table: TableProjection }) {
       }),
     [order, counts, table.state.pieces, table.state.factionNames]
   );
-  const look = variant();
-  /* PROTOTYPE: `ledgerFactions=18` repeats the seated factions to show a larger table. */
-  const demo = Number(typeof location === 'undefined' ? 0 : new URLSearchParams(location.search).get('ledgerFactions'));
-  const shown =
-    demo > rows.length
-      ? Array.from({ length: demo }, (_, index) => ({ ...rows[index % rows.length]!, count: (index * 5) % 9 }))
-      : rows;
-  const key = JSON.stringify(shown);
+  /* The pieces change on every move; the texture is painted again only when what it shows changes. */
+  const content = JSON.stringify(rows);
   const [texture, setTexture] = useState<CanvasTexture | null>(null);
   useEffect(() => {
+    const shown: Row[] = JSON.parse(content);
     let live = true;
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(WIDTH * PX);
@@ -223,28 +146,23 @@ export function HandCountsScene({ table }: { table: TableProjection }) {
       if (!live) {
         return;
       }
-      const images = new Map(fronts.map((front, index) => [front, loaded[index] as HTMLImageElement | null]));
-      paint(canvas, shown, images, look);
+      paint(canvas, shown, new Map(fronts.map((front, index) => [front, loaded[index] as HTMLImageElement | null])));
       const next = new CanvasTexture(canvas);
       next.colorSpace = SRGBColorSpace;
       next.anisotropy = 8;
       next.minFilter = LinearMipmapLinearFilter;
-      setTexture((previous) => {
-        previous?.dispose();
-        return next;
-      });
+      setTexture(next);
     });
     return () => {
       live = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the rows' content
-  }, [key, look]);
+  }, [content]);
   useEffect(() => () => texture?.dispose(), [texture]);
   if (!roster || !counts || !texture) {
     return null;
   }
   return (
-    <mesh position={SPOT} rotation={[-Math.PI / 2, 0, 0]} receiveShadow data-hand-counts={look}>
+    <mesh position={SPOT} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
       <planeGeometry args={[WIDTH, DEPTH]} />
       <meshStandardMaterial
         map={texture}
