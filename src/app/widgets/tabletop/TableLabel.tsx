@@ -21,14 +21,14 @@ type LabelTexture = Readonly<{
   width: number;
 }>;
 
-const TABLE_LABEL_FONT_FAMILY = 'Dune Play Table Label';
+export const TABLE_LABEL_FONT_FAMILY = 'Dune Play Table Label';
 const FALLBACK_FONT_FAMILY = 'Georgia, serif';
 const TEXTURE_FONT_SIZE = 160;
 const TEXTURE_PADDING = 12;
 
 let tableLabelFontPromise: Promise<boolean> | undefined;
 
-function loadTableLabelFont(): Promise<boolean> {
+export function loadTableLabelFont(): Promise<boolean> {
   if (tableLabelFontPromise) {
     return tableLabelFontPromise;
   }
