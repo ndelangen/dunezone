@@ -39,28 +39,41 @@ function useFaceTexture(href: string | undefined) {
 }
 
 /*
- * The ally's token as a coin under the faction's own: a band wider all round, in the ally's colour, with the cream line the tokens carry inside their rim.
- * A token at its seat overhangs the board's rim and rests at the rim's height, so the coin stands on the table and rises to just under the rim's top.
+ * Every faction token stands on a coin: a band wider all round, with the cream line the tokens carry inside their rim, in its ally's colour or, standing alone, in dark grey.
+ * A thin dark grey collar sits between token and coin, so the token reads as set on the coin rather than sunk into it.
+ * A token at its seat overhangs the board's rim and rests at the rim's height, so the coin stands on the table and rises to just under the collar.
  * The rim then covers the coin where they meet, and the coin reads as tucked under the board's edge with the token stacked on it.
  */
 const PLATE_BAND = 0.085;
-const MIN_HEIGHT = 0.022;
-const UNDER_RIM = 0.006;
-function Plate({ ally, index, base }: { ally: TablePiece; index: number; base: number }) {
+const MIN_HEIGHT = 0.018;
+const COLLAR = 0.024;
+const COLLAR_BAND = 0.042;
+const UNALLIED = '#2d2c2b';
+function Plate({ color, index, base }: { color: string; index: number; base: number }) {
   const radius = TOKEN_RADIUS + PLATE_BAND * (index + 1);
-  const top = Math.max(TABLE_SURFACE_Y + MIN_HEIGHT, base - UNDER_RIM) - index * 0.003;
+  const top = Math.max(TABLE_SURFACE_Y + MIN_HEIGHT, base - COLLAR) - index * 0.003;
   const height = top - TABLE_SURFACE_Y;
   return (
     <group position={[0, TABLE_SURFACE_Y, 0]}>
       <mesh raycast={ignoreRaycast} position={[0, height / 2, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[radius, radius + 0.006, height, 96]} />
-        <meshStandardMaterial color={ally.color} roughness={0.56} metalness={0.1} />
+        <meshStandardMaterial color={color} roughness={0.56} metalness={0.1} />
       </mesh>
       <mesh raycast={ignoreRaycast} position={[0, height + 0.0008, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[radius - PLATE_BAND * 0.42, radius - PLATE_BAND * 0.3, 96]} />
         <meshStandardMaterial color={CREAM} roughness={0.6} metalness={0.05} />
       </mesh>
     </group>
+  );
+}
+
+function Collar({ base }: { base: number }) {
+  const height = Math.max(base - TABLE_SURFACE_Y, COLLAR);
+  return (
+    <mesh raycast={ignoreRaycast} position={[0, base - height / 2, 0]} castShadow receiveShadow>
+      <cylinderGeometry args={[TOKEN_RADIUS + COLLAR_BAND, TOKEN_RADIUS + COLLAR_BAND, height, 96]} />
+      <meshStandardMaterial color={UNALLIED} roughness={0.7} metalness={0.05} />
+    </mesh>
   );
 }
 
@@ -91,12 +104,13 @@ function Tucked({ ally, index, tangent }: { ally: TablePiece; index: number; tan
   );
 }
 
-/** Under every allied faction's token, its allies' colours, so each seat shows at a glance who it is allied with. */
+/** Under every faction's token, a coin in each ally's colour, or in dark grey for a faction standing alone, so each seat shows at a glance who it is allied with. */
 export function AllyBadgesScene({ table }: { table: TableProjection }) {
   const alliances = table.snapshot.alliances;
   const token = (factionId: string) =>
     table.state.pieces.find((piece) => piece.stackKey === factionTokenStackKey(factionId));
-  return (alliances?.groups ?? []).flat().flatMap((factionId) => {
+  const factions = table.snapshot.roster?.seats.flatMap(({ faction }) => (faction ? [faction.id] : [])) ?? [];
+  return factions.flatMap((factionId) => {
     const own = token(factionId);
     if (!own) {
       return [];
@@ -109,19 +123,24 @@ export function AllyBadgesScene({ table }: { table: TableProjection }) {
       const piece = token(ally);
       return piece ? [piece] : [];
     });
-    return [
-      <group key={factionId} position={[x, y, z]}>
-        {allies.map((ally, index) =>
-          allyStyle.current === 'base' ? (
-            <group key={ally.id} position={[0, -y, 0]}>
-              <Plate ally={ally} index={index} base={y} />
-            </group>
-          ) : (
+    if (allyStyle.current === 'tucked') {
+      return [
+        <group key={factionId} position={[x, y, z]}>
+          {allies.map((ally, index) => (
             <group key={ally.id} rotation={[0, own.orientation, 0]}>
               <Tucked ally={ally} index={index} tangent={rotateTangent(tangent, -own.orientation)} />
             </group>
-          )
-        )}
+          ))}
+        </group>,
+      ];
+    }
+    const colors = allies.length ? allies.map((ally) => ally.color) : [UNALLIED];
+    return [
+      <group key={factionId} position={[x, 0, z]}>
+        <Collar base={y} />
+        {colors.map((color, index) => (
+          <Plate key={index} color={color} index={index} base={y} />
+        ))}
       </group>,
     ];
   });
