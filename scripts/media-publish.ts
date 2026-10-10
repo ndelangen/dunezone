@@ -4,8 +4,11 @@
  * `MEDIA_PUBLISH_TOKEN=… bun run media:publish` uploads the variants `/m` lacks.
  * With MEDIA_RELEASE_ID set it then writes that release's `prepared` record to the ledger, listing every variant the release serves.
  * `bun run media:publish --deployed` writes the release's `deployed` marker, which the Worker accepts only once the record exists.
- * `bun run media:publish --verify` needs no token: it downloads every variant from `/m` and from its legacy static URL and checks both against the local checksum record.
+ * `bun run media:publish --verify` needs no token: it downloads variants from `/m` and from their legacy static URLs and checks both against the local checksum record.
+ * It downloads every entry no earlier deploy proved, plus a random sample of those one did (`scripts/lib/media-verified.ts`), then adds this run's entries to that record.
+ * `--verify --all` downloads every entry whatever the record says.
  *
+ * Publishing still asks R2 about every variant, so a release never goes live naming one R2 lacks or stores with other bytes.
  * The bytes come from the store `generate:images` fills (`.cache/media/local/v`), so run that first.
  * MEDIA_ORIGIN picks the Worker, https://dune.zone by default.
  * The Worker creates a variant only if it is absent and answers 409 when a stored one differs, so a run can be repeated or resumed at any point.
@@ -20,6 +23,7 @@ import sharp from 'sharp';
 import type { RasterLock } from '../src/shared/media/rasterLock';
 import { fetchMedia, integrityMatches, storedState } from './lib/media-fetch';
 import type { Fetched } from './lib/media-fetch';
+import { readVerified, selectChecks, verifiedIdentity, writeVerified } from './lib/media-verified';
 import { checksumRecord, matchesRecord, planVariants } from './media-variants';
 import type { ChecksumRecord, PlannedVariant } from './media-variants';
 import { describeError } from './retry-transient';
@@ -28,10 +32,14 @@ const repoRoot = path.resolve(import.meta.dirname, '..');
 const storeRoot = path.join(repoRoot, '.cache/media/local/v');
 const origin = (process.env.MEDIA_ORIGIN ?? 'https://dune.zone').replace(/\/$/, '');
 const verifyOnly = process.argv.includes('--verify');
+const verifyAll = process.argv.includes('--all');
+/** What earlier deploys proved; the deploy workflow keeps it in the Actions cache between runs. */
+const verifiedFile = path.resolve(repoRoot, process.env.MEDIA_VERIFIED_FILE ?? '.cache/media-verified/verified.json');
 const markDeployed = process.argv.includes('--deployed');
 const token = process.env.MEDIA_PUBLISH_TOKEN;
 const release = process.env.MEDIA_RELEASE_ID;
-const CONCURRENCY = 8;
+/* Most requests are HEADs or small downloads; 32 at a time asked about 2.6k variants in about 6 s. */
+const CONCURRENCY = 32;
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
 
 if (!verifyOnly && !token) {
@@ -160,8 +168,15 @@ function releaseRecord(items: { variant: PlannedVariant; record: ChecksumRecord 
   });
 }
 
-/* Two keys can share a variant name. Publishing sends each name once, and verifying probes every legacy path. */
-const queue = verifyOnly ? [...plan] : [...new Map(plan.map((variant) => [variant.name, variant])).values()];
+/* Every legacy path is its own entry, because two keys can share a variant name. */
+const entries = plan.map((variant) => ({ variant, record: storedRecord(variant) }));
+const verified = verifyAll ? new Set<string>() : readVerified(verifiedFile, origin);
+const checks = selectChecks(entries, verified);
+
+/* Publishing sends each name once, and verifying probes the legacy path of every entry it checks. */
+const queue = verifyOnly
+  ? [...checks.unproved, ...checks.sampled].map(({ variant }) => variant)
+  : [...new Map(plan.map((variant) => [variant.name, variant])).values()];
 const counts: Record<Outcome | 'failed', number> = { present: 0, published: 0, verified: 0, failed: 0 };
 async function worker() {
   for (let next = queue.shift(); next; next = queue.shift()) {
@@ -175,15 +190,21 @@ async function worker() {
 }
 await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
-console.log(JSON.stringify({ origin, mode: verifyOnly ? 'verify' : 'publish', variants: plan.length, ...counts }));
+const selection = verifyOnly
+  ? { unproved: checks.unproved.length, sampled: checks.sampled.length, skipped: checks.skipped }
+  : {};
+console.log(
+  JSON.stringify({ origin, mode: verifyOnly ? 'verify' : 'publish', variants: plan.length, ...selection, ...counts })
+);
 if (counts.failed > 0) {
   process.exit(1);
 }
+/* Every entry this release serves is now proved: downloaded here, or proved earlier and its sample matched. */
+if (verifyOnly) {
+  writeVerified(verifiedFile, origin, [...verified, ...entries.map(verifiedIdentity)]);
+}
 /* The record is written only after every variant it lists is in R2. */
 if (!verifyOnly && release) {
-  const receipt = await writeLedger(
-    `/__media/releases/${release}`,
-    releaseRecord(plan.map((variant) => ({ variant, record: storedRecord(variant) })))
-  );
+  const receipt = await writeLedger(`/__media/releases/${release}`, releaseRecord(entries));
   console.log(JSON.stringify({ origin, mode: 'prepared', release, ...receipt }));
 }

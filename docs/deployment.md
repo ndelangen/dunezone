@@ -67,7 +67,11 @@ Storybook is a separate secret-free Static Assets Worker at `https://storybook.d
 `bun run verify:storybook-publication` builds `storybook-static`, scans the final bytes for
 credentials and hosted Convex URLs, checks the CSP and exact hosting configuration, and runs the
 browser-local Convex page through both the root host and a non-root served path. The build copies
-the canonical `public/` files; there is no second maintained image or font source.
+the canonical `public/` files; there is no second maintained image or font source. The raster
+copies among them (`m/`, `image/`, `web/`, about 260 MB and 4,400 files) are left out of the upload
+by `.storybook/static/.assetsignore`, and the Worker's only code (`workers/storybook/index.ts`)
+answers those prefixes by fetching the same path from `https://dune.zone`, so stories still load
+images from their own origin.
 
 For a local release rehearsal:
 

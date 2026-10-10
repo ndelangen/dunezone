@@ -446,5 +446,6 @@ the typed public-asset catalog used by game schemas.
 - [Deployment](./deployment.md) - Cloudflare Worker deployment process
 - [Convex Migrations](./convex-migrations.md) - Required widen/migrate/verify/narrow runbook + CI/deploy guards
 - [Stock artwork collections](./technical/stock-artwork.md) - Portrait sets, SVG categories, and adding artwork
+- [Media runbooks](./technical/media-runbooks.md) - A deploy that stops on a variant conflict, forward recovery from bad art or a bad release, and losing the upload token
 - [UI Taxonomy & Ownership](./technical/ui-component-hierarchy.md) - Ownership rules around the canonical taxonomy in `AGENTS.md`
 - [UI Design Decisions](./technical/ui-design-decisions.md) - Accepted UI semantics and consistency defaults

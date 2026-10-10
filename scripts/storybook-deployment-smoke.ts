@@ -55,7 +55,11 @@ invariant((await manager.text()).includes('Dune Zone Storybook'), 'The live root
 const index = (await (await response('/index.json')).json()) as { entries?: Record<string, unknown> };
 invariant(PAGE_STORY_ID in (index.entries ?? {}), `The live Storybook index is missing ${PAGE_STORY_ID}.`);
 await response(`/iframe.html?id=${PAGE_STORY_ID}&viewMode=story`);
-await response('/image/texture/054.jpg');
+const raster = await response('/image/texture/054.jpg');
+invariant(
+  raster.headers.has('X-Media-SHA256'),
+  'The live Storybook answered a raster from a static copy, not from R2.'
+);
 
 console.log(`Live Storybook smoke passed for ${PAGE_STORY_ID} at ${STORYBOOK_ORIGIN}.`);
 

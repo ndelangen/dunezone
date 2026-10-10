@@ -93,7 +93,11 @@ new release deploys with the same token (`--secrets-file`). The production relea
 carries no raster copies (`bun run publisher:omit-static-rasters`, #1888 step 7b), so every
 variant it names is in R2 before it goes live. After the deploy,
 `bun run media:publish --verify` checks that `/m` and the legacy URL serve the stored
-bytes for every variant. No person holds the token. Local and CI Workers keep the
+bytes. It downloads every entry no earlier deploy proved plus a random sample of 128 of the
+rest, and the deploy keeps the proved entries in the Actions cache (`media-verified-*`);
+`--all` downloads every entry. Publishing still checks every variant's stored integrity
+before the release goes live. [`docs/technical/media-runbooks.md`](../../docs/technical/media-runbooks.md)
+covers a deploy that stops here. No person holds the token. Local and CI Workers keep the
 raster copies, because their buckets are empty.
 
 ## Media release ledger

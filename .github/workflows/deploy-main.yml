@@ -304,8 +304,19 @@ jobs:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           CONVEX_DEPLOYMENT: ${{ vars.CONVEX_DEPLOYMENT }}
 
-      # Proves that /m and the legacy URLs, both now answered from R2, serve the bytes this job encoded
-      # for every variant, then marks the release deployed in the media ledger.
+      # Earlier deploys record every variant entry they proved. Only main's deploys write this cache, and
+      # a miss proves nothing, so the verify below then downloads every entry.
+      - name: Restore the variant entries earlier deploys proved
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/media-verified
+          key: media-verified-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: media-verified-
+
+      # Proves that /m and the legacy URLs, both now answered from R2, serve the bytes this job encoded,
+      # then marks the release deployed in the media ledger. Publishing already checked every variant's
+      # stored integrity before the release went live, so this downloads only the entries no earlier
+      # deploy proved, plus a random sample of 128 that catches a release serving every URL wrongly.
       - name: Verify raster variants and mark the release deployed
         timeout-minutes: 20
         env:
@@ -317,6 +328,12 @@ jobs:
           export MEDIA_PUBLISH_TOKEN
           bun run media:publish --verify
           bun run media:publish --deployed
+
+      - name: Keep the variant entries this deploy proved
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/media-verified
+          key: media-verified-${{ github.run_id }}-${{ github.run_attempt }}
 
   # Production has already shipped when this starts: a failed dev rebuild reddens the run without
   # ever gating the release.
