@@ -1,4 +1,17 @@
-import { Box, Button, Center, Image, SegmentedControl, Select, Stack, Text, TextInput } from '@mantine/core';
+import { useAuthActions } from '@convex-dev/auth/react';
+import {
+  Alert,
+  Box,
+  Button,
+  Center,
+  Group,
+  Image,
+  SegmentedControl,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core';
 import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/profiles/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -11,11 +24,13 @@ import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CircleUserRound, Palette, Save, Trash2, UsersRound } from 'lucide-react';
+import { ArrowLeft, CircleUserRound, Link2, Palette, Save, Trash2, UsersRound } from 'lucide-react';
 import { useId, useReducer, useRef, useState } from 'react';
 
-import { useDefaultGroupPreference, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
-import type { CurrentProfileEntry, ProfileUserEditInput } from '@db/profiles';
+import { useBeginAuthConnection, useDisconnectAuthMethod } from '@db/accounts';
+import type { AuthProvider } from '@db/accounts';
+import { useProfileSettings, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
+import type { CurrentProfileEntry, ProfileSettingsData, ProfileUserEditInput } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { setSchemePreference, useSchemePreference } from '@app/styles/colorScheme';
 import type { SchemePreference } from '@app/styles/colorScheme';
@@ -24,7 +39,7 @@ import type { MotionPreference } from '@app/styles/motion';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'account';
+type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'sign-in' | 'account';
 
 type ProfileDraft = {
   username: string;
@@ -186,7 +201,8 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
     openingState
   );
   const { username, avatarUrl, defaultGroupChanged } = state.data;
-  const defaultGroupOptions = useDefaultGroupPreference().data?.default_group_options;
+  const settings = useProfileSettings().data;
+  const defaultGroupOptions = settings?.default_group_options;
   /* Derived, not resynced: a default pointing at a Group the viewer left reads as none once the
      options land, and the same derivation is what a save submits. Until the options land the stored
      value stands, since not-yet-loaded is not the same as "you are in no Groups". */
@@ -405,6 +421,23 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
       ),
     },
     {
+      value: 'sign-in',
+      label: 'Sign-in methods',
+      icon: <Link2 size={20} />,
+      panel: (
+        <Stack gap="md">
+          {panelError}
+          {settings === undefined ? (
+            <LoadPending title="Loading sign-in methods">Checking your connected accounts.</LoadPending>
+          ) : settings.account ? (
+            <SignInMethods account={settings.account} />
+          ) : (
+            <NotAvailable title="Sign-in methods unavailable">Sign in again to manage your account.</NotAvailable>
+          )}
+        </Stack>
+      ),
+    },
+    {
       value: 'account',
       label: 'Account',
       icon: <Trash2 size={20} />,
@@ -536,4 +569,113 @@ function ProfileSettingsPage() {
   }
 
   return <EditableProfilePage key={viewer.profile.slug} initial={viewer.profile} />;
+}
+
+function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['account']> }) {
+  const begin = useBeginAuthConnection();
+  const disconnect = useDisconnectAuthMethod();
+  const { signIn } = useAuthActions();
+  const [state, dispatch] = useReducer(
+    (
+      state: { confirming: AuthProvider | null; busy: AuthProvider | null; error: string | null },
+      update: Partial<typeof state>
+    ) => ({ ...state, ...update }),
+    { confirming: null, busy: null, error: null }
+  );
+  const connect = async (provider: AuthProvider) => {
+    dispatch({ busy: provider, error: null });
+    try {
+      const intent = await begin({ provider });
+      await signIn(provider, {
+        redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect?connection=${intent.token}`,
+      });
+    } catch (error) {
+      dispatch({ error: error instanceof Error ? error.message : 'The sign-in could not start.', busy: null });
+    }
+  };
+  const remove = async (provider: AuthProvider) => {
+    dispatch({ busy: provider, error: null });
+    try {
+      await disconnect({ provider });
+      dispatch({ confirming: null });
+    } catch (error) {
+      dispatch({ error: error instanceof Error ? error.message : 'The sign-in method could not be disconnected.' });
+    } finally {
+      dispatch({ busy: null });
+    }
+  };
+  return (
+    <Stack gap="sm">
+      <Text size="sm">
+        Connect Google or Discord to use either account for this profile. Keep at least one connected.
+      </Text>
+      {account.merging && (
+        <Text size="sm">A profile merge is in progress. Sign-in methods can be changed when it finishes.</Text>
+      )}
+      {state.error && (
+        <Alert color="red" role="alert">
+          {state.error}
+        </Alert>
+      )}
+      {account.methods.map((method) => {
+        const name = method.provider === 'google' ? 'Google' : 'Discord';
+        const canDisconnect = account.methods.some(
+          (other) => other.provider !== method.provider && other.connected && other.available
+        );
+        return (
+          <Stack key={method.provider} gap="xs">
+            <Group justify="space-between">
+              <Text>{name}</Text>
+              <Button
+                type="button"
+                size="xs"
+                variant="default"
+                loading={state.busy === method.provider}
+                disabled={!!state.busy || account.merging || (method.connected ? !canDisconnect : !method.available)}
+                onClick={() =>
+                  method.connected ? dispatch({ confirming: method.provider }) : void connect(method.provider)
+                }
+              >
+                {method.connected ? 'Disconnect' : 'Connect'}
+              </Button>
+            </Group>
+            <Text size="xs" c="dimmed">
+              {method.connected
+                ? canDisconnect
+                  ? 'Connected'
+                  : 'Connected · keep one sign-in method'
+                : method.available
+                  ? 'Not connected'
+                  : 'Currently unavailable'}
+            </Text>
+            {state.confirming === method.provider && (
+              <>
+                <Text size="sm">Disconnect {name}? You can reconnect it later.</Text>
+                <Group>
+                  <Button
+                    type="button"
+                    size="xs"
+                    color="red"
+                    disabled={!!state.busy}
+                    onClick={() => void remove(method.provider)}
+                  >
+                    Disconnect {name}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="default"
+                    disabled={!!state.busy}
+                    onClick={() => dispatch({ confirming: null })}
+                  >
+                    Cancel
+                  </Button>
+                </Group>
+              </>
+            )}
+          </Stack>
+        );
+      })}
+    </Stack>
+  );
 }

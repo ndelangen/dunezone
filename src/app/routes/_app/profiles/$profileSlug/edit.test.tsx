@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   mutate: vi.fn(),
   useSessionViewer: vi.fn(),
-  useDefaultGroupPreference: vi.fn(),
+  useProfileSettings: vi.fn(),
   mutationState: { isPending: false, error: null as Error | null },
   mutationListeners: new Set<() => void>(),
 }));
@@ -32,7 +32,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 
 vi.mock('@db/profiles', () => ({
   useSessionViewer: mocks.useSessionViewer,
-  useDefaultGroupPreference: mocks.useDefaultGroupPreference,
+  useProfileSettings: mocks.useProfileSettings,
   useUpdateCurrentProfile: () => {
     const state = useSyncExternalStore(
       (listener) => {
@@ -43,6 +43,12 @@ vi.mock('@db/profiles', () => ({
     );
     return { mutate: mocks.mutate, ...state, isError: state.error !== null };
   },
+}));
+
+vi.mock('@convex-dev/auth/react', () => ({ useAuthActions: () => ({ signIn: vi.fn() }) }));
+vi.mock('@db/accounts', () => ({
+  useBeginAuthConnection: () => vi.fn(),
+  useDisconnectAuthMethod: () => vi.fn(),
 }));
 
 import { Route } from './edit.route';
@@ -107,10 +113,17 @@ beforeEach(() => {
   mocks.mutate.mockReset();
   mocks.useSessionViewer.mockReset();
   mocks.useSessionViewer.mockReturnValue({ kind: 'profile', profile });
-  mocks.useDefaultGroupPreference.mockReturnValue({
+  mocks.useProfileSettings.mockReturnValue({
     data: {
       default_group_id: null,
       default_group_options: [{ id: 'group-1', name: 'Spacing Guild', slug: 'spacing-guild' }],
+      account: {
+        methods: [
+          { provider: 'google', connected: true, available: true },
+          { provider: 'discord', connected: false, available: true },
+        ],
+        merging: false,
+      },
     },
   });
   mocks.mutationState = { isPending: false, error: null };
@@ -152,6 +165,7 @@ describe('profile settings page', () => {
       'Profile',
       'Creation defaults',
       'Appearance',
+      'Sign-in methods',
       'Account',
     ]);
     expect(mocks.useSessionViewer).toHaveBeenCalledTimes(1);
@@ -183,6 +197,10 @@ describe('profile settings page', () => {
     expect(
       view.getByRole('group', { name: 'Color scheme' }).querySelector('[role="img"][aria-label="Help"]')
     ).not.toBeNull();
+    await chooseTab(view, 'Sign-in methods');
+    expect(view.getByRole('button', { name: 'Disconnect' })).toHaveProperty('disabled', true);
+    expect(view.getByRole('button', { name: 'Connect' })).toHaveProperty('type', 'button');
+    expect(view.queryByRole('link', { name: 'Delete account' })).toBeNull();
     await chooseTab(view, 'Account');
     expect(view.getByRole('link', { name: 'Delete account' })).not.toBeNull();
   });
@@ -226,7 +244,7 @@ describe('profile settings page', () => {
     /* The preference query is held by this page, so there is a window where it has not resolved.
        An enabled control listing only "No default Group" would state that the viewer is in no Groups,
        and choosing it saves a cleared default they never meant to change. */
-    mocks.useDefaultGroupPreference.mockReturnValue({ data: undefined });
+    mocks.useProfileSettings.mockReturnValue({ data: undefined });
     const view = await renderPage();
     await chooseTab(view, 'Creation defaults');
 
@@ -239,11 +257,11 @@ describe('profile settings page', () => {
     const view = await renderPage();
     fireEvent.change(view.getByRole('textbox', { name: /Display name/ }), { target: { value: 'ChangedOwner' } });
 
-    for (const tab of ['Profile', 'Creation defaults', 'Appearance']) {
+    for (const tab of ['Profile', 'Creation defaults', 'Appearance', 'Sign-in methods']) {
       await chooseTab(view, tab);
       fireEvent.click(view.getByRole('button', { name: 'Save profile' }));
     }
-    expect(mocks.mutate).toHaveBeenCalledTimes(3);
+    expect(mocks.mutate).toHaveBeenCalledTimes(4);
 
     await chooseTab(view, 'Creation defaults');
     fireEvent.click(view.getByRole('combobox', { name: 'Default Group' }));

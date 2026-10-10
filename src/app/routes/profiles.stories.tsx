@@ -32,6 +32,7 @@ export const Detail = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     /* Both FAQ strips cite the ruleset, so both are checked rather than whichever came first. */
+    expect(page.queryByRole('region', { name: 'Sign-in methods' })).toBeNull();
     const citations = await page.findAllByRole('link', { name: 'ClassicRules' }, { timeout: 30_000 });
     expect(citations.length).toBeGreaterThan(1);
     for (const citation of citations) {
@@ -120,7 +121,7 @@ export const DeleteAccountReplacementPicker = meta.story({
 });
 
 export const SignInMethods = meta.story({
-  args: { path: '/profiles/storybook-viewer' },
+  args: { path: '/profiles/storybook-viewer/edit' },
   parameters: {
     database: db((baseline) => {
       baseline.authAccounts.push({
@@ -132,10 +133,12 @@ export const SignInMethods = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: 'Sign-in methods' }, { timeout: 30_000 }));
     await expect(
       page.findByText('Connected · keep one sign-in method', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await expect(page.getByRole('button', { name: /^Disconnect$/ })).toBeDisabled();
+    await userEvent.click(page.getByRole('tab', { name: 'Account' }));
     await expect(page.getByRole('link', { name: /^Delete account$/ })).toBeVisible();
   },
 });
