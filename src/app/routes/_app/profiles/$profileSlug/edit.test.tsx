@@ -10,6 +10,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
+  beginConnection: vi.fn(),
+  signIn: vi.fn(),
   mutate: vi.fn(),
   useSessionViewer: vi.fn(),
   useProfileSettings: vi.fn(),
@@ -45,9 +47,9 @@ vi.mock('@db/profiles', () => ({
   },
 }));
 
-vi.mock('@convex-dev/auth/react', () => ({ useAuthActions: () => ({ signIn: vi.fn() }) }));
+vi.mock('@convex-dev/auth/react', () => ({ useAuthActions: () => ({ signIn: mocks.signIn }) }));
 vi.mock('@db/accounts', () => ({
-  useBeginAuthConnection: () => vi.fn(),
+  useBeginAuthConnection: () => mocks.beginConnection,
   useDisconnectAuthMethod: () => vi.fn(),
 }));
 
@@ -110,6 +112,8 @@ async function chooseTab(view: ReturnType<typeof render>, name: string) {
 
 beforeEach(() => {
   mocks.navigate.mockReset();
+  mocks.beginConnection.mockReset().mockResolvedValue({ slug: 'owner-profile', token: 'connection-token' });
+  mocks.signIn.mockReset().mockResolvedValue(undefined);
   mocks.mutate.mockReset();
   mocks.useSessionViewer.mockReset();
   mocks.useSessionViewer.mockReturnValue({ kind: 'profile', profile });
@@ -203,6 +207,23 @@ describe('profile settings page', () => {
     expect(view.queryByRole('link', { name: 'Delete account' })).toBeNull();
     await chooseTab(view, 'Account');
     expect(view.getByRole('link', { name: 'Delete account' })).not.toBeNull();
+  });
+
+  it('connects from its own tab without saving the draft and releases buttons when sign-in settles', async () => {
+    const view = await renderPage();
+    fireEvent.change(view.getByRole('textbox', { name: /Display name/ }), { target: { value: 'ChangedOwner' } });
+    await chooseTab(view, 'Sign-in methods');
+    await act(async () => {
+      fireEvent.click(view.getByRole('button', { name: 'Connect' }));
+    });
+    expect(mocks.beginConnection).toHaveBeenCalledWith({ provider: 'discord' });
+    expect(mocks.signIn).toHaveBeenCalledWith('discord', {
+      redirectTo: '/profiles/owner-profile/connect?connection=connection-token',
+    });
+    expect(mocks.mutate).not.toHaveBeenCalled();
+    expect(view.getByRole('button', { name: 'Connect' })).toHaveProperty('disabled', false);
+    await chooseTab(view, 'Profile');
+    expect(view.getByRole('textbox', { name: /Display name/ })).toHaveProperty('value', 'ChangedOwner');
   });
 
   it('shows empty, invalid, loading, successful, and unavailable avatar states', async () => {

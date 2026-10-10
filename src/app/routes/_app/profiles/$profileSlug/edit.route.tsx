@@ -590,7 +590,9 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
         redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect?connection=${intent.token}`,
       });
     } catch (error) {
-      dispatch({ error: error instanceof Error ? error.message : 'The sign-in could not start.', busy: null });
+      dispatch({ error: error instanceof Error ? error.message : 'The sign-in could not start.' });
+    } finally {
+      dispatch({ busy: null });
     }
   };
   const remove = async (provider: AuthProvider) => {
