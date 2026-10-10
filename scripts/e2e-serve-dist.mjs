@@ -39,7 +39,15 @@ if (!existsSync(SHELL)) {
 }
 
 const server = createServer((req, res) => {
-  const urlPath = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
+  let urlPath;
+  try {
+    urlPath = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
+  } catch {
+    /* Malformed percent-encoding such as /%E0 would otherwise throw and kill the server. */
+    res.writeHead(400);
+    res.end();
+    return;
+  }
   /*
    * resolve() collapses any ../ (including percent-encoded ones, since the pathname is decoded
    * above) and the ROOT + sep prefix check rejects what remains, including sibling-directory
@@ -52,7 +60,8 @@ const server = createServer((req, res) => {
     file = candidate;
   }
   try {
-    const body = readFileSync(file);
+    /* Sonar suppression: file is the shell or a path that passed the ROOT + sep check above. */
+    const body = readFileSync(file); /* NOSONAR */
     res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' });
     res.end(body);
   } catch {
