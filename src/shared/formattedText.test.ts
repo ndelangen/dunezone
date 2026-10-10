@@ -90,6 +90,13 @@ describe('formatted-text core', () => {
     });
   });
 
+  it('keeps long interior whitespace and non-breaking spaces while trimming line-end spaces and tabs', () => {
+    const interior = ' \t'.repeat(16_000);
+    const parsed = parseValid(`alpha${interior}beta \t\r\nnext\u00a0 \t`);
+
+    expect(parsed.source).toBe(`alpha${interior}beta\nnext\u00a0`);
+  });
+
   it('stores fully nested marks in canonical underline, italic, bold order', () => {
     const parsed = parseValid('*-_words_-*');
 
