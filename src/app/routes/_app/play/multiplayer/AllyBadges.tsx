@@ -2,7 +2,12 @@
 import { alliesOf } from '@shared/play/alliances';
 import { factionTokenStackKey } from '@shared/play/factionToken';
 import type { TablePiece } from '@shared/play/model';
-import { FACTION_TOKEN_SCALE, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS } from '@shared/play/tableGeometry';
+import {
+  BOARD_RIM_RADIUS,
+  FACTION_TOKEN_SCALE,
+  TROOP_LAYER_HEIGHT,
+  TROOP_TOP_RADIUS,
+} from '@shared/play/tableGeometry';
 import { useEffect, useState } from 'react';
 import { SRGBColorSpace, TextureLoader } from 'three';
 import type { Texture } from 'three';
@@ -41,11 +46,14 @@ function useFaceTexture(href: string | undefined) {
 /* A plate a band wider than the token, in the ally's colour, with the cream line the tokens carry inside their rim. */
 const PLATE_BAND = 0.085;
 const PLATE_HEIGHT = 0.022;
-function Plate({ ally, index }: { ally: TablePiece; index: number }) {
+const RIM_CLEARANCE = 0.015;
+function Plate({ ally, index, distance }: { ally: TablePiece; index: number; distance: number }) {
   const radius = TOKEN_RADIUS + PLATE_BAND * (index + 1);
   const height = PLATE_HEIGHT;
+  /* Slid away from the board just far enough that the plate stays clear of the board's dark rim. */
+  const shift = Math.max(0, BOARD_RIM_RADIUS + RIM_CLEARANCE - (distance - radius));
   return (
-    <group position={[0, -index * 0.002, 0]}>
+    <group position={[shift, -index * 0.002, 0]}>
       <mesh raycast={ignoreRaycast} position={[0, height / 2, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[radius, radius + 0.008, height, 96]} />
         <meshStandardMaterial color={ally.color} roughness={0.56} metalness={0.1} />
@@ -107,7 +115,10 @@ export function AllyBadgesScene({ table }: { table: TableProjection }) {
       <group key={factionId} position={[x, y, z]}>
         {allies.map((ally, index) =>
           allyStyle.current === 'base' ? (
-            <Plate key={ally.id} ally={ally} index={index} />
+            /* Turned to face out from the table's centre, so the plate's shift runs straight away from the board. */
+            <group key={ally.id} rotation={[0, -Math.atan2(z, x), 0]}>
+              <Plate ally={ally} index={index} distance={length} />
+            </group>
           ) : (
             <group key={ally.id} rotation={[0, own.orientation, 0]}>
               <Tucked ally={ally} index={index} tangent={rotateTangent(tangent, -own.orientation)} />
