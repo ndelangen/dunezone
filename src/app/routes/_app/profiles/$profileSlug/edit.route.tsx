@@ -17,6 +17,7 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, CircleUserRound, Link2, Palette, Save, Trash2, Unlink, UsersRound } from 'lucide-react';
 import { useId, useReducer, useRef, useState } from 'react';
 
+import { authProviderNames } from '@db/accounts';
 import { useBeginAuthConnection, useDisconnectAuthMethod } from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
 import { useProfileSettings, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
@@ -34,6 +35,7 @@ type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'sign-in' | 'account';
 type ProfileDraft = {
   username: string;
   avatarUrl: string;
+  bggProfileUrl: string;
   /* The raw column now, not the sanitized projection: `session` no longer joins memberships.
      A default pointing at a Group the viewer left is corrected by derivation once the options land. */
   defaultGroupId: string | null;
@@ -43,21 +45,25 @@ type ProfileDraft = {
 
 type ProfileEditState = {
   data: ProfileDraft;
-  baseline: { username: string; avatarUrl: string };
+  baseline: { username: string; avatarUrl: string; bggProfileUrl: string };
 };
 
 type ProfileEditEvent =
   | { kind: 'patch'; update: Partial<ProfileDraft> }
-  | { kind: 'saved'; entry: { username: string; avatarUrl: string; defaultGroupId: string | null } };
+  | {
+      kind: 'saved';
+      entry: { username: string; avatarUrl: string; bggProfileUrl: string; defaultGroupId: string | null };
+    };
 
 function openingState(initial: {
   username: string;
   avatarUrl: string;
+  bggProfileUrl: string;
   defaultGroupId: string | null;
 }): ProfileEditState {
   return {
     data: { ...initial, defaultGroupChanged: false },
-    baseline: { username: initial.username, avatarUrl: initial.avatarUrl },
+    baseline: { username: initial.username, avatarUrl: initial.avatarUrl, bggProfileUrl: initial.bggProfileUrl },
   };
 }
 
@@ -179,6 +185,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
   const formId = 'profile-settings-' + useId().replaceAll(':', '');
   const usernameRef = useRef<HTMLInputElement>(null);
   const avatarUrlRef = useRef<HTMLInputElement>(null);
+  const bggProfileUrlRef = useRef<HTMLInputElement>(null);
   const defaultGroupRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
   const [state, dispatch] = useReducer(
@@ -186,11 +193,12 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
     {
       username: initial.username ?? '',
       avatarUrl: initial.avatar_url ?? '',
+      bggProfileUrl: initial.bgg_profile_url ?? '',
       defaultGroupId: initial.default_group_id ?? null,
     },
     openingState
   );
-  const { username, avatarUrl, defaultGroupChanged } = state.data;
+  const { username, avatarUrl, bggProfileUrl, defaultGroupChanged } = state.data;
   const settings = useProfileSettings().data;
   const defaultGroupOptions = settings?.default_group_options;
   /* Derived, not resynced: a default pointing at a Group the viewer left reads as none once the
@@ -206,7 +214,11 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
   const scheme = useSchemePreference();
 
   const mutationError = update.isError && update.error instanceof Error ? update.error.message : null;
-  const isDirty = username !== state.baseline.username || avatarUrl !== state.baseline.avatarUrl || defaultGroupChanged;
+  const isDirty =
+    username !== state.baseline.username ||
+    avatarUrl !== state.baseline.avatarUrl ||
+    bggProfileUrl !== state.baseline.bggProfileUrl ||
+    defaultGroupChanged;
 
   const slugPreview = (() => {
     try {
@@ -219,6 +231,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
   const draftInput: ProfileUserEditInput = {
     username,
     avatar_url: avatarUrl,
+    ...(bggProfileUrl !== state.baseline.bggProfileUrl ? { bgg_profile_url: bggProfileUrl } : {}),
     ...(defaultGroupChanged ? { default_group_id: defaultGroupId } : {}),
   };
   const draftCheck = profileUserEditFormSchema.safeParse(draftInput);
@@ -227,7 +240,13 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
     : draftCheck.error.issues.map((issue) => {
         const field = issue.path[0] as keyof ProfileUserEditInput | undefined;
         const source =
-          field === 'default_group_id' ? 'Default Group' : field === 'avatar_url' ? 'Avatar image URL' : 'Display name';
+          field === 'default_group_id'
+            ? 'Default Group'
+            : field === 'avatar_url'
+              ? 'Avatar image URL'
+              : field === 'bgg_profile_url'
+                ? 'BoardGameGeek profile URL'
+                : 'Display name';
         return { source, complaint: issue.message, field };
       });
 
@@ -235,7 +254,13 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
     setActiveTab(field === 'default_group_id' ? 'defaults' : 'profile');
     requestAnimationFrame(() => {
       const fieldRef =
-        field === 'default_group_id' ? defaultGroupRef : field === 'avatar_url' ? avatarUrlRef : usernameRef;
+        field === 'default_group_id'
+          ? defaultGroupRef
+          : field === 'avatar_url'
+            ? avatarUrlRef
+            : field === 'bgg_profile_url'
+              ? bggProfileUrlRef
+              : usernameRef;
       fieldRef.current?.focus();
     });
   };
@@ -245,7 +270,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
     onFocusWarning: (warning) => focusInvalidField(warning.field),
   });
   const commitSaved = header.releasing(
-    (entry: { username: string; avatarUrl: string; defaultGroupId: string | null }) =>
+    (entry: { username: string; avatarUrl: string; bggProfileUrl: string; defaultGroupId: string | null }) =>
       dispatch({ kind: 'saved', entry })
   );
 
@@ -264,6 +289,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
           commitSaved({
             username: entry.username ?? '',
             avatarUrl: entry.avatar_url ?? '',
+            bggProfileUrl: entry.bgg_profile_url ?? '',
             defaultGroupId: entry.default_group_id ?? null,
           });
 
@@ -338,6 +364,22 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
                 onChange={(event) => dispatch({ kind: 'patch', update: { avatarUrl: event.target.value } })}
                 placeholder="https://…"
                 autoComplete="off"
+              />
+            }
+          />
+          <ControlBlock
+            title="BoardGameGeek profile URL"
+            description="A public link with unverified ownership. It cannot be used to sign in. Clear this field and save to remove it."
+            input={
+              <TextInput
+                ref={bggProfileUrlRef}
+                aria-label="BoardGameGeek profile URL"
+                type="url"
+                value={bggProfileUrl}
+                onChange={(event) => dispatch({ kind: 'patch', update: { bggProfileUrl: event.target.value } })}
+                placeholder="https://boardgamegeek.com/user/yourname"
+                autoComplete="off"
+                maxLength={500}
               />
             }
           />
@@ -612,9 +654,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
   };
   return (
     <Stack gap="md">
-      <Text size="sm">
-        Connect Google or Discord to use either account for this profile. Keep at least one connected.
-      </Text>
+      <Text size="sm">Connect a sign-in method to use it for this profile. Keep at least one connected.</Text>
       {account.merging && (
         <StatusBadge tone="progress" live>
           Profile merge in progress. Sign-in methods are locked.
@@ -622,7 +662,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
       )}
       {state.error && <FormError title="Sign-in methods could not be changed">{state.error}</FormError>}
       {account.methods.map((method) => {
-        const name = method.provider === 'google' ? 'Google' : 'Discord';
+        const name = authProviderNames[method.provider];
         const canDisconnect = account.methods.some(
           (other) => other.provider !== method.provider && other.connected && other.available
         );

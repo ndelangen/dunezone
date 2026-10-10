@@ -2,6 +2,16 @@ import { useMutation, useQuery } from 'convex/react';
 
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
+import type { AuthProvider } from '../../../convex/lib/accountMethods';
+
+export const authProviderNames = { google: 'Google', discord: 'Discord', reddit: 'Reddit' } satisfies Record<
+  AuthProvider,
+  string
+>;
+
+export function useSignInProviders() {
+  return useQuery(api.accounts.providers, {});
+}
 
 export type { AuthProvider } from '../../../convex/lib/accountMethods';
 export function useAccountManagementPage(cursor: string | null, selectedUserIds: string[]) {

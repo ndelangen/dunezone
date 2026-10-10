@@ -1,17 +1,22 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Stack } from '@mantine/core';
+import { Button, Group, Stack, Text, TextInput } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Section } from '@ui/block/Section';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { useState } from 'react';
+import { useReducer } from 'react';
 import type { SVGProps } from 'react';
-import { SiDiscord } from 'react-icons/si';
+import { SiDiscord, SiReddit } from 'react-icons/si';
 
+import { authProviderNames, useSignInProviders } from '@db/accounts';
+import type { AuthProvider } from '@db/accounts';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
-
-import styles from './login.module.css';
 
 export const Route = createFileRoute('/_app/auth/login')({
   head: () => pageHead('Sign in'),
@@ -43,140 +48,139 @@ function GoogleColoredMark(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-function SignInPanel() {
+type SignInState = { busy: AuthProvider | 'password' | null; error: string | null; email: string; password: string };
+type SignInEvent =
+  | { kind: 'started'; provider: AuthProvider | 'password' }
+  | { kind: 'failed'; message: string }
+  | { kind: 'settled' }
+  | { kind: 'emailChanged'; value: string }
+  | { kind: 'passwordChanged'; value: string };
+
+function reduceSignIn(state: SignInState, event: SignInEvent): SignInState {
+  switch (event.kind) {
+    case 'started':
+      return { ...state, busy: event.provider, error: null };
+    case 'failed':
+      return { ...state, error: event.message };
+    case 'settled':
+      return { ...state, busy: null };
+    case 'emailChanged':
+      return { ...state, email: event.value };
+    case 'passwordChanged':
+      return { ...state, password: event.value };
+  }
+}
+
+function SignInPanel({ providers }: { providers: ReturnType<typeof useSignInProviders> }) {
   const { signIn } = useAuthActions();
-  const [error, setError] = useState<string | null>(null);
-  const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [state, dispatch] = useReducer(reduceSignIn, { busy: null, error: null, email: '', password: '' });
   const localAuthEnabled = import.meta.env.VITE_E2E_LOCAL_AUTH === 'true';
-
-  const handleSocialLogin = async (e: React.SyntheticEvent, provider: 'discord' | 'google') => {
-    e.preventDefault();
-    setLoadingProvider(provider);
-    setError(null);
-
+  const socialLogin = async (provider: AuthProvider) => {
+    dispatch({ kind: 'started', provider });
     try {
       await signIn(provider, { redirectTo: '/' });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      setLoadingProvider(null);
+    } catch (error) {
+      dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'Sign-in could not start.' });
+    } finally {
+      dispatch({ kind: 'settled' });
     }
   };
-
-  const handleLocalLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoadingProvider('password');
-    setError(null);
-    const nextEmail = email.trim().toLowerCase();
-    const nextPassword = password;
-
-    if (nextEmail.length === 0 || nextPassword.length === 0) {
-      setError('Email and password are required.');
-      setLoadingProvider(null);
-      return;
-    }
-
+  const localLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    dispatch({ kind: 'started', provider: 'password' });
+    const email = state.email.trim().toLowerCase();
     try {
-      await signIn('password', { flow: 'signIn', email: nextEmail, password: nextPassword });
-      return;
-    } catch {
-      try {
-        await signIn('password', { flow: 'signUp', email: nextEmail, password: nextPassword });
-        return;
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-        setLoadingProvider(null);
+      if (!email || !state.password) {
+        throw new Error('Email and password are required.');
       }
+      try {
+        await signIn('password', { flow: 'signIn', email, password: state.password });
+      } catch {
+        await signIn('password', { flow: 'signUp', email, password: state.password });
+      }
+    } catch (error) {
+      dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'Sign-in could not start.' });
+    } finally {
+      dispatch({ kind: 'settled' });
     }
   };
-
   return (
-    <div className={styles.root}>
-      <Stack
-        component="form"
-        gap="sm"
-        onSubmit={(e) => {
-          if (localAuthEnabled) {
-            void handleLocalLogin(e);
-            return;
-          }
-          e.preventDefault();
-        }}
-      >
-        <h2 className={styles.title}>Welcome</h2>
-        <p className={styles.lede}>Sign in with your preferred account to continue.</p>
-        {error ? (
-          <p className={styles.error} role="alert">
-            {error}
-          </p>
-        ) : null}
+    <Section title="Welcome" description="Sign in with your preferred account to continue.">
+      <Stack gap="md">
+        {state.error && <FormError title="Sign-in could not start">{state.error}</FormError>}
         {localAuthEnabled ? (
-          <div className={styles.localCredentials}>
-            <input
+          <Stack component="form" gap="sm" onSubmit={(event) => void localLogin(event)}>
+            <TextInput
+              label="Email"
               type="email"
-              name="email"
-              aria-label="Email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="e2e-user@example.com"
               autoComplete="username"
-              className={styles.input}
-              disabled={loadingProvider !== null}
+              value={state.email}
+              onChange={(event) => dispatch({ kind: 'emailChanged', value: event.currentTarget.value })}
+              disabled={state.busy !== null}
             />
-            <input
+            <TextInput
+              label="Password"
               type="password"
-              name="password"
-              aria-label="Password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="password"
               autoComplete="current-password"
-              className={styles.input}
-              disabled={loadingProvider !== null}
+              value={state.password}
+              onChange={(event) => dispatch({ kind: 'passwordChanged', value: event.currentTarget.value })}
+              disabled={state.busy !== null}
             />
-            <button
+            <Button
               type="submit"
-              className={styles.localSubmit}
-              disabled={loadingProvider !== null}
               data-testid="local-auth-submit"
+              loading={state.busy === 'password'}
+              disabled={state.busy !== null}
             >
-              {loadingProvider === 'password' ? 'Signing in…' : 'Continue with local auth'}
-            </button>
-          </div>
+              Continue with local auth
+            </Button>
+          </Stack>
+        ) : providers ? (
+          providers.map((method) => {
+            const name = authProviderNames[method.provider];
+            const icon =
+              method.provider === 'google' ? (
+                <GoogleColoredMark width={24} height={24} />
+              ) : method.provider === 'discord' ? (
+                <SiDiscord size={24} aria-hidden />
+              ) : (
+                <SiReddit size={24} aria-hidden />
+              );
+            return (
+              <ControlBlock
+                key={method.provider}
+                title={name}
+                input={
+                  <Group justify="space-between">
+                    <StatusBadge tone="neutral">{method.available ? 'Available' : 'Currently unavailable'}</StatusBadge>
+                    <IconAction
+                      label={`Continue with ${name}`}
+                      icon={icon}
+                      size="xl"
+                      intent="neutral"
+                      emphasis="standard"
+                      loading={state.busy === method.provider}
+                      disabled={state.busy !== null || !method.available}
+                      onClick={() => void socialLogin(method.provider)}
+                    />
+                  </Group>
+                }
+              />
+            );
+          })
         ) : (
-          <>
-            <div className={styles.providers}>
-              <button
-                type="button"
-                className={`${styles.providerButton} ${styles.discord}`}
-                disabled={loadingProvider !== null}
-                aria-label={loadingProvider === 'discord' ? 'Signing in with Discord…' : 'Continue with Discord'}
-                onClick={(e) => void handleSocialLogin(e, 'discord')}
-              >
-                <SiDiscord size={26} aria-hidden />
-              </button>
-              <button
-                type="button"
-                className={`${styles.providerButton} ${styles.google}`}
-                disabled={loadingProvider !== null}
-                aria-label={loadingProvider === 'google' ? 'Signing in with Google…' : 'Continue with Google'}
-                onClick={(e) => void handleSocialLogin(e, 'google')}
-              >
-                <GoogleColoredMark width={26} height={26} />
-              </button>
-            </div>
-            <p className={styles.hint}>Discord and Google are the supported sign-in options.</p>
-          </>
+          <StatusBadge tone="progress" live>
+            Loading sign-in methods
+          </StatusBadge>
         )}
       </Stack>
-    </div>
+    </Section>
   );
 }
 
 function LoginPage() {
   const profile = useCurrentProfile();
-
+  const providers = useSignInProviders();
   return (
     <PageLayout>
       <PageLayout.Header>
@@ -185,13 +189,14 @@ function LoginPage() {
       <PageLayout.Content>
         <Surface padding="lg">
           {profile.data ? (
-            <Stack gap="sm">
-              <h2>You're signed in</h2>
-              <p>{profile.data.username ?? 'Player'}</p>
-              <Link to="/">Go to home</Link>
-            </Stack>
+            <Section title="You're signed in">
+              <Stack gap="sm">
+                <Text>{profile.data.username ?? 'Player'}</Text>
+                <Link to="/">Go to home</Link>
+              </Stack>
+            </Section>
           ) : (
-            <SignInPanel />
+            <SignInPanel providers={providers} />
           )}
         </Surface>
       </PageLayout.Content>

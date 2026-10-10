@@ -58,8 +58,14 @@ If a legacy user has no profile, the client's `useCurrentProfile()` calls `profi
 
 ## Connected sign-in methods and merges
 
-The profile owner manages Google and Discord in the Sign-in methods tab on the profile edit page.
-They can connect either provider, or disconnect one while another configured provider remains connected. Disconnection uses the kit's hold-to-remove action. The last-method check runs in the disconnect transaction. Account
+A profile may also have a public BoardGameGeek profile link, edited in the Profile tab and saved
+with the rest of the draft. Its ownership is unverified. It cannot sign anyone in, satisfy the
+last-method guard or authorize a profile merge. Clearing the URL and saving removes the link.
+Only HTTPS BoardGameGeek user-profile URLs are accepted; saves remove query strings and fragments.
+The kept profile retains its own link during a merge.
+
+The profile owner manages Google, Discord and Reddit in the Sign-in methods tab on the profile edit page.
+They can connect an available provider, or disconnect one while another configured provider remains connected. Disconnection uses the kit's hold-to-remove action. The last-method check runs in the disconnect transaction. Account
 deletion remains on the profile's deletion page.
 
 Connecting starts with an authenticated, unexpired session. The server issues a random connection
@@ -107,3 +113,38 @@ routing rows are removed. Recovery completes the transfer into the chosen profil
 The kept account stays active while recovery is pending; its existing sign-in method and ordinary
 content access remain available. An administrator who is merging their own profile retains admin
 access on the kept account and can sign in with that account's existing method to resume the job.
+
+
+## Reddit sign-in
+
+Reddit uses the existing Convex Auth OAuth flow and account connection rules. It requests only
+`identity` with temporary access, maps the stable Reddit user ID and username, and does not request
+email, posts, messages or a refresh token. Reddit becomes available only when all three deployment
+variables exist: `AUTH_REDDIT_ID`, `AUTH_REDDIT_SECRET`, and `AUTH_REDDIT_USER_AGENT`.
+The sign-in page reads public provider availability; profile settings use their existing owner-only
+query. Both pages leave unconfigured providers disabled.
+
+Reddit currently requires explicit approval before API access. For this external website sign-in
+use case, use the developer access request linked from its
+[Responsible Builder Policy](https://support.reddithelp.com/hc/en-us/articles/42728983564564-Responsible-Builder-Policy).
+The app name is `dune.zone`, owned by the Reddit account `bad-advice-generator`. The request should describe voluntary identity-only login
+and linking, and disclose that users can combine their own Dune Zone profiles after authenticating
+both accounts. It should not request subreddit content access.
+
+After approval, register a web application for `https://dune.zone` with this exact production callback:
+
+```text
+https://exuberant-finch-263.eu-west-1.convex.site/api/auth/callback/reddit
+```
+
+The callback host comes from the production Convex HTTP deployment configured in
+`workers/publisher/wrangler.jsonc`. Convex handles the provider callback before returning the user
+to Dune Zone. The app's `/auth/callback` route is not the URL to register with Reddit.
+Reddit supports only one callback per client ID, so another deployment needs separate credentials.
+
+Configure the approved client ID and secret in the production Convex deployment, and set
+`AUTH_REDDIT_USER_AGENT` to `web:dune-zone:v1 (by /u/bad-advice-generator)`.
+Keep credentials out of browser environment variables, source files and issue comments.
+Then verify real Reddit login, linking, reconnecting and the last-method guard with dedicated test
+accounts. Mocked callback tests establish local behavior; they do not establish Reddit approval or
+successful live access.

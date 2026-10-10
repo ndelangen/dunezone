@@ -52,10 +52,47 @@ const profileAvatarUrlSchema = z
     }
   });
 
+const boardGameGeekProfileUrlSchema = z
+  .string()
+  .trim()
+  .max(500, 'BoardGameGeek profile URL must be at most 500 characters')
+  .transform((value, ctx) => {
+    if (!value) {
+      return '';
+    }
+    try {
+      const url = new URL(value);
+      const match = /^\/user\/([^/]+)\/?$/.exec(url.pathname);
+      const username = match ? decodeURIComponent(match[1]!) : '';
+      if (
+        url.protocol !== 'https:' ||
+        !['boardgamegeek.com', 'www.boardgamegeek.com'].includes(url.hostname) ||
+        url.port ||
+        url.username ||
+        url.password ||
+        !username.trim() ||
+        username.length > 100 ||
+        username === '.' ||
+        username === '..' ||
+        /[/?#\p{Cc}]/u.test(username)
+      ) {
+        throw new Error('Invalid profile URL');
+      }
+      return `https://boardgamegeek.com/user/${encodeURIComponent(username)}`;
+    } catch {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Enter a BoardGameGeek profile URL such as https://boardgamegeek.com/user/yourname',
+      });
+      return z.NEVER;
+    }
+  });
+
 export const profileUserEditFormSchema = z.strictObject({
   username: profileDisplayNameSchema,
   avatar_url: profileAvatarUrlSchema,
   default_group_id: z.string().nullable().optional(),
+  bgg_profile_url: boardGameGeekProfileUrlSchema.optional(),
 });
 
 export type ProfileUserEditInput = z.infer<typeof profileUserEditFormSchema>;

@@ -18,7 +18,12 @@ function setup() {
   rateLimiterTest.register(t);
   return t;
 }
-async function account(t: ReturnType<typeof setup>, slug: string, provider: 'google' | 'discord', admin = false) {
+async function account(
+  t: ReturnType<typeof setup>,
+  slug: string,
+  provider: 'google' | 'discord' | 'reddit',
+  admin = false
+) {
   return t.run(async (raw) => {
     const ctx = applicationTriggers.wrapDB(raw);
     const userId = await ctx.db.insert('users', { name: slug, account_state: 'active', isAdmin: admin });
@@ -174,32 +179,38 @@ test('a failed partial transfer resumes without undoing completed writes and unl
   });
 });
 
-test('self-service connection requires both proofs and a fresh second session, then consumes the intent once', async () => {
-  const t = setup();
-  const target = await account(t, 'kept', 'google');
-  const source = await account(t, 'other', 'discord');
-  const original = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
-  const intent = await original.mutation(api.accounts.beginConnection, { provider: 'discord' });
-  const oldSource = t.withIdentity({ subject: `${source.userId}|${source.sessionId}` });
-  await expect(oldSource.mutation(api.accounts.confirmConnection, { token: intent.token })).rejects.toThrow(
-    'Sign in with'
-  );
-  expect(await t.query(api.accounts.connection, { token: intent.token })).toBeNull();
-  const secondSession = await t.run(async (ctx) => {
-    await ctx.db.delete(target.sessionId);
-    return await ctx.db.insert('authSessions', { userId: source.userId, expirationTime: Date.now() + 600_000 });
-  });
-  const verified = t.withIdentity({ subject: `${source.userId}|${secondSession}` });
-  expect(await verified.query(api.accounts.connection, { token: intent.token })).toMatchObject({
-    state: 'review',
-    targetName: 'kept',
-    sourceName: 'other',
-  });
-  await verified.mutation(api.accounts.confirmConnection, { token: intent.token });
-  await expect(verified.mutation(api.accounts.confirmConnection, { token: intent.token })).rejects.toThrow('expired');
-  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
-  expect(await t.query(api.accounts.connection, { token: intent.token })).toMatchObject({ state: 'completed' });
-});
+test.each(['discord', 'reddit'] as const)(
+  '%s connection requires both proofs and a fresh second session, then consumes the intent once',
+  async (provider) => {
+    vi.stubEnv('AUTH_REDDIT_ID', 'test-reddit');
+    vi.stubEnv('AUTH_REDDIT_SECRET', 'test-reddit-secret');
+    vi.stubEnv('AUTH_REDDIT_USER_AGENT', 'web:dune-zone:v1 (by /u/test-developer)');
+    const t = setup();
+    const target = await account(t, 'kept', 'google');
+    const source = await account(t, 'other', provider);
+    const original = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
+    const intent = await original.mutation(api.accounts.beginConnection, { provider });
+    const oldSource = t.withIdentity({ subject: `${source.userId}|${source.sessionId}` });
+    await expect(oldSource.mutation(api.accounts.confirmConnection, { token: intent.token })).rejects.toThrow(
+      'Sign in with'
+    );
+    expect(await t.query(api.accounts.connection, { token: intent.token })).toBeNull();
+    const secondSession = await t.run(async (ctx) => {
+      await ctx.db.delete(target.sessionId);
+      return await ctx.db.insert('authSessions', { userId: source.userId, expirationTime: Date.now() + 600_000 });
+    });
+    const verified = t.withIdentity({ subject: `${source.userId}|${secondSession}` });
+    expect(await verified.query(api.accounts.connection, { token: intent.token })).toMatchObject({
+      state: 'review',
+      targetName: 'kept',
+      sourceName: 'other',
+    });
+    await verified.mutation(api.accounts.confirmConnection, { token: intent.token });
+    await expect(verified.mutation(api.accounts.confirmConnection, { token: intent.token })).rejects.toThrow('expired');
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    expect(await t.query(api.accounts.connection, { token: intent.token })).toMatchObject({ state: 'completed' });
+  }
+);
 
 test('a source player survives game reconciliation before and after routing transfer while old sessions lose access', async () => {
   const t = setup();
@@ -403,4 +414,23 @@ test('two retained answers to one question remain readable and do not allow a th
       answer: 'Another sufficiently long answer.',
     })
   ).rejects.toThrow('already answered');
+});
+
+test('a connected Reddit account protects the last usable method', async () => {
+  vi.stubEnv('AUTH_REDDIT_ID', 'test-reddit');
+  vi.stubEnv('AUTH_REDDIT_SECRET', 'test-reddit-secret');
+  vi.stubEnv('AUTH_REDDIT_USER_AGENT', 'web:dune-zone:v1 (by /u/test-developer)');
+  const t = setup();
+  const owner = await account(t, 'reddit-owner', 'reddit');
+  const viewer = t.withIdentity({ subject: `${owner.userId}|${owner.sessionId}` });
+  await expect(viewer.mutation(api.accounts.disconnect, { provider: 'reddit' })).rejects.toThrow('Keep at least one');
+  await t.run((ctx) =>
+    ctx.db.insert('authAccounts', { userId: owner.userId, provider: 'google', providerAccountId: 'google-extra' })
+  );
+  await viewer.mutation(api.accounts.disconnect, { provider: 'google' });
+  expect((await viewer.query(api.profiles.settings, {})).account?.methods).toContainEqual({
+    provider: 'reddit',
+    connected: true,
+    available: true,
+  });
 });

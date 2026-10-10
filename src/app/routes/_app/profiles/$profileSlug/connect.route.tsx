@@ -8,6 +8,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { useReducer } from 'react';
 
+import { authProviderNames } from '@db/accounts';
 import { useAuthConnection, useConfirmAuthConnection } from '@db/accounts';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -60,7 +61,7 @@ function ConnectAccountPage() {
       </PageMessage>
     );
   }
-  const provider = connection.provider === 'google' ? 'Google' : 'Discord';
+  const provider = authProviderNames[connection.provider];
   return (
     <PageLayout>
       <PageLayout.Header size="compact">

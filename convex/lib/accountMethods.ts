@@ -4,7 +4,7 @@ import { v } from 'convex/values';
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx, MutationCtx } from '../_generated/server';
 
-export const authProviderValidator = v.union(v.literal('google'), v.literal('discord'));
+export const authProviderValidator = v.union(v.literal('google'), v.literal('discord'), v.literal('reddit'));
 export type AuthProvider = Infer<typeof authProviderValidator>;
 export const authMethodValidator = v.object({
   provider: authProviderValidator,
@@ -12,18 +12,26 @@ export const authMethodValidator = v.object({
   available: v.boolean(),
 });
 
+export function signInProviders() {
+  const configured = {
+    google: !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET),
+    discord: !!(process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET),
+    reddit: !!(process.env.AUTH_REDDIT_ID && process.env.AUTH_REDDIT_SECRET && process.env.AUTH_REDDIT_USER_AGENT),
+  } satisfies Record<AuthProvider, boolean>;
+  return (Object.keys(configured) as AuthProvider[]).map((provider) => ({
+    provider,
+    available: configured[provider],
+  }));
+}
+
 export async function accountMethods(ctx: QueryCtx, userId: Id<'users'>) {
   return await Promise.all(
-    (['google', 'discord'] as const).map(async (provider) => ({
-      provider,
+    signInProviders().map(async (method) => ({
+      ...method,
       connected: !!(await ctx.db
         .query('authAccounts')
-        .withIndex('userIdAndProvider', (q) => q.eq('userId', userId).eq('provider', provider))
+        .withIndex('userIdAndProvider', (q) => q.eq('userId', userId).eq('provider', method.provider))
         .first()),
-      available:
-        provider === 'google'
-          ? !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET)
-          : !!(process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET),
     }))
   );
 }
