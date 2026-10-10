@@ -7,6 +7,7 @@ import { MEDIA_CANONICAL_RECIPES, MEDIA_RECIPES } from '../src/shared/media/map.
 import type { RasterLock, RasterLockEntry } from '../src/shared/media/rasterLock';
 import { resolveAsset } from '../src/shared/media/resolveAsset';
 import {
+  assertEncodable,
   canonicalRecipes,
   checksumRecord,
   matchesRecord,
@@ -67,6 +68,13 @@ describe('media variants', () => {
     expect(variantName('f'.repeat(64), small.recipe, VERSIONS)).not.toBe(small.name);
     expect(variantName(SHA256, { ...small.recipe, quality: small.recipe.quality + 1 }, VERSIONS)).not.toBe(small.name);
     expect(variantName(SHA256, small.recipe, { ...VERSIONS, vips: '8.18.0' })).not.toBe(small.name);
+  });
+
+  test('accepts for encoding only art under a rule, opaque where its category demands it', () => {
+    expect(() => assertEncodable('/image/leader/alien/x.png', entry({ isOpaque: false }))).not.toThrow();
+    expect(() => assertEncodable('/image/texture/021.jpg', entry({ isOpaque: true }))).not.toThrow();
+    expect(() => assertEncodable('/image/texture/021.jpg', entry({ isOpaque: false }))).toThrow(/declared opaque/);
+    expect(() => assertEncodable('/image/unknown/x.png', entry())).toThrow(/No asset rule covers/);
   });
 
   test('refuses a key no rule covers', () => {
