@@ -297,7 +297,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     await accepted(a, { kind: 'battle-disclose', battleId, disclosure: { element: 'dial' }, shown: true });
     const all = (await syncView(b)).snapshot.battle.disclosed[0];
     expect(all.leader.id).toBe('fixture-leader');
-    expect(all.dial).toMatchObject({ spice: 5, strength: 4.75 });
+    expect(all.dial).toEqual({ strength: 4.75 });
     expect((await syncView(b)).snapshot.battle.disclosed[1]).toEqual({ cards: [] });
 
     for (const disclosure of [{ element: 'leader' }, { element: 'dial' }, { element: 'card', cardId }]) {

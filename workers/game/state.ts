@@ -328,18 +328,7 @@ export class RoomProjection {
         return {
           cards,
           ...(leaderPiece ? { leader: leaderPiece } : {}),
-          ...(dial
-            ? {
-                dial: {
-                  mode: plan.mode,
-                  troops: plan.troops,
-                  spice: plan.spice,
-                  adjustment: plan.adjustment,
-                  strength: plan.strength,
-                  faces: plan.faces,
-                },
-              }
-            : {}),
+          ...(dial ? { dial: { strength: plan.strength } } : {}),
         };
       };
       projected = {

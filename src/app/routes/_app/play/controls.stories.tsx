@@ -177,7 +177,7 @@ function earlyRevealSnapshot() {
   snapshot.battle!.disclosed = [
     {
       cards: [{ ...card, id: 'harkonnen-disclosed-card' }],
-      dial: { mode: plan.mode, troops: plan.troops, spice: 2, adjustment: 0, strength: 3.5, faces: plan.faces },
+      dial: { strength: 3.5 },
     },
     {
       leader: storyLeader('atreides-leader', 'house-atreides-01f1cf94-2df1-4b96-9fbf-dd757afef27b', 'Duncan Idaho'),

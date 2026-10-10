@@ -142,7 +142,7 @@ describe('the public log', () => {
       })
     );
     expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
-      'Fremen {1} revealed its dial early: troop strength 4.5, 3 spice.',
+      'Fremen {1} revealed its dial early: 4.5.',
       'Fremen {1} revealed its leader early: Stilgar {0}.',
       'Fremen {1} revealed a card early: Crysknife.',
     ]);

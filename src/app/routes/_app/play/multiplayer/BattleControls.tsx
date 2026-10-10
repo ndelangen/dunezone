@@ -24,7 +24,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useReducer, useState } from 'react';
 import type { Camera } from 'three';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
@@ -110,7 +110,6 @@ type WheelProps = {
   factionName: string;
   client?: TableSession;
   active?: Set<string>;
-  hidden?: { dial?: boolean; leader?: boolean };
 };
 function factionArtwork(factionId: string, artwork?: FactionArtwork) {
   return artwork?.[factionId] ?? factionTokenFixtures[factionId === 'atreides' ? 'atreides' : 'harkonnen'];
@@ -142,13 +141,8 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
     </Button>
   );
 }
-/*
- * A dial not revealed yet reads as unknown. The asset prints its numbers as they come; teaching it an unknown value
- * would change the publisher's capture code and recapture every published asset, so the unknown is a printed "?" here.
- */
-const UNKNOWN = '?' as unknown as number;
 /** Play owns piece visibility, pointer sessions and the Motion verdict; the asset owns the wheel artwork. */
-function BattleWheel({ plan, factionId, factionName, client, active, artwork, hidden }: WheelProps) {
+function BattleWheel({ plan, factionId, factionName, client, active, artwork }: WheelProps) {
   const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
   const motion = useMotionAllowed();
   const retained = artwork?.[factionId];
@@ -158,14 +152,10 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork, hi
       state="revealed"
       motion={motion}
       className={styles.wheel}
-      label={
-        hidden?.dial
-          ? `${factionName} plan, partly revealed`
-          : `${factionName} plan, troop strength ${plan.strength}, ${plan.spice} spice`
-      }
+      label={`${factionName} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
       background={factionArtwork(factionId, artwork).background}
-      strength={hidden?.dial ? UNKNOWN : plan.strength}
-      spice={hidden?.dial ? UNKNOWN : plan.spice}
+      strength={plan.strength}
+      spice={plan.spice}
       adjustment={plan.adjustment}
       troops={plan.faces
         .filter((face) => face.capable)
@@ -199,15 +189,7 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork, hi
         .map((piece) => (
           <DraggablePiece key={piece.id} piece={piece} client={client} />
         ))}
-      leader={
-        hidden?.leader ? (
-          <span className={styles.unknownLeader} role="img" aria-label="Leader not revealed">
-            ?
-          </span>
-        ) : leader && visiblePiece(leader, active) ? (
-          <DraggablePiece piece={leader} client={client} />
-        ) : undefined
-      }
+      leader={leader && visiblePiece(leader, active) ? <DraggablePiece piece={leader} client={client} /> : undefined}
     />
   );
 }
@@ -856,21 +838,43 @@ function BattleCentre(props: ActiveProps) {
     </Text>
   );
 }
-/** The parts a side revealed early, as a plan the revealed wheel can draw; everything else stays out of it. */
-function disclosedPlan({ leader, dial, cards }: DisclosedPlan): BattlePlan {
-  const cardIds = cards.map((piece) => piece.id);
-  return {
-    mode: dial?.mode ?? 'max',
-    troops: dial?.troops ?? [],
-    spice: dial?.spice ?? 0,
-    adjustment: dial?.adjustment ?? 0,
-    strength: dial?.strength ?? 0,
-    faces: dial?.faces ?? [],
-    leaderId: leader?.id ?? null,
-    cardIds,
-    pieces: [...(leader ? [leader] : []), ...cards],
-    disclosed: { leader: !!leader, dial: !!dial, cardIds },
-  };
+/*
+ * Parts revealed early lie on the closed wheel where the reveal will put them: cards fanned above it, the dial's number
+ * at the top and the leader in its slot. The closed wheel stays the asset's own, readiness ring included.
+ */
+function EarlyRevealWheel({ early, label, children }: { early: DisclosedPlan; label: string; children: ReactNode }) {
+  const { leader, dial, cards } = early;
+  return (
+    <div className={styles.early} role="group" aria-label={label}>
+      {children}
+      {cards.length ? (
+        <div className={styles.earlyCards}>
+          {cards.map((piece, index) => {
+            const offset = index - (cards.length - 1) / 2;
+            return (
+              <div
+                key={piece.id}
+                className={styles.earlyCard}
+                style={{ transform: `translateX(calc(-50% + ${offset * 32}px)) rotate(${offset * 14}deg)` }}
+              >
+                <PieceImage piece={piece} />
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+      {dial ? (
+        <div className={styles.earlyDial} aria-label={`Dial ${dial.strength}`}>
+          <span>{dial.strength}</span>
+        </div>
+      ) : null}
+      {leader ? (
+        <div className={styles.earlyLeader}>
+          <PieceImage piece={leader} />
+        </div>
+      ) : null}
+    </div>
+  );
 }
 function SideContents({
   client,
@@ -895,19 +899,8 @@ function SideContents({
     );
   }
   const early = battle.disclosed?.[index];
-  if (side && early && (early.leader || early.dial || early.cards.length)) {
-    return (
-      <BattleWheel
-        plan={disclosedPlan(early)}
-        factionId={side.factionId}
-        factionName={rosterName(side.factionId, snapshotFactionLabels(table.snapshot))}
-        artwork={table.snapshot.factionArtwork}
-        hidden={{ dial: !early.dial, leader: !early.leader }}
-      />
-    );
-  }
   if (side) {
-    return (
+    const closed = (
       <BattleWheelAsset
         state="unrevealed"
         motion={motion}
@@ -916,6 +909,17 @@ function SideContents({
         ready={side.ready}
       />
     );
+    if (early && (early.leader || early.dial || early.cards.length)) {
+      return (
+        <EarlyRevealWheel
+          early={early}
+          label={`${rosterName(side.factionId, snapshotFactionLabels(table.snapshot))} revealed early`}
+        >
+          {closed}
+        </EarlyRevealWheel>
+      );
+    }
+    return closed;
   }
   return (
     <Button

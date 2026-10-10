@@ -63,10 +63,8 @@ const publicSideSchema = z.object({ factionId: id, ready: z.boolean(), choice: b
 const disclosedPlanSchema = z.object({
   leader: tablePieceSchema.optional(),
   cards: z.array(tablePieceSchema),
-  dial: battlePlanInputSchema
-    .pick({ mode: true, troops: true, spice: true, adjustment: true })
-    .extend({ strength: z.number(), faces: z.array(battleFaceSchema) })
-    .optional(),
+  /* Only the dial's number: which troops and how much spice back it stay secret until the reveal. */
+  dial: z.object({ strength: z.number() }).optional(),
 });
 export type DisclosedPlan = z.infer<typeof disclosedPlanSchema>;
 const disclosureSchema = z.discriminatedUnion('element', [
