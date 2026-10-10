@@ -70,15 +70,10 @@ export function place<Piece extends TablePiece>(piece: Piece, position: Vector3T
  * One faction's setup supply from its capture, laid out for the Seat at `angle`: its faction token, troop reserves and the face-down Traitor deck on the table, leaders and the alliance card in hand.
  * The caller appends the faction's Extras to the hand.
  */
-export function factionSupply(
-  capture: FactionCapture,
-  angle: number,
-  { id, shuffle }: SupplyDependencies,
-  reserveAngles?: readonly number[]
-) {
+export function factionSupply(capture: FactionCapture, angle: number, { id, shuffle }: SupplyDependencies) {
   const { faction, components, definition } = capture;
   const color = definition.themeColor;
-  const layout = factionSupplyLayout(angle, components.troops.length, reserveAngles && [...reserveAngles]);
+  const layout = factionSupplyLayout(angle, components.troops.length);
   const reserves = components.troops.map((troop, index) => {
     const stackKey = `troops:${faction.id}:${troop.troopId ?? index}`;
     const stack = piece(id(), troop.name, faction.id, color, 'force', stackKey);
