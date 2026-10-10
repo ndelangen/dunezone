@@ -277,8 +277,40 @@ const CAMERA_PAN_EASE_S = 0.12;
 const CAMERA_PAN_EDGE_MARGIN = 1.2;
 /* Scroll distance, in pixels, that brings the camera e times closer. */
 const CAMERA_ZOOM_SCROLL_PX = 420;
-/* How far from the table's middle a close look may centre, so it never drifts off the board. */
+/*
+ * Where a close look may centre, so it never drifts off the table: the round table, the band across it that holds the side card wells,
+ * and the bottom shelf with the Tanks and the other decks. Each rectangle is [minX, maxX, minZ, maxZ] on the table.
+ */
 const CAMERA_ZOOM_TARGET_RADIUS = 5.6;
+const CAMERA_ZOOM_TARGET_RECTANGLES = [
+  [-6.9, 6.9, -2, 2],
+  [-2.4, 2.4, 0, 8.2],
+] as const;
+
+/** How far inside the reachable area a table point lies; negative outside it. */
+function zoomTargetDepth(x: number, z: number): number {
+  let depth = CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z);
+  for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
+    depth = Math.max(depth, Math.min(x - minX, maxX - x, z - minZ, maxZ - z));
+  }
+  return depth;
+}
+
+/** The nearest point of the reachable area. */
+function nearestZoomTarget(x: number, z: number): [number, number] {
+  const distance = Math.hypot(x, z);
+  let best: [number, number] =
+    distance <= CAMERA_ZOOM_TARGET_RADIUS
+      ? [x, z]
+      : [(x / distance) * CAMERA_ZOOM_TARGET_RADIUS, (z / distance) * CAMERA_ZOOM_TARGET_RADIUS];
+  for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
+    const candidate: [number, number] = [Math.min(maxX, Math.max(minX, x)), Math.min(maxZ, Math.max(minZ, z))];
+    if (Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z)) {
+      best = candidate;
+    }
+  }
+  return best;
+}
 
 function wheelPixels(deltaY: number, deltaMode: number): number {
   const pixels = deltaY * (deltaMode === 1 ? WHEEL_LINE_PX : deltaMode === 2 ? WHEEL_PAGE_PX : 1);
@@ -336,14 +368,13 @@ function cameraZoomAfterWheel(
 /** A close look kept over the board: a target that would leave it slides back toward the middle. */
 function keepZoomOverBoard(basePose: CameraPose, zoom: CameraZoom): CameraZoom {
   const target = zoomedCameraPose(basePose, zoom).target;
-  const distance = Math.hypot(target[0], target[2]);
-  if (distance <= CAMERA_ZOOM_TARGET_RADIUS) {
+  if (zoomTargetDepth(target[0], target[2]) >= 0) {
     return zoom;
   }
-  const excess = 1 - CAMERA_ZOOM_TARGET_RADIUS / distance;
+  const [x, z] = nearestZoomTarget(target[0], target[2]);
   return {
     scale: zoom.scale,
-    offset: [zoom.offset[0] - target[0] * excess, zoom.offset[1], zoom.offset[2] - target[2] * excess],
+    offset: [zoom.offset[0] + x - target[0], zoom.offset[1], zoom.offset[2] + z - target[2]],
   };
 }
 
@@ -436,13 +467,18 @@ export function cameraZoomAfterPanMotion(
   const step = Math.min(Math.max(seconds, 0), 0.1);
   let [moveX, moveZ] = [velocity[0] * step, velocity[1] * step];
   const target = zoomedCameraPose(basePose, zoom).target;
-  const distance = Math.hypot(target[0], target[2]);
-  if (distance > 0) {
-    const outwardX = target[0] / distance;
-    const outwardZ = target[2] / distance;
+  /* The way out of the reachable area here is where its depth falls fastest. */
+  const depth = zoomTargetDepth(target[0], target[2]);
+  const nudge = 0.01;
+  const fallX = depth - zoomTargetDepth(target[0] + nudge, target[2]);
+  const fallZ = depth - zoomTargetDepth(target[0], target[2] + nudge);
+  const fall = Math.hypot(fallX, fallZ);
+  if (fall > 0) {
+    const outwardX = fallX / fall;
+    const outwardZ = fallZ / fall;
     const outward = moveX * outwardX + moveZ * outwardZ;
     if (outward > 0) {
-      const room = Math.max(0, Math.min(1, (CAMERA_ZOOM_TARGET_RADIUS - distance) / CAMERA_PAN_EDGE_MARGIN));
+      const room = Math.max(0, Math.min(1, depth / CAMERA_PAN_EDGE_MARGIN));
       const slowed = outward * room;
       moveX -= outwardX * (outward - slowed);
       moveZ -= outwardZ * (outward - slowed);

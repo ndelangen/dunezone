@@ -155,6 +155,11 @@ export class TableKeyboard {
   }
 
   private keyDown = (event: KeyboardEvent) => {
+    /* macOS sends no keyup for a key let go while Cmd is down, so Cmd lets go of a held pan or draw rather than leave it running. */
+    if (event.key === 'Meta') {
+      this.releasePan();
+      this.cancelDraw();
+    }
     const controls = this.binding?.read();
     /* A key a control already answered, such as an arrow moving a peeked card, is not the table's. */
     if (!controls || hasModifier(event) || event.defaultPrevented) {
