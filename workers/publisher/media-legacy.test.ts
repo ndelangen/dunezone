@@ -114,6 +114,53 @@ describe('legacy media URLs', () => {
     expect(environment.ASSETS.requested).toEqual([TIER_URL]);
   });
 
+  test('serve bundled images and illustrations when the bucket read fails', async () => {
+    const environment = env([], { [TIER_URL]: 'image/jpeg', [CANONICAL_URL]: 'image/jpeg' });
+    environment.MEDIA_BUCKET.get = async () => {
+      throw new Error('Storage unavailable');
+    };
+
+    const response = await answer(TIER_URL, environment);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('image/jpeg');
+    expect(await response.text()).toBe('static');
+
+    const illustration = await mediaFetcher(environment).fetch(`${ORIGIN}${CANONICAL_URL}`);
+    expect(illustration.status).toBe(200);
+    expect(illustration.headers.get('Content-Type')).toBe('image/jpeg');
+    expect(await illustration.text()).toBe('static');
+  });
+
+  test('report a bucket outage as temporary when no bundled image exists, without caching it', async () => {
+    const environment = env();
+    environment.MEDIA_BUCKET.get = async () => {
+      throw new Error('Storage unavailable');
+    };
+    const cache = memoryCache();
+
+    const response = await answer(TIER_URL, environment, {}, cache.serving);
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(response.headers.get('Content-Type')).toContain('application/json');
+    await cache.settle();
+    expect(cache.stored.size).toBe(0);
+  });
+
+  test('preserve static revalidation during a bucket outage', async () => {
+    const environment = env();
+    environment.MEDIA_BUCKET.get = async () => {
+      throw new Error('Storage unavailable');
+    };
+    environment.ASSETS.fetch = async () => new Response(null, { status: 304, headers: { ETag: '"static"' } });
+
+    const response = await answer(TIER_URL, environment, { headers: { 'If-None-Match': '"static"' } });
+
+    expect(response.status).toBe(304);
+    expect(response.headers.get('ETag')).toBe('"static"');
+    expect(await response.text()).toBe('');
+  });
+
   test('pass committed files through and refuse the SPA fallback as a 404', async () => {
     const environment = env([], { '/web/logo.svg': 'image/svg+xml' });
 
