@@ -135,6 +135,68 @@ export const BattlePlanning = meta.story({
   },
 });
 
+/** A leader disc from the story's published fronts, as a plan or a reveal carries it. */
+function storyLeader(id: string, image: string, name: string) {
+  const front = new URL(`/play-fixtures/product/${image}.jpg`, location.origin).href;
+  return {
+    id,
+    label: name,
+    owner: 'shared' as const,
+    color: '#3f2523',
+    accent: '#d99b57',
+    kind: 'force' as const,
+    stackKey: null,
+    position: [0, 0.14, 0] as [number, number, number],
+    orientation: 0,
+    zoneId: null,
+    locked: false,
+    items: [{ id: `${id}-item`, faceUp: true, artwork: { front, back: front, name, type: 'token-disc' } }],
+  };
+}
+
+/**
+ * Battle, a part of each plan shown before the reveal: Harkonnen showed its card and its dial, Atreides its leader and a card.
+ * The revealed parts sit under each hidden wheel for everyone, and the plan editor keeps them fixed.
+ */
+function earlyRevealSnapshot() {
+  const snapshot = withCardInHand(battleStory('preparing'));
+  const card = snapshot.hand!.pop()!;
+  const leader = storyLeader('harkonnen-leader', 'house-harkonnen-1423d459-65bd-4f38-8859-52f69a5b3e2b', 'Feyd-Rautha');
+  const plan = snapshot.battlePlan!;
+  const faceId = plan.faces[0]!.id;
+  Object.assign(plan, {
+    troops: [{ faceId, undialed: 3, dialed: 2 }],
+    spice: 2,
+    strength: 3.5,
+    leaderId: leader.id,
+    cardIds: [card.id],
+    pieces: [leader, card],
+    disclosed: { leader: false, dial: true, cardIds: [card.id] },
+  });
+  const atreidesCard = { ...card, id: 'atreides-disclosed-card' };
+  snapshot.battle!.disclosed = [
+    {
+      cards: [{ ...card, id: 'harkonnen-disclosed-card' }],
+      dial: { mode: plan.mode, troops: plan.troops, spice: 2, adjustment: 0, strength: 3.5, faces: plan.faces },
+    },
+    {
+      leader: storyLeader('atreides-leader', 'house-atreides-01f1cf94-2df1-4b96-9fbf-dd757afef27b', 'Duncan Idaho'),
+      cards: [atreidesCard],
+    },
+  ];
+  snapshot.bank!.balance = 8;
+  return snapshot;
+}
+
+export const BattleEarlyReveal = meta.story({
+  beforeEach: install(() => productTransport('seat-2', earlyRevealSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Battle');
+    await expect(page.findByRole('button', { name: 'Dial revealed' }, WAIT)).resolves.toBeDisabled();
+    await expect(page.findByRole('button', { name: 'Leader' }, WAIT)).resolves.toBeEnabled();
+  },
+});
+
 /** Battle, both sides ready and the countdown to the reveal running. */
 export const BattleCountdown = meta.story({
   beforeEach: install(() => productTransport('seat-2', battleStory('countdown'))),

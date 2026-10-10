@@ -1259,7 +1259,7 @@ export class TableSession {
     if (!this.canAct() || this.pendingBattlePlan || !this.queuedBattlePlan || !battle || !plan) {
       return;
     }
-    const { strength: _strength, faces: _faces, pieces: _pieces, ...input } = plan;
+    const { strength: _strength, faces: _faces, pieces: _pieces, disclosed: _disclosed, ...input } = plan;
     const commandId = crypto.randomUUID();
     const patch = this.queuedBattlePlan.patch;
     this.queuedBattlePlan = null;

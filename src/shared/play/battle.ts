@@ -42,16 +42,39 @@ const battlePlanInputSchema = z.strictObject({
   leaderId: id.nullable(),
   cardIds: z.array(id),
 });
+/** The parts of a plan its faction showed everyone before the reveal; each stays fixed until the battle ends. */
+const disclosedSchema = z.object({
+  leader: z.boolean().default(false),
+  dial: z.boolean().default(false),
+  cardIds: z.array(id).default([]),
+});
 export const battlePlanSchema = battlePlanInputSchema.extend({
   strength: z.number(),
   pieces: z.array(tablePieceSchema),
   faces: z.array(battleFaceSchema),
+  disclosed: disclosedSchema.default({ leader: false, dial: false, cardIds: [] }),
 });
 export const storedBattlePlanSchema = battlePlanSchema.extend({ pieces: z.array(storedPieceSchema) });
 export type BattlePlanInput = z.infer<typeof battlePlanInputSchema>;
 export type BattlePlan = z.infer<typeof battlePlanSchema>;
 export type StoredBattlePlan = z.infer<typeof storedBattlePlanSchema>;
 const publicSideSchema = z.object({ factionId: id, ready: z.boolean(), choice: battleOutcomeSchema.nullable() });
+/** What everyone sees of a side's plan before the reveal: only the parts its faction chose to show. */
+const disclosedPlanSchema = z.object({
+  leader: tablePieceSchema.optional(),
+  cards: z.array(tablePieceSchema),
+  dial: battlePlanInputSchema
+    .pick({ mode: true, troops: true, spice: true, adjustment: true })
+    .extend({ strength: z.number(), faces: z.array(battleFaceSchema) })
+    .optional(),
+});
+export type DisclosedPlan = z.infer<typeof disclosedPlanSchema>;
+const disclosureSchema = z.discriminatedUnion('element', [
+  z.strictObject({ element: z.literal('leader') }),
+  z.strictObject({ element: z.literal('dial') }),
+  z.strictObject({ element: z.literal('card'), cardId: id }),
+]);
+export type Disclosure = z.infer<typeof disclosureSchema>;
 const battleBase = {
   id,
   anchor: tablePositionSchema,
@@ -63,6 +86,7 @@ const battleBase = {
 export const publicBattleSchema = z.object({
   ...battleBase,
   revealed: z.tuple([battlePlanSchema, battlePlanSchema]).optional(),
+  disclosed: z.tuple([disclosedPlanSchema.nullable(), disclosedPlanSchema.nullable()]).optional(),
 });
 export const battleResultSchema = z.object({
   id,
@@ -86,6 +110,7 @@ export const battleActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('battle-claim'), battleId: id, side: battleSideSchema }),
   z.strictObject({ kind: z.literal('battle-plan'), battleId: id, plan: battlePlanInputSchema }),
   z.strictObject({ kind: z.literal('battle-ready'), battleId: id, ready: z.boolean() }),
+  z.strictObject({ kind: z.literal('battle-disclose'), battleId: id, disclosure: disclosureSchema }),
   z.strictObject({ kind: z.literal('battle-cancel'), battleId: id }),
   z.strictObject({ kind: z.literal('battle-outcome'), battleId: id, outcome: battleOutcomeSchema }),
   z.strictObject({ kind: z.literal('hand-take'), pieceId: id }),
@@ -135,6 +160,7 @@ export function emptyBattlePlan(faces: BattleFace[]): StoredBattlePlan {
     strength: 0,
     pieces: [],
     faces,
+    disclosed: { leader: false, dial: false, cardIds: [] },
   };
 }
 

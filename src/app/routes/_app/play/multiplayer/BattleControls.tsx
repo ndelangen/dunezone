@@ -4,7 +4,14 @@ import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
 import { isBattleLeader } from '@shared/play/battle';
-import type { BattlePlan, BattlePlanInput, BattleFace, PublicBattle } from '@shared/play/battle';
+import type {
+  BattlePlan,
+  BattlePlanInput,
+  BattleFace,
+  Disclosure,
+  DisclosedPlan,
+  PublicBattle,
+} from '@shared/play/battle';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
@@ -297,7 +304,7 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
         label="Leader"
         placeholder="No leader"
         clearable
-        disabled={locked}
+        disabled={locked || plan.disclosed.leader}
         value={plan.leaderId}
         data={pieces.filter(isBattleLeader).map((piece) => ({ value: piece.id, label: pieceName(piece) }))}
         onChange={(leaderId) => update({ leaderId })}
@@ -305,6 +312,7 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
       <div className={styles.hand} role="group" aria-label="Cards from your hand">
         {cards.map((piece) => {
           const selected = plan.cardIds.includes(piece.id);
+          const disclosed = plan.disclosed.cardIds.includes(piece.id);
           return (
             <Button
               key={piece.id}
@@ -316,7 +324,7 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
               styles={{ label: { display: 'grid', justifyItems: 'center', gap: 'var(--space-xs)', height: 'auto' } }}
               aria-label={`${selected ? 'Remove' : 'Add'} ${pieceName(piece)} ${selected ? 'from' : 'to'} battle plan`}
               aria-pressed={selected}
-              disabled={locked}
+              disabled={locked || disclosed}
               onClick={() =>
                 update({
                   cardIds: selected ? plan.cardIds.filter((id) => id !== piece.id) : [...plan.cardIds, piece.id],
@@ -325,7 +333,7 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
             >
               <PieceImage piece={piece} />
               <Text component="span" size="xs">
-                {selected ? 'In plan' : 'In hand'}
+                {disclosed ? 'Revealed' : selected ? 'In plan' : 'In hand'}
               </Text>
             </Button>
           );
@@ -340,10 +348,73 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
   );
 }
 
+/** Shows one part of the player's own plan to everyone before the reveal; the table leaves who may do so to the players. */
+function EarlyReveal({
+  client,
+  battle,
+  plan,
+  pieces,
+  disabled,
+}: {
+  client: TableSession;
+  battle: PublicBattle;
+  plan: BattlePlan;
+  pieces: TablePiece[];
+  disabled: boolean;
+}) {
+  const disclose = (disclosure: Disclosure) =>
+    client.command({ kind: 'battle-disclose', battleId: battle.id, disclosure });
+  const leader = pieces.find((piece) => piece.id === plan.leaderId);
+  const cards = plan.cardIds.flatMap((id) => pieces.filter((piece) => piece.id === id));
+  return (
+    <Stack gap={4}>
+      <Text size="sm" fw={600}>
+        Reveal early
+      </Text>
+      <Text size="xs" c="dimmed">
+        Everyone sees a revealed part right away, and it can no longer change.
+      </Text>
+      <Group gap="xs">
+        <Button
+          size="xs"
+          variant="default"
+          disabled={disabled || !leader || plan.disclosed.leader}
+          onClick={() => disclose({ element: 'leader' })}
+        >
+          {plan.disclosed.leader ? 'Leader revealed' : 'Leader'}
+        </Button>
+        <Button
+          size="xs"
+          variant="default"
+          disabled={disabled || plan.disclosed.dial}
+          onClick={() => disclose({ element: 'dial' })}
+        >
+          {plan.disclosed.dial ? 'Dial revealed' : 'Dial'}
+        </Button>
+        {cards.map((piece) => {
+          const revealed = plan.disclosed.cardIds.includes(piece.id);
+          return (
+            <Button
+              key={piece.id}
+              size="xs"
+              variant="default"
+              disabled={disabled || revealed}
+              onClick={() => disclose({ element: 'card', cardId: piece.id })}
+            >
+              {revealed ? `${pieceName(piece)} revealed` : pieceName(piece)}
+            </Button>
+          );
+        })}
+      </Group>
+    </Stack>
+  );
+}
+
 function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan; battle: PublicBattle }) {
   const factionId = table.snapshot.bank!.factionId;
   const side = battle.sides.find((side) => side?.factionId === factionId)!;
   const locked = !table.canHandleTable || side.ready || battle.stage !== 'preparing';
+  const dialLocked = locked || plan.disclosed.dial;
   const update = (patch: Partial<BattlePlanInput>) => {
     client.editBattlePlan(patch);
   };
@@ -361,7 +432,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
               <SegmentedControl
                 className={styles.supportMode}
                 aria-label="Support mode"
-                disabled={locked}
+                disabled={dialLocked}
                 value={plan.mode}
                 data={[
                   { value: 'max', label: 'Max' },
@@ -369,7 +440,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
                 ]}
                 onChange={(mode) => update({ mode: mode as BattlePlan['mode'] })}
               />
-              <TroopFields plan={plan} locked={locked} update={update} spiceLimit={availableSpice} />
+              <TroopFields plan={plan} locked={dialLocked} update={update} spiceLimit={availableSpice} />
               {plan.mode === 'max' ? (
                 <BattleNumberInput
                   label="Committed spice"
@@ -377,7 +448,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
                   min={0}
                   max={availableSpice}
                   allowDecimal={false}
-                  disabled={locked}
+                  disabled={dialLocked}
                   onChange={(value) => update({ spice: Number(value) })}
                 />
               ) : null}
@@ -385,11 +456,20 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
                 label="Adjustment"
                 value={plan.adjustment}
                 step={0.5}
-                disabled={locked}
+                disabled={dialLocked}
                 onChange={(value) => update({ adjustment: Number(value) })}
               />
             </div>
             <PlanInventory plan={plan} locked={locked} update={update} pieces={pieces} />
+            {battle.stage === 'preparing' && (
+              <EarlyReveal
+                client={client}
+                battle={battle}
+                plan={plan}
+                pieces={pieces}
+                disabled={!table.canHandleTable}
+              />
+            )}
             <Text size="sm">
               {table.snapshot.bank!.balance} in your spice reserve, {plan.spice} set aside. Troop strength excludes
               leader strength.
@@ -819,6 +899,37 @@ function SideContents({
     </Button>
   );
 }
+/** What a side showed before the reveal, under its hidden wheel. */
+function DisclosedParts({ disclosed }: { disclosed: DisclosedPlan | null | undefined }) {
+  if (!disclosed || (!disclosed.leader && !disclosed.dial && !disclosed.cards.length)) {
+    return <div />;
+  }
+  const { leader, dial, cards } = disclosed;
+  return (
+    <Stack gap={2} align="center" className={styles.disclosed}>
+      <Text size="xs" c="dimmed">
+        Revealed early
+      </Text>
+      <Group gap={4} justify="center" wrap="wrap">
+        {leader && (
+          <div className={styles.disclosedPiece}>
+            <PieceImage piece={leader} />
+          </div>
+        )}
+        {cards.map((piece) => (
+          <div key={piece.id} className={styles.disclosedPiece}>
+            <PieceImage piece={piece} />
+          </div>
+        ))}
+      </Group>
+      {dial && (
+        <Text size="xs">
+          Dial {dial.strength}, {dial.spice} spice
+        </Text>
+      )}
+    </Stack>
+  );
+}
 function BattleSides(props: ActiveProps) {
   const { battle, table } = props;
   const active = new Set(
@@ -842,6 +953,18 @@ function BattleSides(props: ActiveProps) {
       <div className={styles.centre}>
         <BattleCentre {...props} />
       </div>
+    </Group>
+  );
+}
+function DisclosedRow({ battle }: { battle: PublicBattle }) {
+  const disclosed = battle.disclosed;
+  if (!disclosed?.some((side) => side && (side.leader || side.dial || side.cards.length))) {
+    return null;
+  }
+  return (
+    <Group justify="space-between" wrap="nowrap" align="start" gap="sm">
+      <DisclosedParts disclosed={disclosed[0]} />
+      <DisclosedParts disclosed={disclosed[1]} />
     </Group>
   );
 }
@@ -872,6 +995,7 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
               }
             >
               <BattleSides {...props} />
+              <DisclosedRow battle={battle} />
             </CalloutSurface>
           </div>
         </DarkSchemeIsland>

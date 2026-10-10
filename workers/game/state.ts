@@ -111,6 +111,12 @@ export function internalAction<Action extends PieceAction>(snapshot: StoredSnaps
       plan: { ...action.plan, cardIds: action.plan.cardIds.map((id) => internalPieceId(snapshot, id)) },
     };
   }
+  if (action.kind === 'battle-disclose' && action.disclosure.element === 'card') {
+    return {
+      ...action,
+      disclosure: { ...action.disclosure, cardId: internalPieceId(snapshot, action.disclosure.cardId) },
+    };
+  }
   return action;
 }
 
@@ -289,6 +295,7 @@ export class RoomProjection {
         return {
           ...plan,
           cardIds: plan.cardIds.map((id) => pieceHandles[id] ?? id),
+          disclosed: { ...plan.disclosed, cardIds: plan.disclosed.cardIds.map((id) => pieceHandles[id] ?? id) },
           pieces: plan.pieces.map((piece) =>
             this.piece(
               piece,
@@ -299,6 +306,40 @@ export class RoomProjection {
               pieceHandles
             )
           ),
+        };
+      };
+      /* Early-revealed cards travel under fresh handles, so nobody can tie them to a hand or to the cards the reveal later lays out. */
+      const disclosed = (plan: NonNullable<typeof battle>['plans'][number], battleId: string) => {
+        if (!plan) {
+          return null;
+        }
+        const { leader, dial, cardIds } = plan.disclosed;
+        const cards = plan.pieces
+          .filter((piece) => cardIds.includes(piece.id))
+          .map((piece) =>
+            this.piece(
+              piece,
+              true,
+              Object.fromEntries(piece.items.map((item) => [item.id, `disclosed-${battleId}-${item.id}`])),
+              { [piece.id]: this.cardId(`disclosed-piece-${battleId}-${piece.id}`) }
+            )
+          );
+        const leaderPiece = leader ? plan.pieces.find((piece) => piece.id === plan.leaderId) : undefined;
+        return {
+          cards,
+          ...(leaderPiece ? { leader: leaderPiece } : {}),
+          ...(dial
+            ? {
+                dial: {
+                  mode: plan.mode,
+                  troops: plan.troops,
+                  spice: plan.spice,
+                  adjustment: plan.adjustment,
+                  strength: plan.strength,
+                  faces: plan.faces,
+                },
+              }
+            : {}),
         };
       };
       projected = {
@@ -312,7 +353,7 @@ export class RoomProjection {
               deadline: battle.deadline,
               ...(battle.stage === 'revealed'
                 ? { revealed: [plan(battle.plans[0], battle.id)!, plan(battle.plans[1], battle.id)!] }
-                : {}),
+                : { disclosed: [disclosed(battle.plans[0], battle.id), disclosed(battle.plans[1], battle.id)] }),
             }
           : null,
         battlePlan:

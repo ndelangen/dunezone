@@ -106,6 +106,48 @@ describe('the public log', () => {
     ]);
   });
 
+  it('names each battle plan part a faction reveals early, as everyone now sees it', () => {
+    const log = new PublicLog(memoryStorage(), () => 'Turn 1');
+    log.enabled = true;
+    const piece = (id: string, name: string) => ({ id, label: id, items: [{ id: `${id}-item`, artwork: { name } }] });
+    const battle = (disclosed: { leader: boolean; dial: boolean; cardIds: string[] }) => ({
+      battleState: {
+        id: 'b',
+        sides: [{ factionId: 'house' }, { factionId: 'fremen' }],
+        plans: [
+          null,
+          {
+            leaderId: 'leader',
+            strength: 4.5,
+            spice: 3,
+            pieces: [piece('leader', 'Stilgar {0}'), piece('card', 'Crysknife')],
+            disclosed,
+          },
+        ],
+      },
+    });
+    const steps = [
+      { leader: false, dial: false, cardIds: [] },
+      { leader: false, dial: false, cardIds: ['card'] },
+      { leader: true, dial: false, cardIds: ['card'] },
+      { leader: true, dial: true, cardIds: ['card'] },
+    ];
+    steps.slice(1).forEach((disclosed, index) =>
+      log.recordCommit({
+        holders: [],
+        before: snapshot(index + 1, battle(steps[index]!) as never),
+        next: snapshot(index + 2, battle(disclosed) as never),
+        message: { type: 'command', action: { kind: 'battle-disclose' } } as never,
+        viewer: viewer as never,
+      })
+    );
+    expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
+      'Fremen {1} revealed its dial early: troop strength 4.5, 3 spice.',
+      'Fremen {1} revealed its leader early: Stilgar {0}.',
+      'Fremen {1} revealed a card early: Crysknife.',
+    ]);
+  });
+
   it('names the player of a faction whose name another seat shares, and forgets them on deletion', () => {
     const log = new PublicLog(memoryStorage(), () => 'Turn 1');
     log.enabled = true;

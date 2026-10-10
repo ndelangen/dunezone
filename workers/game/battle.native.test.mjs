@@ -266,6 +266,63 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await sendCommand(a, { kind: 'battle-ready', battleId, ready: true })).reply.type).toBe('rejected');
   });
 
+  it('reveals single parts of a plan early to everyone, keeps them fixed until the reveal', async () => {
+    await accepted(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
+    await accepted(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
+    const battleId = await start();
+    const cardId = (await syncView(a)).snapshot.hand.find((piece) => piece.kind === 'card').id;
+    await accepted(a, {
+      kind: 'battle-plan',
+      battleId,
+      plan: plan(5, 5, { leaderId: 'fixture-leader', cardIds: [cardId] }),
+    });
+    const hidden = (await syncView(observer)).snapshot;
+    expect(hidden.battle.disclosed[0]).toEqual({ cards: [] });
+    expect(JSON.stringify(hidden)).not.toContain('Secret card');
+
+    const card = await accepted(a, { kind: 'battle-disclose', battleId, disclosure: { element: 'card', cardId } });
+    expect(card.snapshot.battlePlan.disclosed.cardIds).toEqual([cardId]);
+    const seen = (await syncView(observer)).snapshot.battle.disclosed[0];
+    expect(seen.cards.map((piece) => piece.items[0].artwork.name)).toEqual(['Secret card']);
+    expect(seen.cards[0].id).not.toBe(cardId);
+    expect(seen).not.toHaveProperty('leader');
+    expect(seen).not.toHaveProperty('dial');
+
+    await accepted(a, { kind: 'battle-disclose', battleId, disclosure: { element: 'leader' } });
+    await accepted(a, { kind: 'battle-disclose', battleId, disclosure: { element: 'dial' } });
+    const all = (await syncView(b)).snapshot.battle.disclosed[0];
+    expect(all.leader.id).toBe('fixture-leader');
+    expect(all.dial).toMatchObject({ spice: 5, strength: 4.75 });
+    expect((await syncView(b)).snapshot.battle.disclosed[1]).toEqual({ cards: [] });
+
+    for (const disclosure of [{ element: 'leader' }, { element: 'dial' }, { element: 'card', cardId }]) {
+      expect((await sendCommand(a, { kind: 'battle-disclose', battleId, disclosure })).reply.type).toBe('rejected');
+    }
+    expect(
+      (await sendCommand(observer, { kind: 'battle-disclose', battleId, disclosure: { element: 'dial' } })).reply.type
+    ).toBe('rejected');
+    for (const extra of [
+      { leaderId: null, cardIds: [cardId] },
+      { leaderId: 'fixture-leader', cardIds: [] },
+    ]) {
+      expect((await sendCommand(a, { kind: 'battle-plan', battleId, plan: plan(5, 5, extra) })).reply.type).toBe(
+        'rejected'
+      );
+    }
+    const fixed = { leaderId: 'fixture-leader', cardIds: [cardId] };
+    expect((await sendCommand(a, { kind: 'battle-plan', battleId, plan: plan(4, 4, fixed) })).reply.type).toBe(
+      'rejected'
+    );
+
+    await ready(battleId);
+    expect(
+      (await sendCommand(b, { kind: 'battle-disclose', battleId, disclosure: { element: 'dial' } })).reply.type
+    ).toBe('rejected');
+    const out = await revealed(observer);
+    expect(out.battle).not.toHaveProperty('disclosed');
+    expect(out.battle.revealed[0].pieces.map((piece) => piece.items[0].artwork.name)).toContain('Secret card');
+  });
+
   it('retains revealed declarations when a card returns to hand and resolves only matching public choices', async () => {
     await accepted(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
     const battleId = await start();
