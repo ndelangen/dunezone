@@ -28,7 +28,7 @@ import { FoilConfetti } from '../FoilConfetti';
 import { GameTable } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
-import { AllianceDecisionBar } from './Alliances';
+import { AllianceDecisionBar, AlliancesPanel } from './Alliances';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { BidderSettings } from './BidderSettings';
@@ -936,6 +936,21 @@ function ConnectedTable({
                       topic: 'assets' as const,
                       content: <SharedInventory client={client} table={table} />,
                     },
+                    ...(inPlay && stage
+                      ? [
+                          {
+                            key: 'alliances',
+                            label: 'Alliances',
+                            topic: 'alliance' as const,
+                            content: (
+                              <>
+                                {error && <FormError title="From the table">{error}</FormError>}
+                                <AlliancesPanel client={client} table={table} />
+                              </>
+                            ),
+                          },
+                        ]
+                      : []),
                     {
                       key: 'spice',
                       label: 'Spice',
