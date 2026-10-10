@@ -430,7 +430,7 @@ files. A generated manifest diff must be resolved before push, not discovered by
 
 ## House conventions
 
-Three practices the whole repo follows, written down because they are enforced or assumed rather
+Practices the whole repo follows, written down because they are enforced or assumed rather
 than obvious.
 
 **Commit subjects are declarative sentences about the behaviour change**, present tense, no
@@ -447,6 +447,13 @@ sentence per line, so a comment diff shows the sentence that changed.
 `scripts/assert-*.mjs`; `verify:*` verify generated artifacts against their sources; `generate:*`
 produce them. The prefix tells you whether a failure means "the code is wrong" or "the artifacts are
 stale".
+
+**Push a branch once the change is finished, not after every commit.** One PR run takes 19 of the
+account's 20 runner slots, and a newer push cancels the run in flight. In early October 2026, runs
+cancelled that way used about 40% of all runner minutes and made every other PR wait for slots
+([#1921](https://github.com/ndelangen/dunezone/issues/1921)). So commit locally as often as you
+like, run the fast checks locally, and push when the change is ready for CI. A follow-up push is
+for a CI failure or review feedback, and it batches every fix you know about.
 
 **Developer-facing prose has no AI tells**, and two gates hold that: em dashes, curly quotes, filler
 words, hedging openers, emoji and decorative divider bands. `local/no-ai-tells` in
