@@ -64,10 +64,19 @@ const LETTER_FORMS: Readonly<Record<string, string>> = {
   t: '[t7+]',
   u: '[u*]',
 };
-const SEPARATOR = '[\\s\\p{P}\\p{S}]{0,3}';
-const WORD_PATTERNS = PROFANE_WORDS.map((word) =>
-  [...word].map((letter) => LETTER_FORMS[letter] ?? letter).join(SEPARATOR)
-).join('|');
+const SEPARATOR_CHARACTER = '[\\s\\p{P}\\p{S}]';
+/* A digit counts as a letter only joined to the letters around it, so a number standing alone, as in "Top 5 hits" or its address top-5-hits, spells nothing. */
+function letterForm(letter: string) {
+  const form = LETTER_FORMS[letter];
+  if (!form) {
+    return letter;
+  }
+  const digits = form.slice(1, -1).replace(/\D/g, '');
+  const others = form.replace(/\d/g, '');
+  return digits ? `(?:${others}|(?<!${SEPARATOR_CHARACTER})[${digits}](?!${SEPARATOR_CHARACTER}))` : form;
+}
+const SEPARATOR = `${SEPARATOR_CHARACTER}{0,3}`;
+const WORD_PATTERNS = PROFANE_WORDS.map((word) => [...word].map(letterForm).join(SEPARATOR)).join('|');
 const WHOLE_WORD = new RegExp(`(?<![\\p{L}\\p{N}])(?:${WORD_PATTERNS})(?![\\p{L}\\p{N}])`, 'u');
 const SUFFIX_WORD = new RegExp(`${WORD_PATTERNS}|bastard|ass|cock|dick|prick`, 'u');
 /* Matching the base character includes presentation selectors and skin-tone variants. */

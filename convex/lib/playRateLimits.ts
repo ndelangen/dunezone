@@ -16,17 +16,24 @@ export const playRateLimiter = new RateLimiter(components.rateLimiter, {
   playNameCheckGlobal: { kind: 'token bucket', rate: 600, period: MINUTE, capacity: 100 },
 });
 
-/** No provider request is issued without capacity in both checking buckets. */
-export async function playNameCheckCapacity(ctx: MutationCtx, userId: Id<'users'>): Promise<boolean> {
-  if (
-    !(await playRateLimiter.check(ctx, 'playNameCheckPerAccount', { key: userId })).ok ||
-    !(await playRateLimiter.check(ctx, 'playNameCheckGlobal')).ok
-  ) {
-    return false;
+/**
+ * No provider request is issued without capacity in both checking buckets.
+ * An account that spent its own checking budget is refused outright, since resubmitting a refused name until the budget runs out must not skip the check;
+ * only exhausted global capacity lets a name through unchecked.
+ */
+export async function playNameCheckCapacity(
+  ctx: MutationCtx,
+  userId: Id<'users'>
+): Promise<'checked' | 'unchecked' | 'rate_limited'> {
+  if (!(await playRateLimiter.check(ctx, 'playNameCheckPerAccount', { key: userId })).ok) {
+    return 'rate_limited';
+  }
+  if (!(await playRateLimiter.check(ctx, 'playNameCheckGlobal')).ok) {
+    return 'unchecked';
   }
   await playRateLimiter.limit(ctx, 'playNameCheckPerAccount', { key: userId });
   await playRateLimiter.limit(ctx, 'playNameCheckGlobal');
-  return true;
+  return 'checked';
 }
 
 /**
