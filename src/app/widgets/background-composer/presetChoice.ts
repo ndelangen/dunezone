@@ -1,3 +1,5 @@
+import { compareCodeUnits } from '@shared/compareText';
+
 import type { BackgroundData } from '@game/data/backgrounds';
 
 /*
@@ -12,7 +14,7 @@ function canonical(value: unknown): unknown {
   if (value && typeof value === 'object') {
     return Object.fromEntries(
       Object.keys(value)
-        .sort()
+        .sort(compareCodeUnits)
         .map((key) => [key, canonical((value as Record<string, unknown>)[key])])
     );
   }

@@ -4,6 +4,8 @@ import { join, parse } from 'node:path';
 import { Glob } from 'bun';
 import z from 'zod';
 
+import { compareCodeUnits } from '../src/shared/compareText';
+
 const schemaConfigSchema = z.strictObject({
   name: z.string(),
   schema: z.custom<z.ZodObject<any>>(),
@@ -84,7 +86,7 @@ function sortKeysDeep(value: unknown): unknown {
     return value.map(sortKeysDeep);
   }
   const sorted: Record<string, unknown> = {};
-  for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+  for (const key of Object.keys(value as Record<string, unknown>).sort(compareCodeUnits)) {
     sorted[key] = sortKeysDeep((value as Record<string, unknown>)[key]);
   }
   return sorted;
@@ -302,7 +304,7 @@ function canonicalizeSchemaForComparison(node: unknown): unknown {
   }
 
   const sorted: Record<string, unknown> = {};
-  const keys = Object.keys(node as Record<string, unknown>).sort();
+  const keys = Object.keys(node as Record<string, unknown>).sort(compareCodeUnits);
   for (const key of keys) {
     sorted[key] = canonicalizeSchemaForComparison((node as Record<string, unknown>)[key]);
   }

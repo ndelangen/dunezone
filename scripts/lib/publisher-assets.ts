@@ -91,7 +91,8 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
     throw new Error('Worker index.html must be an exact copy of the TanStack SPA shell');
   }
 
-  const largestAsset = files.reduce((largest, file) => (file.bytes > largest.bytes ? file : largest));
+  /* The required-file checks above guarantee `files` is not empty. */
+  const largestAsset = files.reduce((largest, file) => (file.bytes > largest.bytes ? file : largest), files[0]);
   return {
     assetCount: files.length,
     totalBytes: files.reduce((total, file) => total + file.bytes, 0),

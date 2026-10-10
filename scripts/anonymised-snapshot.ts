@@ -1,6 +1,7 @@
 import { appendFileSync, mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
+import { compareCodeUnits } from '../src/shared/compareText';
 import type { ExportEntries, SnapshotReport } from './lib/snapshot-anonymiser';
 import { SnapshotRefused } from './lib/snapshot-anonymiser';
 import { exportProductionSnapshot } from './provision';
@@ -79,7 +80,7 @@ function keptFields(snapshot: ExportEntries): Map<string, string[]> {
     }
     names.delete('_id');
     names.delete('_creationTime');
-    fields.set(table, [...names].sort());
+    fields.set(table, [...names].sort(compareCodeUnits));
   }
   return fields;
 }

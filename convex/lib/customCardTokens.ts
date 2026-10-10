@@ -8,6 +8,7 @@ import {
   TokenAsset,
 } from '../../src/shared/assets/schema';
 import type { CustomCardTokens, CustomCardTokenResolution } from '../../src/shared/assets/schema';
+import { compareCodeUnits } from '../../src/shared/compareText';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 
@@ -31,7 +32,9 @@ export function customCardPublicationError(data: unknown, resolved: z.infer<type
 export function customCardTokenIds(data: unknown): string[] {
   const parsed = CustomCardAsset.safeParse(data);
   return parsed.success
-    ? [...new Set(parsed.data.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : [])))].sort()
+    ? [...new Set(parsed.data.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : [])))].sort(
+        compareCodeUnits
+      )
     : [];
 }
 
