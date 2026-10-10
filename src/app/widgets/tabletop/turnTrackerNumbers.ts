@@ -1,7 +1,7 @@
 import { CanvasTexture, LinearFilter, SRGBColorSpace } from 'three';
 
 /* The face Play prints numbers in, as on leader discs and prediction cards (#1753). */
-export const TURN_NUMBER_FONT = 'C_Advokat_Modern';
+const TURN_NUMBER_FONT = 'C_Advokat_Modern';
 const TEXTURE_SIZE = 1024;
 /* A ten-turn wheel's numbers at this share of the disc radius; more sectors shrink them to fit. */
 const NUMBER_SIZE = 0.3;
