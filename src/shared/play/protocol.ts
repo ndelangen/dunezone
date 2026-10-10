@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { HistoricalFactionPublicationObject, TroopArtwork } from '../factions/schema';
 import { playStageSchema } from './admission';
+import { allianceActionSchema, allianceStateSchema } from './alliances';
 import {
   battleActionSchema,
   publicBattleSchema,
@@ -88,6 +89,8 @@ export const gameSnapshotSchema = z.object({
   bank: spiceReserveSchema.optional(),
   /* The bidder during the Bidding phase; absent until a game first reaches it. */
   bidding: biddingStateSchema.optional(),
+  /* Who is allied with whom and the offers waiting on an answer; absent until a faction first offers one. */
+  alliances: allianceStateSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
@@ -146,6 +149,7 @@ export type DeckAction = z.infer<typeof deckActionSchema>;
 const pieceActionSchema = z.discriminatedUnion('kind', [
   ...battleActionSchema.options,
   ...biddingActionSchema.options,
+  ...allianceActionSchema.options,
   ...spiceReserveActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,

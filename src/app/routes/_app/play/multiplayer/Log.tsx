@@ -7,7 +7,7 @@ import type { TableProjection, TableSession } from '../../../../db/tabletop/Tabl
 import styles from './Log.module.css';
 
 /*
- * The six classifications and their hues as the accepted log fixed them (issue 1149, comment 5654361805): cyan, orange, red and purple for the Game classes, blue and green for Seat and Vote.
+ * The classifications and their hues as the accepted log fixed them (issue 1149, comment 5654361805): cyan, orange, red and purple for the Game classes, blue and green for Seat and Vote; alliances (#1007) took teal.
  * These are classes of event, not statuses, so the badge takes the hue directly rather than a StatusBadge tone.
  */
 const CLASSIFICATIONS = {
@@ -15,6 +15,7 @@ const CLASSIFICATIONS = {
   spice: { label: 'Spice', color: 'orange' },
   battle: { label: 'Battle', color: 'red' },
   prediction: { label: 'Prediction', color: 'grape' },
+  alliance: { label: 'Alliance', color: 'teal' },
   seat: { label: 'Seat', color: 'blue' },
   vote: { label: 'Vote', color: 'green' },
 } as const satisfies Record<LogClass, { label: string; color: string }>;

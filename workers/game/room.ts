@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 
 import { tableHandlingOpen } from '../../src/shared/play/admission';
+import { isAllianceAction } from '../../src/shared/play/alliances';
 import { isBattleAction } from '../../src/shared/play/battle';
 import { isBiddingAction } from '../../src/shared/play/bidding';
 import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
@@ -50,6 +51,7 @@ import {
   projectCarryAtPosition,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
+import { allianceCommand } from './alliances';
 import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
@@ -78,6 +80,7 @@ type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessag
  * Each names what it changes and is checked against the live table, so another seat acting at the same moment must not turn it away (#1681, #1690).
  * A battle action names its battle and side, and a draft choice or removal ballot names the sender's own pick or vote.
  * A seat request names its seat, an approval its request and a withdrawal the sender's own request, each judged against the live seating.
+ * An alliance offer or answer names the other faction and is judged against the live alliances.
  * A raise or pass names its bidding round and is judged against the live bidder's turn, so a quick second raise is not turned away by the first.
  * A spice reserve withdrawal stays strict, so two tabs of one player cannot both spend from a spice reserve they saw once.
  * Leaving stays strict too, since its confirmation said what it costs and a crossed departure may have left the sender the last player.
@@ -103,6 +106,11 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'bid-raise',
   'bid-pass',
   'bid-seconds',
+  'alliance-offer',
+  'alliance-withdraw',
+  'alliance-accept',
+  'alliance-decline',
+  'alliance-leave',
 ]);
 
 /** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */
@@ -512,6 +520,9 @@ export class Room {
     }
     if (isBiddingAction(action)) {
       return biddingCommand(this.snapshot, this.requireFaction(identity), action, now);
+    }
+    if (isAllianceAction(action)) {
+      return allianceCommand(this.snapshot, this.requireFaction(identity), action, now);
     }
     if (
       action.kind === 'reset' &&

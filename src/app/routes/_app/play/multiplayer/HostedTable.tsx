@@ -28,6 +28,7 @@ import { FoilConfetti } from '../FoilConfetti';
 import { GameTable } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
+import { AllianceDecisionBar } from './Alliances';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { BidderSettings } from './BidderSettings';
@@ -814,6 +815,7 @@ function ConnectedTable({
             decisionBar={
               <Stack data-decision-bar gap="xs">
                 <ResultDecisionBar client={client} table={table} />
+                {inPlay && <AllianceDecisionBar client={client} table={table} />}
                 <RemovalDecisionBar
                   votes={removalVotes}
                   onOpen={(vote) =>

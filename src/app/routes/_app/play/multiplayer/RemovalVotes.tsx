@@ -13,6 +13,7 @@ import { MessageCircle } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import { allianceHue, PlayerAlliance } from './Alliances';
 import { Conversation } from './Conversation';
 import { SwappingSeat } from './Swapping';
 import { useServerNow } from './useServerNow';
@@ -165,13 +166,14 @@ export function PlayerPanel({
     const active = votes.some((candidate) => candidate.target.seat === entry.seat);
     const token = table.snapshot.swapping?.tokens[entry.seat];
     const unreadLabel = unread(entry.seat) ? `, ${unread(entry.seat)} unread` : '';
+    const hue = allianceHue(table.snapshot.alliances, rosterSeat(table.snapshot.roster, entry.seat)?.faction?.id);
     return (
       <NestedTabs.Item
         key={entry.seat}
         as="button"
         type="button"
         path={[entry.seat]}
-        label={`${entry.name}${active ? ', removal vote in progress' : ''}${unreadLabel}`}
+        label={`${entry.name}${hue ? ', in an alliance' : ''}${active ? ', removal vote in progress' : ''}${unreadLabel}`}
         icon={
           <Indicator
             color={active ? 'red.6' : undefined}
@@ -179,7 +181,14 @@ export function PlayerPanel({
             label={unread(entry.seat) || undefined}
             disabled={!active && !unread(entry.seat)}
           >
-            <Avatar src={token ?? entry.avatar} size={26} radius="xl" alt="">
+            <Avatar
+              src={token ?? entry.avatar}
+              size={26}
+              radius="xl"
+              alt=""
+              /* Allies share a ring, one hue per alliance. */
+              style={hue ? { boxShadow: `0 0 0 2px ${hue}` } : undefined}
+            >
               {entry.name.slice(0, 1)}
             </Avatar>
           </Indicator>
@@ -323,6 +332,7 @@ function PlayerInformation({
           {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
         </Text>
         <SwappingSeat client={client} table={table} seat={player.seat} />
+        <PlayerAlliance client={client} table={table} seat={player.seat} />
         {canStart && (
           <>
             <Button
