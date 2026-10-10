@@ -1423,7 +1423,7 @@ export function TabletopScene({
   /* The frame around the canvas follows only what it shows, so a held piece moving renders the pieces and not the canvas. */
   const hasDraft = useTabletopSelector((table) => table.state.draftMove !== null);
   const menuAvailable = useTabletopSelector((table) =>
-    Boolean(table.deckControls || table.spiceReserveControls || table.peekControls || table.deleteControls)
+    [table.deckControls, table.spiceReserveControls, table.peekControls, table.deleteControls].some(Boolean)
   );
   const [pieceMenu, setPieceMenu] = useState<PieceMenuAnchor | null>(null);
   /* One opener for the table's life: a new one on every update would render every piece again. */
