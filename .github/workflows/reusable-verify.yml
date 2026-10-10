@@ -256,13 +256,10 @@ jobs:
           flags: storybook
           disable_search: true
           fail_ci_if_error: false
-      - name: Record this pass for runs on the same inputs
-        if: steps.prior.outputs.reuse != 'true'
+      - name: Record this story shard pass for runs on the same inputs
         uses: ./.github/actions/record-pass
         with:
-          name: ${{ steps.prior.outputs.name }}
-          files: |
-            coverage/storybook/lcov.info
+          files: coverage/storybook/lcov.info
 
   # The static gates share one job: each of the workflow lint, the Convex skip guard and the static
   # narrow check ran 12 to 14 s on a runner of its own after 5 to 12 s of setup (#1588), and a slot
@@ -560,13 +557,10 @@ jobs:
       - name: Check Worker startup
         if: steps.prior.outputs.reuse != 'true'
         run: bun run publisher:startup
-      - name: Record this pass for runs on the same inputs
-        if: steps.prior.outputs.reuse != 'true'
+      - name: Record this publisher pass for runs on the same inputs
         uses: ./.github/actions/record-pass
         with:
-          name: ${{ steps.prior.outputs.name }}
-          files: |
-            coverage/lcov.info
+          files: coverage/lcov.info
 
   game_release:
     runs-on: ubuntu-latest
@@ -636,13 +630,10 @@ jobs:
           path: test-results/vitest-game.junit.xml
           if-no-files-found: ignore
           retention-days: 7
-      - name: Record this pass for runs on the same inputs
-        if: steps.prior.outputs.reuse != 'true'
+      - name: Record this game Worker pass for runs on the same inputs
         uses: ./.github/actions/record-pass
         with:
-          name: ${{ steps.prior.outputs.name }}
-          files: |
-            coverage/lcov.info
+          files: coverage/lcov.info
 
   # Everything else that drives Chromium, folded into one job so the Playwright install and the
   # setup are paid once (#1925): the authoring tool's own end-to-end tests, the script tests that
@@ -857,10 +848,7 @@ jobs:
             ${{ github.workspace }}/.playwright/app.log
             ${{ github.workspace }}/.playwright/build.log
             ${{ github.workspace }}/.playwright/*.zip
-      - name: Record this pass for runs on the same inputs
-        if: steps.prior.outputs.reuse != 'true'
+      - name: Record this e2e shard pass for runs on the same inputs
         uses: ./.github/actions/record-pass
         with:
-          name: ${{ steps.prior.outputs.name }}
-          files: |
-            coverage/e2e/lcov.info
+          files: coverage/e2e/lcov.info

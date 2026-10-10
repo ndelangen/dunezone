@@ -9,16 +9,13 @@ inputs:
     description: The job's id in scripts/lib/ci-job-inputs.ts
     required: true
   record:
-    description: The record's name without the key, unique per job and shard, as record-pass is given it
+    description: The record's name without the key, unique per job and shard
     required: true
 
 outputs:
   key:
     description: The job's input key at HEAD
     value: ${{ steps.key.outputs.key }}
-  name:
-    description: The record's full name, for record-pass
-    value: ${{ steps.key.outputs.name }}
   reuse:
     description: "true when an earlier pass was restored and the job's own work can be skipped"
     value: ${{ steps.lookup.outputs.reuse }}
@@ -41,6 +38,8 @@ runs:
         key="$(git ls-tree -r -z HEAD | bun scripts/ci-job-key.ts "$JOB")"
         echo "key=$key" >> "$GITHUB_OUTPUT"
         echo "name=ci-pass-$RECORD-$key" >> "$GITHUB_OUTPUT"
+        # record-pass uploads under this name at the end of the job.
+        echo "CI_PASS_NAME=ci-pass-$RECORD-$key" >> "$GITHUB_ENV"
     - name: Look for an earlier pass
       id: lookup
       shell: bash

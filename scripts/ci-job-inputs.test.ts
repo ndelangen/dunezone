@@ -122,9 +122,11 @@ describe('the verify jobs a pull request run can reuse', () => {
     const workflow = readFileSync(resolve(root, '.github/workflows/reusable-verify.yml'), 'utf8');
     for (const job of JOBS) {
       const definition = verifyJob(job, root);
-      const uploaded = [...definition.matchAll(/\n {10}files: (coverage\/\S+)\n/gu)].map((match) => match[1]);
+      const [steps, record = ''] = definition.split('uses: ./.github/actions/record-pass');
+      const uploaded = [...steps.matchAll(/\n {10}files: (coverage\/\S+)\n/gu)].map((match) => match[1]);
+      expect(uploaded.length, `${job} uploads coverage`).toBeGreaterThan(0);
       for (const report of uploaded) {
-        expect(definition, `${job} records ${report}`).toMatch(new RegExp(`files: \\|[^]*\\n {12}${report}\\n`, 'u'));
+        expect(record, `${job} records ${report}`).toContain(report);
       }
     }
     expect(workflow).toContain('actions: read');

@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # Restores the newest unexpired record named $NAME that a run of this repository's own branches uploaded,
 # and writes reuse=true; anything else, an API error included, writes reuse=false so the job runs in full.
+# The answer also goes to CI_PASS_REUSE in the job's environment, where record-pass reads it.
 set -uo pipefail
 
+answer() {
+  echo "reuse=$1" >> "$GITHUB_OUTPUT"
+  echo "CI_PASS_REUSE=$1" >> "$GITHUB_ENV"
+}
+
 run_in_full() {
-  echo "reuse=false" >> "$GITHUB_OUTPUT"
+  answer false
   echo "The job runs in full: $1"
   printf '### Runs in full\n\n%s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
   exit 0
@@ -31,6 +37,6 @@ if ! gh api "repos/$REPO/actions/artifacts/$id/zip" > "$archive" || ! unzip -o -
 fi
 
 passed="$(cat "$GITHUB_WORKSPACE/.ci-pass/run-url" 2>/dev/null || echo "an earlier run")"
-echo "reuse=true" >> "$GITHUB_OUTPUT"
+answer true
 echo "Reused: $passed passed this job with the same inputs."
 printf '### Reused an earlier pass\n\n%s passed this job with the same inputs (%s), so its checks are not run again and its recorded coverage is uploaded.\n' "$passed" "$NAME" >> "$GITHUB_STEP_SUMMARY"
