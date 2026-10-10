@@ -64,6 +64,7 @@ if (process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET) {
     Discord({
       clientId: process.env.AUTH_DISCORD_ID,
       clientSecret: process.env.AUTH_DISCORD_SECRET,
+      issuer: 'https://discord.com',
       authorization: {
         url: 'https://discord.com/api/oauth2/authorize',
         params: { scope: 'identify' },
