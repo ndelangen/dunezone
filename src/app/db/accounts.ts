@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from 'convex/react';
+import { useState } from 'react';
 
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
@@ -14,11 +15,17 @@ export function useSignInProviders() {
 }
 
 export type { AuthProvider } from '../../../convex/lib/accountMethods';
+/** The admin accounts page. Choosing a profile or another page changes the arguments, so the last answer stays on screen until the next one arrives rather than the form unmounting into a loading state. */
 export function useAccountManagementPage(cursor: string | null, selectedUserIds: string[]) {
-  return useQuery(api.accounts.adminPage, {
+  const page = useQuery(api.accounts.adminPage, {
     paginationOpts: { cursor, numItems: 40 },
     selectedUserIds: selectedUserIds as Id<'users'>[],
   });
+  const [shown, setShown] = useState(page);
+  if (page !== undefined && page !== shown) {
+    setShown(page);
+  }
+  return page ?? shown;
 }
 export function useMergeAccounts() {
   const mutate = useMutation(api.accounts.merge);
