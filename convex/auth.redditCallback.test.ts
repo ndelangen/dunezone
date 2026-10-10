@@ -39,12 +39,8 @@ async function startReddit(t: ReturnType<typeof convexTest>) {
   };
 }
 
-test('Reddit requests temporary identity access and completes profile creation', async () => {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
-  const requests = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+function redditProviderFetch() {
+  return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     expect(new Headers(init?.headers).get('User-Agent')).toBe('web:dune-zone:v1 (by /u/test-developer)');
     if (url === 'https://www.reddit.com/api/v1/access_token') {
@@ -55,6 +51,14 @@ test('Reddit requests temporary identity access and completes profile creation',
     }
     throw new Error(`Unexpected provider request: ${url}`);
   });
+}
+
+test('Reddit requests temporary identity access and completes profile creation', async () => {
+  const t = convexTest(schema, modules);
+  aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileActivity');
+  aggregateTest.register(t, 'profileDiscovery');
+  const requests = redditProviderFetch();
   vi.stubGlobal('fetch', requests);
   const { destination, cookies } = await startReddit(t);
   expect(destination.origin).toBe('https://www.reddit.com');
