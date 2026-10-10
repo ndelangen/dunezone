@@ -82,3 +82,28 @@ retained identity. A merge refuses two occupied seats in the same ongoing game, 
 source routing or creation records, and a source game whose provisioning has not finished.
 
 Publication jobs now live at `/_admin/jobs`. The former `/__jobs` address and `/_jobs` redirect there.
+
+### Recover a failed merge
+
+A failed merge remains locked because earlier batches may already have transferred content. There
+is no safe cancellation by clearing the locks: overlapping memberships are combined and duplicate
+routing rows are removed. Recovery completes the transfer into the chosen profile.
+
+1. Open `/_admin/accounts` with an administrator account. Read the failed job's error, and inspect
+   its `account_merge_operations` record in the Convex dashboard. Its `phase` identifies the next
+   batch in `MERGE_BATCHES` in `convex/lib/accountMerge.ts`.
+2. Inspect the Convex error log for `accounts:advanceBatch` and the named batch. For a deterministic
+   code or validation failure, fix its cause and deploy that correction through the normal review
+   and CI gates. Preserve the stored phase numbers, profile aliases and game actor identities. Do
+   not skip the failing batch, clear account locks or move already-transferred rows back.
+3. Select **Retry merge** in Accounts. Each batch drains the remaining indexed source rows, so
+   completed batches stay completed and a partially completed phase continues with its remaining
+   rows. The failed batch's transaction has rolled back before the failure was recorded.
+4. Wait for **Completed**, then verify both sign-in accounts reach the kept profile, the old profile
+   address redirects, and the transferred content appears. Completion revokes source sessions and
+   removes the account-management locks. If the same error recurs, retain the lock and return to
+   step 2 rather than repeatedly retrying the same deterministic failure.
+
+The kept account stays active while recovery is pending; its existing sign-in method and ordinary
+content access remain available. An administrator who is merging their own profile retains admin
+access on the kept account and can sign in with that account's existing method to resume the job.

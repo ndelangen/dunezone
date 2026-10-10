@@ -123,6 +123,57 @@ test('admin merges drain multiple batches, preserve overlapping memberships, cre
   await expect(admin.mutation(api.accounts.disconnect, { provider: 'google' })).rejects.toThrow('Keep at least one');
 });
 
+test('a failed partial transfer resumes without undoing completed writes and unlocks the kept account', async () => {
+  const t = setup();
+  const source = await account(t, 'source', 'discord');
+  const target = await account(t, 'target', 'google', true);
+  const groups = await t.run(async (raw) => {
+    const ctx = applicationTriggers.wrapDB(raw);
+    const ids = [];
+    for (let i = 0; i < 40; i += 1) {
+      ids.push(
+        await ctx.db.insert('groups', {
+          created_by: source.userId,
+          created_at: new Date().toISOString(),
+          name: `Group ${i}`,
+          slug: `group-${i}`,
+          is_deleted: false,
+        })
+      );
+    }
+    return ids;
+  });
+  const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
+  const operationId = await admin.mutation(api.accounts.merge, {
+    sourceUserId: source.userId,
+    targetUserId: target.userId,
+  });
+  await t.mutation(internal.accounts.advanceBatch, { operationId });
+  await t.mutation(internal.accounts.failMerge, { operationId, error: 'Operator repair required' });
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  await t.run(async (ctx) => {
+    expect(await ctx.db.get(operationId)).toMatchObject({ state: 'failed', phase: 0 });
+    const rows = await Promise.all(groups.map((id) => ctx.db.get(id)));
+    expect(rows.filter((row) => row?.created_by === target.userId)).toHaveLength(32);
+    expect(rows.filter((row) => row?.created_by === source.userId)).toHaveLength(8);
+    expect((await ctx.db.get(source.authId))?.userId).toBe(source.userId);
+  });
+  await expect(admin.mutation(api.accounts.beginConnection, { provider: 'discord' })).rejects.toThrow(
+    'merge in progress'
+  );
+  expect((await admin.query(api.profiles.session, {})).userId).toBe(target.userId);
+  await admin.mutation(api.accounts.resumeMerge, { operationId });
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  await t.run(async (ctx) => {
+    expect((await ctx.db.get(operationId))?.state).toBe('completed');
+    expect((await ctx.db.get(target.userId))?.account_merge_operation_id).toBeUndefined();
+    expect((await ctx.db.get(source.authId))?.userId).toBe(target.userId);
+    for (const id of groups) {
+      expect((await ctx.db.get(id))?.created_by).toBe(target.userId);
+    }
+  });
+});
+
 test('self-service connection requires both proofs and a fresh second session, then consumes the intent once', async () => {
   const t = setup();
   const target = await account(t, 'kept', 'google');
