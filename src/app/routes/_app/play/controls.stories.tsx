@@ -194,8 +194,8 @@ export const BattleEarlyReveal = meta.story({
     const page = await openPanel(canvasElement, 'Battle');
     await expect(page.findByRole('checkbox', { name: 'Dial' }, WAIT)).resolves.toBeChecked();
     await expect(page.findByRole('checkbox', { name: 'Leader' }, WAIT)).resolves.not.toBeChecked();
-    await expect(page.findByRole('img', { name: 'Harkonnen dial revealed early: 3.5' }, WAIT)).resolves.toBeVisible();
-    await expect(page.findByRole('group', { name: 'Atreides leader revealed early' }, WAIT)).resolves.toBeVisible();
+    await expect(page.findByRole('img', { name: /Harkonnen dial revealed early: 3\.5$/ }, WAIT)).resolves.toBeVisible();
+    await expect(page.findByRole('group', { name: /Atreides leader revealed early$/ }, WAIT)).resolves.toBeVisible();
   },
 });
 
