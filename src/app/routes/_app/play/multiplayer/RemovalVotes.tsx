@@ -282,7 +282,7 @@ export function PlayerPanel({
 }
 
 /*
- * The whole table's conversation, the board's own icon at the head of the players.
+ * The whole table's conversation, a planet at the head of the players.
  * It is an element rather than a component because the rail only sees items it is handed directly.
  */
 function tableConversationItem(unread: number, onSelect: () => void) {
@@ -294,7 +294,7 @@ function tableConversationItem(unread: number, onSelect: () => void) {
       label={`Table${unread ? `, ${unread} unread` : ''}`}
       icon={
         <Indicator size={16} label={unread || undefined} disabled={!unread}>
-          <TopicIcon topic="board" size={26} />
+          <TopicIcon topic="planet" size={26} />
         </Indicator>
       }
       onClick={onSelect}
