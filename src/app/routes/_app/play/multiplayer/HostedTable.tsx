@@ -28,6 +28,7 @@ import { FoilConfetti } from '../FoilConfetti';
 import { GameTable } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
+import { AllianceRingsScene } from './AllianceRings';
 import { AllianceDecisionBar, AlliancesPanel } from './Alliances';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
@@ -807,6 +808,7 @@ function ConnectedTable({
                     <BattleScene client={client} table={table} />
                     {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
                     {inPlay && <HandCountsScene table={table} />}
+                    {inPlay && <AllianceRingsScene table={table} />}
                   </>
                 )}
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}

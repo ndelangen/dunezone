@@ -21,7 +21,7 @@ export const allianceActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('alliance-withdraw'), factionId: id }),
   z.strictObject({ kind: z.literal('alliance-accept'), factionId: id }),
   z.strictObject({ kind: z.literal('alliance-decline'), factionId: id }),
-  z.strictObject({ kind: z.literal('alliance-leave') }),
+  z.strictObject({ kind: z.literal('alliance-break') }),
 ]);
 export type AllianceAction = z.infer<typeof allianceActionSchema>;
 const kinds: ReadonlySet<string> = new Set(allianceActionSchema.options.map((option) => option.shape.kind.value));
@@ -88,8 +88,8 @@ function answer(state: AllianceState, from: string, accept: boolean, { factionId
   return accept ? join(state, from, factionId) : without(state, from, factionId);
 }
 
-/** Leaving breaks the leaver from its alliance; an alliance left with one faction is over. */
-function leave(state: AllianceState, factionId: string): AllianceState {
+/** Breaking an alliance takes the faction out of it; an alliance left with one faction is over. */
+function breakAway(state: AllianceState, factionId: string): AllianceState {
   if (!alliesOf(state, factionId).length) {
     return state;
   }
@@ -112,7 +112,7 @@ export function applyAlliance(state: AllianceState, action: AllianceAction, cont
       return answer(state, action.factionId, true, context);
     case 'alliance-decline':
       return answer(state, action.factionId, false, context);
-    case 'alliance-leave':
-      return leave(state, context.factionId);
+    case 'alliance-break':
+      return breakAway(state, context.factionId);
   }
 }

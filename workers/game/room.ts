@@ -110,7 +110,7 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'alliance-withdraw',
   'alliance-accept',
   'alliance-decline',
-  'alliance-leave',
+  'alliance-break',
 ]);
 
 /** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */

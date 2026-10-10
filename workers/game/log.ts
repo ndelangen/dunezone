@@ -406,11 +406,11 @@ function allianceEntries(
   const people: Person[] = [];
   const names = (ids: readonly string[]) => ids.map((id) => faction(id, people)).join(', ');
   const template = (() => {
-    if (message.action.kind === 'alliance-leave') {
+    if (message.action.kind === 'alliance-break') {
       const leaver = rosterSeat(before.roster, viewer.viewerSeat)?.faction?.id;
       const allies = leaver ? alliesOf(before.alliances, leaver) : [];
       return leaver && allies.length
-        ? `${faction(leaver, people)} left its alliance with ${names(allies)}.`
+        ? `${faction(leaver, people)} broke its alliance with ${names(allies)}.`
         : undefined;
     }
     const formed = next.alliances?.groups.find(

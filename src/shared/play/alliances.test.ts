@@ -33,15 +33,15 @@ describe('alliances', () => {
     );
   });
 
-  test('a faction joining an alliance joins all of it, and leaving breaks only the leaver away', () => {
+  test('a faction joining an alliance joins all of it, and breaking takes only that faction out', () => {
     let state = act(emptyAlliances(), 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
     state = act(state, 'fremen', { kind: 'alliance-accept', factionId: 'atreides' });
     state = act(state, 'emperor', { kind: 'alliance-offer', factionId: 'fremen' });
     state = act(state, 'fremen', { kind: 'alliance-accept', factionId: 'emperor' });
     expect(alliesOf(state, 'emperor').sort()).toEqual(['atreides', 'fremen']);
-    state = act(state, 'emperor', { kind: 'alliance-leave' });
+    state = act(state, 'emperor', { kind: 'alliance-break' });
     expect(alliesOf(state, 'atreides')).toEqual(['fremen']);
-    state = act(state, 'atreides', { kind: 'alliance-leave' });
+    state = act(state, 'atreides', { kind: 'alliance-break' });
     expect(state.groups).toEqual([]);
   });
 

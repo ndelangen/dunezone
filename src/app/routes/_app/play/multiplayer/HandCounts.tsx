@@ -13,6 +13,7 @@ import {
 } from '@app/widgets/tabletop/tableLabelFont';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import { allianceColor } from './allianceHues';
 
 /* The left card bay leaves its outer bottom slot empty: the counts fill exactly the space a card well would. */
 const [, SURFACE_Y, SLOT_Z] = cardBaySlotPositions('left').at(-1)!;
@@ -28,7 +29,16 @@ const PADDING = 0.12;
 const CELL_ASPECT = 1.75;
 const GOLD = '#d2ae68';
 
-type Row = { id: string; count: number; out: boolean; front: string | null; color: string; initials: string };
+/* `ring` is the colour of the faction's alliance, or null while it stands alone. */
+type Row = {
+  id: string;
+  count: number;
+  out: boolean;
+  front: string | null;
+  color: string;
+  initials: string;
+  ring: string | null;
+};
 
 function ignoreRaycast() {
   // Painted table lettering is never an interaction target.
@@ -72,8 +82,9 @@ function drawLogo(
   context.restore();
   context.beginPath();
   context.arc(cx, cy, radius, 0, Math.PI * 2);
-  context.lineWidth = Math.max(2, radius * 0.06);
-  context.strokeStyle = GOLD;
+  /* An allied faction's logo wears its alliance's colour, thicker than the plain gold rim. */
+  context.lineWidth = Math.max(2, radius * (row.ring ? 0.16 : 0.06));
+  context.strokeStyle = row.ring ?? GOLD;
   context.stroke();
 }
 
@@ -145,6 +156,7 @@ function handCountRows(table: TableProjection, order: readonly string[]): Row[] 
   return order.map((id) => {
     const token = table.state.pieces.find((piece) => piece.stackKey === factionTokenStackKey(id));
     const name = table.state.factionNames[id] ?? id;
+    const alliance = table.snapshot.alliances?.groups.findIndex((group) => group.includes(id)) ?? -1;
     return {
       id,
       count: counts[id] ?? 0,
@@ -152,6 +164,7 @@ function handCountRows(table: TableProjection, order: readonly string[]): Row[] 
       front: token?.items[0]?.artwork?.front ?? null,
       color: token?.color ?? '#3a2a22',
       initials: name.slice(0, 2).toUpperCase(),
+      ring: alliance >= 0 ? allianceColor(alliance) : null,
     };
   });
 }

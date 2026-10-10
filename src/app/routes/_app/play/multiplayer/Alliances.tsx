@@ -8,11 +8,9 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { Surface } from '@ui/surface/Surface';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import { allianceThemeColor } from './allianceHues';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
-
-/* Each alliance takes one hue in the players rail, by its place in the list, so two alliances never share a ring. */
-const ALLIANCE_HUES = ['teal', 'grape', 'orange', 'lime', 'cyan', 'pink'] as const;
 
 export function viewerFaction(table: TableProjection): string | undefined {
   return rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
@@ -24,7 +22,7 @@ export function allianceHue(alliances: AllianceState | undefined, factionId: str
     return undefined;
   }
   const index = alliances?.groups.findIndex((group) => group.includes(factionId)) ?? -1;
-  return index < 0 ? undefined : `var(--mantine-color-${ALLIANCE_HUES[index % ALLIANCE_HUES.length]}-5)`;
+  return index < 0 ? undefined : allianceThemeColor(index);
 }
 
 export function factionList(names: Readonly<Record<string, string>>, ids: readonly string[]) {
@@ -73,7 +71,7 @@ export function AllianceDecisionBar({ client, table }: Props) {
   );
 }
 
-/** A player's alliance on their Info tab, with what the viewer can do about it: offer, accept or decline, withdraw, or leave. */
+/** A player's alliance on their Info tab, with what the viewer can do about it: offer, accept or decline, withdraw, or break an alliance. */
 export function PlayerAlliance({ client, table, seat }: Props & Readonly<{ seat: string }>) {
   const factionId = rosterSeat(table.snapshot.roster, seat)?.faction?.id;
   if (!factionId || table.snapshot.stage !== 'play') {
@@ -116,9 +114,9 @@ function RowAction({ client, table, row }: Props & Readonly<{ row: Row }>) {
         size="xs"
         variant="default"
         disabled={disabled}
-        onClick={() => client.command({ kind: 'alliance-leave' })}
+        onClick={() => client.command({ kind: 'alliance-break' })}
       >
-        Leave alliance
+        Break alliance
       </Button>
     ) : (
       <Text size="sm" c="dimmed">
@@ -202,7 +200,7 @@ export function AlliancesPanel({ client, table }: Props) {
     <Section
       helpOnly
       title="Alliances"
-      description="Offer an alliance to another faction. Once it accepts, the table shows you as allies until one of you leaves. Your ruleset decides when alliances may form and how large they may grow."
+      description="Offer an alliance to another faction. Once it accepts, the table shows you as allies until one of you breaks the alliance. Your ruleset decides when alliances may form and how large they may grow."
     >
       <Stack gap="xs">
         {rows.map((row) => {
