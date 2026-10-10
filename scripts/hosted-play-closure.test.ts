@@ -3,11 +3,10 @@ import { mkdtempSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-import { build } from 'esbuild';
 import { describe, expect, test } from 'vitest';
 
 import { decideHostedPlay, globToRegExp, reachesHostedPlay } from './lib/hosted-play-closure';
-import { byCodeUnit } from './lib/storybook-shards';
+import { importedFiles } from './lib/import-graph';
 
 const root = resolve(import.meta.dirname, '..');
 
@@ -49,62 +48,10 @@ const ENTRY_POINTS = [
   'scripts/workerd-exit-record.mjs',
   ...scriptsNamed(/^(?:generate|verify-hosted-)/u),
 ];
-/* Assets the bundler would otherwise try to read; their bytes are not code. */
-const ASSET_EXTENSIONS = [
-  '.css',
-  '.png',
-  '.jpg',
-  '.webp',
-  '.svg',
-  '.gif',
-  '.woff',
-  '.woff2',
-  '.ttf',
-  '.mp3',
-  '.glb',
-  '.hdr',
-  '.wasm',
-];
-
-/** Every repository file the entry points import, transitively, as esbuild resolves them. */
-async function importedFiles(): Promise<string[]> {
-  const result = await build({
-    absWorkingDir: root,
-    entryPoints: ENTRY_POINTS.map((entry) => resolve(root, entry)),
-    bundle: true,
-    write: false,
-    outdir: resolve(root, 'test-results/hosted-play-closure'),
-    metafile: true,
-    packages: 'external',
-    platform: 'neutral',
-    format: 'esm',
-    logLevel: 'silent',
-    tsconfig: resolve(root, 'tsconfig.json'),
-    /* The publisher Worker imports its rulebook renderer through a Vite alias; the graph follows it to the runtime source. */
-    alias: { 'rulebook-html-renderer-runtime': './src/app/print/rulebookHtmlRuntime.ts' },
-    loader: Object.fromEntries(ASSET_EXTENSIONS.map((extension) => [extension, 'empty'])),
-    plugins: [
-      {
-        name: 'outside-the-graph',
-        setup(bundler) {
-          /* Absolute urls name files under public/ the pages load at run time, a directory the closure names whole, and the route tree names every page, not the ones a flow visits. */
-          bundler.onResolve({ filter: /^\/|routeTree\.gen$/ }, (args) =>
-            args.kind === 'entry-point' ? null : { external: true }
-          );
-        },
-      },
-    ],
-  });
-  /* A stylesheet imported with `?inline` is the same file. */
-  const files = Object.keys(result.metafile.inputs).map((file) => file.replace(/\?.*$/u, ''));
-  return [...new Set(files)]
-    .filter((file) => !file.startsWith('node_modules/') && !file.includes(':'))
-    .sort(byCodeUnit);
-}
-
 describe('the hosted play closure', () => {
   test('covers every file the play pages, the Workers and the launcher import', async () => {
-    const files = await importedFiles();
+    /* Absolute urls name files under public/ the pages load at run time, a directory the closure names whole, and the route tree names every page, not the ones a flow visits. */
+    const files = await importedFiles(root, ENTRY_POINTS, /^\/|routeTree\.gen$/, 'test-results/hosted-play-closure');
     expect(files.length).toBeGreaterThan(200);
     const outside = files.filter((file) => !reachesHostedPlay(file));
     expect(outside, 'files the hosted flows exercise that no closure glob names').toEqual([]);

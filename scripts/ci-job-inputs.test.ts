@@ -2,12 +2,11 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { build } from 'esbuild';
 import { describe, expect, test } from 'vitest';
 
 import type { ReusableJob } from './lib/ci-job-inputs';
 import { JOB_INPUTS, jobKey, jobReads, parseLsTree } from './lib/ci-job-inputs';
-import { byCodeUnit } from './lib/storybook-shards';
+import { importedFiles } from './lib/import-graph';
 import { verifyJob } from './lib/verify-workflow';
 
 const root = resolve(import.meta.dirname, '..');
@@ -45,65 +44,14 @@ const ENTRY_POINTS: Record<ReusableJob, () => string[]> = {
   ],
 };
 
-/* Assets the bundler would otherwise try to read; their bytes are not code. */
-const ASSET_EXTENSIONS = [
-  '.css',
-  '.png',
-  '.jpg',
-  '.webp',
-  '.svg',
-  '.gif',
-  '.woff',
-  '.woff2',
-  '.ttf',
-  '.mp3',
-  '.glb',
-  '.hdr',
-  '.wasm',
-  '.html',
-];
-
-/** Every repository file the entry points import, transitively, as esbuild resolves them. */
-async function importedFiles(entries: readonly string[]): Promise<string[]> {
-  const result = await build({
-    absWorkingDir: root,
-    entryPoints: entries.map((entry) => resolve(root, entry)),
-    bundle: true,
-    write: false,
-    outdir: resolve(root, 'test-results/ci-job-inputs'),
-    metafile: true,
-    packages: 'external',
-    platform: 'neutral',
-    format: 'esm',
-    logLevel: 'silent',
-    tsconfig: resolve(root, 'tsconfig.json'),
-    /* The publisher Worker imports its rulebook renderer through a Vite alias; the graph follows it to the runtime source. */
-    alias: { 'rulebook-html-renderer-runtime': './src/app/print/rulebookHtmlRuntime.ts' },
-    loader: Object.fromEntries(ASSET_EXTENSIONS.map((extension) => [extension, 'empty'])),
-    plugins: [
-      {
-        name: 'outside-the-graph',
-        setup(bundler) {
-          /* Absolute urls name files under public/ the pages load at run time. */
-          bundler.onResolve({ filter: /^\// }, (args) => (args.kind === 'entry-point' ? null : { external: true }));
-        },
-      },
-    ],
-  });
-  /* A stylesheet imported with `?inline` is the same file. */
-  const files = Object.keys(result.metafile.inputs).map((file) => file.replace(/\?.*$/u, ''));
-  return [...new Set(files)]
-    .filter((file) => !file.startsWith('node_modules/') && !file.includes(':'))
-    .sort(byCodeUnit);
-}
-
 const JOBS = Object.keys(JOB_INPUTS) as ReusableJob[];
 
 describe('the verify jobs a pull request run can reuse', () => {
   test.each(JOBS)(
     '%s reads every file its entry points import',
     async (job) => {
-      const files = await importedFiles(ENTRY_POINTS[job]());
+      /* Absolute urls name files under public/ the pages load at run time. */
+      const files = await importedFiles(root, ENTRY_POINTS[job](), /^\//, 'test-results/ci-job-inputs');
       expect(files.length).toBeGreaterThan(10);
       const unread = files.filter((file) => !jobReads(job, file));
       expect(unread, `files ${job} imports that scripts/lib/ci-job-inputs.ts leaves out`).toEqual([]);

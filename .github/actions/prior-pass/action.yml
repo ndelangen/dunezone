@@ -38,7 +38,7 @@ runs:
         JOB: ${{ inputs.job }}
         RECORD: ${{ inputs.record }}
       run: |
-        key="$(bun scripts/ci-job-key.ts "$JOB")"
+        key="$(git ls-tree -r -z HEAD | bun scripts/ci-job-key.ts "$JOB")"
         echo "key=$key" >> "$GITHUB_OUTPUT"
         echo "name=ci-pass-$RECORD-$key" >> "$GITHUB_OUTPUT"
     - name: Look for an earlier pass

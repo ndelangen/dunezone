@@ -8,6 +8,7 @@
 import { createHash } from 'node:crypto';
 
 import { globToRegExp } from './hosted-play-closure';
+import { byCodeUnit } from './storybook-shards';
 
 /** Raised when the key's meaning changes, so no earlier record matches a key computed another way. */
 const KEY_VERSION = 'ci-job-inputs-v1';
@@ -134,7 +135,7 @@ export interface TrackedFile {
 export function jobKey(job: ReusableJob, files: readonly TrackedFile[]): string {
   const hash = createHash('sha256');
   hash.update(`${KEY_VERSION}\n${job}\n`);
-  for (const file of [...files].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))) {
+  for (const file of [...files].sort((a, b) => byCodeUnit(a.path, b.path))) {
     if (jobReads(job, file.path)) {
       hash.update(`${file.blob} ${file.path}\n`);
     }

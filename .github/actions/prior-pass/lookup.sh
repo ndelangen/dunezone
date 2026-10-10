@@ -10,7 +10,7 @@ run_in_full() {
   exit 0
 }
 
-if [ "$EVENT" != pull_request ]; then
+if [[ "$EVENT" != pull_request ]]; then
   run_in_full "only pull request runs reuse an earlier pass; this is a $EVENT run."
 fi
 
@@ -21,7 +21,7 @@ fi
 
 # A fork's run uploads from code nobody reviewed, so only records from this repository's own branches count.
 id="$(jq -r '[.artifacts[] | select(.expired == false and .workflow_run.head_repository_id == .workflow_run.repository_id)][0].id // empty' "$listing")"
-if [ -z "$id" ]; then
+if [[ -z "$id" ]]; then
   run_in_full "no earlier run passed this job with the same inputs ($NAME)."
 fi
 

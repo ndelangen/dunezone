@@ -15,8 +15,6 @@ on:
 
 permissions:
   contents: read
-  # prior-pass lists and downloads the records earlier runs uploaded.
-  actions: read
 
 jobs:
   # The hosted shards come first because they are the run's longest jobs (#1322). GitHub's docs give
@@ -194,6 +192,10 @@ jobs:
       # which Codecov merges.
       matrix:
         shard: [play-table, play-flows, components, pages]
+    permissions:
+      contents: read
+      # prior-pass lists and downloads the records earlier runs uploaded.
+      actions: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -480,6 +482,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only }}
+    permissions:
+      contents: read
+      # prior-pass lists and downloads the records earlier runs uploaded.
+      actions: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -566,6 +572,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only }}
+    permissions:
+      contents: read
+      # prior-pass lists and downloads the records earlier runs uploaded.
+      actions: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -693,6 +703,10 @@ jobs:
       # job refuses a spec that no shard lists or two do.
       matrix:
         shard: [editor, factions, rulebooks]
+    permissions:
+      contents: read
+      # prior-pass lists and downloads the records earlier runs uploaded.
+      actions: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
