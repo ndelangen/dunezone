@@ -42,6 +42,7 @@ export function playGameNameVocabulary() {
 
 /** Draw inside a mutation so Convex replays the random source with the transaction. */
 export function generatePlayGameName(): string {
-  const pick = <T>(values: readonly T[]): T => values[Math.floor(Math.random() * values.length)]!;
+  /* Sonar suppression: a display name, not a secret, and Convex seeds Math.random per mutation. */
+  const pick = <T>(values: readonly T[]): T => values[Math.floor(Math.random() * values.length)]!; /* NOSONAR */
   return [pick(MODIFIERS), pick(LORE).print, pick(SCENES)].filter(Boolean).join(' ');
 }

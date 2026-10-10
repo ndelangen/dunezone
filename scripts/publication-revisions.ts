@@ -14,10 +14,14 @@ export function publicationActivationHeader(output: string): string {
 }
 
 function activationHeader(): string {
-  const result = spawnSync('bunx', ['convex', 'env', 'get', 'ASSET_PUBLISHER_ACTIVATION_SECRET', '--prod'], {
-    encoding: 'utf8',
-    env: process.env,
-  });
+  const result = spawnSync(
+    process.execPath,
+    ['x', 'convex', 'env', 'get', 'ASSET_PUBLISHER_ACTIVATION_SECRET', '--prod'],
+    {
+      encoding: 'utf8',
+      env: process.env,
+    }
+  );
   if (result.status !== 0) {
     throw new Error('Unable to read the Publication activation secret from Convex');
   }
@@ -62,7 +66,8 @@ async function run() {
       operation: 'initialize',
       rendererRevisions: CHECKED_IN_RENDERER_REVISIONS,
     });
-    console.log(JSON.stringify(result));
+    /* Sonar suppression: JSON.stringify escapes control characters, so no log line can be forged. */
+    console.log(JSON.stringify(result)); /* NOSONAR */
     return;
   }
   if (command === 'activate') {
@@ -83,7 +88,8 @@ async function run() {
       operation: 'activate',
       rendererRevisions: CHECKED_IN_RENDERER_REVISIONS,
     });
-    console.log(JSON.stringify(result));
+    /* Sonar suppression: JSON.stringify escapes control characters, so no log line can be forged. */
+    console.log(JSON.stringify(result)); /* NOSONAR */
     return;
   }
   throw new Error('Expected command: initialize or activate');

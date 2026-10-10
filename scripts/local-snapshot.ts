@@ -29,7 +29,8 @@ const FIXTURE_HINT =
 export type GitHubCli = (args: readonly string[]) => string;
 
 export const githubCli: GitHubCli = (args) => {
-  const result = spawnSync('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  /* Sonar suppression: a local developer tool that runs the developer's own gh. */
+  const result = spawnSync('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); /* NOSONAR */
   if (result.error) {
     throw new Error(`the GitHub CLI (gh) did not run: ${result.error.message}`);
   }

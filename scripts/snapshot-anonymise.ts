@@ -1,3 +1,4 @@
+import type { SpawnSyncOptionsWithStringEncoding } from 'node:child_process';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -23,12 +24,14 @@ const ENTRY_NAME = /^[A-Za-z0-9_][A-Za-z0-9_.-]*(?:\/[A-Za-z0-9_][A-Za-z0-9_.-]*
 const MAX_ENTRY_BYTES = 512 * 1024 * 1024;
 
 function run(command: string, args: string[], cwd?: string): string {
-  const result = spawnSync(command, args, {
+  /* Sonar suppression: no shell, fixed /usr/bin executables, and entry names pass ENTRY_NAME first. */
+  const spawnOptions: SpawnSyncOptionsWithStringEncoding = {
     cwd,
     encoding: 'utf8',
     maxBuffer: MAX_ENTRY_BYTES,
     stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  };
+  const result = spawnSync(command, args, spawnOptions); /* NOSONAR */
   if (result.error || result.status !== 0) {
     throw new Error(`${path.basename(command)} ${args[0]} failed with status ${result.status ?? 'none'}`);
   }
@@ -105,7 +108,8 @@ export function anonymiseZip(
     }
     return { report, snapshot };
   } catch (error) {
-    rmSync(out, { force: true });
+    /* Sonar suppression: removes only the file this run just wrote at the operator's own --out. */
+    rmSync(out, { force: true }); /* NOSONAR */
     throw error;
   }
 }

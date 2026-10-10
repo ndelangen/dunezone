@@ -1,3 +1,4 @@
+import type { SpawnSyncOptionsWithStringEncoding } from 'node:child_process';
 import { spawnSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import { accessSync, constants as fsConstants, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -64,8 +65,9 @@ const dockerExecutableCandidates = [
 
 function isExecutableFile(candidate: string) {
   try {
-    accessSync(candidate, fsConstants.X_OK);
-    return statSync(candidate).isFile();
+    /* Sonar suppression: a fixed candidate or the developer's own checked absolute LOCAL_DEV_DOCKER_PATH, only probed. */
+    accessSync(candidate, fsConstants.X_OK); /* NOSONAR */
+    return statSync(candidate).isFile(); /* NOSONAR */
   } catch {
     return false;
   }
@@ -199,14 +201,16 @@ function run(command: string, args: string[], options: CommandOptions = {}) {
   const displayedArgs = args
     .map((value, index) => (args[index - 1] === '--admin-key' ? '[redacted]' : value))
     .join(' ');
-  const result = spawnSync(command, args, {
+  /* Sonar suppression: no shell, and the executable is a fixed path or a checked absolute LOCAL_DEV_DOCKER_PATH. */
+  const spawnOptions: SpawnSyncOptionsWithStringEncoding = {
     cwd: rootDirectory,
     env: options.env ?? process.env,
     encoding: 'utf8',
     stdio: options.quiet ? ['ignore', 'pipe', 'pipe'] : 'inherit',
     timeout: options.timeout,
     killSignal: 'SIGKILL',
-  });
+  };
+  const result = spawnSync(command, args, spawnOptions); /* NOSONAR */
   if (result.error) {
     throw new Error(`${command} ${displayedArgs} failed: ${result.error.message}`);
   }
