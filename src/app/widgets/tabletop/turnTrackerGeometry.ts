@@ -2,7 +2,7 @@ import { DEFAULT_LAST_TURN } from '@shared/play/lastTurn';
 import { ExtrudeGeometry, Path, Shape } from 'three';
 
 const HUB_RADIUS = 0.26;
-const NUMBER_RADIUS = 0.69;
+export const NUMBER_RADIUS = 0.69;
 
 /* One sector per turn up to the table's last turn, so a ten-turn game shows ten. */
 type TrackerState = Readonly<{ radius: number; turn: number; lastTurn?: number }>;
@@ -128,11 +128,19 @@ export function createTurnTrackerWedge({ radius, selectedIndex, sectorAngle }: T
   return aboveDisc(shape, { depth: 0.001, floor: 0.003 });
 }
 
+/* The pointer's round end covers the hub, and its point stops short of the numbers. */
+const POINTER_ROUND_RADIUS = 0.28;
+const POINTER_TIP_RADIUS = 0.56;
+
+/** A flat teardrop like the bidder's: its round end over the hub and its point at the turn, before the wheel turns it. */
 export function createTurnTrackerPointer({ radius }: TrackerLayout): ExtrudeGeometry {
+  const round = radius * POINTER_ROUND_RADIUS;
+  const tip = radius * POINTER_TIP_RADIUS;
+  const tangent = Math.acos(round / tip);
   const shape = new Shape();
-  shape.moveTo(-radius * 0.075, radius * 0.09);
-  shape.lineTo(0, -radius * 0.49);
-  shape.lineTo(radius * 0.075, radius * 0.09);
-  shape.closePath();
+  shape.moveTo(0, -tip);
+  shape.lineTo(round * Math.cos(-Math.PI / 2 + tangent), round * Math.sin(-Math.PI / 2 + tangent));
+  shape.absarc(0, 0, round, -Math.PI / 2 + tangent, Math.PI * 1.5 - tangent, false);
+  shape.lineTo(0, -tip);
   return aboveDisc(shape, { depth: 0.01, floor: 0.02 });
 }
