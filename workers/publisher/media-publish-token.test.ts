@@ -5,7 +5,10 @@ import { fetchMediaAfterTokenRotation, waitForMediaPublishToken } from '../../sc
 import { handleMediaReleaseRequest } from './media-release';
 import { memoryR2Bucket } from './test-helpers';
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 
 const settings = { origin: 'https://dune.zone', token: 'installed-token', release: `${'a'.repeat(40)}-123456` };
 
@@ -82,13 +85,45 @@ test('a later write recovers when it reaches a stale bearer after successful rea
     });
   });
   const response = await fetchMediaAfterTokenRotation(
-    { ...settings, deadline: Date.now() + 1000 },
+    { ...settings, deadline: Date.now() + 5000 },
     `${settings.origin}/__media/releases/${settings.release}`,
     { method: 'PUT', headers: { Authorization: `Bearer ${settings.token}` }, body: JSON.stringify(record) },
     { subject: 'test release', delaysMs: [] }
   );
   expect(response.status).toBe(201);
   expect(bucket.objects.size).toBe(1);
+});
+
+test('successful probes do not cause rapid retries while writes keep reaching stale instances', async () => {
+  vi.useFakeTimers();
+  const bucket = memoryR2Bucket();
+  const attempts: number[] = [];
+  vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
+    if (init.body !== '{') {
+      attempts.push(Date.now());
+    }
+    return await handleMediaReleaseRequest(new Request(url, init), {
+      MEDIA_RELEASES_BUCKET: bucket,
+      MEDIA_PUBLISH_TOKEN: init.body === '{' ? settings.token : 'previous-token',
+    });
+  });
+  const started = Date.now();
+  const publishing = fetchMediaAfterTokenRotation(
+    { ...settings, deadline: started + 1250 },
+    `${settings.origin}/__media/releases/${settings.release}`,
+    { method: 'PUT', headers: { Authorization: `Bearer ${settings.token}` }, body: '{}' },
+    { subject: 'test release', delaysMs: [] }
+  );
+  let response: Awaited<typeof publishing> | undefined;
+  void publishing.then((result) => {
+    response = result;
+  });
+  await vi.waitFor(() => expect(response?.status).toBe(401), { timeout: 2000, interval: 50 });
+  expect(attempts).toHaveLength(2);
+  expect(attempts[1]! - attempts[0]!).toBeGreaterThanOrEqual(1000);
+  expect(attempts[1]! - started).toBeLessThan(1250);
+  expect(Date.now() - started).toBeGreaterThanOrEqual(1250);
+  expect(bucket.objects.size).toBe(0);
 });
 
 test('ordinary media requests still refuse unauthorized publishing immediately', async () => {

@@ -66,6 +66,11 @@ export async function fetchMediaAfterTokenRotation(
     if (response.status !== 401 || remaining <= 0) {
       return response;
     }
-    await waitForMediaPublishToken(installed, { timeoutMs: remaining });
+    await new Promise((resolve) => setTimeout(resolve, Math.min(1000, remaining)));
+    const retryBudget = installed.deadline - Date.now();
+    if (retryBudget <= 0) {
+      return response;
+    }
+    await waitForMediaPublishToken(installed, { timeoutMs: retryBudget });
   }
 }
