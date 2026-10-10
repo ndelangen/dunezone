@@ -149,7 +149,11 @@ export const prepareNamedGame = internalMutation({
     if (!(await playRateLimiter.check(ctx, 'playCreatePerAccount', { key: eligible.userId })).ok) {
       return { ok: false, reason: 'rate_limited' };
     }
-    return { ok: true, name, base, checkProvider: await playNameCheckCapacity(ctx, eligible.userId) };
+    const capacity = await playNameCheckCapacity(ctx, eligible.userId);
+    if (capacity === 'rate_limited') {
+      return { ok: false, reason: 'rate_limited' };
+    }
+    return { ok: true, name, base, checkProvider: capacity === 'checked' };
   },
 });
 
@@ -295,7 +299,8 @@ export const getGameByAddress = query({
       ? await ctx.db.get(id)
       : await ctx.db
           .query('play_games')
-          .withIndex('by_slug', (q) => q.eq('slug', address))
+          /* Stored addresses are lowercase, so a hand-typed or auto-capitalised link still finds its game; the page then moves to the stored spelling. */
+          .withIndex('by_slug', (q) => q.eq('slug', address.toLowerCase()))
           .unique();
     if (!game || !admitsPlayers(game)) {
       return { status: 'not_found' as const };

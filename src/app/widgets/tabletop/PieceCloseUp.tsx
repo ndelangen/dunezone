@@ -38,17 +38,24 @@ function useAltPointer(): Pointer {
       setPointer((current) => (current.alt === event.altKey ? current : { ...last.current, alt: event.altKey }));
     };
     const release = () => setPointer((current) => (current.alt ? { ...current, alt: false } : current));
+    const hidden = () => {
+      if (document.visibilityState === 'hidden') {
+        release();
+      }
+    };
     window.addEventListener('pointermove', onPointer);
     window.addEventListener('pointerdown', onPointer);
     window.addEventListener('keydown', onKey);
     window.addEventListener('keyup', onKey);
     window.addEventListener('blur', release);
+    document.addEventListener('visibilitychange', hidden);
     return () => {
       window.removeEventListener('pointermove', onPointer);
       window.removeEventListener('pointerdown', onPointer);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', onKey);
       window.removeEventListener('blur', release);
+      document.removeEventListener('visibilitychange', hidden);
     };
   }, []);
 

@@ -66,7 +66,7 @@ describe('tabletop contact geometry', () => {
 
   test.each([
     { label: 'map', position: [2, 0, 0] as Vector3Tuple, expected: BOARD_SURFACE_Y },
-    { label: 'rim', position: [4.5, 0, 0] as Vector3Tuple, expected: BOARD_RIM_SURFACE_Y },
+    { label: 'rim', position: [4.2, 0, 0] as Vector3Tuple, expected: BOARD_RIM_SURFACE_Y },
     { label: 'table', position: [5, 0, 0] as Vector3Tuple, expected: TABLE_SURFACE_Y },
     {
       label: 'board beneath a territory highlight',
@@ -85,13 +85,13 @@ describe('tabletop contact geometry', () => {
   test('raises a circular piece to the highest surface beneath its footprint', () => {
     const troop = { kind: 'force', orientation: 0 } as const;
 
-    expect(supportHeightAt([4.4, 0, 0], troop)).toBeCloseTo(BOARD_SURFACE_Y, 8);
-    expect(supportHeightAt([4.68, 0, 0], troop)).toBeCloseTo(BOARD_RIM_SURFACE_Y, 8);
+    expect(supportHeightAt([4.13, 0, 0], troop)).toBeCloseTo(BOARD_SURFACE_Y, 8);
+    expect(supportHeightAt([4.39, 0, 0], troop)).toBeCloseTo(BOARD_RIM_SURFACE_Y, 8);
     expect(supportHeightAt([4.8, 0, 0], troop)).toBeCloseTo(TABLE_SURFACE_Y, 8);
   });
 
   test('uses card orientation when finding the highest surface beneath it', () => {
-    const position: Vector3Tuple = [4.8, 0, 0];
+    const position: Vector3Tuple = [4.55, 0, 0];
 
     expect(supportHeightAt(position, { kind: 'card', orientation: 0 })).toBeCloseTo(BOARD_RIM_SURFACE_Y, 8);
     expect(supportHeightAt(position, { kind: 'card', orientation: Math.PI / 2 })).toBeCloseTo(BOARD_SURFACE_Y, 8);
@@ -136,10 +136,10 @@ describe('tabletop contact geometry', () => {
       throw new Error('Could not begin a troop gesture');
     }
 
-    const settled = settleCarryAtPosition(isolatedState, draft, [4.68, CARRIED_BASE_Y, 0]);
+    const settled = settleCarryAtPosition(isolatedState, draft, [4.39, CARRIED_BASE_Y, 0]);
 
     expect(settled).not.toBeNull();
-    expect(settled?.position).toEqual([4.68, BOARD_RIM_SURFACE_Y, 0]);
+    expect(settled?.position).toEqual([4.39, BOARD_RIM_SURFACE_Y, 0]);
   });
 
   test.each([
@@ -170,7 +170,7 @@ describe('tabletop contact geometry', () => {
 
   test.each([
     { label: 'resting map piece', position: [2, BOARD_SURFACE_Y, 0] as Vector3Tuple },
-    { label: 'carried rim piece', position: [4.5, CARRIED_BASE_Y, 0] as Vector3Tuple },
+    { label: 'carried rim piece', position: [4.2, CARRIED_BASE_Y, 0] as Vector3Tuple },
     {
       label: 'carried reserve piece',
       position: [-3.4, CARRIED_BASE_Y, 3.22] as Vector3Tuple,
@@ -184,7 +184,7 @@ describe('tabletop contact geometry', () => {
   });
 
   test('keeps a straddling piece shadow on the rim instead of sinking into it', () => {
-    const position: Vector3Tuple = [4.68, CARRIED_BASE_Y, 0];
+    const position: Vector3Tuple = [4.39, CARRIED_BASE_Y, 0];
     const footprint = { kind: 'force', orientation: 0 } as const;
 
     expect(contactShadowHeightAt(position, footprint)).toBeCloseTo(BOARD_RIM_SURFACE_Y + CONTACT_SHADOW_EPSILON, 8);

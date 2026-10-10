@@ -179,6 +179,7 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     Boolean(previous.deckControls) === Boolean(next.deckControls) &&
     Boolean(previous.peekControls) === Boolean(next.peekControls) &&
     Boolean(previous.closePeek) === Boolean(next.closePeek) &&
+    (previous.peek === null) === (next.peek === null) &&
     sameMembers(previous.remoteCarriedIds, next.remoteCarriedIds) &&
     sameMembers(previous.reservedPieceIds, next.reservedPieceIds) &&
     sameMembers(previous.flippingPieceIds, next.flippingPieceIds) &&
@@ -285,6 +286,12 @@ export class TableSession {
   private captureInFlight: string | null = null;
   /* The order this viewer asked for the deck it holds open, shown until the room answers it. */
   private pendingArrangement: { commandId: string; pieceId: string; deck: string; order: number[] } | null = null;
+  /*
+   * The peek this viewer closed, hidden at once while the room confirms it.
+   * The room's frame without the peek, a refused close, a dropped connection or asking to peek again each forget it,
+   * so a later peek at the same piece, from this tab or another of the faction's, always shows.
+   */
+  private closedPeek: { pieceId: string; commandId: string } | null = null;
   /* One seat command at a time: a second click before the first settles would only fail the revision gate. */
   private seatCommandInFlight: string | null = null;
   private traitorGatherInFlight: string | null = null;
@@ -577,16 +584,22 @@ export class TableSession {
             }
           : undefined,
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
-      peek: this.history ? null : this.arrangedPeek(displayed.peek ?? null),
+      peek:
+        this.history || displayed.peek?.piece.id === this.closedPeek?.pieceId
+          ? null
+          : this.arrangedPeek(displayed.peek ?? null),
       peekControls:
         canHandleTable && displayed.bank
           ? {
-              peek: (pieceId) => this.command({ kind: 'peek', pieceId }),
+              peek: (pieceId) => {
+                this.closedPeek = null;
+                this.command({ kind: 'peek', pieceId });
+              },
               arrange: this.arrange,
               pull: this.pull,
             }
           : undefined,
-      closePeek: canInteract && displayed.peek ? () => this.command({ kind: 'peek-close' }) : undefined,
+      closePeek: canInteract && displayed.peek ? () => this.closePeek(displayed.peek!.piece.id) : undefined,
       remoteCarriedIds: new Set(remote.map((carry) => carry.held.id)),
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
@@ -599,6 +612,14 @@ export class TableSession {
   private arrangementShown(peek: Peek | null) {
     const pending = this.pendingArrangement;
     return !!peek && pending?.pieceId === peek.piece.id && pending.deck === deckKey(peek.piece);
+  }
+  /* A close that never went out, as while reconnecting, leaves the peek showing, so its close button still works. */
+  private closePeek(pieceId: string) {
+    const commandId = this.command({ kind: 'peek-close' });
+    if (commandId) {
+      this.closedPeek = { pieceId, commandId };
+      this.emit();
+    }
   }
   private arrangedPeek(peek: Peek | null): Peek | null {
     if (!peek || !this.arrangementShown(peek)) {
@@ -695,14 +716,12 @@ export class TableSession {
     return this.canSend(message) && this.subscription.send(message);
   }
   private receive(message: TableSubscriptionEvent) {
-    const settled = settledRequest(message);
-    if (settled) {
-      this.settle(settled.id, settled.outcome, message.type === 'resync');
-    }
+    this.settleRequest(message);
     switch (message.type) {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
         this.pendingArrangement = null;
+        this.closedPeek = null;
         this.noteEndedCarry({
           held: pausedWhileHeld,
           placing: 'The connection dropped as you placed a piece. Check where it landed.',
@@ -733,9 +752,27 @@ export class TableSession {
           this.receiveAuthorizedUpdate(message);
         }
     }
+    this.forgetSettledPeekClose();
     this.discardReplacedBattleCommands();
     this.flushQueues();
     this.emit();
+  }
+  private settleRequest(message: TableSubscriptionEvent) {
+    const settled = settledRequest(message);
+    if (!settled) {
+      return;
+    }
+    this.settle(settled.id, settled.outcome, message.type === 'resync');
+    /* A refused close leaves the peek open, so it shows again. */
+    if (settled.outcome === 'rejected' && settled.id === this.closedPeek?.commandId) {
+      this.closedPeek = null;
+    }
+  }
+  /* Once the table holds no open peek, the close went through and there is nothing left to hide. */
+  private forgetSettledPeekClose() {
+    if (this.closedPeek && !this.saved?.peek) {
+      this.closedPeek = null;
+    }
   }
   private discardReplacedBattleCommands() {
     if (

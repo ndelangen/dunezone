@@ -78,6 +78,7 @@ type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessag
  * Each names what it changes and is checked against the live table, so another seat acting at the same moment must not turn it away (#1681, #1690).
  * A battle action names its battle and side, and a draft choice or removal ballot names the sender's own pick or vote.
  * A seat request names its seat, an approval its request and a withdrawal the sender's own request, each judged against the live seating.
+ * A raise or pass names its bidding round and is judged against the live bidder's turn, so a quick second raise is not turned away by the first.
  * A spice reserve withdrawal stays strict, so two tabs of one player cannot both spend from a spice reserve they saw once.
  * Leaving stays strict too, since its confirmation said what it costs and a crossed departure may have left the sender the last player.
  */
@@ -99,6 +100,9 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'seat-request',
   'seat-withdraw',
   'seat-approve',
+  'bid-raise',
+  'bid-pass',
+  'bid-seconds',
 ]);
 
 /** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */

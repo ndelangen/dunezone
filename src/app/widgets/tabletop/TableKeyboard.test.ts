@@ -162,7 +162,7 @@ describe('number-key stack draws', () => {
     expect(controls.splitSelected).toHaveBeenCalledTimes(1);
   });
 
-  test.each(['keyup', 'blur', 'unbind'] as const)('a pending draw is cancelled by %s', (cancel) => {
+  test.each(['keyup', 'blur', 'unbind', 'Cmd'] as const)('a pending draw is cancelled by %s', (cancel) => {
     const { controls, unbind } = table();
 
     key('keydown', { key: '2' });
@@ -173,6 +173,8 @@ describe('number-key stack draws', () => {
       key('keyup', { key: '2' });
     } else if (cancel === 'blur') {
       window.dispatchEvent(new Event('blur'));
+    } else if (cancel === 'Cmd') {
+      key('keydown', { key: 'Meta', code: 'MetaLeft', metaKey: true });
     } else {
       unbind();
     }
@@ -231,6 +233,16 @@ describe('a held pan key', () => {
     expect(keyboard.panDirection()).toEqual([0, -1]);
     /* macOS: Option held after W makes the same key come up as "∑". */
     key('keyup', { key: '∑', code: 'KeyW', altKey: true });
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
+  /* macOS sends no keyup for a key let go while Cmd is down, so the pan would otherwise keep sliding. */
+  test('stops panning when Cmd goes down', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    key('keydown', { key: 'd', code: 'KeyD' });
+    expect(keyboard.panDirection()).toEqual([1, 0]);
+    key('keydown', { key: 'Meta', code: 'MetaLeft', metaKey: true });
     expect(keyboard.panDirection()).toEqual([0, 0]);
   });
 

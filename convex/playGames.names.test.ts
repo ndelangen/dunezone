@@ -90,6 +90,16 @@ describe('permanent Play names and addresses', () => {
     }
   });
 
+  test('a number standing alone spells no word, while digits inside a word still do', () => {
+    for (const name of ['Top 5 hits', 'Round 5 hit list', 'Act 7 wat']) {
+      expect(hasLocalPlayGameProfanity(name)).toBe(false);
+      expect(hasLocalPlayGameProfanity(normalizePlayGameSlug(name))).toBe(false);
+    }
+    for (const name of ['5h1t storm', 'Dune 5h1t storm', 'Big shi7 energy', 'Spice b1tch', 'a55hole parade']) {
+      expect(hasLocalPlayGameProfanity(name)).toBe(true);
+    }
+  });
+
   test('custom spelling, apostrophes, Gom Jabbar and accented equivalents share one normalizer', async () => {
     const { create } = await world();
     const first = await create("Pául's Gom Jabbar party!");

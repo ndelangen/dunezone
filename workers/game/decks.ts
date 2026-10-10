@@ -70,7 +70,8 @@ function drawCard(snapshot: StoredSnapshot, deck: StoredPiece, recipient: string
     /* A dealt card is named as a card split off the deck would be, so a hand and the table agree. */
     label: labelForCount(deck, 1, rosterFactionNames(snapshot.roster)),
     owner: recipient,
-    items: [{ ...deck.items.at(-1)!, faceUp: false }],
+    /* A hand forgets who peeked at its cards, so a card later played face down out of it cannot be told apart by its marks. */
+    items: deck.items.slice(-1).map(({ peekedBy: _peekedBy, ...item }) => ({ ...item, faceUp: false })),
     shuffleRevision: undefined,
     battleOverlay: undefined,
   };
