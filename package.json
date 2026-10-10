@@ -44,6 +44,7 @@
     "lint:fix": "oxlint . --fix",
     "media:backfill": "bun run ./scripts/media-backfill.ts",
     "media:gate": "bun run ./scripts/media-gate.ts",
+    "media:gc": "bun run ./scripts/media-gc.ts",
     "media:lock": "bun run ./scripts/media-lock.ts",
     "media:publish": "bun run ./scripts/media-publish.ts",
     "media:sync": "bun run ./scripts/media-sync.ts",
