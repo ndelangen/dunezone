@@ -58,8 +58,8 @@ If a legacy user has no profile, the client's `useCurrentProfile()` calls `profi
 
 ## Connected sign-in methods and merges
 
-The profile owner can connect Google or Discord, or disconnect a provider while another configured
-provider remains connected. That last-method check runs in the disconnect transaction. Account
+The profile owner manages Google and Discord in the Sign-in methods tab on the profile edit page.
+They can connect either provider, or disconnect one while another configured provider remains connected. Disconnection uses the kit's hold-to-remove action. The last-method check runs in the disconnect transaction. Account
 deletion remains on the profile's deletion page.
 
 Connecting starts with an authenticated, unexpired session. The server issues a random connection

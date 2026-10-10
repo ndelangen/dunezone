@@ -4,15 +4,17 @@ import { MantineProvider } from '@mantine/core';
 import type * as TanStackRouter from '@tanstack/react-router';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import type { ComponentType, ReactNode } from 'react';
+import type { AnchorHTMLAttributes, ComponentType } from 'react';
 import { useSyncExternalStore } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
+  beginConnection: vi.fn(),
+  signIn: vi.fn(),
   mutate: vi.fn(),
   useSessionViewer: vi.fn(),
-  useDefaultGroupPreference: vi.fn(),
+  useProfileSettings: vi.fn(),
   mutationState: { isPending: false, error: null as Error | null },
   mutationListeners: new Set<() => void>(),
 }));
@@ -25,14 +27,18 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
       options,
       useParams: () => ({ profileSlug: 'owner-profile' }),
     }),
-    Link: ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
+    Link: ({ children, to, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
+      <a {...props} href={to}>
+        {children}
+      </a>
+    ),
     useNavigate: () => mocks.navigate,
   };
 });
 
 vi.mock('@db/profiles', () => ({
   useSessionViewer: mocks.useSessionViewer,
-  useDefaultGroupPreference: mocks.useDefaultGroupPreference,
+  useProfileSettings: mocks.useProfileSettings,
   useUpdateCurrentProfile: () => {
     const state = useSyncExternalStore(
       (listener) => {
@@ -43,6 +49,12 @@ vi.mock('@db/profiles', () => ({
     );
     return { mutate: mocks.mutate, ...state, isError: state.error !== null };
   },
+}));
+
+vi.mock('@convex-dev/auth/react', () => ({ useAuthActions: () => ({ signIn: mocks.signIn }) }));
+vi.mock('@db/accounts', () => ({
+  useBeginAuthConnection: () => mocks.beginConnection,
+  useDisconnectAuthMethod: () => vi.fn(),
 }));
 
 import { Route } from './edit.route';
@@ -104,13 +116,22 @@ async function chooseTab(view: ReturnType<typeof render>, name: string) {
 
 beforeEach(() => {
   mocks.navigate.mockReset();
+  mocks.beginConnection.mockReset().mockResolvedValue({ slug: 'owner-profile', token: 'connection-token' });
+  mocks.signIn.mockReset().mockResolvedValue(undefined);
   mocks.mutate.mockReset();
   mocks.useSessionViewer.mockReset();
   mocks.useSessionViewer.mockReturnValue({ kind: 'profile', profile });
-  mocks.useDefaultGroupPreference.mockReturnValue({
+  mocks.useProfileSettings.mockReturnValue({
     data: {
       default_group_id: null,
       default_group_options: [{ id: 'group-1', name: 'Spacing Guild', slug: 'spacing-guild' }],
+      account: {
+        methods: [
+          { provider: 'google', connected: true, available: true },
+          { provider: 'discord', connected: false, available: true },
+        ],
+        merging: false,
+      },
     },
   });
   mocks.mutationState = { isPending: false, error: null };
@@ -152,6 +173,7 @@ describe('profile settings page', () => {
       'Profile',
       'Creation defaults',
       'Appearance',
+      'Sign-in methods',
       'Account',
     ]);
     expect(mocks.useSessionViewer).toHaveBeenCalledTimes(1);
@@ -183,8 +205,29 @@ describe('profile settings page', () => {
     expect(
       view.getByRole('group', { name: 'Color scheme' }).querySelector('[role="img"][aria-label="Help"]')
     ).not.toBeNull();
+    await chooseTab(view, 'Sign-in methods');
+    expect(view.getByRole('button', { name: 'Disconnect Google' })).toHaveProperty('disabled', true);
+    expect(view.getByRole('button', { name: 'Connect Discord' })).toHaveProperty('type', 'button');
+    expect(view.queryByRole('link', { name: 'Delete account' })).toBeNull();
     await chooseTab(view, 'Account');
     expect(view.getByRole('link', { name: 'Delete account' })).not.toBeNull();
+  });
+
+  it('connects from its own tab without saving the draft and releases buttons when sign-in settles', async () => {
+    const view = await renderPage();
+    fireEvent.change(view.getByRole('textbox', { name: /Display name/ }), { target: { value: 'ChangedOwner' } });
+    await chooseTab(view, 'Sign-in methods');
+    await act(async () => {
+      fireEvent.click(view.getByRole('button', { name: 'Connect Discord' }));
+    });
+    expect(mocks.beginConnection).toHaveBeenCalledWith({ provider: 'discord' });
+    expect(mocks.signIn).toHaveBeenCalledWith('discord', {
+      redirectTo: '/profiles/owner-profile/connect?connection=connection-token',
+    });
+    expect(mocks.mutate).not.toHaveBeenCalled();
+    expect(view.getByRole('button', { name: 'Connect Discord' })).toHaveProperty('disabled', false);
+    await chooseTab(view, 'Profile');
+    expect(view.getByRole('textbox', { name: /Display name/ })).toHaveProperty('value', 'ChangedOwner');
   });
 
   it('shows empty, invalid, loading, successful, and unavailable avatar states', async () => {
@@ -226,7 +269,7 @@ describe('profile settings page', () => {
     /* The preference query is held by this page, so there is a window where it has not resolved.
        An enabled control listing only "No default Group" would state that the viewer is in no Groups,
        and choosing it saves a cleared default they never meant to change. */
-    mocks.useDefaultGroupPreference.mockReturnValue({ data: undefined });
+    mocks.useProfileSettings.mockReturnValue({ data: undefined });
     const view = await renderPage();
     await chooseTab(view, 'Creation defaults');
 
@@ -239,11 +282,11 @@ describe('profile settings page', () => {
     const view = await renderPage();
     fireEvent.change(view.getByRole('textbox', { name: /Display name/ }), { target: { value: 'ChangedOwner' } });
 
-    for (const tab of ['Profile', 'Creation defaults', 'Appearance']) {
+    for (const tab of ['Profile', 'Creation defaults', 'Appearance', 'Sign-in methods']) {
       await chooseTab(view, tab);
       fireEvent.click(view.getByRole('button', { name: 'Save profile' }));
     }
-    expect(mocks.mutate).toHaveBeenCalledTimes(3);
+    expect(mocks.mutate).toHaveBeenCalledTimes(4);
 
     await chooseTab(view, 'Creation defaults');
     fireEvent.click(view.getByRole('combobox', { name: 'Default Group' }));

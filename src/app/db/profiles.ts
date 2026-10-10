@@ -36,7 +36,6 @@ export type ProfilePageData = ReturnType<typeof normalizeProfilePage>;
 function normalizeProfilePage(result: ProfileDetailResult) {
   return {
     profile: result.profile,
-    account: result.account,
     groupSummaries: result.groupSummaries,
     faqAsked: result.faqAsked,
     faqAnswers: result.faqAnswers,
@@ -145,9 +144,11 @@ export function useSessionViewer(): SessionViewer {
   }
 }
 
-/** The viewer's Groups, held by the page that offers them rather than by the shell. */
-export function useDefaultGroupPreference() {
-  const liveData = useQuery(api.profiles.defaultGroupPreference, {});
+export type ProfileSettingsData = FunctionReturnType<typeof api.profiles.settings>;
+
+/** Settings data stays with the edit page rather than the shell or public profile. */
+export function useProfileSettings() {
+  const liveData = useQuery(api.profiles.settings, {});
   return toLiveQueryResult(liveData);
 }
 

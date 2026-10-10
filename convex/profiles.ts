@@ -6,6 +6,7 @@ import type { MutationCtx } from './_generated/server';
 import { query } from './_generated/server';
 import { mutation } from './functions';
 import { isActiveProfile, optionalActiveUserId } from './lib/accountLifecycle';
+import { accountMethods, authMethodValidator } from './lib/accountMethods';
 import {
   assignedGroupSummaryValidator,
   profileDetailPageValidator,
@@ -103,6 +104,34 @@ export const defaultGroupPreference = query({
       return { default_group_id: null, default_group_options: [] };
     }
     return await loadDefaultGroupPreferenceProjection(ctx, profile);
+  },
+});
+
+/** The signed-in owner's settings, with one page subscription for Groups and sign-in methods. */
+export const settings = query({
+  args: {},
+  returns: v.object({
+    default_group_id: v.union(v.id('groups'), v.null()),
+    default_group_options: v.array(assignedGroupSummaryValidator),
+    account: v.union(v.null(), v.object({ methods: v.array(authMethodValidator), merging: v.boolean() })),
+  }),
+  handler: async (ctx) => {
+    const userId = await optionalActiveUserId(ctx);
+    const profile = userId
+      ? await ctx.db
+          .query('profiles')
+          .withIndex('by_user_id', (q) => q.eq('user_id', userId))
+          .unique()
+      : null;
+    if (!userId || !profile || !isActiveProfile(profile)) {
+      return { default_group_id: null, default_group_options: [], account: null };
+    }
+    const [preferences, methods, user] = await Promise.all([
+      loadDefaultGroupPreferenceProjection(ctx, profile),
+      accountMethods(ctx, userId),
+      ctx.db.get(userId),
+    ]);
+    return { ...preferences, account: { methods, merging: !!user?.account_merge_operation_id } };
   },
 });
 

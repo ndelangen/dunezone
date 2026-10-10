@@ -1,4 +1,5 @@
-import { Box, Button, Center, Image, SegmentedControl, Select, Stack, Text, TextInput } from '@mantine/core';
+import { useAuthActions } from '@convex-dev/auth/react';
+import { Box, Center, Group, Image, SegmentedControl, Select, Stack, Text, TextInput } from '@mantine/core';
 import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/profiles/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -6,16 +7,20 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CircleUserRound, Palette, Save, Trash2, UsersRound } from 'lucide-react';
+import { ArrowLeft, CircleUserRound, Link2, Palette, Save, Trash2, Unlink, UsersRound } from 'lucide-react';
 import { useId, useReducer, useRef, useState } from 'react';
 
-import { useDefaultGroupPreference, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
-import type { CurrentProfileEntry, ProfileUserEditInput } from '@db/profiles';
+import { useBeginAuthConnection, useDisconnectAuthMethod } from '@db/accounts';
+import type { AuthProvider } from '@db/accounts';
+import { useProfileSettings, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
+import type { CurrentProfileEntry, ProfileSettingsData, ProfileUserEditInput } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { setSchemePreference, useSchemePreference } from '@app/styles/colorScheme';
 import type { SchemePreference } from '@app/styles/colorScheme';
@@ -24,7 +29,7 @@ import type { MotionPreference } from '@app/styles/motion';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'account';
+type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'sign-in' | 'account';
 
 type ProfileDraft = {
   username: string;
@@ -186,7 +191,8 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
     openingState
   );
   const { username, avatarUrl, defaultGroupChanged } = state.data;
-  const defaultGroupOptions = useDefaultGroupPreference().data?.default_group_options;
+  const settings = useProfileSettings().data;
+  const defaultGroupOptions = settings?.default_group_options;
   /* Derived, not resynced: a default pointing at a Group the viewer left reads as none once the
      options land, and the same derivation is what a save submits. Until the options land the stored
      value stands, since not-yet-loaded is not the same as "you are in no Groups". */
@@ -405,6 +411,23 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
       ),
     },
     {
+      value: 'sign-in',
+      label: 'Sign-in methods',
+      icon: <Link2 size={20} />,
+      panel: (
+        <Stack gap="md">
+          {panelError}
+          {settings === undefined ? (
+            <LoadPending title="Loading sign-in methods">Checking your connected accounts.</LoadPending>
+          ) : settings.account ? (
+            <SignInMethods account={settings.account} />
+          ) : (
+            <NotAvailable title="Sign-in methods unavailable">Sign in again to manage your account.</NotAvailable>
+          )}
+        </Stack>
+      ),
+    },
+    {
       value: 'account',
       label: 'Account',
       icon: <Trash2 size={20} />,
@@ -412,21 +435,22 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
         <Stack gap="md" align="flex-start">
           {/* Save is reachable from every tab through the toolbar, so its failure must be visible on every tab too. */}
           {panelError}
-          <div>
-            <Text fw={650}>Delete account</Text>
-            <Text c="dimmed" size="sm">
-              Review your direct ownership and choose what happens to it on a dedicated page.
-            </Text>
-          </div>
-          <Button
-            color="red"
-            variant="light"
-            renderRoot={(rootProps) => (
-              <Link {...rootProps} to="/profiles/$profileSlug/delete" params={{ profileSlug: initial.slug }} />
-            )}
-          >
-            Delete account
-          </Button>
+          <ControlBlock
+            title="Delete account"
+            description="Review your direct ownership and choose what happens to it on a dedicated page."
+            input={
+              <IconAction
+                label="Delete account"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                icon={<Trash2 size={17} aria-hidden />}
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/profiles/$profileSlug/delete" params={{ profileSlug: initial.slug }} />
+                )}
+              />
+            }
+          />
         </Stack>
       ),
     },
@@ -536,4 +560,120 @@ function ProfileSettingsPage() {
   }
 
   return <EditableProfilePage key={viewer.profile.slug} initial={viewer.profile} />;
+}
+
+type SignInMethodsState = { busy: AuthProvider | null; error: string | null };
+type SignInMethodsEvent =
+  | { kind: 'started'; provider: AuthProvider }
+  | { kind: 'failed'; message: string }
+  | { kind: 'settled' };
+
+function reduceSignInMethods(state: SignInMethodsState, event: SignInMethodsEvent): SignInMethodsState {
+  switch (event.kind) {
+    case 'started':
+      return { busy: event.provider, error: null };
+    case 'failed':
+      return { ...state, error: event.message };
+    case 'settled':
+      return { ...state, busy: null };
+  }
+}
+
+function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['account']> }) {
+  const begin = useBeginAuthConnection();
+  const disconnect = useDisconnectAuthMethod();
+  const { signIn } = useAuthActions();
+  const [state, dispatch] = useReducer(reduceSignInMethods, { busy: null, error: null });
+  const connect = async (provider: AuthProvider) => {
+    dispatch({ kind: 'started', provider });
+    try {
+      const intent = await begin({ provider });
+      await signIn(provider, {
+        redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect?connection=${intent.token}`,
+      });
+    } catch (error) {
+      dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'The sign-in could not start.' });
+    } finally {
+      dispatch({ kind: 'settled' });
+    }
+  };
+  const remove = async (provider: AuthProvider) => {
+    dispatch({ kind: 'started', provider });
+    try {
+      await disconnect({ provider });
+    } catch (error) {
+      dispatch({
+        kind: 'failed',
+        message: error instanceof Error ? error.message : 'The sign-in method could not be disconnected.',
+      });
+    } finally {
+      dispatch({ kind: 'settled' });
+    }
+  };
+  return (
+    <Stack gap="md">
+      <Text size="sm">
+        Connect Google or Discord to use either account for this profile. Keep at least one connected.
+      </Text>
+      {account.merging && (
+        <StatusBadge tone="progress" live>
+          Profile merge in progress. Sign-in methods are locked.
+        </StatusBadge>
+      )}
+      {state.error && <FormError title="Sign-in methods could not be changed">{state.error}</FormError>}
+      {account.methods.map((method) => {
+        const name = method.provider === 'google' ? 'Google' : 'Discord';
+        const canDisconnect = account.methods.some(
+          (other) => other.provider !== method.provider && other.connected && other.available
+        );
+        const status = method.connected
+          ? canDisconnect
+            ? 'Connected'
+            : 'Connected · keep one sign-in method'
+          : method.available
+            ? 'Not connected'
+            : 'Currently unavailable';
+        return (
+          <ControlBlock
+            key={method.provider}
+            title={name}
+            description={
+              method.connected
+                ? 'Hold to disconnect this sign-in method. You can reconnect it later.'
+                : 'Authenticate with this provider to connect it. If it already has a profile, review the merge before confirming.'
+            }
+            input={
+              <Group justify="space-between">
+                <StatusBadge tone={method.connected ? 'positive' : 'neutral'} live>
+                  {status}
+                </StatusBadge>
+                {method.connected ? (
+                  <ConfirmDeleteAction
+                    label={`Disconnect ${name}`}
+                    verb="remove"
+                    size="lg"
+                    icon={<Unlink size={17} aria-hidden />}
+                    pending={state.busy === method.provider}
+                    disabled={!!state.busy || account.merging || !canDisconnect}
+                    onConfirm={() => void remove(method.provider)}
+                  />
+                ) : (
+                  <IconAction
+                    label={`Connect ${name}`}
+                    emphasis="standard"
+                    intent="neutral"
+                    size="lg"
+                    icon={<Link2 size={17} aria-hidden />}
+                    loading={state.busy === method.provider}
+                    disabled={!!state.busy || account.merging || !method.available}
+                    onClick={() => void connect(method.provider)}
+                  />
+                )}
+              </Group>
+            }
+          />
+        );
+      })}
+    </Stack>
+  );
 }
