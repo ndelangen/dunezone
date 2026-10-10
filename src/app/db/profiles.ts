@@ -184,15 +184,12 @@ export function useUpdateCurrentProfile() {
     ) => {
       try {
         const parsed = parseProfileInput(variables.input);
-        mutate.mutate(
-          parsed,
-          {
-            onSuccess: (result) => {
-              options?.onSuccess?.(result.profile, variables, result.default_group_unavailable);
-            },
-            onError: (error) => options?.onError?.(error, variables),
-          }
-        );
+        mutate.mutate(parsed, {
+          onSuccess: (result) => {
+            options?.onSuccess?.(result.profile, variables, result.default_group_unavailable);
+          },
+          onError: (error) => options?.onError?.(error, variables),
+        });
       } catch (error) {
         options?.onError?.(error instanceof Error ? error : new Error('Invalid profile input'), variables);
       }
