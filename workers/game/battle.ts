@@ -1,5 +1,11 @@
 import { emptyBattlePlan, BATTLE_COUNTDOWN_MS } from '../../src/shared/play/battle';
-import type { BattleAction, BattlePlanInput, BattleFace, StoredBattlePlan } from '../../src/shared/play/battle';
+import type {
+  BattleAction,
+  BattlePlanInput,
+  BattleFace,
+  Disclosure,
+  StoredBattlePlan,
+} from '../../src/shared/play/battle';
 import { isBattleLeader } from '../../src/shared/play/battle';
 import { nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { StoredPiece } from '../../src/shared/play/model';
@@ -163,12 +169,29 @@ function reservedBalance({ snapshot, factionId }: BattleActor, before: StoredBat
   return balance;
 }
 
+const dialOf = ({ mode, troops, spice, adjustment }: BattlePlanInput) =>
+  JSON.stringify([mode, troops, spice, adjustment]);
+/** A part shown to everyone before the reveal stays as it was shown, so the reveal cannot contradict it. */
+function keepDisclosed(before: StoredBattlePlan, plan: BattlePlanInput) {
+  const { disclosed } = before;
+  if (disclosed.leader && plan.leaderId !== before.leaderId) {
+    return refuse('Your leader is already revealed and cannot change.');
+  }
+  if (disclosed.cardIds.some((id) => !plan.cardIds.includes(id))) {
+    return refuse('A revealed card stays in your plan.');
+  }
+  if (disclosed.dial && dialOf(plan) !== dialOf(before)) {
+    return refuse('Your dial is already revealed and cannot change.');
+  }
+}
+
 function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: BattlePlanInput) {
   if (battle.stage !== 'preparing' || battle.sides[side]!.ready) {
     return refuse('Undo Ready before editing your plan.');
   }
   const before = battle.plans[side]!;
-  const plan = supportedPlan(input, before);
+  const plan = { ...supportedPlan(input, before), disclosed: before.disclosed };
+  keepDisclosed(before, plan);
   const available = [...(snapshot.factionInventories[factionId] ?? []), ...before.pieces];
   const pieces = selectedPlanPieces(plan, available);
   validateCardSlots(pieces, plan);
@@ -184,6 +207,33 @@ function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: Batt
       [factionId]: available.filter((piece) => !ids.includes(piece.id)),
     },
   });
+}
+
+/** Shows one part of a faction's own plan to everyone ahead of the reveal; the table checks no faction's right to do so. */
+function disclose({ snapshot, battle, side }: BattleSide, disclosure: Disclosure) {
+  if (battle.stage !== 'preparing') {
+    return refuse('Plans can only be revealed early while the battle is being prepared.');
+  }
+  const plan = battle.plans[side]!;
+  const disclosed = { ...plan.disclosed, cardIds: [...plan.disclosed.cardIds] };
+  if (disclosure.element === 'leader') {
+    if (!plan.leaderId || disclosed.leader) {
+      return refuse(plan.leaderId ? 'Your leader is already revealed.' : 'Choose a leader before revealing it.');
+    }
+    disclosed.leader = true;
+  } else if (disclosure.element === 'dial') {
+    if (disclosed.dial) {
+      return refuse('Your dial is already revealed.');
+    }
+    disclosed.dial = true;
+  } else {
+    if (!plan.cardIds.includes(disclosure.cardId) || disclosed.cardIds.includes(disclosure.cardId)) {
+      return refuse('Choose a card in your plan that is not revealed yet.');
+    }
+    disclosed.cardIds.push(disclosure.cardId);
+  }
+  battle.plans[side] = { ...plan, disclosed };
+  return commit(snapshot, { battleState: battle });
 }
 
 function cancelBattle(snapshot: StoredSnapshot, battle: StoredBattle) {
@@ -382,7 +432,7 @@ function chooseOutcome(
 
 function sideCommand(
   actor: BattleActor,
-  action: Extract<BattleAction, { kind: 'battle-plan' | 'battle-ready' | 'battle-outcome' }>,
+  action: Extract<BattleAction, { kind: 'battle-plan' | 'battle-ready' | 'battle-outcome' | 'battle-disclose' }>,
   now: number
 ) {
   const battlingFaction = { ...actor, side: sideFor(actor.battle, actor.factionId) };
@@ -393,6 +443,8 @@ function sideCommand(
       return setReady(battlingFaction, action, now);
     case 'battle-outcome':
       return chooseOutcome(battlingFaction, action);
+    case 'battle-disclose':
+      return disclose(battlingFaction, action.disclosure);
   }
 }
 

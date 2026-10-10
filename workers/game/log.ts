@@ -239,6 +239,7 @@ function commitEntries({
       ? resultEntries(before, next, message.action, viewer, faction)
       : [endingClosed(before, next)].filter((entry) => entry !== undefined)),
     ...(message.type === 'command' ? predictionEntries(next, message.action, faction, context) : []),
+    ...(message.type === 'command' ? disclosureEntries(before, next, message.action, faction, context) : []),
     ...placedPredictionEntries(before, next, message, faction, context),
     ...(transfer ? [spiceEntry(transfer, { userId: viewer.userId, name: viewer.displayName }, faction, context)] : []),
     ...(result && result.revision === next.revision ? [battleEntry(result, faction, context)] : []),
@@ -386,6 +387,43 @@ function predictionEntries(
       context,
     },
   ];
+}
+
+/* A part of a battle plan shown before the reveal names what was shown, since everyone at the table now sees it. */
+function disclosureEntries(
+  before: StoredSnapshot,
+  next: StoredSnapshot,
+  action: Extract<CommitMessage, { type: 'command' }>['action'],
+  faction: FactionNamer,
+  context: string
+): Entry[] {
+  const battle = next.battleState;
+  if (action.kind !== 'battle-disclose' || !battle || next.revision === before.revision) {
+    return [];
+  }
+  const side = battle.sides.findIndex((_, index) => {
+    const was = before.battleState?.plans[index]?.disclosed;
+    return JSON.stringify(was) !== JSON.stringify(battle.plans[index]?.disclosed);
+  });
+  const plan = battle.plans[side];
+  const factionId = battle.sides[side]?.factionId;
+  if (!plan || !factionId) {
+    return [];
+  }
+  const people: Person[] = [];
+  const who = faction(factionId, people);
+  const name = (id: string | null) => {
+    const piece = plan.pieces.find((piece) => piece.id === id);
+    return literal(piece?.items[0]?.artwork?.name ?? piece?.label ?? 'unnamed');
+  };
+  const was = before.battleState?.plans[side]?.disclosed;
+  const card = plan.disclosed.cardIds.find((id) => !was?.cardIds.includes(id));
+  const template = card
+    ? `${who} revealed a card early: ${name(card)}.`
+    : plan.disclosed.leader && !was?.leader
+      ? `${who} revealed its leader early: ${name(plan.leaderId)}.`
+      : `${who} revealed its dial early: troop strength ${plan.strength}, ${plan.spice} spice.`;
+  return [{ key: `battle-disclose:${next.revision}`, class: 'battle', template, people, context }];
 }
 
 /* A prediction card placed on the table reveals its prediction, by a drop or a play from the hand alike (#1753). */

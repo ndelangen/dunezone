@@ -168,3 +168,13 @@
     transform: translateX(-50%) scale(0.56);
   }
 }
+
+.disclosed {
+  width: min(180px, calc((88vw - 116px) / 2));
+  margin-top: 10px;
+}
+
+/* An early-revealed piece draws smaller than in the plan editor, so a whole plan fits under its wheel. */
+.disclosedPiece {
+  zoom: 0.6;
+}
