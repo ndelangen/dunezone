@@ -6,7 +6,7 @@ import { CARD_SLOT_OUTER_SIZE, cardBaySlotPositions } from '@shared/play/tableFu
 import { useEffect, useMemo, useState } from 'react';
 import { CanvasTexture, LinearMipmapLinearFilter, SRGBColorSpace } from 'three';
 
-import { loadTableLabelFont, TABLE_LABEL_FONT_FAMILY } from '@app/widgets/tabletop/TableLabel';
+import { FALLBACK_FONT_FAMILY, loadTableLabelFont, TABLE_LABEL_FONT_FAMILY } from '@app/widgets/tabletop/TableLabel';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 
@@ -26,6 +26,10 @@ const GOLD = '#d2ae68';
 
 type Row = { id: string; count: number; out: boolean; front: string | null; color: string; initials: string };
 
+function ignoreRaycast() {
+  // Painted table lettering is never an interaction target.
+}
+
 function loadImage(href: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const image = new Image();
@@ -37,13 +41,14 @@ function loadImage(href: string): Promise<HTMLImageElement | null> {
 }
 
 /** The faction token's face in a gold ring, or its initials on its colour when the face cannot load. */
+/* The table's lettering face, or the same fallback the table's labels use when it cannot load. */
+type Disc = { cx: number; cy: number; radius: number; font: string };
+
 function drawLogo(
   context: CanvasRenderingContext2D,
   row: Row,
   image: HTMLImageElement | null,
-  cx: number,
-  cy: number,
-  radius: number
+  { cx, cy, radius, font }: Disc
 ) {
   context.save();
   context.beginPath();
@@ -55,7 +60,7 @@ function drawLogo(
     context.fillStyle = row.color;
     context.fill();
     context.fillStyle = GOLD;
-    context.font = `${radius}px "${TABLE_LABEL_FONT_FAMILY}"`;
+    context.font = `${radius}px ${font}`;
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillText(row.initials, cx, cy);
@@ -68,9 +73,16 @@ function drawLogo(
   context.stroke();
 }
 
-/** A count pressed into the table: a dark lip above the gold. */
-function drawCount(context: CanvasRenderingContext2D, text: string, x: number, y: number, size: number) {
-  context.font = `${size}px "${TABLE_LABEL_FONT_FAMILY}"`;
+/** A count pressed into the table: a dark lip above the gold, shrunk when a long count would run past `right`. */
+function drawCount(
+  context: CanvasRenderingContext2D,
+  text: string,
+  { x, y, size: fullSize, right, font }: { x: number; y: number; size: number; right: number; font: string }
+) {
+  context.font = `${fullSize}px ${font}`;
+  const width = context.measureText(text).width;
+  const size = width > right - x ? (fullSize * (right - x)) / width : fullSize;
+  context.font = `${size}px ${font}`;
   context.textAlign = 'left';
   context.textBaseline = 'middle';
   context.fillStyle = 'rgba(0, 0, 0, 0.55)';
@@ -79,8 +91,16 @@ function drawCount(context: CanvasRenderingContext2D, text: string, x: number, y
   context.fillText(text, x, y);
 }
 
-function paint(canvas: HTMLCanvasElement, rows: readonly Row[], images: ReadonlyMap<string, HTMLImageElement | null>) {
-  const context = canvas.getContext('2d')!;
+function paint(
+  canvas: HTMLCanvasElement,
+  rows: readonly Row[],
+  images: ReadonlyMap<string, HTMLImageElement | null>,
+  font: string
+) {
+  const context = canvas.getContext('2d');
+  if (!context) {
+    return false;
+  }
   context.clearRect(0, 0, canvas.width, canvas.height);
   const padding = canvas.width * PADDING;
   const areaWidth = canvas.width - padding * 2;
@@ -102,37 +122,38 @@ function paint(canvas: HTMLCanvasElement, rows: readonly Row[], images: Readonly
     }
     const radius = Math.min(cellHeight * 0.4, cellWidth * 0.27);
     const cx = x + cellWidth * 0.08 + radius;
-    drawLogo(context, row, row.front ? (images.get(row.front) ?? null) : null, cx, cy, radius);
-    drawCount(context, String(row.count), cx + radius * 1.3, cy + radius * 0.08, radius * 2);
+    drawLogo(context, row, row.front ? (images.get(row.front) ?? null) : null, { cx, cy, radius, font });
+    drawCount(context, String(row.count), {
+      x: cx + radius * 1.3,
+      y: cy + radius * 0.08,
+      size: radius * 2,
+      right: x + cellWidth * 1.04,
+      font,
+    });
     context.restore();
+  });
+  return true;
+}
+
+/** One row per seated faction in storm order: its count, its token's face, and whether its token lies face down. */
+function handCountRows(table: TableProjection, order: readonly string[]): Row[] {
+  const counts = table.snapshot.handCounts ?? {};
+  return order.map((id) => {
+    const token = table.state.pieces.find((piece) => piece.stackKey === factionTokenStackKey(id));
+    const name = table.state.factionNames[id] ?? id;
+    return {
+      id,
+      count: counts[id] ?? 0,
+      out: !factionTokenFaceUp(table.state.pieces, id),
+      front: token?.items[0]?.artwork?.front ?? null,
+      color: token?.color ?? '#3a2a22',
+      initials: name.slice(0, 2).toUpperCase(),
+    };
   });
 }
 
-/**
- * Every seated faction's Treachery card count, in storm order, painted into the left card bay's empty slot where bidding is watched (#1007).
- * A faction whose token lies face down sits out the round, so its count is greyed out as the bidder greys it.
- */
-export function HandCountsScene({ table }: { table: TableProjection }) {
-  const roster = table.snapshot.roster;
-  const counts = table.snapshot.handCounts;
-  const order = useMemo(() => stormOrder(table.state.stormSectorIndex, roster), [table.state.stormSectorIndex, roster]);
-  const rows = useMemo<Row[]>(
-    () =>
-      order.map((id) => {
-        const token = table.state.pieces.find((piece) => piece.stackKey === factionTokenStackKey(id));
-        const name = table.state.factionNames[id] ?? id;
-        return {
-          id,
-          count: counts?.[id] ?? 0,
-          out: !factionTokenFaceUp(table.state.pieces, id),
-          front: token?.items[0]?.artwork?.front ?? null,
-          color: token?.color ?? '#3a2a22',
-          initials: name.slice(0, 2).toUpperCase(),
-        };
-      }),
-    [order, counts, table.state.pieces, table.state.factionNames]
-  );
-  /* The pieces change on every move; the texture is painted again only when what it shows changes. */
+/** The painted counts, painted again only when what they show changes: the pieces change on every move. */
+function useHandCountTexture(rows: readonly Row[]) {
   const content = JSON.stringify(rows);
   const [texture, setTexture] = useState<CanvasTexture | null>(null);
   useEffect(() => {
@@ -142,11 +163,15 @@ export function HandCountsScene({ table }: { table: TableProjection }) {
     canvas.width = Math.round(WIDTH * PX);
     canvas.height = Math.round(DEPTH * PX);
     const fronts = [...new Set(shown.flatMap((row) => (row.front ? [row.front] : [])))];
-    void Promise.all([loadTableLabelFont(), ...fronts.map(loadImage)]).then(([, ...loaded]) => {
+    void Promise.all([loadTableLabelFont(), ...fronts.map(loadImage)]).then(([fontLoaded, ...loaded]) => {
       if (!live) {
         return;
       }
-      paint(canvas, shown, new Map(fronts.map((front, index) => [front, loaded[index] as HTMLImageElement | null])));
+      const images = new Map(fronts.map((front, index) => [front, loaded[index] as HTMLImageElement | null]));
+      const font = fontLoaded ? `"${TABLE_LABEL_FONT_FAMILY}"` : FALLBACK_FONT_FAMILY;
+      if (!paint(canvas, shown, images, font)) {
+        return;
+      }
       const next = new CanvasTexture(canvas);
       next.colorSpace = SRGBColorSpace;
       next.anisotropy = 8;
@@ -158,11 +183,23 @@ export function HandCountsScene({ table }: { table: TableProjection }) {
     };
   }, [content]);
   useEffect(() => () => texture?.dispose(), [texture]);
-  if (!roster || !counts || !texture) {
+  return texture;
+}
+
+/**
+ * Every seated faction's Treachery card count, in storm order, painted into the left card bay's empty slot where bidding is watched (#1007).
+ * A faction whose token lies face down sits out the round, so its count is greyed out as the bidder greys it.
+ */
+export function HandCountsScene({ table }: { table: TableProjection }) {
+  const roster = table.snapshot.roster;
+  const order = useMemo(() => stormOrder(table.state.stormSectorIndex, roster), [table.state.stormSectorIndex, roster]);
+  const texture = useHandCountTexture(handCountRows(table, order));
+  const shown = Boolean(roster && table.snapshot.handCounts);
+  if (!shown || !texture) {
     return null;
   }
   return (
-    <mesh position={SPOT} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+    <mesh position={SPOT} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast} receiveShadow>
       <planeGeometry args={[WIDTH, DEPTH]} />
       <meshStandardMaterial
         map={texture}

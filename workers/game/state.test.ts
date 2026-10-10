@@ -247,4 +247,37 @@ test('every viewer, spectators included, sees how many Treachery cards each seat
   expect(projection.snapshot(stored, 'fremen').handCounts).toEqual({ atreides: 1, fremen: 0 });
   expect(projection.snapshot(stored, 'fremen').hand).toEqual([]);
   expect(projection.snapshot(parsed).handCounts).toBeUndefined();
+
+  /* A card committed to a secret battle plan still counts, so editing the plan never shows opponents a change before the reveal. */
+  const plan = (pieces: ReturnType<typeof card>[]) => ({
+    mode: 'max' as const,
+    troops: [],
+    spice: 0,
+    adjustment: 0,
+    leaderId: null,
+    cardIds: pieces.map((piece) => piece.id),
+    strength: 0,
+    pieces,
+    faces: [],
+  });
+  const battle = (stage: 'preparing' | 'revealed') =>
+    ({
+      ...stored,
+      factionInventories: { atreides: [card('traitor', 'card-traitor')] },
+      battleState: {
+        id: 'battle',
+        anchor: [0, 0, 0],
+        territory: 'Arrakeen',
+        stage,
+        sides: [
+          { factionId: 'atreides', ready: false, choice: null },
+          { factionId: 'fremen', ready: false, choice: null },
+        ],
+        deadline: null,
+        plans: [plan([card('lasgun', 'card-treachery')]), plan([])],
+      },
+    }) as unknown as typeof parsed;
+
+  expect(projection.snapshot(battle('preparing'), 'fremen').handCounts).toEqual({ atreides: 1, fremen: 0 });
+  expect(projection.snapshot(battle('revealed'), 'fremen').handCounts).toEqual({ atreides: 0, fremen: 0 });
 });

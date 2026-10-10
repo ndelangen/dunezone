@@ -22,7 +22,7 @@ type LabelTexture = Readonly<{
 }>;
 
 export const TABLE_LABEL_FONT_FAMILY = 'Dune Play Table Label';
-const FALLBACK_FONT_FAMILY = 'Georgia, serif';
+export const FALLBACK_FONT_FAMILY = 'Georgia, serif';
 const TEXTURE_FONT_SIZE = 160;
 const TEXTURE_PADDING = 12;
 

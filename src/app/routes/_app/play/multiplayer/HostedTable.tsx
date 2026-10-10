@@ -805,7 +805,7 @@ function ConnectedTable({
                   <>
                     <BattleScene client={client} table={table} />
                     {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
-                    {stage === 'play' && <HandCountsScene table={table} />}
+                    {inPlay && <HandCountsScene table={table} />}
                   </>
                 )}
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
