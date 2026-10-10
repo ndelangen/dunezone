@@ -448,12 +448,20 @@ sentence per line, so a comment diff shows the sentence that changed.
 produce them. The prefix tells you whether a failure means "the code is wrong" or "the artifacts are
 stale".
 
-**Push a branch once the change is finished, not after every commit.** One PR run takes 19 of the
-account's 20 runner slots, and a newer push cancels the run in flight. In early October 2026, runs
-cancelled that way used about 40% of all runner minutes and made every other PR wait for slots
-([#1921](https://github.com/ndelangen/dunezone/issues/1921)). So commit locally as often as you
-like, run the fast checks locally, and push when the change is ready for CI. A follow-up push is
-for a CI failure or review feedback, and it batches every fix you know about.
+**Push a branch once the change is finished, and batch every follow-up into one push.** One PR run
+takes 17 of the account's 20 runner slots and about 80 runner minutes. A newer push cancels the run
+in flight, but by then the run has usually spent most of those minutes, so every push costs about a
+full run. In early October 2026 a merged PR took 3.1 runs on average, and 60% of follow-up pushes
+landed while the previous run was still going, one per review bot as each one reported
+([#1921](https://github.com/ndelangen/dunezone/issues/1921)). So:
+
+- Commit locally as often as you like. Only pushes cost CI.
+- Before the first push, find what CI and the review bots would find: run `bun run check`,
+  `bun run typecheck`, and the unit tests and story files your change touches, and review your own
+  diff.
+- After a push, wait until `ci_ok` has reported and the review bots have commented on that commit,
+  then fix everything they found in local commits and push once. Push sooner only when a job has
+  already failed and nothing else is still pending.
 
 **Developer-facing prose has no AI tells**, and two gates hold that: em dashes, curly quotes, filler
 words, hedging openers, emoji and decorative divider bands. `local/no-ai-tells` in
