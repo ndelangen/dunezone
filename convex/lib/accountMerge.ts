@@ -138,240 +138,296 @@ async function moveRouting(ctx: MutationCtx, row: Doc<'play_game_accounts'>, tar
   }
 }
 
-/** Every phase drains an indexed source range, so retries need no cursor and never repeat user-visible writes. */
-export async function advanceAccountMerge(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+async function moveGroups(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
   const source = operation.source_user_id;
   const target = operation.target_user_id;
-  let count = 0;
-  switch (operation.phase) {
-    case 0: {
-      const rows = await ctx.db
-        .query('groups')
-        .withIndex('by_created_by', (q) => q.eq('created_by', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { created_by: target });
+  const rows = await ctx.db
+    .query('groups')
+    .withIndex('by_created_by', (q) => q.eq('created_by', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { created_by: target });
+  }
+  return rows.length;
+}
+
+async function moveFactions(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('factions')
+    .withIndex('by_owner_id', (q) => q.eq('owner_id', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { owner_id: target });
+  }
+  return rows.length;
+}
+
+async function moveAssets(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('assets')
+    .withIndex('by_owner_deleted', (q) => q.eq('owner_id', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { owner_id: target });
+  }
+  return rows.length;
+}
+
+async function moveRulesets(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('rulesets')
+    .withIndex('by_owner_deleted', (q) => q.eq('owner_id', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { owner_id: target });
+  }
+  return rows.length;
+}
+
+async function moveMemberships(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('group_members')
+    .withIndex('by_user', (q) => q.eq('user_id', source))
+    .take(BATCH);
+  const rank = { removed: 0, pending: 1, active: 2 };
+  for (const row of rows) {
+    const existing = await ctx.db
+      .query('group_members')
+      .withIndex('by_group_user', (q) => q.eq('group_id', row.group_id).eq('user_id', target))
+      .unique();
+    if (existing) {
+      if (rank[row.status] > rank[existing.status]) {
+        await ctx.db.patch(existing._id, {
+          status: row.status,
+          approved_at: row.approved_at,
+          approved_by: row.approved_by,
+        });
       }
-      count = rows.length;
-      break;
-    }
-    case 1: {
-      const rows = await ctx.db
-        .query('factions')
-        .withIndex('by_owner_id', (q) => q.eq('owner_id', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { owner_id: target });
-      }
-      count = rows.length;
-      break;
-    }
-    case 2: {
-      const rows = await ctx.db
-        .query('assets')
-        .withIndex('by_owner_deleted', (q) => q.eq('owner_id', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { owner_id: target });
-      }
-      count = rows.length;
-      break;
-    }
-    case 3: {
-      const rows = await ctx.db
-        .query('rulesets')
-        .withIndex('by_owner_deleted', (q) => q.eq('owner_id', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { owner_id: target });
-      }
-      count = rows.length;
-      break;
-    }
-    case 4: {
-      const rows = await ctx.db
-        .query('group_members')
-        .withIndex('by_user', (q) => q.eq('user_id', source))
-        .take(BATCH);
-      const rank = { removed: 0, pending: 1, active: 2 };
-      for (const row of rows) {
-        const existing = await ctx.db
-          .query('group_members')
-          .withIndex('by_group_user', (q) => q.eq('group_id', row.group_id).eq('user_id', target))
-          .unique();
-        if (existing) {
-          if (rank[row.status] > rank[existing.status]) {
-            await ctx.db.patch(existing._id, {
-              status: row.status,
-              approved_at: row.approved_at,
-              approved_by: row.approved_by,
-            });
-          }
-          await ctx.db.delete(row._id);
-        } else {
-          await ctx.db.patch(row._id, { user_id: target });
-        }
-      }
-      count = rows.length;
-      break;
-    }
-    case 5: {
-      const rows = await ctx.db
-        .query('group_members')
-        .withIndex('by_approved_by', (q) => q.eq('approved_by', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { approved_by: target });
-      }
-      count = rows.length;
-      break;
-    }
-    case 6: {
-      const rows = await ctx.db
-        .query('faq_items')
-        .withIndex('by_asked_by_created', (q) => q.eq('asked_by', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { asked_by: target });
-      }
-      count = rows.length;
-      break;
-    }
-    case 7: {
-      const rows = await ctx.db
-        .query('faq_answers')
-        .withIndex('by_answered_by_created', (q) => q.eq('answered_by', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { answered_by: target });
-      }
-      count = rows.length;
-      break;
-    }
-    case 8: {
-      const rows = await ctx.db
-        .query('rulebooks')
-        .withIndex('by_created_by', (q) => q.eq('created_by', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { created_by: target });
-      }
-      count = rows.length;
-      break;
-    }
-    case 9: {
-      const rows = await ctx.db
-        .query('rulebook_drafts')
-        .withIndex('by_updated_by', (q) => q.eq('updated_by', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { updated_by: target });
-      }
-      count = rows.length;
-      break;
-    }
-    case 10: {
-      const rows = await ctx.db
-        .query('rulebook_editions')
-        .withIndex('by_created_by', (q) => q.eq('created_by', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { created_by: target });
-      }
-      count = rows.length;
-      break;
-    }
-    case 11: {
-      const rows = await ctx.db
-        .query('play_games')
-        .withIndex('by_creator_id', (q) => q.eq('creator_id', source))
-        .take(BATCH);
-      for (const row of rows) {
-        const routing = await ctx.db
-          .query('play_game_accounts')
-          .withIndex('by_game_id_user_id', (q) => q.eq('game_id', row._id).eq('user_id', source))
-          .unique();
-        if (!routing) {
-          await ctx.db.insert('play_game_accounts', { game_id: row._id, user_id: source });
-        }
-        await ctx.db.patch(row._id, { creator_id: target, creator_actor_id: row.creator_actor_id ?? source });
-      }
-      count = rows.length;
-      break;
-    }
-    case 12: {
-      const rows = await ctx.db
-        .query('play_game_accounts')
-        .withIndex('by_user_id', (q) => q.eq('user_id', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await moveRouting(ctx, row, target);
-      }
-      count = rows.length;
-      break;
-    }
-    case 13: {
-      const rows = await ctx.db
-        .query('users')
-        .withIndex('by_merged_into_user_id', (q) => q.eq('merged_into_user_id', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { merged_into_user_id: target });
-      }
-      count = rows.length;
-      break;
-    }
-    case 14: {
-      const rows = await ctx.db
-        .query('profiles')
-        .withIndex('by_merged_into_profile_id', (q) => q.eq('merged_into_profile_id', operation.source_profile_id))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { merged_into_profile_id: operation.target_profile_id });
-      }
-      count = rows.length;
-      break;
-    }
-    case 15: {
-      const rows = await ctx.db
-        .query('authAccounts')
-        .withIndex('userIdAndProvider', (q) => q.eq('userId', source))
-        .take(BATCH);
-      for (const row of rows) {
-        await ctx.db.patch(row._id, { userId: target });
-      }
-      count = rows.length;
-      break;
-    }
-    case 16: {
-      const session = await ctx.db
-        .query('authSessions')
-        .withIndex('userId', (q) => q.eq('userId', source))
-        .first();
-      if (session) {
-        const tokens = await ctx.db
-          .query('authRefreshTokens')
-          .withIndex('sessionId', (q) => q.eq('sessionId', session._id))
-          .take(BATCH);
-        for (const token of tokens) {
-          await ctx.db.delete(token._id);
-        }
-        if (tokens.length === 0) {
-          await ctx.db.delete(session._id);
-        }
-        count = 1;
-      }
-      break;
-    }
-    default: {
-      const now = nowIso();
-      await ctx.db.patch(source, { account_state: 'deleted', deleted_at: now, account_merge_operation_id: undefined });
-      await ctx.db.patch(operation.source_profile_id, { account_state: 'deleted', deleted_at: now, updated_at: now });
-      await ctx.db.patch(target, { account_merge_operation_id: undefined });
-      await ctx.db.patch(operation._id, { state: 'completed', completed_at: Date.now(), error: null });
-      return;
+      await ctx.db.delete(row._id);
+    } else {
+      await ctx.db.patch(row._id, { user_id: target });
     }
   }
+  return rows.length;
+}
+
+async function moveMembershipApprovals(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('group_members')
+    .withIndex('by_approved_by', (q) => q.eq('approved_by', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { approved_by: target });
+  }
+  return rows.length;
+}
+
+async function moveQuestions(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('faq_items')
+    .withIndex('by_asked_by_created', (q) => q.eq('asked_by', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { asked_by: target });
+  }
+  return rows.length;
+}
+
+async function moveAnswers(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('faq_answers')
+    .withIndex('by_answered_by_created', (q) => q.eq('answered_by', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { answered_by: target });
+  }
+  return rows.length;
+}
+
+async function moveRulebooks(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('rulebooks')
+    .withIndex('by_created_by', (q) => q.eq('created_by', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { created_by: target });
+  }
+  return rows.length;
+}
+
+async function moveRulebookDrafts(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('rulebook_drafts')
+    .withIndex('by_updated_by', (q) => q.eq('updated_by', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { updated_by: target });
+  }
+  return rows.length;
+}
+
+async function moveRulebookEditions(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('rulebook_editions')
+    .withIndex('by_created_by', (q) => q.eq('created_by', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { created_by: target });
+  }
+  return rows.length;
+}
+
+async function moveGameOwnership(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('play_games')
+    .withIndex('by_creator_id', (q) => q.eq('creator_id', source))
+    .take(BATCH);
+  for (const row of rows) {
+    const routing = await ctx.db
+      .query('play_game_accounts')
+      .withIndex('by_game_id_user_id', (q) => q.eq('game_id', row._id).eq('user_id', source))
+      .unique();
+    if (!routing) {
+      await ctx.db.insert('play_game_accounts', { game_id: row._id, user_id: source });
+    }
+    await ctx.db.patch(row._id, { creator_id: target, creator_actor_id: row.creator_actor_id ?? source });
+  }
+  return rows.length;
+}
+
+async function moveGameRouting(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('play_game_accounts')
+    .withIndex('by_user_id', (q) => q.eq('user_id', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await moveRouting(ctx, row, target);
+  }
+  return rows.length;
+}
+
+async function flattenUserAliases(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('users')
+    .withIndex('by_merged_into_user_id', (q) => q.eq('merged_into_user_id', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { merged_into_user_id: target });
+  }
+  return rows.length;
+}
+
+async function flattenProfileAliases(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const rows = await ctx.db
+    .query('profiles')
+    .withIndex('by_merged_into_profile_id', (q) => q.eq('merged_into_profile_id', operation.source_profile_id))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { merged_into_profile_id: operation.target_profile_id });
+  }
+  return rows.length;
+}
+
+async function moveAuthAccounts(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('authAccounts')
+    .withIndex('userIdAndProvider', (q) => q.eq('userId', source))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { userId: target });
+  }
+  return rows.length;
+}
+
+async function revokeSourceSessions(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const session = await ctx.db
+    .query('authSessions')
+    .withIndex('userId', (q) => q.eq('userId', source))
+    .first();
+  if (session) {
+    const tokens = await ctx.db
+      .query('authRefreshTokens')
+      .withIndex('sessionId', (q) => q.eq('sessionId', session._id))
+      .take(BATCH);
+    for (const token of tokens) {
+      await ctx.db.delete(token._id);
+    }
+    if (tokens.length === 0) {
+      await ctx.db.delete(session._id);
+    }
+    return 1;
+  }
+  return 0;
+}
+
+async function completeAccountMerge(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const now = nowIso();
+  await ctx.db.patch(source, { account_state: 'deleted', deleted_at: now, account_merge_operation_id: undefined });
+  await ctx.db.patch(operation.source_profile_id, { account_state: 'deleted', deleted_at: now, updated_at: now });
+  await ctx.db.patch(target, { account_merge_operation_id: undefined });
+  await ctx.db.patch(operation._id, { state: 'completed', completed_at: Date.now(), error: null });
+}
+
+/* Phase numbers are persisted in merge jobs; keep this order when editing the batches. */
+const MERGE_BATCHES = [
+  moveGroups,
+  moveFactions,
+  moveAssets,
+  moveRulesets,
+  moveMemberships,
+  moveMembershipApprovals,
+  moveQuestions,
+  moveAnswers,
+  moveRulebooks,
+  moveRulebookDrafts,
+  moveRulebookEditions,
+  moveGameOwnership,
+  moveGameRouting,
+  flattenUserAliases,
+  flattenProfileAliases,
+  moveAuthAccounts,
+  revokeSourceSessions,
+] as const;
+
+/** Every phase drains an indexed source range, so retries need no cursor and never repeat user-visible writes. */
+export async function advanceAccountMerge(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const batch = MERGE_BATCHES[operation.phase];
+  if (!batch) {
+    await completeAccountMerge(ctx, operation);
+    return;
+  }
+  const count = await batch(ctx, operation);
   if (count === 0) {
     await ctx.db.patch(operation._id, { phase: operation.phase + 1 });
   }

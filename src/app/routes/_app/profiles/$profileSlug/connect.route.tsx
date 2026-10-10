@@ -74,63 +74,107 @@ function ConnectAccountPage() {
                 {state.error}
               </Alert>
             )}
-            {connection.state === 'review' ? (
-              connection.sameAccount ? (
-                <>
-                  <Text>{provider} is already connected to this profile.</Text>
-                  <Link to="/profiles/$profileSlug" params={{ profileSlug: connection.targetSlug }}>
-                    Return to profile
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Text>
-                    You signed in as <strong>{connection.sourceName}</strong>. Connect this account to{' '}
-                    <strong>{connection.targetName}</strong>?
-                  </Text>
-                  <Text>
-                    The kept profile stays at /profiles/{connection.targetSlug}. Its name and avatar stay the same. Both
-                    profiles’ content, Group memberships, game access and sign-in methods will be combined.
-                  </Text>
-                  <Text size="sm">This merge cannot be undone. You will sign in once more when it finishes.</Text>
-                  <Group>
-                    <Button loading={state.busy} onClick={() => void accept()}>
-                      Connect and merge profiles
-                    </Button>
-                    <Link to="/profiles">Cancel</Link>
-                  </Group>
-                </>
-              )
-            ) : connection.state === 'running' ? (
-              <>
-                <Text>Merging into {connection.targetName}…</Text>
-                <Text size="sm" c="dimmed">
-                  You can leave this page. The merge will keep running.
-                </Text>
-              </>
-            ) : connection.state === 'failed' ? (
-              <Alert color="red" role="alert">
-                The merge paused. An administrator can resume it from Accounts. {connection.error}
-              </Alert>
-            ) : (
-              <>
-                <Text>
-                  {provider} is now connected to {connection.targetName}. Your content and access have been combined.
-                </Text>
-                <Button
-                  onClick={() =>
-                    void signIn(connection.provider, {
-                      redirectTo: `/profiles/${encodeURIComponent(connection.targetSlug)}`,
-                    }).catch((error) => dispatch({ error: error.message }))
-                  }
-                >
-                  Continue with {provider}
-                </Button>
-              </>
-            )}
+            <ConnectionStatus
+              connection={connection}
+              provider={provider}
+              busy={state.busy}
+              onAccept={() => void accept()}
+              onContinue={() =>
+                void signIn(connection.provider, {
+                  redirectTo: `/profiles/${encodeURIComponent(connection.targetSlug)}`,
+                }).catch((error) => dispatch({ error: error.message }))
+              }
+            />
           </Stack>
         </Surface>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+type AuthConnection = NonNullable<ReturnType<typeof useAuthConnection>>;
+
+function ConnectionStatus({
+  connection,
+  provider,
+  busy,
+  onAccept,
+  onContinue,
+}: {
+  connection: AuthConnection;
+  provider: string;
+  busy: boolean;
+  onAccept: () => void;
+  onContinue: () => void;
+}) {
+  switch (connection.state) {
+    case 'review':
+      return <ConnectionReview connection={connection} provider={provider} busy={busy} onAccept={onAccept} />;
+    case 'running':
+      return (
+        <>
+          <Text>Merging into {connection.targetName}…</Text>
+          <Text size="sm" c="dimmed">
+            You can leave this page. The merge will keep running.
+          </Text>
+        </>
+      );
+    case 'failed':
+      return (
+        <Alert color="red" role="alert">
+          The merge paused. An administrator can resume it from Accounts. {connection.error}
+        </Alert>
+      );
+    case 'completed':
+      return (
+        <>
+          <Text>
+            {provider} is now connected to {connection.targetName}. Your content and access have been combined.
+          </Text>
+          <Button onClick={onContinue}>Continue with {provider}</Button>
+        </>
+      );
+  }
+}
+
+function ConnectionReview({
+  connection,
+  provider,
+  busy,
+  onAccept,
+}: {
+  connection: AuthConnection;
+  provider: string;
+  busy: boolean;
+  onAccept: () => void;
+}) {
+  if (connection.sameAccount) {
+    return (
+      <>
+        <Text>{provider} is already connected to this profile.</Text>
+        <Link to="/profiles/$profileSlug" params={{ profileSlug: connection.targetSlug }}>
+          Return to profile
+        </Link>
+      </>
+    );
+  }
+  return (
+    <>
+      <Text>
+        You signed in as <strong>{connection.sourceName}</strong>. Connect this account to{' '}
+        <strong>{connection.targetName}</strong>?
+      </Text>
+      <Text>
+        The kept profile stays at /profiles/{connection.targetSlug}. Its name and avatar stay the same. Both profiles’
+        content, Group memberships, game access and sign-in methods will be combined.
+      </Text>
+      <Text size="sm">This merge cannot be undone. You will sign in once more when it finishes.</Text>
+      <Group>
+        <Button loading={busy} onClick={onAccept}>
+          Connect and merge profiles
+        </Button>
+        <Link to="/profiles">Cancel</Link>
+      </Group>
+    </>
   );
 }

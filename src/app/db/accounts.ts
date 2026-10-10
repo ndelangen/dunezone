@@ -1,11 +1,9 @@
 import { useMutation, useQuery } from 'convex/react';
-import type { FunctionReturnType } from 'convex/server';
 
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 export type { AuthProvider } from '../../../convex/lib/accountMethods';
-export type AccountManagementPage = FunctionReturnType<typeof api.accounts.adminPage>;
 export function useAccountManagementPage(cursor: string | null, selectedUserIds: string[]) {
   return useQuery(api.accounts.adminPage, {
     paginationOpts: { cursor, numItems: 40 },

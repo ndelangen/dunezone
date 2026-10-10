@@ -23,11 +23,14 @@ export async function gameActorForAccount(ctx: QueryCtx, gameId: Id<'play_games'
   const game = await ctx.db.get(gameId);
   const seated = game?.directory?.seats.find((seat) => actors.includes(seat.userId as Id<'users'>));
   const creator = game?.creator_actor_id ?? game?.creator_id;
-  return seated
-    ? (seated.userId as Id<'users'>)
-    : creator && actors.includes(creator)
-      ? creator
-      : actors.includes(userId)
-        ? userId
-        : (actors[0] ?? userId);
+  if (seated) {
+    return seated.userId as Id<'users'>;
+  }
+  if (creator && actors.includes(creator)) {
+    return creator;
+  }
+  if (actors.includes(userId)) {
+    return userId;
+  }
+  return actors[0] ?? userId;
 }
