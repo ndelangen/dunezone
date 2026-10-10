@@ -8,7 +8,6 @@ import { syntheticIdentity } from './lib/playSynthetic';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { pbkdf2PasswordCrypto } from './lib/syntheticPasswords';
 
-const gemini = 'https://www.googleapis.com/auth/generative-language.retriever';
 const localE2eAuthEnabled = process.env.E2E_LOCAL_AUTH === 'true';
 
 function decodeBase64Ascii(value: string): string {
@@ -52,7 +51,7 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
       authorization: {
         params: {
-          scope: `openid profile ${gemini}`,
+          scope: 'openid profile',
         },
       },
     })
