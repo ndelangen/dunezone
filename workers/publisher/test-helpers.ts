@@ -1,3 +1,5 @@
+import type { MediaCache, MediaServing } from './media-response';
+
 export function fakeR2Object(options: {
   key?: string;
   etag: string;
@@ -34,6 +36,35 @@ function storedR2Object(key: string, entry: StoredR2Entry): R2Object {
     writeHttpMetadata: base.writeHttpMetadata,
     httpMetadata: entry.options.httpMetadata as R2HTTPMetadata,
   };
+}
+
+/** An in-memory edge cache keyed on the request URL, holding bytes like the real one, with the pending writes an execution context would keep alive. */
+export function memoryCache(): MediaCache & {
+  stored: Map<string, { bytes: Uint8Array; headers: Headers }>;
+  serving: MediaServing;
+  settle(): Promise<void>;
+} {
+  const stored = new Map<string, { bytes: Uint8Array; headers: Headers }>();
+  const pending: Promise<unknown>[] = [];
+  const cache = {
+    stored,
+    async match(request: RequestInfo | URL) {
+      const entry = stored.get(new Request(request).url);
+      return entry ? new Response(entry.bytes, { status: 200, headers: entry.headers }) : undefined;
+    },
+    async put(request: RequestInfo | URL, response: Response) {
+      stored.set(new Request(request).url, {
+        bytes: new Uint8Array(await response.arrayBuffer()),
+        headers: new Headers(response.headers),
+      });
+    },
+    serving: {} as MediaServing,
+    async settle() {
+      await Promise.all(pending);
+    },
+  };
+  cache.serving = { cache, ctx: { waitUntil: (promise: Promise<unknown>) => pending.push(promise) } };
+  return cache;
 }
 
 /** An in-memory bucket that honours `onlyIf: { etagDoesNotMatch: '*' }`, as the media write paths use it. */

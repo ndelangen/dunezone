@@ -4,10 +4,21 @@
  * Published rulebook HTML, CSS and saved documents embed these URLs, so they must keep working once static media leaves the deploy.
  * A URL the raster lock lists is answered with 200 from the variant it stands for in R2, never a redirect, cached for an hour because the lock can point it at a new original.
  * Everything else under those prefixes, such as committed SVGs or a raster not yet published, comes from the release's static files, and the SPA fallback's HTML is refused as a 404.
+ * An answer from R2 is kept in the edge cache for its hour.
+ * Static files already come from the edge.
  */
 import { legacyVariant } from '../../src/shared/media/legacyVariant';
 import { CONTENT_TYPES, mediaVariantKey } from './media';
-import { METHOD_NOT_ALLOWED, NOT_FOUND, inNamespace, jsonError, serveImmutable } from './media-response';
+import {
+  METHOD_NOT_ALLOWED,
+  NOT_FOUND,
+  cachedResponse,
+  inNamespace,
+  jsonError,
+  remembered,
+  serveImmutable,
+} from './media-response';
+import type { MediaServing } from './media-response';
 
 const LEGACY_NAMESPACES = ['/image', '/web'];
 const LEGACY_CACHE_CONTROL = 'public, max-age=3600';
@@ -17,7 +28,16 @@ export type LegacyMediaEnv = {
   ASSETS: Pick<Fetcher, 'fetch'>;
 };
 
-async function publishedVariant(request: Request, env: LegacyMediaEnv, name: string): Promise<Response | null> {
+async function publishedVariant(
+  request: Request,
+  env: LegacyMediaEnv,
+  name: string,
+  serving: MediaServing
+): Promise<Response | null> {
+  const cached = await cachedResponse(request, serving);
+  if (cached) {
+    return cached;
+  }
   const object = await env.MEDIA_BUCKET.get(mediaVariantKey(name));
   if (!object) {
     return null;
@@ -29,7 +49,14 @@ async function publishedVariant(request: Request, env: LegacyMediaEnv, name: str
     return jsonError({ status: 502, message: 'The stored variant has no integrity metadata' });
   }
   const extension = name.split('.').at(-1) ?? '';
-  return await serveImmutable(request, object, CONTENT_TYPES[extension], { sha256, bytes }, LEGACY_CACHE_CONTROL);
+  const response = await serveImmutable(
+    request,
+    object,
+    CONTENT_TYPES[extension],
+    { sha256, bytes },
+    LEGACY_CACHE_CONTROL
+  );
+  return remembered(request, response, serving);
 }
 
 async function staticFile(request: Request, env: LegacyMediaEnv): Promise<Response> {
@@ -42,7 +69,11 @@ async function staticFile(request: Request, env: LegacyMediaEnv): Promise<Respon
 }
 
 /** Answers `/image` and `/web`, or returns null for any other path. */
-export async function handleLegacyMediaRequest(request: Request, env: LegacyMediaEnv): Promise<Response | null> {
+export async function handleLegacyMediaRequest(
+  request: Request,
+  env: LegacyMediaEnv,
+  serving: MediaServing = {}
+): Promise<Response | null> {
   const { pathname } = new URL(request.url);
   if (!LEGACY_NAMESPACES.some((namespace) => inNamespace(pathname, namespace))) {
     return null;
@@ -51,15 +82,15 @@ export async function handleLegacyMediaRequest(request: Request, env: LegacyMedi
     return jsonError(METHOD_NOT_ALLOWED);
   }
   const name = legacyVariant(pathname);
-  return (name ? await publishedVariant(request, env, name) : null) ?? (await staticFile(request, env));
+  return (name ? await publishedVariant(request, env, name, serving) : null) ?? (await staticFile(request, env));
 }
 
 /** A fetcher over the legacy media URLs for code that loads artwork by key, such as rulebook illustrations. */
-export function mediaFetcher(env: LegacyMediaEnv): Pick<Fetcher, 'fetch'> {
+export function mediaFetcher(env: LegacyMediaEnv, serving: MediaServing = {}): Pick<Fetcher, 'fetch'> {
   return {
     fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
       const request = new Request(input, init);
-      return (await handleLegacyMediaRequest(request, env)) ?? (await env.ASSETS.fetch(request));
+      return (await handleLegacyMediaRequest(request, env, serving)) ?? (await env.ASSETS.fetch(request));
     },
   } as Pick<Fetcher, 'fetch'>;
 }

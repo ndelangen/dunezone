@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { legacyVariant } from '../../src/shared/media/legacyVariant';
 import { mediaVariantKey } from './media';
 import { handleLegacyMediaRequest, mediaFetcher } from './media-legacy';
-import { memoryR2Bucket } from './test-helpers';
+import { memoryCache, memoryR2Bucket } from './test-helpers';
 
 const ORIGIN = 'https://dune.zone';
 const TIER_URL = '/image/texture/021-small.jpg';
@@ -43,8 +43,8 @@ function env(published: string[] = [], files: Record<string, string> = {}) {
   return { MEDIA_BUCKET: bucket, ASSETS: assets(files) };
 }
 
-async function answer(path: string, environment: ReturnType<typeof env>, init: RequestInit = {}) {
-  const response = await handleLegacyMediaRequest(new Request(`${ORIGIN}${path}`, init), environment);
+async function answer(path: string, environment: ReturnType<typeof env>, init: RequestInit = {}, serving = {}) {
+  const response = await handleLegacyMediaRequest(new Request(`${ORIGIN}${path}`, init), environment, serving);
   if (!response) {
     throw new Error(`${path} was not answered`);
   }
@@ -63,6 +63,25 @@ describe('legacy media URLs', () => {
     expect(response.headers.get('X-Media-SHA256')).toBe(SHA256);
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytesFor(TIER_URL));
     expect(environment.ASSETS.requested).toEqual([]);
+  });
+
+  test('keep an answer from R2 at the edge for its hour, and leave static files to the edge itself', async () => {
+    const cache = memoryCache();
+    const environment = env([TIER_URL], { '/web/logo.svg': 'image/svg+xml' });
+
+    const first = await answer(TIER_URL, environment, {}, cache.serving);
+    expect(new Uint8Array(await first.arrayBuffer())).toEqual(bytesFor(TIER_URL));
+    await answer('/web/logo.svg', environment, {}, cache.serving);
+    await cache.settle();
+    expect([...cache.stored.keys()]).toEqual([`${ORIGIN}${TIER_URL}`]);
+
+    environment.MEDIA_BUCKET.objects.clear();
+    const again = await answer(TIER_URL, environment, {}, cache.serving);
+    expect(again.status).toBe(200);
+    expect(again.headers.get('Cache-Control')).toBe('public, max-age=3600');
+    expect(again.headers.get('X-Media-SHA256')).toBe(SHA256);
+    expect(new Uint8Array(await again.arrayBuffer())).toEqual(bytesFor(TIER_URL));
+    expect(environment.ASSETS.requested).toEqual(['/web/logo.svg']);
   });
 
   test('serve a canonical URL from the capped re-encode', async () => {

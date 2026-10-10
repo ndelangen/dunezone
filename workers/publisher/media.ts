@@ -12,9 +12,20 @@
  *
  * A name R2 lacks is served from the release's own `m/` static files when the release bundles it, as local and CI Workers do with empty buckets (#1888 step 5).
  * Such a response carries no integrity headers, so the deploy's parity check still fails for a variant that was never published.
+ *
+ * A variant read from R2 is kept in the edge cache.
+ * The bundled copy is not, since only local and CI Workers ever serve it.
  */
-import { METHOD_NOT_ALLOWED, NOT_FOUND, inNamespace, jsonError, serveImmutable } from './media-response';
-import type { Refusal } from './media-response';
+import {
+  METHOD_NOT_ALLOWED,
+  NOT_FOUND,
+  cachedResponse,
+  inNamespace,
+  jsonError,
+  remembered,
+  serveImmutable,
+} from './media-response';
+import type { MediaServing, Refusal } from './media-response';
 import { authorizeBearer, readBounded, sha256Hex } from './media-upload';
 
 const MEDIA_VARIANT_NAMESPACE = '/m';
@@ -46,7 +57,17 @@ export function mediaVariantKey(name: string): string {
   return `v/${name}`;
 }
 
-async function serveVariant(request: Request, env: MediaVariantEnv, name: string, extension: string) {
+async function serveVariant(
+  request: Request,
+  env: MediaVariantEnv,
+  name: string,
+  extension: string,
+  serving: MediaServing
+) {
+  const cached = await cachedResponse(request, serving);
+  if (cached) {
+    return cached;
+  }
   const object = await env.MEDIA_BUCKET.get(mediaVariantKey(name));
   if (!object) {
     return (await bundledVariant(request, env, name, extension)) ?? jsonError(NOT_FOUND);
@@ -57,7 +78,11 @@ async function serveVariant(request: Request, env: MediaVariantEnv, name: string
     console.error(JSON.stringify({ event: 'media_variant_unverifiable', key: name }));
     return jsonError({ status: 502, message: 'The stored variant has no integrity metadata' });
   }
-  return await serveImmutable(request, object, CONTENT_TYPES[extension], { sha256, bytes });
+  return remembered(
+    request,
+    await serveImmutable(request, object, CONTENT_TYPES[extension], { sha256, bytes }),
+    serving
+  );
 }
 
 /** The release's static copy of a variant, or null when it bundles none: the SPA fallback answers HTML, never the image type. */
@@ -136,7 +161,11 @@ async function publishVariant(request: Request, env: MediaVariantEnv, name: stri
 }
 
 /** Answers the `/m` namespace, or returns null for any other path. */
-export async function handleMediaVariantRequest(request: Request, env: MediaVariantEnv): Promise<Response | null> {
+export async function handleMediaVariantRequest(
+  request: Request,
+  env: MediaVariantEnv,
+  serving: MediaServing = {}
+): Promise<Response | null> {
   const url = new URL(request.url);
   if (!inNamespace(url.pathname, MEDIA_VARIANT_NAMESPACE)) {
     return null;
@@ -146,7 +175,7 @@ export async function handleMediaVariantRequest(request: Request, env: MediaVari
     return jsonError(NOT_FOUND);
   }
   if (request.method === 'GET' || request.method === 'HEAD') {
-    return await serveVariant(request, env, match[1], match[2]);
+    return await serveVariant(request, env, match[1], match[2], serving);
   }
   if (request.method === 'PUT') {
     return await publishVariant(request, env, match[1], match[2]);

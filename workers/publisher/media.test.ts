@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest';
 
 import { MEDIA_VARIANT_MAX_BYTES, handleMediaVariantRequest, mediaVariantKey } from './media';
 import type { MediaVariantEnv } from './media';
-import { memoryR2Bucket, pngBytes } from './test-helpers';
+import { memoryCache, memoryR2Bucket, pngBytes } from './test-helpers';
 
 const ORIGIN = 'https://dune.zone';
 const NAME = '0123456789abcdef0123.abcdef0123.webp';
@@ -31,8 +31,13 @@ function publish(body: Uint8Array, token: string | null = TOKEN): RequestInit {
   return { method: 'PUT', body, headers: token === null ? {} : { Authorization: `Bearer ${token}` } };
 }
 
-async function answer(path: string, init: RequestInit = {}, env: MediaVariantEnv = stored()): Promise<Response> {
-  const response = await handleMediaVariantRequest(new Request(`${ORIGIN}${path}`, init), env);
+async function answer(
+  path: string,
+  init: RequestInit = {},
+  env: MediaVariantEnv = stored(),
+  serving = {}
+): Promise<Response> {
+  const response = await handleMediaVariantRequest(new Request(`${ORIGIN}${path}`, init), env, serving);
   if (!response) {
     throw new Error(`${path} was not answered`);
   }
@@ -95,6 +100,63 @@ describe('media variants', () => {
     const spaFallback = await answer('/m/ffffffffffffffffffff.ffffffffff.webp', {}, env);
     expect(spaFallback.status).toBe(404);
     expect(spaFallback.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  test('keeps a served variant at the edge, and answers the next GET, HEAD and revalidation from there', async () => {
+    const cache = memoryCache();
+    const env = stored();
+
+    const first = await answer(`/m/${NAME}`, {}, env, cache.serving);
+    expect(new Uint8Array(await first.arrayBuffer())).toEqual(BYTES);
+    await cache.settle();
+    expect([...cache.stored.keys()]).toEqual([`${ORIGIN}/m/${NAME}`]);
+
+    env.MEDIA_BUCKET.objects.clear();
+    const again = await answer(`/m/${NAME}`, {}, env, cache.serving);
+    expect(again.status).toBe(200);
+    expect(again.headers.get('X-Media-SHA256')).toBe(SHA256);
+    expect(again.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+    expect(new Uint8Array(await again.arrayBuffer())).toEqual(BYTES);
+
+    const head = await answer(`/m/${NAME}`, { method: 'HEAD' }, env, cache.serving);
+    expect(head.status).toBe(200);
+    expect(head.headers.get('X-Media-Bytes')).toBe(String(BYTES.byteLength));
+    expect(await head.text()).toBe('');
+
+    const revalidated = await answer(
+      `/m/${NAME}`,
+      { headers: { 'If-None-Match': first.headers.get('ETag')! } },
+      env,
+      cache.serving
+    );
+    expect(revalidated.status).toBe(304);
+    expect(revalidated.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+  });
+
+  test('never caches a HEAD, a refusal or the bundled static copy, and serves on when the cache fails', async () => {
+    const cache = memoryCache();
+    const assets = { fetch: async () => new Response(BYTES, { headers: { 'Content-Type': 'image/webp' } }) };
+    const bundled = { ...empty(), ASSETS: assets as unknown as Fetcher };
+
+    expect((await answer(`/m/${NAME}`, { method: 'HEAD' }, stored(), cache.serving)).status).toBe(200);
+    expect((await answer('/m/ffffffffffffffffffff.ffffffffff.webp', {}, stored(), cache.serving)).status).toBe(404);
+    expect((await answer(`/m/${NAME}`, {}, bundled, cache.serving)).status).toBe(200);
+    await cache.settle();
+    expect(cache.stored.size).toBe(0);
+
+    const broken = {
+      cache: {
+        match: async () => {
+          throw new Error('cache down');
+        },
+        put: async () => {
+          throw new Error('cache down');
+        },
+      },
+    };
+    const served = await answer(`/m/${NAME}`, {}, stored(), broken);
+    expect(served.status).toBe(200);
+    expect(new Uint8Array(await served.arrayBuffer())).toEqual(BYTES);
   });
 
   test('refuses a variant stored without integrity metadata rather than serving it unverifiable', async () => {

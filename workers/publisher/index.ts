@@ -124,18 +124,18 @@ const publisherWorker = {
       publicBaseUrl: env.PUBLIC_BASE_URL,
       rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
       rulebookIllustrationClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
-      illustrationAssets: mediaFetcher(env),
+      illustrationAssets: mediaFetcher(env, { ctx }),
       rulebookPdfClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
       componentClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
     });
     if (publicAsset) {
       return publicAsset;
     }
-    const mediaVariant = await handleMediaVariantRequest(request, env);
+    const mediaVariant = await handleMediaVariantRequest(request, env, { ctx });
     if (mediaVariant) {
       return mediaVariant;
     }
-    const legacyMedia = await handleLegacyMediaRequest(request, env);
+    const legacyMedia = await handleLegacyMediaRequest(request, env, { ctx });
     if (legacyMedia) {
       return legacyMedia;
     }
