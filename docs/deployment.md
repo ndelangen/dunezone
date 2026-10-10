@@ -397,8 +397,13 @@ deploying. In every other case the `deploy` job runs:
 9. Dry-run both Worker releases with their exact checked-in configurations.
 10. Deploy the private game Worker first. Require its exact tagged version to be active, then verify
     its bound SQLite namespace, configuration and lack of public ingress before deploying the publisher.
-11. Wait for Cloudflare's control plane to report the publisher's tagged version as the active
-    deployment, reading the deployments list every ten seconds for up to twenty minutes,
+11. Publish the release's raster variants before it goes live (#1888). The job mints a one-off
+    `MEDIA_PUBLISH_TOKEN`, drops the raster copies from the release (`publisher:omit-static-rasters`),
+    installs the token on the live publisher Worker and runs `bun run media:publish`, which uploads the
+    variants R2 lacks to `/m` and HEADs every variant the release names. A failure here leaves the
+    previous release serving; see [Media runbooks](./technical/media-runbooks.md).
+12. Deploy the publisher, then wait for Cloudflare's control plane to report its tagged version as
+    the active deployment, reading the deployments list every ten seconds for up to twenty minutes,
     then smoke the workers.dev and `dune.zone` health endpoints. The game health request goes through
     `https://dune.zone/__play/health` and must report the merged SHA, matching tag and control-plane
     version ID with `Cache-Control: no-store`. The publisher's service binding can reach the previous
@@ -406,13 +411,17 @@ deploying. In every other case the `deploy` job runs:
     reads the endpoint up to twelve times, five seconds apart, and fails only when the last read is
     still wrong. The complete deploy job allows 120 minutes for both bounded active-version gates,
     migrations and release work.
-12. Build and verify the secret-free Storybook artifact, deploy it to `storybook.dune.zone`, and
+13. Build and verify the secret-free Storybook artifact, deploy it to `storybook.dune.zone`, and
     smoke its manager, page index, preview entry, CSP, and shared public assets.
-13. Read the stored Renderer revisions. If any checked-in revision is higher,
+14. Read the stored Renderer revisions. If any checked-in revision is higher,
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
-14. Set Convex Auth `SITE_URL` to `https://dune.zone`.
-15. A follow-on `dev_rebuild` job (`needs: [release_gate, deploy]`) pushes main's functions to the
+15. Set Convex Auth `SITE_URL` to `https://dune.zone`.
+16. Verify the published variants and mark the release deployed in the media ledger
+    (`media:publish --verify`, then `--deployed`). The verify downloads only the entries the
+    `media-verified-*` Actions cache has not already proved, plus a random sample; `--verify --all`
+    or deleting that cache forces a full check.
+17. A follow-on `dev_rebuild` job (`needs: [release_gate, deploy]`) pushes main's functions to the
     dev deployment, and when the data needs rebuilding, reloads it from a fresh anonymised snapshot,
     never from raw production; see [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml) and
     [Anonymised snapshot](#anonymised-snapshot). It measures its change range from the release
@@ -647,19 +656,24 @@ After each production deploy:
 
 ## Generated images
 
-`public/image/**` and `public/web/**` are generated in CI from `media/**` by
-`scripts/generate-images.ts`, apart from the committed files named in
-`COMMITTED_WEB_FILES` (see `src/shared/assetRules.ts` for that list and for the
-per-category rules). CI restores the generated tree from a cache keyed on
-exactly what the generator reads: the git tree hash of `media/image`, the
-`media/web` rasters, the rules, the generator and the versions sharp reports.
-Vectors and the rest of `bun.lock` stay out of that key. Most jobs check out
-without `media/image` (#1923) and only widen the checkout to it on a cache miss;
-`test`, `generate_and_build` and `publisher_release` keep the full tree because
-they read the originals. CI verifies the generated tree structurally
-(`bun run verify:images`) without ever re-encoding to compare bytes; in a sparse
-job the tier widths, the one check that needs the original bytes, are left to
-the full jobs. The
+`public/m/**`, `public/image/**` and `public/web/**` are generated from the raster originals by
+`scripts/generate-images.ts`, apart from the committed files named in `COMMITTED_WEB_FILES` (see
+`src/shared/assetRules.ts` for that list and for the per-category rules). The originals are not in
+git (#1888): `media/raster.lock.json` records each by SHA-256, and R2 holds the bytes behind
+`/__media/src/<sha256>`. Every encoded variant is content-addressed as
+`<src20>.<recipe10>.<ext>` in the variant store `.cache/media/local`.
+
+CI restores that store from the Actions cache (`media-variants-<encoder>-*`), keyed on the lock, the
+rules, the generator, `scripts/media-variants.ts` and the versions sharp reports; vectors and the
+rest of `bun.lock` stay out of that key. A miss restores the closest earlier store. The generator
+then downloads any missing variant from `https://dune.zone/m/` (`MEDIA_FILL_ORIGIN`), keeping it only
+when it matches its integrity headers, and encodes only what is still missing, fetching that
+original from R2 and checking it against the lock. Most jobs leave `media/image` out of their
+checkout (#1923); `test`, `generate_and_build` and `publisher_release` check out the whole tree,
+which now holds only provenance notes there. CI verifies the generated tree structurally
+(`bun run verify:images`) without re-encoding to compare bytes. A PR that adds an original to the
+lock must have uploaded it first with `bun run media:sync`; the blocking `media:gate` step fails
+otherwise. The
 renderer identity in `workers/publisher/renderer-manifest.generated.ts` (schema
 v2) hashes those same ingredients plus the capture code and PDF contract, with
 per-component digests so a deploy log can attribute an identity change to
