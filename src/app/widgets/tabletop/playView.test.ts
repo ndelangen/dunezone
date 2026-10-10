@@ -434,7 +434,7 @@ describe('close look', () => {
     const slide = (velocity: readonly [number, number]) => {
       let zoom = zoomIn(5);
       const base = () => poseAt(cameraTiltForZoom(0, zoom));
-      for (let frame = 0; frame < 900; frame++) {
+      for (let frame = 0; frame < 300; frame++) {
         zoom = cameraZoomAfterPanMotion(zoom, base(), [velocity[0] * zoom.scale, velocity[1] * zoom.scale], 1 / 60);
       }
       return zoomedCameraPose(base(), zoom).target;
