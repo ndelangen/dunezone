@@ -170,6 +170,10 @@ async function verifyHeaders(workerPath: string) {
   const worker = await fetch(`${origin}${workerPath}`);
   invariant(worker.status === 200, `${workerPath} returned HTTP ${worker.status}.`);
   assertWorkerCsp(worker.headers.get('Content-Security-Policy'));
+  /* Rasters come from the application Worker, which marks every R2 answer with its SHA-256; a static copy carries no such header. */
+  const raster = await fetch(`${origin}/image/texture/054.jpg`);
+  invariant(raster.status === 200, `/image/texture/054.jpg returned HTTP ${raster.status}.`);
+  invariant(raster.headers.has('X-Media-SHA256'), 'The Storybook Worker answered a raster from a static copy.');
 }
 
 async function verifyCoverStories(page: Page) {

@@ -1,0 +1,4 @@
+# The Storybook Worker answers these from https://dune.zone (workers/storybook/index.ts), so the build's copies of public/ rasters are not uploaded.
+/m
+/image
+/web
