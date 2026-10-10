@@ -60,6 +60,9 @@ function Coin({ ally, index, base }: { ally: TablePiece | null; index: number; b
 
 /** Under every faction's token, a coin in each ally's colour, or in the board rim's colour for a faction standing alone, so each seat shows at a glance who it is allied with. */
 export function AllianceCoinsScene({ table }: { table: TableProjection }) {
+  if (table.snapshot.stage !== 'play') {
+    return null;
+  }
   const alliances = table.snapshot.alliances;
   const token = (factionId: string) =>
     table.state.pieces.find((piece) => piece.stackKey === factionTokenStackKey(factionId));

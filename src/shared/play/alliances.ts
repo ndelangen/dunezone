@@ -51,8 +51,11 @@ export type AllianceContext = {
   now: number;
 };
 
-/** Joins the alliances of `a` and `b`, dropping the offers the new alliance answered among its own members. */
-function join(state: AllianceState, a: string, b: string): AllianceState {
+/* Who offered whom: the pair an offer, an answer or a withdrawal is about. */
+type Pair = Readonly<{ from: string; to: string }>;
+
+/** Joins the alliances of the two factions, dropping the offers the new alliance answered among its own members. */
+function join(state: AllianceState, { from: a, to: b }: Pair): AllianceState {
   const members = [a, ...alliesOf(state, a), b, ...alliesOf(state, b)];
   return {
     groups: [...state.groups.filter((group) => !group.includes(a) && !group.includes(b)), members],
@@ -60,7 +63,7 @@ function join(state: AllianceState, a: string, b: string): AllianceState {
   };
 }
 
-function without(state: AllianceState, from: string, to: string): AllianceState {
+function without(state: AllianceState, { from, to }: Pair): AllianceState {
   return { ...state, offers: state.offers.filter((offer) => offer.from !== from || offer.to !== to) };
 }
 
@@ -73,7 +76,7 @@ function offer(state: AllianceState, to: string, { factionId, factions, now }: A
   }
   /* Offering to a faction that already offered to you answers its offer. */
   if (state.offers.some((entry) => entry.from === to && entry.to === factionId)) {
-    return join(state, to, factionId);
+    return join(state, { from: to, to: factionId });
   }
   if (state.offers.some((entry) => entry.from === factionId && entry.to === to)) {
     return state;
@@ -82,10 +85,11 @@ function offer(state: AllianceState, to: string, { factionId, factions, now }: A
 }
 
 function answer(state: AllianceState, from: string, accept: boolean, { factionId }: AllianceContext) {
+  const pair = { from, to: factionId };
   if (!state.offers.some((entry) => entry.from === from && entry.to === factionId)) {
     return refuse('That alliance offer was withdrawn.');
   }
-  return accept ? join(state, from, factionId) : without(state, from, factionId);
+  return accept ? join(state, pair) : without(state, pair);
 }
 
 /** Breaking an alliance takes the faction out of it; an alliance left with one faction is over. */
@@ -107,7 +111,7 @@ export function applyAlliance(state: AllianceState, action: AllianceAction, cont
     case 'alliance-offer':
       return offer(state, action.factionId, context);
     case 'alliance-withdraw':
-      return without(state, context.factionId, action.factionId);
+      return without(state, { from: context.factionId, to: action.factionId });
     case 'alliance-accept':
       return answer(state, action.factionId, true, context);
     case 'alliance-decline':

@@ -721,6 +721,26 @@ function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   );
 }
 
+/* The Alliances tab, only while the game is in play. */
+function alliancesTab({ client, table, error }: ConnectionControlsProps) {
+  if (table.snapshot.stage !== 'play') {
+    return [];
+  }
+  return [
+    {
+      key: 'alliances',
+      label: 'Alliances',
+      topic: 'alliance' as const,
+      content: (
+        <>
+          {error && <FormError title="From the table">{error}</FormError>}
+          <AlliancesPanel client={client} table={table} />
+        </>
+      ),
+    },
+  ];
+}
+
 function ConnectedTable({
   client,
   table,
@@ -785,7 +805,7 @@ function ConnectedTable({
             connectionStatus={
               <>
                 <ConnectionStatus table={table} />
-                {inPlay && <AllianceStrip table={table} />}
+                <AllianceStrip table={table} />
               </>
             }
             toolbarControl={
@@ -813,7 +833,7 @@ function ConnectedTable({
                     <BattleScene client={client} table={table} />
                     {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
                     {inPlay && <HandCountsScene table={table} />}
-                    {inPlay && <AllianceCoinsScene table={table} />}
+                    <AllianceCoinsScene table={table} />
                   </>
                 )}
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
@@ -822,7 +842,7 @@ function ConnectedTable({
             decisionBar={
               <Stack data-decision-bar gap="xs">
                 <ResultDecisionBar client={client} table={table} />
-                {inPlay && <AllianceDecisionBar client={client} table={table} />}
+                <AllianceDecisionBar client={client} table={table} />
                 <RemovalDecisionBar
                   votes={removalVotes}
                   onOpen={(vote) =>
@@ -943,21 +963,7 @@ function ConnectedTable({
                       topic: 'assets' as const,
                       content: <SharedInventory client={client} table={table} />,
                     },
-                    ...(inPlay && stage
-                      ? [
-                          {
-                            key: 'alliances',
-                            label: 'Alliances',
-                            topic: 'alliance' as const,
-                            content: (
-                              <>
-                                {error && <FormError title="From the table">{error}</FormError>}
-                                <AlliancesPanel client={client} table={table} />
-                              </>
-                            ),
-                          },
-                        ]
-                      : []),
+                    ...alliancesTab({ client, table, error }),
                     {
                       key: 'spice',
                       label: 'Spice',

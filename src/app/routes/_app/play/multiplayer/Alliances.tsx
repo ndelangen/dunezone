@@ -7,6 +7,7 @@ import { rosterSeat } from '@shared/play/schema';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { Surface } from '@ui/surface/Surface';
+import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { allianceThemeColor } from './allianceHues';
@@ -35,7 +36,7 @@ export function factionList(names: Readonly<Record<string, string>>, ids: readon
 export function AllianceDecisionBar({ client, table }: Props) {
   const own = viewerFaction(table);
   const offers = table.snapshot.alliances?.offers.filter((offer) => offer.to === own) ?? [];
-  if (!own || !offers.length) {
+  if (!own || !offers.length || table.snapshot.stage !== 'play') {
     return null;
   }
   const names = snapshotFactionLabels(table.snapshot);
@@ -101,63 +102,83 @@ function AllianceMark({ hue }: Readonly<{ hue: string | undefined }>) {
 
 type Row = Readonly<{ factionId: string; seat: string; player: string | null }>;
 
-/** What the viewer may do about one other faction: offer, accept or decline, or withdraw an offer. */
-function RowAction({ client, table, row }: Props & Readonly<{ row: Row }>) {
-  const own = viewerFaction(table);
-  const alliances = table.snapshot.alliances;
-  const disabled = !table.canInteract;
-  if (!own) {
-    return null;
+/* How the viewer's faction stands with one faction at the table. */
+type Relation = 'own-allied' | 'own' | 'ally' | 'incoming' | 'outgoing' | 'none';
+
+function hasOffer(alliances: AllianceState | undefined, from: string | undefined, to: string | undefined) {
+  return alliances?.offers.some((offer) => offer.from === from && offer.to === to) ?? false;
+}
+
+function relationTo(alliances: AllianceState | undefined, own: string, factionId: string): Relation {
+  const allies = alliesOf(alliances, own);
+  if (factionId === own) {
+    return allies.length ? 'own-allied' : 'own';
   }
-  if (row.factionId === own) {
-    return alliesOf(alliances, own).length ? (
-      <Button
-        size="xs"
-        variant="default"
-        disabled={disabled}
-        onClick={() => client.command({ kind: 'alliance-break' })}
-      >
-        Break alliance
+  if (allies.includes(factionId)) {
+    return 'ally';
+  }
+  if (hasOffer(alliances, factionId, own)) {
+    return 'incoming';
+  }
+  return hasOffer(alliances, own, factionId) ? 'outgoing' : 'none';
+}
+
+type ActionProps = Readonly<{ disabled: boolean; send: (kind: AllianceCommandKind) => void }>;
+type AllianceCommandKind =
+  | 'alliance-offer'
+  | 'alliance-withdraw'
+  | 'alliance-accept'
+  | 'alliance-decline'
+  | 'alliance-break';
+
+const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
+  'own-allied': ({ disabled, send }) => (
+    <Button size="xs" variant="default" disabled={disabled} onClick={() => send('alliance-break')}>
+      Break alliance
+    </Button>
+  ),
+  own: () => (
+    <Text size="sm" c="dimmed">
+      Your faction
+    </Text>
+  ),
+  ally: () => (
+    <Text size="sm" c="dimmed">
+      Your ally
+    </Text>
+  ),
+  incoming: ({ disabled, send }) => (
+    <Group gap="xs" wrap="nowrap">
+      <Button size="xs" disabled={disabled} onClick={() => send('alliance-accept')}>
+        Accept
       </Button>
-    ) : (
-      <Text size="sm" c="dimmed">
-        Your faction
-      </Text>
-    );
-  }
-  if (alliesOf(alliances, own).includes(row.factionId)) {
-    return (
-      <Text size="sm" c="dimmed">
-        Your ally
-      </Text>
-    );
-  }
-  const send = (kind: 'alliance-offer' | 'alliance-withdraw' | 'alliance-accept' | 'alliance-decline') =>
-    client.command({ kind, factionId: row.factionId });
-  if (alliances?.offers.some((offer) => offer.from === row.factionId && offer.to === own)) {
-    return (
-      <Group gap="xs" wrap="nowrap">
-        <Button size="xs" disabled={disabled} onClick={() => send('alliance-accept')}>
-          Accept
-        </Button>
-        <Button size="xs" variant="subtle" disabled={disabled} onClick={() => send('alliance-decline')}>
-          Decline
-        </Button>
-      </Group>
-    );
-  }
-  if (alliances?.offers.some((offer) => offer.from === own && offer.to === row.factionId)) {
-    return (
-      <Button size="xs" variant="subtle" disabled={disabled} onClick={() => send('alliance-withdraw')}>
-        Withdraw offer
+      <Button size="xs" variant="subtle" disabled={disabled} onClick={() => send('alliance-decline')}>
+        Decline
       </Button>
-    );
-  }
-  return (
+    </Group>
+  ),
+  outgoing: ({ disabled, send }) => (
+    <Button size="xs" variant="subtle" disabled={disabled} onClick={() => send('alliance-withdraw')}>
+      Withdraw offer
+    </Button>
+  ),
+  none: ({ disabled, send }) => (
     <Button size="xs" variant="default" disabled={disabled} onClick={() => send('alliance-offer')}>
       Offer alliance
     </Button>
-  );
+  ),
+};
+
+/* What the viewer may do about one faction: offer, accept or decline, withdraw an offer, or break their own alliance. */
+function RowAction({ client, table, row }: Props & Readonly<{ row: Row }>) {
+  const own = viewerFaction(table);
+  if (!own) {
+    return null;
+  }
+  const Action = ACTIONS[relationTo(table.snapshot.alliances, own, row.factionId)];
+  const send = (kind: AllianceCommandKind) =>
+    client.command(kind === 'alliance-break' ? { kind } : { kind, factionId: row.factionId });
+  return <Action disabled={!table.canInteract} send={send} />;
 }
 
 function rowStatus(
@@ -166,13 +187,13 @@ function rowStatus(
   own: string | undefined,
   names: Readonly<Record<string, string>>
 ) {
-  const allies = alliesOf(alliances, row.factionId);
-  if (alliances?.offers.some((offer) => offer.from === row.factionId && offer.to === own)) {
+  if (hasOffer(alliances, row.factionId, own)) {
     return 'Offers you an alliance';
   }
-  if (alliances?.offers.some((offer) => offer.from === own && offer.to === row.factionId)) {
+  if (hasOffer(alliances, own, row.factionId)) {
     return 'Your offer is waiting';
   }
+  const allies = alliesOf(alliances, row.factionId);
   return allies.length ? `Allied with ${factionList(names, allies)}` : 'No alliance';
 }
 
