@@ -113,6 +113,11 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
 }
 
 /* A seat reads by the faction it carries; a seat with no faction yet, or a spectator, by what it is. */
+/** Where the game stands, with the last turn its wheel counts up to. */
+function gameProgress(snapshot: TableProjection['snapshot']) {
+  return { ...tableProgressFor(snapshot.phase, snapshot.phases), lastTurn: lastTurnOf(snapshot) };
+}
+
 function seatLabel(table: TableProjection): string {
   const seat = table.viewer.viewerSeat;
   if (seat === SPECTATOR_SEAT) {
@@ -732,10 +737,7 @@ function ConnectedTable({
   error: string | null;
   connection: string;
 }>) {
-  const progress = {
-    ...tableProgressFor(table.snapshot.phase, table.snapshot.phases),
-    lastTurn: lastTurnOf(table.snapshot),
-  };
+  const progress = gameProgress(table.snapshot);
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);

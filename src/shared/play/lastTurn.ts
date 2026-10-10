@@ -14,3 +14,8 @@ export type LastTurnAction = z.infer<typeof lastTurnActionSchema>;
 export function lastTurnOf(snapshot: Readonly<{ lastTurn?: number }>): number {
   return snapshot.lastTurn ?? DEFAULT_LAST_TURN;
 }
+
+/** The top bar's "Turn 4 of 6"; past the last turn the table plays on, so the count drops its "of". */
+export function turnCaption(turn: number, lastTurn = DEFAULT_LAST_TURN): string {
+  return turn <= lastTurn ? `Turn ${turn} of ${lastTurn}` : `Turn ${turn}`;
+}

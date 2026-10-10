@@ -1,5 +1,5 @@
 import { Button, Group, Stack, Text } from '@mantine/core';
-import { DEFAULT_LAST_TURN } from '@shared/play/lastTurn';
+import { turnCaption } from '@shared/play/lastTurn';
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
 import { standardPhaseOf } from '@shared/play/phases';
@@ -98,11 +98,6 @@ type GameTableProps = {
   /* A view the host asks for after something the viewer did lands out of frame; each new revision moves the camera once. */
   requestedView?: Readonly<{ view: TableView; revision: number }>;
 };
-
-/** "Turn 4 of 6"; past the last turn the table plays on, so the count drops its "of". */
-function turnCaption({ turn, lastTurn = DEFAULT_LAST_TURN }: TableProgress) {
-  return turn <= lastTurn ? `Turn ${turn} of ${lastTurn}` : `Turn ${turn}`;
-}
 
 function flippableSelection(piece: TablePiece | null) {
   if (!piece) {
@@ -655,7 +650,7 @@ export function GameTable({
                     </div>
                   ) : (
                     <div className="seated-phase-status__copy">
-                      <span>{turnCaption(tableProgress)}</span>
+                      <span>{turnCaption(tableProgress.turn, tableProgress.lastTurn)}</span>
                       <strong>{activePhase?.label ?? 'No active phase'}</strong>
                     </div>
                   ))}
