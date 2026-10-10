@@ -253,7 +253,7 @@ export class ConversationSession {
     return true;
   };
 
-  /** Whether this faction may write to `peerId`: another seated faction, the table, or a group it belongs to. */
+  /** Whether this faction may write to `peerId`: another seated faction, or the table. */
   reaches(peerId: string) {
     const { factionId, peers } = this.context ?? { factionId: '', peers: [] };
     return Boolean(conversationMembers(factionId, peerId, [factionId, ...peers.map((peer) => peer.id)]));

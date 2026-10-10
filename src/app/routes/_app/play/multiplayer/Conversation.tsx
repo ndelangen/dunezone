@@ -1,5 +1,5 @@
 import { Badge, Button, Group, Select, Stack, Text, Textarea, VisuallyHidden } from '@mantine/core';
-import { isChannel } from '@shared/play/conversations';
+import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -48,9 +48,9 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
               key={message.sequence}
               message={message}
               factionId={view.context?.factionId}
-              /* Several factions write in a channel, so each message also names its writer's faction. */
+              /* Every faction writes at the table, so each message there also names its writer's faction. */
               faction={
-                isChannel(peerId)
+                peerId === TABLE_CONVERSATION
                   ? view.context?.peers.find((peer) => peer.id === message.senderFactionId)?.name
                   : undefined
               }

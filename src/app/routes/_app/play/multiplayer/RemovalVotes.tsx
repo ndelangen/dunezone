@@ -1,5 +1,5 @@
 import { Avatar, Button, Group, Indicator, Stack, Text } from '@mantine/core';
-import { groupConversationId, isChannel } from '@shared/play/conversations';
+import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
@@ -10,10 +10,9 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { NestedTabs } from '@ui/surface/NestedTabs';
 import { Surface } from '@ui/surface/Surface';
 import { MessageCircle } from 'lucide-react';
-import { useState, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { channelItems, channelName, NEW_GROUP, NewGroup } from './Channels';
 import { Conversation } from './Conversation';
 import { SwappingSeat } from './Swapping';
 import { useServerNow } from './useServerNow';
@@ -138,8 +137,6 @@ export function PlayerPanel({
     error: string | null;
   }>) {
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  /* Groups this player started this session; one appears for its other members once someone writes in it. */
-  const [started, setStarted] = useState<string[]>([]);
   const occupants = table.snapshot.controls?.players ?? [];
   const players = (
     table.snapshot.roster?.seats.map(
@@ -193,47 +190,42 @@ export function PlayerPanel({
       />
     );
   });
-  const context = conversations.context;
-  const channel = context && selected && (isChannel(selected) || selected === NEW_GROUP) ? selected : null;
-  const peerId = channel ?? rosterSeat(table.snapshot.roster, player.seat)?.faction?.id;
-  const canConverse = peerId && (channel || context?.peers.some((peer) => peer.id === peerId));
+  const peerId = rosterSeat(table.snapshot.roster, player.seat)?.faction?.id;
+  const canConverse = peerId && conversations.context?.peers.some((peer) => peer.id === peerId);
   const activeTab = canConverse ? selectedTab : 'public';
-  const tokens = Object.fromEntries(
-    players.flatMap((entry) => {
-      const faction = rosterSeat(table.snapshot.roster, entry.seat)?.faction?.id;
-      return faction ? [[faction, table.snapshot.swapping?.tokens[entry.seat] ?? entry.avatar]] : [];
-    })
-  );
-  if (channel && context) {
+  const tableItem =
+    conversations.context &&
+    tableConversationItem(
+      conversations.summaries.find((entry) => entry.peerId === TABLE_CONVERSATION)?.unread ?? 0,
+      () => onSelect(TABLE_CONVERSATION, 'conversation')
+    );
+  if (selected === TABLE_CONVERSATION && conversations.context) {
     return (
-      <NestedTabs activePath={[channel, 'conversation']} ariaLabel="Players" className="seated-controls-tabs">
+      <NestedTabs
+        activePath={[TABLE_CONVERSATION, 'conversation']}
+        ariaLabel="Players"
+        className="seated-controls-tabs"
+      >
         <NestedTabs.Level label="Players">
-          {channelItems({ view: conversations, started, tokens, onSelect: (id) => onSelect(id, 'conversation') })}
+          {tableItem}
           {playerItems}
         </NestedTabs.Level>
-        <NestedTabs.Level label={channel === NEW_GROUP ? 'New group' : channelName(context, channel)}>
+        <NestedTabs.Level label="Table">
           <NestedTabs.Item
             as="button"
             type="button"
-            path={[channel, 'conversation']}
-            label={channel === NEW_GROUP ? 'Pick factions' : 'Conversation'}
+            path={[TABLE_CONVERSATION, 'conversation']}
+            label="Conversation"
             icon={<MessageCircle size={22} aria-hidden />}
-            onClick={() => onSelect(channel, 'conversation')}
+            onClick={() => onSelect(TABLE_CONVERSATION, 'conversation')}
           />
         </NestedTabs.Level>
         <NestedTabs.ContentPanel className="seated-controls-tab-content">
-          {channel === NEW_GROUP ? (
-            <NewGroup
-              peers={context.peers}
-              onStart={(members) => {
-                const id = groupConversationId([context.factionId, ...members]);
-                setStarted((previous) => [...previous, id]);
-                onSelect(id, 'conversation');
-              }}
-            />
-          ) : (
-            <Conversation key={`${context.factionId}:${channel}`} client={client} peerId={channel} />
-          )}
+          <Conversation
+            key={`${conversations.context.factionId}:${TABLE_CONVERSATION}`}
+            client={client}
+            peerId={TABLE_CONVERSATION}
+          />
         </NestedTabs.ContentPanel>
       </NestedTabs>
     );
@@ -241,7 +233,7 @@ export function PlayerPanel({
   return (
     <NestedTabs activePath={[player.seat, activeTab]} ariaLabel="Players" className="seated-controls-tabs">
       <NestedTabs.Level label="Players">
-        {channelItems({ view: conversations, started, tokens, onSelect: (id) => onSelect(id, 'conversation') })}
+        {tableItem}
         {playerItems}
       </NestedTabs.Level>
       <NestedTabs.Level label={player.name}>
@@ -286,6 +278,27 @@ export function PlayerPanel({
         )}
       </NestedTabs.ContentPanel>
     </NestedTabs>
+  );
+}
+
+/*
+ * The whole table's conversation, the board's own icon at the head of the players.
+ * It is an element rather than a component because the rail only sees items it is handed directly.
+ */
+function tableConversationItem(unread: number, onSelect: () => void) {
+  return (
+    <NestedTabs.Item
+      as="button"
+      type="button"
+      path={[TABLE_CONVERSATION]}
+      label={`Table${unread ? `, ${unread} unread` : ''}`}
+      icon={
+        <Indicator size={16} label={unread || undefined} disabled={!unread}>
+          <TopicIcon topic="board" size={26} />
+        </Indicator>
+      }
+      onClick={onSelect}
+    />
   );
 }
 

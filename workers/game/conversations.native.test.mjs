@@ -55,7 +55,7 @@ describe('Faction conversations in the game database', () => {
   const send = (player, factionId, peerId, text = 'Private plans', requestId) =>
     request(player, { type: 'conversation-send', factionId, peerId, text, requestId });
 
-  it('delivers table talk to every seated faction and never to an observer, and refuses a group with an unseated faction', async () => {
+  it('delivers table talk to every seated faction and never to an observer', async () => {
     const { a, b, aId, bId } = await setup();
     const observer = await admit('observer');
     const offset = b.messages.length;
@@ -69,8 +69,6 @@ describe('Faction conversations in the game database', () => {
     expect((await page(b, bId, '@table')).entries.map((entry) => entry.text)).toEqual(['Who is bidding?']);
     expect(observer.messages.filter((entry) => entry.type.startsWith('conversation'))).toEqual([]);
     expect((await page(observer, aId, '@table')).type).toBe('rejected');
-    const group = `@group.${[aId, bId, 'unseated'].sort().join('.')}`;
-    expect((await send(a, aId, group)).type).toBe('rejected');
   });
 
   it('opens at setup, saves once, retains every page through visits and cold restore, and stays out of public deliveries', async () => {

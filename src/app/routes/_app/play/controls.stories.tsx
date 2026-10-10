@@ -266,17 +266,8 @@ export const TableConversation = meta.story({
   globals: { motion: 'reduce' },
   beforeEach: install(() => productTransport('seat-2', playingSnapshot(), { conversationMessages: tableMessages() })),
   play: async ({ canvasElement }) => {
-    const page = await openPlayer(canvasElement, 'Whole table', 'Conversation');
+    const page = await openPlayer(canvasElement, 'Table', 'Conversation');
     await expect(page.findByText('Who is bidding on this one?', {}, WAIT)).resolves.toBeVisible();
-  },
-});
-
-/** Starting a group with two other factions, such as a three-way alliance. */
-export const NewGroupConversation = meta.story({
-  globals: { motion: 'reduce' },
-  beforeEach: install(() => productTransport('seat-2', playingSnapshot(), { conversationMessages: tableMessages() })),
-  play: async ({ canvasElement }) => {
-    await openPlayer(canvasElement, 'New group', 'Pick factions');
   },
 });
 

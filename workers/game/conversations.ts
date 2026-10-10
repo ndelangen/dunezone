@@ -1,9 +1,4 @@
-import {
-  conversationMembers,
-  conversationsAvailable,
-  isChannel,
-  TABLE_CONVERSATION,
-} from '../../src/shared/play/conversations';
+import { conversationMembers, conversationsAvailable, TABLE_CONVERSATION } from '../../src/shared/play/conversations';
 import type { ConversationMessage } from '../../src/shared/play/conversations';
 import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -22,9 +17,11 @@ type MessageRow = {
   saved_at: number;
   pair: string;
 };
-/* A channel is stored under its own id, which every member shares; a faction pair under both ids, sorted. */
+/* The table is stored under its own id, which every faction shares; a faction pair under both ids, sorted. */
 const pairKey = ({ factionId, peerId }: Pair) =>
-  isChannel(peerId) ? peerId : JSON.stringify([factionId, peerId].sort((a, b) => (a < b ? -1 : Number(a > b))));
+  peerId === TABLE_CONVERSATION
+    ? peerId
+    : JSON.stringify([factionId, peerId].sort((a, b) => (a < b ? -1 : Number(a > b))));
 const present = (row: MessageRow): ConversationMessage => ({
   sequence: row.sequence,
   requestId: row.request_id,
@@ -108,14 +105,9 @@ export class Conversations {
     return { entries: rows.slice(0, 50).reverse().map(present), more: rows.length > 50 };
   }
 
-  /** The faction's pairs and the table, always, and every group it belongs to once someone has written there. */
+  /** The faction's pairs, then the table. */
   summaries(faction: string, peers: string[]) {
-    const groups = this.storage.sql
-      .exec<{ pair: string }>("SELECT DISTINCT pair FROM conversation_messages WHERE pair LIKE '@group.%'")
-      .toArray()
-      .map(({ pair }) => pair)
-      .filter((pair) => conversationMembers(faction, pair, peers));
-    return [...peers.filter((peer) => peer !== faction), TABLE_CONVERSATION, ...groups].map((peerId) => {
+    return [...peers.filter((peer) => peer !== faction), TABLE_CONVERSATION].map((peerId) => {
       const pair = pairKey({ factionId: faction, peerId });
       const row = this.storage.sql
         .exec<{ latest: number; unread: number }>(
