@@ -53,6 +53,8 @@ export type TableState = z.infer<typeof durableTableSchema> & {
   factionNames: Readonly<Partial<Record<string, string>>>;
   /* What tells a faction apart when another seat's faction shares its name (#1667): its player, or its seat. Never stored. */
   factionTieBreaks?: Readonly<Partial<Record<string, string>>>;
+  /* How many Treachery cards each faction holds, by its id: public, shown beside its faction token. Never stored. */
+  handCounts?: Readonly<Partial<Record<string, number>>>;
   selectedPieceId: string | null;
   draftMove: DraftMove | null;
 };

@@ -230,3 +230,22 @@
   font-style: italic;
   font-weight: 700;
 }
+
+/* A faction's Treachery card count beside its token: always shown, since the size of a hand is public. */
+.handCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  padding: 0.2rem 0.42rem;
+  border: 1px solid rgba(246, 200, 121, 0.55);
+  border-radius: 999px;
+  color: #fff4df;
+  background: rgba(24, 14, 9, 0.88);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.28);
+  font-size: 0.7rem;
+  font-weight: 900;
+  line-height: 1;
+}

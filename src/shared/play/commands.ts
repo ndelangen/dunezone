@@ -23,6 +23,7 @@ function durableTable(table: TableState): DurableTable {
     viewerSeat: _viewer,
     viewerFaction: _faction,
     factionNames: _names,
+    handCounts: _handCounts,
     selectedPieceId: _selection,
     draftMove: _draft,
     ...durable
