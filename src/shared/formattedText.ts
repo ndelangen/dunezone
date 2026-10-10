@@ -225,8 +225,10 @@ function normalizeSourceLine(line: SourceLine): SourceLine {
     return { text: '- ', positions: positions.slice(0, 2), end: line.end };
   }
 
-  const trailingWhitespace = text.match(/[ \t]+$/u)?.[0].length ?? 0;
-  const retainedLength = text.length - trailingWhitespace;
+  let retainedLength = text.length;
+  while (retainedLength > 0 && (text[retainedLength - 1] === ' ' || text[retainedLength - 1] === '\t')) {
+    retainedLength -= 1;
+  }
   return {
     text: text.slice(0, retainedLength),
     positions: positions.slice(0, retainedLength),
