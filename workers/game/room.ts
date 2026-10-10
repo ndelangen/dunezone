@@ -3,10 +3,12 @@ import { randomInt } from 'node:crypto';
 import { tableHandlingOpen } from '../../src/shared/play/admission';
 import { isBattleAction } from '../../src/shared/play/battle';
 import { isBiddingAction } from '../../src/shared/play/bidding';
+import type { BiddingAction } from '../../src/shared/play/bidding';
 import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { DraftAction } from '../../src/shared/play/drafting';
 import { emptyPublicControls, isPublicAction } from '../../src/shared/play/inventory';
 import type { PublicAction, StoredControls, StoredSpawnContents } from '../../src/shared/play/inventory';
+import type { LastTurnAction } from '../../src/shared/play/lastTurn';
 import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
 import { seatSubject } from '../../src/shared/play/participation';
@@ -62,6 +64,10 @@ import type { StoredSnapshot } from './state';
 
 export type Identity = Viewer;
 /* The session routes the lifecycle families to their own modules; the room applies every other action. */
+type FactionSetting = BiddingAction | LastTurnAction;
+function isFactionSetting(action: { kind: string }): action is FactionSetting {
+  return action.kind === 'last-turn' || isBiddingAction(action);
+}
 type RoomAction = Exclude<PieceAction, SeatAction | RemovalAction | ResultAction | DraftAction | SwapAction>;
 type Carry = Identity & {
   id: string;
@@ -453,6 +459,14 @@ export class Room {
     }
   }
 
+  /** The bidder and the last turn: commands any seated faction sends that touch no piece. */
+  private factionSettingCommand(identity: Identity, action: FactionSetting, now: number): StoredSnapshot {
+    const factionId = this.requireFaction(identity);
+    return action.kind === 'last-turn'
+      ? lastTurnCommand(this.snapshot, action)
+      : biddingCommand(this.snapshot, factionId, action, now);
+  }
+
   private requireFaction(identity: Identity): string {
     const factionId = this.factionFor(identity.userId);
     if (!factionId) {
@@ -512,12 +526,8 @@ export class Room {
       }
       return next;
     }
-    if (isBiddingAction(action)) {
-      return biddingCommand(this.snapshot, this.requireFaction(identity), action, now);
-    }
-    if (action.kind === 'last-turn') {
-      this.requireFaction(identity);
-      return lastTurnCommand(this.snapshot, action);
+    if (isFactionSetting(action)) {
+      return this.factionSettingCommand(identity, action, now);
     }
     if (
       action.kind === 'reset' &&

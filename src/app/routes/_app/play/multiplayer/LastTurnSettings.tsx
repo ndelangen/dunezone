@@ -25,6 +25,9 @@ export function LastTurnSettings({ client, table }: Props) {
       setDraft(lastTurn);
     }
   }, [lastTurn]);
+  if (table.snapshot.stage !== 'play') {
+    return null;
+  }
   return (
     <Section title="Game length" description="The turn wheel counts up to the last turn.">
       <NumberInput

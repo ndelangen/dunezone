@@ -98,6 +98,11 @@ type GameTableProps = {
   requestedView?: Readonly<{ view: TableView; revision: number }>;
 };
 
+/** "Turn 4 of 6"; past the last turn the table plays on, so the count drops its "of". */
+function turnCaption({ turn, lastTurn }: TableProgress) {
+  return turn <= lastTurn ? `Turn ${turn} of ${lastTurn}` : `Turn ${turn}`;
+}
+
 function flippableSelection(piece: TablePiece | null) {
   if (!piece) {
     return null;
@@ -649,11 +654,7 @@ export function GameTable({
                     </div>
                   ) : (
                     <div className="seated-phase-status__copy">
-                      <span>
-                        {/* Past the last turn the table plays on, so the count drops its "of". */}
-                        Turn {tableProgress.turn}
-                        {tableProgress.turn <= tableProgress.lastTurn ? ` of ${tableProgress.lastTurn}` : null}
-                      </span>
+                      <span>{turnCaption(tableProgress)}</span>
                       <strong>{activePhase?.label ?? 'No active phase'}</strong>
                     </div>
                   ))}

@@ -993,7 +993,7 @@ function ConnectedTable({
                     <>
                       <DetermineWinner client={client} table={table} />
                       {stage === 'play' && <BidderSettings client={client} table={table} />}
-                      {stage === 'play' && <LastTurnSettings client={client} table={table} />}
+                      <LastTurnSettings client={client} table={table} />
                       <PlaybackControls client={client} table={table} />
                       {error && <FormError title="From the table">{error}</FormError>}
                       {stage === 'play' && (table.snapshot.battle || progress.activePhaseId === 'battle') && (
