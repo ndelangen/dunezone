@@ -194,7 +194,7 @@ jobs:
         shard: [play-table, play-flows, components, pages]
     permissions:
       contents: read
-      # prior-pass lists and downloads the records earlier runs uploaded.
+      # The story shard prior-pass step lists and downloads the records of earlier passes.
       actions: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -205,8 +205,8 @@ jobs:
             /*
             !/media/image/
           sparse-checkout-cone-mode: false
-      # Skips the checks below when an earlier run passed this job with the same inputs (scripts/lib/ci-job-inputs.ts).
-      - name: Reuse an earlier pass on the same inputs
+      # Skips the checks below when an earlier run passed the story shard on the same inputs (scripts/lib/ci-job-inputs.ts).
+      - name: Reuse an earlier story shard pass on the same inputs
         id: prior
         uses: ./.github/actions/prior-pass
         with:
@@ -484,14 +484,14 @@ jobs:
     if: ${{ !inputs.hosted_only }}
     permissions:
       contents: read
-      # prior-pass lists and downloads the records earlier runs uploaded.
+      # The publisher prior-pass step lists and downloads the records of earlier passes.
       actions: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      # Skips the checks below when an earlier run passed this job with the same inputs (scripts/lib/ci-job-inputs.ts).
-      - name: Reuse an earlier pass on the same inputs
+      # Skips the checks below when an earlier run passed the publisher on the same inputs (scripts/lib/ci-job-inputs.ts).
+      - name: Reuse an earlier publisher pass on the same inputs
         id: prior
         uses: ./.github/actions/prior-pass
         with:
@@ -574,7 +574,7 @@ jobs:
     if: ${{ !inputs.hosted_only }}
     permissions:
       contents: read
-      # prior-pass lists and downloads the records earlier runs uploaded.
+      # The game Worker prior-pass step lists and downloads the records of earlier passes.
       actions: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -585,8 +585,8 @@ jobs:
             /*
             !/media/image/
           sparse-checkout-cone-mode: false
-      # Skips the checks below when an earlier run passed this job with the same inputs (scripts/lib/ci-job-inputs.ts).
-      - name: Reuse an earlier pass on the same inputs
+      # Skips the checks below when an earlier run passed the game Worker on the same inputs (scripts/lib/ci-job-inputs.ts).
+      - name: Reuse an earlier game Worker pass on the same inputs
         id: prior
         uses: ./.github/actions/prior-pass
         with:
@@ -705,7 +705,7 @@ jobs:
         shard: [editor, factions, rulebooks]
     permissions:
       contents: read
-      # prior-pass lists and downloads the records earlier runs uploaded.
+      # The e2e shard prior-pass step lists and downloads the records of earlier passes.
       actions: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -716,8 +716,8 @@ jobs:
             /*
             !/media/image/
           sparse-checkout-cone-mode: false
-      # Skips the checks below when an earlier run passed this job with the same inputs (scripts/lib/ci-job-inputs.ts).
-      - name: Reuse an earlier pass on the same inputs
+      # Skips the checks below when an earlier run passed the e2e shard on the same inputs (scripts/lib/ci-job-inputs.ts).
+      - name: Reuse an earlier e2e shard pass on the same inputs
         id: prior
         uses: ./.github/actions/prior-pass
         with:
