@@ -28,7 +28,7 @@ export function factionSupplyLayout(angle: number, troopKinds: number) {
       polar(angle + ((index - (troopKinds - 1) / 2) * RESERVE_SPACING) / RESERVE_RADIUS, RESERVE_RADIUS)
     ),
     traitors: {
-      position: along(3.15),
+      position: along(2.95),
       orientation: Math.PI / 2 - angle,
     },
   };

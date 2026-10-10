@@ -16,6 +16,7 @@ import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { gameHttpClient } from './authorization';
+import { onCurrentBoard } from './boardLayout';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { Room } from './room';
@@ -62,7 +63,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     void ctx.blockConcurrencyWhile(() =>
       this.diagnostics.run('load', async () => {
         const saved = await ctx.storage.get<Saved>('table');
-        const parsed = saved && storedSnapshotSchema.safeParse(saved.snapshot);
+        const parsed = saved && storedSnapshotSchema.safeParse(onCurrentBoard(saved.snapshot));
         this.resetAt = saved?.resetAt ?? 0;
         this.room = new Room(parsed?.success ? parsed.data : homepageSnapshot(env.APPLICATION_ORIGIN), () => []);
         for (const socket of ctx.getWebSockets()) {

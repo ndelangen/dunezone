@@ -8,6 +8,7 @@ import {
   storedBattlePlanSchema,
   storedBattleResultSchema,
 } from '../../src/shared/play/battle';
+import { treacheryHandCounts } from '../../src/shared/play/handCounts';
 import { storedControlsSchema } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { DraftMove, StoredPiece, TableItem, TablePiece } from '../../src/shared/play/model';
@@ -18,6 +19,9 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { gameEndingSchema, gameResultSchema } from '../../src/shared/play/result';
 import { storedPieceSchema, storedTableSchema, tableCountSchema, tableIdSchema } from '../../src/shared/play/schema';
 import { predictionSchema, predictionChoiceSchema } from '../../src/shared/play/setup';
+
+/** The board layout a stored game's positions are laid out for; see boardLayout.ts. */
+export const BOARD_LAYOUT = 2;
 
 const storedBattleSchema = publicBattleSchema.omit({ revealed: true }).extend({
   plans: z.tuple([storedBattlePlanSchema.nullable(), storedBattlePlanSchema.nullable()]),
@@ -79,6 +83,8 @@ export const storedSnapshotSchema = gameSnapshotSchema
     /* Public card handles change independently of retained card identity. Never serialized. */
     cardHandles: z.record(tableIdSchema, tableIdSchema).default({}),
     pieceHandles: z.record(tableIdSchema, tableIdSchema).default({}),
+    /* The board size the stored positions were laid out for; every snapshot read through this schema is on the current one. */
+    boardLayout: z.literal(BOARD_LAYOUT).default(BOARD_LAYOUT),
   });
 export type StoredSnapshot = z.infer<typeof storedSnapshotSchema>;
 
@@ -318,6 +324,14 @@ export class RoomProjection {
               ),
             }
           : {}),
+        ...(roster
+          ? {
+              handCounts: treacheryHandCounts(
+                heldCards(snapshot),
+                roster.seats.flatMap(({ faction }) => (faction ? [faction.id] : []))
+              ),
+            }
+          : {}),
         ...(factionId ? { peek: this.peek(snapshot, factionId) } : {}),
         ...(snapshot.setup ? { setup: snapshot.setup } : {}),
         ...(snapshot.setup
@@ -367,6 +381,25 @@ export class RoomProjection {
     }
     return projected;
   }
+}
+
+/**
+ * Every faction's hand as its count must read: a card committed to a battle plan stays in the count until the reveal puts it on the table.
+ * So editing a secret plan never changes what opponents see (#2021).
+ */
+function heldCards(snapshot: StoredSnapshot): StoredSnapshot['factionInventories'] {
+  const battle = snapshot.battleState;
+  if (!battle || battle.stage === 'revealed') {
+    return snapshot.factionInventories;
+  }
+  const held = { ...snapshot.factionInventories };
+  battle.sides.forEach((side, index) => {
+    const pieces = battle.plans[index]?.pieces ?? [];
+    if (side && pieces.length) {
+      held[side.factionId] = [...(held[side.factionId] ?? []), ...pieces];
+    }
+  });
+  return held;
 }
 
 function publicActor({ seat, name }: { seat: string; name: string }) {

@@ -51,7 +51,7 @@ function StartAt({
               aria-label={`Start bidding at ${name}`}
               title={sittingOut ? `${name} is sitting out: its token is face down` : name}
               data-sitting-out={sittingOut || undefined}
-              disabled={!table.canInteract || sittingOut}
+              disabled={!table.canInteract || !table.snapshot.bank || sittingOut}
               onClick={() => client.command({ kind: 'bid-start', factionId })}
             >
               {artwork ? <FactionToken logo={artwork.logo} background={artwork.background} /> : name.slice(0, 2)}

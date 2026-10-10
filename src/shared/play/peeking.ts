@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { isFactionToken } from './factionToken';
 import type { TablePiece } from './model';
 import { tableIdSchema as id, tablePieceSchema } from './schema';
 
@@ -69,9 +70,11 @@ export function showsPeeker(
   return peekedItems(piece).every((item) => item.peekedBy?.includes(factionId));
 }
 
-/** Whether a piece has a hidden face to peek at: a face-down card anywhere in it, or a face-down token on top. */
-export function hasHiddenFace(piece: Pick<TablePiece, 'kind' | 'items'>): boolean {
-  return peekedItems(piece).some((item) => !item.faceUp);
+/** Whether a piece has a hidden face to peek at: a face-down card anywhere in it, or a face-down token on top; a faction's token shows its front on both sides. */
+export function hasHiddenFace(
+  piece: Pick<TablePiece, 'kind' | 'items'> & Partial<Pick<TablePiece, 'stackKey'>>
+): boolean {
+  return !isFactionToken(piece) && peekedItems(piece).some((item) => !item.faceUp);
 }
 
 /** The factions that peeked at any card or token of a piece, in the order they first did. */

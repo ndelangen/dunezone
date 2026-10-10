@@ -6,7 +6,7 @@ export const TABLE_SEAT_COUNTS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
 
 export const TABLE_SECTOR_COUNT = 18;
 const FIRST_TABLE_SEAT_SECTOR_INDEX = 13;
-export const PLAYER_RING_RADIUS = 4.69;
+export const PLAYER_RING_RADIUS = 4.39;
 export const PLAYER_STATION_RADIUS = 0.34;
 
 export type TableSeatCount = (typeof TABLE_SEAT_COUNTS)[number];

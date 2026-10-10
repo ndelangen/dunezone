@@ -60,7 +60,10 @@ export const RoutesAndSizing = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Routes (0)' }));
     await userEvent.click(await canvas.findByRole('button', { name: 'Add route' }));
     await userEvent.click(canvas.getByRole('button', { name: 'Add waypoint' }));
-    await userEvent.click(await canvas.findByRole('combobox', { name: 'Blocked segment' }));
+    /* Mantine hides a dropdown whose target is scrolled out of view, and this one sits below the sidebar's fold. */
+    const blockedSegment = await canvas.findByRole('combobox', { name: 'Blocked segment' });
+    blockedSegment.scrollIntoView({ block: 'center', behavior: 'instant' });
+    await userEvent.click(blockedSegment);
     await userEvent.click(await portal.findByRole('option', { name: 'Waypoint 1 to 2' }));
     expect(canvasElement.querySelectorAll('[data-route-segment]')).toHaveLength(2);
     expect(canvasElement.querySelectorAll('[data-route-segment][data-blocked]')).toHaveLength(1);

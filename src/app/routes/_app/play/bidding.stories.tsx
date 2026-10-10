@@ -114,3 +114,18 @@ export const BidderFaded = meta.story({
     await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-raise', round: 1 }));
   },
 });
+
+/* Every faction's Treachery card count, in storm order, in the left card bay's empty slot: the size of a hand is public. */
+export const HandCounts = meta.story({
+  beforeEach: install(() => {
+    const snapshot: GameSnapshot = playingSnapshot('seat-2');
+    snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === 'bidding');
+    const emperor = snapshot.table.pieces.find((piece) => piece.stackKey === 'faction-token:emperor');
+    if (emperor) {
+      emperor.items = emperor.items.map((item) => ({ ...item, faceUp: false }));
+    }
+    const factions = snapshot.roster?.seats.flatMap(({ faction }) => (faction ? [faction.id] : [])) ?? [];
+    snapshot.handCounts = Object.fromEntries(factions.map((id, index) => [id, [0, 1, 2, 4, 3, 8][index % 6]!]));
+    return productTransport('seat-2', snapshot);
+  }),
+});
