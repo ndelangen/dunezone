@@ -417,7 +417,8 @@ try {
       path.join(runtime, 'backend.sqlite3'),
     ],
     env: { ...environment, DATABASE_UDF_USER_TIMEOUT_SECONDS: String(LOCAL_FUNCTION_LIMIT_SECONDS) },
-    logPath: path.join(runtime, 'backend.log'),
+    /* Kept with the evidence: a function that passes the limit above names only itself in the browser's console, and this log shows what else the backend was running (#1045). Its instance secret and admin key are minted per run. */
+    logPath: path.join(evidence, 'backend.log'),
   });
   await ready(`${backendUrl}/version`, backend, 30_000);
   const localEnv = { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey };
