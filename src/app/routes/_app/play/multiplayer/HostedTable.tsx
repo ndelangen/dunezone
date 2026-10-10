@@ -31,20 +31,19 @@ import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
-import { BidderSettings } from './BidderSettings';
 import { BidderToolbar } from './BidderToolbar';
 import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, DraftingReadiness } from './Drafting';
 import { DetermineWinner, ResultDecisionBar } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
-import { LastTurnSettings } from './LastTurnSettings';
 import { LogEntries } from './Log';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
 import { SwappingReadiness } from './Swapping';
 import { SwapScene } from './SwapScene';
+import { TableSettings } from './TableSettings';
 import { ServerClockContext } from './useServerNow';
 import '../dune-play.css';
 
@@ -997,8 +996,7 @@ function ConnectedTable({
                   {stage === 'play' || stage === 'finished' ? (
                     <>
                       <DetermineWinner client={client} table={table} />
-                      {stage === 'play' && <BidderSettings client={client} table={table} />}
-                      <LastTurnSettings client={client} table={table} />
+                      <TableSettings client={client} table={table} />
                       <PlaybackControls client={client} table={table} />
                       {error && <FormError title="From the table">{error}</FormError>}
                       {stage === 'play' && (table.snapshot.battle || progress.activePhaseId === 'battle') && (
