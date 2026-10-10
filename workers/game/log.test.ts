@@ -154,4 +154,32 @@ describe('the public log', () => {
       'Harkonnen (seat 2) defeated Atreides.',
     ]);
   });
+
+  it('names who deleted a piece and what it showed, never a hidden face', () => {
+    const log = new PublicLog(memoryStorage(), () => 'Turn 1');
+    log.enabled = true;
+    const card = (id: string, faceUp: boolean) => ({
+      id,
+      label: 'Treachery card',
+      kind: 'card',
+      items: [
+        { id: `${id}-item`, faceUp, artwork: { back: 'https://x.test/b.png', name: 'Family Atomics', type: 't' } },
+      ],
+    });
+    const table = (...pieces: unknown[]) => ({ table: { pieces } }) as never;
+    const remove = (revision: number, pieceId: string, before: unknown[], after: unknown[]) =>
+      log.recordCommit({
+        holders: [],
+        before: snapshot(revision, table(...before)),
+        next: snapshot(revision + 1, table(...after)),
+        message: { type: 'command', action: { kind: 'delete', pieceId } } as never,
+        viewer: viewer as never,
+      });
+    remove(1, 'atomics', [card('atomics', true), card('hidden', false)], [card('hidden', false)]);
+    remove(2, 'hidden', [card('hidden', false)], []);
+    expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
+      'Alice deleted Treachery card from the game.',
+      'Alice deleted Family Atomics card from the game.',
+    ]);
+  });
 });

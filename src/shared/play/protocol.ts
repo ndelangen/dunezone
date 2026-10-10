@@ -131,6 +131,8 @@ const tableActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('flip'), pieceId: id }),
   z.strictObject({ kind: z.literal('lock'), pieceId: id }),
   z.strictObject({ kind: z.literal('rotate'), pieceId: id, direction }),
+  /* Takes a card, token or stack out of the game for good. */
+  z.strictObject({ kind: z.literal('delete'), pieceId: id }),
   z.strictObject({ kind: z.literal('storm'), direction }),
   z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
   z.strictObject({ kind: z.literal('turn'), turn: count.min(1) }),

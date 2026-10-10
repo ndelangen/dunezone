@@ -1,3 +1,4 @@
+import { deletedName } from '../../src/shared/play/commands';
 import { factionTitleText, rosterFactionTitles } from '../../src/shared/play/factionLabels';
 import { LOG_CLASS_TABS, LOG_PAGE_SIZE } from '../../src/shared/play/log';
 import type { LogClass, LogEntry, LogTab } from '../../src/shared/play/log';
@@ -242,6 +243,34 @@ function commitEntries({
     ...placedPredictionEntries(before, next, message, faction, context),
     ...(transfer ? [spiceEntry(transfer, { userId: viewer.userId, name: viewer.displayName }, faction, context)] : []),
     ...(result && result.revision === next.revision ? [battleEntry(result, faction, context)] : []),
+    ...deletionEntries(before, next, message, viewer, context),
+  ];
+}
+
+/* A piece deleted for good names who deleted it and what it showed, never a hidden face. */
+function deletionEntries(
+  before: StoredSnapshot,
+  next: StoredSnapshot,
+  message: CommitMessage,
+  viewer: Viewer,
+  context: string
+): Entry[] {
+  if (message.type !== 'command' || message.action.kind !== 'delete' || before.revision === next.revision) {
+    return [];
+  }
+  const { pieceId } = message.action;
+  const piece = before.table.pieces.find((candidate) => candidate.id === pieceId);
+  if (!piece || next.table.pieces.some((candidate) => candidate.id === pieceId)) {
+    return [];
+  }
+  return [
+    {
+      key: `deletion:${next.revision}`,
+      class: 'deletion',
+      template: `{0} deleted ${literal(deletedName(piece))} from the game.`,
+      people: [{ userId: viewer.userId, name: viewer.displayName }],
+      context,
+    },
   ];
 }
 

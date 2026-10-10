@@ -108,6 +108,10 @@ export type TableProjection = {
     draw(pieceId: string, recipient?: string): void;
     shuffle(pieceId: string): void;
   };
+  /* Taking a card, token or stack out of the game for good; present only while this viewer can act. */
+  deleteControls?: {
+    remove(pieceId: string): void;
+  };
   /* The piece this viewer's faction holds open by peeking, faces showing; only its own frames carry one. */
   peek: Peek | null;
   /* Peeking at a hidden card, token or deck, and changing a deck held open; present only while this viewer's faction can act. */
@@ -177,6 +181,7 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     previous.hoveredPieceId === next.hoveredPieceId &&
     Boolean(previous.spiceReserveControls) === Boolean(next.spiceReserveControls) &&
     Boolean(previous.deckControls) === Boolean(next.deckControls) &&
+    Boolean(previous.deleteControls) === Boolean(next.deleteControls) &&
     Boolean(previous.peekControls) === Boolean(next.peekControls) &&
     Boolean(previous.closePeek) === Boolean(next.closePeek) &&
     (previous.peek === null) === (next.peek === null) &&
@@ -497,6 +502,7 @@ export class TableSession {
       affordances: [],
       spiceReserveControls: undefined,
       deckControls: undefined,
+      deleteControls: undefined,
       peek: null,
       peekControls: undefined,
       closePeek: undefined,
@@ -582,6 +588,10 @@ export class TableSession {
               draw: (pieceId, recipient) => this.command({ kind: 'deck-draw', pieceId, recipient }),
               shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
             }
+          : undefined,
+      deleteControls:
+        canHandleTable && this.subscription.supportsCommand('delete')
+          ? { remove: (pieceId) => this.command({ kind: 'delete', pieceId }) }
           : undefined,
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
       peek:

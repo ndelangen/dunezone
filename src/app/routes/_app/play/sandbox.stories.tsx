@@ -170,3 +170,30 @@ export const PeekAtACard = meta.story({
     expect(within(view).queryByRole('button', { name: 'Pull out' })).toBeNull();
   },
 });
+
+/**
+ * Seat 1 deals a Treachery card onto the table, turns it face up and deletes it for good: it leaves the table for every seat and the log names it.
+ * Right-click any card, token or stack and hold "Hold to delete permanently" to try it by hand.
+ */
+export const DeleteACard = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
+    const table = sandbox.table!;
+    const deck = piece((candidate) => candidate.stackKey === 'deck:treachery-deck');
+    const command = (
+      commandId: string,
+      action: Extract<Parameters<typeof table.receive>[0], { type: 'command' }>['action']
+    ) => table.receive({ type: 'command', commandId, expectedRevision: table.room.snapshot.revision, action });
+    command('sandbox-split', { kind: 'split', pieceId: deck.id, count: 1 });
+    const card = shown().table.pieces.find((candidate) => candidate.id.startsWith('split-'))!;
+    command('sandbox-flip', { kind: 'flip', pieceId: card.id });
+    command('sandbox-delete', { kind: 'delete', pieceId: card.id });
+    expect(table.refusal).toBeUndefined();
+    const other = journeyViewers().find((seat) => seat !== table.seat)!;
+    for (const seat of [table.seat, other]) {
+      expect(table.frame(seat).snapshot.table.pieces.some((candidate) => candidate.id === card.id)).toBe(false);
+    }
+    expect(shown().table.events[0]?.message).toMatch(/deleted .* card from the game\.$/);
+  },
+});

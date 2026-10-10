@@ -101,9 +101,9 @@ import { boardMapGeometry } from './boardMapGeometry';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
-import { peekableToken } from './peekableToken';
 import { PhaseSymbol } from './PhaseSymbol';
 import { topFaceHref } from './pieceFaceHref';
+import { pieceHasMenu } from './pieceMenu';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
@@ -1016,8 +1016,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
   const renderer = useThree((state) => state.renderer);
   const pointerSession = usePointerSession();
   const gestureBlocked = gestureBlockReason(piece);
-  const hasMenu =
-    !carrying && (piece.kind === 'card' || isSpicePiece(piece) || peekableToken(piece)) && !piece.inventory;
+  const hasMenu = !carrying && pieceHasMenu(piece);
   const stopLongPress = useRef<(() => void) | null>(null);
   useEffect(() => () => stopLongPress.current?.(), []);
 
@@ -1424,7 +1423,7 @@ export function TabletopScene({
   /* The frame around the canvas follows only what it shows, so a held piece moving renders the pieces and not the canvas. */
   const hasDraft = useTabletopSelector((table) => table.state.draftMove !== null);
   const menuAvailable = useTabletopSelector((table) =>
-    Boolean(table.deckControls || table.spiceReserveControls || table.peekControls)
+    Boolean(table.deckControls || table.spiceReserveControls || table.peekControls || table.deleteControls)
   );
   const [pieceMenu, setPieceMenu] = useState<PieceMenuAnchor | null>(null);
   /* One opener for the table's life: a new one on every update would render every piece again. */

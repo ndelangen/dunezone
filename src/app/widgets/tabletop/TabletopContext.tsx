@@ -14,6 +14,7 @@ export type TabletopContextValue = Pick<
   | 'canHandleTable'
   | 'canInteract'
   | 'deckControls'
+  | 'deleteControls'
   | 'flippingPieceIds'
   | 'gestureActivePieceId'
   | 'hoveredPieceId'
