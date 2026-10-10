@@ -716,13 +716,7 @@ export class TableSession {
     return this.canSend(message) && this.subscription.send(message);
   }
   private receive(message: TableSubscriptionEvent) {
-    const settled = settledRequest(message);
-    if (settled) {
-      this.settle(settled.id, settled.outcome, message.type === 'resync');
-      if (settled.outcome === 'rejected' && settled.id === this.closedPeek?.commandId) {
-        this.closedPeek = null;
-      }
-    }
+    this.settleRequest(message);
     switch (message.type) {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
@@ -758,12 +752,27 @@ export class TableSession {
           this.receiveAuthorizedUpdate(message);
         }
     }
-    if (this.closedPeek && !this.saved?.peek) {
-      this.closedPeek = null;
-    }
+    this.forgetSettledPeekClose();
     this.discardReplacedBattleCommands();
     this.flushQueues();
     this.emit();
+  }
+  private settleRequest(message: TableSubscriptionEvent) {
+    const settled = settledRequest(message);
+    if (!settled) {
+      return;
+    }
+    this.settle(settled.id, settled.outcome, message.type === 'resync');
+    /* A refused close leaves the peek open, so it shows again. */
+    if (settled.outcome === 'rejected' && settled.id === this.closedPeek?.commandId) {
+      this.closedPeek = null;
+    }
+  }
+  /* Once the table holds no open peek, the close went through and there is nothing left to hide. */
+  private forgetSettledPeekClose() {
+    if (this.closedPeek && !this.saved?.peek) {
+      this.closedPeek = null;
+    }
   }
   private discardReplacedBattleCommands() {
     if (
