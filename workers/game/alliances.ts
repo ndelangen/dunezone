@@ -10,10 +10,16 @@ function seatedFactions(snapshot: StoredSnapshot): string[] {
   return snapshot.roster?.seats.flatMap(({ faction }) => (faction ? [faction.id] : [])) ?? [];
 }
 
+/* A table that never saw an alliance starts from one shared empty state, so a command that changes nothing returns it unchanged. */
+const NONE = emptyAlliances();
+function before(snapshot: StoredSnapshot): AllianceState {
+  return snapshot.alliances ?? NONE;
+}
+
 /* The shared rules turn an alliance command away with an AllianceRefusal; the table reports it like any other rejection. */
 function nextAlliances(snapshot: StoredSnapshot, factionId: string, action: AllianceAction, now: number) {
   try {
-    return applyAlliance(snapshot.alliances ?? emptyAlliances(), action, {
+    return applyAlliance(before(snapshot), action, {
       factionId,
       factions: seatedFactions(snapshot),
       now,
@@ -33,13 +39,9 @@ export function allianceCommand(
   if (snapshot.stage !== 'play') {
     throw new GameRejection('Alliances form only while the game is in play.');
   }
-  const alliances: AllianceState = nextAlliances(snapshot, factionId, action, now);
-  if (alliances === snapshot.alliances || (!snapshot.alliances && unchanged(alliances))) {
+  const alliances = nextAlliances(snapshot, factionId, action, now);
+  if (alliances === before(snapshot)) {
     return snapshot;
   }
   return { ...nextSnapshot(snapshot, tableForViewer(snapshot, SPECTATOR_SEAT)), alliances };
-}
-
-function unchanged(alliances: AllianceState) {
-  return !alliances.groups.length && !alliances.offers.length;
 }

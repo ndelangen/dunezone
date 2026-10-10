@@ -29,11 +29,19 @@ function factionList(names: Readonly<Record<string, string>>, ids: readonly stri
   return labels.length < 2 ? (labels[0] ?? '') : `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}`;
 }
 
+/* Offers waiting on the viewer's faction while the game is in play. */
+function offersToViewer(table: TableProjection) {
+  const own = viewerFaction(table);
+  if (!own || table.snapshot.stage !== 'play') {
+    return [];
+  }
+  return table.snapshot.alliances?.offers.filter((offer) => offer.to === own) ?? [];
+}
+
 /** Offers made to the viewer's faction, each answered here in the decision bar. */
 export function AllianceDecisionBar({ client, table }: Props) {
-  const own = viewerFaction(table);
-  const offers = table.snapshot.alliances?.offers.filter((offer) => offer.to === own) ?? [];
-  if (!own || !offers.length || table.snapshot.stage !== 'play') {
+  const offers = offersToViewer(table);
+  if (!offers.length) {
     return null;
   }
   const names = snapshotFactionLabels(table.snapshot);
