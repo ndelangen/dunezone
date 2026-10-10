@@ -193,12 +193,19 @@ export function PlayerPanel({
   const peerId = rosterSeat(table.snapshot.roster, player.seat)?.faction?.id;
   const canConverse = peerId && conversations.context?.peers.some((peer) => peer.id === peerId);
   const activeTab = canConverse ? selectedTab : 'public';
-  const tableItem =
-    conversations.context &&
-    tableConversationItem(
-      conversations.summaries.find((entry) => entry.peerId === TABLE_CONVERSATION)?.unread ?? 0,
-      () => onSelect(TABLE_CONVERSATION, 'conversation')
-    );
+  const tableItem = conversations.context
+    ? tableConversationItem(
+        conversations.summaries.find((entry) => entry.peerId === TABLE_CONVERSATION)?.unread ?? 0,
+        () => onSelect(TABLE_CONVERSATION, 'conversation')
+      )
+    : null;
+  /* One rail for both views, so the table and the players never drift apart. */
+  const rail = (
+    <NestedTabs.Level label="Players">
+      {tableItem}
+      {playerItems}
+    </NestedTabs.Level>
+  );
   if (selected === TABLE_CONVERSATION && conversations.context) {
     return (
       <NestedTabs
@@ -206,10 +213,7 @@ export function PlayerPanel({
         ariaLabel="Players"
         className="seated-controls-tabs"
       >
-        <NestedTabs.Level label="Players">
-          {tableItem}
-          {playerItems}
-        </NestedTabs.Level>
+        {rail}
         <NestedTabs.Level label="Table">
           <NestedTabs.Item
             as="button"
@@ -232,10 +236,7 @@ export function PlayerPanel({
   }
   return (
     <NestedTabs activePath={[player.seat, activeTab]} ariaLabel="Players" className="seated-controls-tabs">
-      <NestedTabs.Level label="Players">
-        {tableItem}
-        {playerItems}
-      </NestedTabs.Level>
+      {rail}
       <NestedTabs.Level label={player.name}>
         {canConverse && (
           <NestedTabs.Item

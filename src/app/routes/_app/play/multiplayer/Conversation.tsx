@@ -49,11 +49,7 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
               message={message}
               factionId={view.context?.factionId}
               /* Every faction writes at the table, so each message there also names its writer's faction. */
-              faction={
-                peerId === TABLE_CONVERSATION
-                  ? view.context?.peers.find((peer) => peer.id === message.senderFactionId)?.name
-                  : undefined
-              }
+              faction={peerId === TABLE_CONVERSATION ? senderName(view.context, message.senderFactionId) : undefined}
             />
           ))}
           <div ref={newest} style={{ minHeight: 1 }} aria-hidden />
@@ -79,7 +75,7 @@ export function OfflineConversations({ client }: Readonly<{ client: TableSession
   return (
     <Stack gap="sm" w="min(36rem, 90vw)" h="70vh" style={{ overflow: 'hidden' }}>
       <Select
-        label="Faction conversation"
+        label="Conversation"
         value={peerId}
         onChange={setSelected}
         data={peers.map((peer) => ({ value: peer.id, label: peer.name }))}
@@ -177,6 +173,13 @@ function useArrivalAnnouncement(
     seen.current = { peerId, sequence: Math.max(previous ?? 0, sequence) };
   }, [peerId, settled, newest, factionId]);
   return announcement;
+}
+
+function senderName(context: ConversationView['context'], factionId: string) {
+  if (context?.factionId === factionId) {
+    return context.factionName;
+  }
+  return context?.peers.find((peer) => peer.id === factionId)?.name;
 }
 
 function SavedMessage({
@@ -295,12 +298,12 @@ function SavedMessageHeader({ message, faction }: Readonly<{ message: Conversati
     <Group gap="sm" justify="space-between">
       <Text size="sm" fw={700}>
         {message.author}
-        {faction && (
+        {faction ? (
           <Text span size="sm" c="dimmed" fw={400}>
             {' · '}
             {faction}
           </Text>
-        )}
+        ) : null}
       </Text>
       <MessageTime savedAt={message.savedAt} />
     </Group>

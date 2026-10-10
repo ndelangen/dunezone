@@ -4,7 +4,7 @@ import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared
 import { rosterSeat } from '@shared/play/schema';
 
 type Request = Extract<ClientMessage, { type: 'conversation-send' | 'conversation-history' | 'conversation-read' }>;
-type Context = { userId: string; factionId: string; peers: { id: string; name: string }[] };
+type Context = { userId: string; factionId: string; factionName: string; peers: { id: string; name: string }[] };
 type Delivery = { state: 'unsent' } | { state: 'sent'; at: number } | { state: 'failed'; error: string };
 type Load =
   | { state: 'idle' }
@@ -62,6 +62,7 @@ export class ConversationSession {
     this.context = {
       userId: viewer.userId,
       factionId,
+      factionName: factionName(snapshot, factionId),
       peers: otherFactions(snapshot, factionId),
     };
     this.online = true;
@@ -78,7 +79,12 @@ export class ConversationSession {
     if (!factionId) {
       return;
     }
-    this.context = { userId: viewer.userId, factionId, peers: otherFactions(snapshot, factionId) };
+    this.context = {
+      userId: viewer.userId,
+      factionId,
+      factionName: factionName(snapshot, factionId),
+      peers: otherFactions(snapshot, factionId),
+    };
     this.pending = pending
       .filter((request) => request.factionId === factionId)
       .map((request) => ({ request, delivery: { state: 'unsent' } }));
@@ -355,4 +361,8 @@ function otherFactions(snapshot: GameSnapshot, factionId: string) {
   return snapshot.roster!.seats.flatMap((seat) =>
     seat.faction && seat.faction.id !== factionId ? [seat.faction] : []
   );
+}
+
+function factionName(snapshot: GameSnapshot, factionId: string) {
+  return snapshot.roster!.seats.find((seat) => seat.faction?.id === factionId)?.faction?.name ?? factionId;
 }
