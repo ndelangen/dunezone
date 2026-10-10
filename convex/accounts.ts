@@ -14,10 +14,17 @@ import {
   authMethodValidator,
   authProviderValidator,
   requireUnlockedAccount,
+  signInProviders,
 } from './lib/accountMethods';
 import { docValidator } from './lib/collaborativeAccessValidators';
 import { playCredential, playCredentialDigest } from './lib/playAuthorization';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
+
+export const providers = query({
+  args: {},
+  returns: v.array(v.object({ provider: authProviderValidator, available: v.boolean() })),
+  handler: async () => signInProviders(),
+});
 
 const profileSummary = v.object({
   userId: v.id('users'),

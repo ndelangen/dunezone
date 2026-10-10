@@ -9,6 +9,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { useReducer } from 'react';
 
+import { authProviderNames } from '@db/accounts';
 import { useAccountManagementPage, useMergeAccounts, useResumeAccountMerge } from '@db/accounts';
 import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
@@ -248,7 +249,7 @@ function ProfilesTable({
                     <Table.Td>
                       {profile.methods
                         .filter((method) => method.connected)
-                        .map((method) => (method.provider === 'google' ? 'Google' : 'Discord'))
+                        .map((method) => authProviderNames[method.provider])
                         .join(', ') || 'No connected provider'}
                     </Table.Td>
                   </Table.Tr>

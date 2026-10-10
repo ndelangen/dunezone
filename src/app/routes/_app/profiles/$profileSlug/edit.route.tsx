@@ -17,6 +17,7 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, CircleUserRound, Link2, Palette, Save, Trash2, Unlink, UsersRound } from 'lucide-react';
 import { useId, useReducer, useRef, useState } from 'react';
 
+import { authProviderNames } from '@db/accounts';
 import { useBeginAuthConnection, useDisconnectAuthMethod } from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
 import { useProfileSettings, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
@@ -653,9 +654,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
   };
   return (
     <Stack gap="md">
-      <Text size="sm">
-        Connect Google or Discord to use either account for this profile. Keep at least one connected.
-      </Text>
+      <Text size="sm">Connect a sign-in method to use it for this profile. Keep at least one connected.</Text>
       {account.merging && (
         <StatusBadge tone="progress" live>
           Profile merge in progress. Sign-in methods are locked.
@@ -663,7 +662,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
       )}
       {state.error && <FormError title="Sign-in methods could not be changed">{state.error}</FormError>}
       {account.methods.map((method) => {
-        const name = method.provider === 'google' ? 'Google' : 'Discord';
+        const name = authProviderNames[method.provider];
         const canDisconnect = account.methods.some(
           (other) => other.provider !== method.provider && other.connected && other.available
         );

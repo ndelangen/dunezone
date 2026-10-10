@@ -46,8 +46,13 @@ function PrivacyPage() {
                 <Title order={2}>What we keep private</Title>
                 <Text>We need a small amount of private information to run your account:</Text>
                 <List spacing="sm">
-                  <List.Item>Your email address, if Google or Discord gives it to us when you sign in.</List.Item>
-                  <List.Item>Whether you signed in with Google or Discord, and the account ID they give us.</List.Item>
+                  <List.Item>
+                    An email address retained from an earlier sign-in, if one was supplied. Current sign-in requests
+                    identity access only.
+                  </List.Item>
+                  <List.Item>
+                    Whether you signed in with Google, Discord or Reddit, and the account ID they give us.
+                  </List.Item>
                   <List.Item>The sign-in records needed to keep you logged in and protect your account.</List.Item>
                   <List.Item>
                     Basic technical details such as your IP address, browser, when you visited, and errors that
@@ -74,8 +79,8 @@ function PrivacyPage() {
                   <List.Item>Activity totals and the links between you and the things you contribute.</List.Item>
                 </List>
                 <Text>
-                  The first time you sign in, we use the name and picture from Google or Discord to set up your public
-                  profile.
+                  The first time you sign in, we use your sign-in provider's name and available profile picture to set
+                  up your public profile.
                 </Text>
               </Stack>
             </Surface>
@@ -124,8 +129,8 @@ function PrivacyPage() {
                 website safe, and fix problems.
               </Text>
               <Text>
-                Google or Discord handles sign-in. Convex stores the data. Cloudflare helps deliver the website. They
-                receive the information they need to do those jobs.
+                Google, Discord or Reddit handles sign-in. Convex stores the data. Cloudflare helps deliver the website.
+                They receive the information they need to do those jobs.
               </Text>
               <Text>
                 We do not sell your data. Your profile and contributions are free for people to view, but we do not sell
