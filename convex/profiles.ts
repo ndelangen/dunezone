@@ -205,6 +205,7 @@ export const updateCurrent = mutation({
     username: v.string(),
     avatar_url: v.union(v.string(), v.null()),
     default_group_id: v.optional(v.union(v.id('groups'), v.null())),
+    bgg_profile_url: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
@@ -217,6 +218,7 @@ export const updateCurrent = mutation({
       username: args.username,
       avatar_url: args.avatar_url ?? '',
       default_group_id: args.default_group_id,
+      bgg_profile_url: args.bgg_profile_url,
     });
     if (!parsed.success) {
       const msg = parsed.error.issues.map((i) => i.message).join(' ');
@@ -248,6 +250,7 @@ export const updateCurrent = mutation({
       username: normalizedUsername,
       ...(avatarChanged ? { avatar_url: normalizedAvatarUrl, avatar: null } : {}),
       ...(defaultGroupId === undefined ? {} : { default_group_id: defaultGroupId }),
+      ...(args.bgg_profile_url === undefined ? {} : { bgg_profile_url: parsed.data.bgg_profile_url || undefined }),
       slug: nextSlug,
       updated_at: nowIso(),
     });

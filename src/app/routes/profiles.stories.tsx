@@ -58,6 +58,54 @@ export const Settings = meta.story({
   args: { path: '/profiles/storybook-viewer/edit' },
 });
 
+export const BoardGameGeekLink = meta.story({
+  args: { path: '/profiles/central/edit' },
+  parameters: {
+    database: db((baseline) => {
+      const profile = baseline.profiles.find((row) => row.slug === 'storybook-viewer');
+      if (profile) {
+        profile.username = 'Central';
+        profile.slug = 'central';
+        profile.avatar_url =
+          'https://dune.zone/user-images/135c0f3ded60c3943f4acb17448c5258a53229f4d6f7f02aab7710610059b0fa.jpg';
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const field = await page.findByRole('textbox', { name: 'BoardGameGeek profile URL' }, { timeout: 30_000 });
+    await userEvent.type(field, 'https://boardgamegeek.com/user/ExamplePlayer');
+    await userEvent.click(page.getByRole('tab', { name: 'Sign-in methods' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Profile' }));
+    expect(page.getByRole('textbox', { name: 'BoardGameGeek profile URL' })).toHaveValue(
+      'https://boardgamegeek.com/user/ExamplePlayer'
+    );
+    await userEvent.click(page.getByRole('button', { name: 'Save profile' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Save profile' })).toBeDisabled());
+    expect(page.getByRole('textbox', { name: 'BoardGameGeek profile URL' })).toHaveValue(
+      'https://boardgamegeek.com/user/ExamplePlayer'
+    );
+  },
+});
+
+export const BoardGameGeekProfileLink = meta.story({
+  args: { path: '/profiles/storybook-viewer' },
+  parameters: {
+    database: db((baseline) => {
+      const profile = baseline.profiles.find((row) => row.slug === 'storybook-viewer');
+      if (profile) {
+        profile.bgg_profile_url = 'https://boardgamegeek.com/user/ExamplePlayer';
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const link = await page.findByRole('link', { name: 'View BGG profile' }, { timeout: 30_000 });
+    expect(link).toHaveAttribute('href', 'https://boardgamegeek.com/user/ExamplePlayer');
+    expect(page.getByText('Unverified')).toBeVisible();
+  },
+});
+
 /**
  * Profile settings joins the edit-page pattern (#921): the band is collapsed until the draft carries a warning, and warnings derive live from the schema instead of waiting for a submit.
  *

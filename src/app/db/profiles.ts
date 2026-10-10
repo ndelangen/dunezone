@@ -152,19 +152,21 @@ export function useProfileSettings() {
   return toLiveQueryResult(liveData);
 }
 
-/** Saves the viewer's own profile: username, avatar URL, and the default Group used when creating things. */
+/** Saves the viewer's own profile details and the default Group used when creating things. */
 export function useUpdateCurrentProfile() {
-  const mutate = useLiveMutation<
-    { username: string; avatar_url: string; default_group_id?: string | null },
-    ProfileUpdateResult
-  >(api.profiles.updateCurrent);
+  const mutate = useLiveMutation<ProfileUserEditInput, ProfileUpdateResult>(api.profiles.updateCurrent);
   const parseProfileInput = (input: ProfileUserEditInput) => {
     const parsed = profileUserEditFormSchema.safeParse(input);
     if (!parsed.success) {
       const msg = parsed.error.issues.map((i) => i.message).join(' ');
       throw new Error(msg || 'Invalid profile input');
     }
-    return parsed.data;
+    return {
+      username: parsed.data.username,
+      avatar_url: parsed.data.avatar_url,
+      ...(parsed.data.default_group_id === undefined ? {} : { default_group_id: parsed.data.default_group_id }),
+      ...(parsed.data.bgg_profile_url === undefined ? {} : { bgg_profile_url: parsed.data.bgg_profile_url }),
+    };
   };
 
   return {
@@ -183,11 +185,7 @@ export function useUpdateCurrentProfile() {
       try {
         const parsed = parseProfileInput(variables.input);
         mutate.mutate(
-          {
-            username: parsed.username,
-            avatar_url: parsed.avatar_url,
-            ...(parsed.default_group_id === undefined ? {} : { default_group_id: parsed.default_group_id }),
-          },
+          parsed,
           {
             onSuccess: (result) => {
               options?.onSuccess?.(result.profile, variables, result.default_group_unavailable);
@@ -201,11 +199,7 @@ export function useUpdateCurrentProfile() {
     },
     mutateAsync: async (variables: { input: ProfileUserEditInput }) => {
       const parsed = parseProfileInput(variables.input);
-      const entry = await mutate.mutateAsync({
-        username: parsed.username,
-        avatar_url: parsed.avatar_url,
-        ...(parsed.default_group_id === undefined ? {} : { default_group_id: parsed.default_group_id }),
-      });
+      const entry = await mutate.mutateAsync(parsed);
       return entry.profile;
     },
   };

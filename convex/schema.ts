@@ -152,6 +152,7 @@ export default defineSchema({
      */
     avatar: v.optional(v.union(profileAvatarValidator, v.null())),
     default_group_id: v.optional(v.union(v.id('groups'), v.null())),
+    bgg_profile_url: v.optional(v.string()),
     account_state: accountStateValidator,
     deleted_at: v.optional(v.string()),
     account_deletion_operation_id: v.optional(v.id('account_deletion_operations')),

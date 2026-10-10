@@ -1,5 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Stack, Text } from '@mantine/core';
+import { Anchor, Group, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, redirect, Link, useNavigate } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -410,6 +410,16 @@ function ProfileDetailPage() {
 
           <aside className={styles.sidebar} aria-label="Profile details">
             <Stack gap="sm">
+              {page.profile.bgg_profile_url ? (
+                <Card icon={<Link2 size={20} aria-hidden />} title="BoardGameGeek">
+                  <Group gap="sm">
+                    <Anchor href={page.profile.bgg_profile_url} target="_blank" rel="noopener noreferrer">
+                      View BGG profile
+                    </Anchor>
+                    <StatusBadge>Unverified</StatusBadge>
+                  </Group>
+                </Card>
+              ) : null}
               <Card icon={<Link2 size={20} aria-hidden />} title="About">
                 <ProposedContent label="Proposed profile fields">
                   <Text size="sm" c="dimmed">
