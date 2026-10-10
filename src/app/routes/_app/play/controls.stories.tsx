@@ -239,6 +239,21 @@ export const Phase = meta.story({
   },
 });
 
+/** A table that agreed on a six-turn game, in its fourth turn: the wheel shows six sectors and the Phase tab its last turn. */
+export const PhaseShortGame = meta.story({
+  beforeEach: install(() =>
+    productTransport('seat-2', {
+      ...playingSnapshot(),
+      phase: 3 * (playingSnapshot().phases?.length ?? 9),
+      lastTurn: 6,
+    })
+  ),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Phase');
+    await expect(page.findByRole('textbox', { name: 'Last turn' }, WAIT)).resolves.toHaveValue('6');
+  },
+});
+
 /** A player's public information beside the controls. */
 export const PlayerInfo = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),

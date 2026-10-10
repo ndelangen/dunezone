@@ -54,6 +54,7 @@ import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
 import { dealFixtureDeck } from './fixture';
+import { lastTurnCommand } from './lastTurn';
 import { closeLostPeeks, forgetPeekers, peekCommand } from './peeks';
 import { setupCommand, gatherTraitors } from './setup-progress';
 import { storedSnapshotSchema } from './state';
@@ -103,6 +104,7 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'bid-raise',
   'bid-pass',
   'bid-seconds',
+  'last-turn',
 ]);
 
 /** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */
@@ -512,6 +514,10 @@ export class Room {
     }
     if (isBiddingAction(action)) {
       return biddingCommand(this.snapshot, this.requireFaction(identity), action, now);
+    }
+    if (action.kind === 'last-turn') {
+      this.requireFaction(identity);
+      return lastTurnCommand(this.snapshot, action);
     }
     if (
       action.kind === 'reset' &&

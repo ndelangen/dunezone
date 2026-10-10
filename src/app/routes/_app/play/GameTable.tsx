@@ -649,7 +649,11 @@ export function GameTable({
                     </div>
                   ) : (
                     <div className="seated-phase-status__copy">
-                      <span>Turn {tableProgress.turn}</span>
+                      <span>
+                        {/* Past the last turn the table plays on, so the count drops its "of". */}
+                        Turn {tableProgress.turn}
+                        {tableProgress.turn <= tableProgress.lastTurn ? ` of ${tableProgress.lastTurn}` : null}
+                      </span>
                       <strong>{activePhase?.label ?? 'No active phase'}</strong>
                     </div>
                   ))}

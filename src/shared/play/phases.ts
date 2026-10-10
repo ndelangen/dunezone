@@ -1,4 +1,5 @@
 import type { PhaseDeclaration, PhaseTarget, SetupPhaseTarget } from '../factions/extraPhases';
+import { DEFAULT_LAST_TURN } from './lastTurn';
 import { GameRejection } from './rejection';
 
 function phase<
@@ -90,9 +91,14 @@ export function phaseAt(index: number, phases: readonly PhaseEntry[] = STANDARD_
   return phases[index % phases.length]!;
 }
 
-export function tableProgressFor(index: number, phases: readonly PhaseEntry[] = STANDARD_PHASES) {
+export function tableProgressFor(
+  index: number,
+  phases: readonly PhaseEntry[] = STANDARD_PHASES,
+  lastTurn = DEFAULT_LAST_TURN
+) {
   return {
     turn: Math.floor(index / phases.length) + 1,
+    lastTurn,
     phases,
     activePhaseId: phaseAt(index, phases).id,
   };

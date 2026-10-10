@@ -2,6 +2,7 @@ import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, 
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
+import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { phaseGate, setupMapVisible, setupStep } from '@shared/play/setup';
@@ -37,6 +38,7 @@ import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, Draftin
 import { DetermineWinner, ResultDecisionBar } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
+import { LastTurnSettings } from './LastTurnSettings';
 import { LogEntries } from './Log';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
@@ -730,7 +732,7 @@ function ConnectedTable({
   error: string | null;
   connection: string;
 }>) {
-  const progress = tableProgressFor(table.snapshot.phase, table.snapshot.phases);
+  const progress = tableProgressFor(table.snapshot.phase, table.snapshot.phases, lastTurnOf(table.snapshot));
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
@@ -991,6 +993,7 @@ function ConnectedTable({
                     <>
                       <DetermineWinner client={client} table={table} />
                       {stage === 'play' && <BidderSettings client={client} table={table} />}
+                      {stage === 'play' && <LastTurnSettings client={client} table={table} />}
                       <PlaybackControls client={client} table={table} />
                       {error && <FormError title="From the table">{error}</FormError>}
                       {stage === 'play' && (table.snapshot.battle || progress.activePhaseId === 'battle') && (
