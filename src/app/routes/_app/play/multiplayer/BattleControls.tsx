@@ -24,6 +24,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
+import clsx from 'clsx';
 import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useReducer, useState } from 'react';
 import type { Camera } from 'three';
@@ -839,40 +840,56 @@ function BattleCentre(props: ActiveProps) {
   );
 }
 /*
- * Parts revealed early lie on the closed wheel where the reveal will put them: cards fanned above it, the dial's number
- * at the top and the leader in its slot. The closed wheel stays the asset's own, readiness ring included.
+ * Parts revealed early lie on the closed wheel exactly where the reveal will draw them: the layer shares the revealed
+ * wheel's 170 px frame and zoom steps, so cards fan above it, the dial's number sits in the strength slot and the
+ * leader in the leader slot. The closed wheel underneath stays the asset's own, readiness ring included.
  */
-function EarlyRevealWheel({ early, label, children }: { early: DisclosedPlan; label: string; children: ReactNode }) {
+function EarlyRevealWheel({
+  early,
+  factionName,
+  children,
+}: {
+  early: DisclosedPlan;
+  factionName: string;
+  children: ReactNode;
+}) {
   const { leader, dial, cards } = early;
+  const motion = useMotionAllowed();
   return (
-    <div className={styles.early} role="group" aria-label={label}>
+    <div className={styles.early}>
       {children}
-      {cards.length ? (
-        <div className={styles.earlyCards}>
-          {cards.map((piece, index) => {
-            const offset = index - (cards.length - 1) / 2;
-            return (
-              <div
-                key={piece.id}
-                className={styles.earlyCard}
-                style={{ transform: `translateX(calc(-50% + ${offset * 32}px)) rotate(${offset * 14}deg)` }}
-              >
-                <PieceImage piece={piece} />
-              </div>
-            );
-          })}
-        </div>
-      ) : null}
-      {dial ? (
-        <div className={styles.earlyDial} aria-label={`Dial ${dial.strength}`}>
-          <span>{dial.strength}</span>
-        </div>
-      ) : null}
-      {leader ? (
-        <div className={styles.earlyLeader}>
-          <PieceImage piece={leader} />
-        </div>
-      ) : null}
+      <div className={clsx(styles.wheel, styles.earlyLayer)} data-motion={motion ? 'ok' : 'reduce'}>
+        {cards.length ? (
+          <ul className={styles.earlyCards} aria-label={`${factionName} cards revealed early`}>
+            {cards.map((piece, index) => {
+              const offset = index - (cards.length - 1) / 2;
+              return (
+                <li
+                  key={piece.id}
+                  className={styles.earlyCard}
+                  style={{ transform: `translateX(calc(-50% + ${offset * 32}px)) rotate(${offset * 14}deg)` }}
+                >
+                  <PieceImage piece={piece} />
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+        {dial ? (
+          <div
+            className={styles.earlyDial}
+            role="img"
+            aria-label={`${factionName} dial revealed early: ${dial.strength}`}
+          >
+            {dial.strength}
+          </div>
+        ) : null}
+        {leader ? (
+          <div className={styles.earlyLeader} aria-label={`${factionName} leader revealed early`} role="group">
+            <PieceImage piece={leader} />
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -911,10 +928,7 @@ function SideContents({
     );
     if (early && (early.leader || early.dial || early.cards.length)) {
       return (
-        <EarlyRevealWheel
-          early={early}
-          label={`${rosterName(side.factionId, snapshotFactionLabels(table.snapshot))} revealed early`}
-        >
+        <EarlyRevealWheel early={early} factionName={rosterName(side.factionId, snapshotFactionLabels(table.snapshot))}>
           {closed}
         </EarlyRevealWheel>
       );
