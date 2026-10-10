@@ -170,7 +170,7 @@ function releaseRecord(items: { variant: PlannedVariant; record: ChecksumRecord 
 
 /* Every legacy path is its own entry, because two keys can share a variant name. */
 const entries = plan.map((variant) => ({ variant, record: storedRecord(variant) }));
-const verified = verifyAll ? new Set<string>() : readVerified(verifiedFile);
+const verified = verifyAll ? new Set<string>() : readVerified(verifiedFile, origin);
 const checks = selectChecks(entries, verified);
 
 /* Publishing sends each name once, and verifying probes the legacy path of every entry it checks. */
@@ -201,7 +201,7 @@ if (counts.failed > 0) {
 }
 /* Every entry this release serves is now proved: downloaded here, or proved earlier and its sample matched. */
 if (verifyOnly) {
-  writeVerified(verifiedFile, [...verified, ...entries.map(verifiedIdentity)]);
+  writeVerified(verifiedFile, origin, [...verified, ...entries.map(verifiedIdentity)]);
 }
 /* The record is written only after every variant it lists is in R2. */
 if (!verifyOnly && release) {

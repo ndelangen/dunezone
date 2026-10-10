@@ -30,9 +30,15 @@ run whose encoder output differs from production's.
 1. Read the failing names from the log, then compare the two encodes:
    `curl -sI https://dune.zone/m/<name>` shows the stored `X-Media-SHA256` and `X-Media-Bytes`. If
    R2's copy looks right, it wins, and you only need to stop the job from encoding its own.
-2. Delete the variant store caches and run the deploy again:
-   `gh cache list --key media-variants- --repo ndelangen/dunezone`, then `gh cache delete <id>` for
-   each. The next run restores nothing, fills every published name from `/m`, encodes only names R2
+2. Delete every variant store cache and run the deploy again. `gh cache list` shows 30 entries by
+   default, so raise the limit:
+
+   ```sh
+   gh cache list --repo ndelangen/dunezone --key media-variants- --limit 1000 --json id --jq '.[].id' \
+     | xargs -n1 gh cache delete --repo ndelangen/dunezone
+   ```
+
+   The next run restores nothing, fills every published name from `/m`, encodes only names R2
    lacks, and publishes cleanly. Dispatching "Deploy production" on main reruns it
    ([deployment](../deployment.md)).
 3. Only if R2's copy itself is wrong (a broken encode reached production), bump `ENCODER_REVISION` in
@@ -72,7 +78,7 @@ the ledger. Ship the fix as a new commit. Before merging, run the publisher loca
 
 **The verify step's record is suspect** (for example, after objects were changed outside the Worker).
 The deploy keeps the variant entries it has proved in the Actions cache (`media-verified-*`) and
-downloads only new entries plus a random sample of 128. Delete those caches (`gh cache delete`) or run
+downloads only new entries plus a random sample of 128. Delete those caches the same way (`--key media-verified-`) or run
 `bun run media:publish --verify --all` against production to download every entry again.
 
 ## The machine with the upload token is unavailable

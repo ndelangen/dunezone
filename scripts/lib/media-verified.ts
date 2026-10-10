@@ -14,9 +14,10 @@ import path from 'node:path';
 import type { ChecksumRecord, PlannedVariant } from '../media-variants';
 
 /** Entries the sample takes from those an earlier deploy proved. */
-export const VERIFY_SAMPLE_SIZE = 128;
+const VERIFY_SAMPLE_SIZE = 128;
 
-type VerifiedFile = { schemaVersion: 1; entries: string[] };
+/** The origin the entries were proved against; a record for another origin proves nothing there. */
+type VerifiedFile = { schemaVersion: 1; origin: string; entries: string[] };
 
 /** One plan entry with the record its bytes must match. */
 export type VerifiableEntry = { variant: PlannedVariant; record: ChecksumRecord };
@@ -25,23 +26,29 @@ export function verifiedIdentity({ variant, record }: VerifiableEntry): string {
   return [variant.legacyPath, variant.name, record.sha256, record.bytes].join(' ');
 }
 
-/** Reads the entries earlier deploys proved; a missing or unreadable file proves nothing, so every entry is downloaded. */
-export function readVerified(file: string): Set<string> {
+/** Reads the entries earlier deploys proved at this origin; a missing, unreadable or other-origin file proves nothing, so every entry is downloaded. */
+export function readVerified(file: string, origin: string): Set<string> {
   if (!existsSync(file)) {
     return new Set();
   }
   try {
     const parsed = JSON.parse(readFileSync(file, 'utf8')) as Partial<VerifiedFile>;
-    return parsed.schemaVersion === 1 && Array.isArray(parsed.entries) ? new Set(parsed.entries) : new Set();
+    return parsed.schemaVersion === 1 && parsed.origin === origin && Array.isArray(parsed.entries)
+      ? new Set(parsed.entries)
+      : new Set();
   } catch {
     return new Set();
   }
 }
 
 /** Writes the proved entries sorted, so the same set always has the same bytes. */
-export function writeVerified(file: string, entries: Iterable<string>): void {
+export function writeVerified(file: string, origin: string, entries: Iterable<string>): void {
   mkdirSync(path.dirname(file), { recursive: true });
-  const body: VerifiedFile = { schemaVersion: 1, entries: [...new Set(entries)].sort() };
+  const body: VerifiedFile = {
+    schemaVersion: 1,
+    origin,
+    entries: [...new Set(entries)].sort((left, right) => left.localeCompare(right)),
+  };
   writeFileSync(file, `${JSON.stringify(body)}\n`);
 }
 

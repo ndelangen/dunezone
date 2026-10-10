@@ -19,6 +19,7 @@ function entry(index: number, sha256 = 'a'.repeat(64)): VerifiableEntry {
   };
 }
 
+const ORIGIN = 'https://dune.zone';
 const entries = Array.from({ length: 10 }, (_, index) => entry(index));
 
 describe('media verification selection', () => {
@@ -45,13 +46,18 @@ describe('media verification selection', () => {
     expect(checks.unproved).toHaveLength(1);
   });
 
-  test('round-trips the record and ignores a missing or malformed file', () => {
+  test('round-trips the record and ignores a missing, other-origin or malformed file', () => {
     const directory = mkdtempSync(path.join(tmpdir(), 'media-verified-'));
     const file = path.join(directory, 'nested/verified.json');
-    expect(readVerified(file).size).toBe(0);
-    writeVerified(file, [verifiedIdentity(entries[1]), verifiedIdentity(entries[0]), verifiedIdentity(entries[1])]);
-    expect([...readVerified(file)]).toEqual([verifiedIdentity(entries[0]), verifiedIdentity(entries[1])]);
+    expect(readVerified(file, ORIGIN).size).toBe(0);
+    writeVerified(file, ORIGIN, [
+      verifiedIdentity(entries[1]),
+      verifiedIdentity(entries[0]),
+      verifiedIdentity(entries[1]),
+    ]);
+    expect([...readVerified(file, ORIGIN)]).toEqual([verifiedIdentity(entries[0]), verifiedIdentity(entries[1])]);
+    expect(readVerified(file, 'https://staging.dune.zone').size).toBe(0);
     writeFileSync(file, '{not json');
-    expect(readVerified(file).size).toBe(0);
+    expect(readVerified(file, ORIGIN).size).toBe(0);
   });
 });
