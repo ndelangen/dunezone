@@ -1,22 +1,14 @@
 /* @jsxImportSource ./three-jsx */
-import { Shadow, useTexture } from "@react-three/drei/webgpu";
-import { Canvas, useFrame, useThree } from "@react-three/fiber/webgpu";
-import type { ThreeEvent } from "@react-three/fiber/webgpu";
-import { isFactionToken } from "@shared/play/factionToken";
-import { gestureBlockReason, pieceCount } from "@shared/play/model";
-import type { TablePiece, TableState, Vector3Tuple } from "@shared/play/model";
-import { peekersOf } from "@shared/play/peeking";
-import {
-  CARD_LAYER_STAGGER,
-  stackLayerItemIndex,
-} from "@shared/play/pieceFlip";
-import type { GameSnapshot } from "@shared/play/protocol";
-import {
-  isSpicePiece,
-  SPICE_LAYER_HEIGHT,
-  SPICE_LAYER_PITCH,
-  SPICE_TOKEN_RADIUS,
-} from "@shared/play/spice";
+import { Shadow, useTexture } from '@react-three/drei/webgpu';
+import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
+import type { ThreeEvent } from '@react-three/fiber/webgpu';
+import { isFactionToken } from '@shared/play/factionToken';
+import { gestureBlockReason, pieceCount } from '@shared/play/model';
+import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
+import { peekersOf } from '@shared/play/peeking';
+import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
+import type { GameSnapshot } from '@shared/play/protocol';
+import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import {
   nearestStormRotation,
   STORM_MARKER_INNER_X,
@@ -27,8 +19,8 @@ import {
   STORM_SECTOR_OUTLINE_OPACITY,
   stormRotationForSector,
   stormTransitionProgress,
-} from "@shared/play/stormSector";
-import { pointOnPieceDragRay } from "@shared/play/tableDragGeometry";
+} from '@shared/play/stormSector';
+import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import {
   BOARD_RADIUS,
   BOARD_RIM_RADIUS,
@@ -57,20 +49,17 @@ import {
   MARKER_TOP_RADIUS,
   stackTopHeight,
   visibleLayerCount,
-} from "@shared/play/tableGeometry";
+} from '@shared/play/tableGeometry';
 import {
   DEFAULT_TABLE_SEAT_COUNT,
   PLAYER_RING_RADIUS,
   tableSeatAngles,
   TABLE_SECTOR_COUNT,
-} from "@shared/play/tableSettings";
-import type { TableSeatCount } from "@shared/play/tableSettings";
-import {
-  trackerArcSlots,
-  TRACKER_DISC_HEIGHT,
-} from "@shared/play/tableTrackers";
-import type { TrackerArcSlot } from "@shared/play/tableTrackers";
-import { isTroopStack } from "@shared/play/troop";
+} from '@shared/play/tableSettings';
+import type { TableSeatCount } from '@shared/play/tableSettings';
+import { trackerArcSlots, TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
+import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import { isTroopStack } from '@shared/play/troop';
 import {
   createContext,
   memo,
@@ -84,9 +73,9 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-} from "react";
-import type { ReactNode } from "react";
-import type { ExtrudeGeometry, Group, Texture } from "three";
+} from 'react';
+import type { ReactNode } from 'react';
+import type { ExtrudeGeometry, Group, Texture } from 'three';
 import {
   BufferGeometry,
   EdgesGeometry,
@@ -99,56 +88,43 @@ import {
   SRGBColorSpace,
   TextureLoader,
   Vector2,
-} from "three";
+} from 'three';
 
-import { useMotionAllowed } from "@app/styles/motion";
+import { useMotionAllowed } from '@app/styles/motion';
 
-import { subscribeArtworkLoads, unsettledArtworkLoads } from "./artworkLoads";
-import { ArtworkPending } from "./ArtworkPending";
-import arrakisMapSvg from "./assets/arrakis-map.svg?raw";
-import stormMarkerUrl from "./assets/storm-marker.png?url";
-import { boardFurnitureFor } from "./boardFurniture";
-import { boardMapGeometry } from "./boardMapGeometry";
-import { BOARD_RIM_DEPTH, createBoardRimShape } from "./boardRimGeometry";
-import { swallowLift, watchLongPress } from "./longPress";
-import { MapPreviewCamera } from "./MapPreviewCamera";
-import { peekableToken } from "./peekableToken";
-import { PhaseSymbol } from "./PhaseSymbol";
-import { topFaceHref } from "./pieceFaceHref";
-import {
-  cameraPoseFor,
-  TABLE_CAMERA_FAR,
-  TABLE_CAMERA_FIELD_OF_VIEW,
-  TABLE_CAMERA_NEAR,
-} from "./playView";
-import type { CameraViewCommand } from "./playView";
-import { usePointerSession } from "./PointerSessionContext";
-import { sharedPublishedFaces } from "./publishedFaceRetry";
-import { SpiceBank } from "./SpiceBank";
-import { TableFurniture } from "./TableFurniture";
-import {
-  TableGraphicsBoundary,
-  TableGraphicsUnavailable,
-} from "./TableGraphicsBoundary";
-import { useTableLighting } from "./tableLighting";
-import { mapViewFramingPoints } from "./tablePlateGeometry";
-import { isPublicTablePoint } from "./tablePointerPoint";
-import {
-  useTabletop,
-  useTabletopActions,
-  useTabletopCommands,
-  useTabletopSelector,
-} from "./TabletopContext";
-import type { TabletopContextValue } from "./TabletopContext";
-import styles from "./TabletopScene.module.css";
-import type { PieceMenuAnchor } from "./TabletopTools";
-import { activePhaseIndex, trackerDiscColor } from "./tableTrackers";
-import type { TableProgress } from "./tableTrackers";
-import { TurnTracker } from "./TurnTracker";
-import { useDeckShuffleAnimation } from "./useDeckShuffleAnimation";
-import { usePieceFlipAnimation } from "./usePieceFlipAnimation";
-import { useTableGraphics } from "./useTableGraphics";
-import { useTablePose } from "./useTablePose";
+import { subscribeArtworkLoads, unsettledArtworkLoads } from './artworkLoads';
+import { ArtworkPending } from './ArtworkPending';
+import arrakisMapSvg from './assets/arrakis-map.svg?raw';
+import stormMarkerUrl from './assets/storm-marker.png?url';
+import { boardFurnitureFor } from './boardFurniture';
+import { boardMapGeometry } from './boardMapGeometry';
+import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
+import { swallowLift, watchLongPress } from './longPress';
+import { MapPreviewCamera } from './MapPreviewCamera';
+import { peekableToken } from './peekableToken';
+import { PhaseSymbol } from './PhaseSymbol';
+import { topFaceHref } from './pieceFaceHref';
+import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
+import type { CameraViewCommand } from './playView';
+import { usePointerSession } from './PointerSessionContext';
+import { sharedPublishedFaces } from './publishedFaceRetry';
+import { SpiceBank } from './SpiceBank';
+import { TableFurniture } from './TableFurniture';
+import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
+import { useTableLighting } from './tableLighting';
+import { mapViewFramingPoints } from './tablePlateGeometry';
+import { isPublicTablePoint } from './tablePointerPoint';
+import { useTabletop, useTabletopActions, useTabletopCommands, useTabletopSelector } from './TabletopContext';
+import type { TabletopContextValue } from './TabletopContext';
+import styles from './TabletopScene.module.css';
+import type { PieceMenuAnchor } from './TabletopTools';
+import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
+import type { TableProgress } from './tableTrackers';
+import { TurnTracker } from './TurnTracker';
+import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
+import { usePieceFlipAnimation } from './usePieceFlipAnimation';
+import { useTableGraphics } from './useTableGraphics';
+import { useTablePose } from './useTablePose';
 
 /* The storm marker starts with the bundle, alongside the connection. */
 useTexture.preload(stormMarkerUrl);
@@ -163,44 +139,25 @@ type TabletopSceneProps = {
   /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
   onSceneReady?(): void;
   onSceneUnavailable?(): void;
-  presentation?: "play" | "preview";
+  presentation?: 'play' | 'preview';
   /* Absent on the fixture, which has no lifecycle. */
-  stage?: GameSnapshot["stage"];
+  stage?: GameSnapshot['stage'];
   mapVisible?: boolean;
 };
 
-const PieceBadge = lazy(() =>
-  import("./PieceBadge").then((module) => ({ default: module.PieceBadge })),
-);
-const HandCountChip = lazy(() =>
-  import("./HandCountChip").then((module) => ({
-    default: module.HandCountChip,
-  })),
-);
-const ScenePresence = lazy(() =>
-  import("./ScenePresence").then((module) => ({
-    default: module.ScenePresence,
-  })),
-);
+const PieceBadge = lazy(() => import('./PieceBadge').then((module) => ({ default: module.PieceBadge })));
+const ScenePresence = lazy(() => import('./ScenePresence').then((module) => ({ default: module.ScenePresence })));
 const PredictionOverlay = lazy(() =>
-  import("./prediction/PredictionOverlay").then((module) => ({
-    default: module.PredictionOverlay,
-  })),
+  import('./prediction/PredictionOverlay').then((module) => ({ default: module.PredictionOverlay }))
 );
-const TabletopTools = lazy(() =>
-  import("./TabletopTools").then((module) => ({
-    default: module.TabletopTools,
-  })),
-);
-const PlayCamera = lazy(() =>
-  import("./PlayCamera").then((module) => ({ default: module.PlayCamera })),
-);
+const TabletopTools = lazy(() => import('./TabletopTools').then((module) => ({ default: module.TabletopTools })));
+const PlayCamera = lazy(() => import('./PlayCamera').then((module) => ({ default: module.PlayCamera })));
 
-const BOARD_RIM_COLOR = "#15263b";
+const BOARD_RIM_COLOR = '#15263b';
 /* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */
-const BOARD_MAP_BASE_COLOR = "#000000";
+const BOARD_MAP_BASE_COLOR = '#000000';
 const BOARD_MAP_LIFT = 0.001;
-const BOARD_RIM_DIVIDER_COLOR = "#050505";
+const BOARD_RIM_DIVIDER_COLOR = '#050505';
 const BOARD_RIM_DIVIDER_OVERLAP = 0.002;
 const BOARD_RIM_DIVIDER_WIDTH = 0.035;
 const BOARD_RIM_ROUGHNESS = 0.72;
@@ -211,7 +168,7 @@ const BOARD_RIM_EXTRUDE_OPTIONS = {
   depth: BOARD_RIM_DEPTH,
   steps: 1,
 } as const;
-const DEFAULT_CAMERA_VIEW: CameraViewCommand = { view: "map", revision: 0 };
+const DEFAULT_CAMERA_VIEW: CameraViewCommand = { view: 'map', revision: 0 };
 
 function ignoreRaycast() {
   /* Decorative scene geometry must never compete with tabletop interaction. */
@@ -232,7 +189,7 @@ function createStormMarkerGeometry(): BufferGeometry {
   const halfWidth = STORM_MARKER_TANGENTIAL_WIDTH / 2;
   const geometry = new BufferGeometry();
   geometry.setAttribute(
-    "position",
+    'position',
     new Float32BufferAttribute(
       [
         STORM_MARKER_INNER_X,
@@ -248,13 +205,10 @@ function createStormMarkerGeometry(): BufferGeometry {
         STORM_MARKER_HOVER_Y,
         -halfWidth,
       ],
-      3,
-    ),
+      3
+    )
   );
-  geometry.setAttribute(
-    "uv",
-    new Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2),
-  );
+  geometry.setAttribute('uv', new Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2));
   geometry.setIndex([0, 1, 2, 0, 2, 3]);
   geometry.computeVertexNormals();
   return geometry;
@@ -273,11 +227,7 @@ function PlayerStations({ seatCount }: { seatCount: TableSeatCount }) {
         ];
 
         return (
-          <group
-            key={index}
-            position={position}
-            userData={{ duneTableStation: index }}
-          >
+          <group key={index} position={position} userData={{ duneTableStation: index }}>
             <mesh
               position={[0, 0.001, 0]}
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
@@ -298,11 +248,8 @@ function BoardRim({ seatCount }: { seatCount: TableSeatCount }) {
   /* Replace the mesh with its geometry so WebGPU cannot reuse disposed buffers. */
   const shape = useMemo(() => createBoardRimShape(seatCount), [seatCount]);
   const geometryArgs = useMemo(
-    () =>
-      [shape, BOARD_RIM_EXTRUDE_OPTIONS] as ConstructorParameters<
-        typeof ExtrudeGeometry
-      >,
-    [shape],
+    () => [shape, BOARD_RIM_EXTRUDE_OPTIONS] as ConstructorParameters<typeof ExtrudeGeometry>,
+    [shape]
   );
 
   return (
@@ -314,52 +261,27 @@ function BoardRim({ seatCount }: { seatCount: TableSeatCount }) {
       rotation={[Math.PI / 2, 0, 0]}
     >
       <extrudeGeometry args={geometryArgs} />
-      <meshStandardMaterial
-        color={BOARD_RIM_COLOR}
-        roughness={BOARD_RIM_ROUGHNESS}
-        metalness={BOARD_RIM_METALNESS}
-      />
+      <meshStandardMaterial color={BOARD_RIM_COLOR} roughness={BOARD_RIM_ROUGHNESS} metalness={BOARD_RIM_METALNESS} />
     </mesh>
   );
 }
 
-function TableTrackers({
-  progress,
-  slots,
-}: {
-  progress: TableProgress;
-  slots: readonly TrackerArcSlot[];
-}) {
+function TableTrackers({ progress, slots }: { progress: TableProgress; slots: readonly TrackerArcSlot[] }) {
   const currentPhaseIndex = activePhaseIndex(progress);
 
   return (
     <group>
       {slots.map((slot) => {
-        const symbol =
-          slot.phaseIndex === null
-            ? undefined
-            : progress.phases[slot.phaseIndex]?.symbol;
-        const highlighted =
-          slot.kind === "phase" && slot.phaseIndex === currentPhaseIndex;
+        const symbol = slot.phaseIndex === null ? undefined : progress.phases[slot.phaseIndex]?.symbol;
+        const highlighted = slot.kind === 'phase' && slot.phaseIndex === currentPhaseIndex;
         const color = trackerDiscColor(slot, currentPhaseIndex);
         return (
           <group
-            key={
-              slot.kind === "phase"
-                ? progress.phases[slot.phaseIndex ?? 0]?.id
-                : slot.kind
-            }
+            key={slot.kind === 'phase' ? progress.phases[slot.phaseIndex ?? 0]?.id : slot.kind}
             position={slot.position}
           >
-            <mesh
-              key={slot.radius}
-              receiveShadow
-              position={[0, TRACKER_DISC_HEIGHT / 2, 0]}
-              raycast={ignoreRaycast}
-            >
-              <cylinderGeometry
-                args={[slot.radius, slot.radius, TRACKER_DISC_HEIGHT, 96]}
-              />
+            <mesh key={slot.radius} receiveShadow position={[0, TRACKER_DISC_HEIGHT / 2, 0]} raycast={ignoreRaycast}>
+              <cylinderGeometry args={[slot.radius, slot.radius, TRACKER_DISC_HEIGHT, 96]} />
               <meshStandardMaterial
                 color={color}
                 emissive={color}
@@ -370,20 +292,11 @@ function TableTrackers({
               />
             </mesh>
             <group position={[0, TRACKER_DISC_HEIGHT, 0]}>
-              {slot.kind === "phase" ? (
-                <PhaseSymbol
-                  symbol={symbol}
-                  radius={slot.radius}
-                  faceColor={color}
-                  highlighted={highlighted}
-                />
+              {slot.kind === 'phase' ? (
+                <PhaseSymbol symbol={symbol} radius={slot.radius} faceColor={color} highlighted={highlighted} />
               ) : null}
-              {slot.kind === "turn" ? (
-                <TurnTracker radius={slot.radius} turn={progress.turn} />
-              ) : null}
-              {slot.kind === "spice" ? (
-                <SpiceBank radius={slot.radius} />
-              ) : null}
+              {slot.kind === 'turn' ? <TurnTracker radius={slot.radius} turn={progress.turn} /> : null}
+              {slot.kind === 'spice' ? <SpiceBank radius={slot.radius} /> : null}
             </group>
           </group>
         );
@@ -402,14 +315,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
   }, [loadedMarkerTexture]);
   const markerGeometry = useMemo(createStormMarkerGeometry, []);
   const outlineGeometry = useMemo(() => {
-    const sectorGeometry = new RingGeometry(
-      0.72,
-      BOARD_RADIUS,
-      96,
-      1,
-      -STORM_SECTOR_ANGLE / 2,
-      STORM_SECTOR_ANGLE,
-    );
+    const sectorGeometry = new RingGeometry(0.72, BOARD_RADIUS, 96, 1, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE);
     const outline = new EdgesGeometry(sectorGeometry, 15);
     sectorGeometry.dispose();
     return outline;
@@ -425,12 +331,9 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
     if (!group || !activeTransition) {
       return;
     }
-    const progress = stormTransitionProgress(
-      performance.now() - activeTransition.startedAt,
-    );
+    const progress = stormTransitionProgress(performance.now() - activeTransition.startedAt);
     group.rotation.y =
-      activeTransition.fromRotation +
-      (activeTransition.toRotation - activeTransition.fromRotation) * progress;
+      activeTransition.fromRotation + (activeTransition.toRotation - activeTransition.fromRotation) * progress;
     if (progress >= 1) {
       group.rotation.y = activeTransition.toRotation;
       transition.current = null;
@@ -463,7 +366,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
       markerGeometry.dispose();
       outlineGeometry.dispose();
     },
-    [markerGeometry, outlineGeometry],
+    [markerGeometry, outlineGeometry]
   );
 
   return (
@@ -474,16 +377,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
         renderOrder={-2}
         raycast={ignoreRaycast}
       >
-        <ringGeometry
-          args={[
-            0.72,
-            BOARD_RADIUS,
-            96,
-            1,
-            -STORM_SECTOR_ANGLE / 2,
-            STORM_SECTOR_ANGLE,
-          ]}
-        />
+        <ringGeometry args={[0.72, BOARD_RADIUS, 96, 1, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE]} />
         <meshBasicMaterial
           color="#e13632"
           transparent
@@ -539,33 +433,20 @@ function BoardMap({ animate = false }: { animate?: boolean }) {
   useFrame((_, delta) => {
     elapsed.current += delta;
     if (group.current) {
-      const progress =
-        animate && motion ? Math.min(1, elapsed.current / 0.65) : 1;
+      const progress = animate && motion ? Math.min(1, elapsed.current / 0.65) : 1;
       group.current.scale.setScalar(1 - (1 - progress) ** 3);
       if (progress < 1) {
         invalidate();
       }
     }
   });
-  const mapGeometry = useMemo(
-    () => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS),
-    [],
-  );
+  const mapGeometry = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS), []);
   useEffect(() => () => mapGeometry.dispose(), [mapGeometry]);
   return (
     <group ref={group} scale={animate && motion ? 0 : 1}>
-      <mesh
-        receiveShadow
-        position={[0, BOARD_SURFACE_Y, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        raycast={ignoreRaycast}
-      >
+      <mesh receiveShadow position={[0, BOARD_SURFACE_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast}>
         <circleGeometry args={[BOARD_RADIUS, 128]} />
-        <meshStandardMaterial
-          color={BOARD_MAP_BASE_COLOR}
-          roughness={0.88}
-          metalness={0}
-        />
+        <meshStandardMaterial color={BOARD_MAP_BASE_COLOR} roughness={0.88} metalness={0} />
       </mesh>
       {/*
         The map's shapes paint over one another in the source's order, so they write no depth; the disc below holds the board's depth.
@@ -578,13 +459,7 @@ function BoardMap({ animate = false }: { animate?: boolean }) {
         position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}
         raycast={ignoreRaycast}
       >
-        <meshStandardMaterial
-          vertexColors
-          transparent
-          depthWrite={false}
-          roughness={0.88}
-          metalness={0}
-        />
+        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
       </mesh>
     </group>
   );
@@ -600,7 +475,7 @@ function BoardSurface({
 }: {
   seatCount: TableSeatCount;
   stormSectorIndex: number;
-  stage: TabletopSceneProps["stage"];
+  stage: TabletopSceneProps['stage'];
   mapVisible?: boolean;
   tableProgress?: TableProgress;
   trackerSlots: readonly TrackerArcSlot[];
@@ -612,18 +487,11 @@ function BoardSurface({
       {/* The textured parts suspend while their image loads; the boundary keeps that inside the scene, so the
           rim, the furniture and the pieces stay on screen and the map fills in, instead of the route's
           placeholder replacing a table the visitor has already seen. While it waits it counts as unsettled artwork. */}
-      {(stage !== "setup" || mapVisible) && (
-        <BoardMap animate={stage === "setup"} />
-      )}
+      {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} />}
       <Suspense fallback={<ArtworkPending />}>
-        {boardFurnitureFor(stage).storm && (
-          <StormSectorHighlight sectorIndex={stormSectorIndex} />
-        )}
+        {boardFurnitureFor(stage).storm && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
       </Suspense>
-      <mesh
-        position={[0, BOARD_SURFACE_Y + 0.005, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
+      <mesh position={[0, BOARD_SURFACE_Y + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[BOARD_RADIUS, 128]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
@@ -633,11 +501,7 @@ function BoardSurface({
         return (
           <mesh
             key={index}
-            position={[
-              Math.cos(angle) * radius,
-              BOARD_RIM_SURFACE_Y - BOARD_RIM_DEPTH / 2,
-              Math.sin(angle) * radius,
-            ]}
+            position={[Math.cos(angle) * radius, BOARD_RIM_SURFACE_Y - BOARD_RIM_DEPTH / 2, Math.sin(angle) * radius]}
             rotation={[0, Math.PI / 2 - angle, 0]}
             raycast={ignoreRaycast}
           >
@@ -648,45 +512,22 @@ function BoardSurface({
                 BOARD_RIM_RADIUS - BOARD_RADIUS + 0.01,
               ]}
             />
-            <meshStandardMaterial
-              color={BOARD_RIM_DIVIDER_COLOR}
-              roughness={0.88}
-              metalness={0}
-            />
+            <meshStandardMaterial color={BOARD_RIM_DIVIDER_COLOR} roughness={0.88} metalness={0} />
           </mesh>
         );
       })}
       <PlayerStations seatCount={seatCount} />
-      {tableProgress ? (
-        <TableTrackers progress={tableProgress} slots={trackerSlots} />
-      ) : null}
+      {tableProgress ? <TableTrackers progress={tableProgress} slots={trackerSlots} /> : null}
     </group>
   );
 }
 
-function stackLayerFaceUp(
-  piece: TablePiece,
-  index: number,
-  shownLayers: number,
-) {
-  const itemIndex = stackLayerItemIndex(
-    piece.items.length,
-    shownLayers,
-    index,
-    piece.flipRevision,
-  );
+function stackLayerFaceUp(piece: TablePiece, index: number, shownLayers: number) {
+  const itemIndex = stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision);
   return piece.items[itemIndex]?.faceUp ?? true;
 }
 
-function PieceFace({
-  height,
-  underside,
-  children,
-}: {
-  height: number;
-  underside: boolean;
-  children: ReactNode;
-}) {
+function PieceFace({ height, underside, children }: { height: number; underside: boolean; children: ReactNode }) {
   return (
     <group
       position={[0, underside ? -0.001 : height + 0.001, 0]}
@@ -700,8 +541,7 @@ function PieceFace({
 
 /* Every piece and every stack layer that shows the same published image draws one shared texture, so the image is uploaded once rather than once per face. */
 const subscribePublishedFace = sharedPublishedFaces<Texture>({
-  load: (href, onLoad, onError) =>
-    new TextureLoader().load(href, onLoad, undefined, onError),
+  load: (href, onLoad, onError) => new TextureLoader().load(href, onLoad, undefined, onError),
   prepare: (value) => {
     value.colorSpace = SRGBColorSpace;
     value.anisotropy = 8;
@@ -716,26 +556,14 @@ const subscribePublishedFace = sharedPublishedFaces<Texture>({
  */
 function usePublishedFace(href: string | undefined): Texture | undefined {
   const subscribe = useCallback(
-    (onChange: () => void) =>
-      href ? subscribePublishedFace(href, onChange) : () => {},
-    [href],
+    (onChange: () => void) => (href ? subscribePublishedFace(href, onChange) : () => {}),
+    [href]
   );
-  const snapshot = useCallback(
-    () => (href ? subscribePublishedFace.peek(href) : undefined),
-    [href],
-  );
+  const snapshot = useCallback(() => (href ? subscribePublishedFace.peek(href) : undefined), [href]);
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
-function PublishedFace({
-  href,
-  card,
-  ratio,
-}: {
-  href: string;
-  card: boolean;
-  ratio?: number | null;
-}) {
+function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
   const texture = usePublishedFace(href) ?? null;
   return (
@@ -743,9 +571,7 @@ function PublishedFace({
       {card ? (
         <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
       ) : ratio != null ? (
-        <planeGeometry
-          args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * ratio]}
-        />
+        <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * ratio]} />
       ) : (
         <circleGeometry args={[TROOP_FACE_RADIUS, 48]} />
       )}
@@ -753,13 +579,7 @@ function PublishedFace({
       {texture ? (
         <meshBasicMaterial key={href} map={texture} transparent />
       ) : (
-        <meshStandardMaterial
-          key="placeholder"
-          color="#d5ba8c"
-          transparent
-          roughness={0.68}
-          metalness={0}
-        />
+        <meshStandardMaterial key="placeholder" color="#d5ba8c" transparent roughness={0.68} metalness={0} />
       )}
     </mesh>
   );
@@ -782,10 +602,7 @@ function SittingOutSign() {
         <ringGeometry args={[SITTING_OUT_INNER, SITTING_OUT_OUTER, 64]} />
         <meshBasicMaterial color="#000000" />
       </mesh>
-      <mesh
-        rotation={[0, 0, Math.PI / 4]}
-        renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-      >
+      <mesh rotation={[0, 0, Math.PI / 4]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         <planeGeometry args={[SITTING_OUT_INNER * 2, SITTING_OUT_STROKE]} />
         <meshBasicMaterial color="#000000" />
       </mesh>
@@ -806,44 +623,23 @@ function TokenFace({
 }) {
   /* A faction token has no back of its own: face down, it shows its front under a black prohibition sign. */
   const blocked = !faceUp && isFactionToken(piece);
-  const href =
-    piece.items[itemIndex]?.artwork?.[faceUp || blocked ? "front" : "back"];
+  const href = piece.items[itemIndex]?.artwork?.[faceUp || blocked ? 'front' : 'back'];
   return (
     <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
-      {href && (
-        <PublishedFace href={href} card={false} ratio={tokenBoxRatio(piece)} />
-      )}
+      {href && <PublishedFace href={href} card={false} ratio={tokenBoxRatio(piece)} />}
       {blocked && <SittingOutSign />}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         {tokenBoxRatio(piece) != null ? (
-          <planeGeometry
-            args={[
-              TROOP_FACE_RADIUS * 2,
-              TROOP_FACE_RADIUS * 2 * tokenBoxRatio(piece)!,
-            ]}
-          />
+          <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * tokenBoxRatio(piece)!]} />
         ) : (
           <circleGeometry args={[TROOP_FACE_RADIUS, 48]} />
         )}
-        <meshStandardMaterial
-          color={faceUp ? piece.accent : "#261c18"}
-          roughness={0.5}
-          metalness={0.08}
-        />
+        <meshStandardMaterial color={faceUp ? piece.accent : '#261c18'} roughness={0.5} metalness={0.08} />
       </mesh>
       {!faceUp && !piece.items[itemIndex]?.artwork ? (
-        <mesh
-          position={[0, 0, 0.001]}
-          renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-        >
-          <ringGeometry
-            args={[TROOP_FACE_RADIUS * 0.64, TROOP_FACE_RADIUS * 0.78, 48]}
-          />
-          <meshStandardMaterial
-            color={piece.accent}
-            roughness={0.5}
-            metalness={0.08}
-          />
+        <mesh position={[0, 0, 0.001]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+          <ringGeometry args={[TROOP_FACE_RADIUS * 0.64, TROOP_FACE_RADIUS * 0.78, 48]} />
+          <meshStandardMaterial color={piece.accent} roughness={0.5} metalness={0.08} />
         </mesh>
       ) : null}
     </PieceFace>
@@ -870,38 +666,18 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
             >
               {tokenBoxRatio(piece) != null ? (
                 <boxGeometry
-                  args={[
-                    TROOP_TOP_RADIUS * 2,
-                    TROOP_LAYER_HEIGHT,
-                    TROOP_TOP_RADIUS * 2 * tokenBoxRatio(piece)!,
-                  ]}
+                  args={[TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * tokenBoxRatio(piece)!]}
                 />
               ) : (
-                <cylinderGeometry
-                  args={[
-                    TROOP_TOP_RADIUS,
-                    TROOP_BOTTOM_RADIUS,
-                    TROOP_LAYER_HEIGHT,
-                    48,
-                  ]}
-                />
+                <cylinderGeometry args={[TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48]} />
               )}
-              <meshStandardMaterial
-                color={piece.color}
-                roughness={0.56}
-                metalness={0.1}
-              />
+              <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
             </mesh>
             {index === shownLayers - 1 ? (
               <TokenFace
                 piece={piece}
                 faceUp={faceUp}
-                itemIndex={stackLayerItemIndex(
-                  piece.items.length,
-                  shownLayers,
-                  index,
-                  piece.flipRevision,
-                )}
+                itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
               />
             ) : null}
             {index === 0 ? (
@@ -909,12 +685,7 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
                 piece={piece}
                 faceUp={!faceUp}
                 underside
-                itemIndex={stackLayerItemIndex(
-                  piece.items.length,
-                  shownLayers,
-                  index,
-                  piece.flipRevision,
-                )}
+                itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
               />
             ) : null}
           </group>
@@ -940,39 +711,22 @@ function CardFace({
 }) {
   return (
     <PieceFace height={CARD_LAYER_HEIGHT} underside={underside}>
-      {piece.items[itemIndex]?.artwork?.[faceUp ? "front" : "back"] && (
-        <PublishedFace
-          href={piece.items[itemIndex].artwork![faceUp ? "front" : "back"]!}
-          card
-        />
+      {piece.items[itemIndex]?.artwork?.[faceUp ? 'front' : 'back'] && (
+        <PublishedFace href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']!} card />
       )}
       {faceUp && piece.items[itemIndex]?.artwork?.prediction && (
         <Suspense fallback={null}>
-          <PredictionOverlay
-            prediction={piece.items[itemIndex].artwork.prediction}
-          />
+          <PredictionOverlay prediction={piece.items[itemIndex].artwork.prediction} />
         </Suspense>
       )}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
-        <meshStandardMaterial
-          color={faceUp ? piece.color : "#2b1a1a"}
-          roughness={0.68}
-          metalness={0.03}
-        />
+        <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
       </mesh>
       {covered ? null : (
-        <mesh
-          position={[0, 0, 0.001]}
-          renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-        >
+        <mesh position={[0, 0, 0.001]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
           <planeGeometry args={[0.58, 0.82]} />
-          <meshBasicMaterial
-            color={piece.accent}
-            transparent
-            depthWrite={false}
-            opacity={faceUp ? 0.74 : 0.38}
-          />
+          <meshBasicMaterial color={piece.accent} transparent depthWrite={false} opacity={faceUp ? 0.74 : 0.38} />
         </mesh>
       )}
     </PieceFace>
@@ -992,45 +746,24 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
         return (
           <group
             key={index}
-            position={[
-              (index - (shownLayers - 1) / 2) * CARD_LAYER_STAGGER,
-              index * CARD_LAYER_PITCH,
-              0,
-            ]}
+            position={[(index - (shownLayers - 1) / 2) * CARD_LAYER_STAGGER, index * CARD_LAYER_PITCH, 0]}
           >
-            <mesh
-              position={[0, CARD_LAYER_HEIGHT / 2, 0]}
-              renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-            >
+            <mesh position={[0, CARD_LAYER_HEIGHT / 2, 0]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
               <boxGeometry args={[CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH]} />
-              <meshStandardMaterial
-                color="#ead9bb"
-                roughness={0.68}
-                metalness={0.03}
-              />
+              <meshStandardMaterial color="#ead9bb" roughness={0.68} metalness={0.03} />
             </mesh>
             <CardFace
               piece={piece}
               faceUp={faceUp}
               covered={index < shownLayers - 1}
-              itemIndex={stackLayerItemIndex(
-                piece.items.length,
-                shownLayers,
-                index,
-                piece.flipRevision,
-              )}
+              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
             />
             <CardFace
               piece={piece}
               faceUp={!faceUp}
               underside
               covered={index > 0}
-              itemIndex={stackLayerItemIndex(
-                piece.items.length,
-                shownLayers,
-                index,
-                piece.flipRevision,
-              )}
+              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
             />
           </group>
         );
@@ -1045,35 +778,13 @@ function MarkerLayers({ piece }: { piece: TablePiece }) {
   }
   return (
     <group rotation={[0, piece.orientation, 0]}>
-      <mesh
-        position={[0, MARKER_BASE_HEIGHT / 2, 0]}
-        renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-      >
-        <cylinderGeometry
-          args={[
-            MARKER_TOP_RADIUS,
-            MARKER_BOTTOM_RADIUS,
-            MARKER_BASE_HEIGHT,
-            8,
-          ]}
-        />
-        <meshStandardMaterial
-          color={piece.color}
-          roughness={0.48}
-          metalness={0.28}
-        />
+      <mesh position={[0, MARKER_BASE_HEIGHT / 2, 0]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+        <cylinderGeometry args={[MARKER_TOP_RADIUS, MARKER_BOTTOM_RADIUS, MARKER_BASE_HEIGHT, 8]} />
+        <meshStandardMaterial color={piece.color} roughness={0.48} metalness={0.28} />
       </mesh>
-      <mesh
-        position={[0, MARKER_CONE_CENTER_Y, 0]}
-        renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-        rotation={[0, 0.2, 0]}
-      >
+      <mesh position={[0, MARKER_CONE_CENTER_Y, 0]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} rotation={[0, 0.2, 0]}>
         <coneGeometry args={[MARKER_CONE_RADIUS, MARKER_CONE_HEIGHT, 8]} />
-        <meshStandardMaterial
-          color={piece.accent}
-          roughness={0.45}
-          metalness={0.2}
-        />
+        <meshStandardMaterial color={piece.accent} roughness={0.45} metalness={0.2} />
       </mesh>
     </group>
   );
@@ -1084,23 +795,9 @@ function SpiceLayers({ piece }: { piece: TablePiece }) {
     <group>
       {Array.from({ length: visibleLayerCount(piece) }, (_, index) => (
         <group key={index} position={[0, index * SPICE_LAYER_PITCH, 0]}>
-          <mesh
-            position={[0, SPICE_LAYER_HEIGHT / 2, 0]}
-            renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-          >
-            <cylinderGeometry
-              args={[
-                SPICE_TOKEN_RADIUS,
-                SPICE_TOKEN_RADIUS,
-                SPICE_LAYER_HEIGHT,
-                48,
-              ]}
-            />
-            <meshStandardMaterial
-              color="#b8842f"
-              roughness={0.8}
-              metalness={0}
-            />
+          <mesh position={[0, SPICE_LAYER_HEIGHT / 2, 0]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+            <cylinderGeometry args={[SPICE_TOKEN_RADIUS, SPICE_TOKEN_RADIUS, SPICE_LAYER_HEIGHT, 48]} />
+            <meshStandardMaterial color="#b8842f" roughness={0.8} metalness={0} />
           </mesh>
           <mesh
             position={[0, SPICE_LAYER_HEIGHT + 0.001, 0]}
@@ -1142,14 +839,9 @@ type PieceSceneState = {
   owner: string | undefined;
   /* Who peeked at the piece, as its tag says it under the name. */
   peeked: string | undefined;
-  /* A faction token's Treachery card count, shown beside it to everyone; undefined on every other piece. */
-  handCount: number | undefined;
 };
 
-type TablePieceMeshProps = {
-  piece: TablePiece;
-  showLabels?: boolean;
-} & PieceSceneState;
+type TablePieceMeshProps = { piece: TablePiece; showLabels?: boolean } & PieceSceneState;
 
 function pieceSceneState(
   piece: TablePiece,
@@ -1161,12 +853,8 @@ function pieceSceneState(
     reservedPieceIds,
   }: Pick<
     TabletopContextValue,
-    | "state"
-    | "gestureActivePieceId"
-    | "canHandleTable"
-    | "remoteCarriedIds"
-    | "reservedPieceIds"
-  >,
+    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'reservedPieceIds'
+  >
 ): PieceSceneState {
   const drafted = state.draftMove?.pieceId === piece.id;
   const remoteCarried = remoteCarriedIds.has(piece.id);
@@ -1179,31 +867,21 @@ function pieceSceneState(
     remoteCarried,
     locallyCarried: drafted && gestureActivePieceId !== null,
     reserved,
-    interactionBlocked:
-      !canHandleTable || remoteCarried || (reserved && !localSource),
+    interactionBlocked: !canHandleTable || remoteCarried || (reserved && !localSource),
     canHandleTable,
     carrying: Boolean(state.draftMove),
     owner: pieceOwnerName(piece, state),
     peeked: peekedLine(piece, state),
-    handCount: isFactionToken(piece)
-      ? state.handCounts?.[piece.owner]
-      : undefined,
   };
 }
 
 /* "Fremen peeked at this", naming every faction that peeked at a card or token of the piece. */
-function peekedLine(
-  piece: TablePiece,
-  state: Pick<TableState, "factionNames">,
-) {
+function peekedLine(piece: TablePiece, state: Pick<TableState, 'factionNames'>) {
   const names = peekersOf(piece).map((id) => state.factionNames[id] ?? id);
   if (!names.length) {
     return undefined;
   }
-  const who =
-    names.length === 1
-      ? names[0]
-      : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
   return `${who} peeked at this`;
 }
 
@@ -1212,35 +890,23 @@ function useTablePointFromClient() {
   const normalizedPointer = useMemo(() => new Vector2(), []);
   const raycaster = useMemo(() => new Raycaster(), []);
   const pointFromClient = useCallback(
-    (
-      piece: TablePiece,
-      clientX: number,
-      clientY: number,
-    ): Vector3Tuple | null => {
+    (piece: TablePiece, clientX: number, clientY: number): Vector3Tuple | null => {
       if (!isPublicTablePoint(renderer.domElement, clientX, clientY)) {
         return null;
       }
       const bounds = renderer.domElement.getBoundingClientRect();
       normalizedPointer.set(
         ((clientX - bounds.left) / bounds.width) * 2 - 1,
-        -((clientY - bounds.top) / bounds.height) * 2 + 1,
+        -((clientY - bounds.top) / bounds.height) * 2 + 1
       );
       raycaster.setFromCamera(normalizedPointer, camera);
       return pointOnPieceDragRay(
         piece,
-        [
-          raycaster.ray.origin.x,
-          raycaster.ray.origin.y,
-          raycaster.ray.origin.z,
-        ],
-        [
-          raycaster.ray.direction.x,
-          raycaster.ray.direction.y,
-          raycaster.ray.direction.z,
-        ],
+        [raycaster.ray.origin.x, raycaster.ray.origin.y, raycaster.ray.origin.z],
+        [raycaster.ray.direction.x, raycaster.ray.direction.y, raycaster.ray.direction.z]
       );
     },
-    [camera, normalizedPointer, raycaster, renderer.domElement],
+    [camera, normalizedPointer, raycaster, renderer.domElement]
   );
 
   return pointFromClient;
@@ -1248,15 +914,8 @@ function useTablePointFromClient() {
 
 function useScenePointerSession(onActiveChange: (active: boolean) => void) {
   const session = usePointerSession();
-  const {
-    state,
-    beginGesture,
-    updateGesture,
-    finishGesture,
-    cancelDraft,
-    canHandleTable,
-    publishPointer,
-  } = useTabletop();
+  const { state, beginGesture, updateGesture, finishGesture, cancelDraft, canHandleTable, publishPointer } =
+    useTabletop();
   const { renderer } = useThree();
   const point = useTablePointFromClient();
   const controls = {
@@ -1264,8 +923,7 @@ function useScenePointerSession(onActiveChange: (active: boolean) => void) {
     hasDraft: Boolean(state.draftMove),
     piece: (id: string) => state.pieces.find((piece) => piece.id === id),
     point,
-    isPublicPoint: (x: number, y: number) =>
-      isPublicTablePoint(renderer.domElement, x, y),
+    isPublicPoint: (x: number, y: number) => isPublicTablePoint(renderer.domElement, x, y),
     beginGesture,
     updateGesture,
     finishGesture,
@@ -1279,13 +937,8 @@ function useScenePointerSession(onActiveChange: (active: boolean) => void) {
     session.reconcile();
   });
   useLayoutEffect(
-    () =>
-      session.bind({
-        events: window,
-        canvas: renderer.domElement,
-        read: () => live.current,
-      }),
-    [renderer.domElement, session],
+    () => session.bind({ events: window, canvas: renderer.domElement, read: () => live.current }),
+    [renderer.domElement, session]
   );
 }
 
@@ -1297,9 +950,7 @@ function useScenePointerSession(onActiveChange: (active: boolean) => void) {
  * A touch is left alone: it leaves after every tap, before the click that R3F can only deliver while it still remembers the pointer.
  */
 function useCanvasHoverReset() {
-  const connected = useThree(
-    (state) => state.events.connected as EventTarget | undefined,
-  );
+  const connected = useThree((state) => state.events.connected as EventTarget | undefined);
   const cancel = useThree((state) => state.events.handlers?.onPointerCancel);
   const internal = useThree((state) => state.internal);
   const { renderer } = useThree();
@@ -1309,29 +960,29 @@ function useCanvasHoverReset() {
     }
     const canvas = renderer.domElement;
     const leave = (event: PointerEvent) => {
-      if (event.pointerType !== "touch") {
+      if (event.pointerType !== 'touch') {
         cancel(event);
       }
     };
     const cancelAll = () => {
       for (const pointerId of internal.pointerMap.keys()) {
-        cancel(new PointerEvent("pointercancel", { pointerId }));
+        cancel(new PointerEvent('pointercancel', { pointerId }));
       }
     };
     const hidden = () => {
-      if (document.visibilityState === "hidden") {
+      if (document.visibilityState === 'hidden') {
         cancelAll();
       }
     };
-    connected.addEventListener("pointerleave", leave as EventListener);
-    canvas.addEventListener("pointerleave", leave);
-    window.addEventListener("blur", cancelAll);
-    document.addEventListener("visibilitychange", hidden);
+    connected.addEventListener('pointerleave', leave as EventListener);
+    canvas.addEventListener('pointerleave', leave);
+    window.addEventListener('blur', cancelAll);
+    document.addEventListener('visibilitychange', hidden);
     return () => {
-      connected.removeEventListener("pointerleave", leave as EventListener);
-      canvas.removeEventListener("pointerleave", leave);
-      window.removeEventListener("blur", cancelAll);
-      document.removeEventListener("visibilitychange", hidden);
+      connected.removeEventListener('pointerleave', leave as EventListener);
+      canvas.removeEventListener('pointerleave', leave);
+      window.removeEventListener('blur', cancelAll);
+      document.removeEventListener('visibilitychange', hidden);
     };
   }, [connected, cancel, internal, renderer]);
 }
@@ -1343,33 +994,22 @@ function useCanvasName() {
   const { renderer } = useThree();
   useLayoutEffect(() => {
     const canvas = renderer.domElement;
-    canvas.setAttribute("role", "img");
-    canvas.setAttribute("aria-label", "Game table");
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', 'Game table');
   }, [renderer]);
 }
 
-function pieceHoverCursor(
-  canInteract: boolean,
-  interactionBlocked: boolean,
-  gestureBlocked: boolean,
-) {
+function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, gestureBlocked: boolean) {
   if (interactionBlocked) {
-    return canInteract ? "not-allowed" : "default";
+    return canInteract ? 'not-allowed' : 'default';
   }
-  return gestureBlocked ? "not-allowed" : "grab";
+  return gestureBlocked ? 'not-allowed' : 'grab';
 }
 
 /* Opens a piece's menu at a point; `touch` says a finger asked for it, which has no keyboard shortcut to offer. */
-const PieceMenuContext = createContext<
-  ((pieceId: string, x: number, y: number, touch: boolean) => void) | null
->(null);
+const PieceMenuContext = createContext<((pieceId: string, x: number, y: number, touch: boolean) => void) | null>(null);
 
-function usePiecePointerEvents({
-  piece,
-  interactionBlocked,
-  canHandleTable,
-  carrying,
-}: TablePieceMeshProps) {
+function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carrying }: TablePieceMeshProps) {
   const { selectPiece, setHoveredPiece } = useTabletopActions();
   const openPieceMenu = useContext(PieceMenuContext);
   /* A selector, so a change elsewhere in the scene's store does not render every piece again. */
@@ -1377,9 +1017,7 @@ function usePiecePointerEvents({
   const pointerSession = usePointerSession();
   const gestureBlocked = gestureBlockReason(piece);
   const hasMenu =
-    !carrying &&
-    (piece.kind === "card" || isSpicePiece(piece) || peekableToken(piece)) &&
-    !piece.inventory;
+    !carrying && (piece.kind === 'card' || isSpicePiece(piece) || peekableToken(piece)) && !piece.inventory;
   const stopLongPress = useRef<(() => void) | null>(null);
   useEffect(() => () => stopLongPress.current?.(), []);
 
@@ -1389,9 +1027,7 @@ function usePiecePointerEvents({
         event.stopPropagation();
         const { clientX, clientY } = event.nativeEvent;
         /* Android's long-press context menu is a touch pointer event. */
-        const touch =
-          "pointerType" in event.nativeEvent &&
-          event.nativeEvent.pointerType === "touch";
+        const touch = 'pointerType' in event.nativeEvent && event.nativeEvent.pointerType === 'touch';
         openPieceMenu(piece.id, clientX, clientY, touch);
       }
     },
@@ -1413,25 +1049,21 @@ function usePiecePointerEvents({
        */
       stopLongPress.current?.();
       stopLongPress.current = null;
-      if (event.pointerType === "touch" && hasMenu && openPieceMenu) {
+      if (event.pointerType === 'touch' && hasMenu && openPieceMenu) {
         const { clientX, clientY } = event.nativeEvent;
-        stopLongPress.current = watchLongPress(
-          window,
-          event.nativeEvent,
-          () => {
-            stopLongPress.current = null;
-            if (pointerSession.isDragging(piece.id)) {
-              return;
-            }
-            /* Only this finger's press stops; another finger may be carrying another piece. */
-            if (pointerSession.isPressing(piece.id)) {
-              pointerSession.cancel();
-            }
-            stopLongPress.current = swallowLift(window, { clientX, clientY });
-            /* Android also sends a context menu for the long press; opening the same menu twice changes nothing. */
-            openPieceMenu(piece.id, clientX, clientY, true);
-          },
-        );
+        stopLongPress.current = watchLongPress(window, event.nativeEvent, () => {
+          stopLongPress.current = null;
+          if (pointerSession.isDragging(piece.id)) {
+            return;
+          }
+          /* Only this finger's press stops; another finger may be carrying another piece. */
+          if (pointerSession.isPressing(piece.id)) {
+            pointerSession.cancel();
+          }
+          stopLongPress.current = swallowLift(window, { clientX, clientY });
+          /* Android also sends a context menu for the long press; opening the same menu twice changes nothing. */
+          openPieceMenu(piece.id, clientX, clientY, true);
+        });
       }
       if (gestureBlocked) {
         return;
@@ -1441,14 +1073,10 @@ function usePiecePointerEvents({
     onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
       event.stopPropagation();
       /* A finger has no hover: its leave is never heard, so a tap's jitter would leave the piece armed for the keys after the selection moves on. */
-      if (event.pointerType === "touch") {
+      if (event.pointerType === 'touch') {
         return;
       }
-      const cursor = pieceHoverCursor(
-        canHandleTable,
-        interactionBlocked,
-        Boolean(gestureBlocked),
-      );
+      const cursor = pieceHoverCursor(canHandleTable, interactionBlocked, Boolean(gestureBlocked));
       if (interactionBlocked) {
         renderer.domElement.style.cursor = cursor;
         return;
@@ -1459,21 +1087,15 @@ function usePiecePointerEvents({
     onPointerLeave: () => {
       setHoveredPiece(null);
       if (!pointerSession.isDragging(piece.id)) {
-        renderer.domElement.style.cursor = "default";
+        renderer.domElement.style.cursor = 'default';
       }
     },
   };
 }
 
-const PIECE_SELECTION_RING_MATERIAL = {
-  transparent: true,
-  opacity: 0.92,
-} as const;
+const PIECE_SELECTION_RING_MATERIAL = { transparent: true, opacity: 0.92 } as const;
 
-const PIECE_SELECTION_RADII: Record<
-  TablePiece["kind"],
-  [number, number, number]
-> = {
+const PIECE_SELECTION_RADII: Record<TablePiece['kind'], [number, number, number]> = {
   card: [0.7, 0.78, 64],
   force: [0.2, 0.235, 64],
   marker: [0.4, 0.47, 64],
@@ -1502,11 +1124,9 @@ function PieceSelectionRing({
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       rotation={[-Math.PI / 2, 0, 0]}
     >
-      <ringGeometry
-        args={isSpicePiece(piece) ? [0.18, 0.205, 64] : selectionRadii(piece)}
-      />
+      <ringGeometry args={isSpicePiece(piece) ? [0.18, 0.205, 64] : selectionRadii(piece)} />
       <meshBasicMaterial
-        color={stackTargeted ? "#f6bd55" : drafted ? "#f6c879" : "#fff0c9"}
+        color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
         {...PIECE_SELECTION_RING_MATERIAL}
       />
     </mesh>
@@ -1536,14 +1156,10 @@ function SelectionRingWarmup() {
 }
 
 function PieceLayers({ piece }: { piece: TablePiece }) {
-  if (piece.kind === "marker") {
+  if (piece.kind === 'marker') {
     return <MarkerLayers piece={piece} />;
   }
-  return piece.kind === "card" ? (
-    <CardStackLayers piece={piece} />
-  ) : (
-    <TroopStackLayers piece={piece} />
-  );
+  return piece.kind === 'card' ? <CardStackLayers piece={piece} /> : <TroopStackLayers piece={piece} />;
 }
 
 function PieceLock({ piece }: { piece: TablePiece }) {
@@ -1551,19 +1167,12 @@ function PieceLock({ piece }: { piece: TablePiece }) {
     return null;
   }
   const lock = (
-    <mesh
-      position={[0.3, 0.42, 0.2]}
-      renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-    >
+    <mesh position={[0.3, 0.42, 0.2]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
       <boxGeometry args={[0.16, 0.19, 0.09]} />
       <meshStandardMaterial color="#251912" metalness={0.3} roughness={0.6} />
     </mesh>
   );
-  return piece.kind === "force" ? (
-    <group scale={0.5 * troopScale(piece)}>{lock}</group>
-  ) : (
-    lock
-  );
+  return piece.kind === 'force' ? <group scale={0.5 * troopScale(piece)}>{lock}</group> : lock;
 }
 
 /*
@@ -1571,12 +1180,8 @@ function PieceLock({ piece }: { piece: TablePiece }) {
  * A label that already carries the name ('Atreides troops', 'Atreides alliance') names it once, and when another
  * seat's faction shares that name the badge adds only what tells them apart (#1667).
  */
-function pieceOwnerName(
-  piece: TablePiece,
-  state: Pick<TableState, "factionNames" | "factionTieBreaks">,
-) {
-  const owner =
-    piece.owner === "shared" ? undefined : state.factionNames[piece.owner];
+function pieceOwnerName(piece: TablePiece, state: Pick<TableState, 'factionNames' | 'factionTieBreaks'>) {
+  const owner = piece.owner === 'shared' ? undefined : state.factionNames[piece.owner];
   if (!owner) {
     return undefined;
   }
@@ -1587,43 +1192,24 @@ function pieceOwnerName(
   return tieBreak ? `${owner} (${tieBreak})` : owner;
 }
 
-const TablePieceMesh = memo(function TablePieceMesh(
-  props: TablePieceMeshProps,
-) {
-  const {
-    piece,
-    drafted,
-    remoteCarried,
-    locallyCarried,
-    reserved,
-    selected,
-    stackTargeted,
-    owner,
-    peeked,
-    handCount,
-  } = props;
+const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
+  const { piece, drafted, remoteCarried, locallyCarried, reserved, selected, stackTargeted, owner, peeked } = props;
   const { finishPieceFlip } = useTabletopActions();
   const pointerEvents = usePiecePointerEvents(props);
   const displayedCount = pieceCount(piece);
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
-  const poseRef = useTablePose(
-    piece.position,
-    piece.orientation,
-    remoteCarried,
-    locallyCarried,
-  );
+  const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried);
   const faceReady = usePublishedFaceReady(topFaceHref(piece));
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
     piece,
     drafted || remoteCarried || emptyProjection,
     finishPieceFlip,
-    faceReady,
+    faceReady
   );
   const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
   const flipPivotY = stackTopHeight(piece) / 2;
-  const shadowLocalY =
-    contactShadowHeightAt(piece.position, piece) - piece.position[1];
+  const shadowLocalY = contactShadowHeightAt(piece.position, piece) - piece.position[1];
 
   return (
     <group
@@ -1669,15 +1255,6 @@ const TablePieceMesh = memo(function TablePieceMesh(
             </group>
           </group>
           <PieceLock piece={piece} />
-          {handCount === undefined ? null : (
-            <Suspense fallback={null}>
-              <HandCountChip
-                piece={piece}
-                count={handCount}
-                className={styles.handCount}
-              />
-            </Suspense>
-          )}
           {props.showLabels !== false && (
             <Suspense fallback={null}>
               <PieceBadge
@@ -1704,12 +1281,8 @@ const TablePieceMesh = memo(function TablePieceMesh(
   );
 });
 
-function useSceneInteractions(
-  onInteractionActiveChange: TabletopSceneProps["onInteractionActiveChange"],
-) {
-  const gestureActivePieceId = useTabletopSelector(
-    (table) => table.gestureActivePieceId,
-  );
+function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onInteractionActiveChange']) {
+  const gestureActivePieceId = useTabletopSelector((table) => table.gestureActivePieceId);
   const [pointerActive, setPointerActive] = useState(false);
   const onPointerSessionChange = useCallback(
     (nextActive: boolean) => {
@@ -1718,17 +1291,14 @@ function useSceneInteractions(
         onInteractionActiveChange?.(true);
       }
     },
-    [onInteractionActiveChange],
+    [onInteractionActiveChange]
   );
   const sceneInteractionActive = pointerActive || gestureActivePieceId !== null;
 
   useEffect(() => {
     onInteractionActiveChange?.(sceneInteractionActive);
   }, [onInteractionActiveChange, sceneInteractionActive]);
-  useEffect(
-    () => () => onInteractionActiveChange?.(false),
-    [onInteractionActiveChange],
-  );
+  useEffect(() => () => onInteractionActiveChange?.(false), [onInteractionActiveChange]);
 
   return {
     controlsEnabled: !gestureActivePieceId && !pointerActive,
@@ -1749,7 +1319,7 @@ function ReleaseRendererOnUnmount() {
         renderer.dispose();
       }
     },
-    [renderer],
+    [renderer]
   );
   return null;
 }
@@ -1760,17 +1330,8 @@ function TableLights() {
   return (
     <>
       <ambientLight intensity={1.25 * lighting} />
-      <directionalLight
-        position={[-4, 9, 5]}
-        intensity={3.1 * lighting}
-        color="#ffe2ae"
-      />
-      <pointLight
-        position={[5, 4, -4]}
-        intensity={14 * lighting}
-        distance={16}
-        color="#d67b44"
-      />
+      <directionalLight position={[-4, 9, 5]} intensity={3.1 * lighting} color="#ffe2ae" />
+      <pointLight position={[5, 4, -4]} intensity={14 * lighting} distance={16} color="#d67b44" />
     </>
   );
 }
@@ -1787,35 +1348,27 @@ function SceneContents({
   presentation,
 }: Pick<
   TabletopSceneProps,
-  | "cameraView"
-  | "onInteractionActiveChange"
-  | "seatCount"
-  | "tableProgress"
-  | "stage"
-  | "mapVisible"
-  | "presentation"
+  'cameraView' | 'onInteractionActiveChange' | 'seatCount' | 'tableProgress' | 'stage' | 'mapVisible' | 'presentation'
 > & {
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
 }) {
   const table = useTabletop();
   const { state, renderedPieces, selectPiece } = table;
-  const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(
-    onInteractionActiveChange,
-  );
+  const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
   useCanvasName();
 
   return (
     <>
-      {presentation !== "preview" && (
+      {presentation !== 'preview' && (
         <>
-          <color attach="background" args={["#130d0a"]} />
-          <fog attach="fog" args={["#130d0a", 10, 22]} />
+          <color attach="background" args={['#130d0a']} />
+          <fog attach="fog" args={['#130d0a', 10, 22]} />
         </>
       )}
-      {presentation !== "preview" && (
+      {presentation !== 'preview' && (
         <Suspense fallback={null}>
           <ScenePresence showNames />
         </Suspense>
@@ -1832,29 +1385,21 @@ function SceneContents({
         />
         {renderedPieces
           /* Troop reserves arrive with the board: setup keeps them off the table until the map shows. */
-          .filter(
-            (piece) =>
-              !piece.battleOverlay &&
-              (stage !== "setup" || mapVisible || !isTroopStack(piece)),
-          )
+          .filter((piece) => !piece.battleOverlay && (stage !== 'setup' || mapVisible || !isTroopStack(piece)))
           .map((piece) => (
             <TablePieceMesh
-              showLabels={presentation !== "preview"}
+              showLabels={presentation !== 'preview'}
               key={piece.id}
               piece={piece}
               {...pieceSceneState(piece, table)}
             />
           ))}
       </group>
-      {presentation === "preview" ? (
+      {presentation === 'preview' ? (
         <MapPreviewCamera />
       ) : (
         <Suspense fallback={<MapPreviewCamera />}>
-          <PlayCamera
-            enabled={controlsEnabled}
-            command={cameraView}
-            mapFramingPoints={mapFramingPoints}
-          />
+          <PlayCamera enabled={controlsEnabled} command={cameraView} mapFramingPoints={mapFramingPoints} />
         </Suspense>
       )}
       <SelectionRingWarmup />
@@ -1871,19 +1416,15 @@ export function TabletopScene({
   tableProgress: providedProgress,
   onSceneReady,
   onSceneUnavailable,
-  presentation = "play",
+  presentation = 'play',
   stage,
   mapVisible,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget } = useTabletopCommands();
   /* The frame around the canvas follows only what it shows, so a held piece moving renders the pieces and not the canvas. */
-  const hasDraft = useTabletopSelector(
-    (table) => table.state.draftMove !== null,
-  );
+  const hasDraft = useTabletopSelector((table) => table.state.draftMove !== null);
   const menuAvailable = useTabletopSelector((table) =>
-    Boolean(
-      table.deckControls || table.spiceReserveControls || table.peekControls,
-    ),
+    Boolean(table.deckControls || table.spiceReserveControls || table.peekControls)
   );
   const [pieceMenu, setPieceMenu] = useState<PieceMenuAnchor | null>(null);
   /* One opener for the table's life: a new one on every update would render every piece again. */
@@ -1896,29 +1437,24 @@ export function TabletopScene({
         y,
         touch: touch || (current?.pieceId === pieceId && current.touch),
       })),
-    [],
+    []
   );
   const { trackers } = boardFurnitureFor(stage);
-  const tableProgress = trackers === "none" ? undefined : providedProgress;
+  const tableProgress = trackers === 'none' ? undefined : providedProgress;
   const phaseCount = tableProgress?.phases.length ?? null;
   const trackerSlots = useMemo(() => {
     const slots = phaseCount === null ? [] : trackerArcSlots(phaseCount);
-    return trackers === "spice"
-      ? slots.filter((slot) => slot.kind === "spice")
-      : slots;
+    return trackers === 'spice' ? slots.filter((slot) => slot.kind === 'spice') : slots;
   }, [phaseCount, trackers]);
-  const mapFramingPoints = useMemo(
-    () => mapViewFramingPoints(trackerSlots, seatCount),
-    [seatCount, trackerSlots],
-  );
+  const mapFramingPoints = useMemo(() => mapViewFramingPoints(trackerSlots, seatCount), [seatCount, trackerSlots]);
   const camera = useMemo(
     () => ({
-      position: cameraPoseFor("map", 1, mapFramingPoints).position,
+      position: cameraPoseFor('map', 1, mapFramingPoints).position,
       fov: TABLE_CAMERA_FIELD_OF_VIEW,
       near: TABLE_CAMERA_NEAR,
       far: TABLE_CAMERA_FAR,
     }),
-    [mapFramingPoints],
+    [mapFramingPoints]
   );
   const graphics = useTableGraphics();
   const areaRef = useRef<HTMLDivElement>(null);
@@ -1935,7 +1471,7 @@ export function TabletopScene({
         }
       }}
     >
-      {presentation === "play" && (
+      {presentation === 'play' && (
         <Suspense fallback={null}>
           <TabletopTools
             pieceMenu={pieceMenu}
@@ -1945,37 +1481,27 @@ export function TabletopScene({
           />
         </Suspense>
       )}
-      <PieceMenuContext.Provider
-        value={presentation === "play" && menuAvailable ? openPieceMenu : null}
-      >
-        {graphics === "unavailable" && (
-          <TableGraphicsUnavailable
-            silent={presentation === "preview"}
-            onShown={onSceneUnavailable ?? onSceneReady}
-          />
+      <PieceMenuContext.Provider value={presentation === 'play' && menuAvailable ? openPieceMenu : null}>
+        {graphics === 'unavailable' && (
+          <TableGraphicsUnavailable silent={presentation === 'preview'} onShown={onSceneUnavailable ?? onSceneReady} />
         )}
-        {graphics === "ready" && (
-          <TableGraphicsBoundary
-            silent={presentation === "preview"}
-            onShown={onSceneUnavailable ?? onSceneReady}
-          >
+        {graphics === 'ready' && (
+          <TableGraphicsBoundary silent={presentation === 'preview'} onShown={onSceneUnavailable ?? onSceneReady}>
             <Canvas
               camera={camera}
               dpr={[1, 2]}
               frameloop="demand"
               renderer={{
                 antialias: true,
-                alpha: presentation === "preview",
-                powerPreference: "high-performance",
+                alpha: presentation === 'preview',
+                powerPreference: 'high-performance',
                 toneMapping: NeutralToneMapping,
               }}
               /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
-              onCreated={presentation === "play" ? onSceneReady : undefined}
+              onCreated={presentation === 'play' ? onSceneReady : undefined}
             >
               <ReleaseRendererOnUnmount />
-              {presentation === "preview" && (
-                <PreviewArrival onReady={onSceneReady} />
-              )}
+              {presentation === 'preview' && <PreviewArrival onReady={onSceneReady} />}
               {children}
               <SceneContents
                 presentation={presentation}
@@ -2010,7 +1536,7 @@ function RenderedTable({ onReady }: { onReady?: () => void }) {
           invalidate();
         }
       }),
-    [invalidate],
+    [invalidate]
   );
   useEffect(
     () => () => {
@@ -2018,7 +1544,7 @@ function RenderedTable({ onReady }: { onReady?: () => void }) {
         cancelAnimationFrame(pendingFrame.current);
       }
     },
-    [],
+    []
   );
   useFrame(() => {
     if (complete.current) {

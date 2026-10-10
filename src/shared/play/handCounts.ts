@@ -1,7 +1,7 @@
-import type { StoredPiece } from "./model";
+import type { StoredPiece } from './model';
 
 /** The asset type of a Treachery card: the cards a hand's public count is about. */
-const TREACHERY_CARD = "card-treachery";
+const TREACHERY_CARD = 'card-treachery';
 
 /**
  * How many Treachery cards each faction holds, by faction id, with every listed faction present (zero when its hand holds none).
@@ -10,7 +10,7 @@ const TREACHERY_CARD = "card-treachery";
  */
 export function treacheryHandCounts(
   inventories: Readonly<Partial<Record<string, readonly StoredPiece[]>>>,
-  factionIds: readonly string[],
+  factionIds: readonly string[]
 ): Record<string, number> {
   return Object.fromEntries(
     factionIds.map((factionId) => [
@@ -18,13 +18,9 @@ export function treacheryHandCounts(
       (inventories[factionId] ?? []).reduce(
         (total, piece) =>
           total +
-          (piece.kind === "card"
-            ? piece.items.filter(
-                (item) => item.artwork?.type === TREACHERY_CARD,
-              ).length
-            : 0),
-        0,
+          (piece.kind === 'card' ? piece.items.filter((item) => item.artwork?.type === TREACHERY_CARD).length : 0),
+        0
       ),
-    ]),
+    ])
   );
 }
