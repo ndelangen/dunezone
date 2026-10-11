@@ -66,6 +66,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'src/app/widgets/page-message/**',
   'src/app/widgets/tabletop/**',
   'src/app/widgets/asset-face/**',
+  'src/app/widgets/faction-details/**',
   'src/game/assets/**',
   'src/game/data/**',
   'src/game/fixtures/**',
