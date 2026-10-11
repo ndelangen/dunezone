@@ -1,5 +1,5 @@
 import { tableHandlingOpen } from '@shared/play/admission';
-import type { BattlePlanInput } from '@shared/play/battle';
+import type { BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
@@ -108,6 +108,10 @@ export type TableProjection = {
     draw(pieceId: string, recipient?: string): void;
     shuffle(pieceId: string): void;
   };
+  /* Taking a card, token or stack out of the game for good; present only while this viewer can act. */
+  deleteControls?: {
+    remove(pieceId: string): void;
+  };
   /* The piece this viewer's faction holds open by peeking, faces showing; only its own frames carry one. */
   peek: Peek | null;
   /* Peeking at a hidden card, token or deck, and changing a deck held open; present only while this viewer's faction can act. */
@@ -151,6 +155,9 @@ function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: Readonly
   return true;
 }
 
+/* The controls a panel offers only while present, so only their presence counts for a panel's render. */
+const PANEL_CONTROLS = ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls', 'closePeek'] as const;
+
 /*
  * Whether the panels would show `next` as they show `previous`: everything they read is the same, and only where held pieces are on their way differs.
  * A carry moves many times a second, and only the scene follows it, so the panels keep the table they have until something they show changes.
@@ -175,10 +182,7 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     previous.state.draftMove?.pieceId === next.state.draftMove?.pieceId &&
     previous.gestureActivePieceId === next.gestureActivePieceId &&
     previous.hoveredPieceId === next.hoveredPieceId &&
-    Boolean(previous.spiceReserveControls) === Boolean(next.spiceReserveControls) &&
-    Boolean(previous.deckControls) === Boolean(next.deckControls) &&
-    Boolean(previous.peekControls) === Boolean(next.peekControls) &&
-    Boolean(previous.closePeek) === Boolean(next.closePeek) &&
+    PANEL_CONTROLS.every((key) => Boolean(previous[key]) === Boolean(next[key])) &&
     (previous.peek === null) === (next.peek === null) &&
     sameMembers(previous.remoteCarriedIds, next.remoteCarriedIds) &&
     sameMembers(previous.reservedPieceIds, next.reservedPieceIds) &&
@@ -188,6 +192,28 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
 }
 
 /* Commands a held piece does not hold back: a phase change, a removal, a seat, and letting go of a peek, which the room allows mid-carry. */
+function waitsForPlan(
+  action: PieceAction
+): action is Extract<PieceAction, { kind: 'battle-ready' | 'battle-disclose' }> {
+  return action.kind === 'battle-ready' || action.kind === 'battle-disclose';
+}
+/* The part a battle action reveals in the given battle, if it reveals one. */
+function revealIn(action: PieceAction, battleId?: string): Disclosure[] {
+  return action.kind === 'battle-disclose' && action.shown && action.battleId === battleId ? [action.disclosure] : [];
+}
+function shownWith(shown: BattlePlan['disclosed'], disclosure: Disclosure): BattlePlan['disclosed'] {
+  return disclosure.element === 'card'
+    ? { ...shown, cardIds: [...new Set([...shown.cardIds, disclosure.cardId])] }
+    : { ...shown, [disclosure.element]: true };
+}
+/* The snapshot with its battle plan replaced, the bank holding back the spice the new plan commits. */
+function withPlan(snapshot: GameSnapshot, was: BattlePlan, plan: BattlePlan): GameSnapshot {
+  const bank = snapshot.bank && {
+    ...snapshot.bank,
+    balance: snapshot.bank.balance + was.spice - plan.spice,
+  };
+  return { ...snapshot, battlePlan: plan, ...(bank ? { bank } : {}) };
+}
 function passesCarry(action: PieceAction) {
   return action.kind === 'phase' || action.kind === 'peek-close' || isRemovalAction(action) || isSeatAction(action);
 }
@@ -308,7 +334,9 @@ export class TableSession {
   private battleCountdownUntil = 0;
   private pendingBattlePlan: { commandId: string; battleId: string; patch: Partial<BattlePlanInput> } | null = null;
   private queuedBattlePlan: { battleId: string; patch: Partial<BattlePlanInput> } | null = null;
-  private queuedBattleReady: Extract<PieceAction, { kind: 'battle-ready' }> | null = null;
+  /* Readiness and early reveals wait for the plan edits sent before them, so the room judges the plan the player saw. */
+  private queuedBattleActions: Extract<PieceAction, { kind: 'battle-ready' | 'battle-disclose' }>[] = [];
+  private disclosuresInFlight = new Map<string, Extract<PieceAction, { kind: 'battle-disclose' }>>();
   private catalogueResult?: Extract<ServerMessage, { type: 'catalogue' }>;
   private spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   private spiceHistoryBefore?: number;
@@ -497,6 +525,7 @@ export class TableSession {
       affordances: [],
       spiceReserveControls: undefined,
       deckControls: undefined,
+      deleteControls: undefined,
       peek: null,
       peekControls: undefined,
       closePeek: undefined,
@@ -511,31 +540,7 @@ export class TableSession {
   private liveTable(): TableProjection {
     const viewer = this.viewer!;
     const authoritative = this.history?.snapshot ?? this.snapshot;
-    const pendingPlan =
-      !this.history &&
-      authoritative.battlePlan &&
-      this.pendingBattlePlan &&
-      authoritative.battle?.id === this.pendingBattlePlan.battleId
-        ? {
-            ...authoritative.battlePlan,
-            ...this.pendingBattlePlan.patch,
-            ...this.queuedBattlePlan?.patch,
-          }
-        : null;
-    const displayed = pendingPlan
-      ? {
-          ...authoritative,
-          battlePlan: pendingPlan,
-          ...(authoritative.bank
-            ? {
-                bank: {
-                  ...authoritative.bank,
-                  balance: authoritative.bank.balance + authoritative.battlePlan!.spice - pendingPlan.spice,
-                },
-              }
-            : {}),
-        }
-      : authoritative;
+    const displayed = this.withUnsettledDisclosures(this.withPendingPlan(authoritative));
     const state = {
       ...tableForViewer(displayed, viewer.viewerSeat),
       factionTieBreaks: snapshotFactionTieBreaks(displayed),
@@ -583,6 +588,7 @@ export class TableSession {
               shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
             }
           : undefined,
+      deleteControls: this.deleteControls(canHandleTable),
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
       peek:
         this.history || displayed.peek?.piece.id === this.closedPeek?.pieceId
@@ -607,6 +613,11 @@ export class TableSession {
       flippingPieceIds: local.flippingPieceIds,
       serverNow: this.subscription.serverNow,
     };
+  }
+  private deleteControls(canHandleTable: boolean): TableProjection['deleteControls'] {
+    return canHandleTable && this.subscription.supportsCommand('delete')
+      ? { remove: (pieceId) => this.command({ kind: 'delete', pieceId }) }
+      : undefined;
   }
   /* Whether the peeked deck still shows the order this viewer asked for: the room has neither refused it nor sent the deck again. */
   private arrangementShown(peek: Peek | null) {
@@ -778,11 +789,11 @@ export class TableSession {
     if (
       (this.pendingBattlePlan && this.saved?.battle?.id !== this.pendingBattlePlan.battleId) ||
       (this.queuedBattlePlan && this.saved?.battle?.id !== this.queuedBattlePlan.battleId) ||
-      (this.queuedBattleReady && this.saved?.battle?.id !== this.queuedBattleReady.battleId)
+      this.queuedBattleActions.some((action) => this.saved?.battle?.id !== action.battleId)
     ) {
       this.pendingBattlePlan = null;
       this.queuedBattlePlan = null;
-      this.queuedBattleReady = null;
+      this.queuedBattleActions = [];
     }
   }
   private settle(id: string, outcome: 'completed' | 'rejected', viewFollows: boolean) {
@@ -805,6 +816,7 @@ export class TableSession {
     if (this.seatCommandInFlight === id) {
       this.seatCommandInFlight = null;
     }
+    this.disclosuresInFlight.delete(id);
     if (this.traitorGatherInFlight === id) {
       this.traitorGatherInFlight = null;
       if (outcome === 'completed') {
@@ -815,7 +827,7 @@ export class TableSession {
       this.pendingBattlePlan = null;
       if (outcome === 'rejected') {
         this.queuedBattlePlan = null;
-        this.queuedBattleReady = null;
+        this.queuedBattleActions = [];
       }
     }
   }
@@ -826,7 +838,7 @@ export class TableSession {
     this.flushDrop();
     this.flushCatalogue();
     this.flushBattlePlan();
-    this.flushBattleReady();
+    this.flushBattleActions();
   }
   private receiveAuthorizedUpdate(
     message: Exclude<TableSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>
@@ -1000,7 +1012,8 @@ export class TableSession {
   private clearActivity() {
     this.pendingBattlePlan = null;
     this.queuedBattlePlan = null;
-    this.queuedBattleReady = null;
+    this.queuedBattleActions = [];
+    this.disclosuresInFlight.clear();
     this.seatCommandInFlight = null;
     this.traitorGatherInFlight = null;
     this.spiceHistory = undefined;
@@ -1259,7 +1272,7 @@ export class TableSession {
     if (!this.canAct() || this.pendingBattlePlan || !this.queuedBattlePlan || !battle || !plan) {
       return;
     }
-    const { strength: _strength, faces: _faces, pieces: _pieces, ...input } = plan;
+    const { strength: _strength, faces: _faces, pieces: _pieces, disclosed: _disclosed, ...input } = plan;
     const commandId = crypto.randomUUID();
     const patch = this.queuedBattlePlan.patch;
     this.queuedBattlePlan = null;
@@ -1271,11 +1284,58 @@ export class TableSession {
       action: { kind: 'battle-plan', battleId: battle.id, plan: { ...input, ...patch } },
     });
   }
-  private flushBattleReady() {
-    if (this.canAct() && !this.pendingBattlePlan && !this.queuedBattlePlan && this.queuedBattleReady) {
-      const ready = this.queuedBattleReady;
-      this.queuedBattleReady = null;
-      this.command(ready);
+  /* Plan edits still on their way, which readiness and early reveals queue behind. */
+  private planInFlight() {
+    return !!(this.pendingBattlePlan || this.queuedBattlePlan);
+  }
+  /* Readiness or a reveal queues while a plan edit is unanswered, or behind another one already queued so they keep their order. */
+  private queueBehindPlan(action: PieceAction) {
+    const waiting = !!this.pendingBattlePlan || this.queuedBattleActions.length > 0;
+    if (!waiting || !waitsForPlan(action)) {
+      return false;
+    }
+    this.queuedBattleActions.push(action);
+    return true;
+  }
+  /* Plan edits not yet answered show at once, with the bank holding the spice they commit. */
+  private withPendingPlan(authoritative: GameSnapshot): GameSnapshot {
+    const pending = this.pendingBattlePlan;
+    if (this.history || !pending) {
+      return authoritative;
+    }
+    if (!authoritative.battlePlan || authoritative.battle?.id !== pending.battleId) {
+      return authoritative;
+    }
+    const was = authoritative.battlePlan;
+    return withPlan(authoritative, was, { ...was, ...pending.patch, ...this.queuedBattlePlan?.patch });
+  }
+  /*
+   * A reveal not yet answered, queued behind plan edits or on its way, already shows as revealed, so its part locks
+   * before a later edit can overtake it and change what the room reveals. A hide shows only once the room has it,
+   * keeping the part locked meanwhile.
+   */
+  private withUnsettledDisclosures(snapshot: GameSnapshot): GameSnapshot {
+    /* Replayed history shows the plan as it stood then. */
+    if (this.history || !snapshot.battlePlan) {
+      return snapshot;
+    }
+    const unsettled = [...this.queuedBattleActions, ...this.disclosuresInFlight.values()];
+    const reveals = unsettled.flatMap((action) => revealIn(action, snapshot.battle?.id));
+    return reveals.length
+      ? {
+          ...snapshot,
+          battlePlan: {
+            ...snapshot.battlePlan,
+            disclosed: reveals.reduce((shown, reveal) => shownWith(shown, reveal), snapshot.battlePlan.disclosed),
+          },
+        }
+      : snapshot;
+  }
+  private flushBattleActions() {
+    if (this.canAct() && !this.planInFlight() && this.queuedBattleActions.length) {
+      const actions = this.queuedBattleActions;
+      this.queuedBattleActions = [];
+      actions.forEach((action) => this.command(action));
     }
   }
   /** Sends a table command, and returns its id when it went out. */
@@ -1287,8 +1347,8 @@ export class TableSession {
     if (seatCommand && this.seatCommandInFlight) {
       return;
     }
-    if (action.kind === 'battle-ready' && this.pendingBattlePlan) {
-      this.queuedBattleReady = action;
+    if (this.queueBehindPlan(action)) {
+      this.emit();
       return;
     }
     if (!(isSeatAction(action) ? this.current() : this.canAct()) || (this.carry && !passesCarry(action))) {
@@ -1318,6 +1378,8 @@ export class TableSession {
     } else if (action.kind === 'traitors-gather' && this.traitorGatherInFlight === null && this.tabletopTraitors()) {
       /* A second click before the first settles is refused for its stale revision, so the first gather is the one to follow; with no Traitor left on the table there is no pile to look at. */
       this.traitorGatherInFlight = commandId;
+    } else if (action.kind === 'battle-disclose') {
+      this.disclosuresInFlight.set(commandId, action);
     }
     this.emit();
     return this.error === null ? commandId : undefined;

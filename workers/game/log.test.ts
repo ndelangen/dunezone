@@ -29,6 +29,7 @@ function snapshot(revision: number, extra: Partial<StoredSnapshot> = {}) {
     revision,
     battleResults: [],
     privatePredictions: {},
+    pieceHandles: {},
     roster: {
       seats: [
         { seat: 'seat-1', faction: { id: 'house', name: 'House {0}' } },
@@ -106,6 +107,48 @@ describe('the public log', () => {
     ]);
   });
 
+  it('names each battle plan part a faction reveals early, as everyone now sees it', () => {
+    const log = new PublicLog(memoryStorage(), () => 'Turn 1');
+    log.enabled = true;
+    const piece = (id: string, name: string) => ({ id, label: id, items: [{ id: `${id}-item`, artwork: { name } }] });
+    const battle = (disclosed: { leader: boolean; dial: boolean; cardIds: string[] }) => ({
+      battleState: {
+        id: 'b',
+        sides: [{ factionId: 'house' }, { factionId: 'fremen' }],
+        plans: [
+          null,
+          {
+            leaderId: 'leader',
+            strength: 4.5,
+            spice: 3,
+            pieces: [piece('leader', 'Stilgar {0}'), piece('card', 'Crysknife')],
+            disclosed,
+          },
+        ],
+      },
+    });
+    const steps = [
+      { leader: false, dial: false, cardIds: [] },
+      { leader: false, dial: false, cardIds: ['card'] },
+      { leader: true, dial: false, cardIds: ['card'] },
+      { leader: true, dial: true, cardIds: ['card'] },
+    ];
+    steps.slice(1).forEach((disclosed, index) =>
+      log.recordCommit({
+        holders: [],
+        before: snapshot(index + 1, battle(steps[index]!) as never),
+        next: snapshot(index + 2, battle(disclosed) as never),
+        message: { type: 'command', action: { kind: 'battle-disclose' } } as never,
+        viewer: viewer as never,
+      })
+    );
+    expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
+      'Fremen {1} revealed its dial early: 4.5.',
+      'Fremen {1} revealed its leader early: Stilgar {0}.',
+      'Fremen {1} revealed a card early: Crysknife.',
+    ]);
+  });
+
   it('names the player of a faction whose name another seat shares, and forgets them on deletion', () => {
     const log = new PublicLog(memoryStorage(), () => 'Turn 1');
     log.enabled = true;
@@ -152,6 +195,43 @@ describe('the public log', () => {
     expect(texts()).toEqual([
       '[deleted user] collected 2 spice from the table into the Harkonnen (seat 1) spice reserve.',
       'Harkonnen (seat 2) defeated Atreides.',
+    ]);
+  });
+
+  it('names who deleted a piece and what it showed, never a hidden face', () => {
+    const log = new PublicLog(memoryStorage(), () => 'Turn 1');
+    log.enabled = true;
+    const card = (id: string, faceUp: boolean) => ({
+      id,
+      label: 'Treachery card',
+      kind: 'card',
+      items: [
+        { id: `${id}-item`, faceUp, artwork: { back: 'https://x.test/b.png', name: 'Family Atomics', type: 't' } },
+      ],
+    });
+    const table = (...pieces: unknown[]) => ({ table: { pieces } }) as never;
+    const remove = (revision: number, pieceId: string, before: unknown[], after: unknown[]) =>
+      log.recordCommit({
+        holders: [],
+        before: snapshot(revision, table(...before)),
+        next: snapshot(revision + 1, table(...after)),
+        message: { type: 'command', action: { kind: 'delete', pieceId } } as never,
+        viewer: viewer as never,
+      });
+    remove(1, 'atomics', [card('atomics', true), card('hidden', false)], [card('hidden', false)]);
+    remove(2, 'hidden', [card('hidden', false)], []);
+    /* A card that passed through a hand is named on the wire by its public handle. */
+    log.recordCommit({
+      holders: [],
+      before: snapshot(3, { table: { pieces: [card('handed', true)] }, pieceHandles: { handed: 'handle-7' } } as never),
+      next: snapshot(4, table()),
+      message: { type: 'command', action: { kind: 'delete', pieceId: 'handle-7' } } as never,
+      viewer: viewer as never,
+    });
+    expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
+      'Alice deleted Family Atomics card from the game.',
+      'Alice deleted Treachery card from the game.',
+      'Alice deleted Family Atomics card from the game.',
     ]);
   });
 });

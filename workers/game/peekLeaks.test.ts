@@ -69,6 +69,12 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
     ],
   ],
   'battle-ready': (room) => [[bob, { kind: 'battle-ready', battleId: battleId(room), ready: true }]],
+  'battle-disclose': (room) => [
+    [
+      bob,
+      { kind: 'battle-disclose', battleId: battleId(room), disclosure: { element: 'card', cardId: DECK }, shown: true },
+    ],
+  ],
   'battle-cancel': (room) => [[bob, { kind: 'battle-cancel', battleId: battleId(room) }]],
   'battle-outcome': (room) => [[bob, { kind: 'battle-outcome', battleId: battleId(room), outcome: 'left' }]],
   'bid-start': () => [[bob, { kind: 'bid-start', factionId: 'atreides' }]],
@@ -107,6 +113,7 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   flip: () => [[bob, { kind: 'flip', pieceId: DECK }]],
   lock: () => [[bob, { kind: 'lock', pieceId: DECK }]],
   rotate: () => [[bob, { kind: 'rotate', pieceId: DECK, direction: 1 }]],
+  delete: () => [[bob, { kind: 'delete', pieceId: DECK }]],
   storm: () => [[bob, { kind: 'storm', direction: 1 }]],
   phase: () => [[bob, { kind: 'phase' }]],
   turn: () => [[bob, { kind: 'turn', turn: 2 }]],

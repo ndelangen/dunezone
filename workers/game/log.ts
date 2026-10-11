@@ -1,3 +1,4 @@
+import { deletedName } from '../../src/shared/play/commands';
 import { factionTitleText, rosterFactionTitles } from '../../src/shared/play/factionLabels';
 import { LOG_CLASS_TABS, LOG_PAGE_SIZE } from '../../src/shared/play/log';
 import type { LogClass, LogEntry, LogTab } from '../../src/shared/play/log';
@@ -9,6 +10,7 @@ import { describeResult, isResultAction } from '../../src/shared/play/result';
 import type { ResultAction } from '../../src/shared/play/result';
 import { setupStep } from '../../src/shared/play/setup';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
+import { internalPieceId } from './state';
 import type { StoredSnapshot } from './state';
 
 /** The one name retained history shows for a deleted account. */
@@ -239,9 +241,39 @@ function commitEntries({
       ? resultEntries(before, next, message.action, viewer, faction)
       : [endingClosed(before, next)].filter((entry) => entry !== undefined)),
     ...(message.type === 'command' ? predictionEntries(next, message.action, faction, context) : []),
+    ...(message.type === 'command' ? disclosureEntries(before, next, message.action, faction, context) : []),
     ...placedPredictionEntries(before, next, message, faction, context),
     ...(transfer ? [spiceEntry(transfer, { userId: viewer.userId, name: viewer.displayName }, faction, context)] : []),
     ...(result && result.revision === next.revision ? [battleEntry(result, faction, context)] : []),
+    ...deletionEntries(before, next, message, viewer, context),
+  ];
+}
+
+/* A piece deleted for good names who deleted it and what it showed, never a hidden face. */
+function deletionEntries(
+  before: StoredSnapshot,
+  next: StoredSnapshot,
+  message: CommitMessage,
+  viewer: Viewer,
+  context: string
+): Entry[] {
+  if (message.type !== 'command' || message.action.kind !== 'delete' || before.revision === next.revision) {
+    return [];
+  }
+  /* A card that passed through a hand reaches the room under a public handle; the stored piece keeps its own id. */
+  const pieceId = internalPieceId(before, message.action.pieceId);
+  const piece = before.table.pieces.find((candidate) => candidate.id === pieceId);
+  if (!piece || next.table.pieces.some((candidate) => candidate.id === pieceId)) {
+    return [];
+  }
+  return [
+    {
+      key: `deletion:${next.revision}`,
+      class: 'deletion',
+      template: `{0} deleted ${literal(deletedName(piece))} from the game.`,
+      people: [{ userId: viewer.userId, name: viewer.displayName }],
+      context,
+    },
   ];
 }
 
@@ -386,6 +418,49 @@ function predictionEntries(
       context,
     },
   ];
+}
+
+/* A part of a battle plan shown before the reveal names what was shown, since everyone at the table now sees it. */
+function disclosureEntries(
+  before: StoredSnapshot,
+  next: StoredSnapshot,
+  action: Extract<CommitMessage, { type: 'command' }>['action'],
+  faction: FactionNamer,
+  context: string
+): Entry[] {
+  const battle = next.battleState;
+  if (action.kind !== 'battle-disclose' || !battle || next.revision === before.revision) {
+    return [];
+  }
+  const side = battle.sides.findIndex((_, index) => {
+    const was = before.battleState?.plans[index]?.disclosed;
+    return JSON.stringify(was) !== JSON.stringify(battle.plans[index]?.disclosed);
+  });
+  const plan = battle.plans[side];
+  const factionId = battle.sides[side]?.factionId;
+  if (!plan || !factionId) {
+    return [];
+  }
+  const people: Person[] = [];
+  const who = faction(factionId, people);
+  const name = (id: string | null) => {
+    const piece = plan.pieces.find((piece) => piece.id === id);
+    return literal(piece?.items[0]?.artwork?.name ?? piece?.label ?? 'unnamed');
+  };
+  const was = before.battleState?.plans[side]?.disclosed;
+  const card = plan.disclosed.cardIds.find((id) => !was?.cardIds.includes(id));
+  const template = card
+    ? `${who} revealed a card early: ${name(card)}.`
+    : plan.disclosed.leader && !was?.leader
+      ? `${who} revealed its leader early: ${name(plan.leaderId)}.`
+      : plan.disclosed.dial && !was?.dial
+        ? `${who} revealed its dial early: ${plan.strength}.`
+        : null;
+  /* Hiding a part again tells nobody anything new, so only a part being shown is logged. */
+  if (!template) {
+    return [];
+  }
+  return [{ key: `battle-disclose:${next.revision}`, class: 'battle', template, people, context }];
 }
 
 /* A prediction card placed on the table reveals its prediction, by a drop or a play from the hand alike (#1753). */

@@ -1,3 +1,4 @@
+import { isFactionToken } from './factionToken';
 import { freshTableState, gestureBlockReason, nearestZone, pieceCount } from './model';
 import type { TablePiece, TableState } from './model';
 import { phaseAt, STANDARD_PHASES, stepPhase, tableProgressFor, TURN_SELECT_REFUSAL } from './phases';
@@ -149,7 +150,36 @@ export function applyPieceAction(
       return stackPiece(state, piece);
     case 'split':
       return splitPiece(state, piece, action.count);
+    case 'delete':
+      return deletePiece(state, piece, actorName);
   }
+}
+
+/** Whether a piece may be taken out of the game: markers, faction tokens and pieces in a battle or the shared inventory stay. */
+export function deletablePiece(piece: TablePiece): boolean {
+  return piece.kind !== 'marker' && !isFactionToken(piece) && !piece.inventory && !piece.battleOverlay;
+}
+
+/** A face-up single card is named by its face, which everyone sees; anything else by its label, which never names a hidden face. */
+export function deletedName(piece: TablePiece): string {
+  const [item] = piece.items;
+  const name = piece.kind === 'card' && piece.items.length === 1 && item?.faceUp ? item.artwork?.name : undefined;
+  return name ? `${name} card` : piece.label;
+}
+
+function deletePiece(state: TableState, piece: TablePiece, actorName: string): TableState {
+  if (!deletablePiece(piece)) {
+    throw new GameRejection(`${piece.label} cannot be removed from the game.`);
+  }
+  return accepted(
+    {
+      ...state,
+      pieces: state.pieces.filter((candidate) => candidate.id !== piece.id),
+      selectedPieceId: state.selectedPieceId === piece.id ? null : state.selectedPieceId,
+    },
+    'piece.delete',
+    `${actorName} deleted ${deletedName(piece)} from the game.`
+  );
 }
 
 export function spawnSpiceInState(state: TableState, count: number, actorName = 'A player'): TableState {
