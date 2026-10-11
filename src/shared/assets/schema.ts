@@ -4,6 +4,7 @@ import { ALL, BACKGROUND, TEXTURE } from '../assetIds';
 import { Background, Decal } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
+import { PhysicalSize } from './physicalSize';
 
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
@@ -26,6 +27,7 @@ const About = z.string().trim();
 const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
 
 export { Decal };
+export { PHYSICAL_SIZE_MAX, PHYSICAL_SIZE_MIN, PhysicalSize } from './physicalSize';
 
 /**
  * The spice-card renderer's props.
@@ -200,6 +202,7 @@ function tokenBackUnion<TFace extends z.ZodType>(face: TFace) {
 export const TokenAsset = z.strictObject({
   name: z.string(),
   about: About,
+  physicalSize: PhysicalSize.optional(),
   front: TokenFace,
   back: tokenBackUnion(TokenFace),
 });

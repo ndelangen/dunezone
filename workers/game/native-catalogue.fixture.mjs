@@ -70,7 +70,7 @@ export function referencingDeckPage(id, cards, target, count = 2) {
   });
 }
 
-export function tokenPage(id) {
+export function tokenPage(id, data = {}) {
   const face = `/published/tokens/${id}/token.png`;
   return assetSupplySchema.parse({
     ...blank,
@@ -79,7 +79,7 @@ export function tokenPage(id) {
       type: 'token-disc',
       slug: id,
       name: id,
-      data: { name: id, about: '', front: publishingTokenFace, back: { mode: 'same' } },
+      data: { name: id, about: '', front: publishingTokenFace, back: { mode: 'same' }, ...data },
     },
     front: face,
     back: face,

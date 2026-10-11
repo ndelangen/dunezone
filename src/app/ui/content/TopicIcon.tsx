@@ -1,6 +1,7 @@
 import {
   BookOpen,
   Dices,
+  EyeOff,
   Globe2,
   Hand,
   Heading1,
@@ -61,6 +62,7 @@ const TOPIC_ICON_DEFINITIONS = {
   complexityMaster: { kind: 'mask', src: '/vector/icon/faction-complexity-4.svg' },
   setup: { kind: 'component', component: BookOpen },
   hand: { kind: 'component', component: Hand },
+  hiddenZone: { kind: 'component', component: EyeOff },
   karama: { kind: 'mask', src: '/vector/icon/karama.svg' },
   rulesets: { kind: 'component', component: BookOpen },
   fate: { kind: 'mask', src: '/vector/icon/fate.svg' },
