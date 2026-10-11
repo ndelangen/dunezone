@@ -245,3 +245,38 @@ export const FlipWhileCarrying = meta.story({
     ).toEqual(['deck.draw', 'piece.flip']);
   },
 });
+
+/**
+ * Seat 1 lays a card from its hand in its hidden zone and a leader on top of it, as a token sits on a tracker card's track.
+ * The zone is part of the hand, so no other seat's frame carries it.
+ * Right-click a piece in the Hand tab and choose "Move to hidden zone" to try it by hand;
+ * drag pieces about in the Hidden zone tab, or onto the table to play them.
+ */
+export const HiddenZone = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
+    const table = sandbox.table!;
+    const command = (
+      commandId: string,
+      action: Extract<Parameters<typeof table.receive>[0], { type: 'command' }>['action']
+    ) => table.receive({ type: 'command', commandId, expectedRevision: table.room.snapshot.revision, action });
+    const hand = shown().hand!;
+    const card = hand.find((candidate) => candidate.kind === 'card')!;
+    const leader = hand.find((candidate) => candidate.kind === 'force')!;
+    /* The leader stands in for a tracker marker: a token its author set to 35% of the standard size. */
+    const faction = shown().bank!.factionId;
+    const stored = table.room.snapshot.factionInventories[faction]!.find((candidate) => candidate.id === leader.id)!;
+    stored.items[0]!.artwork = { ...stored.items[0]!.artwork!, size: 0.35 };
+    command('sandbox-zone-card', { kind: 'hand-zone', pieceId: card.id, at: { x: 0.3, y: 0.5 } });
+    command('sandbox-zone-leader', { kind: 'hand-zone', pieceId: leader.id, at: { x: 0.316, y: 0.36 } });
+    expect(table.refusal).toBeUndefined();
+    expect(shown().hand!.filter((candidate) => candidate.hiddenZone)).toHaveLength(2);
+    const other = journeyViewers().find((seat) => seat !== table.seat)!;
+    expect(JSON.stringify(table.frame(other).snapshot)).not.toContain('hiddenZone');
+    await openTab(page, 'Hidden zone');
+    await expect(page.findAllByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 })).resolves.toHaveLength(
+      2
+    );
+  },
+});

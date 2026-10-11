@@ -610,8 +610,10 @@ async function createGame(who) {
   gameSlug = created.slug;
   await who.page.waitForURL((url) => url.pathname === `/play/${gameSlug}`);
   assert.equal(who.sockets.length, 1, 'Canonical creation opens exactly one ID socket.');
-  await who.page.locator('.seated-chip--game').getByText(created.name, { exact: true }).waitFor();
-  await who.page.locator('.seated-chip--game').getByText('Ruleset:', { exact: false }).waitFor();
+  await who.page.getByRole('heading', { name: created.name, level: 1, exact: true }).waitFor();
+  const header = who.page.locator('.seated-header');
+  await header.locator('.seated-chip--game').getByText('Ruleset:', { exact: false }).waitFor();
+  await header.getByText(created.name, { exact: true }).waitFor({ state: 'hidden' });
   await who.page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await who.page.getByRole('button', { name: 'Game menu', exact: true }).click();
   await who.page.getByRole('button', { name: 'Copy game link', exact: true }).click();
@@ -768,11 +770,17 @@ async function seated() {
   await playReady([a, b], [observer]);
   return { a, b, observer };
 }
-/* Readiness is one Ready toggle: pressed, the same button withdraws. */
-const button = (who, name) =>
-  name === 'Ready' || name === 'Withdraw readiness'
-    ? who.page.getByRole('button', { name: 'Ready', exact: true, pressed: name !== 'Ready' })
-    : who.page.getByRole('button', { name, exact: true });
+/* In play, readiness is one Ready toggle that withdraws while pressed; drafting keeps its own Ready and Withdraw readiness buttons. */
+function button(who, name) {
+  const exact = who.page.getByRole('button', { name, exact: true });
+  if (name === 'Ready') {
+    return who.page.getByRole('button', { name, exact: true, pressed: false });
+  }
+  if (name === 'Withdraw readiness') {
+    return exact.or(who.page.getByRole('button', { name: 'Ready', exact: true, pressed: true }));
+  }
+  return exact;
+}
 /** Previous phase waits in the Next phase split button's menu, so this opens the menu and hands back its item. */
 async function previousPhase(who) {
   const item = who.page.getByRole('menuitem', { name: 'Previous phase', exact: true });

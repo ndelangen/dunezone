@@ -1,4 +1,5 @@
-import { Stack, Text } from '@mantine/core';
+import { Slider, Stack, Text } from '@mantine/core';
+import { PHYSICAL_SIZE_MAX, PHYSICAL_SIZE_MIN } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -12,7 +13,11 @@ import type { ConnectedTabsItem } from '@ui/surface/ConnectedTabs';
  *
  * Built as a whole tab item rather than a bare control so the label, the glyph and the copy cannot drift between the three editors that mount it.
  */
-export function aboutChapter(about: string, onChange: (about: string) => void): ConnectedTabsItem<'about'> {
+export function aboutChapter(
+  about: string,
+  onChange: (about: string) => void,
+  physicalSize?: PhysicalSizeField
+): ConnectedTabsItem<'about'> {
   return {
     value: 'about',
     label: 'About',
@@ -31,7 +36,34 @@ export function aboutChapter(about: string, onChange: (about: string) => void): 
             </Stack>
           }
         />
+        {physicalSize && <PhysicalSizeControl {...physicalSize} />}
       </Stack>
     ),
   };
+}
+
+/** A token's size in play as a share of the standard size; absent means standard. */
+type PhysicalSizeField = { value: number | undefined; onChange: (physicalSize: number | undefined) => void };
+
+/* Standard is stored as no value at all, so a token nobody resized keeps the shape it was saved with. */
+function PhysicalSizeControl({ value, onChange }: PhysicalSizeField) {
+  return (
+    <ControlBlock
+      title="Physical size"
+      description="How big this token is in a player's hidden zone, compared with a standard token. Make it small for a marker that sits on a card's track."
+      input={
+        <Slider
+          aria-label="Physical size"
+          min={PHYSICAL_SIZE_MIN * 100}
+          max={PHYSICAL_SIZE_MAX * 100}
+          step={5}
+          value={(value ?? 1) * 100}
+          onChange={(percent) => onChange(percent === 100 ? undefined : percent / 100)}
+          label={(percent) => `${percent}%`}
+          marks={[{ value: 100, label: 'Standard' }]}
+          mb="lg"
+        />
+      }
+    />
+  );
 }

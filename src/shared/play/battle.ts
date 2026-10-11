@@ -5,6 +5,7 @@ import type { AuthoredFace, AuthoredTroop } from '../factions/troopBattle';
 import { troopBattleFaces } from '../factions/troopBattle';
 import { isFactionToken } from './factionToken';
 import {
+  hiddenZoneSpotSchema,
   storedPieceSchema,
   tableCountSchema as count,
   tableIdSchema as id,
@@ -118,6 +119,8 @@ export const battleActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('battle-outcome'), battleId: id, outcome: battleOutcomeSchema }),
   z.strictObject({ kind: z.literal('hand-take'), pieceId: id }),
   z.strictObject({ kind: z.literal('hand-play'), pieceId: id, position: tablePositionSchema }),
+  /* Moves a piece in hand to a spot in its faction's hidden zone, or back to the plain inventory with null. */
+  z.strictObject({ kind: z.literal('hand-zone'), pieceId: id, at: hiddenZoneSpotSchema.nullable() }),
 ]);
 export type BattleAction = z.infer<typeof battleActionSchema>;
 const kinds: ReadonlySet<string> = new Set(battleActionSchema.options.map((option) => option.shape.kind.value));

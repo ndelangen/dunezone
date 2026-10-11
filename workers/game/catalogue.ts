@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { api } from '../../convex/_generated/api';
 import { cardbackPresetLabel } from '../../src/shared/assets/cardbackPresets';
-import { authoredCardback, DeckAssetInput } from '../../src/shared/assets/schema';
+import { authoredCardback, DeckAssetInput, PhysicalSize } from '../../src/shared/assets/schema';
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { phaseDeclarationSchema } from '../../src/shared/factions/extraPhases';
 import { IdentifiedFactionStoredSchema, toStoredHeroKey } from '../../src/shared/factions/schema';
@@ -45,6 +45,12 @@ type SlotAsset = RulesetSupply['slots'][number]['asset'];
 /** The rows a supplied asset's definition spans: itself and whichever back it wears. */
 function definitionsOf({ asset, backToken, backDeck }: Omit<SuppliedMember, 'count'>) {
   return [asset, backToken, backDeck].filter((entry) => entry !== null);
+}
+
+/* A token's physical size as its author set it; a definition without one, or with one out of range, plays at the standard size. */
+function physicalSizeOf(data: unknown): number | undefined {
+  const size = (data as { physicalSize?: unknown } | null)?.physicalSize;
+  return PhysicalSize.safeParse(size).success ? (size as number) : undefined;
 }
 
 /**
@@ -179,6 +185,7 @@ export class GameCatalogue {
     }
     this.assertDefinitions(member);
     const front = this.image(member.front);
+    const size = isDeck ? undefined : physicalSizeOf(asset.data);
     const stack = isDeck
       ? { label: root.asset.name, kind: 'card' as const, stackKey: `deck:${root.asset.id}`, back: root.back }
       : { label: asset.name, kind: 'force' as const, stackKey: `token:${asset.id}`, back: member.back };
@@ -194,7 +201,14 @@ export class GameCatalogue {
       items: Array.from({ length: count }, (_, itemIndex) => ({
         id: `member-${index}-${itemIndex}`,
         faceUp: true,
-        artwork: { front, back, ...(backName ? { backName } : {}), name: asset.name, type: asset.type },
+        artwork: {
+          front,
+          back,
+          ...(backName ? { backName } : {}),
+          name: asset.name,
+          type: asset.type,
+          ...(size === undefined ? {} : { size }),
+        },
       })),
       stackKey: stack.stackKey,
       position: [-25, 0, -25],

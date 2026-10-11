@@ -55,6 +55,7 @@ import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, Draftin
 import { DetermineWinner, ResultDecisionBar } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
+import { HiddenZone } from './HiddenZone';
 import { LogEntries } from './Log';
 import {
   ALLIANCES_GUIDANCE,
@@ -62,6 +63,7 @@ import {
   battleGuidance,
   GAME_LOG_GUIDANCE,
   handGuidance,
+  HIDDEN_ZONE_GUIDANCE,
   LOG_GUIDANCE,
   phaseGuidance,
   phaseHelp,
@@ -817,6 +819,30 @@ function alliancesTab({ client, table, error }: ConnectionControlsProps) {
   ];
 }
 
+/* The Hand and Hidden zone tabs, for a seat that holds a hand. */
+function handTabs({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+  const hand = table.snapshot.hand;
+  if (!hand) {
+    return [];
+  }
+  return [
+    {
+      key: 'hand',
+      label: 'Hand',
+      topic: 'hand' as const,
+      ...handGuidance(table),
+      content: <HandControls client={client} table={table} hand={hand} />,
+    },
+    {
+      key: 'hidden-zone',
+      label: 'Hidden zone',
+      topic: 'hiddenZone' as const,
+      ...HIDDEN_ZONE_GUIDANCE,
+      content: <HiddenZone client={client} table={table} hand={hand} />,
+    },
+  ];
+}
+
 function ConnectedTable({
   client,
   table,
@@ -877,16 +903,11 @@ function ConnectedTable({
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
             gameIdentity={
-              <Stack gap={0} miw={0}>
-                <Text size="sm" fw={700} style={{ overflowWrap: 'anywhere' }}>
-                  {identity.name}
+              identity.rulesetName ? (
+                <Text size="xs" c="dimmed">
+                  Ruleset: {identity.rulesetName}
                 </Text>
-                {identity.rulesetName ? (
-                  <Text size="xs" c="dimmed">
-                    Ruleset: {identity.rulesetName}
-                  </Text>
-                ) : null}
-              </Stack>
+              ) : null
             }
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
@@ -1019,17 +1040,7 @@ function ConnectedTable({
                           },
                         ]
                       : []),
-                    ...(table.snapshot.hand
-                      ? [
-                          {
-                            key: 'hand',
-                            label: 'Hand',
-                            topic: 'hand' as const,
-                            ...handGuidance(table),
-                            content: <HandControls client={client} table={table} hand={table.snapshot.hand} />,
-                          },
-                        ]
-                      : []),
+                    ...handTabs({ client, table }),
                     ...(inPlay && (table.snapshot.battle || progress.activePhaseId === 'battle')
                       ? [
                           {
@@ -1135,7 +1146,7 @@ function ConnectedTable({
   );
 }
 
-type GameIdentity = Readonly<{ name: string; rulesetName: string | null; address: string }>;
+type GameIdentity = Readonly<{ rulesetName: string | null; address: string }>;
 
 export default function HostedTable({
   gameId,

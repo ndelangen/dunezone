@@ -489,7 +489,14 @@ export function TokenEditor({
           },
         ]
       : []),
-    aboutChapter(draft.about, (about) => patch({ about })),
+    /* Only round tokens can be held in a hand, so only they reach the hidden zone, the one place a physical size shows. */
+    aboutChapter(
+      draft.about,
+      (about) => patch({ about }),
+      type === 'token-disc'
+        ? { value: draft.physicalSize, onChange: (physicalSize) => patch({ physicalSize }) }
+        : undefined
+    ),
   ];
 
   /* Switching to a referenced back removes the Back tab, so a selection sitting on it has to fall back. */
