@@ -206,6 +206,14 @@ function shownWith(shown: BattlePlan['disclosed'], disclosure: Disclosure): Batt
     ? { ...shown, cardIds: [...new Set([...shown.cardIds, disclosure.cardId])] }
     : { ...shown, [disclosure.element]: true };
 }
+/* The snapshot with its battle plan replaced, the bank holding back the spice the new plan commits. */
+function withPlan(snapshot: GameSnapshot, was: BattlePlan, plan: BattlePlan): GameSnapshot {
+  const bank = snapshot.bank && {
+    ...snapshot.bank,
+    balance: snapshot.bank.balance + was.spice - plan.spice,
+  };
+  return { ...snapshot, battlePlan: plan, ...(bank ? { bank } : {}) };
+}
 function passesCarry(action: PieceAction) {
   return action.kind === 'phase' || action.kind === 'peek-close' || isRemovalAction(action) || isSeatAction(action);
 }
@@ -1289,11 +1297,6 @@ export class TableSession {
     this.queuedBattleActions.push(action);
     return true;
   }
-  /*
-   * A reveal not yet answered, queued behind plan edits or on its way, already shows as revealed, so its part locks
-   * before a later edit can overtake it and change what the room reveals. A hide shows only once the room has it,
-   * keeping the part locked meanwhile.
-   */
   /* Plan edits not yet answered show at once, with the bank holding the spice they commit. */
   private withPendingPlan(authoritative: GameSnapshot): GameSnapshot {
     const pending = this.pendingBattlePlan;
@@ -1303,13 +1306,14 @@ export class TableSession {
     if (!authoritative.battlePlan || authoritative.battle?.id !== pending.battleId) {
       return authoritative;
     }
-    const plan = { ...authoritative.battlePlan, ...pending.patch, ...this.queuedBattlePlan?.patch };
-    const bank = authoritative.bank && {
-      ...authoritative.bank,
-      balance: authoritative.bank.balance + authoritative.battlePlan.spice - plan.spice,
-    };
-    return { ...authoritative, battlePlan: plan, ...(bank ? { bank } : {}) };
+    const was = authoritative.battlePlan;
+    return withPlan(authoritative, was, { ...was, ...pending.patch, ...this.queuedBattlePlan?.patch });
   }
+  /*
+   * A reveal not yet answered, queued behind plan edits or on its way, already shows as revealed, so its part locks
+   * before a later edit can overtake it and change what the room reveals. A hide shows only once the room has it,
+   * keeping the part locked meanwhile.
+   */
   private withUnsettledDisclosures(snapshot: GameSnapshot): GameSnapshot {
     /* Replayed history shows the plan as it stood then. */
     if (this.history || !snapshot.battlePlan) {
