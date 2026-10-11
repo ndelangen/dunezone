@@ -1,4 +1,4 @@
-import { Menu } from '@mantine/core';
+import { Button, Menu } from '@mantine/core';
 import preview from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, fn, userEvent, within } from 'storybook/test';
@@ -12,7 +12,7 @@ const meta = preview.meta({
   render: (args) => (
     <Menu opened withinPortal={false}>
       <Menu.Target>
-        <span />
+        <Button variant="default">Piece</Button>
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Item>Peek</Menu.Item>
