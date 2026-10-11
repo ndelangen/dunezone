@@ -663,11 +663,12 @@ export const FactionPhase = meta.story({
     await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('region', { name: 'Guild negotiations' })).toBeInTheDocument());
-    await userEvent.hover(page.getByRole('tab', { name: 'Phase' }));
-    /* The tooltip fades in, so its text is the stable check; the header already shows the phase. Resting on the tab brings the phase's instructions. */
-    await waitForFrame(() =>
-      expect(page.getByRole('tooltip')).toHaveTextContent("Guild negotiations, and the table's settings.")
+    const phaseTab = page.getByRole('tab', { name: 'Phase' });
+    /* The tab names the phase in its description; the short tooltip's timing is the kit's TabGuidance story, since a slow frame here can outlast it. Resting on the tab brings the phase's instructions. */
+    await expect(phaseTab).toHaveAccessibleDescription(
+      expect.stringContaining("Guild negotiations, and the table's settings.")
     );
+    await userEvent.hover(phaseTab);
     await waitForFrame(() =>
       expect(page.getByRole('tooltip')).toHaveTextContent('Agree any shipment deals before the auction opens.')
     );
@@ -788,12 +789,11 @@ export const SharedInventoryNarrow = meta.story({
       expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
       expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
     });
-    await userEvent.hover(page.getByRole('tab', { name: 'Shared inventory' }));
-    await waitForFrame(() =>
-      expect(
-        finishTransitions(within(page.getByRole('tooltip')).getByText('Pieces every player can take.'))
-      ).toBeVisible()
+    /* The short tooltip's timing is the kit's TabGuidance story; a slow frame here can outlast it, so the description is read from the tab. */
+    await expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAccessibleDescription(
+      expect.stringContaining('Pieces every player can take.')
     );
+    await userEvent.hover(page.getByRole('tab', { name: 'Shared inventory' }));
     await waitForFrame(() =>
       expect(
         finishTransitions(within(page.getByRole('tooltip')).getByText(/^Drag an item onto the table/))
