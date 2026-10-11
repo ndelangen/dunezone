@@ -69,7 +69,7 @@ test('a break sent against a table that has changed since is turned away', () =>
 test('a command that changes nothing keeps the revision', () => {
   const table = room();
   const before = table.snapshot.revision;
-  send(table, atreides, { kind: 'alliance-withdraw', factionId: 'harkonnen' });
+  send(table, atreides, { kind: 'alliance-withdraw', factionId: 'harkonnen', offer: 0 });
   expect(table.snapshot.revision).toBe(before);
 });
 
@@ -88,10 +88,21 @@ test('a late accept of a withdrawn offer is turned away, even once the same fact
   send(table, atreides, { kind: 'alliance-offer', factionId: 'harkonnen' });
   const seen = table.snapshot.revision;
   const offer = offerId(table, 'atreides', 'harkonnen');
-  send(table, atreides, { kind: 'alliance-withdraw', factionId: 'harkonnen' });
+  send(table, atreides, { kind: 'alliance-withdraw', factionId: 'harkonnen', offer });
   send(table, atreides, { kind: 'alliance-offer', factionId: 'harkonnen' });
   expect(() => table.command(harkonnen, { kind: 'alliance-accept', factionId: 'atreides', offer }, seen)).toThrow(
     /withdrawn/
   );
   expect(table.snapshot.alliances?.groups).toEqual([]);
+});
+
+test('a late withdrawal from another tab leaves an offer made again since', () => {
+  const table = room();
+  send(table, atreides, { kind: 'alliance-offer', factionId: 'harkonnen' });
+  const seen = table.snapshot.revision;
+  const offer = offerId(table, 'atreides', 'harkonnen');
+  send(table, atreides, { kind: 'alliance-withdraw', factionId: 'harkonnen', offer });
+  send(table, atreides, { kind: 'alliance-offer', factionId: 'harkonnen' });
+  table.accept(table.command(atreides, { kind: 'alliance-withdraw', factionId: 'harkonnen', offer }, seen));
+  expect(table.snapshot.alliances?.offers).toMatchObject([{ from: 'atreides', to: 'harkonnen' }]);
 });

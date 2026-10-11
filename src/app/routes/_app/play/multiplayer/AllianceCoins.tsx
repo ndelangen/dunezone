@@ -4,10 +4,11 @@ import { factionTokenStackKey } from '@shared/play/factionToken';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import { AllianceCoin } from '../../../../widgets/tabletop/AllianceCoin';
+import { showsAlliances } from './Alliances';
 
 /** Under every faction's token, a coin in each ally's colour, or in the board rim's colour for a faction standing alone, so each seat shows at a glance who it is allied with. */
 export function AllianceCoinsScene({ table }: { table: TableProjection }) {
-  if (table.snapshot.stage !== 'play') {
+  if (!showsAlliances(table.snapshot.stage)) {
     return null;
   }
   const alliances = table.snapshot.alliances;

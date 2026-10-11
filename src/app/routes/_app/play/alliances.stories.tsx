@@ -136,3 +136,26 @@ export const ManyAlliancesFitTheHeader = meta.story({
     );
   },
 });
+
+/* Once the game is finished, everyone still sees who was allied, but nobody can change it. */
+export const FinishedReadOnly = meta.story({
+  beforeEach: install(() => {
+    const snapshot = alliancesSnapshot();
+    snapshot.stage = 'finished';
+    snapshot.result = {
+      kind: 'alliance',
+      factionIds: [faction(snapshot, 'seat-4'), faction(snapshot, 'seat-5')],
+      by: { seat: 'seat-1', name: 'Seat 1' },
+      declaredAt: 1,
+    };
+    return productTransport(VIEWER, snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    expect(await page.findByRole('img', { name: /are allied/ }, { timeout: 30_000 })).toBeVisible();
+    expect(page.queryByRole('button', { name: 'Accept' })).toBeNull();
+    await userEvent.click((await page.findAllByRole('tab', { name: 'Alliances' }))[0]!);
+    expect(await page.findByText('Offers you an alliance')).toBeVisible();
+    expect(page.queryByRole('button', { name: /Offer alliance|Accept|Withdraw offer|Break alliance/ })).toBeNull();
+  },
+});

@@ -60,7 +60,13 @@ describe('alliances', () => {
         offer: offerId(offered, 'atreides', 'fremen'),
       })
     ).toEqual(emptyAlliances());
-    expect(act(offered, 'atreides', { kind: 'alliance-withdraw', factionId: 'fremen' })).toEqual(emptyAlliances());
+    expect(
+      act(offered, 'atreides', {
+        kind: 'alliance-withdraw',
+        factionId: 'fremen',
+        offer: offerId(offered, 'atreides', 'fremen'),
+      })
+    ).toEqual(emptyAlliances());
     expect(() => act(emptyAlliances(), 'fremen', { kind: 'alliance-accept', factionId: 'atreides', offer: 0 })).toThrow(
       'withdrawn'
     );
@@ -91,7 +97,7 @@ describe('alliances', () => {
   test('a late answer to a withdrawn offer never reaches an offer made again since', () => {
     let state = act(emptyAlliances(), 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
     const seen = offerId(state, 'atreides', 'fremen');
-    state = act(state, 'atreides', { kind: 'alliance-withdraw', factionId: 'fremen' });
+    state = act(state, 'atreides', { kind: 'alliance-withdraw', factionId: 'fremen', offer: seen });
     state = act(state, 'atreides', { kind: 'alliance-offer', factionId: 'emperor' });
     state = act(state, 'emperor', {
       kind: 'alliance-accept',

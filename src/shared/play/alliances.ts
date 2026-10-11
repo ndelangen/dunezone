@@ -21,8 +21,8 @@ export type AllianceState = z.infer<typeof allianceStateSchema>;
 
 export const allianceActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('alliance-offer'), factionId: id }),
-  z.strictObject({ kind: z.literal('alliance-withdraw'), factionId: id }),
-  /* Answers name the offer by its id, so a late answer never reaches an offer made again since. */
+  /* A withdrawal or an answer names the offer by its id, so a late one never reaches an offer made again since. */
+  z.strictObject({ kind: z.literal('alliance-withdraw'), factionId: id, offer: count }),
   z.strictObject({ kind: z.literal('alliance-accept'), factionId: id, offer: count }),
   z.strictObject({ kind: z.literal('alliance-decline'), factionId: id, offer: count }),
   /* Names one ally the breaking faction saw; the Room also refuses a break sent against a table that has changed since. */
@@ -90,10 +90,22 @@ function join(state: AllianceState, { from: a, to: b }: Pair): AllianceState {
 }
 
 function without(state: AllianceState, { from, to }: Pair): AllianceState {
-  if (!state.offers.some((offer) => offer.from === from && offer.to === to)) {
-    return state;
-  }
   return { ...state, offers: state.offers.filter((offer) => offer.from !== from || offer.to !== to) };
+}
+
+/* The offer `from` is waiting on `to` to answer, if any; a faction has at most one offer out to another. */
+function waitingOffer(state: AllianceState, { from, to }: Pair) {
+  return state.offers.find((offer) => offer.from === from && offer.to === to);
+}
+
+/* A withdrawal of an offer that is already gone, or was made again since, changes nothing. */
+function withdraw(
+  state: AllianceState,
+  { factionId: to, offer }: Extract<AllianceAction, { kind: 'alliance-withdraw' }>,
+  { factionId }: AllianceContext
+) {
+  const pair = { from: factionId, to };
+  return waitingOffer(state, pair)?.id === offer ? without(state, pair) : state;
 }
 
 function offer(
@@ -120,8 +132,7 @@ function offer(
 type Answer = Extract<AllianceAction, { kind: 'alliance-accept' | 'alliance-decline' }>;
 function answer(state: AllianceState, { kind, factionId: from, offer }: Answer, { factionId }: AllianceContext) {
   const pair = { from, to: factionId };
-  const waiting = state.offers.find((entry) => entry.from === from && entry.to === factionId);
-  if (waiting?.id !== offer) {
+  if (waitingOffer(state, pair)?.id !== offer) {
     return refuse('That alliance offer was withdrawn.');
   }
   return kind === 'alliance-accept' ? join(state, pair) : without(state, pair);
@@ -146,7 +157,7 @@ export function applyAlliance(state: AllianceState, action: AllianceAction, cont
     case 'alliance-offer':
       return offer(state, action.factionId, context);
     case 'alliance-withdraw':
-      return without(state, { from: context.factionId, to: action.factionId });
+      return withdraw(state, action, context);
     case 'alliance-accept':
     case 'alliance-decline':
       return answer(state, action, context);

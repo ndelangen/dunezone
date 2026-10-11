@@ -30,6 +30,11 @@ function factionList(names: Readonly<Record<string, string>>, ids: readonly stri
 }
 
 /* Offers waiting on the viewer's faction while the game is in play. */
+/** Alliances show while the game is in play and, read-only, once it is finished, so everyone still sees who was allied at the end. */
+export function showsAlliances(stage: string | undefined) {
+  return stage === 'play' || stage === 'finished';
+}
+
 function offersToViewer(table: TableProjection) {
   const own = viewerFaction(table);
   if (!own || table.snapshot.stage !== 'play') {
@@ -81,7 +86,7 @@ export function AllianceDecisionBar({ client, table }: Props) {
 /** A player's alliance on their Info tab, with what the viewer can do about it: offer, accept or decline, withdraw, or break an alliance. */
 export function PlayerAlliance({ client, table, seat }: Props & Readonly<{ seat: string }>) {
   const factionId = rosterSeat(table.snapshot.roster, seat)?.faction?.id;
-  if (!factionId || table.snapshot.stage !== 'play') {
+  if (!factionId || !showsAlliances(table.snapshot.stage)) {
     return null;
   }
   const names = snapshotFactionLabels(table.snapshot);
@@ -177,19 +182,26 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
 /* What the viewer may do about one faction: offer, accept or decline, withdraw an offer, or break their own alliance. */
 function RowAction({ client, table, row }: Props & Readonly<{ row: Row }>) {
   const own = viewerFaction(table);
-  if (!own) {
+  /* Alliances change only while the game is in play. */
+  if (!own || table.snapshot.stage !== 'play') {
     return null;
   }
   const Action = ACTIONS[relationTo(table.snapshot.alliances, own, row.factionId)];
   /* Breaking names an ally the viewer saw, so a late click never leaves an alliance formed since. */
   const target = row.factionId === own ? (alliesOf(table.snapshot.alliances, own)[0] ?? own) : row.factionId;
-  /* An answer names the offer the viewer saw. */
-  const incoming = table.snapshot.alliances?.offers.find((offer) => offer.from === row.factionId && offer.to === own);
+  /* A withdrawal or an answer names the offer the viewer saw. */
+  const shown = (kind: AllianceCommandKind) =>
+    table.snapshot.alliances?.offers.find((offer) =>
+      kind === 'alliance-withdraw'
+        ? offer.from === own && offer.to === row.factionId
+        : offer.from === row.factionId && offer.to === own
+    );
   const send = (kind: AllianceCommandKind) => {
-    if (kind !== 'alliance-accept' && kind !== 'alliance-decline') {
+    const offer = shown(kind);
+    if (kind === 'alliance-offer' || kind === 'alliance-break') {
       client.command({ kind, factionId: target });
-    } else if (incoming) {
-      client.command({ kind, factionId: target, offer: incoming.id });
+    } else if (offer) {
+      client.command({ kind, factionId: target, offer: offer.id });
     }
   };
   return <Action disabled={!table.canInteract} send={send} />;
@@ -279,7 +291,7 @@ export function AlliancesPanel({ client, table }: Props) {
  */
 export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
   const groups = table.snapshot.alliances?.groups ?? [];
-  if (!groups.length || table.snapshot.stage !== 'play') {
+  if (!groups.length || !showsAlliances(table.snapshot.stage)) {
     return null;
   }
   const names = snapshotFactionLabels(table.snapshot);

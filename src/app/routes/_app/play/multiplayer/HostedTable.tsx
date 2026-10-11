@@ -29,7 +29,7 @@ import { GameTable } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
-import { AllianceDecisionBar, AlliancesPanel, AllianceStrip } from './Alliances';
+import { AllianceDecisionBar, AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { BidderSettings } from './BidderSettings';
@@ -723,7 +723,7 @@ function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
 
 /* The Alliances tab, only while the game is in play. */
 function alliancesTab({ client, table, error }: ConnectionControlsProps) {
-  if (table.snapshot.stage !== 'play') {
+  if (!showsAlliances(table.snapshot.stage)) {
     return [];
   }
   return [
