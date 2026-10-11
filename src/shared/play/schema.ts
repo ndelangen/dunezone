@@ -128,6 +128,10 @@ export const tablePieceSchema = storedPieceSchema.extend({
   items: z.array(storedItemSchema.extend({ artwork: z.union([artworkSchema, concealedArtworkSchema]).optional() })),
 });
 
+/** The turns over a carry may count; far more than a hand makes, and small enough to keep a flip revision safe. */
+export const CARRY_FLIPS_LIMIT = 10_000;
+export const carryFlipsSchema = z.number().int().nonnegative().max(CARRY_FLIPS_LIMIT);
+
 export const draftMoveSchema = z.object({
   operation: z.enum(['move', 'merge']),
   pieceId: tableIdSchema,
@@ -140,6 +144,8 @@ export const draftMoveSchema = z.object({
   orientation: tableOrientationSchema,
   targetZoneId: z.string().nullable(),
   targetPieceId: tableIdSchema.nullable(),
+  /* How many times the carrier turned the held piece over in hand; it lands turned over when this is odd. */
+  flips: carryFlipsSchema.optional(),
 });
 
 const tableEventSchema = z.object({

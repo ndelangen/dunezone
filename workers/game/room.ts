@@ -49,6 +49,7 @@ import {
   draftForGesture,
   draftWithAdditionalTop,
   heldPieceFor,
+  canFlipInHand,
   projectCarryAtPosition,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
@@ -78,7 +79,7 @@ type Carry = Identity & {
   beginPayload: string;
   takes: Map<string, string>;
 };
-type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
+type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
 /**
  * Actions that never rely on the table being exactly as their sender last saw it.
@@ -113,6 +114,18 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'bid-seconds',
   'last-turn',
 ]);
+
+/*
+ * The turns a carrier has made in hand only ever add up, so a late frame never turns the piece back.
+ * A drop without a count keeps the carry's, as an older page sends none.
+ */
+/** Where a carried piece is set down, and how many times it was turned over in hand. */
+type CarryLanding = { position: Vector3Tuple; orientation: number; flips?: number };
+
+function carryFlips(draft: DraftMove, flips: number | undefined) {
+  const current = draft.flips ?? 0;
+  return flips === undefined || flips < current ? current : flips;
+}
 
 /** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */
 const CARRY_HISTORY_LIMIT = 1024;
@@ -354,6 +367,27 @@ export class Room {
     return true;
   }
 
+  /** Turns the held piece over in hand; the count only adds up, so a repeated message changes nothing. */
+  flip(identity: Identity, input: CarryInput<'flip'>, now = Date.now()): DraftMove {
+    const carry = this.carry(identity, input.carryId);
+    const held = heldPieceFor(this.table(identity, input.carryId), carry.draft);
+    if (!canFlipInHand(held, this.unrevealedPrediction)) {
+      throw new GameRejection('That piece cannot be turned over in hand.');
+    }
+    carry.draft = { ...carry.draft, flips: carryFlips(carry.draft, input.flips) };
+    carry.lastSeen = now;
+    return carry.draft;
+  }
+
+  private readonly unrevealedPrediction = (stepId: string) =>
+    this.snapshot.privatePredictions[stepId]?.revealedAt === null;
+
+  /** The carry's piece as the room holds it, every face showing; a page is sent it only through the projection. */
+  heldFor(carryId: string): TablePiece | null {
+    const carry = this.carries.get(carryId);
+    return carry ? (this.publicCarry(carry)[0]?.held ?? null) : null;
+  }
+
   take(identity: Identity, input: CarryInput<'take'>, now = Date.now()): DraftMove {
     const { carryId: id, requestId, donorPieceId: donorId } = input;
     const carry = this.carry(identity, id);
@@ -391,11 +425,14 @@ export class Room {
     return next;
   }
 
-  drop(identity: Identity, id: string, position: Vector3Tuple, orientation: number): StoredSnapshot {
+  drop(identity: Identity, id: string, landing: CarryLanding): StoredSnapshot {
     this.assertTableAvailable();
     const carry = this.carry(identity, id);
     const guarded = this.table(identity, id);
-    const settled = settleCarryAtPosition(guarded, { ...carry.draft, orientation }, position);
+    const turns = canFlipInHand(heldPieceFor(guarded, carry.draft), this.unrevealedPrediction);
+    const flips = turns ? carryFlips(carry.draft, landing.flips) : 0;
+    const draft = { ...carry.draft, orientation: landing.orientation, flips };
+    const settled = settleCarryAtPosition(guarded, draft, landing.position);
     if (!settled) {
       throw new GameRejection('There is no clear space for that object.');
     }

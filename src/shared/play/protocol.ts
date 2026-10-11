@@ -29,6 +29,7 @@ import type { TablePhaseId } from './phases';
 import { removalActionSchema, removalVoteSchema } from './removal';
 import { gameEndingSchema, gameResultSchema, resultActionSchema } from './result';
 import {
+  carryFlipsSchema as carryFlips,
   draftMoveSchema as draftSchema,
   durableTableSchema as tableSchema,
   tableCountSchema as count,
@@ -100,6 +101,8 @@ export const gameSnapshotSchema = z.object({
   /* The piece the viewer's faction is peeking at, faces showing; no other viewer's frame carries it. */
   peek: peekSchema.nullable().optional(),
   factionArtwork: factionArtworkSchema.optional(),
+  /* Every card face in the game, for the page to load before any is shown; sorted, so it ties no face to a card. */
+  cardFaces: z.array(z.string().url()).optional(),
   /* Wire key, kept as `combatFaces` for clients and recordings; the glossary says battle. */
   combatFaces: z.record(z.string(), z.array(battleFaceSchema)).optional(),
   battleResults: z.array(battleResultSchema).optional(),
@@ -206,11 +209,26 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     expectedVersion: count,
     pickup: z.enum(['top', 'whole']),
   }),
-  z.strictObject({ type: z.literal('pose'), carryId: id, seq: count, position, orientation }),
+  z.strictObject({
+    type: z.literal('pose'),
+    carryId: id,
+    seq: count,
+    position,
+    orientation,
+  }),
   z.strictObject({ type: z.literal('pointer'), seq: count, position: position.nullable() }),
   z.strictObject({ type: z.literal('ping'), position }),
   z.strictObject({ type: z.literal('take'), requestId: id, carryId: id, donorPieceId: id }),
-  z.strictObject({ type: z.literal('drop'), commandId: id, carryId: id, position, orientation }),
+  /* The carrier turned the held piece over in hand, for the count-th time this carry. */
+  z.strictObject({ type: z.literal('flip'), carryId: id, flips: carryFlips }),
+  z.strictObject({
+    type: z.literal('drop'),
+    commandId: id,
+    carryId: id,
+    position,
+    orientation,
+    flips: carryFlips.optional(),
+  }),
   z.strictObject({ type: z.literal('cancel'), carryId: id }),
   z.strictObject({ type: z.literal('renew'), carryId: id }),
   z.strictObject({ type: z.literal('command'), commandId: id, action: pieceActionSchema, expectedRevision: count }),
@@ -307,7 +325,8 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     error: z.string().optional(),
   }),
   z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied']) }),
-  z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema }),
+  /* `held` is the carried piece as the carrier now sees it, sent after a flip so a face turned up in hand shows at once. */
+  z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema, held: pieceSchema.optional() }),
   z.object({ type: z.literal('ping'), ping: pingSchema }),
   z.object({
     type: z.literal('view'),

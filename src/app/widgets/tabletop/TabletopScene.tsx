@@ -120,6 +120,7 @@ import styles from './TabletopScene.module.css';
 import type { PieceMenuAnchor } from './TabletopTools';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
+import { useTurnedDownFaces } from './turnedDownFaces';
 import { TurnTracker } from './TurnTracker';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
@@ -591,6 +592,13 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
 /* Holds the image a piece shows on top and says whether it is loaded, so a flip can wait for a card's revealed face instead of turning up a placeholder. */
 function usePublishedFaceReady(href: string | undefined): boolean {
   return usePublishedFace(href) !== undefined || !href;
+}
+
+/* A card turned face up in hand shows its face only once the room has sent it, so its flip waits for that too. */
+function faceStillHidden(piece: TablePiece) {
+  const shownLayers = visibleLayerCount(piece);
+  const item = piece.items[stackLayerItemIndex(piece.items.length, shownLayers, shownLayers - 1, piece.flipRevision)];
+  return piece.kind === 'card' && !!item?.faceUp && !!item.artwork && !item.artwork.front;
 }
 
 /* A face-down faction token wears a solid black prohibition sign over its front: a ring and the slash across it, the slash as thick as the ring (#1007). */
@@ -1202,14 +1210,16 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
   const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried);
-  const faceReady = usePublishedFaceReady(topFaceHref(piece));
+  const faceReady = usePublishedFaceReady(topFaceHref(piece)) && !faceStillHidden(piece);
+  /* A held piece turns over in hand too, so only an emptied projection cuts a flip short. */
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
     piece,
-    drafted || remoteCarried || emptyProjection,
+    emptyProjection,
     finishPieceFlip,
     faceReady
   );
   const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
+  const drawnPiece = useTurnedDownFaces(piece);
   const flipPivotY = stackTopHeight(piece) / 2;
   const shadowLocalY = contactShadowHeightAt(piece.position, piece) - piece.position[1];
 
@@ -1252,7 +1262,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
           <group ref={pivotRef} position={[0, flipPivotY, 0]}>
             <group position={[0, -flipPivotY, 0]}>
               <group ref={shuffleRef}>
-                <PieceLayers piece={piece} />
+                <PieceLayers piece={drawnPiece} />
               </group>
             </group>
           </group>

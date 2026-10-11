@@ -1498,7 +1498,10 @@ export class GameRoom extends DurableObject<GameEnv> {
   private publishActivity(
     socket: WebSocket,
     connection: Connection,
-    message: Extract<ClientMessage, { type: 'ping' | 'pointer' | 'pose' | 'begin' | 'take' | 'renew' | 'cancel' }>
+    message: Extract<
+      ClientMessage,
+      { type: 'ping' | 'pointer' | 'pose' | 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }
+    >
   ) {
     if (message.type === 'ping') {
       this.relayPing(socket, connection, message);
