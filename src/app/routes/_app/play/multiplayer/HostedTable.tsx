@@ -741,6 +741,104 @@ function handTabs({ client, table }: Pick<ConnectionControlsProps, 'client' | 't
   ];
 }
 
+/** The header's control for the stage: its Ready, the phase controls in play, playback before play, or Continue playing once finished. */
+function stageToolbar({
+  client,
+  table,
+  bidderFaded,
+  onBidderFadedChange,
+}: Readonly<{
+  client: TableSession;
+  table: TableProjection;
+  bidderFaded: boolean;
+  onBidderFadedChange: (faded: boolean) => void;
+}>) {
+  const stage = table.snapshot.stage;
+  /* The fixture has no stage and plays like a game in play. */
+  const inPlay = stage === undefined || stage === 'play';
+  /* Playback before play steps through the stage's checkpoints where its Ready would be. */
+  if (table.playback && !inPlay && stage !== 'finished') {
+    return <StagePlayback client={client} table={table} />;
+  }
+  if (inPlay || (stage === 'setup' && table.snapshot.setup)) {
+    return (
+      <>
+        {inPlay && (
+          <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={onBidderFadedChange} />
+        )}
+        <PhaseNavigation client={client} table={table} />
+      </>
+    );
+  }
+  if (stage === 'drafting') {
+    return <DraftingReady client={client} table={table} />;
+  }
+  if (stage === 'swapping') {
+    return <SwappingReady client={client} table={table} />;
+  }
+  if (stage === 'finished') {
+    return <ContinuePlaying client={client} table={table} />;
+  }
+  return undefined;
+}
+
+/** What the phase chip says for a stage outside play: the drafting gates, the trading clock, the result or the setup step. */
+function stageStatus({
+  client,
+  table,
+  identity,
+}: Readonly<{ client: TableSession; table: TableProjection; identity: GameIdentity }>) {
+  const stage = table.snapshot.stage;
+  const result = resultTitle(table);
+  if (stage === 'drafting') {
+    return (
+      <DraftingHeader
+        table={table}
+        rulesetName={identity.rulesetName ?? undefined}
+        invite={<InviteLink address={identity.address} />}
+      />
+    );
+  }
+  if (stage === 'swapping') {
+    return <SwappingStatus client={client} table={table} />;
+  }
+  if (result) {
+    return (
+      <div className="seated-phase-status__copy">
+        <span>Finished</span>
+        <strong>{result}</strong>
+      </div>
+    );
+  }
+  if (stage === 'discarded') {
+    return (
+      <div className="seated-phase-status__copy">
+        <span>Discarded</span>
+        <strong>Its last player left</strong>
+      </div>
+    );
+  }
+  if (stage === 'setup' && table.snapshot.setup) {
+    return <Text size="sm">{setupStep(table.snapshot.setup).title}</Text>;
+  }
+  return undefined;
+}
+
+/** The Result tab, while a declared result or an ending game asks the table to settle it. */
+function resultTabs({ client, table }: Readonly<{ client: TableSession; table: TableProjection }>) {
+  return resultFocus(table)
+    ? [
+        {
+          key: 'result',
+          label: 'Result',
+          topic: 'result' as const,
+          ...RESULT_GUIDANCE,
+          content: <ResultControls client={client} table={table} />,
+        },
+      ]
+    : [];
+}
+
 function ConnectedTable({
   client,
   table,
@@ -806,25 +904,7 @@ function ConnectedTable({
             mapVisible={setupMapVisible(table.snapshot.setup)}
             connectionStatus={<ConnectionStatus table={table} />}
             alliances={<AllianceStrip table={table} />}
-            toolbarControl={
-              /* Playback before play steps through the stage's checkpoints where its Ready would be. */
-              table.playback && stage && stage !== 'play' && stage !== 'finished' ? (
-                <StagePlayback client={client} table={table} />
-              ) : inPlay || (stage === 'setup' && table.snapshot.setup) ? (
-                <>
-                  {inPlay && (
-                    <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={setBidderFaded} />
-                  )}
-                  <PhaseNavigation client={client} table={table} />
-                </>
-              ) : stage === 'drafting' ? (
-                <DraftingReady client={client} table={table} />
-              ) : stage === 'swapping' ? (
-                <SwappingReady client={client} table={table} />
-              ) : stage === 'finished' ? (
-                <ContinuePlaying client={client} table={table} />
-              ) : undefined
-            }
+            toolbarControl={stageToolbar({ client, table, bidderFaded, onBidderFadedChange: setBidderFaded })}
             /* The gathered Traitor pile lies under the Tleilaxu tanks, below the Map view's frame on a wide screen (#1635). */
             requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
             showStormControls={inPlay && progress.activePhaseId === 'storm'}
@@ -858,29 +938,7 @@ function ConnectedTable({
                 />
               </>
             }
-            stageStatus={
-              stage === 'drafting' ? (
-                <DraftingHeader
-                  table={table}
-                  rulesetName={identity.rulesetName ?? undefined}
-                  invite={<InviteLink address={identity.address} />}
-                />
-              ) : stage === 'swapping' ? (
-                <SwappingStatus client={client} table={table} />
-              ) : resultTitle(table) ? (
-                <div className="seated-phase-status__copy">
-                  <span>Finished</span>
-                  <strong>{resultTitle(table)}</strong>
-                </div>
-              ) : stage === 'discarded' ? (
-                <div className="seated-phase-status__copy">
-                  <span>Discarded</span>
-                  <strong>Its last player left</strong>
-                </div>
-              ) : stage === 'setup' && table.snapshot.setup ? (
-                <Text size="sm">{setupStep(table.snapshot.setup).title}</Text>
-              ) : undefined
-            }
+            stageStatus={stageStatus({ client, table, identity })}
             stageOverlay={stage === 'drafting' ? <DraftingOverlay client={client} table={table} /> : undefined}
             panelContent={
               stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
@@ -946,17 +1004,7 @@ function ConnectedTable({
                           },
                         ]
                       : []),
-                    ...(resultFocus(table)
-                      ? [
-                          {
-                            key: 'result',
-                            label: 'Result',
-                            topic: 'result' as const,
-                            ...RESULT_GUIDANCE,
-                            content: <ResultControls client={client} table={table} />,
-                          },
-                        ]
-                      : []),
+                    ...resultTabs({ client, table }),
                     {
                       key: 'shared',
                       label: 'Shared inventory',
