@@ -1,4 +1,4 @@
-import { Anchor, Avatar, Button, Group, Indicator, Stack, Text } from '@mantine/core';
+import { Anchor, Avatar, Button, Group, Indicator, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
@@ -357,8 +357,9 @@ function FactionPageLink({ id, name }: Readonly<{ id: string; name: string }>) {
     return name;
   }
   return (
-    <Anchor href={`/factions/${encodeURIComponent(slug)}`} target="_blank" rel="noreferrer" inherit>
+    <Anchor href={`/factions/${encodeURIComponent(slug)}`} target="_blank" rel="noreferrer" size="sm" fw={600}>
       {name}
+      <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
     </Anchor>
   );
 }

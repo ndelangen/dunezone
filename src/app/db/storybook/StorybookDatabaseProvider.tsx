@@ -1,7 +1,9 @@
+import { getFunctionName } from 'convex/server';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { mocked } from 'storybook/test';
 
+import { api } from '../../../../convex/_generated/api';
 import { db as applicationDb } from '../core';
 import type { DatabaseDefinition } from './database';
 import type { WorkerIdentity } from './protocol';
@@ -132,5 +134,19 @@ export function useStorybookDatabaseClient() {
  */
 export function convexNeverAnswers(Story: ComponentType) {
   mocked(convexUseQuery).mockImplementation((() => undefined) as typeof convexUseQuery);
+  return <Story />;
+}
+
+/**
+ * A story decorator for Play's fixtures, which seat each faction under its slug rather than a catalogue id.
+ * The faction lookup answers with the seat's own id, so a seat's faction links to its page.
+ * Every other query stays with the browser-local database.
+ */
+export function seatFactionsResolve(Story: ComponentType) {
+  const slugById = getFunctionName(api.factions.slugById);
+  mocked(convexUseQuery).mockImplementation(((query, args) =>
+    getFunctionName(query) === slugById
+      ? (args as { id: string }).id
+      : useConvexStorybookQuery(query, args)) as typeof convexUseQuery);
   return <Story />;
 }
