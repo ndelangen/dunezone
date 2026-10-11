@@ -21,12 +21,14 @@ export type HiddenZoneSpot = z.infer<typeof hiddenZoneSpotSchema>;
 export const HIDDEN_ZONE_WIDTH = 6.4;
 export const HIDDEN_ZONE_DEPTH = 2.8;
 
-/** A piece's width and depth in the zone, in table units, as its footprint on the table. */
+/** A piece's width and depth in the zone, in table units: its footprint on the table, at its token's physical size. */
 export function hiddenZoneFootprint(piece: TablePiece): { width: number; depth: number } {
   if (piece.kind === 'card') {
     return { width: CARD_WIDTH, depth: CARD_DEPTH };
   }
-  const width = 2 * (piece.kind === 'marker' ? MARKER_FOOTPRINT_RADIUS : TROOP_FOOTPRINT_RADIUS * troopScale(piece));
+  const standard = 2 * (piece.kind === 'marker' ? MARKER_FOOTPRINT_RADIUS : TROOP_FOOTPRINT_RADIUS * troopScale(piece));
+  /* A token's author may make it smaller or larger than standard, such as a tiny marker for a tracker card. */
+  const width = standard * (piece.items[0]?.artwork?.size ?? 1);
   return { width, depth: width * (tokenBoxRatio(piece) ?? 1) };
 }
 

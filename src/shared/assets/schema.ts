@@ -23,6 +23,11 @@ const SCALE = z.number().min(0).max(1);
  * `assets.data` is `v.any()`, so no Convex validator gates this: the migration is the only thing that makes it true.
  */
 const About = z.string().trim();
+
+/** How big a token is in play, as a share of the standard size; absent means standard. */
+export const PHYSICAL_SIZE_MIN = 0.2;
+export const PHYSICAL_SIZE_MAX = 2;
+export const PhysicalSize = z.number().min(PHYSICAL_SIZE_MIN).max(PHYSICAL_SIZE_MAX);
 const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
 
 export { Decal };
@@ -200,6 +205,7 @@ function tokenBackUnion<TFace extends z.ZodType>(face: TFace) {
 export const TokenAsset = z.strictObject({
   name: z.string(),
   about: About,
+  physicalSize: PhysicalSize.optional(),
   front: TokenFace,
   back: tokenBackUnion(TokenFace),
 });
@@ -345,6 +351,7 @@ export const RectangleTokenFace = z.strictObject({
 export const RectangleTokenAsset = z.strictObject({
   name: z.string(),
   about: About,
+  physicalSize: PhysicalSize.optional(),
   front: RectangleTokenFace,
   back: tokenBackUnion(RectangleTokenFace),
 });

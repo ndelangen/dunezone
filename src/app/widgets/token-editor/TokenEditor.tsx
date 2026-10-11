@@ -489,7 +489,10 @@ export function TokenEditor({
           },
         ]
       : []),
-    aboutChapter(draft.about, (about) => patch({ about })),
+    aboutChapter(draft.about, (about) => patch({ about }), {
+      value: draft.physicalSize,
+      onChange: (physicalSize) => patch({ physicalSize }),
+    }),
   ];
 
   /* Switching to a referenced back removes the Back tab, so a selection sitting on it has to fall back. */

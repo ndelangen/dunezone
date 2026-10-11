@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { PhysicalSize } from '../assets/schema';
 import { TABLE_SEAT_COUNTS, TABLE_SECTOR_COUNT } from './tableSettings';
 
 export const tableIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,160}$/);
@@ -76,6 +77,8 @@ const artworkSchema = z.object({
   backName: z.string().min(1).optional(),
   name: z.string().optional(),
   type: z.string(),
+  /* A token's physical size as its author set it, a share of the standard size; absent means standard. */
+  size: PhysicalSize.optional(),
   /* A prediction card's choice, drawn over its front (#1753); a hidden card's copy leaves it out with the front. */
   prediction: z.object({ stepId: tableIdSchema, factionId: tableIdSchema, turn: tableCountSchema.min(1) }).optional(),
 });
@@ -125,6 +128,7 @@ const concealedArtworkSchema = z.strictObject({
   front: z.never().optional(),
   name: z.never().optional(),
   type: z.never().optional(),
+  size: z.never().optional(),
   prediction: z.never().optional(),
 });
 
