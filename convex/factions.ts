@@ -157,6 +157,21 @@ export const getBySlug = query({
   handler: async (ctx, args) => loadFactionDetailPageBySlug(ctx, args.slug),
 });
 
+/**
+ * A live faction's page address by its id, for Play, whose seats carry only the id.
+ * The game shows the faction as it captured it, and reads only the address live, since renaming a faction moves its page.
+ * Null for an unknown or deleted faction, so a game table never fails on it.
+ */
+export const pageSlug = query({
+  args: { id: v.string() },
+  returns: v.union(v.null(), v.string()),
+  handler: async (ctx, args) => {
+    const id = ctx.db.normalizeId('factions', args.id);
+    const row = id ? await ctx.db.get('factions', id) : null;
+    return row && !row.is_deleted ? row.slug : null;
+  },
+});
+
 export const list = query({
   args: {},
   returns: v.array(factionValidator),
