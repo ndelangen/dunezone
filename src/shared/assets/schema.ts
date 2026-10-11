@@ -4,6 +4,7 @@ import { ALL, BACKGROUND, TEXTURE } from '../assetIds';
 import { Background, Decal } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
+import { PhysicalSize } from './physicalSize';
 
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
@@ -23,14 +24,10 @@ const SCALE = z.number().min(0).max(1);
  * `assets.data` is `v.any()`, so no Convex validator gates this: the migration is the only thing that makes it true.
  */
 const About = z.string().trim();
-
-/** How big a token is in play, as a share of the standard size; absent means standard. */
-export const PHYSICAL_SIZE_MIN = 0.2;
-export const PHYSICAL_SIZE_MAX = 2;
-export const PhysicalSize = z.number().min(PHYSICAL_SIZE_MIN).max(PHYSICAL_SIZE_MAX);
 const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
 
 export { Decal };
+export { PHYSICAL_SIZE_MAX, PHYSICAL_SIZE_MIN, PhysicalSize } from './physicalSize';
 
 /**
  * The spice-card renderer's props.

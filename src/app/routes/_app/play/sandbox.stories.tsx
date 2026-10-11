@@ -218,8 +218,12 @@ export const HiddenZone = meta.story({
     const hand = shown().hand!;
     const card = hand.find((candidate) => candidate.kind === 'card')!;
     const leader = hand.find((candidate) => candidate.kind === 'force')!;
+    /* The leader stands in for a tracker marker: a token its author set to 35% of the standard size. */
+    const faction = shown().bank!.factionId;
+    const stored = table.room.snapshot.factionInventories[faction]!.find((candidate) => candidate.id === leader.id)!;
+    stored.items[0]!.artwork = { ...stored.items[0]!.artwork!, size: 0.35 };
     command('sandbox-zone-card', { kind: 'hand-zone', pieceId: card.id, at: { x: 0.3, y: 0.5 } });
-    command('sandbox-zone-leader', { kind: 'hand-zone', pieceId: leader.id, at: { x: 0.33, y: 0.38 } });
+    command('sandbox-zone-leader', { kind: 'hand-zone', pieceId: leader.id, at: { x: 0.316, y: 0.36 } });
     expect(table.refusal).toBeUndefined();
     expect(shown().hand!.filter((candidate) => candidate.hiddenZone)).toHaveLength(2);
     const other = journeyViewers().find((seat) => seat !== table.seat)!;

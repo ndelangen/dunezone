@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { PhysicalSize } from '../assets/schema';
+import { PhysicalSize } from '../assets/physicalSize';
 import { TABLE_SEAT_COUNTS, TABLE_SECTOR_COUNT } from './tableSettings';
 
 export const tableIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,160}$/);
