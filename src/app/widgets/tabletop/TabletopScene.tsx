@@ -9,6 +9,7 @@ import { peekersOf } from '@shared/play/peeking';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
+import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import {
   nearestStormRotation,
   STORM_MARKER_INNER_X,
@@ -803,18 +804,41 @@ function SpiceLayers({ piece }: { piece: TablePiece }) {
             <cylinderGeometry args={[SPICE_TOKEN_RADIUS, SPICE_TOKEN_RADIUS, SPICE_LAYER_HEIGHT, 48]} />
             <meshStandardMaterial color="#b8842f" roughness={0.8} metalness={0} />
           </mesh>
-          <mesh
-            position={[0, SPICE_LAYER_HEIGHT + 0.001, 0]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-          >
-            <circleGeometry args={[SPICE_TOKEN_RADIUS * 0.79, 48]} />
-            <meshStandardMaterial color="#f6d77f" roughness={1} metalness={0} />
-          </mesh>
-          <SpiceStackIcon y={SPICE_LAYER_HEIGHT} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />
+          <SpiceFace />
         </group>
       ))}
     </group>
+  );
+}
+
+/* Each layer wears the published spice token; until it loads, or where it is unavailable, a plain face with the spice icon stands in. */
+function SpiceFace() {
+  const texture = usePublishedFace(SPICE_TOKEN_HREF);
+  if (texture) {
+    return (
+      <mesh
+        position={[0, SPICE_LAYER_HEIGHT + 0.001, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
+      >
+        <circleGeometry args={[SPICE_TOKEN_RADIUS, 48]} />
+        {/* Printed art is drawn unlit, like every other piece face (#1756). */}
+        <meshBasicMaterial map={texture} />
+      </mesh>
+    );
+  }
+  return (
+    <>
+      <mesh
+        position={[0, SPICE_LAYER_HEIGHT + 0.001, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
+      >
+        <circleGeometry args={[SPICE_TOKEN_RADIUS * 0.79, 48]} />
+        <meshStandardMaterial color="#f6d77f" roughness={1} metalness={0} />
+      </mesh>
+      <SpiceStackIcon y={SPICE_LAYER_HEIGHT} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />
+    </>
   );
 }
 
