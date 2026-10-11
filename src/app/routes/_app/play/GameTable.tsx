@@ -620,16 +620,23 @@ function measureHeader(node: HTMLElement | null) {
 /* The scene's height above the dock the camera dial needs, in rem: the dial, the gap under it for its caption, and room above it. */
 const CAMERA_ROOM_REM = 5.75 + 1.6 + 2 * 0.75;
 
+/* The play shell and its header around the dock, once both are mounted. */
+function dockFrame(node: HTMLElement) {
+  const shell = node.closest<HTMLElement>('.dune-play-shell');
+  const header = shell?.querySelector<HTMLElement>('.seated-header');
+  return shell && header ? { shell, header } : null;
+}
+
 /*
  * Where the dock starts within the shell, and whether the scene above it is too low for the camera dial.
  * There the dial moves into the dock's upper right corner instead of reaching under the header's chips or the separator.
  */
 function measureDock(node: HTMLElement | null) {
-  const shell = node?.closest<HTMLElement>('.dune-play-shell');
-  const header = shell?.querySelector<HTMLElement>('.seated-header');
-  if (!node || !shell || !header) {
+  const frame = node && dockFrame(node);
+  if (!frame) {
     return;
   }
+  const { shell, header } = frame;
   const update = () => {
     const top = node.getBoundingClientRect().top - shell.getBoundingClientRect().top;
     const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
