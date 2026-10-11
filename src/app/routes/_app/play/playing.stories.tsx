@@ -492,7 +492,7 @@ export const SharedPhaseControls = meta.story({
       expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
       expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
       expect(page.getByRole('region', { name: 'Storm sector' })).toBeVisible();
-      expect(page.getByRole('button', { name: `Help: ${TABLE_PHASES[0].label}` })).toBeVisible();
+      expect(page.getByRole('region', { name: TABLE_PHASES[0].label })).toBeVisible();
       expectHeaderPhase(canvasElement, 0);
     });
 
@@ -506,7 +506,7 @@ export const SharedPhaseControls = meta.story({
       session.transport.view({ ...initialSnapshot(), phase: 1, revision: 1 }, command?.commandId)
     );
     await waitForPhase(() => {
-      expect(page.getByRole('button', { name: `Help: ${TABLE_PHASES[1].label}` })).toBeVisible();
+      expect(page.getByRole('region', { name: TABLE_PHASES[1].label })).toBeVisible();
       expect(page.queryByRole('region', { name: 'Storm sector' })).toBeNull();
       expect(controls().getByRole('button', { name: 'Previous phase' })).toBeEnabled();
       expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
@@ -525,7 +525,7 @@ export const SharedPhaseControls = meta.story({
     );
     await waitForPhase(() => {
       expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
-      expect(page.getByRole('button', { name: `Help: ${TABLE_PHASES[TABLE_PHASES.length - 1].label}` })).toBeVisible();
+      expect(page.getByRole('region', { name: TABLE_PHASES[TABLE_PHASES.length - 1].label })).toBeVisible();
       expectHeaderPhase(canvasElement, TABLE_PHASES.length - 1);
     });
   },
@@ -540,7 +540,7 @@ export const ObserverPhaseControls = meta.story({
     await waitForPhase(() => {
       expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
       expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
-      expect(page.getByRole('button', { name: `Help: ${TABLE_PHASES[5].label}` })).toBeVisible();
+      expect(page.getByRole('region', { name: TABLE_PHASES[5].label })).toBeVisible();
       expectHeaderPhase(canvasElement, 5);
     });
     await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
@@ -564,7 +564,7 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
     });
 
     session.transport.deliver(session.transport.view({ ...initialSnapshot(), phase: 6, revision: 1 }));
-    expect(page.getByRole('button', { name: `Help: ${TABLE_PHASES[0].label}` })).toBeVisible();
+    expect(page.getByRole('region', { name: TABLE_PHASES[0].label })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
     await waitForPhase(() => {
       expectHeaderPhase(canvasElement, 6);
@@ -662,13 +662,14 @@ export const FactionPhase = meta.story({
     const { page, waitForPhase } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
-    await waitForPhase(() => expect(page.getByRole('button', { name: 'Help: Guild negotiations' })).toBeVisible());
-    await userEvent.hover(page.getByRole('button', { name: 'Help: Guild negotiations' }));
-    /* The tooltip fades in, so its text is the stable check; the header already shows the phase. */
+    await waitForPhase(() => expect(page.getByRole('region', { name: 'Guild negotiations' })).toBeInTheDocument());
+    await userEvent.hover(page.getByRole('tab', { name: 'Phase' }));
+    /* The tooltip fades in, so its text is the stable check; the header already shows the phase. Resting on the tab brings the phase's instructions. */
     await waitForFrame(() =>
-      expect(page.getByRole('tooltip')).toHaveTextContent(
-        'Guild negotiations. Agree any shipment deals before the auction opens.'
-      )
+      expect(page.getByRole('tooltip')).toHaveTextContent("Guild negotiations, and the table's settings.")
+    );
+    await waitForFrame(() =>
+      expect(page.getByRole('tooltip')).toHaveTextContent('Agree any shipment deals before the auction opens.')
     );
     const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
     expect(within(header).getByText('Guild negotiations')).toBeVisible();
@@ -787,17 +788,16 @@ export const SharedInventoryNarrow = meta.story({
       expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
       expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
     });
-    await userEvent.hover(page.getByRole('button', { name: 'Help: Shared inventory' }));
-    await waitForFrame(() =>
-      expect(finishTransitions(page.getByText(/Shared inventory\. Drag an item onto the table/))).toBeVisible()
-    );
-    await userEvent.unhover(page.getByRole('button', { name: 'Help: Shared inventory' }));
+    await userEvent.hover(page.getByRole('tab', { name: 'Shared inventory' }));
+    await waitForFrame(() => expect(finishTransitions(page.getByText('Pieces every player can take.'))).toBeVisible());
+    await waitForFrame(() => expect(finishTransitions(page.getByText(/^Drag an item onto the table/))).toBeVisible());
+    await userEvent.unhover(page.getByRole('tab', { name: 'Shared inventory' }));
     await openTab(page, 'Phase');
-    await userEvent.hover(page.getByRole('button', { name: 'Help: Storm' }));
+    await userEvent.hover(page.getByRole('tab', { name: 'Phase' }));
     await waitForFrame(() =>
-      expect(finishTransitions(page.getByText(/Storm\. Move the storm using the storm controls/))).toBeVisible()
+      expect(finishTransitions(page.getByText(/^Move the storm using the storm controls/))).toBeVisible()
     );
-    await userEvent.unhover(page.getByRole('button', { name: 'Help: Storm' }));
+    await userEvent.unhover(page.getByRole('tab', { name: 'Phase' }));
   },
 });
 
@@ -840,7 +840,7 @@ export const ControlsPanelTabs = meta.story({
     await openTab(page, 'Phase');
     await settled(() => {
       expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
-      expect(page.queryByRole('button', { name: 'Help: Hosted connection' })).toBeNull();
+      expect(page.queryByRole('region', { name: 'Hosted connection' })).toBeNull();
       expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
       expect(rail().getBoundingClientRect().toJSON()).toEqual(railBox);
     });
@@ -910,10 +910,10 @@ export const PanelSchemeIsland = meta.story({
     expect(view.getComputedStyle(menu).backgroundColor).toBe(glass);
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
-    const help = page.getByRole('button', { name: 'Help: Spice reserve' });
-    /* By its words: the tab the panel opened from can show its own name tip at the same time. */
+    const help = page.getByRole('tab', { name: 'Spice' });
+    /* By its words, as the tab's tooltip. */
     const spiceReserveTip = () =>
-      page.queryAllByRole('tooltip').find((tip) => tip.textContent?.includes('Only you see this balance')) ?? null;
+      page.queryAllByRole('tooltip').find((tip) => tip.textContent?.includes('Your private spice reserve')) ?? null;
     await userEvent.hover(help);
     const tooltip = await waitForFrame(() => {
       const tip = spiceReserveTip();
@@ -1035,12 +1035,10 @@ export const ControlsNarrow = meta.story({
     await settled(() => expect(page.getByRole('tab', { name: 'Spice' })).toBeVisible());
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByLabelText('Spice reserve balance')).toBeVisible());
-    await userEvent.hover(page.getByRole('button', { name: 'Help: Spice reserve' }));
-    /* The tooltip's label mounts only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1422). */
-    await waitForFrame(() =>
-      expect(finishTransitions(page.getByText(/^Spice reserve\. Only you see this balance\./))).toBeVisible()
-    );
-    await userEvent.unhover(page.getByRole('button', { name: 'Help: Spice reserve' }));
+    await userEvent.hover(page.getByRole('tab', { name: 'Spice' }));
+    /* The tooltip's label mounts only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1422). Resting on the tab brings the reserve's help. */
+    await waitForFrame(() => expect(finishTransitions(page.getByText(/^Only you see this balance\./))).toBeVisible());
+    await userEvent.unhover(page.getByRole('tab', { name: 'Spice' }));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     expect(page.queryByRole('button', { name: 'Take into spice reserve' })).toBeNull();
   },
