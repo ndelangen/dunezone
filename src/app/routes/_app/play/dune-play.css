@@ -13,6 +13,7 @@
    the island. */
 .dune-play-shell {
   --play-header-height: 5.2rem;
+  --play-dock-top: 0px;
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --sand: #f8af40;
   --cream-muted: #bdb3a4;
@@ -263,7 +264,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 /* Where the scene above the dock is too low for the dial (measured as data-camera-docked), it sits in the dock's upper
    right corner, and below the header's chips where a short window grows the dock up under them. */
 :where(.dune-play-shell)[data-camera-docked="true"] .seated-camera {
-  top: max(var(--space-sm), var(--play-header-height) + var(--space-sm) - var(--play-dock-top, 0px));
+  top: max(var(--space-sm), var(--play-header-height) + var(--space-sm) - var(--play-dock-top));
   bottom: auto;
 }
 
