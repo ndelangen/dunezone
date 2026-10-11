@@ -4,7 +4,7 @@ import { v } from 'convex/values';
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx, MutationCtx } from '../_generated/server';
 
-export const authProviderValidator = v.union(v.literal('google'), v.literal('discord'), v.literal('reddit'));
+export const authProviderValidator = v.union(v.literal('google'), v.literal('discord'));
 export type AuthProvider = Infer<typeof authProviderValidator>;
 export const authMethodValidator = v.object({
   provider: authProviderValidator,
@@ -16,7 +16,6 @@ export function signInProviders() {
   const configured = {
     google: !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET),
     discord: !!(process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET),
-    reddit: !!(process.env.AUTH_REDDIT_ID && process.env.AUTH_REDDIT_SECRET && process.env.AUTH_REDDIT_USER_AGENT),
   } satisfies Record<AuthProvider, boolean>;
   return (Object.keys(configured) as AuthProvider[]).map((provider) => ({
     provider,

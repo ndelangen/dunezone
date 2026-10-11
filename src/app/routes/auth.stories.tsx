@@ -14,10 +14,10 @@ export const Login = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(
-      page.findByRole('button', { name: 'Continue with Reddit' }, { timeout: 30_000 })
+      page.findByRole('button', { name: 'Continue with Google' }, { timeout: 30_000 })
     ).resolves.toBeDisabled();
-    await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Continue with Discord' })).toBeDisabled();
+    await expect(page.getAllByRole('button', { name: /^Continue with / })).toHaveLength(2);
   },
 });
 export const OAuthError = meta.story({

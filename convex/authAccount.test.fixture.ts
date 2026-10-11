@@ -4,6 +4,7 @@ import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
 import { vi } from 'vitest';
 
+import type { AuthProvider } from './lib/accountMethods';
 import { applicationTriggers } from './lib/applicationTriggers';
 import schema from './schema';
 
@@ -16,12 +17,7 @@ export function setup() {
   rateLimiterTest.register(t);
   return t;
 }
-export function account(
-  t: ReturnType<typeof setup>,
-  slug: string,
-  provider: 'google' | 'discord' | 'reddit',
-  admin = false
-) {
+export function account(t: ReturnType<typeof setup>, slug: string, provider: AuthProvider, admin = false) {
   return t.run(async (raw) => {
     const ctx = applicationTriggers.wrapDB(raw);
     const userId = await ctx.db.insert('users', { name: slug, account_state: 'active', isAdmin: admin });

@@ -33,6 +33,7 @@ import {
   ADMISSION_UNAVAILABLE_CLOSE_CODE,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
+  TABLE_PING_INTERVAL_MS,
   TICKET_EXPIRED_CLOSE_CODE,
   clientMessageSchema,
 } from '../../src/shared/play/protocol';
@@ -43,6 +44,7 @@ import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
+import type { AlertEnv } from './alerts';
 import { AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
@@ -51,6 +53,7 @@ import type { SetAsideJudgement } from './drafting';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { isLocalIsolatedRuntime } from './localRuntime';
+import { forwardPrivacyRequest } from './privacyRequests';
 import { CarryHistoryExhausted } from './room';
 import type { Metadata } from './session';
 import { GameSession, NotReady, readinessProblem } from './session';
@@ -79,6 +82,8 @@ type Connection = {
   suspensions: number;
   everAuthorized: boolean;
   pointerSeq: number;
+  /* When this connection last pinged, by the room's clock. */
+  pingedAt: number;
   tokens: number;
   motionTokens: number;
   refilledAt: number;
@@ -590,6 +595,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       suspensions: 0,
       everAuthorized: false,
       pointerSeq: -1,
+      pingedAt: 0,
       tokens: RATE_BURST,
       motionTokens: RATE_BURST,
       refilledAt: Date.now(),
@@ -1196,6 +1202,26 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /*
+   * A ping goes straight out to every other connection at the table and is kept nowhere, so a reconnecting page never sees an old one.
+   * A spectator has no cursor to ping from, and a ping sooner than the interval after the last is dropped, as a page that keeps to it never sends one.
+   */
+  private relayPing(socket: WebSocket, connection: Connection, message: Extract<ClientMessage, { type: 'ping' }>) {
+    const viewer = connection.viewer!;
+    const now = Date.now();
+    if (viewer.viewerSeat === SPECTATOR_SEAT || now - connection.pingedAt < TABLE_PING_INTERVAL_MS) {
+      return;
+    }
+    connection.pingedAt = now;
+    const { connectionId, viewerSeat, displayName, color } = viewer;
+    const ping = { connectionId, viewerSeat, displayName, color, position: message.position };
+    for (const [peer, other] of this.connections) {
+      if (peer !== socket && other.viewer) {
+        this.send(peer, { type: 'ping', ping });
+      }
+    }
+  }
+
+  /*
    * A held connection's message, and a catalogue capture it started, wait here for the fence to lift, then meet the same check as any other.
    * Resolves to whether the connection may still act on a message that arrived after `suspensions` pauses.
    * A pause since then drops the message, even when the connection was admitted again, because the page discarded its unanswered requests on the pause.
@@ -1451,8 +1477,15 @@ export class GameRoom extends DurableObject<GameEnv> {
   private publishActivity(
     socket: WebSocket,
     connection: Connection,
-    message: Extract<ClientMessage, { type: 'pointer' | 'pose' | 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }>
+    message: Extract<
+      ClientMessage,
+      { type: 'ping' | 'pointer' | 'pose' | 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }
+    >
   ) {
+    if (message.type === 'ping') {
+      this.relayPing(socket, connection, message);
+      return;
+    }
     if (message.type === 'pointer' || message.type === 'pose') {
       this.moveActivity(connection, message);
       return;
@@ -2127,6 +2160,9 @@ export class GameRoom extends DurableObject<GameEnv> {
 }
 
 export default {
+  async email(message, env): Promise<void> {
+    await forwardPrivacyRequest(message, env);
+  },
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
     if (url.origin !== env.APPLICATION_ORIGIN || url.search) {
@@ -2164,4 +2200,4 @@ export default {
     }
     return env.GAME_ROOMS.getByName(route.gameId).fetch(request);
   },
-} satisfies ExportedHandler<GameEnv>;
+} satisfies ExportedHandler<GameEnv & Pick<AlertEnv, 'ALERT_EMAIL_TO'>>;

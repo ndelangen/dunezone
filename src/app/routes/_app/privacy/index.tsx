@@ -1,8 +1,9 @@
-import { List, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Anchor, List, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { Card } from '@ui/surface/Card';
 
 import { pageHead } from '@app/routes/pageTitle';
 
@@ -40,6 +41,19 @@ function PrivacyPage() {
       </PageLayout.Header>
       <PageLayout.Content>
         <Stack gap="xl">
+          <Card padding="xl" title="Who is responsible for your data">
+            <Stack gap="md">
+              <Text>
+                Dune Zone is operated by Norbert de Langen, who is the controller responsible for the personal data
+                described on this page.
+              </Text>
+              <Text>
+                For privacy questions or data requests, email{' '}
+                <Anchor href="mailto:requests@dune.zone">requests@dune.zone</Anchor>.
+              </Text>
+            </Stack>
+          </Card>
+
           <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
             <Surface padding="xl">
               <Stack gap="md">
@@ -50,9 +64,7 @@ function PrivacyPage() {
                     An email address retained from an earlier sign-in, if one was supplied. Current sign-in requests
                     identity access only.
                   </List.Item>
-                  <List.Item>
-                    Whether you signed in with Google, Discord or Reddit, and the account ID they give us.
-                  </List.Item>
+                  <List.Item>Whether you signed in with Google or Discord, and the account ID they give us.</List.Item>
                   <List.Item>The sign-in records needed to keep you logged in and protect your account.</List.Item>
                   <List.Item>
                     Basic technical details such as your IP address, browser, when you visited, and errors that
@@ -100,23 +112,34 @@ function PrivacyPage() {
           <Surface padding="xl">
             <Stack gap="md">
               <Title order={2}>Your data rights</Title>
-              <Text>We follow the GDPR rules that protect your personal data.</Text>
+              <Text>The GDPR gives you rights over your personal data.</Text>
               <Text>
                 You can ask us what personal data we have about you. You can also ask us to correct it, give you a copy,
-                or delete it.
+                or erase it. Where the law applies, you can ask us to restrict processing, provide a portable copy, or
+                stop processing based on our legitimate interests.
               </Text>
               <Text fw={700}>
-                If you ask us to delete your data, we will remove your account, profile, contributions, memberships,
-                sign-in details, and any other personal data we control.
+                Deleting your account through the website closes it and hides your public profile. It does not
+                automatically erase all stored personal data. Contact us if you want your personal data erased.
               </Text>
               <Text>
-                We may first ask you to prove that the account is yours. It can take a little longer for deleted data to
-                disappear from backups and security logs. We cannot delete copies that other people made while your work
-                was public.
+                When you close your account, you can transfer the Groups, factions, and rulesets you own to another
+                owner, or remove them from public view. Work you contributed to but do not own can remain. We will
+                assess an erasure request separately, including personal information in that work.
               </Text>
               <Text>
-                To make a request, contact the Dune Zone site owner. Do not include your password or other private
-                sign-in details in your message.
+                We may ask you to prove that the account is yours. We normally respond to rights requests within one
+                month. If a request needs more time or a legal exception applies, we will explain why. We cannot erase
+                copies that other people made while your work was public.
+              </Text>
+              <Text>
+                To make a request, email <Anchor href="mailto:requests@dune.zone">requests@dune.zone</Anchor>. Do not
+                include your password or other private sign-in details in your message.
+              </Text>
+              <Text>
+                You can also complain to the{' '}
+                <Anchor href="https://autoriteitpersoonsgegevens.nl/en">Autoriteit Persoonsgegevens</Anchor>, the Dutch
+                data protection authority, or the data protection authority where you live or work in the EU.
               </Text>
             </Stack>
           </Surface>
@@ -126,11 +149,17 @@ function PrivacyPage() {
               <Title order={2}>What we do with the data</Title>
               <Text>
                 We only use the data to let you sign in, run the website, show who made each contribution, keep the
-                website safe, and fix problems.
+                website safe, fix problems, and understand website traffic and performance.
               </Text>
               <Text>
-                Google, Discord or Reddit handles sign-in. Convex stores the data. Cloudflare helps deliver the website.
-                They receive the information they need to do those jobs.
+                We process the account and contribution data needed to provide the service you request under GDPR
+                Article 6(1)(b). We rely on legitimate interests under Article 6(1)(f) for security, troubleshooting,
+                and limited traffic measurement: protecting accounts, preventing abuse, and understanding how to keep
+                the website useful and working. You can object to processing based on those interests.
+              </Text>
+              <Text>
+                Google or Discord handles sign-in. Convex stores application data. Cloudflare hosts and protects the
+                website and provides Web Analytics. These providers receive the information needed for those jobs.
               </Text>
               <Text>
                 We do not sell your data. Your profile and contributions are free for people to view, but we do not sell
@@ -138,6 +167,63 @@ function PrivacyPage() {
               </Text>
             </Stack>
           </Surface>
+
+          <Card padding="xl" title="Website analytics">
+            <Stack gap="md">
+              <Text>
+                We use Cloudflare Web Analytics to understand which pages people visit and how quickly the website
+                responds. Measurements cover page views, referring websites, country, browser, device type, operating
+                system, and page performance. This includes visitors in the European Union.
+              </Text>
+              <Text>
+                Cloudflare says Web Analytics uses no cookies or local storage and does not track individual visitors
+                across visits or websites. We do not send your account ID, email address, or profile details as
+                analytics fields, or join the reports to your account. Page paths can include public profile or content
+                names. Cloudflare also receives the connection information needed to deliver the website and receive
+                measurements, including your IP address; that is separate from identifying visitors in analytics.
+              </Text>
+              <Text>
+                The analytics dashboard makes the previous six months of reports available. This reporting window is
+                separate from the retention of account data and security logs. Read{' '}
+                <Anchor href="https://developers.cloudflare.com/web-analytics/about/">
+                  about Cloudflare Web Analytics
+                </Anchor>{' '}
+                and its <Anchor href="https://developers.cloudflare.com/web-analytics/faq/">data history</Anchor>.
+              </Text>
+            </Stack>
+          </Card>
+
+          <Card padding="xl" title="How long data stays">
+            <Stack gap="md">
+              <Text>
+                We keep account and contribution records while they are needed to run your account and the work you
+                share. Closing an account marks its records as deleted; stored records can remain until an erasure
+                request is handled. Shared work can remain under another owner.
+              </Text>
+              <Text>
+                We use security logs to diagnose failures and investigate abuse, and backups to recover from data loss
+                or service failure. Their retention depends on the provider's configured storage window, the recovery
+                window needed, and whether records are needed for an active security investigation or legal obligation.
+                We will explain any exception that affects an erasure request.
+              </Text>
+            </Stack>
+          </Card>
+
+          <Card padding="xl" title="Providers and international processing">
+            <Stack gap="md">
+              <Text>
+                Our providers may process information outside the European Economic Area, including in the United
+                States. Their data-protection terms describe the safeguards for international transfers, including the
+                European Commission&apos;s standard contractual clauses where applicable. You can read the{' '}
+                <Anchor href="https://www.cloudflare.com/cloudflare-customer-dpa/">
+                  Cloudflare data processing addendum
+                </Anchor>{' '}
+                and the{' '}
+                <Anchor href="https://www.convex.com/data-protection-addendum">Convex data protection addendum</Anchor>,
+                or contact us for information about the safeguards used for your data.
+              </Text>
+            </Stack>
+          </Card>
 
           <Surface padding="xl">
             <Stack gap="md">
@@ -196,7 +282,7 @@ function PrivacyPage() {
           </Surface>
 
           <Text c="dimmed" size="sm">
-            Last updated 27 July 2026. If anything changes, we will update this page.
+            Last updated 11 October 2026. If anything changes, we will update this page.
           </Text>
         </Stack>
       </PageLayout.Content>

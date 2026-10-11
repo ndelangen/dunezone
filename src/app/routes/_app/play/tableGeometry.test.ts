@@ -13,6 +13,7 @@ import {
   contactShadowScale,
   pointOnRayAtHeight,
   surfaceHeightAt,
+  surfacePointOnRay,
   supportHeightAt,
   TABLE_SURFACE_Y,
   visibleLayerCount,
@@ -246,5 +247,26 @@ describe('Spice Bank drag targeting', () => {
     }
     expect(pointOnPieceDragRay(piece, [0, 1, 0], [1, 0, 0])).toBeNull();
     expect(pointOnPieceDragRay(piece, [0, 1, 0], [0, 1, 0])).toBeNull();
+  });
+});
+
+describe('the surface a ping lands on', () => {
+  const down: Vector3Tuple = [0, -1, 0];
+  test.each([
+    ['the board', [1, 5, 0], BOARD_SURFACE_Y],
+    ['the rim', [4.1, 5, 0], BOARD_RIM_SURFACE_Y],
+    ['the table', [6, 5, 0], TABLE_SURFACE_Y],
+  ] as const)('a ray straight down onto %s meets it at its own height', (_name, origin, height) => {
+    expect(surfacePointOnRay([...origin], down)).toEqual([origin[0], height, origin[2]]);
+  });
+
+  test('a slanted ray meets the raised board before the table beneath it', () => {
+    const point = surfacePointOnRay([0, 5, 8], [0, -5, -8]);
+    expect(point?.[1]).toBe(BOARD_SURFACE_Y);
+    expect(point?.[2]).toBeGreaterThan(0);
+  });
+
+  test('a ray that points away from the table meets nothing', () => {
+    expect(surfacePointOnRay([0, 5, 0], [0, 1, 0])).toBeNull();
   });
 });

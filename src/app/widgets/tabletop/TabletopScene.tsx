@@ -148,6 +148,7 @@ type TabletopSceneProps = {
 
 const PieceBadge = lazy(() => import('./PieceBadge').then((module) => ({ default: module.PieceBadge })));
 const ScenePresence = lazy(() => import('./ScenePresence').then((module) => ({ default: module.ScenePresence })));
+const ScenePings = lazy(() => import('./ScenePings').then((module) => ({ default: module.ScenePings })));
 const PredictionOverlay = lazy(() =>
   import('./prediction/PredictionOverlay').then((module) => ({ default: module.PredictionOverlay }))
 );
@@ -1381,7 +1382,8 @@ function SceneContents({
       )}
       {presentation !== 'preview' && (
         <Suspense fallback={null}>
-          <ScenePresence showNames />
+          <ScenePresence showNames trackerSlots={trackerSlots} />
+          <ScenePings />
         </Suspense>
       )}
       <TableLights />

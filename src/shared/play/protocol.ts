@@ -130,6 +130,11 @@ const carrySchema = publicIdentitySchema.extend({
 const pointerSchema = publicIdentitySchema.extend({ position, updatedAt: count, sourceSeq: count.optional() });
 export type PublicCarry = z.infer<typeof carrySchema>;
 export type PublicPointer = z.infer<typeof pointerSchema>;
+/* A ping a player sent from their cursor: shown and heard once by everyone at the table, then gone. Never stored or logged. */
+const pingSchema = publicIdentitySchema.omit({ avatarUrl: true }).extend({ position });
+export type TablePing = z.infer<typeof pingSchema>;
+/** A connection pings at most this often; the Worker drops a ping that comes sooner, and the page does not send one. */
+export const TABLE_PING_INTERVAL_MS = 400;
 
 const tableActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
@@ -212,6 +217,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     flips: carryFlips.optional(),
   }),
   z.strictObject({ type: z.literal('pointer'), seq: count, position: position.nullable() }),
+  z.strictObject({ type: z.literal('ping'), position }),
   z.strictObject({ type: z.literal('take'), requestId: id, carryId: id, donorPieceId: id }),
   /* The carrier turned the held piece over in hand, for the count-th time this carry. */
   z.strictObject({ type: z.literal('flip'), carryId: id, flips: carryFlips }),
@@ -318,6 +324,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied']) }),
   /* `held` is the carried piece as the carrier now sees it, sent after a flip so a face turned up in hand shows at once. */
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema, held: pieceSchema.optional() }),
+  z.object({ type: z.literal('ping'), ping: pingSchema }),
   z.object({
     type: z.literal('view'),
     phaseCooldownMs: count.optional(),
