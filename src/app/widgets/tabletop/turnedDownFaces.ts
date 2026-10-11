@@ -4,7 +4,7 @@ import { useMemo, useRef } from 'react';
 type Artwork = NonNullable<TablePiece['items'][number]['artwork']>;
 
 /** The piece with each card's known artwork put back where a hidden copy left its front out. */
-export function withKnownFronts(piece: TablePiece, fronts: ReadonlyMap<string, Artwork>): TablePiece {
+function withKnownFronts(piece: TablePiece, fronts: ReadonlyMap<string, Artwork>): TablePiece {
   const knownFront = (item: TablePiece['items'][number]) =>
     item.artwork && !item.artwork.front ? fronts.get(item.id) : undefined;
   if (!piece.items.some(knownFront)) {

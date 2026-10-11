@@ -181,7 +181,7 @@ function heldCardFronts(snapshot: StoredSnapshot) {
 }
 
 function sortedFaces(faces: Iterable<string>) {
-  return [...new Set(faces)].sort();
+  return [...new Set(faces)].sort((a, b) => (a < b ? -1 : Number(a > b)));
 }
 
 /**

@@ -31,7 +31,7 @@ function loadNext() {
 }
 
 /** Starts downloading each card face not yet asked for, a few at a time. */
-export function preloadCardFaces(hrefs: readonly string[]) {
+function preloadCardFaces(hrefs: readonly string[]) {
   for (const href of hrefs) {
     if (!requested.has(href) && !queue.includes(href)) {
       queue.push(href);
