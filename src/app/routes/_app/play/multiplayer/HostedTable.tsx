@@ -988,7 +988,7 @@ function ConnectedTable({
                   ]
                 : []),
             ]}
-            tableGuidance={stage ? phaseGuidance(table) : undefined}
+            tableGuidance={phaseGuidance(table)}
             tableControls={
               tabled ? (
                 <>

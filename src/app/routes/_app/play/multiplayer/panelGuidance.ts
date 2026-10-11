@@ -75,7 +75,11 @@ export function phaseHelp(table: TableProjection) {
     : `${phase.instructions} Previous changes the tracker only. Pieces and storm position stay as they are.`;
 }
 
-export function phaseGuidance(table: TableProjection): Guidance {
+/** The Phase tab's guidance; a fixture table without a stage keeps its plain Table tab. */
+export function phaseGuidance(table: TableProjection): Guidance | undefined {
+  if (!table.snapshot.stage) {
+    return undefined;
+  }
   const phase = phaseAt(table.snapshot.phase, table.snapshot.phases);
   return { description: `${phase.label}, and the table's settings.`, help: phaseHelp(table) };
 }

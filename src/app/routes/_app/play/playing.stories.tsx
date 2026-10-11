@@ -887,7 +887,7 @@ export const SpiceTransfers = meta.story({
 /**
  * The panel is a dark-scheme island: its title, eyebrow, prose and controls paint the same in both page schemes, and that paint is the dark tokens, the app's and Mantine's alike.
  * The page scheme is flipped on the document mid-story, which is what the app's own scheme bridge does, so one mount proves both schemes.
- * A floating pane opened on the island, a piece's menu and a help tooltip here, paints the island's glass in the light page although it portals out of the shell.
+ * A floating pane opened on the island paints the island's paint in the light page although it portals out of the shell: a piece's menu its glass, a tab's tooltip Play's raised tooltip surface.
  * (Page stories take their scheme from the app chrome, not from the Storybook global.)
  */
 export const PanelSchemeIsland = meta.story({
@@ -910,6 +910,7 @@ export const PanelSchemeIsland = meta.story({
     expect(view.getComputedStyle(menu).backgroundColor).toBe(glass);
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
+    const raised = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--tooltip-surface').trim());
     const help = page.getByRole('tab', { name: 'Spice' });
     /* By its words, as the tab's tooltip. */
     const spiceReserveTip = () =>
@@ -920,7 +921,8 @@ export const PanelSchemeIsland = meta.story({
       expect(tip).not.toBeNull();
       return tip!;
     });
-    expect(view.getComputedStyle(tooltip).backgroundColor).toBe(glass);
+    expect(view.getComputedStyle(tooltip).backgroundColor).toBe(raised);
+    expect(raised).not.toBe(glass);
     await userEvent.unhover(help);
     await waitForFrame(() => expect(spiceReserveTip()).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');

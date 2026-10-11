@@ -106,7 +106,14 @@ schemes, and a nested provider re-emits Mantine's root-scoped scheme variables u
 stylesheet keyed on `html[data-mantine-color-scheme]` does not follow the island). A Select, Menu or
 Combobox dropdown portals out of the shell, so the provider gives every Popover dropdown it renders
 the island's attributes. A tooltip's colours key on an ancestor, so the provider portals its
-tooltips into a child of `body` that carries those attributes. The dock paints the ground; the tabs
+tooltips into a child of `body` that carries those attributes. Play's tooltips are raised rather than
+glass: the app's tooltip glass is the dock's own navy, so a tooltip over the panel vanished into it
+(Norbert, #2048). The island sets `--tooltip-surface`, `--tooltip-ink`, `--tooltip-ring` and
+`--tooltip-title` in `tokens.css`, and the app's one dark tooltip rule reads them with the glass as
+fallback, so every tooltip on the island is a slate card with a light ring and shadow, a titled one
+(a dock tab's) takes the amber title, and nothing outside the island changes. A dock tab carries its
+panel's guidance: hovering shows its name over a one-line description, and resting 1.8 s swaps in
+the full help; there is no help button in the panel. The dock paints the ground; the tabs
 bring the kit's pane, and nothing inside a tab brings a pane of its own. The island resolves the
 glass, input and overlay tokens the kit's panes read to neutral values, as the paper island resolves
 its own in `tokens.css`: the app's twilight glass casts blue over the table's warm ground.

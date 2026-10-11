@@ -354,18 +354,6 @@ function useNestedTabsContext(component: string) {
 const TOOLTIP_OPEN_MS = 350;
 const TOOLTIP_HELP_MS = 1800;
 
-/* TEMPORARY design preview: ?tipVariant=a|b|c|d on the story iframe picks a tooltip treatment. Removed before merge. */
-const TOOLTIP_VARIANTS: Record<string, string | undefined> = {
-  a: styles.tipOutlined,
-  b: styles.tipSlate,
-  c: styles.tipSand,
-  d: styles.tipEmber,
-};
-const tooltipVariant =
-  typeof window === 'undefined'
-    ? undefined
-    : TOOLTIP_VARIANTS[new URLSearchParams(window.location.search).get('tipVariant') ?? 'a'];
-
 function NestedTabsTooltip({
   label,
   description,
@@ -444,7 +432,6 @@ function NestedTabsTooltip({
       }
       position="right"
       withArrow
-      classNames={{ tooltip: tooltipVariant }}
       multiline={Boolean(text)}
       maw={text ? 320 : undefined}
       opened={shown !== 'closed' && !isScrolling}
