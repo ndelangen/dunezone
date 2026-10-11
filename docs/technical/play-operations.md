@@ -114,6 +114,14 @@ Play is healthy for release when all of these hold:
 
 ## 3. Alert routing
 
+Privacy requests to `requests@dune.zone` are routed to the `dunezone-game` Email Worker.
+Its email handler forwards them to the same `ALERT_EMAIL_TO` secret used by the alert relay.
+The handler does not read, store or log message contents, and rejects other recipients or a missing destination.
+Cloudflare Email Routing must have an enabled literal `to:requests@dune.zone` rule with a Worker action targeting
+`dunezone-game`; deploy the handler before enabling that rule.
+The destination must remain verified in Cloudflare Email Routing.
+No additional secret or email binding is needed for incoming forwarding.
+
 Decided by Norbert on 2026-10-01: alerts are email from Cloudflare. Cloudflare Email Routing (free)
 forwards `alerting@dune.zone` to Norbert's personal inbox, and Play alerts are addressed to
 `alerting@dune.zone`, so the recipient can change in one place. Alerts are configured in the

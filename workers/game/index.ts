@@ -43,6 +43,7 @@ import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
+import type { AlertEnv } from './alerts';
 import { AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
@@ -51,6 +52,7 @@ import type { SetAsideJudgement } from './drafting';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { isLocalIsolatedRuntime } from './localRuntime';
+import { forwardPrivacyRequest } from './privacyRequests';
 import { CarryHistoryExhausted } from './room';
 import type { Metadata } from './session';
 import { GameSession, NotReady, readinessProblem } from './session';
@@ -2127,6 +2129,9 @@ export class GameRoom extends DurableObject<GameEnv> {
 }
 
 export default {
+  async email(message, env): Promise<void> {
+    await forwardPrivacyRequest(message, env);
+  },
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
     if (url.origin !== env.APPLICATION_ORIGIN || url.search) {
@@ -2164,4 +2169,4 @@ export default {
     }
     return env.GAME_ROOMS.getByName(route.gameId).fetch(request);
   },
-} satisfies ExportedHandler<GameEnv>;
+} satisfies ExportedHandler<GameEnv & Pick<AlertEnv, 'ALERT_EMAIL_TO'>>;

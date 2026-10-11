@@ -41,6 +41,19 @@ function PrivacyPage() {
       </PageLayout.Header>
       <PageLayout.Content>
         <Stack gap="xl">
+          <Card padding="xl" title="Who is responsible for your data">
+            <Stack gap="md">
+              <Text>
+                Dune Zone is operated by Norbert de Langen, who is the controller responsible for the personal data
+                described on this page.
+              </Text>
+              <Text>
+                For privacy questions or data requests, email{' '}
+                <Anchor href="mailto:requests@dune.zone">requests@dune.zone</Anchor>.
+              </Text>
+            </Stack>
+          </Card>
+
           <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
             <Surface padding="xl">
               <Stack gap="md">
@@ -120,8 +133,8 @@ function PrivacyPage() {
                 copies that other people made while your work was public.
               </Text>
               <Text>
-                To make a request, contact the Dune Zone site owner. Do not include your password or other private
-                sign-in details in your message.
+                To make a request, email <Anchor href="mailto:requests@dune.zone">requests@dune.zone</Anchor>. Do not
+                include your password or other private sign-in details in your message.
               </Text>
               <Text>
                 You can also complain to the{' '}
