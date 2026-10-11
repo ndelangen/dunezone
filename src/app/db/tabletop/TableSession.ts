@@ -188,6 +188,11 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
 }
 
 /* Commands a held piece does not hold back: a phase change, a removal, a seat, and letting go of a peek, which the room allows mid-carry. */
+function waitsForPlan(
+  action: PieceAction
+): action is Extract<PieceAction, { kind: 'battle-ready' | 'battle-disclose' }> {
+  return action.kind === 'battle-ready' || action.kind === 'battle-disclose';
+}
 function passesCarry(action: PieceAction) {
   return action.kind === 'phase' || action.kind === 'peek-close' || isRemovalAction(action) || isSeatAction(action);
 }
@@ -1272,8 +1277,21 @@ export class TableSession {
       action: { kind: 'battle-plan', battleId: battle.id, plan: { ...input, ...patch } },
     });
   }
+  /* Plan edits still on their way, which readiness and early reveals queue behind. */
+  private planInFlight() {
+    return !!(this.pendingBattlePlan || this.queuedBattlePlan);
+  }
+  /* Readiness or a reveal queues while a plan edit is unanswered, or behind another one already queued so they keep their order. */
+  private queueBehindPlan(action: PieceAction) {
+    const waiting = !!this.pendingBattlePlan || this.queuedBattleActions.length > 0;
+    if (!waiting || !waitsForPlan(action)) {
+      return false;
+    }
+    this.queuedBattleActions.push(action);
+    return true;
+  }
   private flushBattleActions() {
-    if (this.canAct() && !this.pendingBattlePlan && !this.queuedBattlePlan && this.queuedBattleActions.length) {
+    if (this.canAct() && !this.planInFlight() && this.queuedBattleActions.length) {
       const actions = this.queuedBattleActions;
       this.queuedBattleActions = [];
       actions.forEach((action) => this.command(action));
@@ -1288,11 +1306,7 @@ export class TableSession {
     if (seatCommand && this.seatCommandInFlight) {
       return;
     }
-    if (
-      (action.kind === 'battle-ready' || action.kind === 'battle-disclose') &&
-      (this.pendingBattlePlan || this.queuedBattleActions.length)
-    ) {
-      this.queuedBattleActions.push(action);
+    if (this.queueBehindPlan(action)) {
       return;
     }
     if (!(isSeatAction(action) ? this.current() : this.canAct()) || (this.carry && !passesCarry(action))) {
