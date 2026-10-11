@@ -1,4 +1,5 @@
 import { toStoredHeroKey } from '@shared/factions/schema';
+import { publicFaction } from '@shared/play/capture';
 import type { FactionCapture } from '@shared/play/capture';
 import { normalizePlayGameSlug } from '@shared/play/gameNames';
 import type { TablePiece } from '@shared/play/model';
@@ -372,5 +373,6 @@ export function productTransport(
     delete view.hand;
     delete view.battlePlan;
   }
-  return storyTransport(viewerSeat, view, options);
+  const captured = Object.fromEntries(factions.map((faction) => [faction.slug, publicFaction(capture(faction))]));
+  return storyTransport(viewerSeat, view, { factions: captured, ...options });
 }

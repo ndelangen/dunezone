@@ -5,9 +5,15 @@ export type TableConnectionStatus = 'connecting' | 'authorized' | 'suspended' | 
 
 /** Reads stay available while gameplay waits for synchronization or shows history. */
 export function isReadRequest(message: ClientMessage) {
-  return ['catalogue', 'history', 'spice-history', 'log-history', 'conversation-history', 'metrics'].includes(
-    message.type
-  );
+  return [
+    'catalogue',
+    'history',
+    'spice-history',
+    'log-history',
+    'conversation-history',
+    'faction',
+    'metrics',
+  ].includes(message.type);
 }
 
 export type TableSubscriptionEvent =

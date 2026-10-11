@@ -125,6 +125,10 @@ function gameRequest(request: Request, applicationOrigin: string) {
   }
   return { gameId, operation };
 }
+type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
+const isPageRead = (message: ClientMessage): message is PageRead =>
+  message.type === 'log-history' || message.type === 'spice-history' || message.type === 'faction';
+
 function messageId(message: ClientMessage): string {
   if ('commandId' in message) {
     return message.commandId;
@@ -1344,20 +1348,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     socket.close(4413, 'Too many requests.');
   }
 
-  private dispatch(
-    socket: WebSocket,
-    connection: Connection,
-    message: Exclude<ClientMessage, { type: 'admit' | 'catalogue' }>
-  ) {
+  /* Reads that answer from the room's records alone, whatever the reader may do at the table. */
+  private sendPage(socket: WebSocket, message: PageRead) {
     switch (message.type) {
-      case 'sync':
-        this.sendView(socket, connection);
-        return;
-      case 'conversation-history':
-      case 'conversation-send':
-      case 'conversation-read':
-        this.handleConversation(socket, connection.viewer!, message);
-        return;
       case 'log-history':
         this.send(socket, {
           type: 'log-history',
@@ -1368,6 +1361,34 @@ export class GameRoom extends DurableObject<GameEnv> {
         return;
       case 'spice-history':
         this.send(socket, { type: 'spice-history', before: message.before, ...this.session.spicePage(message.before) });
+        return;
+      case 'faction':
+        this.send(socket, {
+          type: 'faction',
+          factionId: message.factionId,
+          faction: this.session.publicFaction(message.factionId),
+        });
+        return;
+    }
+  }
+
+  private dispatch(
+    socket: WebSocket,
+    connection: Connection,
+    message: Exclude<ClientMessage, { type: 'admit' | 'catalogue' }>
+  ) {
+    if (isPageRead(message)) {
+      this.sendPage(socket, message);
+      return;
+    }
+    switch (message.type) {
+      case 'sync':
+        this.sendView(socket, connection);
+        return;
+      case 'conversation-history':
+      case 'conversation-send':
+      case 'conversation-read':
+        this.handleConversation(socket, connection.viewer!, message);
         return;
       case 'history':
         this.sendHistory(socket, message.step);

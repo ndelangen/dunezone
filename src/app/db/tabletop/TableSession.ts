@@ -1,5 +1,6 @@
 import { tableHandlingOpen } from '@shared/play/admission';
 import type { BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
+import type { PublicFaction } from '@shared/play/capture';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
@@ -140,6 +141,8 @@ export type ConnectionView = {
   catalogue?: Extract<ServerMessage, { type: 'catalogue' }>;
   spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   logHistory: Partial<Record<LogTab, LogPage>>;
+  /* Seated factions' captured starting sheets by faction id; null when the game holds no capture of one. */
+  factions: Readonly<Partial<Record<string, PublicFaction | null>>>;
 };
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
 
@@ -352,6 +355,10 @@ export class TableSession {
   private spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   private spiceHistoryBefore?: number;
   private logHistory: Partial<Record<LogTab, LogPage>> = {};
+  /* A capture never changes once a game holds it, so each answer is kept across reconnects. */
+  private factions: Readonly<Partial<Record<string, PublicFaction | null>>> = {};
+  /* Reads sent and not yet answered; a dropped connection or a refusal forgets them, so the panel can ask again. */
+  private factionRequests = new Set<string>();
   private logHistoryBefore: Record<LogTab, number> = latestLogPages();
 
   constructor(
@@ -373,6 +380,7 @@ export class TableSession {
       table: this.table,
       conversations: this.conversations.view(),
       logHistory: {},
+      factions: {},
     };
   }
   /*
@@ -771,6 +779,7 @@ export class TableSession {
       catalogue: this.catalogueResult,
       spiceHistory: this.spiceHistory,
       logHistory: this.logHistory,
+      factions: this.factions,
     };
     const changed = (Object.keys(next) as (keyof ConnectionView)[]).some((key) => next[key] !== previous[key]);
     this.cached = changed ? next : previous;
@@ -908,14 +917,14 @@ export class TableSession {
     }
     switch (message.type) {
       case 'log-history':
-        if (message.before === this.logHistoryBefore[message.tab]) {
-          this.logHistory = { ...this.logHistory, [message.tab]: message };
-        }
+        this.receiveLogPage(message);
         break;
       case 'spice-history':
-        if (message.before === this.spiceHistoryBefore) {
-          this.spiceHistory = message;
-        }
+        this.receiveSpicePage(message);
+        break;
+      case 'faction':
+        this.factionRequests.delete(message.factionId);
+        this.factions = { ...this.factions, [message.factionId]: message.faction };
         break;
       case 'catalogue':
         if (message.requestId === this.catalogueRequestId) {
@@ -935,6 +944,17 @@ export class TableSession {
         break;
     }
   }
+  /* A page arrives for the cursor it was asked with; one the panel has since moved past is dropped. */
+  private receiveLogPage(message: LogPage) {
+    if (message.before === this.logHistoryBefore[message.tab]) {
+      this.logHistory = { ...this.logHistory, [message.tab]: message };
+    }
+  }
+  private receiveSpicePage(message: Extract<ServerMessage, { type: 'spice-history' }>) {
+    if (message.before === this.spiceHistoryBefore) {
+      this.spiceHistory = message;
+    }
+  }
   private receiveHistory(message: Extract<ServerMessage, { type: 'history' }>) {
     if (this.pendingHistory !== message.step) {
       return;
@@ -944,6 +964,8 @@ export class TableSession {
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
     this.error = message.message;
+    /* A refused read carries no id; forgetting the faction reads lets the panel ask again on its next look. */
+    this.factionRequests.clear();
     if (this.pendingHistory !== null && message.requestId === 'message') {
       /*
        * A history read carries no id, so the Worker refuses it as 'message'. It never gets a history reply, so the
@@ -1057,6 +1079,7 @@ export class TableSession {
     }
   }
   private clearDisconnectedActivity() {
+    this.factionRequests.clear();
     this.logHistory = {};
     this.logHistoryBefore = latestLogPages();
     /* The Worker holds a capture for the connection, not the seat, so a seat change keeps it and a disconnect frees it. */
@@ -1096,6 +1119,13 @@ export class TableSession {
   readLogHistory = (tab: LogTab, before = this.logHistoryBefore[tab]) => {
     this.logHistoryBefore = { ...this.logHistoryBefore, [tab]: before };
     this.send({ type: 'log-history', tab, before });
+  };
+  /* Asks once for a seated faction's captured sheet; a read that was never answered can be asked again. */
+  readFaction = (factionId: string) => {
+    const known = factionId in this.factions || this.factionRequests.has(factionId);
+    if (!known && this.send({ type: 'faction', factionId })) {
+      this.factionRequests.add(factionId);
+    }
   };
   readSpiceHistory = (before?: number) => {
     this.spiceHistoryBefore = before;
