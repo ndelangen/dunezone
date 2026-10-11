@@ -190,7 +190,7 @@ function TablePage({
               key={game.gameId}
               gameId={game.gameId}
               exitControl={exit}
-              identity={{ name: game.name, rulesetName: game.ruleset?.name ?? null, address: game.slug ?? game.gameId }}
+              identity={{ rulesetName: game.ruleset?.name ?? null, address: game.slug ?? game.gameId }}
             />
           </Suspense>
         </ClientOnly>

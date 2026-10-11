@@ -354,7 +354,7 @@ export const Discarded = meta.story({
   },
 });
 
-/** The directory's name and ruleset stay distinct; the menu exposes the final address. */
+/** The name stays in the accessible page title, outside the table header; the menu exposes the final address. */
 export const NamedGame = meta.story({
   parameters: parameters(
     'ready',
@@ -366,6 +366,9 @@ export const NamedGame = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('Ruleset: Dreamrules', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(canvasElement.querySelector('.seated-header')).not.toHaveTextContent(
+      'Annual Bene Gesserit wedding traitor and the unexpected Arrakeen dinner ambush'
+    );
     expect(
       page.getByRole('heading', {
         name: 'Annual Bene Gesserit wedding traitor and the unexpected Arrakeen dinner ambush',
