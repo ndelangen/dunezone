@@ -881,7 +881,8 @@ function EarlyRevealWheel({
             role="img"
             aria-label={`${factionName} dial revealed early: ${dial.strength}`}
           >
-            {dial.strength}
+            <span>{dial.strength}</span>
+            <small>Strength</small>
           </div>
         ) : null}
         {leader ? (

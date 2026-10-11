@@ -203,54 +203,35 @@
   box-shadow: 0 1px 4px #000a;
 }
 
-/* The revealed wheel prints its number at the top centre (left 61 px, 48 px wide); a parchment disc keeps it legible on the token art. */
+/* The revealed wheel prints its number at the top centre (left 61 px, 48 px wide); a parchment disc labelled like the wheel keeps it legible on the token art. */
 .earlyDial {
   position: absolute;
-  top: -2px;
-  left: 63px;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
+  top: -8px;
+  left: 55px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
   box-sizing: border-box;
   border-radius: 50%;
   border: 2px solid #b9b29a;
-  background: #e7dfc5;
-  box-shadow: 0 1px 4px #000a;
+  background: radial-gradient(circle at 50% 35%, #f3ecd6, #cfc6a8);
+  box-shadow: 0 2px 6px #000c;
+  color: #29271e;
+  line-height: 1;
+}
+.earlyDial > span {
   color: #fff;
   -webkit-text-stroke: 0.8px #17150f;
   paint-order: stroke fill;
   font-family: "C_Advokat_Modern", serif;
-  font-size: 22px;
-  line-height: 1;
+  font-size: 24px;
   text-shadow: 0 0 2px #000;
 }
-
-/* The revealed wheel's leader piece: its 72 px slot at top 73 px, right 20 px, inset 8% 2% 8% 14%. */
-.earlyLeader {
-  position: absolute;
-  top: 79px;
-  left: 88px;
-  width: 61px;
-  height: 61px;
-  border-radius: 50%;
-  overflow: hidden;
-  box-shadow: 0 1px 6px #000c;
-}
-
-.earlyLeader > * {
-  width: 100%;
-  height: 100%;
-}
-
-.earlyLayer[data-motion="ok"] .earlyCard,
-.earlyLayer[data-motion="ok"] .earlyDial,
-.earlyLayer[data-motion="ok"] .earlyLeader {
-  animation: early-reveal 320ms ease-out;
-}
-
-@keyframes early-reveal {
-  from {
-    opacity: 0;
-  }
+.earlyDial small {
+  margin-top: 3px;
+  font-family: "C_Copperplate_Gothic", serif;
+  font-size: 6px;
 }
