@@ -129,7 +129,8 @@ export const tablePieceSchema = storedPieceSchema.extend({
 });
 
 /** The turns over a carry may count; far more than a hand makes, and small enough to keep a flip revision safe. */
-export const carryFlipsSchema = z.number().int().nonnegative().max(10_000);
+export const CARRY_FLIPS_LIMIT = 10_000;
+export const carryFlipsSchema = z.number().int().nonnegative().max(CARRY_FLIPS_LIMIT);
 
 export const draftMoveSchema = z.object({
   operation: z.enum(['move', 'merge']),

@@ -49,7 +49,7 @@ import {
   draftForGesture,
   draftWithAdditionalTop,
   heldPieceFor,
-  isFlippablePiece,
+  canFlipInHand,
   projectCarryAtPosition,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
@@ -371,8 +371,8 @@ export class Room {
   flip(identity: Identity, input: CarryInput<'flip'>, now = Date.now()): DraftMove {
     const carry = this.carry(identity, input.carryId);
     const held = heldPieceFor(this.table(identity, input.carryId), carry.draft);
-    if (!isFlippablePiece(held)) {
-      throw new GameRejection('That piece cannot be turned over.');
+    if (!canFlipInHand(held)) {
+      throw new GameRejection('That piece cannot be turned over in hand.');
     }
     carry.draft = { ...carry.draft, flips: carryFlips(carry.draft, input.flips) };
     carry.lastSeen = now;

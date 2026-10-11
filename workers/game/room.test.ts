@@ -463,6 +463,39 @@ describe('server-owned tabletop carries', () => {
       pickup: 'whole',
     });
     expect(() => room.flip(alice, { carryId: 'spice', flips: 1 })).toThrow('cannot be turned over');
+    const next = room.drop(alice, 'spice', { position: [0, 0.38, 0], orientation: 0, flips: 1 });
+    expect(next.table.events.slice(0, 2).map((event) => event.command)).not.toContain('piece.flip');
+  });
+
+  test('refuses turning over a prediction card in hand, since placing it is its only reveal', () => {
+    const initial = initialSnapshot();
+    const prediction = { stepId: 'faction-step-1', factionId: 'harkonnen', turn: 4 };
+    const front = 'https://table.test/published/cards/prediction/card.jpg';
+    const back = 'https://table.test/published/cardback-presets/prediction/cardback.jpg';
+    const room = new Room(
+      {
+        ...initial,
+        table: {
+          ...initial.table,
+          pieces: initial.table.pieces.map((piece) =>
+            piece.id === 'treachery-card-loose'
+              ? {
+                  ...piece,
+                  items: piece.items.map((item) => ({
+                    ...item,
+                    artwork: { front, back, type: 'card-prediction', prediction },
+                  })),
+                }
+              : piece
+          ),
+        },
+      },
+      seated
+    );
+    room.begin(alice, { carryId: 'guess', sourcePieceId: 'treachery-card-loose', expectedVersion: 0, pickup: 'top' });
+    expect(() => room.flip(alice, { carryId: 'guess', flips: 1 })).toThrow('cannot be turned over');
+    const next = room.drop(alice, 'guess', { position: [0, 0.38, 0], orientation: 0, flips: 1 });
+    expect(next.table.events.slice(0, 2).map((event) => event.command)).not.toContain('piece.flip');
   });
 
   test('a drop counting two flips lands the piece as it was, with nothing logged but the move', () => {

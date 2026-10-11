@@ -20,12 +20,12 @@ import type {
   TablePing,
 } from '@shared/play/protocol';
 import { isRemovalAction } from '@shared/play/removal';
-import { SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
+import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
 import {
   draftForGesture,
   heldPieceFor,
-  isFlippablePiece,
+  canFlipInHand,
   projectCarryAtPosition,
   renderedPiecesFor,
 } from '@shared/play/tableState';
@@ -1550,7 +1550,8 @@ export class TableSession {
       return;
     }
     const held = heldPieceFor(this.requireTable().state, carry.draft);
-    if (!isFlippablePiece(held)) {
+    /* The room never counts back, so a carry stops turning at its cap rather than send a count it refuses. */
+    if (!canFlipInHand(held) || (carry.draft.flips ?? 0) >= CARRY_FLIPS_LIMIT) {
       return;
     }
     const flips = (carry.draft.flips ?? 0) + 1;

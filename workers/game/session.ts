@@ -1128,14 +1128,20 @@ export class GameSession {
     if (step > this.history.steps) {
       throw new GameRejection('Unknown history step.');
     }
+    /*
+     * Steps stored before the face list grew only hold the fronts present then, so comparing two of them
+     * could tell which hidden card left the table. Every step carries the live game's list instead.
+     */
+    const past = this.projection.snapshot(
+      this.history.restore(step),
+      this.actors.factionFor(viewer.userId),
+      this.room!.snapshot
+    );
     return {
       type: 'history',
       step,
       lastStep: this.history.steps,
-      snapshot: this.forViewer(
-        this.projection.snapshot(this.history.restore(step), this.actors.factionFor(viewer.userId)),
-        viewer
-      ),
+      snapshot: this.forViewer(past, viewer),
     };
   }
   conversationFaction(viewer: Viewer) {

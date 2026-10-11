@@ -304,7 +304,8 @@ export class RoomProjection {
     };
   }
 
-  snapshot(snapshot: StoredSnapshot, factionId?: string): GameSnapshot {
+  /** `faces` is the game whose card faces go along; a history step passes the live game (see Session.historyFor). */
+  snapshot(snapshot: StoredSnapshot, factionId?: string, faces: StoredSnapshot = snapshot): GameSnapshot {
     let audiences = this.snapshots.get(snapshot);
     if (!audiences) {
       audiences = new Map();
@@ -426,7 +427,7 @@ export class RoomProjection {
             }
           : {}),
         factionArtwork: snapshot.factionArtwork,
-        cardFaces: this.cardFaces(snapshot),
+        cardFaces: this.cardFaces(faces),
         combatFaces: snapshot.combatFaces,
         battleResults: snapshot.battleResults.map((result) => ({
           ...result,

@@ -283,7 +283,7 @@ test('every viewer, spectators included, sees how many Treachery cards each seat
   expect(projection.snapshot(battle('revealed'), 'fremen').handCounts).toEqual({ atreides: 0, fremen: 0 });
 });
 
-test('every viewer is sent the same sorted card faces, and a card taken out of the game stays among them', () => {
+test('every viewer is sent the same sorted card faces, and a card taken out of the game stays among them, history included', () => {
   const initial = storedSnapshotSchema.parse(initialSnapshot());
   const face = (name: string) => `https://table.test/published/treachery/${name}.jpg`;
   const stored = {
@@ -314,4 +314,6 @@ test('every viewer is sent the same sorted card faces, and a card taken out of t
   };
   expect(projection.snapshot(withoutCards).cardFaces).toEqual([]);
   expect(projection.snapshot(withKnownCardFaces(stored, withoutCards)).cardFaces).toEqual(faces);
+  /* A step stored before the list existed is sent the live game's list, so no two steps differ by a removed card. */
+  expect(new RoomProjection('secret').snapshot(withoutCards, undefined, stored).cardFaces).toEqual(faces);
 });
