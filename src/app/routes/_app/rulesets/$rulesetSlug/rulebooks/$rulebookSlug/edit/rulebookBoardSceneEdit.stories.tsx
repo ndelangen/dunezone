@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { SceneEditorStory } from './rulebookScenes.stories.fixture';
@@ -62,6 +63,12 @@ export const RoutesAndSizing = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Add waypoint' }));
     /* Mantine hides a dropdown whose target is scrolled out of view, and this one sits below the sidebar's fold. */
     const blockedSegment = await canvas.findByRole('combobox', { name: 'Blocked segment' });
+    /*
+     * The Routes panel opens on a height transition and runs another when a waypoint makes it taller.
+     * Until it settles it clips and scrolls its own content, so a scroll made earlier is undone as it grows, and Mantine hides the dropdown of a target that left the view.
+     */
+    const routesPanel = blockedSegment.closest<HTMLElement>('.mantine-Accordion-panel')!;
+    await waitForFrame(() => expect(finishTransitions(routesPanel).style.height).toBe(''));
     blockedSegment.scrollIntoView({ block: 'center', behavior: 'instant' });
     await userEvent.click(blockedSegment);
     await userEvent.click(await portal.findByRole('option', { name: 'Waypoint 1 to 2' }));
