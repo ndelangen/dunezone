@@ -1,5 +1,11 @@
 import { emptyBattlePlan, BATTLE_COUNTDOWN_MS } from '../../src/shared/play/battle';
-import type { BattleAction, BattlePlanInput, BattleFace, StoredBattlePlan } from '../../src/shared/play/battle';
+import type {
+  BattleAction,
+  BattlePlanInput,
+  BattleFace,
+  Disclosure,
+  StoredBattlePlan,
+} from '../../src/shared/play/battle';
 import { isBattleLeader } from '../../src/shared/play/battle';
 import { nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { StoredPiece } from '../../src/shared/play/model';
@@ -163,12 +169,29 @@ function reservedBalance({ snapshot, factionId }: BattleActor, before: StoredBat
   return balance;
 }
 
+const dialOf = ({ mode, troops, spice, adjustment }: BattlePlanInput) =>
+  JSON.stringify([mode, troops, spice, adjustment]);
+/** A part shown to everyone before the reveal stays as it was shown, so the reveal cannot contradict it. */
+function keepDisclosed(before: StoredBattlePlan, plan: BattlePlanInput) {
+  const { disclosed } = before;
+  if (disclosed.leader && plan.leaderId !== before.leaderId) {
+    return refuse('Your leader is revealed. Hide it before changing it.');
+  }
+  if (disclosed.cardIds.some((id) => !plan.cardIds.includes(id))) {
+    return refuse('A revealed card stays in your plan until you hide it.');
+  }
+  if (disclosed.dial && dialOf(plan) !== dialOf(before)) {
+    return refuse('Your dial is revealed. Hide it before changing it.');
+  }
+}
+
 function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: BattlePlanInput) {
   if (battle.stage !== 'preparing' || battle.sides[side]!.ready) {
     return refuse('Undo Ready before editing your plan.');
   }
   const before = battle.plans[side]!;
-  const plan = supportedPlan(input, before);
+  const plan = { ...supportedPlan(input, before), disclosed: before.disclosed };
+  keepDisclosed(before, plan);
   const available = [...(snapshot.factionInventories[factionId] ?? []), ...before.pieces];
   const pieces = selectedPlanPieces(plan, available);
   validateCardSlots(pieces, plan);
@@ -184,6 +207,47 @@ function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: Batt
       [factionId]: available.filter((piece) => !ids.includes(piece.id)),
     },
   });
+}
+
+/* Why a part cannot be shown or hidden now, or nothing when it can. */
+function disclosureRefusal({ disclosed, leaderId, cardIds }: StoredBattlePlan, disclosure: Disclosure, shown: boolean) {
+  const showing =
+    disclosure.element === 'card' ? disclosed.cardIds.includes(disclosure.cardId) : disclosed[disclosure.element];
+  if (showing === shown) {
+    return shown ? 'That part of your plan is already revealed.' : 'That part of your plan is not revealed.';
+  }
+  if (!shown) {
+    return null;
+  }
+  if (disclosure.element === 'card') {
+    return cardIds.includes(disclosure.cardId) ? null : 'Choose a card in your plan.';
+  }
+  return disclosure.element === 'leader' && !leaderId ? 'Choose a leader before revealing it.' : null;
+}
+
+function toggled(disclosed: StoredBattlePlan['disclosed'], disclosure: Disclosure, shown: boolean) {
+  if (disclosure.element !== 'card') {
+    return { ...disclosed, [disclosure.element]: shown };
+  }
+  const others = disclosed.cardIds.filter((id) => id !== disclosure.cardId);
+  return { ...disclosed, cardIds: shown ? [...others, disclosure.cardId] : others };
+}
+
+/** Shows or hides one part of a faction's own plan for everyone ahead of the reveal; the table checks no faction's right to do so. */
+function disclose(
+  { snapshot, battle, side }: BattleSide,
+  { disclosure, shown }: Extract<BattleAction, { kind: 'battle-disclose' }>
+) {
+  if (battle.stage !== 'preparing') {
+    return refuse('Plans can only be revealed early while the battle is being prepared.');
+  }
+  const plan = battle.plans[side]!;
+  const refusal = disclosureRefusal(plan, disclosure, shown);
+  if (refusal) {
+    return refuse(refusal);
+  }
+  battle.plans[side] = { ...plan, disclosed: toggled(plan.disclosed, disclosure, shown) };
+  return commit(snapshot, { battleState: battle });
 }
 
 function cancelBattle(snapshot: StoredSnapshot, battle: StoredBattle) {
@@ -382,7 +446,7 @@ function chooseOutcome(
 
 function sideCommand(
   actor: BattleActor,
-  action: Extract<BattleAction, { kind: 'battle-plan' | 'battle-ready' | 'battle-outcome' }>,
+  action: Extract<BattleAction, { kind: 'battle-plan' | 'battle-ready' | 'battle-outcome' | 'battle-disclose' }>,
   now: number
 ) {
   const battlingFaction = { ...actor, side: sideFor(actor.battle, actor.factionId) };
@@ -393,6 +457,8 @@ function sideCommand(
       return setReady(battlingFaction, action, now);
     case 'battle-outcome':
       return chooseOutcome(battlingFaction, action);
+    case 'battle-disclose':
+      return disclose(battlingFaction, action);
   }
 }
 

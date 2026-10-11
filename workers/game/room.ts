@@ -97,6 +97,7 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'battle-claim',
   'battle-plan',
   'battle-ready',
+  'battle-disclose',
   'battle-outcome',
   'battle-cancel',
   'draft-pick',
