@@ -374,9 +374,7 @@ export const NamedGame = meta.story({
     ).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
     await waitFor(() =>
-      expect(
-        page.getByText(/\/play\/annual-bene-gesserit-wedding-traitor-and-the-unexpected-arrakeen$/)
-      ).toBeVisible()
+      expect(page.getByText(/\/play\/annual-bene-gesserit-wedding-traitor-and-the-unexpected-arrakeen$/)).toBeVisible()
     );
     expect(page.getByRole('button', { name: 'Copy game link' })).toBeVisible();
   },
