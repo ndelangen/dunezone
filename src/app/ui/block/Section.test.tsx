@@ -40,21 +40,27 @@ function render(description?: string) {
   act(() =>
     root.render(
       <MantineProvider theme={appContentTheme}>
-        <Section helpOnly title="Spice reserve" description={description}>
+        <Section hiddenHeading title="Spice reserve" description={description}>
           <p>Content</p>
         </Section>
       </MantineProvider>
     )
   );
-  return container.querySelector<HTMLButtonElement>('button[aria-label="Help: Spice reserve"]')!;
+  return container.querySelector<HTMLElement>('section')!;
 }
 
-describe('Section help', () => {
-  it('describes the help button with the guidance its tooltip shows', () => {
-    const help = render('Only you see this balance.');
-    const describedBy = help.getAttribute('aria-describedby');
-    expect(describedBy).toBeTruthy();
-    expect(document.getElementById(describedBy!)?.textContent).toBe('Only you see this balance.');
+describe('Section with a hidden heading', () => {
+  it('shows no help button', () => {
+    render('Only you see this balance.');
+    expect(container.querySelector('button')).toBeNull();
+  });
+
+  it('is named by its title and described by its guidance', () => {
+    const section = render('Only you see this balance.');
+    expect(document.getElementById(section.getAttribute('aria-labelledby')!)?.textContent).toBe('Spice reserve');
+    expect(document.getElementById(section.getAttribute('aria-describedby')!)?.textContent).toBe(
+      'Only you see this balance.'
+    );
   });
 
   it('describes nothing when there is no guidance', () => {

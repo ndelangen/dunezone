@@ -7,6 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 import type { ConversationView } from '../../../../db/tabletop/ConversationSession';
 import type { TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Conversation.module.css';
+import { CONVERSATION_HELP } from './panelGuidance';
 import { useServerNow } from './useServerNow';
 
 const EMPTY_MESSAGES: ConversationMessage[] = [];
@@ -27,7 +28,7 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
   const newest = useVisibleRead(client, peerId, latest, view);
   const arrival = useArrivalAnnouncement(peerId, page, view.context?.factionId);
   return (
-    <Section helpOnly title="Conversation" description="Sent means saved. No read receipts." className={styles.panel}>
+    <Section hiddenHeading title="Conversation" description={CONVERSATION_HELP} className={styles.panel}>
       <Stack gap="sm" className={styles.body}>
         {!view.online && (
           <Text size="sm">Offline. Pending messages will send after your faction access is checked.</Text>
