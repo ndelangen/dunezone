@@ -815,16 +815,11 @@ function ConnectedTable({
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
             gameIdentity={
-              <Stack gap={0} miw={0}>
-                <Text size="sm" fw={700} style={{ overflowWrap: 'anywhere' }}>
-                  {identity.name}
+              identity.rulesetName ? (
+                <Text size="xs" c="dimmed">
+                  Ruleset: {identity.rulesetName}
                 </Text>
-                {identity.rulesetName ? (
-                  <Text size="xs" c="dimmed">
-                    Ruleset: {identity.rulesetName}
-                  </Text>
-                ) : null}
-              </Stack>
+              ) : null
             }
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
@@ -1077,7 +1072,7 @@ function ConnectedTable({
   );
 }
 
-type GameIdentity = Readonly<{ name: string; rulesetName: string | null; address: string }>;
+type GameIdentity = Readonly<{ rulesetName: string | null; address: string }>;
 
 export default function HostedTable({
   gameId,
