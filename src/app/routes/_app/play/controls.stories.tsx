@@ -335,6 +335,11 @@ export const PlayerInfo = meta.story({
     await expect(link).toHaveAttribute('target', '_blank');
     await expect(link).toHaveAttribute('href', '/factions/house-atreides');
     await expect(page.findByText('House Atreides · Seat 1')).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Advantages' }, WAIT)).resolves.toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    await expect(page.getByRole('button', { name: 'Setup' })).toHaveAttribute('aria-expanded', 'false');
   },
 });
 

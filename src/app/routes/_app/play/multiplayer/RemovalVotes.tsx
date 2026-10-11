@@ -14,7 +14,6 @@ import { useSyncExternalStore } from 'react';
 
 import { usePlayFaction } from '@db/factions';
 import { FactionDetails } from '@app/widgets/faction-details/FactionDetails';
-import type { FactionDetailsLayout } from '@app/widgets/faction-details/FactionDetails';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { Conversation } from './Conversation';
@@ -348,7 +347,7 @@ function PlayerInformation({
           {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
         </Text>
         <SwappingSeat client={client} table={table} seat={player.seat} />
-        {details && <FactionDetails faction={details.data} layout={prototypeLayout()} />}
+        {details && <FactionDetails faction={details.data} />}
       </Stack>
     </Section>
   );
@@ -369,10 +368,4 @@ function FactionPageButton({ slug, name }: Readonly<{ slug: string; name: string
       <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
     </Button>
   );
-}
-
-/* Prototype only: the layout comes from the page address until Norbert picks one. */
-function prototypeLayout(): FactionDetailsLayout {
-  const value = new URLSearchParams(globalThis.location?.search ?? '').get('factionLayout');
-  return value === 'tabs' || value === 'accordion' || value === 'columns' ? value : 'sheet';
 }
