@@ -1,5 +1,6 @@
 import { Menu } from '@mantine/core';
 import preview from '@sb/preview';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { ConfirmDeleteMenuItem } from './ConfirmDeleteMenuItem';
@@ -28,12 +29,15 @@ export const Default = meta.story({});
 export const Holding = meta.story({
   play: async ({ args, canvasElement }) => {
     const page = within(canvasElement);
-    const item = page.getByRole('menuitem', { name: 'Hold to delete permanently' });
+    const item = await waitForFrame(() =>
+      finishTransitions(page.getByRole('menuitem', { name: 'Hold to delete permanently' }))
+    );
+    await expect(item).toBeVisible();
     const width = item.getBoundingClientRect().width;
 
     await userEvent.pointer([{ keys: '[MouseLeft>]', target: item }]);
     await expect(item).toHaveFocus();
-    await expect(page.getByText('Deleting in 5..')).toBeVisible();
+    await waitForFrame(() => expect(page.getByText('Deleting in 5..')).toBeVisible());
     await expect(item.getBoundingClientRect().width).toBe(width);
     await userEvent.pointer([{ keys: '[/MouseLeft]', target: item }]);
     await expect(args.onConfirm).not.toHaveBeenCalled();
