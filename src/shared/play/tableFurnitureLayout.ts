@@ -1,5 +1,5 @@
 import type { TablePiece, Vector3Tuple } from './model';
-import { CARD_DEPTH, CARD_WIDTH, surfacePointOnRay, TABLE_SURFACE_Y, TABLE_VISIBLE_RADIUS } from './tableGeometry';
+import { CARD_DEPTH, CARD_WIDTH, TABLE_SURFACE_Y } from './tableGeometry';
 
 export type CardBaySide = 'left' | 'right';
 
@@ -14,25 +14,6 @@ export const TABLE_TANKS_LABEL = 'BENE TLEILAXU TANKS';
 export const TABLE_TANKS_LABEL_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y + 0.012, 6.2];
 
 const CARD_SLOT_ROWS = [-1.32, 0, 1.32] as const;
-
-function onSideShelf(x: number, z: number): boolean {
-  return Math.abs(Math.abs(x) - SIDE_SHELF_CENTER_X) <= SIDE_SHELF_SIZE[0] / 2 && Math.abs(z) <= SIDE_SHELF_SIZE[2] / 2;
-}
-
-function onBottomShelf(x: number, z: number): boolean {
-  return Math.abs(x) <= BOTTOM_SHELF_SIZE[0] / 2 && Math.abs(z - BOTTOM_SHELF_POSITION[2]) <= BOTTOM_SHELF_SIZE[2] / 2;
-}
-
-/** Whether a point lies over the table plate: its round top, or a side or bottom shelf. */
-export function onTablePlate([x, , z]: Vector3Tuple): boolean {
-  return Math.hypot(x, z) <= TABLE_VISIBLE_RADIUS || onSideShelf(x, z) || onBottomShelf(x, z);
-}
-
-/** Where a ray from the camera meets the board, its rim or the table plate; past the plate's edge there is no surface. */
-export function tableSurfacePointOnRay(origin: Vector3Tuple, direction: Vector3Tuple): Vector3Tuple | null {
-  const point = surfacePointOnRay(origin, direction);
-  return point && onTablePlate(point) ? point : null;
-}
 
 export const CARD_SLOT_OUTER_SIZE = {
   width: CARD_WIDTH + CARD_SLOT_RIM * 2,

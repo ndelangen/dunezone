@@ -1372,7 +1372,7 @@ function SceneContents({
       )}
       {presentation !== 'preview' && (
         <Suspense fallback={null}>
-          <ScenePresence showNames />
+          <ScenePresence showNames trackerSlots={trackerSlots} />
           <ScenePings />
         </Suspense>
       )}

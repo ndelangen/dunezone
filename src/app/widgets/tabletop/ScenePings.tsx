@@ -14,7 +14,7 @@ const RIPPLE_RADIUS = 0.3;
 const RIPPLE_MS = 1000;
 /* How opaque the ripple is while it holds its colour, before it fades. */
 const RIPPLE_OPACITY = 0.85;
-/* Lifted off the surface so the ring never flickers into it. */
+/* Lifted off the surface it lands on; the ring is drawn over whatever stands there anyway, as card wells and cards rise above it. */
 const LIFT = 0.006;
 const FLAT: [number, number, number] = [-Math.PI / 2, 0, 0];
 
@@ -88,10 +88,18 @@ function PingRipple({ ping }: { ping: ShownPing }) {
       rotation={FLAT}
       scale={RIPPLE_RADIUS * 0.15}
       raycast={ignoreRaycast}
-      renderOrder={1}
+      renderOrder={10}
     >
       <ringGeometry args={[0.9, 1, 64]} />
-      <meshBasicMaterial color={ping.color} transparent opacity={0} depthWrite={false} toneMapped={false} fog={false} />
+      <meshBasicMaterial
+        color={ping.color}
+        transparent
+        opacity={0}
+        depthTest={false}
+        depthWrite={false}
+        toneMapped={false}
+        fog={false}
+      />
     </mesh>
   );
 }

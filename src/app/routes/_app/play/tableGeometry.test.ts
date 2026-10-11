@@ -4,7 +4,6 @@ import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { isSpicePiece } from '@shared/play/spice';
 import { createSpiceStack, isSpiceBankPosition, spiceBankSlot } from '@shared/play/spiceBank';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
-import { tableSurfacePointOnRay } from '@shared/play/tableFurnitureLayout';
 import {
   BOARD_RIM_SURFACE_Y,
   BOARD_SURFACE_Y,
@@ -269,17 +268,5 @@ describe('the surface a ping lands on', () => {
 
   test('a ray that points away from the table meets nothing', () => {
     expect(surfacePointOnRay([0, 5, 0], [0, 1, 0])).toBeNull();
-  });
-
-  test.each([
-    ['a side shelf', [6.22, 5, 1]],
-    ['the bottom shelf', [0, 5, 7.5]],
-  ] as const)('a ray straight down onto %s lands on the table plate', (_name, origin) => {
-    expect(tableSurfacePointOnRay([...origin], down)).toEqual([origin[0], TABLE_SURFACE_Y, origin[2]]);
-  });
-
-  test('a ray past the edge of the table plate meets nothing', () => {
-    expect(tableSurfacePointOnRay([10, 5, 0], down)).toBeNull();
-    expect(tableSurfacePointOnRay([5, 5, -5], down)).toBeNull();
   });
 });

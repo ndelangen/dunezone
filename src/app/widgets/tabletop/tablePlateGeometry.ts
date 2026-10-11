@@ -6,7 +6,12 @@ import {
   SIDE_SHELF_CENTER_X,
   SIDE_SHELF_SIZE,
 } from '@shared/play/tableFurnitureLayout';
-import { BOARD_RIM_RADIUS, BOARD_RIM_SURFACE_Y, TABLE_VISIBLE_RADIUS } from '@shared/play/tableGeometry';
+import {
+  BOARD_RIM_RADIUS,
+  BOARD_RIM_SURFACE_Y,
+  surfacePointOnRay,
+  TABLE_VISIBLE_RADIUS,
+} from '@shared/play/tableGeometry';
 import {
   DEFAULT_TABLE_SEAT_COUNT,
   PLAYER_RING_RADIUS,
@@ -282,4 +287,37 @@ export function createTablePlateLayers(slots: readonly TrackerArcSlot[] = []): T
       thickness: TABLE_BASE_THICKNESS,
     },
   };
+}
+
+/** The drawn table plate's edge as [x, z] corners: the round top, the shelves with their rounded corners, and the tracker crown. */
+export type TablePlateOutline = readonly (readonly [x: number, z: number])[];
+
+export function tablePlateOutline(slots: readonly TrackerArcSlot[] = []): TablePlateOutline {
+  /* The shape is drawn flat with its y along the table's z. */
+  return createTablePlateShape(slots)
+    .getPoints(24)
+    .map((point) => [point.x, point.y] as const);
+}
+
+/** Whether a point lies over the plate, counting the crossings of a line from it along +x with the outline's edges. */
+export function tablePlateContains(outline: TablePlateOutline, [x, , z]: Vector3Tuple): boolean {
+  let inside = false;
+  for (let index = 0, previous = outline.length - 1; index < outline.length; previous = index++) {
+    const [ax, az] = outline[index]!;
+    const [bx, bz] = outline[previous]!;
+    if (az > z !== bz > z && x < ax + ((z - az) * (bx - ax)) / (bz - az)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/** Where a ray from the camera meets the board, its rim or the table plate; past the plate's drawn edge there is no surface. */
+export function tableSurfacePointOnRay(
+  origin: Vector3Tuple,
+  direction: Vector3Tuple,
+  outline: TablePlateOutline
+): Vector3Tuple | null {
+  const point = surfacePointOnRay(origin, direction);
+  return point && tablePlateContains(outline, point) ? point : null;
 }
