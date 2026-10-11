@@ -1,11 +1,11 @@
 import type { playCreateGameRequestSchema } from '@shared/play/admission';
-import type { playCreateGameOutcomeSchema } from '@shared/play/seatLimit';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
+import { useCallback } from 'react';
 import type { z } from 'zod';
 
 import { db } from '@db/core';
-import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveOperation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 
@@ -29,10 +29,20 @@ export function useCreatableRulesets() {
   return toLiveQueryResult(useQuery(api.playGames.creatable, {}));
 }
 
+export function useGameNameAvailability(name: string) {
+  return useQuery(api.playGames.nameAvailability, { name });
+}
+
 export function useCreateGame() {
-  return useLiveMutation<z.infer<typeof playCreateGameRequestSchema>, z.infer<typeof playCreateGameOutcomeSchema>>(
-    api.playGames.createGame
-  );
+  const create = useCallback(async (request: z.infer<typeof playCreateGameRequestSchema> & { name: string }) => {
+    const { name, ...settings } = request;
+    if (name.trim()) {
+      return await db.action(api.playGames.createGameWithName, { ...settings, name });
+    }
+    const result = await db.mutation(api.playGames.createGame, settings);
+    return result.ok ? { ...result, slug: null } : result;
+  }, []);
+  return useLiveOperation(create);
 }
 
 /** Tickets stay in memory and are sent only in the first game socket message. */

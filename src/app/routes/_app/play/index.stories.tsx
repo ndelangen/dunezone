@@ -81,6 +81,15 @@ function lobbyDatabase(baseline: StorybookDatabase) {
   const all = [0, 1, 2, 3, 4, 5];
   const game = (key: string, sequence: number, directory: Directory) => ({
     $key: key,
+    name: [
+      'Arrakeen picnic',
+      'Midnight Caladan tea break',
+      'Gom Jabbar party',
+      'Annual Bene Gesserit wedding traitor',
+      'Giedi Prime dinner ambush',
+      'Secret Shai-Hulud dance rehearsal',
+    ][sequence - 1],
+    slug: `lobby-game-${sequence}`,
     state: 'ready' as const,
     ruleset_id: ref(RULESET_KEY),
     minimum_players: 6 as const,

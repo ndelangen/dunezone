@@ -13,6 +13,7 @@ import { forgetStoredPlayTable } from '@db/playTables';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
+import { GameLink } from './GameLink';
 import { GameRuntimeContext } from './multiplayer/gameRuntime';
 import { TableWait } from './TableWait';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
@@ -68,6 +69,7 @@ function GamePage() {
         slug: authorized.slug,
         name: authorized.name,
         status: authorized.status,
+        ruleset: 'ruleset' in authorized ? authorized.ruleset : undefined,
       },
     });
   }
@@ -115,7 +117,7 @@ function GamePage() {
     case undefined:
       /* A reloaded tab that kept this table shows it, locked, while the directory has not answered (#1746). */
       if (current?.status === 'ready' || stored) {
-        return <TablePage title={current?.name ?? 'Game'} gameId={current?.gameId ?? stored!} exit={exit} />;
+        return <TablePage game={current ?? { gameId: stored!, name: 'Game', slug: null }} exit={exit} />;
       }
       return (
         <PageLayout height="fullscreen">
@@ -145,6 +147,9 @@ function GamePage() {
           <LoadPending title="Preparing the table">
             The game is being set up. This page opens the table as soon as it is ready.
           </LoadPending>
+          <ClientOnly>
+            <GameLink address={data.slug ?? data.gameId} />
+          </ClientOnly>
         </PageMessage>
       );
     case 'unavailable':
@@ -156,7 +161,7 @@ function GamePage() {
         </PageMessage>
       );
     case 'ready':
-      return <TablePage title={data.name} gameId={data.gameId} exit={exit} />;
+      return <TablePage game={data} exit={exit} />;
   }
 }
 
@@ -164,21 +169,29 @@ const noSubscription = () => () => {};
 type KnownGame = Pick<
   Extract<NonNullable<ReturnType<typeof useGameAccess>['data']>, { gameId: string }>,
   'gameId' | 'slug' | 'name' | 'status'
->;
+> & { ruleset?: { name: string; slug: string } | null };
 type GamePageEvent = { type: 'resolved'; game: KnownGame };
 
 /* One element for a ready game and for a kept table, so the table a reload restored stays mounted when the directory answers. */
-function TablePage({ title, gameId, exit }: Readonly<{ title: string; gameId: string; exit: ReactNode }>) {
+function TablePage({
+  game,
+  exit,
+}: Readonly<{ game: Omit<KnownGame, 'status' | 'gameId'> & { gameId: string }; exit: ReactNode }>) {
   const loading = <TableWait status="Loading the table...">{exit}</TableWait>;
   return (
     <PageLayout height="fullscreen">
       <PageLayout.Header size="compact">
-        <PageTitle title={title} />
+        <PageTitle title={game.name} />
       </PageLayout.Header>
       <PageLayout.Content width="viewport">
         <ClientOnly fallback={loading}>
           <Suspense fallback={loading}>
-            <HostedTable key={gameId} gameId={gameId} exitControl={exit} />
+            <HostedTable
+              key={game.gameId}
+              gameId={game.gameId}
+              exitControl={exit}
+              identity={{ name: game.name, rulesetName: game.ruleset?.name ?? null, address: game.slug ?? game.gameId }}
+            />
           </Suspense>
         </ClientOnly>
       </PageLayout.Content>

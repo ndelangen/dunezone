@@ -1,5 +1,6 @@
 import { toStoredHeroKey } from '@shared/factions/schema';
 import type { FactionCapture } from '@shared/play/capture';
+import { normalizePlayGameSlug } from '@shared/play/gameNames';
 import type { TablePiece } from '@shared/play/model';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { rosterFactionNames } from '@shared/play/protocol';
@@ -41,7 +42,8 @@ export function productDatabase(baseline: StorybookDatabase) {
 export const parameters = (
   state: 'pending' | 'ready' | 'expired',
   reason?: string,
-  minimumPlayers: TableSeatCount = 6
+  minimumPlayers: TableSeatCount = 6,
+  name?: string
 ) => ({
   identity: { ...storybookViewer, sessionKey: 'game-session' },
   database: db((baseline) => {
@@ -54,6 +56,7 @@ export const parameters = (
     baseline.authRefreshTokens.push({ sessionId: ref('game-session'), expirationTime: 4_102_444_800_000 });
     baseline.play_games.push({
       $key: GAME_KEY,
+      ...(name ? { name, slug: normalizePlayGameSlug(name) } : {}),
       state,
       ruleset_id: ref(RULESET_KEY),
       minimum_players: minimumPlayers,
