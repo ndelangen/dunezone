@@ -610,8 +610,10 @@ async function createGame(who) {
   gameSlug = created.slug;
   await who.page.waitForURL((url) => url.pathname === `/play/${gameSlug}`);
   assert.equal(who.sockets.length, 1, 'Canonical creation opens exactly one ID socket.');
-  await who.page.locator('.seated-brand').getByText(created.name, { exact: true }).waitFor();
-  await who.page.locator('.seated-brand').getByText('Ruleset:', { exact: false }).waitFor();
+  await who.page.getByRole('heading', { name: created.name, level: 1, exact: true }).waitFor();
+  const header = who.page.locator('header').filter({ has: who.page.getByRole('img', { name: 'Dune', exact: true }) });
+  await header.getByText('Ruleset:', { exact: false }).waitFor();
+  await header.getByText(created.name, { exact: true }).waitFor({ state: 'hidden' });
   await who.page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await who.page.getByRole('button', { name: 'Game menu', exact: true }).click();
   await who.page.getByRole('button', { name: 'Copy game link', exact: true }).click();
