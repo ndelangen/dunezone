@@ -1324,7 +1324,10 @@ export class TableSession {
     return reveals.length
       ? {
           ...snapshot,
-          battlePlan: { ...snapshot.battlePlan, disclosed: reveals.reduce(shownWith, snapshot.battlePlan.disclosed) },
+          battlePlan: {
+            ...snapshot.battlePlan,
+            disclosed: reveals.reduce((shown, reveal) => shownWith(shown, reveal), snapshot.battlePlan.disclosed),
+          },
         }
       : snapshot;
   }
