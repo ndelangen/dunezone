@@ -307,7 +307,7 @@ export class GameSession {
    * A deal refused partway can leave captures of factions never seated, and those stay unanswered.
    */
   publicFaction(factionId: string) {
-    const seated = this.room?.snapshot.roster.seats.some((seat) => seat.faction?.id === factionId);
+    const seated = this.room?.snapshot.roster?.seats.some((seat) => seat.faction?.id === factionId);
     const capture = seated ? this.captures.faction(factionId) : undefined;
     return capture ? publicFaction(capture) : null;
   }
