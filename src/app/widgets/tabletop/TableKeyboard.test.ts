@@ -285,6 +285,17 @@ describe('Tab pings', () => {
     expect(controls.ping).toHaveBeenCalledTimes(1);
   });
 
+  test('a Tab let go while the page had no focus does not hold back the next one off the table', () => {
+    const { controls } = table();
+
+    tab('keydown');
+    window.dispatchEvent(new Event('blur'));
+    controls.ping.mockReturnValue(false);
+
+    expect(tab('keydown').defaultPrevented).toBe(false);
+    expect(tab('keydown', { repeat: true }).defaultPrevented).toBe(false);
+  });
+
   test('leaves Shift+Tab and a focused text field their own Tab', () => {
     const { controls } = table();
     const field = document.body.appendChild(document.createElement('textarea'));

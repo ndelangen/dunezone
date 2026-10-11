@@ -96,6 +96,7 @@ export class TableKeyboard {
     binding.events.addEventListener('keyup', this.keyUp);
     binding.events.addEventListener('blur', this.cancelDraw);
     binding.events.addEventListener('blur', this.releasePan);
+    binding.events.addEventListener('blur', this.releasePing);
     return () => {
       if (this.binding === binding) {
         this.release();
@@ -151,6 +152,7 @@ export class TableKeyboard {
     this.cancelDraw();
     this.releasePan();
     binding.events.removeEventListener('blur', this.releasePan);
+    binding.events.removeEventListener('blur', this.releasePing);
     binding.events.removeEventListener('keydown', this.keyDown);
     binding.events.removeEventListener('keyup', this.keyUp);
     binding.events.removeEventListener('blur', this.cancelDraw);
@@ -211,16 +213,23 @@ export class TableKeyboard {
     if (event.shiftKey || focusKeepsKey(event.target, 'spiceBank')) {
       return;
     }
-    if (event.repeat ? this.pingHeld : controls.ping()) {
+    if (!event.repeat) {
+      this.pingHeld = controls.ping();
+    }
+    if (this.pingHeld) {
       event.preventDefault();
-      this.pingHeld = true;
     }
   }
 
   /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
+  /* A Tab let go while the page had no focus never comes up here, so leaving the page lets it go. */
+  private releasePing = () => {
+    this.pingHeld = false;
+  };
+
   private keyUp = (event: KeyboardEvent) => {
     if (event.key === 'Tab') {
-      this.pingHeld = false;
+      this.releasePing();
     }
     /* The physical key ends its pan, whatever it types by then: macOS's Option turns a held W into "∑" before it comes up. */
     if (this.panHeld.delete(physicalKey(event))) {
