@@ -757,6 +757,30 @@ function alliancesTab({ client, table, error }: ConnectionControlsProps) {
   ];
 }
 
+/* The Hand and Hidden zone tabs, for a seat that holds a hand. */
+function handTabs({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+  const hand = table.snapshot.hand;
+  if (!hand) {
+    return [];
+  }
+  return [
+    {
+      key: 'hand',
+      label: 'Hand',
+      topic: 'hand' as const,
+      ...handGuidance(table),
+      content: <HandControls client={client} table={table} hand={hand} />,
+    },
+    {
+      key: 'hidden-zone',
+      label: 'Hidden zone',
+      topic: 'hiddenZone' as const,
+      ...HIDDEN_ZONE_GUIDANCE,
+      content: <HiddenZone client={client} table={table} hand={hand} />,
+    },
+  ];
+}
+
 function ConnectedTable({
   client,
   table,
@@ -963,24 +987,7 @@ function ConnectedTable({
                           },
                         ]
                       : []),
-                    ...(table.snapshot.hand
-                      ? [
-                          {
-                            key: 'hand',
-                            label: 'Hand',
-                            topic: 'hand' as const,
-                            ...handGuidance(table),
-                            content: <HandControls client={client} table={table} hand={table.snapshot.hand} />,
-                          },
-                          {
-                            key: 'hidden-zone',
-                            label: 'Hidden zone',
-                            topic: 'hiddenZone' as const,
-                            ...HIDDEN_ZONE_GUIDANCE,
-                            content: <HiddenZone client={client} table={table} hand={table.snapshot.hand} />,
-                          },
-                        ]
-                      : []),
+                    ...handTabs({ client, table }),
                     ...(inPlay && (table.snapshot.battle || progress.activePhaseId === 'battle')
                       ? [
                           {

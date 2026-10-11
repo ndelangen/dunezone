@@ -110,14 +110,16 @@ export function HiddenZone({ client, table, hand }: Props) {
 
   const drop = (event: DragEvent<HTMLDivElement>) => {
     const pieceId = event.dataTransfer.getData('application/dune-hand');
-    if (!pieceId || !grab.current || !width) {
+    /* A grab only starts on a piece the zone drew, so the zone has its width by then. */
+    const offset = grab.current;
+    if (!pieceId || !offset) {
       return;
     }
     event.preventDefault();
     const bounds = event.currentTarget.getBoundingClientRect();
     const at = clampHiddenZoneSpot({
-      x: (event.clientX - bounds.left - grab.current.dx) / bounds.width,
-      y: (event.clientY - bounds.top - grab.current.dy) / bounds.height,
+      x: (event.clientX - bounds.left - offset.dx) / bounds.width,
+      y: (event.clientY - bounds.top - offset.dy) / bounds.height,
     });
     grab.current = null;
     client.command({ kind: 'hand-zone', pieceId, at });
