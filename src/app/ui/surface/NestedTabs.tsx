@@ -347,24 +347,43 @@ function useNestedTabsContext(component: string) {
   return context;
 }
 
+/* A hover names the item and says what it is for; resting on it a while longer brings its full help. */
+const TOOLTIP_OPEN_MS = 350;
+const TOOLTIP_HELP_MS = 1800;
+
 function NestedTabsTooltip({
   label,
+  description,
+  help,
   isScrolling,
   children,
 }: {
   label: string;
+  description?: string;
+  help?: string;
   isScrolling: boolean;
   children: ReactElement;
 }) {
-  const [opened, setOpened] = useState(false);
+  const [shown, setShown] = useState<'closed' | 'short' | 'help'>('closed');
   const openTimer = useRef(0);
+  const helpTimer = useRef(0);
+
+  const close = () => {
+    window.clearTimeout(openTimer.current);
+    window.clearTimeout(helpTimer.current);
+    setShown('closed');
+  };
 
   useLayoutEffect(() => {
     if (isScrolling) {
       window.clearTimeout(openTimer.current);
-      setOpened(false);
+      window.clearTimeout(helpTimer.current);
+      setShown('closed');
     }
-    return () => window.clearTimeout(openTimer.current);
+    return () => {
+      window.clearTimeout(openTimer.current);
+      window.clearTimeout(helpTimer.current);
+    };
   }, [isScrolling]);
 
   const handleMouseEnter = () => {
@@ -372,22 +391,35 @@ function NestedTabsTooltip({
       return;
     }
     window.clearTimeout(openTimer.current);
-    openTimer.current = window.setTimeout(() => setOpened(true), 350);
+    window.clearTimeout(helpTimer.current);
+    openTimer.current = window.setTimeout(() => setShown('short'), TOOLTIP_OPEN_MS);
+    if (help) {
+      helpTimer.current = window.setTimeout(() => setShown('help'), TOOLTIP_HELP_MS);
+    }
   };
-  const handleMouseLeave = () => {
-    window.clearTimeout(openTimer.current);
-    setOpened(false);
-  };
+
+  const text = shown === 'help' ? help : description;
 
   return (
     <Tooltip
-      label={label}
+      label={
+        text ? (
+          <span className={styles.tooltip}>
+            <span className={styles.tooltipLabel}>{label}</span>
+            <span>{text}</span>
+          </span>
+        ) : (
+          label
+        )
+      }
       position="right"
       withArrow
-      opened={opened && !isScrolling}
+      multiline={Boolean(text)}
+      maw={text ? 320 : undefined}
+      opened={shown !== 'closed' && !isScrolling}
       events={{ hover: false, focus: false, touch: false }}
       onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseLeave={close}
     >
       {children}
     </Tooltip>
@@ -418,6 +450,10 @@ interface NestedTabsItemOwnProps {
   path: NestedTabsPath;
   label: string;
   icon: ReactNode;
+  /** One line saying what the item opens, shown under its name as the pointer rests on it. */
+  description?: string;
+  /** The item's full guidance, shown in place of the description once the pointer has rested on it for a while. */
+  help?: string;
   className?: string;
 }
 
@@ -451,10 +487,14 @@ function Item<Root extends ElementType>({
   path,
   label,
   icon,
+  description,
+  help,
   className,
   ...rootProps
 }: NestedTabsItemProps<Root>) {
   const { activePath, isScrolling, tabs } = useNestedTabsContext('Item');
+  const guidanceId = useId();
+  const guidance = [description, help].filter(Boolean).join(' ');
   const pathState = itemPathState(path, activePath);
   /* A tab stays selected while it leads to what the panel shows, so a first-level tab is selected above its own tabs.
      A level has one tab stop, so Tab enters a level once and the arrow keys move within it. */
@@ -475,6 +515,8 @@ function Item<Root extends ElementType>({
       ...semantics,
       className: clsx(styles.item, className),
       'aria-label': label,
+      /* The tooltip names nothing to assistive technology, so the item is described by the guidance it shows. */
+      'aria-describedby': guidance ? guidanceId : undefined,
       'data-nested-tabs-item': true,
       'data-path-state': pathState,
     } as ComponentPropsWithoutRef<Root>,
@@ -485,9 +527,14 @@ function Item<Root extends ElementType>({
 
   return (
     <li className={styles.itemSlot} role={tabs ? 'none' : undefined}>
-      <NestedTabsTooltip label={label} isScrolling={isScrolling}>
+      <NestedTabsTooltip label={label} description={description} help={help} isScrolling={isScrolling}>
         {itemRoot}
       </NestedTabsTooltip>
+      {guidance ? (
+        <span id={guidanceId} hidden>
+          {guidance}
+        </span>
+      ) : null}
     </li>
   );
 }

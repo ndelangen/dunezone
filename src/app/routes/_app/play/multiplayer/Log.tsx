@@ -38,7 +38,7 @@ export function LogEntries({
     client.readLogHistory(tab);
   }, [client, tab, table.liveRevision, table.reconnecting]);
   return (
-    <Section helpOnly title={TITLES[tab]}>
+    <Section hiddenHeading title={TITLES[tab]}>
       <Stack gap="md">
         {!page ? (
           <Text size="sm">Loading the log...</Text>

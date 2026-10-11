@@ -39,6 +39,22 @@ import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
 import { HiddenZone } from './HiddenZone';
 import { LogEntries } from './Log';
+import {
+  AUDIT_LOG_GUIDANCE,
+  battleGuidance,
+  GAME_LOG_GUIDANCE,
+  handGuidance,
+  HIDDEN_ZONE_GUIDANCE,
+  LOG_GUIDANCE,
+  phaseGuidance,
+  phaseHelp,
+  setupGuidance,
+  setupHelp,
+  SHARED_INVENTORY_GUIDANCE,
+  SHARED_INVENTORY_HELP,
+  SPICE_GUIDANCE,
+  SPICE_RESERVE_HELP,
+} from './panelGuidance';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
@@ -131,7 +147,7 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   const seat = seatLabel(table);
   return (
     <Section
-      helpOnly={Boolean(table.snapshot.stage)}
+      hiddenHeading={Boolean(table.snapshot.stage)}
       eyebrow="Hosted fixture"
       title="Hosted connection"
       description={`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}
@@ -222,14 +238,10 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
   const phase = phaseAt(table.snapshot.phase, table.snapshot.phases);
   return (
     <Section
-      helpOnly={Boolean(table.snapshot.stage)}
+      hiddenHeading={Boolean(table.snapshot.stage)}
       eyebrow={table.playback ? 'Playback phase' : 'Shared phase'}
       title={phase.label}
-      description={
-        table.snapshot.stage === 'finished' || !table.snapshot.stage
-          ? phase.instructions
-          : `${phase.instructions} Previous changes the tracker only. Pieces and storm position stay as they are.`
-      }
+      description={phaseHelp(table)}
     >
       {!table.snapshot.stage && (
         <Text size="sm">Previous changes the tracker only. Pieces and storm position stay as they are.</Text>
@@ -319,10 +331,10 @@ function Predictions({ client, table }: SetupControlProps) {
       const byCard = own && prediction?.revealedAt === null && predictionCardInHand(table, step.id);
       return (
         <Section
-          helpOnly={Boolean(table.snapshot.stage)}
+          hiddenHeading={Boolean(table.snapshot.stage)}
           key={step.id}
           title={step.title}
-          description={`${step.instructions} ${step.kind === 'prediction' ? 'Locking is final. Only your faction can see the choice until you reveal it or place its card on the table.' : ''} Previous changes the setup phase only. Completed actions and pieces stay as they are.`}
+          description={setupHelp(step)}
         >
           <Stack gap="sm">
             {prediction ? (
@@ -385,11 +397,7 @@ function SetupControls({ client, table }: SetupControlProps) {
   return (
     <Stack gap="md">
       {step.kind !== 'prediction' && (
-        <Section
-          helpOnly={Boolean(table.snapshot.stage)}
-          title={step.title}
-          description={`${step.instructions} Previous changes the setup phase only. Completed actions and pieces stay as they are.`}
-        >
+        <Section hiddenHeading={Boolean(table.snapshot.stage)} title={step.title} description={setupHelp(step)}>
           <Stack gap="sm">
             {step.kind === 'traitors' && (
               <Button
@@ -459,9 +467,9 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
   const pieces = table.snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   return (
     <Section
-      helpOnly={Boolean(table.snapshot.stage)}
+      hiddenHeading={Boolean(table.snapshot.stage)}
       title="Shared inventory"
-      description="Drag an item onto the table. It lands face down."
+      description={SHARED_INVENTORY_HELP}
       action={
         table.snapshot.stage !== 'setup' && (
           <Button
@@ -612,11 +620,7 @@ function SpiceReserveControls({ client, table }: Pick<ConnectionControlsProps, '
   const validAmount =
     typeof amount === 'number' && Number.isSafeInteger(amount) && amount > 0 && amount <= reserve.balance;
   return (
-    <Section
-      helpOnly={Boolean(table.snapshot.stage)}
-      title="Spice reserve"
-      description="Only you see this balance. Withdraw onto the table. Right-click a spice stack to take it into your spice reserve. Drop a stack on the Spice Bank disc to return it to the Spice Bank."
-    >
+    <Section hiddenHeading={Boolean(table.snapshot.stage)} title="Spice reserve" description={SPICE_RESERVE_HELP}>
       <Stack gap="xs">
         <Text component="output" aria-label="Spice reserve balance" ff="C_Advokat_Modern, serif" size="64px" lh={1.1}>
           {reserve.balance}
@@ -682,7 +686,7 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
   const more = view.spiceHistory?.more ?? entries.length === 20;
   const labels = snapshotFactionLabels(table.snapshot);
   return (
-    <Section helpOnly={Boolean(table.snapshot.stage)} title="Public spice transfers">
+    <Section hiddenHeading={Boolean(table.snapshot.stage)} title="Public spice transfers">
       <Stack gap="xs">
         {entries.length === 0 && <Text size="sm">No spice transfers yet.</Text>}
         <List type="ordered" size="sm">
@@ -906,6 +910,7 @@ function ConnectedTable({
                             key: 'setup',
                             label: 'Setup',
                             topic: SETUP_TOPICS[setupStep(table.snapshot.setup).kind],
+                            ...setupGuidance(setupStep(table.snapshot.setup)),
                             content: <SetupControls client={client} table={table} />,
                           },
                         ]
@@ -916,12 +921,14 @@ function ConnectedTable({
                             key: 'hand',
                             label: 'Hand',
                             topic: 'hand' as const,
+                            ...handGuidance(table),
                             content: <HandControls client={client} table={table} hand={table.snapshot.hand} />,
                           },
                           {
                             key: 'hidden-zone',
                             label: 'Hidden zone',
                             topic: 'hiddenZone' as const,
+                            ...HIDDEN_ZONE_GUIDANCE,
                             content: <HiddenZone client={client} table={table} hand={table.snapshot.hand} />,
                           },
                         ]
@@ -932,6 +939,7 @@ function ConnectedTable({
                             key: 'battle',
                             label: 'Battle',
                             topic: 'battle' as const,
+                            ...battleGuidance(table),
                             content: (
                               <>
                                 {error && <FormError title="From the table">{error}</FormError>}
@@ -945,12 +953,14 @@ function ConnectedTable({
                       key: 'shared',
                       label: 'Shared inventory',
                       topic: 'assets' as const,
+                      ...SHARED_INVENTORY_GUIDANCE,
                       content: <SharedInventory client={client} table={table} />,
                     },
                     {
                       key: 'spice',
                       label: 'Spice',
                       topic: 'spice' as const,
+                      ...SPICE_GUIDANCE,
                       content: (
                         <>
                           <SpiceReserveControls client={client} table={table} />
@@ -965,18 +975,21 @@ function ConnectedTable({
                       key: 'log',
                       label: 'Log',
                       topic: 'log' as const,
+                      ...LOG_GUIDANCE,
                       content: null,
                       subtabs: [
                         {
                           key: 'game',
                           label: 'Game',
                           topic: 'game' as const,
+                          ...GAME_LOG_GUIDANCE,
                           content: <LogEntries client={client} table={table} tab="game" />,
                         },
                         {
                           key: 'audit',
                           label: 'Audit',
                           topic: 'audit' as const,
+                          ...AUDIT_LOG_GUIDANCE,
                           content: <LogEntries client={client} table={table} tab="audit" />,
                         },
                       ],
@@ -984,6 +997,7 @@ function ConnectedTable({
                   ]
                 : []),
             ]}
+            tableGuidance={stage ? phaseGuidance(table) : undefined}
             tableControls={
               tabled ? (
                 <>

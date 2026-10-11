@@ -1,0 +1,103 @@
+import { phaseAt } from '@shared/play/phases';
+import type { setupStep } from '@shared/play/setup';
+
+import type { TableProjection } from '../../../../db/tabletop/TableSession';
+
+/*
+ * What each tab of the play dock says about itself.
+ * A tab's tooltip gives its one-line description on hover and its full help once the pointer rests there;
+ * the section the tab opens keeps the same help for assistive technology, so both read from here.
+ */
+
+type Guidance = Readonly<{ description: string; help?: string }>;
+
+const SETUP_PREVIOUS = 'Previous changes the setup phase only. Completed actions and pieces stay as they are.';
+
+export function setupHelp(step: ReturnType<typeof setupStep>) {
+  return [
+    step.instructions,
+    step.kind === 'prediction' &&
+      'Locking is final. Only your faction can see the choice until you reveal it or place its card on the table.',
+    SETUP_PREVIOUS,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+export function setupGuidance(step: ReturnType<typeof setupStep>): Guidance {
+  return { description: step.title, help: setupHelp(step) };
+}
+
+export function handHelp(table: TableProjection) {
+  return table.snapshot.stage === 'setup'
+    ? 'Drag pieces onto the table face down. Right-click a piece to move it to your hidden zone.'
+    : 'Drag pieces onto the table face down. Right-click a piece to move it to your hidden zone. Committed pieces stay in your plan until cancellation or reveal.';
+}
+
+export function handGuidance(table: TableProjection): Guidance {
+  return { description: 'Your cards and leaders. Only you see them.', help: handHelp(table) };
+}
+
+export const HIDDEN_ZONE_HELP =
+  'Lay out pieces from your hand anywhere here, such as a marker on a card. Cards stay below tokens. Drag a piece onto the table to play it face down, or right-click it to move it back to your hand.';
+
+export const HIDDEN_ZONE_GUIDANCE: Guidance = {
+  description: 'Your private play area. Only you see it.',
+  help: HIDDEN_ZONE_HELP,
+};
+
+export function battleHelp(table: TableProjection) {
+  const { battle } = table.snapshot;
+  return battle ? `Battle at ${battle.territory}` : 'Drag the battle marker onto a territory to begin.';
+}
+
+export function battleGuidance(table: TableProjection): Guidance {
+  return { description: 'The battle on the table, your plan and earlier results.', help: battleHelp(table) };
+}
+
+export const SHARED_INVENTORY_HELP = 'Drag an item onto the table. It lands face down.';
+
+export const SHARED_INVENTORY_GUIDANCE: Guidance = {
+  description: 'Pieces every player can take.',
+  help: SHARED_INVENTORY_HELP,
+};
+
+export const SPICE_RESERVE_HELP =
+  'Only you see this balance. Withdraw onto the table. Right-click a spice stack to take it into your spice reserve. Drop a stack on the Spice Bank disc to return it to the Spice Bank.';
+
+export const SPICE_GUIDANCE: Guidance = {
+  description: 'Your private spice reserve and the public spice transfers.',
+  help: SPICE_RESERVE_HELP,
+};
+
+export const LOG_GUIDANCE: Guidance = { description: 'What happened at this table, newest first.' };
+
+export const GAME_LOG_GUIDANCE: Guidance = { description: 'Phases, spice, battles, predictions and deleted pieces.' };
+
+export const AUDIT_LOG_GUIDANCE: Guidance = { description: 'Seats and removal votes.' };
+
+export function phaseHelp(table: TableProjection) {
+  const phase = phaseAt(table.snapshot.phase, table.snapshot.phases);
+  return table.snapshot.stage === 'finished' || !table.snapshot.stage
+    ? phase.instructions
+    : `${phase.instructions} Previous changes the tracker only. Pieces and storm position stay as they are.`;
+}
+
+export function phaseGuidance(table: TableProjection): Guidance {
+  const phase = phaseAt(table.snapshot.phase, table.snapshot.phases);
+  return { description: `${phase.label}, and the table's settings.`, help: phaseHelp(table) };
+}
+
+export const CONVERSATION_HELP = 'Sent means saved. No read receipts.';
+
+export const TABLE_CONVERSATION_GUIDANCE: Guidance = {
+  description: 'Messages to every seated faction.',
+  help: CONVERSATION_HELP,
+};
+
+export const PLAYER_CONVERSATION_GUIDANCE: Guidance = {
+  description: 'Private messages with this faction.',
+  help: CONVERSATION_HELP,
+};
+
+export const PLAYER_INFO_GUIDANCE: Guidance = { description: 'Their faction and seat, and any removal vote.' };

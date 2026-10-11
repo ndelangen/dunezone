@@ -15,6 +15,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
 import { PieceImage, pieceName } from './HandPiece';
 import styles from './HiddenZone.module.css';
+import { HIDDEN_ZONE_HELP } from './panelGuidance';
 
 type Props = { client: TableSession; table: TableProjection; hand: TablePiece[] };
 /* A drag inside the zone carries this type beside the hand's own, so a drop on the table still plays the piece. */
@@ -123,11 +124,7 @@ export function HiddenZone({ client, table, hand }: Props) {
   };
 
   return (
-    <Section
-      helpOnly
-      title="Hidden zone"
-      description="Lay out pieces from your hand here; only you see them. Drag a piece onto the table to play it."
-    >
+    <Section hiddenHeading title="Hidden zone" description={HIDDEN_ZONE_HELP}>
       <div ref={frame}>
         <div
           ref={ref}

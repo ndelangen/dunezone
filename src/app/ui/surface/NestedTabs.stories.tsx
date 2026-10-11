@@ -517,3 +517,66 @@ export const Tabs = meta.story({
     );
   },
 });
+
+function GuidanceFixture() {
+  const [activePath, setActivePath] = useState<NestedTabsPath>([ROOT_ONE]);
+  return (
+    <NestedTabs activePath={activePath} ariaLabel="Guided controls">
+      <NestedTabs.Level label="Controls">
+        <NestedTabs.Item
+          as="button"
+          type="button"
+          path={[ROOT_ONE]}
+          label="Spice"
+          description="Your private spice reserve."
+          help="Only you see this balance. Withdraw onto the table."
+          icon={<Hexagon />}
+          onClick={() => setActivePath([ROOT_ONE])}
+        />
+        <NestedTabs.Item
+          as="button"
+          type="button"
+          path={[ROOT_TWO]}
+          label="Log"
+          icon={<List />}
+          onClick={() => setActivePath([ROOT_TWO])}
+        />
+      </NestedTabs.Level>
+      <NestedTabs.ContentPanel>
+        <PanelFixture />
+      </NestedTabs.ContentPanel>
+    </NestedTabs>
+  );
+}
+
+/**
+ * A tab can say what it is for: hovering shows its name over a one-line description, and resting on it for 1.8 seconds swaps in its full help.
+ * Assistive technology reads both as the tab's description.
+ */
+export const TabGuidance = meta.story({
+  render: () => (
+    <main className={styles.stage}>
+      <GuidanceFixture />
+    </main>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const storyDocument = within(canvasElement.ownerDocument.body);
+    const spice = canvas.getByRole('tab', { name: 'Spice' });
+    await expect(spice).toHaveAccessibleDescription(
+      'Your private spice reserve. Only you see this balance. Withdraw onto the table.'
+    );
+    await expect(canvas.getByRole('tab', { name: 'Log' })).not.toHaveAttribute('aria-describedby');
+    await userEvent.hover(spice);
+    await waitForFrame(() =>
+      expect(storyDocument.getByRole('tooltip')).toHaveTextContent('SpiceYour private spice reserve.')
+    );
+    await waitForFrame(() =>
+      expect(storyDocument.getByRole('tooltip')).toHaveTextContent(
+        'SpiceOnly you see this balance. Withdraw onto the table.'
+      )
+    );
+    await userEvent.unhover(spice);
+    await waitForFrame(() => expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument());
+  },
+});

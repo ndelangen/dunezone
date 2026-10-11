@@ -1096,15 +1096,15 @@ async function displayedPhase(who, index, { held = false } = {}) {
   const controls = who.page;
   await openTab(who, 'Phase');
   /*
-   * A real game keeps the phase's name and instructions in its help tooltip. While this player holds a board
-   * gesture the panel refuses the pointer, and hovering would move the held piece, so only the named help control
-   * is checked then.
+   * A real game names the phase's section for assistive technology only, and the Phase tab's tooltip brings the
+   * phase's instructions once the pointer rests on the tab. While this player holds a board gesture the panel refuses
+   * the pointer, and hovering would move the held piece, so only the named section is checked then.
    */
   /* The phase's own section leads the panel; the Battle phase adds a battle section of the same name below it. */
-  const help = controls.getByRole('button', { name: `Help: ${phase.label}`, exact: true }).first();
-  await help.waitFor();
+  const section = controls.getByRole('region', { name: phase.label, exact: true }).first();
+  await section.waitFor({ state: 'attached' });
   if (!held) {
-    await help.hover();
+    await controls.getByRole('tab', { name: 'Phase', exact: true }).hover();
     await controls.getByRole('tooltip').filter({ hasText: phase.instructions }).waitFor();
     await who.page.mouse.move(0, 0);
   }

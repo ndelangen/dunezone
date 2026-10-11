@@ -229,6 +229,8 @@ export const HiddenZone = meta.story({
     const other = journeyViewers().find((seat) => seat !== table.seat)!;
     expect(JSON.stringify(table.frame(other).snapshot)).not.toContain('hiddenZone');
     await openTab(page, 'Hidden zone');
-    await expect(page.findByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findAllByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 })).resolves.toHaveLength(
+      2
+    );
   },
 });

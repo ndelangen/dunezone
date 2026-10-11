@@ -88,11 +88,12 @@ export const LongTitleWraps = meta.story({
   globals: { viewport: { value: 'contentNarrow' } },
 });
 
+/** Expert controls: the heading and guidance reach assistive technology only, as the tab that opens them carries them visually. */
 export const ExpertControls = meta.story({
   args: {
     title: 'Spice reserve',
     description: 'Only you see this balance. Withdraw spice onto the table.',
-    helpOnly: true,
+    hiddenHeading: true,
   },
 });
 
