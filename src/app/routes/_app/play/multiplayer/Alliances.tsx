@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { allianceSlot, allianceThemeColor } from './allianceHues';
+import { ALLIANCES_HELP } from './panelGuidance';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
@@ -205,11 +206,7 @@ export function AlliancesPanel({ client, table }: Props) {
         : []
     ) ?? [];
   return (
-    <Section
-      helpOnly
-      title="Alliances"
-      description="Offer an alliance to another faction. Once it accepts, the table shows you as allies until one of you breaks the alliance. Your ruleset decides when alliances may form and how large they may grow."
-    >
+    <Section hiddenHeading title="Alliances" description={ALLIANCES_HELP}>
       <Stack gap="xs">
         {rows.map((row) => {
           const logo = snapshot.factionArtwork?.[row.factionId]?.logo;

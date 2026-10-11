@@ -18,6 +18,7 @@ import type { TableProjection, TableSession } from '../../../../db/tabletop/Tabl
 import { allianceHue, PlayerAlliance } from './Alliances';
 import { Conversation } from './Conversation';
 import { FactionDetails } from './FactionDetails';
+import { PLAYER_CONVERSATION_GUIDANCE, PLAYER_INFO_GUIDANCE, TABLE_CONVERSATION_GUIDANCE } from './panelGuidance';
 import { SwappingSeat } from './Swapping';
 import { useServerNow } from './useServerNow';
 
@@ -81,7 +82,7 @@ function OpenVote({ client, table, vote }: Props & Readonly<{ vote: RemovalVote 
   const canVote = table.canInteract && own !== undefined;
   const elapsed = Math.max(0, Math.floor((now - vote.openedAt) / 1000));
   return (
-    <Section helpOnly title={`Remove ${vote.target.name}?`}>
+    <Section hiddenHeading title={`Remove ${vote.target.name}?`}>
       <Stack gap="sm">
         <Text size="sm">
           {Math.max(0, vote.threshold - approvals)} more Remove or{' '}
@@ -232,6 +233,7 @@ export function PlayerPanel({
             type="button"
             path={[TABLE_CONVERSATION, 'conversation']}
             label="Conversation"
+            {...TABLE_CONVERSATION_GUIDANCE}
             icon={<MessageCircle size={22} aria-hidden />}
             onClick={() => onSelect(TABLE_CONVERSATION, 'conversation')}
           />
@@ -256,6 +258,7 @@ export function PlayerPanel({
             type="button"
             path={[player.seat, 'conversation']}
             label="Conversation"
+            {...PLAYER_CONVERSATION_GUIDANCE}
             icon={
               <Indicator disabled={!unread(player.seat)} label={unread(player.seat)} size={16}>
                 <MessageCircle size={22} aria-hidden />
@@ -269,6 +272,7 @@ export function PlayerPanel({
           type="button"
           path={[player.seat, 'public']}
           label="Info"
+          {...PLAYER_INFO_GUIDANCE}
           icon={
             <Indicator color="red.6" size={10} disabled={!vote}>
               <TopicIcon topic="about" size={22} />
@@ -305,6 +309,7 @@ function tableConversationItem(unread: number, onSelect: () => void) {
       type="button"
       path={[TABLE_CONVERSATION]}
       label={unread ? `Table, ${unread} unread` : 'Table'}
+      {...TABLE_CONVERSATION_GUIDANCE}
       icon={
         <Indicator size={16} label={unread || undefined} disabled={!unread}>
           <TopicIcon topic="planet" size={26} />
@@ -338,7 +343,7 @@ function PlayerInformation({
   const slug = useFactionPageSlug(factionId ?? '');
   const details = factionId ? factions[factionId] : undefined;
   return (
-    <Section helpOnly title={player.name}>
+    <Section hiddenHeading title={player.name}>
       <Stack gap="md">
         {(slug || canStart) && (
           <Group gap="sm">

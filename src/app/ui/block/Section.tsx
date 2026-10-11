@@ -1,6 +1,5 @@
-import { ActionIcon, Group, Stack, Text, Tooltip, VisuallyHidden } from '@mantine/core';
+import { Group, Stack, Text, VisuallyHidden } from '@mantine/core';
 import clsx from 'clsx';
-import { CircleHelp } from 'lucide-react';
 import { useId } from 'react';
 import type { ReactNode } from 'react';
 
@@ -24,8 +23,8 @@ export interface SectionProps {
   id?: string;
   /** Placement only: grid area, width. The block owns its own internal spacing. */
   className?: string;
-  /** Keep the name and guidance in a focusable help tooltip for expert controls. */
-  helpOnly?: boolean;
+  /** Name and describe the section to assistive technology only: for expert controls whose name and guidance are shown elsewhere. */
+  hiddenHeading?: boolean;
   /** Where the heading and prose align within the section. */
   alignment?: 'start' | 'center';
   children: ReactNode;
@@ -50,7 +49,7 @@ export function Section({
   action,
   id,
   className,
-  helpOnly = false,
+  hiddenHeading = false,
   alignment = 'start',
   children,
 }: SectionProps) {
@@ -62,37 +61,14 @@ export function Section({
     <section
       id={id}
       aria-labelledby={headingId}
-      className={clsx(
-        styles.section,
-        alignment === 'center' && styles.centered,
-        helpOnly && styles.hintOnly,
-        className
-      )}
+      aria-describedby={hiddenHeading && description ? descriptionId : undefined}
+      className={clsx(styles.section, alignment === 'center' && styles.centered, className)}
     >
-      {helpOnly ? (
-        <Group className={styles.hint} justify="flex-end" gap="xs">
-          <VisuallyHidden>
-            <BlockHeading id={headingId} title={title} />
-            {/* The tooltip names nothing to assistive technology, so its guidance also describes the help button. */}
-            {description ? <span id={descriptionId}>{description}</span> : null}
-          </VisuallyHidden>
-          <Tooltip
-            label={[title, description].filter(Boolean).join('. ')}
-            multiline
-            maw={320}
-            withArrow
-            events={{ hover: true, focus: true, touch: true }}
-          >
-            <ActionIcon
-              variant="subtle"
-              size="sm"
-              aria-label={`Help: ${title}`}
-              aria-describedby={description ? descriptionId : undefined}
-            >
-              <CircleHelp size={18} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
+      {hiddenHeading ? (
+        <VisuallyHidden>
+          <BlockHeading id={headingId} title={title} />
+          {description ? <span id={descriptionId}>{description}</span> : null}
+        </VisuallyHidden>
       ) : (
         <Group
           justify={alignment === 'center' ? 'center' : 'space-between'}
@@ -112,7 +88,7 @@ export function Section({
           {action}
         </Group>
       )}
-      {helpOnly && action}
+      {hiddenHeading && action}
       <OneLevelDeeper depth={depth}>{children}</OneLevelDeeper>
     </section>
   );

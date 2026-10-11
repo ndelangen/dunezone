@@ -44,6 +44,7 @@ import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeome
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
+import { battleHelp, handHelp } from './panelGuidance';
 
 type Props = { client: TableSession; table: TableProjection };
 const outcomes = [
@@ -501,15 +502,7 @@ function canTakeSelected(piece: TablePiece | undefined) {
 export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   return (
-    <Section
-      helpOnly
-      title="Your hand and leaders"
-      description={
-        table.snapshot.stage === 'setup'
-          ? 'Drag pieces onto the table face down.'
-          : 'Drag pieces onto the table face down. Committed pieces stay in your plan until cancellation or reveal.'
-      }
-    >
+    <Section hiddenHeading title="Your hand and leaders" description={handHelp(table)}>
       <Stack gap="sm">
         <Button
           variant="default"
@@ -554,7 +547,7 @@ function BattleResults({
   names: FactionNames;
 }) {
   return (
-    <Section helpOnly title="Battle results">
+    <Section hiddenHeading title="Battle results">
       {battleResults.length ? (
         battleResults.map((result) => (
           <Stack key={result.id} gap="xs">
@@ -600,11 +593,7 @@ export function BattleControls({ client, table }: Props) {
   const { battle, battlePlan, hand, battleResults = [] } = table.snapshot;
   return (
     <>
-      <Section
-        helpOnly
-        title="Battle"
-        description={battle ? `Battle at ${battle.territory}` : 'Drag the battle marker onto a territory to begin.'}
-      >
+      <Section hiddenHeading title="Battle" description={battleHelp(table)}>
         {battlePlan && battle ? (
           <PlanFields client={client} table={table} plan={battlePlan} battle={battle} />
         ) : (

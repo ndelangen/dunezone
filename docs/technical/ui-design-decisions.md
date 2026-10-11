@@ -118,9 +118,21 @@ per accepted part naming the kit component it becomes or the one concern that ma
 component under the taxonomy; a delivery ticket names what it builds with; and the independent
 review checks that line before the merge.
 
+Play's tooltips are raised rather than glass: the app's tooltip glass is the dock's own navy, so a
+tooltip over the panel vanished into it (Norbert, #2048). The island sets `--tip-surface`,
+`--tip-ring` and `--tip-title` in `DarkSchemeIsland.css` (not `tokens.css`, which the faction sheet renderer bundles), and the app's one dark tooltip rule reads them with
+the glass as fallback, so every tooltip on the island is a slate card with a light ring and shadow, a
+titled one takes the amber title, and nothing outside the island changes. The dock's guidance lives
+in its tabs, as `NestedTabs` items carry it: hovering a tab shows its name over a one-line
+description, resting 1.8 s swaps in the full help, and keyboard focus opens the same tooltip, so the
+panels have no help button. Play is desktop-only for the beta, so a touch path to that guidance is
+out of scope until touch is.
+
 *Guarded in part: `check:css-orphans` reads route stylesheets, and the `PanelSchemeIsland` story in
 [`playing.stories.tsx`](../../src/app/routes/_app/play/playing.stories.tsx) holds the island and
-a piece menu and a tooltip opened on it. The vocabulary on the panel, the parts ledger and the
+a piece menu and a tab's tooltip opened on it, painted with the island's raised tooltip surface; the
+`TabGuidance` story in [`NestedTabs.stories.tsx`](../../src/app/ui/surface/NestedTabs.stories.tsx)
+holds a tab's description, its rested help and its accessible description. The vocabulary on the panel, the parts ledger and the
 built-with line are convention, checked in review; the ledger and the line are proposed for the play
 map's Notes on [#1007](https://github.com/ndelangen/dunezone/issues/1007#issuecomment-5666664413).*
 

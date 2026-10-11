@@ -59,6 +59,10 @@ type PanelTab = Readonly<{
   key: string;
   label: string;
   topic: TopicIconTopic;
+  /** One line saying what the tab is for, under its name in the tab's tooltip. */
+  description?: string;
+  /** The tab's full guidance, in the tooltip once the pointer rests on the tab. */
+  help?: string;
   content: ReactNode;
   /** False when the content runs to the pane's sides and insets its own text, as `NestedTabs.ContentPanel` takes it. */
   padding?: boolean;
@@ -75,6 +79,8 @@ type GameTableProps = {
   openOn?: readonly string[];
   /** Sections the host adds to the Table tab, above the fixture's trackers. */
   tableControls?: ReactNode;
+  /** What the Table tab's tooltip says about it: play's Phase tab explains the phase. */
+  tableGuidance?: Pick<PanelTab, 'description' | 'help'>;
   /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
   decisionBar?: ReactNode;
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
@@ -190,13 +196,13 @@ function SelectedPieceControl() {
   );
 }
 
-function StormControls({ helpOnly = false }: { helpOnly?: boolean }) {
+function StormControls({ hiddenHeading = false }: { hiddenHeading?: boolean }) {
   const canHandleTable = useTabletopSelector((table) => table.canHandleTable);
   const stormSectorIndex = useTabletopSelector((table) => table.state.stormSectorIndex);
   const { moveStormBy } = useTabletopCommands();
   return (
     <Section
-      helpOnly={helpOnly}
+      hiddenHeading={hiddenHeading}
       eyebrow="Debug"
       title="Storm sector"
       description="Advance the highlighted sector counter-clockwise around Arrakis."
@@ -285,7 +291,7 @@ function TableOverlayToggles({
 type StageFrame = Readonly<{
   /** The header's word in place of the turn and phase. */
   word?: string;
-  /** The last tab: the fixture's full Table tab, or play's Phase tab with help-only storm controls. */
+  /** The last tab: the fixture's full Table tab, or play's Phase tab with its storm controls named for assistive technology only. */
   tableTab?: 'Table' | 'Phase';
 }>;
 
@@ -326,24 +332,29 @@ function TableControlsPanel({
   focusTab = null,
   openOn = [],
   tableControls,
+  tableGuidance,
   showStormControls,
   word,
   tableTab: tableTabLabel,
   panelContent,
 }: Readonly<
-  Pick<GameTableProps, 'panelTabs' | 'focusTab' | 'openOn' | 'tableControls' | 'showStormControls' | 'panelContent'> &
+  Pick<
+    GameTableProps,
+    'panelTabs' | 'focusTab' | 'openOn' | 'tableControls' | 'tableGuidance' | 'showStormControls' | 'panelContent'
+  > &
     StageFrame
 >) {
   const tableTab: PanelTab = {
     key: 'table',
     label: tableTabLabel ?? 'Table',
     topic: 'controls',
+    ...tableGuidance,
     content: (
       <>
         {tableControls}
         {tableTabLabel === 'Table' && <SpiceBankControls />}
         {tableTabLabel === 'Table' && <SelectedPieceControl />}
-        {showStormControls && <StormControls helpOnly={tableTabLabel === 'Phase'} />}
+        {showStormControls && <StormControls hiddenHeading={tableTabLabel === 'Phase'} />}
       </>
     ),
   };
@@ -403,6 +414,8 @@ function TableControlsPanel({
             type="button"
             path={[tab.key]}
             label={tab.label}
+            description={tab.description}
+            help={tab.help}
             icon={<TopicIcon topic={tab.topic} size={22} />}
             onClick={() => choose([tab.key])}
           />
@@ -417,6 +430,8 @@ function TableControlsPanel({
               type="button"
               path={[active.key, tab.key]}
               label={tab.label}
+              description={tab.description}
+              help={tab.help}
               icon={<TopicIcon topic={tab.topic} size={22} />}
               onClick={() => choose([active.key, tab.key])}
             />
@@ -543,6 +558,7 @@ export function GameTable({
   focusTab,
   openOn,
   tableControls,
+  tableGuidance,
   decisionBar,
   gameMenu,
   gameIdentity,
@@ -728,6 +744,7 @@ export function GameTable({
                       focusTab={focusTab}
                       openOn={openOn}
                       tableControls={tableControls}
+                      tableGuidance={tableGuidance}
                       panelContent={panelContent}
                       word={frame.word}
                       tableTab={frame.tableTab}

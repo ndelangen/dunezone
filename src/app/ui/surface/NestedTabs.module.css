@@ -349,3 +349,14 @@
     transform: none;
   }
 }
+
+.tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-xs) / 4);
+}
+
+.tooltipLabel {
+  color: var(--tip-title, inherit);
+  font-weight: 600;
+}

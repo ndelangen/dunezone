@@ -1,0 +1,13 @@
+/*
+ * Play's tooltips are raised slate cards with an amber title, so they read off the dock's navy glass,
+ * which the app's tooltip glass matches. Norbert picked these values by eye against the dock (#2048),
+ * so a palette sweep keeps them. Island tooltips portal into a host carrying this attribute, and the
+ * app's dark tooltip rule (mantine-shell-compatibility.css) reads them. They live here rather than in
+ * tokens.css, which the faction sheet renderer also bundles, so a play style does not change the
+ * Renderer identity. The `--tip-` prefix keeps them apart from Mantine's own `--tooltip-` variables.
+ */
+[data-scheme-dark] {
+  --tip-surface: #2a3a55;
+  --tip-title: #f4c983;
+  --tip-ring: 0 0 0 1px #6b7f9f, 0 0.5rem 1.5rem rgba(0, 0, 0, 0.55);
+}
