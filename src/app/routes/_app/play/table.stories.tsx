@@ -316,30 +316,48 @@ export const ShortWindow = meta.story({
   globals: { viewport: { value: 'appShort' }, motion: 'reduce' },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
-    const { shell, document } = await tablePage(canvasElement);
+    const { shell } = await tablePage(canvasElement);
     await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
     const header = shell.querySelector('header')!;
     const dock = shell.querySelector('.seated-controls-panel')!;
     expect(dock.getBoundingClientRect().top).toBeLessThan(header.getBoundingClientRect().bottom);
     /* The dock grows up over the scene here, so the fixed split draws no separator across it. */
     expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).not.toBeVisible();
-    const picker = within(shell).getByRole('group', { name: 'Table view' });
-    const controls = [
-      ...within(picker).getAllByRole('button'),
-      ...within(header).getAllByRole('button', { name: /^(Game menu|More phase actions|Next phase)$/ }),
-    ];
-    for (const control of controls) {
-      const box = control.getBoundingClientRect();
-      for (const y of [box.top + 2, box.top + box.height / 2, box.bottom - 2]) {
-        const hit = document.elementFromPoint(box.left + box.width / 2, y);
-        expect(
-          control.contains(hit),
-          `${control.textContent} at ${Math.round(y)} hits ${hit?.outerHTML.slice(0, 80)}`
-        ).toBe(true);
-      }
-    }
+    expectControlsTakeThePointer(shell);
   },
 });
+
+/* Just above the height where the split is fixed, the scene above the dock is shorter than the dial: it slides down over the dock rather than under the header's chips. */
+export const LowWindow = meta.story({
+  globals: { viewport: { value: 'appLow' }, motion: 'reduce' },
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { shell } = await tablePage(canvasElement);
+    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
+    expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).toBeVisible();
+    expectControlsTakeThePointer(shell);
+  },
+});
+
+/* Each control of the camera dial and the header's toolbar takes the pointer at its top, middle and bottom. */
+function expectControlsTakeThePointer(shell: HTMLElement) {
+  const header = shell.querySelector('header')!;
+  const picker = within(shell).getByRole('group', { name: 'Table view' });
+  const controls = [
+    ...within(picker).getAllByRole('button'),
+    ...within(header).getAllByRole('button', { name: /^(Game menu|More phase actions|Next phase)$/ }),
+  ];
+  for (const control of controls) {
+    const box = control.getBoundingClientRect();
+    for (const y of [box.top + 2, box.top + box.height / 2, box.bottom - 2]) {
+      const hit = shell.ownerDocument.elementFromPoint(box.left + box.width / 2, y);
+      expect(
+        control.contains(hit),
+        `${control.textContent} at ${Math.round(y)} hits ${hit?.outerHTML.slice(0, 80)}`
+      ).toBe(true);
+    }
+  }
+}
 
 /* Takes WebGL2 away and puts `gpu` in place of the browser's WebGPU, then restores both and the probe's answer. */
 const withoutGraphics = (gpu: unknown) => () => {

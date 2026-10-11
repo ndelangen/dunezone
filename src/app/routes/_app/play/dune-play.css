@@ -260,11 +260,10 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   bottom: calc(100% + var(--space-sm) + 1.6rem);
 }
 
-/* A shell too short for the dock's floor grows the dock up over nearly all of the scene; the dial then sits in the dock's
-   upper right corner, where it stays on screen. The dock's top never rises above the shell's, so an offset of the header's
-   height keeps the dial below the header's chips. */
-:where(.dune-play-shell) [data-concealed="true"] .seated-camera {
-  top: calc(var(--play-header-height) + var(--space-sm));
+/* Where the scene above the dock is too low for the dial (measured as data-camera-docked), it sits in the dock's upper
+   right corner, and below the header's chips where a short window grows the dock up under them. */
+:where(.dune-play-shell)[data-camera-docked="true"] .seated-camera {
+  top: max(var(--space-sm), var(--play-header-height) + var(--space-sm) - var(--play-dock-top, 0px));
   bottom: auto;
 }
 

@@ -10,7 +10,6 @@ import type { TableProjection, TableSession } from '../../../../db/tabletop/Tabl
 export function PhaseNavigation({ client, table }: Readonly<{ client: TableSession; table: TableProjection }>) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const cooling = table.phaseCooling;
-  const setup = table.snapshot.stage === 'setup' ? table.snapshot.setup : undefined;
   const { needsReady, refusal } = phaseGate({
     ...table.snapshot,
     ready: controls.ready,
@@ -31,18 +30,21 @@ export function PhaseNavigation({ client, table }: Readonly<{ client: TableSessi
       )}
       <PhaseStepButton
         nextDisabled={!table.canInteract || cooling || refusal !== null}
-        previousDisabled={
-          !table.canInteract ||
-          cooling ||
-          Boolean(table.snapshot.ending) ||
-          Boolean(table.snapshot.battle) ||
-          (setup ? setup.index === 0 : table.snapshot.phase === 0)
-        }
+        previousDisabled={!table.canInteract || cooling || atFirstStepOrHeld(table.snapshot)}
         onNext={() => client.command({ kind: 'phase' })}
         onPrevious={() => client.command({ kind: 'phase', direction: -1 })}
       />
     </Group>
   );
+}
+
+/* Going back waits while a game is ending or a battle is open, and has nowhere to go from the first setup step or phase. */
+function atFirstStepOrHeld(snapshot: TableProjection['snapshot']) {
+  if (snapshot.ending || snapshot.battle) {
+    return true;
+  }
+  const setup = snapshot.stage === 'setup' ? snapshot.setup : undefined;
+  return setup ? setup.index === 0 : snapshot.phase === 0;
 }
 
 /* One toggle for readiness that carries the count: a filled Ready until pressed, then a quiet ticked Ready that withdraws. */

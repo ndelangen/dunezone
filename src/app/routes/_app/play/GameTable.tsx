@@ -246,6 +246,56 @@ const DIAL_ANGLES: Record<TableView, number> = {
   bottom: 0,
 };
 
+/* The phase's disc in the header chip: the board's phase colours, with the phase symbol clipped to the disc. */
+function PhaseDisc({ symbol }: Readonly<{ symbol: string }>) {
+  const phaseSymbolClipId = useId();
+  return (
+    <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
+      <defs>
+        <clipPath id={phaseSymbolClipId}>
+          <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
+        </clipPath>
+      </defs>
+      <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
+      <circle
+        cx="50"
+        cy="50"
+        r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
+        fill="none"
+        stroke={PHASE_INK_COLOR}
+        strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
+      />
+      <g clipPath={`url(#${phaseSymbolClipId})`}>
+        <use
+          href={`${symbol}#root`}
+          x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+          y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+          width={100 * PHASE_SYMBOL_MAX_RADIUS}
+          height={100 * PHASE_SYMBOL_MAX_RADIUS}
+          fill={PHASE_INK_COLOR}
+        />
+      </g>
+    </svg>
+  );
+}
+
+/* The header chip's words: a stage's own word, or the turn caption above the phase's name. */
+function PhaseCopy({ word, caption, label }: Readonly<{ word?: string; caption: string; label?: string }>) {
+  if (word) {
+    return (
+      <div className="seated-phase-status__copy">
+        <strong>{word}</strong>
+      </div>
+    );
+  }
+  return (
+    <div className="seated-phase-status__copy">
+      <span>{caption}</span>
+      <strong>{label ?? 'No active phase'}</strong>
+    </div>
+  );
+}
+
 /* The dial rides on the dock's top edge, so it stays over the scene where a short window grows the dock up over it. A stage overlay hides the table, and the dial with it. */
 function SceneCamera({ hidden, ...dial }: Readonly<{ hidden: boolean } & Parameters<typeof TableViewDial>[0]>) {
   if (hidden) {
@@ -567,6 +617,33 @@ function measureHeader(node: HTMLElement | null) {
   return () => observer.disconnect();
 }
 
+/* The scene's height above the dock the camera dial needs, in rem: the dial, the gap under it for its caption, and room above it. */
+const CAMERA_ROOM_REM = 5.75 + 1.6 + 2 * 0.75;
+
+/*
+ * Where the dock starts within the shell, and whether the scene above it is too low for the camera dial.
+ * There the dial moves into the dock's upper right corner instead of reaching under the header's chips or the separator.
+ */
+function measureDock(node: HTMLElement | null) {
+  const shell = node?.closest<HTMLElement>('.dune-play-shell');
+  const header = shell?.querySelector<HTMLElement>('.seated-header');
+  if (!node || !shell || !header) {
+    return;
+  }
+  const update = () => {
+    const top = node.getBoundingClientRect().top - shell.getBoundingClientRect().top;
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    shell.style.setProperty('--play-dock-top', `${top}px`);
+    shell.dataset.cameraDocked = String(top - header.getBoundingClientRect().height < CAMERA_ROOM_REM * rem);
+  };
+  const observer = new ResizeObserver(update);
+  for (const element of [node, shell, header]) {
+    observer.observe(element);
+  }
+  update();
+  return () => observer.disconnect();
+}
+
 export function GameTable({
   sceneContent,
   panelTabs,
@@ -595,7 +672,6 @@ export function GameTable({
   const [tableKeyboard] = useState(() => new TableKeyboard());
   useTableKeyboardBinding(tableKeyboard);
   const gestureActive = useTabletopSelector((table) => table.gestureActivePieceId !== null);
-  const phaseSymbolClipId = useId();
   const heldOverlays = useHeldOverlays();
   const [pinnedOverlays, setPinnedOverlays] = useState<TableLabels>({
     counts: false,
@@ -675,45 +751,14 @@ export function GameTable({
                 <div className="seated-header__start">
                   <div className="seated-chip seated-phase-status" data-hides-cursor>
                     <div className="seated-phase-status__live" aria-live="polite">
-                      {activePhase?.symbol && !frame.word ? (
-                        <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
-                          <defs>
-                            <clipPath id={phaseSymbolClipId}>
-                              <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
-                            </clipPath>
-                          </defs>
-                          <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
-                            fill="none"
-                            stroke={PHASE_INK_COLOR}
-                            strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
-                          />
-                          <g clipPath={`url(#${phaseSymbolClipId})`}>
-                            <use
-                              href={`${activePhase.symbol}#root`}
-                              x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                              y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                              width={100 * PHASE_SYMBOL_MAX_RADIUS}
-                              height={100 * PHASE_SYMBOL_MAX_RADIUS}
-                              fill={PHASE_INK_COLOR}
-                            />
-                          </g>
-                        </svg>
-                      ) : null}
-                      {stageStatus ??
-                        (frame.word ? (
-                          <div className="seated-phase-status__copy">
-                            <strong>{frame.word}</strong>
-                          </div>
-                        ) : (
-                          <div className="seated-phase-status__copy">
-                            <span>{turnCaption(tableProgress.turn, tableProgress.lastTurn)}</span>
-                            <strong>{activePhase?.label ?? 'No active phase'}</strong>
-                          </div>
-                        ))}
+                      {activePhase?.symbol && !frame.word ? <PhaseDisc symbol={activePhase.symbol} /> : null}
+                      {stageStatus ?? (
+                        <PhaseCopy
+                          word={frame.word}
+                          caption={turnCaption(tableProgress.turn, tableProgress.lastTurn)}
+                          label={activePhase?.label}
+                        />
+                      )}
                     </div>
                     {/* The connection status is its own status region, so it stays outside the phase's live region and is announced once. */}
                     {connectionStatus}
@@ -763,7 +808,7 @@ export function GameTable({
                   )}
                 </SplitPanels.First>
                 <SplitPanels.Second>
-                  <div className="seated-controls-panel" inert={overlaysInert}>
+                  <div ref={measureDock} className="seated-controls-panel" inert={overlaysInert}>
                     <SceneCamera
                       hidden={Boolean(stageOverlay)}
                       activeView={viewState.activeView}
