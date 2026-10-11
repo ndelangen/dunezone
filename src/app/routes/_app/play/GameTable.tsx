@@ -524,6 +524,19 @@ function controlsPanelValueText(percent: number) {
   return `${Math.round(percent)}% of the window for controls`;
 }
 
+/* Names and controls wrap independently; the stage overlay starts below the rendered header. */
+function measureHeader(node: HTMLElement | null) {
+  const shell = node?.closest<HTMLElement>('.dune-play-shell');
+  if (!node || !shell) {
+    return;
+  }
+  const update = () => shell.style.setProperty('--play-header-height', `${node.getBoundingClientRect().height}px`);
+  const observer = new ResizeObserver(update);
+  observer.observe(node);
+  update();
+  return () => observer.disconnect();
+}
+
 export function GameTable({
   sceneContent,
   panelTabs,
@@ -610,7 +623,7 @@ export function GameTable({
             data-show-names={heldOverlays.names || pinnedOverlays.names}
           >
             {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
-            <header className="seated-header" inert={overlaysInert} data-hides-cursor>
+            <header ref={measureHeader} className="seated-header" inert={overlaysInert} data-hides-cursor>
               <div className="seated-brand">
                 {gameIdentity ?? <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />}
                 {connectionStatus}

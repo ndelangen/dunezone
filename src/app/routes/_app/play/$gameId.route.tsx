@@ -166,10 +166,10 @@ function GamePage() {
 }
 
 const noSubscription = () => () => {};
-type KnownGame = Pick<
-  Extract<NonNullable<ReturnType<typeof useGameAccess>['data']>, { gameId: string }>,
-  'gameId' | 'slug' | 'name' | 'status'
-> & { ruleset?: { name: string; slug: string } | null };
+type GameAccess = NonNullable<ReturnType<typeof useGameAccess>['data']>;
+type KnownGame = Pick<Extract<GameAccess, { gameId: string }>, 'gameId' | 'slug' | 'name' | 'status'> & {
+  ruleset?: Extract<GameAccess, { status: 'ready' }>['ruleset'];
+};
 type GamePageEvent = { type: 'resolved'; game: KnownGame };
 
 /* One element for a ready game and for a kept table, so the table a reload restored stays mounted when the directory answers. */
