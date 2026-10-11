@@ -30,6 +30,8 @@ const { values } = parseArgs({
     port: { type: 'string', default: '8787' },
     'skip-build': { type: 'boolean', default: false },
     'skip-generate': { type: 'boolean', default: false },
+    /* Builds for these origins and exits, so a launcher can build while it boots the backend and start the Worker later with --skip-build. */
+    'build-only': { type: 'boolean', default: false },
     'load-profile': { type: 'string' },
   },
 });
@@ -50,6 +52,9 @@ const gameConvexUrl = loopbackOrigin(values['game-convex-url'] ?? convexUrl, '--
 const port = Number(values.port);
 if (!Number.isSafeInteger(port) || port < 1 || port > 65_535) {
   throw new Error('--port must be between 1 and 65535.');
+}
+if (values['build-only'] && values['skip-build']) {
+  throw new Error('Choose --build-only or --skip-build, not both.');
 }
 const origin = `http://127.0.0.1:${port}`;
 if ([convexUrl, convexSiteUrl, gameConvexUrl].includes(origin)) {
@@ -107,6 +112,9 @@ if (!values['skip-build']) {
   }
   await command(['run', 'generate:objs']);
   await command(['run', 'publisher:assets']);
+}
+if (values['build-only']) {
+  process.exit(0);
 }
 const assets = path.join(root, 'workers/publisher/dist');
 const renderer = path.join(root, 'workers/publisher/runtime-generated/rulebook-html-renderer.mjs');

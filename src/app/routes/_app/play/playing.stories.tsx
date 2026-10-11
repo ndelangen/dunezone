@@ -663,11 +663,12 @@ export const FactionPhase = meta.story({
     await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('region', { name: 'Guild negotiations' })).toBeInTheDocument());
-    await userEvent.hover(page.getByRole('tab', { name: 'Phase' }));
-    /* The tooltip fades in, so its text is the stable check; the header already shows the phase. Resting on the tab brings the phase's instructions. */
-    await waitForFrame(() =>
-      expect(page.getByRole('tooltip')).toHaveTextContent("Guild negotiations, and the table's settings.")
+    const phaseTab = page.getByRole('tab', { name: 'Phase' });
+    /* The tab names the phase in its description; the short tooltip's timing is the kit's TabGuidance story, since a slow frame here can outlast it. Resting on the tab brings the phase's instructions. */
+    await expect(phaseTab).toHaveAccessibleDescription(
+      expect.stringContaining("Guild negotiations, and the table's settings.")
     );
+    await userEvent.hover(phaseTab);
     await waitForFrame(() =>
       expect(page.getByRole('tooltip')).toHaveTextContent('Agree any shipment deals before the auction opens.')
     );
@@ -788,14 +789,23 @@ export const SharedInventoryNarrow = meta.story({
       expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
       expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
     });
+    /* The short tooltip's timing is the kit's TabGuidance story; a slow frame here can outlast it, so the description is read from the tab. */
+    await expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAccessibleDescription(
+      expect.stringContaining('Pieces every player can take.')
+    );
     await userEvent.hover(page.getByRole('tab', { name: 'Shared inventory' }));
-    await waitForFrame(() => expect(finishTransitions(page.getByText('Pieces every player can take.'))).toBeVisible());
-    await waitForFrame(() => expect(finishTransitions(page.getByText(/^Drag an item onto the table/))).toBeVisible());
+    await waitForFrame(() =>
+      expect(
+        finishTransitions(within(page.getByRole('tooltip')).getByText(/^Drag an item onto the table/))
+      ).toBeVisible()
+    );
     await userEvent.unhover(page.getByRole('tab', { name: 'Shared inventory' }));
     await openTab(page, 'Phase');
     await userEvent.hover(page.getByRole('tab', { name: 'Phase' }));
     await waitForFrame(() =>
-      expect(finishTransitions(page.getByText(/^Move the storm using the storm controls/))).toBeVisible()
+      expect(
+        finishTransitions(within(page.getByRole('tooltip')).getByText(/^Move the storm using the storm controls/))
+      ).toBeVisible()
     );
     await userEvent.unhover(page.getByRole('tab', { name: 'Phase' }));
   },
@@ -822,7 +832,7 @@ export const ControlsPanelTabs = meta.story({
         within(rail())
           .getAllByRole('tab')
           .map((item) => item.getAttribute('aria-label'))
-      ).toEqual(['Hand', 'Shared inventory', 'Spice', 'Log', 'Phase']);
+      ).toEqual(['Hand', 'Shared inventory', 'Alliances', 'Spice', 'Log', 'Phase']);
       expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAttribute('aria-selected', 'true');
       expect(page.getByRole('region', { name: 'Shared inventory' })).toBeVisible();
       expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
@@ -887,7 +897,7 @@ export const SpiceTransfers = meta.story({
 /**
  * The panel is a dark-scheme island: its title, eyebrow, prose and controls paint the same in both page schemes, and that paint is the dark tokens, the app's and Mantine's alike.
  * The page scheme is flipped on the document mid-story, which is what the app's own scheme bridge does, so one mount proves both schemes.
- * A floating pane opened on the island, a piece's menu and a help tooltip here, paints the island's glass in the light page although it portals out of the shell.
+ * A floating pane opened on the island paints the island's paint in the light page although it portals out of the shell: a piece's menu its glass, a tab's tooltip Play's raised tooltip surface.
  * (Page stories take their scheme from the app chrome, not from the Storybook global.)
  */
 export const PanelSchemeIsland = meta.story({
@@ -910,6 +920,7 @@ export const PanelSchemeIsland = meta.story({
     expect(view.getComputedStyle(menu).backgroundColor).toBe(glass);
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
+    const raised = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--tip-surface').trim());
     const help = page.getByRole('tab', { name: 'Spice' });
     /* By its words, as the tab's tooltip. */
     const spiceReserveTip = () =>
@@ -920,7 +931,8 @@ export const PanelSchemeIsland = meta.story({
       expect(tip).not.toBeNull();
       return tip!;
     });
-    expect(view.getComputedStyle(tooltip).backgroundColor).toBe(glass);
+    expect(view.getComputedStyle(tooltip).backgroundColor).toBe(raised);
+    expect(raised).not.toBe(glass);
     await userEvent.unhover(help);
     await waitForFrame(() => expect(spiceReserveTip()).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');
@@ -1037,7 +1049,11 @@ export const ControlsNarrow = meta.story({
     await settled(() => expect(page.getByLabelText('Spice reserve balance')).toBeVisible());
     await userEvent.hover(page.getByRole('tab', { name: 'Spice' }));
     /* The tooltip's label mounts only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1422). Resting on the tab brings the reserve's help. */
-    await waitForFrame(() => expect(finishTransitions(page.getByText(/^Only you see this balance\./))).toBeVisible());
+    await waitForFrame(() =>
+      expect(
+        finishTransitions(within(page.getByRole('tooltip')).getByText(/^Only you see this balance\./))
+      ).toBeVisible()
+    );
     await userEvent.unhover(page.getByRole('tab', { name: 'Spice' }));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     expect(page.queryByRole('button', { name: 'Take into spice reserve' })).toBeNull();

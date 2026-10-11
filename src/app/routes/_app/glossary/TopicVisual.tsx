@@ -1,6 +1,6 @@
 import { VisuallyHidden } from '@mantine/core';
-import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import type { GlossaryTopic } from '@shared/glossary/terms';
+import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import clsx from 'clsx';
@@ -37,9 +37,6 @@ const beneGesseritTroop = {
   hue: undefined,
   striped: undefined,
 } as const;
-
-/* The spice token the catalogue publishes, so the glossary shows the same piece players use. */
-const SPICE_TOKEN = publishedHref('token-disc', 'ns76wk6vyqcnb1wfn8jb5ggya98cx6k7');
 
 /*
  * A piece of game artwork with the glossary word under it, linking to that word's entry.
@@ -279,7 +276,7 @@ function SpicePile({ count }: { count: number }) {
   return (
     <span className={styles.spicePile}>
       {Array.from({ length: count }, (_, index) => (
-        <img key={index} className={styles.spiceToken} src={SPICE_TOKEN} alt="" />
+        <img key={index} className={styles.spiceToken} src={SPICE_TOKEN_HREF} alt="" />
       ))}
     </span>
   );

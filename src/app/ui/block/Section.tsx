@@ -23,7 +23,7 @@ export interface SectionProps {
   id?: string;
   /** Placement only: grid area, width. The block owns its own internal spacing. */
   className?: string;
-  /** Name and describe the section to assistive technology only, for expert controls whose tab tooltip carries the guidance. */
+  /** Name and describe the section to assistive technology only: for expert controls whose name and guidance are shown elsewhere. */
   hiddenHeading?: boolean;
   /** Where the heading and prose align within the section. */
   alignment?: 'start' | 'center';

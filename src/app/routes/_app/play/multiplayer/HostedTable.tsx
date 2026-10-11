@@ -21,14 +21,18 @@ import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscrip
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import { usePreloadedCardFaces } from '../../../../widgets/tabletop/cardFacePreload';
 import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
 import { FoilConfetti } from '../FoilConfetti';
+import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
+import { AllianceCoinsScene } from './AllianceCoins';
+import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { BidderToolbar } from './BidderToolbar';
@@ -40,6 +44,7 @@ import { HandCountsScene } from './HandCounts';
 import { HiddenZone } from './HiddenZone';
 import { LogEntries } from './Log';
 import {
+  ALLIANCES_GUIDANCE,
   AUDIT_LOG_GUIDANCE,
   battleGuidance,
   GAME_LOG_GUIDANCE,
@@ -330,8 +335,9 @@ function Predictions({ client, table }: SetupControlProps) {
       /* While its card is in hand, placing the card is the reveal; a game that dealt none keeps the button during setup and in the winner bars. */
       const byCard = own && prediction?.revealedAt === null && predictionCardInHand(table, step.id);
       return (
+        /* The Setup tab's guidance names the current step only, so every other declaration keeps its heading in view. */
         <Section
-          hiddenHeading={Boolean(table.snapshot.stage)}
+          hiddenHeading={Boolean(table.snapshot.stage) && current?.id === step.id}
           key={step.id}
           title={step.title}
           description={setupHelp(step)}
@@ -730,16 +736,39 @@ function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   );
 }
 
+/* The Alliances tab, only while the game is in play. */
+function alliancesTab({ client, table, error }: ConnectionControlsProps) {
+  if (!showsAlliances(table.snapshot.stage)) {
+    return [];
+  }
+  return [
+    {
+      key: 'alliances',
+      label: 'Alliances',
+      topic: 'alliance' as const,
+      ...ALLIANCES_GUIDANCE,
+      content: (
+        <>
+          {error && <FormError title="From the table">{error}</FormError>}
+          <AlliancesPanel client={client} table={table} />
+        </>
+      ),
+    },
+  ];
+}
+
 function ConnectedTable({
   client,
   table,
   error,
   connection,
+  identity,
 }: Readonly<{
   client: TableSession;
   table: TableProjection;
   error: string | null;
   connection: string;
+  identity: GameIdentity;
 }>) {
   const progress = gameProgress(table.snapshot);
   const celebration = useResultCelebration(table);
@@ -787,11 +816,28 @@ function ConnectedTable({
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
+            gameIdentity={
+              <Stack gap={0} miw={0}>
+                <Text size="sm" fw={700} style={{ overflowWrap: 'anywhere' }}>
+                  {identity.name}
+                </Text>
+                {identity.rulesetName ? (
+                  <Text size="xs" c="dimmed">
+                    Ruleset: {identity.rulesetName}
+                  </Text>
+                ) : null}
+              </Stack>
+            }
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
             stage={stage}
             mapVisible={setupMapVisible(table.snapshot.setup)}
-            connectionStatus={<ConnectionStatus table={table} />}
+            connectionStatus={
+              <>
+                <ConnectionStatus table={table} />
+                <AllianceStrip table={table} />
+              </>
+            }
             toolbarControl={
               inPlay || (stage === 'setup' && table.snapshot.setup) ? (
                 <>
@@ -817,6 +863,7 @@ function ConnectedTable({
                     <BattleScene client={client} table={table} />
                     {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
                     {inPlay && <HandCountsScene table={table} />}
+                    <AllianceCoinsScene table={table} />
                   </>
                 )}
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
@@ -859,6 +906,7 @@ function ConnectedTable({
               <>
                 <SeatPopover client={client} table={table} error={error} />
                 <GameMenu
+                  sharing={<GameLink address={identity.address} />}
                   table={table}
                   onLeave={() => setLeaving(true)}
                   onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
@@ -956,6 +1004,7 @@ function ConnectedTable({
                       ...SHARED_INVENTORY_GUIDANCE,
                       content: <SharedInventory client={client} table={table} />,
                     },
+                    ...alliancesTab({ client, table, error }),
                     {
                       key: 'spice',
                       label: 'Spice',
@@ -997,7 +1046,7 @@ function ConnectedTable({
                   ]
                 : []),
             ]}
-            tableGuidance={stage ? phaseGuidance(table) : undefined}
+            tableGuidance={phaseGuidance(table)}
             tableControls={
               tabled ? (
                 <>
@@ -1037,13 +1086,24 @@ function ConnectedTable({
   );
 }
 
-export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: string; exitControl: ReactNode }>) {
+type GameIdentity = Readonly<{ name: string; rulesetName: string | null; address: string }>;
+
+export default function HostedTable({
+  gameId,
+  exitControl,
+  identity,
+}: Readonly<{
+  gameId: string;
+  exitControl: ReactNode;
+  identity: GameIdentity;
+}>) {
   const runtime = useContext(GameRuntimeContext);
   const [client] = useState(
     () => new TableSession(gameId, new GameSubscription(gameId, requestPlayTicket, runtime), runtime)
   );
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);
+  usePreloadedCardFaces(view.table?.snapshot.cardFaces);
   if (!view.table) {
     return (
       <TableWait status={view.error ?? 'Connecting to the hosted table...'} connection={view.status}>
@@ -1059,7 +1119,13 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
   }
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
-      <ConnectedTable client={client} table={view.table} error={view.error} connection={view.status} />
+      <ConnectedTable
+        identity={identity}
+        client={client}
+        table={view.table}
+        error={view.error}
+        connection={view.status}
+      />
     </ServerClockContext.Provider>
   );
 }

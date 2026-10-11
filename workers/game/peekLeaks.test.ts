@@ -82,6 +82,11 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   'bid-raise': (room) => [[bob, { kind: 'bid-raise', round: room.snapshot.bidding?.round ?? 1 }]],
   'bid-pass': (room) => [[bob, { kind: 'bid-pass', round: room.snapshot.bidding?.round ?? 1 }]],
   'bid-seconds': () => [[bob, { kind: 'bid-seconds', seconds: 30 }]],
+  'alliance-offer': () => [[bob, { kind: 'alliance-offer', factionId: 'harkonnen' }]],
+  'alliance-withdraw': () => [[bob, { kind: 'alliance-withdraw', factionId: 'harkonnen', offer: 0 }]],
+  'alliance-accept': () => [[bob, { kind: 'alliance-accept', factionId: 'harkonnen', offer: 0 }]],
+  'alliance-decline': () => [[bob, { kind: 'alliance-decline', factionId: 'harkonnen', offer: 0 }]],
+  'alliance-break': () => [[bob, { kind: 'alliance-break', factionId: 'harkonnen' }]],
   'last-turn': () => [[bob, { kind: 'last-turn', turn: 8 }]],
   'hand-take': () => [[bob, { kind: 'hand-take', pieceId: DECK }]],
   /* A card from a hand played onto the deck. */
@@ -169,7 +174,7 @@ describe('an open peek never shows a card it was not granted', () => {
       expectedVersion: room.snapshot.versions[LOOSE] ?? 0,
       pickup: 'whole',
     });
-    room.accept(room.drop(bob, 'onto-deck', deck(room)!.position, 0), 'onto-deck');
+    room.accept(room.drop(bob, 'onto-deck', { position: deck(room)!.position, orientation: 0 }), 'onto-deck');
     expect(deck(room)?.items).toHaveLength(granted.size + 1);
     expect(shown(room)).toEqual([]);
     expect(room.snapshot.peeks).toEqual({});
@@ -183,7 +188,7 @@ describe('an open peek never shows a card it was not granted', () => {
       expectedVersion: room.snapshot.versions[DECK] ?? 0,
       pickup: 'top',
     });
-    room.accept(room.drop(bob, 'off-deck', [0, 0.38, 0], 0), 'off-deck');
+    room.accept(room.drop(bob, 'off-deck', { position: [0, 0.38, 0], orientation: 0 }), 'off-deck');
     expect(room.snapshot.peeks).toEqual({});
   });
 

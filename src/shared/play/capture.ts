@@ -6,6 +6,7 @@ import {
   HeroKeyedCanonicalFactionObject,
   HeroKeyedHistoricalFactionObject,
   heroKeyedDecoder,
+  HistoricalFactionPublicationObject,
 } from '../factions/schema';
 import { RULESET_ASSET_SLOT_ORDER } from '../rulesets/assetSlots';
 import { storedSpawnContentsSchema } from './inventory';
@@ -199,6 +200,23 @@ export const factionCaptureSchema = z.object({
   readiness: captureReadinessSchema,
 });
 export type FactionCapture = z.infer<typeof factionCaptureSchema>;
+
+/**
+ * What any viewer may read of a seated faction: the starting sheet its public faction page shows, as the game captured it.
+ * The Info tab then describes the faction the table is playing, even after its source is edited.
+ */
+export const publicFactionSchema = HistoricalFactionPublicationObject.pick({
+  leaders: true,
+  rules: true,
+  background: true,
+  logo: true,
+});
+export type PublicFaction = z.infer<typeof publicFactionSchema>;
+
+export function publicFaction(capture: FactionCapture): PublicFaction {
+  const { leaders, rules, background, logo } = capture.definition;
+  return { leaders, rules, background, logo };
+}
 
 /** A capture's phase declarations, in the author's list order; one a later schema would refuse is left out rather than failing the game. */
 export function capturedDeclarations(capture: FactionCapture): PhaseDeclaration[] {

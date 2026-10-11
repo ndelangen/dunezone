@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 
 import { tableHandlingOpen } from '../../src/shared/play/admission';
+import { isAllianceAction } from '../../src/shared/play/alliances';
 import { isBattleAction } from '../../src/shared/play/battle';
 import { isBiddingAction } from '../../src/shared/play/bidding';
 import type { BiddingAction } from '../../src/shared/play/bidding';
@@ -49,9 +50,11 @@ import {
   draftForGesture,
   draftWithAdditionalTop,
   heldPieceFor,
+  canFlipInHand,
   projectCarryAtPosition,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
+import { allianceCommand } from './alliances';
 import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
@@ -78,13 +81,15 @@ type Carry = Identity & {
   beginPayload: string;
   takes: Map<string, string>;
 };
-type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
+type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
 /**
  * Actions that never rely on the table being exactly as their sender last saw it.
  * Each names what it changes and is checked against the live table, so another seat acting at the same moment must not turn it away (#1681, #1690).
  * A battle action names its battle and side, and a draft choice or removal ballot names the sender's own pick or vote.
  * A seat request names its seat, an approval its request and a withdrawal the sender's own request, each judged against the live seating.
+ * An alliance offer or answer names the other faction and is judged against the live alliances.
+ * Breaking an alliance stays strict, so a late break never leaves an alliance re-formed since the sender saw it.
  * A raise or pass names its bidding round and is judged against the live bidder's turn, so a quick second raise is not turned away by the first.
  * A spice reserve withdrawal stays strict, so two tabs of one player cannot both spend from a spice reserve they saw once.
  * Leaving stays strict too, since its confirmation said what it costs and a crossed departure may have left the sender the last player.
@@ -111,8 +116,24 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'bid-raise',
   'bid-pass',
   'bid-seconds',
+  'alliance-offer',
+  'alliance-withdraw',
+  'alliance-accept',
+  'alliance-decline',
   'last-turn',
 ]);
+
+/*
+ * The turns a carrier has made in hand only ever add up, so a late frame never turns the piece back.
+ * A drop without a count keeps the carry's, as an older page sends none.
+ */
+/** Where a carried piece is set down, and how many times it was turned over in hand. */
+type CarryLanding = { position: Vector3Tuple; orientation: number; flips?: number };
+
+function carryFlips(draft: DraftMove, flips: number | undefined) {
+  const current = draft.flips ?? 0;
+  return flips === undefined || flips < current ? current : flips;
+}
 
 /** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */
 const CARRY_HISTORY_LIMIT = 1024;
@@ -354,6 +375,27 @@ export class Room {
     return true;
   }
 
+  /** Turns the held piece over in hand; the count only adds up, so a repeated message changes nothing. */
+  flip(identity: Identity, input: CarryInput<'flip'>, now = Date.now()): DraftMove {
+    const carry = this.carry(identity, input.carryId);
+    const held = heldPieceFor(this.table(identity, input.carryId), carry.draft);
+    if (!canFlipInHand(held, this.unrevealedPrediction)) {
+      throw new GameRejection('That piece cannot be turned over in hand.');
+    }
+    carry.draft = { ...carry.draft, flips: carryFlips(carry.draft, input.flips) };
+    carry.lastSeen = now;
+    return carry.draft;
+  }
+
+  private readonly unrevealedPrediction = (stepId: string) =>
+    this.snapshot.privatePredictions[stepId]?.revealedAt === null;
+
+  /** The carry's piece as the room holds it, every face showing; a page is sent it only through the projection. */
+  heldFor(carryId: string): TablePiece | null {
+    const carry = this.carries.get(carryId);
+    return carry ? (this.publicCarry(carry)[0]?.held ?? null) : null;
+  }
+
   take(identity: Identity, input: CarryInput<'take'>, now = Date.now()): DraftMove {
     const { carryId: id, requestId, donorPieceId: donorId } = input;
     const carry = this.carry(identity, id);
@@ -391,11 +433,14 @@ export class Room {
     return next;
   }
 
-  drop(identity: Identity, id: string, position: Vector3Tuple, orientation: number): StoredSnapshot {
+  drop(identity: Identity, id: string, landing: CarryLanding): StoredSnapshot {
     this.assertTableAvailable();
     const carry = this.carry(identity, id);
     const guarded = this.table(identity, id);
-    const settled = settleCarryAtPosition(guarded, { ...carry.draft, orientation }, position);
+    const turns = canFlipInHand(heldPieceFor(guarded, carry.draft), this.unrevealedPrediction);
+    const flips = turns ? carryFlips(carry.draft, landing.flips) : 0;
+    const draft = { ...carry.draft, orientation: landing.orientation, flips };
+    const settled = settleCarryAtPosition(guarded, draft, landing.position);
     if (!settled) {
       throw new GameRejection('There is no clear space for that object.');
     }
@@ -531,6 +576,9 @@ export class Room {
     }
     if (isFactionSetting(action)) {
       return this.factionSettingCommand(identity, action, now);
+    }
+    if (isAllianceAction(action)) {
+      return allianceCommand(this.snapshot, this.requireFaction(identity), action, now);
     }
     if (
       action.kind === 'reset' &&

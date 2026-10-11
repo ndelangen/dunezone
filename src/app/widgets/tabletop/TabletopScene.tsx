@@ -9,6 +9,7 @@ import { peekersOf } from '@shared/play/peeking';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
+import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import {
   nearestStormRotation,
   STORM_MARKER_INNER_X,
@@ -37,6 +38,7 @@ import {
   TROOP_BOTTOM_RADIUS,
   TROOP_FACE_RADIUS,
   tokenBoxRatio,
+  TABLE_SURFACE_Y,
   TROOP_LAYER_HEIGHT,
   TROOP_LAYER_PITCH,
   TROOP_TOP_RADIUS,
@@ -98,7 +100,13 @@ import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
-import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
+import {
+  BOARD_RIM_COLOR,
+  BOARD_RIM_DEPTH,
+  BOARD_RIM_METALNESS,
+  BOARD_RIM_ROUGHNESS,
+  createBoardRimShape,
+} from './boardRimGeometry';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
 import { PhaseSymbol } from './PhaseSymbol';
@@ -108,7 +116,9 @@ import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAME
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { sharedPublishedFaces } from './publishedFaceRetry';
+import { SoftShadow } from './SoftShadow';
 import { SpiceBank } from './SpiceBank';
+import { SpiceStackIcon } from './SpiceStackIcon';
 import { TableFurniture } from './TableFurniture';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { useTableLighting } from './tableLighting';
@@ -120,6 +130,7 @@ import styles from './TabletopScene.module.css';
 import type { PieceMenuAnchor } from './TabletopTools';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
+import { useTurnedDownFaces } from './turnedDownFaces';
 import { TurnTracker } from './TurnTracker';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
@@ -147,21 +158,20 @@ type TabletopSceneProps = {
 
 const PieceBadge = lazy(() => import('./PieceBadge').then((module) => ({ default: module.PieceBadge })));
 const ScenePresence = lazy(() => import('./ScenePresence').then((module) => ({ default: module.ScenePresence })));
+const ScenePings = lazy(() => import('./ScenePings').then((module) => ({ default: module.ScenePings })));
 const PredictionOverlay = lazy(() =>
   import('./prediction/PredictionOverlay').then((module) => ({ default: module.PredictionOverlay }))
 );
 const TabletopTools = lazy(() => import('./TabletopTools').then((module) => ({ default: module.TabletopTools })));
 const PlayCamera = lazy(() => import('./PlayCamera').then((module) => ({ default: module.PlayCamera })));
 
-const BOARD_RIM_COLOR = '#15263b';
 /* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */
 const BOARD_MAP_BASE_COLOR = '#000000';
 const BOARD_MAP_LIFT = 0.001;
 const BOARD_RIM_DIVIDER_COLOR = '#050505';
+const BOARD_RIM_SHADOW_SPREAD = 0.2;
 const BOARD_RIM_DIVIDER_OVERLAP = 0.002;
 const BOARD_RIM_DIVIDER_WIDTH = 0.035;
-const BOARD_RIM_ROUGHNESS = 0.72;
-const BOARD_RIM_METALNESS = 0.06;
 const BOARD_RIM_EXTRUDE_OPTIONS = {
   bevelEnabled: false,
   curveSegments: 64,
@@ -263,6 +273,19 @@ function BoardRim({ seatCount }: { seatCount: TableSeatCount }) {
       <extrudeGeometry args={geometryArgs} />
       <meshStandardMaterial color={BOARD_RIM_COLOR} roughness={BOARD_RIM_ROUGHNESS} metalness={BOARD_RIM_METALNESS} />
     </mesh>
+  );
+}
+
+/* The board's rim stands above the table, so it casts a soft ring of shadow onto it. */
+function BoardRimShadow() {
+  return (
+    <SoftShadow
+      radius={BOARD_RIM_RADIUS}
+      spread={BOARD_RIM_SHADOW_SPREAD}
+      y={TABLE_SURFACE_Y + 0.001}
+      opacity={0.4}
+      size={1024}
+    />
   );
 }
 
@@ -486,6 +509,7 @@ function BoardSurface({
     <group>
       <TableFurniture trackerSlots={trackerSlots} />
       <BoardRim seatCount={seatCount} />
+      <BoardRimShadow />
       {/* The textured parts suspend while their image loads; the boundary keeps that inside the scene, so the
           rim, the furniture and the pieces stay on screen and the map fills in, instead of the route's
           placeholder replacing a table the visitor has already seen. While it waits it counts as unsettled artwork. */}
@@ -590,6 +614,13 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
 /* Holds the image a piece shows on top and says whether it is loaded, so a flip can wait for a card's revealed face instead of turning up a placeholder. */
 function usePublishedFaceReady(href: string | undefined): boolean {
   return usePublishedFace(href) !== undefined || !href;
+}
+
+/* A card turned face up in hand shows its face only once the room has sent it, so its flip waits for that too. */
+function faceStillHidden(piece: TablePiece) {
+  const shownLayers = visibleLayerCount(piece);
+  const item = piece.items[stackLayerItemIndex(piece.items.length, shownLayers, shownLayers - 1, piece.flipRevision)];
+  return piece.kind === 'card' && !!item?.faceUp && !!item.artwork && !item.artwork.front;
 }
 
 /* A face-down faction token wears a solid black prohibition sign over its front: a ring and the slash across it, the slash as thick as the ring (#1007). */
@@ -801,25 +832,41 @@ function SpiceLayers({ piece }: { piece: TablePiece }) {
             <cylinderGeometry args={[SPICE_TOKEN_RADIUS, SPICE_TOKEN_RADIUS, SPICE_LAYER_HEIGHT, 48]} />
             <meshStandardMaterial color="#b8842f" roughness={0.8} metalness={0} />
           </mesh>
-          <mesh
-            position={[0, SPICE_LAYER_HEIGHT + 0.001, 0]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-          >
-            <circleGeometry args={[SPICE_TOKEN_RADIUS * 0.79, 48]} />
-            <meshStandardMaterial color="#f6d77f" roughness={1} metalness={0} />
-          </mesh>
-          <mesh
-            position={[0, SPICE_LAYER_HEIGHT + 0.003, 0]}
-            rotation={[-Math.PI / 2, 0, Math.PI / 4]}
-            renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-          >
-            <planeGeometry args={[0.09, 0.09]} />
-            <meshBasicMaterial color="#6b431d" />
-          </mesh>
+          <SpiceFace />
         </group>
       ))}
     </group>
+  );
+}
+
+/* Each layer wears the published spice token; until it loads, or where it is unavailable, a plain face with the spice icon stands in. */
+function SpiceFace() {
+  const texture = usePublishedFace(SPICE_TOKEN_HREF);
+  if (texture) {
+    return (
+      <mesh
+        position={[0, SPICE_LAYER_HEIGHT + 0.001, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
+      >
+        <circleGeometry args={[SPICE_TOKEN_RADIUS, 48]} />
+        {/* Printed art is drawn unlit, like every other piece face (#1756). */}
+        <meshBasicMaterial map={texture} />
+      </mesh>
+    );
+  }
+  return (
+    <>
+      <mesh
+        position={[0, SPICE_LAYER_HEIGHT + 0.001, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
+      >
+        <circleGeometry args={[SPICE_TOKEN_RADIUS * 0.79, 48]} />
+        <meshStandardMaterial color="#f6d77f" roughness={1} metalness={0} />
+      </mesh>
+      <SpiceStackIcon y={SPICE_LAYER_HEIGHT} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />
+    </>
   );
 }
 
@@ -1201,14 +1248,16 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
   const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried);
-  const faceReady = usePublishedFaceReady(topFaceHref(piece));
+  const faceReady = usePublishedFaceReady(topFaceHref(piece)) && !faceStillHidden(piece);
+  /* A held piece turns over in hand too, so only an emptied projection cuts a flip short. */
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
     piece,
-    drafted || remoteCarried || emptyProjection,
+    emptyProjection,
     finishPieceFlip,
     faceReady
   );
   const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
+  const drawnPiece = useTurnedDownFaces(piece);
   const flipPivotY = stackTopHeight(piece) / 2;
   const shadowLocalY = contactShadowHeightAt(piece.position, piece) - piece.position[1];
 
@@ -1233,7 +1282,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
             <Shadow
               color="#100906"
               colorStop={0.18}
-              opacity={contactShadowOpacity(carried)}
+              opacity={contactShadowOpacity(carried, piece)}
               position={[0, shadowLocalY, 0]}
               renderOrder={1}
               scale={contactShadowScale(piece, carried)}
@@ -1251,7 +1300,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
           <group ref={pivotRef} position={[0, flipPivotY, 0]}>
             <group position={[0, -flipPivotY, 0]}>
               <group ref={shuffleRef}>
-                <PieceLayers piece={piece} />
+                <PieceLayers piece={drawnPiece} />
               </group>
             </group>
           </group>
@@ -1371,7 +1420,8 @@ function SceneContents({
       )}
       {presentation !== 'preview' && (
         <Suspense fallback={null}>
-          <ScenePresence showNames />
+          <ScenePresence showNames trackerSlots={trackerSlots} />
+          <ScenePings />
         </Suspense>
       )}
       <TableLights />

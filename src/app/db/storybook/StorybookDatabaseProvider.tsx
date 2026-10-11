@@ -1,7 +1,9 @@
+import { getFunctionName } from 'convex/server';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { mocked } from 'storybook/test';
 
+import { api } from '../../../../convex/_generated/api';
 import { db as applicationDb } from '../core';
 import type { DatabaseDefinition } from './database';
 import type { WorkerIdentity } from './protocol';
@@ -91,6 +93,8 @@ export function StorybookDatabaseProvider({
     return <div role="alert">{state.message}</div>;
   }
 
+  mocked(applicationDb.action).mockImplementation(((fn, args) =>
+    state.client.action(fn, args, identity)) as typeof applicationDb.action);
   mocked(applicationDb.query).mockImplementation(((fn, args) =>
     state.client.query(fn, args, identity)) as typeof applicationDb.query);
   mocked(applicationDb.mutation).mockImplementation(((fn, args) =>
@@ -132,5 +136,23 @@ export function useStorybookDatabaseClient() {
  */
 export function convexNeverAnswers(Story: ComponentType) {
   mocked(convexUseQuery).mockImplementation((() => undefined) as typeof convexUseQuery);
+  return <Story />;
+}
+
+/**
+ * A story decorator for Play's fixtures, which seat each faction under its slug rather than a catalogue id.
+ * The seat's page address is that slug when the browser-local database holds a live faction there, and nothing otherwise.
+ * Every other query stays with the database.
+ */
+export function seatFactionsResolve(Story: ComponentType) {
+  const pageSlug = getFunctionName(api.factions.pageSlug);
+  mocked(convexUseQuery).mockImplementation(((query, args) => {
+    if (getFunctionName(query) !== pageSlug) {
+      return useConvexStorybookQuery(query, args);
+    }
+    const { id } = args as { id: string };
+    const holder = useConvexStorybookQuery(api.factions.slugTaken, { slug: id });
+    return holder === undefined ? undefined : holder === 'live' ? id : null;
+  }) as typeof convexUseQuery);
   return <Story />;
 }

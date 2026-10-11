@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 
 import type { playGameProvisionSchema } from '../../src/shared/play/admission';
+import { publicFaction } from '../../src/shared/play/capture';
 import type { CaptureReadiness } from '../../src/shared/play/capture';
 import { emptySnapshot } from '../../src/shared/play/commands';
 import { conversationMembers } from '../../src/shared/play/conversations';
@@ -66,7 +67,7 @@ import { SetupSupply } from './setup';
 import { initialSetup } from './setup-progress';
 import { SpiceLedger } from './spiceLedger';
 import type { StoredSnapshot } from './state';
-import { internalAction, internalPieceId, RoomProjection, storedSnapshotSchema } from './state';
+import { internalAction, internalPieceId, RoomProjection, storedSnapshotSchema, withKnownCardFaces } from './state';
 import { Swapping } from './swapping';
 
 /** The opening table records that the creator holds the first seat, so the log starts with the seating and not after it. */
@@ -299,6 +300,16 @@ export class GameSession {
       return;
     }
     throw new NotReady(subject, problem);
+  }
+
+  /**
+   * A seated faction's public starting sheet as this game captured it, or nothing otherwise.
+   * A deal refused partway can leave captures of factions never seated, and those stay unanswered.
+   */
+  publicFaction(factionId: string) {
+    const seated = this.room?.snapshot.roster?.seats.some((seat) => seat.faction?.id === factionId);
+    const capture = seated ? this.captures.faction(factionId) : undefined;
+    return capture ? publicFaction(capture) : null;
   }
 
   retainedCaptures() {
@@ -823,7 +834,7 @@ export class GameSession {
   private nextTableSnapshot(viewer: Viewer, message: TableMessage, contents?: StoredSpawnContents) {
     const room = this.room!;
     if (message.type === 'drop') {
-      return room.drop(viewer, message.carryId, message.position, message.orientation);
+      return room.drop(viewer, message.carryId, message);
     }
     if (message.action.kind === 'spawn-request') {
       return room.publicCommand(viewer, message.action, contents);
@@ -833,9 +844,12 @@ export class GameSession {
   private commitTable(viewer: Viewer, message: TableMessage, contents?: StoredSpawnContents) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    const next = revealPlacedPredictions(
-      this.withRoster(storedSnapshotSchema.parse(this.nextTableSnapshot(viewer, message, contents))),
-      Date.now()
+    const next = withKnownCardFaces(
+      room.snapshot,
+      revealPlacedPredictions(
+        this.withRoster(storedSnapshotSchema.parse(this.nextTableSnapshot(viewer, message, contents))),
+        Date.now()
+      )
     );
     const transfer = this.spiceLedger.describe(
       room.snapshot,
@@ -1125,14 +1139,20 @@ export class GameSession {
     if (step > this.history.steps) {
       throw new GameRejection('Unknown history step.');
     }
+    /*
+     * Steps stored before the face list grew only hold the fronts present then, so comparing two of them
+     * could tell which hidden card left the table. Every step carries the live game's list instead.
+     */
+    const past = this.projection.snapshot(
+      this.history.restore(step),
+      this.actors.factionFor(viewer.userId),
+      this.room!.snapshot
+    );
     return {
       type: 'history',
       step,
       lastStep: this.history.steps,
-      snapshot: this.forViewer(
-        this.projection.snapshot(this.history.restore(step), this.actors.factionFor(viewer.userId)),
-        viewer
-      ),
+      snapshot: this.forViewer(past, viewer),
     };
   }
   conversationFaction(viewer: Viewer) {
@@ -1231,7 +1251,7 @@ export class GameSession {
   }
   activity(
     viewer: Viewer,
-    message: Extract<ClientMessage, { type: 'begin' | 'take' | 'renew' | 'cancel' }>
+    message: Extract<ClientMessage, { type: 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }>
   ): Extract<ServerMessage, { type: 'carry' }> | undefined {
     const room = this.room!;
     let draft;
@@ -1245,6 +1265,8 @@ export class GameSession {
       case 'take':
         draft = room.take(viewer, { ...message, donorPieceId: internalPieceId(room.snapshot, message.donorPieceId) });
         break;
+      case 'flip':
+        return this.flippedCarry(viewer, message);
       case 'renew':
         room.renew(viewer, message.carryId);
         break;
@@ -1256,6 +1278,24 @@ export class GameSession {
     return draft
       ? { type: 'carry', carryId: message.carryId, draft: this.projection.draft(draft, room.snapshot) }
       : undefined;
+  }
+  /* A flip answers with the held piece too, so a face turned up in hand reaches the carrier with the reply rather than with the next frame. */
+  private flippedCarry(
+    viewer: Viewer,
+    message: Extract<ClientMessage, { type: 'flip' }>
+  ): Extract<ServerMessage, { type: 'carry' }> {
+    const room = this.room!;
+    const draft = room.flip(viewer, message);
+    const [carry] = this.projection.carries(
+      room.publicCarries().filter((candidate) => candidate.id === message.carryId),
+      room.snapshot
+    );
+    return {
+      type: 'carry',
+      carryId: message.carryId,
+      draft: this.projection.draft(draft, room.snapshot),
+      ...(carry ? { held: carry.held } : {}),
+    };
   }
   pointer(...args: Parameters<Room['pointer']>) {
     return this.room!.pointer(...args);

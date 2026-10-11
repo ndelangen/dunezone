@@ -140,7 +140,7 @@ describe('shared phase progression', () => {
       expectedVersion: 0,
       pickup: 'top',
     });
-    const next = room.drop(alice, 'free-move', [0, 0.38, 0], 0);
+    const next = room.drop(alice, 'free-move', { position: [0, 0.38, 0], orientation: 0 });
     expect(next.table.pieces.find((piece) => piece.id === 'carry-free-move')?.zoneId).toBe('polar-sink');
     expect(next.phase).toBe(9);
     expect(() => gameSnapshotSchema.parse(next)).not.toThrow();
@@ -187,7 +187,7 @@ describe('shared spice commands', () => {
     const room = new Room(initialSnapshot(), seated);
     const first = spawn(room, 10);
     begin(room, first.id, 'move-first');
-    room.accept(room.drop(alice, 'move-first', [0, 0.38, 0], 0), 'move-first');
+    room.accept(room.drop(alice, 'move-first', { position: [0, 0.38, 0], orientation: 0 }), 'move-first');
     const moved = room.snapshot.table.pieces.find((piece) => piece.id === first.id)!;
     expect(moved.position).not.toEqual(first.position);
     const second = spawn(room, 2);
@@ -196,7 +196,7 @@ describe('shared spice commands', () => {
     expect(room.snapshot.table.pieces.find((piece) => piece.id === first.id)).toEqual(moved);
     expect(room.snapshot.table.pieces.filter(isSpicePiece).map((piece) => piece.items.length)).toEqual([10, 2]);
     begin(room, moved.id, 'combine');
-    room.accept(room.drop(alice, 'combine', second.position, 0), 'combine');
+    room.accept(room.drop(alice, 'combine', { position: second.position, orientation: 0 }), 'combine');
     expect(room.snapshot.table.pieces.filter(isSpicePiece)).toHaveLength(1);
     expect(room.snapshot.table.pieces.find((piece) => piece.id === second.id)?.items).toHaveLength(12);
   });
@@ -226,7 +226,10 @@ describe('shared spice commands', () => {
     expect(room.snapshot).toEqual(before);
     expect(room.publicCarries()).toEqual(carries);
     if (blocked === 'reserved') {
-      room.accept(room.drop(alice, 'reserved-spice-bank', spiceBankSlot().position, 0), 'reserved-spice-bank');
+      room.accept(
+        room.drop(alice, 'reserved-spice-bank', { position: spiceBankSlot().position, orientation: 0 }),
+        'reserved-spice-bank'
+      );
       expect(room.snapshot.table.pieces.filter(isSpicePiece)).toEqual([]);
     }
   });
@@ -236,7 +239,9 @@ describe('shared spice commands', () => {
     const initial = structuredClone(room.snapshot.table.pieces);
     const spice = spawn(room, 10);
     begin(room, spice.id, 'return-whole');
-    expect(() => room.drop(bob, 'return-whole', spiceBankSlot().position, 0)).toThrow('carry has ended');
+    expect(() => room.drop(bob, 'return-whole', { position: spiceBankSlot().position, orientation: 0 })).toThrow(
+      'carry has ended'
+    );
     expect(() =>
       room.begin(bob, {
         carryId: 'competing',
@@ -245,7 +250,10 @@ describe('shared spice commands', () => {
         pickup: 'whole',
       })
     ).toThrow('Another player is carrying');
-    room.accept(room.drop(alice, 'return-whole', spiceBankSlot().position, 0), 'return-whole');
+    room.accept(
+      room.drop(alice, 'return-whole', { position: spiceBankSlot().position, orientation: 0 }),
+      'return-whole'
+    );
     expect(room.snapshot.table.pieces).toEqual(initial);
     expect(room.snapshot.versions).not.toHaveProperty(spice.id);
     expect(room.snapshot.table.events[0].message).toBe('Harkonnen returned 10 spice to the Spice Bank.');
@@ -258,7 +266,7 @@ describe('shared spice commands', () => {
       const room = new Room(initialSnapshot(), seated);
       const first = spawn(room, pickup === 'top' ? 3 : 1);
       begin(room, first.id, 'move-donor');
-      room.accept(room.drop(alice, 'move-donor', [0, 0.38, 0], 0), 'move-donor');
+      room.accept(room.drop(alice, 'move-donor', { position: [0, 0.38, 0], orientation: 0 }), 'move-donor');
       const second = spawn(room, 4);
       begin(room, first.id, 'two-donors', pickup);
       room.pose(alice, { carryId: 'two-donors', seq: 1, position: second.position, orientation: 0 });
@@ -267,7 +275,7 @@ describe('shared spice commands', () => {
       expect(() => room.command(bob, { kind: 'split', pieceId: second.id, count: 1 }, before.revision)).toThrow(
         'carrying'
       );
-      room.accept(room.drop(alice, 'two-donors', spiceBankSlot().position, 0), 'two-donors');
+      room.accept(room.drop(alice, 'two-donors', { position: spiceBankSlot().position, orientation: 0 }), 'two-donors');
       expect(room.snapshot.table.pieces.find((piece) => piece.id === first.id)?.items).toEqual(
         pickup === 'top' ? first.items.slice(0, -1) : undefined
       );
@@ -283,7 +291,10 @@ describe('shared spice commands', () => {
     const room = new Room(initialSnapshot(), seated);
     const before = items(room.snapshot);
     begin(room, 'harkonnen-force-stack', 'ordinary-piece');
-    room.accept(room.drop(alice, 'ordinary-piece', spiceBankSlot().position, 0), 'ordinary-piece');
+    room.accept(
+      room.drop(alice, 'ordinary-piece', { position: spiceBankSlot().position, orientation: 0 }),
+      'ordinary-piece'
+    );
     expect(items(room.snapshot)).toEqual(before);
     expect(room.snapshot.table.events[0].command).not.toBe('spice.return');
   });
@@ -417,11 +428,116 @@ describe('server-owned tabletop carries', () => {
     expect(carry?.held.id).toBe('harkonnen-force-stack');
     expect(carry?.held.position).toEqual([0, 0.38, 0]);
     expect(carry?.withdrawnCounts['harkonnen-force-stack']).toBe(5);
-    const next = room.drop(alice, 'whole', [0, 0.38, 0], 0.1);
+    const next = room.drop(alice, 'whole', { position: [0, 0.38, 0], orientation: 0.1 });
     expect(items(next)).toEqual(items(room.snapshot));
     expect(next.versions['harkonnen-force-stack']).toBe(1);
     room.accept(next, 'whole');
     expect(room.carries.size).toBe(0);
+  });
+
+  test('turns a held card over in hand, never back on a repeated message, and logs the flip where it lands', () => {
+    const room = new Room(initialSnapshot(), seated);
+    const before = room.snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+    room.begin(alice, { carryId: 'flip', sourcePieceId: 'treachery-card-loose', expectedVersion: 0, pickup: 'top' });
+    expect(room.flip(alice, { carryId: 'flip', flips: 1 }).flips).toBe(1);
+    expect(room.flip(alice, { carryId: 'flip', flips: 0 }).flips).toBe(1);
+    expect(room.heldFor('flip')?.items[0]?.faceUp).toBe(!before.items[0]!.faceUp);
+    const held = room.publicCarries()[0]?.held;
+    expect(held?.flipRevision).toBe((before.flipRevision ?? 0) + 1);
+    expect(held?.items[0]?.faceUp).toBe(!before.items[0]!.faceUp);
+    expect(() => room.take(alice, { carryId: 'flip', requestId: 'take', donorPieceId: 'treachery-deck' })).toThrow();
+    const next = room.drop(alice, 'flip', { position: [0, 0.38, 0], orientation: 0 });
+    const landed = next.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
+    expect(landed?.items[0]?.faceUp).toBe(!before.items[0]!.faceUp);
+    expect(next.table.events.slice(0, 2).map((event) => event.command)).toEqual(['piece.move', 'piece.flip']);
+  });
+
+  test('refuses turning over spice, which has no other side', () => {
+    const room = new Room(initialSnapshot(), seated);
+    room.accept(room.command(alice, { kind: 'spice-spawn', count: 3 }, 0));
+    const spice = room.snapshot.table.pieces.find(isSpicePiece)!;
+    room.begin(alice, {
+      carryId: 'spice',
+      sourcePieceId: spice.id,
+      expectedVersion: room.snapshot.versions[spice.id]!,
+      pickup: 'whole',
+    });
+    expect(() => room.flip(alice, { carryId: 'spice', flips: 1 })).toThrow('cannot be turned over');
+    const next = room.drop(alice, 'spice', { position: [0, 0.38, 0], orientation: 0, flips: 1 });
+    expect(next.table.events.slice(0, 2).map((event) => event.command)).not.toContain('piece.flip');
+  });
+
+  test('refuses turning over an unrevealed prediction card in hand, since placing it is its reveal', () => {
+    const initial = initialSnapshot();
+    const prediction = { stepId: 'faction-step-1', factionId: 'harkonnen', turn: 4 };
+    const front = 'https://table.test/published/cards/prediction/card.jpg';
+    const back = 'https://table.test/published/cardback-presets/prediction/cardback.jpg';
+    const withPrediction = (revealedAt: number | null) =>
+      new Room(
+        {
+          ...initial,
+          privatePredictions: {
+            'faction-step-1': {
+              factionId: 'atreides',
+              choice: { factionId: 'harkonnen', turn: 4 },
+              lockedAt: 1,
+              revealedAt,
+            },
+          },
+          table: {
+            ...initial.table,
+            pieces: initial.table.pieces.map((piece) =>
+              piece.id === 'treachery-card-loose'
+                ? {
+                    ...piece,
+                    items: piece.items.map((item) => ({
+                      ...item,
+                      artwork: { front, back, type: 'card-prediction', prediction },
+                    })),
+                  }
+                : piece
+            ),
+          },
+        },
+        seated
+      );
+    const unrevealed = withPrediction(null);
+    unrevealed.begin(alice, {
+      carryId: 'guess',
+      sourcePieceId: 'treachery-card-loose',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    expect(() => unrevealed.flip(alice, { carryId: 'guess', flips: 1 })).toThrow('cannot be turned over');
+    const next = unrevealed.drop(alice, 'guess', { position: [0, 0.38, 0], orientation: 0, flips: 1 });
+    expect(next.table.events.slice(0, 2).map((event) => event.command)).not.toContain('piece.flip');
+
+    /* Once placed and revealed, it turns over in hand like any card. */
+    const revealed = withPrediction(5);
+    revealed.begin(alice, {
+      carryId: 'shown',
+      sourcePieceId: 'treachery-card-loose',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    expect(revealed.flip(alice, { carryId: 'shown', flips: 1 }).flips).toBe(1);
+  });
+
+  test('a drop counting two flips lands the piece as it was, with nothing logged but the move', () => {
+    const room = new Room(initialSnapshot(), seated);
+    const before = room.snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack')!;
+    room.begin(alice, {
+      carryId: 'twice',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'whole',
+    });
+    const next = room.drop(alice, 'twice', { position: [0, 0.38, 0], orientation: 0, flips: 2 });
+    const landed = next.table.pieces.find((piece) => piece.id === before.id);
+    expect(landed?.items).toEqual(before.items);
+    expect(landed?.flipRevision).toBe((before.flipRevision ?? 0) + 2);
+    expect(next.table.events[0]?.command).toBe('piece.move');
+    expect(next.table.events[1]?.command).not.toBe('piece.flip');
   });
 
   test('takes all cards while preserving order, deduplicates takes, and can leave an empty donor', () => {
@@ -449,7 +565,7 @@ describe('server-owned tabletop carries', () => {
     ]);
     expect(carried?.withdrawnCounts['treachery-deck']).toBe(4);
     expect(room.snapshot).toEqual(before);
-    const next = room.drop(alice, 'cards', [0, 0.38, 0], 0);
+    const next = room.drop(alice, 'cards', { position: [0, 0.38, 0], orientation: 0 });
     expect(next.table.pieces.some((piece) => piece.id === 'treachery-deck')).toBe(false);
     expect(items(next)).toEqual(items(before));
   });
@@ -464,7 +580,7 @@ describe('server-owned tabletop carries', () => {
     expect(() =>
       room.begin(bob, { carryId: 'competing', sourcePieceId: 'treachery-deck', expectedVersion: 0, pickup: 'top' })
     ).toThrow('Another player');
-    const next = room.drop(alice, 'packet', [0, 0.38, 0], 0);
+    const next = room.drop(alice, 'packet', { position: [0, 0.38, 0], orientation: 0 });
     expect(items(next)).toEqual(before);
     expect(next.table.pieces.find((piece) => piece.id === 'treachery-card-loose')?.items).toHaveLength(2);
   });
@@ -477,7 +593,7 @@ describe('server-owned tabletop carries', () => {
       1000
     );
     room.begin(bob, { carryId: 'b', sourcePieceId: 'atreides-force-stack', expectedVersion: 0, pickup: 'top' }, 1000);
-    room.accept(room.drop(alice, 'a', [0, 0.38, 0], 0), 'a');
+    room.accept(room.drop(alice, 'a', { position: [0, 0.38, 0], orientation: 0 }), 'a');
     expect(room.publicCarries().map((carry) => carry.id)).toEqual(['b']);
     expect(room.snapshot.table.pieces.find((piece) => piece.id === 'atreides-force-stack')?.locked).toBe(false);
     const before = room.publicCarries();
@@ -486,9 +602,9 @@ describe('server-owned tabletop carries', () => {
     expect(room.publicCarries()).toEqual(before);
     room.accept(room.command(bob, { kind: 'phase', direction: -1 }, 2, Date.now() + PHASE_CHANGE_COOLDOWN_MS));
     expect(room.publicCarries()).toEqual(before);
-    expect(() => room.drop(alice, 'b', [1, 0.38, 0], 0)).toThrow('carry has ended');
+    expect(() => room.drop(alice, 'b', { position: [1, 0.38, 0], orientation: 0 })).toThrow('carry has ended');
     expect(() => room.command(alice, { kind: 'flip', pieceId: 'atreides-force-stack' }, 3)).toThrow('Another player');
-    const dropped = room.drop(bob, 'b', [1, 0.38, 0], 0);
+    const dropped = room.drop(bob, 'b', { position: [1, 0.38, 0], orientation: 0 });
     room.accept(dropped, 'b');
     expect(room.carries.size).toBe(0);
     expect(room.reservations.size).toBe(0);
@@ -513,7 +629,7 @@ describe('server-owned tabletop carries', () => {
       { carryId: 'owned', sourcePieceId: 'atreides-force-stack', expectedVersion: 0, pickup: 'top' },
       1000
     );
-    expect(() => room.drop(alice, 'owned', [0, 0.38, 0], 0)).toThrow('carry has ended');
+    expect(() => room.drop(alice, 'owned', { position: [0, 0.38, 0], orientation: 0 })).toThrow('carry has ended');
     room.renew(bob, 'owned', 7000);
     expect(room.publicCarries()[0]?.expiresAt).toBe(15_000);
     room.sweep(9001);

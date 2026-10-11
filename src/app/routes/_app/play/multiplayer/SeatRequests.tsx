@@ -300,7 +300,8 @@ export function GameMenu({
   table,
   onLeave,
   onClearConfetti,
-}: Readonly<{ table: TableProjection; onLeave: () => void; onClearConfetti?: () => void }>) {
+  sharing,
+}: Readonly<{ table: TableProjection; onLeave: () => void; onClearConfetti?: () => void; sharing: ReactNode }>) {
   /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
   const seated =
     table.viewer.viewerSeat !== SPECTATOR_SEAT &&
@@ -318,6 +319,8 @@ export function GameMenu({
         />
       </Menu.Target>
       <Menu.Dropdown>
+        {sharing}
+        <Menu.Divider />
         <TableLightingSlider />
         <Menu.Divider />
         {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}

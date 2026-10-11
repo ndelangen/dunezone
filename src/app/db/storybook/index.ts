@@ -5,6 +5,7 @@ export type { SeedReference } from './protocol';
 export type { WorkerIdentity } from './protocol';
 export {
   convexNeverAnswers,
+  seatFactionsResolve,
   StorybookDatabaseProvider,
   useStorybookDatabaseClient,
   useStorybookDatabaseReset,

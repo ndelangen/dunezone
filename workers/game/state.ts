@@ -83,6 +83,8 @@ export const storedSnapshotSchema = gameSnapshotSchema
     /* Public card handles change independently of retained card identity. Never serialized. */
     cardHandles: z.record(tableIdSchema, tableIdSchema).default({}),
     pieceHandles: z.record(tableIdSchema, tableIdSchema).default({}),
+    /* Every card front the game has held, sorted; it only grows, so a hidden card that leaves the game never tells which one it was. */
+    cardFaces: z.array(z.string().url()).default([]),
     /* The board size the stored positions were laid out for; every snapshot read through this schema is on the current one. */
     boardLayout: z.literal(BOARD_LAYOUT).default(BOARD_LAYOUT),
   });
@@ -163,10 +165,47 @@ export function openPeek(snapshot: StoredSnapshot, factionId: string, pieceId?: 
   return piece && grantHolds(snapshot, grant, piece, factionId) ? piece : undefined;
 }
 
+function cardFronts(pieces: readonly StoredPiece[]) {
+  return pieces.flatMap((piece) =>
+    piece.kind === 'card' ? piece.items.flatMap((item) => (item.artwork?.front ? [item.artwork.front] : [])) : []
+  );
+}
+
+/** The fronts of every card a snapshot holds: on the table, in a hand and in a battle plan. */
+function heldCardFronts(snapshot: StoredSnapshot) {
+  return [
+    ...cardFronts(snapshot.table.pieces),
+    ...Object.values(snapshot.factionInventories).flatMap(cardFronts),
+    ...(snapshot.battleState?.plans.flatMap((plan) => (plan ? cardFronts(plan.pieces) : [])) ?? []),
+  ];
+}
+
+function sortedFaces(faces: Iterable<string>) {
+  return [...new Set(faces)].sort((a, b) => (a < b ? -1 : Number(a > b)));
+}
+
+/**
+ * The faces a commit leaves known: those known before, the fronts the table held before and those it holds after.
+ * A card the commit took out of the game stays among them, so the list never tells which hidden card left.
+ */
+export function withKnownCardFaces(before: StoredSnapshot, next: StoredSnapshot): StoredSnapshot {
+  return {
+    ...next,
+    cardFaces: sortedFaces([
+      ...before.cardFaces,
+      ...heldCardFronts(before),
+      ...next.cardFaces,
+      ...heldCardFronts(next),
+    ]),
+  };
+}
+
 /** Every delivery uses this projection before serialization or delta computation. */
 export class RoomProjection {
   private readonly snapshots = new WeakMap<StoredSnapshot, Map<string | undefined, GameSnapshot>>();
   private readonly pieces = new WeakMap<TablePiece, Map<string, TablePiece>>();
+  /* The last list of card faces sent, kept so an unchanged list is the same array and a delta leaves it out. */
+  private knownFaces: string[] = [];
 
   constructor(private readonly secret: string) {}
 
@@ -213,6 +252,15 @@ export class RoomProjection {
     return projected;
   }
 
+  /** Every card face a page may load ahead of showing it: the whole set, in no order that ties a face to a card. */
+  private cardFaces(snapshot: StoredSnapshot) {
+    const faces = sortedFaces([...snapshot.cardFaces, ...heldCardFronts(snapshot)]);
+    if (faces.length !== this.knownFaces.length || faces.some((face, index) => face !== this.knownFaces[index])) {
+      this.knownFaces = faces;
+    }
+    return this.knownFaces;
+  }
+
   /** The piece a faction holds open, every face showing, while it still lies on the table. */
   private peek(snapshot: StoredSnapshot, factionId: string) {
     const piece = openPeek(snapshot, factionId);
@@ -256,7 +304,8 @@ export class RoomProjection {
     };
   }
 
-  snapshot(snapshot: StoredSnapshot, factionId?: string): GameSnapshot {
+  /** `faces` is the game whose card faces go along; a history step passes the live game (see Session.historyFor). */
+  snapshot(snapshot: StoredSnapshot, factionId?: string, faces: StoredSnapshot = snapshot): GameSnapshot {
     let audiences = this.snapshots.get(snapshot);
     if (!audiences) {
       audiences = new Map();
@@ -378,6 +427,7 @@ export class RoomProjection {
             }
           : {}),
         factionArtwork: snapshot.factionArtwork,
+        cardFaces: this.cardFaces(faces),
         combatFaces: snapshot.combatFaces,
         battleResults: snapshot.battleResults.map((result) => ({
           ...result,
@@ -398,6 +448,7 @@ export class RoomProjection {
         ...(draft ? { draft } : {}),
         ...(swapping ? { swapping } : {}),
         ...(snapshot.bidding ? { bidding: snapshot.bidding } : {}),
+        ...(snapshot.alliances ? { alliances: snapshot.alliances } : {}),
         ...(snapshot.lastTurn ? { lastTurn: snapshot.lastTurn } : {}),
         controls: controls && {
           ...controls,

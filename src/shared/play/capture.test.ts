@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
 import { toStoredHeroKey } from '../factions/schema';
-import { factionCaptureSchema, factionDefinitionSchema } from './capture';
+import { factionCaptureSchema, factionDefinitionSchema, publicFaction, publicFactionSchema } from './capture';
+import type { FactionCapture } from './capture';
 
 /* The glossary term is "Faction leader"; the catalogue answer and stored captures keep the `hero` literal. */
 describe('the `hero` literal on captures', () => {
@@ -32,5 +33,20 @@ describe('the `hero` literal on captures', () => {
 
     expect(decoder.parse(assetPublishingFaction)).toEqual(stored);
     expect(decoder.parse(stored)).toEqual(stored);
+  });
+});
+
+describe('a faction sheet any viewer may read', () => {
+  it('is the captured definition, not the live one, and leaves out troops, Extras and phases', () => {
+    const definition = factionCaptureSchema.shape.definition.parse({
+      ...assetPublishingFaction,
+      rules: { ...assetPublishingFaction.rules, startText: 'Start as captured.' },
+    });
+    const sheet = publicFaction({ definition } as FactionCapture);
+
+    expect(publicFactionSchema.parse(sheet)).toEqual(sheet);
+    expect(sheet.rules.startText).toBe('Start as captured.');
+    expect(sheet.leaders).toEqual(assetPublishingFaction.leaders);
+    expect(Object.keys(sheet).sort()).toEqual(['background', 'leaders', 'logo', 'rules']);
   });
 });

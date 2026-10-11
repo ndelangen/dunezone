@@ -201,6 +201,52 @@ export const DeleteACard = meta.story({
 });
 
 /**
+ * Seat 1 lifts the top card off the Treachery deck and turns it over in hand: every seat sees its face while it is held, and it lands face up with the flip in the table's events.
+ * Pick up any card, token or stack and press F while still holding it to try it by hand.
+ */
+export const FlipWhileCarrying = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
+    const table = sandbox.table!;
+    const deck = piece((candidate) => candidate.stackKey === 'deck:treachery-deck');
+    const other = journeyViewers().find((seat) => seat !== table.seat)!;
+    const position: [number, number, number] = [0, 0.4, 1.5];
+    table.receive({
+      type: 'begin',
+      carryId: 'sandbox-flip',
+      sourcePieceId: deck.id,
+      expectedVersion: shown().versions[deck.id]!,
+      pickup: 'top',
+    });
+    table.receive({ type: 'pose', carryId: 'sandbox-flip', seq: 1, position, orientation: 0 });
+    table.receive({ type: 'flip', carryId: 'sandbox-flip', flips: 1 });
+    expect(table.refusal).toBeUndefined();
+    const held = table.frame(other).carries[0]!.held;
+    expect(held.items[0]).toMatchObject({ faceUp: true, artwork: { front: expect.any(String) } });
+
+    table.receive({
+      type: 'drop',
+      commandId: 'sandbox-flip-drop',
+      carryId: 'sandbox-flip',
+      position,
+      orientation: 0,
+      flips: 1,
+    });
+    expect(table.refusal).toBeUndefined();
+    const landed = table
+      .frame(other)
+      .snapshot.table.pieces.find((candidate) => candidate.items[0]?.id === held.items[0]!.id)!;
+    expect(landed.items[0]?.faceUp).toBe(true);
+    expect(
+      shown()
+        .table.events.slice(0, 2)
+        .map((event) => event.command)
+    ).toEqual(['deck.draw', 'piece.flip']);
+  },
+});
+
+/**
  * Seat 1 lays a card from its hand in its hidden zone and a leader on top of it, as a token sits on a tracker card's track.
  * The zone is part of the hand, so no other seat's frame carries it.
  * Right-click a piece in the Hand tab and choose "Move to hidden zone" to try it by hand;

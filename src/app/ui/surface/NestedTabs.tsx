@@ -3,10 +3,13 @@ import type { Link, LinkComponentProps, RegisteredRouter } from '@tanstack/react
 import clsx from 'clsx';
 import {
   Children,
+  cloneElement,
   createContext,
   createElement,
   isValidElement,
   useContext,
+  useEffect,
+  useEffectEvent,
   useId,
   useLayoutEffect,
   useRef,
@@ -18,6 +21,7 @@ import type {
   Dispatch,
   ElementType,
   FocusEvent,
+  HTMLAttributes,
   KeyboardEvent,
   PropsWithChildren,
   ReactElement,
@@ -362,41 +366,73 @@ function NestedTabsTooltip({
   description?: string;
   help?: string;
   isScrolling: boolean;
-  children: ReactElement;
+  children: ReactElement<Pick<HTMLAttributes<HTMLElement>, 'onFocus' | 'onBlur'>>;
 }) {
   const [shown, setShown] = useState<'closed' | 'short' | 'help'>('closed');
   const openTimer = useRef(0);
   const helpTimer = useRef(0);
+  /* The pointer resting on the item, or keyboard focus on it: either keeps the tooltip coming. */
+  const engaged = useRef({ pointer: false, focus: false });
 
-  const close = () => {
+  const clearTimers = () => {
     window.clearTimeout(openTimer.current);
     window.clearTimeout(helpTimer.current);
-    setShown('closed');
   };
-
-  useLayoutEffect(() => {
-    if (isScrolling) {
-      window.clearTimeout(openTimer.current);
-      window.clearTimeout(helpTimer.current);
+  const arm = () => {
+    clearTimers();
+    openTimer.current = window.setTimeout(() => setShown('short'), TOOLTIP_OPEN_MS);
+    if (help) {
+      helpTimer.current = window.setTimeout(() => setShown('help'), TOOLTIP_HELP_MS);
+    }
+  };
+  const release = (cause: 'pointer' | 'focus') => {
+    engaged.current[cause] = false;
+    if (!engaged.current.pointer && !engaged.current.focus) {
+      clearTimers();
       setShown('closed');
     }
+  };
+  const engage = (cause: 'pointer' | 'focus') => {
+    engaged.current[cause] = true;
+    if (!isScrolling) {
+      arm();
+    }
+  };
+
+  /* Scrolling the rail closes the tooltip; an item still under the pointer once it settles starts over. */
+  const settle = useEffectEvent((scrolling: boolean) => {
+    if (scrolling) {
+      clearTimers();
+      setShown('closed');
+    } else if (engaged.current.pointer || engaged.current.focus) {
+      arm();
+    }
+  });
+  useLayoutEffect(() => {
+    settle(isScrolling);
     return () => {
       window.clearTimeout(openTimer.current);
       window.clearTimeout(helpTimer.current);
     };
   }, [isScrolling]);
 
-  const handleMouseEnter = () => {
-    if (isScrolling) {
+  /* The controlled tooltip loses Mantine's own Escape, so it is restored here wherever focus is: the tooltip closes, focus stays, and the next hover or focus opens it again. */
+  const open = shown !== 'closed';
+  useEffect(() => {
+    if (!open) {
       return;
     }
-    window.clearTimeout(openTimer.current);
-    window.clearTimeout(helpTimer.current);
-    openTimer.current = window.setTimeout(() => setShown('short'), TOOLTIP_OPEN_MS);
-    if (help) {
-      helpTimer.current = window.setTimeout(() => setShown('help'), TOOLTIP_HELP_MS);
-    }
-  };
+    const dismiss = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        engaged.current = { pointer: false, focus: false };
+        window.clearTimeout(openTimer.current);
+        window.clearTimeout(helpTimer.current);
+        setShown('closed');
+      }
+    };
+    document.addEventListener('keydown', dismiss);
+    return () => document.removeEventListener('keydown', dismiss);
+  }, [open]);
 
   const text = shown === 'help' ? help : description;
 
@@ -418,10 +454,28 @@ function NestedTabsTooltip({
       maw={text ? 320 : undefined}
       opened={shown !== 'closed' && !isScrolling}
       events={{ hover: false, focus: false, touch: false }}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={close}
+      onMouseEnter={() => engage('pointer')}
+      onMouseLeave={() => release('pointer')}
     >
-      {children}
+      {cloneElement(children, {
+        /* Keyboard focus shows the tooltip too; the focus a click brings does not, so it closes with the pointer. A caller's own handlers still run. */
+        onFocus: (event: FocusEvent<HTMLElement>) => {
+          children.props.onFocus?.(event);
+          if (!event.currentTarget.matches(':focus-visible')) {
+            return;
+          }
+          /* Already hovered, the tooltip keeps its course; focus only holds it open once the pointer leaves. */
+          if (engaged.current.pointer) {
+            engaged.current.focus = true;
+          } else {
+            engage('focus');
+          }
+        },
+        onBlur: (event: FocusEvent<HTMLElement>) => {
+          children.props.onBlur?.(event);
+          release('focus');
+        },
+      })}
     </Tooltip>
   );
 }
@@ -829,6 +883,11 @@ function splitRootChildren(children: ReactNode) {
  * When any item is a link, the items navigate, so each level stays a named `nav` and its current item carries `aria-current`.
  * With two levels the first connects to the second and the second to the panel;
  * with one level, its items connect straight to the panel.
+ * An item's tooltip names it;
+ * given a `description` it shows that line under the name, and given `help` it swaps in that full guidance once the pointer has rested 1.8 seconds, so a panel needs no help button of its own.
+ * Keyboard focus opens the same tooltip, and both texts describe the item to assistive technology.
+ * The tooltip body and its timing live here while this is their one user;
+ * a second component wanting a name, a description and rested help moves them to a `ui/content` component this composes.
  */
 function NestedTabsBase({ activePath, ariaLabel, className, children }: NestedTabsProps) {
   const { levels, panel } = splitRootChildren(children);

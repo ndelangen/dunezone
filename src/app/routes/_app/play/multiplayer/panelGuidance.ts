@@ -55,6 +55,14 @@ export function battleGuidance(table: TableProjection): Guidance {
   return { description: 'The battle on the table, your plan and earlier results.', help: battleHelp(table) };
 }
 
+export const ALLIANCES_HELP =
+  'Offer an alliance to another faction. Once it accepts, the table shows you as allies until one of you breaks the alliance. Your ruleset decides when alliances may form and how large they may grow.';
+
+export const ALLIANCES_GUIDANCE: Guidance = {
+  description: 'Offer, accept and break alliances.',
+  help: ALLIANCES_HELP,
+};
+
 export const SHARED_INVENTORY_HELP = 'Drag an item onto the table. It lands face down.';
 
 export const SHARED_INVENTORY_GUIDANCE: Guidance = {
@@ -83,7 +91,11 @@ export function phaseHelp(table: TableProjection) {
     : `${phase.instructions} Previous changes the tracker only. Pieces and storm position stay as they are.`;
 }
 
-export function phaseGuidance(table: TableProjection): Guidance {
+/** The Phase tab's guidance; a fixture table without a stage keeps its plain Table tab. */
+export function phaseGuidance(table: TableProjection): Guidance | undefined {
+  if (!table.snapshot.stage) {
+    return undefined;
+  }
   const phase = phaseAt(table.snapshot.phase, table.snapshot.phases);
   return { description: `${phase.label}, and the table's settings.`, help: phaseHelp(table) };
 }
