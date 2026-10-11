@@ -1451,6 +1451,22 @@ test('shows a queued reveal as revealed at once, so its part locks before a late
   expect(table(client).snapshot.battlePlan?.disclosed).toEqual({ leader: true, dial: false, cardIds: ['card-one'] });
 });
 
+test('keeps a reveal locked while it is on its way, until the room answers it', async () => {
+  const client = await connected();
+  const { plan, snapshot } = battleTable();
+  authorize(snapshot);
+  client.editBattlePlan({ adjustment: 1 });
+  const first = command();
+  client.command({ kind: 'battle-disclose', battleId: 'battle-one', disclosure: { element: 'dial' }, shown: true });
+  const afterFirst = { ...snapshot, revision: 1, battlePlan: { ...plan, adjustment: 1 } };
+  socket().deliver(view({ snapshot: afterFirst, completedCommandId: first.commandId }));
+  const reveal = command();
+  expect(reveal.action).toMatchObject({ kind: 'battle-disclose' });
+  expect(table(client).snapshot.battlePlan?.disclosed.dial).toBe(true);
+  socket().deliver(view({ snapshot: { ...afterFirst, revision: 2 }, completedCommandId: reveal.commandId }));
+  expect(table(client).snapshot.battlePlan?.disclosed.dial).toBe(false);
+});
+
 test('sends a battle plan edit queued before a resync once the fresh view arrives', async () => {
   const client = await connected();
   const { plan, snapshot } = battleTable();

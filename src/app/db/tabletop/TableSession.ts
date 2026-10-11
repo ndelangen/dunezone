@@ -1,5 +1,5 @@
 import { tableHandlingOpen } from '@shared/play/admission';
-import type { BattlePlan, BattlePlanInput } from '@shared/play/battle';
+import type { BattlePlanInput } from '@shared/play/battle';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
@@ -315,6 +315,7 @@ export class TableSession {
   private queuedBattlePlan: { battleId: string; patch: Partial<BattlePlanInput> } | null = null;
   /* Readiness and early reveals wait for the plan edits sent before them, so the room judges the plan the player saw. */
   private queuedBattleActions: Extract<PieceAction, { kind: 'battle-ready' | 'battle-disclose' }>[] = [];
+  private disclosuresInFlight = new Map<string, Extract<PieceAction, { kind: 'battle-disclose' }>>();
   private catalogueResult?: Extract<ServerMessage, { type: 'catalogue' }>;
   private spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   private spiceHistoryBefore?: number;
@@ -526,10 +527,9 @@ export class TableSession {
             ...authoritative.battlePlan,
             ...this.pendingBattlePlan.patch,
             ...this.queuedBattlePlan?.patch,
-            disclosed: this.queuedDisclosed(authoritative.battlePlan.disclosed),
           }
         : null;
-    const displayed = pendingPlan
+    const planned = pendingPlan
       ? {
           ...authoritative,
           battlePlan: pendingPlan,
@@ -543,6 +543,7 @@ export class TableSession {
             : {}),
         }
       : authoritative;
+    const displayed = this.history ? planned : this.withUnsettledDisclosures(planned);
     const state = {
       ...tableForViewer(displayed, viewer.viewerSeat),
       factionTieBreaks: snapshotFactionTieBreaks(displayed),
@@ -812,6 +813,7 @@ export class TableSession {
     if (this.seatCommandInFlight === id) {
       this.seatCommandInFlight = null;
     }
+    this.disclosuresInFlight.delete(id);
     if (this.traitorGatherInFlight === id) {
       this.traitorGatherInFlight = null;
       if (outcome === 'completed') {
@@ -1008,6 +1010,7 @@ export class TableSession {
     this.pendingBattlePlan = null;
     this.queuedBattlePlan = null;
     this.queuedBattleActions = [];
+    this.disclosuresInFlight.clear();
     this.seatCommandInFlight = null;
     this.traitorGatherInFlight = null;
     this.spiceHistory = undefined;
@@ -1292,19 +1295,27 @@ export class TableSession {
     return true;
   }
   /*
-   * A reveal waiting behind plan edits already shows as revealed, so the part locks before a later edit can overtake it
-   * and change what the room reveals. A queued hide shows only once the room has it, keeping the part locked meanwhile.
+   * A reveal not yet answered, queued behind plan edits or on its way, already shows as revealed, so its part locks
+   * before a later edit can overtake it and change what the room reveals. A hide shows only once the room has it,
+   * keeping the part locked meanwhile.
    */
-  private queuedDisclosed(disclosed: BattlePlan['disclosed']): BattlePlan['disclosed'] {
-    return this.queuedBattleActions.reduce(
-      (shown, action) =>
-        action.kind !== 'battle-disclose' || !action.shown
-          ? shown
-          : action.disclosure.element === 'card'
-            ? { ...shown, cardIds: [...new Set([...shown.cardIds, action.disclosure.cardId])] }
-            : { ...shown, [action.disclosure.element]: true },
-      disclosed
+  private withUnsettledDisclosures(snapshot: GameSnapshot): GameSnapshot {
+    const reveals = [...this.queuedBattleActions, ...this.disclosuresInFlight.values()].flatMap((action) =>
+      action.kind === 'battle-disclose' && action.shown && action.battleId === snapshot.battle?.id
+        ? [action.disclosure]
+        : []
     );
+    if (!snapshot.battlePlan || !reveals.length) {
+      return snapshot;
+    }
+    const disclosed = reveals.reduce(
+      (shown, disclosure) =>
+        disclosure.element === 'card'
+          ? { ...shown, cardIds: [...new Set([...shown.cardIds, disclosure.cardId])] }
+          : { ...shown, [disclosure.element]: true },
+      snapshot.battlePlan.disclosed
+    );
+    return { ...snapshot, battlePlan: { ...snapshot.battlePlan, disclosed } };
   }
   private flushBattleActions() {
     if (this.canAct() && !this.planInFlight() && this.queuedBattleActions.length) {
@@ -1353,6 +1364,8 @@ export class TableSession {
     } else if (action.kind === 'traitors-gather' && this.traitorGatherInFlight === null && this.tabletopTraitors()) {
       /* A second click before the first settles is refused for its stale revision, so the first gather is the one to follow; with no Traitor left on the table there is no pile to look at. */
       this.traitorGatherInFlight = commandId;
+    } else if (action.kind === 'battle-disclose') {
+      this.disclosuresInFlight.set(commandId, action);
     }
     this.emit();
     return this.error === null ? commandId : undefined;
