@@ -157,7 +157,7 @@ describe('an open peek never shows a card it was not granted', () => {
       expectedVersion: room.snapshot.versions[LOOSE] ?? 0,
       pickup: 'whole',
     });
-    room.accept(room.drop(bob, 'onto-deck', deck(room)!.position, 0), 'onto-deck');
+    room.accept(room.drop(bob, 'onto-deck', { position: deck(room)!.position, orientation: 0 }), 'onto-deck');
     expect(deck(room)?.items).toHaveLength(granted.size + 1);
     expect(shown(room)).toEqual([]);
     expect(room.snapshot.peeks).toEqual({});
@@ -171,7 +171,7 @@ describe('an open peek never shows a card it was not granted', () => {
       expectedVersion: room.snapshot.versions[DECK] ?? 0,
       pickup: 'top',
     });
-    room.accept(room.drop(bob, 'off-deck', [0, 0.38, 0], 0), 'off-deck');
+    room.accept(room.drop(bob, 'off-deck', { position: [0, 0.38, 0], orientation: 0 }), 'off-deck');
     expect(room.snapshot.peeks).toEqual({});
   });
 

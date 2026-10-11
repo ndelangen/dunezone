@@ -385,6 +385,10 @@ async function handleWorldRequest(request: WorldRequest, currentWorld: World): P
   if (request.operation === 'rollbackProbe') {
     return await runRollbackProbe();
   }
+  if (request.operation === 'action') {
+    const action = makeFunctionReference<'action', Record<string, unknown>, unknown>(request.name);
+    return await clientFor(currentWorld, request.identity).action(action, request.args as Record<string, unknown>);
+  }
   if (request.operation === 'mutation') {
     return await mutateWorld(currentWorld, request.name, request.args, request.identity);
   }

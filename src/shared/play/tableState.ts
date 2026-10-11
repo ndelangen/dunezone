@@ -126,7 +126,21 @@ function canonicalHeldAtPose(piece: TablePiece | undefined, draft: DraftMove): T
     : null;
 }
 
+/** The piece a carry holds, as it would land: turned over once for every flip made in hand. */
 export function heldPieceFor(state: TableState, draft: DraftMove): TablePiece | null {
+  const held = pieceAsPickedUp(state, draft);
+  const flips = draft.flips ?? 0;
+  if (!held || flips === 0 || !isFlippablePiece(held)) {
+    return held;
+  }
+  return {
+    ...held,
+    items: flips % 2 === 1 ? turnedOver(held.items) : held.items,
+    flipRevision: (held.flipRevision ?? 0) + flips,
+  };
+}
+
+function pieceAsPickedUp(state: TableState, draft: DraftMove): TablePiece | null {
   const canonicalHeld = state.pieces.find((piece) => piece.id === draft.pieceId);
   if (!canonicalHeldMatchesDraft(canonicalHeld, draft)) {
     return null;
@@ -181,10 +195,19 @@ function remainingRenderedPiece(
   return withdrawn ? [{ ...piece, items: [] }] : [];
 }
 
+/* A whole piece in hand shows each flip made while it is held. */
+function withHeldTurnedOver(state: TableState, draft: DraftMove | null | undefined) {
+  if (!draft?.flips) {
+    return state.pieces;
+  }
+  const held = heldPieceFor(state, draft);
+  return held ? state.pieces.map((piece) => (piece.id === held.id ? held : piece)) : state.pieces;
+}
+
 export function renderedPiecesFor(state: TableState): TablePiece[] {
   const draft = state.draftMove;
   if (!draft || draft.withdrawals.length === 0) {
-    return state.pieces.filter((piece) => !piece.inventory || piece.id === draft?.pieceId);
+    return withHeldTurnedOver(state, draft).filter((piece) => !piece.inventory || piece.id === draft?.pieceId);
   }
   const heldPiece = heldPieceFor(state, draft);
   if (!heldPiece) {
@@ -406,12 +429,46 @@ export function appendEvent(state: TableState, event: TableEvent): Pick<TableSta
   };
 }
 
-function isFlippablePiece(piece: TablePiece | undefined): piece is TablePiece {
+/*
+ * A held piece turns over in hand as it would at rest, except a prediction card not yet revealed,
+ * which lands face down so placing it stays its reveal (#1753). Once placed it turns like any card.
+ */
+export function canFlipInHand(
+  piece: TablePiece | null | undefined,
+  unrevealed: (stepId: string) => boolean
+): piece is TablePiece {
+  return (
+    isFlippablePiece(piece) &&
+    !piece.items.some((item) => item.artwork?.prediction && unrevealed(item.artwork.prediction.stepId))
+  );
+}
+
+function isFlippablePiece(piece: TablePiece | null | undefined): piece is TablePiece {
   if (!piece) {
     return false;
   }
   const canFlipKind = piece.kind === 'card' || piece.kind === 'force';
   return pieceCount(piece) > 0 && canFlipKind;
+}
+
+/** A stack turned over: its order reversed and every face the other way up. */
+function turnedOver(items: TablePiece['items']): TablePiece['items'] {
+  return [...items].reverse().map((item) => ({ ...item, faceUp: !item.faceUp }));
+}
+
+function flipEventFor(state: TableState, flipped: TablePiece): TableEvent {
+  return {
+    id: eventId(state.nextEventNumber),
+    command: 'piece.flip',
+    message: `${flipped.label} flipped ${flipped.items.at(-1)?.faceUp ? 'face up' : 'face down'}.`,
+    status: 'accepted',
+  };
+}
+
+/* A carry that landed turned over is logged as a flip first, as if it were flipped where it was picked up. */
+function withCarryFlipEvent(current: TableState, draft: DraftMove, piece: TablePiece): TableState {
+  const turned = (draft.flips ?? 0) % 2 === 1 && isFlippablePiece(piece);
+  return turned ? { ...current, ...appendEvent(current, flipEventFor(current, piece)) } : current;
 }
 
 export function flipPieceInState(state: TableState, pieceId?: string): TableState {
@@ -427,13 +484,7 @@ export function flipPieceInState(state: TableState, pieceId?: string): TableStat
   if (blockedReason) {
     return rejection(state, 'piece.flip', blockedReason);
   }
-  const items = [...piece.items].reverse().map((item) => ({ ...item, faceUp: !item.faceUp }));
-  const event: TableEvent = {
-    id: eventId(state.nextEventNumber),
-    command: 'piece.flip',
-    message: `${piece.label} flipped ${items.at(-1)?.faceUp ? 'face up' : 'face down'}.`,
-    status: 'accepted',
-  };
+  const items = turnedOver(piece.items);
   return {
     ...state,
     selectedPieceId: piece.id,
@@ -442,7 +493,7 @@ export function flipPieceInState(state: TableState, pieceId?: string): TableStat
         ? { ...piece, items, battleOverlay: undefined, flipRevision: (piece.flipRevision ?? 0) + 1 }
         : candidate
     ),
-    ...appendEvent(state, event),
+    ...appendEvent(state, flipEventFor(state, { ...piece, items })),
   };
 }
 
@@ -731,8 +782,12 @@ export function applyDraftToState(current: TableState, requestedDraft: DraftMove
   if ('rejected' in application) {
     return application.rejected;
   }
-  const { draft } = application;
-  return draft.operation === 'merge' && draft.targetPieceId ? applyMerge(application) : applyMove(application);
+  const logged = {
+    ...application,
+    current: withCarryFlipEvent(application.current, application.draft, application.piece),
+  };
+  const { draft } = logged;
+  return draft.operation === 'merge' && draft.targetPieceId ? applyMerge(logged) : applyMove(logged);
 }
 
 function additionalTargetMatches(held: TablePiece, target: TablePiece, draft: DraftMove): boolean {
@@ -776,8 +831,10 @@ export function draftWithAdditionalTop(state: TableState, draft: DraftMove): Dra
 
 export function canTakeAdditionalFromDraft(state: TableState, draft: DraftMove): boolean {
   const heldPiece = heldPieceFor(state, draft);
+  /* A piece turned over in hand would turn the next top over with it, so a flip ends taking more. */
   return (
     draft.pickedUpItemIds.length === 1 &&
+    !draft.flips &&
     heldPiece !== null &&
     !heldPiece.locked &&
     withdrawalConstraintMessage(state, draft) === null

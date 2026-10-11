@@ -21,11 +21,13 @@ import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscrip
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import { usePreloadedCardFaces } from '../../../../widgets/tabletop/cardFacePreload';
 import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
 import { FoilConfetti } from '../FoilConfetti';
+import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
@@ -730,11 +732,13 @@ function ConnectedTable({
   table,
   error,
   connection,
+  identity,
 }: Readonly<{
   client: TableSession;
   table: TableProjection;
   error: string | null;
   connection: string;
+  identity: GameIdentity;
 }>) {
   const progress = gameProgress(table.snapshot);
   const celebration = useResultCelebration(table);
@@ -782,6 +786,18 @@ function ConnectedTable({
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
+            gameIdentity={
+              <Stack gap={0} miw={0}>
+                <Text size="sm" fw={700} style={{ overflowWrap: 'anywhere' }}>
+                  {identity.name}
+                </Text>
+                {identity.rulesetName ? (
+                  <Text size="xs" c="dimmed">
+                    Ruleset: {identity.rulesetName}
+                  </Text>
+                ) : null}
+              </Stack>
+            }
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
             stage={stage}
@@ -854,6 +870,7 @@ function ConnectedTable({
               <>
                 <SeatPopover client={client} table={table} error={error} />
                 <GameMenu
+                  sharing={<GameLink address={identity.address} />}
                   table={table}
                   onLeave={() => setLeaving(true)}
                   onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
@@ -1016,13 +1033,24 @@ function ConnectedTable({
   );
 }
 
-export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: string; exitControl: ReactNode }>) {
+type GameIdentity = Readonly<{ name: string; rulesetName: string | null; address: string }>;
+
+export default function HostedTable({
+  gameId,
+  exitControl,
+  identity,
+}: Readonly<{
+  gameId: string;
+  exitControl: ReactNode;
+  identity: GameIdentity;
+}>) {
   const runtime = useContext(GameRuntimeContext);
   const [client] = useState(
     () => new TableSession(gameId, new GameSubscription(gameId, requestPlayTicket, runtime), runtime)
   );
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);
+  usePreloadedCardFaces(view.table?.snapshot.cardFaces);
   if (!view.table) {
     return (
       <TableWait status={view.error ?? 'Connecting to the hosted table...'} connection={view.status}>
@@ -1038,7 +1066,13 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
   }
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
-      <ConnectedTable client={client} table={view.table} error={view.error} connection={view.status} />
+      <ConnectedTable
+        identity={identity}
+        client={client}
+        table={view.table}
+        error={view.error}
+        connection={view.status}
+      />
     </ServerClockContext.Provider>
   );
 }

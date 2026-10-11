@@ -82,6 +82,7 @@ export type WorkerRequest =
   | { id: number; operation: 'rollbackProbe' }
   | { id: number; operation: 'contextConformance' }
   | { id: number; operation: 'query'; name: string; args: unknown; identity?: WorkerIdentity }
+  | { id: number; operation: 'action'; name: string; args: unknown; identity?: WorkerIdentity }
   | { id: number; operation: 'mutation'; name: string; args: unknown; identity?: WorkerIdentity }
   | { id: number; operation: 'reset'; seed: SeedDocument[] }
   /* A seed reference resolved to its id or text, for a story that addresses a route by a generated id. */

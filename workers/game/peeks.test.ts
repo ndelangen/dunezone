@@ -33,7 +33,8 @@ function table(count: number): StoredSnapshot {
   return { ...fixture, table: { ...fixture.table, pieces: [deck] } };
 }
 
-const fronts = (snapshot: ReturnType<RoomProjection['snapshot']>) =>
+/* Every card face in the game reaches every page by design, as a sorted list that ties no face to a card; the rest of a frame must not. */
+const fronts = ({ cardFaces: _faces, ...snapshot }: ReturnType<RoomProjection['snapshot']>) =>
   JSON.stringify(snapshot).match(/treachery\/\d\.jpg/g) ?? [];
 
 test('a peek shows the faces to the peeker alone, and tells everyone who peeked', () => {
