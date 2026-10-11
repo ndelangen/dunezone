@@ -437,6 +437,7 @@ export class Room {
         'flip',
         'lock',
         'rotate',
+        'delete',
         'deck-draw',
         'deck-shuffle',
         'peek',

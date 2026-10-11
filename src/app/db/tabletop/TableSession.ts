@@ -108,6 +108,10 @@ export type TableProjection = {
     draw(pieceId: string, recipient?: string): void;
     shuffle(pieceId: string): void;
   };
+  /* Taking a card, token or stack out of the game for good; present only while this viewer can act. */
+  deleteControls?: {
+    remove(pieceId: string): void;
+  };
   /* The piece this viewer's faction holds open by peeking, faces showing; only its own frames carry one. */
   peek: Peek | null;
   /* Peeking at a hidden card, token or deck, and changing a deck held open; present only while this viewer's faction can act. */
@@ -151,6 +155,9 @@ function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: Readonly
   return true;
 }
 
+/* The controls a panel offers only while present, so only their presence counts for a panel's render. */
+const PANEL_CONTROLS = ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls', 'closePeek'] as const;
+
 /*
  * Whether the panels would show `next` as they show `previous`: everything they read is the same, and only where held pieces are on their way differs.
  * A carry moves many times a second, and only the scene follows it, so the panels keep the table they have until something they show changes.
@@ -175,10 +182,7 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     previous.state.draftMove?.pieceId === next.state.draftMove?.pieceId &&
     previous.gestureActivePieceId === next.gestureActivePieceId &&
     previous.hoveredPieceId === next.hoveredPieceId &&
-    Boolean(previous.spiceReserveControls) === Boolean(next.spiceReserveControls) &&
-    Boolean(previous.deckControls) === Boolean(next.deckControls) &&
-    Boolean(previous.peekControls) === Boolean(next.peekControls) &&
-    Boolean(previous.closePeek) === Boolean(next.closePeek) &&
+    PANEL_CONTROLS.every((key) => Boolean(previous[key]) === Boolean(next[key])) &&
     (previous.peek === null) === (next.peek === null) &&
     sameMembers(previous.remoteCarriedIds, next.remoteCarriedIds) &&
     sameMembers(previous.reservedPieceIds, next.reservedPieceIds) &&
@@ -497,6 +501,7 @@ export class TableSession {
       affordances: [],
       spiceReserveControls: undefined,
       deckControls: undefined,
+      deleteControls: undefined,
       peek: null,
       peekControls: undefined,
       closePeek: undefined,
@@ -583,6 +588,7 @@ export class TableSession {
               shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
             }
           : undefined,
+      deleteControls: this.deleteControls(canHandleTable),
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
       peek:
         this.history || displayed.peek?.piece.id === this.closedPeek?.pieceId
@@ -607,6 +613,11 @@ export class TableSession {
       flippingPieceIds: local.flippingPieceIds,
       serverNow: this.subscription.serverNow,
     };
+  }
+  private deleteControls(canHandleTable: boolean): TableProjection['deleteControls'] {
+    return canHandleTable && this.subscription.supportsCommand('delete')
+      ? { remove: (pieceId) => this.command({ kind: 'delete', pieceId }) }
+      : undefined;
   }
   /* Whether the peeked deck still shows the order this viewer asked for: the room has neither refused it nor sent the deck again. */
   private arrangementShown(peek: Peek | null) {

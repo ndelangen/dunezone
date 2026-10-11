@@ -107,6 +107,7 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   flip: () => [[bob, { kind: 'flip', pieceId: DECK }]],
   lock: () => [[bob, { kind: 'lock', pieceId: DECK }]],
   rotate: () => [[bob, { kind: 'rotate', pieceId: DECK, direction: 1 }]],
+  delete: () => [[bob, { kind: 'delete', pieceId: DECK }]],
   storm: () => [[bob, { kind: 'storm', direction: 1 }]],
   phase: () => [[bob, { kind: 'phase' }]],
   turn: () => [[bob, { kind: 'turn', turn: 2 }]],
