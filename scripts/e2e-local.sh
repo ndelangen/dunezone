@@ -25,6 +25,9 @@ APP_PID=""
 ADMIN_KEY_FILE="$ROOT_DIR/.playwright/admin-key"
 APP_URL_FILE="$ROOT_DIR/.playwright/app-url"
 APP_PID_FILE="$ROOT_DIR/.playwright/app.pid"
+BUILD_LOG="$ROOT_DIR/.playwright/build.log"
+BUILD_PID_FILE="$ROOT_DIR/.playwright/build.pid"
+BUILD_EXIT_FILE="$ROOT_DIR/.playwright/build.exit"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   if [[ "$PHASE" == "down" ]]; then
@@ -89,6 +92,7 @@ cleanup() {
   if [[ -n "$APP_PID" ]]; then
     kill "$APP_PID" >/dev/null 2>&1 || true
   fi
+  stop_background_build
   compose down -v
 }
 
@@ -123,12 +127,80 @@ print_app_diagnostics() {
   echo "  - recent app.log:"
   tail -n 120 "$ROOT_DIR/.playwright/app.log" || true
   echo "  - recent build.log:"
-  tail -n 40 "$ROOT_DIR/.playwright/build.log" || true
+  tail -n 40 "$BUILD_LOG" || true
 }
 
 load_app_pid() {
   if [[ -z "$APP_PID" && -f "$APP_PID_FILE" ]]; then
     APP_PID="$(<"$APP_PID_FILE")"
+  fi
+}
+
+# E2E runs against the production build, served statically: vite dev's
+# on-demand transforms dominated slow-spec wall clock. VITE_* env is baked
+# at build time, so it must be set on the build, not the server. Sourcemaps
+# let e2e/coverage.ts map V8 coverage of chunks back to src/; minify off
+# keeps that mapping near-exact (validated on prototype/e2e-coverage-build-serve).
+build_app() {
+  VITE_E2E_LOCAL_AUTH="$VITE_E2E_LOCAL_AUTH" VITE_CONVEX_URL="$VITE_CONVEX_URL" \
+    bun run vite build --sourcemap --minify false >"$BUILD_LOG" 2>&1
+}
+
+# The build needs only the VITE_* values from the env file, not a running
+# backend, so `up` starts it before booting and `serve` waits for it.
+# The build (about 37 s on CI) then overlaps the boot and provision steps.
+# Provision regenerates convex/_generated, but the Convex CLI leaves an
+# unchanged file alone and swaps a changed one in whole, so the build never
+# reads a half-written binding; a changed one fails the CI drift check anyway.
+# The child outlives this phase: in CI each phase is its own step, and the
+# runner reaps leftover processes only when the job ends. Its status crosses
+# the step boundary as a file, because a later shell cannot `wait` on it.
+start_background_build() {
+  echo "Building app in the background (vite build --sourcemap --minify false)..."
+  (
+    status=0
+    build_app || status=$?
+    printf '%s' "$status" >"$BUILD_EXIT_FILE"
+  ) </dev/null >/dev/null 2>&1 &
+  printf '%s' "$!" >"$BUILD_PID_FILE"
+}
+
+stop_background_build() {
+  if [[ -f "$BUILD_PID_FILE" && ! -f "$BUILD_EXIT_FILE" ]]; then
+    local build_pid
+    build_pid="$(<"$BUILD_PID_FILE")"
+    pkill -P "$build_pid" >/dev/null 2>&1 || true
+    kill "$build_pid" >/dev/null 2>&1 || true
+  fi
+}
+
+# Bounded at about 300 s (the hosted-play launcher gives its build the same), so a hung build fails
+# the step with its log instead of holding the job until its timeout.
+wait_for_background_build() {
+  local build_pid
+  build_pid="$(<"$BUILD_PID_FILE")"
+  echo "Waiting for the background app build..."
+  for _ in {1..300}; do
+    if [[ -f "$BUILD_EXIT_FILE" ]]; then
+      break
+    fi
+    if ! kill -0 "$build_pid" >/dev/null 2>&1; then
+      # The subshell writes the exit file just before it exits; look once more.
+      sleep 1
+      break
+    fi
+    sleep 1
+  done
+  if [[ ! -f "$BUILD_EXIT_FILE" ]]; then
+    stop_background_build
+    echo "vite build did not report a status."
+    tail -n 60 "$BUILD_LOG" || true
+    exit 1
+  fi
+  if [[ "$(<"$BUILD_EXIT_FILE")" != "0" ]]; then
+    echo "vite build failed."
+    tail -n 60 "$BUILD_LOG" || true
+    exit 1
   fi
 }
 
@@ -146,6 +218,8 @@ phase_up() {
   rm -rf "$ROOT_DIR/test-results" "$ROOT_DIR/playwright-report" "$ROOT_DIR/.playwright"
 
   export_runtime_env
+  mkdir -p "$ROOT_DIR/.playwright"
+  start_background_build
   echo "Resetting and starting the local Convex backend..."
   bun run "$ROOT_DIR/scripts/provision.ts" e2e --stage backend
 }
@@ -172,18 +246,17 @@ phase_serve() {
   export_runtime_env
 
   mkdir -p "$ROOT_DIR/.playwright"
-  # E2E runs against the production build, served statically: vite dev's
-  # on-demand transforms dominated slow-spec wall clock. VITE_* env is baked
-  # at build time, so it must be set on the build, not the server. Sourcemaps
-  # let e2e/coverage.ts map V8 coverage of chunks back to src/; minify off
-  # keeps that mapping near-exact (validated on prototype/e2e-coverage-build-serve).
-  echo "Building app (vite build --sourcemap --minify false)..."
-  VITE_E2E_LOCAL_AUTH="$VITE_E2E_LOCAL_AUTH" VITE_CONVEX_URL="$VITE_CONVEX_URL" \
-    bun run vite build --sourcemap --minify false >"$ROOT_DIR/.playwright/build.log" 2>&1 || {
+  if [[ -f "$BUILD_PID_FILE" ]]; then
+    wait_for_background_build
+  else
+    # No `up` started a build in this checkout, e.g. `serve` run by hand.
+    echo "Building app (vite build --sourcemap --minify false)..."
+    build_app || {
       echo "vite build failed."
-      tail -n 60 "$ROOT_DIR/.playwright/build.log" || true
+      tail -n 60 "$BUILD_LOG" || true
       exit 1
     }
+  fi
 
   echo "Starting app server for Playwright..."
   E2E_APP_PORT="$E2E_APP_PORT" \
