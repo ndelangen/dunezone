@@ -437,7 +437,7 @@ export function canFlipInHand(piece: TablePiece | null | undefined): piece is Ta
   return isFlippablePiece(piece) && !piece.items.some((item) => item.artwork?.prediction);
 }
 
-export function isFlippablePiece(piece: TablePiece | null | undefined): piece is TablePiece {
+function isFlippablePiece(piece: TablePiece | null | undefined): piece is TablePiece {
   if (!piece) {
     return false;
   }
