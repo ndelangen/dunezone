@@ -43,6 +43,7 @@ import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
 import { LogEntries } from './Log';
 import {
+  ALLIANCES_GUIDANCE,
   AUDIT_LOG_GUIDANCE,
   battleGuidance,
   GAME_LOG_GUIDANCE,
@@ -743,6 +744,7 @@ function alliancesTab({ client, table, error }: ConnectionControlsProps) {
       key: 'alliances',
       label: 'Alliances',
       topic: 'alliance' as const,
+      ...ALLIANCES_GUIDANCE,
       content: (
         <>
           {error && <FormError title="From the table">{error}</FormError>}
