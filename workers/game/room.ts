@@ -447,6 +447,7 @@ export class Room {
         'peek-pull',
         'hand-take',
         'hand-play',
+        'hand-zone',
         'bank-withdraw',
         'bank-collect',
         'spice-spawn',

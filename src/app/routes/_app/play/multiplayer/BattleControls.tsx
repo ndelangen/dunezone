@@ -1,4 +1,4 @@
-import { Button, Checkbox, Group, Image, NumberInput, SegmentedControl, Select, Stack, Text } from '@mantine/core';
+import { Button, Checkbox, Group, Menu, NumberInput, SegmentedControl, Select, Stack, Text } from '@mantine/core';
 import type { ButtonProps, NumberInputProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
@@ -13,6 +13,7 @@ import type {
   PublicBattle,
 } from '@shared/play/battle';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
+import { nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
@@ -21,7 +22,6 @@ import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
 import clsx from 'clsx';
@@ -31,19 +31,18 @@ import type { Camera } from 'three';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
-import { CardBack } from '@game/assets/card/Back';
 import { BattleWheel as BattleWheelAsset } from '@game/assets/generic/BattleWheel';
-import { backgroundPresets } from '@game/data/backgrounds';
-import { card } from '@game/data/sizes';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
-import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 import { PointerSessionContext, usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
+import { PieceImage, pieceName } from './HandPiece';
+import { HandPieceMenu, handMenuAnchor } from './HiddenZone';
+import type { HandMenuAnchor } from './HiddenZone';
 
 type Props = { client: TableSession; table: TableProjection };
 const outcomes = [
@@ -51,53 +50,6 @@ const outcomes = [
   ['none', 'No winner'],
   ['right', 'Right side won'],
 ] as const;
-function pieceName(piece: TablePiece) {
-  return piece.items[0]?.artwork?.name ?? piece.label;
-}
-/* A piece without a publication draws the Traitor stand-in, so only real URLs reach `PublishedImage`. */
-function PieceImage({ piece }: { piece: TablePiece }) {
-  const front = piece.items[0]?.artwork?.front;
-  const radius = isBattleLeader(piece) ? '50%' : undefined;
-  if (front) {
-    return (
-      <PieceArtwork
-        piece={piece}
-        src={front}
-        name={pieceName(piece)}
-        width={60}
-        height={piece.kind === 'card' ? 80 : 60}
-        radius={radius}
-      />
-    );
-  }
-  if (piece.kind === 'card') {
-    return (
-      <div style={{ width: 60 }} role="img" aria-label={pieceName(piece)}>
-        <CanvasScale canvasWidth={card.width} canvasHeight={card.height}>
-          <CardBack
-            name={pieceName(piece)}
-            image="/vector/icon/traitor.svg"
-            background={backgroundPresets.traitor}
-            imageOffset={[0, 10]}
-            imageScale={1.1}
-          />
-        </CanvasScale>
-      </div>
-    );
-  }
-  return (
-    <Image
-      src="/vector/icon/traitor.svg"
-      alt={pieceName(piece)}
-      draggable={false}
-      fit="contain"
-      radius={radius}
-      h={60}
-      w={60}
-    />
-  );
-}
-
 type FactionArtwork = TableProjection['snapshot']['factionArtwork'];
 type FactionNames = TableProjection['state']['factionNames'];
 /* A real game keys factions by their Convex ids, so every battle label reads the roster's name and keeps the id only when the roster has none. */
@@ -500,6 +452,7 @@ function canTakeSelected(piece: TablePiece | undefined) {
 }
 export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
+  const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
   return (
     <Section
       helpOnly
@@ -519,28 +472,44 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
           Take selected piece into hand
         </Button>
         <Group gap="sm">
-          {hand.map((piece) => (
-            <Button
-              variant="transparent"
-              h="auto"
-              radius={isBattleLeader(piece) ? '50%' : undefined}
-              p={0}
-              styles={{ label: { height: 'auto' } }}
-              key={piece.id}
-              className={styles.piece}
-              draggable={table.canHandleTable}
-              aria-label={`Drag ${pieceName(piece)} from hand`}
-              onDragStart={(event) => {
-                event.dataTransfer.setData('application/dune-hand', piece.id);
-                const target = event.currentTarget;
-                event.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
-              }}
-            >
-              <PieceImage piece={piece} />
-            </Button>
-          ))}
+          {hand
+            .filter((piece) => !piece.hiddenZone)
+            .map((piece) => (
+              <Button
+                variant="transparent"
+                h="auto"
+                radius={isBattleLeader(piece) ? '50%' : undefined}
+                p={0}
+                styles={{ label: { height: 'auto' } }}
+                key={piece.id}
+                className={styles.piece}
+                draggable={table.canHandleTable}
+                aria-label={`Drag ${pieceName(piece)} from hand`}
+                onDragStart={(event) => {
+                  event.dataTransfer.setData('application/dune-hand', piece.id);
+                  const target = event.currentTarget;
+                  event.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
+                }}
+                onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
+              >
+                <PieceImage piece={piece} />
+              </Button>
+            ))}
         </Group>
       </Stack>
+      <HandPieceMenu anchor={menu} label="Hand actions" onClose={() => setMenu(null)}>
+        <Menu.Item
+          disabled={!table.canHandleTable}
+          onClick={() => {
+            if (menu) {
+              client.command({ kind: 'hand-zone', pieceId: menu.pieceId, at: nextHiddenZoneSpot(hand) });
+            }
+            setMenu(null);
+          }}
+        >
+          Move to hidden zone
+        </Menu.Item>
+      </HandPieceMenu>
     </Section>
   );
 }

@@ -37,6 +37,7 @@ import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, Draftin
 import { DetermineWinner, ResultDecisionBar } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
+import { HiddenZone } from './HiddenZone';
 import { LogEntries } from './Log';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
@@ -916,6 +917,12 @@ function ConnectedTable({
                             label: 'Hand',
                             topic: 'hand' as const,
                             content: <HandControls client={client} table={table} hand={table.snapshot.hand} />,
+                          },
+                          {
+                            key: 'hidden-zone',
+                            label: 'Hidden zone',
+                            topic: 'hiddenZone' as const,
+                            content: <HiddenZone client={client} table={table} hand={table.snapshot.hand} />,
                           },
                         ]
                       : []),

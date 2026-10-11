@@ -35,7 +35,7 @@ export function phaseControls(canvasElement: HTMLElement) {
  */
 export async function openTab(
   page: ReturnType<typeof within>,
-  name: 'Shared inventory' | 'Spice' | 'Phase' | 'Hand' | 'Battle'
+  name: 'Shared inventory' | 'Spice' | 'Phase' | 'Hand' | 'Hidden zone' | 'Battle'
 ) {
   await waitFor(
     async () => {

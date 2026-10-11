@@ -1,0 +1,28 @@
+/* A patch of table felt: the zone reads as the table it stands in for, not as a list. */
+.zone {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--mantine-radius-md);
+  background: radial-gradient(circle at 50% 40%, rgb(255 255 255 / 6%), transparent 70%), #3b2a1e;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 10%),
+    inset 0 2px 12px rgb(0 0 0 / 45%);
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--mantine-spacing-md);
+  text-align: center;
+}
+
+.piece {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 50%));
+}

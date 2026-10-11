@@ -318,7 +318,8 @@ function playFromHand(
   if (!piece) {
     return refuse('That piece is not in your inventory.');
   }
-  const faceDown = { ...piece, inventory: undefined, items: piece.items.map((item) => ({ ...item, faceUp: false })) };
+  const { hiddenZone: _spot, ...leaving } = piece;
+  const faceDown = { ...leaving, inventory: undefined, items: piece.items.map((item) => ({ ...item, faceUp: false })) };
   const factionInventories = {
     ...snapshot.factionInventories,
     [factionId]: inventory.filter((piece) => piece.id !== action.pieceId),
@@ -342,6 +343,27 @@ function playFromHand(
   }
   const played = { ...faceDown, position: restingPositionAt(position, piece) };
   return commit(snapshot, { factionInventories }, [...snapshot.table.pieces, played]);
+}
+
+/* The last piece arranged lies on top, so a move puts it at the end of the hand; nothing on the table changes. */
+function arrangeHiddenZone(
+  snapshot: StoredSnapshot,
+  factionId: string,
+  action: Extract<BattleAction, { kind: 'hand-zone' }>
+) {
+  const inventory = snapshot.factionInventories[factionId] ?? [];
+  const piece = inventory.find((piece) => piece.id === action.pieceId);
+  if (!piece) {
+    return refuse('That piece is not in your inventory.');
+  }
+  const { hiddenZone: _spot, ...plain } = piece;
+  const arranged = action.at ? { ...plain, hiddenZone: action.at } : plain;
+  return commit(snapshot, {
+    factionInventories: {
+      ...snapshot.factionInventories,
+      [factionId]: [...inventory.filter((candidate) => candidate.id !== piece.id), arranged],
+    },
+  });
 }
 
 function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { kind: 'battle-start' }>) {
@@ -474,6 +496,8 @@ export function battleCommand(
       return takeIntoHand(snapshot, factionId, action);
     case 'hand-play':
       return playFromHand(snapshot, factionId, action);
+    case 'hand-zone':
+      return arrangeHiddenZone(snapshot, factionId, action);
     case 'battle-start':
       return startBattle(snapshot, action);
   }

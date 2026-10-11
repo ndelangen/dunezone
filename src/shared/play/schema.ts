@@ -87,6 +87,9 @@ const storedItemSchema = z.object({
   peekedBy: z.array(tableIdSchema).optional(),
 });
 
+/** A spot in a faction's hidden zone: a piece's centre as fractions of the zone's width and depth. */
+export const hiddenZoneSpotSchema = z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) });
+
 /** A piece as the game Worker stores it: every item with artwork carries its type. */
 export const storedPieceSchema = z.object({
   id: tableIdSchema,
@@ -96,6 +99,8 @@ export const storedPieceSchema = z.object({
   accent: z.string(),
   items: z.array(storedItemSchema),
   inventory: z.literal('shared').optional(),
+  /* Where a piece lies in its faction's hidden zone, as fractions of the zone's width and depth; absent means the plain inventory. */
+  hiddenZone: hiddenZoneSpotSchema.optional(),
   battleOverlay: tableIdSchema.optional(),
   stackKey: z.string().nullable(),
   position: tablePositionSchema,

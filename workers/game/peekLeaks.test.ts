@@ -96,6 +96,18 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
       },
     ],
   ],
+  /* A card taken into hand and laid in the hidden zone. */
+  'hand-zone': (room) => [
+    [bob, { kind: 'hand-take', pieceId: LOOSE }],
+    [
+      bob,
+      {
+        kind: 'hand-zone',
+        pieceId: room.snapshot.factionInventories.atreides?.[0]?.id ?? LOOSE,
+        at: { x: 0.5, y: 0.5 },
+      },
+    ],
+  ],
   'bank-withdraw': () => [[bob, { kind: 'bank-withdraw', amount: 1 }]],
   'bank-collect': () => [[bob, { kind: 'bank-collect', pieceId: DECK }]],
   ready: () => [[bob, { kind: 'ready', ready: true }]],
