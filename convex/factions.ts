@@ -157,14 +157,24 @@ export const getBySlug = query({
   handler: async (ctx, args) => loadFactionDetailPageBySlug(ctx, args.slug),
 });
 
-/** A live faction's slug by its id, for Play, whose seats carry only the id; null for an unknown or deleted faction. */
-export const slugById = query({
+/**
+ * A live faction's page address and rules by its id, for Play, whose seats carry only the id.
+ * Null for an unknown or deleted faction, or data that no longer reads, so a game table never fails on it.
+ */
+export const playFaction = query({
   args: { id: v.string() },
-  returns: v.union(v.string(), v.null()),
+  returns: v.union(v.null(), v.object({ slug: v.string(), data: factionDataValidator })),
   handler: async (ctx, args) => {
     const id = ctx.db.normalizeId('factions', args.id);
     const row = id ? await ctx.db.get('factions', id) : null;
-    return row && !row.is_deleted ? row.slug : null;
+    if (!row || row.is_deleted) {
+      return null;
+    }
+    try {
+      return { slug: row.slug, data: factionDataForClient(row.data) };
+    } catch {
+      return null;
+    }
   },
 });
 

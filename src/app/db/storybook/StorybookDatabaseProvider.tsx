@@ -139,14 +139,17 @@ export function convexNeverAnswers(Story: ComponentType) {
 
 /**
  * A story decorator for Play's fixtures, which seat each faction under its slug rather than a catalogue id.
- * The faction lookup answers with the seat's own id, so a seat's faction links to its page.
- * Every other query stays with the browser-local database.
+ * The seat's faction lookup reads the faction by that slug from the browser-local database instead.
+ * Every other query stays with the database.
  */
 export function seatFactionsResolve(Story: ComponentType) {
-  const slugById = getFunctionName(api.factions.slugById);
-  mocked(convexUseQuery).mockImplementation(((query, args) =>
-    getFunctionName(query) === slugById
-      ? (args as { id: string }).id
-      : useConvexStorybookQuery(query, args)) as typeof convexUseQuery);
+  const playFaction = getFunctionName(api.factions.playFaction);
+  mocked(convexUseQuery).mockImplementation(((query, args) => {
+    if (getFunctionName(query) !== playFaction) {
+      return useConvexStorybookQuery(query, args);
+    }
+    const page = useConvexStorybookQuery(api.factions.getBySlug, { slug: (args as { id: string }).id });
+    return page && { slug: page.faction.slug, data: page.faction.data };
+  }) as typeof convexUseQuery);
   return <Story />;
 }

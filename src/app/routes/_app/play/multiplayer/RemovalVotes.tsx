@@ -12,7 +12,7 @@ import { Surface } from '@ui/surface/Surface';
 import { ExternalLink, MessageCircle } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 
-import { useFaction, useFactionSlug } from '@db/factions';
+import { usePlayFaction } from '@db/factions';
 import { FactionDetails } from '@app/widgets/faction-details/FactionDetails';
 import type { FactionDetailsLayout } from '@app/widgets/faction-details/FactionDetails';
 
@@ -320,7 +320,8 @@ function PlayerInformation({
     !hasVote &&
     table.viewer.viewerSeat !== player.seat &&
     table.viewer.viewerSeat !== SPECTATOR_SEAT;
-  const slug = useFactionSlug(faction?.id ?? '');
+  const details = usePlayFaction(faction?.id ?? '');
+  const slug = details?.slug;
   return (
     <Section helpOnly title={player.name}>
       <Stack gap="md">
@@ -347,7 +348,7 @@ function PlayerInformation({
           {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
         </Text>
         <SwappingSeat client={client} table={table} seat={player.seat} />
-        {slug && <FactionInfo slug={slug} />}
+        {details && <FactionDetails faction={details.data} layout={prototypeLayout()} />}
       </Stack>
     </Section>
   );
@@ -374,9 +375,4 @@ function FactionPageButton({ slug, name }: Readonly<{ slug: string; name: string
 function prototypeLayout(): FactionDetailsLayout {
   const value = new URLSearchParams(globalThis.location?.search ?? '').get('factionLayout');
   return value === 'tabs' || value === 'accordion' || value === 'columns' ? value : 'sheet';
-}
-
-function FactionInfo({ slug }: Readonly<{ slug: string }>) {
-  const page = useFaction(slug).data;
-  return page ? <FactionDetails faction={page.faction.data} layout={prototypeLayout()} /> : null;
 }

@@ -201,9 +201,9 @@ export function useFaction(
   return result;
 }
 
-/** A faction's slug by its id, for linking a Play seat's faction to its page; undefined while loading, null when gone. */
-export function useFactionSlug(id: string) {
-  return useQuery(api.factions.slugById, { id });
+/** A Play seat's faction by its id: its page address and rules; undefined while loading, null when gone. */
+export function usePlayFaction(id: string) {
+  return useQuery(api.factions.playFaction, { id });
 }
 
 /** The live catalogue, taking `loadFactionCataloguePage`'s result as `initialData`. */
