@@ -139,17 +139,18 @@ export function convexNeverAnswers(Story: ComponentType) {
 
 /**
  * A story decorator for Play's fixtures, which seat each faction under its slug rather than a catalogue id.
- * The seat's faction lookup reads the faction by that slug from the browser-local database instead.
+ * The seat's page address is that slug when the browser-local database holds a live faction there, and nothing otherwise.
  * Every other query stays with the database.
  */
 export function seatFactionsResolve(Story: ComponentType) {
-  const playFaction = getFunctionName(api.factions.playFaction);
+  const pageSlug = getFunctionName(api.factions.pageSlug);
   mocked(convexUseQuery).mockImplementation(((query, args) => {
-    if (getFunctionName(query) !== playFaction) {
+    if (getFunctionName(query) !== pageSlug) {
       return useConvexStorybookQuery(query, args);
     }
-    const page = useConvexStorybookQuery(api.factions.getBySlug, { slug: (args as { id: string }).id });
-    return page && { slug: page.faction.slug, data: page.faction.data };
+    const { id } = args as { id: string };
+    const holder = useConvexStorybookQuery(api.factions.slugTaken, { slug: id });
+    return holder === undefined ? undefined : holder === 'live' ? id : null;
   }) as typeof convexUseQuery);
   return <Story />;
 }

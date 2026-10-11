@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 
 import type { playGameProvisionSchema } from '../../src/shared/play/admission';
+import { publicFaction } from '../../src/shared/play/capture';
 import type { CaptureReadiness } from '../../src/shared/play/capture';
 import { emptySnapshot } from '../../src/shared/play/commands';
 import { conversationMembers } from '../../src/shared/play/conversations';
@@ -299,6 +300,12 @@ export class GameSession {
       return;
     }
     throw new NotReady(subject, problem);
+  }
+
+  /** A faction's public starting sheet as this game captured it, or nothing when the game holds no capture of it. */
+  publicFaction(factionId: string) {
+    const capture = this.captures.faction(factionId);
+    return capture ? publicFaction(capture) : null;
   }
 
   retainedCaptures() {

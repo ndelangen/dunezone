@@ -1,5 +1,6 @@
 import { tableHandlingOpen } from '@shared/play/admission';
 import type { BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
+import type { PublicFaction } from '@shared/play/capture';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
@@ -139,6 +140,8 @@ export type ConnectionView = {
   catalogue?: Extract<ServerMessage, { type: 'catalogue' }>;
   spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   logHistory: Partial<Record<LogTab, LogPage>>;
+  /* Seated factions' captured starting sheets by faction id; null when the game holds no capture of one. */
+  factions: Readonly<Partial<Record<string, PublicFaction | null>>>;
 };
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
 
@@ -341,6 +344,9 @@ export class TableSession {
   private spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   private spiceHistoryBefore?: number;
   private logHistory: Partial<Record<LogTab, LogPage>> = {};
+  /* A capture never changes once a game holds it, so each faction is asked for once and kept across reconnects. */
+  private factions: Readonly<Partial<Record<string, PublicFaction | null>>> = {};
+  private factionRequests = new Set<string>();
   private logHistoryBefore: Record<LogTab, number> = latestLogPages();
 
   constructor(
@@ -362,6 +368,7 @@ export class TableSession {
       table: this.table,
       conversations: this.conversations.view(),
       logHistory: {},
+      factions: {},
     };
   }
   /*
@@ -711,6 +718,7 @@ export class TableSession {
       catalogue: this.catalogueResult,
       spiceHistory: this.spiceHistory,
       logHistory: this.logHistory,
+      factions: this.factions,
     };
     const changed = (Object.keys(next) as (keyof ConnectionView)[]).some((key) => next[key] !== previous[key]);
     this.cached = changed ? next : previous;
@@ -856,6 +864,9 @@ export class TableSession {
         if (message.before === this.spiceHistoryBefore) {
           this.spiceHistory = message;
         }
+        break;
+      case 'faction':
+        this.factions = { ...this.factions, [message.factionId]: message.faction };
         break;
       case 'catalogue':
         if (message.requestId === this.catalogueRequestId) {
@@ -1036,6 +1047,12 @@ export class TableSession {
   readLogHistory = (tab: LogTab, before = this.logHistoryBefore[tab]) => {
     this.logHistoryBefore = { ...this.logHistoryBefore, [tab]: before };
     this.send({ type: 'log-history', tab, before });
+  };
+  /* Asks once for a seated faction's captured sheet; a request the closed connection could not send is asked again later. */
+  readFaction = (factionId: string) => {
+    if (!this.factionRequests.has(factionId) && this.send({ type: 'faction', factionId })) {
+      this.factionRequests.add(factionId);
+    }
   };
   readSpiceHistory = (before?: number) => {
     this.spiceHistoryBefore = before;

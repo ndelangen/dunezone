@@ -1343,6 +1343,13 @@ export class GameRoom extends DurableObject<GameEnv> {
       case 'spice-history':
         this.send(socket, { type: 'spice-history', before: message.before, ...this.session.spicePage(message.before) });
         return;
+      case 'faction':
+        this.send(socket, {
+          type: 'faction',
+          factionId: message.factionId,
+          faction: this.session.publicFaction(message.factionId),
+        });
+        return;
       case 'history':
         this.sendHistory(socket, message.step);
         return;

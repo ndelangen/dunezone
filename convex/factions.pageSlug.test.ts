@@ -10,7 +10,7 @@ import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
 
-test('a Play seat finds a live faction page and its rules by the id it carries, and nothing for a deleted or unknown faction', async () => {
+test('a Play seat finds a live faction page by the id it carries, and nothing for a deleted or unknown faction', async () => {
   const t = convexTest(schema, modules);
   const now = '2026-10-11T09:30:00.000Z';
   const { live, deleted } = await t.run(async (ctx) => {
@@ -30,11 +30,8 @@ test('a Play seat finds a live faction page and its rules by the id it carries, 
     };
   });
 
-  await expect(t.query(api.factions.playFaction, { id: live })).resolves.toMatchObject({
-    slug: 'atreides',
-    data: { name: 'atreides' },
-  });
-  await expect(t.query(api.factions.playFaction, { id: deleted })).resolves.toBeNull();
+  await expect(t.query(api.factions.pageSlug, { id: live })).resolves.toBe('atreides');
+  await expect(t.query(api.factions.pageSlug, { id: deleted })).resolves.toBeNull();
   /* The local fixtures seat factions under plain names, which are no faction id at all. */
-  await expect(t.query(api.factions.playFaction, { id: 'harkonnen' })).resolves.toBeNull();
+  await expect(t.query(api.factions.pageSlug, { id: 'harkonnen' })).resolves.toBeNull();
 });

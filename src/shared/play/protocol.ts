@@ -10,6 +10,7 @@ import {
   battleFaceSchema,
 } from './battle';
 import { biddingActionSchema, biddingStateSchema } from './bidding';
+import { publicFactionSchema } from './capture';
 import {
   conversationMessageSchema,
   conversationPeerSchema,
@@ -211,6 +212,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('history'), step: count }),
   z.strictObject({ type: z.literal('spice-history'), before: count }),
   z.strictObject({ type: z.literal('log-history'), tab: logTabSchema, before: count }),
+  /* A seated faction's starting sheet as the game captured it; nothing when the game holds no capture of it. */
+  z.strictObject({ type: z.literal('faction'), factionId: id }),
   z.strictObject({ type: z.literal('metrics') }),
   z.strictObject({ type: z.literal('sync') }),
 ]);
@@ -289,6 +292,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     entries: z.array(spiceTransferSchema),
     more: z.boolean(),
   }),
+  z.object({ type: z.literal('faction'), factionId: id, faction: publicFactionSchema.nullable() }),
   z.object({
     type: z.literal('catalogue'),
     requestId: id,

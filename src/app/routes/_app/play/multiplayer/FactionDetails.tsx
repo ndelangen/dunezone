@@ -1,5 +1,5 @@
 import { Accordion, Box, Stack, Text, Title } from '@mantine/core';
-import type { FactionInput } from '@shared/factions/schema';
+import type { PublicFaction } from '@shared/play/capture';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
 
@@ -7,10 +7,10 @@ import { LeaderToken } from '@game/assets/faction/leader/Leader';
 
 import styles from './FactionDetails.module.css';
 
-type Faction = Readonly<{ faction: FactionInput }>;
+type Faction = Readonly<{ faction: PublicFaction }>;
 
 /**
- * What a faction starts the game with, as its page shows it.
+ * What a faction starts the game with, as the game captured it from its page.
  * The leaders stay in view.
  * Advantages, alliance, fate and setup fold open on demand.
  */

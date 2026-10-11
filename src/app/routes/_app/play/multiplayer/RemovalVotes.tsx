@@ -10,9 +10,9 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { NestedTabs } from '@ui/surface/NestedTabs';
 import { Surface } from '@ui/surface/Surface';
 import { ExternalLink, MessageCircle } from 'lucide-react';
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 
-import { usePlayFaction } from '@db/factions';
+import { useFactionPageSlug } from '@db/factions';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { Conversation } from './Conversation';
@@ -319,8 +319,15 @@ function PlayerInformation({
     !hasVote &&
     table.viewer.viewerSeat !== player.seat &&
     table.viewer.viewerSeat !== SPECTATOR_SEAT;
-  const details = usePlayFaction(faction?.id ?? '');
-  const slug = details?.slug;
+  const { status, factions } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  const factionId = faction?.id;
+  useEffect(() => {
+    if (factionId && status === 'authorized') {
+      client.readFaction(factionId);
+    }
+  }, [client, factionId, status]);
+  const slug = useFactionPageSlug(factionId ?? '');
+  const details = factionId ? factions[factionId] : undefined;
   return (
     <Section helpOnly title={player.name}>
       <Stack gap="md">
@@ -347,7 +354,7 @@ function PlayerInformation({
           {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
         </Text>
         <SwappingSeat client={client} table={table} seat={player.seat} />
-        {details && <FactionDetails faction={details.data} />}
+        {details && <FactionDetails faction={details} />}
       </Stack>
     </Section>
   );

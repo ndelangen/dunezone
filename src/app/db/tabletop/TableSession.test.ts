@@ -1,3 +1,4 @@
+import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
@@ -1338,6 +1339,22 @@ describe('private spice reserves and public transfers', () => {
     client.readSpiceHistory();
     socket().deliver({ type: 'spice-history', before: 10, entries: [], more: false });
     expect(client.getSnapshot().spiceHistory).toBeUndefined();
+  });
+});
+
+test("asks once for a seated faction's captured sheet and keeps each answer", async () => {
+  const client = await connected({ ...viewer, viewerSeat: 'neutral' });
+  const { leaders, rules, background, logo } = assetPublishingFaction;
+  client.readFaction('atreides');
+  client.readFaction('atreides');
+  expect(socket().sent.filter((message) => message.type === 'faction')).toEqual([
+    { type: 'faction', factionId: 'atreides' },
+  ]);
+  socket().deliver({ type: 'faction', factionId: 'atreides', faction: { leaders, rules, background, logo } });
+  socket().deliver({ type: 'faction', factionId: 'fixture', faction: null });
+  expect(client.getSnapshot().factions).toEqual({
+    atreides: { leaders, rules, background, logo },
+    fixture: null,
   });
 });
 
