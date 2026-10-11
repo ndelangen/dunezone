@@ -11,7 +11,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { useReducer } from 'react';
 import type { SVGProps } from 'react';
-import { SiDiscord, SiReddit } from 'react-icons/si';
+import { SiDiscord } from 'react-icons/si';
 
 import { authProviderNames, useSignInProviders } from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
@@ -141,10 +141,8 @@ function SignInPanel({ providers }: { providers: ReturnType<typeof useSignInProv
             const icon =
               method.provider === 'google' ? (
                 <GoogleColoredMark width={24} height={24} />
-              ) : method.provider === 'discord' ? (
-                <SiDiscord size={24} aria-hidden />
               ) : (
-                <SiReddit size={24} aria-hidden />
+                <SiDiscord size={24} aria-hidden />
               );
             return (
               <ControlBlock

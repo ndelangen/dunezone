@@ -40,7 +40,18 @@ export default defineConfig({
   optimizeDeps: {
     ...convexWorkerOptimizeDeps,
     /* A targeted page story still imports the complete router. Scan it before opening the browser. */
-    entries: ['src/app/routeTree.gen.ts', 'src/shared/svgToObj.ts', 'src/shared/vectorNormalize.ts'],
+    /*
+     * The last three are the same case: the coverage pass reached `pdf-lib`, `react-dom/server.edge` and `three/webgpu` through them, after the stories had started.
+     * Scanned up front they leave the optimizer with the same dependencies it ended with before, so nothing reloads.
+     */
+    entries: [
+      'src/app/routeTree.gen.ts',
+      'src/shared/svgToObj.ts',
+      'src/shared/vectorNormalize.ts',
+      'src/app/print/capture/pdf/optimizer.ts',
+      'src/app/print/rulebookHtmlRuntime.ts',
+      'src/app/routes/_app/play/physicalLightingModel.ts',
+    ],
     include: [
       ...convexWorkerOptimizeDeps.include,
       /* Hold helpers must be bundled before the first story starts. */
