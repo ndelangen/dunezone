@@ -49,6 +49,7 @@ import {
   draftForGesture,
   draftWithAdditionalTop,
   heldPieceFor,
+  isFlippablePiece,
   projectCarryAtPosition,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
@@ -78,7 +79,7 @@ type Carry = Identity & {
   beginPayload: string;
   takes: Map<string, string>;
 };
-type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
+type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
 /**
  * Actions that never rely on the table being exactly as their sender last saw it.
@@ -116,7 +117,7 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
 
 /*
  * The turns a carrier has made in hand only ever add up, so a late frame never turns the piece back.
- * A message without a count keeps the carry's, as an older page sends none.
+ * A drop without a count keeps the carry's, as an older page sends none.
  */
 function carryFlips(draft: DraftMove, flips: number | undefined) {
   const current = draft.flips ?? 0;
@@ -353,8 +354,7 @@ export class Room {
     if (seq <= carry.seq) {
       return false;
     }
-    const flips = carryFlips(carry.draft, input.flips);
-    const draft = projectCarryAtPosition(this.table(identity, id), { ...carry.draft, orientation, flips }, position);
+    const draft = projectCarryAtPosition(this.table(identity, id), { ...carry.draft, orientation }, position);
     if (!draft) {
       throw new GameRejection('That carried piece is no longer available.');
     }
@@ -362,6 +362,24 @@ export class Room {
     carry.seq = seq;
     carry.lastSeen = now;
     return true;
+  }
+
+  /** Turns the held piece over in hand; the count only adds up, so a repeated message changes nothing. */
+  flip(identity: Identity, input: CarryInput<'flip'>, now = Date.now()): DraftMove {
+    const carry = this.carry(identity, input.carryId);
+    const held = heldPieceFor(this.table(identity, input.carryId), carry.draft);
+    if (!isFlippablePiece(held)) {
+      throw new GameRejection('That piece cannot be turned over.');
+    }
+    carry.draft = { ...carry.draft, flips: carryFlips(carry.draft, input.flips) };
+    carry.lastSeen = now;
+    return carry.draft;
+  }
+
+  /** The carry's piece as the room holds it, every face showing; a page is sent it only through the projection. */
+  heldFor(carryId: string): TablePiece | null {
+    const carry = this.carries.get(carryId);
+    return carry ? (this.publicCarry(carry)[0]?.held ?? null) : null;
   }
 
   take(identity: Identity, input: CarryInput<'take'>, now = Date.now()): DraftMove {

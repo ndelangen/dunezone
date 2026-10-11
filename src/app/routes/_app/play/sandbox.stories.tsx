@@ -219,7 +219,8 @@ export const FlipWhileCarrying = meta.story({
       expectedVersion: shown().versions[deck.id]!,
       pickup: 'top',
     });
-    table.receive({ type: 'pose', carryId: 'sandbox-flip', seq: 1, position, orientation: 0, flips: 1 });
+    table.receive({ type: 'pose', carryId: 'sandbox-flip', seq: 1, position, orientation: 0 });
+    table.receive({ type: 'flip', carryId: 'sandbox-flip', flips: 1 });
     expect(table.refusal).toBeUndefined();
     const held = table.frame(other).carries[0]!.held;
     expect(held.items[0]).toMatchObject({ faceUp: true, artwork: { front: expect.any(String) } });

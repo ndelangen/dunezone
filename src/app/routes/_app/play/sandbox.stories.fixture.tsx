@@ -230,6 +230,22 @@ export class SandboxTable {
     renew: (message, viewer) => this.room.renew(viewer, message.carryId),
     begin: (message, viewer, own) => this.activity(message, viewer, own),
     take: (message, viewer, own) => this.activity(message, viewer, own),
+    flip: (message, viewer, own) => {
+      const draft = this.room.flip(viewer, message);
+      if (own) {
+        const [carry] = this.projection.carries(
+          this.room.publicCarries().filter((candidate) => candidate.id === message.carryId),
+          this.room.snapshot
+        );
+        this.deliver({
+          type: 'carry',
+          carryId: message.carryId,
+          draft: this.projection.draft(draft, this.room.snapshot),
+          ...(carry ? { held: carry.held } : {}),
+        });
+      }
+      this.deliver(this.frame());
+    },
     cancel: (message, viewer, own) => this.activity(message, viewer, own),
     command: (message, viewer, own) => this.commit(message, viewer, own),
     drop: (message, viewer, own) => this.commit(message, viewer, own),

@@ -72,7 +72,7 @@ function settledRequest(message: TableSubscriptionEvent): { id: string; outcome:
 /* A carry the table ended before its piece left the hand; the player has to pick it up again. */
 const pausedWhileHeld = 'The table paused while you held a piece. Pick it up again to continue.';
 
-/* A page that never flipped in hand sends no count, so a Worker that predates flipping in hand still takes its frames. */
+/* A drop that never flipped in hand sends no count, as it did before flipping in hand. */
 function flipsOf(draft: DraftMove) {
   return draft.flips ? { flips: draft.flips } : {};
 }
@@ -85,6 +85,8 @@ type LocalCarry = {
   pendingDrop?: string;
   /* The drop was released while the table could not send it, such as during a resync; it goes out once the table can act again. */
   dropUnsent?: true;
+  /* The held piece as the room last answered a flip with it, which shows any face turned up in hand. */
+  revealed?: TablePiece;
   /* A resync completed the drop before the tab holds its snapshot, so the draft keeps the piece where it landed until the fresh view. */
   landed?: true;
 };
@@ -680,20 +682,20 @@ export class TableSession {
     };
   }
   /*
-   * A face-down card turned face up in hand has no face on this page until the room shows it,
-   * so the held piece borrows each face the room's view of this carry already shows.
+   * A face-down card turned face up in hand has no face on this page until the room answers the flip,
+   * so the held piece borrows each face the room's answer shows.
    */
   private withRevealedFaces(held: TablePiece): TablePiece {
-    const own = this.carries.find((carry) => carry.id === this.carry?.id);
-    if (!own || !held.items.some((item) => item.faceUp && !item.artwork?.front)) {
+    const shown = this.carry?.revealed;
+    if (!shown || !held.items.some((item) => item.faceUp && !item.artwork?.front)) {
       return held;
     }
-    const shown = new Map(own.held.items.map((item) => [item.id, item.artwork]));
+    const faces = new Map(shown.items.map((item) => [item.id, item.artwork]));
     return {
       ...held,
       items: held.items.map((item) =>
-        item.faceUp && !item.artwork?.front && shown.get(item.id)?.front
-          ? { ...item, artwork: shown.get(item.id) }
+        item.faceUp && !item.artwork?.front && faces.get(item.id)?.front
+          ? { ...item, artwork: faces.get(item.id) }
           : item
       ),
     };
@@ -942,7 +944,14 @@ export class TableSession {
     this.carry = {
       ...this.carry,
       granted: true,
-      draft: { ...message.draft, position: current.position, orientation: current.orientation, flips: current.flips },
+      /* A flip made since this answer left the room is still counted here, and goes out on its own. */
+      draft: {
+        ...message.draft,
+        position: current.position,
+        orientation: current.orientation,
+        flips: Math.max(current.flips ?? 0, message.draft.flips ?? 0),
+      },
+      ...(message.held ? { revealed: message.held } : {}),
     };
   }
   private receiveRoomUpdate(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
@@ -1199,7 +1208,6 @@ export class TableSession {
       seq: ++this.seq,
       position: this.carry.draft.position,
       orientation: this.carry.draft.orientation,
-      ...flipsOf(this.carry.draft),
     });
   };
   updateGesture = (position: Vector3Tuple) => {
@@ -1469,7 +1477,7 @@ export class TableSession {
     }
     this.command({ kind: 'flip', pieceId });
   };
-  /* A piece in hand turns over where it is held; the room hears it with the next pose and the table logs it when it lands. */
+  /* A piece in hand turns over where it is held at once; the room answers with any face it turned up, and the table logs the flip when it lands. */
   private flipCarried() {
     const carry = this.carry;
     if (!carry || carry.pendingDrop) {
@@ -1479,8 +1487,9 @@ export class TableSession {
     if (!isFlippablePiece(held)) {
       return;
     }
-    this.carry = { ...carry, draft: { ...carry.draft, flips: (carry.draft.flips ?? 0) + 1 } };
-    this.flushPose();
+    const flips = (carry.draft.flips ?? 0) + 1;
+    this.carry = { ...carry, draft: { ...carry.draft, flips } };
+    this.send({ type: 'flip', carryId: carry.id, flips });
     this.emit();
   }
   toggleLockSelected = (id?: string) => {

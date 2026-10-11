@@ -424,12 +424,13 @@ describe('server-owned tabletop carries', () => {
     expect(room.carries.size).toBe(0);
   });
 
-  test('turns a held card over in hand, never back on a late frame, and logs the flip where it lands', () => {
+  test('turns a held card over in hand, never back on a repeated message, and logs the flip where it lands', () => {
     const room = new Room(initialSnapshot(), seated);
     const before = room.snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
     room.begin(alice, { carryId: 'flip', sourcePieceId: 'treachery-card-loose', expectedVersion: 0, pickup: 'top' });
-    room.pose(alice, { carryId: 'flip', seq: 1, position: [0, 0.38, 0], orientation: 0, flips: 1 });
-    expect(room.pose(alice, { carryId: 'flip', seq: 2, position: [0, 0.38, 0], orientation: 0, flips: 0 })).toBe(true);
+    expect(room.flip(alice, { carryId: 'flip', flips: 1 }).flips).toBe(1);
+    expect(room.flip(alice, { carryId: 'flip', flips: 0 }).flips).toBe(1);
+    expect(room.heldFor('flip')?.items[0]?.faceUp).toBe(!before.items[0]!.faceUp);
     const held = room.publicCarries()[0]?.held;
     expect(held?.flipRevision).toBe((before.flipRevision ?? 0) + 1);
     expect(held?.items[0]?.faceUp).toBe(!before.items[0]!.faceUp);
@@ -438,6 +439,19 @@ describe('server-owned tabletop carries', () => {
     const landed = next.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
     expect(landed?.items[0]?.faceUp).toBe(!before.items[0]!.faceUp);
     expect(next.table.events.slice(0, 2).map((event) => event.command)).toEqual(['piece.move', 'piece.flip']);
+  });
+
+  test('refuses turning over spice, which has no other side', () => {
+    const room = new Room(initialSnapshot(), seated);
+    room.accept(room.command(alice, { kind: 'spice-spawn', count: 3 }, 0));
+    const spice = room.snapshot.table.pieces.find(isSpicePiece)!;
+    room.begin(alice, {
+      carryId: 'spice',
+      sourcePieceId: spice.id,
+      expectedVersion: room.snapshot.versions[spice.id]!,
+      pickup: 'whole',
+    });
+    expect(() => room.flip(alice, { carryId: 'spice', flips: 1 })).toThrow('cannot be turned over');
   });
 
   test('a drop counting two flips lands the piece as it was, with nothing logged but the move', () => {

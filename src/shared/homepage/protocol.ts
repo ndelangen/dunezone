@@ -23,7 +23,7 @@ export const homepageAdmissionSchema = z.discriminatedUnion('allowed', [
 
 /* The homepage grants physical table handling only. Game lifecycle and private content stay in Play. */
 export type HomepageAction =
-  | Extract<ClientMessage, { type: 'begin' | 'pose' | 'pointer' | 'take' | 'drop' | 'cancel' | 'renew' }>
+  | Extract<ClientMessage, { type: 'begin' | 'pose' | 'pointer' | 'take' | 'flip' | 'drop' | 'cancel' | 'renew' }>
   | (Extract<ClientMessage, { type: 'command' }> & {
       action: Extract<PieceAction, { kind: 'flip' | 'rotate' | 'split' | 'stack' }>;
     });
@@ -35,7 +35,7 @@ export function homepageCommandAllowed(kind: PieceAction['kind']) {
 function allowed(message: ClientMessage): message is HomepageAction {
   return message.type === 'command'
     ? homepageCommandAllowed(message.action.kind)
-    : ['begin', 'pose', 'pointer', 'take', 'drop', 'cancel', 'renew'].includes(message.type);
+    : ['begin', 'pose', 'pointer', 'take', 'flip', 'drop', 'cancel', 'renew'].includes(message.type);
 }
 
 export const homepageActionSchema = clientMessageSchema.transform((message, ctx) => {

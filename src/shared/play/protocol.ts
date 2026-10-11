@@ -211,6 +211,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({ type: z.literal('pointer'), seq: count, position: position.nullable() }),
   z.strictObject({ type: z.literal('take'), requestId: id, carryId: id, donorPieceId: id }),
+  /* The carrier turned the held piece over in hand, for the count-th time this carry. */
+  z.strictObject({ type: z.literal('flip'), carryId: id, flips: carryFlips }),
   z.strictObject({
     type: z.literal('drop'),
     commandId: id,
@@ -312,7 +314,8 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     error: z.string().optional(),
   }),
   z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied']) }),
-  z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema }),
+  /* `held` is the carried piece as the carrier now sees it, sent after a flip so a face turned up in hand shows at once. */
+  z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema, held: pieceSchema.optional() }),
   z.object({
     type: z.literal('view'),
     phaseCooldownMs: count.optional(),

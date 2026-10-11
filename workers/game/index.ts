@@ -1451,7 +1451,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private publishActivity(
     socket: WebSocket,
     connection: Connection,
-    message: Extract<ClientMessage, { type: 'pointer' | 'pose' | 'begin' | 'take' | 'renew' | 'cancel' }>
+    message: Extract<ClientMessage, { type: 'pointer' | 'pose' | 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }>
   ) {
     if (message.type === 'pointer' || message.type === 'pose') {
       this.moveActivity(connection, message);

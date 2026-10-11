@@ -419,6 +419,12 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       case 'take':
         this.send(socket, { type: 'carry', carryId: message.carryId, draft: this.room.take(viewer, message) });
         break;
+      case 'flip': {
+        const draft = this.room.flip(viewer, message);
+        const held = this.room.heldFor(message.carryId);
+        this.send(socket, { type: 'carry', carryId: message.carryId, draft, ...(held ? { held } : {}) });
+        break;
+      }
       case 'pose':
         this.room.pose(viewer, message);
         break;

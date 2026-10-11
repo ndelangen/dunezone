@@ -1231,7 +1231,7 @@ export class GameSession {
   }
   activity(
     viewer: Viewer,
-    message: Extract<ClientMessage, { type: 'begin' | 'take' | 'renew' | 'cancel' }>
+    message: Extract<ClientMessage, { type: 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }>
   ): Extract<ServerMessage, { type: 'carry' }> | undefined {
     const room = this.room!;
     let draft;
@@ -1245,6 +1245,8 @@ export class GameSession {
       case 'take':
         draft = room.take(viewer, { ...message, donorPieceId: internalPieceId(room.snapshot, message.donorPieceId) });
         break;
+      case 'flip':
+        return this.flippedCarry(viewer, message);
       case 'renew':
         room.renew(viewer, message.carryId);
         break;
@@ -1256,6 +1258,24 @@ export class GameSession {
     return draft
       ? { type: 'carry', carryId: message.carryId, draft: this.projection.draft(draft, room.snapshot) }
       : undefined;
+  }
+  /* A flip answers with the held piece too, so a face turned up in hand reaches the carrier with the reply rather than with the next frame. */
+  private flippedCarry(
+    viewer: Viewer,
+    message: Extract<ClientMessage, { type: 'flip' }>
+  ): Extract<ServerMessage, { type: 'carry' }> {
+    const room = this.room!;
+    const draft = room.flip(viewer, message);
+    const [carry] = this.projection.carries(
+      room.publicCarries().filter((candidate) => candidate.id === message.carryId),
+      room.snapshot
+    );
+    return {
+      type: 'carry',
+      carryId: message.carryId,
+      draft: this.projection.draft(draft, room.snapshot),
+      ...(carry ? { held: carry.held } : {}),
+    };
   }
   pointer(...args: Parameters<Room['pointer']>) {
     return this.room!.pointer(...args);
