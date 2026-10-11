@@ -82,6 +82,11 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   'bid-raise': (room) => [[bob, { kind: 'bid-raise', round: room.snapshot.bidding?.round ?? 1 }]],
   'bid-pass': (room) => [[bob, { kind: 'bid-pass', round: room.snapshot.bidding?.round ?? 1 }]],
   'bid-seconds': () => [[bob, { kind: 'bid-seconds', seconds: 30 }]],
+  'alliance-offer': () => [[bob, { kind: 'alliance-offer', factionId: 'harkonnen' }]],
+  'alliance-withdraw': () => [[bob, { kind: 'alliance-withdraw', factionId: 'harkonnen', offer: 0 }]],
+  'alliance-accept': () => [[bob, { kind: 'alliance-accept', factionId: 'harkonnen', offer: 0 }]],
+  'alliance-decline': () => [[bob, { kind: 'alliance-decline', factionId: 'harkonnen', offer: 0 }]],
+  'alliance-break': () => [[bob, { kind: 'alliance-break', factionId: 'harkonnen' }]],
   'last-turn': () => [[bob, { kind: 'last-turn', turn: 8 }]],
   'hand-take': () => [[bob, { kind: 'hand-take', pieceId: DECK }]],
   /* A card from a hand played onto the deck. */

@@ -79,7 +79,8 @@ function TokenFace({ url, vacant }: Readonly<{ url: string; vacant: boolean }>) 
   );
 }
 
-function OfferArrow({ a, b, color }: Readonly<{ a: Vector3; b: Vector3; color: string }>) {
+/** An offer from one seat to another: arrows flowing along a low arch between their tokens, in the offering side's colour. */
+export function OfferArrow({ a, b, color }: Readonly<{ a: Vector3; b: Vector3; color: string }>) {
   const curve = useMemo(() => archBetween(a, b), [a, b]);
   const length = useMemo(() => curve.getLength(), [curve]);
   const count = Math.max(3, Math.round(length / 0.55));

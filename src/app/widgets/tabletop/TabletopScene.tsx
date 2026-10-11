@@ -37,6 +37,7 @@ import {
   TROOP_BOTTOM_RADIUS,
   TROOP_FACE_RADIUS,
   tokenBoxRatio,
+  TABLE_SURFACE_Y,
   TROOP_LAYER_HEIGHT,
   TROOP_LAYER_PITCH,
   TROOP_TOP_RADIUS,
@@ -98,7 +99,13 @@ import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
-import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
+import {
+  BOARD_RIM_COLOR,
+  BOARD_RIM_DEPTH,
+  BOARD_RIM_METALNESS,
+  BOARD_RIM_ROUGHNESS,
+  createBoardRimShape,
+} from './boardRimGeometry';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
 import { PhaseSymbol } from './PhaseSymbol';
@@ -108,6 +115,7 @@ import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAME
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { sharedPublishedFaces } from './publishedFaceRetry';
+import { SoftShadow } from './SoftShadow';
 import { SpiceBank } from './SpiceBank';
 import { TableFurniture } from './TableFurniture';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
@@ -155,15 +163,13 @@ const PredictionOverlay = lazy(() =>
 const TabletopTools = lazy(() => import('./TabletopTools').then((module) => ({ default: module.TabletopTools })));
 const PlayCamera = lazy(() => import('./PlayCamera').then((module) => ({ default: module.PlayCamera })));
 
-const BOARD_RIM_COLOR = '#15263b';
 /* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */
 const BOARD_MAP_BASE_COLOR = '#000000';
 const BOARD_MAP_LIFT = 0.001;
 const BOARD_RIM_DIVIDER_COLOR = '#050505';
+const BOARD_RIM_SHADOW_SPREAD = 0.2;
 const BOARD_RIM_DIVIDER_OVERLAP = 0.002;
 const BOARD_RIM_DIVIDER_WIDTH = 0.035;
-const BOARD_RIM_ROUGHNESS = 0.72;
-const BOARD_RIM_METALNESS = 0.06;
 const BOARD_RIM_EXTRUDE_OPTIONS = {
   bevelEnabled: false,
   curveSegments: 64,
@@ -265,6 +271,19 @@ function BoardRim({ seatCount }: { seatCount: TableSeatCount }) {
       <extrudeGeometry args={geometryArgs} />
       <meshStandardMaterial color={BOARD_RIM_COLOR} roughness={BOARD_RIM_ROUGHNESS} metalness={BOARD_RIM_METALNESS} />
     </mesh>
+  );
+}
+
+/* The board's rim stands above the table, so it casts a soft ring of shadow onto it. */
+function BoardRimShadow() {
+  return (
+    <SoftShadow
+      radius={BOARD_RIM_RADIUS}
+      spread={BOARD_RIM_SHADOW_SPREAD}
+      y={TABLE_SURFACE_Y + 0.001}
+      opacity={0.4}
+      size={1024}
+    />
   );
 }
 
@@ -488,6 +507,7 @@ function BoardSurface({
     <group>
       <TableFurniture trackerSlots={trackerSlots} />
       <BoardRim seatCount={seatCount} />
+      <BoardRimShadow />
       {/* The textured parts suspend while their image loads; the boundary keeps that inside the scene, so the
           rim, the furniture and the pieces stay on screen and the map fills in, instead of the route's
           placeholder replacing a table the visitor has already seen. While it waits it counts as unsettled artwork. */}
@@ -1244,7 +1264,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
             <Shadow
               color="#100906"
               colorStop={0.18}
-              opacity={contactShadowOpacity(carried)}
+              opacity={contactShadowOpacity(carried, piece)}
               position={[0, shadowLocalY, 0]}
               renderOrder={1}
               scale={contactShadowScale(piece, carried)}
