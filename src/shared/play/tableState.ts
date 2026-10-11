@@ -195,10 +195,19 @@ function remainingRenderedPiece(
   return withdrawn ? [{ ...piece, items: [] }] : [];
 }
 
+/* A whole piece in hand shows each flip made while it is held. */
+function withHeldTurnedOver(state: TableState, draft: DraftMove | null | undefined) {
+  if (!draft?.flips) {
+    return state.pieces;
+  }
+  const held = heldPieceFor(state, draft);
+  return held ? state.pieces.map((piece) => (piece.id === held.id ? held : piece)) : state.pieces;
+}
+
 export function renderedPiecesFor(state: TableState): TablePiece[] {
   const draft = state.draftMove;
   if (!draft || draft.withdrawals.length === 0) {
-    return state.pieces.filter((piece) => !piece.inventory || piece.id === draft?.pieceId);
+    return withHeldTurnedOver(state, draft).filter((piece) => !piece.inventory || piece.id === draft?.pieceId);
   }
   const heldPiece = heldPieceFor(state, draft);
   if (!heldPiece) {
