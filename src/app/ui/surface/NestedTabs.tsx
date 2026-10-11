@@ -461,7 +461,13 @@ function NestedTabsTooltip({
         /* Keyboard focus shows the tooltip too; the focus a click brings does not, so it closes with the pointer. A caller's own handlers still run. */
         onFocus: (event: FocusEvent<HTMLElement>) => {
           children.props.onFocus?.(event);
-          if (!engaged.current.pointer && event.currentTarget.matches(':focus-visible')) {
+          if (!event.currentTarget.matches(':focus-visible')) {
+            return;
+          }
+          /* Already hovered, the tooltip keeps its course; focus only holds it open once the pointer leaves. */
+          if (engaged.current.pointer) {
+            engaged.current.focus = true;
+          } else {
             engage('focus');
           }
         },

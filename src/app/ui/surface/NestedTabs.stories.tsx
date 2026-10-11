@@ -589,5 +589,14 @@ export const TabGuidance = meta.story({
     await waitForFrame(() => expect(storyDocument.queryAllByRole('tooltip')).toHaveLength(0));
     await expect(log).toHaveFocus();
     await userEvent.unhover(spice);
+    /* Keyboard focus that lands on a hovered tab keeps its guidance once the pointer leaves. */
+    await userEvent.hover(spice);
+    spice.focus();
+    await userEvent.unhover(spice);
+    await waitForFrame(() =>
+      expect(storyDocument.getAllByRole('tooltip').some((tip) => tip.textContent?.startsWith('Spice'))).toBe(true)
+    );
+    spice.blur();
+    await waitForFrame(() => expect(storyDocument.queryAllByRole('tooltip')).toHaveLength(0));
   },
 });
