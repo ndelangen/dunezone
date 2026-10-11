@@ -592,6 +592,13 @@ function usePublishedFaceReady(href: string | undefined): boolean {
   return usePublishedFace(href) !== undefined || !href;
 }
 
+/* A card turned face up in hand shows its face only once the room has sent it, so its flip waits for that too. */
+function faceStillHidden(piece: TablePiece) {
+  const shownLayers = visibleLayerCount(piece);
+  const item = piece.items[stackLayerItemIndex(piece.items.length, shownLayers, shownLayers - 1, piece.flipRevision)];
+  return piece.kind === 'card' && !!item?.faceUp && !!item.artwork && !item.artwork.front;
+}
+
 /* A face-down faction token wears a solid black prohibition sign over its front: a ring and the slash across it, the slash as thick as the ring (#1007). */
 const SITTING_OUT_OUTER = TROOP_FACE_RADIUS * 0.86;
 const SITTING_OUT_INNER = TROOP_FACE_RADIUS * 0.66;
@@ -1201,10 +1208,11 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
   const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried);
-  const faceReady = usePublishedFaceReady(topFaceHref(piece));
+  const faceReady = usePublishedFaceReady(topFaceHref(piece)) && !faceStillHidden(piece);
+  /* A held piece turns over in hand too, so only an emptied projection cuts a flip short. */
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
     piece,
-    drafted || remoteCarried || emptyProjection,
+    emptyProjection,
     finishPieceFlip,
     faceReady
   );

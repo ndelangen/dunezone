@@ -277,7 +277,7 @@ export class SandboxTable {
     const room = this.room;
     const next = storedSnapshotSchema.parse(
       message.type === 'drop'
-        ? room.drop(viewer, message.carryId, message.position, message.orientation)
+        ? room.drop(viewer, message.carryId, message.position, message.orientation, message.flips)
         : room.command(viewer, this.tableAction(message.action), message.expectedRevision)
     );
     const completedCarryId = message.type === 'drop' ? message.carryId : undefined;

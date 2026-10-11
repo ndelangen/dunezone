@@ -823,7 +823,7 @@ export class GameSession {
   private nextTableSnapshot(viewer: Viewer, message: TableMessage, contents?: StoredSpawnContents) {
     const room = this.room!;
     if (message.type === 'drop') {
-      return room.drop(viewer, message.carryId, message.position, message.orientation);
+      return room.drop(viewer, message.carryId, message.position, message.orientation, message.flips);
     }
     if (message.action.kind === 'spawn-request') {
       return room.publicCommand(viewer, message.action, contents);

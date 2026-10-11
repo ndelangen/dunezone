@@ -424,6 +424,39 @@ describe('server-owned tabletop carries', () => {
     expect(room.carries.size).toBe(0);
   });
 
+  test('turns a held card over in hand, never back on a late frame, and logs the flip where it lands', () => {
+    const room = new Room(initialSnapshot(), seated);
+    const before = room.snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+    room.begin(alice, { carryId: 'flip', sourcePieceId: 'treachery-card-loose', expectedVersion: 0, pickup: 'top' });
+    room.pose(alice, { carryId: 'flip', seq: 1, position: [0, 0.38, 0], orientation: 0, flips: 1 });
+    expect(room.pose(alice, { carryId: 'flip', seq: 2, position: [0, 0.38, 0], orientation: 0, flips: 0 })).toBe(true);
+    const held = room.publicCarries()[0]?.held;
+    expect(held?.flipRevision).toBe((before.flipRevision ?? 0) + 1);
+    expect(held?.items[0]?.faceUp).toBe(!before.items[0]!.faceUp);
+    expect(() => room.take(alice, { carryId: 'flip', requestId: 'take', donorPieceId: 'treachery-deck' })).toThrow();
+    const next = room.drop(alice, 'flip', [0, 0.38, 0], 0);
+    const landed = next.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
+    expect(landed?.items[0]?.faceUp).toBe(!before.items[0]!.faceUp);
+    expect(next.table.events.slice(0, 2).map((event) => event.command)).toEqual(['piece.move', 'piece.flip']);
+  });
+
+  test('a drop counting two flips lands the piece as it was, with nothing logged but the move', () => {
+    const room = new Room(initialSnapshot(), seated);
+    const before = room.snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack')!;
+    room.begin(alice, {
+      carryId: 'twice',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'whole',
+    });
+    const next = room.drop(alice, 'twice', [0, 0.38, 0], 0, 2);
+    const landed = next.table.pieces.find((piece) => piece.id === before.id);
+    expect(landed?.items).toEqual(before.items);
+    expect(landed?.flipRevision).toBe((before.flipRevision ?? 0) + 2);
+    expect(next.table.events[0]?.command).toBe('piece.move');
+    expect(next.table.events[1]?.command).not.toBe('piece.flip');
+  });
+
   test('takes all cards while preserving order, deduplicates takes, and can leave an empty donor', () => {
     const room = new Room(initialSnapshot(), seated);
     const before = structuredClone(room.snapshot);

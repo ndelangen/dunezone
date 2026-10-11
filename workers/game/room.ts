@@ -114,6 +114,15 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'last-turn',
 ]);
 
+/*
+ * The turns a carrier has made in hand only ever add up, so a late frame never turns the piece back.
+ * A message without a count keeps the carry's, as an older page sends none.
+ */
+function carryFlips(draft: DraftMove, flips: number | undefined) {
+  const current = draft.flips ?? 0;
+  return flips === undefined || flips < current ? current : flips;
+}
+
 /** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */
 const CARRY_HISTORY_LIMIT = 1024;
 
@@ -344,7 +353,8 @@ export class Room {
     if (seq <= carry.seq) {
       return false;
     }
-    const draft = projectCarryAtPosition(this.table(identity, id), { ...carry.draft, orientation }, position);
+    const flips = carryFlips(carry.draft, input.flips);
+    const draft = projectCarryAtPosition(this.table(identity, id), { ...carry.draft, orientation, flips }, position);
     if (!draft) {
       throw new GameRejection('That carried piece is no longer available.');
     }
@@ -391,11 +401,12 @@ export class Room {
     return next;
   }
 
-  drop(identity: Identity, id: string, position: Vector3Tuple, orientation: number): StoredSnapshot {
+  drop(identity: Identity, id: string, position: Vector3Tuple, orientation: number, flips?: number): StoredSnapshot {
     this.assertTableAvailable();
     const carry = this.carry(identity, id);
     const guarded = this.table(identity, id);
-    const settled = settleCarryAtPosition(guarded, { ...carry.draft, orientation }, position);
+    const draft = { ...carry.draft, orientation, flips: carryFlips(carry.draft, flips) };
+    const settled = settleCarryAtPosition(guarded, draft, position);
     if (!settled) {
       throw new GameRejection('There is no clear space for that object.');
     }

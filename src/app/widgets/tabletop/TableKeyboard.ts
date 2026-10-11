@@ -240,6 +240,14 @@ export class TableKeyboard {
       controls.rotateSelected(key === 'q' ? -1 : 1, pieceId);
       return;
     }
+    /* F turns over a held piece in hand as it does one at rest. */
+    if (key === 'f') {
+      event.preventDefault();
+      if (!event.repeat) {
+        controls.flipSelected(pieceId);
+      }
+      return;
+    }
     if (!state.draftMove) {
       this.restingPieceKey(event, pieceId, controls);
     }
@@ -261,12 +269,6 @@ export class TableKeyboard {
         }
         return;
       }
-      case 'f':
-        event.preventDefault();
-        if (!event.repeat) {
-          controls.flipSelected(pieceId);
-        }
-        return;
       case 'l':
         event.preventDefault();
         controls.toggleLockSelected(pieceId);

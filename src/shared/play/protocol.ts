@@ -28,6 +28,7 @@ import type { TablePhaseId } from './phases';
 import { removalActionSchema, removalVoteSchema } from './removal';
 import { gameEndingSchema, gameResultSchema, resultActionSchema } from './result';
 import {
+  carryFlipsSchema as carryFlips,
   draftMoveSchema as draftSchema,
   durableTableSchema as tableSchema,
   tableCountSchema as count,
@@ -200,10 +201,24 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     expectedVersion: count,
     pickup: z.enum(['top', 'whole']),
   }),
-  z.strictObject({ type: z.literal('pose'), carryId: id, seq: count, position, orientation }),
+  z.strictObject({
+    type: z.literal('pose'),
+    carryId: id,
+    seq: count,
+    position,
+    orientation,
+    flips: carryFlips.optional(),
+  }),
   z.strictObject({ type: z.literal('pointer'), seq: count, position: position.nullable() }),
   z.strictObject({ type: z.literal('take'), requestId: id, carryId: id, donorPieceId: id }),
-  z.strictObject({ type: z.literal('drop'), commandId: id, carryId: id, position, orientation }),
+  z.strictObject({
+    type: z.literal('drop'),
+    commandId: id,
+    carryId: id,
+    position,
+    orientation,
+    flips: carryFlips.optional(),
+  }),
   z.strictObject({ type: z.literal('cancel'), carryId: id }),
   z.strictObject({ type: z.literal('renew'), carryId: id }),
   z.strictObject({ type: z.literal('command'), commandId: id, action: pieceActionSchema, expectedRevision: count }),

@@ -21,7 +21,13 @@ import type {
 import { isRemovalAction } from '@shared/play/removal';
 import { SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
-import { draftForGesture, projectCarryAtPosition, renderedPiecesFor } from '@shared/play/tableState';
+import {
+  draftForGesture,
+  heldPieceFor,
+  isFlippablePiece,
+  projectCarryAtPosition,
+  renderedPiecesFor,
+} from '@shared/play/tableState';
 
 import { ConversationSession } from './ConversationSession';
 import type { ConversationView } from './ConversationSession';
@@ -65,6 +71,11 @@ function settledRequest(message: TableSubscriptionEvent): { id: string; outcome:
 
 /* A carry the table ended before its piece left the hand; the player has to pick it up again. */
 const pausedWhileHeld = 'The table paused while you held a piece. Pick it up again to continue.';
+
+/* A page that never flipped in hand sends no count, so a Worker that predates flipping in hand still takes its frames. */
+function flipsOf(draft: DraftMove) {
+  return draft.flips ? { flips: draft.flips } : {};
+}
 
 type LocalCarry = {
   id: string;
@@ -668,10 +679,31 @@ export class TableSession {
       pointers: this.pointers.filter((pointer) => pointer.connectionId !== connectionId),
     };
   }
+  /*
+   * A face-down card turned face up in hand has no face on this page until the room shows it,
+   * so the held piece borrows each face the room's view of this carry already shows.
+   */
+  private withRevealedFaces(held: TablePiece): TablePiece {
+    const own = this.carries.find((carry) => carry.id === this.carry?.id);
+    if (!own || !held.items.some((item) => item.faceUp && !item.artwork?.front)) {
+      return held;
+    }
+    const shown = new Map(own.held.items.map((item) => [item.id, item.artwork]));
+    return {
+      ...held,
+      items: held.items.map((item) =>
+        item.faceUp && !item.artwork?.front && shown.get(item.id)?.front
+          ? { ...item, artwork: shown.get(item.id) }
+          : item
+      ),
+    };
+  }
   private localProjection(state: TableState) {
     const draft = this.carry?.draft;
     const pieces = renderedPiecesFor(state).map((piece) =>
-      draft?.pieceId === piece.id ? { ...piece, position: draft.position, orientation: draft.orientation } : piece
+      draft?.pieceId === piece.id
+        ? this.withRevealedFaces({ ...piece, position: draft.position, orientation: draft.orientation })
+        : piece
     );
     return {
       pieces,
@@ -910,7 +942,7 @@ export class TableSession {
     this.carry = {
       ...this.carry,
       granted: true,
-      draft: { ...message.draft, position: current.position, orientation: current.orientation },
+      draft: { ...message.draft, position: current.position, orientation: current.orientation, flips: current.flips },
     };
   }
   private receiveRoomUpdate(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
@@ -1167,6 +1199,7 @@ export class TableSession {
       seq: ++this.seq,
       position: this.carry.draft.position,
       orientation: this.carry.draft.orientation,
+      ...flipsOf(this.carry.draft),
     });
   };
   updateGesture = (position: Vector3Tuple) => {
@@ -1204,6 +1237,7 @@ export class TableSession {
       commandId: carry.pendingDrop,
       position: carry.draft.position,
       orientation: carry.draft.orientation,
+      ...flipsOf(carry.draft),
     });
     if (sent) {
       const { dropUnsent: _unsent, ...rest } = carry;
@@ -1425,12 +1459,30 @@ export class TableSession {
     if (!this.canAct()) {
       return;
     }
+    if (this.carry) {
+      this.flipCarried();
+      return;
+    }
     const pieceId = this.target(id);
     if (!pieceId || this.requireTable().flippingPieceIds.has(pieceId)) {
       return;
     }
     this.command({ kind: 'flip', pieceId });
   };
+  /* A piece in hand turns over where it is held; the room hears it with the next pose and the table logs it when it lands. */
+  private flipCarried() {
+    const carry = this.carry;
+    if (!carry || carry.pendingDrop) {
+      return;
+    }
+    const held = heldPieceFor(this.requireTable().state, carry.draft);
+    if (!isFlippablePiece(held)) {
+      return;
+    }
+    this.carry = { ...carry, draft: { ...carry.draft, flips: (carry.draft.flips ?? 0) + 1 } };
+    this.flushPose();
+    this.emit();
+  }
   toggleLockSelected = (id?: string) => {
     const pieceId = this.target(id);
     if (pieceId) {
