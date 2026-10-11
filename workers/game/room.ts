@@ -371,13 +371,16 @@ export class Room {
   flip(identity: Identity, input: CarryInput<'flip'>, now = Date.now()): DraftMove {
     const carry = this.carry(identity, input.carryId);
     const held = heldPieceFor(this.table(identity, input.carryId), carry.draft);
-    if (!canFlipInHand(held)) {
+    if (!canFlipInHand(held, this.unrevealedPrediction)) {
       throw new GameRejection('That piece cannot be turned over in hand.');
     }
     carry.draft = { ...carry.draft, flips: carryFlips(carry.draft, input.flips) };
     carry.lastSeen = now;
     return carry.draft;
   }
+
+  private readonly unrevealedPrediction = (stepId: string) =>
+    this.snapshot.privatePredictions[stepId]?.revealedAt === null;
 
   /** The carry's piece as the room holds it, every face showing; a page is sent it only through the projection. */
   heldFor(carryId: string): TablePiece | null {
@@ -426,7 +429,9 @@ export class Room {
     this.assertTableAvailable();
     const carry = this.carry(identity, id);
     const guarded = this.table(identity, id);
-    const draft = { ...carry.draft, orientation: landing.orientation, flips: carryFlips(carry.draft, landing.flips) };
+    const turns = canFlipInHand(heldPieceFor(guarded, carry.draft), this.unrevealedPrediction);
+    const flips = turns ? carryFlips(carry.draft, landing.flips) : 0;
+    const draft = { ...carry.draft, orientation: landing.orientation, flips };
     const settled = settleCarryAtPosition(guarded, draft, landing.position);
     if (!settled) {
       throw new GameRejection('There is no clear space for that object.');

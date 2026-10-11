@@ -467,35 +467,60 @@ describe('server-owned tabletop carries', () => {
     expect(next.table.events.slice(0, 2).map((event) => event.command)).not.toContain('piece.flip');
   });
 
-  test('refuses turning over a prediction card in hand, since placing it is its only reveal', () => {
+  test('refuses turning over an unrevealed prediction card in hand, since placing it is its reveal', () => {
     const initial = initialSnapshot();
     const prediction = { stepId: 'faction-step-1', factionId: 'harkonnen', turn: 4 };
     const front = 'https://table.test/published/cards/prediction/card.jpg';
     const back = 'https://table.test/published/cardback-presets/prediction/cardback.jpg';
-    const room = new Room(
-      {
-        ...initial,
-        table: {
-          ...initial.table,
-          pieces: initial.table.pieces.map((piece) =>
-            piece.id === 'treachery-card-loose'
-              ? {
-                  ...piece,
-                  items: piece.items.map((item) => ({
-                    ...item,
-                    artwork: { front, back, type: 'card-prediction', prediction },
-                  })),
-                }
-              : piece
-          ),
+    const withPrediction = (revealedAt: number | null) =>
+      new Room(
+        {
+          ...initial,
+          privatePredictions: {
+            'faction-step-1': {
+              factionId: 'atreides',
+              choice: { factionId: 'harkonnen', turn: 4 },
+              lockedAt: 1,
+              revealedAt,
+            },
+          },
+          table: {
+            ...initial.table,
+            pieces: initial.table.pieces.map((piece) =>
+              piece.id === 'treachery-card-loose'
+                ? {
+                    ...piece,
+                    items: piece.items.map((item) => ({
+                      ...item,
+                      artwork: { front, back, type: 'card-prediction', prediction },
+                    })),
+                  }
+                : piece
+            ),
+          },
         },
-      },
-      seated
-    );
-    room.begin(alice, { carryId: 'guess', sourcePieceId: 'treachery-card-loose', expectedVersion: 0, pickup: 'top' });
-    expect(() => room.flip(alice, { carryId: 'guess', flips: 1 })).toThrow('cannot be turned over');
-    const next = room.drop(alice, 'guess', { position: [0, 0.38, 0], orientation: 0, flips: 1 });
+        seated
+      );
+    const unrevealed = withPrediction(null);
+    unrevealed.begin(alice, {
+      carryId: 'guess',
+      sourcePieceId: 'treachery-card-loose',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    expect(() => unrevealed.flip(alice, { carryId: 'guess', flips: 1 })).toThrow('cannot be turned over');
+    const next = unrevealed.drop(alice, 'guess', { position: [0, 0.38, 0], orientation: 0, flips: 1 });
     expect(next.table.events.slice(0, 2).map((event) => event.command)).not.toContain('piece.flip');
+
+    /* Once placed and revealed, it turns over in hand like any card. */
+    const revealed = withPrediction(5);
+    revealed.begin(alice, {
+      carryId: 'shown',
+      sourcePieceId: 'treachery-card-loose',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    expect(revealed.flip(alice, { carryId: 'shown', flips: 1 }).flips).toBe(1);
   });
 
   test('a drop counting two flips lands the piece as it was, with nothing logged but the move', () => {

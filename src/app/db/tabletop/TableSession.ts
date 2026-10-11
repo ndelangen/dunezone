@@ -1551,7 +1551,8 @@ export class TableSession {
     }
     const held = heldPieceFor(this.requireTable().state, carry.draft);
     /* The room never counts back, so a carry stops turning at its cap rather than send a count it refuses. */
-    if (!canFlipInHand(held) || (carry.draft.flips ?? 0) >= CARRY_FLIPS_LIMIT) {
+    const unrevealed = (stepId: string) => this.snapshot.predictions?.[stepId]?.revealedAt === null;
+    if (!canFlipInHand(held, unrevealed) || (carry.draft.flips ?? 0) >= CARRY_FLIPS_LIMIT) {
       return;
     }
     const flips = (carry.draft.flips ?? 0) + 1;

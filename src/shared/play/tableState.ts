@@ -130,7 +130,7 @@ function canonicalHeldAtPose(piece: TablePiece | undefined, draft: DraftMove): T
 export function heldPieceFor(state: TableState, draft: DraftMove): TablePiece | null {
   const held = pieceAsPickedUp(state, draft);
   const flips = draft.flips ?? 0;
-  if (!held || flips === 0 || !canFlipInHand(held)) {
+  if (!held || flips === 0 || !isFlippablePiece(held)) {
     return held;
   }
   return {
@@ -430,11 +430,17 @@ export function appendEvent(state: TableState, event: TableEvent): Pick<TableSta
 }
 
 /*
- * A held piece turns over in hand as it would at rest, except a prediction card,
- * which lands face down so placing it stays the only reveal (#1753).
+ * A held piece turns over in hand as it would at rest, except a prediction card not yet revealed,
+ * which lands face down so placing it stays its reveal (#1753). Once placed it turns like any card.
  */
-export function canFlipInHand(piece: TablePiece | null | undefined): piece is TablePiece {
-  return isFlippablePiece(piece) && !piece.items.some((item) => item.artwork?.prediction);
+export function canFlipInHand(
+  piece: TablePiece | null | undefined,
+  unrevealed: (stepId: string) => boolean
+): piece is TablePiece {
+  return (
+    isFlippablePiece(piece) &&
+    !piece.items.some((item) => item.artwork?.prediction && unrevealed(item.artwork.prediction.stepId))
+  );
 }
 
 function isFlippablePiece(piece: TablePiece | null | undefined): piece is TablePiece {
@@ -461,7 +467,7 @@ function flipEventFor(state: TableState, flipped: TablePiece): TableEvent {
 
 /* A carry that landed turned over is logged as a flip first, as if it were flipped where it was picked up. */
 function withCarryFlipEvent(current: TableState, draft: DraftMove, piece: TablePiece): TableState {
-  const turned = (draft.flips ?? 0) % 2 === 1 && canFlipInHand(piece);
+  const turned = (draft.flips ?? 0) % 2 === 1 && isFlippablePiece(piece);
   return turned ? { ...current, ...appendEvent(current, flipEventFor(current, piece)) } : current;
 }
 
