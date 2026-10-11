@@ -4,10 +4,10 @@ import type { TablePiece } from '@shared/play/model';
 import { hasHiddenFace, peeksWholeDeck } from '@shared/play/peeking';
 import { isSpicePiece } from '@shared/play/spice';
 import { isTroopStack } from '@shared/play/troop';
+import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
 import { useId } from 'react';
 import type { RefObject } from 'react';
 
-import { useHoldToConfirm } from '../../ui/control/useHoldToConfirm';
 import { deckShuffleHint } from './longPress';
 import { peekableToken } from './peekableToken';
 import { PeekView } from './PeekView';
@@ -22,34 +22,27 @@ function DeletePieceItem({
   piece,
   remove,
   onClose,
-}: Readonly<{ piece: TablePiece; remove: ((pieceId: string) => void) | undefined; onClose: () => void }>) {
-  const available = !!remove && !piece.locked && deletablePiece(piece);
-  const { holding, remaining, handlers } = useHoldToConfirm({
-    pending: false,
-    blocked: !available,
-    onConfirm: () => {
-      remove?.(piece.id);
-      onClose();
-    },
-  });
+  reserved,
+}: Readonly<{
+  piece: TablePiece;
+  remove: ((pieceId: string) => void) | undefined;
+  onClose: () => void;
+  /* Another player is carrying it, which the room would refuse after the whole hold. */
+  reserved: boolean;
+}>) {
   const count = piece.items.length;
   const unit =
     piece.kind === 'card' ? 'cards' : isSpicePiece(piece) ? 'spice' : isTroopStack(piece) ? 'troops' : 'tokens';
   const what = count > 1 ? `all ${count} ${unit} ` : '';
-  const idle = `Hold to delete ${what}permanently`;
-  /* Both labels share one grid cell, so the item keeps the idle label's width while counting down and a press near its edge stays on it. */
-  const cell = { gridArea: '1 / 1' };
   return (
-    <Menu.Item color="red" disabled={!available} {...handlers}>
-      <span style={{ display: 'inline-grid' }}>
-        <span style={{ ...cell, visibility: holding ? 'hidden' : undefined }} aria-hidden={holding}>
-          {idle}
-        </span>
-        <span style={{ ...cell, visibility: holding ? undefined : 'hidden' }} aria-hidden={!holding}>
-          Deleting in {remaining ?? 5}..
-        </span>
-      </span>
-    </Menu.Item>
+    <ConfirmDeleteMenuItem
+      label={`Hold to delete ${what}permanently`}
+      disabled={!remove || reserved || piece.locked || !deletablePiece(piece)}
+      onConfirm={() => {
+        remove?.(piece.id);
+        onClose();
+      }}
+    />
   );
 }
 
@@ -62,6 +55,9 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
   const spiceReserveControls = useTabletopSelector((table) => (pieceMenu ? table.spiceReserveControls : undefined));
   const peekControls = useTabletopSelector((table) => (pieceMenu ? table.peekControls : undefined));
   const deleteControls = useTabletopSelector((table) => (pieceMenu ? table.deleteControls : undefined));
+  const menuPieceReserved = useTabletopSelector((table) =>
+    pieceMenu ? table.reservedPieceIds.has(pieceMenu.pieceId) : false
+  );
   const pieceMenuName = isSpicePiece(menuPiece)
     ? 'Spice actions'
     : menuPiece?.kind === 'card'
@@ -158,7 +154,13 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
         {menuPiece && deletablePiece(menuPiece) && (
           <>
             {(menuPiece.kind === 'card' || isSpicePiece(menuPiece) || peekableToken(menuPiece)) && <Menu.Divider />}
-            <DeletePieceItem key={menuPiece.id} piece={menuPiece} remove={deleteControls?.remove} onClose={onClose} />
+            <DeletePieceItem
+              key={menuPiece.id}
+              piece={menuPiece}
+              remove={deleteControls?.remove}
+              onClose={onClose}
+              reserved={menuPieceReserved}
+            />
           </>
         )}
       </Menu.Dropdown>
