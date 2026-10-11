@@ -609,10 +609,7 @@ export function RectangleTokenEditor({
      * This editor was the only one of five with no About chapter, while `INITIAL_RECTANGLE_DRAFT` has carried
      * `about: ''` since «Assets gain an About field», so the prose was stored and unreachable (found 2026-08-20).
      */
-    aboutChapter(draft.about, (about) => patch({ about }), {
-      value: draft.physicalSize,
-      onChange: (physicalSize) => patch({ physicalSize }),
-    }),
+    aboutChapter(draft.about, (about) => patch({ about })),
   ];
 
   /* Switching to a referenced back removes three tabs, so a selection sitting on one of them has to fall back. */

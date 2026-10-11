@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
 import { treacheryHandCounts } from '../../src/shared/play/handCounts';
-import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import { PHASE_CHANGE_COOLDOWN_MS, STANDARD_PHASES } from '../../src/shared/play/phases';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { hostedFixturePlan } from './fixture';
 import { Room } from './room';
@@ -102,6 +102,22 @@ describe('the hidden zone', () => {
     const played = room.snapshot.table.pieces.find((piece) => piece.id === LEADER);
     expect(played).toBeDefined();
     expect(played).not.toHaveProperty('hiddenZone');
+  });
+
+  test('forgets the spot when the piece goes into a battle plan, which may be disclosed', () => {
+    const { room, send } = roomWithHand();
+    send({ kind: 'hand-zone', pieceId: LOOSE, at: { x: 0.25, y: 0.5 } });
+    room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
+    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    const battleId = room.snapshot.battleState!.id;
+    send({ kind: 'battle-claim', battleId, side: 0 });
+    send({
+      kind: 'battle-plan',
+      battleId,
+      plan: { mode: 'max', troops: [], spice: 0, adjustment: 0, leaderId: null, cardIds: [LOOSE] },
+    });
+    expect(room.snapshot.battleState!.plans[0]!.pieces.map((piece) => piece.id)).toEqual([LOOSE]);
+    expect(JSON.stringify(room.snapshot.battleState)).not.toContain('hiddenZone');
   });
 
   test('refuses a piece that is not in the hand', () => {

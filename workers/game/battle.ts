@@ -198,7 +198,8 @@ function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: Batt
   validateLeaderSlot(pieces, plan);
   const balance = reservedBalance({ snapshot, battle, factionId }, before, plan);
   const ids = pieces.map((piece) => piece.id);
-  battle.plans[side] = { ...plan, pieces };
+  /* A plan may be disclosed and is revealed onto the table, so its pieces leave their private hidden zone spots behind. */
+  battle.plans[side] = { ...plan, pieces: pieces.map(({ hiddenZone: _spot, ...piece }) => piece) };
   return commit(snapshot, {
     battleState: battle,
     factionBanks: { ...snapshot.factionBanks, [factionId]: balance },

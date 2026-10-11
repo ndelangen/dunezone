@@ -348,7 +348,6 @@ export const RectangleTokenFace = z.strictObject({
 export const RectangleTokenAsset = z.strictObject({
   name: z.string(),
   about: About,
-  physicalSize: PhysicalSize.optional(),
   front: RectangleTokenFace,
   back: tokenBackUnion(RectangleTokenFace),
 });
