@@ -222,6 +222,7 @@
   color: #29271e;
   line-height: 1;
 }
+
 .earlyDial > span {
   color: #fff;
   -webkit-text-stroke: 0.8px #17150f;
@@ -230,8 +231,38 @@
   font-size: 24px;
   text-shadow: 0 0 2px #000;
 }
+
 .earlyDial small {
   margin-top: 3px;
   font-family: "C_Copperplate_Gothic", serif;
   font-size: 6px;
+}
+
+/* The revealed wheel's leader piece: its 72 px slot at top 73 px, right 20 px, inset 8% 2% 8% 14%. */
+.earlyLeader {
+  position: absolute;
+  top: 79px;
+  left: 88px;
+  width: 61px;
+  height: 61px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 1px 6px #000c;
+}
+
+.earlyLeader > * {
+  width: 100%;
+  height: 100%;
+}
+
+.earlyLayer[data-motion="ok"] .earlyCard,
+.earlyLayer[data-motion="ok"] .earlyDial,
+.earlyLayer[data-motion="ok"] .earlyLeader {
+  animation: early-reveal 320ms ease-out;
+}
+
+@keyframes early-reveal {
+  from {
+    opacity: 0;
+  }
 }
