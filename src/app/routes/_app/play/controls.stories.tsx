@@ -2,6 +2,8 @@ import preview from '@sb/preview';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, userEvent, within } from 'storybook/test';
 
+import { seatFactionsResolve } from '@db/storybook';
+
 import { openPanel, openPlayer } from './controls.stories.fixture';
 import {
   AUDIT_LOG,
@@ -323,12 +325,21 @@ export const PhaseShortGame = meta.story({
   },
 });
 
-/** A player's public information beside the controls. */
+/** A player's public information beside the controls: the faction's name opens its page, with the leaders it starts with, in a new tab. */
 export const PlayerInfo = meta.story({
+  decorators: [seatFactionsResolve],
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
-    await expect(page.findByText('House Atreides · Seat 1', {}, WAIT)).resolves.toBeVisible();
+    const link = await page.findByRole('link', { name: 'View House Atreides (opens in a new tab)' }, WAIT);
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(link).toHaveAttribute('href', '/factions/house-atreides');
+    await expect(page.findByText('House Atreides · Seat 1')).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Advantages' }, WAIT)).resolves.toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    await expect(page.getByRole('button', { name: 'Setup' })).toHaveAttribute('aria-expanded', 'false');
   },
 });
 
