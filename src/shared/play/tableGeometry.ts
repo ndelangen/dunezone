@@ -7,6 +7,7 @@ import {
   SPICE_LAYER_PITCH,
   SPICE_MAX_VISIBLE_LAYERS,
 } from './spice';
+import { isTroopStack } from './troop';
 
 type PieceFootprint = Pick<TablePiece, 'kind' | 'orientation'> & Partial<Pick<TablePiece, 'owner' | 'stackKey'>>;
 
@@ -146,7 +147,7 @@ function contactShadowBase(piece: TablePiece | TablePiece['kind']): [number, num
   }
   const diameter =
     kind === 'force'
-      ? TROOP_FOOTPRINT_RADIUS * 2 * (typeof piece === 'string' ? 1 : troopScale(piece)) + 0.04
+      ? TROOP_FOOTPRINT_RADIUS * 2 * (typeof piece === 'string' ? 1 : troopScale(piece)) + troopShadowSpread(piece)
       : MARKER_FOOTPRINT_RADIUS * 2;
   return [diameter, diameter];
 }
@@ -160,7 +161,16 @@ export function contactShadowScale(
   return [base[0] * expansion, base[1] * expansion, 1];
 }
 
-export function contactShadowOpacity(carried: boolean): number {
+/* Troops sit in crowds on the map, so their shadow reaches further and darker than other pieces' to keep each stack grounded. */
+const TROOP_SHADOW_SPREAD = 0.24;
+function troopShadowSpread(piece: TablePiece | TablePiece['kind']) {
+  return typeof piece !== 'string' && isTroopStack(piece) ? TROOP_SHADOW_SPREAD : 0.04;
+}
+
+export function contactShadowOpacity(carried: boolean, piece?: TablePiece): number {
+  if (piece && isTroopStack(piece)) {
+    return carried ? 0.3 : 0.75;
+  }
   return carried ? 0.14 : 0.3;
 }
 

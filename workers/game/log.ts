@@ -1,3 +1,4 @@
+import { alliesOf, isAllianceAction } from '../../src/shared/play/alliances';
 import { deletedName } from '../../src/shared/play/commands';
 import { factionTitleText, rosterFactionTitles } from '../../src/shared/play/factionLabels';
 import { LOG_CLASS_TABS, LOG_PAGE_SIZE } from '../../src/shared/play/log';
@@ -8,6 +9,7 @@ import type { PhaseEntry } from '../../src/shared/play/phases';
 import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
 import { describeResult, isResultAction } from '../../src/shared/play/result';
 import type { ResultAction } from '../../src/shared/play/result';
+import { rosterSeat } from '../../src/shared/play/schema';
 import { setupStep } from '../../src/shared/play/setup';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
 import { internalPieceId } from './state';
@@ -243,6 +245,7 @@ function commitEntries({
     ...(message.type === 'command' ? predictionEntries(next, message.action, faction, context) : []),
     ...(message.type === 'command' ? disclosureEntries(before, next, message.action, faction, context) : []),
     ...placedPredictionEntries(before, next, message, faction, context),
+    ...allianceEntries(before, next, message, viewer, faction, context),
     ...(transfer ? [spiceEntry(transfer, { userId: viewer.userId, name: viewer.displayName }, faction, context)] : []),
     ...(result && result.revision === next.revision ? [battleEntry(result, faction, context)] : []),
     ...deletionEntries(before, next, message, viewer, context),
@@ -418,6 +421,44 @@ function predictionEntries(
       context,
     },
   ];
+}
+
+/* An alliance formed or grown names all its factions, and a faction leaving names the allies it left; offers stay out of the log. */
+function allianceEntries(
+  before: StoredSnapshot,
+  next: StoredSnapshot,
+  message: CommitMessage,
+  viewer: Viewer,
+  faction: FactionNamer,
+  context: string
+): Entry[] {
+  if (message.type !== 'command' || !isAllianceAction(message.action) || before.revision === next.revision) {
+    return [];
+  }
+  const people: Person[] = [];
+  const names = (ids: readonly string[]) => {
+    const labels = ids.map((id) => faction(id, people));
+    return labels.length < 2 ? (labels[0] ?? '') : `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}`;
+  };
+  const template = (() => {
+    if (message.action.kind === 'alliance-break') {
+      const leaver = rosterSeat(before.roster, viewer.viewerSeat)?.faction?.id;
+      const allies = leaver ? alliesOf(before.alliances, leaver) : [];
+      return leaver && allies.length
+        ? `${faction(leaver, people)} broke its alliance with ${names(allies)}.`
+        : undefined;
+    }
+    const formed = next.alliances?.groups
+      .map((group) => group.members)
+      .find(
+        (group) =>
+          !before.alliances?.groups.some(
+            ({ members: known }) => known.length === group.length && known.every((id) => group.includes(id))
+          )
+      );
+    return formed ? `${names(formed)} are now allied.` : undefined;
+  })();
+  return template ? [{ key: `alliance:${next.revision}`, class: 'alliance', template, people, context }] : [];
 }
 
 /* A part of a battle plan shown before the reveal names what was shown, since everyone at the table now sees it. */

@@ -3,6 +3,9 @@ import { PLAYER_RING_RADIUS, PLAYER_STATION_RADIUS, tableSeatAngles } from '@sha
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Shape } from 'three';
 
+export const BOARD_RIM_COLOR = '#15263b';
+export const BOARD_RIM_ROUGHNESS = 0.72;
+export const BOARD_RIM_METALNESS = 0.06;
 export const BOARD_RIM_DEPTH = 0.18;
 
 function clampCosine(value: number): number {

@@ -448,6 +448,7 @@ export class RoomProjection {
         ...(draft ? { draft } : {}),
         ...(swapping ? { swapping } : {}),
         ...(snapshot.bidding ? { bidding: snapshot.bidding } : {}),
+        ...(snapshot.alliances ? { alliances: snapshot.alliances } : {}),
         ...(snapshot.lastTurn ? { lastTurn: snapshot.lastTurn } : {}),
         controls: controls && {
           ...controls,

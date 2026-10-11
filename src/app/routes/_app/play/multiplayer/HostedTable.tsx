@@ -31,6 +31,8 @@ import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
+import { AllianceCoinsScene } from './AllianceCoins';
+import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { BidderToolbar } from './BidderToolbar';
@@ -731,6 +733,26 @@ function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   );
 }
 
+/* The Alliances tab, only while the game is in play. */
+function alliancesTab({ client, table, error }: ConnectionControlsProps) {
+  if (!showsAlliances(table.snapshot.stage)) {
+    return [];
+  }
+  return [
+    {
+      key: 'alliances',
+      label: 'Alliances',
+      topic: 'alliance' as const,
+      content: (
+        <>
+          {error && <FormError title="From the table">{error}</FormError>}
+          <AlliancesPanel client={client} table={table} />
+        </>
+      ),
+    },
+  ];
+}
+
 function ConnectedTable({
   client,
   table,
@@ -806,7 +828,12 @@ function ConnectedTable({
             tableProgress={progress}
             stage={stage}
             mapVisible={setupMapVisible(table.snapshot.setup)}
-            connectionStatus={<ConnectionStatus table={table} />}
+            connectionStatus={
+              <>
+                <ConnectionStatus table={table} />
+                <AllianceStrip table={table} />
+              </>
+            }
             toolbarControl={
               inPlay || (stage === 'setup' && table.snapshot.setup) ? (
                 <>
@@ -832,6 +859,7 @@ function ConnectedTable({
                     <BattleScene client={client} table={table} />
                     {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
                     {inPlay && <HandCountsScene table={table} />}
+                    <AllianceCoinsScene table={table} />
                   </>
                 )}
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
@@ -965,6 +993,7 @@ function ConnectedTable({
                       ...SHARED_INVENTORY_GUIDANCE,
                       content: <SharedInventory client={client} table={table} />,
                     },
+                    ...alliancesTab({ client, table, error }),
                     {
                       key: 'spice',
                       label: 'Spice',
