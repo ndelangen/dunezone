@@ -27,7 +27,7 @@ const faction = (snapshot: GameSnapshot, seat: string) => rosterSeat(snapshot.ro
 function alliancesSnapshot(): GameSnapshot {
   const snapshot = playingSnapshot(VIEWER);
   snapshot.alliances = {
-    groups: [[faction(snapshot, 'seat-4'), faction(snapshot, 'seat-5')]],
+    groups: [{ members: [faction(snapshot, 'seat-4'), faction(snapshot, 'seat-5')], mark: 0 }],
     offers: [{ from: faction(snapshot, 'seat-1'), to: faction(snapshot, VIEWER), at: STORYBOOK_NOW }],
   };
   return snapshot;

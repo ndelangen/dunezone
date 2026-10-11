@@ -416,12 +416,14 @@ function allianceEntries(
         ? `${faction(leaver, people)} broke its alliance with ${names(allies)}.`
         : undefined;
     }
-    const formed = next.alliances?.groups.find(
-      (group) =>
-        !before.alliances?.groups.some(
-          (known) => known.length === group.length && known.every((id) => group.includes(id))
-        )
-    );
+    const formed = next.alliances?.groups
+      .map((group) => group.members)
+      .find(
+        (group) =>
+          !before.alliances?.groups.some(
+            ({ members: known }) => known.length === group.length && known.every((id) => group.includes(id))
+          )
+      );
     return formed ? `${names(formed)} are now allied.` : undefined;
   })();
   return template ? [{ key: `alliance:${next.revision}`, class: 'alliance', template, people, context }] : [];

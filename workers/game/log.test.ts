@@ -117,7 +117,10 @@ describe('the public log', () => {
       ],
     };
     const at = (revision: number, groups: string[][]) =>
-      snapshot(revision, { roster, alliances: { groups, offers: [] } } as never);
+      snapshot(revision, {
+        roster,
+        alliances: { groups: groups.map((members) => ({ members, mark: 0 })), offers: [] },
+      } as never);
     const command = (action: object) => ({ type: 'command', action }) as never;
     log.recordCommit({
       holders: [],

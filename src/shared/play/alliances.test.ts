@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { alliesOf, applyAlliance, emptyAlliances } from './alliances';
+import { allianceOf, alliesOf, applyAlliance, emptyAlliances } from './alliances';
 import type { AllianceAction, AllianceState } from './alliances';
 
 const FACTIONS = ['atreides', 'harkonnen', 'fremen', 'emperor'];
@@ -10,6 +10,23 @@ function act(state: AllianceState, factionId: string, action: AllianceAction) {
 }
 
 describe('alliances', () => {
+  test('an alliance keeps its mark while others form and break, and a new one takes the lowest free mark', () => {
+    const ally = (state: AllianceState, from: string, to: string) =>
+      act(act(state, from, { kind: 'alliance-offer', factionId: to }), to, {
+        kind: 'alliance-accept',
+        factionId: from,
+      });
+    let state = ally(emptyAlliances(), 'atreides', 'fremen');
+    state = ally(state, 'harkonnen', 'emperor');
+    expect(allianceOf(state, 'emperor')?.mark).toBe(1);
+    state = act(state, 'atreides', { kind: 'alliance-break', factionId: 'fremen' });
+    expect(allianceOf(state, 'emperor')?.mark).toBe(1);
+    state = ally(state, 'atreides', 'fremen');
+    expect(allianceOf(state, 'fremen')?.mark).toBe(0);
+    state = ally(state, 'fremen', 'emperor');
+    expect(allianceOf(state, 'harkonnen')?.mark).toBe(0);
+  });
+
   test('an accepted offer allies both factions and clears the offer', () => {
     const offered = act(emptyAlliances(), 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
     expect(offered.offers).toEqual([{ from: 'atreides', to: 'fremen', at: 1 }]);

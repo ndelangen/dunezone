@@ -9,8 +9,11 @@ import { tableCountSchema as count, tableIdSchema as id } from './schema';
  * The table checks only that the factions agreed, never how large an alliance may grow or when a Nexus is open, so players apply their ruleset as they do at a physical table.
  */
 export const allianceStateSchema = z.object({
-  /* Each alliance as its faction ids, at least two. */
-  groups: z.array(z.array(id).min(2)),
+  /*
+   * Each alliance as its faction ids, at least two, and its mark: the colour slot that shows it on the table.
+   * An alliance keeps its mark while it grows or loses a member, so its colour never changes when other alliances do.
+   */
+  groups: z.array(z.object({ members: z.array(id).min(2), mark: count })),
   /* Offers waiting on an answer, oldest first. */
   offers: z.array(z.object({ from: id, to: id, at: count })),
 });
@@ -21,7 +24,7 @@ export const allianceActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('alliance-withdraw'), factionId: id }),
   z.strictObject({ kind: z.literal('alliance-accept'), factionId: id }),
   z.strictObject({ kind: z.literal('alliance-decline'), factionId: id }),
-  /* Names one ally the breaking faction saw, so a late break never leaves an alliance formed since. */
+  /* Names one ally the breaking faction saw; the Room also refuses a break sent against a table that has changed since. */
   z.strictObject({ kind: z.literal('alliance-break'), factionId: id }),
 ]);
 export type AllianceAction = z.infer<typeof allianceActionSchema>;
@@ -36,7 +39,12 @@ export function emptyAlliances(): AllianceState {
 
 /** The factions allied with `factionId`, itself left out; empty when it stands alone. */
 export function alliesOf(state: AllianceState | undefined, factionId: string): string[] {
-  return state?.groups.find((group) => group.includes(factionId))?.filter((member) => member !== factionId) ?? [];
+  return allianceOf(state, factionId)?.members.filter((member) => member !== factionId) ?? [];
+}
+
+/** The alliance `factionId` belongs to, if any. */
+export function allianceOf(state: AllianceState | undefined, factionId: string) {
+  return state?.groups.find((group) => group.members.includes(factionId));
 }
 
 export class AllianceRefusal extends Error {}
@@ -52,14 +60,28 @@ export type AllianceContext = {
   now: number;
 };
 
+/* The lowest mark no alliance holds, so a new alliance never shares a colour with another. */
+function freeMark(state: AllianceState): number {
+  const taken = new Set(state.groups.map((group) => group.mark));
+  let mark = 0;
+  while (taken.has(mark)) {
+    mark += 1;
+  }
+  return mark;
+}
+
 /* The two factions an offer, an answer, a withdrawal or a break is about. */
 type Pair = Readonly<{ from: string; to: string }>;
 
 /** Joins the alliances of the two factions, dropping the offers the new alliance answered among its own members. */
 function join(state: AllianceState, { from: a, to: b }: Pair): AllianceState {
   const members = [a, ...alliesOf(state, a), b, ...alliesOf(state, b)];
+  const mark = allianceOf(state, a)?.mark ?? allianceOf(state, b)?.mark ?? freeMark(state);
   return {
-    groups: [...state.groups.filter((group) => !group.includes(a) && !group.includes(b)), members],
+    groups: [
+      ...state.groups.filter((group) => !group.members.includes(a) && !group.members.includes(b)),
+      { members, mark },
+    ],
     offers: state.offers.filter((offer) => !(members.includes(offer.from) && members.includes(offer.to))),
   };
 }
@@ -103,7 +125,9 @@ function breakAway(state: AllianceState, { from, to }: Pair): AllianceState {
   }
   return {
     ...state,
-    groups: state.groups.map((group) => group.filter((member) => member !== from)).filter((group) => group.length > 1),
+    groups: state.groups
+      .map((group) => ({ ...group, members: group.members.filter((member) => member !== from) }))
+      .filter((group) => group.members.length > 1),
   };
 }
 

@@ -26,12 +26,13 @@ function ignoreRaycast() {
 const COIN_BAND = 0.085;
 const MIN_HEIGHT = 0.018;
 const DROP = 0.024;
+const COIN_STEP = 0.003;
 const SHADOW_SPREAD = 0.08;
 const SHADOW_OPACITY = 0.75;
-function Coin({ ally, index, base }: { ally: TablePiece | null; index: number; base: number }) {
+function Coin({ ally, index, count, base }: { ally: TablePiece | null; index: number; count: number; base: number }) {
   const radius = TOKEN_RADIUS + COIN_BAND * (index + 1);
-  /* Each wider coin sits a hair lower than the one above it, never thinner than MIN_HEIGHT. */
-  const top = Math.max(TABLE_SURFACE_Y + MIN_HEIGHT, base - DROP - index * 0.003);
+  /* Each wider coin sits a step lower than the one above it; the widest is never thinner than MIN_HEIGHT. */
+  const top = Math.max(TABLE_SURFACE_Y + MIN_HEIGHT + (count - 1 - index) * COIN_STEP, base - DROP - index * COIN_STEP);
   const height = top - TABLE_SURFACE_Y;
   return (
     <group position={[0, TABLE_SURFACE_Y, 0]}>
@@ -82,7 +83,7 @@ export function AllianceCoinsScene({ table }: { table: TableProjection }) {
     return [
       <group key={factionId} position={[x, 0, z]}>
         {coins.map((ally, index) => (
-          <Coin key={ally?.id ?? 'alone'} ally={ally} index={index} base={y} />
+          <Coin key={ally?.id ?? 'alone'} ally={ally} index={index} count={coins.length} base={y} />
         ))}
       </group>,
     ];

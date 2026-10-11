@@ -276,7 +276,7 @@ export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
     table.state.pieces.find((piece) => piece.stackKey === factionTokenStackKey(factionId))?.items[0]?.artwork?.front;
   return (
     <Group gap="xs" wrap="nowrap" aria-label="Alliances">
-      {groups.map((group) => {
+      {groups.map(({ members: group }) => {
         const label = `${factionList(names, group)} are allied`;
         return (
           <Tooltip key={group.join(':')} label={label} withinPortal>

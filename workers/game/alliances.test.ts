@@ -33,9 +33,20 @@ test('an offer, once accepted, allies the two factions, and either may break the
   send(table, atreides, { kind: 'alliance-offer', factionId: 'harkonnen' });
   expect(table.snapshot.alliances).toMatchObject({ groups: [], offers: [{ from: 'atreides', to: 'harkonnen' }] });
   send(table, harkonnen, { kind: 'alliance-accept', factionId: 'atreides' });
-  expect(table.snapshot.alliances).toEqual({ groups: [['atreides', 'harkonnen']], offers: [] });
+  expect(table.snapshot.alliances).toEqual({ groups: [{ members: ['atreides', 'harkonnen'], mark: 0 }], offers: [] });
   send(table, harkonnen, { kind: 'alliance-break', factionId: 'atreides' });
   expect(table.snapshot.alliances).toEqual({ groups: [], offers: [] });
+});
+
+test('a break sent against a table that has changed since is turned away', () => {
+  const table = room();
+  send(table, atreides, { kind: 'alliance-offer', factionId: 'harkonnen' });
+  send(table, harkonnen, { kind: 'alliance-accept', factionId: 'atreides' });
+  const seen = table.snapshot.revision;
+  send(table, harkonnen, { kind: 'alliance-break', factionId: 'atreides' });
+  send(table, atreides, { kind: 'alliance-offer', factionId: 'harkonnen' });
+  send(table, harkonnen, { kind: 'alliance-accept', factionId: 'atreides' });
+  expect(() => table.command(atreides, { kind: 'alliance-break', factionId: 'harkonnen' }, seen)).toThrow(/changed/);
 });
 
 test('a command that changes nothing keeps the revision', () => {
