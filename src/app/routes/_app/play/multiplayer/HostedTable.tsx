@@ -328,8 +328,9 @@ function Predictions({ client, table }: SetupControlProps) {
       /* While its card is in hand, placing the card is the reveal; a game that dealt none keeps the button during setup and in the winner bars. */
       const byCard = own && prediction?.revealedAt === null && predictionCardInHand(table, step.id);
       return (
+        /* The Setup tab's guidance names the current step only, so every other declaration keeps its heading in view. */
         <Section
-          hiddenHeading={Boolean(table.snapshot.stage)}
+          hiddenHeading={Boolean(table.snapshot.stage) && current?.id === step.id}
           key={step.id}
           title={step.title}
           description={setupHelp(step)}

@@ -8,6 +8,7 @@ import {
   createElement,
   isValidElement,
   useContext,
+  useEffect,
   useEffectEvent,
   useId,
   useLayoutEffect,
@@ -365,7 +366,7 @@ function NestedTabsTooltip({
   description?: string;
   help?: string;
   isScrolling: boolean;
-  children: ReactElement<Pick<HTMLAttributes<HTMLElement>, 'onFocus' | 'onBlur' | 'onKeyDown'>>;
+  children: ReactElement<Pick<HTMLAttributes<HTMLElement>, 'onFocus' | 'onBlur'>>;
 }) {
   const [shown, setShown] = useState<'closed' | 'short' | 'help'>('closed');
   const openTimer = useRef(0);
@@ -415,6 +416,24 @@ function NestedTabsTooltip({
     };
   }, [isScrolling]);
 
+  /* The controlled tooltip loses Mantine's own Escape, so it is restored here wherever focus is: the tooltip closes, focus stays, and the next hover or focus opens it again. */
+  const open = shown !== 'closed';
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const dismiss = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        engaged.current = { pointer: false, focus: false };
+        window.clearTimeout(openTimer.current);
+        window.clearTimeout(helpTimer.current);
+        setShown('closed');
+      }
+    };
+    document.addEventListener('keydown', dismiss);
+    return () => document.removeEventListener('keydown', dismiss);
+  }, [open]);
+
   const text = shown === 'help' ? help : description;
 
   return (
@@ -449,15 +468,6 @@ function NestedTabsTooltip({
         onBlur: (event: FocusEvent<HTMLElement>) => {
           children.props.onBlur?.(event);
           release('focus');
-        },
-        /* The controlled tooltip loses Mantine's own Escape, so it is restored here: the tooltip closes, focus stays, and the next hover or focus opens it again. */
-        onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
-          children.props.onKeyDown?.(event);
-          if (event.key === 'Escape') {
-            engaged.current = { pointer: false, focus: false };
-            clearTimers();
-            setShown('closed');
-          }
         },
       })}
     </Tooltip>
