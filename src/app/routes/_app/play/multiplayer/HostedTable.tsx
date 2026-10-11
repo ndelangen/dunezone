@@ -757,10 +757,12 @@ function stageToolbar({
   /* The fixture has no stage and plays like a game in play. */
   const inPlay = stage === undefined || stage === 'play';
   /* Playback before play steps through the stage's checkpoints where its Ready would be. */
-  if (table.playback && !inPlay && stage !== 'finished') {
+  const beforePlay = !inPlay && stage !== 'finished';
+  if (table.playback && beforePlay) {
     return <StagePlayback client={client} table={table} />;
   }
-  if (inPlay || (stage === 'setup' && table.snapshot.setup)) {
+  const settingUp = stage === 'setup' && Boolean(table.snapshot.setup);
+  if (inPlay || settingUp) {
     return (
       <>
         {inPlay && (
