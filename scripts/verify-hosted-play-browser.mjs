@@ -1676,7 +1676,7 @@ async function verifyRegular() {
   const beforePlayback = a.view().snapshot.revision;
   await openTab(b, 'Phase');
   await b.page.getByRole('button', { name: 'Replay from start' }).click();
-  await b.page.getByText(/Checkpoint 0 of/).waitFor();
+  await b.page.getByText(/checkpoint 0 of/iu).waitFor();
   /* A real game's first checkpoints are its stages before play, stepped from the header; stepping reaches Turn 1. */
   let checkpoint = 0;
   while ((await b.page.getByRole('tab', { name: 'Phase', exact: true }).count()) === 0) {
@@ -1685,7 +1685,7 @@ async function verifyRegular() {
     assert.ok(await later.isEnabled(), `Playback ran out of checkpoints at ${checkpoint} before reaching play.`);
     await later.click();
     checkpoint += 1;
-    await b.page.getByText(new RegExp(`Checkpoint ${checkpoint} of`, 'u')).waitFor();
+    await b.page.getByText(new RegExp(`checkpoint ${checkpoint} of`, 'iu')).waitFor();
   }
   assert.ok(checkpoint > 0);
   assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
@@ -1697,7 +1697,7 @@ async function verifyRegular() {
   await displayedPhase(a, TABLE_PHASES.length);
   await displayedPhase(b, 0);
   await b.page.getByRole('button', { name: 'Later phase' }).click();
-  await b.page.getByText(new RegExp(`Checkpoint ${checkpoint + 1} of`, 'u')).waitFor();
+  await b.page.getByText(new RegExp(`checkpoint ${checkpoint + 1} of`, 'iu')).waitFor();
   await b.page.getByRole('button', { name: 'Return to live' }).click();
   /* The live table's cooldown (#1139) can still be running; the controls refresh on its next tick. */
   await until(
