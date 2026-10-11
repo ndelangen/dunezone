@@ -1,6 +1,6 @@
 /*
  * The play shell's own chrome: what the kit has no concern for. The 3D scene and the labels it
- * projects, the seated header with its phase status and table-view picker, and the docked panel
+ * projects, the seated header's floating chips with the phase status, the camera dial, and the docked panel
  * frame; the kit's SplitPanels places the scene and the dock, and draws the separator between
  * them. Everything inside the panel is the kit (Section, Eyebrow, Mantine controls) on the
  * dark-scheme island the shell declares with data-scheme-dark; see tokens.css.
@@ -115,9 +115,9 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 
 /* While a board gesture is held, the chrome around the scene stops taking the pointer: the overlay, the header, the dock and the separator above it. */
 :where(.dune-play-shell).dune-play-shell--seated[data-board-gesture-active="true"]
-  :is(.seated-stage-overlay, .seated-header, .seated-controls-panel, [role="separator"]),
+  :is(.seated-stage-overlay, .seated-header, .seated-camera, .seated-controls-panel, [role="separator"]),
 :where(.dune-play-shell).dune-play-shell--seated[data-board-gesture-active="true"]
-  :is(.seated-stage-overlay, .seated-header, .seated-controls-panel, [role="separator"])
+  :is(.seated-stage-overlay, .seated-header, .seated-camera, .seated-controls-panel, [role="separator"])
   * {
   pointer-events: none !important;
   user-select: none;
@@ -148,57 +148,58 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   overscroll-behavior: contain;
 }
 
-/* Header: brand, phase status and the toolbar, floating over the scene. It is the shell's child beside
-   the split, not the scene panel's: the split makes each panel a stacking context, so a header inside
-   the scene's panel would paint under the dock wherever the dock's floor grows up over the scene. */
+/* Header: no bar of its own. The table runs to the top of the screen, and the phase with the game beside it (left) and
+   the phase and settings controls (right) float over it as chips. It is the shell's child beside the split, not the scene
+   panel's: the split makes each panel a stacking context, so a header inside the scene's panel would paint under the dock
+   wherever the dock's floor grows up over the scene. Only the chips take the pointer; the table shows through between them. */
 :where(.dune-play-shell) .seated-header {
   position: absolute;
   z-index: 10;
   top: 0;
   right: 0;
   left: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  display: flex;
   gap: 0.9rem;
-  align-items: center;
-  min-height: 5.2rem;
-  padding: 0.7rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(180deg, rgba(10, 7, 6, 0.94), rgba(10, 7, 6, 0.67));
-  backdrop-filter: blur(18px);
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
   pointer-events: none;
 }
 
-:where(.dune-play-shell) .seated-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  justify-self: end;
-  gap: 0.4rem;
-  pointer-events: auto;
-}
-
-:where(.dune-play-shell) .seated-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
+:where(.dune-play-shell) .seated-header__start {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
   min-width: 0;
-  pointer-events: auto;
 }
 
-:where(.dune-play-shell) .seated-brand__logo {
-  display: block;
-  width: 9rem;
-  max-width: 100%;
-  height: auto;
-}
-
-:where(.dune-play-shell) .seated-phase-status {
+:where(.dune-play-shell) .seated-chip {
   display: flex;
   align-items: center;
   gap: 0.65rem;
   min-width: 0;
+  max-width: 100%;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid rgba(255, 242, 216, 0.1);
+  border-radius: 0.75rem;
+  background: rgba(12, 9, 7, 0.78);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+
+/* A chip with nothing in it (no game name, no alliances) takes no room. */
+:where(.dune-play-shell) .seated-chip:empty {
+  display: none;
+}
+
+:where(.dune-play-shell) .seated-toolbar {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  padding: 0.3rem 0.35rem;
+}
+
+:where(.dune-play-shell) .seated-phase-status {
   color: var(--cream-muted);
   font-size: 0.57rem;
   font-weight: 750;
@@ -208,8 +209,8 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 }
 
 :where(.dune-play-shell) .seated-phase-status__symbol {
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 2.4rem;
+  height: 2.4rem;
   flex: 0 0 auto;
 }
 
@@ -232,59 +233,117 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   white-space: nowrap;
 }
 
-/* Segmented controls of the chrome: the table-view picker, with the phase's recommended view marked, and the label toggles. */
-:where(.dune-play-shell) .table-view-picker {
-  display: inline-flex;
-  padding: 0.18rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0.62rem;
-  background: rgba(0, 0, 0, 0.28);
+/* The camera dial in the scene's lower right corner: letters around a dot, a needle from the dot to the view the camera
+   holds, a ring on the view the phase recommends, and a caption naming what it moves. */
+:where(.dune-play-shell) .seated-camera {
+  position: absolute;
+  z-index: 6;
+  right: 1.1rem;
+  bottom: 1.6rem;
 }
 
-:where(.dune-play-shell) .table-view-picker button {
+:where(.dune-play-shell) .camera-dial {
   position: relative;
-  min-height: 2rem;
-  padding: 0.38rem 0.55rem;
+  width: 5.75rem;
+  height: 5.75rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #2a2219, #120e0b);
+  box-shadow:
+    0 0 0 1px rgba(255, 242, 216, 0.1),
+    0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+:where(.dune-play-shell) .camera-dial__needle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.25rem;
+  height: 1.6rem;
+  margin-left: -0.125rem;
+  border-radius: 0.125rem;
+  background: #fff2d8;
+  transform-origin: 50% 0;
+  transition: rotate 0.4s ease;
+}
+
+:where(.dune-play-shell) .camera-dial__hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin: -0.375rem 0 0 -0.375rem;
+  border-radius: 50%;
+  background: #fff2d8;
+}
+
+:where(.dune-play-shell) .camera-dial__view {
+  position: absolute;
+  width: 1.9rem;
+  height: 1.9rem;
+  margin: -0.95rem 0 0 -0.95rem;
+  padding: 0;
   border: 0;
-  border-radius: 0.45rem;
+  border-radius: 50%;
   color: var(--cream-muted);
   background: transparent;
   cursor: pointer;
   font: inherit;
-  font-size: 0.66rem;
-  font-weight: 780;
+  font-size: 0.7rem;
+  font-weight: 800;
 }
 
-:where(.dune-play-shell) .table-view-picker button:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 3px;
+:where(.dune-play-shell) .camera-dial__view[data-view="map"] {
+  top: 18%;
+  left: 50%;
 }
 
-:where(.dune-play-shell) .table-view-picker button:hover {
+:where(.dune-play-shell) .camera-dial__view[data-view="left"] {
+  top: 50%;
+  left: 18%;
+}
+
+:where(.dune-play-shell) .camera-dial__view[data-view="right"] {
+  top: 50%;
+  left: 82%;
+}
+
+:where(.dune-play-shell) .camera-dial__view[data-view="bottom"] {
+  top: 82%;
+  left: 50%;
+}
+
+:where(.dune-play-shell) .camera-dial__view:hover {
   color: var(--color-text);
   background: rgba(255, 255, 255, 0.07);
 }
 
-:where(.dune-play-shell) .table-view-picker button.is-active {
+:where(.dune-play-shell) .camera-dial__view:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+:where(.dune-play-shell) .camera-dial__view[data-phase-preferred] {
+  box-shadow: inset 0 0 0 1.5px var(--sand);
+}
+
+:where(.dune-play-shell) .camera-dial__view[aria-pressed="true"] {
   color: #24170e;
   background: var(--sand);
-  box-shadow: 0 4px 14px rgba(248, 175, 64, 0.18);
 }
 
-:where(.dune-play-shell) .phase-view-dot {
+:where(.dune-play-shell) .camera-dial__label {
   position: absolute;
-  top: 0.24rem;
-  right: 0.24rem;
-  width: 0.25rem;
-  height: 0.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.66);
-  border-radius: 999px;
-  background: var(--sand);
-}
-
-:where(.dune-play-shell) .table-view-picker button.is-active .phase-view-dot {
-  border-color: rgba(36, 23, 14, 0.62);
-  background: #5f321d;
+  top: 100%;
+  left: 50%;
+  margin-top: 0.35rem;
+  color: var(--cream-muted);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-shadow: 0 1px 3px #000;
+  text-transform: uppercase;
+  translate: -50% 0;
 }
 
 /* Panel frame: the dock below the table that the kit's tabs sit in. The dock paints the ground;
@@ -341,7 +400,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   overscroll-behavior: contain;
 }
 
-/* A 768px tablet keeps the one-row header and the side-by-side dock, since a step belongs to its wider side. */
+/* A 768px tablet keeps the header's chips side by side and the side-by-side dock, since a step belongs to its wider side. */
 @media (width < 48rem) {
   :where(.dune-play-shell) {
     height: auto;
@@ -351,14 +410,9 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 
   :where(.dune-play-shell) .seated-header {
     z-index: 12;
-    position: absolute;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.6rem;
-    padding: 0.6rem 0.5rem;
-  }
-
-  :where(.dune-play-shell) .seated-brand__logo {
-    width: 7rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem;
   }
 
   :where(.dune-play-shell).dune-play-shell--seated {
@@ -374,30 +428,6 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 
   :where(.dune-play-shell) .seated-controls-panel {
     padding: var(--space-xs);
-  }
-
-  :where(.dune-play-shell) .seated-phase-status {
-    grid-column: 1;
-    grid-row: 2;
-    justify-self: stretch;
-  }
-
-  :where(.dune-play-shell) .seated-toolbar {
-    grid-column: 1 / -1;
-    grid-row: 3;
-    justify-content: flex-end;
-    justify-self: stretch;
-    flex-wrap: wrap;
-  }
-
-  :where(.dune-play-shell) .table-view-picker {
-    flex: 0 0 auto;
-  }
-
-  :where(.dune-play-shell) .table-view-picker button {
-    flex: 1;
-    padding-inline: 0.35rem;
-    font-size: 0.62rem;
   }
 }
 

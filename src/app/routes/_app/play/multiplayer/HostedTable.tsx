@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Button, Group, List, Loader, Menu, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
@@ -13,6 +13,7 @@ import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { ChevronDown } from 'lucide-react';
 import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -212,27 +213,46 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
           </Text>
         </Group>
       )}
-      <Group gap="xs" wrap="nowrap">
-        <Button
-          variant="subtle"
-          disabled={
-            !table.canInteract ||
-            cooling ||
-            Boolean(table.snapshot.ending) ||
-            Boolean(table.snapshot.battle) ||
-            (setup ? setup.index === 0 : table.snapshot.phase === 0)
-          }
-          onClick={() => client.command({ kind: 'phase', direction: -1 })}
-        >
-          Previous phase
-        </Button>
-        <Button
-          disabled={!table.canInteract || cooling || refusal !== null}
-          onClick={() => client.command({ kind: 'phase' })}
-        >
-          Next phase
-        </Button>
-      </Group>
+      <PhaseStepButton
+        nextDisabled={!table.canInteract || cooling || refusal !== null}
+        previousDisabled={
+          !table.canInteract ||
+          cooling ||
+          Boolean(table.snapshot.ending) ||
+          Boolean(table.snapshot.battle) ||
+          (setup ? setup.index === 0 : table.snapshot.phase === 0)
+        }
+        onNext={() => client.command({ kind: 'phase' })}
+        onPrevious={() => client.command({ kind: 'phase', direction: -1 })}
+      />
+    </Group>
+  );
+}
+
+/* Next phase is the one button; going back is rare, so Previous phase waits in its menu. */
+function PhaseStepButton({
+  nextDisabled,
+  previousDisabled,
+  onNext,
+  onPrevious,
+}: Readonly<{ nextDisabled: boolean; previousDisabled: boolean; onNext: () => void; onPrevious: () => void }>) {
+  return (
+    <Group gap={1} wrap="nowrap">
+      <Button disabled={nextDisabled} onClick={onNext} style={{ borderStartEndRadius: 0, borderEndEndRadius: 0 }}>
+        Next phase
+      </Button>
+      <Menu position="bottom-end" shadow="md" withinPortal>
+        <Menu.Target>
+          <Button aria-label="More phase actions" px={8} style={{ borderStartStartRadius: 0, borderEndStartRadius: 0 }}>
+            <ChevronDown size={16} aria-hidden />
+          </Button>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Item disabled={previousDisabled} onClick={onPrevious}>
+            Previous phase
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
     </Group>
   );
 }
@@ -830,12 +850,8 @@ function ConnectedTable({
             tableProgress={progress}
             stage={stage}
             mapVisible={setupMapVisible(table.snapshot.setup)}
-            connectionStatus={
-              <>
-                <ConnectionStatus table={table} />
-                <AllianceStrip table={table} />
-              </>
-            }
+            connectionStatus={<ConnectionStatus table={table} />}
+            alliances={<AllianceStrip table={table} />}
             toolbarControl={
               inPlay || (stage === 'setup' && table.snapshot.setup) ? (
                 <>

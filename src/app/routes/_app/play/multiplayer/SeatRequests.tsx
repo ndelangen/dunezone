@@ -3,11 +3,12 @@ import { emptyPublicControls } from '@shared/play/inventory';
 import { seatLabel, seatSubject } from '@shared/play/participation';
 import type { SeatAction, SeatRequest } from '@shared/play/participation';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
+import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface/Surface';
-import { Armchair, EllipsisVertical } from 'lucide-react';
+import { Armchair, Check, Settings } from 'lucide-react';
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -18,6 +19,7 @@ import {
   TABLE_LIGHTING_MIN,
   useTableLighting,
 } from '../../../../widgets/tabletop/tableLighting';
+import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 import styles from './SeatRequests.module.css';
 
 /*
@@ -290,8 +292,40 @@ function TableLightingSlider() {
   );
 }
 
+/* Pins the stack counts or piece names on; holding the key shows them for a moment. */
+function TableLabelItems() {
+  const labels = useTableLabels();
+  if (!labels) {
+    return null;
+  }
+  return (
+    <>
+      <Menu.Divider />
+      {TABLE_LABEL_OPTIONS.map((option) => (
+        <Menu.Item
+          key={option.id}
+          role="menuitemcheckbox"
+          aria-checked={labels.pinned[option.id]}
+          closeMenuOnClick={false}
+          leftSection={
+            <Check size={14} aria-hidden style={{ visibility: labels.pinned[option.id] ? 'visible' : 'hidden' }} />
+          }
+          rightSection={
+            <Text size="xs" c="dimmed">
+              hold {option.key}
+            </Text>
+          }
+          onClick={() => labels.toggle(option.id)}
+        >
+          {option.name}
+        </Menu.Item>
+      ))}
+    </>
+  );
+}
+
 /**
- * The game menu in the header toolbar, in every stage, left of the phase controls that stay rightmost.
+ * The settings menu behind the gear at the right end of the header, in every stage, after the phase controls.
  * It gives up the viewer's seat, with the confirmation in the decision bar, never in a modal;
  * a spectator has no seat to give up.
  * While a result's confetti is on the table it also stops and clears it, for this viewer alone.
@@ -312,17 +346,21 @@ export function GameMenu({
       <Menu.Target>
         <IconAction
           label="Game menu"
-          emphasis="standard"
+          emphasis="quiet"
           intent="neutral"
-          size="sm"
-          icon={<EllipsisVertical size={15} aria-hidden />}
+          size="lg"
+          icon={<Settings size={20} aria-hidden />}
         />
       </Menu.Target>
       <Menu.Dropdown>
         {sharing}
         <Menu.Divider />
         <TableLightingSlider />
+        <TableLabelItems />
         <Menu.Divider />
+        <Menu.Item component={Link} to="/play">
+          Back to the lobby
+        </Menu.Item>
         {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
         <Menu.Item color="red" disabled={!seated} onClick={onLeave}>
           Give up your seat
