@@ -268,6 +268,11 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   bottom: auto;
 }
 
+/* The dock's panes then stop short of the dial's column, so it covers none of their messages or controls. */
+:where(.dune-play-shell)[data-camera-docked="true"] .seated-controls-panel:has(> .seated-camera) {
+  padding-right: calc(1.1rem + 5.75rem + var(--space-sm));
+}
+
 :where(.dune-play-shell) .camera-dial {
   position: relative;
   width: 5.75rem;
