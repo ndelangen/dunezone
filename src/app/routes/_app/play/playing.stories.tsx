@@ -832,7 +832,7 @@ export const ControlsPanelTabs = meta.story({
         within(rail())
           .getAllByRole('tab')
           .map((item) => item.getAttribute('aria-label'))
-      ).toEqual(['Hand', 'Shared inventory', 'Alliances', 'Spice', 'Log', 'Phase']);
+      ).toEqual(['Hand', 'Hidden zone', 'Shared inventory', 'Alliances', 'Spice', 'Log', 'Phase']);
       expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAttribute('aria-selected', 'true');
       expect(page.getByRole('region', { name: 'Shared inventory' })).toBeVisible();
       expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
