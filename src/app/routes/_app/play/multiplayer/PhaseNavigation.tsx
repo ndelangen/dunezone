@@ -48,7 +48,7 @@ function atFirstStepOrHeld(snapshot: TableProjection['snapshot']) {
 }
 
 /* One toggle for readiness that carries the count: a filled Ready until pressed, then a quiet ticked Ready that withdraws. */
-function ReadyToggle({
+export function ReadyToggle({
   ready,
   count,
   of,

@@ -159,48 +159,114 @@ button.token {
   content: "";
 }
 
-.openSeat {
-  border: 2px dashed rgba(255, 255, 255, 0.35);
-}
-
-/* Header statistics beside the stage word. */
+/* The drafting chip: the stage and ruleset, the deal's three steps as a track, and the line saying what the table waits for. */
 .header {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  min-width: 0;
-}
-
-.gates {
-  display: inline-flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 0.4rem;
+  min-width: 0;
+  padding-block: 0.15rem;
 }
 
-.gate {
-  padding: 0.15rem 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
+.headerEyebrow {
   color: var(--cream-muted);
   font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.headerRuleset {
+  color: var(--sand);
+}
+
+.track {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 0.3rem;
+}
+
+.trackItem {
+  display: inline-flex;
+  align-items: center;
+}
+
+.trackLink {
+  width: 1.6rem;
+  height: 2px;
+  margin-inline: 0.5rem;
+  border-radius: 1px;
+  background: rgba(255, 242, 216, 0.2);
+}
+
+.trackLinkMet {
+  background: var(--sand);
+}
+
+/* The phase chip sets its small print in spaced capitals; the steps read as words with their counts. */
+.gate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--cream-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0;
   text-transform: none;
   white-space: nowrap;
+  pointer-events: auto;
 }
 
 .gate strong {
-  color: inherit;
+  overflow: visible;
+  color: #fff2d8;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .gate em {
   color: var(--sand);
+  font-weight: 600;
   font-style: normal;
 }
 
-.gateMet {
-  border-color: rgba(117, 216, 167, 0.55);
-  color: #75d8a7;
+.gateDot {
+  display: grid;
+  place-items: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 2px solid rgba(255, 242, 216, 0.35);
+  border-radius: 999px;
+  color: #1b1206;
+}
+
+.gateMet .gateDot {
+  border-color: var(--sand);
+  background: var(--sand);
+}
+
+.gateCurrent {
+  color: #fff2d8;
+}
+
+.gateCurrent .gateDot {
+  border-color: var(--sand);
+  box-shadow: 0 0 0 0.22rem rgba(248, 175, 64, 0.22);
+}
+
+.headerLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.headerAlert {
+  color: #f0b44c !important;
+  pointer-events: auto;
 }
 
 /* Panel */
@@ -213,12 +279,6 @@ button.token {
 .search {
   flex: 1 1 14rem;
   min-width: 12rem;
-}
-
-/* The summary wraps inside its own line before it pushes Ready onto a second row. */
-.mine {
-  flex: 1 1 8rem;
-  min-width: 0;
 }
 
 .list {
@@ -273,6 +333,61 @@ button.token {
   }
 }
 
-.poolHelp {
-  pointer-events: auto;
+/* A spectator's way into the roster: the dashed (+) under the seated players. */
+.openSeat {
+  border: 2px dashed rgba(255, 242, 216, 0.55);
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 999px;
+  color: #fff2d8;
+  font-size: 1.3rem;
+  background: rgba(10, 7, 6, 0.4);
+  box-shadow: 0 0 0 0.35rem rgba(248, 175, 64, 0.12);
+  transition: box-shadow 160ms ease;
+}
+
+.openSeat:hover:not(:disabled),
+.openSeat:focus-visible {
+  box-shadow: 0 0 0 0.35rem rgba(248, 175, 64, 0.3);
+}
+
+/* A requester waits as a ghost: dimmed, ringed by a slowly turning dashed circle. */
+.requestGhost {
+  position: relative;
+  overflow: visible;
+  opacity: 0.75;
+}
+
+.requestGhost::after {
+  position: absolute;
+  inset: -0.25rem;
+  border: 2px dashed var(--sand);
+  border-radius: 999px;
+  animation: request-ghost-turn 9s linear infinite;
+  content: "";
+}
+
+@keyframes request-ghost-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .requestGhost::after {
+    animation: none;
+  }
+}
+
+.requestTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.2rem 0.25rem 0.2rem 0.7rem;
+  border: 1px solid rgba(255, 242, 216, 0.1);
+  border-radius: 999px;
+  background: rgba(12, 9, 7, 0.78);
+  white-space: nowrap;
 }

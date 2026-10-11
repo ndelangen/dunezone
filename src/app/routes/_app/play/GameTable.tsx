@@ -83,8 +83,6 @@ type GameTableProps = {
   tableControls?: ReactNode;
   /** What the Table tab's tooltip says about it: play's Phase tab explains the phase. */
   tableGuidance?: Pick<PanelTab, 'description' | 'help'>;
-  /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
-  decisionBar?: ReactNode;
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
   gameIdentity?: ReactNode;
@@ -103,7 +101,7 @@ type GameTableProps = {
   stageStatus?: ReactNode;
   /* Play chrome laid over the scene for a stage, between the header and the panel: the drafting ledger. */
   stageOverlay?: ReactNode;
-  /* A stage's own panel in place of the tabs, under the decision bar: the drafting panel. Its tab's pane is flush, so the content insets itself with --nested-tabs-panel-inset. */
+  /* A stage's own panel in place of the tabs: the drafting panel. Its tab's pane is flush, so the content insets itself with --nested-tabs-panel-inset. */
   panelContent?: ReactNode;
   playerPanel?: ReactNode;
   /* A view the host asks for after something the viewer did lands out of frame; each new revision moves the camera once. */
@@ -461,7 +459,7 @@ function TableControlsPanel({
   if (panelContent && panelTabs.length === 0) {
     return <div className="seated-stage-panel">{panelContent}</div>;
   }
-  /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the decision bar stands alone. */
+  /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the dock holds only what the stage brings. */
   if (tabs.length === 0) {
     return null;
   }
@@ -658,7 +656,6 @@ export function GameTable({
   openOn,
   tableControls,
   tableGuidance,
-  decisionBar,
   gameMenu,
   gameIdentity,
   stageStatus,
@@ -822,7 +819,6 @@ export function GameTable({
                       preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
                       onSelect={(view) => dispatchView({ type: 'view.selected', view })}
                     />
-                    {decisionBar}
                     <PanelPanes secondary={playerPanel}>
                       <TableControlsPanel
                         panelTabs={panelTabs}

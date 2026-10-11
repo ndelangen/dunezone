@@ -9,7 +9,7 @@ import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscrip
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
 import { runtime, Socket } from './gameRuntime.test.fixture';
-import { SwappingReadiness } from './Swapping';
+import { SwappingReady, SwappingStatus } from './Swapping';
 import { ServerClockContext } from './useServerNow';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -82,16 +82,17 @@ test('the countdown starts at 4:00 and trading ends at the first tick past the W
   render(
     <MantineProvider theme={appContentTheme} forceColorScheme="light">
       <ServerClockContext.Provider value={table.serverNow}>
-        <SwappingReadiness client={client} table={table} />
+        <SwappingStatus client={client} table={table} />
+        <SwappingReady client={client} table={table} />
       </ServerClockContext.Provider>
     </MantineProvider>
   );
   const countdown = () => screen.getByLabelText('Trading time remaining').textContent;
-  const ready = () => screen.getByRole('button', { name: 'Ready to start' });
+  const ready = () => screen.getByRole('button', { name: 'Ready' });
 
-  expect(countdown()).toBe('4:00');
+  expect(countdown()).toBe('4:00 left');
   await act(() => vi.advanceTimersByTimeAsync(239_000));
-  expect(countdown()).toBe('0:01');
+  expect(countdown()).toBe('0:01 left');
   expect(ready()).toHaveProperty('disabled', false);
   await act(() => vi.advanceTimersByTimeAsync(1000));
   expect(countdown()).toBe('Trading ended. Your assignments are fixed.');

@@ -64,7 +64,7 @@ export const RemovalVoting = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'View vote about Twaffle' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Twaffle, removal vote in progress' }));
     expect(page.getByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Withdraw' }));
     expect(lastCommand()).toMatchObject({ action: { kind: 'removal-ballot', voteId: 'removal-12', choice: null } });
@@ -109,7 +109,7 @@ export const LogAudit = meta.story({
     const log = await page.findByRole('region', { name: 'Audit log' });
     await expect(within(log).findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
     expect(within(log).getByText('[deleted user] left seat 6 when the account was deleted.')).toBeVisible();
-    expect(page.queryByRole('button', { name: 'View vote about Twaffle' })).toBeNull();
+    expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
   },
 });
 
@@ -200,7 +200,7 @@ export const RemovalResolution = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'View vote about Twaffle' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Twaffle, removal vote in progress' }));
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
     const command = lastCommand();
     expect(command).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
@@ -208,7 +208,7 @@ export const RemovalResolution = meta.story({
     resolved.removalVotes = [];
     resolved.revision += 1;
     session.transport.deliver(session.transport.view(resolved, command!.commandId));
-    await waitFor(() => expect(page.queryByRole('button', { name: 'View vote about Twaffle' })).toBeNull());
+    await waitFor(() => expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull());
     expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull();
     expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
     await userEvent.click(page.getByRole('tab', { name: 'Log' }));
@@ -221,7 +221,7 @@ export const RemovalRejected = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'View vote about Twaffle' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Twaffle, removal vote in progress' }));
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
     session.transport.deliver({
       type: 'rejected',

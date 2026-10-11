@@ -4,11 +4,12 @@ import { phaseAt } from '@shared/play/phases';
 import { describeResult, resultFactionCountFits } from '@shared/play/result';
 import type { GameResult, GameResultKind } from '@shared/play/result';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
+import { Section } from '@ui/block/Section';
 import { useReducer } from 'react';
+import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
-import { DecisionBar } from './SeatRequests';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
@@ -46,6 +47,21 @@ function RevealButton({ client, table, stepId }: Props & Readonly<{ stepId: stri
   );
 }
 
+/** One state of the end of the game, as the Result tab's section: what is happening, and what this viewer can do. */
+function ResultSection({
+  eyebrow,
+  title,
+  context,
+  action,
+  readiness,
+}: Readonly<{ eyebrow: string; title: string; context?: string; action?: ReactNode; readiness?: ReactNode }>) {
+  return (
+    <Section eyebrow={eyebrow} title={title} description={context} action={action}>
+      {readiness}
+    </Section>
+  );
+}
+
 type Choice = { kind: GameResultKind; faction: string | null; alliance: string[] };
 
 function chosenFactions(choice: Choice): string[] {
@@ -68,7 +84,7 @@ function DeclareBar({ client, table }: Props) {
   const stepId = unrevealedPrediction(table);
   const byCard = stepId !== undefined && predictionCardInHand(table, stepId);
   return (
-    <DecisionBar
+    <ResultSection
       eyebrow="Determine winner"
       title="Declare the result"
       context={`Every player sees that you are determining the winner, and anyone holding a prediction is reminded to reveal it. ${byCard ? 'To reveal yours, place its card on the table before declaring. ' : ''}Declaring finishes the game.`}
@@ -122,10 +138,10 @@ function DeclareBar({ client, table }: Props) {
 }
 
 /**
- * The important-decision bar for the end of the game, in the accepted arrangement (#1016): the declaring player chooses and declares, every other panel names who is determining the winner and reminds a prediction holder to reveal, and a finished game names its result with Continue playing.
+ * The Result tab for the end of the game, in the accepted arrangement (#1016): the declaring player chooses and declares, every other panel names who is determining the winner and reminds a prediction holder to reveal, and a finished game names its result with Continue playing.
  * Nothing reveals by itself and nothing waits for a reveal.
  */
-export function ResultDecisionBar({ client, table }: Props) {
+export function ResultControls({ client, table }: Props) {
   const { ending, result, stage } = table.snapshot;
   /* Playback shows an earlier table; the live decision is not offered from it. */
   if (table.playback) {
@@ -160,7 +176,7 @@ function DeterminingBar({ client, table, name }: Props & Readonly<{ name: string
   const byCard = stepId !== undefined && predictionCardInHand(table, stepId);
   const reveal = stepId && !byCard && <RevealButton client={client} table={table} stepId={stepId} />;
   return (
-    <DecisionBar
+    <ResultSection
       eyebrow="Determine winner"
       title={`${name} is determining the winner`}
       context={
@@ -179,24 +195,38 @@ function FinishedBar({ client, table, result }: Props & Readonly<{ result: GameR
   const player = seated(table);
   const stepId = ownUnrevealed(table);
   return (
-    <DecisionBar
+    <ResultSection
       eyebrow="Finished"
       title={describeResult(
         result.kind,
         result.factionIds.map((id) => factionName(table, id))
       )}
-      context={`Declared by ${result.by.name}. ${player ? 'Any player can continue the game from Mentat pause of this turn.' : 'The table stays as it was.'}`}
-      action={
-        player && (
-          <Group gap="xs">
-            {stepId && <RevealButton client={client} table={table} stepId={stepId} />}
-            <Button disabled={!table.canInteract} onClick={() => client.command({ kind: 'result-continue' })}>
-              Continue playing
-            </Button>
-          </Group>
-        )
-      }
+      context={`Declared by ${result.by.name}. ${player ? 'Continue playing, at the top right, resumes the game from Mentat pause of this turn.' : 'The table stays as it was.'}`}
+      action={player && stepId && <RevealButton client={client} table={table} stepId={stepId} />}
     />
+  );
+}
+
+/** The finished game's words for the phase chip: who won, as the Result tab says it. */
+export function resultTitle(table: TableProjection): string | undefined {
+  const { result, stage } = table.snapshot;
+  return stage === 'finished' && result
+    ? describeResult(
+        result.kind,
+        result.factionIds.map((id) => factionName(table, id))
+      )
+    : undefined;
+}
+
+/** A finished game's one phase control, where Next phase sat: any player resumes it from Mentat pause of this turn. */
+export function ContinuePlaying({ client, table }: Props) {
+  if (table.playback || table.snapshot.stage !== 'finished' || !table.snapshot.result || !seated(table)) {
+    return null;
+  }
+  return (
+    <Button disabled={!table.canInteract} onClick={() => client.command({ kind: 'result-continue' })}>
+      Continue playing
+    </Button>
   );
 }
 

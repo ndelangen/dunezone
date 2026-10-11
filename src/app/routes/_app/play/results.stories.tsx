@@ -93,7 +93,7 @@ function touchScroller(element: Element) {
   return null;
 }
 
-/* On a phone the declaring bar outgrows the dock's floor; it scrolls inside the dock, so Declare is in reach. */
+/* On a phone the Result tab outgrows the dock's floor; it scrolls inside the dock, so Declare is in reach. */
 export const DeclaringOnAPhone = meta.story({
   globals: { viewport: { value: 'appMobile' }, motion: 'reduce' },
   beforeEach: install(() => {
@@ -112,12 +112,13 @@ export const DeclaringOnAPhone = meta.story({
       if (box.bottom > view.innerHeight) {
         const scroller = touchScroller(declare);
         expect(scroller, 'Declare sits below the window with nothing to scroll it into view').not.toBeNull();
-        scroller!.scrollTop = scroller!.scrollHeight;
+        /* The Result tab sits above the players' pane in the phone's stacked dock, so the dock scrolls to Declare, not to its end. */
+        scroller!.scrollTop += box.bottom - scroller!.getBoundingClientRect().bottom;
       }
       const shown = declare.getBoundingClientRect();
       expect(shown.bottom).toBeLessThanOrEqual(view.innerHeight);
       expect(declare.contains(canvasElement.ownerDocument.elementFromPoint(shown.left + 4, shown.top + 4))).toBe(true);
-      /* The bar holds its whole content, so Declare sits inside its frame. */
+      /* The section holds its whole content, so Declare sits inside its frame. */
       expect(shown.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().bottom);
     });
   },
@@ -163,10 +164,23 @@ export const Finished = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const snapshot = finishedSnapshot('seat-2');
     const [first, second] = [factionOf(snapshot, 0).name, factionOf(snapshot, 2).name];
-    const title = await page.findByText(`${first} and ${second} won as an alliance`, {}, { timeout: 30_000 });
-    const bar = title.closest('section')!;
-    expect(within(bar).getByText(new RegExp(`Declared by ${SIX[0]!.name}`))).toBeVisible();
-    await userEvent.click(within(bar).getByRole('button', { name: 'Continue playing' }));
+    /* The phase chip names the result, and the Result tab, opened on arrival, says who declared it. */
+    const header = await waitFor(
+      () => {
+        const found = canvasElement.ownerDocument.querySelector('.seated-header');
+        expect(found).toBeInstanceOf(HTMLElement);
+        return found as HTMLElement;
+      },
+      { timeout: 30_000 }
+    );
+    await expect(
+      within(header).findByText(`${first} and ${second} won as an alliance`, {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(
+      page.findByText(new RegExp(`Declared by ${SIX[0]!.name}`), {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    /* Continue playing sits where Next phase did. */
+    await userEvent.click(within(header).getByRole('button', { name: 'Continue playing' }));
     expect(lastCommand()?.action).toEqual({ kind: 'result-continue' });
     /* A finished table keeps its panels, so its players can still replay how the game went. */
     await openTab(page, 'Phase');
@@ -179,10 +193,8 @@ export const FinishedSpectator = meta.story({
   beforeEach: install(() => productTransport(SPECTATOR_SEAT, finishedSnapshot(SPECTATOR_SEAT))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const title = await page.findByText(/won as an alliance/, {}, { timeout: 30_000 });
-    const bar = title.closest('section')!;
-    expect(within(bar).getByText(/The table stays as it was/)).toBeVisible();
-    expect(within(bar).queryByRole('button', { name: 'Continue playing' })).toBeNull();
+    await expect(page.findByText(/The table stays as it was/, {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.queryByRole('button', { name: 'Continue playing' })).toBeNull();
   },
 });
 
@@ -191,7 +203,7 @@ export const Celebration = meta.story({
   beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2', STORYBOOK_NOW))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByText(/won as an alliance/, {}, { timeout: 30_000 });
+    await page.findByText(/Declared by/, {}, { timeout: 30_000 });
   },
 });
 
@@ -200,11 +212,11 @@ export const ClearingCelebration = meta.story({
   beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2', STORYBOOK_NOW))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByText(/won as an alliance/, {}, { timeout: 30_000 });
+    await page.findByText(/Declared by/, {}, { timeout: 30_000 });
     await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
     await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Clear confetti' })));
     await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-    await page.findByRole('menuitem', { name: 'Give up your seat' });
+    await page.findByRole('menuitem', { name: 'Hold to give up your seat' });
     expect(page.queryByRole('menuitem', { name: 'Clear confetti' })).toBeNull();
   },
 });
@@ -214,9 +226,9 @@ export const FinishedWithoutCelebration = meta.story({
   beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2'))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByText(/won as an alliance/, {}, { timeout: 30_000 });
+    await page.findByText(/Declared by/, {}, { timeout: 30_000 });
     await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-    await waitForFrame(() => page.getByRole('menuitem', { name: 'Give up your seat' }));
+    await waitForFrame(() => page.getByRole('menuitem', { name: 'Hold to give up your seat' }));
     expect(page.queryByRole('menuitem', { name: 'Clear confetti' })).toBeNull();
   },
 });
