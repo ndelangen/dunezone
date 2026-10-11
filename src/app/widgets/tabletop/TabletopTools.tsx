@@ -36,9 +36,19 @@ function DeletePieceItem({
   const unit =
     piece.kind === 'card' ? 'cards' : isSpicePiece(piece) ? 'spice' : isTroopStack(piece) ? 'troops' : 'tokens';
   const what = count > 1 ? `all ${count} ${unit} ` : '';
+  const idle = `Hold to delete ${what}permanently`;
+  /* Both labels share one grid cell, so the item keeps the idle label's width while counting down and a press near its edge stays on it. */
+  const cell = { gridArea: '1 / 1' };
   return (
     <Menu.Item color="red" disabled={!available} {...handlers}>
-      {holding ? `Deleting in ${remaining}..` : `Hold to delete ${what}permanently`}
+      <span style={{ display: 'inline-grid' }}>
+        <span style={{ ...cell, visibility: holding ? 'hidden' : undefined }} aria-hidden={holding}>
+          {idle}
+        </span>
+        <span style={{ ...cell, visibility: holding ? undefined : 'hidden' }} aria-hidden={!holding}>
+          Deleting in {remaining ?? 5}..
+        </span>
+      </span>
     </Menu.Item>
   );
 }
