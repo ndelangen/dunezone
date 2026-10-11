@@ -275,7 +275,8 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
 
   it('captures a faction with its published faces and its Extras once, and keeps the first record', async () => {
     const leaders = assetPublishingFaction.leaders;
-    const token = tokenPage('extra-token');
+    /* Its author made the token smaller than standard, which its captured artwork keeps. */
+    const token = tokenPage('extra-token', { physicalSize: 0.35 });
     const bundle = bundlePage('extra-bundle', [token]);
     seed(token, bundle);
     /* The faction declares its own Extras; one names an asset the catalogue does not have. */
@@ -370,6 +371,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     expect(record.components.alliance.back).toBe('http://table.test/published/cardback-presets/alliance/cardback.jpg');
     expect(record.extras).toHaveLength(2);
     expect(record.extras[0].contents.pieces[0].items).toHaveLength(3);
+    expect(record.extras[0].contents.pieces[0].items[0].artwork.size).toBe(0.35);
     expect(record.extras[1]).toMatchObject({ asset: { slug: 'missing' }, contents: null });
     expect(record.readiness.ready).toBe(false);
     expect(await tablePieces()).toBe(pieces);
