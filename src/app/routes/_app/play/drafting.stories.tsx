@@ -366,7 +366,7 @@ export const NamedGame = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('Ruleset: Dreamrules', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.getByRole('img', { name: 'Dune', exact: true }).closest('header')).not.toHaveTextContent(
+    expect(page.getByRole('img', { name: /^Dune$/ }).closest('header')).not.toHaveTextContent(
       'Annual Bene Gesserit wedding traitor and the unexpected Arrakeen dinner ambush'
     );
     expect(
