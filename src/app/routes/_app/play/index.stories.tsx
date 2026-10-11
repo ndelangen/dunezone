@@ -37,7 +37,7 @@ type Directory = NonNullable<StorybookDatabase['play_games'][number]['directory'
 const MINUTE = 60_000;
 
 /*
- * A room of six tables: two of the viewer's, one with free seats, two under way without them and one finished.
+ * A room of six tables: two of the viewer's, two with free seats (one drafting, one under way), a full table trading factions and one finished.
  * Every seat is a real profile with an avatar, and every assigned faction a catalogue row, so the seats show faces and tokens.
  */
 function lobbyDatabase(baseline: StorybookDatabase) {
@@ -181,7 +181,8 @@ export const SignedIn = meta.story({
     expect(page.getAllByText('Your seat')).toHaveLength(2);
     expect(page.getAllByText('Seats open')).toHaveLength(2);
     expect(page.getByRole('img', { name: `${SIX[1]!.name} (you), ${factions[1]!.data.name}` })).toBeVisible();
-    expect(page.getAllByRole('link', { name: 'Create a game' }).length).toBeGreaterThan(0);
+    /* Create lives only in the lobby's header, never repeated in the list. */
+    expect(page.getAllByRole('link', { name: 'Create a game' })).toHaveLength(1);
   },
 });
 

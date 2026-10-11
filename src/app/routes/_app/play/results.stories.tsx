@@ -6,7 +6,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { gameMeta, install, lastCommand } from './game.stories.fixture';
+import { gameMeta, install, lastCommand, withPredictionCard } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { playingSnapshot, productTransport, SIX } from './product.stories.fixture';
 
@@ -24,7 +24,7 @@ const MENTAT_PAUSE = 8;
 const factionOf = (snapshot: GameSnapshot, index: number) => snapshot.roster!.seats[index]!.faction!;
 
 /* Turn 1 Mentat pause with every seat filled; the viewer's own faction holds a locked prediction if asked. */
-function mentatSnapshot(viewerSeat: string, { prediction = false } = {}): GameSnapshot {
+function mentatSnapshot(viewerSeat: string, { prediction = false, card = false } = {}): GameSnapshot {
   const snapshot = playingSnapshot(viewerSeat === SPECTATOR_SEAT ? 'seat-2' : viewerSeat);
   snapshot.phase = MENTAT_PAUSE;
   snapshot.controls!.seats = SIX.map((player) => player.seat);
@@ -32,6 +32,9 @@ function mentatSnapshot(viewerSeat: string, { prediction = false } = {}): GameSn
     snapshot.predictions = {
       prediction: { factionId: factionOf(snapshot, 1).id, lockedAt: 1, revealedAt: null },
     };
+  }
+  if (prediction && card) {
+    withPredictionCard(snapshot, factionOf(snapshot, 1).id, factionOf(snapshot, 0).id);
   }
   return snapshot;
 }
@@ -52,7 +55,7 @@ export const DetermineWinner = meta.story({
   beforeEach: install(() => productTransport('seat-2', mentatSnapshot('seat-2'))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    /* Determine winner is a plain control of the Mentat pause phase, beside the phase's guidance. */
+    /* Determine winner is a plain control of the Mentat pause phase, in the Phase tab. */
     await openTab(page, 'Phase');
     await userEvent.click(await page.findByRole('button', { name: 'Determine winner' }));
     expect(lastCommand()?.action).toEqual({ kind: 'result-open' });
@@ -120,7 +123,25 @@ export const DeclaringOnAPhone = meta.story({
   },
 });
 
+/** A real game deals the locked prediction as a card, so placing that card on the table is the reveal and the bar offers no button. */
 export const DeterminingElsewhere = meta.story({
+  beforeEach: install(() => {
+    const snapshot = mentatSnapshot('seat-2', { prediction: true, card: true });
+    snapshot.ending = { by: { seat: 'seat-1', name: SIX[0]!.name }, startedAt: 1 };
+    return productTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const title = await page.findByText(`${SIX[0]!.name} is determining the winner`, {}, { timeout: 30_000 });
+    const bar = title.closest('section')!;
+    expect(within(bar).getByText(/You hold a locked prediction. Place its card on the table now/)).toBeVisible();
+    expect(within(bar).queryByRole('button', { name: 'Declare' })).toBeNull();
+    expect(within(bar).queryByRole('button', { name: 'Reveal prediction' })).toBeNull();
+  },
+});
+
+/** Without captured prediction faces the Worker deals no card, so the bar falls back to a reveal button. */
+export const DeterminingElsewhereWithoutACard = meta.story({
   beforeEach: install(() => {
     const snapshot = mentatSnapshot('seat-2', { prediction: true });
     snapshot.ending = { by: { seat: 'seat-1', name: SIX[0]!.name }, startedAt: 1 };
@@ -130,8 +151,7 @@ export const DeterminingElsewhere = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const title = await page.findByText(`${SIX[0]!.name} is determining the winner`, {}, { timeout: 30_000 });
     const bar = title.closest('section')!;
-    expect(within(bar).getByText(/You hold a locked prediction/)).toBeVisible();
-    expect(within(bar).queryByRole('button', { name: 'Declare' })).toBeNull();
+    expect(within(bar).getByText(/You hold a locked prediction. Reveal it now/)).toBeVisible();
     await userEvent.click(within(bar).getByRole('button', { name: 'Reveal prediction' }));
     expect(lastCommand()?.action).toEqual({ kind: 'prediction-reveal', stepId: 'prediction' });
   },

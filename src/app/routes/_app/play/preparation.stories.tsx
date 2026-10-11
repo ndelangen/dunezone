@@ -7,9 +7,10 @@ import { convexNeverAnswers } from '@db/storybook';
 import { gameMeta } from './game.stories.fixture';
 import { parameters } from './product.stories.fixture';
 
+/* The game page before its table opens: an unknown id, provisioning and the ways it can fail. The create form itself is Play/Create. */
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Create',
+  title: 'Play/Opening',
 });
 
 /** An id that names no game reads as not available, like any id the directory cannot find. */

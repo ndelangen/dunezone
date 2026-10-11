@@ -476,8 +476,7 @@ function resolvedBattle(rekey: (snapshot: GameSnapshot) => GameSnapshot = (snaps
     ];
     snapshot.battle = null;
     snapshot.battlePlan = null;
-    snapshot.hand!.push(card);
-    snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
+    /* Resolving leaves the revealed card on the table, where its owner discards it by hand. */
     snapshot.revision = 1;
     return productTransport('seat-2', rekey(snapshot));
   });
@@ -491,7 +490,9 @@ export const BattleResolved = meta.story({
     await settled(() =>
       expect(page.getByText('Arrakeen: House Harkonnen against House Atreides. Left side won.')).toBeInTheDocument()
     );
-    expect(page.getByRole('button', { name: 'Drag Snooper from hand' })).toBeEnabled();
+    await settled(() =>
+      expect(canvasElement.ownerDocument.querySelector('[data-piece-id="treachery-card-loose"]')).not.toBeNull()
+    );
     expect(page.queryByRole('button', { name: 'No winner' })).toBeNull();
   },
 });

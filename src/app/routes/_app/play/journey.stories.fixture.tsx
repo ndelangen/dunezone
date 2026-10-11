@@ -9,6 +9,7 @@ import { addons } from 'storybook/preview-api';
 import { StorybookPage } from '../../storybook';
 import recording from './journey.recording/journey.json';
 import styles from './journey.stories.module.css';
+import { capturedFactions } from './product.stories.fixture';
 import { storyTransport } from './storyTransport';
 
 /*
@@ -152,6 +153,7 @@ export function journeyTransport(step: number, seat: string) {
   const { log } = recording as unknown as Recording;
   const first = journeyFrame(journey.step, seat);
   const transport = storyTransport(seat as Viewer['viewerSeat'], first.snapshot, {
+    factions: capturedFactions(),
     admitView: () => journeyFrame(journey.step, journey.seat),
     logEntries: () => ({
       game: log.game.filter((entry) => entry.sequence <= journeySteps()[journey.step]!.logSequence),

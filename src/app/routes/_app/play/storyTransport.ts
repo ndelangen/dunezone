@@ -1,6 +1,8 @@
 import type { PublicFaction } from '@shared/play/capture';
+import { treacheryHandCounts } from '@shared/play/handCounts';
 import { LOG_PAGE_SIZE } from '@shared/play/log';
 import type { LogEntry, LogTab } from '@shared/play/log';
+import type { StoredPiece } from '@shared/play/model';
 import { isSeatAction } from '@shared/play/participation';
 import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
@@ -10,6 +12,30 @@ import { STORYBOOK_NOW } from '@db/storybook';
 
 import { browserGameRuntime } from './multiplayer/gameRuntime';
 import type { GameRuntime, GameSocket } from './multiplayer/gameRuntime';
+
+/* Mid-game Treachery hands the other factions hold in a story; the viewer's own count always matches what it holds. */
+const OTHER_HAND_COUNTS = [2, 1, 3, 0, 4, 1];
+
+/**
+ * The public Treachery hand counts the Worker sends every Seat and Spectator once there is a roster, for a story view that sets none.
+ * The viewer counts its hand plus any card committed to a battle plan not yet revealed, as the Worker does.
+ * Before play the other factions hold none;
+ * in play and after a result they hold a few.
+ */
+function storyHandCounts(view: GameSnapshot, viewerSeat: Viewer['viewerSeat']): GameSnapshot['handCounts'] {
+  const own = view.roster!.seats.find((seat) => seat.id === viewerSeat)?.faction?.id;
+  const factionIds = view.roster!.seats.flatMap(({ faction }) => (faction ? [faction.id] : []));
+  const committed = view.battle && view.battle.stage !== 'revealed' ? (view.battlePlan?.pieces ?? []) : [];
+  const held = [...(view.hand ?? []), ...committed] as StoredPiece[];
+  const ownCounts = treacheryHandCounts(own ? { [own]: held } : {}, factionIds);
+  const othersHold = view.stage === 'play' || view.stage === 'finished';
+  return Object.fromEntries(
+    factionIds.map((id, index) => [
+      id,
+      id === own || !othersHold ? ownCounts[id]! : OTHER_HAND_COUNTS[index % OTHER_HAND_COUNTS.length]!,
+    ])
+  );
+}
 
 /*
  * Scripted transport for route stories. Commands are recorded, never executed here. `holdView` leaves an admitted socket without a view, so a story can show the frame that waits for one.
@@ -61,7 +87,7 @@ export function storyTransport(
       type: 'view',
       viewer,
       epoch: 'story-epoch',
-      snapshot: next,
+      snapshot: next.handCounts || !next.roster ? next : { ...next, handCounts: storyHandCounts(next, viewerSeat) },
       carries: [],
       pointers: [],
       completedCommandId,

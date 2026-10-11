@@ -778,7 +778,7 @@ export const SharedInventoryRequests = meta.story({
   },
 });
 
-/** At phone width the panel's prose stays: request labels, readiness and status are functional text. */
+/** In a narrow content column the panel keeps its functional text (request labels, readiness and status), while its help lives in the tab's tooltip. */
 export const SharedInventoryNarrow = meta.story({
   globals: { viewport: { value: 'contentColumn' } },
   beforeEach: install(pendingRequestTransport),
@@ -940,7 +940,7 @@ export const PanelSchemeIsland = meta.story({
   },
 });
 
-/** A spice stack's menu announces itself as spice actions, the deck's as deck actions. */
+/** A spice stack's menu announces itself as spice actions; Play/Playing/PanelSchemeIsland covers the deck's. */
 export const SpiceMenuName = meta.story({
   beforeEach: install(() => {
     const snapshot = initialSnapshot();
@@ -1069,7 +1069,7 @@ export const SharedInventoryArrival = meta.story({
     const tokens = drawerFactions.map(({ slug, data, token }) => {
       const href = new URL(token, location.origin).href;
       return {
-        ...piece(`inventory-${slug}`, `${data.name} tokens`, 'shared', data.themeColor, 'force', `tokens:${slug}`),
+        ...piece(`inventory-${slug}`, `${data.name} tokens`, 'shared', data.themeColor, 'force', `token:${slug}`),
         inventory: 'shared' as const,
         items: [0, 1, 2].map((index) =>
           item(`inventory-${slug}-${index}`, `${data.name} token`, href, href, 'token-disc', true)
@@ -1140,7 +1140,8 @@ export const HiddenDeckBacks = meta.story({
   },
 });
 
-export const PrivateDrawAndDeal = meta.story({
+/** A Treachery card drawn into the viewer's hand sits beside the faction's leaders, each draggable back onto the table. */
+export const DrawnCardInHand = meta.story({
   beforeEach: install(() => {
     const snapshot = initialSnapshot();
     const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
