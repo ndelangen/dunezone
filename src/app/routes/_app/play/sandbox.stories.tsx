@@ -185,8 +185,10 @@ export const DeleteACard = meta.story({
       commandId: string,
       action: Extract<Parameters<typeof table.receive>[0], { type: 'command' }>['action']
     ) => table.receive({ type: 'command', commandId, expectedRevision: table.room.snapshot.revision, action });
+    const before = new Set(shown().table.pieces.map((candidate) => candidate.id));
     command('sandbox-split', { kind: 'split', pieceId: deck.id, count: 1 });
-    const card = shown().table.pieces.find((candidate) => candidate.id.startsWith('split-'))!;
+    const card = shown().table.pieces.find((candidate) => !before.has(candidate.id))!;
+    expect(card.kind).toBe('card');
     command('sandbox-flip', { kind: 'flip', pieceId: card.id });
     command('sandbox-delete', { kind: 'delete', pieceId: card.id });
     expect(table.refusal).toBeUndefined();
