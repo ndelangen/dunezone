@@ -543,7 +543,7 @@ export class TableSession {
             : {}),
         }
       : authoritative;
-    const displayed = this.history ? planned : this.withUnsettledDisclosures(planned);
+    const displayed = this.withUnsettledDisclosures(planned);
     const state = {
       ...tableForViewer(displayed, viewer.viewerSeat),
       factionTieBreaks: snapshotFactionTieBreaks(displayed),
@@ -1300,6 +1300,10 @@ export class TableSession {
    * keeping the part locked meanwhile.
    */
   private withUnsettledDisclosures(snapshot: GameSnapshot): GameSnapshot {
+    /* Replayed history shows the plan as it stood then. */
+    if (this.history) {
+      return snapshot;
+    }
     const reveals = [...this.queuedBattleActions, ...this.disclosuresInFlight.values()].flatMap((action) =>
       action.kind === 'battle-disclose' && action.shown && action.battleId === snapshot.battle?.id
         ? [action.disclosure]
