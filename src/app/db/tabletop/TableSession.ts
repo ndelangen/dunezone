@@ -344,8 +344,9 @@ export class TableSession {
   private spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   private spiceHistoryBefore?: number;
   private logHistory: Partial<Record<LogTab, LogPage>> = {};
-  /* A capture never changes once a game holds it, so each faction is asked for once and kept across reconnects. */
+  /* A capture never changes once a game holds it, so each answer is kept across reconnects. */
   private factions: Readonly<Partial<Record<string, PublicFaction | null>>> = {};
+  /* Reads sent and not yet answered; a dropped connection or a refusal forgets them, so the panel can ask again. */
   private factionRequests = new Set<string>();
   private logHistoryBefore: Record<LogTab, number> = latestLogPages();
 
@@ -856,16 +857,13 @@ export class TableSession {
     }
     switch (message.type) {
       case 'log-history':
-        if (message.before === this.logHistoryBefore[message.tab]) {
-          this.logHistory = { ...this.logHistory, [message.tab]: message };
-        }
+        this.receiveLogPage(message);
         break;
       case 'spice-history':
-        if (message.before === this.spiceHistoryBefore) {
-          this.spiceHistory = message;
-        }
+        this.receiveSpicePage(message);
         break;
       case 'faction':
+        this.factionRequests.delete(message.factionId);
         this.factions = { ...this.factions, [message.factionId]: message.faction };
         break;
       case 'catalogue':
@@ -886,6 +884,17 @@ export class TableSession {
         break;
     }
   }
+  /* A page arrives for the cursor it was asked with; one the panel has since moved past is dropped. */
+  private receiveLogPage(message: LogPage) {
+    if (message.before === this.logHistoryBefore[message.tab]) {
+      this.logHistory = { ...this.logHistory, [message.tab]: message };
+    }
+  }
+  private receiveSpicePage(message: Extract<ServerMessage, { type: 'spice-history' }>) {
+    if (message.before === this.spiceHistoryBefore) {
+      this.spiceHistory = message;
+    }
+  }
   private receiveHistory(message: Extract<ServerMessage, { type: 'history' }>) {
     if (this.pendingHistory !== message.step) {
       return;
@@ -895,6 +904,8 @@ export class TableSession {
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
     this.error = message.message;
+    /* A refused read carries no id; forgetting the faction reads lets the panel ask again on its next look. */
+    this.factionRequests.clear();
     if (this.pendingHistory !== null && message.requestId === 'message') {
       /*
        * A history read carries no id, so the Worker refuses it as 'message'. It never gets a history reply, so the
@@ -1008,6 +1019,7 @@ export class TableSession {
     }
   }
   private clearDisconnectedActivity() {
+    this.factionRequests.clear();
     this.logHistory = {};
     this.logHistoryBefore = latestLogPages();
     /* The Worker holds a capture for the connection, not the seat, so a seat change keeps it and a disconnect frees it. */
@@ -1048,9 +1060,13 @@ export class TableSession {
     this.logHistoryBefore = { ...this.logHistoryBefore, [tab]: before };
     this.send({ type: 'log-history', tab, before });
   };
-  /* Asks once for a seated faction's captured sheet; a request the closed connection could not send is asked again later. */
+  /* Asks once for a seated faction's captured sheet; a read that was never answered can be asked again. */
   readFaction = (factionId: string) => {
-    if (!this.factionRequests.has(factionId) && this.send({ type: 'faction', factionId })) {
+    if (
+      !(factionId in this.factions) &&
+      !this.factionRequests.has(factionId) &&
+      this.send({ type: 'faction', factionId })
+    ) {
       this.factionRequests.add(factionId);
     }
   };

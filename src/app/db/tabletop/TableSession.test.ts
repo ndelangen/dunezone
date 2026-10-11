@@ -1358,6 +1358,19 @@ test("asks once for a seated faction's captured sheet and keeps each answer", as
   });
 });
 
+test('asks for a faction sheet again after a dropped connection lost the answer', async () => {
+  const client = await connected({ ...viewer, viewerSeat: 'neutral' });
+  client.readFaction('atreides');
+  socket().close();
+  await vi.advanceTimersByTimeAsync(1000);
+  socket().open();
+  authorize(initialSnapshot(), { ...viewer, viewerSeat: 'neutral' });
+  client.readFaction('atreides');
+  expect(socket().sent.filter((message) => message.type === 'faction')).toEqual([
+    { type: 'faction', factionId: 'atreides' },
+  ]);
+});
+
 function battleTable() {
   const plan = emptyBattlePlan(fixtureBattleFaces('harkonnen'));
   const snapshot: GameSnapshot = {

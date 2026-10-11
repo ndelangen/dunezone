@@ -109,6 +109,14 @@ function Setup({ faction }: Faction) {
       </Box>
       <Box>
         <Title order={4} size="h5">
+          Starting spice
+        </Title>
+        <Text size="sm" mt={4}>
+          {faction.rules.spiceCount} spice
+        </Text>
+      </Box>
+      <Box>
+        <Title order={4} size="h5">
           Revival
         </Title>
         <Text size="sm" mt={4}>
