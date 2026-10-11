@@ -54,6 +54,7 @@ export const Prediction = meta.story({
   },
 });
 
+/** A locked prediction without a card: the Worker deals none when the prediction faces were not captured, so the panel offers a reveal button. */
 export const LockedPrediction = meta.story({
   beforeEach: install(() => productTransport('seat-6', predictionSnapshot(true))),
   play: async ({ canvasElement }) => {

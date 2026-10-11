@@ -2,7 +2,8 @@ import { toStoredHeroKey } from '@shared/factions/schema';
 import { publicFaction } from '@shared/play/capture';
 import type { FactionCapture } from '@shared/play/capture';
 import { normalizePlayGameSlug } from '@shared/play/gameNames';
-import type { TablePiece } from '@shared/play/model';
+import { treacheryHandCounts } from '@shared/play/handCounts';
+import type { StoredPiece, TablePiece } from '@shared/play/model';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { rosterFactionNames } from '@shared/play/protocol';
 import type { SupplyDependencies } from '@shared/play/setupSupply';
@@ -307,11 +308,22 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
 export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   const snapshot = preparedSnapshot(viewerSeat);
   snapshot.controls!.ready = [];
-  delete snapshot.setup;
+  /* A finished setup stays on the game, as the Worker keeps it: every step is completed and the last one stays current. */
+  const setup = snapshot.setup!;
+  snapshot.setup = {
+    ...setup,
+    index: setup.steps.length - 1,
+    visit: setup.visit + setup.steps.length,
+    completed: setup.steps.map((step) => step.id),
+    mapRevealed: true,
+  };
   delete snapshot.swapping;
   snapshot.stage = 'play';
   snapshot.phase = 0;
-  snapshot.table.pieces = snapshot.table.pieces.filter((entry) => entry.kind !== 'card');
+  /* The gathered Traitor deck stays on the table after setup; every other card is arranged below. */
+  snapshot.table.pieces = snapshot.table.pieces.filter(
+    (entry) => entry.kind !== 'card' || entry.id === 'remaining-traitors'
+  );
   /* The table is arranged for a mid-game page scenario, not a recording of a production game. */
   const cards = [
     'supplies',
@@ -326,7 +338,8 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
     'snooper',
   ];
   const deck = {
-    ...piece('treachery-deck', 'Treachery deck', 'shared', '#ad8a45', 'card', 'cards:treachery'),
+    /* A catalogue deck, keyed by its asset as the Worker spawns it. */
+    ...piece('treachery-deck', 'Treachery deck', 'shared', '#ad8a45', 'card', 'deck:treachery-deck'),
     items: cards.map((_name, index) => ({
       id: `treachery-${index}`,
       faceUp: false,
@@ -361,6 +374,34 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   return snapshot;
 }
 
+/* Mid-game Treachery hands the other factions hold; the viewer's own count always matches its hand. */
+const OTHER_HAND_COUNTS = [2, 1, 3, 0, 4, 1];
+
+/**
+ * The public Treachery hand counts the Worker sends every Seat and Spectator once there is a roster.
+ * Before play no faction holds Treachery cards;
+ * in play the other factions hold a few, and the viewer's count is its own hand's.
+ */
+function storyHandCounts(view: GameSnapshot, viewerSeat: Viewer['viewerSeat']): GameSnapshot['handCounts'] {
+  if (!view.roster) {
+    return undefined;
+  }
+  const own = view.roster.seats.find((seat) => seat.id === viewerSeat)?.faction?.id;
+  const factionIds = view.roster.seats.flatMap(({ faction }) => (faction ? [faction.id] : []));
+  const ownCount = treacheryHandCounts(own ? { [own]: (view.hand ?? []) as StoredPiece[] } : {}, factionIds);
+  return Object.fromEntries(
+    factionIds.map((id, index) => [
+      id,
+      id === own || view.stage !== 'play' ? ownCount[id]! : OTHER_HAND_COUNTS[index % OTHER_HAND_COUNTS.length]!,
+    ])
+  );
+}
+
+/** Every story faction's captured sheet by faction id, as a real game answers the Info tab's faction reads. */
+export function capturedFactions() {
+  return Object.fromEntries(factions.map((faction) => [faction.slug, publicFaction(capture(faction))]));
+}
+
 /** The scripted transport a game story installs: the viewer Seat's view of the playing fixture, or of the given snapshot, where a Spectator's view carries no Seat-private state. */
 export function productTransport(
   viewerSeat: Viewer['viewerSeat'] = 'seat-2',
@@ -373,6 +414,6 @@ export function productTransport(
     delete view.hand;
     delete view.battlePlan;
   }
-  const captured = Object.fromEntries(factions.map((faction) => [faction.slug, publicFaction(capture(faction))]));
-  return storyTransport(viewerSeat, view, { factions: captured, ...options });
+  view.handCounts ??= storyHandCounts(view, viewerSeat);
+  return storyTransport(viewerSeat, view, { factions: capturedFactions(), ...options });
 }

@@ -25,6 +25,7 @@ import recording from './journey.recording/journey.json';
 import { journeySteps, journeyViewers, stepCode } from './journey.stories.fixture';
 import type { JourneyStep } from './journey.stories.fixture';
 import styles from './journey.stories.module.css';
+import { capturedFactions } from './product.stories.fixture';
 import { storyTransport } from './storyTransport';
 
 /*
@@ -391,6 +392,7 @@ export function sandboxTransport(place: SandboxStart) {
   table.open();
   sandbox.table = table;
   const transport = storyTransport(table.seat as Viewer['viewerSeat'], table.frame().snapshot, {
+    factions: capturedFactions(),
     admitView: () => sandbox.table!.frame(),
     logEntries: () => sandbox.table!.log(),
     receive: (message) => sandbox.table!.receive(message as Message),

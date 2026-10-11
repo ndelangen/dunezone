@@ -50,7 +50,7 @@ export const BidderOnYourFaction = meta.story({
     opener: 'house-atreides',
     turn: 'house-harkonnen',
     bid: { factionId: 'house-atreides', amount: 3 },
-    deadline: STORYBOOK_NOW + 30_000,
+    deadline: STORYBOOK_NOW + 12_000,
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -69,7 +69,7 @@ export const BidderOnAnotherFaction = meta.story({
     opener: 'house-atreides',
     turn: 'fremen',
     bid: { factionId: 'house-harkonnen', amount: 4 },
-    deadline: STORYBOOK_NOW + 30_000,
+    deadline: STORYBOOK_NOW + 12_000,
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -101,7 +101,7 @@ export const BidderFaded = meta.story({
     opener: 'house-atreides',
     turn: 'house-harkonnen',
     bid: { factionId: 'house-atreides', amount: 3 },
-    deadline: STORYBOOK_NOW + 30_000,
+    deadline: STORYBOOK_NOW + 12_000,
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

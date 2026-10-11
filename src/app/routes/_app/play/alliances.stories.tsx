@@ -87,7 +87,7 @@ async function openPlayer(canvasElement: HTMLElement, name: RegExp) {
   return page;
 }
 
-/** Try it by hand: accept or decline the offer, offer another faction an alliance, or leave one. */
+/** Try it by hand: accept or decline the offer, offer another faction an alliance, or break one. */
 export const Live = meta.story({
   beforeEach: install(liveTransport),
 });
@@ -98,7 +98,7 @@ export const IncomingOffer = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     /* An offer flows across the table as arcs; it is answered in the Alliances tab. */
     await userEvent.click((await page.findAllByRole('tab', { name: 'Alliances' }, { timeout: 30_000 }))[0]!);
-    expect(page.queryByText(/offers you an alliance$/)).toBeNull();
+    await expect(page.findByText('Offers you an alliance')).resolves.toBeVisible();
     await userEvent.click(await page.findByRole('button', { name: 'Accept' }));
     expect(lastCommand()).toMatchObject({
       action: { kind: 'alliance-accept', factionId: faction(session.transport.snapshot, 'seat-1'), offer: 0 },

@@ -27,7 +27,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'Shortcuts to each panel the game page renders today, one story per panel and state, each opening straight on its panel. Drafting and trading have their own sections (Play/Drafting, Play/Swapping).',
+          'Shortcuts to each panel the game page renders today, one story per panel and state, each opening straight on its panel. Drafting, trading, alliances and bidding have their own sections (Play/Drafting, Play/Swapping, Play/Alliances, Play/Playing/Bidding).',
       },
     },
   },
@@ -42,7 +42,7 @@ const meta = preview.meta({
 /* The panel's content can commit well after its tab turns current on a slow runner, so every read waits as long as the tab does. */
 const WAIT = { timeout: 30_000 };
 
-/** A seated snapshot in play with a loose Treachery card moved into the viewer's hand, as Play/Playing/PrivateDrawAndDeal does. */
+/** A seated snapshot in play with a loose Treachery card moved into the viewer's hand, as Play/Playing/DrawnCardInHand does. */
 function withCardInHand(snapshot: GameSnapshot) {
   const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1);
   if (!card || !snapshot.hand) {
@@ -80,7 +80,7 @@ export const SetupPrediction = meta.story({
   },
 });
 
-/** Setup, the locked prediction waiting to be revealed. */
+/** Setup, the locked prediction without a card (no captured prediction faces), so a button reveals it. */
 export const SetupPredictionLocked = meta.story({
   beforeEach: install(() => productTransport('seat-6', predictionSnapshot(true))),
   play: async ({ canvasElement }) => {
@@ -215,11 +215,13 @@ export const BattleCountdown = meta.story({
   },
 });
 
-/** Battle, both plans revealed and the winner still to be called. */
+/** Battle, both plans revealed: the panel shows the viewer's plan locked, and the winner is called on the table's callout. */
 export const BattleRevealed = meta.story({
   beforeEach: install(() => productTransport('seat-2', battleStory('revealed'))),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Battle');
+    await expect(page.findByRole('textbox', { name: 'Adjustment' }, WAIT)).resolves.toBeDisabled();
+    expect(page.queryByRole('button', { name: /Ready for battle|Undo Ready/ })).toBeNull();
     await expect(page.findByRole('button', { name: 'No winner' }, WAIT)).resolves.toBeVisible();
   },
 });
@@ -301,12 +303,13 @@ export const LogAudit = meta.story({
   },
 });
 
-/** The shared phase: its help, playback and the winner controls. */
+/** The shared phase at Turn 1 Storm: playback and the random storm placement; Determine winner joins them in Mentat pause (Play/Results). */
 export const Phase = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Phase');
     await expect(page.findByRole('button', { name: 'Replay from start' }, WAIT)).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Place storm randomly' }, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -366,7 +369,7 @@ export const TableConversation = meta.story({
   },
 });
 
-/** A vote to remove a player, opened from the decision bar. */
+/** A vote to remove a player, cast from that player's Info tab. */
 export const PlayerRemovalVote = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {

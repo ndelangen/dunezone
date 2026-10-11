@@ -100,7 +100,7 @@ export const TableControls = meta.story({
       expect(shell).toHaveAttribute('data-table-view', view);
     }
 
-    /* The header's controls lead the Tab order: Tab from the page start reaches the header before the separator. */
+    /* The header's controls lead the Tab order: Tab from the page start reaches the header before the separator. The pointer rests on the view buttons, not the table, so Tab moves focus instead of pinging (#2043). */
     const divider = page.getByRole('separator', { name: 'Resize controls panel' });
     const header = shell.querySelector('header')!;
     if (document.activeElement instanceof HTMLElement) {

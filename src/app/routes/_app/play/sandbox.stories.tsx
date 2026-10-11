@@ -173,7 +173,8 @@ export const PeekAtACard = meta.story({
 
 /**
  * Seat 1 deals a Treachery card onto the table, turns it face up and deletes it for good: it leaves the table for every seat and the log names it.
- * Right-click any card, token or stack and hold "Hold to delete permanently" to try it by hand.
+ * Right-click a card, token or stack and hold its "Hold to delete…" item to try it by hand;
+ * faction tokens, markers and locked pieces cannot be deleted.
  */
 export const DeleteACard = meta.story({
   play: async ({ canvasElement }) => {
@@ -202,7 +203,8 @@ export const DeleteACard = meta.story({
 
 /**
  * Seat 1 lifts the top card off the Treachery deck and turns it over in hand: every seat sees its face while it is held, and it lands face up with the flip in the table's events.
- * Pick up any card, token or stack and press F while still holding it to try it by hand.
+ * Pick up a card, token or troop stack and press F while still holding it to try it by hand;
+ * markers and spice do not turn over.
  */
 export const FlipWhileCarrying = meta.story({
   play: async ({ canvasElement }) => {

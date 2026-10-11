@@ -105,6 +105,29 @@ export const shows = (read: () => HTMLElement) => waitFor(() => expect(read()).t
 export { press };
 
 /** Setup on the prediction step; `locked` adds the locked choice, and `card` also deals its prediction card into the hand (#1753). */
+/** Deals the locked prediction's card into the viewer's hand, as the Worker does whenever the prediction faces were captured. */
+export function withPredictionCard(snapshot: GameSnapshot, factionId: string, predicted: string, turn = 6) {
+  const back = cardBack();
+  const dealt = item(
+    'prediction-card',
+    'Prediction',
+    back.replace('cardback', 'snooper'),
+    back,
+    'card-prediction',
+    true,
+    'Prediction'
+  );
+  dealt.artwork!.prediction = { stepId: 'prediction', factionId: predicted, turn };
+  snapshot.hand = [
+    ...(snapshot.hand ?? []),
+    {
+      ...piece('prediction-prediction', 'Prediction', factionId, '#d5ba8c', 'card', 'prediction:prediction'),
+      items: [dealt],
+    },
+  ];
+  return snapshot;
+}
+
 export function predictionSnapshot(locked = false, card = false): GameSnapshot {
   const snapshot = setupSnapshot('seat-6');
   const factionId = snapshot.roster!.seats[5]!.faction!.id;
@@ -127,24 +150,7 @@ export function predictionSnapshot(locked = false, card = false): GameSnapshot {
     };
   }
   if (locked && card) {
-    const back = cardBack();
-    const dealt = item(
-      'prediction-card',
-      'Prediction',
-      back.replace('cardback', 'snooper'),
-      back,
-      'card-prediction',
-      true,
-      'Prediction'
-    );
-    dealt.artwork!.prediction = { stepId: 'prediction', factionId: snapshot.roster!.seats[0]!.faction!.id, turn: 6 };
-    snapshot.hand = [
-      ...(snapshot.hand ?? []),
-      {
-        ...piece('prediction-prediction', 'Prediction', factionId, '#d5ba8c', 'card', 'prediction:prediction'),
-        items: [dealt],
-      },
-    ];
+    withPredictionCard(snapshot, factionId, snapshot.roster!.seats[0]!.faction!.id);
   }
   return snapshot;
 }
