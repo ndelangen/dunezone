@@ -6,8 +6,8 @@ import { lastTurnOf, turnCaption } from '../src/shared/play/lastTurn.ts';
 import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, tableProgressFor } from '../src/shared/play/phases.ts';
 
 /**
- * Runs in the page: from now on, keeps each turn and phase the header names while its Previous and Next phase buttons are both disabled.
- * The mutation observer reads the header at the end of the task whose render changed it, before the cooldown's tick can enable the buttons again.
+ * Runs in the page: from now on, keeps each turn and phase the header names while its Next phase button is disabled.
+ * The mutation observer reads the header at the end of the task whose render changed it, before the cooldown's tick can enable the button again.
  * So the record does not depend on how long the verifier's round trips to the page take.
  */
 function recordPhaseCooldowns() {
@@ -16,7 +16,7 @@ function recordPhaseCooldowns() {
     const status = document.querySelector('.seated-header .seated-phase-status__copy');
     const buttons = [...document.querySelectorAll('.seated-header [aria-label="Phase navigation"] button')];
     const disabled = (name) => buttons.some((button) => button.textContent === name && button.disabled);
-    if (status && disabled('Previous phase') && disabled('Next phase')) {
+    if (status && disabled('Next phase')) {
       shown.add([...status.children].map((child) => child.textContent).join(' '));
     }
   };
@@ -40,6 +40,7 @@ export async function verifyPublicControls({
   spectator,
   enter,
   button,
+  previousPhaseDisabled,
   act,
   focus,
   openTab,
@@ -154,9 +155,10 @@ export async function verifyPublicControls({
     assert.equal(inventory(a).length, 1);
     assert.equal(await button(a, 'Approve').isDisabled(), true);
     await openTab(observer, 'Shared inventory');
-    for (const name of ['Approve', 'Dismiss', 'Add from catalogue', 'Previous phase', 'Next phase']) {
+    for (const name of ['Approve', 'Dismiss', 'Add from catalogue', 'Next phase']) {
       assert.equal(await button(observer, name).isDisabled(), true);
     }
+    assert.equal(await previousPhaseDisabled(observer), true);
     assert.equal(await button(observer, 'Drag Recovery token onto the table').isDisabled(), true);
     await openTab(b, 'Shared inventory');
     await b.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
@@ -287,7 +289,7 @@ export async function verifyPublicControls({
       'Ready and withdrawal are separate from Next; readiness survives Mentat reconnect, last-ready enables explicit advance, and revisiting clears readiness without undoing pieces'
     );
     passed(
-      `The ${PHASE_CHANGE_COOLDOWN_MS / 1000}-second phase cooldown disables both header buttons for every viewer; observers cannot Ready, request, approve, dismiss or drag inventory`
+      `The ${PHASE_CHANGE_COOLDOWN_MS / 1000}-second phase cooldown disables Next phase for every viewer; observers cannot Ready, request, approve, dismiss or drag inventory`
     );
   }
 }

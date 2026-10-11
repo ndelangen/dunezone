@@ -8,7 +8,7 @@ import { FormError } from '@ui/block/FormError';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface/Surface';
-import { Armchair, Check, Settings } from 'lucide-react';
+import { Armchair, Settings } from 'lucide-react';
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -302,23 +302,18 @@ function TableLabelItems() {
     <>
       <Menu.Divider />
       {TABLE_LABEL_OPTIONS.map((option) => (
-        <Menu.Item
+        <Menu.CheckboxItem
           key={option.id}
-          role="menuitemcheckbox"
-          aria-checked={labels.pinned[option.id]}
-          closeMenuOnClick={false}
-          leftSection={
-            <Check size={14} aria-hidden style={{ visibility: labels.pinned[option.id] ? 'visible' : 'hidden' }} />
-          }
+          checked={labels.pinned[option.id]}
+          onChange={() => labels.toggle(option.id)}
           rightSection={
             <Text size="xs" c="dimmed">
               hold {option.key}
             </Text>
           }
-          onClick={() => labels.toggle(option.id)}
         >
           {option.name}
-        </Menu.Item>
+        </Menu.CheckboxItem>
       ))}
     </>
   );

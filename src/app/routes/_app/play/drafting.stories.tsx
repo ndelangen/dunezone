@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, spyOn, userEvent, waitFor, within } from 'storybook/test';
 
 import { draftingSnapshot, storyPlayer } from './drafting.stories.fixture';
 import {
@@ -373,9 +373,16 @@ export const NamedGame = meta.story({
       })
     ).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-    await waitFor(() =>
-      expect(page.getByText(/\/play\/annual-bene-gesserit-wedding-traitor-and-the-unexpected-arrakeen$/)).toBeVisible()
+    /* The menu shows no address; Copy game link puts the final one on the clipboard. */
+    const writeText = spyOn(
+      canvasElement.ownerDocument.defaultView!.navigator.clipboard,
+      'writeText'
+    ).mockResolvedValue();
+    const copy = await page.findByRole('button', { name: 'Copy game link' });
+    await userEvent.click(copy);
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringMatching(/\/play\/annual-bene-gesserit-wedding-traitor-and-the-unexpected-arrakeen$/)
     );
-    expect(page.getByRole('button', { name: 'Copy game link' })).toBeVisible();
+    await waitFor(() => expect(copy).toHaveTextContent('Game link copied'));
   },
 });

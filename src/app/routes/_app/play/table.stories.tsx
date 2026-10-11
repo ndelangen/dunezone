@@ -44,7 +44,8 @@ async function tablePage(canvasElement: HTMLElement, phaseLabel: string = TABLE_
   if (!header) {
     throw new Error('The table header is missing.');
   }
-  expect(within(header).getByRole('img', { name: 'Dune' })).toBeVisible();
+  /* The table runs to the top: no brand mark, only the floating phase and game chips. */
+  expect(within(header).queryByRole('img', { name: 'Dune' })).toBeNull();
   expect(within(header).getByText(phaseLabel)).toBeVisible();
   expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
   expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
@@ -192,24 +193,25 @@ export const PieceNames = meta.story({
   },
 });
 
-/* The toolbar keeps the stack counts or piece names on, for a touch screen with no Alt or Control to hold, until it turns them off again. */
-export const ToolbarKeepsLabelsOn = meta.story({
+/* The settings menu keeps the stack counts or piece names on, for a screen with no Alt or Control to hold, until it turns them off again. */
+export const SettingsKeepLabelsOn = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell } = await tablePage(canvasElement);
-    const labels = within(page.getByRole('group', { name: 'Table labels' }));
-    const counts = labels.getByRole('button', { name: 'Stack counts' });
-    const names = labels.getByRole('button', { name: 'Piece names' });
+    await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
+    const counts = await page.findByRole('menuitemcheckbox', { name: /^Stack counts/ });
+    const names = page.getByRole('menuitemcheckbox', { name: /^Piece names/ });
     expect(shell).toHaveAttribute('data-show-counts', 'false');
     expect(shell).toHaveAttribute('data-show-names', 'false');
 
+    /* Each toggle leaves the menu open, so both labels can be set in one visit. */
     await userEvent.click(counts);
-    expect(counts).toHaveAttribute('aria-pressed', 'true');
+    expect(counts).toHaveAttribute('aria-checked', 'true');
     expect(shell).toHaveAttribute('data-show-counts', 'true');
     await userEvent.click(names);
     expect(shell).toHaveAttribute('data-show-names', 'true');
     await userEvent.click(counts);
-    expect(counts).toHaveAttribute('aria-pressed', 'false');
+    expect(counts).toHaveAttribute('aria-checked', 'false');
     expect(shell).toHaveAttribute('data-show-counts', 'false');
     expect(shell).toHaveAttribute('data-show-names', 'true');
   },
@@ -307,7 +309,7 @@ export const TwoFingersTiltTheCamera = meta.story({
 
 /**
  * On a short window the dock keeps its floor by growing up over the scene, to above the header's lower edge.
- * The header still paints above it there, so every control in it takes the pointer at its top, middle and bottom.
+ * The header and the camera dial still paint above it there, so each of their controls takes the pointer at its top, middle and bottom.
  */
 export const ShortWindow = meta.story({
   /* Still, so no iris clips the corners the controls sit in. */
@@ -321,10 +323,10 @@ export const ShortWindow = meta.story({
     expect(dock.getBoundingClientRect().top).toBeLessThan(header.getBoundingClientRect().bottom);
     /* The dock grows up over the scene here, so the fixed split draws no separator across it. */
     expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).not.toBeVisible();
-    const picker = within(header).getByRole('group', { name: 'Table view' });
+    const picker = within(shell).getByRole('group', { name: 'Table view' });
     const controls = [
       ...within(picker).getAllByRole('button'),
-      ...within(header).getAllByRole('button', { name: /^(Game menu|Previous phase|Next phase)$/ }),
+      ...within(header).getAllByRole('button', { name: /^(Game menu|More phase actions|Next phase)$/ }),
     ];
     for (const control of controls) {
       const box = control.getBoundingClientRect();

@@ -1,4 +1,17 @@
-import { Anchor, Button, Group, List, Loader, Menu, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
+import {
+  Anchor,
+  Button,
+  Group,
+  List,
+  Loader,
+  Menu,
+  NumberInput,
+  Select,
+  Stack,
+  Text,
+  Tooltip,
+  VisuallyHidden,
+} from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
@@ -14,7 +27,7 @@ import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import { Check, ChevronDown } from 'lucide-react';
-import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
+import { useContext, useEffect, useId, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
@@ -230,25 +243,31 @@ function ReadyToggle({
   disabled,
   onToggle,
 }: Readonly<{ ready: boolean; count: number; of: number; disabled: boolean; onToggle: () => void }>) {
+  const countId = useId();
   return (
-    <Tooltip label={ready ? 'Withdraw readiness' : 'Tell the table you are ready'} withinPortal>
-      <Button
-        disabled={disabled}
-        color={ready ? 'green' : 'yellow'}
-        variant={ready ? 'light' : 'filled'}
-        aria-pressed={ready}
-        aria-label={`Ready, ${count} of ${of} ready`}
-        leftSection={ready ? <Check size={16} aria-hidden /> : undefined}
-        rightSection={
-          <Text span size="xs" fw={700} style={{ opacity: 0.8 }} aria-hidden>
-            {count}/{of}
-          </Text>
-        }
-        onClick={onToggle}
-      >
-        Ready
-      </Button>
-    </Tooltip>
+    <>
+      <Tooltip label={ready ? 'Withdraw readiness' : 'Tell the table you are ready'} withinPortal>
+        <Button
+          disabled={disabled}
+          color={ready ? 'green' : 'yellow'}
+          variant={ready ? 'light' : 'filled'}
+          aria-pressed={ready}
+          aria-describedby={countId}
+          leftSection={ready ? <Check size={16} aria-hidden /> : undefined}
+          rightSection={
+            <Text span size="xs" fw={700} style={{ opacity: 0.8 }} aria-hidden>
+              {count}/{of}
+            </Text>
+          }
+          onClick={onToggle}
+        >
+          Ready
+        </Button>
+      </Tooltip>
+      <VisuallyHidden id={countId}>
+        {count} of {of} ready
+      </VisuallyHidden>
+    </>
   );
 }
 

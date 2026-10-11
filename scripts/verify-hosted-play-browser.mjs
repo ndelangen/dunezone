@@ -610,8 +610,8 @@ async function createGame(who) {
   gameSlug = created.slug;
   await who.page.waitForURL((url) => url.pathname === `/play/${gameSlug}`);
   assert.equal(who.sockets.length, 1, 'Canonical creation opens exactly one ID socket.');
-  await who.page.locator('.seated-brand').getByText(created.name, { exact: true }).waitFor();
-  await who.page.locator('.seated-brand').getByText('Ruleset:', { exact: false }).waitFor();
+  await who.page.locator('.seated-chip--game').getByText(created.name, { exact: true }).waitFor();
+  await who.page.locator('.seated-chip--game').getByText('Ruleset:', { exact: false }).waitFor();
   await who.page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await who.page.getByRole('button', { name: 'Game menu', exact: true }).click();
   await who.page.getByRole('button', { name: 'Copy game link', exact: true }).click();
@@ -768,14 +768,35 @@ async function seated() {
   await playReady([a, b], [observer]);
   return { a, b, observer };
 }
-const button = (who, name) => who.page.getByRole('button', { name, exact: true });
+/* Readiness is one Ready toggle: pressed, the same button withdraws. */
+const button = (who, name) =>
+  name === 'Ready' || name === 'Withdraw readiness'
+    ? who.page.getByRole('button', { name: 'Ready', exact: true, pressed: name !== 'Ready' })
+    : who.page.getByRole('button', { name, exact: true });
+/** Previous phase waits in the Next phase split button's menu, so this opens the menu and hands back its item. */
+async function previousPhase(who) {
+  const item = who.page.getByRole('menuitem', { name: 'Previous phase', exact: true });
+  if (!(await item.isVisible())) {
+    await button(who, 'More phase actions').click();
+  }
+  await item.waitFor();
+  return item;
+}
+/** Reads whether Previous phase is disabled, then closes its menu again. */
+async function previousPhaseDisabled(who) {
+  const disabled = await (await previousPhase(who)).isDisabled();
+  await who.page.keyboard.press('Escape');
+  await who.page.getByRole('menuitem', { name: 'Previous phase', exact: true }).waitFor({ state: 'hidden' });
+  return disabled;
+}
 /** Clicks an exact-named button once it is enabled and waits for this peer's view to pass the revision it held. */
 async function act(who, name) {
-  await until(() => button(who, name).isEnabled(), `${name} did not become enabled.`, 20_000);
+  const control = () => (name === 'Previous phase' ? previousPhase(who) : button(who, name));
+  await until(async () => (await control()).isEnabled(), `${name} did not become enabled.`, 20_000);
   /* Read after the control is enabled: a commit that enabled it has then reached this view,
      so the next revision is this click's and not that one arriving late. */
   const before = who.view().snapshot.revision;
-  await button(who, name).click();
+  await (await control()).click();
   await until(() => who.view().snapshot.revision > before, `${name} did not commit.`);
 }
 async function converged(peers) {
@@ -925,12 +946,9 @@ async function capture(who, name) {
 
 async function headerStructure(who) {
   const header = who.page.locator('.seated-header');
-  const logo = header.getByRole('img', { name: 'Dune', exact: true });
-  await logo.waitFor({ state: 'visible' });
-  await until(
-    () => logo.evaluate((image) => image.complete && image.naturalWidth > 0 && image.naturalHeight > 0),
-    'The Dune header logo did not load.'
-  );
+  /* The table runs to the top: the header is floating chips with the phase first, and no brand mark. */
+  await header.locator('.seated-phase-status').waitFor({ state: 'visible' });
+  assert.equal(await header.getByRole('img', { name: 'Dune', exact: true }).count(), 0);
   assert.equal(await header.getByText(/^Phase \d+ of \d+$/u).count(), 0);
   const labels = await header.locator('button, summary, a').allTextContents();
   for (const label of ['Center', 'Help', 'Setup', 'Lobby']) {
@@ -1174,12 +1192,7 @@ async function phaseStep(sender, recipient, direction = 1, { recipientHeld = fal
     await readyBeforeAdvance(sender, recipient);
   }
   const before = sender.view().snapshot;
-  await sender.page
-    .getByRole('button', {
-      name: direction === 1 ? 'Next phase' : 'Previous phase',
-      exact: true,
-    })
-    .click();
+  await (direction === 1 ? button(sender, 'Next phase') : await previousPhase(sender)).click();
   await revision(sender, before.revision + 1);
   await revision(recipient, before.revision + 1);
   assert.equal(sender.view().snapshot.phase, before.phase + direction);
@@ -1198,7 +1211,7 @@ async function sharedPhaseFlow(a, b) {
   await openTab(a, 'Phase');
   await openTab(b, 'Phase');
   await displayedPhase(a, 0);
-  assert.equal(await a.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
+  assert.equal(await previousPhaseDisabled(a), true);
   await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).waitFor();
   passed('Turn 1 starts with shared Storm instructions and no earlier phase');
 
@@ -1279,7 +1292,7 @@ async function sharedPhaseFlow(a, b) {
   );
 
   await phaseStep(a, b, -1);
-  assert.equal(await a.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
+  assert.equal(await previousPhaseDisabled(a), true);
   await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).waitFor();
   passed('Previous phase changes the shared tracker without undoing pieces or storm movement');
   for (let index = 0; index < TABLE_PHASES.length; index++) {
@@ -1648,7 +1661,7 @@ async function verifyRegular() {
   }
   assert.ok(checkpoint > 0);
   assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
-  assert.equal(await b.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
+  assert.equal(await previousPhaseDisabled(b), true);
   await displayedPhase(b, 0);
   await a.page.getByRole('button', { name: 'Next phase', exact: true }).click();
   await revision(a, beforePlayback + 1);
@@ -1717,7 +1730,7 @@ async function verifyRegular() {
   await enter(observer);
   assert.equal(observer.view().viewer.viewerSeat, SPECTATOR);
   assert.equal(await observer.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
-  assert.equal(await observer.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
+  assert.equal(await previousPhaseDisabled(observer), true);
   await displayedPhase(observer, TABLE_PHASES.length);
   const observerSent = observer.sent.length;
   await observer.page.mouse.move(500, 500);
@@ -1849,6 +1862,7 @@ try {
     factionOf,
     treacheryDeck,
     button,
+    previousPhaseDisabled,
     act,
     converged,
     focus,

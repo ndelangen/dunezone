@@ -246,12 +246,20 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 }
 
 /* The camera dial in the scene's lower right corner: letters around a dot, a needle from the dot to the view the camera
-   holds, a ring on the view the phase recommends, and a caption naming what it moves. */
+   holds, a ring on the view the phase recommends, and a caption naming what it moves. It is the dock's child, set just
+   above the dock's top edge and the separator's track, so it follows the dock wherever the scene ends. */
 :where(.dune-play-shell) .seated-camera {
   position: absolute;
-  z-index: 6;
+  z-index: 1;
   right: 1.1rem;
-  bottom: 1.6rem;
+  bottom: calc(100% + var(--space-sm) + 1.6rem);
+}
+
+/* A shell too short for the dock's floor grows the dock up over nearly all of the scene; the dial then sits in the dock's
+   upper right corner, where it stays on screen. */
+:where(.dune-play-shell) [data-concealed="true"] .seated-camera {
+  top: var(--space-sm);
+  bottom: auto;
 }
 
 :where(.dune-play-shell) .camera-dial {

@@ -741,14 +741,6 @@ export function GameTable({
                     </TabletopScene>
                   </TableKeyboardContext>
 
-                  <div className="seated-camera" inert={overlaysInert}>
-                    <TableViewDial
-                      activeView={viewState.activeView}
-                      preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
-                      onSelect={(view) => dispatchView({ type: 'view.selected', view })}
-                    />
-                  </div>
-
                   {stageOverlay && (
                     <div className="seated-stage-overlay" inert={overlaysInert}>
                       {stageOverlay}
@@ -757,6 +749,16 @@ export function GameTable({
                 </SplitPanels.First>
                 <SplitPanels.Second>
                   <div className="seated-controls-panel" inert={overlaysInert}>
+                    {/* The dial rides on the dock's top edge, so it stays over the scene where a short window grows the dock up over it. A stage overlay hides the table, and the dial with it. */}
+                    {stageOverlay ? null : (
+                      <div className="seated-camera">
+                        <TableViewDial
+                          activeView={viewState.activeView}
+                          preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
+                          onSelect={(view) => dispatchView({ type: 'view.selected', view })}
+                        />
+                      </div>
+                    )}
                     {decisionBar}
                     <PanelPanes secondary={playerPanel}>
                       <TableControlsPanel
