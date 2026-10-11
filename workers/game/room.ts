@@ -4,10 +4,12 @@ import { tableHandlingOpen } from '../../src/shared/play/admission';
 import { isAllianceAction } from '../../src/shared/play/alliances';
 import { isBattleAction } from '../../src/shared/play/battle';
 import { isBiddingAction } from '../../src/shared/play/bidding';
+import type { BiddingAction } from '../../src/shared/play/bidding';
 import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { DraftAction } from '../../src/shared/play/drafting';
 import { emptyPublicControls, isPublicAction } from '../../src/shared/play/inventory';
 import type { PublicAction, StoredControls, StoredSpawnContents } from '../../src/shared/play/inventory';
+import type { LastTurnAction } from '../../src/shared/play/lastTurn';
 import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
 import { seatSubject } from '../../src/shared/play/participation';
@@ -56,6 +58,7 @@ import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
 import { dealFixtureDeck } from './fixture';
+import { lastTurnCommand } from './lastTurn';
 import { closeLostPeeks, forgetPeekers, peekCommand } from './peeks';
 import { setupCommand, gatherTraitors } from './setup-progress';
 import { storedSnapshotSchema } from './state';
@@ -63,6 +66,10 @@ import type { StoredSnapshot } from './state';
 
 export type Identity = Viewer;
 /* The session routes the lifecycle families to their own modules; the room applies every other action. */
+type FactionSetting = BiddingAction | LastTurnAction;
+function isFactionSetting(action: { kind: string }): action is FactionSetting {
+  return action.kind === 'last-turn' || isBiddingAction(action);
+}
 type RoomAction = Exclude<PieceAction, SeatAction | RemovalAction | ResultAction | DraftAction | SwapAction>;
 type Carry = Identity & {
   id: string;
@@ -111,6 +118,7 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'alliance-withdraw',
   'alliance-accept',
   'alliance-decline',
+  'last-turn',
 ]);
 
 /** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */
@@ -437,6 +445,7 @@ export class Room {
         'flip',
         'lock',
         'rotate',
+        'delete',
         'deck-draw',
         'deck-shuffle',
         'peek',
@@ -457,6 +466,14 @@ export class Room {
     ) {
       throw new GameRejection('That control is not available during setup.');
     }
+  }
+
+  /** The bidder and the last turn: commands any seated faction sends that touch no piece. */
+  private factionSettingCommand(identity: Identity, action: FactionSetting, now: number): StoredSnapshot {
+    const factionId = this.requireFaction(identity);
+    return action.kind === 'last-turn'
+      ? lastTurnCommand(this.snapshot, action)
+      : biddingCommand(this.snapshot, factionId, action, now);
   }
 
   private requireFaction(identity: Identity): string {
@@ -518,8 +535,8 @@ export class Room {
       }
       return next;
     }
-    if (isBiddingAction(action)) {
-      return biddingCommand(this.snapshot, this.requireFaction(identity), action, now);
+    if (isFactionSetting(action)) {
+      return this.factionSettingCommand(identity, action, now);
     }
     if (isAllianceAction(action)) {
       return allianceCommand(this.snapshot, this.requireFaction(identity), action, now);

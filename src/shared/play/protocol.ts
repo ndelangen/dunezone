@@ -19,6 +19,7 @@ import {
 } from './conversations';
 import { draftActionSchema, draftStateSchema } from './drafting';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
+import { lastTurnActionSchema, lastTurnSchema } from './lastTurn';
 import { logEntrySchema, logTabSchema } from './log';
 import type { TableState } from './model';
 import { seatActionSchema } from './participation';
@@ -91,6 +92,8 @@ export const gameSnapshotSchema = z.object({
   bidding: biddingStateSchema.optional(),
   /* Who is allied with whom and the offers waiting on an answer; absent until a faction first offers one. */
   alliances: allianceStateSchema.optional(),
+  /* The turn the table agreed the game ends after; absent means the standard ten. */
+  lastTurn: lastTurnSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
@@ -134,6 +137,8 @@ const tableActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('flip'), pieceId: id }),
   z.strictObject({ kind: z.literal('lock'), pieceId: id }),
   z.strictObject({ kind: z.literal('rotate'), pieceId: id, direction }),
+  /* Takes a card, token or stack out of the game for good. */
+  z.strictObject({ kind: z.literal('delete'), pieceId: id }),
   z.strictObject({ kind: z.literal('storm'), direction }),
   z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
   z.strictObject({ kind: z.literal('turn'), turn: count.min(1) }),
@@ -150,6 +155,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...battleActionSchema.options,
   ...biddingActionSchema.options,
   ...allianceActionSchema.options,
+  lastTurnActionSchema,
   ...spiceReserveActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,

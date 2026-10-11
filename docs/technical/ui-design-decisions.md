@@ -409,10 +409,12 @@ Enter. A question-and-answer confirm asked for a second decision; the hold asks 
 intent, which is one interaction and cannot be clicked through on autopilot. On success the page
 navigates to the deleted thing's parent, since its own address just died.
 
-*Convention. The kit carries it in two shapes, sharing one hold:
+*Convention. The kit carries it in three shapes, sharing one hold:
 [`ConfirmDeleteAction`](../../src/app/ui/control/ConfirmDeleteAction.tsx) for the icon triggers and
 [`ConfirmDeleteButton`](../../src/app/ui/control/ConfirmDeleteButton.tsx) for the full-width one on
-the account-deletion page. Every delete goes through one of them. One `window.confirm` survives, at
+the account-deletion page, and
+[`ConfirmDeleteMenuItem`](../../src/app/ui/control/ConfirmDeleteMenuItem.tsx) for a delete inside a
+menu, such as deleting a piece from a Play table. Every delete goes through one of them. One `window.confirm` survives, at
 the asset move on the group page, which is not a delete and is pending its own treatment.*
 
 ### A tab icon is an icon, never a proof

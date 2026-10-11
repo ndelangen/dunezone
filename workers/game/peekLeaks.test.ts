@@ -81,6 +81,7 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   'alliance-accept': () => [[bob, { kind: 'alliance-accept', factionId: 'harkonnen', offer: 0 }]],
   'alliance-decline': () => [[bob, { kind: 'alliance-decline', factionId: 'harkonnen', offer: 0 }]],
   'alliance-break': () => [[bob, { kind: 'alliance-break', factionId: 'harkonnen' }]],
+  'last-turn': () => [[bob, { kind: 'last-turn', turn: 8 }]],
   'hand-take': () => [[bob, { kind: 'hand-take', pieceId: DECK }]],
   /* A card from a hand played onto the deck. */
   'hand-play': (room) => [
@@ -111,6 +112,7 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   flip: () => [[bob, { kind: 'flip', pieceId: DECK }]],
   lock: () => [[bob, { kind: 'lock', pieceId: DECK }]],
   rotate: () => [[bob, { kind: 'rotate', pieceId: DECK, direction: 1 }]],
+  delete: () => [[bob, { kind: 'delete', pieceId: DECK }]],
   storm: () => [[bob, { kind: 'storm', direction: 1 }]],
   phase: () => [[bob, { kind: 'phase' }]],
   turn: () => [[bob, { kind: 'turn', turn: 2 }]],
