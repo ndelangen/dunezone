@@ -50,9 +50,7 @@ function PrivacyPage() {
                     An email address retained from an earlier sign-in, if one was supplied. Current sign-in requests
                     identity access only.
                   </List.Item>
-                  <List.Item>
-                    Whether you signed in with Google, Discord or Reddit, and the account ID they give us.
-                  </List.Item>
+                  <List.Item>Whether you signed in with Google or Discord, and the account ID they give us.</List.Item>
                   <List.Item>The sign-in records needed to keep you logged in and protect your account.</List.Item>
                   <List.Item>
                     Basic technical details such as your IP address, browser, when you visited, and errors that
@@ -129,8 +127,8 @@ function PrivacyPage() {
                 website safe, and fix problems.
               </Text>
               <Text>
-                Google, Discord or Reddit handles sign-in. Convex stores the data. Cloudflare helps deliver the website.
-                They receive the information they need to do those jobs.
+                Google or Discord handles sign-in. Convex stores the data. Cloudflare helps deliver the website. They
+                receive the information they need to do those jobs.
               </Text>
               <Text>
                 We do not sell your data. Your profile and contributions are free for people to view, but we do not sell

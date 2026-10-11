@@ -259,6 +259,7 @@ test('every viewer, spectators included, sees how many Treachery cards each seat
     strength: 0,
     pieces,
     faces: [],
+    disclosed: { leader: false, dial: false, cardIds: [] },
   });
   const battle = (stage: 'preparing' | 'revealed') =>
     ({
