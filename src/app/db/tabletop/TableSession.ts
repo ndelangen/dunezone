@@ -471,19 +471,32 @@ export class TableSession {
    * A ping sooner than the interval after the last is skipped, though the cursor still counts as on the table.
    */
   ping = (): boolean => {
-    const viewer = this.viewer;
-    const position = this.pointer;
-    if (!viewer || position === null || !this.canAct()) {
+    const ping = this.pingHere();
+    if (!ping) {
       return false;
     }
     const now = this.runtime.monotonicNow();
-    if (now - this.pingedAt >= TABLE_PING_INTERVAL_MS && this.send({ type: 'ping', position })) {
+    if (now - this.pingedAt >= TABLE_PING_INTERVAL_MS && this.send({ type: 'ping', position: ping.position })) {
       this.pingedAt = now;
-      const { connectionId, viewerSeat, displayName, color } = viewer;
-      this.emitPing({ connectionId, viewerSeat, displayName, color, position });
+      this.emitPing(ping);
     }
     return true;
   };
+  /* This page's ping at its cursor, while it has a cursor on the table and may act. */
+  private pingHere(): TablePing | null {
+    const viewer = this.viewer;
+    if (!viewer || this.pointer === null || !this.canAct()) {
+      return null;
+    }
+    const { connectionId, viewerSeat, displayName, color } = viewer;
+    return { connectionId, viewerSeat, displayName, color, position: this.pointer };
+  }
+  /* A ping changes nothing on the table, so it skips the update every other message makes. */
+  private receivePing(ping: TablePing) {
+    if (this.status === 'authorized' && this.current()) {
+      this.emitPing(ping);
+    }
+  }
   private emitPointers() {
     const next = this.status === 'authorized' ? this.activityForView().pointers : [];
     if (
@@ -790,12 +803,6 @@ export class TableSession {
         }
         this.receiveRoomUpdate(message);
         break;
-      /* A ping changes nothing on the table, so it skips the update every other message makes. */
-      case 'ping':
-        if (this.status === 'authorized' && this.current()) {
-          this.emitPing(message.ping);
-        }
-        return;
       default:
         if (this.status === 'authorized') {
           this.receiveAuthorizedUpdate(message);
@@ -1101,7 +1108,9 @@ export class TableSession {
       this.restore();
       this.emit();
     }
-    const stop = this.subscription.subscribe((event) => this.receive(event));
+    const stop = this.subscription.subscribe((event) =>
+      event.type === 'ping' ? this.receivePing(event.ping) : this.receive(event)
+    );
     const stopVisibility = this.runtime.onHidden(() => {
       this.publishPointer(null);
       this.cancelDraft();

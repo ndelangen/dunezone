@@ -1373,9 +1373,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       case 'metrics':
         this.sendMetrics(socket);
         return;
-      case 'ping':
-        this.relayPing(socket, connection, message);
-        return;
       case 'command':
       case 'drop':
         this.commit(socket, connection, message);
@@ -1478,8 +1475,12 @@ export class GameRoom extends DurableObject<GameEnv> {
   private publishActivity(
     socket: WebSocket,
     connection: Connection,
-    message: Extract<ClientMessage, { type: 'pointer' | 'pose' | 'begin' | 'take' | 'renew' | 'cancel' }>
+    message: Extract<ClientMessage, { type: 'ping' | 'pointer' | 'pose' | 'begin' | 'take' | 'renew' | 'cancel' }>
   ) {
+    if (message.type === 'ping') {
+      this.relayPing(socket, connection, message);
+      return;
+    }
     if (message.type === 'pointer' || message.type === 'pose') {
       this.moveActivity(connection, message);
       return;

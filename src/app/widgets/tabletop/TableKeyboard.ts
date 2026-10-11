@@ -172,9 +172,7 @@ export class TableKeyboard {
       return;
     }
     if (event.key === 'Tab') {
-      if (!event.shiftKey && !focusKeepsKey(event.target, 'spiceBank')) {
-        this.pingKey(event, controls);
-      }
+      this.pingKey(event, controls);
       return;
     }
     const digit = digitOf(event);
@@ -210,6 +208,9 @@ export class TableKeyboard {
    * With the cursor off the table there is nowhere to ping, so Tab moves the focus as usual.
    */
   private pingKey(event: KeyboardEvent, controls: Controls) {
+    if (event.shiftKey || focusKeepsKey(event.target, 'spiceBank')) {
+      return;
+    }
     if (event.repeat ? this.pingHeld : controls.ping()) {
       event.preventDefault();
       this.pingHeld = true;
