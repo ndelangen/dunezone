@@ -246,6 +246,18 @@ const DIAL_ANGLES: Record<TableView, number> = {
   bottom: 0,
 };
 
+/* The dial rides on the dock's top edge, so it stays over the scene where a short window grows the dock up over it. A stage overlay hides the table, and the dial with it. */
+function SceneCamera({ hidden, ...dial }: Readonly<{ hidden: boolean } & Parameters<typeof TableViewDial>[0]>) {
+  if (hidden) {
+    return null;
+  }
+  return (
+    <div className="seated-camera" data-hides-cursor>
+      <TableViewDial {...dial} />
+    </div>
+  );
+}
+
 /* The camera dial in the scene's corner: the needle points at the view the camera holds, a ring marks the phase's recommended view, and each letter moves the camera there. */
 function TableViewDial({
   activeView,
@@ -658,58 +670,61 @@ export function GameTable({
               data-show-names={heldOverlays.names || pinnedOverlays.names}
             >
               {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order.
-                It has no bar of its own: the table runs to the top, and the phase, the game and the controls float over it as chips. */}
-              <header ref={measureHeader} className="seated-header" inert={overlaysInert} data-hides-cursor>
+                It has no bar of its own: the table runs to the top, and the phase, the game and the controls float over it as chips. Only the chips hide the cursor, so pointing at the table between them still shows to the others. */}
+              <header ref={measureHeader} className="seated-header" inert={overlaysInert}>
                 <div className="seated-header__start">
-                  <div className="seated-chip seated-phase-status" aria-live="polite">
-                    {activePhase?.symbol && !frame.word ? (
-                      <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
-                        <defs>
-                          <clipPath id={phaseSymbolClipId}>
-                            <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
-                          </clipPath>
-                        </defs>
-                        <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
-                        <circle
-                          cx="50"
-                          cy="50"
-                          r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
-                          fill="none"
-                          stroke={PHASE_INK_COLOR}
-                          strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
-                        />
-                        <g clipPath={`url(#${phaseSymbolClipId})`}>
-                          <use
-                            href={`${activePhase.symbol}#root`}
-                            x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                            y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                            width={100 * PHASE_SYMBOL_MAX_RADIUS}
-                            height={100 * PHASE_SYMBOL_MAX_RADIUS}
-                            fill={PHASE_INK_COLOR}
+                  <div className="seated-chip seated-phase-status" data-hides-cursor>
+                    <div className="seated-phase-status__live" aria-live="polite">
+                      {activePhase?.symbol && !frame.word ? (
+                        <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
+                          <defs>
+                            <clipPath id={phaseSymbolClipId}>
+                              <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
+                            </clipPath>
+                          </defs>
+                          <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
+                            fill="none"
+                            stroke={PHASE_INK_COLOR}
+                            strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
                           />
-                        </g>
-                      </svg>
-                    ) : null}
-                    {stageStatus ??
-                      (frame.word ? (
-                        <div className="seated-phase-status__copy">
-                          <strong>{frame.word}</strong>
-                        </div>
-                      ) : (
-                        <div className="seated-phase-status__copy">
-                          <span>{turnCaption(tableProgress.turn, tableProgress.lastTurn)}</span>
-                          <strong>{activePhase?.label ?? 'No active phase'}</strong>
-                        </div>
-                      ))}
+                          <g clipPath={`url(#${phaseSymbolClipId})`}>
+                            <use
+                              href={`${activePhase.symbol}#root`}
+                              x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                              y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                              width={100 * PHASE_SYMBOL_MAX_RADIUS}
+                              height={100 * PHASE_SYMBOL_MAX_RADIUS}
+                              fill={PHASE_INK_COLOR}
+                            />
+                          </g>
+                        </svg>
+                      ) : null}
+                      {stageStatus ??
+                        (frame.word ? (
+                          <div className="seated-phase-status__copy">
+                            <strong>{frame.word}</strong>
+                          </div>
+                        ) : (
+                          <div className="seated-phase-status__copy">
+                            <span>{turnCaption(tableProgress.turn, tableProgress.lastTurn)}</span>
+                            <strong>{activePhase?.label ?? 'No active phase'}</strong>
+                          </div>
+                        ))}
+                    </div>
+                    {/* The connection status is its own status region, so it stays outside the phase's live region and is announced once. */}
                     {connectionStatus}
                   </div>
-                  <div className="seated-chip seated-chip--game">
+                  <div className="seated-chip seated-chip--game" data-hides-cursor>
                     {gameIdentity}
                     {alliances}
                   </div>
                 </div>
 
-                <div className="seated-chip seated-toolbar">
+                <div className="seated-chip seated-toolbar" data-hides-cursor>
                   {toolbarControl}
                   <span className="seated-toolbar__settings">{gameMenu}</span>
                 </div>
@@ -749,16 +764,12 @@ export function GameTable({
                 </SplitPanels.First>
                 <SplitPanels.Second>
                   <div className="seated-controls-panel" inert={overlaysInert}>
-                    {/* The dial rides on the dock's top edge, so it stays over the scene where a short window grows the dock up over it. A stage overlay hides the table, and the dial with it. */}
-                    {stageOverlay ? null : (
-                      <div className="seated-camera">
-                        <TableViewDial
-                          activeView={viewState.activeView}
-                          preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
-                          onSelect={(view) => dispatchView({ type: 'view.selected', view })}
-                        />
-                      </div>
-                    )}
+                    <SceneCamera
+                      hidden={Boolean(stageOverlay)}
+                      activeView={viewState.activeView}
+                      preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
+                      onSelect={(view) => dispatchView({ type: 'view.selected', view })}
+                    />
                     {decisionBar}
                     <PanelPanes secondary={playerPanel}>
                       <TableControlsPanel

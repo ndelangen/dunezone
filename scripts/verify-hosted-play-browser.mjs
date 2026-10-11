@@ -784,8 +784,10 @@ function button(who, name) {
 /** Previous phase waits in the Next phase split button's menu, so this opens the menu and hands back its item. */
 async function previousPhase(who) {
   const item = who.page.getByRole('menuitem', { name: 'Previous phase', exact: true });
-  if (!(await item.isVisible())) {
-    await button(who, 'More phase actions').click();
+  /* The trigger's state, not the item's visibility: a closing menu keeps its item on screen through its exit transition. */
+  const trigger = button(who, 'More phase actions');
+  if ((await trigger.getAttribute('aria-expanded')) !== 'true') {
+    await trigger.click();
   }
   await item.waitFor();
   return item;

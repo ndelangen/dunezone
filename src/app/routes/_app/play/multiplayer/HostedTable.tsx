@@ -1,24 +1,11 @@
-import {
-  Anchor,
-  Button,
-  Group,
-  List,
-  Loader,
-  Menu,
-  NumberInput,
-  Select,
-  Stack,
-  Text,
-  Tooltip,
-  VisuallyHidden,
-} from '@mantine/core';
+import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
-import { phaseGate, setupMapVisible, setupStep } from '@shared/play/setup';
+import { setupMapVisible, setupStep } from '@shared/play/setup';
 import type { SpiceTransfer } from '@shared/play/spiceReserve';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link } from '@tanstack/react-router';
@@ -26,8 +13,7 @@ import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
-import { Check, ChevronDown } from 'lucide-react';
-import { useContext, useEffect, useId, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
+import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
@@ -74,6 +60,7 @@ import {
   SPICE_GUIDANCE,
   SPICE_RESERVE_HELP,
 } from './panelGuidance';
+import { PhaseNavigation } from './PhaseNavigation';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
@@ -197,108 +184,6 @@ function battleFocus(table: TableProjection) {
     return null;
   }
   return { key: 'battle', token: battle.id };
-}
-
-function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
-  const cooling = table.phaseCooling;
-  const setup = table.snapshot.stage === 'setup' ? table.snapshot.setup : undefined;
-  const { needsReady, refusal } = phaseGate({
-    ...table.snapshot,
-    ready: controls.ready,
-    seats: controls.seats,
-  });
-  const ready = controls.ready.includes(table.viewer.viewerSeat);
-  /* Readiness is a phase control, so it sits beside Next phase in the header rather than on a tab. */
-  return (
-    <Group gap="xs" justify="flex-end" wrap="wrap" role="group" aria-label="Phase navigation">
-      {needsReady && (
-        <ReadyToggle
-          ready={ready}
-          count={controls.ready.filter((seat) => controls.seats.includes(seat)).length}
-          of={controls.seats.length}
-          disabled={!table.canInteract}
-          onToggle={() => client.command({ kind: 'ready', ready: !ready })}
-        />
-      )}
-      <PhaseStepButton
-        nextDisabled={!table.canInteract || cooling || refusal !== null}
-        previousDisabled={
-          !table.canInteract ||
-          cooling ||
-          Boolean(table.snapshot.ending) ||
-          Boolean(table.snapshot.battle) ||
-          (setup ? setup.index === 0 : table.snapshot.phase === 0)
-        }
-        onNext={() => client.command({ kind: 'phase' })}
-        onPrevious={() => client.command({ kind: 'phase', direction: -1 })}
-      />
-    </Group>
-  );
-}
-
-/* One toggle for readiness that carries the count: a filled Ready until pressed, then a quiet ticked Ready that withdraws. */
-function ReadyToggle({
-  ready,
-  count,
-  of,
-  disabled,
-  onToggle,
-}: Readonly<{ ready: boolean; count: number; of: number; disabled: boolean; onToggle: () => void }>) {
-  const countId = useId();
-  return (
-    <>
-      <Tooltip label={ready ? 'Withdraw readiness' : 'Tell the table you are ready'} withinPortal>
-        <Button
-          disabled={disabled}
-          color={ready ? 'green' : 'yellow'}
-          variant={ready ? 'light' : 'filled'}
-          aria-pressed={ready}
-          aria-describedby={countId}
-          leftSection={ready ? <Check size={16} aria-hidden /> : undefined}
-          rightSection={
-            <Text span size="xs" fw={700} style={{ opacity: 0.8 }} aria-hidden>
-              {count}/{of}
-            </Text>
-          }
-          onClick={onToggle}
-        >
-          Ready
-        </Button>
-      </Tooltip>
-      <VisuallyHidden id={countId}>
-        {count} of {of} ready
-      </VisuallyHidden>
-    </>
-  );
-}
-
-/* Next phase is the one button; going back is rare, so Previous phase waits in its menu. */
-function PhaseStepButton({
-  nextDisabled,
-  previousDisabled,
-  onNext,
-  onPrevious,
-}: Readonly<{ nextDisabled: boolean; previousDisabled: boolean; onNext: () => void; onPrevious: () => void }>) {
-  return (
-    <Group gap={1} wrap="nowrap">
-      <Button disabled={nextDisabled} onClick={onNext} style={{ borderStartEndRadius: 0, borderEndEndRadius: 0 }}>
-        Next phase
-      </Button>
-      <Menu position="bottom-end" shadow="md" withinPortal>
-        <Menu.Target>
-          <Button aria-label="More phase actions" px={8} style={{ borderStartStartRadius: 0, borderEndStartRadius: 0 }}>
-            <ChevronDown size={16} aria-hidden />
-          </Button>
-        </Menu.Target>
-        <Menu.Dropdown>
-          <Menu.Item disabled={previousDisabled} onClick={onPrevious}>
-            Previous phase
-          </Menu.Item>
-        </Menu.Dropdown>
-      </Menu>
-    </Group>
-  );
 }
 
 function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {

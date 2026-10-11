@@ -220,6 +220,11 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   text-transform: uppercase;
 }
 
+/* The phase's own live region lays its disc and words out in the chip as if it were not there. */
+:where(.dune-play-shell) .seated-phase-status__live {
+  display: contents;
+}
+
 :where(.dune-play-shell) .seated-phase-status__symbol {
   width: 2.4rem;
   height: 2.4rem;
@@ -256,9 +261,10 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 }
 
 /* A shell too short for the dock's floor grows the dock up over nearly all of the scene; the dial then sits in the dock's
-   upper right corner, where it stays on screen. */
+   upper right corner, where it stays on screen. The dock's top never rises above the shell's, so an offset of the header's
+   height keeps the dial below the header's chips. */
 :where(.dune-play-shell) [data-concealed="true"] .seated-camera {
-  top: var(--space-sm);
+  top: calc(var(--play-header-height) + var(--space-sm));
   bottom: auto;
 }
 
