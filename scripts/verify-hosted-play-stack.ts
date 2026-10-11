@@ -361,7 +361,6 @@ process.once('SIGTERM', interrupt);
 try {
   /* A broken shared import fails here, before any backend or Worker starts. */
   const runnerBundle = loadProfile ? await bundleRunner() : undefined;
-  const binary = backendBinary();
   const ports = new Set<number>();
   while (ports.size < 3) {
     ports.add(await freePort());
@@ -370,6 +369,30 @@ try {
   const backendUrl = `http://127.0.0.1:${backendPort}`;
   const siteUrl = `http://127.0.0.1:${sitePort}`;
   const origin = `http://127.0.0.1:${appPort}`;
+  /*
+   * The frontend build needs only the origins above, so it runs while the backend boots and deploys instead of after them.
+   * The steps below block on spawnSync, which leaves this child running; the Worker starts on the finished build after the deploy.
+   */
+  const workerArguments = [
+    '--no-env-file',
+    path.join(root, 'scripts/play-local.ts'),
+    '--convex-url',
+    backendUrl,
+    '--convex-site-url',
+    siteUrl,
+    '--port',
+    String(appPort),
+    ...(values['skip-generate'] ? ['--skip-generate'] : []),
+  ];
+  const buildLog = path.join(evidence, 'build.log');
+  const build = values['skip-build']
+    ? undefined
+    : start({
+        command: process.execPath,
+        args: [...workerArguments, '--build-only'],
+        logPath: buildLog,
+      });
+  const binary = backendBinary();
   const hostedTarget = values['load-hosted-backend']
     ? syntheticHostedTarget(
         run({ command: '/usr/bin/git', args: ['rev-parse', 'HEAD'], label: 'Source revision' }).trim()
@@ -445,21 +468,19 @@ try {
   const wranglerLog = path.join(evidence, 'wrangler.log');
   rmSync(wranglerLog, { force: true });
   const workerLog = path.join(evidence, 'worker.log');
+  if (build) {
+    /* The same bound the Worker's readiness wait gave the build when the Worker ran it. */
+    const timeout = setTimeout(() => build.kill('SIGTERM'), 300_000);
+    await childExits.get(build);
+    clearTimeout(timeout);
+    if (build.exitCode !== 0) {
+      console.error(readFileSync(buildLog, 'utf8').split('\n').slice(-60).join('\n'));
+      throw new Error(`The frontend build exited with ${build.exitCode ?? build.signalCode}; see ${buildLog}.`);
+    }
+  }
   const worker = start({
     command: process.execPath,
-    args: [
-      '--no-env-file',
-      path.join(root, 'scripts/play-local.ts'),
-      '--convex-url',
-      backendUrl,
-      '--convex-site-url',
-      siteUrl,
-      '--port',
-      String(appPort),
-      ...(values['skip-build'] ? ['--skip-build'] : []),
-      ...(values['skip-generate'] ? ['--skip-generate'] : []),
-      ...(loadProfile ? ['--load-profile', loadProfile] : []),
-    ],
+    args: [...workerArguments, '--skip-build', ...(loadProfile ? ['--load-profile', loadProfile] : [])],
     env: { ...environment, WRANGLER_LOG_PATH: wranglerLog },
     logPath: workerLog,
   });
