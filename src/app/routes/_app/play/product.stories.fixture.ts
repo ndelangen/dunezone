@@ -2,8 +2,7 @@ import { toStoredHeroKey } from '@shared/factions/schema';
 import { publicFaction } from '@shared/play/capture';
 import type { FactionCapture } from '@shared/play/capture';
 import { normalizePlayGameSlug } from '@shared/play/gameNames';
-import { treacheryHandCounts } from '@shared/play/handCounts';
-import type { StoredPiece, TablePiece } from '@shared/play/model';
+import type { TablePiece } from '@shared/play/model';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { rosterFactionNames } from '@shared/play/protocol';
 import type { SupplyDependencies } from '@shared/play/setupSupply';
@@ -374,29 +373,6 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   return snapshot;
 }
 
-/* Mid-game Treachery hands the other factions hold; the viewer's own count always matches its hand. */
-const OTHER_HAND_COUNTS = [2, 1, 3, 0, 4, 1];
-
-/**
- * The public Treachery hand counts the Worker sends every Seat and Spectator once there is a roster.
- * Before play no faction holds Treachery cards;
- * in play the other factions hold a few, and the viewer's count is its own hand's.
- */
-function storyHandCounts(view: GameSnapshot, viewerSeat: Viewer['viewerSeat']): GameSnapshot['handCounts'] {
-  if (!view.roster) {
-    return undefined;
-  }
-  const own = view.roster.seats.find((seat) => seat.id === viewerSeat)?.faction?.id;
-  const factionIds = view.roster.seats.flatMap(({ faction }) => (faction ? [faction.id] : []));
-  const ownCount = treacheryHandCounts(own ? { [own]: (view.hand ?? []) as StoredPiece[] } : {}, factionIds);
-  return Object.fromEntries(
-    factionIds.map((id, index) => [
-      id,
-      id === own || view.stage !== 'play' ? ownCount[id]! : OTHER_HAND_COUNTS[index % OTHER_HAND_COUNTS.length]!,
-    ])
-  );
-}
-
 /** Every story faction's captured sheet by faction id, as a real game answers the Info tab's faction reads. */
 export function capturedFactions() {
   return Object.fromEntries(factions.map((faction) => [faction.slug, publicFaction(capture(faction))]));
@@ -414,6 +390,5 @@ export function productTransport(
     delete view.hand;
     delete view.battlePlan;
   }
-  view.handCounts ??= storyHandCounts(view, viewerSeat);
   return storyTransport(viewerSeat, view, { factions: capturedFactions(), ...options });
 }
