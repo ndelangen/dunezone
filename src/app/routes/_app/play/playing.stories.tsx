@@ -789,13 +789,23 @@ export const SharedInventoryNarrow = meta.story({
       expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
     });
     await userEvent.hover(page.getByRole('tab', { name: 'Shared inventory' }));
-    await waitForFrame(() => expect(finishTransitions(page.getByText('Pieces every player can take.'))).toBeVisible());
-    await waitForFrame(() => expect(finishTransitions(page.getByText(/^Drag an item onto the table/))).toBeVisible());
+    await waitForFrame(() =>
+      expect(
+        finishTransitions(within(page.getByRole('tooltip')).getByText('Pieces every player can take.'))
+      ).toBeVisible()
+    );
+    await waitForFrame(() =>
+      expect(
+        finishTransitions(within(page.getByRole('tooltip')).getByText(/^Drag an item onto the table/))
+      ).toBeVisible()
+    );
     await userEvent.unhover(page.getByRole('tab', { name: 'Shared inventory' }));
     await openTab(page, 'Phase');
     await userEvent.hover(page.getByRole('tab', { name: 'Phase' }));
     await waitForFrame(() =>
-      expect(finishTransitions(page.getByText(/^Move the storm using the storm controls/))).toBeVisible()
+      expect(
+        finishTransitions(within(page.getByRole('tooltip')).getByText(/^Move the storm using the storm controls/))
+      ).toBeVisible()
     );
     await userEvent.unhover(page.getByRole('tab', { name: 'Phase' }));
   },
@@ -910,7 +920,7 @@ export const PanelSchemeIsland = meta.story({
     expect(view.getComputedStyle(menu).backgroundColor).toBe(glass);
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
-    const raised = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--tooltip-surface').trim());
+    const raised = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--tip-surface').trim());
     const help = page.getByRole('tab', { name: 'Spice' });
     /* By its words, as the tab's tooltip. */
     const spiceReserveTip = () =>
@@ -1039,7 +1049,11 @@ export const ControlsNarrow = meta.story({
     await settled(() => expect(page.getByLabelText('Spice reserve balance')).toBeVisible());
     await userEvent.hover(page.getByRole('tab', { name: 'Spice' }));
     /* The tooltip's label mounts only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1422). Resting on the tab brings the reserve's help. */
-    await waitForFrame(() => expect(finishTransitions(page.getByText(/^Only you see this balance\./))).toBeVisible());
+    await waitForFrame(() =>
+      expect(
+        finishTransitions(within(page.getByRole('tooltip')).getByText(/^Only you see this balance\./))
+      ).toBeVisible()
+    );
     await userEvent.unhover(page.getByRole('tab', { name: 'Spice' }));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     expect(page.queryByRole('button', { name: 'Take into spice reserve' })).toBeNull();

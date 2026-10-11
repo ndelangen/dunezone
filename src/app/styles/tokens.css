@@ -207,12 +207,13 @@
 
   /*
    * Play's tooltips are raised slate cards with an amber title, so they read off the dock's navy glass,
-   * which the app's tooltip glass matches (#2048). Tooltips portal into a host carrying this attribute.
+   * which the app's tooltip glass matches. Norbert picked these values by eye against the dock (#2048),
+   * so a palette sweep keeps them. Tooltips portal into a host carrying this attribute. The `--tip-`
+   * prefix keeps them apart from Mantine's own component-scoped `--tooltip-` variables, which read them.
    */
-  --tooltip-surface: #2a3a55;
-  --tooltip-ink: #f3efe6;
-  --tooltip-title: #f4c983;
-  --tooltip-ring: 0 0 0 1px #6b7f9f, 0 0.5rem 1.5rem rgba(0, 0, 0, 0.55);
+  --tip-surface: #2a3a55;
+  --tip-title: #f4c983;
+  --tip-ring: 0 0 0 1px #6b7f9f, 0 0.5rem 1.5rem rgba(0, 0, 0, 0.55);
 
   /* Inherited text resolves at body, outside this subtree, so the ink is set directly. */
   color: var(--color-text);

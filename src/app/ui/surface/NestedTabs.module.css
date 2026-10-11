@@ -357,6 +357,6 @@
 }
 
 .tooltipLabel {
-  color: var(--tooltip-title, inherit);
+  color: var(--tip-title, inherit);
   font-weight: 600;
 }

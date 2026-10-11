@@ -365,7 +365,7 @@ function NestedTabsTooltip({
   description?: string;
   help?: string;
   isScrolling: boolean;
-  children: ReactElement;
+  children: ReactElement<Pick<HTMLAttributes<HTMLElement>, 'onFocus' | 'onBlur'>>;
 }) {
   const [shown, setShown] = useState<'closed' | 'short' | 'help'>('closed');
   const openTimer = useRef(0);
@@ -391,7 +391,6 @@ function NestedTabsTooltip({
       setShown('closed');
     }
   };
-  /* Each new hover starts from the description. */
   const engage = (cause: 'pointer' | 'focus') => {
     engaged.current[cause] = true;
     if (!isScrolling) {
@@ -440,14 +439,18 @@ function NestedTabsTooltip({
       onMouseLeave={() => release('pointer')}
     >
       {cloneElement(children, {
-        /* Keyboard focus shows the tooltip too; the focus a click brings does not, so it closes with the pointer. */
+        /* Keyboard focus shows the tooltip too; the focus a click brings does not, so it closes with the pointer. A caller's own handlers still run. */
         onFocus: (event: FocusEvent<HTMLElement>) => {
+          children.props.onFocus?.(event);
           if (!engaged.current.pointer && event.currentTarget.matches(':focus-visible')) {
             engage('focus');
           }
         },
-        onBlur: () => release('focus'),
-      } as Partial<HTMLAttributes<HTMLElement>>)}
+        onBlur: (event: FocusEvent<HTMLElement>) => {
+          children.props.onBlur?.(event);
+          release('focus');
+        },
+      })}
     </Tooltip>
   );
 }
@@ -855,6 +858,11 @@ function splitRootChildren(children: ReactNode) {
  * When any item is a link, the items navigate, so each level stays a named `nav` and its current item carries `aria-current`.
  * With two levels the first connects to the second and the second to the panel;
  * with one level, its items connect straight to the panel.
+ * An item's tooltip names it;
+ * given a `description` it shows that line under the name, and given `help` it swaps in that full guidance once the pointer has rested 1.8 seconds, so a panel needs no help button of its own.
+ * Keyboard focus opens the same tooltip, and both texts describe the item to assistive technology.
+ * The tooltip body and its timing live here while this is their one user;
+ * a second component wanting a name, a description and rested help moves them to a `ui/content` component this composes.
  */
 function NestedTabsBase({ activePath, ariaLabel, className, children }: NestedTabsProps) {
   const { levels, panel } = splitRootChildren(children);
