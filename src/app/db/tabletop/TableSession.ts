@@ -278,6 +278,11 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
   };
 }
 
+/* A position the table can hold, or null for one off it. */
+function onTable(position: Vector3Tuple | null) {
+  return position && tablePositionSchema.safeParse(position).success ? position : null;
+}
+
 /** Owns local interactions and presentation over the subscribed server view. */
 export class TableSession {
   private readonly listeners = new Set<() => void>();
@@ -1501,14 +1506,14 @@ export class TableSession {
   };
   /** Publishes the cursor, and keeps `surface`, the table under it, for a ping to mark. */
   publishPointer = (position: Vector3Tuple | null, surface: Vector3Tuple | null = null) => {
-    this.pingPoint = position && surface && tablePositionSchema.safeParse(surface).success ? surface : null;
+    this.pingPoint = position ? onTable(surface) : null;
     if (!this.canAct()) {
       this.pointer = null;
       clearTimeout(this.pointerTimer);
       this.pointerTimer = undefined;
       return;
     }
-    this.pointer = position && tablePositionSchema.safeParse(position).success ? position : null;
+    this.pointer = onTable(position);
     if (this.pointer === null) {
       clearTimeout(this.pointerTimer);
       this.pointerTimer = undefined;
