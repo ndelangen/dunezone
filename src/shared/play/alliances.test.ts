@@ -45,10 +45,24 @@ describe('alliances', () => {
     expect(allied.offers).toEqual([]);
   });
 
-  test('offering back to a faction that offered answers its offer', () => {
+  test('offering back to a faction that offered is refused, so only an explicit accept forms an alliance', () => {
     const offered = act(emptyAlliances(), 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
-    const allied = act(offered, 'fremen', { kind: 'alliance-offer', factionId: 'atreides' });
-    expect(alliesOf(allied, 'atreides')).toEqual(['fremen']);
+    expect(() => act(offered, 'fremen', { kind: 'alliance-offer', factionId: 'atreides' })).toThrow(
+      'Accept or decline'
+    );
+  });
+
+  test('a late offer never re-forms an alliance broken since', () => {
+    let state = act(emptyAlliances(), 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
+    state = act(state, 'fremen', {
+      kind: 'alliance-accept',
+      factionId: 'atreides',
+      offer: offerId(state, 'atreides', 'fremen'),
+    });
+    state = act(state, 'fremen', { kind: 'alliance-break', factionId: 'atreides' });
+    state = act(state, 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
+    expect(() => act(state, 'fremen', { kind: 'alliance-offer', factionId: 'atreides' })).toThrow('Accept or decline');
+    expect(alliesOf(state, 'fremen')).toEqual([]);
   });
 
   test('a declined or withdrawn offer leaves everyone alone', () => {

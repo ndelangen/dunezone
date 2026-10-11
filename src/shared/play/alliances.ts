@@ -119,9 +119,12 @@ function offer(
   if (alliesOf(state, factionId).includes(to)) {
     return refuse('You are already allied with that faction.');
   }
-  /* Offering to a faction that already offered to you answers its offer. */
-  if (state.offers.some((entry) => entry.from === to && entry.to === factionId)) {
-    return join(state, { from: to, to: factionId });
+  /*
+   * Only an explicit accept, which names the offer its player saw, answers an offer.
+   * An offer back never does, so a late offer can't re-form an alliance broken since.
+   */
+  if (waitingOffer(state, { from: to, to: factionId })) {
+    return refuse('That faction has offered you an alliance. Accept or decline it instead.');
   }
   if (state.offers.some((entry) => entry.from === factionId && entry.to === to)) {
     return state;
