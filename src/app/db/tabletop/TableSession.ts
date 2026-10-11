@@ -1,5 +1,5 @@
 import { tableHandlingOpen } from '@shared/play/admission';
-import type { BattlePlanInput } from '@shared/play/battle';
+import type { BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
@@ -192,6 +192,15 @@ function waitsForPlan(
   action: PieceAction
 ): action is Extract<PieceAction, { kind: 'battle-ready' | 'battle-disclose' }> {
   return action.kind === 'battle-ready' || action.kind === 'battle-disclose';
+}
+/* The part a battle action reveals in the given battle, if it reveals one. */
+function revealIn(action: PieceAction, battleId?: string): Disclosure[] {
+  return action.kind === 'battle-disclose' && action.shown && action.battleId === battleId ? [action.disclosure] : [];
+}
+function shownWith(shown: BattlePlan['disclosed'], disclosure: Disclosure): BattlePlan['disclosed'] {
+  return disclosure.element === 'card'
+    ? { ...shown, cardIds: [...new Set([...shown.cardIds, disclosure.cardId])] }
+    : { ...shown, [disclosure.element]: true };
 }
 function passesCarry(action: PieceAction) {
   return action.kind === 'phase' || action.kind === 'peek-close' || isRemovalAction(action) || isSeatAction(action);
@@ -518,32 +527,7 @@ export class TableSession {
   private liveTable(): TableProjection {
     const viewer = this.viewer!;
     const authoritative = this.history?.snapshot ?? this.snapshot;
-    const pendingPlan =
-      !this.history &&
-      authoritative.battlePlan &&
-      this.pendingBattlePlan &&
-      authoritative.battle?.id === this.pendingBattlePlan.battleId
-        ? {
-            ...authoritative.battlePlan,
-            ...this.pendingBattlePlan.patch,
-            ...this.queuedBattlePlan?.patch,
-          }
-        : null;
-    const planned = pendingPlan
-      ? {
-          ...authoritative,
-          battlePlan: pendingPlan,
-          ...(authoritative.bank
-            ? {
-                bank: {
-                  ...authoritative.bank,
-                  balance: authoritative.bank.balance + authoritative.battlePlan!.spice - pendingPlan.spice,
-                },
-              }
-            : {}),
-        }
-      : authoritative;
-    const displayed = this.withUnsettledDisclosures(planned);
+    const displayed = this.withUnsettledDisclosures(this.withPendingPlan(authoritative));
     const state = {
       ...tableForViewer(displayed, viewer.viewerSeat),
       factionTieBreaks: snapshotFactionTieBreaks(displayed),
@@ -1299,27 +1283,35 @@ export class TableSession {
    * before a later edit can overtake it and change what the room reveals. A hide shows only once the room has it,
    * keeping the part locked meanwhile.
    */
+  /* Plan edits not yet answered show at once, with the bank holding the spice they commit. */
+  private withPendingPlan(authoritative: GameSnapshot): GameSnapshot {
+    const pending = this.pendingBattlePlan;
+    if (this.history || !pending) {
+      return authoritative;
+    }
+    if (!authoritative.battlePlan || authoritative.battle?.id !== pending.battleId) {
+      return authoritative;
+    }
+    const plan = { ...authoritative.battlePlan, ...pending.patch, ...this.queuedBattlePlan?.patch };
+    const bank = authoritative.bank && {
+      ...authoritative.bank,
+      balance: authoritative.bank.balance + authoritative.battlePlan.spice - plan.spice,
+    };
+    return { ...authoritative, battlePlan: plan, ...(bank ? { bank } : {}) };
+  }
   private withUnsettledDisclosures(snapshot: GameSnapshot): GameSnapshot {
     /* Replayed history shows the plan as it stood then. */
-    if (this.history) {
+    if (this.history || !snapshot.battlePlan) {
       return snapshot;
     }
-    const reveals = [...this.queuedBattleActions, ...this.disclosuresInFlight.values()].flatMap((action) =>
-      action.kind === 'battle-disclose' && action.shown && action.battleId === snapshot.battle?.id
-        ? [action.disclosure]
-        : []
-    );
-    if (!snapshot.battlePlan || !reveals.length) {
-      return snapshot;
-    }
-    const disclosed = reveals.reduce(
-      (shown, disclosure) =>
-        disclosure.element === 'card'
-          ? { ...shown, cardIds: [...new Set([...shown.cardIds, disclosure.cardId])] }
-          : { ...shown, [disclosure.element]: true },
-      snapshot.battlePlan.disclosed
-    );
-    return { ...snapshot, battlePlan: { ...snapshot.battlePlan, disclosed } };
+    const unsettled = [...this.queuedBattleActions, ...this.disclosuresInFlight.values()];
+    const reveals = unsettled.flatMap((action) => revealIn(action, snapshot.battle?.id));
+    return reveals.length
+      ? {
+          ...snapshot,
+          battlePlan: { ...snapshot.battlePlan, disclosed: reveals.reduce(shownWith, snapshot.battlePlan.disclosed) },
+        }
+      : snapshot;
   }
   private flushBattleActions() {
     if (this.canAct() && !this.planInFlight() && this.queuedBattleActions.length) {
