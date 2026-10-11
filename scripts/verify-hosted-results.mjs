@@ -28,6 +28,8 @@ export async function verifyResults({
   const bar = (who) => who.page.locator('[data-decision-bar]');
   const winner = factionOf(a);
   const gameId = currentGameId();
+  const gamePath = new URL(a.page.url()).pathname;
+  assert.notEqual(gamePath, `/play/${gameId}`);
 
   for (const who of everyone) {
     await openTab(who, 'Phase');
@@ -97,7 +99,7 @@ export async function verifyResults({
     page
       .getByRole('list', { name: 'Games' })
       .getByRole('listitem')
-      .filter({ has: page.locator(`a[href$="/play/${gameId}"]`) });
+      .filter({ has: page.locator(`a[href="${gamePath}"]`) });
   const showGames = async (page, view) => {
     await page.locator('input[aria-label="Show games"]:visible').first().click();
     await page.getByRole('option', { name: new RegExp(`^${view}`) }).click();
@@ -107,7 +109,7 @@ export async function verifyResults({
   await observer.page.getByRole('heading', { name: 'Play Dune!' }).waitFor();
   await showGames(observer.page, 'Finished');
   await lobbyCard(observer.page).getByText(`${winner.name} won`).waitFor({ timeout: 20_000 });
-  assert.equal(await lobbyCard(observer.page).getByRole('link').getAttribute('href'), `/play/${gameId}`);
+  assert.equal(await lobbyCard(observer.page).getByRole('link').getAttribute('href'), gamePath);
   await capture(observer, 'after-lobby-past-1440x1000');
   await showGames(observer.page, 'Ongoing');
   assert.equal(await lobbyCard(observer.page).count(), 0);
@@ -128,7 +130,7 @@ export async function verifyResults({
   await lobbyCard(observer.page).waitFor({ timeout: 20_000 });
   assert.equal(await lobbyCard(observer.page).getByText(`${winner.name} won`).count(), 0);
   /* The observer still holds the finished game's frames, so its return waits for a fresh connection before reading the stage. */
-  await observer.page.goto(`${origin}/play/${gameId}`, { waitUntil: 'domcontentloaded' });
+  await lobbyCard(observer.page).getByRole('link').click();
   await until(
     () => observer.view().viewer.connectionId !== observerLeft,
     'The observer did not get a fresh connection.'
