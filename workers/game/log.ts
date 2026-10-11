@@ -10,6 +10,7 @@ import { describeResult, isResultAction } from '../../src/shared/play/result';
 import type { ResultAction } from '../../src/shared/play/result';
 import { setupStep } from '../../src/shared/play/setup';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
+import { internalPieceId } from './state';
 import type { StoredSnapshot } from './state';
 
 /** The one name retained history shows for a deleted account. */
@@ -258,7 +259,8 @@ function deletionEntries(
   if (message.type !== 'command' || message.action.kind !== 'delete' || before.revision === next.revision) {
     return [];
   }
-  const { pieceId } = message.action;
+  /* A card that passed through a hand reaches the room under a public handle; the stored piece keeps its own id. */
+  const pieceId = internalPieceId(before, message.action.pieceId);
   const piece = before.table.pieces.find((candidate) => candidate.id === pieceId);
   if (!piece || next.table.pieces.some((candidate) => candidate.id === pieceId)) {
     return [];

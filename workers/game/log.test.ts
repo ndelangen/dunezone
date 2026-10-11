@@ -29,6 +29,7 @@ function snapshot(revision: number, extra: Partial<StoredSnapshot> = {}) {
     revision,
     battleResults: [],
     privatePredictions: {},
+    pieceHandles: {},
     roster: {
       seats: [
         { seat: 'seat-1', faction: { id: 'house', name: 'House {0}' } },
@@ -177,7 +178,16 @@ describe('the public log', () => {
       });
     remove(1, 'atomics', [card('atomics', true), card('hidden', false)], [card('hidden', false)]);
     remove(2, 'hidden', [card('hidden', false)], []);
+    /* A card that passed through a hand is named on the wire by its public handle. */
+    log.recordCommit({
+      holders: [],
+      before: snapshot(3, { table: { pieces: [card('handed', true)] }, pieceHandles: { handed: 'handle-7' } } as never),
+      next: snapshot(4, table()),
+      message: { type: 'command', action: { kind: 'delete', pieceId: 'handle-7' } } as never,
+      viewer: viewer as never,
+    });
     expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
+      'Alice deleted Family Atomics card from the game.',
       'Alice deleted Treachery card from the game.',
       'Alice deleted Family Atomics card from the game.',
     ]);
