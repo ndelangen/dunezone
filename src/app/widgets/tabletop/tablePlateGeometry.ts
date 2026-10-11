@@ -300,7 +300,7 @@ export function tablePlateOutline(slots: readonly TrackerArcSlot[] = []): TableP
 }
 
 /** Whether a point lies over the plate, counting the crossings of a line from it along +x with the outline's edges. */
-export function tablePlateContains(outline: TablePlateOutline, [x, , z]: Vector3Tuple): boolean {
+function tablePlateContains(outline: TablePlateOutline, [x, , z]: Vector3Tuple): boolean {
   let inside = false;
   for (let index = 0, previous = outline.length - 1; index < outline.length; previous = index++) {
     const [ax, az] = outline[index]!;
