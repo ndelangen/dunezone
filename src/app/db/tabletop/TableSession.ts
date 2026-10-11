@@ -309,6 +309,8 @@ export class TableSession {
   private flipping = new Map<string, number>();
   private readonly pendingFlips = new Map<string, string>();
   private pointer: Vector3Tuple | null = null;
+  /* The table, board or rim surface under the cursor, where a ping lands so every viewer sees it at the same spot. */
+  private pingPoint: Vector3Tuple | null = null;
   private cached: ConnectionView;
   private catalogueRequestId?: string;
   private catalogueSelection?: SpawnSelection;
@@ -482,14 +484,17 @@ export class TableSession {
     }
     return true;
   };
-  /* This page's ping at its cursor, while it has a cursor on the table and may act. */
+  /* This page's ping on the table surface under its cursor, while it has a cursor on the table and may act. */
   private pingHere(): TablePing | null {
+    if (!this.canAct()) {
+      return null;
+    }
     const viewer = this.viewer;
-    if (!viewer || this.pointer === null || !this.canAct()) {
+    if (!viewer || this.pingPoint === null) {
       return null;
     }
     const { connectionId, viewerSeat, displayName, color } = viewer;
-    return { connectionId, viewerSeat, displayName, color, position: this.pointer };
+    return { connectionId, viewerSeat, displayName, color, position: this.pingPoint };
   }
   /* A ping changes nothing on the table, so it skips the update every other message makes. */
   private receivePing(ping: TablePing) {
@@ -1494,7 +1499,9 @@ export class TableSession {
     this.flipping.delete(pieceId);
     this.emit();
   };
-  publishPointer = (position: Vector3Tuple | null) => {
+  /** Publishes the cursor, and keeps `surface`, the table under it, for a ping to mark. */
+  publishPointer = (position: Vector3Tuple | null, surface: Vector3Tuple | null = null) => {
+    this.pingPoint = position && surface && tablePositionSchema.safeParse(surface).success ? surface : null;
     if (!this.canAct()) {
       this.pointer = null;
       clearTimeout(this.pointerTimer);

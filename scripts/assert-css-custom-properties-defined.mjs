@@ -32,7 +32,6 @@ const PROVIDED_ELSEWHERE = [
   ['--rulebook-aspect', 'RulesetRulebooks in routes/_app/rulesets/$rulesetSlug/index.tsx, via inline style'],
   ['--document-editor-', 'DocumentEditorLayout, via setProperty'],
   ['--editor-plane-width', 'the faction editor plane, via setProperty'],
-  ['--ping-color', 'ScenePings, via inline style'],
 ];
 
 const definitionsRoot = process.env.CSS_VAR_DEFINITIONS_ROOT ?? 'src';

@@ -1619,26 +1619,27 @@ describe('pointer moves', () => {
     return { source, carry };
   };
 
-  test('a ping goes out from the cursor, shows at once here, and waits out the interval before the next', async () => {
+  test('a ping goes out from the table under the cursor, shows at once here, and waits out the interval before the next', async () => {
     const client = await connected();
     socket().deliver(view({ sequence: 1 }));
     const pings = vi.fn();
     client.subscribePings(pings);
 
-    expect(client.ping()).toBe(false);
     client.publishPointer([1, 0.38, 1]);
+    expect(client.ping()).toBe(false);
+    client.publishPointer([1, 0.38, 1], [1, 0.132, 1]);
     expect(client.ping()).toBe(true);
     expect(client.ping()).toBe(true);
     await vi.advanceTimersByTimeAsync(400);
     client.ping();
 
     expect(socket().sent.filter((message) => message.type === 'ping')).toEqual([
-      { type: 'ping', position: [1, 0.38, 1] },
-      { type: 'ping', position: [1, 0.38, 1] },
+      { type: 'ping', position: [1, 0.132, 1] },
+      { type: 'ping', position: [1, 0.132, 1] },
     ]);
     expect(pings).toHaveBeenCalledTimes(2);
     expect(pings).toHaveBeenLastCalledWith(
-      expect.objectContaining({ connectionId: viewer.connectionId, color: viewer.color, position: [1, 0.38, 1] })
+      expect.objectContaining({ connectionId: viewer.connectionId, color: viewer.color, position: [1, 0.132, 1] })
     );
   });
 

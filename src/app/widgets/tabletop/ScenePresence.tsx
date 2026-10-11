@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { PublicPointer } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
-import { CARRIED_BASE_Y, pointOnRayAtHeight } from '@shared/play/tableGeometry';
+import { CARRIED_BASE_Y, pointOnRayAtHeight, surfacePointOnRay } from '@shared/play/tableGeometry';
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Raycaster, Vector2, Vector3 } from 'three';
 
@@ -195,13 +195,11 @@ export function ScenePresence({
         -((point.y - bounds.top) / bounds.height) * 2 + 1
       );
       raycaster.setFromCamera(normalized, camera);
-      const position = pointOnRayAtHeight(
-        [raycaster.ray.origin.x, raycaster.ray.origin.y, raycaster.ray.origin.z],
-        [raycaster.ray.direction.x, raycaster.ray.direction.y, raycaster.ray.direction.z],
-        CARRIED_BASE_Y
-      );
+      const origin = raycaster.ray.origin.toArray() as Vector3Tuple;
+      const direction = raycaster.ray.direction.toArray() as Vector3Tuple;
+      const position = pointOnRayAtHeight(origin, direction, CARRIED_BASE_Y);
       setLocalPosition(showLocal && !point.touch ? position : null);
-      publishPointer(canInteract ? position : null);
+      publishPointer(canInteract ? position : null, surfacePointOnRay(origin, direction));
     };
   }, [camera, canInteract, normalized, publishPointer, raycaster, renderer.domElement, showLocal]);
   useEffect(() => {
