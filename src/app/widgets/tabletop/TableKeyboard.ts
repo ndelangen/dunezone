@@ -11,6 +11,7 @@ type Controls = Pick<
   | 'deckControls'
   | 'flipSelected'
   | 'hoveredPieceId'
+  | 'ping'
   | 'rotateSelected'
   | 'spawnSpice'
   | 'splitSelected'
@@ -82,6 +83,8 @@ export class TableKeyboard {
   private drawDigit: number | null = null;
   private drawCode = '';
   private panAvailable = false;
+  /* Whether the Tab held down now pinged, so its repeats stay with the table too. */
+  private pingHeld = false;
   /* The held pan keys, by the physical key that went down, with the direction it typed then. */
   private readonly panHeld = new Map<string, string>();
   private readonly panListeners = new Set<() => void>();
@@ -168,6 +171,12 @@ export class TableKeyboard {
     if (this.panKeyDown(event)) {
       return;
     }
+    if (event.key === 'Tab') {
+      if (!event.shiftKey && !focusKeepsKey(event.target, 'table')) {
+        this.pingKey(event, controls);
+      }
+      return;
+    }
     const digit = digitOf(event);
     if (digit !== null && this.spiceBankAnswers(event, controls)) {
       event.preventDefault();
@@ -195,8 +204,22 @@ export class TableKeyboard {
     return true;
   }
 
+  /*
+   * Tab pings where the cursor is, as in Tabletop Simulator, instead of moving the focus; holding it pings once.
+   * With the cursor off the table there is nowhere to ping, so Tab moves the focus as usual.
+   */
+  private pingKey(event: KeyboardEvent, controls: Controls) {
+    if (event.repeat ? this.pingHeld : controls.ping()) {
+      event.preventDefault();
+      this.pingHeld = true;
+    }
+  }
+
   /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
   private keyUp = (event: KeyboardEvent) => {
+    if (event.key === 'Tab') {
+      this.pingHeld = false;
+    }
     /* The physical key ends its pan, whatever it types by then: macOS's Option turns a held W into "∑" before it comes up. */
     if (this.panHeld.delete(physicalKey(event))) {
       this.panListeners.forEach((listener) => listener());

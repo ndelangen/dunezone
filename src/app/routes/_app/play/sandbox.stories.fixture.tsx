@@ -221,6 +221,8 @@ export class SandboxTable {
     pointer: (message, viewer) => {
       this.room.pointer(viewer, message.position, Date.now(), message.seq);
     },
+    /* The page shows its own ping as it sends it, and the sandbox has no other page to pass it on to. */
+    ping: () => {},
     pose: (message, viewer, own) => {
       if (this.room.pose(viewer, message) && !own) {
         this.deliver(this.frame());

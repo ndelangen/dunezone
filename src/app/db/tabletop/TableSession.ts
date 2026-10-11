@@ -8,7 +8,7 @@ import type { Affordance, DraftMove, TablePiece, TableState, Vector3Tuple } from
 import { isSeatAction } from '@shared/play/participation';
 import { rearrangeable } from '@shared/play/peeking';
 import type { Peek } from '@shared/play/peeking';
-import { carryPieceId, tableForViewer } from '@shared/play/protocol';
+import { carryPieceId, TABLE_PING_INTERVAL_MS, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
   GameSnapshot,
@@ -17,6 +17,7 @@ import type {
   PublicCarry,
   PublicPointer,
   ServerMessage,
+  TablePing,
 } from '@shared/play/protocol';
 import { isRemovalAction } from '@shared/play/removal';
 import { SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
@@ -281,6 +282,9 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
 export class TableSession {
   private readonly listeners = new Set<() => void>();
   private readonly pointerListeners = new Set<() => void>();
+  private readonly pingListeners = new Set<(ping: TablePing) => void>();
+  /* When this page last pinged, by its monotonic clock; -Infinity before the first. */
+  private pingedAt = Number.NEGATIVE_INFINITY;
   private readonly tableListeners = new Set<() => void>();
   /* The table as the last update derived it, which the session itself and the scene read. */
   private table: TableProjection | null = null;
@@ -452,6 +456,34 @@ export class TableSession {
     return () => this.pointerListeners.delete(listener);
   };
   getPointers = () => this.shownPointers;
+  /* Each ping as it happens, this page's own included: nothing keeps them, so a listener hears only what comes after it subscribes. */
+  subscribePings = (listener: (ping: TablePing) => void) => {
+    this.pingListeners.add(listener);
+    return () => this.pingListeners.delete(listener);
+  };
+  private emitPing(ping: TablePing) {
+    for (const listener of this.pingListeners) {
+      listener(ping);
+    }
+  }
+  /**
+   * Pings the table where the cursor is, for everyone, and answers whether there was a cursor on the table to ping from.
+   * A ping sooner than the interval after the last is skipped, though the cursor still counts as on the table.
+   */
+  ping = (): boolean => {
+    const viewer = this.viewer;
+    const position = this.pointer;
+    if (!viewer || position === null || !this.canAct()) {
+      return false;
+    }
+    const now = this.runtime.monotonicNow();
+    if (now - this.pingedAt >= TABLE_PING_INTERVAL_MS && this.send({ type: 'ping', position })) {
+      this.pingedAt = now;
+      const { connectionId, viewerSeat, displayName, color } = viewer;
+      this.emitPing({ connectionId, viewerSeat, displayName, color, position });
+    }
+    return true;
+  };
   private emitPointers() {
     const next = this.status === 'authorized' ? this.activityForView().pointers : [];
     if (
@@ -758,6 +790,12 @@ export class TableSession {
         }
         this.receiveRoomUpdate(message);
         break;
+      /* A ping changes nothing on the table, so it skips the update every other message makes. */
+      case 'ping':
+        if (this.status === 'authorized' && this.current()) {
+          this.emitPing(message.ping);
+        }
+        return;
       default:
         if (this.status === 'authorized') {
           this.receiveAuthorizedUpdate(message);

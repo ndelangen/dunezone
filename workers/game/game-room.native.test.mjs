@@ -777,6 +777,24 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     );
   });
 
+  it('relays a ping to the other viewers alone, drops one sent sooner than the interval, and keeps none', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection: holder } = await admit();
+    const { connection: watcher } = await admitWatcher();
+    holder.send({ type: 'ping', position: [1, 0.38, 0] });
+    const { ping } = await watcher.message('ping');
+    expect(ping).toMatchObject({ viewerSeat: 'harkonnen', position: [1, 0.38, 0] });
+    holder.send({ type: 'ping', position: [2, 0.38, 0] });
+    await metrics(holder);
+    await metrics(watcher);
+    expect(watcher.messages.filter((message) => message.type === 'ping')).toHaveLength(1);
+    expect(holder.messages.some((message) => message.type === 'ping')).toBe(false);
+    await runtime.clock(1000);
+    holder.send({ type: 'ping', position: [3, 0.38, 0] });
+    await watcher.message('ping', (message) => message.ping.position[0] === 3);
+    expect((await syncView(watcher)).pointers).toEqual([]);
+  });
+
   /** Admits player A, then player B in two tabs of one Auth session, and leaves the watch for the test to answer. */
   async function admitPlayerAndTwoTabs() {
     const { connection: first } = await admit();
