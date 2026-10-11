@@ -1402,6 +1402,39 @@ test('serializes quick private plan edits and waits for their acknowledgment bef
   });
 });
 
+test('holds an early reveal behind the plan edits made before it, in order with Ready', async () => {
+  const client = await connected();
+  const { plan, snapshot } = battleTable();
+  authorize(snapshot);
+  client.editBattlePlan({ adjustment: 1 });
+  const first = command();
+  client.editBattlePlan({ adjustment: 2 });
+  const disclose = {
+    kind: 'battle-disclose',
+    battleId: 'battle-one',
+    disclosure: { element: 'dial' },
+    shown: true,
+  } as const;
+  client.command(disclose);
+  client.command({ kind: 'battle-ready', battleId: 'battle-one', ready: true });
+  const afterFirst = { ...snapshot, revision: 1, battlePlan: { ...plan, adjustment: 1 } };
+  socket().deliver(view({ snapshot: afterFirst, completedCommandId: first.commandId }));
+  const second = command();
+  expect(second.action).toMatchObject({ kind: 'battle-plan', plan: { adjustment: 2 } });
+  const index = socket().sent.length;
+  socket().deliver(
+    view({
+      snapshot: { ...afterFirst, revision: 2, battlePlan: { ...plan, adjustment: 2 } },
+      completedCommandId: second.commandId,
+    })
+  );
+  expect(
+    socket()
+      .sent.slice(index)
+      .flatMap((message) => (message.type === 'command' ? [message.action] : []))
+  ).toEqual([disclose, { kind: 'battle-ready', battleId: 'battle-one', ready: true }]);
+});
+
 test('sends a battle plan edit queued before a resync once the fresh view arrives', async () => {
   const client = await connected();
   const { plan, snapshot } = battleTable();

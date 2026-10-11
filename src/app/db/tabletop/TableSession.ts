@@ -308,7 +308,8 @@ export class TableSession {
   private battleCountdownUntil = 0;
   private pendingBattlePlan: { commandId: string; battleId: string; patch: Partial<BattlePlanInput> } | null = null;
   private queuedBattlePlan: { battleId: string; patch: Partial<BattlePlanInput> } | null = null;
-  private queuedBattleReady: Extract<PieceAction, { kind: 'battle-ready' }> | null = null;
+  /* Readiness and early reveals wait for the plan edits sent before them, so the room judges the plan the player saw. */
+  private queuedBattleActions: Extract<PieceAction, { kind: 'battle-ready' | 'battle-disclose' }>[] = [];
   private catalogueResult?: Extract<ServerMessage, { type: 'catalogue' }>;
   private spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   private spiceHistoryBefore?: number;
@@ -778,11 +779,11 @@ export class TableSession {
     if (
       (this.pendingBattlePlan && this.saved?.battle?.id !== this.pendingBattlePlan.battleId) ||
       (this.queuedBattlePlan && this.saved?.battle?.id !== this.queuedBattlePlan.battleId) ||
-      (this.queuedBattleReady && this.saved?.battle?.id !== this.queuedBattleReady.battleId)
+      this.queuedBattleActions.some((action) => this.saved?.battle?.id !== action.battleId)
     ) {
       this.pendingBattlePlan = null;
       this.queuedBattlePlan = null;
-      this.queuedBattleReady = null;
+      this.queuedBattleActions = [];
     }
   }
   private settle(id: string, outcome: 'completed' | 'rejected', viewFollows: boolean) {
@@ -815,7 +816,7 @@ export class TableSession {
       this.pendingBattlePlan = null;
       if (outcome === 'rejected') {
         this.queuedBattlePlan = null;
-        this.queuedBattleReady = null;
+        this.queuedBattleActions = [];
       }
     }
   }
@@ -826,7 +827,7 @@ export class TableSession {
     this.flushDrop();
     this.flushCatalogue();
     this.flushBattlePlan();
-    this.flushBattleReady();
+    this.flushBattleActions();
   }
   private receiveAuthorizedUpdate(
     message: Exclude<TableSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>
@@ -1000,7 +1001,7 @@ export class TableSession {
   private clearActivity() {
     this.pendingBattlePlan = null;
     this.queuedBattlePlan = null;
-    this.queuedBattleReady = null;
+    this.queuedBattleActions = [];
     this.seatCommandInFlight = null;
     this.traitorGatherInFlight = null;
     this.spiceHistory = undefined;
@@ -1271,11 +1272,11 @@ export class TableSession {
       action: { kind: 'battle-plan', battleId: battle.id, plan: { ...input, ...patch } },
     });
   }
-  private flushBattleReady() {
-    if (this.canAct() && !this.pendingBattlePlan && !this.queuedBattlePlan && this.queuedBattleReady) {
-      const ready = this.queuedBattleReady;
-      this.queuedBattleReady = null;
-      this.command(ready);
+  private flushBattleActions() {
+    if (this.canAct() && !this.pendingBattlePlan && !this.queuedBattlePlan && this.queuedBattleActions.length) {
+      const actions = this.queuedBattleActions;
+      this.queuedBattleActions = [];
+      actions.forEach((action) => this.command(action));
     }
   }
   /** Sends a table command, and returns its id when it went out. */
@@ -1287,8 +1288,11 @@ export class TableSession {
     if (seatCommand && this.seatCommandInFlight) {
       return;
     }
-    if (action.kind === 'battle-ready' && this.pendingBattlePlan) {
-      this.queuedBattleReady = action;
+    if (
+      (action.kind === 'battle-ready' || action.kind === 'battle-disclose') &&
+      (this.pendingBattlePlan || this.queuedBattleActions.length)
+    ) {
+      this.queuedBattleActions.push(action);
       return;
     }
     if (!(isSeatAction(action) ? this.current() : this.canAct()) || (this.carry && !passesCarry(action))) {
