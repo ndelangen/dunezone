@@ -1,6 +1,6 @@
 /*
  * The ping's sound, made in the browser so it needs no file: a short bright tone that falls away, with a softer one an octave up.
- * A page that has had no click or key yet may not play sound, as browsers allow; the ping still shows.
+ * A page that has had no click or key yet may not play sound, as browsers allow; its pings still show, silently.
  */
 let audio: AudioContext | null = null;
 
@@ -14,8 +14,10 @@ const DECAY_S = 0.55;
 export function playPingSound() {
   try {
     audio ??= new AudioContext();
-    if (audio.state === 'suspended') {
+    if (audio.state !== 'running') {
+      /* A suspended context keeps its clock still, so tones scheduled now would all sound at once when it starts: this ping stays silent. */
       void audio.resume().catch(() => undefined);
+      return;
     }
     const now = audio.currentTime;
     for (const { frequency, peak } of TONES) {

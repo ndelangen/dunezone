@@ -1643,6 +1643,25 @@ describe('pointer moves', () => {
     );
   });
 
+  test('a connection that cannot carry pings, like the homepage table, leaves the ping key unused', async () => {
+    const subscription = new GameSubscription('fixture-one', ticket, runtime);
+    const send = subscription.send.bind(subscription);
+    vi.spyOn(subscription, 'send').mockImplementation((message) => message.type !== 'ping' && send(message));
+    const client = new TableSession('fixture-one', subscription, runtime);
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    socket().open();
+    authorize(initialSnapshot(), viewer);
+    socket().deliver(view({ sequence: 1 }));
+    const pings = vi.fn();
+    client.subscribePings(pings);
+
+    client.publishPointer([1, 0.38, 1], [1, 0.132, 1]);
+
+    expect(client.ping()).toBe(false);
+    expect(pings).not.toHaveBeenCalled();
+  });
+
   test("another player's ping reaches the ping listeners and leaves the table as it was", async () => {
     const client = await connected();
     socket().deliver(view({ sequence: 1 }));

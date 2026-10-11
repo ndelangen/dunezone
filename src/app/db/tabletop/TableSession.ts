@@ -474,8 +474,9 @@ export class TableSession {
     }
   }
   /**
-   * Pings the table where the cursor is, for everyone, and answers whether there was a cursor on the table to ping from.
-   * A ping sooner than the interval after the last is skipped, though the cursor still counts as on the table.
+   * Pings the table where the cursor is, for everyone, and answers whether the ping key was used.
+   * It was not when there is no cursor on the table, or the connection cannot carry pings, as on the homepage's table.
+   * A ping sooner than the interval after the last is skipped, though the key still counts as used.
    */
   ping = (): boolean => {
     const ping = this.pingHere();
@@ -483,10 +484,14 @@ export class TableSession {
       return false;
     }
     const now = this.runtime.monotonicNow();
-    if (now - this.pingedAt >= TABLE_PING_INTERVAL_MS && this.send({ type: 'ping', position: ping.position })) {
-      this.pingedAt = now;
-      this.emitPing(ping);
+    if (now - this.pingedAt < TABLE_PING_INTERVAL_MS) {
+      return true;
     }
+    if (!this.send({ type: 'ping', position: ping.position })) {
+      return false;
+    }
+    this.pingedAt = now;
+    this.emitPing(ping);
     return true;
   };
   /* This page's ping on the table surface under its cursor, while it has a cursor on the table and may act. */
