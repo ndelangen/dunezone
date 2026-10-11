@@ -105,3 +105,29 @@ export const AlliedPlayerInfo = meta.story({
     await waitFor(() => expect(page.getByText(/^Allied with/)).toBeVisible());
   },
 });
+
+/* Three alliances at a six-seat table on a tablet-wide screen: the strip scrolls beside the logo instead of running over the phase. */
+export const ManyAlliancesFitTheHeader = meta.story({
+  globals: { viewport: { value: 'appTablet' } },
+  beforeEach: install(() => {
+    const snapshot = playingSnapshot(VIEWER);
+    const pair = (a: string, b: string, mark: number) => ({
+      members: [faction(snapshot, a), faction(snapshot, b)],
+      mark,
+    });
+    snapshot.alliances = {
+      groups: [pair('seat-1', 'seat-3', 0), pair('seat-4', 'seat-5', 1), pair('seat-2', 'seat-6', 2)],
+      offers: [],
+    };
+    return productTransport(VIEWER, snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const doc = canvasElement.ownerDocument;
+    await within(doc.body).findAllByRole('img', { name: /are allied/ }, { timeout: 30_000 });
+    const strip = doc.querySelector('.seated-brand [aria-label="Alliances"]')!;
+    const phase = doc.querySelector('.seated-phase-status')!;
+    await waitFor(() =>
+      expect(strip.getBoundingClientRect().right).toBeLessThanOrEqual(phase.getBoundingClientRect().left)
+    );
+  },
+});
