@@ -133,7 +133,7 @@ describe('the public log', () => {
       holders: [],
       before: at(2, [['house', 'fremen']]),
       next: at(3, [['house', 'fremen', 'guild']]),
-      message: command({ kind: 'alliance-accept', factionId: 'house' }),
+      message: command({ kind: 'alliance-accept', factionId: 'house', offer: 0 }),
       viewer: viewer as never,
     });
     log.recordCommit({

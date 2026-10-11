@@ -59,7 +59,7 @@ export function AllianceDecisionBar({ client, table }: Props) {
             <Button
               size="compact-sm"
               disabled={!table.canInteract}
-              onClick={() => client.command({ kind: 'alliance-accept', factionId: offer.from })}
+              onClick={() => client.command({ kind: 'alliance-accept', factionId: offer.from, offer: offer.id })}
             >
               Accept
             </Button>
@@ -67,7 +67,7 @@ export function AllianceDecisionBar({ client, table }: Props) {
               size="compact-sm"
               variant="subtle"
               disabled={!table.canInteract}
-              onClick={() => client.command({ kind: 'alliance-decline', factionId: offer.from })}
+              onClick={() => client.command({ kind: 'alliance-decline', factionId: offer.from, offer: offer.id })}
             >
               Decline
             </Button>
@@ -183,7 +183,15 @@ function RowAction({ client, table, row }: Props & Readonly<{ row: Row }>) {
   const Action = ACTIONS[relationTo(table.snapshot.alliances, own, row.factionId)];
   /* Breaking names an ally the viewer saw, so a late click never leaves an alliance formed since. */
   const target = row.factionId === own ? (alliesOf(table.snapshot.alliances, own)[0] ?? own) : row.factionId;
-  const send = (kind: AllianceCommandKind) => client.command({ kind, factionId: target });
+  /* An answer names the offer the viewer saw. */
+  const incoming = table.snapshot.alliances?.offers.find((offer) => offer.from === row.factionId && offer.to === own);
+  const send = (kind: AllianceCommandKind) => {
+    if (kind !== 'alliance-accept' && kind !== 'alliance-decline') {
+      client.command({ kind, factionId: target });
+    } else if (incoming) {
+      client.command({ kind, factionId: target, offer: incoming.id });
+    }
+  };
   return <Action disabled={!table.canInteract} send={send} />;
 }
 

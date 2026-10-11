@@ -14,16 +14,17 @@ export const allianceStateSchema = z.object({
    * An alliance keeps its mark while it grows or loses a member, so its colour never changes when other alliances do.
    */
   groups: z.array(z.object({ members: z.array(id).min(2), mark: count })),
-  /* Offers waiting on an answer, oldest first. */
-  offers: z.array(z.object({ from: id, to: id, at: count })),
+  /* Offers waiting on an answer, oldest first; each carries the table revision it was made at, so an answer names the very offer its player saw. */
+  offers: z.array(z.object({ from: id, to: id, at: count, id: count })),
 });
 export type AllianceState = z.infer<typeof allianceStateSchema>;
 
 export const allianceActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('alliance-offer'), factionId: id }),
   z.strictObject({ kind: z.literal('alliance-withdraw'), factionId: id }),
-  z.strictObject({ kind: z.literal('alliance-accept'), factionId: id }),
-  z.strictObject({ kind: z.literal('alliance-decline'), factionId: id }),
+  /* Answers name the offer by its id, so a late answer never reaches an offer made again since. */
+  z.strictObject({ kind: z.literal('alliance-accept'), factionId: id, offer: count }),
+  z.strictObject({ kind: z.literal('alliance-decline'), factionId: id, offer: count }),
   /* Names one ally the breaking faction saw; the Room also refuses a break sent against a table that has changed since. */
   z.strictObject({ kind: z.literal('alliance-break'), factionId: id }),
 ]);
@@ -58,6 +59,8 @@ export type AllianceContext = {
   /* Every faction at the table. */
   factions: readonly string[];
   now: number;
+  /* The table's revision before this command: every change raises it, so it names a new offer uniquely. */
+  revision: number;
 };
 
 /* The lowest mark no alliance holds, so a new alliance never shares a colour with another. */
@@ -93,7 +96,11 @@ function without(state: AllianceState, { from, to }: Pair): AllianceState {
   return { ...state, offers: state.offers.filter((offer) => offer.from !== from || offer.to !== to) };
 }
 
-function offer(state: AllianceState, to: string, { factionId, factions, now }: AllianceContext): AllianceState {
+function offer(
+  state: AllianceState,
+  to: string,
+  { factionId, factions, now, revision }: AllianceContext
+): AllianceState {
   if (to === factionId || !factions.includes(to)) {
     return refuse('Choose another faction at the table.');
   }
@@ -107,12 +114,12 @@ function offer(state: AllianceState, to: string, { factionId, factions, now }: A
   if (state.offers.some((entry) => entry.from === factionId && entry.to === to)) {
     return state;
   }
-  return { ...state, offers: [...state.offers, { from: factionId, to, at: now }] };
+  return { ...state, offers: [...state.offers, { from: factionId, to, at: now, id: revision }] };
 }
 
-function answer(state: AllianceState, from: string, accept: boolean, { factionId }: AllianceContext) {
+function answer(state: AllianceState, from: string, offerId: number, accept: boolean, { factionId }: AllianceContext) {
   const pair = { from, to: factionId };
-  if (!state.offers.some((entry) => entry.from === from && entry.to === factionId)) {
+  if (!state.offers.some((entry) => entry.from === from && entry.to === factionId && entry.id === offerId)) {
     return refuse('That alliance offer was withdrawn.');
   }
   return accept ? join(state, pair) : without(state, pair);
@@ -139,9 +146,9 @@ export function applyAlliance(state: AllianceState, action: AllianceAction, cont
     case 'alliance-withdraw':
       return without(state, { from: context.factionId, to: action.factionId });
     case 'alliance-accept':
-      return answer(state, action.factionId, true, context);
+      return answer(state, action.factionId, action.offer, true, context);
     case 'alliance-decline':
-      return answer(state, action.factionId, false, context);
+      return answer(state, action.factionId, action.offer, false, context);
     case 'alliance-break':
       return breakAway(state, { from: context.factionId, to: action.factionId });
   }

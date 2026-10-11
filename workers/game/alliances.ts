@@ -23,6 +23,7 @@ function nextAlliances(snapshot: StoredSnapshot, factionId: string, action: Alli
       factionId,
       factions: seatedFactions(snapshot),
       now,
+      revision: snapshot.revision,
     });
   } catch (error) {
     throw error instanceof AllianceRefusal ? new GameRejection(error.message) : error;

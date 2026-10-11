@@ -28,7 +28,7 @@ function alliancesSnapshot(): GameSnapshot {
   const snapshot = playingSnapshot(VIEWER);
   snapshot.alliances = {
     groups: [{ members: [faction(snapshot, 'seat-4'), faction(snapshot, 'seat-5')], mark: 0 }],
-    offers: [{ from: faction(snapshot, 'seat-1'), to: faction(snapshot, VIEWER), at: STORYBOOK_NOW }],
+    offers: [{ from: faction(snapshot, 'seat-1'), to: faction(snapshot, VIEWER), at: STORYBOOK_NOW, id: 0 }],
   };
   return snapshot;
 }
@@ -47,6 +47,7 @@ function liveTransport() {
         factionId,
         factions,
         now: Date.now(),
+        revision: snapshot.revision,
       });
       snapshot = { ...snapshot, revision: snapshot.revision + 1, alliances };
     } catch {
@@ -62,7 +63,11 @@ function liveTransport() {
           const target = action.factionId;
           setTimeout(() => {
             if (snapshot.alliances!.offers.some((offer) => offer.from === own && offer.to === target)) {
-              apply(target, { kind: 'alliance-accept', factionId: own });
+              apply(target, {
+                kind: 'alliance-accept',
+                factionId: own,
+                offer: snapshot.alliances!.offers.find((offer) => offer.from === own && offer.to === target)!.id,
+              });
               transport.deliver(transport.view(snapshot));
             }
           }, 4000);
@@ -93,7 +98,7 @@ export const IncomingOffer = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Accept' }, { timeout: 30_000 }));
     expect(lastCommand()).toMatchObject({
-      action: { kind: 'alliance-accept', factionId: faction(session.transport.snapshot, 'seat-1') },
+      action: { kind: 'alliance-accept', factionId: faction(session.transport.snapshot, 'seat-1'), offer: 0 },
     });
   },
 });
