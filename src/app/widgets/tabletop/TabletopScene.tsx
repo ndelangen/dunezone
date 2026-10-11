@@ -120,6 +120,7 @@ import styles from './TabletopScene.module.css';
 import type { PieceMenuAnchor } from './TabletopTools';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
+import { useTurnedDownFaces } from './turnedDownFaces';
 import { TurnTracker } from './TurnTracker';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
@@ -1217,6 +1218,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
     faceReady
   );
   const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
+  const drawnPiece = useTurnedDownFaces(piece);
   const flipPivotY = stackTopHeight(piece) / 2;
   const shadowLocalY = contactShadowHeightAt(piece.position, piece) - piece.position[1];
 
@@ -1259,7 +1261,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
           <group ref={pivotRef} position={[0, flipPivotY, 0]}>
             <group position={[0, -flipPivotY, 0]}>
               <group ref={shuffleRef}>
-                <PieceLayers piece={piece} />
+                <PieceLayers piece={drawnPiece} />
               </group>
             </group>
           </group>
