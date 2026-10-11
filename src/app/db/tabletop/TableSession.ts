@@ -1062,11 +1062,8 @@ export class TableSession {
   };
   /* Asks once for a seated faction's captured sheet; a read that was never answered can be asked again. */
   readFaction = (factionId: string) => {
-    if (
-      !(factionId in this.factions) &&
-      !this.factionRequests.has(factionId) &&
-      this.send({ type: 'faction', factionId })
-    ) {
+    const known = factionId in this.factions || this.factionRequests.has(factionId);
+    if (!known && this.send({ type: 'faction', factionId })) {
       this.factionRequests.add(factionId);
     }
   };
