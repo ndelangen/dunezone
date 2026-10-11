@@ -1435,6 +1435,22 @@ test('holds an early reveal behind the plan edits made before it, in order with 
   ).toEqual([disclose, { kind: 'battle-ready', battleId: 'battle-one', ready: true }]);
 });
 
+test('shows a queued reveal as revealed at once, so its part locks before a later edit can overtake it', async () => {
+  const client = await connected();
+  const { snapshot } = battleTable();
+  authorize(snapshot);
+  client.editBattlePlan({ adjustment: 1 });
+  command();
+  client.command({ kind: 'battle-disclose', battleId: 'battle-one', disclosure: { element: 'leader' }, shown: true });
+  client.command({
+    kind: 'battle-disclose',
+    battleId: 'battle-one',
+    disclosure: { element: 'card', cardId: 'card-one' },
+    shown: true,
+  });
+  expect(table(client).snapshot.battlePlan?.disclosed).toEqual({ leader: true, dial: false, cardIds: ['card-one'] });
+});
+
 test('sends a battle plan edit queued before a resync once the fresh view arrives', async () => {
   const client = await connected();
   const { plan, snapshot } = battleTable();

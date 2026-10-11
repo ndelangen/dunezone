@@ -1,5 +1,5 @@
 import { tableHandlingOpen } from '@shared/play/admission';
-import type { BattlePlanInput } from '@shared/play/battle';
+import type { BattlePlan, BattlePlanInput } from '@shared/play/battle';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
@@ -526,6 +526,7 @@ export class TableSession {
             ...authoritative.battlePlan,
             ...this.pendingBattlePlan.patch,
             ...this.queuedBattlePlan?.patch,
+            disclosed: this.queuedDisclosed(authoritative.battlePlan.disclosed),
           }
         : null;
     const displayed = pendingPlan
@@ -1290,6 +1291,21 @@ export class TableSession {
     this.queuedBattleActions.push(action);
     return true;
   }
+  /*
+   * A reveal waiting behind plan edits already shows as revealed, so the part locks before a later edit can overtake it
+   * and change what the room reveals. A queued hide shows only once the room has it, keeping the part locked meanwhile.
+   */
+  private queuedDisclosed(disclosed: BattlePlan['disclosed']): BattlePlan['disclosed'] {
+    return this.queuedBattleActions.reduce(
+      (shown, action) =>
+        action.kind !== 'battle-disclose' || !action.shown
+          ? shown
+          : action.disclosure.element === 'card'
+            ? { ...shown, cardIds: [...new Set([...shown.cardIds, action.disclosure.cardId])] }
+            : { ...shown, [action.disclosure.element]: true },
+      disclosed
+    );
+  }
   private flushBattleActions() {
     if (this.canAct() && !this.planInFlight() && this.queuedBattleActions.length) {
       const actions = this.queuedBattleActions;
@@ -1307,6 +1323,7 @@ export class TableSession {
       return;
     }
     if (this.queueBehindPlan(action)) {
+      this.emit();
       return;
     }
     if (!(isSeatAction(action) ? this.current() : this.canAct()) || (this.carry && !passesCarry(action))) {
