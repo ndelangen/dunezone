@@ -404,7 +404,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   private async settle(socket: WebSocket, viewer: Viewer, message: Settlement) {
     const next =
       message.type === 'drop'
-        ? this.room.drop(viewer, message.carryId, message.position, message.orientation, message.flips)
+        ? this.room.drop(viewer, message.carryId, message)
         : this.room.command(viewer, message.action, message.expectedRevision);
     await this.ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot: next });
     this.room.accept(next, message.type === 'drop' ? message.carryId : undefined);

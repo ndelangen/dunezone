@@ -119,6 +119,9 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
  * The turns a carrier has made in hand only ever add up, so a late frame never turns the piece back.
  * A drop without a count keeps the carry's, as an older page sends none.
  */
+/** Where a carried piece is set down, and how many times it was turned over in hand. */
+type CarryLanding = { position: Vector3Tuple; orientation: number; flips?: number };
+
 function carryFlips(draft: DraftMove, flips: number | undefined) {
   const current = draft.flips ?? 0;
   return flips === undefined || flips < current ? current : flips;
@@ -419,12 +422,12 @@ export class Room {
     return next;
   }
 
-  drop(identity: Identity, id: string, position: Vector3Tuple, orientation: number, flips?: number): StoredSnapshot {
+  drop(identity: Identity, id: string, landing: CarryLanding): StoredSnapshot {
     this.assertTableAvailable();
     const carry = this.carry(identity, id);
     const guarded = this.table(identity, id);
-    const draft = { ...carry.draft, orientation, flips: carryFlips(carry.draft, flips) };
-    const settled = settleCarryAtPosition(guarded, draft, position);
+    const draft = { ...carry.draft, orientation: landing.orientation, flips: carryFlips(carry.draft, landing.flips) };
+    const settled = settleCarryAtPosition(guarded, draft, landing.position);
     if (!settled) {
       throw new GameRejection('There is no clear space for that object.');
     }

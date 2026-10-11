@@ -47,6 +47,14 @@ function physicalKey(event: KeyboardEvent) {
   return event.code && event.code !== 'Unidentified' ? event.code : event.key.toLowerCase();
 }
 
+/** Claims the key and acts on the first press only, never on held-key repeats. */
+function pressOnce(event: KeyboardEvent, action: () => void) {
+  event.preventDefault();
+  if (!event.repeat) {
+    action();
+  }
+}
+
 function hasModifier(event: KeyboardEvent) {
   return event.metaKey || event.ctrlKey || event.altKey;
 }
@@ -259,10 +267,7 @@ export class TableKeyboard {
     const { state } = controls;
     const key = event.key.toLowerCase();
     if (key === 't' && state.draftMove && canTakeAdditionalFromDraft(state, state.draftMove)) {
-      event.preventDefault();
-      if (!event.repeat) {
-        controls.takeAdditionalFromTarget();
-      }
+      pressOnce(event, () => controls.takeAdditionalFromTarget());
       return;
     }
     const pieceId = state.draftMove?.pieceId ?? controls.hoveredPieceId ?? state.selectedPieceId ?? undefined;
@@ -276,10 +281,7 @@ export class TableKeyboard {
     }
     /* F turns over a held piece in hand as it does one at rest. */
     if (key === 'f') {
-      event.preventDefault();
-      if (!event.repeat) {
-        controls.flipSelected(pieceId);
-      }
+      pressOnce(event, () => controls.flipSelected(pieceId));
       return;
     }
     if (!state.draftMove) {

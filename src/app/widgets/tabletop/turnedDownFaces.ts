@@ -5,14 +5,16 @@ type Artwork = NonNullable<TablePiece['items'][number]['artwork']>;
 
 /** The piece with each card's known artwork put back where a hidden copy left its front out. */
 export function withKnownFronts(piece: TablePiece, fronts: ReadonlyMap<string, Artwork>): TablePiece {
-  if (fronts.size === 0 || !piece.items.some((item) => item.artwork && !item.artwork.front && fronts.has(item.id))) {
+  const knownFront = (item: TablePiece['items'][number]) =>
+    item.artwork && !item.artwork.front ? fronts.get(item.id) : undefined;
+  if (!piece.items.some(knownFront)) {
     return piece;
   }
   return {
     ...piece,
     items: piece.items.map((item) => {
-      const known = fronts.get(item.id);
-      return item.artwork && !item.artwork.front && known ? { ...item, artwork: known } : item;
+      const known = knownFront(item);
+      return known ? { ...item, artwork: known } : item;
     }),
   };
 }

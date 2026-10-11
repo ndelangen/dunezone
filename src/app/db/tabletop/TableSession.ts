@@ -74,6 +74,11 @@ function settledRequest(message: TableSubscriptionEvent): { id: string; outcome:
 const pausedWhileHeld = 'The table paused while you held a piece. Pick it up again to continue.';
 
 /* A drop that never flipped in hand sends no count, as it did before flipping in hand. */
+/** A face-up item this page has no front for yet. */
+function lacksShownFace(item: TablePiece['items'][number]) {
+  return item.faceUp && !item.artwork?.front;
+}
+
 function flipsOf(draft: DraftMove) {
   return draft.flips ? { flips: draft.flips } : {};
 }
@@ -747,17 +752,16 @@ export class TableSession {
    */
   private withRevealedFaces(held: TablePiece): TablePiece {
     const shown = this.carry?.revealed;
-    if (!shown || !held.items.some((item) => item.faceUp && !item.artwork?.front)) {
+    if (!shown || !held.items.some(lacksShownFace)) {
       return held;
     }
     const faces = new Map(shown.items.map((item) => [item.id, item.artwork]));
     return {
       ...held,
-      items: held.items.map((item) =>
-        item.faceUp && !item.artwork?.front && faces.get(item.id)?.front
-          ? { ...item, artwork: faces.get(item.id) }
-          : item
-      ),
+      items: held.items.map((item) => {
+        const face = faces.get(item.id);
+        return lacksShownFace(item) && face?.front ? { ...item, artwork: face } : item;
+      }),
     };
   }
   private localProjection(state: TableState) {
