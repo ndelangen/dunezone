@@ -181,8 +181,9 @@ export const SignedIn = meta.story({
     expect(page.getAllByText('Your seat')).toHaveLength(2);
     expect(page.getAllByText('Seats open')).toHaveLength(2);
     expect(page.getByRole('img', { name: `${SIX[1]!.name} (you), ${factions[1]!.data.name}` })).toBeVisible();
-    /* Create lives only in the lobby's header, never repeated in the list. */
-    expect(page.getAllByRole('link', { name: 'Create a game' })).toHaveLength(1);
+    /* Create stands in the header and as the toolbar's plus, as on the faction catalogue, never repeated in the list. */
+    expect(page.getAllByRole('link', { name: 'Create a game' })).toHaveLength(2);
+    expect(within(games).queryByRole('link', { name: 'Create a game' })).toBeNull();
   },
 });
 
