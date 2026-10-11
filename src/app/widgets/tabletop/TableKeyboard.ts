@@ -172,7 +172,7 @@ export class TableKeyboard {
       return;
     }
     if (event.key === 'Tab') {
-      if (!event.shiftKey && !focusKeepsKey(event.target, 'table')) {
+      if (!event.shiftKey && !focusKeepsKey(event.target, 'spiceBank')) {
         this.pingKey(event, controls);
       }
       return;
@@ -206,6 +206,7 @@ export class TableKeyboard {
 
   /*
    * Tab pings where the cursor is, as in Tabletop Simulator, instead of moving the focus; holding it pings once.
+   * A button clicked a moment ago keeps the focus, and the cursor back over the table still pings; only a focused text field keeps its Tab.
    * With the cursor off the table there is nowhere to ping, so Tab moves the focus as usual.
    */
   private pingKey(event: KeyboardEvent, controls: Controls) {

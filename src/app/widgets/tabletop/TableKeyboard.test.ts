@@ -285,14 +285,20 @@ describe('Tab pings', () => {
     expect(controls.ping).toHaveBeenCalledTimes(1);
   });
 
-  test('leaves Shift+Tab, a focused text field and a focused button their own Tab', () => {
+  test('leaves Shift+Tab and a focused text field their own Tab', () => {
     const { controls } = table();
     const field = document.body.appendChild(document.createElement('textarea'));
-    const button = document.body.appendChild(document.createElement('button'));
 
     expect(tab('keydown', { shiftKey: true }).defaultPrevented).toBe(false);
     expect(tab('keydown', {}, field).defaultPrevented).toBe(false);
-    expect(tab('keydown', {}, button).defaultPrevented).toBe(false);
     expect(controls.ping).not.toHaveBeenCalled();
+  });
+
+  test('pings over a button clicked a moment ago, which keeps the focus', () => {
+    const { controls } = table();
+    const button = document.body.appendChild(document.createElement('button'));
+
+    expect(tab('keydown', {}, button).defaultPrevented).toBe(true);
+    expect(controls.ping).toHaveBeenCalledTimes(1);
   });
 });
