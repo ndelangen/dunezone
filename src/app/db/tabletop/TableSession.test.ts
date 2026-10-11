@@ -3,7 +3,7 @@ import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
-import type { ActivityChange, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
+import type { ActivityChange, GameSnapshot, ServerMessage, TablePing, Viewer } from '@shared/play/protocol';
 import { flipPieceInState } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -1656,7 +1656,7 @@ describe('pointer moves', () => {
       displayName: 'Two',
       color: '#000',
       position: [2, 0.38, 0],
-    };
+    } satisfies TablePing;
 
     socket().deliver({ type: 'ping', ping });
 
