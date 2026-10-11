@@ -69,7 +69,9 @@ describe('the directory keeps the newest published summary and lists it to every
       ongoing: [
         {
           gameId: game._id,
-          name: 'Classic',
+          name: game.name,
+          slug: game.slug,
+          rulesetName: 'Classic',
           stage: 'drafting',
           seatsFilled: 2,
           seatCount: 4,

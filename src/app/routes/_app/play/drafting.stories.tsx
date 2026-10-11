@@ -353,3 +353,29 @@ export const Discarded = meta.story({
     expect(bar().queryByRole('button')).toBeNull();
   },
 });
+
+/** The directory's name and ruleset stay distinct; the menu exposes the final address. */
+export const NamedGame = meta.story({
+  parameters: parameters(
+    'ready',
+    undefined,
+    4,
+    'Annual Bene Gesserit wedding traitor and the unexpected Arrakeen dinner ambush'
+  ),
+  beforeEach: install(() => productTransport('seat-1', draftingSnapshot([storyPlayer('seat-1', 'thialfi')], 4))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Ruleset: Dreamrules', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(
+      page.getByRole('heading', {
+        name: 'Annual Bene Gesserit wedding traitor and the unexpected Arrakeen dinner ambush',
+        level: 1,
+      })
+    ).toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
+    await waitFor(() =>
+      expect(page.getByText(/\/play\/annual-bene-gesserit-wedding-traitor-and-the-unexpected-arrakeen$/)).toBeVisible()
+    );
+    expect(page.getByRole('button', { name: 'Copy game link' })).toBeVisible();
+  },
+});

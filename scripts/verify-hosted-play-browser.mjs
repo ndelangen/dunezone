@@ -585,6 +585,17 @@ async function createGame(who) {
   /* The seeded ruleset, by the id the launcher passed rather than by its name. */
   await who.page.locator(`[role="option"][value="${values['ruleset-id']}"]`).click();
   await who.page.getByRole('textbox', { name: 'Minimum players', exact: true }).fill('2');
+  const customName = values.flow === 'regular' ? 'Arrakeen picnic' : null;
+  const nameInput = who.page.getByRole('textbox', { name: 'Game name', exact: true });
+  assert.equal(await nameInput.inputValue(), '');
+  if (customName) {
+    await nameInput.fill('Fuck the spice harvest');
+    await who.page.getByRole('button', { name: 'Create game', exact: true }).click();
+    await who.page.getByText('Choose a game name without profanity.', { exact: false }).waitFor();
+    assert.equal(await nameInput.inputValue(), 'Fuck the spice harvest');
+    assert.equal(await who.page.getByRole('textbox', { name: 'Minimum players', exact: true }).inputValue(), '2');
+    await nameInput.fill(customName);
+  }
   await who.page.getByRole('button', { name: 'Create game', exact: true }).click();
   await who.page.waitForURL((url) => /^\/play\/(?!create$)[^/]+$/u.test(url.pathname));
   await admitted(who);
@@ -593,9 +604,20 @@ async function createGame(who) {
   assert.ok(created.name && created.slug, 'Compatible creation must assign the game name and address.');
   assert.equal(hasLocalPlayGameProfanity(created.name), false);
   assert.equal(acceptsPlayGameAddress(normalizePlayGameSlug(created.name), created.slug), true);
+  if (customName) {
+    assert.equal(created.name, customName);
+  }
   gameSlug = created.slug;
   await who.page.waitForURL((url) => url.pathname === `/play/${gameSlug}`);
   assert.equal(who.sockets.length, 1, 'Canonical creation opens exactly one ID socket.');
+  await who.page.locator('.seated-brand').getByText(created.name, { exact: true }).waitFor();
+  await who.page.locator('.seated-brand').getByText('Ruleset:', { exact: false }).waitFor();
+  await who.page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await who.page.getByRole('button', { name: 'Game menu', exact: true }).click();
+  await who.page.getByRole('button', { name: 'Copy game link', exact: true }).click();
+  await who.page.getByRole('button', { name: 'Game link copied', exact: true }).waitFor();
+  assert.equal(await who.page.evaluate(() => navigator.clipboard.readText()), `${origin}/play/${gameSlug}`);
+  await who.page.keyboard.press('Escape');
   assert.notEqual(who.view().viewer.viewerSeat, SPECTATOR);
   /*
    * The backend provisions this flow's games at the stage the flow table names (#1594).

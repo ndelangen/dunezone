@@ -93,6 +93,8 @@ export function StorybookDatabaseProvider({
     return <div role="alert">{state.message}</div>;
   }
 
+  mocked(applicationDb.action).mockImplementation(((fn, args) =>
+    state.client.action(fn, args, identity)) as typeof applicationDb.action);
   mocked(applicationDb.query).mockImplementation(((fn, args) =>
     state.client.query(fn, args, identity)) as typeof applicationDb.query);
   mocked(applicationDb.mutation).mockImplementation(((fn, args) =>

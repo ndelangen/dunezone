@@ -17,6 +17,7 @@ import { action, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { admitsPlayers, currentPlaySession, isRealGame, livePlaySession } from './lib/playAuthorization';
+import { playGameAddressAvailable } from './lib/playGameAddresses';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
 import { checkPlayGameName, PLAY_NAME_CHECK_MODEL, playNameCheckSchema } from './lib/playGameNameProvider';
 import { createPendingGame } from './lib/playProvisioningSchedule';
@@ -104,6 +105,23 @@ export const creatable = query({
       rulesets.push({ id: row._id, slug: row.slug, name: row.name, objection: await rulesetObjection(ctx, row._id) });
     }
     return { access: 'allowed' as const, rulesets };
+  },
+});
+
+/** A read-only hint; creation still allocates its address in its own transaction. */
+export const nameAvailability = query({
+  args: { name: v.string() },
+  returns: v.union(v.null(), v.object({ base: v.string(), duplicate: v.boolean() })),
+  handler: async (ctx, { name }) => {
+    if (!(await currentPlaySession(ctx))) {
+      return null;
+    }
+    const parsed = playGameNameSchema.safeParse(name);
+    if (!parsed.success) {
+      return null;
+    }
+    const base = normalizePlayGameSlug(parsed.data);
+    return { base, duplicate: !(await playGameAddressAvailable(ctx, base)) };
   },
 });
 

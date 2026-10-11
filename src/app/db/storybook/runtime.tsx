@@ -85,6 +85,23 @@ export class ConvexStorybookWorkerClient {
     return result;
   };
 
+  action = async <Action extends FunctionReference<'action'>>(
+    fn: Action,
+    args: FunctionArgs<Action>,
+    identity?: WorkerIdentity
+  ): Promise<FunctionReturnType<Action>> => {
+    try {
+      return (await this.request({
+        operation: 'action',
+        name: getFunctionName(fn),
+        args,
+        identity,
+      })) as FunctionReturnType<Action>;
+    } finally {
+      this.notifyQueries();
+    }
+  };
+
   reset = async (seed: SeedDocument[]) => {
     await this.request({ operation: 'reset', seed });
     this.resolved.clear();
