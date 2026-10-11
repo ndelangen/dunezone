@@ -711,7 +711,7 @@ export function GameTable({
 
                 <div className="seated-chip seated-toolbar">
                   {toolbarControl}
-                  {gameMenu}
+                  <span className="seated-toolbar__settings">{gameMenu}</span>
                 </div>
               </header>
 

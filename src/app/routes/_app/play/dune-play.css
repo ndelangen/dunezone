@@ -199,6 +199,18 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   padding: 0.3rem 0.35rem;
 }
 
+/* The gear stands apart from the shared phase controls: they move the whole table, it only changes this screen. */
+:where(.dune-play-shell) .seated-toolbar__settings {
+  display: flex;
+  padding-left: 0.4rem;
+  border-left: 1px solid rgba(255, 242, 216, 0.12);
+}
+
+:where(.dune-play-shell) .seated-toolbar__settings:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
 :where(.dune-play-shell) .seated-phase-status {
   color: var(--cream-muted);
   font-size: 0.57rem;
