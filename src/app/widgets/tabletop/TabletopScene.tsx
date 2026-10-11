@@ -109,6 +109,7 @@ import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { sharedPublishedFaces } from './publishedFaceRetry';
 import { SpiceBank } from './SpiceBank';
+import { SpiceStackIcon } from './SpiceStackIcon';
 import { TableFurniture } from './TableFurniture';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { useTableLighting } from './tableLighting';
@@ -810,14 +811,7 @@ function SpiceLayers({ piece }: { piece: TablePiece }) {
             <circleGeometry args={[SPICE_TOKEN_RADIUS * 0.79, 48]} />
             <meshStandardMaterial color="#f6d77f" roughness={1} metalness={0} />
           </mesh>
-          <mesh
-            position={[0, SPICE_LAYER_HEIGHT + 0.003, 0]}
-            rotation={[-Math.PI / 2, 0, Math.PI / 4]}
-            renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-          >
-            <planeGeometry args={[0.09, 0.09]} />
-            <meshBasicMaterial color="#6b431d" />
-          </mesh>
+          <SpiceStackIcon y={SPICE_LAYER_HEIGHT} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />
         </group>
       ))}
     </group>
