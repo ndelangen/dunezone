@@ -393,3 +393,63 @@ describe('leader discs', () => {
     expect(after.position[1]).toBeCloseTo(0.125);
   });
 });
+
+describe('deleting a piece', () => {
+  test('takes the whole stack out of the game and logs who removed it', () => {
+    const state = freshTableState();
+    const next = applyPieceAction(state, { kind: 'delete', pieceId: 'treachery-deck' }, 0, 'Fremen');
+    expect(pieceById(next, 'treachery-deck')).toBeUndefined();
+    expect(next.pieces).toHaveLength(state.pieces.length - 1);
+    expect(next.events[0]).toMatchObject({ command: 'piece.delete', status: 'accepted' });
+    expect(next.events[0]!.message).toBe(`Fremen deleted ${pieceById(state, 'treachery-deck')!.label} from the game.`);
+  });
+
+  test('clears the selection of the removed piece', () => {
+    const state = { ...freshTableState(), selectedPieceId: 'harkonnen-force-stack' };
+    expect(applyPieceAction(state, { kind: 'delete', pieceId: 'harkonnen-force-stack' }, 0).selectedPieceId).toBeNull();
+  });
+
+  test('names a face-up card by its face, and never a hidden one', () => {
+    const state = freshTableState();
+    const card = pieceById(state, 'treachery-card-loose')!;
+    const named = (faceUp: boolean): TableState => ({
+      ...state,
+      pieces: state.pieces.map((candidate) =>
+        candidate === card
+          ? {
+              ...card,
+              items: [
+                {
+                  ...card.items[0]!,
+                  faceUp,
+                  artwork: { back: 'https://x.test/b.png', name: 'Family Atomics', type: 'treachery' },
+                },
+              ],
+            }
+          : candidate
+      ),
+    });
+    const remove = (table: TableState) =>
+      applyPieceAction(table, { kind: 'delete', pieceId: card.id }, 0, 'Atreides').events[0]!.message;
+    expect(remove(named(true))).toBe('Atreides deleted Family Atomics card from the game.');
+    expect(remove(named(false))).not.toContain('Family Atomics');
+  });
+
+  test('refuses a locked piece, a marker and a faction token', () => {
+    const state = freshTableState();
+    const locked = {
+      ...state,
+      pieces: state.pieces.map((piece) => ({ ...piece, locked: piece.id === 'treachery-deck' })),
+    };
+    expect(() => applyPieceAction(locked, { kind: 'delete', pieceId: 'treachery-deck' }, 0)).toThrow(/Unlock/);
+    const token: TablePiece = {
+      ...pieceById(state, 'harkonnen-force-loose')!,
+      id: 'token',
+      stackKey: 'faction-token:harkonnen',
+    };
+    const marker: TablePiece = { ...pieceById(state, 'treachery-card-loose')!, id: 'marker', kind: 'marker' };
+    const extra = { ...state, pieces: [...state.pieces, token, marker] };
+    expect(() => applyPieceAction(extra, { kind: 'delete', pieceId: 'token' }, 0)).toThrow(/cannot be removed/);
+    expect(() => applyPieceAction(extra, { kind: 'delete', pieceId: 'marker' }, 0)).toThrow(/cannot be removed/);
+  });
+});

@@ -1,11 +1,11 @@
+import { DEFAULT_LAST_TURN } from '@shared/play/lastTurn';
 import { ExtrudeGeometry, Path, Shape } from 'three';
 
-const TURN_TRACKER_SECTOR_COUNT = 10;
-const SECTOR_ANGLE = (Math.PI * 2) / TURN_TRACKER_SECTOR_COUNT;
 const HUB_RADIUS = 0.26;
-const NUMBER_RADIUS = 0.69;
+export const NUMBER_RADIUS = 0.69;
 
-type TrackerState = Readonly<{ radius: number; turn: number }>;
+/* One sector per turn up to the table's last turn, so a ten-turn game shows ten. */
+type TrackerState = Readonly<{ radius: number; turn: number; lastTurn?: number }>;
 type TrackerLayout = ReturnType<typeof turnTrackerLayout>;
 type LocalPoint = Readonly<{ x: number; z: number }>;
 type PolarPoint = Readonly<{ radius: number; angle: number }>;
@@ -18,28 +18,36 @@ function assertRadius(radius: number) {
   }
 }
 
-function blockStart(turn: number): number {
+function blockStart(turn: number, sectorCount: number): number {
   if (!Number.isSafeInteger(turn) || turn < 1) {
     throw new RangeError('The turn must be a positive safe integer.');
   }
-  return Math.floor((turn - 1) / TURN_TRACKER_SECTOR_COUNT) * TURN_TRACKER_SECTOR_COUNT + 1;
+  if (!Number.isSafeInteger(sectorCount) || sectorCount < 1) {
+    throw new RangeError('The last turn must be a positive safe integer.');
+  }
+  return Math.floor((turn - 1) / sectorCount) * sectorCount + 1;
 }
 
 function radialPoint({ radius, angle }: PolarPoint): [number, number] {
   return [Math.sin(angle) * radius, -Math.cos(angle) * radius];
 }
 
-export function turnTrackerLayout({ radius, turn }: TrackerState) {
+/** Past the last turn the wheel keeps counting in blocks of the same size: reaching the last turn never stops play. */
+export function turnTrackerLayout({ radius, turn, lastTurn = DEFAULT_LAST_TURN }: TrackerState) {
   assertRadius(radius);
-  const firstTurn = blockStart(turn);
+  const sectorCount = lastTurn;
+  const firstTurn = blockStart(turn, sectorCount);
+  const sectorAngle = (Math.PI * 2) / sectorCount;
   return {
     radius,
+    sectorCount,
+    sectorAngle,
     firstTurn,
     selectedIndex: turn - firstTurn,
-    pointerAngle: (turn - firstTurn + 0.5) * SECTOR_ANGLE,
-    sectors: Array.from({ length: TURN_TRACKER_SECTOR_COUNT }, (_, index) => {
+    pointerAngle: (turn - firstTurn + 0.5) * sectorAngle,
+    sectors: Array.from({ length: sectorCount }, (_, index) => {
       const value = firstTurn + index;
-      const angle = (index + 0.5) * SECTOR_ANGLE;
+      const angle = (index + 0.5) * sectorAngle;
       const [x, z] = radialPoint({ radius: radius * NUMBER_RADIUS, angle });
       return {
         turn: Number.isSafeInteger(value) ? value : null,
@@ -50,7 +58,10 @@ export function turnTrackerLayout({ radius, turn }: TrackerState) {
   };
 }
 
-export function turnAtTrackerPoint({ radius, firstTurn }: TrackerLayout, { x, z }: LocalPoint): number | null {
+export function turnAtTrackerPoint(
+  { radius, firstTurn, sectorCount, sectorAngle }: TrackerLayout,
+  { x, z }: LocalPoint
+): number | null {
   const distance = Math.hypot(x, z);
   if (!Number.isFinite(distance)) {
     return null;
@@ -62,7 +73,7 @@ export function turnAtTrackerPoint({ radius, firstTurn }: TrackerLayout, { x, z 
     return null;
   }
   const angle = (Math.atan2(x, -z) + Math.PI * 2) % (Math.PI * 2);
-  const selected = firstTurn + Math.min(TURN_TRACKER_SECTOR_COUNT - 1, Math.floor(angle / SECTOR_ANGLE));
+  const selected = firstTurn + Math.min(sectorCount - 1, Math.floor(angle / sectorAngle));
   return Number.isSafeInteger(selected) ? selected : null;
 }
 
@@ -84,13 +95,14 @@ function aboveDisc(shapes: Shape | Shape[], { depth, floor }: Relief): ExtrudeGe
   return geometry;
 }
 
-export function createTurnTrackerFrame({ radius }: TrackerLayout): ExtrudeGeometry {
+export function createTurnTrackerFrame({ radius, sectorCount, sectorAngle }: TrackerLayout): ExtrudeGeometry {
   const shapes = [
     ring({ outerRadius: radius * 0.95, innerRadius: radius * 0.925 }),
     ring({ outerRadius: radius * HUB_RADIUS, innerRadius: radius * 0.238 }),
   ];
-  for (let index = 0; index < TURN_TRACKER_SECTOR_COUNT; index++) {
-    const angle = index * SECTOR_ANGLE;
+  /* A one-turn game has a single sector, and a spoke would only split nothing. */
+  for (let index = 0; sectorCount > 1 && index < sectorCount; index++) {
+    const angle = index * sectorAngle;
     const [innerX, innerZ] = radialPoint({ radius: radius * HUB_RADIUS, angle });
     const [outerX, outerZ] = radialPoint({ radius: radius * 0.925, angle });
     const offsetX = Math.cos(angle) * radius * 0.007;
@@ -106,9 +118,9 @@ export function createTurnTrackerFrame({ radius }: TrackerLayout): ExtrudeGeomet
   return aboveDisc(shapes, { depth: 0.006, floor: 0.006 });
 }
 
-export function createTurnTrackerWedge({ radius, selectedIndex }: TrackerLayout): ExtrudeGeometry {
-  const start = selectedIndex * SECTOR_ANGLE - Math.PI / 2;
-  const end = start + SECTOR_ANGLE;
+export function createTurnTrackerWedge({ radius, selectedIndex, sectorAngle }: TrackerLayout): ExtrudeGeometry {
+  const start = selectedIndex * sectorAngle - Math.PI / 2;
+  const end = start + sectorAngle;
   const shape = new Shape();
   shape.absarc(0, 0, radius * 0.925, start, end, false);
   shape.absarc(0, 0, radius * HUB_RADIUS, end, start, true);
@@ -116,11 +128,19 @@ export function createTurnTrackerWedge({ radius, selectedIndex }: TrackerLayout)
   return aboveDisc(shape, { depth: 0.001, floor: 0.003 });
 }
 
+/* The pointer's round end covers the hub, and its point stops short of the numbers. */
+const POINTER_ROUND_RADIUS = 0.28;
+const POINTER_TIP_RADIUS = 0.56;
+
+/** A flat teardrop like the bidder's: its round end over the hub and its point at the turn, before the wheel turns it. */
 export function createTurnTrackerPointer({ radius }: TrackerLayout): ExtrudeGeometry {
+  const round = radius * POINTER_ROUND_RADIUS;
+  const tip = radius * POINTER_TIP_RADIUS;
+  const tangent = Math.acos(round / tip);
   const shape = new Shape();
-  shape.moveTo(-radius * 0.075, radius * 0.09);
-  shape.lineTo(0, -radius * 0.49);
-  shape.lineTo(radius * 0.075, radius * 0.09);
-  shape.closePath();
+  shape.moveTo(0, -tip);
+  shape.lineTo(round * Math.cos(-Math.PI / 2 + tangent), round * Math.sin(-Math.PI / 2 + tangent));
+  shape.absarc(0, 0, round, -Math.PI / 2 + tangent, Math.PI * 1.5 - tangent, false);
+  shape.lineTo(0, -tip);
   return aboveDisc(shape, { depth: 0.01, floor: 0.02 });
 }
