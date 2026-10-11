@@ -117,12 +117,14 @@ function offer(
   return { ...state, offers: [...state.offers, { from: factionId, to, at: now, id: revision }] };
 }
 
-function answer(state: AllianceState, from: string, offerId: number, accept: boolean, { factionId }: AllianceContext) {
+type Answer = Extract<AllianceAction, { kind: 'alliance-accept' | 'alliance-decline' }>;
+function answer(state: AllianceState, { kind, factionId: from, offer }: Answer, { factionId }: AllianceContext) {
   const pair = { from, to: factionId };
-  if (!state.offers.some((entry) => entry.from === from && entry.to === factionId && entry.id === offerId)) {
+  const waiting = state.offers.find((entry) => entry.from === from && entry.to === factionId);
+  if (waiting?.id !== offer) {
     return refuse('That alliance offer was withdrawn.');
   }
-  return accept ? join(state, pair) : without(state, pair);
+  return kind === 'alliance-accept' ? join(state, pair) : without(state, pair);
 }
 
 /** Breaking an alliance takes the faction out of it; an alliance left with one faction is over. */
@@ -146,9 +148,8 @@ export function applyAlliance(state: AllianceState, action: AllianceAction, cont
     case 'alliance-withdraw':
       return without(state, { from: context.factionId, to: action.factionId });
     case 'alliance-accept':
-      return answer(state, action.factionId, action.offer, true, context);
     case 'alliance-decline':
-      return answer(state, action.factionId, action.offer, false, context);
+      return answer(state, action, context);
     case 'alliance-break':
       return breakAway(state, { from: context.factionId, to: action.factionId });
   }
