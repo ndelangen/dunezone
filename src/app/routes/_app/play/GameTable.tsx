@@ -49,6 +49,8 @@ import {
   paneLimits,
 } from './controlPanelLayout';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
+import { TableLabelsContext } from './tableLabels';
+import type { TableLabels } from './tableLabels';
 import { TableWait } from './TableWait';
 
 /* How long the shell waits for the renderer before opening anyway. */
@@ -89,6 +91,8 @@ type GameTableProps = {
   toolbarControl?: ReactNode;
   /** The connection's state, beside the logo where the bar has room, present only while the table is not live. */
   connectionStatus?: ReactNode;
+  /** Who is allied with whom, under the game's name beside the phase. */
+  alliances?: ReactNode;
   showStormControls: boolean;
   seatCount: TableSeatCount;
   tableProgress: TableProgress;
@@ -158,7 +162,12 @@ function selectedFlipControl({
     isFlipping,
     disabled: !piece || !flip || hasHeldMove || isFlipping,
     label: flip?.label ?? 'Flip',
-    help: selectedFlipHelp({ piece, isFlipping, hasHeldMove, hasFlip: Boolean(flip) }),
+    help: selectedFlipHelp({
+      piece,
+      isFlipping,
+      hasHeldMove,
+      hasFlip: Boolean(flip),
+    }),
   };
 }
 
@@ -222,7 +231,85 @@ function StormControls({ hiddenHeading = false }: { hiddenHeading?: boolean }) {
   );
 }
 
-function TableViewPicker({
+const DIAL_LETTERS: Record<TableView, string> = {
+  map: 'M',
+  left: 'L',
+  right: 'R',
+  bottom: 'B',
+};
+
+/* Where each view sits on the dial: the board at the top, the bays to the sides, the bottom stem below. */
+const DIAL_ANGLES: Record<TableView, number> = {
+  map: 180,
+  left: 90,
+  right: 270,
+  bottom: 0,
+};
+
+/* The phase's disc in the header chip: the board's phase colours, with the phase symbol clipped to the disc. */
+function PhaseDisc({ symbol }: Readonly<{ symbol: string }>) {
+  const phaseSymbolClipId = useId();
+  return (
+    <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
+      <defs>
+        <clipPath id={phaseSymbolClipId}>
+          <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
+        </clipPath>
+      </defs>
+      <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
+      <circle
+        cx="50"
+        cy="50"
+        r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
+        fill="none"
+        stroke={PHASE_INK_COLOR}
+        strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
+      />
+      <g clipPath={`url(#${phaseSymbolClipId})`}>
+        <use
+          href={`${symbol}#root`}
+          x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+          y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+          width={100 * PHASE_SYMBOL_MAX_RADIUS}
+          height={100 * PHASE_SYMBOL_MAX_RADIUS}
+          fill={PHASE_INK_COLOR}
+        />
+      </g>
+    </svg>
+  );
+}
+
+/* The header chip's words: a stage's own word, or the turn caption above the phase's name. */
+function PhaseCopy({ word, caption, label }: Readonly<{ word?: string; caption: string; label?: string }>) {
+  if (word) {
+    return (
+      <div className="seated-phase-status__copy">
+        <strong>{word}</strong>
+      </div>
+    );
+  }
+  return (
+    <div className="seated-phase-status__copy">
+      <span>{caption}</span>
+      <strong>{label ?? 'No active phase'}</strong>
+    </div>
+  );
+}
+
+/* The dial rides on the dock's top edge, so it stays over the scene where a short window grows the dock up over it. A stage overlay hides the table, and the dial with it. */
+function SceneCamera({ hidden, ...dial }: Readonly<{ hidden: boolean } & Parameters<typeof TableViewDial>[0]>) {
+  if (hidden) {
+    return null;
+  }
+  return (
+    <div className="seated-camera" data-hides-cursor>
+      <TableViewDial {...dial} />
+    </div>
+  );
+}
+
+/* The camera dial in the scene's corner: the needle points at the view the camera holds, a ring marks the phase's recommended view, and each letter moves the camera there. */
+function TableViewDial({
   activeView,
   preferredView,
   onSelect,
@@ -232,58 +319,30 @@ function TableViewPicker({
   onSelect(view: TableView): void;
 }) {
   return (
-    <div className="table-view-picker" role="group" aria-label="Table view">
+    <div className="camera-dial" role="group" aria-label="Table view">
+      <span className="camera-dial__needle" style={{ rotate: `${DIAL_ANGLES[activeView]}deg` }} aria-hidden="true" />
+      <span className="camera-dial__hub" aria-hidden="true" />
       {TABLE_VIEW_OPTIONS.map((view) => {
         const phasePreferred = preferredView === view.id;
         return (
           <button
             key={view.id}
             type="button"
-            className={activeView === view.id ? 'is-active' : ''}
+            className="camera-dial__view"
+            data-view={view.id}
+            title={`Camera: ${view.label}`}
             aria-label={`Focus on ${view.label.toLowerCase()}${phasePreferred ? ', recommended for this phase' : ''}`}
             aria-pressed={activeView === view.id}
             data-phase-preferred={phasePreferred || undefined}
             onClick={() => onSelect(view.id)}
           >
-            {view.label}
-            {phasePreferred ? <span className="phase-view-dot" aria-hidden="true" /> : null}
+            {DIAL_LETTERS[view.id]}
           </button>
         );
       })}
-    </div>
-  );
-}
-
-type TableOverlays = Readonly<{ counts: boolean; names: boolean }>;
-
-const TABLE_OVERLAY_OPTIONS = [
-  { id: 'counts', label: 'Counts', name: 'Stack counts', key: 'Alt' },
-  { id: 'names', label: 'Names', name: 'Piece names', key: 'Ctrl' },
-] as const;
-
-/* Keeps the stack counts or piece names on, for a touch screen with no Alt or Control to hold. */
-function TableOverlayToggles({
-  pinned,
-  onToggle,
-}: {
-  pinned: TableOverlays;
-  onToggle(overlay: keyof TableOverlays): void;
-}) {
-  return (
-    <div className="table-view-picker" role="group" aria-label="Table labels">
-      {TABLE_OVERLAY_OPTIONS.map((overlay) => (
-        <button
-          key={overlay.id}
-          type="button"
-          className={pinned[overlay.id] ? 'is-active' : ''}
-          aria-label={overlay.name}
-          aria-pressed={pinned[overlay.id]}
-          title={`${overlay.name}: hold ${overlay.key} to show them for a moment`}
-          onClick={() => onToggle(overlay.id)}
-        >
-          {overlay.label}
-        </button>
-      ))}
+      <span className="camera-dial__label" aria-hidden="true">
+        Camera
+      </span>
     </div>
   );
 }
@@ -361,7 +420,13 @@ function TableControlsPanel({
   const tabs: readonly PanelTab[] = panelContent
     ? [
         /* The stage panel is the drafting panel, whose row dividers meet the pane's sides. */
-        { key: 'stage', label: word ?? 'Game', topic: 'controls', content: panelContent, padding: false },
+        {
+          key: 'stage',
+          label: word ?? 'Game',
+          topic: 'controls',
+          content: panelContent,
+          padding: false,
+        },
         ...panelTabs,
       ]
     : [...panelTabs, ...(tableTabLabel ? [tableTab] : [])];
@@ -552,6 +617,40 @@ function measureHeader(node: HTMLElement | null) {
   return () => observer.disconnect();
 }
 
+/* The scene's height above the dock the camera dial needs, in rem: the dial, the gap under it for its caption, and room above it. */
+const CAMERA_ROOM_REM = 5.75 + 1.6 + 2 * 0.75;
+
+/* The play shell and its header around the dock, once both are mounted. */
+function dockFrame(node: HTMLElement) {
+  const shell = node.closest<HTMLElement>('.dune-play-shell');
+  const header = shell?.querySelector<HTMLElement>('.seated-header');
+  return shell && header ? { shell, header } : null;
+}
+
+/*
+ * Where the dock starts within the shell, and whether the scene above it is too low for the camera dial.
+ * There the dial moves into the dock's upper right corner instead of reaching under the header's chips or the separator.
+ */
+function measureDock(node: HTMLElement | null) {
+  const frame = node && dockFrame(node);
+  if (!frame) {
+    return;
+  }
+  const { shell, header } = frame;
+  const update = () => {
+    const top = node.getBoundingClientRect().top - shell.getBoundingClientRect().top;
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    shell.style.setProperty('--play-dock-top', `${top}px`);
+    shell.dataset.cameraDocked = String(top - header.getBoundingClientRect().height < CAMERA_ROOM_REM * rem);
+  };
+  const observer = new ResizeObserver(update);
+  for (const element of [node, shell, header]) {
+    observer.observe(element);
+  }
+  update();
+  return () => observer.disconnect();
+}
+
 export function GameTable({
   sceneContent,
   panelTabs,
@@ -570,6 +669,7 @@ export function GameTable({
   playerPanel,
   toolbarControl,
   connectionStatus,
+  alliances,
   showStormControls,
   seatCount,
   tableProgress,
@@ -579,9 +679,22 @@ export function GameTable({
   const [tableKeyboard] = useState(() => new TableKeyboard());
   useTableKeyboardBinding(tableKeyboard);
   const gestureActive = useTabletopSelector((table) => table.gestureActivePieceId !== null);
-  const phaseSymbolClipId = useId();
   const heldOverlays = useHeldOverlays();
-  const [pinnedOverlays, setPinnedOverlays] = useState<TableOverlays>({ counts: false, names: false });
+  const [pinnedOverlays, setPinnedOverlays] = useState<TableLabels>({
+    counts: false,
+    names: false,
+  });
+  const tableLabels = useMemo(
+    () => ({
+      pinned: pinnedOverlays,
+      toggle: (label: keyof TableLabels) =>
+        setPinnedOverlays((current) => ({
+          ...current,
+          [label]: !current[label],
+        })),
+    }),
+    [pinnedOverlays]
+  );
   const frame = stageFrame(stage);
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
@@ -626,137 +739,110 @@ export function GameTable({
 
   return (
     <PointerSessionContext value={pointerSession}>
-      <DarkSchemeIsland>
-        {/* The stage stacks the waiting frame under the shell until the renderer is ready; then the frame goes and the shell opens through its iris. */}
-        <div className="dune-play-stage" data-scene-ready={viewState.sceneReady}>
-          {viewState.sceneReady ? null : <TableWait status="Opening the table..." />}
-          <div
-            className="dune-play-shell dune-play-shell--seated"
-            {...darkSchemeIslandAttributes}
-            data-board-gesture-active={overlaysInert}
-            data-table-view={viewState.activeView}
-            data-show-counts={heldOverlays.counts || pinnedOverlays.counts}
-            data-show-names={heldOverlays.names || pinnedOverlays.names}
-          >
-            {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
-            <header ref={measureHeader} className="seated-header" inert={overlaysInert} data-hides-cursor>
-              <div className="seated-brand">
-                <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
-                {gameIdentity}
-                {connectionStatus}
-              </div>
-
-              <div className="seated-phase-status" aria-live="polite">
-                {activePhase?.symbol && !frame.word ? (
-                  <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
-                    <defs>
-                      <clipPath id={phaseSymbolClipId}>
-                        <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
-                      </clipPath>
-                    </defs>
-                    <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
-                      fill="none"
-                      stroke={PHASE_INK_COLOR}
-                      strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
-                    />
-                    <g clipPath={`url(#${phaseSymbolClipId})`}>
-                      <use
-                        href={`${activePhase.symbol}#root`}
-                        x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                        y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                        width={100 * PHASE_SYMBOL_MAX_RADIUS}
-                        height={100 * PHASE_SYMBOL_MAX_RADIUS}
-                        fill={PHASE_INK_COLOR}
-                      />
-                    </g>
-                  </svg>
-                ) : null}
-                {stageStatus ??
-                  (frame.word ? (
-                    <div className="seated-phase-status__copy">
-                      <strong>{frame.word}</strong>
-                    </div>
-                  ) : (
-                    <div className="seated-phase-status__copy">
-                      <span>{turnCaption(tableProgress.turn, tableProgress.lastTurn)}</span>
-                      <strong>{activePhase?.label ?? 'No active phase'}</strong>
-                    </div>
-                  ))}
-              </div>
-
-              <div className="seated-toolbar">
-                <TableViewPicker
-                  activeView={viewState.activeView}
-                  preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
-                  onSelect={(view) => dispatchView({ type: 'view.selected', view })}
-                />
-                <TableOverlayToggles
-                  pinned={pinnedOverlays}
-                  onToggle={(overlay) => setPinnedOverlays((current) => ({ ...current, [overlay]: !current[overlay] }))}
-                />
-                {gameMenu}
-                {toolbarControl}
-              </div>
-            </header>
-
-            <SplitPanels
-              orientation="horizontal"
-              primary="second"
-              defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
-              limits={controlsPanelLimits}
-              step={KEYBOARD_STEP_PERCENT}
-              pageStep={KEYBOARD_PAGE_STEP_PERCENT}
-              label="Resize controls panel"
-              valueText={controlsPanelValueText}
+      <TableLabelsContext value={tableLabels}>
+        <DarkSchemeIsland>
+          {/* The stage stacks the waiting frame under the shell until the renderer is ready; then the frame goes and the shell opens through its iris. */}
+          <div className="dune-play-stage" data-scene-ready={viewState.sceneReady}>
+            {viewState.sceneReady ? null : <TableWait status="Opening the table..." />}
+            <div
+              className="dune-play-shell dune-play-shell--seated"
+              {...darkSchemeIslandAttributes}
+              data-board-gesture-active={overlaysInert}
+              data-table-view={viewState.activeView}
+              data-show-counts={heldOverlays.counts || pinnedOverlays.counts}
+              data-show-names={heldOverlays.names || pinnedOverlays.names}
             >
-              <SplitPanels.First>
-                <TableKeyboardContext value={tableKeyboard}>
-                  <TabletopScene
-                    className="scene scene--immersive"
-                    cameraView={cameraView}
-                    onSceneReady={handleSceneReady}
-                    onInteractionActiveChange={handleInteractionActiveChange}
-                    seatCount={seatCount}
-                    tableProgress={tableProgress}
-                    stage={stage}
-                    mapVisible={mapVisible}
-                  >
-                    {sceneContent}
-                  </TabletopScene>
-                </TableKeyboardContext>
-
-                {stageOverlay && (
-                  <div className="seated-stage-overlay" inert={overlaysInert}>
-                    {stageOverlay}
+              {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order.
+                It has no bar of its own: the table runs to the top, and the phase, the game and the controls float over it as chips. Only the chips hide the cursor, so pointing at the table between them still shows to the others. */}
+              <header ref={measureHeader} className="seated-header" inert={overlaysInert}>
+                <div className="seated-header__start">
+                  <div className="seated-chip seated-phase-status" data-hides-cursor>
+                    <div className="seated-phase-status__live" aria-live="polite">
+                      {activePhase?.symbol && !frame.word ? <PhaseDisc symbol={activePhase.symbol} /> : null}
+                      {stageStatus ?? (
+                        <PhaseCopy
+                          word={frame.word}
+                          caption={turnCaption(tableProgress.turn, tableProgress.lastTurn)}
+                          label={activePhase?.label}
+                        />
+                      )}
+                    </div>
+                    {/* The connection status is its own status region, so it stays outside the phase's live region and is announced once. */}
+                    {connectionStatus}
                   </div>
-                )}
-              </SplitPanels.First>
-              <SplitPanels.Second>
-                <div className="seated-controls-panel" inert={overlaysInert}>
-                  {decisionBar}
-                  <PanelPanes secondary={playerPanel}>
-                    <TableControlsPanel
-                      panelTabs={panelTabs}
-                      focusTab={focusTab}
-                      openOn={openOn}
-                      tableControls={tableControls}
-                      tableGuidance={tableGuidance}
-                      panelContent={panelContent}
-                      word={frame.word}
-                      tableTab={frame.tableTab}
-                      showStormControls={showStormControls}
-                    />
-                  </PanelPanes>
+                  <div className="seated-chip seated-chip--game" data-hides-cursor>
+                    {gameIdentity}
+                    {alliances}
+                  </div>
                 </div>
-              </SplitPanels.Second>
-            </SplitPanels>
+
+                <div className="seated-chip seated-toolbar" data-hides-cursor>
+                  {toolbarControl}
+                  <span className="seated-toolbar__settings">{gameMenu}</span>
+                </div>
+              </header>
+
+              <SplitPanels
+                orientation="horizontal"
+                primary="second"
+                defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
+                limits={controlsPanelLimits}
+                step={KEYBOARD_STEP_PERCENT}
+                pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+                label="Resize controls panel"
+                valueText={controlsPanelValueText}
+              >
+                <SplitPanels.First>
+                  <TableKeyboardContext value={tableKeyboard}>
+                    <TabletopScene
+                      className="scene scene--immersive"
+                      cameraView={cameraView}
+                      onSceneReady={handleSceneReady}
+                      onInteractionActiveChange={handleInteractionActiveChange}
+                      seatCount={seatCount}
+                      tableProgress={tableProgress}
+                      stage={stage}
+                      mapVisible={mapVisible}
+                    >
+                      {sceneContent}
+                    </TabletopScene>
+                  </TableKeyboardContext>
+
+                  {stageOverlay && (
+                    <div className="seated-stage-overlay" inert={overlaysInert}>
+                      {stageOverlay}
+                    </div>
+                  )}
+                </SplitPanels.First>
+                <SplitPanels.Second>
+                  <div ref={measureDock} className="seated-controls-panel" inert={overlaysInert}>
+                    <SceneCamera
+                      hidden={Boolean(stageOverlay)}
+                      activeView={viewState.activeView}
+                      preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
+                      onSelect={(view) => dispatchView({ type: 'view.selected', view })}
+                    />
+                    {decisionBar}
+                    <PanelPanes secondary={playerPanel}>
+                      <TableControlsPanel
+                        panelTabs={panelTabs}
+                        focusTab={focusTab}
+                        openOn={openOn}
+                        tableControls={tableControls}
+                        tableGuidance={tableGuidance}
+                        panelContent={panelContent}
+                        word={frame.word}
+                        tableTab={frame.tableTab}
+                        showStormControls={showStormControls}
+                      />
+                    </PanelPanes>
+                  </div>
+                </SplitPanels.Second>
+              </SplitPanels>
+            </div>
           </div>
-        </div>
-      </DarkSchemeIsland>
+        </DarkSchemeIsland>
+      </TableLabelsContext>
     </PointerSessionContext>
   );
 }

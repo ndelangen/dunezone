@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, spyOn, userEvent, within } from 'storybook/test';
 
 import { convexNeverAnswers, db, ref, storybookViewer } from '@db/storybook';
 
@@ -137,8 +137,14 @@ export const CustomNameCreated = meta.story({
     await expect(
       page.findByRole('heading', { name: 'Arrakeen picnic', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    await expect(page.findByText(/\/play\/arrakeen-picnic-1$/)).resolves.toBeVisible();
-    expect(page.getByRole('button', { name: 'Copy game link' })).toBeVisible();
+    /* The menu shows no address; Copy game link puts the final one on the clipboard. */
+    const writeText = spyOn(
+      canvasElement.ownerDocument.defaultView!.navigator.clipboard,
+      'writeText'
+    ).mockResolvedValue();
+    await userEvent.click(await page.findByRole('button', { name: 'Copy game link' }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/\/play\/arrakeen-picnic-1$/));
+    await expect(page.findByRole('button', { name: 'Game link copied' })).resolves.toBeVisible();
   },
 });
 
@@ -149,7 +155,8 @@ export const GeneratedNameCreated = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await chooseRuleset(page);
     await userEvent.click(page.getByRole('button', { name: 'Create game' }));
-    await expect(page.findByText(/\/play\/[a-z-]+$/, {}, { timeout: 30_000 })).resolves.toBeVisible();
+    /* The created game's page offers its link to copy. */
+    await expect(page.findByRole('button', { name: 'Copy game link' }, { timeout: 30_000 })).resolves.toBeVisible();
     expect(page.getByRole('heading', { level: 1 })).not.toHaveTextContent('Create a game');
   },
 });

@@ -114,7 +114,7 @@ export const AlliedPlayerInfo = meta.story({
   },
 });
 
-/* Three alliances at a six-seat table on a tablet-wide screen: the strip scrolls beside the logo instead of running over the phase. */
+/* Three alliances at a six-seat table on a tablet-wide screen: the strip sits in its own chip under the phase and stays clear of the toolbar. */
 export const ManyAlliancesFitTheHeader = meta.story({
   globals: { viewport: { value: 'appTablet' } },
   beforeEach: install(() => {
@@ -132,11 +132,14 @@ export const ManyAlliancesFitTheHeader = meta.story({
   play: async ({ canvasElement }) => {
     const doc = canvasElement.ownerDocument;
     await within(doc.body).findAllByRole('img', { name: /are allied/ }, { timeout: 30_000 });
-    const strip = doc.querySelector('.seated-brand [aria-label="Alliances"]')!;
+    const strip = doc.querySelector('.seated-chip--game [aria-label="Alliances"]')!;
     const phase = doc.querySelector('.seated-phase-status')!;
-    await waitFor(() =>
-      expect(strip.getBoundingClientRect().right).toBeLessThanOrEqual(phase.getBoundingClientRect().left)
-    );
+    const toolbar = doc.querySelector('.seated-toolbar')!;
+    await waitFor(() => {
+      expect(strip.getBoundingClientRect().top).toBeGreaterThanOrEqual(phase.getBoundingClientRect().bottom);
+      const [box, tools] = [strip.getBoundingClientRect(), toolbar.getBoundingClientRect()];
+      expect(box.right <= tools.left || box.top >= tools.bottom, 'The alliances run under the toolbar.').toBe(true);
+    });
   },
 });
 

@@ -5,7 +5,7 @@ import type { SpawnSelection } from '@shared/play/inventory';
 import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
-import { phaseGate, setupMapVisible, setupStep } from '@shared/play/setup';
+import { setupMapVisible, setupStep } from '@shared/play/setup';
 import type { SpiceTransfer } from '@shared/play/spiceReserve';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link } from '@tanstack/react-router';
@@ -60,6 +60,7 @@ import {
   SPICE_GUIDANCE,
   SPICE_RESERVE_HELP,
 } from './panelGuidance';
+import { PhaseNavigation } from './PhaseNavigation';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
@@ -183,60 +184,6 @@ function battleFocus(table: TableProjection) {
     return null;
   }
   return { key: 'battle', token: battle.id };
-}
-
-function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
-  const cooling = table.phaseCooling;
-  const setup = table.snapshot.stage === 'setup' ? table.snapshot.setup : undefined;
-  const { needsReady, refusal } = phaseGate({
-    ...table.snapshot,
-    ready: controls.ready,
-    seats: controls.seats,
-  });
-  const ready = controls.ready.includes(table.viewer.viewerSeat);
-  /* Readiness is a phase control, so it sits with Previous and Next in the header rather than on a
-     tab; the count stays short so the toolbar keeps to one row at desktop widths, and a phone wraps
-     the group onto a second row instead of pushing its buttons off both edges. */
-  return (
-    <Group gap="xs" justify="flex-end" wrap="wrap" role="group" aria-label="Phase navigation">
-      {needsReady && (
-        <Group gap="xs" wrap="nowrap">
-          <Button
-            disabled={!table.canInteract}
-            variant={ready ? 'default' : 'filled'}
-            onClick={() => client.command({ kind: 'ready', ready: !ready })}
-          >
-            {ready ? 'Withdraw readiness' : 'Ready'}
-          </Button>
-          <Text role="status" size="xs" c="dimmed">
-            {controls.ready.filter((seat) => controls.seats.includes(seat)).length} of {controls.seats.length} ready
-          </Text>
-        </Group>
-      )}
-      <Group gap="xs" wrap="nowrap">
-        <Button
-          variant="subtle"
-          disabled={
-            !table.canInteract ||
-            cooling ||
-            Boolean(table.snapshot.ending) ||
-            Boolean(table.snapshot.battle) ||
-            (setup ? setup.index === 0 : table.snapshot.phase === 0)
-          }
-          onClick={() => client.command({ kind: 'phase', direction: -1 })}
-        >
-          Previous phase
-        </Button>
-        <Button
-          disabled={!table.canInteract || cooling || refusal !== null}
-          onClick={() => client.command({ kind: 'phase' })}
-        >
-          Next phase
-        </Button>
-      </Group>
-    </Group>
-  );
 }
 
 function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
@@ -851,12 +798,8 @@ function ConnectedTable({
             tableProgress={progress}
             stage={stage}
             mapVisible={setupMapVisible(table.snapshot.setup)}
-            connectionStatus={
-              <>
-                <ConnectionStatus table={table} />
-                <AllianceStrip table={table} />
-              </>
-            }
+            connectionStatus={<ConnectionStatus table={table} />}
+            alliances={<AllianceStrip table={table} />}
             toolbarControl={
               inPlay || (stage === 'setup' && table.snapshot.setup) ? (
                 <>

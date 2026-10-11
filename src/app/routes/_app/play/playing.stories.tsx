@@ -392,7 +392,7 @@ export const Reconnecting = meta.story({
     await page.findByRole('tab', { name: 'Conversation' });
     session.transport.deliver({ type: 'admission', status: 'suspended' });
     const status = await page.findByRole('status', { name: /^Reconnecting\./ });
-    expect(status.closest('.seated-brand')).not.toBeNull();
+    expect(status.closest('.seated-phase-status')).not.toBeNull();
     expect(status.closest('[data-connection]')).toHaveAttribute('data-connection', 'suspended');
     expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
   },
@@ -485,16 +485,16 @@ export const Unreachable = meta.story({
 export const SharedPhaseControls = meta.story({
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
-    const { page, controls, waitForPhase } = phaseControls(canvasElement);
+    const { page, controls, waitForPhase, expectPrevious, pressPrevious } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => {
-      expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
       expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
       expect(page.getByRole('region', { name: 'Storm sector' })).toBeVisible();
       expect(page.getByRole('region', { name: TABLE_PHASES[0].label })).toBeVisible();
       expectHeaderPhase(canvasElement, 0);
     });
+    await expectPrevious(false);
 
     await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
     const command = lastCommand();
@@ -508,16 +508,16 @@ export const SharedPhaseControls = meta.story({
     await waitForPhase(() => {
       expect(page.getByRole('region', { name: TABLE_PHASES[1].label })).toBeVisible();
       expect(page.queryByRole('region', { name: 'Storm sector' })).toBeNull();
-      expect(controls().getByRole('button', { name: 'Previous phase' })).toBeEnabled();
       expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
       expectHeaderPhase(canvasElement, 1);
     });
+    await expectPrevious(true);
 
     session.transport.deliver(
       session.transport.view({ ...initialSnapshot(), phase: TABLE_PHASES.length, revision: 2 })
     );
     await waitForPhase(() => expect(page.getByText('Turn 2 of 10', { exact: true })).toBeVisible());
-    await userEvent.click(controls().getByRole('button', { name: 'Previous phase' }));
+    await pressPrevious();
     const previous = lastCommand();
     expect(previous?.action).toMatchObject({ kind: 'phase', direction: -1 });
     session.transport.deliver(
@@ -534,15 +534,15 @@ export const SharedPhaseControls = meta.story({
 export const ObserverPhaseControls = meta.story({
   beforeEach: install(() => productTransport('neutral', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
-    const { page, controls, waitForPhase } = phaseControls(canvasElement);
+    const { page, controls, waitForPhase, expectPrevious } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => {
-      expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
       expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
       expect(page.getByRole('region', { name: TABLE_PHASES[5].label })).toBeVisible();
       expectHeaderPhase(canvasElement, 5);
     });
+    await expectPrevious(false);
     await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
     expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
   },
@@ -551,17 +551,15 @@ export const ObserverPhaseControls = meta.story({
 export const PlaybackKeepsLivePhaseSeparate = meta.story({
   beforeEach: install(() => productTransport('seat-2', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
-    const { page, controls, waitForPhase } = phaseControls(canvasElement);
+    const { page, controls, waitForPhase, expectPrevious } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
     expect(session.transport.messages).toContainEqual({ type: 'history', step: 0 });
     session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: initialSnapshot() });
-    await waitForPhase(() => {
-      expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
-      expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
-    });
+    await waitForPhase(() => expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled());
+    await expectPrevious(false);
 
     session.transport.deliver(session.transport.view({ ...initialSnapshot(), phase: 6, revision: 1 }));
     expect(page.getByRole('region', { name: TABLE_PHASES[0].label })).toBeVisible();
@@ -592,7 +590,7 @@ export const MentatReadiness = meta.story({
     /* Readiness is a phase control: it sits in the header's phase navigation, not on a tab. */
     const navigation = page.getByRole('group', { name: 'Phase navigation' });
     expect(within(navigation).getByRole('button', { name: /^Ready$/ })).toBeVisible();
-    expect(within(navigation).getByText('5 of 6 ready')).toBeVisible();
+    expect(within(navigation).getByRole('button', { name: /^Ready$/ })).toHaveAccessibleDescription('5 of 6 ready');
     expect(navigation.closest('header')).not.toBeNull();
     expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
     await userEvent.click(page.getByRole('button', { name: /^Ready$/ }));
@@ -614,9 +612,12 @@ export const MentatReadiness = meta.story({
       )
     );
     await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
-    expect(page.getByRole('button', { name: 'Withdraw readiness' })).toBeEnabled();
+    /* Pressed, the same toggle withdraws readiness. */
+    const withdraw = page.getByRole('button', { name: /^Ready$/, pressed: true });
+    expect(withdraw).toBeEnabled();
+    expect(withdraw).toHaveAccessibleDescription('6 of 6 ready');
     expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(1);
-    await userEvent.click(page.getByRole('button', { name: 'Withdraw readiness' }));
+    await userEvent.click(withdraw);
     expect(lastCommand()?.action).toEqual({
       kind: 'ready',
       ready: false,
@@ -694,8 +695,10 @@ export const FactionPhaseReadiness = meta.story({
 export const PhaseCooldown = meta.story({
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
-    const { page, waitForPhase } = phaseControls(canvasElement);
+    const { page, waitForPhase, openPrevious } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
+    /* The menu opens first and stays open, so reading Previous phase cannot outlast the cooldown. */
+    const previous = await openPrevious();
     session.transport.deliver({
       ...session.transport.view({
         ...initialSnapshot(),
@@ -709,9 +712,11 @@ export const PhaseCooldown = meta.story({
       phaseCooldownMs: PHASE_CHANGE_COOLDOWN_MS,
     });
     await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled());
-    expect(page.getByRole('button', { name: 'Previous phase' })).toBeDisabled();
+    expect(previous).toBeDisabled();
     const toolbar = canvasElement.ownerDocument.querySelector('.seated-toolbar');
-    expect(toolbar?.lastElementChild).toHaveAttribute('aria-label', 'Phase navigation');
+    /* Phase navigation keeps its place at the end of the toolbar, just before the settings gear. */
+    expect(toolbar?.lastElementChild).toHaveClass('seated-toolbar__settings');
+    expect(toolbar?.lastElementChild?.previousElementSibling).toHaveAttribute('aria-label', 'Phase navigation');
     session.transport.deliver({
       ...session.transport.view({
         ...initialSnapshot(),
@@ -725,7 +730,7 @@ export const PhaseCooldown = meta.story({
       phaseCooldownMs: 20,
     });
     await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
-    expect(page.getByRole('button', { name: 'Previous phase' })).toBeEnabled();
+    await waitFor(() => expect(previous).toBeEnabled());
   },
 });
 

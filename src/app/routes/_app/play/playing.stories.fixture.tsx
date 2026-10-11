@@ -20,13 +20,26 @@ export function phaseControls(canvasElement: HTMLElement) {
   const waitForPhase = (assert: () => void) =>
     waitFor(
       () => {
-        expect(controls().getByRole('button', { name: 'Previous phase' })).toBeVisible();
+        expect(controls().getByRole('button', { name: 'More phase actions' })).toBeVisible();
         expect(controls().getByRole('button', { name: 'Next phase' })).toBeVisible();
         assert();
       },
       { timeout: 30_000 }
     );
-  return { page, controls, waitForPhase };
+  /* Previous phase waits in the Next phase split button's menu, so reading or pressing it opens that menu first. */
+  const openPrevious = async () => {
+    await userEvent.click(controls().getByRole('button', { name: 'More phase actions' }));
+    return page.findByRole('menuitem', { name: 'Previous phase' });
+  };
+  const expectPrevious = async (enabled: boolean) => {
+    const item = await openPrevious();
+    /* A phase change's cooldown may still hold the item, so its state is awaited while the menu stays open. */
+    await waitFor(() => expect((item as HTMLButtonElement).disabled).toBe(!enabled));
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(page.queryByRole('menuitem', { name: 'Previous phase' })).toBeNull());
+  };
+  const pressPrevious = async () => userEvent.click(await openPrevious());
+  return { page, controls, waitForPhase, openPrevious, expectPrevious, pressPrevious };
 }
 
 /**
@@ -58,7 +71,7 @@ export function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number
     throw new TypeError('The hosted table header is missing.');
   }
   const phase = TABLE_PHASES[phaseIndex];
-  expect(within(header).getByRole('img', { name: 'Dune' })).toBeVisible();
+  expect(within(header).queryByRole('img', { name: 'Dune' })).toBeNull();
   expect(within(header).getByText(phase.label)).toBeVisible();
   expect(header.querySelector('use')).toHaveAttribute('href', `${phase.symbol}#root`);
   expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
