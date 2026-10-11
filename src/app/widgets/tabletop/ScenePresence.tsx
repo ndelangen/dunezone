@@ -5,11 +5,13 @@ import type { Vector3Tuple } from '@shared/play/model';
 import type { PublicPointer } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { CARRIED_BASE_Y, pointOnRayAtHeight } from '@shared/play/tableGeometry';
+import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Raycaster, Vector2, Vector3 } from 'three';
 
 import { unsettledArtworkLoads } from './artworkLoads';
 import styles from './ScenePresence.module.css';
+import { tablePlateOutline, tableSurfacePointOnRay } from './tablePlateGeometry';
 import { isCursorTablePoint } from './tablePointerPoint';
 import { useTabletopActions, useTabletopCommands, useTabletopSelector } from './TabletopContext';
 import { useTablePose } from './useTablePose';
@@ -143,13 +145,19 @@ declare global {
   }
 }
 
+const NO_TRACKERS: readonly TrackerArcSlot[] = [];
+
 export function ScenePresence({
   showNames = true,
   showLocal = false,
+  trackerSlots = NO_TRACKERS,
 }: {
   readonly showNames?: boolean;
   readonly showLocal?: boolean;
+  /* The trackers the table plate grows around, so a ping lands wherever the plate is drawn. */
+  readonly trackerSlots?: readonly TrackerArcSlot[];
 }) {
+  const plateOutline = useMemo(() => tablePlateOutline(trackerSlots), [trackerSlots]);
   const viewer = useTabletopSelector((table) => table.viewer);
   const [localPosition, setLocalPosition] = useState<Vector3Tuple | null>(null);
   const canInteract = useTabletopSelector((table) => table.canInteract);
@@ -195,15 +203,13 @@ export function ScenePresence({
         -((point.y - bounds.top) / bounds.height) * 2 + 1
       );
       raycaster.setFromCamera(normalized, camera);
-      const position = pointOnRayAtHeight(
-        [raycaster.ray.origin.x, raycaster.ray.origin.y, raycaster.ray.origin.z],
-        [raycaster.ray.direction.x, raycaster.ray.direction.y, raycaster.ray.direction.z],
-        CARRIED_BASE_Y
-      );
+      const origin = raycaster.ray.origin.toArray() as Vector3Tuple;
+      const direction = raycaster.ray.direction.toArray() as Vector3Tuple;
+      const position = pointOnRayAtHeight(origin, direction, CARRIED_BASE_Y);
       setLocalPosition(showLocal && !point.touch ? position : null);
-      publishPointer(canInteract ? position : null);
+      publishPointer(canInteract ? position : null, tableSurfacePointOnRay(origin, direction, plateOutline));
     };
-  }, [camera, canInteract, normalized, publishPointer, raycaster, renderer.domElement, showLocal]);
+  }, [camera, canInteract, normalized, plateOutline, publishPointer, raycaster, renderer.domElement, showLocal]);
   useEffect(() => {
     const move = (event: PointerEvent) => {
       lastScreenPoint.current = { x: event.clientX, y: event.clientY, touch: event.pointerType === 'touch' };

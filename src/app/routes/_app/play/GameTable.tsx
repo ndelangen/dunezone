@@ -85,6 +85,7 @@ type GameTableProps = {
   decisionBar?: ReactNode;
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
+  gameIdentity?: ReactNode;
   toolbarControl?: ReactNode;
   /** The connection's state, beside the logo where the bar has room, present only while the table is not live. */
   connectionStatus?: ReactNode;
@@ -538,6 +539,19 @@ function controlsPanelValueText(percent: number) {
   return `${Math.round(percent)}% of the window for controls`;
 }
 
+/* Names and controls wrap independently; the stage overlay starts below the rendered header. */
+function measureHeader(node: HTMLElement | null) {
+  const shell = node?.closest<HTMLElement>('.dune-play-shell');
+  if (!node || !shell) {
+    return;
+  }
+  const update = () => shell.style.setProperty('--play-header-height', `${node.getBoundingClientRect().height}px`);
+  const observer = new ResizeObserver(update);
+  observer.observe(node);
+  update();
+  return () => observer.disconnect();
+}
+
 export function GameTable({
   sceneContent,
   panelTabs,
@@ -547,6 +561,7 @@ export function GameTable({
   tableGuidance,
   decisionBar,
   gameMenu,
+  gameIdentity,
   stageStatus,
   stage,
   mapVisible,
@@ -624,9 +639,10 @@ export function GameTable({
             data-show-names={heldOverlays.names || pinnedOverlays.names}
           >
             {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
-            <header className="seated-header" inert={overlaysInert} data-hides-cursor>
+            <header ref={measureHeader} className="seated-header" inert={overlaysInert} data-hides-cursor>
               <div className="seated-brand">
                 <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
+                {gameIdentity}
                 {connectionStatus}
               </div>
 

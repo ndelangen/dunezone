@@ -70,6 +70,8 @@ export const playPublishSummaryResultSchema = z.union([
 export const playLobbyEntrySchema = z.object({
   gameId: identifierSchema,
   name: z.string(),
+  slug: z.string().nullable(),
+  rulesetName: z.string().nullable(),
   stage: playStageSchema,
   seatsFilled: z.number().int().nonnegative(),
   seatCount: z.number().int().positive(),

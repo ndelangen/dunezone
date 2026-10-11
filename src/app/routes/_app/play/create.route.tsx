@@ -1,5 +1,6 @@
 import { Button, NumberInput, Select, Stack, Text } from '@mantine/core';
 import { playCreateGameRequestSchema } from '@shared/play/admission';
+import { playGameNameSchema } from '@shared/play/gameNames';
 import { PLAY_SEAT_LIMIT_MESSAGE } from '@shared/play/seatLimit';
 import { TABLE_SEAT_COUNTS } from '@shared/play/tableSettings';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
@@ -13,6 +14,7 @@ import { useReducer } from 'react';
 
 import { useCreatableRulesets, useCreateGame } from '@db/play';
 import type { CreatableRuleset } from '@db/play';
+import { GameNameInput } from '@app/pickers/GameNameInput';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -26,7 +28,7 @@ export const Route = createFileRoute('/_app/play/create')({
 const TITLE = 'Create a game';
 const MINIMUM = TABLE_SEAT_COUNTS[0];
 const MAXIMUM = TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!;
-const EMPTY_DRAFT = { rulesetId: '', minimumPlayers: 6 as number | string, refusal: null as string | null };
+const EMPTY_DRAFT = { name: '', rulesetId: '', minimumPlayers: 6 as number | string, refusal: null as string | null };
 type Draft = typeof EMPTY_DRAFT;
 type DraftEvent = { kind: 'patch'; update: Partial<Draft> } | { kind: 'refused'; reason: string };
 
@@ -45,6 +47,8 @@ const REFUSALS = {
   rate_limited: 'Too many games were created recently. Try again later.',
   seat_limit: PLAY_SEAT_LIMIT_MESSAGE,
   unavailable: 'That ruleset cannot start a game right now.',
+  invalid_name: 'Choose a game name with 1 to 80 characters and at least one Latin letter or number.',
+  profanity_detected: 'Choose a game name without profanity. Your other choices are still here.',
 } as const;
 
 function CreateGamePage() {
@@ -83,16 +87,22 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>
     rulesetId: draft.rulesetId,
     minimumPlayers: draft.minimumPlayers,
   });
+  const name = draft.name.trim() ? playGameNameSchema.safeParse(draft.name) : null;
+  const nameError = name && !name.success ? name.error.issues[0]?.message : undefined;
   const objection = chosen?.objection ?? null;
-  const canCreate = request.success && chosen !== undefined && objection === null && !createGame.isPending;
+  const canCreate =
+    !nameError && request.success && chosen !== undefined && objection === null && !createGame.isPending;
   const submit = () => {
-    if (request.success) {
-      createGame.mutate(request.data, {
-        onSuccess: (result) =>
-          result.ok
-            ? navigate({ to: '/play/$gameId', params: { gameId: result.gameId } })
-            : dispatch({ kind: 'refused', reason: REFUSALS[result.reason] }),
-      });
+    if (canCreate && request.success) {
+      createGame.mutate(
+        { ...request.data, name: draft.name },
+        {
+          onSuccess: (result) =>
+            result.ok
+              ? navigate({ to: '/play/$gameId', params: { gameId: result.slug ?? result.gameId } })
+              : dispatch({ kind: 'refused', reason: REFUSALS[result.reason] }),
+        }
+      );
     }
   };
   const failure = draft.refusal ?? (createGame.error ? 'The game could not be created. Try again.' : null);
@@ -110,7 +120,14 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>
               minimum number of players is the number of seats at its table; everyone else who enters watches until
               drafting seats them.
             </Text>
+            <GameNameInput
+              value={draft.name}
+              onChange={(value) => dispatch({ kind: 'patch', update: { name: value } })}
+              error={nameError}
+              disabled={createGame.isPending}
+            />
             <Select
+              disabled={createGame.isPending}
               label="Ruleset"
               placeholder="Choose a ruleset"
               data={rulesets.map((ruleset) => ({ value: ruleset.id, label: ruleset.name }))}
@@ -125,6 +142,7 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>
               </Text>
             ) : null}
             <NumberInput
+              disabled={createGame.isPending}
               label="Minimum players"
               description={`From ${MINIMUM} to ${MAXIMUM} seats at the table.`}
               min={MINIMUM}

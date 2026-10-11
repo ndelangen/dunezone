@@ -404,7 +404,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   private async settle(socket: WebSocket, viewer: Viewer, message: Settlement) {
     const next =
       message.type === 'drop'
-        ? this.room.drop(viewer, message.carryId, message.position, message.orientation)
+        ? this.room.drop(viewer, message.carryId, message)
         : this.room.command(viewer, message.action, message.expectedRevision);
     await this.ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot: next });
     this.room.accept(next, message.type === 'drop' ? message.carryId : undefined);
@@ -419,6 +419,12 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       case 'take':
         this.send(socket, { type: 'carry', carryId: message.carryId, draft: this.room.take(viewer, message) });
         break;
+      case 'flip': {
+        const draft = this.room.flip(viewer, message);
+        const held = this.room.heldFor(message.carryId);
+        this.send(socket, { type: 'carry', carryId: message.carryId, draft, ...(held ? { held } : {}) });
+        break;
+      }
       case 'pose':
         this.room.pose(viewer, message);
         break;

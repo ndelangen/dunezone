@@ -60,6 +60,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'src/app/routes/_app/index.module.css',
   'src/app/routes/_app/homepage/**',
   'src/app/db/**',
+  'src/app/pickers/GameNameInput.tsx',
   'src/app/shell/**',
   'src/app/styles/**',
   'src/app/ui/**',

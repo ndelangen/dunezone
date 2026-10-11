@@ -199,6 +199,25 @@ describe('card decks', () => {
     expect(pieceById(dropped, traitors.id)?.label).toBe('Traitor cards');
     expect(pieceById(dropped, drawer.id)?.label).toBe('Dreamrules Treachery Deck');
   });
+
+  test('a whole stack in hand shows the flips made while it is held', () => {
+    const table = freshTableState();
+    const deck = pieceById(table, 'treachery-deck')!;
+    const whole = draftForGesture(deck, 'whole')!;
+
+    const once = renderedPiecesFor({ ...table, draftMove: { ...whole, flips: 1 } }).find(
+      (piece) => piece.id === deck.id
+    )!;
+    const twice = renderedPiecesFor({ ...table, draftMove: { ...whole, flips: 2 } }).find(
+      (piece) => piece.id === deck.id
+    )!;
+
+    expect(whole.withdrawals).toEqual([]);
+    expect(once.items.map((item) => item.faceUp)).toEqual(deck.items.map((item) => !item.faceUp).reverse());
+    expect(once.flipRevision).toBe((deck.flipRevision ?? 0) + 1);
+    expect(twice.items).toEqual(deck.items);
+    expect(twice.flipRevision).toBe((deck.flipRevision ?? 0) + 2);
+  });
 });
 
 /* What a split, a merge and the split affordance say, in wordingStacks order: a troop stack, a card stack, a shared token stack. */

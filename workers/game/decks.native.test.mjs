@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { admitPlayer, createPeer, createRuntime, provision, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
+/* Every card face in the game reaches every page by design, as a sorted list that ties no face to a card; the rest of a frame must not. */
+const shown = (value) => JSON.stringify(value, (key, entry) => (key === 'cardFaces' ? undefined : entry));
+
 describe('Private deck commands through native delivery', () => {
   let peer, runtime;
   beforeEach(async () => {
@@ -61,8 +64,8 @@ describe('Private deck commands through native delivery', () => {
     /* A view each socket asks for now arrives behind anything the draw or its retry sent to that socket. */
     await syncView(a);
     await syncView(spectator);
-    expect(JSON.stringify(a.messages)).not.toContain('secret-3');
-    expect(JSON.stringify(spectator.messages)).not.toContain('secret-3');
+    expect(shown(a.messages)).not.toContain('secret-3');
+    expect(shown(spectator.messages)).not.toContain('secret-3');
     await runtime.restart();
     expect((await syncView(await admit('b'))).snapshot.hand).toHaveLength(1);
     const rows = await runtime.exec('SELECT action FROM public_action_history');
@@ -95,7 +98,7 @@ describe('Private deck commands through native delivery', () => {
     expect(deck(await syncView(a))).toEqual(deck(first.reply));
     await runtime.restart();
     expect(deck(await syncView(await admit('a')))).toEqual(deck(first.reply));
-    expect(JSON.stringify(spectator.messages)).not.toContain('secret-');
+    expect(shown(spectator.messages)).not.toContain('secret-');
     expect(JSON.stringify(first.reply)).not.toContain('cardHandles');
   });
 

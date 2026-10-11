@@ -98,7 +98,7 @@ function matches(entry: LobbyEntry, query: string): boolean {
   const needle = query.trim().toLowerCase();
   return (
     needle.length === 0 ||
-    [entry.name, ...entry.players.map((player) => player.displayName)].some((words) =>
+    [entry.name, entry.rulesetName ?? '', ...entry.players.map((player) => player.displayName)].some((words) =>
       words.toLowerCase().includes(needle)
     )
   );
@@ -291,6 +291,11 @@ function GameCard({ entry }: Readonly<{ entry: LobbyEntry }>) {
         <div className={styles.cardBody}>
           <TableRing entry={entry} />
           <div className={styles.details}>
+            {entry.rulesetName ? (
+              <Text size="xs" c="dimmed">
+                Ruleset: {entry.rulesetName}
+              </Text>
+            ) : null}
             <Text size="sm" fw={600} lh={1.35}>
               {whereWords(entry)}
             </Text>
@@ -302,7 +307,9 @@ function GameCard({ entry }: Readonly<{ entry: LobbyEntry }>) {
                 <Clock size={12} aria-hidden /> {formatRelativeDate(new Date(entry.lastActivityAt).toISOString())}
               </Text>
               <Button
-                renderRoot={(rootProps) => <Link {...rootProps} to="/play/$gameId" params={{ gameId: entry.gameId }} />}
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/play/$gameId" params={{ gameId: entry.slug ?? entry.gameId }} />
+                )}
                 size="compact-sm"
                 color="slate"
                 variant={entry.viewerSeated ? 'filled' : 'light'}

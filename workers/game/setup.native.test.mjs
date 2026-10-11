@@ -6,6 +6,9 @@ import { cardPage, tokenPage } from './native-catalogue.fixture.mjs';
 import { dealt, draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
+/* Every card face in the game reaches every page by design, as a sorted list that ties no face to a card; the rest of a frame must not. */
+const shown = (value) => JSON.stringify(value, (key, entry) => (key === 'cardFaces' ? undefined : entry));
+
 async function ready(connection, commandId) {
   const view = await syncView(connection);
   const message = {
@@ -128,7 +131,7 @@ describe('Retained supply at setup entry', () => {
     expect(drawn.snapshot.hand.at(-1).items[0].artwork.front).toBe(treachery.items.at(-1).artwork.front);
     const outsider = await syncView(await admit('observer'));
     expect(outsider.snapshot.hand).toBeUndefined();
-    expect(JSON.stringify(outsider.snapshot)).not.toContain(treachery.items.at(-1).artwork.front);
+    expect(shown(outsider.snapshot)).not.toContain(treachery.items.at(-1).artwork.front);
     expect(await runtime.exec('SELECT COUNT(*) AS count FROM setup_supply')).toEqual([{ count: 1 }]);
   });
 

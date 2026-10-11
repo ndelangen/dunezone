@@ -1,5 +1,6 @@
 /* @vitest-environment jsdom */
 import { freshTableState } from '@shared/play/model';
+import { draftForGesture } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { TableKeyboard } from './TableKeyboard';
@@ -27,6 +28,8 @@ function table() {
     hoveredPieceId: null as string | null,
     deckControls: undefined,
     flipSelected: vi.fn(),
+    /* The cursor is over the table unless a test moves it off. */
+    ping: vi.fn(() => true),
     rotateSelected: vi.fn(),
     spawnSpice: vi.fn(),
     splitSelected: vi.fn(),
@@ -209,6 +212,29 @@ describe('number-key stack draws', () => {
   });
 });
 
+describe('a carried piece', () => {
+  test('F turns it over in hand once per press, and lock, stack and draw keys leave it alone', () => {
+    const { controls } = table();
+    const draftMove = draftForGesture(
+      controls.state.pieces.find((piece) => piece.id === 'harkonnen-force-stack')!,
+      'whole'
+    );
+    controls.state = { ...controls.state, draftMove };
+
+    key('keydown', { key: 'f', code: 'KeyF' });
+    key('keydown', { key: 'f', code: 'KeyF', repeat: true });
+    key('keydown', { key: 'l', code: 'KeyL' });
+    key('keydown', { key: 'g', code: 'KeyG' });
+    key('keydown', { key: '2', code: 'Digit2' });
+    vi.advanceTimersByTime(1000);
+
+    expect(controls.flipSelected.mock.calls).toEqual([['harkonnen-force-stack']]);
+    expect(controls.toggleLockSelected).not.toHaveBeenCalled();
+    expect(controls.stackSelected).not.toHaveBeenCalled();
+    expect(controls.splitSelected).not.toHaveBeenCalled();
+  });
+});
+
 describe('a peeked card moved with the arrow keys', () => {
   test('moves the card and leaves the zoomed table where it is', () => {
     const { keyboard } = table();
@@ -253,5 +279,61 @@ describe('a held pan key', () => {
     expect(keyboard.panDirection()).toEqual([0, -1]);
     key('keyup', { key: 'w', code: 'KeyZ' });
     expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+});
+
+describe('Tab pings', () => {
+  function tab(type: 'keydown' | 'keyup', init: KeyboardEventInit = {}, target: EventTarget = window) {
+    const event = new KeyboardEvent(type, { bubbles: true, cancelable: true, key: 'Tab', code: 'Tab', ...init });
+    target.dispatchEvent(event);
+    return event;
+  }
+
+  test('once per press, holding the focus where it is while the key is down', () => {
+    const { controls } = table();
+
+    expect(tab('keydown').defaultPrevented).toBe(true);
+    expect(tab('keydown', { repeat: true }).defaultPrevented).toBe(true);
+    tab('keyup');
+    tab('keydown');
+
+    expect(controls.ping).toHaveBeenCalledTimes(2);
+  });
+
+  test('moves the focus as usual while the cursor is off the table', () => {
+    const { controls } = table();
+    controls.ping.mockReturnValue(false);
+
+    expect(tab('keydown').defaultPrevented).toBe(false);
+    expect(tab('keydown', { repeat: true }).defaultPrevented).toBe(false);
+    expect(controls.ping).toHaveBeenCalledTimes(1);
+  });
+
+  test('a Tab let go while the page had no focus does not hold back the next one off the table', () => {
+    const { controls } = table();
+
+    tab('keydown');
+    window.dispatchEvent(new Event('blur'));
+    controls.ping.mockReturnValue(false);
+
+    expect(tab('keydown').defaultPrevented).toBe(false);
+    expect(tab('keydown', { repeat: true }).defaultPrevented).toBe(false);
+  });
+
+  test('leaves Shift+Tab and a focused text field their own Tab', () => {
+    const { controls } = table();
+    const field = document.body.appendChild(document.createElement('textarea'));
+
+    expect(tab('keydown', { shiftKey: true }).defaultPrevented).toBe(false);
+    expect(tab('keydown', {}, field).defaultPrevented).toBe(false);
+    expect(controls.ping).not.toHaveBeenCalled();
+  });
+
+  test('pings over a button clicked a moment ago, which keeps the focus', () => {
+    const { controls } = table();
+    const button = document.body.appendChild(document.createElement('button'));
+
+    expect(tab('keydown', {}, button).defaultPrevented).toBe(true);
+    expect(controls.ping).toHaveBeenCalledTimes(1);
   });
 });

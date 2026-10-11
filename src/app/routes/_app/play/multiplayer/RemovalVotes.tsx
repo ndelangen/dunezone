@@ -1,4 +1,4 @@
-import { Avatar, Button, Group, Indicator, Stack, Text } from '@mantine/core';
+import { Avatar, Button, Group, Indicator, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
@@ -9,11 +9,14 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { NestedTabs } from '@ui/surface/NestedTabs';
 import { Surface } from '@ui/surface/Surface';
-import { MessageCircle } from 'lucide-react';
-import { useSyncExternalStore } from 'react';
+import { ExternalLink, MessageCircle } from 'lucide-react';
+import { useEffect, useSyncExternalStore } from 'react';
+
+import { useFactionPageSlug } from '@db/factions';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { Conversation } from './Conversation';
+import { FactionDetails } from './FactionDetails';
 import { PLAYER_CONVERSATION_GUIDANCE, PLAYER_INFO_GUIDANCE, TABLE_CONVERSATION_GUIDANCE } from './panelGuidance';
 import { SwappingSeat } from './Swapping';
 import { useServerNow } from './useServerNow';
@@ -321,30 +324,60 @@ function PlayerInformation({
     !hasVote &&
     table.viewer.viewerSeat !== player.seat &&
     table.viewer.viewerSeat !== SPECTATOR_SEAT;
+  const { status, factions } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  const factionId = faction?.id;
+  useEffect(() => {
+    if (factionId && status === 'authorized') {
+      client.readFaction(factionId);
+    }
+  }, [client, factionId, status]);
+  const slug = useFactionPageSlug(factionId ?? '');
+  const details = factionId ? factions[factionId] : undefined;
   return (
     <Section hiddenHeading title={player.name}>
-      <Stack gap="sm">
+      <Stack gap="md">
+        {(slug || canStart) && (
+          <Group gap="sm">
+            {slug && faction && <FactionPageButton slug={slug} name={faction.name} />}
+            {canStart && (
+              <Button
+                color="red"
+                disabled={!table.canInteract || count < 3}
+                onClick={() => client.command({ kind: 'removal-start', seat: player.seat })}
+              >
+                Start removal vote
+              </Button>
+            )}
+          </Group>
+        )}
+        {canStart && count < 3 && (
+          <Text size="sm" c="dimmed">
+            Removal requires at least three players.
+          </Text>
+        )}
         <Text size="sm">
           {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
         </Text>
         <SwappingSeat client={client} table={table} seat={player.seat} />
-        {canStart && (
-          <>
-            <Button
-              variant="default"
-              disabled={!table.canInteract || count < 3}
-              onClick={() => client.command({ kind: 'removal-start', seat: player.seat })}
-            >
-              Start removal vote
-            </Button>
-            {count < 3 && (
-              <Text size="sm" c="dimmed">
-                Removal requires at least three players.
-              </Text>
-            )}
-          </>
-        )}
+        {details && <FactionDetails faction={details} />}
       </Stack>
     </Section>
+  );
+}
+
+/* A seat's faction page in a new tab, so the table stays open: what a faction starts with is public; what it holds now is not (#1007). */
+function FactionPageButton({ slug, name }: Readonly<{ slug: string; name: string }>) {
+  return (
+    <Button
+      component="a"
+      href={`/factions/${encodeURIComponent(slug)}`}
+      target="_blank"
+      rel="noreferrer"
+      variant="default"
+      rightSection={<ExternalLink size={16} aria-hidden />}
+    >
+      View {name}
+      <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
+    </Button>
   );
 }

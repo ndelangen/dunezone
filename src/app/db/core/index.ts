@@ -16,6 +16,12 @@ function convexBackendForDb(): ConvexReactClient | ConvexHttpClient {
 }
 
 export const db = {
+  action: async <Action extends FunctionReference<'action'>>(
+    fn: Action,
+    args: FunctionArgs<Action>
+  ): Promise<FunctionReturnType<Action>> => {
+    return await convexBackendForDb().action(fn, args as never);
+  },
   query: async <Query extends FunctionReference<'query'>>(
     fn: Query,
     args: FunctionArgs<Query>
