@@ -290,7 +290,7 @@ function TableOverlayToggles({
 type StageFrame = Readonly<{
   /** The header's word in place of the turn and phase. */
   word?: string;
-  /** The last tab: the fixture's full Table tab, or play's Phase tab with help-only storm controls. */
+  /** The last tab: the fixture's full Table tab, or play's Phase tab with its storm controls named for assistive technology only. */
   tableTab?: 'Table' | 'Phase';
 }>;
 
