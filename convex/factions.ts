@@ -157,6 +157,17 @@ export const getBySlug = query({
   handler: async (ctx, args) => loadFactionDetailPageBySlug(ctx, args.slug),
 });
 
+/** A live faction's slug by its id, for Play, whose seats carry only the id; null for an unknown or deleted faction. */
+export const slugById = query({
+  args: { id: v.string() },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    const id = ctx.db.normalizeId('factions', args.id);
+    const row = id ? await ctx.db.get('factions', id) : null;
+    return row && !row.is_deleted ? row.slug : null;
+  },
+});
+
 export const list = query({
   args: {},
   returns: v.array(factionValidator),

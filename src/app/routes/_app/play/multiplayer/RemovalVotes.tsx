@@ -1,4 +1,4 @@
-import { Avatar, Button, Group, Indicator, Stack, Text } from '@mantine/core';
+import { Anchor, Avatar, Button, Group, Indicator, Stack, Text } from '@mantine/core';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
@@ -11,6 +11,8 @@ import { NestedTabs } from '@ui/surface/NestedTabs';
 import { Surface } from '@ui/surface/Surface';
 import { MessageCircle } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
+
+import { useFactionSlug } from '@db/factions';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { Conversation } from './Conversation';
@@ -320,7 +322,8 @@ function PlayerInformation({
     <Section helpOnly title={player.name}>
       <Stack gap="sm">
         <Text size="sm">
-          {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
+          {faction ? <FactionPageLink id={faction.id} name={faction.name} /> : 'No faction assigned'} ·{' '}
+          {player.seat.replace('seat-', 'Seat ')}
         </Text>
         <SwappingSeat client={client} table={table} seat={player.seat} />
         {canStart && (
@@ -341,5 +344,21 @@ function PlayerInformation({
         )}
       </Stack>
     </Section>
+  );
+}
+
+/*
+ * A seat's faction, linked to its page in a new tab so the table stays open: the page shows what the faction starts with,
+ * leaders included, which is public; what it holds now is not (#1007). Plain text until the slug loads, or for a deleted faction.
+ */
+function FactionPageLink({ id, name }: Readonly<{ id: string; name: string }>) {
+  const slug = useFactionSlug(id);
+  if (!slug) {
+    return name;
+  }
+  return (
+    <Anchor href={`/factions/${encodeURIComponent(slug)}`} target="_blank" rel="noreferrer" inherit>
+      {name}
+    </Anchor>
   );
 }
