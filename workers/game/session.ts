@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 
 import type { playGameProvisionSchema } from '../../src/shared/play/admission';
+import { publicFaction } from '../../src/shared/play/capture';
 import type { CaptureReadiness } from '../../src/shared/play/capture';
 import { emptySnapshot } from '../../src/shared/play/commands';
 import { conversationMembers } from '../../src/shared/play/conversations';
@@ -299,6 +300,16 @@ export class GameSession {
       return;
     }
     throw new NotReady(subject, problem);
+  }
+
+  /**
+   * A seated faction's public starting sheet as this game captured it, or nothing otherwise.
+   * A deal refused partway can leave captures of factions never seated, and those stay unanswered.
+   */
+  publicFaction(factionId: string) {
+    const seated = this.room?.snapshot.roster?.seats.some((seat) => seat.faction?.id === factionId);
+    const capture = seated ? this.captures.faction(factionId) : undefined;
+    return capture ? publicFaction(capture) : null;
   }
 
   retainedCaptures() {

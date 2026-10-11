@@ -1,5 +1,6 @@
 import { tableHandlingOpen } from '@shared/play/admission';
 import type { BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
+import type { PublicFaction } from '@shared/play/capture';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
@@ -8,7 +9,7 @@ import type { Affordance, DraftMove, TablePiece, TableState, Vector3Tuple } from
 import { isSeatAction } from '@shared/play/participation';
 import { rearrangeable } from '@shared/play/peeking';
 import type { Peek } from '@shared/play/peeking';
-import { carryPieceId, tableForViewer } from '@shared/play/protocol';
+import { carryPieceId, TABLE_PING_INTERVAL_MS, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
   GameSnapshot,
@@ -17,6 +18,7 @@ import type {
   PublicCarry,
   PublicPointer,
   ServerMessage,
+  TablePing,
 } from '@shared/play/protocol';
 import { isRemovalAction } from '@shared/play/removal';
 import { SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
@@ -139,6 +141,8 @@ export type ConnectionView = {
   catalogue?: Extract<ServerMessage, { type: 'catalogue' }>;
   spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   logHistory: Partial<Record<LogTab, LogPage>>;
+  /* Seated factions' captured starting sheets by faction id; null when the game holds no capture of one. */
+  factions: Readonly<Partial<Record<string, PublicFaction | null>>>;
 };
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
 
@@ -277,10 +281,18 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
   };
 }
 
+/* A position the table can hold, or null for one off it. */
+function onTable(position: Vector3Tuple | null) {
+  return position && tablePositionSchema.safeParse(position).success ? position : null;
+}
+
 /** Owns local interactions and presentation over the subscribed server view. */
 export class TableSession {
   private readonly listeners = new Set<() => void>();
   private readonly pointerListeners = new Set<() => void>();
+  private readonly pingListeners = new Set<(ping: TablePing) => void>();
+  /* When this page last pinged, by its monotonic clock; -Infinity before the first. */
+  private pingedAt = Number.NEGATIVE_INFINITY;
   private readonly tableListeners = new Set<() => void>();
   /* The table as the last update derived it, which the session itself and the scene read. */
   private table: TableProjection | null = null;
@@ -305,6 +317,8 @@ export class TableSession {
   private flipping = new Map<string, number>();
   private readonly pendingFlips = new Map<string, string>();
   private pointer: Vector3Tuple | null = null;
+  /* The table, board or rim surface under the cursor, where a ping lands so every viewer sees it at the same spot. */
+  private pingPoint: Vector3Tuple | null = null;
   private cached: ConnectionView;
   private catalogueRequestId?: string;
   private catalogueSelection?: SpawnSelection;
@@ -341,6 +355,10 @@ export class TableSession {
   private spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   private spiceHistoryBefore?: number;
   private logHistory: Partial<Record<LogTab, LogPage>> = {};
+  /* A capture never changes once a game holds it, so each answer is kept across reconnects. */
+  private factions: Readonly<Partial<Record<string, PublicFaction | null>>> = {};
+  /* Reads sent and not yet answered; a dropped connection or a refusal forgets them, so the panel can ask again. */
+  private factionRequests = new Set<string>();
   private logHistoryBefore: Record<LogTab, number> = latestLogPages();
 
   constructor(
@@ -362,6 +380,7 @@ export class TableSession {
       table: this.table,
       conversations: this.conversations.view(),
       logHistory: {},
+      factions: {},
     };
   }
   /*
@@ -452,6 +471,55 @@ export class TableSession {
     return () => this.pointerListeners.delete(listener);
   };
   getPointers = () => this.shownPointers;
+  /* Each ping as it happens, this page's own included: nothing keeps them, so a listener hears only what comes after it subscribes. */
+  subscribePings = (listener: (ping: TablePing) => void) => {
+    this.pingListeners.add(listener);
+    return () => this.pingListeners.delete(listener);
+  };
+  private emitPing(ping: TablePing) {
+    for (const listener of this.pingListeners) {
+      listener(ping);
+    }
+  }
+  /**
+   * Pings the table where the cursor is, for everyone, and answers whether the ping key was used.
+   * It was not when there is no cursor on the table, or the connection cannot carry pings, as on the homepage's table.
+   * A ping sooner than the interval after the last is skipped, though the key still counts as used.
+   */
+  ping = (): boolean => {
+    const ping = this.pingHere();
+    if (!ping) {
+      return false;
+    }
+    const now = this.runtime.monotonicNow();
+    if (now - this.pingedAt < TABLE_PING_INTERVAL_MS) {
+      return true;
+    }
+    if (!this.send({ type: 'ping', position: ping.position })) {
+      return false;
+    }
+    this.pingedAt = now;
+    this.emitPing(ping);
+    return true;
+  };
+  /* This page's ping on the table surface under its cursor, while it has a cursor on the table and may act. */
+  private pingHere(): TablePing | null {
+    if (!this.canAct()) {
+      return null;
+    }
+    const viewer = this.viewer;
+    if (!viewer || this.pingPoint === null) {
+      return null;
+    }
+    const { connectionId, viewerSeat, displayName, color } = viewer;
+    return { connectionId, viewerSeat, displayName, color, position: this.pingPoint };
+  }
+  /* A ping changes nothing on the table, so it skips the update every other message makes. */
+  private receivePing(ping: TablePing) {
+    if (this.status === 'authorized' && this.current()) {
+      this.emitPing(ping);
+    }
+  }
   private emitPointers() {
     const next = this.status === 'authorized' ? this.activityForView().pointers : [];
     if (
@@ -711,6 +779,7 @@ export class TableSession {
       catalogue: this.catalogueResult,
       spiceHistory: this.spiceHistory,
       logHistory: this.logHistory,
+      factions: this.factions,
     };
     const changed = (Object.keys(next) as (keyof ConnectionView)[]).some((key) => next[key] !== previous[key]);
     this.cached = changed ? next : previous;
@@ -848,14 +917,14 @@ export class TableSession {
     }
     switch (message.type) {
       case 'log-history':
-        if (message.before === this.logHistoryBefore[message.tab]) {
-          this.logHistory = { ...this.logHistory, [message.tab]: message };
-        }
+        this.receiveLogPage(message);
         break;
       case 'spice-history':
-        if (message.before === this.spiceHistoryBefore) {
-          this.spiceHistory = message;
-        }
+        this.receiveSpicePage(message);
+        break;
+      case 'faction':
+        this.factionRequests.delete(message.factionId);
+        this.factions = { ...this.factions, [message.factionId]: message.faction };
         break;
       case 'catalogue':
         if (message.requestId === this.catalogueRequestId) {
@@ -875,6 +944,17 @@ export class TableSession {
         break;
     }
   }
+  /* A page arrives for the cursor it was asked with; one the panel has since moved past is dropped. */
+  private receiveLogPage(message: LogPage) {
+    if (message.before === this.logHistoryBefore[message.tab]) {
+      this.logHistory = { ...this.logHistory, [message.tab]: message };
+    }
+  }
+  private receiveSpicePage(message: Extract<ServerMessage, { type: 'spice-history' }>) {
+    if (message.before === this.spiceHistoryBefore) {
+      this.spiceHistory = message;
+    }
+  }
   private receiveHistory(message: Extract<ServerMessage, { type: 'history' }>) {
     if (this.pendingHistory !== message.step) {
       return;
@@ -884,6 +964,8 @@ export class TableSession {
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
     this.error = message.message;
+    /* A refused read carries no id; forgetting the faction reads lets the panel ask again on its next look. */
+    this.factionRequests.clear();
     if (this.pendingHistory !== null && message.requestId === 'message') {
       /*
        * A history read carries no id, so the Worker refuses it as 'message'. It never gets a history reply, so the
@@ -997,6 +1079,7 @@ export class TableSession {
     }
   }
   private clearDisconnectedActivity() {
+    this.factionRequests.clear();
     this.logHistory = {};
     this.logHistoryBefore = latestLogPages();
     /* The Worker holds a capture for the connection, not the seat, so a seat change keeps it and a disconnect frees it. */
@@ -1037,6 +1120,13 @@ export class TableSession {
     this.logHistoryBefore = { ...this.logHistoryBefore, [tab]: before };
     this.send({ type: 'log-history', tab, before });
   };
+  /* Asks once for a seated faction's captured sheet; a read that was never answered can be asked again. */
+  readFaction = (factionId: string) => {
+    const known = factionId in this.factions || this.factionRequests.has(factionId);
+    if (!known && this.send({ type: 'faction', factionId })) {
+      this.factionRequests.add(factionId);
+    }
+  };
   readSpiceHistory = (before?: number) => {
     this.spiceHistoryBefore = before;
     this.spiceHistory = undefined;
@@ -1063,7 +1153,9 @@ export class TableSession {
       this.restore();
       this.emit();
     }
-    const stop = this.subscription.subscribe((event) => this.receive(event));
+    const stop = this.subscription.subscribe((event) =>
+      event.type === 'ping' ? this.receivePing(event.ping) : this.receive(event)
+    );
     const stopVisibility = this.runtime.onHidden(() => {
       this.publishPointer(null);
       this.cancelDraft();
@@ -1447,14 +1539,16 @@ export class TableSession {
     this.flipping.delete(pieceId);
     this.emit();
   };
-  publishPointer = (position: Vector3Tuple | null) => {
+  /** Publishes the cursor, and keeps `surface`, the table under it, for a ping to mark. */
+  publishPointer = (position: Vector3Tuple | null, surface: Vector3Tuple | null = null) => {
+    this.pingPoint = position ? onTable(surface) : null;
     if (!this.canAct()) {
       this.pointer = null;
       clearTimeout(this.pointerTimer);
       this.pointerTimer = undefined;
       return;
     }
-    this.pointer = position && tablePositionSchema.safeParse(position).success ? position : null;
+    this.pointer = onTable(position);
     if (this.pointer === null) {
       clearTimeout(this.pointerTimer);
       this.pointerTimer = undefined;

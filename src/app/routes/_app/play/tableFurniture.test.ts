@@ -1,3 +1,4 @@
+import type { Vector3Tuple } from '@shared/play/model';
 import {
   BOTTOM_SHELF_POSITION,
   BOTTOM_SHELF_SIZE,
@@ -33,6 +34,8 @@ import {
   TABLE_PLATE_CORNER_RADIUS,
   TABLE_PLATE_JOINS,
   TABLE_PLATE_THICKNESS,
+  tablePlateOutline,
+  tableSurfacePointOnRay,
   trackerScallopRadius,
 } from '../../../widgets/tabletop/tablePlateGeometry';
 
@@ -418,5 +421,36 @@ describe('table furniture', () => {
       const nearestPoint = Math.min(...points.map(({ x, y }) => Math.hypot(x - cornerX, y - cornerZ)));
       expect(nearestPoint).toBeGreaterThan(0.08);
     });
+  });
+});
+
+describe('the table plate a ping lands on', () => {
+  const down: Vector3Tuple = [0, -1, 0];
+  const slots = trackerArcSlots(9);
+  const outline = tablePlateOutline(slots);
+  const landing = (x: number, z: number) => tableSurfacePointOnRay([x, 5, z], down, outline);
+
+  test.each([
+    ['the board', [1, 0]],
+    ['the round top', [5, 0]],
+    ['a side shelf', [SIDE_SHELF_CENTER_X, 1]],
+    ['the bottom shelf', [0, BOTTOM_SHELF_POSITION[2]]],
+  ] as const)('lands on %s', (_name, [x, z]) => {
+    expect(landing(x, z)).not.toBeNull();
+  });
+
+  test('lands on every tracker disc the plate grows around', () => {
+    for (const slot of slots) {
+      expect(landing(slot.position[0], slot.position[2])).not.toBeNull();
+    }
+  });
+
+  test('misses empty space past the plate, beside the rounded corners too', () => {
+    expect(landing(10, 0)).toBeNull();
+    expect(landing(5, -5)).toBeNull();
+    expect(landing(7.3, 2.03)).toBeNull();
+    const cornerX = SIDE_SHELF_CENTER_X + SIDE_SHELF_SIZE[0] / 2 - 0.02;
+    const cornerZ = SIDE_SHELF_SIZE[2] / 2 - 0.02;
+    expect(landing(cornerX, cornerZ)).toBeNull();
   });
 });

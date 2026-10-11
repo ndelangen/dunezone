@@ -178,6 +178,17 @@ export function contactShadowHeightAt(position: Vector3Tuple, piece: PieceFootpr
   return supportHeightAt(position, piece) + CONTACT_SHADOW_EPSILON;
 }
 
+/** Where a ray from the camera first meets the board, its rim or the table; pieces standing there are left out. */
+export function surfacePointOnRay(origin: Vector3Tuple, direction: Vector3Tuple): Vector3Tuple | null {
+  for (const height of [BOARD_SURFACE_Y, BOARD_RIM_SURFACE_Y, TABLE_SURFACE_Y]) {
+    const point = pointOnRayAtHeight(origin, direction, height);
+    if (point && surfaceHeightAt(point) === height) {
+      return point;
+    }
+  }
+  return null;
+}
+
 export function pointOnRayAtHeight(origin: Vector3Tuple, direction: Vector3Tuple, height: number): Vector3Tuple | null {
   if (Math.abs(direction[1]) < Number.EPSILON) {
     return null;

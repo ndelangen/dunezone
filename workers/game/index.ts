@@ -33,6 +33,7 @@ import {
   ADMISSION_UNAVAILABLE_CLOSE_CODE,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
+  TABLE_PING_INTERVAL_MS,
   TICKET_EXPIRED_CLOSE_CODE,
   clientMessageSchema,
 } from '../../src/shared/play/protocol';
@@ -43,6 +44,7 @@ import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
+import type { AlertEnv } from './alerts';
 import { AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
@@ -51,6 +53,7 @@ import type { SetAsideJudgement } from './drafting';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { isLocalIsolatedRuntime } from './localRuntime';
+import { forwardPrivacyRequest } from './privacyRequests';
 import { CarryHistoryExhausted } from './room';
 import type { Metadata } from './session';
 import { GameSession, NotReady, readinessProblem } from './session';
@@ -79,6 +82,8 @@ type Connection = {
   suspensions: number;
   everAuthorized: boolean;
   pointerSeq: number;
+  /* When this connection last pinged, by the room's clock. */
+  pingedAt: number;
   tokens: number;
   motionTokens: number;
   refilledAt: number;
@@ -120,6 +125,10 @@ function gameRequest(request: Request, applicationOrigin: string) {
   }
   return { gameId, operation };
 }
+type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
+const isPageRead = (message: ClientMessage): message is PageRead =>
+  message.type === 'log-history' || message.type === 'spice-history' || message.type === 'faction';
+
 function messageId(message: ClientMessage): string {
   if ('commandId' in message) {
     return message.commandId;
@@ -590,6 +599,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       suspensions: 0,
       everAuthorized: false,
       pointerSeq: -1,
+      pingedAt: 0,
       tokens: RATE_BURST,
       motionTokens: RATE_BURST,
       refilledAt: Date.now(),
@@ -1196,6 +1206,26 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /*
+   * A ping goes straight out to every other connection at the table and is kept nowhere, so a reconnecting page never sees an old one.
+   * A spectator has no cursor to ping from, and a ping sooner than the interval after the last is dropped, as a page that keeps to it never sends one.
+   */
+  private relayPing(socket: WebSocket, connection: Connection, message: Extract<ClientMessage, { type: 'ping' }>) {
+    const viewer = connection.viewer!;
+    const now = Date.now();
+    if (viewer.viewerSeat === SPECTATOR_SEAT || now - connection.pingedAt < TABLE_PING_INTERVAL_MS) {
+      return;
+    }
+    connection.pingedAt = now;
+    const { connectionId, viewerSeat, displayName, color } = viewer;
+    const ping = { connectionId, viewerSeat, displayName, color, position: message.position };
+    for (const [peer, other] of this.connections) {
+      if (peer !== socket && other.viewer) {
+        this.send(peer, { type: 'ping', ping });
+      }
+    }
+  }
+
+  /*
    * A held connection's message, and a catalogue capture it started, wait here for the fence to lift, then meet the same check as any other.
    * Resolves to whether the connection may still act on a message that arrived after `suspensions` pauses.
    * A pause since then drops the message, even when the connection was admitted again, because the page discarded its unanswered requests on the pause.
@@ -1318,20 +1348,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     socket.close(4413, 'Too many requests.');
   }
 
-  private dispatch(
-    socket: WebSocket,
-    connection: Connection,
-    message: Exclude<ClientMessage, { type: 'admit' | 'catalogue' }>
-  ) {
+  /* Reads that answer from the room's records alone, whatever the reader may do at the table. */
+  private sendPage(socket: WebSocket, message: PageRead) {
     switch (message.type) {
-      case 'sync':
-        this.sendView(socket, connection);
-        return;
-      case 'conversation-history':
-      case 'conversation-send':
-      case 'conversation-read':
-        this.handleConversation(socket, connection.viewer!, message);
-        return;
       case 'log-history':
         this.send(socket, {
           type: 'log-history',
@@ -1342,6 +1361,34 @@ export class GameRoom extends DurableObject<GameEnv> {
         return;
       case 'spice-history':
         this.send(socket, { type: 'spice-history', before: message.before, ...this.session.spicePage(message.before) });
+        return;
+      case 'faction':
+        this.send(socket, {
+          type: 'faction',
+          factionId: message.factionId,
+          faction: this.session.publicFaction(message.factionId),
+        });
+        return;
+    }
+  }
+
+  private dispatch(
+    socket: WebSocket,
+    connection: Connection,
+    message: Exclude<ClientMessage, { type: 'admit' | 'catalogue' }>
+  ) {
+    if (isPageRead(message)) {
+      this.sendPage(socket, message);
+      return;
+    }
+    switch (message.type) {
+      case 'sync':
+        this.sendView(socket, connection);
+        return;
+      case 'conversation-history':
+      case 'conversation-send':
+      case 'conversation-read':
+        this.handleConversation(socket, connection.viewer!, message);
         return;
       case 'history':
         this.sendHistory(socket, message.step);
@@ -1451,8 +1498,12 @@ export class GameRoom extends DurableObject<GameEnv> {
   private publishActivity(
     socket: WebSocket,
     connection: Connection,
-    message: Extract<ClientMessage, { type: 'pointer' | 'pose' | 'begin' | 'take' | 'renew' | 'cancel' }>
+    message: Extract<ClientMessage, { type: 'ping' | 'pointer' | 'pose' | 'begin' | 'take' | 'renew' | 'cancel' }>
   ) {
+    if (message.type === 'ping') {
+      this.relayPing(socket, connection, message);
+      return;
+    }
     if (message.type === 'pointer' || message.type === 'pose') {
       this.moveActivity(connection, message);
       return;
@@ -2127,6 +2178,9 @@ export class GameRoom extends DurableObject<GameEnv> {
 }
 
 export default {
+  async email(message, env): Promise<void> {
+    await forwardPrivacyRequest(message, env);
+  },
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
     if (url.origin !== env.APPLICATION_ORIGIN || url.search) {
@@ -2164,4 +2218,4 @@ export default {
     }
     return env.GAME_ROOMS.getByName(route.gameId).fetch(request);
   },
-} satisfies ExportedHandler<GameEnv>;
+} satisfies ExportedHandler<GameEnv & Pick<AlertEnv, 'ALERT_EMAIL_TO'>>;

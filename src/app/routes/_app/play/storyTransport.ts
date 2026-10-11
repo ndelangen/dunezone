@@ -1,3 +1,4 @@
+import type { PublicFaction } from '@shared/play/capture';
 import { LOG_PAGE_SIZE } from '@shared/play/log';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import { isSeatAction } from '@shared/play/participation';
@@ -25,6 +26,7 @@ export function storyTransport(
     holdLogHistory = false,
     logEntries = {},
     conversationMessages = [],
+    factions = {},
     admitView,
     answerCommand,
     receive,
@@ -40,6 +42,8 @@ export function storyTransport(
     /* Takes every message but admission and the history pages first, as a live table does; true means it answered. */
     receive?: (message: ClientMessage) => boolean;
     conversationMessages?: Extract<ServerMessage, { type: 'conversation-history' }>['entries'];
+    /* The seated factions' captured sheets by faction id; one not listed answers as a game without its capture. */
+    factions?: Readonly<Partial<Record<string, PublicFaction>>>;
   } = {}
 ) {
   const messages: ClientMessage[] = [];
@@ -106,6 +110,9 @@ export function storyTransport(
       }
       if (message.type === 'admit' && !holdView) {
         queueMicrotask(() => this.deliver(admitView?.() ?? view(snapshot)));
+      }
+      if (message.type === 'faction') {
+        queueMicrotask(() => this.deliver({ ...message, faction: factions[message.factionId] ?? null }));
       }
       if (message.type === 'conversation-history') {
         const entries = conversationMessages.filter((entry) => entry.sequence < message.before);
