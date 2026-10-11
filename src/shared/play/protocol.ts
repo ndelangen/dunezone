@@ -127,6 +127,11 @@ const carrySchema = publicIdentitySchema.extend({
 const pointerSchema = publicIdentitySchema.extend({ position, updatedAt: count, sourceSeq: count.optional() });
 export type PublicCarry = z.infer<typeof carrySchema>;
 export type PublicPointer = z.infer<typeof pointerSchema>;
+/* A ping a player sent from their cursor: shown and heard once by everyone at the table, then gone. Never stored or logged. */
+const pingSchema = publicIdentitySchema.omit({ avatarUrl: true }).extend({ position });
+export type TablePing = z.infer<typeof pingSchema>;
+/** A connection pings at most this often; the Worker drops a ping that comes sooner, and the page does not send one. */
+export const TABLE_PING_INTERVAL_MS = 400;
 
 const tableActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
@@ -202,6 +207,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({ type: z.literal('pose'), carryId: id, seq: count, position, orientation }),
   z.strictObject({ type: z.literal('pointer'), seq: count, position: position.nullable() }),
+  z.strictObject({ type: z.literal('ping'), position }),
   z.strictObject({ type: z.literal('take'), requestId: id, carryId: id, donorPieceId: id }),
   z.strictObject({ type: z.literal('drop'), commandId: id, carryId: id, position, orientation }),
   z.strictObject({ type: z.literal('cancel'), carryId: id }),
@@ -298,6 +304,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied']) }),
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema }),
+  z.object({ type: z.literal('ping'), ping: pingSchema }),
   z.object({
     type: z.literal('view'),
     phaseCooldownMs: count.optional(),

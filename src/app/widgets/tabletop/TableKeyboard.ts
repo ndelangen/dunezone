@@ -11,6 +11,7 @@ type Controls = Pick<
   | 'deckControls'
   | 'flipSelected'
   | 'hoveredPieceId'
+  | 'ping'
   | 'rotateSelected'
   | 'spawnSpice'
   | 'splitSelected'
@@ -82,6 +83,8 @@ export class TableKeyboard {
   private drawDigit: number | null = null;
   private drawCode = '';
   private panAvailable = false;
+  /* Whether the Tab held down now pinged, so its repeats stay with the table too. */
+  private pingHeld = false;
   /* The held pan keys, by the physical key that went down, with the direction it typed then. */
   private readonly panHeld = new Map<string, string>();
   private readonly panListeners = new Set<() => void>();
@@ -93,6 +96,7 @@ export class TableKeyboard {
     binding.events.addEventListener('keyup', this.keyUp);
     binding.events.addEventListener('blur', this.cancelDraw);
     binding.events.addEventListener('blur', this.releasePan);
+    binding.events.addEventListener('blur', this.releasePing);
     return () => {
       if (this.binding === binding) {
         this.release();
@@ -148,6 +152,7 @@ export class TableKeyboard {
     this.cancelDraw();
     this.releasePan();
     binding.events.removeEventListener('blur', this.releasePan);
+    binding.events.removeEventListener('blur', this.releasePing);
     binding.events.removeEventListener('keydown', this.keyDown);
     binding.events.removeEventListener('keyup', this.keyUp);
     binding.events.removeEventListener('blur', this.cancelDraw);
@@ -166,6 +171,10 @@ export class TableKeyboard {
       return;
     }
     if (this.panKeyDown(event)) {
+      return;
+    }
+    if (event.key === 'Tab') {
+      this.pingKey(event, controls);
       return;
     }
     const digit = digitOf(event);
@@ -195,8 +204,33 @@ export class TableKeyboard {
     return true;
   }
 
+  /*
+   * Tab pings where the cursor is, as in Tabletop Simulator, instead of moving the focus; holding it pings once.
+   * A button clicked a moment ago keeps the focus, and the cursor back over the table still pings; only a focused text field keeps its Tab.
+   * With the cursor off the table there is nowhere to ping, so Tab moves the focus as usual.
+   */
+  private pingKey(event: KeyboardEvent, controls: Controls) {
+    if (event.shiftKey || focusKeepsKey(event.target, 'spiceBank')) {
+      return;
+    }
+    if (!event.repeat) {
+      this.pingHeld = controls.ping();
+    }
+    if (this.pingHeld) {
+      event.preventDefault();
+    }
+  }
+
   /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
+  /* A Tab let go while the page had no focus never comes up here, so leaving the page lets it go. */
+  private releasePing = () => {
+    this.pingHeld = false;
+  };
+
   private keyUp = (event: KeyboardEvent) => {
+    if (event.key === 'Tab') {
+      this.releasePing();
+    }
     /* The physical key ends its pan, whatever it types by then: macOS's Option turns a held W into "∑" before it comes up. */
     if (this.panHeld.delete(physicalKey(event))) {
       this.panListeners.forEach((listener) => listener());
