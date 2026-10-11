@@ -1,26 +1,17 @@
 /* @jsxImportSource ./three-jsx */
-import { FACTION_TOKEN_SCALE, TABLE_SURFACE_Y, TROOP_TOP_RADIUS } from '@shared/play/tableGeometry';
+import { TABLE_SURFACE_Y } from '@shared/play/tableGeometry';
 
+import { coinBand, coinRadius, coinTop } from './allianceCoinGeometry';
 import { BOARD_RIM_COLOR, BOARD_RIM_METALNESS, BOARD_RIM_ROUGHNESS } from './boardRimGeometry';
 import { SoftShadow } from './SoftShadow';
 
-const TOKEN_RADIUS = TROOP_TOP_RADIUS * FACTION_TOKEN_SCALE;
+/* The coin's colour: the ally's with the cream line the tokens carry inside their rim, or, standing alone, plain in the board rim's colour. */
 const CREAM = '#efe3c2';
 
 function ignoreRaycast() {
   // Alliance marks are never an interaction target.
 }
 
-/*
- * Every faction token stands on a coin a band wider all round: in its ally's colour with the cream line the tokens carry inside their rim, or, standing alone, plain in the board rim's colour.
- * A token at its seat overhangs the board's rim and rests at the rim's height, so the coin stands on the table and rises to a little under the token, leaving the board's rim in view.
- * The coins of a large alliance share the width of two bands, so the ring never reaches the troop reserves behind the token or a neighbouring seat.
- */
-const COIN_BAND = 0.085;
-const MAX_BANDS = 2;
-const MIN_HEIGHT = 0.018;
-const DROP = 0.024;
-const COIN_STEP = 0.003;
 const SHADOW_SPREAD = 0.08;
 const SHADOW_OPACITY = 0.75;
 
@@ -36,10 +27,9 @@ export type AllianceCoinProps = Readonly<{
 
 /** One coin under a faction token, centred on the token's place on the table. */
 export function AllianceCoin({ color, index, count, base }: AllianceCoinProps) {
-  const band = COIN_BAND * Math.min(1, MAX_BANDS / count);
-  const radius = TOKEN_RADIUS + band * (index + 1);
-  /* Each wider coin sits a step lower than the one above it; the widest is never thinner than MIN_HEIGHT. */
-  const top = Math.max(TABLE_SURFACE_Y + MIN_HEIGHT + (count - 1 - index) * COIN_STEP, base - DROP - index * COIN_STEP);
+  const band = coinBand(count);
+  const radius = coinRadius(index, count);
+  const top = coinTop(index, count, base);
   const height = top - TABLE_SURFACE_Y;
   return (
     <group position={[0, TABLE_SURFACE_Y, 0]}>
