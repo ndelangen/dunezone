@@ -13,10 +13,10 @@ import { ExternalLink, MessageCircle } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 
 import { usePlayFaction } from '@db/factions';
-import { FactionDetails } from '@app/widgets/faction-details/FactionDetails';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { Conversation } from './Conversation';
+import { FactionDetails } from './FactionDetails';
 import { SwappingSeat } from './Swapping';
 import { useServerNow } from './useServerNow';
 
