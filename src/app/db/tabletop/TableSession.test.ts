@@ -3,7 +3,7 @@ import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
-import type { ActivityChange, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
+import type { ActivityChange, GameSnapshot, ServerMessage, TablePing, Viewer } from '@shared/play/protocol';
 import { flipPieceInState } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -1618,6 +1618,72 @@ describe('pointer moves', () => {
     } satisfies ActivityChange['carries'][number];
     return { source, carry };
   };
+
+  test('a ping goes out from the table under the cursor, shows at once here, and waits out the interval before the next', async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    const pings = vi.fn();
+    client.subscribePings(pings);
+
+    client.publishPointer([1, 0.38, 1]);
+    expect(client.ping()).toBe(false);
+    client.publishPointer([1, 0.38, 1], [1, 0.132, 1]);
+    expect(client.ping()).toBe(true);
+    expect(client.ping()).toBe(true);
+    await vi.advanceTimersByTimeAsync(400);
+    client.ping();
+
+    expect(socket().sent.filter((message) => message.type === 'ping')).toEqual([
+      { type: 'ping', position: [1, 0.132, 1] },
+      { type: 'ping', position: [1, 0.132, 1] },
+    ]);
+    expect(pings).toHaveBeenCalledTimes(2);
+    expect(pings).toHaveBeenLastCalledWith(
+      expect.objectContaining({ connectionId: viewer.connectionId, color: viewer.color, position: [1, 0.132, 1] })
+    );
+  });
+
+  test('a connection that cannot carry pings, like the homepage table, leaves the ping key unused', async () => {
+    const subscription = new GameSubscription('fixture-one', ticket, runtime);
+    const send = subscription.send.bind(subscription);
+    vi.spyOn(subscription, 'send').mockImplementation((message) => message.type !== 'ping' && send(message));
+    const client = new TableSession('fixture-one', subscription, runtime);
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    socket().open();
+    authorize(initialSnapshot(), viewer);
+    socket().deliver(view({ sequence: 1 }));
+    const pings = vi.fn();
+    client.subscribePings(pings);
+
+    client.publishPointer([1, 0.38, 1], [1, 0.132, 1]);
+
+    expect(client.ping()).toBe(false);
+    expect(pings).not.toHaveBeenCalled();
+  });
+
+  test("another player's ping reaches the ping listeners and leaves the table as it was", async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    const before = client.getSnapshot();
+    const tableListener = vi.fn();
+    const pings = vi.fn();
+    client.subscribe(tableListener);
+    client.subscribePings(pings);
+    const ping = {
+      connectionId: 'other',
+      viewerSeat: 'atreides',
+      displayName: 'Two',
+      color: '#000',
+      position: [2, 0.38, 0],
+    } satisfies TablePing;
+
+    socket().deliver({ type: 'ping', ping });
+
+    expect(pings).toHaveBeenCalledWith(ping);
+    expect(client.getSnapshot()).toBe(before);
+    expect(tableListener).not.toHaveBeenCalled();
+  });
 
   test("another player's pointer moving leaves the table as it was and tells only the pointer listeners", async () => {
     const client = await connected();

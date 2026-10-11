@@ -8,7 +8,7 @@ import type { Affordance, DraftMove, TablePiece, TableState, Vector3Tuple } from
 import { isSeatAction } from '@shared/play/participation';
 import { rearrangeable } from '@shared/play/peeking';
 import type { Peek } from '@shared/play/peeking';
-import { carryPieceId, tableForViewer } from '@shared/play/protocol';
+import { carryPieceId, TABLE_PING_INTERVAL_MS, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
   GameSnapshot,
@@ -17,6 +17,7 @@ import type {
   PublicCarry,
   PublicPointer,
   ServerMessage,
+  TablePing,
 } from '@shared/play/protocol';
 import { isRemovalAction } from '@shared/play/removal';
 import { SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
@@ -277,10 +278,18 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
   };
 }
 
+/* A position the table can hold, or null for one off it. */
+function onTable(position: Vector3Tuple | null) {
+  return position && tablePositionSchema.safeParse(position).success ? position : null;
+}
+
 /** Owns local interactions and presentation over the subscribed server view. */
 export class TableSession {
   private readonly listeners = new Set<() => void>();
   private readonly pointerListeners = new Set<() => void>();
+  private readonly pingListeners = new Set<(ping: TablePing) => void>();
+  /* When this page last pinged, by its monotonic clock; -Infinity before the first. */
+  private pingedAt = Number.NEGATIVE_INFINITY;
   private readonly tableListeners = new Set<() => void>();
   /* The table as the last update derived it, which the session itself and the scene read. */
   private table: TableProjection | null = null;
@@ -305,6 +314,8 @@ export class TableSession {
   private flipping = new Map<string, number>();
   private readonly pendingFlips = new Map<string, string>();
   private pointer: Vector3Tuple | null = null;
+  /* The table, board or rim surface under the cursor, where a ping lands so every viewer sees it at the same spot. */
+  private pingPoint: Vector3Tuple | null = null;
   private cached: ConnectionView;
   private catalogueRequestId?: string;
   private catalogueSelection?: SpawnSelection;
@@ -452,6 +463,55 @@ export class TableSession {
     return () => this.pointerListeners.delete(listener);
   };
   getPointers = () => this.shownPointers;
+  /* Each ping as it happens, this page's own included: nothing keeps them, so a listener hears only what comes after it subscribes. */
+  subscribePings = (listener: (ping: TablePing) => void) => {
+    this.pingListeners.add(listener);
+    return () => this.pingListeners.delete(listener);
+  };
+  private emitPing(ping: TablePing) {
+    for (const listener of this.pingListeners) {
+      listener(ping);
+    }
+  }
+  /**
+   * Pings the table where the cursor is, for everyone, and answers whether the ping key was used.
+   * It was not when there is no cursor on the table, or the connection cannot carry pings, as on the homepage's table.
+   * A ping sooner than the interval after the last is skipped, though the key still counts as used.
+   */
+  ping = (): boolean => {
+    const ping = this.pingHere();
+    if (!ping) {
+      return false;
+    }
+    const now = this.runtime.monotonicNow();
+    if (now - this.pingedAt < TABLE_PING_INTERVAL_MS) {
+      return true;
+    }
+    if (!this.send({ type: 'ping', position: ping.position })) {
+      return false;
+    }
+    this.pingedAt = now;
+    this.emitPing(ping);
+    return true;
+  };
+  /* This page's ping on the table surface under its cursor, while it has a cursor on the table and may act. */
+  private pingHere(): TablePing | null {
+    if (!this.canAct()) {
+      return null;
+    }
+    const viewer = this.viewer;
+    if (!viewer || this.pingPoint === null) {
+      return null;
+    }
+    const { connectionId, viewerSeat, displayName, color } = viewer;
+    return { connectionId, viewerSeat, displayName, color, position: this.pingPoint };
+  }
+  /* A ping changes nothing on the table, so it skips the update every other message makes. */
+  private receivePing(ping: TablePing) {
+    if (this.status === 'authorized' && this.current()) {
+      this.emitPing(ping);
+    }
+  }
   private emitPointers() {
     const next = this.status === 'authorized' ? this.activityForView().pointers : [];
     if (
@@ -1063,7 +1123,9 @@ export class TableSession {
       this.restore();
       this.emit();
     }
-    const stop = this.subscription.subscribe((event) => this.receive(event));
+    const stop = this.subscription.subscribe((event) =>
+      event.type === 'ping' ? this.receivePing(event.ping) : this.receive(event)
+    );
     const stopVisibility = this.runtime.onHidden(() => {
       this.publishPointer(null);
       this.cancelDraft();
@@ -1447,14 +1509,16 @@ export class TableSession {
     this.flipping.delete(pieceId);
     this.emit();
   };
-  publishPointer = (position: Vector3Tuple | null) => {
+  /** Publishes the cursor, and keeps `surface`, the table under it, for a ping to mark. */
+  publishPointer = (position: Vector3Tuple | null, surface: Vector3Tuple | null = null) => {
+    this.pingPoint = position ? onTable(surface) : null;
     if (!this.canAct()) {
       this.pointer = null;
       clearTimeout(this.pointerTimer);
       this.pointerTimer = undefined;
       return;
     }
-    this.pointer = position && tablePositionSchema.safeParse(position).success ? position : null;
+    this.pointer = onTable(position);
     if (this.pointer === null) {
       clearTimeout(this.pointerTimer);
       this.pointerTimer = undefined;
