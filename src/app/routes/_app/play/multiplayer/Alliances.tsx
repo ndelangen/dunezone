@@ -6,7 +6,6 @@ import { factionTokenStackKey } from '@shared/play/factionToken';
 import { rosterSeat } from '@shared/play/schema';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { Surface } from '@ui/surface/Surface';
 import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
@@ -29,58 +28,9 @@ function factionList(names: Readonly<Record<string, string>>, ids: readonly stri
   return labels.length < 2 ? (labels[0] ?? '') : `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}`;
 }
 
-/* Offers waiting on the viewer's faction while the game is in play. */
 /** Alliances show while the game is in play and, read-only, once it is finished, so everyone still sees who was allied at the end. */
 export function showsAlliances(stage: string | undefined) {
   return stage === 'play' || stage === 'finished';
-}
-
-function offersToViewer(table: TableProjection) {
-  const own = viewerFaction(table);
-  if (!own || table.snapshot.stage !== 'play') {
-    return [];
-  }
-  return table.snapshot.alliances?.offers.filter((offer) => offer.to === own) ?? [];
-}
-
-/** Offers made to the viewer's faction, each answered here in the decision bar. */
-export function AllianceDecisionBar({ client, table }: Props) {
-  const offers = offersToViewer(table);
-  if (!offers.length) {
-    return null;
-  }
-  const names = snapshotFactionLabels(table.snapshot);
-  return (
-    <Surface padding="sm">
-      {offers.map((offer) => {
-        const allies = alliesOf(table.snapshot.alliances, offer.from);
-        return (
-          <Group key={offer.from} gap="sm" wrap="wrap">
-            <TopicIcon topic="alliance" size={20} />
-            <Text size="sm" fw={700}>
-              {names[offer.from] ?? offer.from} offers you an alliance
-              {allies.length ? ` (with ${factionList(names, allies)})` : ''}
-            </Text>
-            <Button
-              size="compact-sm"
-              disabled={!table.canInteract}
-              onClick={() => client.command({ kind: 'alliance-accept', factionId: offer.from, offer: offer.id })}
-            >
-              Accept
-            </Button>
-            <Button
-              size="compact-sm"
-              variant="subtle"
-              disabled={!table.canInteract}
-              onClick={() => client.command({ kind: 'alliance-decline', factionId: offer.from, offer: offer.id })}
-            >
-              Decline
-            </Button>
-          </Group>
-        );
-      })}
-    </Surface>
-  );
 }
 
 /** A player's alliance on their Info tab, with what the viewer can do about it: offer, accept or decline, withdraw, or break an alliance. */

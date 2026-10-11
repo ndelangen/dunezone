@@ -96,7 +96,10 @@ export const IncomingOffer = meta.story({
   beforeEach: install(() => productTransport(VIEWER, alliancesSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Accept' }, { timeout: 30_000 }));
+    /* An offer flows across the table as arcs; it is answered in the Alliances tab. */
+    await userEvent.click((await page.findAllByRole('tab', { name: 'Alliances' }, { timeout: 30_000 }))[0]!);
+    expect(page.queryByText(/offers you an alliance$/)).toBeNull();
+    await userEvent.click(await page.findByRole('button', { name: 'Accept' }));
     expect(lastCommand()).toMatchObject({
       action: { kind: 'alliance-accept', factionId: faction(session.transport.snapshot, 'seat-1'), offer: 0 },
     });
@@ -153,7 +156,6 @@ export const FinishedReadOnly = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     expect(await page.findByRole('img', { name: /are allied/ }, { timeout: 30_000 })).toBeVisible();
-    expect(page.queryByRole('button', { name: 'Accept' })).toBeNull();
     await userEvent.click((await page.findAllByRole('tab', { name: 'Alliances' }))[0]!);
     expect(await page.findByText('Offers you an alliance')).toBeVisible();
     expect(page.queryByRole('button', { name: /Offer alliance|Accept|Withdraw offer|Break alliance/ })).toBeNull();

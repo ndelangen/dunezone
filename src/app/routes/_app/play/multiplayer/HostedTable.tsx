@@ -30,7 +30,7 @@ import { GameTable } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
-import { AllianceDecisionBar, AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
+import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { BidderToolbar } from './BidderToolbar';
@@ -848,7 +848,6 @@ function ConnectedTable({
             decisionBar={
               <Stack data-decision-bar gap="xs">
                 <ResultDecisionBar client={client} table={table} />
-                <AllianceDecisionBar client={client} table={table} />
                 <RemovalDecisionBar
                   votes={removalVotes}
                   onOpen={(vote) =>
