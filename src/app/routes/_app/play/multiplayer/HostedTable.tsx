@@ -827,7 +827,11 @@ function stageStatus({
 }
 
 /** The Result tab, while a declared result or an ending game asks the table to settle it. */
-function resultTabs({ client, table }: Readonly<{ client: TableSession; table: TableProjection }>) {
+function resultTabs({
+  client,
+  table,
+  error,
+}: Readonly<{ client: TableSession; table: TableProjection; error: string | null }>) {
   return resultFocus(table)
     ? [
         {
@@ -835,7 +839,12 @@ function resultTabs({ client, table }: Readonly<{ client: TableSession; table: T
           label: 'Result',
           topic: 'result' as const,
           ...RESULT_GUIDANCE,
-          content: <ResultControls client={client} table={table} />,
+          content: (
+            <>
+              {error && <FormError title="From the table">{error}</FormError>}
+              <ResultControls client={client} table={table} />
+            </>
+          ),
         },
       ]
     : [];
@@ -1006,7 +1015,7 @@ function ConnectedTable({
                           },
                         ]
                       : []),
-                    ...resultTabs({ client, table }),
+                    ...resultTabs({ client, table, error }),
                     {
                       key: 'shared',
                       label: 'Shared inventory',

@@ -354,12 +354,17 @@ export function GameMenu({
         <ConfirmDeleteMenuItem
           label={seated ? leavingLabel(table) : 'Give up your seat'}
           holdingVerb="Leaving"
-          disabled={!seated || table.seatCommandPending || table.reconnecting}
+          disabled={!seated || seatLocked(table)}
           onConfirm={() => client.command({ kind: 'seat-depart' })}
         />
       </Menu.Dropdown>
     </Menu>
   );
+}
+
+/** A seat command waits for the last one and for the live table; history is read only, so it would be refused there. */
+function seatLocked(table: TableProjection) {
+  return Boolean(table.seatCommandPending || table.reconnecting || table.playback || table.historyPending);
 }
 
 /**
