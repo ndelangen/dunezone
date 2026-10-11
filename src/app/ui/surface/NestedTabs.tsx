@@ -365,7 +365,7 @@ function NestedTabsTooltip({
   description?: string;
   help?: string;
   isScrolling: boolean;
-  children: ReactElement<Pick<HTMLAttributes<HTMLElement>, 'onFocus' | 'onBlur'>>;
+  children: ReactElement<Pick<HTMLAttributes<HTMLElement>, 'onFocus' | 'onBlur' | 'onKeyDown'>>;
 }) {
   const [shown, setShown] = useState<'closed' | 'short' | 'help'>('closed');
   const openTimer = useRef(0);
@@ -449,6 +449,15 @@ function NestedTabsTooltip({
         onBlur: (event: FocusEvent<HTMLElement>) => {
           children.props.onBlur?.(event);
           release('focus');
+        },
+        /* The controlled tooltip loses Mantine's own Escape, so it is restored here: the tooltip closes, focus stays, and the next hover or focus opens it again. */
+        onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+          children.props.onKeyDown?.(event);
+          if (event.key === 'Escape') {
+            engaged.current = { pointer: false, focus: false };
+            clearTimers();
+            setShown('closed');
+          }
         },
       })}
     </Tooltip>

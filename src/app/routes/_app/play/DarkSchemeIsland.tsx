@@ -11,6 +11,8 @@ import { appContentTheme } from '@ui/theme';
 import type { ReactNode } from 'react';
 import { useLayoutEffect, useMemo, useState } from 'react';
 
+import './DarkSchemeIsland.css';
+
 const ISLAND_SELECTOR = '[data-scheme-dark]';
 
 /**

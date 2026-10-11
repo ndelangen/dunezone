@@ -120,7 +120,7 @@ review checks that line before the merge.
 
 Play's tooltips are raised rather than glass: the app's tooltip glass is the dock's own navy, so a
 tooltip over the panel vanished into it (Norbert, #2048). The island sets `--tip-surface`,
-`--tip-ring` and `--tip-title` in `tokens.css`, and the app's one dark tooltip rule reads them with
+`--tip-ring` and `--tip-title` in `DarkSchemeIsland.css` (not `tokens.css`, which the faction sheet renderer bundles), and the app's one dark tooltip rule reads them with
 the glass as fallback, so every tooltip on the island is a slate card with a light ring and shadow, a
 titled one takes the amber title, and nothing outside the island changes. The dock's guidance lives
 in its tabs, as `NestedTabs` items carry it: hovering a tab shows its name over a one-line

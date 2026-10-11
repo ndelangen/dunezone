@@ -578,5 +578,13 @@ export const TabGuidance = meta.story({
     );
     await userEvent.unhover(spice);
     await waitForFrame(() => expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument());
+    /* Escape dismisses the tooltip and leaves focus on the tab. */
+    await userEvent.hover(spice);
+    await waitForFrame(() => expect(storyDocument.getByRole('tooltip')).toBeVisible());
+    spice.focus();
+    await userEvent.keyboard('{Escape}');
+    await waitForFrame(() => expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument());
+    await expect(spice).toHaveFocus();
+    await userEvent.unhover(spice);
   },
 });
