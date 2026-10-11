@@ -100,6 +100,8 @@ export const gameSnapshotSchema = z.object({
   /* The piece the viewer's faction is peeking at, faces showing; no other viewer's frame carries it. */
   peek: peekSchema.nullable().optional(),
   factionArtwork: factionArtworkSchema.optional(),
+  /* Every card face in the game, for the page to load before any is shown; sorted, so it ties no face to a card. */
+  cardFaces: z.array(z.string().url()).max(4096).optional(),
   /* Wire key, kept as `combatFaces` for clients and recordings; the glossary says battle. */
   combatFaces: z.record(z.string(), z.array(battleFaceSchema)).optional(),
   battleResults: z.array(battleResultSchema).optional(),

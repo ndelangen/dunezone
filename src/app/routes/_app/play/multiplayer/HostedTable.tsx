@@ -21,6 +21,7 @@ import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscrip
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import { usePreloadedCardFaces } from '../../../../widgets/tabletop/cardFacePreload';
 import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
@@ -1023,6 +1024,7 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
   );
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);
+  usePreloadedCardFaces(view.table?.snapshot.cardFaces);
   if (!view.table) {
     return (
       <TableWait status={view.error ?? 'Connecting to the hosted table...'} connection={view.status}>

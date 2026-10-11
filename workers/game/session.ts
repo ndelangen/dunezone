@@ -66,7 +66,7 @@ import { SetupSupply } from './setup';
 import { initialSetup } from './setup-progress';
 import { SpiceLedger } from './spiceLedger';
 import type { StoredSnapshot } from './state';
-import { internalAction, internalPieceId, RoomProjection, storedSnapshotSchema } from './state';
+import { internalAction, internalPieceId, RoomProjection, storedSnapshotSchema, withKnownCardFaces } from './state';
 import { Swapping } from './swapping';
 
 /** The opening table records that the creator holds the first seat, so the log starts with the seating and not after it. */
@@ -833,9 +833,12 @@ export class GameSession {
   private commitTable(viewer: Viewer, message: TableMessage, contents?: StoredSpawnContents) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    const next = revealPlacedPredictions(
-      this.withRoster(storedSnapshotSchema.parse(this.nextTableSnapshot(viewer, message, contents))),
-      Date.now()
+    const next = withKnownCardFaces(
+      room.snapshot,
+      revealPlacedPredictions(
+        this.withRoster(storedSnapshotSchema.parse(this.nextTableSnapshot(viewer, message, contents))),
+        Date.now()
+      )
     );
     const transfer = this.spiceLedger.describe(
       room.snapshot,

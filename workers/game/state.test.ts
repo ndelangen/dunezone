@@ -8,7 +8,7 @@ import { composeTurn } from '../../src/shared/play/phases';
 import { factionSupply, piece, place } from '../../src/shared/play/setupSupply';
 import { stackPreviewPositionFor } from '../../src/shared/play/tableGeometry';
 import { applyDraftToState } from '../../src/shared/play/tableState';
-import { RoomProjection, storedSnapshotSchema } from './state';
+import { RoomProjection, storedSnapshotSchema, withKnownCardFaces } from './state';
 
 const TRAITOR_BACK = 'https://table.test/published/cardback-presets/traitor/cardback.jpg';
 
@@ -281,4 +281,37 @@ test('every viewer, spectators included, sees how many Treachery cards each seat
 
   expect(projection.snapshot(battle('preparing'), 'fremen').handCounts).toEqual({ atreides: 1, fremen: 0 });
   expect(projection.snapshot(battle('revealed'), 'fremen').handCounts).toEqual({ atreides: 0, fremen: 0 });
+});
+
+test('every viewer is sent the same sorted card faces, and a card taken out of the game stays among them', () => {
+  const initial = storedSnapshotSchema.parse(initialSnapshot());
+  const face = (name: string) => `https://table.test/published/treachery/${name}.jpg`;
+  const stored = {
+    ...initial,
+    table: {
+      ...initial.table,
+      pieces: initial.table.pieces.map((candidate) =>
+        candidate.kind === 'card'
+          ? {
+              ...candidate,
+              items: candidate.items.map((item, index) => ({
+                ...item,
+                artwork: { front: face(index % 2 ? 'karama' : 'lasgun'), back: face('back'), type: 'treachery' },
+              })),
+            }
+          : candidate
+      ),
+    },
+  };
+  const projection = new RoomProjection('secret');
+  const faces = projection.snapshot(stored).cardFaces;
+  expect(faces).toEqual([face('karama'), face('lasgun')]);
+  expect(projection.snapshot(stored, 'harkonnen').cardFaces).toBe(faces);
+
+  const withoutCards = {
+    ...stored,
+    table: { ...stored.table, pieces: stored.table.pieces.filter((candidate) => candidate.kind !== 'card') },
+  };
+  expect(projection.snapshot(withoutCards).cardFaces).toEqual([]);
+  expect(projection.snapshot(withKnownCardFaces(stored, withoutCards)).cardFaces).toEqual(faces);
 });
