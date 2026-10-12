@@ -853,15 +853,30 @@ async function openTab(who, name) {
     Replay: 'History',
   };
   const tab = who.page.getByRole('tab', { name, exact: true });
-  if ((await tab.count()) === 0 && groups[name]) {
-    const group = who.page
-      .getByRole('tablist', { name: 'Controls' })
-      .getByRole('tab', { name: groups[name], exact: true });
-    await group.click();
+  /*
+   * The dock opens a phase's own tab once as the phase begins (Spice for Spice collection, Hand for Bidding), and that
+   * can land just after this looks, moving the dock to another group. So the group is clicked again until the tab stays.
+   */
+  const deadline = Date.now() + 30_000;
+  for (;;) {
+    if ((await tab.count()) > 0) {
+      /* A moment's grace lets a phase's own tab, opened as the phase began, take the dock first. */
+      await delay(400);
+      if ((await tab.count()) > 0) {
+        break;
+      }
+    }
+    if (Date.now() > deadline) {
+      throw new Error(`${who.label} has no ${name} tab.`);
+    }
+    if (groups[name]) {
+      await who.page
+        .getByRole('tablist', { name: 'Controls' })
+        .getByRole('tab', { name: groups[name], exact: true })
+        .click();
+    }
+    await tab.waitFor({ state: 'attached', timeout: 2000 }).catch(() => {});
   }
-  await tab.waitFor({ state: 'attached' }).catch((error) => {
-    throw new Error(`${who.label} has no ${name} tab: ${error.message}`);
-  });
   /* A short window can push the lower tabs below the panel's default height. */
   const box = await tab.boundingBox();
   if (!box || box.y + box.height > who.page.viewportSize().height) {
