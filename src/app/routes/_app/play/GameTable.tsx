@@ -350,7 +350,7 @@ function TableViewDial({
 type StageFrame = Readonly<{
   /** The header's word in place of the turn and phase. */
   word?: string;
-  /** The last tab: the fixture's full Table tab, or play's Phase tab with its storm controls named for assistive technology only. */
+  /** The Game group's last stage control: the fixture's full Table tab, or play's Phase tab with its storm controls named for assistive technology only. */
   tableTab?: 'Table' | 'Phase';
 }>;
 
@@ -358,7 +358,7 @@ type StageFrame = Readonly<{
  * What a Stage changes in the header and the panel.
  * The fixture has no Stage and keeps its full Table tab.
  * Play keeps the turn and phase in the header and names that tab Phase.
- * A finished game shows its word but keeps the Phase tab, where its playback lives.
+ * A finished game shows its word and keeps the final phase readable.
  * Every other stage shows its word in the header and brings its own tabs.
  */
 function stageFrame(stage: GameSnapshot['stage']): StageFrame {
@@ -381,9 +381,9 @@ function stageFrame(stage: GameSnapshot['stage']): StageFrame {
 }
 
 /**
- * The controls panel in the accepted shape (#1147): one rail of tabs beside the content they open.
- * The host's tabs come first;
- * the fixture's own trackers, selected piece and storm controls are the last tab.
+ * The controls panel groups personal resources, game actions, shared controls and history in two levels.
+ * Each group remembers its last destination;
+ * the current stage and phase join the Game group.
  * The per-player tabs are the host's `playerPanel`, in the pane beside this one.
  */
 function TableControlsPanel({
@@ -404,7 +404,7 @@ function TableControlsPanel({
     StageFrame
 >) {
   const tableTab: PanelTab = {
-    key: 'table',
+    key: 'phase',
     label: tableTabLabel ?? 'Table',
     topic: 'controls',
     ...tableGuidance,
@@ -417,52 +417,83 @@ function TableControlsPanel({
       </>
     ),
   };
-  const tabs: readonly PanelTab[] = panelContent
-    ? [
-        /* The stage panel is the drafting panel, whose row dividers meet the pane's sides. */
-        {
-          key: 'stage',
-          label: word ?? 'Game',
-          topic: 'controls',
-          content: panelContent,
-          padding: false,
-        },
-        ...panelTabs,
-      ]
-    : [...panelTabs, ...(tableTabLabel ? [tableTab] : [])];
-  const opening = openOn.map((key) => tabs.find((tab) => tab.key === key)).find(Boolean) ?? tabs[0];
-  const [path, setPath] = useReducer((_: string[], next: string[]) => next, [opening?.key ?? tableTab.key]);
-  /* The stage tab arriving opens it over the chosen tab, so a spectator seated during drafting lands on the stage, not on the Log they watched from (#1666). The chosen tab is kept beneath: once the stage leaves, as in playback stepping into play, it opens again. */
-  const hasStage = Boolean(panelContent);
-  const [stageShown, setStageShown] = useState(hasStage);
-  const [stageOpened, setStageOpened] = useState(false);
-  if (hasStage !== stageShown) {
-    setStageShown(hasStage);
-    setStageOpened(hasStage);
-  }
-  /* The stage tab is opened as that overlay too, so tapping it never loses the tab beneath. */
-  const choose = (next: string[]) => {
-    const stage = hasStage && next[0] === 'stage';
-    setStageOpened(stage);
-    if (!stage) {
-      setPath(next);
+  const stageTab: PanelTab | null = panelContent
+    ? {
+        key: 'stage',
+        label: word ?? 'Game',
+        topic: 'controls',
+        content: panelContent,
+        padding: false,
+      }
+    : null;
+  const tabs = panelTabs
+    .map((tab) =>
+      tab.key === 'game'
+        ? {
+            ...tab,
+            subtabs: [...(stageTab ? [stageTab] : []), ...(tableTabLabel ? [tableTab] : []), ...(tab.subtabs ?? [])],
+          }
+        : tab
+    )
+    .filter((tab) => !tab.subtabs || tab.subtabs.length > 0);
+  /* Focus and opening preferences name a destination, whether it is a group or one of its children. */
+  const pathTo = (key: string) => {
+    for (const tab of tabs) {
+      if (tab.key === key) {
+        return [tab.key];
+      }
+      const child = tab.subtabs?.find((item) => item.key === key);
+      if (child) {
+        return [tab.key, child.key];
+      }
     }
+    return undefined;
   };
-  /* Each focus token opens its tab once, during render as React adjusts state from a changed prop. */
-  const [focused, setFocused] = useState<string | null>(null);
-  if (focusTab && focusTab.token !== focused && tabs.some((tab) => tab.key === focusTab.key)) {
-    setFocused(focusTab.token);
-    choose([focusTab.key]);
+  const opening = openOn.map(pathTo).find(Boolean) ?? [tabs[0]?.key ?? 'game'];
+  const hasStage = Boolean(stageTab);
+  const [selection, select] = useReducer(
+    (
+      state: {
+        path: string[];
+        remembered: Record<string, string>;
+        stageShown: boolean;
+        stageOpened: boolean;
+        focused: string | null;
+      },
+      patch: Partial<typeof state>
+    ) => ({ ...state, ...patch }),
+    { path: opening, remembered: {}, stageShown: hasStage, stageOpened: false, focused: null }
+  );
+  /* A newly seated drafter sees their stage. The previous destination remains underneath for playback and later stages. */
+  if (hasStage !== selection.stageShown) {
+    select({ stageShown: hasStage, stageOpened: hasStage });
   }
-  const chosen = stageOpened ? undefined : tabs.find((tab) => tab.key === path[0]);
-  /* The stage overlay shows the stage tab, never the opening one, which only stands in when no tab is chosen. */
-  const active = chosen ?? (stageOpened ? tabs[0] : opening) ?? tableTab;
-  const subtab = (chosen && active.subtabs?.find((tab) => tab.key === path[1])) ?? active.subtabs?.[0];
-  if (panelContent && panelTabs.length === 0) {
-    return <div className="seated-stage-panel">{panelContent}</div>;
+  const choose = (next: string[], focused = selection.focused) => {
+    const group = next[0]!;
+    const child = next[1] ?? selection.remembered[group];
+    const path = child ? [group, child] : [group];
+    const stageOpened = path[1] === 'stage';
+    select({
+      focused,
+      stageOpened,
+      ...(!stageOpened
+        ? {
+            path,
+            remembered: child ? { ...selection.remembered, [group]: child } : selection.remembered,
+          }
+        : {}),
+    });
+  };
+  /* A battle focuses its nested planner only once; subsequent updates preserve the player's choice. */
+  const focusPath = focusTab && pathTo(focusTab.key);
+  if (focusTab && focusTab.token !== selection.focused && focusPath) {
+    choose(focusPath, focusTab.token);
   }
+  const path = selection.stageOpened && hasStage ? pathTo('stage')! : selection.path;
+  const active = tabs.find((tab) => tab.key === path[0]) ?? tabs.find((tab) => tab.key === opening[0]) ?? tabs[0];
+  const subtab = active?.subtabs?.find((tab) => tab.key === path[1]) ?? active?.subtabs?.[0];
   /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the decision bar stands alone. */
-  if (tabs.length === 0) {
+  if (!active) {
     return null;
   }
   return (

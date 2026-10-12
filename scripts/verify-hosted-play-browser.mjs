@@ -817,7 +817,29 @@ async function converged(peers) {
 }
 /** Opens one tab of the controls panel unless it is already the current one. */
 async function openTab(who, name) {
+  const groups = {
+    Hand: 'Yours',
+    'Hidden zone': 'Yours',
+    Spice: 'Yours',
+    Setup: 'Game',
+    Phase: 'Game',
+    Battle: 'Game',
+    Alliances: 'Game',
+    'Shared inventory': 'Table',
+    Settings: 'Table',
+    'Game log': 'History',
+    Audit: 'History',
+    Battles: 'History',
+    'Spice transfers': 'History',
+    Replay: 'History',
+  };
   const tab = who.page.getByRole('tab', { name, exact: true });
+  if ((await tab.count()) === 0 && groups[name]) {
+    const group = who.page
+      .getByRole('tablist', { name: 'Controls' })
+      .getByRole('tab', { name: groups[name], exact: true });
+    await group.click();
+  }
   await tab.waitFor({ state: 'attached' }).catch((error) => {
     throw new Error(`${who.label} has no ${name} tab: ${error.message}`);
   });
@@ -1656,12 +1678,17 @@ async function verifyRegular() {
      is declared before the other player enters read-only playback, where Ready is disabled. */
   await readyBeforeAdvance(a, b);
   const beforePlayback = a.view().snapshot.revision;
-  await openTab(b, 'Phase');
+  await openTab(b, 'Replay');
   await b.page.getByRole('button', { name: 'Replay from start' }).click();
   await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
   /* A real game's first checkpoints are its stages before play, shown with the playback bar; stepping reaches Turn 1. */
   let checkpoint = 0;
-  while ((await b.page.getByRole('tab', { name: 'Phase', exact: true }).count()) === 0) {
+  while (
+    (await b.page
+      .locator('.seated-header')
+      .getByText(/^Turn 1 of/u)
+      .count()) === 0
+  ) {
     const later = b.page.getByRole('button', { name: 'Later phase' });
     /* The last checkpoint disables the button; a click there would wait out Playwright's timeout instead of saying why. */
     assert.ok(await later.isEnabled(), `Playback ran out of checkpoints at ${checkpoint} before reaching play.`);
