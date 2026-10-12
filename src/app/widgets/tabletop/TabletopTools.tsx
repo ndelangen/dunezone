@@ -6,12 +6,14 @@ import { isSpicePiece } from '@shared/play/spice';
 import { isTroopStack } from '@shared/play/troop';
 import type { RefObject } from 'react';
 
+import { Token as FactionToken } from '@game/assets/faction/token/Token';
+
 import { peekableToken } from './peekableToken';
 import { PeekView } from './PeekView';
 import { PieceCloseUp } from './PieceCloseUp';
 import { pieceHasMenu } from './pieceMenu';
 import { RadialMenu } from './RadialMenu';
-import type { RadialAction, RadialTarget } from './RadialMenu';
+import type { RadialAction } from './RadialMenu';
 import { useTabletopReader, useTabletopSelector } from './TabletopContext';
 
 export type PieceMenuAnchor = { pieceId: string; x: number; y: number; touch: boolean };
@@ -81,6 +83,25 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
             onSelect: () => deckControls?.draw(menuPiece.id),
           },
           {
+            key: 'deal',
+            label: 'Deal a card',
+            targetsLabel: 'Deal 1 card to…',
+            icon: 'deal',
+            disabled: !deckAvailable || !deckControls?.recipients.length,
+            targets: (deckControls?.recipients ?? []).map((faction) => ({
+              key: faction.id,
+              label: `Deal 1 to ${faction.name}`,
+              name: faction.name,
+              face: faction.artwork ? (
+                <FactionToken logo={faction.artwork.logo} background={faction.artwork.background} />
+              ) : (
+                faction.name.slice(0, 2)
+              ),
+              disabled: !deckAvailable,
+              onSelect: () => deckControls?.draw(menuPiece.id, faction.id),
+            })),
+          },
+          {
             key: 'shuffle',
             label: 'Shuffle',
             icon: 'shuffle',
@@ -106,15 +127,6 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
       },
     });
   }
-  const targets: RadialTarget[] = deck
-    ? (deckControls?.recipients ?? []).map((faction) => ({
-        key: faction.id,
-        label: `Deal 1 to ${faction.name}`,
-        short: faction.name,
-        disabled: !deckAvailable,
-        onSelect: () => deckControls?.draw(menuPiece.id, faction.id),
-      }))
-    : [];
   return (
     <RadialMenu
       key={menuPiece.id}
@@ -123,7 +135,6 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
       x={pieceMenu.x}
       y={pieceMenu.y}
       actions={actions}
-      targets={targets}
       onClose={onClose}
     />
   );

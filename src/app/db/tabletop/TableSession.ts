@@ -124,7 +124,8 @@ export type TableProjection = {
     collect(pieceId: string): void;
   };
   deckControls?: {
-    recipients: { id: string; name: string }[];
+    /* Each faction a card can be dealt to, with its token artwork where the room published one. */
+    recipients: { id: string; name: string; artwork?: NonNullable<GameSnapshot['factionArtwork']>[string] }[];
     draw(pieceId: string, recipient?: string): void;
     shuffle(pieceId: string): void;
   };
@@ -669,7 +670,11 @@ export class TableSession {
       deckControls:
         canHandleTable && this.subscription.supportsCommand('deck-draw')
           ? {
-              recipients: Object.entries(snapshotFactionLabels(displayed)).map(([id, name]) => ({ id, name })),
+              recipients: Object.entries(snapshotFactionLabels(displayed)).map(([id, name]) => ({
+                id,
+                name,
+                artwork: displayed.factionArtwork?.[id],
+              })),
               draw: (pieceId, recipient) => this.command({ kind: 'deck-draw', pieceId, recipient }),
               shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
             }

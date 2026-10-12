@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 
 import styles from './RadialMenu.module.css';
 
-export type RadialIcon = 'peek' | 'draw' | 'shuffle' | 'reserve' | 'delete';
+export type RadialIcon = 'peek' | 'draw' | 'deal' | 'shuffle' | 'reserve' | 'delete' | 'back';
 
 export type RadialAction = Readonly<{
   key: string;
@@ -17,14 +17,23 @@ export type RadialAction = Readonly<{
   shortcut?: string;
   disabled?: boolean;
   /** Plain items act on click; a held item is the destructive one, which fires after the app's five-second hold. */
-  onSelect: () => void;
+  onSelect?: () => void;
   held?: boolean;
+  /** Stepping into this item replaces the ring with a ring of these choices, as Deal does with the factions. */
+  targets?: readonly RadialTarget[];
+  /** The caption over the stepped-into ring, for example "Deal 1 card to…". */
+  targetsLabel?: string;
 }>;
 
+/** One choice in a stepped-into ring, such as a faction to deal to. */
 export type RadialTarget = Readonly<{
   key: string;
+  /** The accessible name, for example "Deal 1 to Fremen". */
   label: string;
-  short: string;
+  /** The caption while pointed at, for example "Fremen". */
+  name: string;
+  /** What the disc shows: the faction's token, or a stand-in. */
+  face: ReactNode;
   disabled?: boolean;
   onSelect: () => void;
 }>;
@@ -51,14 +60,28 @@ const ICONS: Record<RadialIcon, ReactNode> = {
       <path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" />
     </>
   ),
+  deal: (
+    <>
+      <rect x="3" y="6" width="10" height="14" rx="2" />
+      <path d="M14 9h7M18 6l3 3-3 3" />
+    </>
+  ),
   delete: <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
+  back: <path d="M15 6l-6 6 6 6" />,
 };
 
 /* Six places around the pointer, a sixth of a turn apart, starting at the top. The destructive action always takes the last one, top left, so a hand learns where it is and never meets it by accident. */
 const SLOTS = 6;
 const RING_RADIUS = 66;
-/* How far the ring keeps from the window's edges, so the targets below it stay on screen. */
-const EDGE = { side: 200, top: 110, bottom: 240 };
+/* How far the ring keeps from the window's edges, room for the widest stepped-into ring and its caption. */
+const EDGE = { side: 190, top: 170, bottom: 170 };
+/* A stepped-into ring grows until its discs clear each other; past twelve the discs shrink a little so eighteen still make one ring. */
+const TARGET_GAP = 6;
+
+function targetRing(count: number) {
+  const disc = count > 12 ? 38 : 42;
+  return { disc, radius: Math.max(RING_RADIUS, (count * (disc + TARGET_GAP)) / (2 * Math.PI)) };
+}
 
 function slotAngle(slot: number) {
   return -Math.PI / 2 + (slot * 2 * Math.PI) / SLOTS;
@@ -81,12 +104,18 @@ type Caption = { text: string; shortcut?: string; tone?: 'danger' };
 function HeldItem({
   action,
   style,
+  hidden,
   onCaption,
-}: Readonly<{ action: RadialAction; style: CSSProperties; onCaption: (caption: Caption | null) => void }>) {
+}: Readonly<{
+  action: RadialAction;
+  style: CSSProperties;
+  hidden: boolean;
+  onCaption: (caption: Caption | null) => void;
+}>) {
   const { holding, remaining, handlers } = useHoldToConfirm({
     pending: false,
     blocked: Boolean(action.disabled),
-    onConfirm: action.onSelect,
+    onConfirm: () => action.onSelect?.(),
   });
   const showing = holding ? `Deleting in ${remaining ?? 5}..` : null;
   useEffect(() => {
@@ -99,8 +128,8 @@ function HeldItem({
       type="button"
       role="menuitem"
       aria-label={action.label}
-      aria-disabled={action.disabled || undefined}
       disabled={action.disabled}
+      hidden={hidden}
       className={clsx(styles.item, styles.danger)}
       data-holding={holding || undefined}
       style={{ ...style, '--hold-progress': holding ? (5 - (remaining ?? 5) + 1) / 5 : 0 } as CSSProperties}
@@ -120,10 +149,14 @@ function HeldItem({
   );
 }
 
+/* How long the pointer rests on an item with choices before the ring steps into it. */
+const STEP_IN_MS = 450;
+
 /**
  * A piece's actions as a ring around the pointer: one flick in a direction instead of reading down a list.
- * It is still a menu to assistive technology and to the hosted verifiers: a named `menu` of `menuitem`s with the list menu's names, arrow keys move between them and Escape closes.
- * Deal targets sit in a small tray under the ring, where long faction names stay readable.
+ * An item with choices (Deal) is stepped into: the ring gives way to a ring of those choices, sized to fit them all, with a back button at its centre;
+ * right-click and Escape step back out.
+ * It is still a menu to assistive technology and to the hosted verifiers: a named `menu` of `menuitem`s with the list menu's names, and arrow keys move between them.
  */
 export function RadialMenu({
   name,
@@ -131,25 +164,47 @@ export function RadialMenu({
   x,
   y,
   actions,
-  targets = [],
   onClose,
 }: Readonly<{
   /** The menu's accessible name, for example "Deck actions". */
   name: string;
-  /** The words in the middle while nothing is pointed at, for example "12 cards". */
+  /** The words beside the ring while nothing is pointed at, for example "12 cards". */
   hub: string;
   x: number;
   y: number;
   actions: readonly RadialAction[];
-  targets?: readonly RadialTarget[];
   onClose: () => void;
 }>) {
   const labelId = useId();
   const menu = useRef<HTMLDivElement>(null);
   const [caption, setCaption] = useState<Caption | null>(null);
+  const [steppedInto, setSteppedInto] = useState<string | null>(null);
+  const restTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const centre = {
     left: Math.min(Math.max(x, EDGE.side), Math.max(EDGE.side, window.innerWidth - EDGE.side)),
     top: Math.min(Math.max(y, EDGE.top), Math.max(EDGE.top, window.innerHeight - EDGE.bottom)),
+  };
+  const level = actions.find((action) => action.key === steppedInto && action.targets);
+  const targets = level?.targets ?? [];
+  const { disc, radius } = targetRing(targets.length);
+
+  const cancelRest = () => {
+    if (restTimer.current) {
+      clearTimeout(restTimer.current);
+      restTimer.current = null;
+    }
+  };
+  useEffect(() => cancelRest, []);
+
+  const stepInto = (action: RadialAction) => {
+    cancelRest();
+    setSteppedInto(action.key);
+    setCaption({ text: action.targetsLabel ?? action.label });
+  };
+  const stepOut = () => {
+    setSteppedInto(null);
+    setCaption(null);
+    menu.current?.focus({ preventScroll: true });
   };
 
   /* Focus lands on the ring itself, so the arrow keys and Escape work at once without lighting an item the pointer is not on. */
@@ -174,7 +229,11 @@ export function RadialMenu({
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') {
       event.preventDefault();
-      onClose();
+      if (level) {
+        stepOut();
+      } else {
+        onClose();
+      }
       return;
     }
     const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
@@ -182,10 +241,14 @@ export function RadialMenu({
       return;
     }
     event.preventDefault();
-    const items = [...(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])];
+    const items = [
+      ...(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled):not([hidden])') ?? []),
+    ];
     const index = items.indexOf(document.activeElement as HTMLButtonElement);
     items[(index + step + items.length) % items.length]?.focus();
   };
+
+  const captionOffset = level ? radius + disc / 2 + 14 : RING_RADIUS + 38;
 
   return createPortal(
     <div
@@ -196,39 +259,77 @@ export function RadialMenu({
       className={styles.ring}
       style={centre}
       onKeyDown={onKeyDown}
-      onContextMenu={(event) => event.preventDefault()}
-      onPointerLeave={() => setCaption(null)}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        if (level) {
+          stepOut();
+        }
+      }}
+      onPointerLeave={() => {
+        cancelRest();
+        if (!level) {
+          setCaption(null);
+        }
+      }}
     >
       <span id={labelId} hidden>
         {name}
       </span>
-      <span className={styles.halo} aria-hidden />
-      <span className={styles.pivot} aria-hidden />
+      <span
+        className={styles.halo}
+        style={{ '--halo-size': `${2 * (level ? radius : RING_RADIUS) + 96}px` } as CSSProperties}
+        aria-hidden
+      />
+      {!level && <span className={styles.pivot} aria-hidden />}
       {plain.map((action, slot) => (
         <button
           key={action.key}
           type="button"
           role="menuitem"
           aria-label={action.label}
+          aria-haspopup={action.targets ? 'menu' : undefined}
           disabled={action.disabled}
+          hidden={Boolean(level)}
           className={styles.item}
           style={at(slotAngle(slot), RING_RADIUS)}
-          onClick={action.onSelect}
-          onPointerEnter={() => setCaption({ text: action.label, shortcut: action.shortcut })}
+          onClick={() => (action.targets ? stepInto(action) : action.onSelect?.())}
+          onPointerEnter={() => {
+            setCaption({ text: action.label, shortcut: action.shortcut });
+            if (action.targets && !action.disabled) {
+              cancelRest();
+              restTimer.current = setTimeout(() => stepInto(action), STEP_IN_MS);
+            }
+          }}
+          onPointerLeave={cancelRest}
           onFocus={() => setCaption({ text: action.label, shortcut: action.shortcut })}
         >
           <Glyph icon={action.icon} />
         </button>
       ))}
       {held && (
-        <HeldItem key={held.key} action={held} style={at(slotAngle(SLOTS - 1), RING_RADIUS)} onCaption={setCaption} />
+        <HeldItem
+          key={held.key}
+          action={held}
+          hidden={Boolean(level)}
+          style={at(slotAngle(SLOTS - 1), RING_RADIUS)}
+          onCaption={setCaption}
+        />
       )}
-      {targets.length > 0 && (
-        <div className={styles.targets} role="group" aria-label="Deal 1 card to">
-          <span className={styles.targetsLabel} aria-hidden>
-            Deal 1 card to
-          </span>
-          {targets.map((target) => (
+      {level && (
+        <>
+          <button
+            type="button"
+            role="menuitem"
+            aria-label="Back"
+            className={clsx(styles.item, styles.back)}
+            style={{ left: 0, top: 0 }}
+            onClick={stepOut}
+            onPointerEnter={() => setCaption({ text: 'Back', shortcut: 'Esc' })}
+            onFocus={() => setCaption({ text: 'Back', shortcut: 'Esc' })}
+          >
+            <Glyph icon="back" />
+          </button>
+          {targets.map((target, index) => (
             <button
               key={target.key}
               type="button"
@@ -236,16 +337,23 @@ export function RadialMenu({
               aria-label={target.label}
               disabled={target.disabled}
               className={styles.target}
+              style={
+                {
+                  ...at(-Math.PI / 2 + (index * 2 * Math.PI) / targets.length, radius),
+                  '--target-size': `${disc}px`,
+                  animationDelay: `${index * 12}ms`,
+                } as CSSProperties
+              }
               onClick={target.onSelect}
-              onPointerEnter={() => setCaption({ text: target.label })}
-              onFocus={() => setCaption({ text: target.label })}
+              onPointerEnter={() => setCaption({ text: target.name })}
+              onFocus={() => setCaption({ text: target.name })}
             >
-              {target.short}
+              {target.face}
             </button>
           ))}
-        </div>
+        </>
       )}
-      <span className={styles.caption} data-tone={caption?.tone} aria-hidden>
+      <span className={styles.caption} style={{ left: captionOffset }} data-tone={caption?.tone} aria-hidden>
         <span className={styles.captionText}>{caption?.text ?? hub}</span>
         {caption?.shortcut && <kbd className={styles.key}>{caption.shortcut}</kbd>}
       </span>
