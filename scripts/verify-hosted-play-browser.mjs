@@ -1526,6 +1526,53 @@ async function seededCustomContent(a, b) {
   );
 }
 
+/** Replays earlier stages while another player advances live play, then returns to the current table. */
+async function verifyCheckpointPlayback(a, b) {
+  const beforePlayback = a.view().snapshot.revision;
+  await openTab(b, 'Replay');
+  await b.page.getByRole('button', { name: 'Replay from start' }).click();
+  await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
+  /* A real game's first checkpoints are its stages before play, shown with the playback bar; stepping reaches Turn 1. */
+  let checkpoint = 0;
+  while (
+    (await b.page
+      .locator('.seated-header')
+      .getByText(/^Turn 1 of/u)
+      .count()) === 0
+  ) {
+    const later = b.page.getByRole('button', { name: 'Later phase' });
+    /* The last checkpoint disables the button; a click there would wait out Playwright's timeout instead of saying why. */
+    assert.ok(await later.isEnabled(), `Playback ran out of checkpoints at ${checkpoint} before reaching play.`);
+    await later.click();
+    checkpoint += 1;
+    await b.page.getByText(new RegExp(`Playback checkpoint ${checkpoint} of`, 'u')).waitFor();
+  }
+  assert.ok(checkpoint > 0);
+  assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
+  assert.equal(await previousPhaseDisabled(b), true);
+  await displayedPhase(b, 0);
+  await a.page.getByRole('button', { name: 'Next phase', exact: true }).click();
+  await revision(a, beforePlayback + 1);
+  await revision(b, beforePlayback + 1);
+  await displayedPhase(a, TABLE_PHASES.length);
+  await displayedPhase(b, 0);
+  await b.page.getByRole('button', { name: 'Later phase' }).click();
+  await b.page.getByText(new RegExp(`Playback checkpoint ${checkpoint + 1} of`, 'u')).waitFor();
+  await b.page.getByRole('button', { name: 'Return to live' }).click();
+  /* The live table's cooldown (#1139) can still be running; the controls refresh on its next tick. */
+  await until(
+    () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
+    'Next phase did not re-enable after returning to live.',
+    20_000
+  );
+  await displayedPhase(b, TABLE_PHASES.length);
+  passed(
+    'Real phase checkpoint playback steps from drafting into play, is read-only and returns to the current live table'
+  );
+
+  return beforePlayback;
+}
+
 /** The regular flow, for the broad tabletop interactions the named flows leave out. */
 async function verifyRegular() {
   const a = await account('player-a');
@@ -1677,47 +1724,7 @@ async function verifyRegular() {
   /* The live table sits at Mentat pause, whose advance is gated on readiness (#1139); readiness
      is declared before the other player enters read-only playback, where Ready is disabled. */
   await readyBeforeAdvance(a, b);
-  const beforePlayback = a.view().snapshot.revision;
-  await openTab(b, 'Replay');
-  await b.page.getByRole('button', { name: 'Replay from start' }).click();
-  await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
-  /* A real game's first checkpoints are its stages before play, shown with the playback bar; stepping reaches Turn 1. */
-  let checkpoint = 0;
-  while (
-    (await b.page
-      .locator('.seated-header')
-      .getByText(/^Turn 1 of/u)
-      .count()) === 0
-  ) {
-    const later = b.page.getByRole('button', { name: 'Later phase' });
-    /* The last checkpoint disables the button; a click there would wait out Playwright's timeout instead of saying why. */
-    assert.ok(await later.isEnabled(), `Playback ran out of checkpoints at ${checkpoint} before reaching play.`);
-    await later.click();
-    checkpoint += 1;
-    await b.page.getByText(new RegExp(`Playback checkpoint ${checkpoint} of`, 'u')).waitFor();
-  }
-  assert.ok(checkpoint > 0);
-  assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
-  assert.equal(await previousPhaseDisabled(b), true);
-  await displayedPhase(b, 0);
-  await a.page.getByRole('button', { name: 'Next phase', exact: true }).click();
-  await revision(a, beforePlayback + 1);
-  await revision(b, beforePlayback + 1);
-  await displayedPhase(a, TABLE_PHASES.length);
-  await displayedPhase(b, 0);
-  await b.page.getByRole('button', { name: 'Later phase' }).click();
-  await b.page.getByText(new RegExp(`Playback checkpoint ${checkpoint + 1} of`, 'u')).waitFor();
-  await b.page.getByRole('button', { name: 'Return to live' }).click();
-  /* The live table's cooldown (#1139) can still be running; the controls refresh on its next tick. */
-  await until(
-    () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
-    'Next phase did not re-enable after returning to live.',
-    20_000
-  );
-  await displayedPhase(b, TABLE_PHASES.length);
-  passed(
-    'Real phase checkpoint playback steps from drafting into play, is read-only and returns to the current live table'
-  );
+  const beforePlayback = await verifyCheckpointPlayback(a, b);
 
   const connectionId = b.view().viewer.connectionId;
   const oldDocumentSockets = [...b.sockets];

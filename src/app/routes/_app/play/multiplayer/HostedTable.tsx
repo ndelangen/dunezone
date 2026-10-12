@@ -29,6 +29,7 @@ import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopCo
 import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
+import type { PanelTab } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
@@ -83,6 +84,44 @@ type ConnectionControlsProps = Readonly<{
   error: string | null;
 }>;
 
+/** Fixture playback stays inline; a real game's playback bar owns stepping and return to live. */
+function FixturePlaybackControls({
+  client,
+  playback,
+  pending,
+}: {
+  client: TableSession;
+  playback: NonNullable<TableProjection['playback']>;
+  pending: boolean;
+}) {
+  return (
+    <>
+      <Text component="output" size="sm">
+        Playback checkpoint {playback.step} of {playback.lastStep}. Table actions are paused.
+      </Text>
+      <Group gap="sm" role="group" aria-label="Phase playback">
+        <Button
+          variant="default"
+          disabled={pending || playback.step === 0}
+          onClick={() => client.requestHistory(playback.step - 1)}
+        >
+          Earlier phase
+        </Button>
+        <Button
+          variant="default"
+          disabled={pending || playback.step === playback.lastStep}
+          onClick={() => client.requestHistory(playback.step + 1)}
+        >
+          Later phase
+        </Button>
+        <Button variant="default" onClick={client.resumeLive}>
+          Return to live
+        </Button>
+      </Group>
+    </>
+  );
+}
+
 function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const { playback, historyPending } = table;
   if (playback && table.snapshot.stage) {
@@ -90,35 +129,15 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
   }
   return (
     <>
-      {playback && (
-        <Text component="output" size="sm">
-          Playback checkpoint {playback.step} of {playback.lastStep}. Table actions are paused.
-        </Text>
-      )}
       {historyPending && (
         <Text component="output" size="sm">
           Loading playback...
         </Text>
       )}
-      <Group gap="sm" role="group" aria-label="Phase playback">
-        {playback ? (
-          <>
-            <Button
-              variant="default"
-              disabled={historyPending || playback.step === 0}
-              onClick={() => client.requestHistory(playback.step - 1)}
-            >
-              Earlier phase
-            </Button>
-            <Button
-              variant="default"
-              disabled={historyPending || playback.step === playback.lastStep}
-              onClick={() => client.requestHistory(playback.step + 1)}
-            >
-              Later phase
-            </Button>
-          </>
-        ) : (
+      {playback ? (
+        <FixturePlaybackControls client={client} playback={playback} pending={historyPending} />
+      ) : (
+        <Group gap="sm" role="group" aria-label="Phase playback">
           <Button
             variant="default"
             disabled={historyPending || !!table.state.draftMove || table.reconnecting}
@@ -126,13 +145,13 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
           >
             Replay from start
           </Button>
-        )}
-        {(playback || historyPending) && (
-          <Button variant="default" onClick={client.resumeLive}>
-            Return to live
-          </Button>
-        )}
-      </Group>
+          {historyPending && (
+            <Button variant="default" onClick={client.resumeLive}>
+              Return to live
+            </Button>
+          )}
+        </Group>
+      )}
     </>
   );
 }
@@ -731,6 +750,180 @@ function handTabs({ client, table }: Pick<ConnectionControlsProps, 'client' | 't
   ];
 }
 
+/** The private destinations are only installed for a viewer with a hand. */
+function yoursTab({ client, table }: SetupControlProps): PanelTab {
+  return {
+    key: 'yours',
+    label: 'Yours',
+    topic: 'hand',
+    description: 'Your private pieces and spice reserve.',
+    content: null,
+    subtabs: [
+      ...handTabs({ client, table }),
+      ...(table.snapshot.bank
+        ? [
+            {
+              key: 'spice',
+              label: 'Spice',
+              topic: 'spice' as const,
+              ...SPICE_GUIDANCE,
+              content: <SpiceReserveControls client={client} table={table} />,
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+/** GameTable supplies the stage and phase controls beside these game actions. */
+function gameTab({ client, table, error }: ConnectionControlsProps, inPlay: boolean): PanelTab {
+  const { setup, stage, battle } = table.snapshot;
+  const activePhaseId = gameProgress(table.snapshot).activePhaseId;
+  return {
+    key: 'game',
+    label: 'Game',
+    topic: 'game',
+    description: 'The current stage, battles and alliances.',
+    content: null,
+    subtabs: [
+      ...(setup && stage === 'setup'
+        ? [
+            {
+              key: 'setup',
+              label: 'Setup',
+              topic: SETUP_TOPICS[setupStep(setup).kind],
+              ...setupGuidance(setupStep(setup)),
+              content: <SetupControls client={client} table={table} />,
+            },
+          ]
+        : []),
+      ...(inPlay && (battle || activePhaseId === 'battle')
+        ? [
+            {
+              key: 'battle',
+              label: 'Battle',
+              topic: 'battle' as const,
+              ...battleGuidance(table),
+              content: (
+                <>
+                  {error && <FormError title="From the table">{error}</FormError>}
+                  <BattleControls client={client} table={table} />
+                </>
+              ),
+            },
+          ]
+        : []),
+      ...alliancesTab({ client, table, error }),
+    ],
+  };
+}
+
+/** Shared inventory persists after play; settings remain available only while playing. */
+function tableTab({ client, table, error }: ConnectionControlsProps): PanelTab {
+  return {
+    key: 'table',
+    label: 'Table',
+    topic: 'board',
+    description: 'Shared pieces and table settings.',
+    content: null,
+    subtabs: [
+      {
+        key: 'shared',
+        label: 'Shared inventory',
+        topic: 'assets',
+        ...SHARED_INVENTORY_GUIDANCE,
+        content: <SharedInventory client={client} table={table} />,
+      },
+      ...(table.snapshot.stage === 'play'
+        ? [
+            {
+              key: 'settings',
+              label: 'Settings',
+              topic: 'controls' as const,
+              description: 'Game length and bidding time.',
+              content: (
+                <>
+                  {error && <FormError title="From the table">{error}</FormError>}
+                  <TableSettings client={client} table={table} />
+                </>
+              ),
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+/** Public records and replay stay together as the game changes phase or finishes. */
+function historyTab({ client, table, error }: ConnectionControlsProps, hasInventory: boolean): PanelTab {
+  return {
+    key: 'history',
+    label: 'History',
+    topic: 'log',
+    ...LOG_GUIDANCE,
+    content: null,
+    subtabs: [
+      {
+        key: 'game-log',
+        label: 'Game log',
+        topic: 'game',
+        ...GAME_LOG_GUIDANCE,
+        content: <LogEntries client={client} table={table} tab="game" />,
+      },
+      {
+        key: 'audit',
+        label: 'Audit',
+        topic: 'audit',
+        ...AUDIT_LOG_GUIDANCE,
+        content: <LogEntries client={client} table={table} tab="audit" />,
+      },
+      ...(hasInventory
+        ? [
+            {
+              key: 'battles',
+              label: 'Battles',
+              topic: 'battle' as const,
+              description: 'Agreed battle results and revealed plans.',
+              content: <BattleHistory table={table} />,
+            },
+            {
+              key: 'transfers',
+              label: 'Spice transfers',
+              topic: 'spice' as const,
+              description: 'Public spice transfers, newest first.',
+              content: <SpiceHistory client={client} table={table} />,
+            },
+          ]
+        : []),
+      {
+        key: 'replay',
+        label: 'Replay',
+        topic: 'turn',
+        description: 'Browse saved phases and return to the live table.',
+        content: (
+          <>
+            {error && !table.playback && <FormError title="From the table">{error}</FormError>}
+            <PlaybackControls client={client} table={table} />
+          </>
+        ),
+      },
+    ],
+  };
+}
+
+/** The left rail keeps personal resources first and omits groups with no stage content. */
+function controlTabs(props: ConnectionControlsProps): PanelTab[] {
+  const { stage, hand } = props.table.snapshot;
+  const inPlay = stage === undefined || stage === 'play';
+  const hasInventory = inPlay || stage === 'finished' || stage === 'setup';
+  return [
+    ...(hasInventory && hand ? [yoursTab(props)] : []),
+    gameTab(props, inPlay),
+    ...(hasInventory ? [tableTab(props)] : []),
+    ...(stage ? [historyTab(props, hasInventory)] : []),
+  ];
+}
+
 function ConnectedTable({
   client,
   table,
@@ -920,165 +1113,7 @@ function ConnectedTable({
                     ? ['setup']
                     : undefined
             }
-            panelTabs={[
-              ...(tabled || stage === 'setup'
-                ? table.snapshot.hand
-                  ? [
-                      {
-                        key: 'yours',
-                        label: 'Yours',
-                        topic: 'hand' as const,
-                        description: 'Your private pieces and spice reserve.',
-                        content: null,
-                        subtabs: [
-                          ...handTabs({ client, table }),
-                          ...(table.snapshot.bank
-                            ? [
-                                {
-                                  key: 'spice',
-                                  label: 'Spice',
-                                  topic: 'spice' as const,
-                                  ...SPICE_GUIDANCE,
-                                  content: <SpiceReserveControls client={client} table={table} />,
-                                },
-                              ]
-                            : []),
-                        ],
-                      },
-                    ]
-                  : []
-                : []),
-              {
-                key: 'game',
-                label: 'Game',
-                topic: 'game',
-                description: 'The current stage, battles and alliances.',
-                content: null,
-                subtabs: [
-                  ...(table.snapshot.setup && stage === 'setup'
-                    ? [
-                        {
-                          key: 'setup',
-                          label: 'Setup',
-                          topic: SETUP_TOPICS[setupStep(table.snapshot.setup).kind],
-                          ...setupGuidance(setupStep(table.snapshot.setup)),
-                          content: <SetupControls client={client} table={table} />,
-                        },
-                      ]
-                    : []),
-                  ...(inPlay && (table.snapshot.battle || progress.activePhaseId === 'battle')
-                    ? [
-                        {
-                          key: 'battle',
-                          label: 'Battle',
-                          topic: 'battle' as const,
-                          ...battleGuidance(table),
-                          content: (
-                            <>
-                              {error && <FormError title="From the table">{error}</FormError>}
-                              <BattleControls client={client} table={table} />
-                            </>
-                          ),
-                        },
-                      ]
-                    : []),
-                  ...alliancesTab({ client, table, error }),
-                ],
-              },
-              ...(tabled || stage === 'setup'
-                ? [
-                    {
-                      key: 'table',
-                      label: 'Table',
-                      topic: 'board' as const,
-                      description: 'Shared pieces and table settings.',
-                      content: null,
-                      subtabs: [
-                        {
-                          key: 'shared',
-                          label: 'Shared inventory',
-                          topic: 'assets' as const,
-                          ...SHARED_INVENTORY_GUIDANCE,
-                          content: <SharedInventory client={client} table={table} />,
-                        },
-                        ...(stage === 'play'
-                          ? [
-                              {
-                                key: 'settings',
-                                label: 'Settings',
-                                topic: 'controls' as const,
-                                description: 'Game length and bidding time.',
-                                content: (
-                                  <>
-                                    {error && <FormError title="From the table">{error}</FormError>}
-                                    <TableSettings client={client} table={table} />
-                                  </>
-                                ),
-                              },
-                            ]
-                          : []),
-                      ],
-                    },
-                  ]
-                : []),
-              ...(stage
-                ? [
-                    {
-                      key: 'history',
-                      label: 'History',
-                      topic: 'log' as const,
-                      ...LOG_GUIDANCE,
-                      content: null,
-                      subtabs: [
-                        {
-                          key: 'game-log',
-                          label: 'Game log',
-                          topic: 'game' as const,
-                          ...GAME_LOG_GUIDANCE,
-                          content: <LogEntries client={client} table={table} tab="game" />,
-                        },
-                        {
-                          key: 'audit',
-                          label: 'Audit',
-                          topic: 'audit' as const,
-                          ...AUDIT_LOG_GUIDANCE,
-                          content: <LogEntries client={client} table={table} tab="audit" />,
-                        },
-                        ...(tabled || stage === 'setup'
-                          ? [
-                              {
-                                key: 'battles',
-                                label: 'Battles',
-                                topic: 'battle' as const,
-                                description: 'Agreed battle results and revealed plans.',
-                                content: <BattleHistory table={table} />,
-                              },
-                              {
-                                key: 'transfers',
-                                label: 'Spice transfers',
-                                topic: 'spice' as const,
-                                description: 'Public spice transfers, newest first.',
-                                content: <SpiceHistory client={client} table={table} />,
-                              },
-                            ]
-                          : []),
-                        {
-                          key: 'replay',
-                          label: 'Replay',
-                          topic: 'turn' as const,
-                          description: 'Browse saved phases and return to the live table.',
-                          content: (
-                            <>
-                              {error && !table.playback && <FormError title="From the table">{error}</FormError>}
-                              <PlaybackControls client={client} table={table} />
-                            </>
-                          ),
-                        },
-                      ],
-                    },
-                  ]
-                : []),
-            ]}
+            panelTabs={controlTabs({ client, table, error })}
             tableGuidance={phaseGuidance(table)}
             tableControls={
               tabled ? (

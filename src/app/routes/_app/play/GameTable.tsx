@@ -57,7 +57,7 @@ import { TableWait } from './TableWait';
 const SCENE_READY_FALLBACK_MS = 1500;
 
 /** One tab of the controls panel: what it is called, its glyph from the topic map, and what it shows. */
-type PanelTab = Readonly<{
+export type PanelTab = Readonly<{
   key: string;
   label: string;
   topic: TopicIconTopic;
