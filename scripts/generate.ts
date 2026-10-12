@@ -139,7 +139,9 @@ await Bun.write(join(import.meta.dirname, '..', 'src/shared/assetIds.ts'), forma
 /* Geometry retains the artwork's shape and centre without depending on a platform's raster encoder. */
 const vectorCrops: Record<string, readonly [number, number, number, number]> = {};
 const loader = new SVGLoader();
-for (const key of [...generic, ...logo, ...decal, ...icon, ...troop].sort((a, b) => (a < b ? -1 : Number(a > b)))) {
+for (const key of [...generic, ...logo, ...decal, ...icon, ...troop]
+  .filter((key) => key.endsWith('.svg'))
+  .sort((a, b) => (a < b ? -1 : Number(a > b)))) {
   const source = readFileSync(join(import.meta.dirname, '..', 'media', key), 'utf8');
   const bounds = new Box2();
   for (const path of loader.parse(normalizeSvg(source, linkedomDom)).paths) {
