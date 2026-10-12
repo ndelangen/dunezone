@@ -5,7 +5,7 @@ import { describeResult, resultFactionCountFits } from '@shared/play/result';
 import type { GameResult, GameResultKind } from '@shared/play/result';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { Section } from '@ui/block/Section';
-import { useReducer } from 'react';
+import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
@@ -71,13 +71,31 @@ function chosenFactions(choice: Choice): string[] {
   return choice.kind === 'faction' && choice.faction ? [choice.faction] : [];
 }
 
+const NO_CHOICE: Choice = { kind: 'faction', faction: null, alliance: [] };
+
+export type DeclareChoice = Readonly<{ choice: Choice; change: (patch: Partial<Choice>) => void }>;
+
+/**
+ * The declaring player's pending choice, held above the Result tab so opening another tab (Hand, to reveal a prediction) keeps it.
+ * A new ending sequence starts from no choice.
+ */
+export function useDeclareChoice(table: TableProjection): DeclareChoice {
+  const sequence = table.snapshot.ending?.startedAt ?? null;
+  const [held, hold] = useState({ sequence, choice: NO_CHOICE });
+  const choice = held.sequence === sequence ? held.choice : NO_CHOICE;
+  const change = useCallback(
+    (patch: Partial<Choice>) =>
+      hold((state) => ({
+        sequence,
+        choice: { ...(state.sequence === sequence ? state.choice : NO_CHOICE), ...patch },
+      })),
+    [sequence]
+  );
+  return { choice, change };
+}
+
 /* The declaring player's bar: one faction, an alliance of factions or no winner, then Declare. */
-function DeclareBar({ client, table }: Props) {
-  const [choice, change] = useReducer((state: Choice, patch: Partial<Choice>) => ({ ...state, ...patch }), {
-    kind: 'faction',
-    faction: null,
-    alliance: [],
-  });
+function DeclareBar({ client, table, declare: { choice, change } }: Props & Readonly<{ declare: DeclareChoice }>) {
   const factionIds = chosenFactions(choice);
   const valid = resultFactionCountFits(choice.kind, factionIds.length);
   const options = factionOptions(table);
@@ -141,7 +159,7 @@ function DeclareBar({ client, table }: Props) {
  * The Result tab for the end of the game, in the accepted arrangement (#1016): the declaring player chooses and declares, every other panel names who is determining the winner and reminds a prediction holder to reveal, and a finished game names its result with Continue playing.
  * Nothing reveals by itself and nothing waits for a reveal.
  */
-export function ResultControls({ client, table }: Props) {
+export function ResultControls({ client, table, declare }: Props & Readonly<{ declare: DeclareChoice }>) {
   const { ending, result, stage } = table.snapshot;
   /* Playback shows an earlier table; the live decision is not offered from it. */
   if (table.playback) {
@@ -149,7 +167,7 @@ export function ResultControls({ client, table }: Props) {
   }
   if (stage === 'play' && ending) {
     return ending.by.seat === table.viewer.viewerSeat ? (
-      <DeclareBar client={client} table={table} />
+      <DeclareBar client={client} table={table} declare={declare} />
     ) : (
       <DeterminingBar client={client} table={table} name={ending.by.name} />
     );

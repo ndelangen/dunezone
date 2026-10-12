@@ -83,6 +83,26 @@ export const Declaring = meta.story({
   },
 });
 
+/* Browsing another tab, such as Hand to reveal a prediction, keeps the choice made in the Result tab. */
+export const DeclaringKeepsChoiceAcrossTabs = meta.story({
+  beforeEach: install(() => {
+    const snapshot = mentatSnapshot('seat-2');
+    snapshot.ending = { by: { seat: 'seat-2', name: SIX[1]!.name }, startedAt: 1 };
+    return productTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const bar = (await page.findByText('Declare the result', {}, { timeout: 30_000 })).closest('section')!;
+    await userEvent.click(within(bar).getByText('No winner'));
+    await openTab(page, 'Hand');
+    await waitFor(() => expect(page.queryByText('Declare the result')).toBeNull());
+    await openTab(page, 'Result');
+    const back = (await page.findByText('Declare the result')).closest('section')!;
+    await userEvent.click(within(back).getByRole('button', { name: 'Declare' }));
+    expect(lastCommand()?.action).toEqual({ kind: 'result-declare', result: 'none', factionIds: [] });
+  },
+});
+
 /* The nearest ancestor a finger can scroll, as overflow hidden is not. */
 function touchScroller(element: Element) {
   for (let node = element.parentElement; node; node = node.parentElement) {

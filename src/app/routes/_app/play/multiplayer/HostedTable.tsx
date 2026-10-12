@@ -38,7 +38,8 @@ import { BidderScene } from './Bidder';
 import { BidderToolbar } from './BidderToolbar';
 import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingOverlay, DraftingPanel, DraftingReady } from './Drafting';
-import { ContinuePlaying, DetermineWinner, ResultControls, resultTitle } from './GameResult';
+import { ContinuePlaying, DetermineWinner, ResultControls, resultTitle, useDeclareChoice } from './GameResult';
+import type { DeclareChoice } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
 import { HiddenZone } from './HiddenZone';
@@ -859,7 +860,8 @@ function resultTabs({
   client,
   table,
   error,
-}: Readonly<{ client: TableSession; table: TableProjection; error: string | null }>) {
+  declare,
+}: Readonly<{ client: TableSession; table: TableProjection; error: string | null; declare: DeclareChoice }>) {
   return resultFocus(table)
     ? [
         {
@@ -870,7 +872,7 @@ function resultTabs({
           content: (
             <>
               {error && <FormError title="From the table">{error}</FormError>}
-              <ResultControls client={client} table={table} />
+              <ResultControls client={client} table={table} declare={declare} />
             </>
           ),
         },
@@ -893,6 +895,7 @@ function ConnectedTable({
 }>) {
   const progress = gameProgress(table.snapshot);
   const celebration = useResultCelebration(table);
+  const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
   const [playerSelection, selectPlayer] = useReducer(
@@ -1045,7 +1048,7 @@ function ConnectedTable({
                           },
                         ]
                       : []),
-                    ...resultTabs({ client, table, error }),
+                    ...resultTabs({ client, table, error, declare }),
                     {
                       key: 'shared',
                       label: 'Shared inventory',
