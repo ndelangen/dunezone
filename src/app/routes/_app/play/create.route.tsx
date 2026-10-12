@@ -2,6 +2,7 @@ import { Button, Group, Radio, Slider, Stack, Switch, Text } from '@mantine/core
 import { playCreateGameRequestSchema } from '@shared/play/admission';
 import { playGameNameSchema } from '@shared/play/gameNames';
 import { generatePlayGameName } from '@shared/play/generatedGameNames';
+import { DEFAULT_LAST_TURN, MAX_LAST_TURN, MIN_LAST_TURN } from '@shared/play/lastTurn';
 import { PLAY_SEAT_LIMIT_MESSAGE } from '@shared/play/seatLimit';
 import {
   DEFAULT_TABLE_SEAT_COUNT,
@@ -18,7 +19,8 @@ import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Dices } from 'lucide-react';
-import { useReducer } from 'react';
+import { useReducer, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useCreatableRulesets, useCreateGame } from '@db/play';
 import type { CreatableRuleset } from '@db/play';
@@ -44,6 +46,8 @@ const TITLE = 'Create a game';
 const MINIMUM = TABLE_SEAT_COUNTS[0];
 const MAXIMUM = TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!;
 const MARKS = [2, 6, 10, 14, 18].map((value) => ({ value, label: String(value) }));
+/* As long as the fade to the table's ground in create.module.css takes. */
+const DEPARTURE_MS = 700;
 
 type Draft = {
   generatedName: string;
@@ -51,6 +55,7 @@ type Draft = {
   customName: string;
   rulesetId: string;
   minimumPlayers: number;
+  lastTurn: number;
   refusal: string | null;
 };
 type DraftEvent =
@@ -64,6 +69,7 @@ const initialDraft = (): Draft => ({
   customName: '',
   rulesetId: '',
   minimumPlayers: DEFAULT_TABLE_SEAT_COUNT,
+  lastTurn: DEFAULT_LAST_TURN,
   refusal: null,
 });
 
@@ -123,6 +129,7 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>
   const request = playCreateGameRequestSchema.safeParse({
     rulesetId: draft.rulesetId,
     minimumPlayers: draft.minimumPlayers,
+    lastTurn: draft.lastTurn,
   });
   const customName = draft.custom ? playGameNameSchema.safeParse(draft.customName) : null;
   const nameError =
@@ -131,17 +138,31 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>
   const objection = chosen?.objection ?? null;
   const canCreate = nameReady && request.success && chosen !== undefined && objection === null && !createGame.isPending;
   const shownName = draft.custom && draft.customName.trim() ? draft.customName.trim() : draft.generatedName;
+  /* Pressing Create game fades the page to the table's ground; the game opens once the fade is complete, and a refusal lifts it again. */
+  const [departing, setDeparting] = useState(false);
+  const departedAt = useRef(0);
   const submit = () => {
     if (canCreate && request.success) {
+      departedAt.current = performance.now();
+      setDeparting(true);
       createGame.mutate(
         draft.custom
           ? { ...request.data, name: draft.customName }
           : { ...request.data, generatedName: draft.generatedName },
         {
-          onSuccess: (result) =>
-            result.ok
-              ? navigate({ to: '/play/$gameId', params: { gameId: result.slug ?? result.gameId } })
-              : dispatch({ kind: 'refused', reason: REFUSALS[result.reason] }),
+          onSuccess: (result) => {
+            if (result.ok) {
+              const remaining = Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
+              setTimeout(
+                () => void navigate({ to: '/play/$gameId', params: { gameId: result.slug ?? result.gameId } }),
+                remaining
+              );
+            } else {
+              setDeparting(false);
+              dispatch({ kind: 'refused', reason: REFUSALS[result.reason] });
+            }
+          },
+          onError: () => setDeparting(false),
         }
       );
     }
@@ -153,7 +174,7 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>
       ? `${chosen.name} cannot start a game yet.`
       : !nameReady
         ? 'Type a custom name, or turn the switch off to keep the generated one.'
-        : `${shownName}, ${chosen.name}, ${draft.minimumPlayers} seats.`;
+        : `${shownName}, ${chosen.name}, ${draft.minimumPlayers} seats, ${draft.lastTurn} turns.`;
 
   return (
     <PageLayout>
@@ -178,7 +199,7 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>
                 onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId } })}
                 disabled={createGame.isPending}
               />
-              <PassFacts ruleset={chosen?.name ?? null} seats={draft.minimumPlayers} />
+              <PassFacts ruleset={chosen?.name ?? null} seats={draft.minimumPlayers} lastTurn={draft.lastTurn} />
             </Stack>
           </Surface>
           <DarkSchemeIsland>
@@ -188,6 +209,11 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>
                   <SeatsField
                     value={draft.minimumPlayers}
                     onChange={(minimumPlayers) => dispatch({ kind: 'patch', update: { minimumPlayers } })}
+                    disabled={createGame.isPending}
+                  />
+                  <LastTurnField
+                    value={draft.lastTurn}
+                    onChange={(lastTurn) => dispatch({ kind: 'patch', update: { lastTurn } })}
                     disabled={createGame.isPending}
                   />
                   {failure ? <FormError title="Not created">{failure}</FormError> : null}
@@ -204,6 +230,7 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>
             </div>
           </DarkSchemeIsland>
         </form>
+        {departing ? createPortal(<div className={styles.departure} aria-hidden />, document.body) : null}
       </PageLayout.Content>
     </PageLayout>
   );
@@ -254,11 +281,16 @@ function NameField({
 }
 
 /* The pass's printed line: what this game is, read back from the choices above. */
-function PassFacts({ ruleset, seats }: Readonly<{ ruleset: string | null; seats: number }>) {
+function PassFacts({
+  ruleset,
+  seats,
+  lastTurn,
+}: Readonly<{ ruleset: string | null; seats: number; lastTurn: number }>) {
   const facts = [
     { label: 'Your seat', value: '1' },
     { label: 'Ruleset', value: ruleset ?? 'Not chosen' },
     { label: 'Seats', value: String(seats) },
+    { label: 'Last turn', value: String(lastTurn) },
     { label: 'First stop', value: 'Drafting' },
   ];
   return (
@@ -330,6 +362,41 @@ function SeatsField({
       <Text size="sm" c="dimmed">
         The minimum number of players is the number of seats. You take the first; drafting seats the rest, and anyone
         who arrives after that watches.
+      </Text>
+    </Stack>
+  );
+}
+
+const TURN_MARKS = [1, 5, 10, 15, 20].map((value) => ({ value, label: String(value) }));
+
+/* The game's length, which the Phase tab can still change once the game plays. */
+function LastTurnField({
+  value,
+  onChange,
+  disabled,
+}: Readonly<{ value: number; onChange: (value: number) => void; disabled: boolean }>) {
+  return (
+    <Stack gap="md" className={styles.turns}>
+      <Group justify="space-between" align="baseline" wrap="nowrap">
+        <Eyebrow>Last turn</Eyebrow>
+        <span className={styles.count} aria-hidden>
+          {value}
+        </span>
+      </Group>
+      <Slider
+        min={MIN_LAST_TURN}
+        max={MAX_LAST_TURN}
+        step={1}
+        marks={TURN_MARKS}
+        value={value}
+        onChange={onChange}
+        thumbLabel="Last turn"
+        label={null}
+        disabled={disabled}
+        mb="md"
+      />
+      <Text size="sm" c="dimmed">
+        The turn wheel counts to it. The table can play on past it, and the Phase tab changes it during the game.
       </Text>
     </Stack>
   );

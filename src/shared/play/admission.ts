@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { lastTurnSchema } from './lastTurn';
 import { PHASE_CHANGE_COOLDOWN_MS } from './phases';
 import { tableSeatCountSchema } from './schema';
 
@@ -61,6 +62,8 @@ const playMinimumPlayersSchema = tableSeatCountSchema;
 export const playGameProvisionSchema = z.object({
   rulesetId: identifierSchema,
   minimumPlayers: playMinimumPlayersSchema,
+  /* Chosen on the create page; a game created before that plays the standard ten turns. */
+  lastTurn: lastTurnSchema.optional(),
   creator: z.object({
     userId: identifierSchema,
     displayName: z.string().max(PLAY_DISPLAY_NAME_MAX_LENGTH),
@@ -195,6 +198,7 @@ export function tableHandlingOpen(stage: z.infer<typeof playStageSchema> | undef
 export const playCreateGameRequestSchema = z.strictObject({
   rulesetId: identifierSchema,
   minimumPlayers: playMinimumPlayersSchema,
+  lastTurn: lastTurnSchema.optional(),
 });
 export const playCreateGameResultSchema = z.union([
   z.object({ ok: z.literal(true), gameId: identifierSchema }),

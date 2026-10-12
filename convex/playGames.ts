@@ -198,6 +198,7 @@ export const createGameWithName = action({
     return await ctx.runMutation(internal.playGames.createNamedGame, {
       rulesetId: args.rulesetId,
       minimumPlayers: args.minimumPlayers,
+      lastTurn: args.lastTurn,
       name: prepared.name,
       base: prepared.base,
       check,
@@ -282,6 +283,7 @@ export async function createAuthorizedGame(
     {
       ruleset_id: eligible.rulesetId,
       minimum_players: args.minimumPlayers,
+      last_turn: args.lastTurn,
       creator_id: eligible.userId,
       name,
     },

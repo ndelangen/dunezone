@@ -18,7 +18,7 @@ function setup() {
 }
 
 /* A real game as `playGames.createGame` leaves it pending: provisioning never reads its ruleset, so a bare row stands in. */
-async function fixture(t = setup()) {
+async function fixture(t = setup(), lastTurn?: number) {
   const game = await t.run(async (ctx) => {
     const stamp = new Date().toISOString();
     const creatorId = await ctx.db.insert('users', { account_state: 'active' });
@@ -33,7 +33,12 @@ async function fixture(t = setup()) {
       is_deleted: false,
       image_cover: null,
     });
-    const gameId = await createPendingGame(ctx, { ruleset_id: rulesetId, minimum_players: 4, creator_id: creatorId });
+    const gameId = await createPendingGame(ctx, {
+      ruleset_id: rulesetId,
+      minimum_players: 4,
+      creator_id: creatorId,
+      ...(lastTurn === undefined ? {} : { last_turn: lastTurn }),
+    });
     return await ctx.db.get(gameId);
   });
   if (!game) {
@@ -73,6 +78,14 @@ describe('Play provisioning', () => {
     expect(await t.mutation(api.playProvisioning.confirmProvisioning, credentials)).toEqual({ ok: true });
     expect(await t.run(async (ctx) => (await ctx.db.get(game._id))?.state)).toBe('ready');
     expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toEqual({ ok: false });
+  });
+
+  test('the last turn chosen at creation reaches the Worker with the game', async () => {
+    const { t, credentials } = await fixture(setup(), 6);
+    expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toMatchObject({
+      ok: true,
+      game: { minimumPlayers: 4, lastTurn: 6 },
+    });
   });
 
   test('confirmation retries survive a lost response and later expiry cleanup without resetting the game', async () => {

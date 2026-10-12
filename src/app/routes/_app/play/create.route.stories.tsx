@@ -121,6 +121,7 @@ export const Creatable = meta.story({
     page.getByRole('slider', { name: 'Minimum players' }).focus();
     await userEvent.keyboard('{ArrowRight}{ArrowRight}');
     expect(page.getByRole('img', { name: '8 seats round the board' })).toBeVisible();
+    expect(page.getByRole('slider', { name: 'Last turn' })).toHaveAttribute('aria-valuenow', '10');
     expect(page.getByRole('button', { name: 'Create game' })).toBeEnabled();
   },
 });

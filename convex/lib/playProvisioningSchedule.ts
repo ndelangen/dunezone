@@ -5,7 +5,10 @@ import type { MutationCtx } from '../_generated/server';
 import { playCredential } from './playAuthorization';
 import { allocatePlayGameName } from './playGameAddresses';
 
-type PendingGameFields = Pick<Doc<'play_games'>, 'fixture_key' | 'ruleset_id' | 'minimum_players' | 'creator_id'> & {
+type PendingGameFields = Pick<
+  Doc<'play_games'>,
+  'fixture_key' | 'ruleset_id' | 'minimum_players' | 'last_turn' | 'creator_id'
+> & {
   name?: string;
 };
 

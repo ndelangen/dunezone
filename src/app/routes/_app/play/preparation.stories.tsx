@@ -29,7 +29,10 @@ export const Preparing = meta.story({
   parameters: parameters('pending'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('Preparing the table', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    const status = await page.findByText('Preparing the table', {}, { timeout: 30_000 });
+    await waitFor(() => expect(finishTransitions(status)).toBeVisible());
+    expect(page.getByRole('button', { name: 'Copy game link' })).toBeVisible();
+    expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
     expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
   },
 });
