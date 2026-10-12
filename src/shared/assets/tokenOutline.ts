@@ -27,23 +27,19 @@ export function tokenShapeAspect(shape: TokenShape): number {
 }
 
 /** A token's shape from its asset, publication or table artwork type; null for anything that is not a token, such as a card. */
+const SHAPE_OF_TYPE: Readonly<Record<string, TokenShape>> = {
+  'token-disc': 'round',
+  troop: 'round',
+  'faction-token': 'round',
+  'faction-leader': 'round',
+  'faction-troop': 'round',
+  'token-tech': 'gear',
+  'token-plate': 'square',
+  'token-enhance': 'rectangle',
+};
+
 export function tokenShapeOfType(type: string | undefined): TokenShape | null {
-  switch (type) {
-    case 'token-disc':
-    case 'troop':
-    case 'faction-token':
-    case 'faction-leader':
-    case 'faction-troop':
-      return 'round';
-    case 'token-tech':
-      return 'gear';
-    case 'token-plate':
-      return 'square';
-    case 'token-enhance':
-      return 'rectangle';
-    default:
-      return null;
-  }
+  return (type !== undefined && Object.hasOwn(SHAPE_OF_TYPE, type) ? SHAPE_OF_TYPE[type] : undefined) ?? null;
 }
 
 /** The cut for a shape, as CSS: a radius where one draws it, a clip path for the gear a radius cannot. */

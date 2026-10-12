@@ -102,6 +102,11 @@ const PREVIEW_FACTION_LIMIT = 50;
  * then its factions, marked `own` when no other ruleset links them.
  */
 async function rulesetPreview(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  return { rulesetId, packed: await packedFor(ctx, rulesetId), factions: await factionsFor(ctx, rulesetId) };
+}
+
+/* The decks and token bundles in slot order, each with its count and one face; a deleted asset is left out. */
+async function packedFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const slots = await ctx.db
     .query('ruleset_asset_slots')
     .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
@@ -115,6 +120,11 @@ async function rulesetPreview(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
       packed.push({ slot: slot.slot, ...summary });
     }
   }
+  return packed;
+}
+
+/* The linked factions, the ones no other ruleset links first. */
+async function factionsFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const links = await ctx.db
     .query('ruleset_factions')
     .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
@@ -122,22 +132,24 @@ async function rulesetPreview(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const factions = [];
   for (const link of links) {
     const faction = await ctx.db.get(link.faction_id);
-    if (!faction || faction.is_deleted) {
-      continue;
+    if (faction && !faction.is_deleted) {
+      factions.push(await factionLine(ctx, faction));
     }
-    const shared = await ctx.db
-      .query('ruleset_factions')
-      .withIndex('by_faction', (q) => q.eq('faction_id', faction._id))
-      .take(2);
-    factions.push({
-      id: faction._id,
-      name: typeof faction.data?.name === 'string' ? faction.data.name : faction.slug,
-      token: publishedHref('faction-token', faction._id, faction.updated_at),
-      own: shared.length === 1,
-    });
   }
-  factions.sort((a, b) => Number(b.own) - Number(a.own));
-  return { rulesetId, packed, factions };
+  return factions.sort((a, b) => Number(b.own) - Number(a.own));
+}
+
+async function factionLine(ctx: QueryCtx, faction: Doc<'factions'>) {
+  const links = await ctx.db
+    .query('ruleset_factions')
+    .withIndex('by_faction', (q) => q.eq('faction_id', faction._id))
+    .take(2);
+  return {
+    id: faction._id,
+    name: typeof faction.data?.name === 'string' ? faction.data.name : faction.slug,
+    token: publishedHref('faction-token', faction._id, faction.updated_at),
+    own: links.length === 1,
+  };
 }
 
 /**
