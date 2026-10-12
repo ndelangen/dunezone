@@ -82,6 +82,40 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(connection.closeCode).toBe(4413);
   });
 
+  it('refuses table commands past their own budget without closing, and takes them again once it refills', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection, view } = await admit();
+    const piece = view.snapshot.table.pieces[0];
+    const rotate = (commandId, expectedRevision) =>
+      connection.send({
+        type: 'command',
+        commandId,
+        action: { kind: 'rotate', pieceId: piece.id, direction: 1 },
+        expectedRevision,
+      });
+    for (let index = 0; index < 40; index++) {
+      rotate(`spam-${index}`, view.snapshot.revision);
+    }
+    const answers = await eventually(() => {
+      const settled = connection.messages.filter((message) =>
+        message.type === 'rejected'
+          ? message.requestId.startsWith('spam-')
+          : message.completedCommandId?.startsWith('spam-')
+      );
+      return settled.length === 40 && settled;
+    }, 'every command answered');
+    const tooFast = answers.filter((message) => message.message?.startsWith('You are acting too fast.'));
+    /* The bucket refills as the burst arrives, so a few of the last ten may still fit; the first thirty always do. */
+    const refused = tooFast.map((message) => Number(message.requestId.slice('spam-'.length)));
+    expect(refused.length).toBeGreaterThanOrEqual(5);
+    expect(Math.min(...refused)).toBeGreaterThanOrEqual(30);
+    expect(connection.closed).toBe(false);
+
+    await runtime.clock(1000);
+    rotate('after-a-moment', (await syncView(connection)).snapshot.revision);
+    await connection.message('view', (message) => message.completedCommandId === 'after-a-moment');
+  });
+
   it('reports when each saved command was durable and when its sweep ran late', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { connection, view } = await admit();

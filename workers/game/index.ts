@@ -86,6 +86,7 @@ type Connection = {
   pingedAt: number;
   tokens: number;
   motionTokens: number;
+  commandTokens: number;
   refilledAt: number;
 };
 type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketOutcomeSchema.parse>, { ok: true }>;
@@ -100,6 +101,13 @@ const COMMAND_TIMINGS = 1024;
 /** Each connection's message buckets hold this many messages and refill at this rate. */
 const RATE_BURST = 120;
 const RATE_PER_SECOND = 60;
+/*
+ * Table commands draw on a smaller bucket of their own, since each one writes the table and sends every player a frame.
+ * Play by hand stays well inside it; a command over it is refused on its own, so the room never spends a write or a frame on it.
+ */
+const COMMAND_BURST = 30;
+const COMMANDS_PER_SECOND = 10;
+const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try again.';
 const SWEEP_MS = 1000;
 /** A sweep this late counts as a stall, and the room keeps the most recent ones. */
 const STALL_MS = 250;
@@ -602,6 +610,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       pingedAt: 0,
       tokens: RATE_BURST,
       motionTokens: RATE_BURST,
+      commandTokens: COMMAND_BURST,
       refilledAt: Date.now(),
     });
     this.ensureSweep();
@@ -1318,10 +1327,14 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     const now = Date.now();
-    const refill = (tokens: number) =>
-      Math.min(RATE_BURST, tokens + (Math.max(0, now - connection.refilledAt) * RATE_PER_SECOND) / 1000);
+    const elapsed = Math.max(0, now - connection.refilledAt);
+    const refill = (tokens: number) => Math.min(RATE_BURST, tokens + (elapsed * RATE_PER_SECOND) / 1000);
     connection.tokens = refill(connection.tokens);
     connection.motionTokens = refill(connection.motionTokens);
+    connection.commandTokens = Math.min(
+      COMMAND_BURST,
+      connection.commandTokens + (elapsed * COMMANDS_PER_SECOND) / 1000
+    );
     connection.refilledAt = now;
     /*
      * The refill follows the room's clock, which stands still while the room runs code, so a busy room can see a steady mover's frames as a burst.
@@ -1338,9 +1351,22 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
     } else if (connection.tokens >= 1) {
       connection.tokens--;
-      return message;
+      return this.withinCommandBudget(socket, connection, message);
     }
     this.refuseRate(socket);
+  }
+
+  /* A table command past its own bucket is refused on its own: the socket stays open, and the room spends no write or frame on it. */
+  private withinCommandBudget(socket: WebSocket, connection: Connection, message: ClientMessage) {
+    if (message.type !== 'command') {
+      return message;
+    }
+    if (connection.commandTokens < 1) {
+      this.send(socket, { type: 'rejected', requestId: message.commandId, message: COMMAND_RATE_REFUSAL });
+      return;
+    }
+    connection.commandTokens--;
+    return message;
   }
 
   private refuseRate(socket: WebSocket) {
