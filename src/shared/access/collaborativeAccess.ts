@@ -15,7 +15,7 @@ export type MembershipState = 'none' | 'pending' | 'active';
 export type StoredMembershipState = MembershipState | 'removed';
 
 /** The viewer as a page is told about them: signed in with a membership, or anonymous. Never carries an id, which is why it is safe on the wire. */
-export type PublicViewer = { kind: 'anonymous' } | { kind: 'authenticated'; membership: MembershipState };
+type PublicViewer = { kind: 'anonymous' } | { kind: 'authenticated'; membership: MembershipState };
 
 type GroupSummaryShape = { id: string; name: string; slug: string };
 
@@ -119,4 +119,37 @@ export function evaluateCollaborativeAccess<GroupSummary extends GroupSummarySha
       delete: facts.resource.available && owner,
     },
   };
+}
+
+/**
+ * The viewer, as the browser knows them for one subject: anonymous, or signed in with their user id and their membership of the subject's Group.
+ * Combined with a page's public facts, it answers what the page would once have computed per viewer on the server.
+ */
+export type AccessViewer =
+  | { kind: 'anonymous' }
+  | { kind: 'authenticated'; userId: string; membership: StoredMembershipState };
+
+/** The public facts a faction, ruleset or asset page carries for its subject. */
+export type AssetSubjectFacts<GroupSummary extends GroupSummaryShape = GroupSummaryShape> = {
+  kind: AssetAccessFacts['kind'];
+  ownerId: string;
+  available: boolean;
+  /** The subject's Group when it resolves to a live one, else null. */
+  assignedGroup: GroupSummary | null;
+};
+
+/** A faction, ruleset or asset's capabilities for this viewer: the same rules the mutation gates apply, run on the page's public facts. */
+export function assetAccessForViewer<GroupSummary extends GroupSummaryShape>(
+  subject: AssetSubjectFacts<GroupSummary>,
+  viewer: AccessViewer
+): AssetViewerAccess<AssetAccessFacts['kind'], GroupSummary> {
+  return evaluateCollaborativeAccess({
+    kind: subject.kind,
+    resource: { available: subject.available },
+    group: { eligible: subject.assignedGroup !== null, summary: subject.assignedGroup },
+    viewer:
+      viewer.kind === 'anonymous'
+        ? viewer
+        : { kind: 'authenticated', membership: viewer.membership, ownsSubject: viewer.userId === subject.ownerId },
+  });
 }

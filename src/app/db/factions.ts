@@ -17,6 +17,7 @@ import { loadPublicPage } from '@db/core/publicPage';
 export { isPublicPageNotFound as isFactionNotFound } from '@db/core/publicPage';
 import { parseClientBoundary } from '@app/db/core/clientBoundary';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { useAssetAccess } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
@@ -164,8 +165,7 @@ function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageDa
     },
     owner: raw.owner,
     assetPublishing: raw.assetPublishing,
-    viewerAccess: raw.viewerAccess,
-    assignableGroups: raw.assignableGroups,
+    assignedGroup: raw.assignedGroup,
     rulesets: raw.rulesets,
   };
 }
@@ -199,6 +199,20 @@ export function useFaction(
   const normalized = liveData ? toFactionDetailPageData(liveData) : undefined;
   const result = toLiveQueryResult(normalized, () => options?.initialData ?? undefined);
   return result;
+}
+
+/**
+ * What the current viewer may do on a faction page.
+ * The page itself is the same for everyone;
+ * this combines its owner and Group with the viewer's session and memberships.
+ */
+export function useFactionAccess(page: FactionDetailPageData) {
+  return useAssetAccess({
+    kind: 'faction',
+    ownerId: page.faction.owner_id,
+    available: !page.faction.is_deleted,
+    assignedGroup: page.assignedGroup,
+  });
 }
 
 /** A Play seat's faction page address by its id; undefined while loading, null when the faction is gone. */

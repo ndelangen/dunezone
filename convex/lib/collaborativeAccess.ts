@@ -620,6 +620,47 @@ export async function loadAssetAccessBundle(
   }
 }
 
+/**
+ * The viewer's membership of one Group, through the same unique lookup the mutation gates use.
+ * A browser deciding what to show asks this per subject, so its answer cannot depend on how many other Groups the viewer is in.
+ */
+export async function loadViewerMembership(ctx: QueryCtx, groupId: Id<'groups'> | null): Promise<MembershipState> {
+  const viewerId = await optionalActiveUserId(ctx);
+  const membership = await membershipFor(
+    ctx,
+    liveGroupOrNull(groupId ? await ctx.db.get('groups', groupId) : null)?._id ?? null,
+    viewerId
+  );
+  return !membership || membership.status === 'removed' ? 'none' : membership.status;
+}
+
+/**
+ * The live Groups where the viewer's membership is active: the choices a Group picker offers when moving a subject.
+ * Capped for presentation like every list on a page;
+ * capabilities never read it.
+ */
+export async function loadViewerAssignableGroups(ctx: QueryCtx) {
+  const viewerId = await optionalActiveUserId(ctx);
+  if (!viewerId) {
+    return [];
+  }
+  const memberships = await ctx.db
+    .query('group_members')
+    .withIndex('by_user_status', (q) => q.eq('user_id', viewerId).eq('status', 'active'))
+    .take(200);
+  const groups = await Promise.all(memberships.map((membership) => ctx.db.get('groups', membership.group_id)));
+  return groups.flatMap((group) => {
+    const live = liveGroupOrNull(group);
+    return live ? [{ id: live._id, name: live.name, slug: live.slug }] : [];
+  });
+}
+
+/** The live Group a subject is assigned to, as a page's public facts carry it. */
+export async function assignedGroupSummary(ctx: QueryCtx, groupId: Id<'groups'> | undefined | null) {
+  const group = liveGroupOrNull(groupId ? await ctx.db.get('groups', groupId) : null);
+  return group ? { id: group._id, name: group.name, slug: group.slug } : null;
+}
+
 /** One member as the Group page lists them: the membership, the person, and what the viewer may do to that membership. */
 export type GroupRosterEntry = {
   membershipId: Id<'group_members'>;

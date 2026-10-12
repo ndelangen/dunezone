@@ -49,6 +49,9 @@ const assignedGroupSummaryValidator = v.object({
   slug: v.string(),
 });
 
+/** The viewer's membership of one Group, as `groups.viewerMembership` returns it. `removed` reads as `none`. */
+export const viewerMembershipStateValidator = v.union(v.literal('none'), v.literal('pending'), v.literal('active'));
+
 const rulesetSummaryValidator = v.object({
   id: v.id('rulesets'),
   name: v.string(),
@@ -127,12 +130,16 @@ export const assetPublishingValidator = v.object({
   lastPublishedAt: v.union(v.number(), v.null()),
 });
 
+/**
+ * The faction page, the same for every viewer.
+ * `assignedGroup` is the faction's live Group or null;
+ * the browser combines it and `faction.owner_id` with the viewer to decide what they may do.
+ */
 export const factionDetailPageValidator = v.object({
   faction: factionValidator,
   owner: v.union(profileValidator, v.null()),
   assetPublishing: assetPublishingValidator,
-  viewerAccess: factionViewerAccessValidator,
-  assignableGroups: v.array(assignedGroupSummaryValidator),
+  assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
   rulesets: v.array(rulesetSummaryValidator),
 });
 

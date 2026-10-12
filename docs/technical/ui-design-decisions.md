@@ -287,7 +287,9 @@ Mounting several `useQuery` hooks on a route multiplies live subscriptions, comp
 states, and scatters a screen's authoritative shape across Convex functions. Each route subscribes to
 **at most one Convex query for page data**, plus `useCurrentProfile` when the UI is auth-aware;
 derive UI-ready fields inside that query, and pass small server-derived collections into controls
-through it rather than adding child subscriptions. The one documented exception is a lazily-mounted
+through it rather than adding child subscriptions. The viewer's own half of a page's capabilities
+(their membership of the subject's Group) is the other allowed subscription, because the page query
+itself may not depend on the viewer; see [`state-management.md`](../state-management.md#rules). The one documented exception is a lazily-mounted
 [Picker](#pickers-are-the-one-place-a-component-may-fetch), which may hold its own read-only options
 subscription, so a control choosing from a large set never forces those rows into the page query.
 This subscription discipline is the real reason widgets don't fetch and Pickers fetch only lazily.

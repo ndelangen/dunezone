@@ -8,6 +8,7 @@ import { describe, expect, test } from 'vitest';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import schema from './schema';
+import { factionPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-05T00:00:00.000Z';
@@ -206,9 +207,7 @@ describe('collaborative access public projections', () => {
     const { t, ids } = await groupAccessFixture();
     const member = t.withIdentity({ subject: ids.activeId });
 
-    const factionPage = await member.query(api.factions.getBySlug, {
-      slug: 'collaborative-faction',
-    });
+    const factionPage = await factionPageAs(member, 'collaborative-faction');
     const rulesetPage = await member.query(api.rulesets.detailPageBySlug, {
       slug: 'collaborative-ruleset',
     });
@@ -268,9 +267,7 @@ describe('collaborative access public projections', () => {
     });
     const assetOwner = t.withIdentity({ subject: ids.assetOwnerId });
 
-    const factionPage = await assetOwner.query(api.factions.getBySlug, {
-      slug: 'collaborative-faction',
-    });
+    const factionPage = await factionPageAs(assetOwner, 'collaborative-faction');
     const rulesetPage = await assetOwner.query(api.rulesets.detailPageBySlug, {
       slug: 'collaborative-ruleset',
     });
@@ -403,9 +400,7 @@ describe('collaborative access public projections', () => {
 
     for (const actor of cases) {
       const client = actor.userId ? t.withIdentity({ subject: actor.userId }) : t;
-      const faction = await client.query(api.factions.getBySlug, {
-        slug: 'collaborative-faction',
-      });
+      const faction = await factionPageAs(client, 'collaborative-faction');
       const ruleset = await client.query(api.rulesets.getBySlug, {
         slug: 'collaborative-ruleset',
       });
@@ -452,9 +447,7 @@ describe('collaborative access public projections', () => {
     });
     expect(page.roster.some((entry) => entry.membershipId === ids.membershipIds.owner)).toBe(false);
 
-    const assetOwnerPage = await t
-      .withIdentity({ subject: ids.assetOwnerId })
-      .query(api.factions.getBySlug, { slug: 'collaborative-faction' });
+    const assetOwnerPage = await factionPageAs(t.withIdentity({ subject: ids.assetOwnerId }), 'collaborative-faction');
     expect(assetOwnerPage.viewerAccess).toMatchObject({
       viewer: { kind: 'authenticated', membership: 'none' },
       capabilities: { edit: true, rename: true, changeGroup: true, delete: true },
@@ -493,7 +486,7 @@ describe('collaborative access public projections', () => {
     });
 
     const active = t.withIdentity({ subject: ids.activeId });
-    await expect(active.query(api.factions.getBySlug, { slug: 'collaborative-faction' })).rejects.toThrow();
+    await expect(factionPageAs(active, 'collaborative-faction')).rejects.toThrow();
     await expect(active.query(api.groups.detailBySlug, { slug: 'dune-designers' })).rejects.toThrow();
   });
 
@@ -570,9 +563,7 @@ describe('collaborative access public projections', () => {
     });
 
     const viewer = t.withIdentity({ subject: capped.viewerId });
-    const faction = await viewer.query(api.factions.getBySlug, {
-      slug: 'collaborative-faction',
-    });
+    const faction = await factionPageAs(viewer, 'collaborative-faction');
     const ruleset = await viewer.query(api.rulesets.detailPageBySlug, {
       slug: 'collaborative-ruleset',
     });
@@ -863,9 +854,7 @@ describe('collaborative access moderation commands', () => {
         assetOwner.mutation(api.rulesets.setGroup, { id: ids.rulesetId, group_id: groupId })
       ).rejects.toThrow(expectedError);
 
-      const factionPage = await assetOwner.query(api.factions.getBySlug, {
-        slug: 'collaborative-faction',
-      });
+      const factionPage = await factionPageAs(assetOwner, 'collaborative-faction');
       const ruleset = await assetOwner.query(api.rulesets.get, { id: ids.rulesetId });
       expect(factionPage.faction.group_id).toBeNull();
       expect(ruleset.group_id ?? null).toBeNull();
@@ -881,9 +870,7 @@ describe('collaborative access moderation commands', () => {
       assetOwner.mutation(api.rulesets.setGroup, { id: ids.rulesetId, group_id: targetGroupIds.active })
     ).resolves.toMatchObject({ group_id: targetGroupIds.active });
 
-    const factionPage = await assetOwner.query(api.factions.getBySlug, {
-      slug: 'collaborative-faction',
-    });
+    const factionPage = await factionPageAs(assetOwner, 'collaborative-faction');
     const ruleset = await assetOwner.query(api.rulesets.get, { id: ids.rulesetId });
     const rulesetPage = await assetOwner.query(api.rulesets.detailPageBySlug, {
       slug: ruleset.slug,

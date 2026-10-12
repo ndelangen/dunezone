@@ -15,6 +15,8 @@ const VIEWER_QUERIES: Record<string, string> = {
   'accounts:connection': "Resolves a connection intent against the viewer's session.",
   'factions:listForLoadPicker': "The viewer's own and their Groups' factions.",
   'factions:listOwnedForGroupAssign': "The viewer's own factions.",
+  'groups:viewerAssignableGroups': 'The Groups the viewer can move a subject into.',
+  'groups:viewerMembership': "The viewer's membership of one Group: the viewer half of a page's capabilities.",
   'playDirectory:listGames': 'Marks the games the viewer is seated in.',
   'playGames:creatable': 'Rulesets the viewer may start a game with.',
   'playGames:getGame': "Gated on the viewer's seat.",
@@ -36,7 +38,6 @@ const VIEWER_QUERIES: Record<string, string> = {
  */
 const PENDING_VIEWER_SPLIT: Record<string, string> = {
   'assets:getPage': 'viewerAccess, assignableGroups, canConvertToCustom',
-  'factions:getBySlug': 'viewerAccess, assignableGroups',
   'faq:questionPage': 'edit, delete, accept and answer capabilities',
   'groups:detailBySlug': 'viewerAccess and roster moderation capabilities',
   'migrations:adminDashboard': 'reports access state; becomes adminQuery once the page gates on session.isAdmin',

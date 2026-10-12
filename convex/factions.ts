@@ -8,7 +8,7 @@ import { liveAsset } from './assets';
 import { mutation, publicQuery, viewerQuery } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
 import {
-  loadAssetAccessBundle,
+  assignedGroupSummary,
   requireFactionSoftDelete,
   requireFactionUpdate,
   requireGroupReassignment,
@@ -127,8 +127,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     throw new ConvexError({ code: 'NOT_FOUND', message: `Faction with slug ${slug} not found` });
   }
 
-  const access = await loadAssetAccessBundle(ctx, { kind: 'faction', row: locatedRow });
-  const row = access.subject;
+  const row = locatedRow;
   const ownerProfile = await ctx.db
     .query('profiles')
     .withIndex('by_user_id', (q) => q.eq('user_id', row.owner_id))
@@ -144,13 +143,12 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     },
     owner: isActiveProfile(ownerProfile) ? ownerProfile : null,
     assetPublishing: await publicationStatusFor(ctx, 'faction_sheet', row._id),
-    viewerAccess: access.viewerAccess,
-    assignableGroups: access.assignableGroups,
+    assignedGroup: await assignedGroupSummary(ctx, row.group_id),
     rulesets: await listFactionRulesets(ctx, row._id),
   };
 }
 
-export const getBySlug = viewerQuery({
+export const getBySlug = publicQuery({
   args: { slug: v.string() },
   returns: factionDetailPageValidator,
   handler: async (ctx, args) => loadFactionDetailPageBySlug(ctx, args.slug),
