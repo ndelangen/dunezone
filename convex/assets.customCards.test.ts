@@ -42,11 +42,19 @@ test('custom cards save their ordered composition, publish it and join mixed dec
     ...publishingCustomCard,
     name: 'Window reference',
     format: 'decal-window',
+    windowOffsetY: 200,
     layers: [...publishingCustomCard.layers].reverse(),
   };
   await owner.mutation(api.assets.update, { id: created.id, data: updated });
   const saved = await t.query(api.assets.getPage, { type: 'card-custom', slug: 'window-reference' });
   expect(saved?.asset.data).toEqual(updated);
+  const shiftedJob = await t.run((ctx) =>
+    ctx.db
+      .query('publication_jobs')
+      .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-custom').eq('asset_id', created.id))
+      .unique()
+  );
+  expect(shiftedJob?.asset_data).toMatchObject({ card: updated });
 });
 
 test('custom card writes enforce author access and reject invalid layer content', async () => {

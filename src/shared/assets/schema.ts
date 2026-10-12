@@ -432,6 +432,7 @@ export const CustomCardLayer = z.discriminatedUnion('kind', [
 /** The standard Head stays fixed; the rest of the card is a free composition. */
 export const CustomCard = CardHead.extend({
   format: z.enum(['decal-window', 'plain']),
+  windowOffsetY: z.number().min(0).max(440).optional(),
   layers: z
     .array(CustomCardLayer)
     .max(CUSTOM_CARD_MAX_LAYERS, `A card can hold at most ${CUSTOM_CARD_MAX_LAYERS} layers`)

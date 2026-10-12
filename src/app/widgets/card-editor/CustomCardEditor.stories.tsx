@@ -89,6 +89,24 @@ export const Layered = meta.story({
 export const Blank = meta.story({ args: { preset: 'blank-plain' } });
 export const LongTitle = meta.story({ args: { name: 'A very long custom card title that must stay inside the Head' } });
 
+export const MovingWindow = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('tab', { name: 'Format' }));
+    const offset = canvas.getByRole('textbox', { name: 'Window vertical offset' });
+    await userEvent.tripleClick(offset);
+    await userEvent.keyboard('200');
+    await userEvent.tab();
+    await expect(offset).toHaveValue('200');
+    await userEvent.click(canvas.getByRole('tab', { name: '1. Decal' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Centre in decal window' }));
+    await expect(canvas.getByRole('textbox', { name: 'Vertical position' })).toHaveValue('670');
+    await userEvent.click(canvas.getByRole('tab', { name: '2. Text' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Fit box to text body' }));
+    await expect(canvas.getByRole('textbox', { name: 'Vertical position' })).toHaveValue('904');
+  },
+});
+
 export const LayerTabs = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

@@ -34,7 +34,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [TREACHERY_CARD_ASSET_TYPE]: 4,
   // 1: spice cards join the pipeline with their editor (#1229).
   [SPICE_CARD_ASSET_TYPE]: 1,
-  [CUSTOM_CARD_ASSET_TYPE]: 1,
+  /* Revision 2 supports a movable decal window without changing existing layouts. */
+  [CUSTOM_CARD_ASSET_TYPE]: 2,
   /* Revision 2 fits illustrations to their painted bounds in the leader skill window. */
   [LEADER_SKILL_ASSET_TYPE]: 2,
   [NEXUS_CARD_ASSET_TYPE]: 2,

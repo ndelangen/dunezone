@@ -5,6 +5,7 @@ import {
   publishingCustomCardTokenLayers,
 } from '@shared/assets/fixtures/publishingCustomCardTokens';
 import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
+import { standardStormCard } from '@shared/assets/standardStormDeck';
 import { treacheryToCustomCard } from '@shared/assets/treacheryToCustomCard';
 import { expect } from 'storybook/test';
 
@@ -32,6 +33,45 @@ export const Plain = meta.story({
   },
 });
 export const WithDecalWindow = meta.story({ args: { format: 'decal-window' } });
+const windowCard = standardStormCard(1);
+const windowLayers = windowCard.layers;
+export const ShiftedWindow = meta.story({
+  args: {
+    ...windowCard,
+    name: 'Moving window',
+    windowOffsetY: 200,
+    layers: [
+      { ...windowLayers[0]!, offset: [0, 38.5] },
+      { ...windowLayers[1]!, content: 'Rules above the decal window.', offset: [-370, -331.5], height: 120 },
+      {
+        ...windowLayers[1]!,
+        layerId: '30000000-3000-4000-8000-300000000003',
+        content: 'Rules below the decal window.',
+        offset: [-370, 290],
+        height: 160,
+      },
+    ],
+  },
+});
+export const LowestWindow = meta.story({
+  args: {
+    ...ShiftedWindow.input.args,
+    windowOffsetY: 440,
+    layers: [
+      { ...windowLayers[0]!, offset: [0, 278.5] },
+      { ...windowLayers[1]!, content: 'Rules above the decal window.', offset: [-370, -331.5], height: 120 },
+      {
+        ...windowLayers[1]!,
+        layerId: '30000000-3000-4000-8000-300000000003',
+        content: 'Rules below the decal window.',
+        offset: [-370, 508.5],
+        size: 30,
+        height: 45,
+      },
+    ],
+  },
+});
+export const PlainIgnoresWindowPosition = meta.story({ args: { format: 'plain', windowOffsetY: 200 } });
 export const LongTitle = meta.story({ args: { name: 'A very long custom card title that must fit inside the Head' } });
 
 export const TokenLayers = meta.story({
