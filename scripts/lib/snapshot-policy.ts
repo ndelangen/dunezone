@@ -126,6 +126,7 @@ export const snapshotPolicy = {
   faq_answers: { drop: 'excluded by the ruling on #1310' },
   rulebook_drafts: { drop: 'unpublished drafts; the load seeds each live Rulebook a draft from its current Edition' },
   publication_jobs: { drop: 'work claims that must never run outside production' },
+  leader_skill_stock_sets: { drop: 'GF9 stock installation identity, which belongs only to its original deployment' },
   publication_assets: { drop: 'publication records, which must never be acted on outside production' },
   admin_settings: { drop: 'operational settings, not content' },
   counters: { drop: 'slug counters, which the allocators rebuild' },

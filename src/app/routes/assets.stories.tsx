@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
 import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -33,6 +34,8 @@ export const EnhanceToken = meta.story({
   args: { path: '/assets/token-enhance/kwisatz-haderach' },
 });
 export const Bundle = meta.story({ args: { path: '/assets/bundle/atreides-tokens' } });
+
+export const CreateLeaderSkillCard = meta.story({ args: { path: '/assets/card-leaderability/create' } });
 
 export const CreateTreacheryCard = meta.story({
   args: { path: '/assets/card-treachery/create' },
@@ -526,5 +529,34 @@ export const CreateLeaderSkillCardOverflow = meta.story({
     await userEvent.clear(battle);
     await userEvent.type(battle, 'Add +2 to this leader.');
     await waitFor(() => expect(save).not.toHaveAttribute('aria-disabled', 'true'));
+  },
+});
+
+/** An existing stock skill opens in the same editor and resets to its saved abilities. */
+export const EditLeaderSkillCard = meta.story({
+  args: { path: '/assets/card-leaderability/planetologist/edit' },
+  parameters: {
+    database: db((baseline) => {
+      baseline.assets.push({
+        $key: 'asset:leader-skill-planetologist',
+        owner_id: ref('storybook-viewer'),
+        type: 'card-leaderability',
+        slug: 'planetologist',
+        data: GF9_LEADER_SKILLS[5]!,
+        is_deleted: false,
+        group_id: null,
+        created_at: '2026-01-01T12:00:00.000Z',
+        updated_at: '2026-01-01T12:00:00.000Z',
+      });
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: 'Abilities' }, { timeout: 30_000 }));
+    const battle = page.getByRole('textbox', { name: 'Battle ability' });
+    await userEvent.clear(battle);
+    await userEvent.type(battle, 'An unsaved custom battle ability.');
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    await expect(battle).toHaveValue(GF9_LEADER_SKILLS[5]!.battleText);
   },
 });

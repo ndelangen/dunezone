@@ -234,6 +234,12 @@ export default defineSchema({
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])
     .index('by_group_deleted', ['group_id', 'is_deleted'])
     .index('by_group_id', ['group_id']),
+  leader_skill_stock_sets: defineTable({
+    key: v.literal('gf9-leader-skills'),
+    owner_id: v.id('users'),
+    deck_id: v.id('assets'),
+    card_ids: v.array(v.id('assets')),
+  }).index('by_key', ['key']),
   /**
    * Asset↔asset references: deck→card memberships (`kind: 'deck-card'`, count = copies) and bundle→token memberships;
    * token backsides moved into `data.back` and their `token-back` rows are dropped by `asset_relations_token_back_drop_v1`;

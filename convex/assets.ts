@@ -1011,6 +1011,22 @@ export const seedGF9LeaderSkills = internalMutation({
     if (!owner?.isAdmin || owner.merged_into_user_id || (profile && profile.account_state !== 'active')) {
       throw new ConvexError('The stock deck needs an active administrator as its owner.');
     }
+    const installed = await ctx.db
+      .query('leader_skill_stock_sets')
+      .withIndex('by_key', (q) => q.eq('key', 'gf9-leader-skills'))
+      .unique();
+    if (installed) {
+      if (installed.owner_id !== ownerId) {
+        throw new ConvexError('The GF9 stock set already belongs to another administrator.');
+      }
+      for (const id of [installed.deck_id, ...installed.card_ids]) {
+        const asset = await ctx.db.get('assets', id);
+        if (!asset || asset.is_deleted || asset.owner_id !== ownerId) {
+          throw new ConvexError('An installed GF9 stock asset was deleted or transferred.');
+        }
+      }
+      return { deckId: installed.deck_id, cardIds: installed.card_ids, created: 0 };
+    }
     let created = 0;
     async function install(type: string, data: unknown) {
       const parsed = parseAssetDataForWrite(type, data);
@@ -1020,10 +1036,7 @@ export const seedGF9LeaderSkills = internalMutation({
         .withIndex('by_type_and_slug', (q) => q.eq('type', type).eq('slug', slug))
         .unique();
       if (existing) {
-        if (existing.is_deleted || existing.owner_id !== ownerId || nameOf(existing) !== parsed.name) {
-          throw new ConvexError(`The stock address ${type}/${slug} is already reserved.`);
-        }
-        return existing._id;
+        throw new ConvexError(`The stock address ${type}/${slug} is already reserved.`);
       }
       const now = nowIso();
       const id = await ctx.db.insert('assets', {
@@ -1061,6 +1074,12 @@ export const seedGF9LeaderSkills = internalMutation({
         });
       }
     }
+    await ctx.db.insert('leader_skill_stock_sets', {
+      key: 'gf9-leader-skills',
+      owner_id: ownerId,
+      deck_id: deckId,
+      card_ids: cardIds,
+    });
     return { deckId, cardIds, created };
   },
 });

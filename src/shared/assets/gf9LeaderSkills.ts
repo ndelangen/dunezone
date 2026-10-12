@@ -65,7 +65,7 @@ const SKILLS = [
     generalText:
       'If you move any number of your forces into or through a territory containing spice, you may immediately collect 1 spice from that territory (once per territory).',
     battleText: 'Add 3 more spice to a territory you are in that has spice, after winning a battle there.',
-    decal: '/vector/decal/sandtrout-multicolor.svg',
+    decal: '/vector/decal/sandmaster-multicolor.svg',
   },
   {
     name: 'Smuggler',
@@ -140,8 +140,8 @@ export const GF9_LEADER_SKILL_DECK: z.infer<typeof DeckAsset> = {
     mode: 'custom',
     name: 'Leader skills',
     background: LEADER_SKILL_HEAD,
-    image: '/vector/generic/star.svg',
+    image: '/vector/generic/leader-skills.svg',
     imageOffset: [0, 10],
-    imageScale: 0.55,
+    imageScale: 0.9,
   },
 };

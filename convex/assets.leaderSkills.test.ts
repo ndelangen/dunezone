@@ -68,13 +68,20 @@ test('GF9 installation creates exactly fourteen cards and one deck and preserves
     GF9_LEADER_SKILLS.map((card) => ({ name: card.name, count: 1 }))
   );
   const owner = t.withIdentity({ subject: ownerId });
-  const edited = { ...GF9_LEADER_SKILLS[0]!, battleText: 'An authored replacement ability.' };
+  const edited = {
+    ...GF9_LEADER_SKILLS[0]!,
+    name: 'Renamed Bureaucrat',
+    battleText: 'An authored replacement ability.',
+  };
   await owner.mutation(api.assets.update, { id: first.cardIds[0]!, data: edited });
   const second = await t.mutation(internal.assets.seedGF9LeaderSkills, { ownerId });
   expect(second).toEqual({ ...first, created: 0 });
-  expect((await t.query(api.assets.getPage, { type: 'card-leaderability', slug: 'bureaucrat' }))?.asset.data).toEqual(
-    edited
+  expect((await t.query(api.assets.getPage, { type: 'deck', slug: 'gf9-leader-skill-deck' }))?.members).toHaveLength(
+    14
   );
+  expect(
+    (await t.query(api.assets.getPage, { type: 'card-leaderability', slug: 'renamed-bureaucrat' }))?.asset.data
+  ).toEqual(edited);
 });
 
 test('GF9 installation refuses occupied stock addresses and rolls back the whole set', async () => {
@@ -91,4 +98,14 @@ test('GF9 installation refuses occupied stock addresses and rolls back the whole
   await expect(t.mutation(internal.assets.seedGF9LeaderSkills, { ownerId: otherId })).rejects.toThrow(
     'active administrator'
   );
+});
+
+test('GF9 installation refuses an unrelated same-owner card at a stock address', async () => {
+  const t = convexTest(schema, modules);
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { isAdmin: true }));
+  await t
+    .withIdentity({ subject: ownerId })
+    .mutation(api.assets.create, { type: 'card-leaderability', data: GF9_LEADER_SKILLS[0]! });
+  await expect(t.mutation(internal.assets.seedGF9LeaderSkills, { ownerId })).rejects.toThrow('already reserved');
+  expect(await t.run((ctx) => ctx.db.query('assets').collect())).toHaveLength(1);
 });
