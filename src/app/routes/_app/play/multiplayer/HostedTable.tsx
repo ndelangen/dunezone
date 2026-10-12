@@ -27,7 +27,7 @@ import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionCo
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
 import { FoilConfetti } from '../FoilConfetti';
-import { GameLink, InviteLink } from '../GameLink';
+import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { PanelTab } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
@@ -36,10 +36,9 @@ import { AllianceCoinsScene } from './AllianceCoins';
 import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
 import { BattleControls, BattleHistory, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
-import { BidderToolbar } from './BidderToolbar';
 import { OfflineConversations } from './Conversation';
-import { DraftingHeader, DraftingOverlay, DraftingPanel, DraftingReady } from './Drafting';
-import { ContinuePlaying, DetermineWinner, ResultControls, resultTitle, useDeclareChoice } from './GameResult';
+import { DraftingOverlay, DraftingPanel } from './Drafting';
+import { DetermineWinner, ResultControls, useDeclareChoice } from './GameResult';
 import type { DeclareChoice } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
@@ -63,12 +62,12 @@ import {
   SPICE_GUIDANCE,
   SPICE_RESERVE_HELP,
 } from './panelGuidance';
-import { PhaseNavigation } from './PhaseNavigation';
 import { PlaybackControls } from './PlaybackControls';
 import { PlayerPanel } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
-import { GameMenu, SeatPopover, StagePlayback } from './SeatRequests';
-import { SwappingReady, SwappingStatus } from './Swapping';
+import { GameMenu, SeatPopover } from './SeatRequests';
+import { stageStatus, stageToolbar } from './StageHeader';
+import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { TableSettings } from './TableSettings';
 import { ServerClockContext } from './useServerNow';
@@ -693,122 +692,6 @@ function handTabs({ client, table }: Pick<ConnectionControlsProps, 'client' | 't
   ];
 }
 
-/** The header's control for the stage: its Ready, the phase controls in play, playback, or Continue playing once finished. */
-function stageToolbar({
-  client,
-  table,
-  bidderFaded,
-  onBidderFadedChange,
-}: Readonly<{
-  client: TableSession;
-  table: TableProjection;
-  bidderFaded: boolean;
-  onBidderFadedChange: (faded: boolean) => void;
-}>) {
-  const stage = table.snapshot.stage;
-  /* The fixture has no stage and plays like a game in play. */
-  const inPlay = stage === undefined || stage === 'play';
-  /* Playback steps through the checkpoints from the header in every stage, so no tab hides the way back to live. */
-  const playback = table.playback ? <StagePlayback client={client} table={table} /> : null;
-  if (inPlay || settingUp(table)) {
-    return (
-      <>
-        {playback}
-        <PhaseToolbar
-          client={client}
-          table={table}
-          bidder={inPlay}
-          faded={bidderFaded}
-          onFadedChange={onBidderFadedChange}
-        />
-      </>
-    );
-  }
-  if (playback) {
-    return playback;
-  }
-  const Control = STAGE_CONTROLS[stage ?? ''];
-  return Control ? <Control client={client} table={table} /> : undefined;
-}
-
-/** Setup steps its phases once its first step is dealt. */
-function settingUp(table: TableProjection): boolean {
-  return table.snapshot.stage === 'setup' && Boolean(table.snapshot.setup);
-}
-
-/** In play the header steps phases beside the bidder; setup steps its phases alone. */
-function PhaseToolbar({
-  client,
-  table,
-  bidder,
-  faded,
-  onFadedChange,
-}: Readonly<{
-  client: TableSession;
-  table: TableProjection;
-  bidder: boolean;
-  faded: boolean;
-  onFadedChange: (faded: boolean) => void;
-}>) {
-  return (
-    <>
-      {bidder && <BidderToolbar client={client} table={table} faded={faded} onFadedChange={onFadedChange} />}
-      <PhaseNavigation client={client} table={table} />
-    </>
-  );
-}
-
-/** The control a stage with no phases to step puts in the header: its Ready, or Continue playing once finished. */
-const STAGE_CONTROLS: Partial<
-  Record<string, (props: Readonly<{ client: TableSession; table: TableProjection }>) => ReactNode>
-> = {
-  drafting: DraftingReady,
-  swapping: SwappingReady,
-  finished: ContinuePlaying,
-};
-
-/** What the phase chip says for a stage outside play: the drafting gates, the trading clock, the result or the setup step. */
-function stageStatus({
-  client,
-  table,
-  identity,
-}: Readonly<{ client: TableSession; table: TableProjection; identity: GameIdentity }>) {
-  const stage = table.snapshot.stage;
-  const result = resultTitle(table);
-  if (stage === 'drafting') {
-    return (
-      <DraftingHeader
-        table={table}
-        rulesetName={identity.rulesetName ?? undefined}
-        invite={<InviteLink address={identity.address} />}
-      />
-    );
-  }
-  if (stage === 'swapping') {
-    return <SwappingStatus client={client} table={table} />;
-  }
-  if (result) {
-    return (
-      <div className="seated-phase-status__copy">
-        <span>Finished</span>
-        <strong>{result}</strong>
-      </div>
-    );
-  }
-  if (stage === 'discarded') {
-    return (
-      <div className="seated-phase-status__copy">
-        <span>Discarded</span>
-        <strong>Its last player left</strong>
-      </div>
-    );
-  }
-  if (stage === 'setup' && table.snapshot.setup) {
-    return <Text size="sm">{setupStep(table.snapshot.setup).title}</Text>;
-  }
-  return undefined;
-}
-
 /** The Result tab, while a declared result or an ending game asks the table to settle it. */
 function resultTabs({
   client,
@@ -1189,8 +1072,6 @@ function ConnectedTable({
     </PredictionLogosContext>
   );
 }
-
-type GameIdentity = Readonly<{ rulesetName: string | null; address: string }>;
 
 export default function HostedTable({
   gameId,
