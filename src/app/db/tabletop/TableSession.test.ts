@@ -2016,6 +2016,14 @@ describe('a held rotation', () => {
     expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(3));
   });
 
+  test('nothing at rest turns while a dropped piece is still landing', async () => {
+    const { client, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    client.finishGesture(dropPosition);
+    client.rotateSelected(1, deck().id);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(0));
+  });
+
   test('the turn shows once when the room settles it, and springs back when the room refuses it', async () => {
     const client = await connected();
     client.rotateSelected(-1, deck().id);

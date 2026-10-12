@@ -1624,7 +1624,11 @@ export class TableSession {
     }
   };
   rotateSelected = (direction: -1 | 1 = 1, id?: string) => {
-    if (this.carry && !this.carry.pendingDrop) {
+    /* A piece let go of turns no more, and nothing at rest turns while it lands, since the room would refuse that turn. */
+    if (this.carry?.pendingDrop) {
+      return;
+    }
+    if (this.carry) {
       this.carry = {
         ...this.carry,
         draft: { ...this.carry.draft, orientation: this.carry.draft.orientation - (direction * Math.PI) / 12 },
