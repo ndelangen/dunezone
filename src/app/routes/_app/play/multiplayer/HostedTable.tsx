@@ -761,19 +761,41 @@ function stageToolbar({
   if (table.playback && beforePlay) {
     return <StagePlayback client={client} table={table} />;
   }
-  const settingUp = stage === 'setup' && Boolean(table.snapshot.setup);
-  if (inPlay || settingUp) {
+  if (inPlay || (stage === 'setup' && table.snapshot.setup)) {
     return (
-      <>
-        {inPlay && (
-          <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={onBidderFadedChange} />
-        )}
-        <PhaseNavigation client={client} table={table} />
-      </>
+      <PhaseToolbar
+        client={client}
+        table={table}
+        bidder={inPlay}
+        faded={bidderFaded}
+        onFadedChange={onBidderFadedChange}
+      />
     );
   }
-  const Control = stage ? STAGE_CONTROLS[stage] : undefined;
+  const Control = STAGE_CONTROLS[stage ?? ''];
   return Control ? <Control client={client} table={table} /> : undefined;
+}
+
+/** In play the header steps phases beside the bidder; setup steps its phases alone. */
+function PhaseToolbar({
+  client,
+  table,
+  bidder,
+  faded,
+  onFadedChange,
+}: Readonly<{
+  client: TableSession;
+  table: TableProjection;
+  bidder: boolean;
+  faded: boolean;
+  onFadedChange: (faded: boolean) => void;
+}>) {
+  return (
+    <>
+      {bidder && <BidderToolbar client={client} table={table} faded={faded} onFadedChange={onFadedChange} />}
+      <PhaseNavigation client={client} table={table} />
+    </>
+  );
 }
 
 /** The control a stage with no phases to step puts in the header: its Ready, or Continue playing once finished. */
