@@ -819,9 +819,9 @@ export class TableSession {
   }
   /* A piece this page is turning shows the turn before the room has it; one the turn no longer fits shows as the room has it. */
   private withTurns(state: TableState, piece: TablePiece) {
-    /* A look back in time shows the table as it was, and a piece locked meanwhile as the room has it. */
-    const turns = this.history || gestureBlockReason(piece) ? 0 : this.turnsOf(piece.id);
-    return turns ? (rotatedPiece(state, piece, turns) ?? piece) : piece;
+    /* A look back in time shows the table as it was, and a piece the room has locked, or a table it has closed, shows as the room has it. */
+    const turns = this.history ? 0 : this.turnsOf(piece.id);
+    return turns && this.turnablePiece(piece.id) ? (rotatedPiece(state, piece, turns) ?? piece) : piece;
   }
   private emit() {
     this.keep();
@@ -1644,9 +1644,12 @@ export class TableSession {
     }
     this.emit();
   };
-  /* The piece at rest as this page has it, while the room would let it turn: present and not locked. */
+  /* The piece as the room last sent it, while the room would let it turn: the table open to handling, the piece present and not locked. */
   private turnablePiece(pieceId: string) {
-    const piece = this.requireTable().state.pieces.find((candidate) => candidate.id === pieceId);
+    const snapshot = this.snapshot;
+    const piece = tableHandlingOpen(snapshot.stage)
+      ? snapshot.table.pieces.find((candidate) => candidate.id === pieceId)
+      : undefined;
     return piece && !gestureBlockReason(piece) ? piece : null;
   }
   /* A piece locked or taken away while the key was held keeps the turn to itself, since the room would refuse it; a turn back to the start sends nothing. */

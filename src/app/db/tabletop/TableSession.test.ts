@@ -2024,6 +2024,35 @@ describe('a held rotation', () => {
     expect(command().action).toEqual({ kind: 'rotate', pieceId: deck().id, direction: 1, steps: 2 });
   });
 
+  test('a turn let go of during a resync is dropped when the fresh view has locked the piece', async () => {
+    const client = await connected();
+    client.rotateSelected(1, deck().id);
+    deliverGap();
+    client.finishRotation();
+    socket().deliver(view({ snapshot: withDeck((piece) => ({ ...piece, locked: true })), sequence: 9 }));
+    expect(socket().sent.some((message) => message.type === 'command')).toBe(false);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(deck().orientation);
+  });
+
+  test('a turn held as the game finishes stops showing and is never sent', async () => {
+    const client = await connected();
+    client.rotateSelected(1, deck().id);
+    const sent = socket().sent.length;
+    socket().deliver(
+      view({
+        snapshot: {
+          ...initialSnapshot(),
+          stage: 'finished',
+          result: { kind: 'none', factionIds: [], by: { seat: 'harkonnen', name: 'One' }, declaredAt: 1 },
+        },
+        sequence: 2,
+      })
+    );
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(deck().orientation);
+    client.finishRotation();
+    expect(socket().sent).toHaveLength(sent);
+  });
+
   test('a turn the room did shows through the resync until the new table arrives', async () => {
     const client = await connected();
     client.rotateSelected(1, deck().id);
