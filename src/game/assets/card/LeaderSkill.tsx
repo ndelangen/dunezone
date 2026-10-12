@@ -59,7 +59,9 @@ export function LeaderSkillCard({
                 const size = Math.min(680 / width, 384 / height) * 100;
                 return (
                   <FrontDecals
-                    key={index}
+                    key={
+                      index
+                    } /* NOSONAR: decals have no persistent id; this index also scopes their SVG definitions. */
                     prefix={`${prefix}_${index}_`}
                     size={size}
                     decals={[

@@ -13,7 +13,7 @@ import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
 import { GF9_LEADER_SKILLS, GF9_LEADER_SKILL_DECK } from '../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
-import { StormCardAssetInput, DeckAssetInput } from '../src/shared/assets/schema';
+import { StormCardAssetInput, DeckAssetInput, LeaderSkillAssetInput } from '../src/shared/assets/schema';
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
 import { STANDARD_STORM_CARDS } from '../src/shared/assets/standardStormDeck';
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
@@ -1198,6 +1198,55 @@ export const seedGf9StrongholdDeck = internalMutation({
       });
     }
     return { deckId: deck.id, slug: deck.slug, created: true };
+  },
+});
+
+/** Corrects the untouched first GF9 printing without replacing authored or transferred cards. */
+export const refreshGF9LeaderSkillPresentationV2 = internalMutation({
+  args: {},
+  returns: v.array(v.id('assets')),
+  handler: async (ctx) => {
+    const installed = await ctx.db
+      .query('leader_skill_stock_sets')
+      .withIndex('by_key', (q) => q.eq('key', 'gf9-leader-skills'))
+      .unique();
+    if (!installed) {
+      return [];
+    }
+    if (installed.card_ids.length !== GF9_LEADER_SKILLS.length) {
+      throw new ConvexError('The GF9 stock set has an unexpected card count.');
+    }
+    const updated = await Promise.all(
+      installed.card_ids.map(async (id, index) => {
+        const asset = await ctx.db.get('assets', id);
+        if (
+          !asset ||
+          asset.is_deleted ||
+          asset.owner_id !== installed.owner_id ||
+          asset.type !== 'card-leaderability'
+        ) {
+          return null;
+        }
+        const card = GF9_LEADER_SKILLS[index]!;
+        const legacy = LeaderSkillAssetInput.parse({
+          ...card,
+          textSize: 32,
+          decals: card.decals.map((decal) => ({
+            ...decal,
+            id: card.name === 'Smuggler' ? '/vector/decal/smuggler-multicolor.svg' : decal.id,
+          })),
+        });
+        const current = LeaderSkillAssetInput.safeParse(asset.data);
+        if (!current.success || JSON.stringify(current.data) !== JSON.stringify(legacy)) {
+          return null;
+        }
+        const data = LeaderSkillAssetInput.parse(card);
+        await ctx.db.patch('assets', id, { data, updated_at: nowIso() });
+        await enqueueAssetPublication(ctx, { ...asset, data });
+        return id;
+      })
+    );
+    return updated.filter((id) => id !== null);
   },
 });
 
