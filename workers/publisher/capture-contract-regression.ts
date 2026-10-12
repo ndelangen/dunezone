@@ -23,6 +23,10 @@ import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/p
 import { publishingSpiceCard } from '../../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
+import { GF9_LEADER_SKILLS } from '../../src/shared/assets/gf9LeaderSkills';
+import { GF9_NEXUS_CARDS } from '../../src/shared/assets/gf9Nexus';
+import { GF9_STRONGHOLD_CARDS } from '../../src/shared/assets/gf9StrongholdDeck';
+import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../../src/shared/assets/standardStormDeck';
 import { arrakisBoard } from '../../src/shared/boards/geometry';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { resolveAsset } from '../../src/shared/media/resolveAsset';
@@ -440,6 +444,10 @@ async function checkPublisherImageCapture(
     | 'card-treachery'
     | 'card-spice'
     | 'card-custom'
+    | 'card-leaderability'
+    | 'card-nexus'
+    | 'card-stronghold'
+    | 'card-storm'
     | 'faction-troop'
     | 'faction-traitor'
     | 'faction-alliance'
@@ -473,6 +481,26 @@ async function checkPublisherImageCapture(
     invariant(result.payloadHash === snapshot.payloadHash, `${label} capture did not expose the exact payload hash`);
     invariant(errors.length === 0, `${label} capture emitted errors: ${errors.join(' | ')}`);
     await assertCaptureImageBounds(page, capture);
+    if (assetType === 'card-nexus') {
+      const regions = await page.locator('section').evaluateAll((sections) =>
+        sections.map((section) => {
+          const rules = section.lastElementChild as HTMLElement;
+          return {
+            height: rules.clientHeight,
+            contentHeight: rules.scrollHeight,
+            width: rules.clientWidth,
+            contentWidth: rules.scrollWidth,
+          };
+        })
+      );
+      invariant(regions.length === 3, 'Nexus capture must contain its three effects');
+      invariant(
+        regions.every(
+          ({ height, contentHeight, width, contentWidth }) => contentHeight <= height + 1 && contentWidth <= width + 1
+        ),
+        'Nexus effect text must fit its printed region'
+      );
+    }
     if (isComponentAssetType(assetType)) {
       const serialized = await page
         .locator(`#${CAPTURE_PROTOCOL.marker.id}`)
@@ -511,6 +539,20 @@ async function checkPublisherImageCapture(
 }
 
 const browser = await chromium.launch({ headless: true });
+async function checkNexusCapture(browser: Browser, card: (typeof GF9_NEXUS_CARDS)[number]) {
+  const slug = card.faction.toLowerCase().replaceAll(' ', '-');
+  const captured = await checkPublisherImageCapture(
+    browser,
+    'card-nexus',
+    envelope('card-nexus', { assetId: 'k17publisherNexusCard', slug, card }),
+    `Nexus ${card.faction}`
+  );
+  if (process.env.NEXUS_PROOF_DIRECTORY) {
+    await mkdir(process.env.NEXUS_PROOF_DIRECTORY, { recursive: true });
+    await Bun.write(path.join(process.env.NEXUS_PROOF_DIRECTORY, `${slug}.png`), captured);
+  }
+}
+
 try {
   await checkCorruptSvgImage(browser);
   await checkCorruptExternalUse(browser);
@@ -537,6 +579,9 @@ try {
     await Bun.write(process.env.BOARD_PROOF_PATH, boardCapture);
   }
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
+  for (const card of GF9_NEXUS_CARDS) {
+    await checkNexusCapture(browser, card); /* NOSONAR: Captures share the active snapshot. */
+  }
   for (const format of ['plain', 'decal-window'] as const) {
     await checkPublisherImageCapture(
       browser,
@@ -554,8 +599,52 @@ try {
       `custom card ${format}`
     );
   }
+  await checkPublisherImageCapture(
+    browser,
+    'card-leaderability',
+    envelope('card-leaderability', {
+      assetId: 'k17publisherLeaderSkill',
+      slug: 'planetologist',
+      card: GF9_LEADER_SKILLS[5],
+    }),
+    'leader skill card'
+  );
+  const strongholdCapture = await checkPublisherImageCapture(
+    browser,
+    'card-stronghold',
+    envelope('card-stronghold', {
+      assetId: 'k17publisherStrongholdCard',
+      slug: 'arrakeen',
+      card: GF9_STRONGHOLD_CARDS[0],
+    }),
+    'stronghold card'
+  );
+  if (process.env.STRONGHOLD_PROOF_PATH) {
+    await Bun.write(process.env.STRONGHOLD_PROOF_PATH, strongholdCapture);
+  }
+  for (const card of STANDARD_STORM_CARDS) {
+    const proof = await checkPublisherImageCapture(
+      browser,
+      'card-storm',
+      envelope('card-storm', { assetId: `storm-${card.sectors}`, slug: `${card.sectors}-sectors`, card }),
+      `storm card ${card.sectors}`
+    );
+    if (process.env.STORM_PROOF_DIRECTORY) {
+      await mkdir(process.env.STORM_PROOF_DIRECTORY, { recursive: true });
+      await Bun.write(path.join(process.env.STORM_PROOF_DIRECTORY, `storm-${card.sectors}.png`), proof);
+    }
+  }
   await checkPublisherImageCapture(browser, 'card-spice', spiceSnapshot, 'spice card');
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
+  const stormBack = await checkPublisherImageCapture(
+    browser,
+    'cardback-preset',
+    envelope('cardback-preset', { assetId: 'storm', slug: 'storm', cardback: STANDARD_STORM_CARDBACK }),
+    'shared Storm back'
+  );
+  if (process.env.STORM_PROOF_DIRECTORY) {
+    await Bun.write(path.join(process.env.STORM_PROOF_DIRECTORY, 'storm-back.png'), stormBack);
+  }
   await checkPublisherImageCapture(
     browser,
     'cardback-preset',

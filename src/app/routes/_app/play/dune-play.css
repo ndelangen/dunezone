@@ -140,15 +140,6 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   pointer-events: auto;
 }
 
-/* A stage's own panel under the decision bar, scrolling inside the dock. */
-:where(.dune-play-shell) .seated-stage-panel {
-  width: min(78rem, 100%);
-  min-height: 0;
-  margin: 0 auto;
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-
 /* Header: no bar of its own. The table runs to the top of the screen, and the phase with the game beside it (left) and
    the phase and settings controls (right) float over it as chips. It is the shell's child beside the split, not the scene
    panel's: the split makes each panel a stacking context, so a header inside the scene's panel would paint under the dock
@@ -399,25 +390,9 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 }
 
 /*
- * With a decision bar above the tabs, the bar takes its own height and the tabs keep the rest.
- * Each bar keeps its own wrapper even when it has nothing to say, so the dock is never empty and keeps that row.
- * A bar taller than the dock, as declaring the result is on a phone, stops at the dock's height and scrolls there,
- * so its actions stay in reach instead of running past the window's lower edge.
+ * Nothing sits between the board and the controls (Norbert, 2026-10-11): no bar or banner above the tabs, in any stage.
+ * What once took that row lives in the header, on the table, or in a tab.
  */
-:where(.dune-play-shell) .seated-controls-panel:has(> [data-decision-bar]) {
-  grid-template-rows: minmax(0, max-content) minmax(0, 1fr);
-}
-
-:where(.dune-play-shell) .seated-controls-panel > [data-decision-bar] {
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-/* Each bar keeps its full height inside that scroll instead of shrinking under its own content. */
-:where(.dune-play-shell) .seated-controls-panel > [data-decision-bar] > * {
-  flex-shrink: 0;
-}
-
 :where(.dune-play-shell) .seated-controls-tabs {
   width: min(78rem, 100%);
   height: 100%;

@@ -6,7 +6,11 @@ import {
   RECTANGLE_TOKEN_ASSET_TYPE,
   RULEBOOK_FIRST_PAGE_ASSET_TYPE,
   CUSTOM_CARD_ASSET_TYPE,
+  LEADER_SKILL_ASSET_TYPE,
+  NEXUS_CARD_ASSET_TYPE,
+  STORM_CARD_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
+  STRONGHOLD_CARD_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
 } from '../src/shared/asset-publishing/publication';
 import { INITIAL_CARDBACK_PRESETS } from '../src/shared/assets/cardbackPresets';
@@ -151,7 +155,11 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
     case 'board':
     case TREACHERY_CARD_ASSET_TYPE:
     case SPICE_CARD_ASSET_TYPE:
+    case STRONGHOLD_CARD_ASSET_TYPE:
     case CUSTOM_CARD_ASSET_TYPE:
+    case LEADER_SKILL_ASSET_TYPE:
+    case NEXUS_CARD_ASSET_TYPE:
+    case STORM_CARD_ASSET_TYPE:
     case DECK_ASSET_TYPE:
     case 'token-disc':
     case 'token-tech':

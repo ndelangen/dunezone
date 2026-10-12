@@ -5,6 +5,7 @@ import type { SwapAction, SwappingState } from '@shared/play/swapping';
 import { useId } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import { ReadyToggle } from './PhaseNavigation';
 import { useServerNow } from './useServerNow';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
@@ -45,31 +46,58 @@ function useTrading({ client, table, state }: Swapping) {
   return { trading, remaining };
 }
 
-export function SwappingReadiness({ client, table }: Props) {
+/** The header's Ready toggle while trading: the same toggle as in play, counting the players ready to start. */
+export function SwappingReady({ client, table }: Props) {
   const state = swappingState(table);
-  return state ? <Readiness client={client} table={table} state={state} /> : null;
+  return state && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
+    <SwapReadyToggle client={client} table={table} state={state} />
+  ) : null;
 }
 
-function Readiness(props: Swapping) {
+function SwapReadyToggle(props: Swapping) {
+  const { trading } = useTrading(props);
+  const { state, seat, disabled, send } = trading;
+  const ready = state.ready.includes(seat);
+  return (
+    <ReadyToggle
+      ready={ready}
+      count={state.ready.length}
+      of={props.table.snapshot.controls?.players.length ?? 0}
+      disabled={disabled}
+      onToggle={() => send({ kind: 'swap-ready', round: state.round, seat, ready: !ready })}
+    />
+  );
+}
+
+/** The phase chip's copy while trading: the stage word over the time left, or why trading ended. */
+export function SwappingStatus({ client, table }: Props) {
+  const state = swappingState(table);
+  return state ? <TradingClock client={client} table={table} state={state} /> : null;
+}
+
+function TradingClock(props: Swapping) {
   const { table } = props;
   const { trading, remaining } = useTrading(props);
-  const { state, seat, disabled, send, closed } = trading;
-  const ready = state.ready.includes(seat);
+  const { state, closed } = trading;
   const players = table.snapshot.controls?.players.length ?? 0;
   const status = tradingStatus(state, closed, players, (table.snapshot.roster?.seats.length ?? 0) - players);
   const statusId = useId();
   return (
-    <Group justify="space-between" gap="sm">
-      {/* A timer is not live, so the countdown is not read out every second; the tooltip names nothing to assistive technology, so its status also describes the timer until the timer shows that status itself. */}
-      <Tooltip label={status} events={{ hover: true, focus: true, touch: true }}>
+    <div className="seated-phase-status__copy">
+      <span>Trading</span>
+      {/* The timer is kept quiet inside the header's live region, so the countdown is not read out every second; the tooltip names nothing to assistive technology, so its status also describes the timer until the timer shows that status itself. */}
+      <Tooltip label={status} multiline maw={320} events={{ hover: true, focus: true, touch: true }}>
         <Text
-          component="output"
+          component="strong"
+          inherit
           role="timer"
+          aria-live="off"
           tabIndex={0}
           aria-label="Trading time remaining"
           aria-describedby={closed ? undefined : statusId}
+          style={{ pointerEvents: 'auto' }}
         >
-          {closed ? status : `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`}
+          {closed ? status : `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')} left`}
         </Text>
       </Tooltip>
       {closed ? null : (
@@ -79,17 +107,7 @@ function Readiness(props: Swapping) {
       )}
       {/* The timer is not live, so the end of trading is said here, once. */}
       <VisuallyHidden role="status">{closed ? status : ''}</VisuallyHidden>
-      {seat !== SPECTATOR_SEAT && (
-        <Button
-          disabled={disabled}
-          aria-pressed={ready}
-          variant={ready ? 'default' : 'filled'}
-          onClick={() => send({ kind: 'swap-ready', round: state.round, seat, ready: !ready })}
-        >
-          {ready ? 'Withdraw readiness' : 'Ready to start'}
-        </Button>
-      )}
-    </Group>
+    </div>
   );
 }
 

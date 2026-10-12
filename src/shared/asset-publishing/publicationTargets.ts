@@ -28,6 +28,10 @@ export const PUBLICATION_ASSET_TYPES = [
   'card-treachery',
   'card-spice',
   'card-custom',
+  'card-leaderability',
+  'card-nexus',
+  'card-stronghold',
+  'card-storm',
   'board',
   'deck',
   'cardback-preset',
@@ -171,7 +175,11 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     downloadFilename: 'board.jpg',
     capture: { output: 'image', widthPx: 1948, heightPx: 1948, jpegQuality: 95, maxBytes: 3_000_000 },
   },
+  'card-leaderability': cardTarget('leader-skill-cards', 'card.jpg', 'leader-skill-card.jpg'),
+  'card-stronghold': cardTarget('stronghold-cards', 'card.jpg', 'stronghold-card.jpg'),
   'card-custom': cardTarget('custom-cards', 'card.jpg', 'custom-card.jpg'),
+  'card-nexus': cardTarget('nexus-cards', 'card.jpg', 'nexus-card.jpg'),
+  'card-storm': cardTarget('storm-cards', 'card.jpg', 'storm-card.jpg'),
   'card-spice': cardTarget('spice-cards', 'card.jpg', 'spice-card.jpg'),
   /*
    * A deck publishes its Cardback and nothing else (wayfinder #495), so the row is a card in every dimension that matters.

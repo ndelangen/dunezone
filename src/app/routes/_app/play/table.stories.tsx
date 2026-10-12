@@ -336,7 +336,7 @@ export const LowWindow = meta.story({
     await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
     expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).toBeVisible();
     expectControlsTakeThePointer(shell);
-    /* Docked, the dial keeps a column of its own: the decision bar and panes beside it stay clear of it. */
+    /* Docked, the dial keeps a column of its own: the panes beside it stay clear of it. */
     const camera = shell.querySelector('.seated-camera')!.getBoundingClientRect();
     for (const pane of shell.querySelectorAll('.seated-controls-panel > :not(.seated-camera)')) {
       expect(pane.getBoundingClientRect().right, `${pane.className} runs under the dial`).toBeLessThanOrEqual(
@@ -689,7 +689,7 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
-    await openTab(page, 'Phase');
+    await openTab(page, 'Replay');
     const slot = spiceBankSlot();
     const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     const scene = document.querySelector('canvas')!;

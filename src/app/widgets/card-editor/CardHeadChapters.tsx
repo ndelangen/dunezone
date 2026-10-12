@@ -50,8 +50,7 @@ const CARD_PRESETS = [
   },
 ] as const;
 
-const HEAD_PRESETS = CARD_PRESETS.map(({ key, label, head }) => ({ key, label, background: head }));
-const ICON_BACKGROUND_PRESETS = CARD_PRESETS.map(({ key, label, striped }) => ({ key, label, background: striped }));
+type CardPreset = { key: string; label: string; head: CardHeadDraft['head']; striped: CardHeadDraft['head'] };
 
 /* The card's head: its name, type, and the Background behind them. */
 function HeadFields({
@@ -60,12 +59,16 @@ function HeadFields({
   memory,
   remember,
   nameField,
+  fixedType,
+  presets,
 }: {
   draft: CardHeadDraft;
   patch: Patch;
   memory: CardHeadMemory;
   remember: RememberHead;
   nameField: ReactNode;
+  fixedType?: string;
+  presets: readonly CardPreset[];
 }) {
   return (
     <Stack gap="md">
@@ -76,11 +79,12 @@ function HeadFields({
       />
       <ControlBlock
         title="Type"
-        description="Shown under the name, for example Weapon - Projectile."
+        description={fixedType ? 'This card type is fixed.' : 'Shown under the name, for example Weapon - Projectile.'}
         input={
           <TextInput
             aria-label="Type"
-            value={draft.subName}
+            value={fixedType ?? draft.subName}
+            readOnly={fixedType !== undefined}
             onChange={(event) => patch({ subName: event.currentTarget.value })}
           />
         }
@@ -89,14 +93,14 @@ function HeadFields({
         title="Head background"
         description="The background behind the card's name. The icon's stripes follow it, unless you have composed your own."
         usedOn="this card's head"
-        presets={HEAD_PRESETS}
+        presets={presets.map(({ key, label, head }) => ({ key, label, background: head }))}
         value={draft.head}
         declaredCustom={memory.headCustom}
         onDeclaredCustomChange={(headCustom) => remember({ headCustom })}
         modeMemory={memory.headModeMemory}
         onModeMemoryChange={(headModeMemory) => remember({ headModeMemory })}
         onChange={(head, presetKey) => {
-          patch({ head, ...matchingStripes(presetKey, draft, memory) });
+          patch({ head, ...matchingStripes(presetKey, draft, memory, presets) });
         }}
       />
     </Stack>
@@ -107,13 +111,14 @@ function HeadFields({
 function matchingStripes(
   presetKey: string | null,
   draft: CardHeadDraft,
-  memory: CardHeadMemory
+  memory: CardHeadMemory,
+  presets: readonly CardPreset[]
 ): Pick<CardHeadDraft, 'icon'> | undefined {
-  const preset = CARD_PRESETS.find((candidate) => candidate.key === presetKey);
+  const preset = presets.find((candidate) => candidate.key === presetKey);
   if (!preset) {
     return undefined;
   }
-  const wornHead = CARD_PRESETS.find((candidate) => sameBackground(candidate.head, draft.head));
+  const wornHead = presets.find((candidate) => sameBackground(candidate.head, draft.head));
   const iconIsStillItsStripes = wornHead ? sameBackground(wornHead.striped, draft.icon[0]) : false;
   const lose = hasWorkToLose({ stillWearsExpected: iconIsStillItsStripes, declaredCustom: memory.iconCustom });
   return lose ? undefined : { icon: [preset.striped, draft.icon[1]] };
@@ -125,11 +130,13 @@ function IconFields({
   patch,
   memory,
   remember,
+  presets,
 }: {
   draft: CardHeadDraft;
   patch: Patch;
   memory: CardHeadMemory;
   remember: RememberHead;
+  presets: readonly CardPreset[];
 }) {
   const icon = draft.icon;
   return (
@@ -157,7 +164,7 @@ function IconFields({
         title="Icon background"
         description="The background behind the icon, independent of the head background."
         usedOn="this card's icon"
-        presets={ICON_BACKGROUND_PRESETS}
+        presets={presets.map(({ key, label, striped }) => ({ key, label, background: striped }))}
         value={icon[0]}
         declaredCustom={memory.iconCustom}
         onDeclaredCustomChange={(iconCustom) => remember({ iconCustom })}
@@ -177,19 +184,33 @@ export function cardHeadAndSymbolChapters({
   memory,
   remember,
   nameField,
+  fixedType,
+  presets = CARD_PRESETS,
 }: {
   draft: CardHeadDraft;
   patch: Patch;
   memory: CardHeadMemory;
   remember: RememberHead;
   nameField: ReactNode;
+  fixedType?: string;
+  presets?: readonly CardPreset[];
 }) {
   return [
     {
       value: 'head' as const,
       label: 'Head',
       icon: <TopicIcon topic="head" size={21} />,
-      panel: <HeadFields draft={draft} patch={patch} memory={memory} remember={remember} nameField={nameField} />,
+      panel: (
+        <HeadFields
+          draft={draft}
+          patch={patch}
+          memory={memory}
+          remember={remember}
+          nameField={nameField}
+          fixedType={fixedType}
+          presets={presets}
+        />
+      ),
     },
     {
       value: 'icon' as const,
@@ -197,7 +218,7 @@ export function cardHeadAndSymbolChapters({
       icon: <TopicIcon topic="symbol" size={21} />,
       panel: (
         <Stack gap="lg">
-          <IconFields draft={draft} patch={patch} memory={memory} remember={remember} />
+          <IconFields draft={draft} patch={patch} memory={memory} remember={remember} presets={presets} />
         </Stack>
       ),
     },

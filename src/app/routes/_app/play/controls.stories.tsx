@@ -226,13 +226,16 @@ export const BattleRevealed = meta.story({
   },
 });
 
-/** A spectator's dock opens on the Log, not on the Shared inventory whose every control is a seat's. */
+/** A spectator's dock opens on History and its game log. */
 export const SpectatorOpensOnLog = meta.story({
   beforeEach: install(() => productTransport('neutral')),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('tab', { name: 'Log' }, WAIT)).resolves.toHaveAttribute('aria-selected', 'true');
-    expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAttribute('aria-selected', 'false');
+    await expect(page.findByRole('tab', { name: 'Game log' }, WAIT)).resolves.toHaveAttribute('aria-selected', 'true');
+    expect(page.getByRole('tablist', { name: 'Controls' }).querySelector('[aria-label="Table"]')).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
   },
 });
 
@@ -272,7 +275,7 @@ export const SharedInventory = meta.story({
   },
 });
 
-/** Spice: the private spice reserve and the public transfers. */
+/** Spice: the private spice reserve. */
 export const Spice = meta.story({
   beforeEach: install(() =>
     productTransport('seat-2', { ...playingSnapshot(), bank: { factionId: 'house-harkonnen', balance: 12 } })
@@ -287,7 +290,7 @@ export const Spice = meta.story({
 export const LogGame = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot(), { logEntries: { game: GAME_LOG } })),
   play: async ({ canvasElement }) => {
-    const page = await openPanel(canvasElement, 'Log', 'Game');
+    const page = await openPanel(canvasElement, 'Game log');
     const log = await page.findByRole('region', { name: 'Game log' }, WAIT);
     await expect(within(log).findByText(GAME_LOG[0]!.text, {}, WAIT)).resolves.toBeVisible();
   },
@@ -297,23 +300,22 @@ export const LogGame = meta.story({
 export const LogAudit = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot(), { logEntries: { audit: AUDIT_LOG } })),
   play: async ({ canvasElement }) => {
-    const page = await openPanel(canvasElement, 'Log', 'Audit');
+    const page = await openPanel(canvasElement, 'Audit');
     const log = await page.findByRole('region', { name: 'Audit log' }, WAIT);
     await expect(within(log).findByText(AUDIT_LOG[0]!.text, {}, WAIT)).resolves.toBeVisible();
   },
 });
 
-/** The shared phase at Turn 1 Storm: playback and the random storm placement; Determine winner joins them in Mentat pause (Play/Results). */
+/** The shared phase at Turn 1 Storm: instructions and random storm placement; Determine winner joins them in Mentat pause (Play/Results). */
 export const Phase = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Phase');
-    await expect(page.findByRole('button', { name: 'Replay from start' }, WAIT)).resolves.toBeVisible();
     await expect(page.findByRole('button', { name: 'Place storm randomly' }, WAIT)).resolves.toBeVisible();
   },
 });
 
-/** A table that agreed on a six-turn game, in its fourth turn: the wheel shows six sectors and the Phase tab its last turn. */
+/** A table that agreed on a six-turn game, in its fourth turn: the wheel shows six sectors and the Settings tab its last turn. */
 export const PhaseShortGame = meta.story({
   beforeEach: install(() =>
     productTransport('seat-2', {
@@ -323,7 +325,7 @@ export const PhaseShortGame = meta.story({
     })
   ),
   play: async ({ canvasElement }) => {
-    const page = await openPanel(canvasElement, 'Phase');
+    const page = await openPanel(canvasElement, 'Settings');
     await expect(page.findByRole('textbox', { name: 'Last turn' }, WAIT)).resolves.toHaveValue('6');
   },
 });

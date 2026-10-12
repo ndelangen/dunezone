@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   ShieldOff,
   TriangleAlert,
+  Trophy,
   Zap,
   Boxes,
   Image as ImageIcon,
@@ -56,6 +57,7 @@ const TOPIC_ICON_DEFINITIONS = {
   rules: { kind: 'mask', src: '/vector/icon/balance.svg' },
   advantages: { kind: 'mask', src: '/vector/icon/kwisatz.svg' },
   spice: { kind: 'mask', src: '/vector/icon/spice.svg' },
+  storm: { kind: 'mask', src: '/vector/icon/storm_disc.svg' },
   complexityNovice: { kind: 'mask', src: '/vector/icon/faction-complexity-1.svg' },
   complexityIntermediate: { kind: 'mask', src: '/vector/icon/faction-complexity-2.svg' },
   complexityExpert: { kind: 'mask', src: '/vector/icon/faction-complexity-3.svg' },
@@ -66,6 +68,8 @@ const TOPIC_ICON_DEFINITIONS = {
   karama: { kind: 'mask', src: '/vector/icon/karama.svg' },
   rulesets: { kind: 'component', component: BookOpen },
   fate: { kind: 'mask', src: '/vector/icon/fate.svg' },
+  /* The end of a game: who is determining the winner, and who won. */
+  result: { kind: 'component', component: Trophy },
   /* The entity-kind glyphs the mention chips wear. Factions reuse the Faction leader pictogram and assets
      reuse the contents glyph, the way decals reuses alliance: one drawing, two topics. */
   factions: { kind: 'mask', src: '/vector/generic/ceasar.svg' },

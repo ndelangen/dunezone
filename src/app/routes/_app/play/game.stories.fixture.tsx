@@ -73,19 +73,6 @@ export function drafting(seatRequests: NonNullable<GameSnapshot['controls']>['se
 export const lastCommand = () =>
   [...session.transport.messages].reverse().find((message) => message.type === 'command');
 
-/**
- * The decision bar by its eyebrow, read fresh on every use: the panel arrives with the table chunk and the connection, so a node held from before goes stale.
- */
-export async function decisionBar(canvasElement: HTMLElement, name: string) {
-  const page = within(canvasElement.ownerDocument.body);
-  const bar = () => within(page.getByRole('region', { name }));
-  await expect(
-    page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
-  ).resolves.toBeVisible();
-  await waitFor(() => expect(page.getByRole('region', { name })).toBeVisible(), { timeout: 30_000 });
-  return bar;
-}
-
 /** Opens a spectator's seat from the header toolbar and reads it as the named region. */
 export async function seatPopover(canvasElement: HTMLElement, name: string) {
   const page = within(canvasElement.ownerDocument.body);

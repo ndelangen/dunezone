@@ -6,7 +6,7 @@ import { describeResult } from '../src/shared/play/result.ts';
 /**
  * A real game played to a declared result and continued, through ordinary browser controls.
  * The native journeys prove the rules.
- * This flow proves the lobby, the decision bars and Continue playing in signed-in browsers.
+ * This flow proves the lobby, the Result tab and Continue playing in signed-in browsers.
  */
 export async function verifyResults({
   seated,
@@ -25,7 +25,10 @@ export async function verifyResults({
   const { a, b, observer } = await seated();
   const everyone = [a, b, observer];
   const stage = (who) => who.view().snapshot.stage;
-  const bar = (who) => who.page.locator('[data-decision-bar]');
+  /* The end of the game opens the Result tab once for every panel; the finished result also heads the phase chip. */
+  const bar = (who) =>
+    who.page.getByRole('tabpanel').filter({ has: who.page.getByText(/^(Determine winner|Finished)$/u) });
+  const header = (who) => who.page.locator('.seated-header');
   const winner = factionOf(a);
   const gameId = currentGameId();
   const gamePath = new URL(a.page.url()).pathname;
@@ -57,8 +60,8 @@ export async function verifyResults({
   }
   assert.equal(await button(b, 'Determine winner').count(), 0);
   assert.equal(await declared.getByRole('button', { name: 'Declare', exact: true }).isDisabled(), true);
-  await capture(a, 'after-declare-bar-1440x1000');
-  passed('Opening the sequence gives its player the Declare bar and names them on every other panel');
+  await capture(a, 'after-declare-result-tab-1440x1000');
+  passed('Opening the sequence opens the Result tab: Declare for its player, their name on every other panel');
 
   await declared.getByRole('combobox', { name: 'Winning faction', exact: true }).click();
   await a.page.getByRole('option', { name: winner.name, exact: true }).click();
@@ -73,9 +76,13 @@ export async function verifyResults({
     await bar(who).getByText(title, { exact: true }).waitFor();
     await bar(who).getByText(`Declared by ${name}.`).waitFor();
   }
-  await bar(a).getByRole('button', { name: 'Continue playing', exact: true }).waitFor();
-  await bar(b).getByRole('button', { name: 'Continue playing', exact: true }).waitFor();
-  assert.equal(await bar(observer).getByRole('button', { name: 'Continue playing', exact: true }).count(), 0);
+  for (const who of everyone) {
+    await header(who).getByText(title, { exact: true }).waitFor();
+  }
+  /* Continue playing sits in the header where Next phase did. */
+  await header(a).getByRole('button', { name: 'Continue playing', exact: true }).waitFor();
+  await header(b).getByRole('button', { name: 'Continue playing', exact: true }).waitFor();
+  assert.equal(await observer.page.getByRole('button', { name: 'Continue playing', exact: true }).count(), 0);
   await bar(observer)
     .getByText(/The table stays as it was\.$/u)
     .waitFor();
@@ -121,7 +128,9 @@ export async function verifyResults({
   assert.equal(a.view().snapshot.result ?? null, null);
   assert.equal(phaseAt(a.view().snapshot.phase).id, 'mentat-pause');
   for (const who of [a, b]) {
-    assert.equal(await bar(who).getByText(title, { exact: true }).count(), 0);
+    assert.equal(await header(who).getByText(title, { exact: true }).count(), 0);
+    /* The Result tab closes with the result and the panel returns to the tab it opened over; Phase is chosen again so the check does not depend on which. */
+    await openTab(who, 'Phase');
     await button(who, 'Determine winner').waitFor();
   }
   passed('Continue playing drops the result and resumes the same turn at Mentat pause');

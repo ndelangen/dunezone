@@ -107,6 +107,21 @@ export async function enqueueRulebookFirstPagePublication(
 
 export type RulebookFirstPageCaptureStatus = 'scheduled' | 'in_progress' | 'failed' | null;
 
+/** Readers need the published image without loading capture jobs and their embedded source documents. */
+export async function rulebookFirstPageImage(ctx: RulebookPublicationReadCtx, editionId: string) {
+  const assets = await ctx.db
+    .query('publication_assets')
+    .withIndex('by_asset_type_and_asset_id', (q) =>
+      q.eq('asset_type', RULEBOOK_FIRST_PAGE_ASSET_TYPE).eq('asset_id', editionId)
+    )
+    .take(2);
+  if (assets.length > 1) {
+    throw new Error('Publication invariant violated: duplicate Rulebook first-page assets');
+  }
+  const asset = assets[0];
+  return asset ? publishedHref(RULEBOOK_FIRST_PAGE_ASSET_TYPE, asset.asset_id, asset.cache_token) : null;
+}
+
 /** Projects the current image and any replacement work without hiding a usable image behind capture state. */
 export async function rulebookFirstPagePublicationStatus(ctx: RulebookPublicationReadCtx, editionId: string) {
   const [assets, jobs] = await Promise.all([

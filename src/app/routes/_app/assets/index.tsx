@@ -1,6 +1,6 @@
 import { Badge, Stack, Text, Title, UnstyledButton } from '@mantine/core';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
-import type { AssetCategory, AssetType } from '@shared/assets/types';
+import type { AssetCategory, AssetType, AssetTypeDefinition } from '@shared/assets/types';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -260,7 +260,7 @@ function EmptyPileOutline({ type, planned }: { type: AssetType; planned: boolean
 }
 
 function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[] }) {
-  const definition = ASSET_TYPES[type];
+  const definition: AssetTypeDefinition = ASSET_TYPES[type];
   const planned = definition.status === 'planned';
   const isCardish = type.startsWith('card-') || type === 'deck';
   const art =

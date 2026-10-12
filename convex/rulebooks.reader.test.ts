@@ -283,3 +283,92 @@ describe('Rulebook current-Edition reader', () => {
     expect((await t.query(api.rulebooks.readerPage, locator))?.assetsById).toEqual({});
   });
 });
+
+describe('Rulebook HTML reader delivery', () => {
+  async function readyHtml(fixture: Awaited<ReturnType<typeof readerFixture>>) {
+    await fixture.t.run(async (ctx) => {
+      const artifact = await ctx.db
+        .query('rulebook_edition_artifacts')
+        .withIndex('by_edition_and_kind', (q) => q.eq('edition_id', fixture.created.edition._id).eq('kind', 'html'))
+        .unique();
+      await ctx.db.patch('rulebook_edition_artifacts', artifact!._id, { status: 'ready' });
+    });
+  }
+
+  test('ready HTML does not load Edition contents, source records or private drafts', async () => {
+    const fixture = await readerFixture();
+    await readyHtml(fixture);
+    await fixture.t.run(async (ctx) => {
+      const contents = await ctx.db
+        .query('rulebook_edition_contents')
+        .withIndex('by_edition_id', (q) => q.eq('edition_id', fixture.created.edition._id))
+        .unique();
+      await ctx.db.delete('rulebook_edition_contents', contents!._id);
+      await ctx.db.delete('rulebook_drafts', fixture.created.draft._id);
+    });
+    const page = await fixture.t.query(api.rulebooks.readerDeliveryPage, fixture.locator);
+    expect(page?.body).toEqual({
+      kind: 'html',
+      href: rulebookEditionArtifactPath(fixture.created.rulebook._id, 1, 'html'),
+    });
+    expect(page).not.toHaveProperty('draft');
+    expect(page?.edition).not.toHaveProperty('contents');
+    expect(page).toMatchObject({ canEdit: false, canDelete: false });
+    expect(await fixture.owner.query(api.rulebooks.readerDeliveryPage, fixture.locator)).toMatchObject({
+      canEdit: true,
+      canDelete: true,
+    });
+    expect(await fixture.member.query(api.rulebooks.readerDeliveryPage, fixture.locator)).toMatchObject({
+      canEdit: true,
+      canDelete: false,
+    });
+  });
+
+  test('unfinished current HTML renders that Edition, while historical ready HTML stays selectable', async () => {
+    const fixture = await readerFixture();
+    await readyHtml(fixture);
+    await fixture.t.run(async (ctx) => {
+      const id = await ctx.db.insert('rulebook_editions', {
+        rulebook_id: fixture.created.rulebook._id,
+        edition_number: 2,
+        created_at: '2026-10-12',
+        created_by: fixture.ids.ownerId,
+      });
+      await ctx.db.insert('rulebook_edition_contents', { edition_id: id, contents: fixture.created.edition.contents });
+      await ctx.db.patch('rulebooks', fixture.created.rulebook._id, { current_edition_number: 2 });
+    });
+    expect(await fixture.t.query(api.rulebooks.readerDeliveryPage, fixture.locator)).toMatchObject({
+      edition: { edition_number: 2, html: { status: 'preparing' } },
+      body: { kind: 'render', contents: fixture.created.edition.contents },
+    });
+    expect(
+      await fixture.t.query(api.rulebooks.readerDeliveryPage, { ...fixture.locator, edition_number: 1 })
+    ).toMatchObject({
+      edition: { edition_number: 1 },
+      body: { kind: 'html' },
+    });
+    expect(
+      await fixture.t.query(api.rulebooks.readerDeliveryPage, {
+        ...fixture.locator,
+        edition_number: 1,
+        render_contents: true,
+      })
+    ).toMatchObject({
+      edition: { edition_number: 1 },
+      body: { kind: 'render', contents: fixture.created.edition.contents },
+    });
+  });
+
+  test.each(['rulebook', 'ruleset'] as const)('deleted %s stops HTML reader metadata delivery', async (kind) => {
+    const fixture = await readerFixture();
+    await readyHtml(fixture);
+    await fixture.t.run(async (ctx) => {
+      if (kind === 'rulebook') {
+        await ctx.db.patch('rulebooks', fixture.created.rulebook._id, { is_deleted: true });
+      } else {
+        await ctx.db.patch('rulesets', fixture.ids.rulesetId, { is_deleted: true });
+      }
+    });
+    expect(await fixture.t.query(api.rulebooks.readerDeliveryPage, fixture.locator)).toBeNull();
+  });
+});

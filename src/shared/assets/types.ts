@@ -10,7 +10,7 @@ export type AssetCategory = (typeof ASSET_CATEGORIES)[number];
 
 type AssetTypeStatus = 'live' | 'planned';
 
-type AssetTypeDefinition = {
+export type AssetTypeDefinition = {
   category: AssetCategory;
   /** the full plural name, used in footnotes and aria labels */
   label: string;
@@ -25,13 +25,13 @@ export const ASSET_TYPES = {
   'card-custom': { category: 'cards', label: 'Custom cards', shortLabel: 'Custom', status: 'live' },
   'card-leaderability': {
     category: 'cards',
-    label: 'Leader ability cards',
-    shortLabel: 'Leader ability',
-    status: 'planned',
+    label: 'Leader skill cards',
+    shortLabel: 'Leader skill',
+    status: 'live',
   },
-  'card-storm': { category: 'cards', label: 'Storm cards', shortLabel: 'Storm', status: 'planned' },
-  'card-stronghold': { category: 'cards', label: 'Stronghold cards', shortLabel: 'Stronghold', status: 'planned' },
-  'card-nexus': { category: 'cards', label: 'Nexus cards', shortLabel: 'Nexus', status: 'planned' },
+  'card-storm': { category: 'cards', label: 'Storm cards', shortLabel: 'Storm', status: 'live' },
+  'card-stronghold': { category: 'cards', label: 'Stronghold cards', shortLabel: 'Stronghold', status: 'live' },
+  'card-nexus': { category: 'cards', label: 'Nexus cards', shortLabel: 'Nexus', status: 'live' },
   deck: { category: 'decks', label: 'Decks', shortLabel: 'Decks', status: 'live' },
   'token-disc': { category: 'tokens', label: 'Disc tokens', shortLabel: 'Disc', status: 'live' },
   'token-tech': { category: 'tokens', label: 'Tech tokens', shortLabel: 'Tech', status: 'live' },

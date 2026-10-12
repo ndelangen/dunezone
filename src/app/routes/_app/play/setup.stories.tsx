@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { openPanel } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, predictionSnapshot, session } from './game.stories.fixture';
 import { productTransport, setupSnapshot, preparedSnapshot } from './product.stories.fixture';
 
@@ -26,11 +27,11 @@ export const TraitorSelection = meta.story({
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'ready', ready: true } })
     );
-    await userEvent.click(page.getByRole('tab', { name: /^Spice$/ }));
+    await openPanel(canvasElement, 'Spice');
     await expect(page.findByLabelText('Spice reserve balance')).resolves.toBeVisible();
-    await userEvent.click(page.getByRole('tab', { name: /^Shared inventory$/ }));
+    await openPanel(canvasElement, 'Shared inventory');
     expect(page.queryByRole('button', { name: 'Add from catalogue' })).toBeNull();
-    await userEvent.click(page.getByRole('tab', { name: /^Hand$/ }));
+    await openPanel(canvasElement, 'Hand');
   },
 });
 

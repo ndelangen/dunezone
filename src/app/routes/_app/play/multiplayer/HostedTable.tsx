@@ -29,16 +29,17 @@ import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopCo
 import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
+import type { PanelTab } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
-import { BattleControls, BattleScene, HandControls } from './BattleControls';
+import { BattleControls, BattleHistory, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
-import { BidderToolbar } from './BidderToolbar';
 import { OfflineConversations } from './Conversation';
-import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, DraftingReadiness } from './Drafting';
-import { DetermineWinner, ResultDecisionBar } from './GameResult';
+import { DraftingOverlay, DraftingPanel } from './Drafting';
+import { DetermineWinner, ResultControls, useDeclareChoice } from './GameResult';
+import type { DeclareChoice } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
 import { HiddenZone } from './HiddenZone';
@@ -53,6 +54,7 @@ import {
   LOG_GUIDANCE,
   phaseGuidance,
   phaseHelp,
+  RESULT_GUIDANCE,
   setupGuidance,
   setupHelp,
   SHARED_INVENTORY_GUIDANCE,
@@ -60,11 +62,12 @@ import {
   SPICE_GUIDANCE,
   SPICE_RESERVE_HELP,
 } from './panelGuidance';
-import { PhaseNavigation } from './PhaseNavigation';
-import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
+import { PlaybackControls } from './PlaybackControls';
+import { PlayerPanel } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
-import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
-import { SwappingReadiness } from './Swapping';
+import { GameMenu, SeatPopover } from './SeatRequests';
+import { stageStatus, stageToolbar } from './StageHeader';
+import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { TableSettings } from './TableSettings';
 import { ServerClockContext } from './useServerNow';
@@ -82,57 +85,6 @@ type ConnectionControlsProps = Readonly<{
   table: TableProjection;
   error: string | null;
 }>;
-
-function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
-  const { playback, historyPending } = table;
-  return (
-    <>
-      {playback && (
-        <Text component="output" size="sm">
-          Playback checkpoint {playback.step} of {playback.lastStep}. Table actions are paused.
-        </Text>
-      )}
-      {historyPending && (
-        <Text component="output" size="sm">
-          Loading playback...
-        </Text>
-      )}
-      <Group gap="sm" role="group" aria-label="Phase playback">
-        {playback ? (
-          <>
-            <Button
-              variant="default"
-              disabled={historyPending || playback.step === 0}
-              onClick={() => client.requestHistory(playback.step - 1)}
-            >
-              Earlier phase
-            </Button>
-            <Button
-              variant="default"
-              disabled={historyPending || playback.step === playback.lastStep}
-              onClick={() => client.requestHistory(playback.step + 1)}
-            >
-              Later phase
-            </Button>
-          </>
-        ) : (
-          <Button
-            variant="default"
-            disabled={historyPending || !!table.state.draftMove || table.reconnecting}
-            onClick={() => client.requestHistory(0)}
-          >
-            Replay from start
-          </Button>
-        )}
-        {(playback || historyPending) && (
-          <Button variant="default" onClick={client.resumeLive}>
-            Return to live
-          </Button>
-        )}
-      </Group>
-    </>
-  );
-}
 
 /* A seat reads by the faction it carries; a seat with no faction yet, or a spectator, by what it is. */
 /** Where the game stands, with the last turn its wheel counts up to. */
@@ -167,7 +119,7 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
 }
 
 /* A spectator's dock opens on the battle when it loads during one, otherwise on the Log; later the spectator picks. */
-const SPECTATOR_OPENING_TABS = ['battle', 'log'];
+const SPECTATOR_OPENING_TABS = ['battle', 'history'];
 
 /* A battle the viewer's faction fights in opens the Battle tab once, when that faction takes its side. */
 function battleFocus(table: TableProjection) {
@@ -184,6 +136,18 @@ function battleFocus(table: TableProjection) {
     return null;
   }
   return { key: 'battle', token: battle.id };
+}
+
+/* The end of the game opens the Result tab once for everyone: when someone starts determining the winner, and when it is declared. */
+function resultFocus(table: TableProjection) {
+  const { ending, result, stage } = table.snapshot;
+  if (table.playback) {
+    return null;
+  }
+  if (stage === 'play' && ending) {
+    return { key: 'result', token: `ending-${ending.startedAt}` };
+  }
+  return stage === 'finished' && result ? { key: 'result', token: `result-${result.declaredAt}` } : null;
 }
 
 function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
@@ -728,6 +692,213 @@ function handTabs({ client, table }: Pick<ConnectionControlsProps, 'client' | 't
   ];
 }
 
+/** The Result tab, while a declared result or an ending game asks the table to settle it. */
+function resultTabs({
+  client,
+  table,
+  error,
+  declare,
+}: Readonly<{ client: TableSession; table: TableProjection; error: string | null; declare: DeclareChoice }>) {
+  return resultFocus(table)
+    ? [
+        {
+          key: 'result',
+          label: 'Result',
+          topic: 'result' as const,
+          ...RESULT_GUIDANCE,
+          content: (
+            <>
+              {error && <FormError title="From the table">{error}</FormError>}
+              <ResultControls client={client} table={table} declare={declare} />
+            </>
+          ),
+        },
+      ]
+    : [];
+}
+
+/** The private destinations are only installed for a viewer with a hand. */
+function yoursTab({ client, table }: SetupControlProps): PanelTab {
+  return {
+    key: 'yours',
+    label: 'Yours',
+    topic: 'hand',
+    description: 'Your private pieces and spice reserve.',
+    content: null,
+    subtabs: [
+      ...handTabs({ client, table }),
+      ...(table.snapshot.bank
+        ? [
+            {
+              key: 'spice',
+              label: 'Spice',
+              topic: 'spice' as const,
+              ...SPICE_GUIDANCE,
+              content: <SpiceReserveControls client={client} table={table} />,
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+/** GameTable supplies the stage and phase controls beside these game actions. */
+function gameTab({ client, table, error, declare }: ControlTabsProps, inPlay: boolean): PanelTab {
+  const { setup, stage, battle } = table.snapshot;
+  const activePhaseId = gameProgress(table.snapshot).activePhaseId;
+  return {
+    key: 'game',
+    label: 'Game',
+    topic: 'game',
+    description: 'The current stage, battles and alliances.',
+    content: null,
+    subtabs: [
+      ...(setup && stage === 'setup'
+        ? [
+            {
+              key: 'setup',
+              label: 'Setup',
+              topic: SETUP_TOPICS[setupStep(setup).kind],
+              ...setupGuidance(setupStep(setup)),
+              content: (
+                <>
+                  {error && <FormError title="From the table">{error}</FormError>}
+                  <SetupControls client={client} table={table} />
+                </>
+              ),
+            },
+          ]
+        : []),
+      ...(inPlay && (battle || activePhaseId === 'battle')
+        ? [
+            {
+              key: 'battle',
+              label: 'Battle',
+              topic: 'battle' as const,
+              ...battleGuidance(table),
+              content: (
+                <>
+                  {error && <FormError title="From the table">{error}</FormError>}
+                  <BattleControls client={client} table={table} />
+                </>
+              ),
+            },
+          ]
+        : []),
+      ...resultTabs({ client, table, error, declare }),
+      ...alliancesTab({ client, table, error }),
+    ],
+  };
+}
+
+/** Shared inventory persists after play; settings remain available only while playing. */
+function tableTab({ client, table, error }: ConnectionControlsProps): PanelTab {
+  return {
+    key: 'table',
+    label: 'Table',
+    topic: 'board',
+    description: 'Shared pieces and table settings.',
+    content: null,
+    subtabs: [
+      {
+        key: 'shared',
+        label: 'Shared inventory',
+        topic: 'assets',
+        ...SHARED_INVENTORY_GUIDANCE,
+        content: <SharedInventory client={client} table={table} />,
+      },
+      ...(table.snapshot.stage === 'play'
+        ? [
+            {
+              key: 'settings',
+              label: 'Settings',
+              topic: 'controls' as const,
+              description: 'Game length and bidding time.',
+              content: (
+                <>
+                  {error && <FormError title="From the table">{error}</FormError>}
+                  <TableSettings client={client} table={table} />
+                </>
+              ),
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+/** Public records and replay stay together as the game changes phase or finishes. */
+function historyTab({ client, table, error }: ConnectionControlsProps, hasInventory: boolean): PanelTab {
+  return {
+    key: 'history',
+    label: 'History',
+    topic: 'log',
+    ...LOG_GUIDANCE,
+    content: null,
+    subtabs: [
+      {
+        key: 'game-log',
+        label: 'Game log',
+        topic: 'game',
+        ...GAME_LOG_GUIDANCE,
+        content: <LogEntries client={client} table={table} tab="game" />,
+      },
+      {
+        key: 'audit',
+        label: 'Audit',
+        topic: 'audit',
+        ...AUDIT_LOG_GUIDANCE,
+        content: <LogEntries client={client} table={table} tab="audit" />,
+      },
+      ...(hasInventory
+        ? [
+            {
+              key: 'battles',
+              label: 'Battles',
+              topic: 'battle' as const,
+              description: 'Agreed battle results and revealed plans.',
+              content: <BattleHistory table={table} />,
+            },
+            {
+              key: 'transfers',
+              label: 'Spice transfers',
+              topic: 'spice' as const,
+              description: 'Public spice transfers, newest first.',
+              content: <SpiceHistory client={client} table={table} />,
+            },
+          ]
+        : []),
+      {
+        key: 'replay',
+        label: 'Replay',
+        topic: 'turn',
+        description: 'Browse saved phases and return to the live table.',
+        content: (
+          <>
+            {error && !table.playback && <FormError title="From the table">{error}</FormError>}
+            <PlaybackControls client={client} table={table} />
+          </>
+        ),
+      },
+    ],
+  };
+}
+
+/** The left rail keeps personal resources first and omits groups with no stage content. */
+type ControlTabsProps = ConnectionControlsProps & Readonly<{ declare: DeclareChoice }>;
+
+function controlTabs(props: ControlTabsProps): PanelTab[] {
+  const { stage, hand } = props.table.snapshot;
+  const inPlay = stage === undefined || stage === 'play';
+  const hasInventory = inPlay || stage === 'finished' || stage === 'setup';
+  return [
+    ...(hasInventory && hand ? [yoursTab(props)] : []),
+    gameTab(props, inPlay),
+    ...(hasInventory ? [tableTab(props)] : []),
+    ...(stage ? [historyTab(props, hasInventory)] : []),
+  ];
+}
+
 function ConnectedTable({
   client,
   table,
@@ -743,16 +914,9 @@ function ConnectedTable({
 }>) {
   const progress = gameProgress(table.snapshot);
   const celebration = useResultCelebration(table);
-  /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
-  const [leaving, setLeaving] = useState(false);
+  const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
-  /* The confirmation is about the seat held when it opened: leaving, a removal vote or a new seat closes it, so a player seated again is not asked to give up the new seat. */
-  const [leavingFrom, setLeavingFrom] = useState(table.viewer.viewerSeat);
-  if (leavingFrom !== table.viewer.viewerSeat) {
-    setLeavingFrom(table.viewer.viewerSeat);
-    setLeaving(false);
-  }
   const [playerSelection, selectPlayer] = useReducer(
     (
       _: {
@@ -788,7 +952,8 @@ function ConnectedTable({
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
             gameIdentity={
-              identity.rulesetName ? (
+              /* While drafting the ruleset heads the drafting chip, so it is not said twice. */
+              identity.rulesetName && stage !== 'drafting' ? (
                 <Text size="xs" c="dimmed">
                   Ruleset: {identity.rulesetName}
                 </Text>
@@ -800,16 +965,7 @@ function ConnectedTable({
             mapVisible={setupMapVisible(table.snapshot.setup)}
             connectionStatus={<ConnectionStatus table={table} />}
             alliances={<AllianceStrip table={table} />}
-            toolbarControl={
-              inPlay || (stage === 'setup' && table.snapshot.setup) ? (
-                <>
-                  {inPlay && (
-                    <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={setBidderFaded} />
-                  )}
-                  <PhaseNavigation client={client} table={table} />
-                </>
-              ) : undefined
-            }
+            toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
             /* The gathered Traitor pile lies under the Tleilaxu tanks, below the Map view's frame on a wide screen (#1635). */
             requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
             showStormControls={inPlay && progress.activePhaseId === 'storm'}
@@ -831,61 +987,25 @@ function ConnectedTable({
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
               </>
             }
-            decisionBar={
-              <Stack data-decision-bar gap="xs">
-                <ResultDecisionBar client={client} table={table} />
-                <RemovalDecisionBar
-                  votes={removalVotes}
-                  onOpen={(vote) =>
-                    selectPlayer({
-                      seat: vote.target.seat,
-                      vote: vote.id,
-                      tab: 'public',
-                    })
-                  }
-                />
-                <SeatRequests
-                  client={client}
-                  table={table}
-                  error={error}
-                  leaving={leaving}
-                  onStay={() => setLeaving(false)}
-                  readiness={
-                    /* A spectator has no draft to ready, so drafting gives them no readiness row at all. */
-                    stage === 'drafting' ? (
-                      table.viewer.viewerSeat === SPECTATOR_SEAT ? undefined : (
-                        <DraftingReadiness client={client} table={table} />
-                      )
-                    ) : stage === 'swapping' ? (
-                      <SwappingReadiness client={client} table={table} />
-                    ) : undefined
-                  }
-                />
-                {stage === 'drafting' && <DraftingNotice client={client} table={table} />}
-              </Stack>
-            }
             gameMenu={
               <>
-                <SeatPopover client={client} table={table} error={error} />
+                {/* While drafting a spectator asks with the (+) in the roster on the table, so the popover waits for play. */}
+                {stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
                 <GameMenu
                   sharing={<GameLink address={identity.address} />}
+                  client={client}
                   table={table}
-                  onLeave={() => setLeaving(true)}
                   onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
                 />
               </>
             }
-            stageStatus={
-              stage === 'drafting' ? (
-                <DraftingHeader table={table} />
-              ) : stage === 'setup' && table.snapshot.setup ? (
-                <Text size="sm">{setupStep(table.snapshot.setup).title}</Text>
-              ) : undefined
+            stageStatus={stageStatus({ client, table, identity })}
+            stageOverlay={
+              stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
             }
-            stageOverlay={stage === 'drafting' ? <DraftingOverlay client={client} table={table} /> : undefined}
             panelContent={
               stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
-                <DraftingPanel client={client} table={table} />
+                <DraftingPanel client={client} table={table} error={error} />
               ) : undefined
             }
             playerPanel={
@@ -906,91 +1026,18 @@ function ConnectedTable({
                 />
               ) : undefined
             }
-            focusTab={battleFocus(table)}
-            /* A spectator's Shared inventory and Spice are a seat's controls, all disabled; the battle or the Log is what they came to watch. */
-            openOn={table.viewer.viewerSeat === SPECTATOR_SEAT ? SPECTATOR_OPENING_TABS : undefined}
-            panelTabs={[
-              ...(!tabled && stage !== 'setup'
-                ? []
-                : [
-                    /* Past setup a locked prediction lives on as its card in hand, so the tab closes with setup (#1753). */
-                    ...(table.snapshot.setup && stage === 'setup'
-                      ? [
-                          {
-                            key: 'setup',
-                            label: 'Setup',
-                            topic: SETUP_TOPICS[setupStep(table.snapshot.setup).kind],
-                            ...setupGuidance(setupStep(table.snapshot.setup)),
-                            content: <SetupControls client={client} table={table} />,
-                          },
-                        ]
-                      : []),
-                    ...handTabs({ client, table }),
-                    ...(inPlay && (table.snapshot.battle || progress.activePhaseId === 'battle')
-                      ? [
-                          {
-                            key: 'battle',
-                            label: 'Battle',
-                            topic: 'battle' as const,
-                            ...battleGuidance(table),
-                            content: (
-                              <>
-                                {error && <FormError title="From the table">{error}</FormError>}
-                                <BattleControls client={client} table={table} />
-                              </>
-                            ),
-                          },
-                        ]
-                      : []),
-                    {
-                      key: 'shared',
-                      label: 'Shared inventory',
-                      topic: 'assets' as const,
-                      ...SHARED_INVENTORY_GUIDANCE,
-                      content: <SharedInventory client={client} table={table} />,
-                    },
-                    ...alliancesTab({ client, table, error }),
-                    {
-                      key: 'spice',
-                      label: 'Spice',
-                      topic: 'spice' as const,
-                      ...SPICE_GUIDANCE,
-                      content: (
-                        <>
-                          <SpiceReserveControls client={client} table={table} />
-                          <SpiceHistory client={client} table={table} />
-                        </>
-                      ),
-                    },
-                  ]),
-              ...(stage
-                ? [
-                    {
-                      key: 'log',
-                      label: 'Log',
-                      topic: 'log' as const,
-                      ...LOG_GUIDANCE,
-                      content: null,
-                      subtabs: [
-                        {
-                          key: 'game',
-                          label: 'Game',
-                          topic: 'game' as const,
-                          ...GAME_LOG_GUIDANCE,
-                          content: <LogEntries client={client} table={table} tab="game" />,
-                        },
-                        {
-                          key: 'audit',
-                          label: 'Audit',
-                          topic: 'audit' as const,
-                          ...AUDIT_LOG_GUIDANCE,
-                          content: <LogEntries client={client} table={table} tab="audit" />,
-                        },
-                      ],
-                    },
-                  ]
-                : []),
-            ]}
+            focusTab={resultFocus(table) ?? battleFocus(table)}
+            /* Spectators open the current battle when present, otherwise History. Finished games open History. */
+            openOn={
+              stage === 'finished'
+                ? ['history']
+                : table.viewer.viewerSeat === SPECTATOR_SEAT
+                  ? SPECTATOR_OPENING_TABS
+                  : stage === 'setup'
+                    ? ['setup']
+                    : undefined
+            }
+            panelTabs={controlTabs({ client, table, error, declare })}
             tableGuidance={phaseGuidance(table)}
             tableControls={
               tabled ? (
@@ -1011,12 +1058,7 @@ function ConnectedTable({
                   {stage === 'play' || stage === 'finished' ? (
                     <>
                       <DetermineWinner client={client} table={table} />
-                      <TableSettings client={client} table={table} />
-                      <PlaybackControls client={client} table={table} />
                       {error && <FormError title="From the table">{error}</FormError>}
-                      {stage === 'play' && (table.snapshot.battle || progress.activePhaseId === 'battle') && (
-                        <BattleControls client={client} table={table} />
-                      )}
                     </>
                   ) : (
                     <ConnectionControls client={client} table={table} error={error} />
@@ -1030,8 +1072,6 @@ function ConnectedTable({
     </PredictionLogosContext>
   );
 }
-
-type GameIdentity = Readonly<{ rulesetName: string | null; address: string }>;
 
 export default function HostedTable({
   gameId,

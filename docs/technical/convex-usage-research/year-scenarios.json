@@ -1,0 +1,81 @@
+{
+  "observedDate": "2026-10-12",
+  "baselineSource": "account-summary.json",
+  "baselineIoGbPerMonth": 2.4,
+  "baselineCallsMPerMonth": 0.55,
+  "fixedCallFloorPer31DayMonth": 142848,
+  "readerAttributionUpperBound": 0.236,
+  "currency": "USD",
+  "resources": ["databaseIo", "functionCalls"],
+  "region": "Ireland",
+  "notForecast": true,
+  "formula": {
+    "fixedFloorCallsM": "0.142848 + 0.407152 * growth",
+    "allScaledCallsM": "0.55 * growth",
+    "monthlyStarter": "0.286 * max(ioGb-1,0) + 2.86 * max(callsM-1,0)",
+    "monthlyProOneDeveloper": "25 + 0.26 * max(ioGb-50,0) + 2.6 * max(callsM-25,0)",
+    "smoothRamp": "month n multiplier = month12Multiplier ** ((n-1)/11); sum each monthly cost for n=1..12"
+  },
+  "scenarios": [
+    {
+      "month12Multiplier": 1,
+      "month12IoGb": 2.4,
+      "month12CallsMFixedFloor": 0.55,
+      "month12CallsMAllScaled": 0.55,
+      "month12StarterCallsIoDollars": 0.4003999999999999,
+      "month12StarterAllScaledCallsIoDollars": 0.4003999999999999,
+      "month12ProOneDeveloperCallsIoDollars": 25.0,
+      "month12StarterReaderBoundDollars": 0.23840959999999994,
+      "firstYearSmoothRampStarterCallsIoDollars": 4.8048,
+      "annualizedExitStarterCallsIoDollars": 4.804799999999999
+    },
+    {
+      "month12Multiplier": 3,
+      "month12IoGb": 7.199999999999999,
+      "month12CallsMFixedFloor": 1.3643040000000002,
+      "month12CallsMAllScaled": 1.6500000000000001,
+      "month12StarterCallsIoDollars": 2.81510944,
+      "month12StarterAllScaledCallsIoDollars": 3.6322,
+      "month12ProOneDeveloperCallsIoDollars": 25.0,
+      "month12StarterReaderBoundDollars": 2.3291382400000002,
+      "firstYearSmoothRampStarterCallsIoDollars": 13.996208723305225,
+      "annualizedExitStarterCallsIoDollars": 33.78131328
+    },
+    {
+      "month12Multiplier": 10,
+      "month12IoGb": 24.0,
+      "month12CallsMFixedFloor": 4.214368,
+      "month12CallsMAllScaled": 5.5,
+      "month12StarterCallsIoDollars": 15.77109248,
+      "month12StarterAllScaledCallsIoDollars": 19.448,
+      "month12ProOneDeveloperCallsIoDollars": 25.0,
+      "month12StarterReaderBoundDollars": 14.15118848,
+      "firstYearSmoothRampStarterCallsIoDollars": 60.45231619168849,
+      "annualizedExitStarterCallsIoDollars": 189.25310976
+    },
+    {
+      "month12Multiplier": 30,
+      "month12IoGb": 72.0,
+      "month12CallsMFixedFloor": 12.357408000000001,
+      "month12CallsMAllScaled": 16.5,
+      "month12StarterCallsIoDollars": 52.78818688,
+      "month12StarterAllScaledCallsIoDollars": 64.636,
+      "month12ProOneDeveloperCallsIoDollars": 30.72,
+      "month12StarterReaderBoundDollars": 47.928474879999996,
+      "firstYearSmoothRampStarterCallsIoDollars": 173.2545568222698,
+      "annualizedExitStarterCallsIoDollars": 633.4582425599999
+    },
+    {
+      "month12Multiplier": 100,
+      "month12IoGb": 240.0,
+      "month12CallsMFixedFloor": 40.858048000000004,
+      "month12CallsMAllScaled": 55.00000000000001,
+      "month12StarterCallsIoDollars": 182.34801728000002,
+      "month12StarterAllScaledCallsIoDollars": 222.79400000000004,
+      "month12ProOneDeveloperCallsIoDollars": 115.6309248,
+      "month12StarterReaderBoundDollars": 166.14897728,
+      "firstYearSmoothRampStarterCallsIoDollars": 506.63913074843816,
+      "annualizedExitStarterCallsIoDollars": 2188.1762073600003
+    }
+  ]
+}

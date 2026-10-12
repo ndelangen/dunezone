@@ -56,56 +56,62 @@ export type RulebookReaderLocator = RulebookLocator & {
   editionNumber?: number;
 };
 export type RulebookCreationPageData = NonNullable<FunctionReturnType<typeof api.rulebooks.creationPage>>;
-type RawReaderPage = NonNullable<FunctionReturnType<typeof api.rulebooks.readerPage>>;
-export type RulebookReaderPageData = Omit<RawReaderPage, 'edition'> & {
-  edition: Omit<RawReaderPage['edition'], 'contents'> & {
-    contents: RulebookContentsV1;
-  };
+type RawReaderPage = NonNullable<FunctionReturnType<typeof api.rulebooks.readerDeliveryPage>>;
+export type RulebookReaderPageData = Omit<RawReaderPage, 'body'> & {
+  body:
+    | Exclude<RawReaderPage['body'], { kind: 'render' }>
+    | (Omit<Extract<RawReaderPage['body'], { kind: 'render' }>, 'contents'> & { contents: RulebookContentsV1 });
 };
 
 function normalizeReaderPage(raw: RawReaderPage): RulebookReaderPageData {
   return {
     ...raw,
-    edition: {
-      ...raw.edition,
-      contents: parseClientBoundary(rulebookEditionContentsV1Schema, raw.edition.contents, 'Rulebook edition'),
-    },
+    body:
+      raw.body.kind === 'render'
+        ? {
+            ...raw.body,
+            contents: parseClientBoundary(rulebookEditionContentsV1Schema, raw.body.contents, 'Rulebook edition'),
+          }
+        : raw.body,
   };
 }
 
-export async function loadRulebookReader({ rulesetSlug, rulebookSlug, editionNumber }: RulebookReaderLocator) {
-  const raw = await db
-    .query(api.rulebooks.readerPage, {
-      faction_token_images: true,
-      ruleset_slug: rulesetSlug,
-      rulebook_slug: rulebookSlug,
-      ...(editionNumber === undefined ? {} : { edition_number: editionNumber }),
-    })
-    .catch((error: unknown) => {
-      if (
-        editionNumber !== undefined &&
-        error instanceof ConvexError &&
-        error.data === `Rulebook Edition ${editionNumber} does not exist`
-      ) {
-        return null;
-      }
-      throw error;
-    });
+function readerArgs({
+  rulesetSlug,
+  rulebookSlug,
+  editionNumber,
+  renderContents,
+}: RulebookReaderLocator & { renderContents?: boolean }) {
+  return {
+    ruleset_slug: rulesetSlug,
+    rulebook_slug: rulebookSlug,
+    ...(editionNumber === undefined ? {} : { edition_number: editionNumber }),
+    ...(renderContents ? { render_contents: true } : {}),
+  };
+}
+
+export async function loadRulebookReader(locator: RulebookReaderLocator & { renderContents?: boolean }) {
+  const raw = await db.query(api.rulebooks.readerDeliveryPage, readerArgs(locator)).catch((error: unknown) => {
+    if (
+      locator.editionNumber !== undefined &&
+      error instanceof ConvexError &&
+      error.data === `Rulebook Edition ${locator.editionNumber} does not exist`
+    ) {
+      return null;
+    }
+    throw error;
+  });
   return raw ? normalizeReaderPage(raw) : null;
 }
 
 export function useRulebookReader({
-  rulesetSlug,
-  rulebookSlug,
-  editionNumber,
   initialData,
-}: RulebookReaderLocator & { initialData?: RulebookReaderPageData | null }) {
-  const raw = useQuery(api.rulebooks.readerPage, {
-    faction_token_images: true,
-    ruleset_slug: rulesetSlug,
-    rulebook_slug: rulebookSlug,
-    ...(editionNumber === undefined ? {} : { edition_number: editionNumber }),
-  });
+  ...locator
+}: RulebookReaderLocator & {
+  initialData?: RulebookReaderPageData | null;
+  renderContents?: boolean;
+}) {
+  const raw = useQuery(api.rulebooks.readerDeliveryPage, readerArgs(locator));
   const normalized = raw === undefined ? undefined : raw === null ? null : normalizeReaderPage(raw);
   return toLiveQueryResult(normalized, () => initialData);
 }

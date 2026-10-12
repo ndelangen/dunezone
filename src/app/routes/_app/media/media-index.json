@@ -10362,5 +10362,101 @@
     "subjects": ["places"],
     "sourceHash": "5ab59d9fc91fdf8d41fa074ff83b7bab1995c37abe9fec31f603ac9b3e242d0c",
     "label": "Arrakis sietch"
+  },
+  "/vector/decal/sandmaster.svg": {
+    "description": "A Sandmaster points across the dunes beside a sandtrout.",
+    "tags": ["sandmaster", "leader skill", "sandtrout", "desert", "GF9", "CHOAM", "Richese"],
+    "subjects": ["creatures"],
+    "sourceHash": "04d15ed2f78220103df5e32dedfc58d075ced70cf81b398da240895a2d547485"
+  },
+  "/vector/decal/sandmaster-multicolor.svg": {
+    "description": "A Sandmaster points across the dunes beside a sandtrout.",
+    "tags": ["sandmaster", "leader skill", "sandtrout", "desert", "GF9", "CHOAM", "Richese"],
+    "subjects": ["creatures"],
+    "sourceHash": "e377d02d468848a06ccee467983023d4324104d83553e12d6613ebe15522bc73"
+  },
+  "/vector/generic/leader-skills.svg": {
+    "description": "A head silhouette holds three gears, the GF9 Leader Skills deck emblem.",
+    "tags": ["leader skills", "head", "gears", "GF9", "CHOAM", "Richese"],
+    "subjects": ["machines"],
+    "sourceHash": "aab5f72303a22998d522383e80cf297ed90a4f289d7ee5f57ff863d94b53c0d2"
+  },
+  "/vector/decal/stronghold-arrakeen.svg": {
+    "description": "A pale city below rust-colored cliffs beneath a blue sky.",
+    "tags": ["stronghold", "arrakeen", "landscape", "silhouette"],
+    "subjects": ["places"],
+    "sourceHash": "3cfaa6bee3de63e329641f5ea38822825382ea28e51efac5ff9448395d2eb5cf"
+  },
+  "/vector/decal/stronghold-arrakeen-multicolor.svg": {
+    "description": "A pale city below rust-colored cliffs beneath a blue sky.",
+    "tags": ["stronghold", "arrakeen", "landscape", "colored"],
+    "subjects": ["places"],
+    "sourceHash": "5e7c48ca486a305c7d4668ed69a260a4023191dbf35dfc8ba167bb8cf3daf6a5"
+  },
+  "/vector/decal/stronghold-carthag.svg": {
+    "description": "A dark city of towers against a red sunset.",
+    "tags": ["stronghold", "carthag", "landscape", "silhouette"],
+    "subjects": ["places"],
+    "sourceHash": "d7d8f08cef8d21123ddb520ca987745421b915424eb2ec4004a083b0b6e12975"
+  },
+  "/vector/decal/stronghold-carthag-multicolor.svg": {
+    "description": "A dark city of towers against a red sunset.",
+    "tags": ["stronghold", "carthag", "landscape", "colored"],
+    "subjects": ["places"],
+    "sourceHash": "101d2a40b80b152326356bc6cffae1da82a6c98ba6707dcb091c68de59abf9ec"
+  },
+  "/vector/decal/stronghold-habbanya.svg": {
+    "description": "A desert gateway cut into pale cliffs.",
+    "tags": ["stronghold", "habbanya", "landscape", "silhouette"],
+    "subjects": ["places"],
+    "sourceHash": "5c5b77ab5a016036d67d76006caa93e1e4056aff6ac5e434cef96d0fa24a3684"
+  },
+  "/vector/decal/stronghold-habbanya-multicolor.svg": {
+    "description": "A desert gateway cut into pale cliffs.",
+    "tags": ["stronghold", "habbanya", "landscape", "colored"],
+    "subjects": ["places"],
+    "sourceHash": "c5d15128f7f217a7c10264057ee8bd98f30445acfe47f1a1a47f2e882907a8ce"
+  },
+  "/vector/decal/stronghold-ixian.svg": {
+    "description": "A mobile stronghold rising above desert dunes.",
+    "tags": ["stronghold", "ixian", "landscape", "silhouette"],
+    "subjects": ["places"],
+    "sourceHash": "1d5837836fc8b34b9658bc3c369ea1c1d161ef81c34c00229f8c5eba853ef699"
+  },
+  "/vector/decal/stronghold-ixian-multicolor.svg": {
+    "description": "A mobile stronghold rising above desert dunes.",
+    "tags": ["stronghold", "ixian", "landscape", "colored"],
+    "subjects": ["places"],
+    "sourceHash": "68fc5eb12a9fe7b45364564074f3c27383ee1e24253d3d89e1ddaeb0fa507964"
+  },
+  "/vector/decal/stronghold-tabr.svg": {
+    "description": "A sietch entrance inside layered desert cliffs.",
+    "tags": ["stronghold", "tabr", "landscape", "silhouette"],
+    "subjects": ["places"],
+    "sourceHash": "ff81fc27324061373d037e8bf29f5a0fad02e445bb8f3db704658de5a5a774e0"
+  },
+  "/vector/decal/stronghold-tabr-multicolor.svg": {
+    "description": "A sietch entrance inside layered desert cliffs.",
+    "tags": ["stronghold", "tabr", "landscape", "colored"],
+    "subjects": ["places"],
+    "sourceHash": "7e7b821173ca4928b2671f02c6fc9c575b981da2dffbf3e99ffa7695c8189728"
+  },
+  "/vector/decal/stronghold-tuek.svg": {
+    "description": "A desert settlement beneath twin moons.",
+    "tags": ["stronghold", "tuek", "landscape", "silhouette"],
+    "subjects": ["places"],
+    "sourceHash": "295e680e4a3c7aa54a7c3a664111c9e9af97e60c85925d1d52db3a3c3bc1147b"
+  },
+  "/vector/decal/stronghold-tuek-multicolor.svg": {
+    "description": "A desert settlement beneath twin moons.",
+    "tags": ["stronghold", "tuek", "landscape", "colored"],
+    "subjects": ["places"],
+    "sourceHash": "c69bf92a1b141c45b2740a12ea689e5ff7c67b5e3704c5f366278deb57229750"
+  },
+  "/vector/icon/stronghold.svg": {
+    "description": "A stronghold emblem with three towers.",
+    "tags": ["stronghold", "fortress", "towers"],
+    "subjects": ["symbols"],
+    "sourceHash": "f35c53b444319dac2cc96012f0d7ea24dfe78c440b8d9bf6005832aa330432bd"
   }
 }
