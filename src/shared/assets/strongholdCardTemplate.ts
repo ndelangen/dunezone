@@ -23,14 +23,15 @@ export function strongholdCardComposition(value: z.infer<typeof StrongholdCard>)
     head: STRONGHOLD_BACKGROUND,
     icon: [
       {
-        image: '/image/texture/076.jpg',
-        colors: ['#CC645B', '#9B3939'],
-        influence: 1,
-        invert: true,
-        definition: 0,
+        image: '/image/texture/082.jpg',
+        colors: ['#C33D38', '#A22528'],
+        influence: 0.5,
+        invert: false,
+        definition: 1,
       },
       '/vector/icon/stronghold.svg',
     ],
+    iconScale: 1.3,
     format: 'decal-window',
     layers: [
       ...ordered.map((decal, index) => ({

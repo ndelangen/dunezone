@@ -53,7 +53,7 @@ export function FrontDecals({ prefix, decals }: { decals: z.infer<typeof Decal>[
               const height = decalSize.height * d.scale;
               return (
                 <image
-                  key={i}
+                  key={`${d.id}-${i}`}
                   x={card.width / 2 - width / 2 + d.offset[0]}
                   y={940 / 2 - height / 2 + d.offset[1]}
                   width={width}
@@ -79,9 +79,9 @@ export function FrontDecals({ prefix, decals }: { decals: z.infer<typeof Decal>[
           ...(d.outline !== false ? stroked : empty),
         };
         if (!d.id.endsWith('.svg')) {
-          return <image key={i} xlinkHref={resolveAsset(d.id)} {...placement} />;
+          return <image key={`${d.id}-${i}`} xlinkHref={resolveAsset(d.id)} {...placement} />;
         }
-        return <StrokedUse key={i} {...placement} xlinkHref={`${d.id}#root`} />;
+        return <StrokedUse key={`${d.id}-${i}`} {...placement} xlinkHref={`${d.id}#root`} />;
       })}
     </>
   );

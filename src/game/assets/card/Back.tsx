@@ -43,9 +43,9 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
           height: imageScale * 220,
         }}
       >
-        <img src={resolveAsset(image)} />
-        {!multicolor && <img src={resolveAsset(image)} />}
-        {!multicolor && <img src={resolveAsset(image)} />}
+        <img alt="" src={resolveAsset(image)} />
+        {!multicolor && <img alt="" src={resolveAsset(image)} />}
+        {!multicolor && <img alt="" src={resolveAsset(image)} />}
       </div>
 
       <svg className={styles.svg}>

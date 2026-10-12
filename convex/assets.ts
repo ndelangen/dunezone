@@ -1201,6 +1201,63 @@ export const seedGf9StrongholdDeck = internalMutation({
   },
 });
 
+/** Preserves authored fields and changes only the original stock artwork treatment. */
+function polishedStrongholdData(data: (typeof GF9_STRONGHOLD_CARDS)[number]) {
+  const original = GF9_STRONGHOLD_CARDS.find((stock) => {
+    const id = stock.decals[0]!.id;
+    const legacyId = id.replace('/image/decal/gf9-', '/vector/decal/').replace('.png', '-multicolor.svg');
+    return data.decals[0]?.id === id || data.decals[0]?.id === legacyId;
+  });
+  if (!original) {
+    return data;
+  }
+  const name =
+    original.name === 'HMS stronghold' && data.name === 'Ixian Hidden Mobile Stronghold' ? original.name : data.name;
+  const legacyId = original.decals[0]!.id.replace('/image/decal/gf9-', '/vector/decal/').replace(
+    '.png',
+    '-multicolor.svg'
+  );
+  const decals = data.decals.map((decal) =>
+    decal.id === legacyId &&
+    !decal.muted &&
+    decal.outline === false &&
+    decal.scale === 1.65 /* NOSONAR: only the exact stored stock value identifies the untouched seed. */ &&
+    decal.offset.every((value) => value === 0)
+      ? { ...decal, id: original.decals[0]!.id, scale: original.decals[0]!.scale }
+      : decal
+  );
+  const about =
+    data.about ===
+    'GF9 CHOAM & Richese advanced stronghold card. The Body summarizes the printed ability. The Decals are an original interpretation of its location.'
+      ? original.about
+      : data.about;
+  if (name === data.name && about === data.about && decals.every((decal, index) => decal === data.decals[index])) {
+    return data;
+  }
+  return { ...data, name, about, decals };
+}
+
+/** Allocates the corrected title before writing and publishing that same card. */
+async function publishPolishedStronghold(ctx: MutationCtx, card: Doc<'assets'>, now: string) {
+  const data = StrongholdCardAsset.parse(card.data);
+  const next = polishedStrongholdData(data);
+  if (next === data) {
+    return 0;
+  }
+  const slug = next.name === data.name ? card.slug : await allocateAssetSlug(ctx, card.type, slugify(next.name), card);
+  await ctx.db.patch(card._id, {
+    data: next,
+    slug,
+    updated_at: now,
+  });
+  await enqueueAssetPublication(ctx, {
+    ...card,
+    data: next,
+    slug,
+  });
+  return 1;
+}
+
 /** Corrects the original stock layout in place while retaining later authored content. */
 export const polishGf9StrongholdDeck = internalMutation({
   args: { ownerProfileSlug: v.string() },
@@ -1243,45 +1300,7 @@ export const polishGf9StrongholdDeck = internalMutation({
       if (!card) {
         continue;
       }
-      const data = StrongholdCardAsset.parse(card.data);
-      const original = GF9_STRONGHOLD_CARDS.find((stock) => {
-        const id = stock.decals[0]!.id;
-        const legacyId = id.replace('/image/decal/gf9-', '/vector/decal/').replace('.png', '-multicolor.svg');
-        return data.decals[0]?.id === id || data.decals[0]?.id === legacyId;
-      });
-      if (!original) {
-        continue;
-      }
-      const name =
-        original.name === 'HMS stronghold' && data.name === 'Ixian Hidden Mobile Stronghold'
-          ? original.name
-          : data.name;
-      const legacyId = original.decals[0]!.id.replace('/image/decal/gf9-', '/vector/decal/').replace(
-        '.png',
-        '-multicolor.svg'
-      );
-      const decals = data.decals.map((decal) =>
-        decal.id === legacyId &&
-        !decal.muted &&
-        decal.outline === false &&
-        decal.scale === 1.65 &&
-        decal.offset.every((value) => value === 0)
-          ? { ...decal, id: original.decals[0]!.id, scale: original.decals[0]!.scale }
-          : decal
-      );
-      const about =
-        data.about ===
-        'GF9 CHOAM & Richese advanced stronghold card. The Body summarizes the printed ability. The Decals are an original interpretation of its location.'
-          ? original.about
-          : data.about;
-      if (name === data.name && about === data.about && decals.every((decal, index) => decal === data.decals[index])) {
-        continue;
-      }
-      const next = { ...data, name, about, decals };
-      const slug = name === data.name ? card.slug : await allocateAssetSlug(ctx, card.type, slugify(name), card);
-      await ctx.db.patch(card._id, { data: next, slug, updated_at: now });
-      await enqueueAssetPublication(ctx, { ...card, data: next, slug });
-      cardsChanged += 1;
+      cardsChanged += await publishPolishedStronghold(ctx, card, now); /* NOSONAR: sequential slug writes. */
     }
     const data = DeckAssetInput.parse(deck.data);
     const back = data.cardback;
@@ -1289,7 +1308,7 @@ export const polishGf9StrongholdDeck = internalMutation({
       'mode' in back &&
       back.mode === 'custom' &&
       back.image === '/vector/icon/stronghold.svg' &&
-      back.imageScale === 0.55;
+      back.imageScale === 0.55; /* NOSONAR: the exact stored stock value identifies the untouched seed. */
     if (deckChanged && 'mode' in back && back.mode === 'custom') {
       const next = {
         ...data,
