@@ -41,10 +41,14 @@ export const save = mutation({
       throw new ConvexError('Front publication is not ready yet. Try again after the release finishes.');
     }
     const parsed = cardFrontStyleSchema.safeParse(args.style);
-    if (!parsed.success || !Number.isInteger(args.revision) || args.revision < 0) {
+    if (!parsed.success) {
       throw new ConvexError('Check the front preset fields before saving.');
     }
-    return await storeCardFrontPreset(ctx, args.key, parsed.data, args.revision);
+    const revision = cardFrontPresetSchema.shape.revision.safeParse(args.revision);
+    if (!revision.success) {
+      throw new ConvexError('Check the front preset fields before saving.');
+    }
+    return await storeCardFrontPreset(ctx, args.key, parsed.data, revision.data);
   },
 });
 

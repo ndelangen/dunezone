@@ -47,9 +47,27 @@ test('front presets require Administrator access, an activated renderer and the 
   await expect(unactivated.admin.mutation(api.cardFrontPresets.save, args)).rejects.toThrow('not ready yet');
 });
 
-test('every dedicated card captures its shared style without changing authored data or Custom cards', async () => {
-  vi.useFakeTimers();
-  const { t, admin, author, authorId } = await fixture();
+const families = [
+  { type: 'card-stronghold', card: GF9_STRONGHOLD_CARDS[0]!, key: 'stronghold' },
+  { type: 'card-storm', card: standardStormCard(3), key: 'storm' },
+  { type: 'card-nexus', card: GF9_NEXUS_CARDS[0]!, key: 'nexus' },
+  { type: 'card-leaderability', card: GF9_LEADER_SKILLS[0]!, key: 'leader-skill' },
+  ...TREACHERY_STYLES.map((style) => ({
+    type: 'card-treachery',
+    key: `treachery-${style.key}`,
+    card: {
+      name: `Test ${style.key}`,
+      about: '',
+      subName: style.label,
+      head: style.head,
+      icon: [style.striped, '/vector/icon/projectile.svg'],
+      decals: [],
+      text: 'Rules.',
+    },
+  })),
+];
+
+async function linkedNexusCard({ t, authorId }: Awaited<ReturnType<typeof fixture>>) {
   const nexus = GF9_NEXUS_CARDS[0]!;
   const factionId = await t.run((ctx) =>
     ctx.db.insert('factions', {
@@ -67,45 +85,36 @@ test('every dedicated card captures its shared style without changing authored d
       group_id: null,
     })
   );
-  const families = [
-    { type: 'card-stronghold', card: GF9_STRONGHOLD_CARDS[0]!, key: 'stronghold' },
-    { type: 'card-storm', card: standardStormCard(3), key: 'storm' },
-    { type: 'card-nexus', card: { ...nexus, factionLink: { id: factionId, slug: 'atreides' } }, key: 'nexus' },
-    { type: 'card-leaderability', card: GF9_LEADER_SKILLS[0]!, key: 'leader-skill' },
-    ...TREACHERY_STYLES.map((style) => ({
-      type: 'card-treachery',
-      key: `treachery-${style.key}`,
-      card: {
-        name: `Test ${style.key}`,
-        about: '',
-        subName: style.label,
-        head: style.head,
-        icon: [style.striped, '/vector/icon/projectile.svg'],
-        decals: [],
-        text: 'Rules.',
-      },
-    })),
-  ];
-  for (const family of families) {
-    const preset = INITIAL_CARD_FRONT_PRESETS.find((entry) => entry.key === family.key)!;
-    const created = await author.mutation(api.assets.create, { type: family.type, data: family.card });
-    const style = { ...preset.style, head: { ...preset.style.head, influence: 0.91 } };
-    await admin.mutation(api.cardFrontPresets.save, { key: preset.key, style, revision: 0 });
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
-    const page = await author.query(api.assets.getPage, { type: family.type, slug: created.slug });
-    expect(page?.asset.data).toEqual(family.card);
-    expect(page?.cardFrontPresets.find((entry) => entry.key === preset.key)).toMatchObject({ style, revision: 1 });
-    const job = await t.run((ctx) =>
-      ctx.db
-        .query('publication_jobs')
-        .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', family.type).eq('asset_id', created.id))
-        .unique()
-    );
-    expect(job?.asset_data.frontPreset).toEqual({ style, revision: 1 });
-    if (family.type === 'card-nexus') {
-      expect(job?.asset_data.card.factionSymbol).toEqual(GF9_NEXUS_CARDS[0]!.factionSymbol);
-    }
+  return { ...nexus, factionLink: { id: factionId, slug: 'atreides' } };
+}
+
+test.each(families)('$key captures its shared style without changing authored data', async (family) => {
+  vi.useFakeTimers();
+  const context = await fixture();
+  const { t, admin, author } = context;
+  const card = family.type === 'card-nexus' ? await linkedNexusCard(context) : family.card;
+  const preset = INITIAL_CARD_FRONT_PRESETS.find((entry) => entry.key === family.key)!;
+  const created = await author.mutation(api.assets.create, { type: family.type, data: card });
+  const style = { ...preset.style, head: { ...preset.style.head, influence: 0.91 } };
+  await admin.mutation(api.cardFrontPresets.save, { key: preset.key, style, revision: 0 });
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  const page = await author.query(api.assets.getPage, { type: family.type, slug: created.slug });
+  expect(page?.asset.data).toEqual(card);
+  expect(page?.cardFrontPresets.find((entry) => entry.key === preset.key)).toMatchObject({ style, revision: 1 });
+  const job = await t.run((ctx) =>
+    ctx.db
+      .query('publication_jobs')
+      .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', family.type).eq('asset_id', created.id))
+      .unique()
+  );
+  expect(job?.asset_data.frontPreset).toEqual({ style, revision: 1 });
+  if (family.type === 'card-nexus') {
+    expect(job?.asset_data.card.factionSymbol).toEqual(GF9_NEXUS_CARDS[0]!.factionSymbol);
   }
+});
+
+test('Custom cards retain their authored style without a shared front snapshot', async () => {
+  const { t, author } = await fixture();
   const customData = {
     name: 'Custom retains style',
     subName: '',
