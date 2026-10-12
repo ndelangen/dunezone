@@ -525,7 +525,6 @@ export class GameSession {
         commandId: eventId ?? `deletion-${departed.revision}`,
         actor: null,
         occupants,
-        now: Date.now(),
       });
       const voted = this.reconcileVotes(settled, Date.now());
       const next = this.withRoster(
@@ -571,7 +570,7 @@ export class GameSession {
   ): StoredSnapshot => {
     const occupants = this.actors.seated();
     const after = this.participation.remove(userId, snapshot, now);
-    return this.swapping.settleParticipation({ before: snapshot, after, commandId, actor: null, occupants, now });
+    return this.swapping.settleParticipation({ before: snapshot, after, commandId, actor: null, occupants }, () => now);
   };
 
   private reconcileVotes(snapshot: StoredSnapshot, now: number) {
@@ -593,7 +592,6 @@ export class GameSession {
         commandId: message.commandId,
         actor: viewer.userId,
         occupants,
-        now: Date.now(),
       });
       this.growStations();
       const next = this.withRoster(this.reconcileVotes(applied, Date.now()));

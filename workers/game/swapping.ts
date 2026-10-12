@@ -84,11 +84,14 @@ export class Swapping {
     return this.finish(step.snapshot(), context);
   }
 
-  /** A seat, removal or deletion change: its audit rows, then the trade settled around the new occupancy. */
-  settleParticipation(change: ParticipationChange): StoredSnapshot {
-    this.recordParticipation(change);
-    const { after, commandId, actor, now } = change;
-    return this.reconcile(after, { commandId, now, actor });
+  /**
+   * A seat, removal or deletion change: its audit rows, then the trade settled around the new occupancy.
+   * Each step reads the clock for itself, so a deadline passing between them is judged as it passes.
+   */
+  settleParticipation(change: Omit<ParticipationChange, 'now'>, clock: () => number = Date.now): StoredSnapshot {
+    this.recordParticipation({ ...change, now: clock() });
+    const { after, commandId, actor } = change;
+    return this.reconcile(after, { commandId, now: clock(), actor });
   }
 
   /** Participation retains its public event; this row links that event to the swapping command and assignment. */
