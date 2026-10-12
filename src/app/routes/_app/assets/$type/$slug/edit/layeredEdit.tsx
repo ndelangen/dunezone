@@ -6,19 +6,28 @@ import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
-import { INITIAL_STORM_CARD_MEMORY, StormCardEditor } from '@app/widgets/card-editor/StormCardEditor';
-import type { StormCardChapter, StormCardDraft, StormCardMemory } from '@app/widgets/card-editor/StormCardEditor';
-import { StormCardAsset, StormCardAssetInput } from '@game/data/objects';
+import { INITIAL_CUSTOM_CARD_MEMORY } from '@app/widgets/card-editor/CustomCardEditor';
+import type { CustomCardChapter, CustomCardMemory } from '@app/widgets/card-editor/CustomCardEditor';
 
 import { assetNameField } from '../../../assetEditorStates';
+import type { LayeredCardDraft, LayeredCardEditing } from '../../../layeredCardEditing';
 import { CardEditFrame, CardEditChecks, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
-export function StormEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
-  const parsed = StormCardAsset.safeParse(loaderData?.asset.data);
+export function LayeredEditPage<Draft extends LayeredCardDraft>({
+  slug,
+  loaderData,
+  config,
+}: {
+  slug: string;
+  loaderData: AssetPageData;
+  config: LayeredCardEditing<Draft>;
+}) {
+  const parsed = config.schema.safeParse(loaderData?.asset.data);
   return (
-    <StormCardSessionGate
-      key={slug}
+    <LayeredCardSessionGate
+      key={`${config.type}/${slug}`}
+      config={config}
       slug={slug}
       loaderData={loaderData}
       initialDraft={parsed.success ? parsed.data : null}
@@ -26,55 +35,62 @@ export function StormEditPage({ slug, loaderData }: { slug: string; loaderData: 
   );
 }
 
-function StormCardSessionGate({
+function LayeredCardSessionGate<Draft extends LayeredCardDraft>({
+  config,
   slug,
   loaderData,
   initialDraft,
 }: {
   slug: string;
   loaderData: AssetPageData;
-  initialDraft: StormCardDraft | null;
+  initialDraft: Draft | null;
+  config: LayeredCardEditing<Draft>;
 }) {
-  const [state, dispatch] = useReducer(reduce, undefined, () =>
+  const [state, dispatch] = useReducer(reduce<Draft>, undefined, () =>
     initialDraft ? openingState(initialDraft, initialDraft) : null
   );
   const tokenIds = [
     ...new Set(state?.data.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : [])) ?? []),
   ].sort(compareCodeUnits);
-  const query = useAssetPage('card-storm', slug, { initialData: loaderData, embeddedTokenIds: tokenIds });
+  const query = useAssetPage(config.type, slug, { initialData: loaderData, embeddedTokenIds: tokenIds });
   const data = query.data === undefined ? loaderData : query.data;
   /* A live recovery opens the draft once, before rendering its controls. Later reads never replace local edits. */
   if (!state && data) {
-    const parsed = StormCardAsset.safeParse(data.asset.data);
+    const parsed = config.schema.safeParse(data.asset.data);
     if (parsed.success) {
       dispatch({ kind: 'open', data: parsed.data });
     }
   }
   return (
     <CardEditChecks
-      type="card-storm"
-      schemaName="storm card"
-      schema={StormCardAsset}
+      type={config.type}
+      schemaName={config.schemaName}
+      schema={config.schema}
       data={data}
-      session={(props) => (state ? <CardEditSession {...props} state={state} dispatch={dispatch} /> : null)}
+      session={(props) =>
+        state ? <CardEditSession config={config} {...props} state={state} dispatch={dispatch} /> : null
+      }
     />
   );
 }
 
-type StormCardState = { data: StormCardDraft; memory: StormCardMemory; baseline: StormCardDraft };
+type CardState<Draft extends LayeredCardDraft> = { data: Draft; memory: CustomCardMemory; baseline: Draft };
 
-type StormCardEvent =
-  | { kind: 'open'; data: StormCardDraft }
-  | { kind: 'patch'; update: Partial<StormCardDraft> }
-  | { kind: 'remember'; update: Partial<StormCardMemory> }
-  | { kind: 'replace'; data: StormCardDraft }
-  | { kind: 'saved'; data: StormCardDraft };
+type CardEvent<Draft extends LayeredCardDraft> =
+  | { kind: 'open'; data: Draft }
+  | { kind: 'patch'; update: Partial<Draft> }
+  | { kind: 'remember'; update: Partial<CustomCardMemory> }
+  | { kind: 'replace'; data: Draft }
+  | { kind: 'saved'; data: Draft };
 
-function openingState(data: StormCardDraft, baseline: StormCardDraft): StormCardState {
-  return { data, memory: INITIAL_STORM_CARD_MEMORY, baseline };
+function openingState<Draft extends LayeredCardDraft>(data: Draft, baseline: Draft): CardState<Draft> {
+  return { data, memory: INITIAL_CUSTOM_CARD_MEMORY, baseline };
 }
 
-function reduce(state: StormCardState | null, event: StormCardEvent): StormCardState | null {
+function reduce<Draft extends LayeredCardDraft>(
+  state: CardState<Draft> | null,
+  event: CardEvent<Draft>
+): CardState<Draft> | null {
   if (event.kind === 'open') {
     return state ?? openingState(event.data, event.data);
   }
@@ -93,31 +109,34 @@ function reduce(state: StormCardState | null, event: StormCardEvent): StormCardS
   }
 }
 
-function CardEditSession({
+function CardEditSession<Draft extends LayeredCardDraft>({
+  config,
   asset,
   access,
   tokens,
   tokensError,
   state,
   dispatch,
-}: CardEditSessionProps<StormCardDraft> & {
-  state: StormCardState;
-  dispatch: (event: StormCardEvent) => void;
+}: CardEditSessionProps<Draft> & {
+  state: CardState<Draft>;
+  config: LayeredCardEditing<Draft>;
+  dispatch: (event: CardEvent<Draft>) => void;
 }) {
-  const saving = useCardSave('card-storm', asset);
-  const [chapter, setChapter] = useState<StormCardChapter>('head');
-  const patch = (update: Partial<StormCardDraft>) => dispatch({ kind: 'patch', update });
+  const Editor = config.Editor;
+  const saving = useCardSave(config.type, asset);
+  const [chapter, setChapter] = useState<CustomCardChapter>('head');
+  const patch = (update: Partial<Draft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({
     name: state.data.name,
-    onName: (name) => patch({ name }),
+    onName: (name) => patch({ ...state.data, name }),
     canRename: access.viewerAccess.capabilities.rename,
     noun: 'card',
   });
   const header = useEditPageHeader({
-    warnings: [],
-    onFocusWarning: () => {},
+    warnings: config.warnings(state.data),
+    onFocusWarning: (warning) => setChapter(warning.chapter),
   });
-  const validation = StormCardAssetInput.safeParse(state.data);
+  const validation = config.input.safeParse(state.data);
   const invalid = tokensError ?? (validation.success ? undefined : validation.error.issues[0]?.message);
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
 
@@ -125,13 +144,13 @@ function CardEditSession({
     if (!validation.success) {
       return;
     }
-    const payload = postedPayload(StormCardAssetInput, state.data);
+    const payload = postedPayload(config.input, state.data);
     saving.save(payload, () => dispatch({ kind: 'saved', data: payload }));
   };
 
   return (
     <CardEditFrame
-      type="card-storm"
+      type={config.type}
       asset={asset}
       access={access}
       headerSlot={header.slot}
@@ -140,7 +159,7 @@ function CardEditSession({
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
       saveError={saving.error}
     >
-      <StormCardEditor
+      <Editor
         tokens={tokens ?? {}}
         tokensError={tokensError}
         tokenPicker={(onPick, onCancel) => (

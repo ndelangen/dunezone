@@ -37,6 +37,68 @@ const LAYERS = {
   text: { label: 'Text', topic: 'text' },
 } as const;
 
+function StormIdentity({
+  draft,
+  patch,
+  memory,
+  remember,
+  nameField,
+}: Pick<Props, 'draft' | 'patch' | 'memory' | 'remember' | 'nameField'>) {
+  return (
+    <Stack gap="md">
+      <ControlBlock
+        title="Name"
+        description="Names this asset and determines its URL. The printed title follows the movement value."
+        input={nameField}
+      />
+      <ControlBlock
+        title="Movement"
+        description="The storm moves counterclockwise. This value sets the printed title, instruction and corner number."
+        input={
+          <Select
+            aria-label="Storm movement"
+            allowDeselect={false}
+            value={String(draft.sectors)}
+            data={[1, 2, 3, 4, 5, 6].map((value) => ({
+              value: String(value),
+              label: `${value} ${value === 1 ? 'sector' : 'sectors'}`,
+            }))}
+            onChange={(value) => {
+              if (value) {
+                patch({ sectors: Number(value) });
+              }
+            }}
+          />
+        }
+      />
+      <BackgroundPresetControl
+        title="Head background"
+        description="Colour and texture behind the movement title."
+        usedOn="this storm card's head"
+        presets={[{ key: 'storm', label: 'Storm', background: standardStormCard(1).head }]}
+        value={draft.head}
+        declaredCustom={memory.headCustom}
+        onDeclaredCustomChange={(headCustom) => remember({ headCustom })}
+        modeMemory={memory.headModeMemory}
+        onModeMemoryChange={(headModeMemory) => remember({ headModeMemory })}
+        onChange={(head) => patch({ head })}
+      />
+      <BackgroundPresetControl
+        title="Symbol background"
+        description="Colour and texture behind the fixed storm symbol."
+        usedOn="this storm card's symbol"
+        presets={[{ key: 'storm', label: 'Storm', background: standardStormCard(1).icon[0] }]}
+        value={draft.icon[0]}
+        declaredCustom={memory.iconCustom}
+        onDeclaredCustomChange={(iconCustom) => remember({ iconCustom })}
+        modeMemory={memory.iconModeMemory}
+        onModeMemoryChange={(iconModeMemory) => remember({ iconModeMemory })}
+        onChange={(background) => patch({ icon: [background, '/vector/icon/storm_disc.svg'] })}
+      />
+    </Stack>
+  );
+}
+
 /** Callers own the storm draft; this edits its movement and custom layers within the Storm format. */
 export function StormCardEditor({
   draft,
@@ -79,57 +141,13 @@ export function StormCardEditor({
                 label: 'Storm',
                 icon: <TopicIcon topic="storm" size={21} />,
                 panel: (
-                  <Stack gap="md">
-                    <ControlBlock
-                      title="Name"
-                      description="Names this asset and determines its URL. The printed title follows the movement value."
-                      input={nameField}
-                    />
-                    <ControlBlock
-                      title="Movement"
-                      description="The storm moves counterclockwise. This value sets the printed title, instruction and corner number."
-                      input={
-                        <Select
-                          aria-label="Storm movement"
-                          allowDeselect={false}
-                          value={String(draft.sectors)}
-                          data={[1, 2, 3, 4, 5, 6].map((value) => ({
-                            value: String(value),
-                            label: `${value} ${value === 1 ? 'sector' : 'sectors'}`,
-                          }))}
-                          onChange={(value) => {
-                            if (value) {
-                              patch({ sectors: Number(value) });
-                            }
-                          }}
-                        />
-                      }
-                    />
-                    <BackgroundPresetControl
-                      title="Head background"
-                      description="Colour and texture behind the movement title."
-                      usedOn="this storm card's head"
-                      presets={[{ key: 'storm', label: 'Storm', background: standardStormCard(1).head }]}
-                      value={draft.head}
-                      declaredCustom={memory.headCustom}
-                      onDeclaredCustomChange={(headCustom) => remember({ headCustom })}
-                      modeMemory={memory.headModeMemory}
-                      onModeMemoryChange={(headModeMemory) => remember({ headModeMemory })}
-                      onChange={(head) => patch({ head })}
-                    />
-                    <BackgroundPresetControl
-                      title="Symbol background"
-                      description="Colour and texture behind the fixed storm symbol."
-                      usedOn="this storm card's symbol"
-                      presets={[{ key: 'storm', label: 'Storm', background: standardStormCard(1).icon[0] }]}
-                      value={draft.icon[0]}
-                      declaredCustom={memory.iconCustom}
-                      onDeclaredCustomChange={(iconCustom) => remember({ iconCustom })}
-                      modeMemory={memory.iconModeMemory}
-                      onModeMemoryChange={(iconModeMemory) => remember({ iconModeMemory })}
-                      onChange={(background) => patch({ icon: [background, '/vector/icon/storm_disc.svg'] })}
-                    />
-                  </Stack>
+                  <StormIdentity
+                    draft={draft}
+                    patch={patch}
+                    memory={memory}
+                    remember={remember}
+                    nameField={nameField}
+                  />
                 ),
               },
               {

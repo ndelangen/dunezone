@@ -10,7 +10,7 @@ import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
 
-test('storm cards retain custom layers, enforce the Storm format and publish linked tokens', async () => {
+test('storm cards publish ordered layers and refresh linked tokens', async () => {
   const t = convexTest(schema, modules);
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
@@ -44,17 +44,6 @@ test('storm cards retain custom layers, enforce the Storm format and publish lin
       .unique()
   );
   expect(job?.asset_data).toMatchObject({ card: data, tokens: { [token.id]: { name: 'Storm token' } } });
-  for (const update of [
-    { sectors: 0 },
-    { sectors: 7 },
-    { sectors: 1.5 },
-    { format: 'plain' },
-    { subName: 'Weapon' },
-    { icon: [data.icon[0], '/vector/icon/karama.svg'] },
-  ]) {
-    await expect(owner.mutation(api.assets.update, { id: created.id, data: { ...data, ...update } })).rejects.toThrow();
-  }
-  await expect(t.mutation(api.assets.create, { type: 'card-storm', data })).rejects.toThrow();
   await owner.mutation(api.assets.update, { id: created.id, data: { ...data, sectors: 6 } });
   expect((await owner.query(api.assets.getPage, { type: 'card-storm', slug: created.slug }))?.asset.data).toMatchObject(
     { sectors: 6, layers: data.layers }
@@ -72,6 +61,25 @@ test('storm cards retain custom layers, enforce the Storm format and publish lin
       .first()
   );
   expect(refreshed?.asset_data).toMatchObject({ tokens: { [token.id]: { name: 'Changed token' } } });
+});
+
+test('storm card writes require an author and preserve the fixed identity and movement range', async () => {
+  const t = convexTest(schema, modules);
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
+  const owner = t.withIdentity({ subject: ownerId });
+  const data = standardStormCard(3);
+  const created = await owner.mutation(api.assets.create, { type: 'card-storm', data });
+  for (const update of [
+    { sectors: 0 },
+    { sectors: 7 },
+    { sectors: 1.5 },
+    { format: 'plain' },
+    { subName: 'Weapon' },
+    { icon: [data.icon[0], '/vector/icon/karama.svg'] },
+  ]) {
+    await expect(owner.mutation(api.assets.update, { id: created.id, data: { ...data, ...update } })).rejects.toThrow();
+  }
+  await expect(t.mutation(api.assets.create, { type: 'card-storm', data })).rejects.toThrow();
 });
 
 test('the standard Storm deck provisions one of each value and reruns without overwriting edits', async () => {

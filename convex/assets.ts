@@ -999,6 +999,28 @@ export const customCardTokens = query({
   handler: async (ctx, args) => await resolveCustomCardTokens(ctx, args.ids),
 });
 
+async function preservedStandardStormDeck(ctx: MutationCtx, existing: Doc<'assets'>, ownerId: Id<'users'>) {
+  if (existing.owner_id !== ownerId || existing.is_deleted) {
+    throw new ConvexError('The Standard Storm Deck address is already reserved');
+  }
+  const members = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', existing._id).eq('kind', 'deck-card'))
+    .take(7);
+  const cards = await Promise.all(members.map((member) => ctx.db.get('assets', member.to_asset_id)));
+  const sectors = new Set(
+    cards.map((card) =>
+      card?.type === 'card-storm' && !card.is_deleted ? StormCardAssetInput.parse(card.data).sectors : null
+    )
+  );
+  if (members.length !== 6 || members.some((member) => member.count !== 1) || sectors.size !== 6 || sectors.has(null)) {
+    throw new ConvexError(
+      'The existing Standard Storm Deck has changed. Review its contents before provisioning again.'
+    );
+  }
+  return { deckId: existing._id, cardIds: members.map((member) => member.to_asset_id), created: false };
+}
+
 /** Creates the requested standard catalogue once; a rerun preserves authored cards and deck contents. */
 export const provisionStandardStormDeck = internalMutation({
   args: { ownerId: v.id('users') },
@@ -1010,30 +1032,7 @@ export const provisionStandardStormDeck = internalMutation({
     }
     const existing = await assetSlugHolder(ctx, 'deck', 'standard-storm-deck');
     if (existing) {
-      if (existing.owner_id !== ownerId || existing.is_deleted) {
-        throw new ConvexError('The Standard Storm Deck address is already reserved');
-      }
-      const members = await ctx.db
-        .query('asset_relations')
-        .withIndex('by_from_kind', (q) => q.eq('from_asset_id', existing._id).eq('kind', 'deck-card'))
-        .take(7);
-      const cards = await Promise.all(members.map((member) => ctx.db.get('assets', member.to_asset_id)));
-      const sectors = new Set(
-        cards.map((card) =>
-          card?.type === 'card-storm' && !card.is_deleted ? StormCardAssetInput.parse(card.data).sectors : null
-        )
-      );
-      if (
-        members.length !== 6 ||
-        members.some((member) => member.count !== 1) ||
-        sectors.size !== 6 ||
-        sectors.has(null)
-      ) {
-        throw new ConvexError(
-          'The existing Standard Storm Deck has changed. Review its contents before provisioning again.'
-        );
-      }
-      return { deckId: existing._id, cardIds: members.map((member) => member.to_asset_id), created: false };
+      return await preservedStandardStormDeck(ctx, existing, ownerId);
     }
     const now = nowIso();
     const cardIds: Id<'assets'>[] = [];
