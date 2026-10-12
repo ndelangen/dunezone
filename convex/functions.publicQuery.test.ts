@@ -1,8 +1,10 @@
+import aggregateTest from '@convex-dev/aggregate/test';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { convexTest } from 'convex-test';
 import { createFunctionHandle, makeFunctionReference } from 'convex/server';
 import { describe, expect, test } from 'vitest';
 
+import { components } from './_generated/api';
 import { publicQuery, viewerQuery } from './functions';
 import schema from './schema';
 
@@ -37,12 +39,7 @@ const probes = {
       const prototype = Object.prototype as Record<symbol, unknown>;
       prototype[Symbol.for('functionName')] = 'publicQueryProbe:viewer';
       try {
-        return await ctx.runQuery(
-          {
-            [Symbol.for('toReferencePath')]: '_reference/childComponent/statistics/btree/count',
-          } as unknown as Parameters<typeof ctx.runQuery>[0],
-          {}
-        );
+        return await ctx.runQuery(components.statistics.btree.aggregateBetween, {});
       } finally {
         delete prototype[Symbol.for('functionName')];
       }
@@ -79,8 +76,10 @@ describe('publicQuery', () => {
     await expect(t.query(probe('nestsDisguisedViewerQuery'), {})).rejects.toThrow();
   });
 
-  test('a name planted on Object.prototype cannot redirect a component call to an app query', async () => {
-    const t = convexTest(schema, modules).withIdentity({ subject: 'probe-viewer' });
-    await expect(t.query(probe('nestsUnderPollutedPrototype'), {})).rejects.toThrow();
+  test('a name planted on Object.prototype cannot redirect a component call, which still reaches the component', async () => {
+    const base = convexTest(schema, modules);
+    aggregateTest.register(base, 'statistics');
+    const t = base.withIdentity({ subject: 'probe-viewer' });
+    await expect(t.query(probe('nestsUnderPollutedPrototype'), {})).resolves.toEqual({ count: 0, sum: 0 });
   });
 });

@@ -1,6 +1,7 @@
 import { assetAccessForViewer } from '@shared/access/collaborativeAccess';
 import type { AccessViewer, AssetSubjectFacts } from '@shared/access/collaborativeAccess';
 import { useQuery } from 'convex/react';
+import { useState } from 'react';
 
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
@@ -15,6 +16,11 @@ export const UNAVAILABLE_SUBJECT = { owner_id: '', is_deleted: true };
  * Who the viewer is for one subject: their user id and their membership of the subject's Group, or undefined while either is on its way.
  * Page queries are `publicQuery`, one cached answer for everyone;
  * this is the small viewer half the browser combines with it.
+ *
+ * Once resolved, the viewer stays resolved while a new membership loads (the subject moved to another Group):
+ * Convex answers undefined for new arguments, and treating that as "unknown" would unmount an open editor and lose its draft.
+ * The last answer is kept only for the same signed-in user;
+ * the mutations re-check every write regardless.
  */
 function useAccessViewer(groupId: Id<'groups'> | null): AccessViewer | undefined {
   const session = useQuery(api.profiles.session, {});
@@ -23,6 +29,7 @@ function useAccessViewer(groupId: Id<'groups'> | null): AccessViewer | undefined
    * so an anonymous visitor's subscription costs nothing and never invalidates.
    */
   const membership = useQuery(api.groups.viewerMembership, { groupId: session?.userId ? groupId : null });
+  const [held, setHeld] = useState<{ userId: Id<'users'>; membership: NonNullable<typeof membership> } | null>(null);
   if (session === undefined) {
     return undefined;
   }
@@ -30,7 +37,13 @@ function useAccessViewer(groupId: Id<'groups'> | null): AccessViewer | undefined
     return ANONYMOUS;
   }
   if (membership === undefined) {
-    return undefined;
+    return held?.userId === session.userId
+      ? { kind: 'authenticated', userId: session.userId, membership: held.membership }
+      : undefined;
+  }
+  if (held?.userId !== session.userId || held.membership !== membership) {
+    /* Derived state set during render, React's documented pattern for remembering the previous answer. */
+    setHeld({ userId: session.userId, membership });
   }
   return { kind: 'authenticated', userId: session.userId, membership };
 }
