@@ -761,7 +761,7 @@ function stageToolbar({
   if (table.playback && beforePlay) {
     return <StagePlayback client={client} table={table} />;
   }
-  if (inPlay || (stage === 'setup' && table.snapshot.setup)) {
+  if (inPlay || settingUp(table)) {
     return (
       <PhaseToolbar
         client={client}
@@ -774,6 +774,11 @@ function stageToolbar({
   }
   const Control = STAGE_CONTROLS[stage ?? ''];
   return Control ? <Control client={client} table={table} /> : undefined;
+}
+
+/** Setup steps its phases once its first step is dealt. */
+function settingUp(table: TableProjection): boolean {
+  return table.snapshot.stage === 'setup' && Boolean(table.snapshot.setup);
 }
 
 /** In play the header steps phases beside the bidder; setup steps its phases alone. */
