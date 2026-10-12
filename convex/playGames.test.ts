@@ -230,6 +230,16 @@ describe('real games are created and entered by any signed-in player, Administra
     expect(unchosen.access === 'allowed' ? unchosen.preview : 'unreachable').toBeNull();
   });
 
+  test('a last turn outside the whole-number range is refused before a game is made', async () => {
+    const { t, member, rulesets } = await world();
+    for (const lastTurn of [0, 1.5, 21]) {
+      await expect(
+        member.mutation(api.playGames.createGame, { rulesetId: rulesets.ready, minimumPlayers: 4, lastTurn })
+      ).rejects.toThrow();
+    }
+    expect(await t.run(async (ctx) => await ctx.db.query('play_games').collect())).toHaveLength(0);
+  });
+
   test('creation records the ruleset, minimum and creator on a pending game any signed-in player can watch', async () => {
     const { t, admin, member, memberId, rulesets } = await world();
     const request = { rulesetId: rulesets.ready, minimumPlayers: 4 as const };

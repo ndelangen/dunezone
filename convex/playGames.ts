@@ -13,6 +13,7 @@ import {
 } from '../src/shared/play/gameCreation';
 import { normalizePlayGameSlug, playGameNameSchema, PLAY_RESERVED_GAME_ADDRESSES } from '../src/shared/play/gameNames';
 import { isGeneratedPlayGameName } from '../src/shared/play/generatedGameNames';
+import { lastTurnSchema } from '../src/shared/play/lastTurn';
 import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
 import { RULESET_ASSET_SLOT_ORDER } from '../src/shared/rulesets/assetSlots';
 import { internal } from './_generated/api';
@@ -337,6 +338,8 @@ export const createNamedGame = internalMutation({
 
 /** The same current session, readiness and seat checks run before spending and again when committing. */
 async function gameCreationEligibility(ctx: MutationCtx, args: z.infer<typeof playCreateGameRequestSchema>) {
+  /* The Convex validator keeps only the type, so the turn's whole-number range is enforced here, before any budget is spent. */
+  lastTurnSchema.optional().parse(args.lastTurn);
   const session = await livePlaySession(ctx);
   if (!session) {
     return { ok: false as const, reason: 'not_authorized' as const };
