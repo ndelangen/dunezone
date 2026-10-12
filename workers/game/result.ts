@@ -1,4 +1,5 @@
 import { phaseAt } from '../../src/shared/play/phases';
+import { rosterFactionIds } from '../../src/shared/play/protocol';
 import type { Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { resultFactionCountFits } from '../../src/shared/play/result';
@@ -65,7 +66,7 @@ function resume(snapshot: StoredSnapshot) {
 
 /** One winner, an alliance of two or more, or none; each named once and each seated at this table. */
 function requireFittingFactions(snapshot: StoredSnapshot, action: Declaration) {
-  const seated = new Set(snapshot.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])));
+  const seated = new Set(rosterFactionIds(snapshot.roster));
   const checks = [
     new Set(action.factionIds).size === action.factionIds.length,
     action.factionIds.every((id) => seated.has(id)),
@@ -104,4 +105,3 @@ function requireOpener(snapshot: StoredSnapshot, viewer: Viewer) {
     throw new GameRejection('Only the player determining the winner can do that.');
   }
 }
-

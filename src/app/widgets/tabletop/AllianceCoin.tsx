@@ -3,14 +3,11 @@ import { TABLE_SURFACE_Y } from '@shared/play/tableGeometry';
 
 import { coinBand, coinRadius, coinTop } from './allianceCoinGeometry';
 import { BOARD_RIM_COLOR, BOARD_RIM_METALNESS, BOARD_RIM_ROUGHNESS } from './boardRimGeometry';
+import { ignoreRaycast } from './ignoreRaycast';
 import { SoftShadow } from './SoftShadow';
 
 /* The coin's colour: the ally's with the cream line the tokens carry inside their rim, or, standing alone, plain in the board rim's colour. */
 const CREAM = '#efe3c2';
-
-function ignoreRaycast() {
-  // Alliance marks are never an interaction target.
-}
 
 const SHADOW_SPREAD = 0.08;
 const SHADOW_OPACITY = 0.75;

@@ -4,7 +4,7 @@ import { LOG_PAGE_SIZE } from '@shared/play/log';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { StoredPiece } from '@shared/play/model';
 import { isSeatAction } from '@shared/play/participation';
-import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/play/protocol';
+import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG, rosterFactionIds } from '@shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { isSwapAction } from '@shared/play/swapping';
 
@@ -24,7 +24,7 @@ const OTHER_HAND_COUNTS = [2, 1, 3, 0, 4, 1];
  */
 function storyHandCounts(view: GameSnapshot, viewerSeat: Viewer['viewerSeat']): GameSnapshot['handCounts'] {
   const own = view.roster!.seats.find((seat) => seat.id === viewerSeat)?.faction?.id;
-  const factionIds = view.roster!.seats.flatMap(({ faction }) => (faction ? [faction.id] : []));
+  const factionIds = rosterFactionIds(view.roster);
   const committed = view.battle && view.battle.stage !== 'revealed' ? (view.battlePlan?.pieces ?? []) : [];
   const held = [...(view.hand ?? []), ...committed] as StoredPiece[];
   const ownCounts = treacheryHandCounts(own ? { [own]: held } : {}, factionIds);

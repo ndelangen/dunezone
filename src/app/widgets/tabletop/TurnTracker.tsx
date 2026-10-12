@@ -1,6 +1,7 @@
 /* @jsxImportSource ./three-jsx */
 import { useEffect, useMemo, useState } from 'react';
 
+import { ignoreRaycast } from './ignoreRaycast';
 import { PHASE_DISC_COLOR, PHASE_INK_COLOR } from './phaseSymbolLayout';
 import {
   createTurnTrackerFrame,
@@ -10,10 +11,6 @@ import {
   turnTrackerLayout,
 } from './turnTrackerGeometry';
 import { createTurnNumbersTexture, loadTurnNumberFont } from './turnTrackerNumbers';
-
-function ignoreRaycast() {
-  /* Printed numbers and raised artwork never intercept tabletop gestures. */
-}
 
 /** The printed numbers, drawn once the number face has loaded and again only when the wheel's block of turns changes. */
 function useTurnNumbers(layout: ReturnType<typeof turnTrackerLayout>) {

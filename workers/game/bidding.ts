@@ -42,10 +42,7 @@ export function biddingCommand(
       applyBidding(snapshot.bidding ?? idleBidding(), action, { ...context(snapshot, now), factionId })
     );
   } catch (error) {
-    if (error instanceof BiddingRefusal) {
-      throw new GameRejection(error.message);
-    }
-    throw error;
+    throw error instanceof BiddingRefusal ? new GameRejection(error.message) : error;
   }
 }
 

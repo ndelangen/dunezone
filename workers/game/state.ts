@@ -14,7 +14,7 @@ import { storedControlsSchema } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { DraftMove, StoredPiece, TableItem, TablePiece } from '../../src/shared/play/model';
 import { showsPeeker } from '../../src/shared/play/peeking';
-import { gameSnapshotSchema, tableForViewer } from '../../src/shared/play/protocol';
+import { gameSnapshotSchema, rosterFactionIds, tableForViewer } from '../../src/shared/play/protocol';
 import type { GameSnapshot, PublicCarry, PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { gameEndingSchema, gameResultSchema } from '../../src/shared/play/result';
@@ -417,10 +417,7 @@ export class RoomProjection {
           : {}),
         ...(roster
           ? {
-              handCounts: treacheryHandCounts(
-                heldCards(snapshot),
-                roster.seats.flatMap(({ faction }) => (faction ? [faction.id] : []))
-              ),
+              handCounts: treacheryHandCounts(heldCards(snapshot), rosterFactionIds(roster)),
             }
           : {}),
         ...(factionId ? { peek: this.peek(snapshot, factionId) } : {}),

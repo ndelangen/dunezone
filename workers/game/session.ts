@@ -21,7 +21,8 @@ import { emptyPublicControls } from '../../src/shared/play/inventory';
 import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import { composeTurn, lobbyPhaseIndex } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
-import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import { rosterFactionIds } from '../../src/shared/play/protocol';
+import type { ClientMessage, CommitMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
 import { isResultAction } from '../../src/shared/play/result';
@@ -39,7 +40,7 @@ import { expireBattle } from './battle';
 import { biddingDeadline, expireBidding } from './bidding';
 import { moveStoredGameOntoCurrentBoard } from './boardLayout';
 import { CaptureStore } from './captures';
-import { Conversations, seatedFactions } from './conversations';
+import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
 import {
   applyDraftAction,
@@ -109,7 +110,6 @@ export type Metadata = {
 };
 
 type CommandMessage = Extract<ClientMessage, { type: 'command' }>;
-type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 type TableMessage =
   | Extract<CommitMessage, { type: 'drop' }>
   | (CommandMessage & { action: Parameters<Room['command']>[1] });
@@ -125,6 +125,7 @@ function draftStamp(seated: readonly string[], draft: NonNullable<StoredSnapshot
   });
 }
 
+/** The seat a real game's creator holds from creation. */
 const CREATOR_SEAT = 'seat-1';
 
 /** A capture refused for readiness, carrying its first problem alone for the draft to show beside the faction. */
@@ -244,7 +245,7 @@ export class GameSession {
    * A game whose seated factions declare nothing (a fixture, one still drafting, or plain factions) plays the standard turn and carries no list.
    */
   private composedTurn(roster: TableRoster, stormSectorIndex: number): PhaseEntry[] | undefined {
-    const seated = new Set(roster.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])));
+    const seated = new Set(rosterFactionIds(roster));
     const factions = this.captures
       .phaseDeclarations()
       .filter((entry) => seated.has(entry.factionId) && entry.declarations.length > 0);
@@ -597,7 +598,13 @@ export class GameSession {
   }
 
   private recordReceipt(key: string, viewer: Viewer, message: CommitMessage, revision: number) {
-    this.storage.sql.exec('INSERT INTO receipts VALUES(?,?,?,?)', key, viewer.userId, JSON.stringify(message), revision);
+    this.storage.sql.exec(
+      'INSERT INTO receipts VALUES(?,?,?,?)',
+      key,
+      viewer.userId,
+      JSON.stringify(message),
+      revision
+    );
   }
 
   private persistCommit(commit: {
@@ -1142,14 +1149,14 @@ export class GameSession {
     });
   }
   conversationMembers(request: Extract<ClientMessage, { type: 'conversation-send' }>) {
-    return conversationMembers(request.factionId, request.peerId, seatedFactions(this.room!.snapshot)) ?? [];
+    return conversationMembers(request.factionId, request.peerId, rosterFactionIds(this.room!.snapshot.roster)) ?? [];
   }
   conversationSummaries(viewer: Viewer): Extract<ServerMessage, { type: 'conversations' }> | undefined {
     const factionId = this.conversationFaction(viewer);
     if (!factionId) {
       return;
     }
-    const peers = seatedFactions(this.room!.snapshot);
+    const peers = rosterFactionIds(this.room!.snapshot.roster);
     return {
       type: 'conversations',
       factionId,

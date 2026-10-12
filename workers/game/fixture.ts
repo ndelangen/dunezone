@@ -2,6 +2,7 @@ import { fixtureBattleFaces } from '../../src/shared/play/battle';
 import { initialSnapshot } from '../../src/shared/play/commands';
 import type { SpawnSelection, StoredSpawnContents } from '../../src/shared/play/inventory';
 import type { TablePiece } from '../../src/shared/play/model';
+import { rosterFactionIds } from '../../src/shared/play/protocol';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { DEFAULT_TABLE_SEAT_COUNT } from '../../src/shared/play/tableSettings';
@@ -20,7 +21,7 @@ const HOSTED_FIXTURE_SEATS: TableRoster['seats'] = [
 
 /** Every seated house holds a spice reserve and its fixture battle faces; a house that already has them keeps them. */
 function seedFactionState(snapshot: StoredSnapshot, roster: TableRoster): StoredSnapshot {
-  const factions = roster.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : []));
+  const factions = rosterFactionIds(roster);
   return {
     ...snapshot,
     roster,

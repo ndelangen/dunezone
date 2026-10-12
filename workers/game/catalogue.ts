@@ -50,7 +50,7 @@ function definitionsOf({ asset, backToken, backDeck }: Omit<SuppliedMember, 'cou
 /* A token's physical size as its author set it; a definition without one, or with one out of range, plays at the standard size. */
 function physicalSizeOf(data: unknown): number | undefined {
   const size = (data as { physicalSize?: unknown } | null)?.physicalSize;
-  return PhysicalSize.safeParse(size).success ? (size as number) : undefined;
+  return PhysicalSize.safeParse(size).data;
 }
 
 /**
