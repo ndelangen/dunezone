@@ -354,7 +354,7 @@ export function RadialMenu({
         </>
       )}
       <span className={styles.caption} style={{ left: captionOffset }} data-tone={caption?.tone} aria-hidden>
-        <span className={styles.captionText}>{caption?.text ?? hub}</span>
+        <span>{caption?.text ?? hub}</span>
         {caption?.shortcut && <kbd className={styles.key}>{caption.shortcut}</kbd>}
       </span>
     </div>,
