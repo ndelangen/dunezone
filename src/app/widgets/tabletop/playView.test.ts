@@ -412,12 +412,40 @@ describe('close look', () => {
       speeds.push(motion.velocity[0]);
     }
     expect(speeds[30]).toBeGreaterThan(speeds[5]);
-    expect(speeds[179]).toBeGreaterThan(speeds[60]);
+    expect(speeds[179]).toBeGreaterThan(speeds[30]);
+    /* Most of the top speed is there within the first second. */
+    expect(speeds[60]).toBeGreaterThan(speeds[179] * 0.95);
     expect(speeds[179] - speeds[170]).toBeLessThan(0.01);
-    for (let frame = 0; frame < 120 && motion !== CAMERA_PAN_AT_REST; frame++) {
+    for (let frame = 0; frame < 240 && motion !== CAMERA_PAN_AT_REST; frame++) {
       motion = cameraPanMotionAfter(motion, zoom, [0, 0], 1 / 60);
     }
     expect(motion).toBe(CAMERA_PAN_AT_REST);
+  });
+
+  test('a held pan key gets going faster than a let-go one comes to rest', () => {
+    const zoom = zoomIn(5);
+    let motion = CAMERA_PAN_AT_REST;
+    let framesToSpeed = 0;
+    for (; framesToSpeed < 600 && motion.velocity[0] < 14 * zoom.scale; framesToSpeed++) {
+      motion = cameraPanMotionAfter(motion, zoom, [1, 0], 1 / 60);
+    }
+    const top = motion.velocity[0];
+    let framesToSlow = 0;
+    for (; framesToSlow < 600 && motion.velocity[0] > top / 10; framesToSlow++) {
+      motion = cameraPanMotionAfter(motion, zoom, [0, 0], 1 / 60);
+    }
+    expect(framesToSpeed).toBeLessThan(framesToSlow);
+  });
+
+  test("the viewer's pan speed scales the slide", () => {
+    const zoom = zoomIn(5);
+    let normal = CAMERA_PAN_AT_REST;
+    let fast = CAMERA_PAN_AT_REST;
+    for (let frame = 0; frame < 120; frame++) {
+      normal = cameraPanMotionAfter(normal, zoom, [1, 0], 1 / 60);
+      fast = cameraPanMotionAfter(fast, zoom, [1, 0], 1 / 60, 3);
+    }
+    expect(fast.velocity[0]).toBeCloseTo(normal.velocity[0] * 3);
   });
 
   test('sliding out toward the edge slows to a stop instead of running past it', () => {

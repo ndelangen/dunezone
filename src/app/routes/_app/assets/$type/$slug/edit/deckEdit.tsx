@@ -196,7 +196,7 @@ function DeckEditSession({
   const cards = members.map((entry) => ({ card: entry.member, count: entry.count }));
   /*
    * The dangling complaint rides the widened validation header beside the widget's own warnings
-   * («How a dangling back reference presents»), routed to Identity, the chapter the back tiles live in.
+   * («How a dangling back reference presents»), routed to Back, the chapter the back choices live in.
    */
   const nameField = assetNameField({
     name: state.data.name,
@@ -207,7 +207,7 @@ function DeckEditSession({
   const warnings: (DeckWarning | { source: string; complaint: string; chapter: DeckChapter })[] = [
     ...deckDraftWarnings(state.data, cards),
     ...(danglingBack && state.data.cardback.mode === 'reference'
-      ? [{ source: 'Cardback', complaint: 'its referenced cardback is gone', chapter: 'identity' as DeckChapter }]
+      ? [{ source: 'Cardback', complaint: 'its referenced cardback is gone', chapter: 'back' as DeckChapter }]
       : []),
   ];
   const pickless = state.data.cardback.mode === 'reference' && state.data.cardback.asset_id === null;

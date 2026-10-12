@@ -4,6 +4,7 @@ import type { Vector3Tuple } from '@shared/play/model';
 import { useEffect, useMemo, useState } from 'react';
 import { CanvasTexture, LinearFilter, SRGBColorSpace } from 'three';
 
+import { ignoreRaycast } from './ignoreRaycast';
 import { FALLBACK_FONT_FAMILY, loadTableLabelFont, TABLE_LABEL_FONT_FAMILY } from './tableLabelFont';
 
 type TableLabelProps = {
@@ -72,10 +73,6 @@ function createLabelTexture(text: string, { color, fontFamily, fontSize, maxWidt
     texture,
     width: naturalWidth * fitScale,
   };
-}
-
-function ignoreRaycast() {
-  // Painted table lettering is never an interaction target.
 }
 
 export function TableLabel({

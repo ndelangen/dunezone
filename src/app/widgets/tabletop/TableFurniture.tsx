@@ -15,6 +15,7 @@ import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { useMemo } from 'react';
 import type { ExtrudeGeometry } from 'three';
 
+import { ignoreRaycast } from './ignoreRaycast';
 import { TableLabel } from './TableLabel';
 import { createRoundedRectangleShape, createTablePlateLayers } from './tablePlateGeometry';
 
@@ -29,10 +30,6 @@ const TABLE_PLATE_EXTRUDE_OPTIONS = {
 } as const;
 const SLOT_RIM_SHAPE = createRoundedRectangleShape(CARD_SLOT_OUTER_SIZE.width, CARD_SLOT_OUTER_SIZE.depth, 0.1);
 const SLOT_WELL_SHAPE = createRoundedRectangleShape(CARD_WIDTH, CARD_DEPTH, 0.08);
-
-function ignoreRaycast() {
-  // Fixed furniture stays outside tabletop pointer picking.
-}
 
 function TablePlate({ trackerSlots }: { trackerSlots: readonly TrackerArcSlot[] }) {
   const layers = useMemo(() => createTablePlateLayers(trackerSlots), [trackerSlots]);

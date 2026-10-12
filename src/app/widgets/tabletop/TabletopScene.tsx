@@ -107,6 +107,7 @@ import {
   BOARD_RIM_ROUGHNESS,
   createBoardRimShape,
 } from './boardRimGeometry';
+import { ignoreRaycast } from './ignoreRaycast';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
 import { PhaseSymbol } from './PhaseSymbol';
@@ -179,10 +180,6 @@ const BOARD_RIM_EXTRUDE_OPTIONS = {
   steps: 1,
 } as const;
 const DEFAULT_CAMERA_VIEW: CameraViewCommand = { view: 'map', revision: 0 };
-
-function ignoreRaycast() {
-  /* Decorative scene geometry must never compete with tabletop interaction. */
-}
 
 type StormTransition = {
   startedAt: number;
@@ -348,7 +345,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
   const groupRef = useRef<Group>(null);
   const renderedSectorIndex = useRef<number | null>(null);
   const transition = useRef<StormTransition | null>(null);
-  const { invalidate } = useThree();
+  const invalidate = useThree((state) => state.invalidate);
 
   useFrame(() => {
     const group = groupRef.current;

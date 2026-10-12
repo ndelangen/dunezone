@@ -7,7 +7,6 @@ export const NUMBER_RADIUS = 0.69;
 /* One sector per turn up to the table's last turn, so a ten-turn game shows ten. */
 type TrackerState = Readonly<{ radius: number; turn: number; lastTurn?: number }>;
 type TrackerLayout = ReturnType<typeof turnTrackerLayout>;
-type LocalPoint = Readonly<{ x: number; z: number }>;
 type PolarPoint = Readonly<{ radius: number; angle: number }>;
 type Annulus = Readonly<{ outerRadius: number; innerRadius: number }>;
 type Relief = Readonly<{ depth: number; floor: number }>;
@@ -56,25 +55,6 @@ export function turnTrackerLayout({ radius, turn, lastTurn = DEFAULT_LAST_TURN }
       };
     }),
   };
-}
-
-export function turnAtTrackerPoint(
-  { radius, firstTurn, sectorCount, sectorAngle }: TrackerLayout,
-  { x, z }: LocalPoint
-): number | null {
-  const distance = Math.hypot(x, z);
-  if (!Number.isFinite(distance)) {
-    return null;
-  }
-  if (distance < radius * HUB_RADIUS) {
-    return null;
-  }
-  if (distance > radius) {
-    return null;
-  }
-  const angle = (Math.atan2(x, -z) + Math.PI * 2) % (Math.PI * 2);
-  const selected = firstTurn + Math.min(sectorCount - 1, Math.floor(angle / sectorAngle));
-  return Number.isSafeInteger(selected) ? selected : null;
 }
 
 function ring({ outerRadius, innerRadius }: Annulus): Shape {

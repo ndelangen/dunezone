@@ -109,10 +109,7 @@ type GameTableProps = {
 };
 
 function flippableSelection(piece: TablePiece | null) {
-  if (!piece) {
-    return null;
-  }
-  return piece.kind === 'card' || piece.kind === 'force' ? piece : null;
+  return piece?.kind === 'card' || piece?.kind === 'force' ? piece : null;
 }
 
 function selectedFlipHelp({

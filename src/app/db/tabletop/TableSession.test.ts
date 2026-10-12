@@ -1,11 +1,12 @@
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
+import type { Disclosure } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
 import type { ActivityChange, GameSnapshot, ServerMessage, TablePing, Viewer } from '@shared/play/protocol';
-import { flipPieceInState } from '@shared/play/tableState';
+import { flipPieceInState, heldPieceFor } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
@@ -1127,6 +1128,70 @@ describe('hosted table interaction', () => {
     expect(socket().sent.filter((message) => message.type === 'command')).toHaveLength(2);
   });
 
+  test('a piece turning over in hand takes no further flip until its animation finishes', async () => {
+    const { client, source, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    const handFlips = () => socket().sent.flatMap((message) => (message.type === 'flip' ? [message.flips] : []));
+    client.flipSelected();
+    client.flipSelected();
+    expect(handFlips()).toEqual([1]);
+    client.finishPieceFlip(source.id, 1);
+    client.flipSelected();
+    expect(handFlips()).toEqual([1, 2]);
+  });
+
+  test('a carry put back mid-turn leaves the piece free to flip and pick up again', async () => {
+    const { client, source, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    client.flipSelected();
+    client.cancelDraft();
+    /* The piece goes back to its saved face, so its mesh finishes on the saved revision. */
+    client.finishPieceFlip(source.id, 0);
+    client.flipSelected(source.id);
+    expect(command().action).toEqual({ kind: 'flip', pieceId: source.id });
+  });
+
+  test('a card drawn from a deck keeps turning over through a saved table update', async () => {
+    const client = await connected();
+    const snapshot = table(client).snapshot;
+    client.beginGesture('treachery-deck', 'top');
+    const begin = socket().sent.find((message) => message.type === 'begin');
+    const draft = table(client).state.draftMove;
+    if (!begin || !draft) {
+      throw new Error('The draw did not start.');
+    }
+    const held = heldPieceFor(table(client).state, draft);
+    if (!held) {
+      throw new Error('The draw holds no card.');
+    }
+    socket().deliver({ type: 'carry', carryId: begin.carryId, draft });
+    const carries = [
+      {
+        ...viewer,
+        id: begin.carryId,
+        held,
+        withdrawnCounts: { 'treachery-deck': 1 },
+        reservedIds: ['treachery-deck'],
+        expiresAt: Date.now() + 8000,
+      },
+    ];
+    socket().deliver(view({ snapshot, sequence: 1, carries }));
+    const handFlips = () => socket().sent.flatMap((message) => (message.type === 'flip' ? [message.flips] : []));
+    client.flipSelected();
+    expect(handFlips()).toEqual([1]);
+    const stackFlipped = nextSnapshot(
+      snapshot,
+      flipPieceInState(tableForViewer(snapshot, 'harkonnen'), 'harkonnen-force-stack')
+    );
+    socket().deliver(view({ snapshot: stackFlipped, sequence: 2, carries }));
+    expect(table(client).state.draftMove?.flips).toBe(1);
+    client.flipSelected();
+    expect(handFlips()).toEqual([1]);
+    client.finishPieceFlip(held.id, (held.flipRevision ?? 0) + 1);
+    client.flipSelected();
+    expect(handFlips()).toEqual([1, 2]);
+  });
+
   test('a held piece does not hold back a seat command', async () => {
     const { client, carried } = await grantedWholeCarry();
     socket().deliver(carried);
@@ -1463,6 +1528,35 @@ test('holds an early reveal behind the plan edits made before it, in order with 
       .sent.slice(index)
       .flatMap((message) => (message.type === 'command' ? [message.action] : []))
   ).toEqual([disclose, { kind: 'battle-ready', battleId: 'battle-one', ready: true }]);
+});
+
+test('reveals queued behind a plan edit go out a few at a time, and Ready follows once the room answers', async () => {
+  const client = await connected();
+  const { plan, snapshot } = battleTable();
+  authorize(snapshot);
+  client.editBattlePlan({ adjustment: 1 });
+  const first = command();
+  const reveal = (disclosure: Disclosure) =>
+    ({ kind: 'battle-disclose', battleId: 'battle-one', disclosure, shown: true }) as const;
+  const reveals = [
+    reveal({ element: 'leader' }),
+    reveal({ element: 'dial' }),
+    reveal({ element: 'card', cardId: 'card-one' }),
+    reveal({ element: 'card', cardId: 'card-two' }),
+  ];
+  reveals.forEach((action) => client.command(action));
+  const ready = { kind: 'battle-ready', battleId: 'battle-one', ready: true } as const;
+  client.command(ready);
+  const index = socket().sent.length;
+  const afterFirst = { ...snapshot, revision: 1, battlePlan: { ...plan, adjustment: 1 } };
+  socket().deliver(view({ snapshot: afterFirst, completedCommandId: first.commandId }));
+  const sent = () =>
+    socket()
+      .sent.slice(index)
+      .flatMap((message) => (message.type === 'command' ? [message] : []));
+  expect(sent().map((message) => message.action)).toEqual(reveals);
+  socket().deliver(view({ snapshot: { ...afterFirst, revision: 2 }, completedCommandId: sent()[0].commandId }));
+  expect(sent().map((message) => message.action)).toEqual([...reveals, ready]);
 });
 
 test('shows a queued reveal as revealed at once, so its part locks before a later edit can overtake it', async () => {
@@ -1930,5 +2024,214 @@ describe('peeking', () => {
     expect(table(client).peekControls).toBeUndefined();
     table(client).closePeek!();
     expect(command().action).toEqual({ kind: 'peek-close' });
+  });
+});
+
+describe('a held rotation', () => {
+  const deck = () => initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+  const turned = (steps: number) => deck().orientation - (steps * Math.PI) / 12;
+
+  test('turns the piece on this page only, then sends the whole turn as one command', async () => {
+    const client = await connected();
+    const sent = socket().sent.length;
+    for (let step = 0; step < 3; step++) {
+      client.rotateSelected(1, deck().id);
+    }
+    expect(socket().sent).toHaveLength(sent);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(3));
+
+    client.finishRotation();
+    expect(socket().sent).toHaveLength(sent + 1);
+    expect(command().action).toEqual({ kind: 'rotate', pieceId: deck().id, direction: 1, steps: 3 });
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(3));
+  });
+
+  test('nothing at rest turns while a dropped piece is still landing', async () => {
+    const { client, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    client.finishGesture(dropPosition);
+    client.rotateSelected(1, deck().id);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(0));
+  });
+
+  test('the turn shows once when the room settles it, and springs back when the room refuses it', async () => {
+    const client = await connected();
+    client.rotateSelected(-1, deck().id);
+    client.finishRotation();
+    expect(command().action).toEqual({ kind: 'rotate', pieceId: deck().id, direction: -1 });
+    const snapshot = initialSnapshot();
+    const settled = {
+      ...snapshot,
+      revision: snapshot.revision + 1,
+      table: {
+        ...snapshot.table,
+        pieces: snapshot.table.pieces.map((piece) =>
+          piece.id === deck().id ? { ...piece, orientation: turned(-1) } : piece
+        ),
+      },
+    };
+    socket().deliver(view({ snapshot: settled, sequence: 2, completedCommandId: command().commandId }));
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(-1));
+
+    client.rotateSelected(1, deck().id);
+    client.rotateSelected(1, deck().id);
+    client.finishRotation();
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(1));
+    socket().deliver({ type: 'rejected', requestId: command().commandId, message: 'No room.' });
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(-1));
+  });
+
+  const withDeck = (change: (piece: ReturnType<typeof deck>) => ReturnType<typeof deck>) => {
+    const snapshot = initialSnapshot();
+    return {
+      ...snapshot,
+      revision: snapshot.revision + 1,
+      table: {
+        ...snapshot.table,
+        pieces: snapshot.table.pieces.map((piece) => (piece.id === deck().id ? change(piece) : piece)),
+      },
+    };
+  };
+
+  test('a locked piece does not turn and sends nothing', async () => {
+    const client = await connected();
+    socket().deliver(view({ snapshot: withDeck((piece) => ({ ...piece, locked: true })), sequence: 2 }));
+    const sent = socket().sent.length;
+    client.rotateSelected(1, deck().id);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(deck().orientation);
+    client.finishRotation();
+    expect(socket().sent).toHaveLength(sent);
+  });
+
+  test('a turn held on a piece another player locks meanwhile stops showing and is never sent', async () => {
+    const client = await connected();
+    client.rotateSelected(1, deck().id);
+    const sent = socket().sent.length;
+    socket().deliver(view({ snapshot: withDeck((piece) => ({ ...piece, locked: true })), sequence: 2 }));
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(deck().orientation);
+    client.finishRotation();
+    expect(socket().sent).toHaveLength(sent);
+  });
+
+  test('a turn let go of during a resync goes out with the fresh view', async () => {
+    const client = await connected();
+    client.rotateSelected(1, deck().id);
+    client.rotateSelected(1, deck().id);
+    deliverGap();
+    client.finishRotation();
+    expect(socket().sent.some((message) => message.type === 'command')).toBe(false);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(2));
+
+    socket().deliver(view({ sequence: 9 }));
+    expect(command().action).toEqual({ kind: 'rotate', pieceId: deck().id, direction: 1, steps: 2 });
+  });
+
+  test('a turn let go of during a resync is dropped when the fresh view has locked the piece', async () => {
+    const client = await connected();
+    client.rotateSelected(1, deck().id);
+    deliverGap();
+    client.finishRotation();
+    socket().deliver(view({ snapshot: withDeck((piece) => ({ ...piece, locked: true })), sequence: 9 }));
+    expect(socket().sent.some((message) => message.type === 'command')).toBe(false);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(deck().orientation);
+  });
+
+  test('a turn held as the game finishes stops showing and is never sent', async () => {
+    const client = await connected();
+    client.rotateSelected(1, deck().id);
+    const sent = socket().sent.length;
+    socket().deliver(
+      view({
+        snapshot: {
+          ...initialSnapshot(),
+          stage: 'finished',
+          result: { kind: 'none', factionIds: [], by: { seat: 'harkonnen', name: 'One' }, declaredAt: 1 },
+        },
+        sequence: 2,
+      })
+    );
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(deck().orientation);
+    client.finishRotation();
+    expect(socket().sent).toHaveLength(sent);
+  });
+
+  test('a piece another player is carrying from does not turn and sends nothing', async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    socket().deliver({
+      type: 'update',
+      epoch: 'epoch-one',
+      baseSequence: 1,
+      sequence: 2,
+      activity: {
+        ...noActivity,
+        carries: [
+          {
+            ...viewer,
+            connectionId: 'other',
+            id: 'other-carry',
+            held: { ...deck(), id: 'drawn-card', items: deck().items.slice(0, 1) },
+            withdrawnCounts: { [deck().id]: 1 },
+            reservedIds: [deck().id],
+            expiresAt: Date.now() + 8000,
+          },
+        ],
+      },
+    });
+    expect(table(client).reservedPieceIds.has(deck().id)).toBe(true);
+    const sent = socket().sent.length;
+    client.rotateSelected(1, deck().id);
+    client.finishRotation();
+    expect(socket().sent).toHaveLength(sent);
+  });
+
+  test('a turn the room did shows through the resync until the new table arrives', async () => {
+    const client = await connected();
+    client.rotateSelected(1, deck().id);
+    client.finishRotation();
+    deliverGap(command().commandId);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(1));
+
+    socket().deliver(view({ snapshot: withDeck((piece) => ({ ...piece, orientation: turned(1) })), sequence: 9 }));
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(1));
+  });
+
+  test('a look back in time shows the table without the turn this page holds on the live one', async () => {
+    const client = await connected();
+    client.rotateSelected(1, deck().id);
+    client.requestHistory(0);
+    socket().deliver({ type: 'history', step: 0, lastStep: 2, snapshot: initialSnapshot() });
+    expect(table(client).playback?.step).toBe(0);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(deck().orientation);
+  });
+
+  test('a turn back to the start sends nothing, and more than half a turn goes the short way round', async () => {
+    const client = await connected();
+    const sent = socket().sent.length;
+    client.rotateSelected(1, deck().id);
+    client.rotateSelected(-1, deck().id);
+    client.finishRotation();
+    expect(socket().sent).toHaveLength(sent);
+
+    for (let step = 0; step < 20; step++) {
+      client.rotateSelected(1, deck().id);
+    }
+    client.finishRotation();
+    expect(command().action).toEqual({ kind: 'rotate', pieceId: deck().id, direction: -1, steps: 4 });
+  });
+});
+
+describe('unanswered commands', () => {
+  test('past four waiting on the room, a further command is dropped until one is answered', async () => {
+    const client = await connected();
+    const commands = () => socket().sent.filter((message) => message.type === 'command');
+    for (let press = 0; press < 10; press++) {
+      client.moveStormBy(1);
+    }
+    expect(commands()).toHaveLength(4);
+
+    socket().deliver({ type: 'rejected', requestId: commands()[0]!.commandId, message: 'The table changed.' });
+    client.moveStormBy(1);
+    expect(commands()).toHaveLength(5);
   });
 });

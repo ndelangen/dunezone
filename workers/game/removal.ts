@@ -1,5 +1,3 @@
-import { nextSnapshot } from '../../src/shared/play/commands';
-import { tableForViewer } from '../../src/shared/play/protocol';
 import type { Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { removalThreshold } from '../../src/shared/play/removal';
@@ -8,6 +6,7 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { ActorDirectory } from './actors';
 import { logContext } from './log';
 import type { PublicLog } from './log';
+import { revised } from './state';
 import type { StoredSnapshot } from './state';
 
 type Ballot = RemovalVote['ballots'][number] & { userId: string | null };
@@ -68,7 +67,7 @@ export class RemovalVotes {
     }
     ballot.choice = action.choice;
     this.save(vote);
-    return this.changed(snapshot);
+    return revised(snapshot);
   }
 
   private start(snapshot: StoredSnapshot, viewer: Viewer, seat: string, now: number) {
@@ -99,7 +98,7 @@ export class RemovalVotes {
       snapshot.phase,
       logContext(snapshot)
     );
-    return this.changed(snapshot);
+    return revised(snapshot);
   }
 
   /** Membership is re-read after each removal, so concurrent targets share one electorate. */
@@ -113,7 +112,7 @@ export class RemovalVotes {
         const target = players.find((player) => player.userId === vote.target.userId);
         if (!target) {
           this.finish(vote, 'nullified', next, now);
-          next = this.changed(next);
+          next = revised(next);
           continue;
         }
         vote.target = target;
@@ -130,7 +129,7 @@ export class RemovalVotes {
           continue;
         }
         this.finish(vote, result, next, now);
-        next = this.changed(next);
+        next = revised(next);
         if (result === 'removed') {
           next = remove(next, target.userId, vote.id, now);
           removed = true;
@@ -191,9 +190,6 @@ export class RemovalVotes {
       vote.id
     );
     this.log.recordVote({ id: vote.id, result, target: vote.target, ballots: vote.ballots, context, at: now });
-  }
-  private changed(snapshot: StoredSnapshot) {
-    return nextSnapshot(snapshot, tableForViewer(snapshot, SPECTATOR_SEAT));
   }
 }
 

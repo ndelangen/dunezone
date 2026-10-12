@@ -5,10 +5,12 @@ import {
   PLAY_TICKET_TTL_MS,
 } from '@shared/play/admission';
 import {
+  ADMISSION_REFUSED_CLOSE_CODE,
   ADMISSION_UNAVAILABLE_CLOSE_CODE,
   KEEPALIVE_INTERVAL_MS,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
+  RATE_LIMITED_CLOSE_CODE,
   serverClockSchema,
   serverMessageSchema,
   TICKET_EXPIRED_CLOSE_CODE,
@@ -23,6 +25,8 @@ import type { TableSubscriptionEvent, TableConnectionStatus } from '@db/tabletop
 
 import { browserGameRuntime } from './gameRuntime';
 import type { GameRuntime, GameSocket } from './gameRuntime';
+
+const UNREACHABLE = 'The table could not be reached. Reconnecting...';
 
 type TicketResult = Awaited<ReturnType<typeof requestPlayTicket>>;
 type TicketAttempt = { readonly generation: number; timer?: ReturnType<typeof setTimeout> };
@@ -252,7 +256,7 @@ export class GameSubscription {
       return result;
     } catch {
       if (this.isCurrentAttempt(attempt)) {
-        this.retryAfterFailure('The table could not be reached. Reconnecting...');
+        this.retryAfterFailure(UNREACHABLE);
       }
       return null;
     } finally {
@@ -308,18 +312,18 @@ export class GameSubscription {
         this.retryAfterFailure('The table is temporarily unavailable.', this.admissionRetryDelay());
         return;
       }
-      if (event.code === 4401) {
+      if (event.code === ADMISSION_REFUSED_CLOSE_CODE) {
         this.changeStatus('denied', 'This login can no longer access the table.');
         return;
       }
-      const delay = event.code === 4413 ? 5000 : 1000;
+      const delay = event.code === RATE_LIMITED_CLOSE_CODE ? 5000 : 1000;
       /* A socket that closes before its table showed is a Worker that refused, failed or never answered; one that closes after reconnects as the connection opening. */
       if (this.sawView) {
         this.changeStatus('suspended');
         this.scheduleReconnect(delay);
         return;
       }
-      this.retryAfterFailure('The table could not be reached. Reconnecting...', delay);
+      this.retryAfterFailure(UNREACHABLE, delay);
     };
     socket.onerror = () => {
       if (this.isCurrentSocket(socket)) {
@@ -331,10 +335,11 @@ export class GameSubscription {
 
   private receiveSocketMessage(socket: GameSocket, data: string) {
     const receivedAt = this.runtime.monotonicNow();
-    if (this.isCurrentSocket(socket)) {
-      this.silentTicks = 0;
+    if (!this.isCurrentSocket(socket)) {
+      return;
     }
-    if (!this.isCurrentSocket(socket) || this.status === 'denied' || data === KEEPALIVE_PONG) {
+    this.silentTicks = 0;
+    if (this.status === 'denied' || data === KEEPALIVE_PONG) {
       return;
     }
     let message: ServerMessage;
@@ -381,7 +386,7 @@ export class GameSubscription {
     if (this.status === 'denied') {
       return;
     }
-    this.retryAfterFailure('The table could not be reached. Reconnecting...');
+    this.retryAfterFailure(UNREACHABLE);
   }
 
   /* Coming back online or to the foreground reconnects at once when the plain retry is waiting, and otherwise asks the open socket to prove it still works. */

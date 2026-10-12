@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
 import { toStoredHeroKey } from '../factions/schema';
 import type { FactionCapture } from './capture';
-import { applyPieceAction, emptySnapshot, initialSnapshot, nextSnapshot } from './commands';
+import { applyPieceAction, emptySnapshot, foldedTurns, initialSnapshot, nextSnapshot } from './commands';
 import { affordancesFor, freshTableState } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { tableForViewer } from './protocol';
@@ -391,6 +391,21 @@ describe('rotation', () => {
 
     expect(pieceById(clockwise, card.id)!.orientation).toBeCloseTo(card.orientation - Math.PI / 12);
     expect(pieceById(counterclockwise, card.id)!.orientation).toBeCloseTo(card.orientation + Math.PI / 12);
+  });
+
+  test('a held turn arrives as one command of several steps, with one event naming the whole turn', () => {
+    const state = freshTableState();
+    const card = state.pieces.find((candidate) => candidate.kind === 'card')!;
+
+    const turned = applyPieceAction(state, { kind: 'rotate', pieceId: card.id, direction: -1, steps: 6 }, 0);
+
+    expect(pieceById(turned, card.id)!.orientation).toBeCloseTo(card.orientation + Math.PI / 2);
+    expect(turned.events[0]?.message).toMatch(/rotated counterclockwise by 90 degrees\.$/);
+    expect(turned.nextEventNumber).toBe(state.nextEventNumber + 1);
+  });
+
+  test('a held turn folds into half a turn either way', () => {
+    expect([0, 1, 12, 13, 20, 24, -3, -13].map(foldedTurns)).toEqual([0, 1, 12, -11, -4, 0, -3, 11]);
   });
 });
 

@@ -25,6 +25,7 @@ import {
 import type { CameraPanMotion, CameraPose, CameraViewCommand, CameraZoom } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { TableKeyboardContext } from './TableKeyboardContext';
+import { readTablePanSpeed } from './tablePanSpeed';
 import { watchTwoFingerTilt } from './twoFingerTilt';
 
 const CAMERA_POSE_EPSILON_SQUARED = 0.000001;
@@ -295,7 +296,7 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
   const panBase = useRef<{ at: (tilt: number) => CameraPose; tilt: number; pose: CameraPose } | null>(null);
   useFrame((_, delta) => {
     const direction = (zoomedIn && keyboard?.panDirection()) || NO_PAN_DIRECTION;
-    const motion = cameraPanMotionAfter(panMotion.current, view.zoom, direction, delta);
+    const motion = cameraPanMotionAfter(panMotion.current, view.zoom, direction, delta, readTablePanSpeed());
     /* Without a close look nothing slides, so no leftover speed carries into the next one. */
     panMotion.current = zoomedIn ? motion : CAMERA_PAN_AT_REST;
     if (motion === CAMERA_PAN_AT_REST || !zoomedIn) {

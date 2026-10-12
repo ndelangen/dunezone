@@ -70,6 +70,7 @@ import { GameMenu, SeatPopover } from './SeatRequests';
 import { stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
+import { factionName, factionOptions, viewerFaction } from './tableFactions';
 import { TableSettings } from './TableSettings';
 import { ServerClockContext } from './useServerNow';
 import '../dune-play.css';
@@ -87,12 +88,12 @@ type ConnectionControlsProps = Readonly<{
   error: string | null;
 }>;
 
-/* A seat reads by the faction it carries; a seat with no faction yet, or a spectator, by what it is. */
 /** Where the game stands, with the last turn its wheel counts up to. */
 function gameProgress(snapshot: TableProjection['snapshot']) {
   return { ...tableProgressFor(snapshot.phase, snapshot.phases), lastTurn: lastTurnOf(snapshot) };
 }
 
+/* A seat reads by the faction it carries; a seat with no faction yet, or a spectator, by what it is. */
 function seatLabel(table: TableProjection): string {
   const seat = table.viewer.viewerSeat;
   if (seat === SPECTATOR_SEAT) {
@@ -125,7 +126,7 @@ const SPECTATOR_OPENING_TABS = ['battle', 'history'];
 /* A battle the viewer's faction fights in opens the Battle tab once, when that faction takes its side. */
 function battleFocus(table: TableProjection) {
   const battle = table.snapshot.battle;
-  const own = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
+  const own = viewerFaction(table);
   /* The same "in play" test that shows the Battle tab: a hosted game in play, or a table with no stage. */
   const stage = table.snapshot.stage;
   if (
@@ -214,7 +215,7 @@ type SetupControlProps = Pick<ConnectionControlsProps, 'client' | 'table'>;
 function PredictionCards({ table, factionId, turn }: { table: TableProjection; factionId: string; turn: number }) {
   const seat = table.snapshot.roster?.seats.find((entry) => entry.faction?.id === factionId);
   const token = seat && table.snapshot.swapping?.tokens[seat.id];
-  const name = snapshotFactionLabels(table.snapshot)[factionId] ?? factionId;
+  const name = factionName(table, factionId);
   return (
     <svg width="300" height="190" viewBox="0 0 300 190" role="img" aria-label={`${name}, turn ${turn}`}>
       <rect x="2" y="2" width="142" height="184" rx="10" fill="#dfcbaa" stroke="#66503a" strokeWidth="3" />
@@ -247,7 +248,7 @@ function PredictionInput({ client, table, stepId }: SetupControlProps & { stepId
     <Stack gap="sm">
       <Select
         label="Predicted winner"
-        data={Object.entries(snapshotFactionLabels(table.snapshot)).map(([value, label]) => ({ value, label }))}
+        data={factionOptions(table)}
         value={choice.factionId}
         onChange={(factionId) => change({ factionId })}
         disabled={!table.canInteract}
@@ -279,7 +280,7 @@ function PredictionInput({ client, table, stepId }: SetupControlProps & { stepId
 }
 
 function Predictions({ client, table }: SetupControlProps) {
-  const ownFaction = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
+  const ownFaction = viewerFaction(table);
   const current = table.snapshot.setup && setupStep(table.snapshot.setup);
   return table.snapshot.setup?.steps
     .filter((step) => step.kind === 'prediction')
@@ -346,7 +347,7 @@ function SetupControls({ client, table }: SetupControlProps) {
   }
   const step = setupStep(setup);
   /* The viewer's own starting troops lead, so a narrow dock shows the line that seat has to follow. */
-  const ownFaction = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
+  const ownFaction = viewerFaction(table);
   const instructions =
     step.kind === 'forces'
       ? [
@@ -371,10 +372,7 @@ function SetupControls({ client, table }: SetupControlProps) {
             {step.kind === 'forces' &&
               instructions.map((entry) => (
                 /* A visible heading, not help-only: the faction name is what tells the lines apart. */
-                <Section
-                  key={entry.factionId}
-                  title={snapshotFactionLabels(table.snapshot)[entry.factionId] ?? entry.factionId}
-                >
+                <Section key={entry.factionId} title={factionName(table, entry.factionId)}>
                   <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
                     <InlineFormattedTextSource
                       source={entry.text || 'Follow your faction rules for starting troops.'}

@@ -33,6 +33,7 @@ export type TabletopContextValue = Pick<
     | 'cancelDraft'
     | 'finishGesture'
     | 'finishPieceFlip'
+    | 'finishRotation'
     | 'flipSelected'
     | 'moveStormBy'
     | 'ping'
@@ -85,6 +86,7 @@ export function TabletopSessionProvider({
         cancelDraft: session.cancelDraft,
         finishGesture: session.finishGesture,
         finishPieceFlip: session.finishPieceFlip,
+        finishRotation: session.finishRotation,
         flipSelected: session.flipSelected,
         moveStormBy: session.moveStormBy,
         ping: session.ping,

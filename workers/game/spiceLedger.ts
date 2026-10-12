@@ -1,8 +1,6 @@
-import type { ClientMessage, GameSnapshot, Viewer } from '../../src/shared/play/protocol';
+import type { CommitMessage, GameSnapshot, Viewer } from '../../src/shared/play/protocol';
 import { isSpicePiece } from '../../src/shared/play/spice';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
-
-type CommitMessage = Extract<ClientMessage, { type: 'command' | 'drop' }>;
 
 /** Public transfer records persist beside the spice reserve, stack and command receipt in one transaction. */
 export class SpiceLedger {
