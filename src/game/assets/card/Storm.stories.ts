@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { standardStormCard } from '@shared/assets/standardStormDeck';
 import { resolveAsset } from '@shared/media/resolveAsset';
-import { expect } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { StormCard } from './Storm';
 
@@ -20,6 +20,10 @@ export const Six = meta.story({ args: standardStormCard(6) });
 /* Saved backgrounds from the former editor cannot change the fixed Storm head or symbol. */
 export const FixedIdentity = meta.story({
   args: {
+    iconScale: 3,
+    iconOffset: [42, 39],
+    iconInvert: true,
+    iconOpacity: 0.2,
     head: { ...standardStormCard(1).head, colors: ['#ff0000', '#00ff00'], image: '/image/texture/001.jpg' },
     icon: [
       { ...standardStormCard(1).icon[0], colors: ['#0000ff', '#ff00ff'], image: '/image/texture/001.jpg' },
@@ -27,6 +31,22 @@ export const FixedIdentity = meta.story({
     ],
   },
   play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const title = canvas.getByText('1 Sector', { exact: true }).parentElement!;
+    const type = canvas.getByText('Storm', { exact: true });
+    await expect(getComputedStyle(title).fontSize).toBe('60px');
+    await expect(getComputedStyle(type).fontSize).toBe('40px');
+    const symbols = Array.from(canvasElement.querySelectorAll('img')).filter(
+      (image) => image.src.endsWith('/vector/icon/storrm_standalone.svg') && image.style.width
+    );
+    await expect(symbols).toHaveLength(2);
+    for (const symbol of symbols) {
+      const style = getComputedStyle(symbol);
+      await expect(style.width).toBe('85px');
+      await expect(style.marginLeft).toBe('0px');
+      await expect(style.marginTop).toBe('0px');
+      await expect(style.filter).toBe('none');
+    }
     const textures = Array.from(canvasElement.querySelectorAll('pattern image'));
     await expect(textures).toHaveLength(2);
     for (const texture of textures) {

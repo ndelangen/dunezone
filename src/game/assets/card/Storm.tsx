@@ -19,17 +19,13 @@ export function StormCard({
         {...card}
         head={STORM_CARD_HEAD}
         icon={STORM_CARD_ICON}
-        name=""
-        subName=""
-        iconScale={0.85}
+        name={`${sectors} ${sectors === 1 ? 'Sector' : 'Sectors'}`}
+        subName="Storm"
+        iconScale={1}
         iconOffset={[0, 0]}
         iconInvert={false}
         iconOpacity={1}
       />
-      <div className={styles.title}>
-        {sectors} {sectors === 1 ? 'Sector' : 'Sectors'}
-      </div>
-      <div className={styles.type}>Storm</div>
       <div className={styles.movement}>
         Move the storm {distance} counter-
         <br />
