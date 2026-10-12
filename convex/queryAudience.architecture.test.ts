@@ -76,8 +76,11 @@ function clientQueries() {
   for (const [path, exports] of Object.entries(modules)) {
     const moduleName = path.replace(/^\.\//, '').replace(/\.ts$/, '');
     for (const [exportName, value] of Object.entries(exports)) {
-      const registered = value as RegisteredQuery | null;
-      if (typeof registered === 'function' && registered.isQuery && registered.isPublic) {
+      if (typeof value !== 'function') {
+        continue;
+      }
+      const registered = value as unknown as RegisteredQuery;
+      if (registered.isQuery && registered.isPublic) {
         queries.set(`${moduleName}:${exportName}`, registered[QUERY_AUDIENCE]);
       }
     }
