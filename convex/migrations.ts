@@ -20,7 +20,6 @@ import {
 } from '../src/shared/factions/troopIdentity';
 import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { normalizeFormattedText } from '../src/shared/formattedText';
-import { normalizePlayGameSlug, PLAY_RESERVED_GAME_ADDRESSES, playGameNameSchema } from '../src/shared/play/gameNames';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
