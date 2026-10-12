@@ -3,6 +3,7 @@ import type { z } from 'zod';
 
 import {
   CustomCardAsset,
+  StormCardAsset,
   CUSTOM_CARD_MAX_LAYERS,
   RectangleTokenAsset,
   TokenAsset,
@@ -30,7 +31,8 @@ export function customCardPublicationError(data: unknown, resolved: z.infer<type
 
 /** Repeated layers share one target read and one reverse reference. */
 export function customCardTokenIds(data: unknown): string[] {
-  const parsed = CustomCardAsset.safeParse(data);
+  const custom = CustomCardAsset.safeParse(data);
+  const parsed = custom.success ? custom : StormCardAsset.safeParse(data);
   return parsed.success
     ? [...new Set(parsed.data.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : [])))].sort(
         compareCodeUnits

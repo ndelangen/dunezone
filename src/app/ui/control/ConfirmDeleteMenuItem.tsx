@@ -10,6 +10,8 @@ export interface ConfirmDeleteMenuItemProps {
   onConfirm: () => void;
   /** Disables the item, and drops a countdown already running. */
   disabled?: boolean;
+  /** The countdown's verb, "Deleting" unless the item does something else for good, such as "Leaving". */
+  holdingVerb?: string;
 }
 
 /* Both labels share one grid cell, so the item keeps its resting width while it counts down and a press near its edge stays on it. */
@@ -20,7 +22,12 @@ const CELL = { gridArea: '1 / 1' } as const;
  * The item's own words become the countdown ("Deleting in 4.."), and releasing, sliding off or moving focus away cancels with nothing fired.
  * See docs/technical/ui-design-decisions.md, "Destructive actions are held, not asked twice".
  */
-export function ConfirmDeleteMenuItem({ label, onConfirm, disabled = false }: ConfirmDeleteMenuItemProps) {
+export function ConfirmDeleteMenuItem({
+  label,
+  onConfirm,
+  disabled = false,
+  holdingVerb = 'Deleting',
+}: ConfirmDeleteMenuItemProps) {
   const { holding, remaining, handlers } = useHoldToConfirm({ pending: false, blocked: disabled, onConfirm });
   return (
     <Menu.Item
@@ -38,7 +45,7 @@ export function ConfirmDeleteMenuItem({ label, onConfirm, disabled = false }: Co
           {label}
         </span>
         <span style={{ ...CELL, visibility: holding ? undefined : 'hidden' }} aria-hidden={!holding}>
-          Deleting in {remaining ?? 5}..
+          {holdingVerb} in {remaining ?? 5}..
         </span>
       </span>
     </Menu.Item>

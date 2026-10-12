@@ -3,26 +3,31 @@ import { useReducer, useState } from 'react';
 
 import { useAssetPage } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
-import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
-import {
-  INITIAL_CUSTOM_CARD_MEMORY,
-  CustomCardEditor,
-  customCardDraftWarnings,
-} from '@app/widgets/card-editor/CustomCardEditor';
-import type { CustomCardChapter, CustomCardDraft, CustomCardMemory } from '@app/widgets/card-editor/CustomCardEditor';
-import { CustomCardAsset, CustomCardAssetInput } from '@game/data/objects';
+import { INITIAL_CUSTOM_CARD_MEMORY } from '@app/widgets/card-editor/CustomCardEditor';
+import type { CustomCardChapter, CustomCardMemory } from '@app/widgets/card-editor/CustomCardEditor';
 
 import { assetNameField } from '../../../assetEditorStates';
+import type { LayeredCardDraft, LayeredCardEditing } from '../../../layeredCardEditing';
+import { layeredCardTokenPicker } from '../../../layeredCardTokenPicker';
 import { CardEditFrame, CardEditChecks, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
-export function CustomEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
-  const parsed = CustomCardAsset.safeParse(loaderData?.asset.data);
+export function LayeredEditPage<Draft extends LayeredCardDraft>({
+  slug,
+  loaderData,
+  config,
+}: {
+  slug: string;
+  loaderData: AssetPageData;
+  config: LayeredCardEditing<Draft>;
+}) {
+  const parsed = config.schema.safeParse(loaderData?.asset.data);
   return (
-    <CustomCardSessionGate
-      key={slug}
+    <LayeredCardSessionGate
+      key={`${config.type}/${slug}`}
+      config={config}
       slug={slug}
       loaderData={loaderData}
       initialDraft={parsed.success ? parsed.data : null}
@@ -30,55 +35,62 @@ export function CustomEditPage({ slug, loaderData }: { slug: string; loaderData:
   );
 }
 
-function CustomCardSessionGate({
+function LayeredCardSessionGate<Draft extends LayeredCardDraft>({
+  config,
   slug,
   loaderData,
   initialDraft,
 }: {
   slug: string;
   loaderData: AssetPageData;
-  initialDraft: CustomCardDraft | null;
+  initialDraft: Draft | null;
+  config: LayeredCardEditing<Draft>;
 }) {
-  const [state, dispatch] = useReducer(reduce, undefined, () =>
+  const [state, dispatch] = useReducer(reduce<Draft>, undefined, () =>
     initialDraft ? openingState(initialDraft, initialDraft) : null
   );
   const tokenIds = [
     ...new Set(state?.data.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : [])) ?? []),
   ].sort(compareCodeUnits);
-  const query = useAssetPage('card-custom', slug, { initialData: loaderData, embeddedTokenIds: tokenIds });
+  const query = useAssetPage(config.type, slug, { initialData: loaderData, embeddedTokenIds: tokenIds });
   const data = query.data === undefined ? loaderData : query.data;
   /* A live recovery opens the draft once, before rendering its controls. Later reads never replace local edits. */
   if (!state && data) {
-    const parsed = CustomCardAsset.safeParse(data.asset.data);
+    const parsed = config.schema.safeParse(data.asset.data);
     if (parsed.success) {
       dispatch({ kind: 'open', data: parsed.data });
     }
   }
   return (
     <CardEditChecks
-      type="card-custom"
-      schemaName="custom card"
-      schema={CustomCardAsset}
+      type={config.type}
+      schemaName={config.schemaName}
+      schema={config.schema}
       data={data}
-      session={(props) => (state ? <CardEditSession {...props} state={state} dispatch={dispatch} /> : null)}
+      session={(props) =>
+        state ? <CardEditSession config={config} {...props} state={state} dispatch={dispatch} /> : null
+      }
     />
   );
 }
 
-type CustomCardState = { data: CustomCardDraft; memory: CustomCardMemory; baseline: CustomCardDraft };
+type CardState<Draft extends LayeredCardDraft> = { data: Draft; memory: CustomCardMemory; baseline: Draft };
 
-type CustomCardEvent =
-  | { kind: 'open'; data: CustomCardDraft }
-  | { kind: 'patch'; update: Partial<CustomCardDraft> }
+type CardEvent<Draft extends LayeredCardDraft> =
+  | { kind: 'open'; data: Draft }
+  | { kind: 'patch'; update: Partial<Draft> }
   | { kind: 'remember'; update: Partial<CustomCardMemory> }
-  | { kind: 'replace'; data: CustomCardDraft }
-  | { kind: 'saved'; data: CustomCardDraft };
+  | { kind: 'replace'; data: Draft }
+  | { kind: 'saved'; data: Draft };
 
-function openingState(data: CustomCardDraft, baseline: CustomCardDraft): CustomCardState {
+function openingState<Draft extends LayeredCardDraft>(data: Draft, baseline: Draft): CardState<Draft> {
   return { data, memory: INITIAL_CUSTOM_CARD_MEMORY, baseline };
 }
 
-function reduce(state: CustomCardState | null, event: CustomCardEvent): CustomCardState | null {
+function reduce<Draft extends LayeredCardDraft>(
+  state: CardState<Draft> | null,
+  event: CardEvent<Draft>
+): CardState<Draft> | null {
   if (event.kind === 'open') {
     return state ?? openingState(event.data, event.data);
   }
@@ -97,31 +109,34 @@ function reduce(state: CustomCardState | null, event: CustomCardEvent): CustomCa
   }
 }
 
-function CardEditSession({
+function CardEditSession<Draft extends LayeredCardDraft>({
+  config,
   asset,
   access,
   tokens,
   tokensError,
   state,
   dispatch,
-}: CardEditSessionProps<CustomCardDraft> & {
-  state: CustomCardState;
-  dispatch: (event: CustomCardEvent) => void;
+}: CardEditSessionProps<Draft> & {
+  state: CardState<Draft>;
+  config: LayeredCardEditing<Draft>;
+  dispatch: (event: CardEvent<Draft>) => void;
 }) {
-  const saving = useCardSave('card-custom', asset);
+  const Editor = config.Editor;
+  const saving = useCardSave(config.type, asset);
   const [chapter, setChapter] = useState<CustomCardChapter>('head');
-  const patch = (update: Partial<CustomCardDraft>) => dispatch({ kind: 'patch', update });
+  const patch = (update: Partial<Draft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({
     name: state.data.name,
-    onName: (name) => patch({ name }),
+    onName: (name) => patch({ ...state.data, name }),
     canRename: access.viewerAccess.capabilities.rename,
     noun: 'card',
   });
   const header = useEditPageHeader({
-    warnings: [...customCardDraftWarnings(state.data)],
+    warnings: config.warnings(state.data),
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
-  const validation = CustomCardAssetInput.safeParse(state.data);
+  const validation = config.input.safeParse(state.data);
   const invalid = tokensError ?? (validation.success ? undefined : validation.error.issues[0]?.message);
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
 
@@ -129,13 +144,13 @@ function CardEditSession({
     if (!validation.success) {
       return;
     }
-    const payload = postedPayload(CustomCardAssetInput, state.data);
+    const payload = postedPayload(config.input, state.data);
     saving.save(payload, () => dispatch({ kind: 'saved', data: payload }));
   };
 
   return (
     <CardEditFrame
-      type="card-custom"
+      type={config.type}
       asset={asset}
       access={access}
       headerSlot={header.slot}
@@ -144,21 +159,10 @@ function CardEditSession({
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
       saveError={saving.error}
     >
-      <CustomCardEditor
+      <Editor
         tokens={tokens ?? {}}
         tokensError={tokensError}
-        tokenPicker={(onPick, onCancel) => (
-          <AssetPicker
-            types={['token-disc', 'token-tech', 'token-plate', 'token-enhance']}
-            copy={{
-              searchLabel: 'Find a token',
-              searchPlaceholder: 'Name, shape or creator',
-              emptyMessage: 'No token assets are available yet.',
-            }}
-            onPick={(picked) => onPick(picked.id)}
-            onCancel={onCancel}
-          />
-        )}
+        tokenPicker={layeredCardTokenPicker}
         nameField={nameField}
         draft={state.data}
         patch={patch}

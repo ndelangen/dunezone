@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { GF9_LEADER_SKILL_DECK_BACK } from '@shared/assets/gf9LeaderSkills';
 
 import { backgroundPresets } from '../../data/backgrounds';
 import { CardBack } from './Back';
@@ -51,3 +52,5 @@ export const OversizedSymbol = meta.story({
     imageScale: 1.35,
   },
 });
+
+export const LeaderSkillDeck = meta.story({ args: GF9_LEADER_SKILL_DECK_BACK });

@@ -1,6 +1,7 @@
 import {
   Avatar,
   Button,
+  CloseButton,
   Group,
   Indicator,
   Stack,
@@ -25,16 +26,21 @@ import {
 import type { DraftFaction, DraftState } from '@shared/play/drafting';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { PublicControls } from '@shared/play/inventory';
+import type { SeatRequest } from '@shared/play/participation';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
+import { FormError } from '@ui/block/FormError';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import clsx from 'clsx';
-import { useId, useState } from 'react';
-import type { CSSProperties } from 'react';
+import { Check } from 'lucide-react';
+import { useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import { Token } from '@game/assets/faction/token/Token';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Drafting.module.css';
+import { ReadyToggle } from './PhaseNavigation';
+import { seatLocked } from './SeatRequests';
 
 /*
  * Drafting as accepted on #1016 (overlay D, refined) and #1145 (the panel): the ledger over the
@@ -167,18 +173,82 @@ function names(players: Player[], seats: string[]): string {
   return seats.map((seat) => players.find((player) => player.seat === seat)?.name ?? seat).join(', ');
 }
 
+/**
+ * A pending seat request in the roster, under the seated players: the requester as a dashed ghost.
+ * A player approves it here;
+ * the spectator who asked waits here and can withdraw.
+ */
+function RequestRow({ client, table, request }: Props & Readonly<{ request: SeatRequest }>) {
+  return (
+    <li className={styles.ledgerRow} data-seat-request={request.id}>
+      <span className={styles.side} />
+      <Avatar
+        size="2.6rem"
+        radius="50%"
+        color="gray"
+        className={styles.requestGhost}
+        role="img"
+        aria-label={request.own ? 'Your seat request' : `${request.requesterName} asks for a seat`}
+      >
+        {request.requesterName.slice(0, 1)}
+      </Avatar>
+      <span className={clsx(styles.side, styles.sidePicks)}>
+        <span className={styles.requestTag}>
+          {request.own ? (
+            <>
+              <Text span size="sm" c="dimmed">
+                Waiting for approval
+              </Text>
+              <CloseButton
+                size="sm"
+                radius="xl"
+                aria-label="Withdraw your seat request"
+                title="Withdraw"
+                disabled={seatLocked(table)}
+                onClick={() => client.command({ kind: 'seat-withdraw' })}
+              />
+            </>
+          ) : (
+            <>
+              <Text span size="sm" fw={600}>
+                {request.requesterName}
+              </Text>
+              <Text span size="sm" c="dimmed">
+                asks to sit
+              </Text>
+              {/* Keyed by the request, so a press that began on one request never approves the next. */}
+              <Button
+                key={request.id}
+                size="compact-sm"
+                radius="xl"
+                color="green"
+                leftSection={<Check size={14} aria-hidden />}
+                disabled={seatLocked(table)}
+                onClick={() => client.command({ kind: 'seat-approve', requestId: request.id })}
+              >
+                Approve
+              </Button>
+            </>
+          )}
+        </span>
+      </span>
+    </li>
+  );
+}
+
 /** The ledger on the table: every viewer sees the same draft. */
-export function DraftingOverlay({ client, table }: Props) {
+export function DraftingOverlay({ client, table, error = null }: Props & Readonly<{ error?: string | null }>) {
   const draft = draftOf(table);
   if (!draft) {
     return null;
   }
   const players = playersOf(table);
   const own = table.viewer.viewerSeat;
-  /* As many open seats as the header still waits for: the draft's minimum less the seated players, never the table's seat count. */
   const controls = table.snapshot.controls ?? emptyPublicControls();
-  const gates = draftGates(draft, controls.seats, draft.minimum);
-  const open = Math.max(0, gates.minimum - gates.seated);
+  /* While drafting a request names no seat; a spectator sees only their own, a player every one they can approve. */
+  const requests = controls.seatRequests.filter(
+    (request) => request.seat === null && (own !== SPECTATOR_SEAT || request.own)
+  );
   const token = (id: string, size: number, mine: boolean, kind: 'ban' | 'pick', owner: Player) => {
     const faction = factionById(draft, id);
     if (!faction) {
@@ -231,24 +301,32 @@ export function DraftingOverlay({ client, table }: Props) {
                 </span>
               </li>
             ))}
-            {Array.from({ length: open }, (_, index) => (
-              <li key={`open-${index}`} className={styles.ledgerRow}>
+            {requests.map((request) => (
+              <RequestRow key={request.id} client={client} table={table} request={request} />
+            ))}
+            {/* The (+) is a spectator's way into the roster; players never see it, and it goes once the spectator has asked. */}
+            {own === SPECTATOR_SEAT && !requests.some((request) => request.own) && (
+              <li className={styles.ledgerRow}>
                 <span className={styles.side} />
-                <Avatar
-                  size="2.6rem"
-                  radius="50%"
-                  variant="transparent"
-                  color="gray"
-                  className={styles.openSeat}
-                  role="img"
-                  aria-label="Open seat"
-                  title="Open seat"
-                >
-                  +
-                </Avatar>
+                <Tooltip label="Take a seat" withinPortal>
+                  <UnstyledButton
+                    className={styles.openSeat}
+                    aria-label="Take a seat"
+                    disabled={seatLocked(table)}
+                    onClick={() => client.command({ kind: 'seat-request' })}
+                  >
+                    +
+                  </UnstyledButton>
+                </Tooltip>
                 <span className={styles.side} />
               </li>
-            ))}
+            )}
+            {/* A spectator has no panel, so a refused request is said beneath the roster where it was asked. */}
+            {own === SPECTATOR_SEAT && error && (
+              <li className={styles.requestError}>
+                <FormError title="From the table">{error}</FormError>
+              </li>
+            )}
           </ol>
         </section>
         <section className={clsx(styles.zone, styles.zoneDrafted)} aria-label="Drafted factions">
@@ -273,9 +351,43 @@ export function DraftingOverlay({ client, table }: Props) {
   );
 }
 
-/** The drafting statistics in the page header's centre, where turn and phase sit during play. */
-export function DraftingHeader({ table }: Readonly<{ table: TableProjection }>) {
-  const poolHelpId = useId();
+type Gate = Readonly<{ label: string; count: ReactNode; met: boolean; current: boolean; help?: string }>;
+
+/** One step of the deal's track: a dot that fills once met, the current step ringed. */
+function GateStep({ gate }: Readonly<{ gate: Gate }>) {
+  const className = clsx(styles.gate, gate.met && styles.gateMet, gate.current && styles.gateCurrent);
+  const content = (
+    <>
+      <span className={styles.gateDot} aria-hidden="true">
+        {gate.met ? <Check size={11} strokeWidth={3.5} /> : null}
+      </span>
+      {gate.label} <strong>{gate.count}</strong>
+      {/* A met step fills in, and says so in words for anyone who cannot see it. */}
+      {gate.met && <VisuallyHidden component="span">, met</VisuallyHidden>}
+      {gate.help && <VisuallyHidden component="span">. {gate.help}</VisuallyHidden>}
+    </>
+  );
+  /* A step with more to say is a button, so the keyboard reaches its tooltip as the pointer does. */
+  return gate.help ? (
+    <Tooltip label={gate.help} multiline maw={320} events={{ hover: true, focus: true, touch: true }}>
+      <UnstyledButton type="button" className={className}>
+        {content}
+      </UnstyledButton>
+    </Tooltip>
+  ) : (
+    <span className={className}>{content}</span>
+  );
+}
+
+/**
+ * The drafting chip at the top left of the header (#2056's phase chip, direction B of the drafting header round): the stage and the ruleset, the three things the deal waits for as one track that fills in, and one line saying what the table waits for now.
+ * A failed deal or a pool too small to deal turns that line amber.
+ */
+export function DraftingHeader({
+  table,
+  rulesetName,
+  invite,
+}: Readonly<{ table: TableProjection; rulesetName?: string; invite?: ReactNode }>) {
   const draft = draftOf(table);
   if (!draft) {
     return null;
@@ -286,38 +398,76 @@ export function DraftingHeader({ table }: Readonly<{ table: TableProjection }>) 
   const fill = gates.poolSize < gates.seated ? Math.min(gates.fillable, gates.seated - gates.poolSize) : 0;
   const poolHelp =
     warning.kind === 'none' ? 'Drafted factions are dealt randomly when everyone is ready.' : warning.text;
-  /* The page header around this is already the polite live region, so this one announces through it rather than again. */
+  const current = !gates.minimumMet ? 'players' : !gates.enoughFactions ? 'factions' : 'ready';
+  const alert = draft.failure
+    ? { line: 'Seats were not dealt', help: `${draft.failure} Fix the content or change the draft, then deal again.` }
+    : warning.kind === 'short'
+      ? { line: 'Not enough factions in the pool', help: warning.text }
+      : null;
+  /* The header around this is already the polite live region, so the line announces through it rather than again. */
   return (
     <div className={styles.header}>
-      <div className="seated-phase-status__copy">
-        <span>Drafting</span>
-        <strong>{draftStatus(gates)}</strong>
-      </div>
-      <span className={styles.gates}>
-        {/* A met gate turns green, and says so in words for anyone who cannot see the colour. */}
-        <span className={clsx(styles.gate, gates.minimumMet && styles.gateMet)}>
-          Seats <strong>{gates.seated}</strong>/{gates.minimum}+
-          {gates.minimumMet && <VisuallyHidden component="span">, met</VisuallyHidden>}
-        </span>
-        <Tooltip label={poolHelp} multiline maw={320} events={{ hover: true, focus: true, touch: true }}>
-          {/* Named by its visible count; the tooltip names nothing to assistive technology, so its words also describe the button. */}
-          <UnstyledButton
-            type="button"
-            aria-describedby={poolHelpId}
-            className={clsx(styles.gate, styles.poolHelp, gates.enoughFactions && styles.gateMet)}
-          >
-            Pool <strong>{gates.poolSize}</strong>/{gates.seated}
-            {fill > 0 && <em> +{fill} random</em>}
-            {gates.enoughFactions && <VisuallyHidden component="span">, met</VisuallyHidden>}
-          </UnstyledButton>
-        </Tooltip>
-        <span className={clsx(styles.gate, gates.allReady && styles.gateMet)}>
-          Ready <strong>{gates.ready}</strong>/{gates.seated}
-          {gates.allReady && <VisuallyHidden component="span">, met</VisuallyHidden>}
-        </span>
-        <span id={poolHelpId} hidden>
-          {poolHelp}
-        </span>
+      <span className={styles.headerEyebrow}>
+        Drafting{rulesetName ? <span className={styles.headerRuleset}> · {rulesetName}</span> : null}
+      </span>
+      <span className={styles.track} role="list" aria-label="Before the deal">
+        {(
+          [
+            {
+              label: 'Players',
+              count: `${gates.seated}/${gates.minimum}+`,
+              met: gates.minimumMet,
+              current: current === 'players',
+            },
+            {
+              label: 'Factions',
+              count: (
+                <>
+                  {gates.poolSize}/{gates.seated}
+                  {fill > 0 && <em> +{fill} random</em>}
+                </>
+              ),
+              met: gates.enoughFactions,
+              current: current === 'factions',
+              help: poolHelp,
+            },
+            {
+              label: 'Ready',
+              count: `${gates.ready}/${gates.seated}`,
+              met: gates.allReady,
+              current: current === 'ready',
+            },
+          ] satisfies Gate[]
+        ).map((gate, index) => (
+          <span key={gate.label} role="listitem" className={styles.trackItem}>
+            {index > 0 && (
+              <span
+                className={clsx(
+                  styles.trackLink,
+                  (index === 1 ? gates.minimumMet : gates.enoughFactions) && styles.trackLinkMet
+                )}
+                aria-hidden="true"
+              />
+            )}
+            <GateStep gate={gate} />
+          </span>
+        ))}
+      </span>
+      <span className={styles.headerLine}>
+        {alert ? (
+          /* A button, like a gate step, so the keyboard reaches the reason and the way out as the pointer does. */
+          <Tooltip label={alert.help} multiline maw={340} events={{ hover: true, focus: true, touch: true }}>
+            <UnstyledButton type="button" className={styles.headerAlert}>
+              <strong>
+                {alert.line}
+                <VisuallyHidden component="span">. {alert.help}</VisuallyHidden>
+              </strong>
+            </UnstyledButton>
+          </Tooltip>
+        ) : (
+          <strong>{draftStatus(gates)}</strong>
+        )}
+        {!gates.minimumMet && table.viewer.viewerSeat !== SPECTATOR_SEAT && invite}
       </span>
     </div>
   );
@@ -411,7 +561,7 @@ function FactionRow({
 }
 
 /** The drafting panel for a seated player; a spectator's panel is the bar alone. */
-export function DraftingPanel({ client, table }: Props) {
+export function DraftingPanel({ client, table, error }: Props & Readonly<{ error?: string | null }>) {
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
   const draft = draftOf(table);
@@ -426,6 +576,8 @@ export function DraftingPanel({ client, table }: Props) {
   );
   return (
     <Stack gap="sm" className={styles.panel} data-drafting-panel="">
+      {/* A refused draft or seat command shows above the list that sent it. */}
+      {error && <FormError title="From the table">{error}</FormError>}
       <Group gap="sm" align="center" wrap="wrap">
         <TextInput
           aria-label="Search factions"
@@ -463,73 +615,35 @@ export function DraftingPanel({ client, table }: Props) {
   );
 }
 
-/** Readiness and personal draft summary sit above the faction selector. */
-export function DraftingReadiness({ client, table }: Props) {
+/** The header's Ready toggle while drafting: the same toggle as in play, counting the seated players who are ready. */
+export function DraftingReady({ client, table }: Props) {
   const draft = draftOf(table);
   const own = table.viewer.viewerSeat;
   if (!draft || own === SPECTATOR_SEAT) {
     return null;
   }
-  const ready = draft.ready.includes(own);
-  const mine = draft.picks[own] ?? [];
-  const bans = draft.bans[own] ?? [];
-  const name = (id: string) => factionById(draft, id)?.name ?? id;
-  return (
-    <Group justify="space-between" gap="sm">
-      <Text size="sm" c="dimmed" className={styles.mine}>
-        Your draft: {mine.length ? mine.map(name).join(', ') : 'nothing yet'}
-        {bans.length ? `; banned ${bans.map(name).join(', ')}` : ''}
-      </Text>
-      <Button
-        variant={ready ? 'default' : 'filled'}
-        aria-pressed={ready}
-        disabled={locked(table)}
-        onClick={() => client.command({ kind: 'draft-ready', ready: !ready })}
-      >
-        {ready ? 'Withdraw readiness' : 'Ready'}
-      </Button>
-    </Group>
-  );
-}
-
-/** Only failures that prevent dealing interrupt the decision strip. */
-export function DraftingNotice({ client, table }: Props) {
-  const draft = draftOf(table);
-  if (!draft) {
-    return null;
-  }
   const controls = table.snapshot.controls ?? emptyPublicControls();
-  const warning = draftWarning(draftGates(draft, controls.seats, draft.minimum));
-  if (!draft.failure && warning.kind !== 'short') {
-    return null;
+  const gates = draftGates(draft, controls.seats, draft.minimum);
+  const ready = draft.ready.includes(own);
+  /* A failed deal keeps everyone's readiness, so a ready player deals again rather than withdrawing. */
+  if (draft.failure && ready) {
+    return (
+      <Button
+        color="yellow"
+        disabled={locked(table)}
+        onClick={() => client.command({ kind: 'draft-ready', ready: true })}
+      >
+        Deal again
+      </Button>
+    );
   }
   return (
-    <Stack gap="xs">
-      {draft.failure && (
-        <Group role="alert" gap="sm">
-          <Text size="sm">
-            <strong>Seats were not dealt. </strong>
-            {draft.failure} Fix the content or change the draft, or try the deal again as it stands.
-          </Text>
-          {/* Trying the deal again is a player's readiness, so a spectator reads the reason without the button. */}
-          {table.viewer.viewerSeat !== SPECTATOR_SEAT && (
-            <Button
-              size="xs"
-              variant="default"
-              disabled={locked(table)}
-              onClick={() => client.command({ kind: 'draft-ready', ready: true })}
-            >
-              Try again
-            </Button>
-          )}
-        </Group>
-      )}
-      {warning.kind === 'short' && (
-        <Text role="alert" size="sm">
-          <strong>Nobody can be dealt yet. </strong>
-          {warning.text}
-        </Text>
-      )}
-    </Stack>
+    <ReadyToggle
+      ready={ready}
+      count={gates.ready}
+      of={gates.seated}
+      disabled={locked(table)}
+      onToggle={() => client.command({ kind: 'draft-ready', ready: !ready })}
+    />
   );
 }

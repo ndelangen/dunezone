@@ -45,6 +45,7 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'account_deletion_items',
     'group_members',
     'faq_answers',
+    'leader_skill_stock_sets',
     'publication_jobs',
     'publication_assets',
     'admin_settings',

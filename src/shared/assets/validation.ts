@@ -3,9 +3,13 @@ import { BoardAsset } from '../boards/schema';
 import {
   BundleAssetInput,
   CustomCardAssetInput,
+  LeaderSkillAssetInput,
+  NexusCardAssetInput,
   DeckAssetInput,
   RectangleTokenAssetInput,
   SpiceAssetInput,
+  StrongholdCardAssetInput,
+  StormCardAssetInput,
   TokenAssetInput,
   TreacheryAssetInput,
 } from './schema';
@@ -34,8 +38,27 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
       const parsed = SpiceAssetInput.parse(data);
       return { data: parsed, name: parsed.name };
     }
+    case 'card-leaderability': {
+      const parsed = LeaderSkillAssetInput.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
+    case 'card-nexus': {
+      const parsed = NexusCardAssetInput.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
+    case 'card-stronghold': {
+      const result = StrongholdCardAssetInput.safeParse(data);
+      if (!result.success) {
+        throw new Error('The stronghold card contains invalid fields');
+      }
+      return { data: result.data, name: result.data.name };
+    }
     case 'card-custom': {
       const parsed = CustomCardAssetInput.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
+    case 'card-storm': {
+      const parsed = StormCardAssetInput.parse(data);
       return { data: parsed, name: parsed.name };
     }
     case 'deck': {

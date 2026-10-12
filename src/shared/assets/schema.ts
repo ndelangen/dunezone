@@ -442,3 +442,66 @@ export const CustomCard = CardHead.extend({
 });
 export const CustomCardAsset = CustomCard.extend({ about: About });
 export const CustomCardAssetInput = CustomCardAsset.extend({ about: FormattedAbout });
+
+/** A leader skill keeps its general ability, illustration and battle ability in that order. */
+export const LeaderSkillCard = CardHead.extend({
+  generalText: z.string(),
+  battleText: z.string(),
+  decals: z.array(Decal).max(16),
+  textSize: z.number().min(24).max(40),
+});
+export const LeaderSkillAsset = LeaderSkillCard.extend({ about: About });
+export const LeaderSkillAssetInput = LeaderSkillAsset.extend({
+  about: FormattedAbout,
+  generalText: proseFormattedTextSchema.refine((value) => value.length <= 600, {
+    message: 'The general ability can hold at most 600 characters',
+  }),
+  battleText: proseFormattedTextSchema.refine((value) => value.length <= 600, {
+    message: 'The battle ability can hold at most 600 characters',
+  }),
+});
+
+/** A Nexus card keeps three rules regions and a faction identity inside the standard custom-card frame. */
+const NexusEffect = proseFormattedTextSchema
+  .refine((text) => text.length <= 400, {
+    message: 'An effect can hold at most 400 characters',
+  })
+  .refine((text) => text.split('\n').length <= 6, {
+    message: 'An effect can hold at most six lines',
+  });
+export const NexusCard = CardHead.extend({
+  subName: z.literal('Nexus'),
+  faction: z.string().trim().max(40),
+  factionSymbol: FactionSide,
+  betrayal: NexusEffect,
+  cunning: NexusEffect,
+  secretAlly: NexusEffect,
+});
+export const NexusCardAsset = NexusCard.extend({ about: About });
+export const NexusCardAssetInput = NexusCardAsset.extend({ about: FormattedAbout });
+/** A stronghold authors its name, Decals and Body inside one fixed card template. */
+export const StrongholdCard = Treachery.pick({ name: true, decals: true, text: true }).extend({
+  decals: z.array(Decal).max(16),
+  textSize: z.number().min(24).max(44),
+});
+export const StrongholdCardAsset = StrongholdCard.extend({ about: About });
+export const StrongholdCardAssetInput = StrongholdCardAsset.extend({
+  about: FormattedAbout,
+  text: proseFormattedTextSchema.refine((text) => text.length <= 1200, {
+    message: 'The Body can hold at most 1200 characters',
+  }),
+});
+/** Storm cards keep the standard frame and identity while authors compose their artwork and rules. */
+export const StormCard = CustomCard.omit({
+  iconScale: true,
+  iconOffset: true,
+  iconInvert: true,
+  iconOpacity: true,
+}).extend({
+  sectors: z.number().int().min(1).max(6),
+  format: z.literal('decal-window'),
+  subName: z.literal('Storm'),
+  icon: z.tuple([Background, z.literal('/vector/icon/storm_disc.svg')]),
+});
+export const StormCardAsset = StormCard.extend({ about: About });
+export const StormCardAssetInput = StormCardAsset.extend({ about: FormattedAbout });

@@ -24,7 +24,14 @@ import { AssetEditorMessage, SaveErrorAlert } from '../../assetEditorStates';
  * Each page keeps its own authoring state and reducer (D7 on «Work the editors wave»).
  */
 
-type CardType = 'card-treachery' | 'card-spice' | 'card-custom';
+type CardType =
+  | 'card-treachery'
+  | 'card-spice'
+  | 'card-custom'
+  | 'card-nexus'
+  | 'card-stronghold'
+  | 'card-storm'
+  | 'card-leaderability';
 
 /** Posts a new card and opens its edit page once it has an address. */
 export function useCardCreate(type: CardType) {

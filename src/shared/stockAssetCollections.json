@@ -1708,7 +1708,9 @@
       "/vector/decal/spine-herd.svg",
       "/vector/decal/spine-herd-multicolor.svg",
       "/vector/decal/vaulting-sandcat.svg",
-      "/vector/decal/vaulting-sandcat-multicolor.svg"
+      "/vector/decal/vaulting-sandcat-multicolor.svg",
+      "/vector/decal/sandmaster.svg",
+      "/vector/decal/sandmaster-multicolor.svg"
     ]
   },
   {
@@ -2071,6 +2073,24 @@
       "/vector/decal/residual-poison-multicolor.svg",
       "/vector/decal/residual-poison.svg",
       "/vector/decal/shield.svg"
+    ]
+  },
+  {
+    "label": "Decals / Strongholds",
+    "keywords": "stronghold Arrakeen Carthag Habbanya Sietch Tabr Tuek Ixian city desert fortress",
+    "assets": [
+      "/vector/decal/stronghold-arrakeen.svg",
+      "/vector/decal/stronghold-arrakeen-multicolor.svg",
+      "/vector/decal/stronghold-carthag.svg",
+      "/vector/decal/stronghold-carthag-multicolor.svg",
+      "/vector/decal/stronghold-habbanya.svg",
+      "/vector/decal/stronghold-habbanya-multicolor.svg",
+      "/vector/decal/stronghold-ixian.svg",
+      "/vector/decal/stronghold-ixian-multicolor.svg",
+      "/vector/decal/stronghold-tabr.svg",
+      "/vector/decal/stronghold-tabr-multicolor.svg",
+      "/vector/decal/stronghold-tuek.svg",
+      "/vector/decal/stronghold-tuek-multicolor.svg"
     ]
   }
 ]

@@ -77,7 +77,7 @@ export async function verifyPrivateSpiceReserves(toolkit) {
     await focus(a, 'map');
     await capture(a, 'after-hosted-map-1440x1000');
     await openTab(a, 'Spice');
-    await openTab(observer, 'Spice');
+    await openTab(observer, 'Spice transfers');
     /* No more than the spice reserve holds can be withdrawn. */
     await a.page.getByRole('textbox', { name: 'Spice to withdraw' }).fill(String(startingSpice + 1));
     assert.equal(await button(a, 'Withdraw spice').isDisabled(), true);
@@ -146,7 +146,7 @@ export async function verifyPrivateSpiceReserves(toolkit) {
     assert.equal(b.view().snapshot.bank.balance, startingSpice + 4);
     await until(() => observer.view().snapshot.spiceTransfers[0].kind === 'disposal', 'Disposal was not public.');
     assert.equal(observer.view().snapshot.spiceTransfers[0].amount, 3);
-    await openTab(observer, 'Spice');
+    await openTab(observer, 'Spice transfers');
     await observer.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
     await observer.page.getByRole('region', { name: 'Public spice transfers' }).scrollIntoViewIfNeeded();
     await capture(observer, 'after-observer-public-transfers');
@@ -165,10 +165,10 @@ export async function verifyPrivateSpiceReserves(toolkit) {
     const tab = await peer('player-b-tab', b.context);
     await enter(tab);
     assert.deepEqual(tab.view().snapshot.bank, b.view().snapshot.bank);
-    await openTab(tab, 'Phase');
+    await openTab(tab, 'Replay');
     await button(tab, 'Replay from start').click();
     await until(() => tab.rawMessages.some((message) => message.type === 'history'), 'Private history did not arrive.');
-    await openTab(observer, 'Phase');
+    await openTab(observer, 'Replay');
     await button(observer, 'Replay from start').click();
     await until(
       () => observer.rawMessages.some((message) => message.type === 'history'),
@@ -197,7 +197,7 @@ export async function verifyPrivateSpiceReserves(toolkit) {
        The sign-out step opens the Spice tab on both viewers that replayed here, so both go back. */
     for (const who of [tab, observer]) {
       await who.page.getByRole('button', { name: 'Return to live' }).click();
-      await who.page.getByRole('tab', { name: 'Spice', exact: true }).waitFor({ state: 'attached' });
+      await openTab(who, who === observer ? 'Spice transfers' : 'Spice');
     }
     return tab;
   }
@@ -232,7 +232,7 @@ export async function verifyPrivateSpiceReserves(toolkit) {
     const others = [a, observer];
     for (const who of others) {
       await focus(who, 'bottom');
-      await openTab(who, 'Spice');
+      await openTab(who, who === observer ? 'Spice transfers' : 'Spice');
     }
     const tables = await Promise.all(others.map((who) => who.page.locator('.dune-play-shell canvas').elementHandle()));
     const signedOutFrom = [b.rawMessages.length, tab.rawMessages.length];
@@ -267,7 +267,9 @@ export async function verifyPrivateSpiceReserves(toolkit) {
         `${who.label}'s table remounted.`
       );
       assert.equal(
-        await who.page.locator('[role="tab"][aria-label="Spice"][aria-selected="true"]').count(),
+        await who.page
+          .getByRole('tab', { name: who === observer ? 'Spice transfers' : 'Spice', exact: true, selected: true })
+          .count(),
         1,
         `${who.label} lost the Spice tab.`
       );
