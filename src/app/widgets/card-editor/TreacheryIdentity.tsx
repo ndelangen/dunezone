@@ -11,7 +11,7 @@ import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/f
 import { TREACHERY_STYLES, treacheryStyle } from '@game/assets/treachery/treacheryStyle';
 
 type Draft = z.infer<typeof Treachery>;
-const symbols = stockAssetOptions(vectorDecalAssetOptions).filter((option) => option.value.startsWith('/vector/icon/'));
+const symbolOptions = stockAssetOptions(vectorDecalAssetOptions);
 
 /* Treachery authors choose card content and a standard category, never independent styling. */
 export function treacheryIdentityChapters({
@@ -24,6 +24,9 @@ export function treacheryIdentityChapters({
   nameField: ReactNode;
 }) {
   const style = treacheryStyle(draft);
+  const symbols = symbolOptions.filter(
+    (option) => option.value.startsWith('/vector/icon/') || option.value === draft.icon[1]
+  );
   return [
     {
       value: 'head' as const,
