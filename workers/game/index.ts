@@ -559,12 +559,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!metadata) {
       return json({ ok: true });
     }
-    if (
-      metadata.gameId !== gameId ||
-      !credentialsMatch(args.secret, metadata.secret) ||
-      metadata.game ||
-      !this.fixturePlan.hosted
-    ) {
+    if (!this.retiresAs(metadata, gameId, args.secret)) {
       return refused();
     }
     try {
@@ -586,6 +581,16 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.diagnostics.report('retire', error);
       return refused();
     }
+  }
+
+  /** Only the hosted fixture's own room retires, and only for the secret it was provisioned with. */
+  private retiresAs(metadata: Metadata, gameId: string, secret: string) {
+    return (
+      metadata.gameId === gameId &&
+      credentialsMatch(secret, metadata.secret) &&
+      !metadata.game &&
+      this.fixturePlan.hosted
+    );
   }
 
   private async receiveAccountDeletion(request: Request, metadata: Metadata): Promise<Response> {

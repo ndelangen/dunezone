@@ -509,21 +509,13 @@ function shownDestination(
   return { active, subtab };
 }
 
-/**
- * The controls panel groups personal resources, game actions, shared controls and history in two levels.
- * Each group remembers its last destination;
- * the current stage and phase join the Game group.
- * The per-player tabs are the host's `playerPanel`, in the pane beside this one.
- */
-function TableControlsPanel({
-  focusTab = null,
-  openOn = [],
-  ...dock
-}: DockTabsProps & Readonly<Pick<GameTableProps, 'focusTab' | 'openOn'>>) {
-  const tabs = dockTabs(dock);
-  const pathTo = (key: string) => tabPath(tabs, key);
-  const opening = openOn.map(pathTo).find(Boolean) ?? [tabs[0]?.key ?? 'game'];
-  const hasStage = Boolean(dock.panelContent);
+/** The panel's chosen destination, kept in step with the stage and with each new focus request. */
+function useControlsSelection(
+  tabs: readonly PanelTab[],
+  opening: string[],
+  hasStage: boolean,
+  focusTab: GameTableProps['focusTab']
+) {
   const [selection, select] = useReducer(reduceControlsSelection, {
     path: opening,
     remembered: {},
@@ -543,10 +535,41 @@ function TableControlsPanel({
     select({ type: 'destination-selected', path: leaf ? [key!, leaf] : [key!] });
   };
   /* A battle focuses its nested planner only once; subsequent updates preserve the player's choice. */
-  const focusPath = focusTab && pathTo(focusTab.key);
-  if (focusTab && focusTab.token !== selection.focused && focusPath) {
-    select({ type: 'focus-requested', path: focusPath, token: focusTab.token });
+  const focus = pendingFocus(tabs, focusTab, selection.focused);
+  if (focus) {
+    select({ type: 'focus-requested', ...focus });
   }
+  return [selection, choose] as const;
+}
+
+/* A focus request the panel has not yet followed, while its tab exists. */
+function pendingFocus(
+  tabs: readonly PanelTab[],
+  focusTab: GameTableProps['focusTab'],
+  focused: ControlsSelection['focused']
+) {
+  if (!focusTab || focusTab.token === focused) {
+    return null;
+  }
+  const path = tabPath(tabs, focusTab.key);
+  return path ? { path, token: focusTab.token } : null;
+}
+
+/**
+ * The controls panel groups personal resources, game actions, shared controls and history in two levels.
+ * Each group remembers its last destination;
+ * the current stage and phase join the Game group.
+ * The per-player tabs are the host's `playerPanel`, in the pane beside this one.
+ */
+function TableControlsPanel({
+  focusTab = null,
+  openOn = [],
+  ...dock
+}: DockTabsProps & Readonly<Pick<GameTableProps, 'focusTab' | 'openOn'>>) {
+  const tabs = dockTabs(dock);
+  const opening = openOn.map((key) => tabPath(tabs, key)).find(Boolean) ?? [tabs[0]?.key ?? 'game'];
+  const hasStage = Boolean(dock.panelContent);
+  const [selection, choose] = useControlsSelection(tabs, opening, hasStage, focusTab);
   const { active, subtab } = shownDestination(tabs, selection, hasStage, opening);
   /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the dock holds only what the stage brings. */
   if (!active) {
