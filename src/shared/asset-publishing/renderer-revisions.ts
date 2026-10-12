@@ -43,10 +43,10 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [STRONGHOLD_CARD_ASSET_TYPE]: 2,
   /* Revision 2 removes the extra symbol ring and matches the scanned movement and corner numeral. */
   [STORM_CARD_ASSET_TYPE]: 2,
-  /* Revision 2 retains multicolor back emblems and supports the original Storm label size. */
-  [DECK_ASSET_TYPE]: 2,
-  /* Revision 4 updates the Stronghold emblem and original Storm back label; saved designs are kept. */
-  'cardback-preset': 4,
+  /* Revision 3 masks back emblems to the central disc beneath the frame, retaining authored size and offset. */
+  [DECK_ASSET_TYPE]: 3,
+  /* Revision 5 masks preset emblems to the central disc beneath the frame, retaining saved designs. */
+  'cardback-preset': 5,
   /*
    * 1: token faces join the pipeline (wayfinder #547). Activating these is also the backfill for tokens that predate them.
    * One entry per shape rather than one per face, because both faces of a shape are drawn by one renderer, so bumping a front without its back is not a thing that can be meant.

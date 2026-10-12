@@ -55,6 +55,20 @@ export const OversizedSymbol = meta.story({
   },
 });
 
+export const EnlargedNexusEmblem = meta.story({
+  args: {
+    name: 'Nexus',
+    background: backgroundPresets.nexus,
+    image: '/vector/icon/nexus.svg',
+    imageOffset: [0, 0],
+    imageScale: 1.8,
+  },
+});
+
+export const ShiftedMulticolorEmblem = meta.story({
+  args: { ...GF9_STRONGHOLD_DECK.cardback, imageScale: 3, imageOffset: [100, 50] },
+});
+
 export const LeaderSkillDeck = meta.story({ args: GF9_LEADER_SKILL_DECK_BACK });
 export const TintedEmblemBackground = meta.story({
   args: {

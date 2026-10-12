@@ -56,26 +56,28 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
           filter: `${tintMatrix ? `url(#${emblemBackgroundFilter}) ` : ''}drop-shadow(0 0 3px black) drop-shadow(0 0 8px black)`,
         }}
       />
+      {/* Each masked layer blends separately so monochrome emblems keep their existing three-pass shading. */}
+      {(multicolor ? [0] : [0, 1, 2]).map((layer) => (
+        <div key={layer} className={`${styles.icon} ${multicolor ? styles.multicolor : ''}`}>
+          <img
+            alt=""
+            src={resolveAsset(image)}
+            style={{
+              marginLeft: imageOffset[0] - ((imageScale - 1) / 2) * 220,
+              marginTop: imageOffset[1] - ((imageScale - 1) / 2) * 220,
+              width: imageScale * 220,
+              height: imageScale * 220,
+            }}
+          />
+        </div>
+      ))}
+
       <div
         className={styles.decal_bg_2}
         style={{
           filter: 'drop-shadow(0 0 3px black) drop-shadow(0 0 8px black)',
         }}
       />
-
-      <div
-        className={`${styles.icon} ${multicolor ? styles.multicolor : ''}`}
-        style={{
-          marginLeft: imageOffset[0] - ((imageScale - 1) / 2) * 220,
-          marginTop: imageOffset[1] - ((imageScale - 1) / 2) * 220,
-          width: imageScale * 220,
-          height: imageScale * 220,
-        }}
-      >
-        <img alt="" src={resolveAsset(image)} />
-        {!multicolor && <img alt="" src={resolveAsset(image)} />}
-        {!multicolor && <img alt="" src={resolveAsset(image)} />}
-      </div>
 
       <svg className={styles.svg}>
         <defs>
