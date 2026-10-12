@@ -293,6 +293,9 @@ async function main() {
     const viewers = subjects.map((subject) => localClient(deployment.url, deployment.adminKey, subject));
     const request = { rulesetId, minimumPlayers: 4 as const };
     await proveDirectoryMigration(admin, viewers, request);
+    if (process.argv.includes('--migration-only')) {
+      return;
+    }
     const allocation = await admin.mutation(httpReference(internal.playGameNamesTesting.seed), {});
     const allocationViewers = allocation.subjects.map((subject) =>
       localClient(deployment.url, deployment.adminKey, subject)
