@@ -35,6 +35,30 @@ Convex agent skills for common tasks can be installed by running
 - The checked-in `Fresh default branch` Codex local environment runs this preflight automatically
   when a new worktree is created, then installs the frozen dependency graph.
 
+## Production data writes
+
+Agents must not create, edit, delete, or assign ownership of production application records through
+administrative access. This includes direct database writes, Convex CLI or MCP mutations, Dashboard
+edits, imports, seed scripts, repair functions, and requests made with a fabricated user identity.
+Do not add or deploy an administrative write path to bypass the application's authentication and
+ownership checks. A request to build, publish, verify, or deliver a feature does not authorize these
+operations. Create requested assets through the normal authenticated application flow, under an
+owner established by the user's instructions or verified signed-in identity. Never infer the owner
+from an existing asset, a fixture, or a remembered profile name.
+
+The only exception is a necessary production migration that the human explicitly approves. Before
+execution, present the exact records and fields affected, why the migration is necessary, the
+committed migration code, local verification, and the recovery plan. Follow
+[`docs/convex-migrations.md`](docs/convex-migrations.md). Approval applies only to that migration and
+its stated scope. Creating stock content or fixing a visual rendering defect does not become a
+migration by naming it one. The established deployment workflow may run migrations whose scope the
+human has already approved; it does not authorize additional administrative writes.
+
+This is an agent instruction, not a credential boundary. Do not claim production writes are
+technically blocked while the agent can access production administrative credentials or the
+developer's privileged Convex session. Changes to those credentials or access require a separate,
+reviewable plan and the user's approval.
+
 ## Language
 
 The technical vocabulary for this codebase's structure, the words for *how the code is built*.
