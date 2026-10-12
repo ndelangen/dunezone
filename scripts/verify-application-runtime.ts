@@ -18,6 +18,24 @@ type RuntimeFixture = {
 const fixture: RuntimeFixture | undefined = process.env.APPLICATION_RUNTIME_FIXTURE
   ? JSON.parse(readFileSync(process.env.APPLICATION_RUNTIME_FIXTURE, 'utf8'))
   : undefined;
+
+function assertPublicMetadataQueries(count: number, pathname: string, html: string, historicalFallback: boolean) {
+  if (pathname === '/') {
+    assert.equal(count, 0, pathname);
+    return;
+  }
+  /* The deployed-backend rehearsal has empty local R2, so ready HTML needs a second query for renderer fallback. */
+  const emptyArtifactStoreReader =
+    !fixture &&
+    /^\/rulesets\/[^/?]+\/rulebooks\/[^/?]+(?:\?edition=\d+)?$/.test(pathname) &&
+    html.includes('data-rulebook-reader-document');
+  if (emptyArtifactStoreReader) {
+    assert.ok([1, 2].includes(count), `${pathname} has unexpected renderer query count ${count}`);
+    return;
+  }
+  assert.equal(count, historicalFallback ? 2 : 1, pathname);
+}
+
 if (fixture) {
   for (const origin of [fixture.backendUrl, fixture.siteUrl]) {
     assert.equal(new URL(origin).hostname, '127.0.0.1', 'Runtime fixtures only accept an isolated loopback backend');
@@ -81,12 +99,13 @@ try {
     assert.equal(response.headers.get('Set-Cookie'), null, pathname);
     assert.equal(response.headers.get('X-Public-Cache'), 'miss', pathname);
     const historicalFallback = Boolean(fixture && pathname.endsWith('/runtime-manual?edition=1'));
-    assert.equal(
-      Number(response.headers.get('X-Public-Metadata-Queries') ?? 0),
-      pathname === '/' ? 0 : historicalFallback ? 2 : 1,
-      pathname
-    );
     const html = await response.text();
+    assertPublicMetadataQueries(
+      Number(response.headers.get('X-Public-Metadata-Queries') ?? 0),
+      pathname,
+      html,
+      historicalFallback
+    );
     if (fixture && pathname.endsWith('/runtime-manual')) {
       assert.match(html, /data-published-rulebook/);
       assert.match(html, /Rulebook page: Runtime Edition 2/);
