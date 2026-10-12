@@ -23,7 +23,8 @@ export function CustomCard({
   iconOpacity = 1,
   layers,
   tokens = {},
-}: z.infer<typeof CustomCardSchema> & { tokens?: z.infer<typeof CustomCardTokens> }) {
+  wrapTitle = false,
+}: z.infer<typeof CustomCardSchema> & { tokens?: z.infer<typeof CustomCardTokens>; wrapTitle?: boolean }) {
   return (
     <div className={styles.card}>
       <div className={styles.windowBackground} />
@@ -44,6 +45,7 @@ export function CustomCard({
         ))}
       <CardHeadContents
         name={name}
+        wrapTitle={wrapTitle}
         subName={subName}
         icon={icon}
         iconOffset={iconOffset}
