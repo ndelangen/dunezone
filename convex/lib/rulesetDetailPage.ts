@@ -1,6 +1,6 @@
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
-import { loadAssetAccessBundle, loadRulesetAccessForLoadedSubject } from './collaborativeAccess';
+import { assignedGroupSummary, loadAssetAccessBundle, loadRulesetAccessForLoadedSubject } from './collaborativeAccess';
 import { toCatalogueFaction } from './factionCatalogue';
 import { loadFaqItemsForRuleset } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
@@ -44,39 +44,46 @@ async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'
   });
 }
 
-/**
- * Ruleset public-page read model behind `api.rulesets.getBySlug` and `api.rulesets.detailPageBySlug`.
- * Owns slug resolution, the soft-delete gate, the faction listing with its degradation rules, and viewer access;
- * the wire contracts are `rulesetPublicBundleValidator` / `rulesetDetailPageValidator`.
- */
-export async function loadRulesetPublicBundleBySlug(ctx: QueryCtx, slug: string) {
+/** The ruleset and its factions, the same for every viewer: behind `api.rulesets.page`. Throws for an unknown slug, as `getBySlug` does. */
+export async function loadRulesetPageBySlug(ctx: QueryCtx, slug: string) {
   const row = await loadPublicRulesetBySlug(ctx, slug);
   if (!row) {
     throw new Error(`Ruleset with slug ${slug} not found`);
   }
-  const access = await loadRulesetAccessForLoadedSubject(ctx, row);
-  return {
-    ruleset: row,
-    factions: await listPublicRulesetFactions(ctx, row._id),
-    viewerAccess: access.viewerAccess,
-  };
+  return { ruleset: row, factions: await listPublicRulesetFactions(ctx, row._id) };
 }
 
-/** The stored `name` inside an untyped `data` blob, with the same fallback every catalogue surface uses. */
-export async function loadRulesetDetailPageBySlug(ctx: QueryCtx, slug: string) {
+/** The ruleset detail page, the same for every viewer: behind `api.rulesets.detailPage`. Null for an unknown slug. */
+export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: string) {
   const row = await loadPublicRulesetBySlug(ctx, slug);
   if (!row) {
     return null;
   }
-  const access = await loadAssetAccessBundle(ctx, { kind: 'ruleset', row });
   return {
     ruleset: row,
     factions: await listPublicRulesetFactions(ctx, row._id),
-    viewerAccess: access.viewerAccess,
+    assignedGroup: await assignedGroupSummary(ctx, row.group_id),
     faqItems: await loadFaqItemsForRuleset(ctx, row._id),
     owner: await profileSummary(ctx, row.owner_id),
-    assignableGroups: access.assignableGroups,
     assetSlots: await listRulesetAssetSlots(ctx, row._id),
     rulebooks: await listRulesetRulebooks(ctx, row._id),
   };
+}
+
+/** Deprecated with `api.rulesets.getBySlug`: the public page plus the viewer's access. Remove with it. */
+export async function loadRulesetPublicBundleBySlug(ctx: QueryCtx, slug: string) {
+  const page = await loadRulesetPageBySlug(ctx, slug);
+  const access = await loadRulesetAccessForLoadedSubject(ctx, page.ruleset);
+  return { ...page, viewerAccess: access.viewerAccess };
+}
+
+/** Deprecated with `api.rulesets.detailPageBySlug`: the public detail page with the viewer's access in place of `assignedGroup`. Remove with it. */
+export async function loadRulesetDetailPageBySlug(ctx: QueryCtx, slug: string) {
+  const page = await loadRulesetPublicDetailPageBySlug(ctx, slug);
+  if (!page) {
+    return null;
+  }
+  const { assignedGroup: _assignedGroup, ...rest } = page;
+  const access = await loadAssetAccessBundle(ctx, { kind: 'ruleset', row: page.ruleset });
+  return { ...rest, viewerAccess: access.viewerAccess, assignableGroups: access.assignableGroups };
 }

@@ -10,6 +10,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import schema from './schema';
+import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -43,7 +44,7 @@ test('the GF9 import creates twelve published Nexus cards and one deck without o
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const first = await t.mutation(internal.assets.seedGf9NexusDeck, { ownerId });
   expect(first.cardIds).toHaveLength(12);
-  const deck = await t.query(api.assets.getPage, { type: 'deck', slug: first.slug });
+  const deck = await assetPageAs(t, { type: 'deck', slug: first.slug });
   expect(deck?.members).toHaveLength(12);
   expect(deck?.members.every(({ count, member }) => count === 1 && member.type === 'card-nexus')).toBe(true);
   for (let index = 0; index < first.cardIds.length; index++) {
@@ -65,7 +66,7 @@ test('the GF9 import creates twelve published Nexus cards and one deck without o
   await t.withIdentity({ subject: ownerId }).mutation(api.assets.update, { id: first.cardIds[0]!, data: edited });
   const repeat = await t.mutation(internal.assets.seedGf9NexusDeck, { ownerId });
   expect(repeat).toEqual(first);
-  expect((await t.query(api.assets.getPage, { type: 'card-nexus', slug: 'atreides' }))?.asset.data).toEqual(edited);
+  expect((await assetPageAs(t, { type: 'card-nexus', slug: 'atreides' }))?.asset.data).toEqual(edited);
 });
 
 test('Nexus writes enforce the fixed sections and reject oversized effects without changing the saved card', async () => {
@@ -87,11 +88,9 @@ test('Nexus writes enforce the fixed sections and reject oversized effects witho
       'The Nexus card contains invalid fields'
     );
   }
-  expect((await t.query(api.assets.getPage, { type: 'card-nexus', slug: created.slug }))?.asset.data).toEqual(card);
+  expect((await assetPageAs(t, { type: 'card-nexus', slug: created.slug }))?.asset.data).toEqual(card);
   await owner.mutation(api.assets.update, { id: created.id, data: { ...card, cunning: 'a'.repeat(400) } });
-  expect(
-    (await t.query(api.assets.getPage, { type: 'card-nexus', slug: created.slug }))?.asset.data.cunning
-  ).toHaveLength(400);
+  expect((await assetPageAs(t, { type: 'card-nexus', slug: created.slug }))?.asset.data.cunning).toHaveLength(400);
 });
 
 test('a reserved GF9 address rolls back the entire import', async () => {
@@ -104,8 +103,8 @@ test('a reserved GF9 address rolls back the entire import', async () => {
     .withIdentity({ subject: otherId! })
     .mutation(api.assets.create, { type: 'card-nexus', data: await linkedCard(t, otherId!, GF9_NEXUS_CARDS[5]!) });
   await expect(t.mutation(internal.assets.seedGf9NexusDeck, { ownerId: ownerId! })).rejects.toThrow('already reserved');
-  expect(await t.query(api.assets.getPage, { type: 'deck', slug: 'gf9-nexus-deck' })).toBeNull();
-  expect(await t.query(api.assets.getPage, { type: 'card-nexus', slug: 'atreides' })).toBeNull();
+  expect(await assetPageAs(t, { type: 'deck', slug: 'gf9-nexus-deck' })).toBeNull();
+  expect(await assetPageAs(t, { type: 'card-nexus', slug: 'atreides' })).toBeNull();
 });
 
 test('a renderer regeneration scan republishes live Nexus cards and skips deleted cards', async () => {
@@ -174,11 +173,11 @@ test('the GF9 correction preserves later edits, ids and membership and republish
   expect(result.deckUpdated).toBe(true);
   expect(result.updated).toHaveLength(11);
   expect(result.preserved).toEqual(['Atreides']);
-  const deck = await t.query(api.assets.getPage, { type: 'deck', slug: imported.slug });
+  const deck = await assetPageAs(t, { type: 'deck', slug: imported.slug });
   expect(deck?.members).toHaveLength(12);
   expect(deck?.members.map((member) => member.count)).toEqual(Array(12).fill(1));
-  expect((await t.query(api.assets.getPage, { type: 'card-nexus', slug: 'atreides' }))?.asset.data).toEqual(houseRule);
-  const fremen = await t.query(api.assets.getPage, { type: 'card-nexus', slug: 'fremen' });
+  expect((await assetPageAs(t, { type: 'card-nexus', slug: 'atreides' }))?.asset.data).toEqual(houseRule);
+  const fremen = await assetPageAs(t, { type: 'card-nexus', slug: 'fremen' });
   expect(fremen?.asset.data).toEqual(GF9_NEXUS_CARDS.find((card) => card.faction === 'Fremen'));
   const job = await t.run((ctx) =>
     ctx.db
@@ -208,7 +207,7 @@ test('an unexpected GF9 card owner rolls the entire correction back', async () =
   await expect(t.mutation(internal.assets.correctGf9NexusDeck, { ownerId: ownerId! })).rejects.toThrow(
     'no longer belongs'
   );
-  expect((await t.query(api.assets.getPage, { type: 'card-nexus', slug: 'atreides' }))?.asset.data.betrayal).toBe(
+  expect((await assetPageAs(t, { type: 'card-nexus', slug: 'atreides' }))?.asset.data.betrayal).toBe(
     'The earlier paraphrased effect.'
   );
 });
@@ -226,9 +225,9 @@ test('a renamed deck member is preserved even when another card takes its origin
   const result = await t.mutation(internal.assets.correctGf9NexusDeck, { ownerId });
   expect(result.updated).toHaveLength(11);
   expect(result.preserved).toEqual(['My Atreides']);
-  expect((await t.query(api.assets.getPage, { type: 'card-nexus', slug: 'my-atreides' }))?.asset.data).toEqual(renamed);
-  expect((await t.query(api.assets.getPage, { type: 'card-nexus', slug: 'atreides' }))?.asset.data).toEqual(separate);
-  const deck = await t.query(api.assets.getPage, { type: 'deck', slug: imported.slug });
+  expect((await assetPageAs(t, { type: 'card-nexus', slug: 'my-atreides' }))?.asset.data).toEqual(renamed);
+  expect((await assetPageAs(t, { type: 'card-nexus', slug: 'atreides' }))?.asset.data).toEqual(separate);
+  const deck = await assetPageAs(t, { type: 'deck', slug: imported.slug });
   expect(deck?.members).toHaveLength(12);
   expect(deck?.members.map(({ member }) => member.id).sort()).toEqual([...imported.cardIds].sort());
 });
@@ -250,7 +249,7 @@ test('new Nexus cards require a live faction and use its authoritative header ar
       factionLink: { ...linked.factionLink, slug: 'wrong' },
     },
   });
-  expect((await t.query(api.assets.getPage, { type: 'card-nexus', slug: created.slug }))?.asset.data).toEqual(linked);
+  expect((await assetPageAs(t, { type: 'card-nexus', slug: created.slug }))?.asset.data).toEqual(linked);
   await expect(owner.mutation(api.assets.update, { id: created.id, data: GF9_NEXUS_CARDS[0]! })).rejects.toThrow(
     'Choose a faction'
   );

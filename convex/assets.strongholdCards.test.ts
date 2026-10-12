@@ -7,6 +7,7 @@ import { publisherCaptureSnapshotSchema } from '../src/shared/asset-publishing/p
 import { GF9_STRONGHOLD_CARDS } from '../src/shared/assets/gf9StrongholdDeck';
 import { api, internal } from './_generated/api';
 import schema from './schema';
+import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -20,7 +21,7 @@ test('stronghold cards round-trip, publish their constrained face and enforce ed
   const data = GF9_STRONGHOLD_CARDS[0]!;
   await expect(t.mutation(api.assets.create, { type: 'card-stronghold', data })).rejects.toThrow('Not authenticated');
   const created = await owner.mutation(api.assets.create, { type: 'card-stronghold', data });
-  const page = await t.query(api.assets.getPage, { type: 'card-stronghold', slug: created.slug });
+  const page = await assetPageAs(t, { type: 'card-stronghold', slug: created.slug });
   expect(page?.asset.data).toEqual(data);
   expect(page?.asset.previewHref).toContain(`/published/stronghold-cards/${created.id}/card.jpg`);
   const job = await t.run((ctx) =>
@@ -51,9 +52,7 @@ test('stronghold cards round-trip, publish their constrained face and enforce ed
   }
   const changed = { ...data, name: 'Custom stronghold', text: 'Win tied battles here.' };
   await owner.mutation(api.assets.update, { id: created.id, data: changed });
-  expect(
-    (await t.query(api.assets.getPage, { type: 'card-stronghold', slug: 'custom-stronghold' }))?.asset.data
-  ).toEqual(changed);
+  expect((await assetPageAs(t, { type: 'card-stronghold', slug: 'custom-stronghold' }))?.asset.data).toEqual(changed);
 });
 
 test('the GF9 seed creates six cards and a one-copy deck, and leaves authored changes alone on a second run', async () => {
@@ -72,7 +71,7 @@ test('the GF9 seed creates six cards and a one-copy deck, and leaves authored ch
     return id;
   });
   const created = await t.mutation(internal.assets.seedGf9StrongholdDeck, { ownerProfileSlug: 'owner' });
-  const page = await t.query(api.assets.getPage, { type: 'deck', slug: created.slug });
+  const page = await assetPageAs(t, { type: 'deck', slug: created.slug });
   expect(created.created).toBe(true);
   expect(page?.members).toHaveLength(6);
   expect(page?.members?.map(({ member, count }) => ({ name: member.name, type: member.type, count }))).toEqual(
@@ -84,7 +83,7 @@ test('the GF9 seed creates six cards and a one-copy deck, and leaves authored ch
     .mutation(api.assets.update, { id: member.id, data: { ...member.data, text: 'An authored change.' } });
   const repeat = await t.mutation(internal.assets.seedGf9StrongholdDeck, { ownerProfileSlug: 'owner' });
   expect(repeat).toEqual({ ...created, created: false });
-  expect((await t.query(api.assets.getPage, { type: 'card-stronghold', slug: member.slug }))?.asset.data.text).toBe(
+  expect((await assetPageAs(t, { type: 'card-stronghold', slug: member.slug }))?.asset.data.text).toBe(
     'An authored change.'
   );
   expect(
@@ -116,7 +115,7 @@ test('stock corrections keep identities and authored content, and are safe to re
     return userId;
   });
   const seeded = await t.mutation(internal.assets.seedGf9StrongholdDeck, { ownerProfileSlug: 'owner' });
-  const before = (await t.query(api.assets.getPage, { type: 'deck', slug: seeded.slug }))!;
+  const before = (await assetPageAs(t, { type: 'deck', slug: seeded.slug }))!;
   await t.run(async (ctx) => {
     for (const { member } of before.members!) {
       const data = {
@@ -164,7 +163,7 @@ test('stock corrections keep identities and authored content, and are safe to re
     cardsChanged: 6,
     deckChanged: true,
   });
-  const after = (await t.query(api.assets.getPage, { type: 'deck', slug: seeded.slug }))!;
+  const after = (await assetPageAs(t, { type: 'deck', slug: seeded.slug }))!;
   expect(after.members!.map(({ member, count }) => ({ id: member.id, count }))).toEqual(
     before.members!.map(({ member, count }) => ({ id: member.id, count }))
   );
@@ -173,9 +172,7 @@ test('stock corrections keep identities and authored content, and are safe to re
   expect(after.members!.every(({ member }) => member.data.decals[0].scale === 1.75)).toBe(true);
   expect(after.asset.data.cardback.imageScale).toBe(1.3);
   expect(after.asset.data.cardback.image).toBe('/vector/icon/stronghold-multicolor.svg');
-  expect(
-    (await t.query(api.assets.getPage, { type: 'card-stronghold', slug: 'unrelated' }))!.asset.data.decals[0].scale
-  ).toBe(1.65);
+  expect((await assetPageAs(t, { type: 'card-stronghold', slug: 'unrelated' }))!.asset.data.decals[0].scale).toBe(1.65);
   await expect(t.mutation(internal.assets.polishGf9StrongholdDeck, { ownerProfileSlug: 'owner' })).resolves.toEqual({
     deckId: seeded.deckId,
     cardsChanged: 0,

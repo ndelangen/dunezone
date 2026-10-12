@@ -332,7 +332,7 @@ function RulesetEditPage() {
     </PageMessage.Back>
   );
 
-  if (!viewerAccess) {
+  if (!page.viewerResolved) {
     return (
       <PageMessage size="compact" title={`Edit ${r.name}`} back={guardBack}>
         <LoadPending title="Loading your profile">Checking what you may change here.</LoadPending>

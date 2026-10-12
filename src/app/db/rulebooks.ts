@@ -1,3 +1,4 @@
+import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
 import {
   RULEBOOK_CATALOGUE_VERSION,
   rulebookContentsV1Schema,
@@ -16,6 +17,7 @@ import { useCallback, useMemo } from 'react';
 import { db } from '@db/core';
 import { parseClientBoundary } from '@app/db/core/clientBoundary';
 import { toLiveQueryResult, useLiveOperation, useMappedLiveMutation } from '@app/db/core/live';
+import { useAssetAccess, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
 
@@ -56,7 +58,7 @@ export type RulebookReaderLocator = RulebookLocator & {
   editionNumber?: number;
 };
 export type RulebookCreationPageData = NonNullable<FunctionReturnType<typeof api.rulebooks.creationPage>>;
-type RawReaderPage = NonNullable<FunctionReturnType<typeof api.rulebooks.readerDeliveryPage>>;
+type RawReaderPage = NonNullable<FunctionReturnType<typeof api.rulebooks.readerDelivery>>;
 export type RulebookReaderPageData = Omit<RawReaderPage, 'body'> & {
   body:
     | Exclude<RawReaderPage['body'], { kind: 'render' }>
@@ -91,7 +93,7 @@ function readerArgs({
 }
 
 export async function loadRulebookReader(locator: RulebookReaderLocator & { renderContents?: boolean }) {
-  const raw = await db.query(api.rulebooks.readerDeliveryPage, readerArgs(locator)).catch((error: unknown) => {
+  const raw = await db.query(api.rulebooks.readerDelivery, readerArgs(locator)).catch((error: unknown) => {
     if (
       locator.editionNumber !== undefined &&
       error instanceof ConvexError &&
@@ -111,9 +113,30 @@ export function useRulebookReader({
   initialData?: RulebookReaderPageData | null;
   renderContents?: boolean;
 }) {
-  const raw = useQuery(api.rulebooks.readerDeliveryPage, readerArgs(locator));
+  const raw = useQuery(api.rulebooks.readerDelivery, readerArgs(locator));
   const normalized = raw === undefined ? undefined : raw === null ? null : normalizeReaderPage(raw);
-  return toLiveQueryResult(normalized, () => initialData);
+  const live = toLiveQueryResult(normalized, () => initialData);
+  const page = live.data;
+  const { resolved, viewerAccess } = useAssetAccess(
+    assetSubjectFacts(
+      'ruleset',
+      page ? { owner_id: page.access.rulesetOwnerId, is_deleted: false } : UNAVAILABLE_SUBJECT,
+      page?.access.assignedGroup ?? null
+    )
+  );
+  const data = useMemo(
+    () =>
+      page
+        ? {
+            ...page,
+            viewerResolved: resolved,
+            canEdit: viewerAccess.capabilities.edit,
+            canDelete: viewerAccess.capabilities.delete,
+          }
+        : page,
+    [page, resolved, viewerAccess.capabilities.edit, viewerAccess.capabilities.delete]
+  );
+  return { ...live, data };
 }
 
 export type RulebookEditionHistoryData = NonNullable<FunctionReturnType<typeof api.rulebooks.editionHistory>>;

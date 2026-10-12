@@ -1,10 +1,14 @@
+import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
+import type { AssetViewerAccess } from '@shared/access/collaborativeAccess';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { useAssetAccess, useViewerAssignableGroups, useViewerIsAdmin, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
+import type { AssignedGroupSummary } from '../../../convex/lib/collaborativeAccess';
 
 export type AssetCataloguePageData = FunctionReturnType<typeof api.assets.cataloguePage>;
 export type AssetListEntry = AssetCataloguePageData['recent'][number];
@@ -54,25 +58,65 @@ export function useCreateAsset() {
   return useLiveMutation<{ type: string; data: unknown }, { id: string; slug: string }>(api.assets.create);
 }
 
-export type AssetPageData = FunctionReturnType<typeof api.assets.getPage>;
+/** What `api.assets.page` gives a route: the same for every viewer, and what its loader seeds the live page with. */
+export type AssetPublicPage = FunctionReturnType<typeof api.assets.page>;
+
+/**
+ * An asset's page as a route draws it: the public page combined with what this viewer may do.
+ * `viewerResolved` is false while the viewer is on its way;
+ * until then the capabilities are the anonymous ones, so no control appears before it may.
+ */
+export type AssetPageData =
+  | (NonNullable<AssetPublicPage> & {
+      viewerResolved: boolean;
+      viewerAccess: AssetViewerAccess;
+      assignableGroups: AssignedGroupSummary[];
+      canConvertToCustom: boolean;
+    })
+  | null;
 
 /** The asset detail route's loader, paired with `useAssetPage`; both need the type as well as the slug, since the slug is unique only within a type. */
-export async function loadAssetPage(type: string, slug: string): Promise<AssetPageData> {
-  return await db.query(api.assets.getPage, { type, slug });
+export async function loadAssetPage(type: string, slug: string): Promise<AssetPublicPage> {
+  return await db.query(api.assets.page, { type, slug });
 }
 
-/** One asset's page, live, taking `loadAssetPage`'s result as `initialData`. */
+/**
+ * One asset's page, live, taking `loadAssetPage`'s result as `initialData`, combined with the viewer.
+ * The page query is one cached answer for everyone;
+ * the viewer half is the session, the viewer's membership of the asset's Group and the Groups they could move it into.
+ */
 export function useAssetPage(
   type: string,
   slug: string,
-  options?: { initialData?: AssetPageData; embeddedTokenIds?: string[] }
-) {
-  const liveData = useQuery(api.assets.getPage, {
+  options: { initialData: AssetPublicPage; embeddedTokenIds?: string[] }
+): { data: AssetPageData; isPending: boolean } {
+  const liveData = useQuery(api.assets.page, {
     type,
     slug,
-    ...(options?.embeddedTokenIds ? { embeddedTokenIds: options.embeddedTokenIds as AssetListEntry['id'][] } : {}),
+    ...(options.embeddedTokenIds ? { embeddedTokenIds: options.embeddedTokenIds as AssetListEntry['id'][] } : {}),
   });
-  return toLiveQueryResult(liveData, () => options?.initialData);
+  const page = liveData === undefined ? options.initialData : liveData;
+  const { resolved, viewerAccess } = useAssetAccess(
+    assetSubjectFacts(
+      'asset',
+      page ? { owner_id: page.ownerId, is_deleted: false } : UNAVAILABLE_SUBJECT,
+      page?.assignedGroup ?? null
+    )
+  );
+  const assignableGroups = useViewerAssignableGroups();
+  const isAdmin = useViewerIsAdmin();
+  return {
+    isPending: liveData === undefined,
+    data: page
+      ? {
+          ...page,
+          viewerResolved: resolved,
+          viewerAccess,
+          assignableGroups,
+          canConvertToCustom: page.convertibleToCustom && isAdmin,
+        }
+      : null,
+  };
 }
 
 /** Saves an asset, on the same raw contract as `useCreateAsset`: Convex argument names, and a `data` the handler parses rather than this hook. */
