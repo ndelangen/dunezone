@@ -11,6 +11,6 @@ declare module 'rulebook-html-renderer-runtime' {
 }
 
 declare module 'application-ssr-runtime' {
-  const application: { fetch(request: Request): Promise<Response> };
+  const application: { fetch(request: Request, options?: { context?: object }): Promise<Response> };
   export default application;
 }

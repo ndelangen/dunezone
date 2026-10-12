@@ -680,7 +680,7 @@ function compactRenderedText(value: string) {
  * the context around it is the part that has to forgive missing separators, at every scope, because `prefix` and `suffix` are Range-derived wherever the sweep happened.
  * Compacting the selected text too would match runs the reader never swept, so the gate below is what keeps this from accepting anything the page merely contains once its spaces are deleted.
  */
-function locatorMatches(source: string, locator: RulebookTextLocator) {
+export function locatorMatches(source: string, locator: RulebookTextLocator) {
   if (locatorMatchesWith(source, locator, normalizeRulebookText)) {
     return true;
   }
