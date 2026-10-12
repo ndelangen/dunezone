@@ -57,6 +57,22 @@ export const OversizedSymbol = meta.story({
   },
 });
 
+export const EnlargedNexusEmblem = meta.story({
+  args: {
+    name: 'Nexus',
+    background: backgroundPresets.nexus,
+    image: '/vector/icon/nexus.svg',
+    imageOffset: [0, 0],
+    imageScale: 1.8,
+  },
+  play: verifyEmblemWindow,
+});
+
+export const ShiftedMulticolorEmblem = meta.story({
+  args: { ...GF9_STRONGHOLD_DECK.cardback, imageScale: 3, imageOffset: [100, 50] },
+  play: verifyEmblemWindow,
+});
+
 export const LeaderSkillDeck = meta.story({ args: GF9_LEADER_SKILL_DECK_BACK });
 async function verifyLabelPaint({ canvasElement }: { canvasElement: HTMLElement }) {
   await document.fonts.load('90px C_Busorama', 'STORM');
@@ -149,22 +165,24 @@ export const EmblemStaysInsideDisc = meta.story({
     imageScale: 1.49,
     imageOffset: [0, 9],
   },
-  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
-    const images = Array.from(canvasElement.querySelectorAll('img'));
-    await Promise.all(images.map((image) => image.decode()));
-    const bounds = canvasElement.querySelector('img')!.parentElement!.parentElement!.getBoundingClientRect();
-    /* The oversized image covers these corners, but the circular emblem window must exclude them. */
-    await Promise.all(
-      [
-        [340, 345],
-        [560, 345],
-        [340, 565],
-        [560, 565],
-      ].flatMap(([x, y]) => {
-        const painted = document.elementsFromPoint(bounds.x + x!, bounds.y + y!);
-        return images.map((image) => expect(painted).not.toContain(image));
-      })
-    );
-    await expect(document.elementsFromPoint(bounds.x + 450, bounds.y + 455)).toContain(images[0]);
-  },
+  play: verifyEmblemWindow,
 });
+
+async function verifyEmblemWindow({ canvasElement }: { canvasElement: HTMLElement }) {
+  const images = Array.from(canvasElement.querySelectorAll('img'));
+  await Promise.all(images.map((image) => image.decode()));
+  const bounds = canvasElement.querySelector('img')!.parentElement!.parentElement!.getBoundingClientRect();
+  /* The oversized image covers these corners, but the circular emblem window must exclude them. */
+  await Promise.all(
+    [
+      [340, 345],
+      [560, 345],
+      [340, 565],
+      [560, 565],
+    ].flatMap(([x, y]) => {
+      const painted = document.elementsFromPoint(bounds.x + x!, bounds.y + y!);
+      return images.map((image) => expect(painted).not.toContain(image));
+    })
+  );
+  await expect(document.elementsFromPoint(bounds.x + 450, bounds.y + 455)).toContain(images[0]);
+}
