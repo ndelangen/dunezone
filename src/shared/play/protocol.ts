@@ -140,12 +140,21 @@ export type TablePing = z.infer<typeof pingSchema>;
 /** A connection pings at most this often; the Worker drops a ping that comes sooner, and the page does not send one. */
 export const TABLE_PING_INTERVAL_MS = 400;
 
+/** A rotate command turns at most half a turn, in 15° steps; a longer hold the other way round is shorter. */
+export const ROTATE_STEPS_LIMIT = 12;
+
 const tableActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
   z.strictObject({ kind: z.literal('stack'), pieceId: id }),
   z.strictObject({ kind: z.literal('flip'), pieceId: id }),
   z.strictObject({ kind: z.literal('lock'), pieceId: id }),
-  z.strictObject({ kind: z.literal('rotate'), pieceId: id, direction }),
+  /* A held Q or E sends its whole turn as one command, in 15° steps; a single step leaves `steps` out. */
+  z.strictObject({
+    kind: z.literal('rotate'),
+    pieceId: id,
+    direction,
+    steps: z.number().int().min(2).max(ROTATE_STEPS_LIMIT).optional(),
+  }),
   /* Takes a card, token or stack out of the game for good. */
   z.strictObject({ kind: z.literal('delete'), pieceId: id }),
   z.strictObject({ kind: z.literal('storm'), direction }),
