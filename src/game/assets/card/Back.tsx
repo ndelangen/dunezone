@@ -16,7 +16,6 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
   imageOffset,
   imageScale,
   nameScale = 1,
-  nameFont = 'C_Busorama',
   emblemBackground,
 }) => {
   const prefix = useCountId();
@@ -28,21 +27,6 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
   const multicolor = image.endsWith('-multicolor.svg') || !image.endsWith('.svg');
   /* Larger labels may extend beyond the original paint strip; the text masks still limit the paint to their glyphs. */
   const labelPaint = nameScale > 1 ? card : { ...card, y: card.height - 300, height: 100 };
-  /*
-   * The Storm back needs the closed S from the existing regular face.
-   * Its size and baseline align that letter with the other bold capitals.
-   */
-  const label =
-    nameFont === 'C_Busorama_Bold' && name.toUpperCase() === 'STORM' ? (
-      <>
-        <tspan baselineShift="0.025em" fontFamily="C_Busorama" fontSize="95%" fontWeight="bold">
-          S
-        </tspan>
-        {name.slice(1)}
-      </>
-    ) : (
-      name
-    );
   const emblemBackgroundFilter = `${prefix}emblem-background`;
   const tint = emblemBackground?.color.match(/^#([0-9a-f]{6})$/i)?.[1];
   const intensity = emblemBackground?.intensity ?? 0;
@@ -117,7 +101,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
             <text
               dominantBaseline="middle"
               fill="white"
-              fontFamily={nameFont}
+              fontFamily="C_Busorama"
               fontSize={90 * nameScale}
               letterSpacing="-0.7"
               style={{ textTransform: 'uppercase' }}
@@ -125,7 +109,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
               x="50%"
               y={card.height - 250}
             >
-              {label}
+              {name}
             </text>
           </mask>
           <mask id={textShadeMask} maskUnits="userSpaceOnUse">
@@ -133,7 +117,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
             <text
               dominantBaseline="middle"
               fill="white"
-              fontFamily={nameFont}
+              fontFamily="C_Busorama"
               fontSize={90 * nameScale}
               letterSpacing="-0.7"
               style={{ textTransform: 'uppercase' }}
@@ -141,12 +125,12 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
               x="50%"
               y={card.height - 250}
             >
-              {label}
+              {name}
             </text>
             <text
               dominantBaseline="middle"
               fill="black"
-              fontFamily={nameFont}
+              fontFamily="C_Busorama"
               fontSize={90 * nameScale}
               letterSpacing="-0.7"
               style={{ textTransform: 'uppercase' }}
@@ -154,7 +138,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
               x="50%"
               y={card.height - 254}
             >
-              {label}
+              {name}
             </text>
           </mask>
 
@@ -167,7 +151,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
           <text
             dominantBaseline="middle"
             fill="black"
-            fontFamily={nameFont}
+            fontFamily="C_Busorama"
             fontSize={90 * nameScale}
             letterSpacing="-0.7"
             style={{ textTransform: 'uppercase' }}
@@ -175,7 +159,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
             x="50%"
             y={card.height - 250}
           >
-            {label}
+            {name}
           </text>
         </g>
         <rect fill={`url(#${gradient})`} {...labelPaint} mask={`url(#${textMask})`} />

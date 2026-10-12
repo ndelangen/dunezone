@@ -58,10 +58,7 @@ export const OversizedSymbol = meta.story({
 
 export const LeaderSkillDeck = meta.story({ args: GF9_LEADER_SKILL_DECK_BACK });
 async function verifyLabelPaint({ canvasElement }: { canvasElement: HTMLElement }) {
-  await Promise.all([
-    document.fonts.load('128.7px C_Busorama_Bold', 'STORM'),
-    document.fonts.load('bold 128.7px C_Busorama', 'S'),
-  ]);
+  await document.fonts.load('128.7px C_Busorama', 'STORM');
   const label = canvasElement.querySelector<SVGTextElement>('text')!.ownerSVGElement!;
   const glyphs = Array.from(label.querySelectorAll<SVGTextElement>('text'));
   const paints = Array.from(label.querySelectorAll<SVGRectElement>('rect[mask]'));
@@ -131,5 +128,14 @@ export const StrongholdDeck = meta.story({
     await image.decode();
     await expect(getComputedStyle(image).mixBlendMode).toBe('normal');
     await expect(image.getBoundingClientRect().height).toBe(286);
+  },
+});
+
+export const LegacyBoldLabel = meta.story({
+  args: { ...GF9_LEADER_SKILL_DECK_BACK, nameFont: 'C_Busorama_Bold' },
+  play: async ({ canvasElement }) => {
+    for (const text of canvasElement.querySelectorAll('text')) {
+      await expect(getComputedStyle(text).fontFamily).toBe('C_Busorama');
+    }
   },
 });

@@ -1,4 +1,4 @@
-import { ColorInput, NumberInput, Select, Slider, TextInput } from '@mantine/core';
+import { ColorInput, NumberInput, Slider, TextInput } from '@mantine/core';
 import type { CardBack } from '@shared/assets/schema';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -44,25 +44,6 @@ export function CardbackFields({
             aria-label="Label"
             value={cardback.name}
             onChange={(event) => onChange({ ...cardback, name: event.currentTarget.value })}
-          />
-        }
-      />
-      <ControlBlock
-        title="Label weight"
-        input={
-          <Select
-            aria-label="Label weight"
-            allowDeselect={false}
-            data={[
-              { value: 'C_Busorama', label: 'Regular' },
-              { value: 'C_Busorama_Bold', label: 'Bold' },
-            ]}
-            value={cardback.nameFont ?? 'C_Busorama'}
-            onChange={(nameFont) => {
-              if (nameFont === 'C_Busorama' || nameFont === 'C_Busorama_Bold') {
-                onChange({ ...cardback, nameFont });
-              }
-            }}
           />
         }
       />

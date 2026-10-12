@@ -214,6 +214,7 @@ export const CardBack = z.strictObject({
   background: Background,
   name: z.string(),
   nameScale: z.number().min(0.5).max(2).optional(),
+  /* Accept the retired font selection in saved cards; every label renders in regular Busorama. */
   nameFont: z.enum(['C_Busorama', 'C_Busorama_Bold']).optional(),
   emblemBackground: z
     .strictObject({
