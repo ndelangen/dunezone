@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { TANKS_PLAY_AREA } from '../../src/shared/play/tablePhysics';
 import {
   accepted,
   admitPlayer,
@@ -449,9 +450,11 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     const played = await accepted(a, { kind: 'hand-play', pieceId: handCard.id, position: [29, 0, 29] });
     const card = played.snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1);
     expect(card.id).not.toBe(handCard.id);
-    // A card thrown far off the table lands on the nearest edge it can rest on: the Tleilaxu Tanks shelf corner.
-    expect(Math.abs(card.position[0])).toBeLessThanOrEqual(2.4);
-    expect(card.position[2]).toBeLessThanOrEqual(8.45);
+    /* A card thrown far off the table lands on the nearest edge it can rest on: the Tleilaxu Tanks shelf corner. */
+    expect(card.position[0]).toBeGreaterThanOrEqual(TANKS_PLAY_AREA.minX);
+    expect(card.position[0]).toBeLessThanOrEqual(TANKS_PLAY_AREA.maxX);
+    expect(card.position[2]).toBeGreaterThanOrEqual(TANKS_PLAY_AREA.minZ);
+    expect(card.position[2]).toBeLessThanOrEqual(TANKS_PLAY_AREA.maxZ);
     expect(card.items[0].faceUp).toBe(false);
     expect((await syncView(a)).snapshot.hand).toHaveLength(0);
   });
