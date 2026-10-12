@@ -1007,7 +1007,7 @@ export const seedGf9StrongholdDeck = internalMutation({
       .query('profiles')
       .withIndex('by_slug', (q) => q.eq('slug', ownerProfileSlug))
       .unique();
-    if (!profile || profile.account_state !== 'active' || profile.merged_into_profile_id) {
+    if (profile?.account_state !== 'active' || profile.merged_into_profile_id) {
       throw new Error('The deck needs an active owner profile');
     }
     const deckSlug = slugify(GF9_STRONGHOLD_DECK.name);
@@ -1040,8 +1040,12 @@ export const seedGf9StrongholdDeck = internalMutation({
     };
     const deck = await insert('deck', GF9_STRONGHOLD_DECK);
     for (const card of GF9_STRONGHOLD_CARDS) {
-      const member = await insert('card-stronghold', card);
+      const member = await insert(
+        'card-stronghold',
+        card
+      ); /* NOSONAR: slug allocation and trigger-aware writes stay sequential. */
       await ctx.db.insert('asset_relations', {
+        /* NOSONAR: each relation follows its inserted card. */
         from_asset_id: deck.id,
         to_asset_id: member.id,
         kind: 'deck-card',

@@ -11,36 +11,33 @@ import type { StrongholdChapter, StrongholdDraft } from '@app/widgets/card-edito
 import { StrongholdCardAssetInput } from '@game/data/objects';
 
 import { assetNameField } from '../../assetEditorStates';
+import {
+  editedStronghold,
+  replacedStronghold,
+  savedStronghold,
+  strongholdEditingStatus,
+} from '../../strongholdEditingSession';
+import type { StrongholdEditingState, StrongholdEditingEvent } from '../../strongholdEditingSession';
 import { CardCreateFrame, useCardCreate } from './cardCreatePage';
 
-type StrongholdState = { data: StrongholdDraft; baseline: StrongholdDraft };
-
-type StrongholdEvent =
-  | { kind: 'patch'; update: Partial<StrongholdDraft> }
-  | { kind: 'replace'; data: StrongholdDraft }
-  | { kind: 'saved'; data: StrongholdDraft };
-
-function openingState(data: StrongholdDraft, baseline: StrongholdDraft): StrongholdState {
-  return { data, baseline };
-}
-
-function reduce(state: StrongholdState, event: StrongholdEvent): StrongholdState {
+function reduce(state: StrongholdEditingState, event: StrongholdEditingEvent): StrongholdEditingState {
   switch (event.kind) {
     case 'patch':
-      return { ...state, data: { ...state.data, ...event.update } };
+      return editedStronghold(state, event.update);
     case 'replace':
-      return openingState(event.data, state.baseline);
+      return replacedStronghold(state, event.data);
     case 'saved':
-      return { ...state, baseline: event.data };
+      return savedStronghold(state, event.data);
   }
 }
 
 export function StrongholdCreatePage() {
   const saving = useCardCreate('card-stronghold');
   const [chapter, setChapter] = useState<StrongholdChapter>('head');
-  const [state, dispatch] = useReducer(reduce, undefined, () =>
-    openingState(INITIAL_STRONGHOLD_DRAFT, INITIAL_STRONGHOLD_DRAFT)
-  );
+  const [state, dispatch] = useReducer(reduce, undefined, () => ({
+    data: INITIAL_STRONGHOLD_DRAFT,
+    baseline: INITIAL_STRONGHOLD_DRAFT,
+  }));
   const patch = (update: Partial<StrongholdDraft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({
     canRename: true,
@@ -51,9 +48,7 @@ export function StrongholdCreatePage() {
     warnings: [...strongholdDraftWarnings(state.data)],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
-  const validation = StrongholdCardAssetInput.safeParse(state.data);
-  const invalid = validation.success ? undefined : validation.error.issues[0]?.message;
-  const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
+  const { validation, invalid, isDirty } = strongholdEditingStatus(state);
 
   const save = () => {
     if (!validation.success) {

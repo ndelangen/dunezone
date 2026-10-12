@@ -41,14 +41,14 @@ export function StrongholdCardEditor({
   chapter,
   onChapterChange,
   onSettle,
-}: {
+}: Readonly<{
   draft: StrongholdDraft;
   patch: (update: Partial<StrongholdDraft>) => void;
   nameField: ReactNode;
   chapter: StrongholdChapter;
   onChapterChange: (chapter: StrongholdChapter) => void;
   onSettle: () => void;
-}) {
+}>) {
   return (
     <WorkbenchLayout.Workbench>
       <WorkbenchLayout.Chapters>
@@ -65,103 +65,19 @@ export function StrongholdCardEditor({
                 value: 'head',
                 label: 'Head',
                 icon: <TopicIcon topic="head" size={21} />,
-                panel: (
-                  <Stack gap="md">
-                    <ControlBlock
-                      title="Name"
-                      description="The stronghold's name also determines its URL."
-                      input={nameField}
-                    />
-                    <Text size="sm">
-                      The Stronghold type, symbol and frame are fixed. Edit the Decals and Body to make your own card.
-                    </Text>
-                  </Stack>
-                ),
+                panel: <StrongholdHead nameField={nameField} />,
               },
               {
                 value: 'decals',
                 label: 'Decals',
                 icon: <TopicIcon topic="decals" size={21} />,
-                panel: (
-                  <Stack gap="md">
-                    <Group justify="space-between">
-                      <Text fw={700} size="sm">
-                        Decals
-                      </Text>
-                      <ListLengthActions
-                        addLabel="Add decal"
-                        removeLabel="Remove last decal"
-                        addDisabled={draft.decals.length >= 16}
-                        removeDisabled={!draft.decals.length}
-                        onAdd={() =>
-                          patch({
-                            decals: [
-                              ...draft.decals,
-                              {
-                                id: '/vector/decal/palace.svg',
-                                muted: false,
-                                outline: true,
-                                scale: 1,
-                                offset: [0, 0],
-                              },
-                            ],
-                          })
-                        }
-                        onRemove={() => patch({ decals: draft.decals.slice(0, -1) })}
-                      />
-                    </Group>
-                    {draft.decals.map((decal, index) => (
-                      <DecalControls
-                        key={index}
-                        value={decal}
-                        label={`decal ${index + 1}`}
-                        offsetRange={[450, 630]}
-                        onChange={(next) =>
-                          patch({ decals: draft.decals.map((item, i) => (i === index ? next : item)) })
-                        }
-                      />
-                    ))}
-                  </Stack>
-                ),
+                panel: <StrongholdDecals draft={draft} patch={patch} />,
               },
               {
                 value: 'body',
                 label: 'Body',
                 icon: <ScrollText size={21} aria-hidden />,
-                panel: (
-                  <Stack gap="md">
-                    <ControlBlock
-                      title="Body"
-                      description="The advantage gained by controlling this stronghold. Keep it short enough to fit the proof."
-                      input={
-                        <FormattedTextInput
-                          aria-label="Body"
-                          autosize
-                          minRows={4}
-                          value={draft.text}
-                          onChange={(text) => patch({ text })}
-                        />
-                      }
-                    />
-                    <ControlBlock
-                      title="Text size"
-                      description="Adjust within the stronghold template when the Body needs more room."
-                      input={
-                        <NumberInput
-                          aria-label="Text size"
-                          min={24}
-                          max={44}
-                          value={draft.textSize}
-                          onChange={(value) => {
-                            if (typeof value === 'number') {
-                              patch({ textSize: value });
-                            }
-                          }}
-                        />
-                      }
-                    />
-                  </Stack>
-                ),
+                panel: <StrongholdBody draft={draft} patch={patch} />,
               },
               aboutChapter(draft.about, (about) => patch({ about })),
             ]}
@@ -174,5 +90,101 @@ export function StrongholdCardEditor({
         </CardFrame>
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>
+  );
+}
+
+function StrongholdHead({ nameField }: Readonly<{ nameField: ReactNode }>) {
+  return (
+    <Stack gap="md">
+      <ControlBlock title="Name" description="The stronghold's name also determines its URL." input={nameField} />
+      <Text size="sm">
+        The Stronghold type, symbol and frame are fixed. Edit the Decals and Body to make your own card.
+      </Text>
+    </Stack>
+  );
+}
+
+function StrongholdDecals({
+  draft,
+  patch,
+}: Readonly<{ draft: StrongholdDraft; patch: (update: Partial<StrongholdDraft>) => void }>) {
+  return (
+    <Stack gap="md">
+      <Group justify="space-between">
+        <Text fw={700} size="sm">
+          Decals
+        </Text>
+        <ListLengthActions
+          addLabel="Add decal"
+          removeLabel="Remove last decal"
+          addDisabled={draft.decals.length >= 16}
+          removeDisabled={!draft.decals.length}
+          onAdd={() =>
+            patch({
+              decals: [
+                ...draft.decals,
+                {
+                  id: '/vector/decal/palace.svg',
+                  muted: false,
+                  outline: true,
+                  scale: 1,
+                  offset: [0, 0],
+                },
+              ],
+            })
+          }
+          onRemove={() => patch({ decals: draft.decals.slice(0, -1) })}
+        />
+      </Group>
+      {draft.decals.map((decal, index) => (
+        <DecalControls
+          key={index /* NOSONAR: only the final decal can be removed, so every remaining control keeps its position. */}
+          value={decal}
+          label={`decal ${index + 1}`}
+          offsetRange={[450, 630]}
+          onChange={(next) => patch({ decals: draft.decals.map((item, i) => (i === index ? next : item)) })}
+        />
+      ))}
+    </Stack>
+  );
+}
+
+function StrongholdBody({
+  draft,
+  patch,
+}: Readonly<{ draft: StrongholdDraft; patch: (update: Partial<StrongholdDraft>) => void }>) {
+  return (
+    <Stack gap="md">
+      <ControlBlock
+        title="Body"
+        description="The advantage gained by controlling this stronghold. Keep it short enough to fit the proof."
+        input={
+          <FormattedTextInput
+            aria-label="Body"
+            autosize
+            minRows={4}
+            value={draft.text}
+            onChange={(text) => patch({ text })}
+          />
+        }
+      />
+      <ControlBlock
+        title="Text size"
+        description="Adjust within the stronghold template when the Body needs more room."
+        input={
+          <NumberInput
+            aria-label="Text size"
+            min={24}
+            max={44}
+            value={draft.textSize}
+            onChange={(value) => {
+              if (typeof value === 'number') {
+                patch({ textSize: value });
+              }
+            }}
+          />
+        }
+      />
+    </Stack>
   );
 }

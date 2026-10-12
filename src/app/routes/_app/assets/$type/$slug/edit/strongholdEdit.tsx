@@ -8,10 +8,17 @@ import type { StrongholdChapter, StrongholdDraft } from '@app/widgets/card-edito
 import { StrongholdCardAssetInput } from '@game/data/objects';
 
 import { assetNameField } from '../../../assetEditorStates';
+import {
+  editedStronghold,
+  replacedStronghold,
+  savedStronghold,
+  strongholdEditingStatus,
+} from '../../../strongholdEditingSession';
+import type { StrongholdEditingState, StrongholdEditingEvent } from '../../../strongholdEditingSession';
 import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
-export function StrongholdEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
+export function StrongholdEditPage({ slug, loaderData }: Readonly<{ slug: string; loaderData: AssetPageData }>) {
   return (
     <CardEditGate
       type="card-stronghold"
@@ -19,37 +26,30 @@ export function StrongholdEditPage({ slug, loaderData }: { slug: string; loaderD
       schema={StrongholdCardAssetInput}
       slug={slug}
       loaderData={loaderData}
-      session={(props) => <CardEditSession {...props} />}
+      session={renderStrongholdSession}
     />
   );
 }
 
-type StrongholdState = { data: StrongholdDraft; baseline: StrongholdDraft };
-
-type StrongholdEvent =
-  | { kind: 'patch'; update: Partial<StrongholdDraft> }
-  | { kind: 'replace'; data: StrongholdDraft }
-  | { kind: 'saved'; data: StrongholdDraft };
-
-function openingState(data: StrongholdDraft, baseline: StrongholdDraft): StrongholdState {
-  return { data, baseline };
+function renderStrongholdSession(props: CardEditSessionProps<StrongholdDraft>) {
+  return <CardEditSession {...props} />;
 }
 
-function reduce(state: StrongholdState, event: StrongholdEvent): StrongholdState {
+function reduce(state: StrongholdEditingState, event: StrongholdEditingEvent): StrongholdEditingState {
   switch (event.kind) {
     case 'patch':
-      return { ...state, data: { ...state.data, ...event.update } };
+      return editedStronghold(state, event.update);
     case 'replace':
-      return openingState(event.data, state.baseline);
+      return replacedStronghold(state, event.data);
     case 'saved':
-      return { ...state, baseline: event.data };
+      return savedStronghold(state, event.data);
   }
 }
 
-function CardEditSession({ asset, initialDraft, access }: CardEditSessionProps<StrongholdDraft>) {
+function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessionProps<StrongholdDraft>>) {
   const saving = useCardSave('card-stronghold', asset);
   const [chapter, setChapter] = useState<StrongholdChapter>('head');
-  const [state, dispatch] = useReducer(reduce, undefined, () => openingState(initialDraft, initialDraft));
+  const [state, dispatch] = useReducer(reduce, undefined, () => ({ data: initialDraft, baseline: initialDraft }));
   const patch = (update: Partial<StrongholdDraft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({
     name: state.data.name,
@@ -61,9 +61,7 @@ function CardEditSession({ asset, initialDraft, access }: CardEditSessionProps<S
     warnings: [...strongholdDraftWarnings(state.data)],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
-  const validation = StrongholdCardAssetInput.safeParse(state.data);
-  const invalid = validation.success ? undefined : validation.error.issues[0]?.message;
-  const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
+  const { validation, invalid, isDirty } = strongholdEditingStatus(state);
 
   const save = () => {
     if (!validation.success) {

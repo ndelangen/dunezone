@@ -145,9 +145,7 @@ function baselineDatabase(): StorybookDatabase {
       to_asset_id: ref(row.$key!),
       kind: 'deck-card',
       count: 1,
-    }))
-  );
-  baseline.asset_relations.push(
+    })),
     { from_asset_id: ref(deck.$key!), to_asset_id: ref(treachery.$key!), kind: 'deck-card', count: 3 },
     { from_asset_id: ref(bundle.$key!), to_asset_id: ref(disc.$key!), kind: 'bundle-token', count: 1 },
     { from_asset_id: ref(bundle.$key!), to_asset_id: ref(enhance.$key!), kind: 'bundle-token', count: 1 }
