@@ -426,19 +426,23 @@ export const CAMERA_PAN_AT_REST: CameraPanMotion = { velocity: [0, 0], heldSecon
 /*
  * The slide after `seconds` with the pan keys pointing `direction` (x to the right, z toward the viewer; zero when none is held).
  * Holding builds speed toward a top speed, letting go coasts to a stop, and both ease, so the look moves with a little momentum.
+ * `speedScale` is the viewer's own pan speed, scaling every speed along the way.
  */
 export function cameraPanMotionAfter(
   motion: CameraPanMotion,
   zoom: CameraZoom,
   direction: readonly [number, number],
-  seconds: number
+  seconds: number,
+  speedScale = 1
 ): CameraPanMotion {
   const step = Math.min(Math.max(seconds, 0), 0.1);
   const length = Math.hypot(direction[0], direction[1]);
   const heldSeconds = length > 0 ? motion.heldSeconds + step : 0;
   const ramp = 1 - (1 - Math.min(1, heldSeconds / CAMERA_PAN_RAMP_S)) ** 2;
   const speed =
-    length > 0 ? zoom.scale * (CAMERA_PAN_START_SPEED + (CAMERA_PAN_TOP_SPEED - CAMERA_PAN_START_SPEED) * ramp) : 0;
+    length > 0
+      ? speedScale * zoom.scale * (CAMERA_PAN_START_SPEED + (CAMERA_PAN_TOP_SPEED - CAMERA_PAN_START_SPEED) * ramp)
+      : 0;
   const wanted: [number, number] =
     length > 0 ? [(direction[0] / length) * speed, (direction[1] / length) * speed] : [0, 0];
   const share = 1 - Math.exp(-step / CAMERA_PAN_EASE_S);

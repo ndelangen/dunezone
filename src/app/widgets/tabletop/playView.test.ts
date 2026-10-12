@@ -422,6 +422,17 @@ describe('close look', () => {
     expect(motion).toBe(CAMERA_PAN_AT_REST);
   });
 
+  test("the viewer's pan speed scales the slide", () => {
+    const zoom = zoomIn(5);
+    let normal = CAMERA_PAN_AT_REST;
+    let fast = CAMERA_PAN_AT_REST;
+    for (let frame = 0; frame < 120; frame++) {
+      normal = cameraPanMotionAfter(normal, zoom, [1, 0], 1 / 60);
+      fast = cameraPanMotionAfter(fast, zoom, [1, 0], 1 / 60, 5);
+    }
+    expect(fast.velocity[0]).toBeCloseTo(normal.velocity[0] * 5);
+  });
+
   test('sliding out toward the edge slows to a stop instead of running past it', () => {
     let zoom = zoomIn(5);
     const base = () => poseAt(cameraTiltForZoom(0, zoom));
