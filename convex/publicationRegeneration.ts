@@ -6,6 +6,7 @@ import {
   RECTANGLE_TOKEN_ASSET_TYPE,
   RULEBOOK_FIRST_PAGE_ASSET_TYPE,
   CUSTOM_CARD_ASSET_TYPE,
+  STORM_CARD_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
   STRONGHOLD_CARD_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
@@ -154,6 +155,7 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
     case SPICE_CARD_ASSET_TYPE:
     case STRONGHOLD_CARD_ASSET_TYPE:
     case CUSTOM_CARD_ASSET_TYPE:
+    case STORM_CARD_ASSET_TYPE:
     case DECK_ASSET_TYPE:
     case 'token-disc':
     case 'token-tech':

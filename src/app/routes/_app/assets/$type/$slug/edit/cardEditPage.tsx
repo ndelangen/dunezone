@@ -27,7 +27,7 @@ import {
  * Each page keeps its own authoring state and reducer (D7 on «Work the editors wave»).
  */
 
-type CardType = 'card-treachery' | 'card-spice' | 'card-custom' | 'card-stronghold' | 'board';
+type CardType = 'card-treachery' | 'card-spice' | 'card-custom' | 'card-stronghold' | 'card-storm' | 'board';
 
 type CardAsset = NonNullable<AssetPageData>['asset'];
 

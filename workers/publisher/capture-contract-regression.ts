@@ -24,6 +24,7 @@ import { publishingSpiceCard } from '../../src/shared/assets/fixtures/publishing
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { GF9_STRONGHOLD_CARDS } from '../../src/shared/assets/gf9StrongholdDeck';
+import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../../src/shared/assets/standardStormDeck';
 import { arrakisBoard } from '../../src/shared/boards/geometry';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { resolveAsset } from '../../src/shared/media/resolveAsset';
@@ -442,6 +443,7 @@ async function checkPublisherImageCapture(
     | 'card-spice'
     | 'card-custom'
     | 'card-stronghold'
+    | 'card-storm'
     | 'faction-troop'
     | 'faction-traitor'
     | 'faction-alliance'
@@ -569,8 +571,29 @@ try {
   if (process.env.STRONGHOLD_PROOF_PATH) {
     await Bun.write(process.env.STRONGHOLD_PROOF_PATH, strongholdCapture);
   }
+  for (const card of STANDARD_STORM_CARDS) {
+    const proof = await checkPublisherImageCapture(
+      browser,
+      'card-storm',
+      envelope('card-storm', { assetId: `storm-${card.sectors}`, slug: `${card.sectors}-sectors`, card }),
+      `storm card ${card.sectors}`
+    );
+    if (process.env.STORM_PROOF_DIRECTORY) {
+      await mkdir(process.env.STORM_PROOF_DIRECTORY, { recursive: true });
+      await Bun.write(path.join(process.env.STORM_PROOF_DIRECTORY, `storm-${card.sectors}.png`), proof);
+    }
+  }
   await checkPublisherImageCapture(browser, 'card-spice', spiceSnapshot, 'spice card');
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
+  const stormBack = await checkPublisherImageCapture(
+    browser,
+    'cardback-preset',
+    envelope('cardback-preset', { assetId: 'storm', slug: 'storm', cardback: STANDARD_STORM_CARDBACK }),
+    'shared Storm back'
+  );
+  if (process.env.STORM_PROOF_DIRECTORY) {
+    await Bun.write(path.join(process.env.STORM_PROOF_DIRECTORY, 'storm-back.png'), stormBack);
+  }
   await checkPublisherImageCapture(
     browser,
     'cardback-preset',

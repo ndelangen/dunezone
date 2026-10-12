@@ -1,3 +1,4 @@
+import { STANDARD_STORM_CARDS } from '@shared/assets/standardStormDeck';
 import type { WithoutSystemFields } from 'convex/server';
 
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
@@ -138,7 +139,36 @@ function baselineDatabase(): StorybookDatabase {
       band: { background: publishingRectangleTokenFace.background, label: 'ATREIDES' },
     },
   });
-  baseline.assets.push(treachery, spice, custom, deck, disc, enhance, bundle, ...strongholds, strongholdDeck);
+  const stormCards = STANDARD_STORM_CARDS.map((data) => asset({ type: 'card-storm', data }));
+  const stormDeck = asset({
+    type: 'deck',
+    data: {
+      name: 'Standard Storm Deck',
+      about: 'One copy of each movement value from 1 to 6.',
+      cardback: { mode: 'preset', key: 'storm' },
+    },
+  });
+  baseline.assets.push(
+    ...stormCards,
+    stormDeck,
+    ...strongholds,
+    strongholdDeck,
+    treachery,
+    spice,
+    custom,
+    deck,
+    disc,
+    enhance,
+    bundle
+  );
+  baseline.asset_relations.push(
+    ...stormCards.map((card) => ({
+      from_asset_id: ref(stormDeck.$key!),
+      to_asset_id: ref(card.$key!),
+      kind: 'deck-card',
+      count: 1,
+    }))
+  );
   baseline.asset_relations.push(
     ...strongholds.map((row) => ({
       from_asset_id: ref(strongholdDeck.$key!),

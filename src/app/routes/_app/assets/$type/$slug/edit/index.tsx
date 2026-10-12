@@ -5,10 +5,11 @@ import { loadAssetPage } from '@app/db/assets';
 import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../../assetEditorStates';
+import { customCardEditing, stormCardEditing } from '../../../layeredCardEditing';
 import { BoardEditPage } from './boardEdit';
 import { BundleEditPage } from './bundleEdit';
-import { CustomEditPage } from './customEdit';
 import { DeckEditPage } from './deckEdit';
+import { LayeredEditPage } from './layeredEdit';
 import { RectangleEditPage } from './rectangleEdit';
 import { SpiceEditPage } from './spiceEdit';
 import { StrongholdEditPage } from './strongholdEdit';
@@ -40,7 +41,9 @@ function EditAssetPage() {
     case 'card-treachery':
       return <TreacheryEditPage slug={slug} loaderData={loaderData} />;
     case 'card-custom':
-      return <CustomEditPage slug={slug} loaderData={loaderData} />;
+      return <LayeredEditPage config={customCardEditing} slug={slug} loaderData={loaderData} />;
+    case 'card-storm':
+      return <LayeredEditPage config={stormCardEditing} slug={slug} loaderData={loaderData} />;
     case 'card-stronghold':
       return <StrongholdEditPage slug={slug} loaderData={loaderData} />;
     case 'card-spice':

@@ -455,3 +455,17 @@ export const StrongholdCardAssetInput = StrongholdCardAsset.extend({
     message: 'The Body can hold at most 1200 characters',
   }),
 });
+/** Storm cards keep the standard frame and identity while authors compose their artwork and rules. */
+export const StormCard = CustomCard.omit({
+  iconScale: true,
+  iconOffset: true,
+  iconInvert: true,
+  iconOpacity: true,
+}).extend({
+  sectors: z.number().int().min(1).max(6),
+  format: z.literal('decal-window'),
+  subName: z.literal('Storm'),
+  icon: z.tuple([Background, z.literal('/vector/icon/storm_disc.svg')]),
+});
+export const StormCardAsset = StormCard.extend({ about: About });
+export const StormCardAssetInput = StormCardAsset.extend({ about: FormattedAbout });
