@@ -17,7 +17,7 @@ import { useCallback, useMemo } from 'react';
 import { db } from '@db/core';
 import { parseClientBoundary } from '@app/db/core/clientBoundary';
 import { toLiveQueryResult, useLiveOperation, useMappedLiveMutation } from '@app/db/core/live';
-import { useAssetAccess } from '@app/db/viewerAccess';
+import { useAssetAccess, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
 
@@ -64,9 +64,6 @@ export type RulebookReaderPageData = Omit<RawReaderPage, 'body'> & {
     | Exclude<RawReaderPage['body'], { kind: 'render' }>
     | (Omit<Extract<RawReaderPage['body'], { kind: 'render' }>, 'contents'> & { contents: RulebookContentsV1 });
 };
-
-/** A placeholder subject while the page is on its way: no owner and unavailable, so it grants nothing. */
-const NO_SUBJECT = { owner_id: '', is_deleted: true };
 
 function normalizeReaderPage(raw: RawReaderPage): RulebookReaderPageData {
   return {
@@ -123,7 +120,7 @@ export function useRulebookReader({
   const { resolved, viewerAccess } = useAssetAccess(
     assetSubjectFacts(
       'ruleset',
-      page ? { owner_id: page.access.rulesetOwnerId, is_deleted: false } : NO_SUBJECT,
+      page ? { owner_id: page.access.rulesetOwnerId, is_deleted: false } : UNAVAILABLE_SUBJECT,
       page?.access.assignedGroup ?? null
     )
   );

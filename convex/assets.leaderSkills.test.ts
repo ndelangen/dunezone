@@ -7,6 +7,7 @@ import { publisherCaptureSnapshotSchema } from '../src/shared/asset-publishing/p
 import { GF9_LEADER_SKILLS } from '../src/shared/assets/gf9LeaderSkills';
 import { api, internal } from './_generated/api';
 import schema from './schema';
+import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -41,9 +42,7 @@ test('leader skills save, publish their two abilities, and reopen with author ac
   ).rejects.toThrow('Not authorized');
   const updated = { ...card, battleText: 'Add +4 to this leader disc.' };
   await owner.mutation(api.assets.update, { id: created.id, data: updated });
-  expect((await t.query(api.assets.getPage, { type: 'card-leaderability', slug: created.slug }))?.asset.data).toEqual(
-    updated
-  );
+  expect((await assetPageAs(t, { type: 'card-leaderability', slug: created.slug }))?.asset.data).toEqual(updated);
   for (const change of [
     { battleText: '*unclosed' },
     { textSize: 4 },
@@ -62,7 +61,7 @@ test('GF9 installation creates exactly fourteen cards and one deck and preserves
   const first = await t.mutation(internal.assets.seedGF9LeaderSkills, { ownerId });
   expect(first.created).toBe(15);
   expect(first.cardIds).toHaveLength(14);
-  const deck = await t.query(api.assets.getPage, { type: 'deck', slug: 'gf9-leader-skill-deck' });
+  const deck = await assetPageAs(t, { type: 'deck', slug: 'gf9-leader-skill-deck' });
   expect(deck?.members).toHaveLength(14);
   expect(deck?.members?.map((row) => ({ name: row.member.name, count: row.count }))).toEqual(
     GF9_LEADER_SKILLS.map((card) => ({ name: card.name, count: 1 }))
@@ -76,12 +75,10 @@ test('GF9 installation creates exactly fourteen cards and one deck and preserves
   await owner.mutation(api.assets.update, { id: first.cardIds[0]!, data: edited });
   const second = await t.mutation(internal.assets.seedGF9LeaderSkills, { ownerId });
   expect(second).toEqual({ ...first, created: 0 });
-  expect((await t.query(api.assets.getPage, { type: 'deck', slug: 'gf9-leader-skill-deck' }))?.members).toHaveLength(
-    14
+  expect((await assetPageAs(t, { type: 'deck', slug: 'gf9-leader-skill-deck' }))?.members).toHaveLength(14);
+  expect((await assetPageAs(t, { type: 'card-leaderability', slug: 'renamed-bureaucrat' }))?.asset.data).toEqual(
+    edited
   );
-  expect(
-    (await t.query(api.assets.getPage, { type: 'card-leaderability', slug: 'renamed-bureaucrat' }))?.asset.data
-  ).toEqual(edited);
 });
 
 test('GF9 installation refuses occupied stock addresses and rolls back the whole set', async () => {

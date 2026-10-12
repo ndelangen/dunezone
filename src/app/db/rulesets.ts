@@ -13,7 +13,7 @@ import { factionCatalogueRowsToEntries } from '@db/factions';
 import type { FactionCatalogueEntry } from '@db/factions';
 import type { FaqAnswerEntry, FaqItemWithDetails } from '@db/faq';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
-import { useAssetAccess, useViewerAssignableGroups } from '@app/db/viewerAccess';
+import { useAssetAccess, useViewerAssignableGroups, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
@@ -143,7 +143,7 @@ export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetail
 export function useRulesetsAll(options?: { initialData?: RulesetEntry[] }) {
   const liveData = useQuery(api.rulesets.list, {});
   const normalized = liveData?.map(toRulesetEntry);
-  return toLiveQueryResult(normalized, () => options?.initialData ?? undefined);
+  return toLiveQueryResult(normalized, () => options?.initialData);
 }
 
 /** One ruleset with its factions, live, taking `loadRulesetBySlug`'s result as `initialData`. */
@@ -154,22 +154,19 @@ export function useRulesetBySlug(slug: string, options?: { initialData?: Ruleset
   return result;
 }
 
-/* Hooks run unconditionally, so a missing page still needs facts: an unavailable subject grants nothing. */
-const NO_SUBJECT = { owner_id: '', is_deleted: true };
-
 /**
  * The detail routes' live page, taking `loadRulesetDetailPage`'s result as `initialData`, combined with the viewer.
  * The page query is one cached answer for everyone;
  * the viewer half is the session, the viewer's membership of the ruleset's Group and the Groups they could move it into.
  */
-export function useRulesetDetailPage(slug: string, options?: { initialData?: RulesetDetailPublicPage | null }) {
+export function useRulesetDetailPage(slug: string, options?: { initialData?: RulesetDetailPublicPage }) {
   const liveData = useQuery(api.rulesets.detailPage, { slug });
   const normalized: RulesetDetailPublicPage | null | undefined =
     liveData === undefined ? undefined : liveData === null ? null : normalizeRulesetDetailPage(liveData);
-  const result = toLiveQueryResult(normalized, () => options?.initialData ?? undefined);
+  const result = toLiveQueryResult(normalized, () => options?.initialData);
   const page = result.data;
   const { resolved, viewerAccess } = useAssetAccess(
-    assetSubjectFacts('ruleset', page?.ruleset ?? NO_SUBJECT, page?.assignedGroup ?? null)
+    assetSubjectFacts('ruleset', page?.ruleset ?? UNAVAILABLE_SUBJECT, page?.assignedGroup ?? null)
   );
   const assignableGroups = useViewerAssignableGroups();
   const data: RulesetDetailPageData | null | undefined = page

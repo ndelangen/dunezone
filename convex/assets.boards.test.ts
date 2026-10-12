@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vitest';
 import { arrakisBoard, blankBoard } from '../src/shared/boards/geometry';
 import { api } from './_generated/api';
 import schema from './schema';
+import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 describe('authored board Assets', () => {
@@ -18,7 +19,7 @@ describe('authored board Assets', () => {
       type: 'board',
       data: { name: 'Arrakis', about: '', board },
     });
-    const page = await owner.query(api.assets.getPage, { type: 'board', slug: created.slug });
+    const page = await assetPageAs(owner, { type: 'board', slug: created.slug });
     expect(page?.asset.data).toEqual({ name: 'Arrakis', about: '', board });
     expect(page?.viewerAccess.capabilities.edit).toBe(true);
     expect(page?.assetPublishing?.captureStatus).toBe('scheduled');
@@ -37,7 +38,7 @@ describe('authored board Assets', () => {
     );
     expect(jobs).toHaveLength(1);
     expect(jobs[0].asset_data).toEqual({ assetId: created.id, slug: created.slug, board: changed });
-    expect((await owner.query(api.assets.getPage, { type: 'board', slug: cloned.slug }))?.asset.data).toMatchObject({
+    expect((await assetPageAs(owner, { type: 'board', slug: cloned.slug }))?.asset.data).toMatchObject({
       board,
     });
   });
@@ -60,7 +61,7 @@ describe('authored board Assets', () => {
     await expect(
       owner.mutation(api.assets.update, { id: created.id, data: { name: 'Broken', about: '', board } })
     ).rejects.toThrow();
-    expect((await owner.query(api.assets.getPage, { type: 'board', slug: created.slug }))?.asset.name).toBe('Board');
+    expect((await assetPageAs(owner, { type: 'board', slug: created.slug }))?.asset.name).toBe('Board');
   });
 });
 
@@ -91,7 +92,7 @@ test('rejects missing territory names and canonical ID collisions on create and 
   const renamed = blankBoard();
   Object.values(renamed.properties)[0].name = 'Rock outcroppings';
   await owner.mutation(api.assets.update, { id: created.id, data: { name: 'Named board', about: '', board: renamed } });
-  const page = await owner.query(api.assets.getPage, { type: 'board', slug: created.slug });
+  const page = await assetPageAs(owner, { type: 'board', slug: created.slug });
   expect(Object.values((page!.asset.data as { board: typeof renamed }).board.properties)[0]).toMatchObject({
     name: 'Rock outcroppings',
     id: 'rock_outcroppings',
@@ -122,7 +123,7 @@ test('rejects face-less writes while accepting unfinished cuts inside the circul
   await expect(
     owner.mutation(api.assets.update, { id: created.id, data: { name: 'Invalid update', about: '', board: open } })
   ).rejects.toThrow('closed, renderable');
-  expect((await owner.query(api.assets.getPage, { type: 'board', slug: created.slug }))?.asset.data).toMatchObject({
+  expect((await assetPageAs(owner, { type: 'board', slug: created.slug }))?.asset.data).toMatchObject({
     board,
   });
 });

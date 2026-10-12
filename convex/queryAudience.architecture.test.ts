@@ -113,9 +113,10 @@ describe('query audience', () => {
     expect(unmarked).toEqual([]);
   });
 
-  test('the pending split list only shrinks', () => {
+  test('the pending split and deprecated lists only shrink', () => {
     /* Lower this as pages move to publicQuery; never raise it. */
     expect(Object.keys(PENDING_VIEWER_SPLIT).length).toBeLessThanOrEqual(5);
+    expect(Object.keys(DEPRECATED_VIEWER_QUERIES).length).toBeLessThanOrEqual(5);
   });
 
   test('every deprecated viewer query names a public replacement that exists', () => {

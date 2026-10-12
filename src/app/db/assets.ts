@@ -5,7 +5,7 @@ import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
-import { useAssetAccess, useViewerAssignableGroups, useViewerIsAdmin } from '@app/db/viewerAccess';
+import { useAssetAccess, useViewerAssignableGroups, useViewerIsAdmin, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
 import type { AssignedGroupSummary } from '../../../convex/lib/collaborativeAccess';
@@ -80,9 +80,6 @@ export async function loadAssetPage(type: string, slug: string): Promise<AssetPu
   return await db.query(api.assets.page, { type, slug });
 }
 
-/* Hooks run unconditionally, so a missing page still needs facts: an unavailable subject grants nothing. */
-const NO_SUBJECT = { owner_id: '', is_deleted: true };
-
 /**
  * One asset's page, live, taking `loadAssetPage`'s result as `initialData`, combined with the viewer.
  * The page query is one cached answer for everyone;
@@ -102,7 +99,7 @@ export function useAssetPage(
   const { resolved, viewerAccess } = useAssetAccess(
     assetSubjectFacts(
       'asset',
-      page ? { owner_id: page.ownerId, is_deleted: false } : NO_SUBJECT,
+      page ? { owner_id: page.ownerId, is_deleted: false } : UNAVAILABLE_SUBJECT,
       page?.assignedGroup ?? null
     )
   );

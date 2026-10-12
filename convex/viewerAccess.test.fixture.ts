@@ -54,3 +54,40 @@ export async function rulebookReaderAs(
   );
   return { ...page, canEdit: capabilities.edit, canDelete: capabilities.delete };
 }
+
+/** The ruleset detail page as a given viewer sees it, combined as `useRulesetDetailPage` does. Null for an unknown slug. */
+export async function rulesetDetailPageAs(client: QueryClient, slug: string) {
+  const page = await client.query(api.rulesets.detailPage, { slug });
+  if (!page) {
+    return null;
+  }
+  const [viewer, assignableGroups] = await Promise.all([
+    accessViewerFor(client, page.assignedGroup?.id ?? null),
+    client.query(api.groups.viewerAssignableGroups, {}),
+  ]);
+  return {
+    ...page,
+    viewerAccess: assetAccessForViewer(assetSubjectFacts('ruleset', page.ruleset, page.assignedGroup), viewer),
+    assignableGroups,
+  };
+}
+
+/** One asset's page as a given viewer sees it, combined as `useAssetPage` does. Null for an unknown address. */
+export async function assetPageAs(client: QueryClient, args: FunctionArgs<typeof api.assets.page>) {
+  const page = await client.query(api.assets.page, args);
+  if (!page) {
+    return null;
+  }
+  const [viewer, assignableGroups, session] = await Promise.all([
+    accessViewerFor(client, page.assignedGroup?.id ?? null),
+    client.query(api.groups.viewerAssignableGroups, {}),
+    client.query(api.profiles.session, {}),
+  ]);
+  const subject = { owner_id: page.ownerId, is_deleted: false };
+  return {
+    ...page,
+    viewerAccess: assetAccessForViewer(assetSubjectFacts('asset', subject, page.assignedGroup), viewer),
+    assignableGroups,
+    canConvertToCustom: page.convertibleToCustom && session.isAdmin,
+  };
+}

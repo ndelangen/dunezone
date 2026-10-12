@@ -8,6 +8,9 @@ import type { AssignedGroupSummary } from '../../../convex/lib/collaborativeAcce
 
 const ANONYMOUS: AccessViewer = { kind: 'anonymous' };
 
+/** Hooks run unconditionally, so a page still on its way needs facts too: an unavailable subject with no owner grants nothing. */
+export const UNAVAILABLE_SUBJECT = { owner_id: '', is_deleted: true };
+
 /**
  * Who the viewer is for one subject: their user id and their membership of the subject's Group, or undefined while either is on its way.
  * Page queries are `publicQuery`, one cached answer for everyone;
