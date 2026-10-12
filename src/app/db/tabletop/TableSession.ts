@@ -1617,14 +1617,9 @@ export class TableSession {
       this.finishRotation();
     }
     const turns = (this.turning?.turns ?? 0) + direction;
-    const state = this.requireTable().state;
-    const piece = state.pieces.find((candidate) => candidate.id === pieceId);
-    /* A locked piece does not turn, and a step that would overlap another piece is not taken, as the room would refuse either; the turn so far stays. */
-    if (
-      !piece ||
-      gestureBlockReason(piece) ||
-      !rotatedPiece(state, piece, foldedTurns(this.turnsOf(pieceId) + direction))
-    ) {
+    const piece = this.turnablePiece(pieceId);
+    /* A step that would overlap another piece is not taken, as the room would refuse it; the turn so far stays. */
+    if (!piece || !rotatedPiece(this.requireTable().state, piece, foldedTurns(this.turnsOf(pieceId) + direction))) {
       return;
     }
     this.turning = { pieceId, turns };
@@ -1649,11 +1644,15 @@ export class TableSession {
     }
     this.emit();
   };
+  /* The piece at rest as this page has it, while the room would let it turn: present and not locked. */
+  private turnablePiece(pieceId: string) {
+    const piece = this.requireTable().state.pieces.find((candidate) => candidate.id === pieceId);
+    return piece && !gestureBlockReason(piece) ? piece : null;
+  }
   /* A piece locked or taken away while the key was held keeps the turn to itself, since the room would refuse it; a turn back to the start sends nothing. */
   private sendTurn({ pieceId, turns: held }: Turn) {
-    const piece = this.requireTable().state.pieces.find((candidate) => candidate.id === pieceId);
     const turns = foldedTurns(held);
-    if (!piece || gestureBlockReason(piece) || !turns) {
+    if (!turns || !this.turnablePiece(pieceId)) {
       return;
     }
     const steps = Math.abs(turns);
