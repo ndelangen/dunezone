@@ -9,6 +9,8 @@ import { CardText } from './CardText';
 import { FrontDecals } from './Decals';
 import styles from './LeaderSkill.module.css';
 
+const vectorCrops: Partial<Record<string, readonly [number, number, number, number]>> = VECTOR_CROPS;
+
 /** The title stays fixed; general rules, clipped artwork and battle rules fill the body in order. */
 export function LeaderSkillCard({
   generalText,
@@ -55,7 +57,8 @@ export function LeaderSkillCard({
           <svg viewBox="0 0 734 420" className={styles.decals}>
             <g transform="translate(-83 -260)">
               {artworkDecals.map((decal, index) => {
-                const [x, y, width, height] = VECTOR_CROPS[decal.id];
+                /* Raster images retain their intrinsic ratio inside the existing centred square slot. */
+                const [x, y, width, height] = vectorCrops[decal.id] ?? [50, 50, 100, 100];
                 const size = Math.min(680 / width, 384 / height) * 100;
                 return (
                   <FrontDecals
