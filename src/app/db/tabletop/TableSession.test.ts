@@ -1,5 +1,6 @@
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
+import type { Disclosure } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
@@ -1527,6 +1528,35 @@ test('holds an early reveal behind the plan edits made before it, in order with 
       .sent.slice(index)
       .flatMap((message) => (message.type === 'command' ? [message.action] : []))
   ).toEqual([disclose, { kind: 'battle-ready', battleId: 'battle-one', ready: true }]);
+});
+
+test('reveals queued behind a plan edit go out a few at a time, and Ready follows once the room answers', async () => {
+  const client = await connected();
+  const { plan, snapshot } = battleTable();
+  authorize(snapshot);
+  client.editBattlePlan({ adjustment: 1 });
+  const first = command();
+  const reveal = (disclosure: Disclosure) =>
+    ({ kind: 'battle-disclose', battleId: 'battle-one', disclosure, shown: true }) as const;
+  const reveals = [
+    reveal({ element: 'leader' }),
+    reveal({ element: 'dial' }),
+    reveal({ element: 'card', cardId: 'card-one' }),
+    reveal({ element: 'card', cardId: 'card-two' }),
+  ];
+  reveals.forEach((action) => client.command(action));
+  const ready = { kind: 'battle-ready', battleId: 'battle-one', ready: true } as const;
+  client.command(ready);
+  const index = socket().sent.length;
+  const afterFirst = { ...snapshot, revision: 1, battlePlan: { ...plan, adjustment: 1 } };
+  socket().deliver(view({ snapshot: afterFirst, completedCommandId: first.commandId }));
+  const sent = () =>
+    socket()
+      .sent.slice(index)
+      .flatMap((message) => (message.type === 'command' ? [message] : []));
+  expect(sent().map((message) => message.action)).toEqual(reveals);
+  socket().deliver(view({ snapshot: { ...afterFirst, revision: 2 }, completedCommandId: sent()[0].commandId }));
+  expect(sent().map((message) => message.action)).toEqual([...reveals, ready]);
 });
 
 test('shows a queued reveal as revealed at once, so its part locks before a later edit can overtake it', async () => {

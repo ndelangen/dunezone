@@ -1534,12 +1534,21 @@ export class TableSession {
         }
       : snapshot;
   }
+  /*
+   * Queued readiness and reveals go out in order, only as many as the unanswered limit lets through; the rest wait
+   * for earlier commands to be answered, since each answer flushes the queues again.
+   */
   private flushBattleActions() {
-    if (this.canAct() && !this.planInFlight() && this.queuedBattleActions.length) {
-      const actions = this.queuedBattleActions;
+    while (this.mayFlushBattleAction()) {
+      const [next, ...rest] = this.queuedBattleActions;
       this.queuedBattleActions = [];
-      actions.forEach((action) => this.command(action));
+      this.command(next);
+      this.queuedBattleActions = [...rest, ...this.queuedBattleActions];
     }
+  }
+  private mayFlushBattleAction() {
+    const room = this.unanswered.size < UNANSWERED_COMMANDS_LIMIT;
+    return room && this.canAct() && !this.planInFlight() && this.queuedBattleActions.length > 0;
   }
   /*
    * Whether this page may send the command now. Past a few unanswered commands a further one is dropped, not queued,
