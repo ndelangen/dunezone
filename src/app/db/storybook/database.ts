@@ -9,6 +9,7 @@ import { publishingRectangleTokenFace } from '../../../shared/assets/fixtures/pu
 import { publishingSpiceCard } from '../../../shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../../../shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../../shared/assets/fixtures/publishingTreacheryCard';
+import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../../../shared/assets/gf9StrongholdDeck';
 import { parseAssetDataForWrite } from '../../../shared/assets/validation';
 import { assetPublishingFaction } from '../../../shared/factions/fixtures/assetPublishingFaction';
 import { FactionInputSchema, FactionRowSlugSchema } from '../../../shared/factions/schema';
@@ -106,6 +107,8 @@ function baselineDatabase(): StorybookDatabase {
 
   const treachery = asset({ type: 'card-treachery', data: publishingTreacheryCard });
   const custom = asset({ type: 'card-custom', data: publishingCustomCard });
+  const strongholds = GF9_STRONGHOLD_CARDS.map((data) => asset({ type: 'card-stronghold', data }));
+  const strongholdDeck = asset({ type: 'deck', data: GF9_STRONGHOLD_DECK });
   const spice = asset({ type: 'card-spice', data: publishingSpiceCard });
   const deck = asset({
     type: 'deck',
@@ -145,7 +148,19 @@ function baselineDatabase(): StorybookDatabase {
       cardback: { mode: 'preset', key: 'storm' },
     },
   });
-  baseline.assets.push(...stormCards, stormDeck, treachery, spice, custom, deck, disc, enhance, bundle);
+  baseline.assets.push(
+    ...stormCards,
+    stormDeck,
+    ...strongholds,
+    strongholdDeck,
+    treachery,
+    spice,
+    custom,
+    deck,
+    disc,
+    enhance,
+    bundle
+  );
   baseline.asset_relations.push(
     ...stormCards.map((card) => ({
       from_asset_id: ref(stormDeck.$key!),
@@ -155,6 +170,12 @@ function baselineDatabase(): StorybookDatabase {
     }))
   );
   baseline.asset_relations.push(
+    ...strongholds.map((row) => ({
+      from_asset_id: ref(strongholdDeck.$key!),
+      to_asset_id: ref(row.$key!),
+      kind: 'deck-card',
+      count: 1,
+    })),
     { from_asset_id: ref(deck.$key!), to_asset_id: ref(treachery.$key!), kind: 'deck-card', count: 3 },
     { from_asset_id: ref(bundle.$key!), to_asset_id: ref(disc.$key!), kind: 'bundle-token', count: 1 },
     { from_asset_id: ref(bundle.$key!), to_asset_id: ref(enhance.$key!), kind: 'bundle-token', count: 1 }

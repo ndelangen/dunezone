@@ -6,6 +6,8 @@ import { factionAllianceAssetDataSchema, factionTraitorAssetDataSchema } from '.
 import { factionTroopAssetDataSchema } from './factionTroopPublication';
 import {
   CUSTOM_CARD_ASSET_TYPE,
+  STRONGHOLD_CARD_ASSET_TYPE,
+  strongholdCardAssetDataSchema,
   STORM_CARD_ASSET_TYPE,
   customCardAssetDataSchema,
   stormCardAssetDataSchema,
@@ -61,6 +63,7 @@ export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', 
   captureSnapshot(TREACHERY_CARD_ASSET_TYPE, treacheryCardAssetDataSchema),
   captureSnapshot(SPICE_CARD_ASSET_TYPE, spiceCardAssetDataSchema),
   captureSnapshot(CUSTOM_CARD_ASSET_TYPE, customCardAssetDataSchema),
+  captureSnapshot(STRONGHOLD_CARD_ASSET_TYPE, strongholdCardAssetDataSchema),
   captureSnapshot(STORM_CARD_ASSET_TYPE, stormCardAssetDataSchema),
   z.strictObject({
     ok: z.literal(true),
