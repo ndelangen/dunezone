@@ -4,8 +4,8 @@ import type { Vector3Tuple } from '@shared/play/model';
 import {
   cardBaySlotPositions,
   CARD_SLOT_OUTER_SIZE,
-  OTHER_DECK_POSITION,
-  OTHER_DECK_LABEL_POSITION,
+  SHARED_ITEM_PLACEMENT_ANCHORS,
+  SHARED_ITEM_LABEL_POSITION,
   TABLE_TANKS_LABEL,
   TABLE_TANKS_LABEL_POSITION,
 } from '@shared/play/tableFurnitureLayout';
@@ -106,8 +106,10 @@ export function TableFurniture({ trackerSlots }: { trackerSlots: readonly Tracke
       <TablePlate trackerSlots={trackerSlots} />
       <SideCardBay side="left" />
       <SideCardBay side="right" />
-      <CardWell position={OTHER_DECK_POSITION} />
-      <TableLabel position={OTHER_DECK_LABEL_POSITION}>OTHER DECKS</TableLabel>
+      {SHARED_ITEM_PLACEMENT_ANCHORS.map((anchor) => (
+        <CardWell key={anchor.id} position={anchor.position} />
+      ))}
+      <TableLabel position={SHARED_ITEM_LABEL_POSITION}>SHARED ITEMS</TableLabel>
       <TableLabel position={TABLE_TANKS_LABEL_POSITION}>{TABLE_TANKS_LABEL}</TableLabel>
     </group>
   );

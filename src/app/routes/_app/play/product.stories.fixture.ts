@@ -7,7 +7,7 @@ import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { rosterFactionNames } from '@shared/play/protocol';
 import type { SupplyDependencies } from '@shared/play/setupSupply';
 import { factionSupply, item, piece, place } from '@shared/play/setupSupply';
-import { cardBaySlotPositions, OTHER_DECK_POSITION } from '@shared/play/tableFurnitureLayout';
+import { cardBaySlotPositions, SHARED_ITEM_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
 import { BOARD_RADIUS, restingPositionAt } from '@shared/play/tableGeometry';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { tableSeatAngles } from '@shared/play/tableSettings';
@@ -293,7 +293,7 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
     orientation: 0,
     items,
   };
-  remaining.position = restingPositionAt(OTHER_DECK_POSITION, remaining);
+  remaining.position = restingPositionAt(SHARED_ITEM_PLACEMENT_ANCHORS[0]!.position, remaining);
   snapshot.table.pieces = [...snapshot.table.pieces.filter((entry) => entry.kind !== 'card'), remaining];
   placeStartingTroops(snapshot);
   snapshot.setup!.index = 1;

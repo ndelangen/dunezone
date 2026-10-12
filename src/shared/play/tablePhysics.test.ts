@@ -114,7 +114,7 @@ describe('Tleilaxu Tanks shelf physics', () => {
 
   test('pulls a piece dropped past the shelf edge back onto the shelf, not onto the board', () => {
     const { troop } = cardWellFixtures();
-    const clamped = clampPositionToTable(troop, [1, 0.38, 9]);
+    const clamped = clampPositionToTable(troop, [1, 0.38, TANKS_PLAY_AREA.maxZ + 1]);
 
     expect(clamped[0]).toBe(1);
     expect(clamped[2]).toBeCloseTo(TANKS_PLAY_AREA.maxZ - 0.175, 8);

@@ -3,6 +3,9 @@ import {
   BOTTOM_SHELF_POSITION,
   BOTTOM_SHELF_SIZE,
   CARD_BAY_PLACEMENT_ANCHORS,
+  SHARED_ITEM_PLACEMENT_ANCHORS,
+  TABLE_TANKS_LABEL_POSITION,
+  SHARED_ITEM_LABEL_POSITION,
   cardBaySlotPositions,
   CARD_SLOT_GAP,
   CARD_SLOT_OUTER_SIZE,
@@ -249,19 +252,44 @@ describe('table furniture', () => {
     }
   });
 
-  test('frames the complete Tanks shelf in each supported layout', () => {
-    for (const aspectRatio of [1, 0.75, 390 / 844]) {
-      const camera = tableCamera(cameraPoseFor('bottom', aspectRatio), aspectRatio);
+  test('supports eight equally spaced generic wells with room for the Tanks and the label', () => {
+    const anchors = SHARED_ITEM_PLACEMENT_ANCHORS;
+    const rows = [...new Set(anchors.map((anchor) => anchor.position[2]))].sort((a, b) => a - b);
+    expect(anchors).toHaveLength(8);
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      const slots = anchors
+        .filter((anchor) => anchor.position[2] === row)
+        .sort((a, b) => a.position[0] - b.position[0]);
+      expect(slots).toHaveLength(4);
+      for (let index = 1; index < slots.length; index++) {
+        expect(slots[index].position[0] - slots[index - 1].position[0] - CARD_WIDTH).toBeCloseTo(CARD_SLOT_GAP);
+      }
+    }
+    expect(rows[1] - rows[0] - CARD_DEPTH).toBeCloseTo(CARD_SLOT_GAP);
+    expect(rows[0] - CARD_SLOT_OUTER_SIZE.depth / 2 - TABLE_TANKS_LABEL_POSITION[2]).toBeGreaterThan(0.8);
+    expect(SHARED_ITEM_LABEL_POSITION[2] - rows[1] - CARD_SLOT_OUTER_SIZE.depth / 2).toBeGreaterThan(0.3);
+    for (const anchor of anchors) {
+      expect(Math.abs(anchor.position[0]) + CARD_SLOT_OUTER_SIZE.width / 2).toBeLessThan(BOTTOM_SHELF_SIZE[0] / 2);
+      expect(anchor.position[2] + CARD_SLOT_OUTER_SIZE.depth / 2).toBeLessThan(TABLE_PLATE_BOUNDS.maxZ);
+    }
+  });
 
-      for (const xDirection of [-1, 1]) {
-        for (const zDirection of [-1, 1]) {
-          const projected = new Vector3(
-            BOTTOM_SHELF_POSITION[0] + (xDirection * BOTTOM_SHELF_SIZE[0]) / 2,
-            FURNITURE_SURFACE_Y,
-            BOTTOM_SHELF_POSITION[2] + (zDirection * BOTTOM_SHELF_SIZE[2]) / 2
-          ).project(camera);
-          expect(Math.abs(projected.x)).toBeLessThanOrEqual(0.92);
-          expect(Math.abs(projected.y)).toBeLessThanOrEqual(0.92);
+  test('frames the complete Tanks shelf in each supported layout', () => {
+    for (const aspectRatio of [1440 / 695, 1, 0.75, 390 / 844]) {
+      for (const tilt of [0, 0.5, 1]) {
+        const camera = tableCamera(cameraPoseFor('bottom', aspectRatio, undefined, undefined, tilt), aspectRatio);
+
+        for (const xDirection of [-1, 1]) {
+          for (const zDirection of [-1, 1]) {
+            const projected = new Vector3(
+              BOTTOM_SHELF_POSITION[0] + (xDirection * BOTTOM_SHELF_SIZE[0]) / 2,
+              FURNITURE_SURFACE_Y,
+              BOTTOM_SHELF_POSITION[2] + (zDirection * BOTTOM_SHELF_SIZE[2]) / 2
+            ).project(camera);
+            expect(Math.abs(projected.x)).toBeLessThanOrEqual(0.92 + 1e-9);
+            expect(Math.abs(projected.y)).toBeLessThanOrEqual(0.92 + 1e-9);
+          }
         }
       }
     }

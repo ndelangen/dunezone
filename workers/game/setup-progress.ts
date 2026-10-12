@@ -18,8 +18,9 @@ import type { TableRoster } from '../../src/shared/play/schema';
 import { phaseGate, setupStep, setupReadyRequired } from '../../src/shared/play/setup';
 import type { SetupState } from '../../src/shared/play/setup';
 import { stormOrder } from '../../src/shared/play/stormSector';
-import { OTHER_DECK_POSITION } from '../../src/shared/play/tableFurnitureLayout';
+import { SHARED_ITEM_PLACEMENT_ANCHORS } from '../../src/shared/play/tableFurnitureLayout';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
+import { isCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { labelForCount } from '../../src/shared/play/tableState';
 import { dealPredictionCard } from './predictionCards';
 import { seatedFaction } from './state';
@@ -325,15 +326,18 @@ export function gatherTraitors(snapshot: StoredSnapshot, reserved: ReadonlySet<s
     return snapshot;
   }
   const { candidates, held } = pendingTraitors(snapshot.table.pieces, pending, reserved);
-  const remaining = held ? [...pending] : [];
   const pieces = parkTraitors(snapshot, candidates);
+  const waitingForSpace = candidates.length > 0 && !pieces && !parkedTraitors(candidates);
+  const remaining = held || waitingForSpace ? [...pending] : [];
   if (!pieces && JSON.stringify(remaining) === JSON.stringify(snapshot.pendingTraitors)) {
     return snapshot;
   }
   return event(
     { ...snapshot, pendingTraitors: remaining, table: { ...snapshot.table, pieces: pieces ?? snapshot.table.pieces } },
     'traitors-gather',
-    'Tabletop traitors gathered below the tanks. Private hands are unchanged.'
+    waitingForSpace
+      ? 'Traitors are waiting for a clear shared slot below the tanks. Private hands are unchanged.'
+      : 'Tabletop traitors gathered below the tanks. Private hands are unchanged.'
   );
 }
 
@@ -342,10 +346,11 @@ function parkedTraitors(candidates: StoredPiece[]) {
     return false;
   }
   const piece = candidates[0];
-  return (
-    piece.position[0] === OTHER_DECK_POSITION[0] &&
-    piece.position[2] === OTHER_DECK_POSITION[2] &&
-    piece.orientation === 0
+  return SHARED_ITEM_PLACEMENT_ANCHORS.some(
+    (anchor) =>
+      piece.position[0] === anchor.position[0] &&
+      piece.position[2] === anchor.position[2] &&
+      piece.orientation === anchor.orientation
   );
 }
 
@@ -368,8 +373,16 @@ function parkTraitors(snapshot: StoredSnapshot, candidates: StoredPiece[]) {
     zoneId: null,
     items,
   };
-  deck.position = restingPositionAt(OTHER_DECK_POSITION, deck);
-  return [...snapshot.table.pieces.filter((piece) => !ids.has(piece.id)), deck];
+  const others = snapshot.table.pieces.filter((piece) => !ids.has(piece.id));
+  const obstacles = others.filter((piece) => !piece.inventory);
+  const vacant = SHARED_ITEM_PLACEMENT_ANCHORS.find((anchor) =>
+    isCollisionFreePosition(deck, anchor.position, obstacles)
+  );
+  if (!vacant) {
+    return null;
+  }
+  deck.position = restingPositionAt(vacant.position, deck);
+  return [...others, deck];
 }
 
 function pendingTraitors(table: StoredPiece[], pending: ReadonlySet<string>, reserved: ReadonlySet<string>) {

@@ -6,7 +6,7 @@ import type { FactionCapture } from '../../src/shared/play/capture';
 import type { StoredPiece } from '../../src/shared/play/model';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { factionSupply } from '../../src/shared/play/setupSupply';
-import { OTHER_DECK_POSITION } from '../../src/shared/play/tableFurnitureLayout';
+import { SHARED_ITEM_PLACEMENT_ANCHORS } from '../../src/shared/play/tableFurnitureLayout';
 import { deckCommand } from './decks';
 import { hostedFixturePlan } from './fixture';
 import { gatherTraitors, initialSetup } from './setup-progress';
@@ -69,7 +69,7 @@ test('gathering names combined stacks by their back, and a lone stack it only mo
       tableOf([harkonnen])
     );
   const lastCard = dealt.table.pieces[0]!;
-  const parked = [OTHER_DECK_POSITION[0], OTHER_DECK_POSITION[2]];
+  const parked = [SHARED_ITEM_PLACEMENT_ANCHORS[0]!.position[0], SHARED_ITEM_PLACEMENT_ANCHORS[0]!.position[2]];
 
   expect(gathered([atreides])).toEqual([{ label: 'Traitor cards', at: parked }]);
   expect(gathered([lastCard])).toEqual([{ label: 'Traitor card', at: parked }]);
@@ -108,5 +108,50 @@ test('two factions whose joined ids would read alike still get distinct setup st
   expect(new Set(ids).size).toBe(ids.length);
   expect(new Set(setup.steps.filter((step) => step.kind === 'prediction').map((step) => step.factionId))).toEqual(
     new Set(['a', 'a_b'])
+  );
+});
+
+test('gathering chooses a vacant shared slot without moving other items', () => {
+  const fixture = hostedFixturePlan.snapshot(hostedFixturePlan.roster);
+  const source = fixture.table.pieces.find((piece) => piece.kind === 'force')!;
+  const blockers = SHARED_ITEM_PLACEMENT_ANCHORS.slice(0, 7).map((anchor, index) => ({
+    ...source,
+    id: `occupied-${index}`,
+    position: [...anchor.position] as StoredPiece['position'],
+    orientation: 0,
+  }));
+  const traitor = traitorDeck('atreides', 0);
+  const result = gatherTraitors(tableOf([...blockers, traitor]), new Set(), true);
+  expect(result.table.pieces.slice(0, 7)).toEqual(blockers);
+  const gathered = result.table.pieces.find((piece) => piece.id === traitor.id)!;
+  expect([gathered.position[0], gathered.position[2]]).toEqual([
+    SHARED_ITEM_PLACEMENT_ANCHORS[7]!.position[0],
+    SHARED_ITEM_PLACEMENT_ANCHORS[7]!.position[2],
+  ]);
+  expect(gatherTraitors(result, new Set(), true)).toBe(result);
+});
+
+test('a full shared shelf defers gathering until a slot clears, without moving its contents', () => {
+  const fixture = hostedFixturePlan.snapshot(hostedFixturePlan.roster);
+  const source = fixture.table.pieces.find((piece) => piece.kind === 'force')!;
+  const blockers = SHARED_ITEM_PLACEMENT_ANCHORS.map((anchor, index) => ({
+    ...source,
+    id: `occupied-${index}`,
+    position: [...anchor.position] as StoredPiece['position'],
+    orientation: 0,
+  }));
+  const traitor = traitorDeck('atreides', 0);
+  const result = gatherTraitors(tableOf([...blockers, traitor]), new Set(), true);
+  expect(result.table.pieces).toEqual([...blockers, traitor]);
+  expect(result.pendingTraitors).toEqual(traitor.items.map((item) => item.id));
+  expect(gatherTraitors(result, new Set())).toBe(result);
+  const cleared = {
+    ...result,
+    table: { ...result.table, pieces: result.table.pieces.filter((piece) => piece.id !== blockers[7]!.id) },
+  };
+  const gathered = gatherTraitors(cleared, new Set());
+  expect(gathered.pendingTraitors).toEqual([]);
+  expect(gathered.table.pieces.find((piece) => piece.id === traitor.id)!.position).toEqual(
+    SHARED_ITEM_PLACEMENT_ANCHORS[7]!.position
   );
 });

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import { freshTableState } from './model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from './model';
-import { CARD_BAY_PLACEMENT_ANCHORS, FURNITURE_SURFACE_Y } from './tableFurnitureLayout';
+import { CARD_BAY_PLACEMENT_ANCHORS, SHARED_ITEM_PLACEMENT_ANCHORS, FURNITURE_SURFACE_Y } from './tableFurnitureLayout';
 import { restingPositionAt } from './tableGeometry';
 import {
   applyDraftToState,
@@ -814,5 +814,41 @@ describe('card stack names', () => {
     };
 
     expect([merged('loose', 'homebrew'), merged('homebrew', 'loose')]).toEqual(['Deck', 'Deck']);
+  });
+});
+
+describe('shared item slots', () => {
+  test.each(['treachery-card-loose', 'treachery-deck', 'harkonnen-force-loose'])(
+    'places %s in every shared slot without changing its items',
+    (pieceId) => {
+      for (const anchor of SHARED_ITEM_PLACEMENT_ANCHORS) {
+        const state = freshTableState();
+        const source = pieceById(state.pieces, pieceId);
+        source.orientation = Math.PI / 4;
+        const before = itemIds(state);
+        const gesture = required(draftForGesture(source, 'whole'));
+        const released: Vector3Tuple = [anchor.position[0] + 0.1, 0.38, anchor.position[2] - 0.1];
+        const settled = required(settleCarryAtPosition(state, gesture, released));
+        const next = applyDraftToState(state, settled);
+        expect(required(next.events[0]).status).toBe('accepted');
+        const placed = pieceById(next.pieces, pieceId);
+        expect([placed.position[0], placed.position[2]]).toEqual([anchor.position[0], anchor.position[2]]);
+        expect(placed.orientation).toBe(0);
+        expect(placed.items).toEqual(source.items);
+        expect(itemIds(next)).toEqual(before);
+      }
+    }
+  );
+
+  test('a token occupying a shared slot refuses a card, while a neighboring slot stays usable', () => {
+    const state = freshTableState();
+    const occupied = SHARED_ITEM_PLACEMENT_ANCHORS[7]!;
+    const troop = pieceById(state.pieces, 'harkonnen-force-loose');
+    troop.position = restingPositionAt(occupied.position, troop);
+    troop.orientation = 0;
+    const card = pieceById(state.pieces, 'treachery-card-loose');
+    const gesture = required(draftForGesture(card, 'whole'));
+    expect(settleCarryAtPosition(state, gesture, occupied.position)).toBeNull();
+    expect(settleCarryAtPosition(state, gesture, SHARED_ITEM_PLACEMENT_ANCHORS[6]!.position)).not.toBeNull();
   });
 });

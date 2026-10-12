@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { DEFAULT_PHASE_PRIORITY } from '../../src/shared/factions/extraPhases';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import { SHARED_ITEM_PLACEMENT_ANCHORS } from '../../src/shared/play/tableFurnitureLayout';
 import { applyPatch } from './history';
 import { draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
@@ -244,8 +245,8 @@ describe('Real-game setup progression', () => {
     const after = await stored();
     const gathered = after.table.pieces.filter((piece) => piece.stackKey === 'cards:traitor');
     expect(gathered).toHaveLength(1);
-    expect(gathered[0].position[0]).toBe(0);
-    expect(gathered[0].position[2]).toBe(7.5);
+    expect(gathered[0].position[0]).toBe(SHARED_ITEM_PLACEMENT_ANCHORS[0].position[0]);
+    expect(gathered[0].position[2]).toBe(SHARED_ITEM_PLACEMENT_ANCHORS[0].position[2]);
     expect(gathered[0].items.map((item) => item.id).sort()).toEqual(physical.sort());
     expect((await syncView(a)).snapshot.hand).toEqual(hand);
     const { snapshot: previous } = await next(b, -1);
@@ -308,8 +309,8 @@ describe('Real-game setup progression', () => {
     expect(saved.pendingTraitors).toEqual([]);
     expect(saved.revision).toBeGreaterThan(before.revision);
     const gathered = saved.table.pieces.find((piece) => piece.stackKey === 'cards:traitor');
-    expect(gathered.position[0]).toBe(0);
-    expect(gathered.position[2]).toBe(7.5);
+    expect(gathered.position[0]).toBe(SHARED_ITEM_PLACEMENT_ANCHORS[0].position[0]);
+    expect(gathered.position[2]).toBe(SHARED_ITEM_PLACEMENT_ANCHORS[0].position[2]);
     const savedHistory = await runtime.exec('SELECT * FROM history ORDER BY step');
     a.send(drop);
     await syncView(a);
