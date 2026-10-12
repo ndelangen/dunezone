@@ -1,0 +1,14 @@
+.comparison {
+  display: grid;
+  grid-template-columns: minmax(16rem, 1fr) minmax(30rem, 3fr);
+  gap: var(--space-sm);
+}
+.source {
+  min-width: 0;
+}
+.source svg {
+  width: 100%;
+}
+.table {
+  min-width: 0;
+}

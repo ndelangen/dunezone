@@ -99,6 +99,7 @@ import { ArtworkPending } from './ArtworkPending';
 import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
+import { BoardGeometryPrototypeContext } from './BoardGeometryPrototypeContext';
 import { boardMapGeometry } from './boardMapGeometry';
 import {
   BOARD_RIM_COLOR,
@@ -462,8 +463,30 @@ function BoardMap({ animate = false }: { animate?: boolean }) {
       }
     }
   });
-  const mapGeometry = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS), []);
-  useEffect(() => () => mapGeometry.dispose(), [mapGeometry]);
+  const prototype = useContext(BoardGeometryPrototypeContext);
+  useEffect(() => {
+    let mounted = true;
+    void prototype?.textureReady?.then(() => {
+      if (mounted) {
+        invalidate();
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [prototype?.textureReady, invalidate]);
+  const mapGeometry = useMemo(
+    () => prototype?.geometry ?? boardMapGeometry(arrakisMapSvg, BOARD_RADIUS),
+    [prototype?.geometry]
+  );
+  useEffect(
+    () => () => {
+      if (!prototype) {
+        mapGeometry.dispose();
+      }
+    },
+    [mapGeometry, prototype]
+  );
   return (
     <group ref={group} scale={animate && motion ? 0 : 1}>
       <mesh receiveShadow position={[0, BOARD_SURFACE_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast}>
@@ -477,11 +500,22 @@ function BoardMap({ animate = false }: { animate?: boolean }) {
       <mesh
         receiveShadow
         geometry={mapGeometry}
+        onPointerMove={
+          prototype ? (event) => prototype.onHover(event.point.x, event.point.z, event.faceIndex ?? null) : undefined
+        }
         renderOrder={BOARD_MAP_RENDER_ORDER}
         position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}
-        raycast={ignoreRaycast}
+        raycast={prototype ? undefined : ignoreRaycast}
       >
-        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
+        <meshStandardMaterial
+          key={prototype?.texture?.uuid ?? 'vector'}
+          map={prototype?.texture}
+          vertexColors={!prototype?.texture}
+          transparent
+          depthWrite={false}
+          roughness={0.88}
+          metalness={0}
+        />
       </mesh>
     </group>
   );
