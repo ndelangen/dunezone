@@ -101,6 +101,11 @@ const REFUSALS = {
   profanity_detected: 'Choose a game name without profanity. Your other choices are still here.',
 } as const;
 
+/* The name the game will carry: the custom one once typed, else the generated one. */
+function shownName(draft: Draft) {
+  return draft.custom && draft.customName.trim() ? draft.customName.trim() : draft.generatedName;
+}
+
 function CreateGamePage() {
   /* The draft lives here so the page's one query can carry the chosen ruleset and answer with its manifest. */
   const [draft, dispatch] = useReducer(draftReducer, undefined, initialDraft);
@@ -164,7 +169,6 @@ function CreateGameForm({
   const [departing, setDeparting] = useState(false);
   const canCreate =
     nameReady && request.success && chosen !== undefined && objection === null && !createGame.isPending && !departing;
-  const shownName = draft.custom && draft.customName.trim() ? draft.customName.trim() : draft.generatedName;
   /* Pressing Create game fades the page to the table's ground; the game opens once the fade is complete, and a refusal lifts it again. */
   const departedAt = useRef(0);
   const opening = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -206,7 +210,7 @@ function CreateGameForm({
           chosen,
           objection,
           nameReady,
-          summary: `${shownName}, ${chosen?.name}, ${draft.minimumPlayers} seats, ${draft.lastTurn} turns.`,
+          summary: `${shownName(draft)}, ${chosen?.name}, ${draft.minimumPlayers} seats, ${draft.lastTurn} turns.`,
         });
 
   return (
@@ -300,7 +304,7 @@ function NameField({
         aria-live="polite"
         data-pending={draft.custom && !draft.customName.trim() ? '' : undefined}
       >
-        {draft.custom && draft.customName.trim() ? draft.customName.trim() : draft.generatedName}
+        {shownName(draft)}
       </p>
       <Group gap="md">
         {draft.custom ? null : (
@@ -404,6 +408,18 @@ function RulesetField({
   );
 }
 
+/* A stub field's heading, with its slider's value printed large beside it. */
+function CountHeading({ label, value }: Readonly<{ label: string; value: number }>) {
+  return (
+    <Group justify="space-between" align="baseline" wrap="nowrap">
+      <Eyebrow>{label}</Eyebrow>
+      <span className={styles.count} aria-hidden>
+        {value}
+      </span>
+    </Group>
+  );
+}
+
 function SeatsField({
   value,
   onChange,
@@ -411,12 +427,7 @@ function SeatsField({
 }: Readonly<{ value: number; onChange: (value: number) => void; disabled: boolean }>) {
   return (
     <Stack gap="md">
-      <Group justify="space-between" align="baseline" wrap="nowrap">
-        <Eyebrow>Seats at the table</Eyebrow>
-        <span className={styles.count} aria-hidden>
-          {value}
-        </span>
-      </Group>
+      <CountHeading label="Seats at the table" value={value} />
       <Slider
         min={MINIMUM}
         max={MAXIMUM}
@@ -449,12 +460,7 @@ function LastTurnField({
 }: Readonly<{ value: number; onChange: (value: number) => void; disabled: boolean }>) {
   return (
     <Stack gap="md" className={styles.turns}>
-      <Group justify="space-between" align="baseline" wrap="nowrap">
-        <Eyebrow>Last turn</Eyebrow>
-        <span className={styles.count} aria-hidden>
-          {value}
-        </span>
-      </Group>
+      <CountHeading label="Last turn" value={value} />
       <Slider
         min={MIN_LAST_TURN}
         max={MAX_LAST_TURN}

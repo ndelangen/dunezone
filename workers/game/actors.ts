@@ -2,8 +2,17 @@ import { PLAY_AUTHORIZATION_BATCH_SIZE } from '../../src/shared/play/admission';
 import type { GameSnapshot, Viewer } from '../../src/shared/play/protocol';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
-import { anonymizeHistory } from './anonymizeHistory';
+import { anonymizeHistory, scrubRequesters } from './anonymizeHistory';
+import { DELETED_USER } from './log';
 import type { PublicLog, SeatCause } from './log';
+
+/** Whether the account that filed a request has since been deleted, per request table. */
+const FILER_DELETED = {
+  spawn_requests:
+    'SELECT actors.deleted FROM spawn_requests JOIN actors ON actors.user_id=spawn_requests.user_id WHERE spawn_requests.request_id=?',
+  seat_requests:
+    'SELECT actors.deleted FROM seat_requests JOIN actors ON actors.user_id=seat_requests.user_id WHERE seat_requests.request_id=?',
+} as const;
 
 type Actor = {
   user_id: string;
@@ -248,7 +257,7 @@ export class ActorDirectory {
     this.storage.sql.exec('UPDATE swap_audit SET actor_id=NULL WHERE actor_id=?', userId);
     this.storage.sql.exec('UPDATE swap_audit SET affected_id=NULL WHERE affected_id=?', userId);
     if (!actor.deleted && actor.seat !== SPECTATOR_SEAT) {
-      this.record(null, '[deleted user]', actor.seat, 'vacated', { cause: 'deletion', eventId: vacatedEventId });
+      this.record(null, DELETED_USER, actor.seat, 'vacated', { cause: 'deletion', eventId: vacatedEventId });
     }
     anonymizeHistory(this.storage, userId);
     this.storage.sql.exec('UPDATE seat_history SET user_id=NULL WHERE user_id=?', userId);
@@ -277,26 +286,15 @@ export class ActorDirectory {
       ...snapshot,
       controls: {
         ...snapshot.controls,
-        requests: snapshot.controls.requests.map((request) => {
-          const filed = this.storage.sql
-            .exec<{ deleted: number }>(
-              'SELECT actors.deleted FROM spawn_requests JOIN actors ON actors.user_id=spawn_requests.user_id WHERE spawn_requests.request_id=?',
-              request.id
-            )
-            .toArray()[0];
-          return filed?.deleted ? { ...request, requesterName: '[deleted user]' } : request;
-        }),
-        seatRequests: snapshot.controls.seatRequests.map((request) => {
-          const filed = this.storage.sql
-            .exec<{ deleted: number }>(
-              'SELECT actors.deleted FROM seat_requests JOIN actors ON actors.user_id=seat_requests.user_id WHERE seat_requests.request_id=?',
-              request.id
-            )
-            .toArray()[0];
-          return filed?.deleted ? { ...request, requesterName: '[deleted user]' } : request;
-        }),
+        requests: scrubRequesters(snapshot.controls.requests, (id) => this.filerDeleted('spawn_requests', id)),
+        seatRequests: scrubRequesters(snapshot.controls.seatRequests, (id) => this.filerDeleted('seat_requests', id)),
       },
     };
+  }
+
+  private filerDeleted(table: keyof typeof FILER_DELETED, requestId: string): boolean {
+    const filed = this.storage.sql.exec<{ deleted: number }>(FILER_DELETED[table], requestId).toArray()[0];
+    return Boolean(filed?.deleted);
   }
 
   /**

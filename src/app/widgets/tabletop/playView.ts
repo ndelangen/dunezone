@@ -33,7 +33,7 @@ export type CameraViewCommand = Readonly<{
 
 type PendingView = Readonly<{ view: TableView; source: 'player' | 'phase' }>;
 
-export type TableViewState = Readonly<{
+type TableViewState = Readonly<{
   activeView: TableView;
   cameraRevision: number;
   interactionActive: boolean;
@@ -45,7 +45,7 @@ export type TableViewState = Readonly<{
   phase: TablePhaseId | null;
 }>;
 
-export type TableViewEvent =
+type TableViewEvent =
   | Readonly<{ type: 'view.selected'; view: TableView }>
   | Readonly<{ type: 'phase.changed'; phase: TablePhaseId | null }>
   | Readonly<{ type: 'interaction.changed'; active: boolean }>
@@ -56,7 +56,7 @@ export type CameraPose = Readonly<{
   target: Vector3Tuple;
 }>;
 
-export type CameraFogRange = Readonly<{
+type CameraFogRange = Readonly<{
   near: number;
   far: number;
 }>;

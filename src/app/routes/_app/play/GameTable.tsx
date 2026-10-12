@@ -375,6 +375,72 @@ function stageFrame(stage: GameSnapshot['stage']): StageFrame {
   }
 }
 
+/* Which destination the controls panel shows, which child each group last opened, and what a focus or the stage opened over. */
+type ControlsSelection = Readonly<{
+  path: string[];
+  remembered: Record<string, string>;
+  stageShown: boolean;
+  stageOpened: boolean;
+  focused: string | null;
+  beneath: string[] | null;
+}>;
+
+type ControlsSelectionEvent =
+  | { type: 'destination-selected'; path: string[] }
+  | { type: 'stage-changed'; shown: boolean }
+  | { type: 'focus-requested'; path: string[]; token: string };
+
+function reduceControlsSelection(state: ControlsSelection, event: ControlsSelectionEvent): ControlsSelection {
+  if (event.type === 'stage-changed') {
+    return { ...state, stageShown: event.shown, stageOpened: event.shown };
+  }
+  const group = event.path[0]!;
+  const child = event.path[1] ?? state.remembered[group];
+  const path = child ? [group, child] : [group];
+  const stageOpened = path[1] === 'stage';
+  return {
+    ...state,
+    focused: event.type === 'focus-requested' ? event.token : state.focused,
+    /* The destination a focus opened over, so when the focused tab closes, as a result does, the panel returns to it. */
+    beneath:
+      event.type === 'focus-requested' && state.path.join('/') !== event.path.join('/') ? state.path : state.beneath,
+    stageOpened,
+    path: stageOpened ? state.path : path,
+    remembered: !stageOpened && child ? { ...state.remembered, [group]: child } : state.remembered,
+  };
+}
+
+/* Focus and opening preferences name a destination, whether it is a group or one of its children. */
+function tabPath(tabs: readonly PanelTab[], key: string) {
+  for (const tab of tabs) {
+    if (tab.key === key) {
+      return [tab.key];
+    }
+    const child = tab.subtabs?.find((item) => item.key === key);
+    if (child) {
+      return [tab.key, child.key];
+    }
+  }
+  return undefined;
+}
+
+/* One tab of either level, which opens the destination at `path`. */
+function tabItem(tab: PanelTab, path: string[], onClick: () => void) {
+  return (
+    <NestedTabs.Item
+      key={tab.key}
+      as="button"
+      type="button"
+      path={path}
+      label={tab.label}
+      description={tab.description}
+      help={tab.help}
+      icon={<TopicIcon topic={tab.topic} size={22} />}
+      onClick={onClick}
+    />
+  );
+}
+
 /**
  * The controls panel groups personal resources, game actions, shared controls and history in two levels.
  * Each group remembers its last destination;
@@ -431,58 +497,17 @@ function TableControlsPanel({
         : tab
     )
     .filter((tab) => !tab.subtabs || tab.subtabs.length > 0);
-  /* Focus and opening preferences name a destination, whether it is a group or one of its children. */
-  const pathTo = (key: string) => {
-    for (const tab of tabs) {
-      if (tab.key === key) {
-        return [tab.key];
-      }
-      const child = tab.subtabs?.find((item) => item.key === key);
-      if (child) {
-        return [tab.key, child.key];
-      }
-    }
-    return undefined;
-  };
+  const pathTo = (key: string) => tabPath(tabs, key);
   const opening = openOn.map(pathTo).find(Boolean) ?? [tabs[0]?.key ?? 'game'];
   const hasStage = Boolean(stageTab);
-  const [selection, select] = useReducer(
-    (
-      state: {
-        path: string[];
-        remembered: Record<string, string>;
-        stageShown: boolean;
-        stageOpened: boolean;
-        focused: string | null;
-        beneath: string[] | null;
-      },
-      event:
-        | { type: 'destination-selected'; path: string[] }
-        | { type: 'stage-changed'; shown: boolean }
-        | { type: 'focus-requested'; path: string[]; token: string }
-    ) => {
-      if (event.type === 'stage-changed') {
-        return { ...state, stageShown: event.shown, stageOpened: event.shown };
-      }
-      const group = event.path[0]!;
-      const child = event.path[1] ?? state.remembered[group];
-      const path = child ? [group, child] : [group];
-      const stageOpened = path[1] === 'stage';
-      return {
-        ...state,
-        focused: event.type === 'focus-requested' ? event.token : state.focused,
-        /* The destination a focus opened over, so when the focused tab closes, as a result does, the panel returns to it. */
-        beneath:
-          event.type === 'focus-requested' && state.path.join('/') !== event.path.join('/')
-            ? state.path
-            : state.beneath,
-        stageOpened,
-        path: stageOpened ? state.path : path,
-        remembered: !stageOpened && child ? { ...state.remembered, [group]: child } : state.remembered,
-      };
-    },
-    { path: opening, remembered: {}, stageShown: hasStage, stageOpened: false, focused: null, beneath: null }
-  );
+  const [selection, select] = useReducer(reduceControlsSelection, {
+    path: opening,
+    remembered: {},
+    stageShown: hasStage,
+    stageOpened: false,
+    focused: null,
+    beneath: null,
+  });
   /* A newly seated drafter sees their stage. The previous destination remains underneath for playback and later stages. */
   if (hasStage !== selection.stageShown) {
     select({ type: 'stage-changed', shown: hasStage });
@@ -513,35 +538,11 @@ function TableControlsPanel({
       className="seated-controls-tabs"
     >
       <NestedTabs.Level label="Controls">
-        {tabs.map((tab) => (
-          <NestedTabs.Item
-            key={tab.key}
-            as="button"
-            type="button"
-            path={[tab.key]}
-            label={tab.label}
-            description={tab.description}
-            help={tab.help}
-            icon={<TopicIcon topic={tab.topic} size={22} />}
-            onClick={() => choose([tab.key])}
-          />
-        ))}
+        {tabs.map((tab) => tabItem(tab, [tab.key], () => choose([tab.key])))}
       </NestedTabs.Level>
       {active.subtabs && (
         <NestedTabs.Level label={active.label}>
-          {active.subtabs.map((tab) => (
-            <NestedTabs.Item
-              key={tab.key}
-              as="button"
-              type="button"
-              path={[active.key, tab.key]}
-              label={tab.label}
-              description={tab.description}
-              help={tab.help}
-              icon={<TopicIcon topic={tab.topic} size={22} />}
-              onClick={() => choose([active.key, tab.key])}
-            />
-          ))}
+          {active.subtabs.map((tab) => tabItem(tab, [active.key, tab.key], () => choose([active.key, tab.key])))}
         </NestedTabs.Level>
       )}
       {/* No label of its own: the panel is the tabs' tabpanel, which NestedTabs names after the selected tab, and the sections inside stay the regions. */}

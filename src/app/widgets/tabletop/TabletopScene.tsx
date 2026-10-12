@@ -654,13 +654,14 @@ function TokenFace({
   /* A faction token has no back of its own: face down, it shows its front under a black prohibition sign. */
   const blocked = !faceUp && isFactionToken(piece);
   const href = piece.items[itemIndex]?.artwork?.[faceUp || blocked ? 'front' : 'back'];
+  const ratio = tokenBoxRatio(piece);
   return (
     <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
-      {href && <PublishedFace href={href} card={false} ratio={tokenBoxRatio(piece)} />}
+      {href && <PublishedFace href={href} card={false} ratio={ratio} />}
       {blocked && <SittingOutSign />}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
-        {tokenBoxRatio(piece) != null ? (
-          <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * tokenBoxRatio(piece)!]} />
+        {ratio != null ? (
+          <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * ratio]} />
         ) : (
           <circleGeometry args={[TROOP_FACE_RADIUS, 48]} />
         )}
@@ -683,10 +684,12 @@ function TokenFace({
 function TroopStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
   const scale = troopScale(piece);
+  const ratio = tokenBoxRatio(piece);
   return (
     <group scale={[scale, 1, scale]}>
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
+        const itemIndex = stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision);
         return (
           <group key={index} position={[0, index * TROOP_LAYER_PITCH, 0]}>
             <mesh
@@ -694,30 +697,15 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
               rotation={[0, 0, faceUp ? 0 : Math.PI]}
             >
-              {tokenBoxRatio(piece) != null ? (
-                <boxGeometry
-                  args={[TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * tokenBoxRatio(piece)!]}
-                />
+              {ratio != null ? (
+                <boxGeometry args={[TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * ratio]} />
               ) : (
                 <cylinderGeometry args={[TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48]} />
               )}
               <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
             </mesh>
-            {index === shownLayers - 1 ? (
-              <TokenFace
-                piece={piece}
-                faceUp={faceUp}
-                itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-              />
-            ) : null}
-            {index === 0 ? (
-              <TokenFace
-                piece={piece}
-                faceUp={!faceUp}
-                underside
-                itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-              />
-            ) : null}
+            {index === shownLayers - 1 ? <TokenFace piece={piece} faceUp={faceUp} itemIndex={itemIndex} /> : null}
+            {index === 0 ? <TokenFace piece={piece} faceUp={!faceUp} underside itemIndex={itemIndex} /> : null}
           </group>
         );
       })}
@@ -739,14 +727,14 @@ function CardFace({
   covered?: boolean;
   itemIndex: number;
 }) {
+  const artwork = piece.items[itemIndex]?.artwork;
+  const href = artwork?.[faceUp ? 'front' : 'back'];
   return (
     <PieceFace height={CARD_LAYER_HEIGHT} underside={underside}>
-      {piece.items[itemIndex]?.artwork?.[faceUp ? 'front' : 'back'] && (
-        <PublishedFace href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']!} card />
-      )}
-      {faceUp && piece.items[itemIndex]?.artwork?.prediction && (
+      {href && <PublishedFace href={href} card />}
+      {faceUp && artwork?.prediction && (
         <Suspense fallback={null}>
-          <PredictionOverlay prediction={piece.items[itemIndex].artwork.prediction} />
+          <PredictionOverlay prediction={artwork.prediction} />
         </Suspense>
       )}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
@@ -773,6 +761,7 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
     <group>
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
+        const itemIndex = stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision);
         return (
           <group
             key={index}
@@ -782,19 +771,8 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
               <boxGeometry args={[CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH]} />
               <meshStandardMaterial color="#ead9bb" roughness={0.68} metalness={0.03} />
             </mesh>
-            <CardFace
-              piece={piece}
-              faceUp={faceUp}
-              covered={index < shownLayers - 1}
-              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-            />
-            <CardFace
-              piece={piece}
-              faceUp={!faceUp}
-              underside
-              covered={index > 0}
-              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-            />
+            <CardFace piece={piece} faceUp={faceUp} covered={index < shownLayers - 1} itemIndex={itemIndex} />
+            <CardFace piece={piece} faceUp={!faceUp} underside covered={index > 0} itemIndex={itemIndex} />
           </group>
         );
       })}
@@ -1121,13 +1099,10 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
       if (event.pointerType === 'touch') {
         return;
       }
-      const cursor = pieceHoverCursor(canHandleTable, interactionBlocked, Boolean(gestureBlocked));
-      if (interactionBlocked) {
-        renderer.domElement.style.cursor = cursor;
-        return;
+      if (!interactionBlocked) {
+        setHoveredPiece(piece.id);
       }
-      setHoveredPiece(piece.id);
-      renderer.domElement.style.cursor = cursor;
+      renderer.domElement.style.cursor = pieceHoverCursor(canHandleTable, interactionBlocked, Boolean(gestureBlocked));
     },
     onPointerLeave: () => {
       setHoveredPiece(null);
@@ -1237,6 +1212,15 @@ function pieceOwnerName(piece: TablePiece, state: Pick<TableState, 'factionNames
   return tieBreak ? `${owner} (${tieBreak})` : owner;
 }
 
+const PIECE_BADGE_CLASS_NAMES = {
+  pieceTag: styles.pieceTag,
+  pieceName: styles.pieceName,
+  pieceNameOwner: styles.pieceNameOwner,
+  pieceNamePeeked: styles.pieceNamePeeked,
+  pieceCount: styles.pieceCount,
+  pieceCountSelected: styles.pieceCountSelected,
+};
+
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
   const { piece, drafted, remoteCarried, locallyCarried, reserved, selected, stackTargeted, owner, peeked } = props;
   const { finishPieceFlip } = useTabletopActions();
@@ -1305,14 +1289,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
           {props.showLabels !== false && (
             <Suspense fallback={null}>
               <PieceBadge
-                classNames={{
-                  pieceTag: styles.pieceTag,
-                  pieceName: styles.pieceName,
-                  pieceNameOwner: styles.pieceNameOwner,
-                  pieceNamePeeked: styles.pieceNamePeeked,
-                  pieceCount: styles.pieceCount,
-                  pieceCountSelected: styles.pieceCountSelected,
-                }}
+                classNames={PIECE_BADGE_CLASS_NAMES}
                 piece={piece}
                 owner={owner}
                 peeked={peeked}
@@ -1515,7 +1492,6 @@ export function TabletopScene({
         event.preventDefault();
         if (hasDraft) {
           takeAdditionalFromTarget();
-          return;
         }
       }}
     >

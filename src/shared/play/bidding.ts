@@ -167,9 +167,11 @@ function turnAction(
   if (factionId === null || factionId !== state.turn) {
     return refuse('Wait until the bidder points at your faction.');
   }
-  if (action.kind === 'bid-pass') {
-    return passBid(state, context);
-  }
+  return action.kind === 'bid-pass' ? passBid(state, context) : raiseBid(state, factionId, context);
+}
+
+/** One more spice on the current bid, from a faction whose token is face up; every pass so far is forgotten. */
+function raiseBid(state: BiddingState, factionId: string, context: BiddingContext): BiddingState {
   if (!context.eligible.includes(factionId)) {
     return refuse('Turn your faction token face up to bid.');
   }

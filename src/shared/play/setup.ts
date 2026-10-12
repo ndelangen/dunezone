@@ -113,6 +113,15 @@ export function phaseGate({
   if (stage !== 'setup' || !setup) {
     return turnPhaseGate({ phase, phases, battle, ending }, allReady);
   }
+  return setupPhaseGate(setup, { roster, seats, predictions }, allReady);
+}
+
+/** The gate during setup: a prediction step waits on its lock, any other step on its readiness rule over every fixed seat. */
+function setupPhaseGate(
+  setup: SetupState,
+  { roster, seats, predictions }: Pick<PhaseGateInput, 'roster' | 'seats' | 'predictions'>,
+  allReady: boolean
+) {
   const step = setupStep(setup);
   if (step?.kind === 'prediction') {
     const locked = Boolean(predictions?.[step.id]);

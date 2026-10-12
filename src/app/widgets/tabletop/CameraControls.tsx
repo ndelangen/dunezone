@@ -96,6 +96,14 @@ function cameraDestinationFor(
   };
 }
 
+/* Whether the camera and its target already stand at a destination's pose. */
+function cameraAt(camera: Camera, controls: SeatedOrbitControls, destination: CameraDestination) {
+  return (
+    camera.position.distanceToSquared(destination.toPosition) <= CAMERA_POSE_EPSILON_SQUARED &&
+    controls.target.distanceToSquared(destination.toTarget) <= CAMERA_POSE_EPSILON_SQUARED
+  );
+}
+
 function settleCameraDestination(
   camera: Camera,
   controls: SeatedOrbitControls,
@@ -127,10 +135,7 @@ function advanceCameraGlide(
   camera.position.lerp(glide.toPosition, share);
   controls.target.lerp(glide.toTarget, share);
   controls.update();
-  const arrived =
-    camera.position.distanceToSquared(glide.toPosition) <= CAMERA_POSE_EPSILON_SQUARED &&
-    controls.target.distanceToSquared(glide.toTarget) <= CAMERA_POSE_EPSILON_SQUARED;
-  if (arrived) {
+  if (cameraAt(camera, controls, glide)) {
     settleCameraDestination(camera, controls, playback, glide);
     return;
   }
@@ -175,9 +180,7 @@ function applyCameraDestination(
     return true;
   }
   playback.glide = null;
-  const atDestination =
-    camera.position.distanceToSquared(destination.toPosition) <= CAMERA_POSE_EPSILON_SQUARED &&
-    controls.target.distanceToSquared(destination.toTarget) <= CAMERA_POSE_EPSILON_SQUARED;
+  const atDestination = cameraAt(camera, controls, destination);
   const inFlight = playback.transition;
   if (inFlight && inFlight.commandKey === destination.commandKey && !atDestination) {
     /* A tilt or resize while the camera is still moving to this view retargets the move instead of cutting it short. */

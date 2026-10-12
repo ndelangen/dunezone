@@ -16,7 +16,7 @@ import { internalPieceId } from './state';
 import type { StoredSnapshot } from './state';
 
 /** The one name retained history shows for a deleted account. */
-const DELETED_USER = '[deleted user]';
+export const DELETED_USER = '[deleted user]';
 
 type BattleResult = StoredSnapshot['battleResults'][number];
 /* `deletedAs` is what the slot reads once the account is deleted, when `[deleted user]` alone would not tell it apart. */

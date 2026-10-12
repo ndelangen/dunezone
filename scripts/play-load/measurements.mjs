@@ -88,6 +88,37 @@ export function measurements(filename, stop, peers = []) {
     pending.delete(key);
     streams.get(sample.stream)?.delete(sample.seq);
   }
+  /* Every recipient of a settled sample either saw it or was superseded past it. */
+  function retireIfSettled(key, sample) {
+    if (sample.seen.size + sample.superseded.size === sample.expected.size) {
+      retire(key, sample);
+    }
+  }
+  /* An observation of a later frame supersedes every earlier one of its stream the recipient has not seen. */
+  function supersedeEarlier(peer, kind, entry) {
+    const skipped = [];
+    for (const [seq, prior] of streams.get(`${kind}/${entry.connectionId}`) ?? []) {
+      if (seq >= entry.sourceSeq) {
+        break;
+      }
+      const sample = prior.sample;
+      if (sample.expected.has(peer.index) && !sample.seen.has(peer.index) && !sample.superseded.has(peer.index)) {
+        sample.superseded.add(peer.index);
+        superseded++;
+        skipped.push(seq);
+      }
+      retireIfSettled(prior.key, sample);
+    }
+    if (skipped.length) {
+      write({
+        superseded: skipped,
+        kind,
+        connectionId: entry.connectionId,
+        recipient: peer.index,
+        bySeq: entry.sourceSeq,
+      });
+    }
+  }
   function expire() {
     const deadline = performance.now() - 30_000;
     for (const [key, sample] of pending) {
@@ -136,30 +167,7 @@ export function measurements(filename, stop, peers = []) {
       if (!Number.isSafeInteger(entry.sourceSeq)) {
         return;
       }
-      const skipped = [];
-      for (const [seq, prior] of streams.get(`${kind}/${entry.connectionId}`) ?? []) {
-        if (seq >= entry.sourceSeq) {
-          break;
-        }
-        const sample = prior.sample;
-        if (sample.expected.has(peer.index) && !sample.seen.has(peer.index) && !sample.superseded.has(peer.index)) {
-          sample.superseded.add(peer.index);
-          superseded++;
-          skipped.push(seq);
-        }
-        if (sample.seen.size + sample.superseded.size === sample.expected.size) {
-          retire(prior.key, sample);
-        }
-      }
-      if (skipped.length) {
-        write({
-          superseded: skipped,
-          kind,
-          connectionId: entry.connectionId,
-          recipient: peer.index,
-          bySeq: entry.sourceSeq,
-        });
-      }
+      supersedeEarlier(peer, kind, entry);
       const key = `${kind}/${entry.connectionId}/${entry.sourceSeq}`;
       const sample = pending.get(key);
       if (!sample?.expected.has(peer.index)) {
@@ -191,9 +199,7 @@ export function measurements(filename, stop, peers = []) {
       if (sample.phase === 'measured') {
         client.measured.add(ms);
       }
-      if (sample.seen.size + sample.superseded.size === sample.expected.size) {
-        retire(key, sample);
-      }
+      retireIfSettled(key, sample);
     },
     async finish() {
       clearInterval(timer);

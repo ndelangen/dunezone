@@ -3,15 +3,13 @@ import { tokenBoxRatio } from '@shared/play/tableGeometry';
 import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 
-import { card } from '@game/data/sizes';
-
+import { cardWidthFor, TOKEN_SIZE_PX } from './faceSize';
 import { PieceArtwork } from './PieceArtwork';
 import { topFaceHref } from './pieceFaceHref';
 import { useTabletopSelector } from './TabletopContext';
 import styles from './TabletopScene.module.css';
 
 const CARD_HEIGHT_PX = 380;
-const TOKEN_SIZE_PX = 240;
 const CURSOR_GAP_PX = 28;
 const EDGE_PX = 12;
 
@@ -88,7 +86,7 @@ export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | 
   const isCard = piece.kind === 'card';
   /* A disc token stays a disc, as it lies on the table. */
   const round = !isCard && tokenBoxRatio(piece) == null;
-  const width = isCard ? Math.round((CARD_HEIGHT_PX * card.width) / card.height) : TOKEN_SIZE_PX;
+  const width = isCard ? cardWidthFor(CARD_HEIGHT_PX) : TOKEN_SIZE_PX;
   const height = isCard ? CARD_HEIGHT_PX : TOKEN_SIZE_PX;
   const count = pieceCount(piece);
   /* The table's area below the seated header, which lies over the canvas's top, rather than the window: the dock covers the rest. */

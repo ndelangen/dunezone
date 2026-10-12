@@ -1,6 +1,7 @@
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
+import { DELETED_USER } from './log';
 
 type Attribution = ReturnType<typeof deletedAttribution>;
 
@@ -10,6 +11,14 @@ type Attribution = ReturnType<typeof deletedAttribution>;
  * A bump is also the remedy after a rollback to a release older than the deletion-time scrub handled a deletion, since a stamped room does not repair on its own.
  */
 export const HISTORY_REPAIR_VERSION = 2;
+
+/** The requests a deleted account filed read `[deleted user]` as their requester; the rest are kept as they are. */
+export function scrubRequesters<Request extends { id: string; requesterName: string }>(
+  requests: readonly Request[],
+  deleted: (requestId: string) => boolean
+): Request[] {
+  return requests.map((request) => (deleted(request.id) ? { ...request, requesterName: DELETED_USER } : request));
+}
 
 /** Scrub retained attribution before deleting the receipts that identify its author. */
 export function anonymizeHistory(storage: DurableObjectStorage, userId: string | null) {
@@ -89,7 +98,7 @@ function scrubActed<Value extends Acted | null | undefined>(acted: Value, attrib
   if (!acted || !userId || !attribution.accounts.has(userId)) {
     return acted;
   }
-  return { ...acted, by: { ...acted.by, userId: null, name: '[deleted user]' } };
+  return { ...acted, by: { ...acted.by, userId: null, name: DELETED_USER } };
 }
 
 function scrubSnapshot(snapshot: GameSnapshot, attribution: Attribution): GameSnapshot {
@@ -100,13 +109,9 @@ function scrubSnapshot(snapshot: GameSnapshot, attribution: Attribution): GameSn
     ...(snapshot.controls && {
       controls: {
         ...snapshot.controls,
-        requests: snapshot.controls.requests.map((request) =>
-          attribution.requests.has(request.id) ? { ...request, requesterName: '[deleted user]' } : request
-        ),
+        requests: scrubRequesters(snapshot.controls.requests, (id) => attribution.requests.has(id)),
         ...(snapshot.controls.seatRequests && {
-          seatRequests: snapshot.controls.seatRequests.map((request) =>
-            attribution.seatRequests.has(request.id) ? { ...request, requesterName: '[deleted user]' } : request
-          ),
+          seatRequests: scrubRequesters(snapshot.controls.seatRequests, (id) => attribution.seatRequests.has(id)),
         }),
       },
     }),
@@ -118,7 +123,7 @@ function scrubSnapshot(snapshot: GameSnapshot, attribution: Attribution): GameSn
     ...(snapshot.spiceTransfers && {
       spiceTransfers: snapshot.spiceTransfers.map((transfer) =>
         attribution.revisions.has(transfer.revision) || !attribution.retainedRevisions.has(transfer.revision)
-          ? { ...transfer, actor: '[deleted user]' }
+          ? { ...transfer, actor: DELETED_USER }
           : transfer
       ),
     }),

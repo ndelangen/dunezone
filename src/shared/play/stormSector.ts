@@ -8,7 +8,7 @@ export const STORM_SECTOR_FILL_OPACITY = 0.28;
 export const STORM_SECTOR_OUTLINE_OPACITY = 0.3;
 export const STORM_TRANSITION_MS = 400;
 const STORM_MARKER_ASPECT_RATIO = 1910 / 956;
-// These values follow the PNG's transparent inner edge where it meets the map.
+/* These values follow the PNG's transparent inner edge where it meets the map. */
 export const STORM_MARKER_VISIBLE_BASE_FRACTION = 0.844;
 export const STORM_MARKER_BASE_CENTER_V = 0.152;
 export const STORM_MARKER_TANGENTIAL_WIDTH =

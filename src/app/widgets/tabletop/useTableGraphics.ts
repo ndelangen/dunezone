@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export type TableGraphics = 'checking' | 'ready' | 'unavailable';
+type TableGraphics = 'checking' | 'ready' | 'unavailable';
 
 export const TABLE_GRAPHICS_UNAVAILABLE =
   "This browser can't draw the table. Turn on hardware acceleration in its settings, or try another browser.";

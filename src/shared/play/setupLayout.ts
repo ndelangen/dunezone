@@ -23,7 +23,7 @@ export function factionSupplyLayout(angle: number, troopKinds: number) {
       position: along(PLAYER_RING_RADIUS),
       orientation: Math.PI / 2 - angle,
     },
-    // An arc at one radius keeps every kind's reserve within the playable table, however many kinds a faction has.
+    /* An arc at one radius keeps every kind's reserve within the playable table, however many kinds a faction has. */
     reserves: Array.from({ length: troopKinds }, (_, index) =>
       polar(angle + ((index - (troopKinds - 1) / 2) * RESERVE_SPACING) / RESERVE_RADIUS, RESERVE_RADIUS)
     ),

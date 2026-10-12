@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react';
  * A number this viewer picks on a slider, kept per browser and never sent to the game.
  * Each preference reads storage once, stays right for the page view even when storage refuses writes, and follows other tabs.
  */
-export type ViewerPreference = Readonly<{
+type ViewerPreference = Readonly<{
   min: number;
   max: number;
   /** The current choice, for code outside React such as a frame loop. */
