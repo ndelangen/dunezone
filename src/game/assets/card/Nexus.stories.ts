@@ -10,7 +10,7 @@ const meta = preview.meta({ component: NexusCard, globals: { viewport: { value: 
 export const Atreides = meta.story({
   play: async ({ canvasElement }) => {
     const emblems = canvasElement.querySelectorAll<HTMLImageElement>('img[src="/vector/logo/atreides.svg"]');
-    await expect(emblems).toHaveLength(2);
+    await expect(emblems).toHaveLength(1);
     for (const emblem of emblems) {
       await expect(getComputedStyle(emblem).mixBlendMode).toBe('normal');
       await expect(getComputedStyle(emblem).filter).toContain('invert(1)');

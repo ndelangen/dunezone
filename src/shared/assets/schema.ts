@@ -474,7 +474,8 @@ const NexusEffect = proseFormattedTextSchema
   });
 export const NexusCard = CardHead.extend({
   subName: z.literal('Nexus'),
-  faction: z.string().trim().max(40),
+  faction: z.string().trim(),
+  factionLink: z.strictObject({ id: z.string().min(1), slug: z.string().min(1) }).optional(),
   factionSymbol: FactionSide,
   betrayal: NexusEffect,
   cunning: NexusEffect,

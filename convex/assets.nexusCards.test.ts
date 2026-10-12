@@ -2,13 +2,41 @@
 /* @vitest-environment edge-runtime */
 import { convexTest } from 'convex-test';
 import { expect, test } from 'vitest';
+import type { z } from 'zod';
 
 import { GF9_NEXUS_CARDS } from '../src/shared/assets/gf9Nexus';
+import type { NexusCardAsset } from '../src/shared/assets/schema';
+import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
+
+async function linkedCard(
+  t: ReturnType<typeof convexTest>,
+  ownerId: Id<'users'>,
+  card: z.infer<typeof NexusCardAsset>
+) {
+  const slug = card.faction.toLowerCase().replaceAll(' ', '-');
+  const id = await t.run((ctx) =>
+    ctx.db.insert('factions', {
+      owner_id: ownerId,
+      data: {
+        ...assetPublishingFaction,
+        name: card.faction,
+        logo: card.factionSymbol.image,
+        background: card.factionSymbol.background,
+      },
+      slug,
+      created_at: '2026-10-12T00:00:00Z',
+      updated_at: '2026-10-12T00:00:00Z',
+      is_deleted: false,
+      group_id: null,
+    })
+  );
+  return { ...card, factionLink: { id, slug } };
+}
 
 test('the GF9 import creates twelve published Nexus cards and one deck without overwriting later edits', async () => {
   const t = convexTest(schema, modules);
@@ -44,7 +72,7 @@ test('Nexus writes enforce the fixed sections and reject oversized effects witho
   const t = convexTest(schema, modules);
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
-  const card = GF9_NEXUS_CARDS[0]!;
+  const card = await linkedCard(t, ownerId, GF9_NEXUS_CARDS[0]!);
   const created = await owner.mutation(api.assets.create, { type: 'card-nexus', data: card });
   for (const update of [
     { subName: 'Custom' },
@@ -52,7 +80,6 @@ test('Nexus writes enforce the fixed sections and reject oversized effects witho
     { factionSymbol: undefined },
     { betrayal: 'a'.repeat(401) },
     { secretAlly: Array(7).fill('line').join('\n') },
-    { faction: 'a'.repeat(41) },
     { factionSymbol: { ...card.factionSymbol, image: 'https://example.com/private.svg' } },
     { layers: [] },
   ]) {
@@ -73,7 +100,7 @@ test('a reserved GF9 address rolls back the entire import', async () => {
   ]);
   await t
     .withIdentity({ subject: otherId! })
-    .mutation(api.assets.create, { type: 'card-nexus', data: GF9_NEXUS_CARDS[5]! });
+    .mutation(api.assets.create, { type: 'card-nexus', data: await linkedCard(t, otherId!, GF9_NEXUS_CARDS[5]!) });
   await expect(t.mutation(internal.assets.seedGf9NexusDeck, { ownerId: ownerId! })).rejects.toThrow('already reserved');
   expect(await t.query(api.assets.getPage, { type: 'deck', slug: 'gf9-nexus-deck' })).toBeNull();
   expect(await t.query(api.assets.getPage, { type: 'card-nexus', slug: 'atreides' })).toBeNull();
@@ -83,8 +110,12 @@ test('a renderer regeneration scan republishes live Nexus cards and skips delete
   const t = convexTest(schema, modules);
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
-  const live = await owner.mutation(api.assets.create, { type: 'card-nexus', data: GF9_NEXUS_CARDS[0]! });
-  const deleted = await owner.mutation(api.assets.create, { type: 'card-nexus', data: GF9_NEXUS_CARDS[1]! });
+  const liveData = await linkedCard(t, ownerId, GF9_NEXUS_CARDS[0]!);
+  const live = await owner.mutation(api.assets.create, { type: 'card-nexus', data: liveData });
+  const deleted = await owner.mutation(api.assets.create, {
+    type: 'card-nexus',
+    data: await linkedCard(t, ownerId, GF9_NEXUS_CARDS[1]!),
+  });
   await t.run(async (ctx) => {
     await ctx.db.patch(deleted.id, { is_deleted: true });
     await Promise.all((await ctx.db.query('publication_jobs').collect()).map((job) => ctx.db.delete(job._id)));
@@ -98,7 +129,7 @@ test('a renderer regeneration scan republishes live Nexus cards and skips delete
   const jobs = await t.run((ctx) => ctx.db.query('publication_jobs').collect());
   expect(jobs).toHaveLength(1);
   expect(jobs[0]?.asset_id).toBe(live.id);
-  expect(jobs[0]?.asset_data.card).toEqual(GF9_NEXUS_CARDS[0]);
+  expect(jobs[0]?.asset_data.card).toEqual(liveData);
 });
 
 const ORIGINAL_CARD_ABOUT =
@@ -188,7 +219,7 @@ test('a renamed deck member is preserved even when another card takes its origin
   const owner = t.withIdentity({ subject: ownerId });
   const renamed = { ...GF9_NEXUS_CARDS[0]!, name: 'My Atreides', betrayal: 'My house rule.' };
   await owner.mutation(api.assets.update, { id: imported.cardIds[0]!, data: renamed });
-  const separate = { ...GF9_NEXUS_CARDS[0]!, betrayal: 'An unrelated card.' };
+  const separate = await linkedCard(t, ownerId, { ...GF9_NEXUS_CARDS[0]!, betrayal: 'An unrelated card.' });
   await owner.mutation(api.assets.create, { type: 'card-nexus', data: separate });
   const result = await t.mutation(internal.assets.correctGf9NexusDeck, { ownerId });
   expect(result.updated).toHaveLength(11);
@@ -198,4 +229,31 @@ test('a renamed deck member is preserved even when another card takes its origin
   const deck = await t.query(api.assets.getPage, { type: 'deck', slug: imported.slug });
   expect(deck?.members).toHaveLength(12);
   expect(deck?.members.map(({ member }) => member.id).sort()).toEqual([...imported.cardIds].sort());
+});
+
+test('new Nexus cards require a live faction and use its authoritative header artwork', async () => {
+  const t = convexTest(schema, modules);
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
+  const owner = t.withIdentity({ subject: ownerId });
+  await expect(owner.mutation(api.assets.create, { type: 'card-nexus', data: GF9_NEXUS_CARDS[0]! })).rejects.toThrow(
+    'Choose a faction'
+  );
+  const linked = await linkedCard(t, ownerId, GF9_NEXUS_CARDS[0]!);
+  const created = await owner.mutation(api.assets.create, {
+    type: 'card-nexus',
+    data: {
+      ...linked,
+      faction: 'Wrong',
+      factionSymbol: GF9_NEXUS_CARDS[1]!.factionSymbol,
+      factionLink: { ...linked.factionLink, slug: 'wrong' },
+    },
+  });
+  expect((await t.query(api.assets.getPage, { type: 'card-nexus', slug: created.slug }))?.asset.data).toEqual(linked);
+  await expect(owner.mutation(api.assets.update, { id: created.id, data: GF9_NEXUS_CARDS[0]! })).rejects.toThrow(
+    'Choose a faction'
+  );
+  await t.run((ctx) => ctx.db.patch(linked.factionLink.id, { is_deleted: true }));
+  await expect(owner.mutation(api.assets.create, { type: 'card-nexus', data: linked })).rejects.toThrow(
+    'available faction'
+  );
 });

@@ -3,7 +3,6 @@ import { useLayoutEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 import type { z } from 'zod';
 
-import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { CardText } from './CardText';
 import { CustomCard } from './Custom';
 import styles from './Nexus.module.css';
@@ -50,11 +49,6 @@ export function NexusCard({
               className={`${styles.effect} ${title === 'Secret Ally' ? styles.secret : ''}`}
               aria-label={title}
             >
-              {title === 'Secret Ally' ? (
-                <BackgroundRenderer className={styles.factionSymbol} background={factionSymbol.background}>
-                  <img src={factionSymbol.image} alt="" />
-                </BackgroundRenderer>
-              ) : null}
               <div className={styles.heading}>{title}</div>
               <div className={styles.condition}>{condition}</div>
               <CardText className={styles.rules} value={text} />

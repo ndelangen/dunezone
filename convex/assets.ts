@@ -18,6 +18,7 @@ import {
   DeckAssetInput,
   StrongholdCardAsset,
   LeaderSkillAssetInput,
+  NexusCardAssetInput,
 } from '../src/shared/assets/schema';
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
 import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../src/shared/assets/standardStormDeck';
@@ -61,6 +62,7 @@ import {
   syncCustomCardTokenRelations,
   validateCustomCardTokens,
 } from './lib/customCardTokens';
+import { parseStoredFactionForRead } from './lib/factionInput';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { enqueueAssetPublication, supersedePendingPublication } from './lib/publication';
@@ -521,10 +523,37 @@ async function withValidatedBack(
   return data;
 }
 
+/* A linked Nexus face snapshots the faction artwork through the ordinary asset writer. */
+async function withNexusFaction(ctx: MutationCtx, type: string, input: unknown, previous?: unknown) {
+  if (type !== 'card-nexus') {
+    return input;
+  }
+  const card = NexusCardAssetInput.parse(input);
+  if (!card.factionLink) {
+    if (previous && NexusCardAssetInput.parse(previous).factionLink) {
+      throw new ConvexError('Choose a faction before saving this Nexus card');
+    }
+    return card;
+  }
+  const id = ctx.db.normalizeId('factions', card.factionLink.id);
+  const row = id ? await ctx.db.get('factions', id) : null;
+  if (!row || row.is_deleted) {
+    throw new ConvexError('Choose an available faction for this Nexus card');
+  }
+  const faction = parseStoredFactionForRead(row.data);
+  return {
+    ...card,
+    factionLink: { id: row._id, slug: row.slug },
+    faction: faction.name,
+    factionSymbol: { image: faction.logo, background: faction.background },
+    icon: [faction.background, faction.logo],
+  };
+}
+
 /* The public writer and the GF9 import share validation, slug allocation and publication. */
 async function createOwnedAsset(ctx: MutationCtx, userId: Id<'users'>, type: string, data: unknown) {
   assertKnownAssetType(type);
-  const parsed = parseAssetDataForWrite(type, data);
+  const parsed = parseAssetDataForWrite(type, await withNexusFaction(ctx, type, data));
   parsed.data = await withValidatedBack(ctx, { type }, parsed.data as Record<string, unknown>);
   if (type === 'card-custom' || type === 'card-storm') {
     await validateCustomCardTokens(ctx, parsed.data);
@@ -553,6 +582,9 @@ export const create = mutation({
   returns: v.object({ id: v.id('assets'), slug: v.string() }),
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
+    if (args.type === 'card-nexus' && !NexusCardAssetInput.parse(args.data).factionLink) {
+      throw new ConvexError('Choose a faction before creating this Nexus card');
+    }
     return await createOwnedAsset(ctx, userId, args.type, args.data);
   },
 });
@@ -566,7 +598,7 @@ export const update = mutation({
       throw new Error(`Asset with id ${args.id} not found`);
     }
     /* The type is immutable: the stored row decides which schema the incoming data must satisfy. */
-    const parsed = parseAssetDataForWrite(row.type, args.data);
+    const parsed = parseAssetDataForWrite(row.type, await withNexusFaction(ctx, row.type, args.data, row.data));
     parsed.data = await withValidatedBack(ctx, row, parsed.data as Record<string, unknown>);
     await requireAssetUpdate(ctx, args.id, parsed.name);
     if (row.type === 'card-custom' || row.type === 'card-storm') {

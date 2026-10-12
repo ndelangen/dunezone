@@ -581,3 +581,26 @@ export const CreateStrongholdCardSaves = meta.story({
     await expect(page.findByRole('textbox', { name: 'Body' })).resolves.toHaveValue('Win tied battles here.');
   },
 });
+
+export const CreateNexusCardLinksFaction = meta.story({
+  args: { path: '/assets/card-nexus/create' },
+  play: async () => {
+    const page = within(document.body);
+    await userEvent.type(await page.findByRole('textbox', { name: 'Name' }), 'My Nexus');
+    await userEvent.click(page.getByRole('tab', { name: 'Faction' }));
+    await userEvent.click(page.getByRole('button', { name: 'Choose faction' }));
+    await userEvent.click(await page.findByRole('option', { name: /House Atreides/ }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Link faction' }));
+    await expect(page.getByRole('textbox', { name: 'Faction' })).toHaveValue('House Atreides');
+    await expect(page.queryByRole('combobox', { name: 'Faction symbol' })).toBeNull();
+    await userEvent.click(page.getByRole('tab', { name: 'Effects' }));
+    for (const label of ['Betrayal', 'Cunning', 'Secret Ally']) {
+      await userEvent.type(page.getByRole('textbox', { name: label }), `Custom ${label} effect.`);
+    }
+    await userEvent.click(page.getByRole('button', { name: 'Save card' }));
+    await expect(page.findByRole('button', { name: 'Delete card' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('tab', { name: 'Faction' }));
+    await expect(page.getByRole('textbox', { name: 'Faction' })).toHaveValue('House Atreides');
+    await expect(page.getByRole('button', { name: 'Change faction' })).toBeVisible();
+  },
+});
