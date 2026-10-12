@@ -5,7 +5,6 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { useCustomCardTokens } from '@app/db/assets';
-import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { INITIAL_CUSTOM_CARD_MEMORY } from '@app/widgets/card-editor/CustomCardEditor';
@@ -13,6 +12,7 @@ import type { CustomCardChapter, CustomCardMemory } from '@app/widgets/card-edit
 
 import { assetNameField } from '../../assetEditorStates';
 import type { LayeredCardDraft, LayeredCardEditing } from '../../layeredCardEditing';
+import { layeredCardTokenPicker } from '../../layeredCardTokenPicker';
 import { CardCreateFrame, useCardCreate } from './cardCreatePage';
 
 type CardState<Draft extends LayeredCardDraft> = { data: Draft; memory: CustomCardMemory; baseline: Draft };
@@ -85,18 +85,7 @@ export function LayeredCreatePage<Draft extends LayeredCardDraft>({ config }: { 
     <Editor
       tokens={tokens}
       tokensError={error}
-      tokenPicker={(onPick, onCancel) => (
-        <AssetPicker
-          types={['token-disc', 'token-tech', 'token-plate', 'token-enhance']}
-          copy={{
-            searchLabel: 'Find a token',
-            searchPlaceholder: 'Name, shape or creator',
-            emptyMessage: 'No token assets are available yet.',
-          }}
-          onPick={(picked) => onPick(picked.id)}
-          onCancel={onCancel}
-        />
-      )}
+      tokenPicker={layeredCardTokenPicker}
       nameField={nameField}
       draft={state.data}
       patch={patch}
