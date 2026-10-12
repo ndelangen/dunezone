@@ -400,7 +400,7 @@ export function DraftingHeader({
     warning.kind === 'none' ? 'Drafted factions are dealt randomly when everyone is ready.' : warning.text;
   const current = !gates.minimumMet ? 'players' : !gates.enoughFactions ? 'factions' : 'ready';
   const alert = draft.failure
-    ? { line: 'Seats were not dealt', help: `${draft.failure} Fix the content or change the draft; Ready deals again.` }
+    ? { line: 'Seats were not dealt', help: `${draft.failure} Fix the content or change the draft, then deal again.` }
     : warning.kind === 'short'
       ? { line: 'Not enough factions in the pool', help: warning.text }
       : null;
@@ -622,6 +622,18 @@ export function DraftingReady({ client, table }: Props) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const gates = draftGates(draft, controls.seats, draft.minimum);
   const ready = draft.ready.includes(own);
+  /* A failed deal keeps everyone's readiness, so a ready player deals again rather than withdrawing. */
+  if (draft.failure && ready) {
+    return (
+      <Button
+        color="yellow"
+        disabled={locked(table)}
+        onClick={() => client.command({ kind: 'draft-ready', ready: true })}
+      >
+        Deal again
+      </Button>
+    );
+  }
   return (
     <ReadyToggle
       ready={ready}

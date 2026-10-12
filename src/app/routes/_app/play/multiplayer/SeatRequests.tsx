@@ -223,7 +223,7 @@ export function VacantSeatRequests({
   seat,
 }: Readonly<{ client: TableSession; table: TableProjection; seat: string }>) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
-  if (table.viewer.viewerSeat === SPECTATOR_SEAT || table.playback || !openSeats(table).includes(seat)) {
+  if (!approvable(table) || !openSeats(table).includes(seat)) {
     return null;
   }
   const requests = controls.seatRequests.filter((request) => request.seat === seat);
@@ -251,7 +251,15 @@ export function VacantSeatRequests({
 }
 
 /** The vacant seats a spectator is asking for, so the player rail can mark them. */
+/** A player approves while the game runs live; a finished game takes no one until it continues. */
+function approvable(table: TableProjection): boolean {
+  return table.viewer.viewerSeat !== SPECTATOR_SEAT && !table.playback && table.snapshot.stage !== 'finished';
+}
+
 export function requestedSeats(table: TableProjection): ReadonlySet<string> {
+  if (!approvable(table)) {
+    return new Set();
+  }
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const open = openSeats(table);
   return new Set(

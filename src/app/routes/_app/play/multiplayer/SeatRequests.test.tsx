@@ -109,6 +109,17 @@ test("a player approves a request from the vacant seat's Info; a seat taken sinc
   expect(client.command).toHaveBeenCalledWith({ kind: 'seat-approve', requestId: 'request-open' });
 });
 
+test('a finished game offers no approval until it continues', () => {
+  const table = vacantTable([{ id: 'request-open', requesterName: 'Next', seat: 'seat-3' }]);
+  const finished = { ...table, snapshot: { ...table.snapshot, stage: 'finished' } } as typeof table;
+  render(
+    <MantineProvider theme={appContentTheme}>
+      <VacantSeatRequests client={{ command: vi.fn() } as unknown as TableSession} table={finished} seat="seat-3" />
+    </MantineProvider>
+  );
+  expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+});
+
 test('a press that began on one request never approves the request swapped in under it', () => {
   const client = { command: vi.fn() };
   const info = (table: ReturnType<typeof vacantTable>) => (

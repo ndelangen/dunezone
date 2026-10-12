@@ -7,7 +7,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { draftingSnapshot, storyPlayer } from '../drafting.stories.fixture';
-import { DraftingHeader, DraftingOverlay } from './Drafting';
+import { DraftingHeader, DraftingOverlay, DraftingReady } from './Drafting';
 import { stubMatchMedia } from './jsdom.test.fixture';
 
 stubMatchMedia();
@@ -128,4 +128,13 @@ test('a player approves each request where the requester waits in the roster', (
   const second = screen.getByText('Second').closest('li')!;
   fireEvent.click(within(second).getByRole('button', { name: 'Approve' }));
   expect(command).toHaveBeenCalledExactlyOnceWith({ kind: 'seat-approve', requestId: 'second' });
+});
+
+test('after a failed deal a ready player deals again instead of withdrawing', () => {
+  const command = vi.fn();
+  const snapshot = draftingSnapshot(PLAYERS, 2, { failure: 'Set aside as not ready to deal: Iduali (no token).' });
+  const ready = { ...snapshot, draft: { ...snapshot.draft!, ready: ['seat-1'] } } as typeof snapshot;
+  show(<DraftingReady client={{ command } as unknown as TableSession} table={projection('seat-1', ready)} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Deal again' }));
+  expect(command).toHaveBeenCalledExactlyOnceWith({ kind: 'draft-ready', ready: true });
 });
