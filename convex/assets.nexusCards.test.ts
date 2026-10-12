@@ -179,3 +179,23 @@ test('an unexpected GF9 card owner rolls the entire correction back', async () =
     'The earlier paraphrased effect.'
   );
 });
+
+test('a renamed deck member is preserved even when another card takes its original address', async () => {
+  const t = convexTest(schema, modules);
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
+  const imported = await t.mutation(internal.assets.seedGf9NexusDeck, { ownerId });
+  await stageOriginalImport(t, imported);
+  const owner = t.withIdentity({ subject: ownerId });
+  const renamed = { ...GF9_NEXUS_CARDS[0]!, name: 'My Atreides', betrayal: 'My house rule.' };
+  await owner.mutation(api.assets.update, { id: imported.cardIds[0]!, data: renamed });
+  const separate = { ...GF9_NEXUS_CARDS[0]!, betrayal: 'An unrelated card.' };
+  await owner.mutation(api.assets.create, { type: 'card-nexus', data: separate });
+  const result = await t.mutation(internal.assets.correctGf9NexusDeck, { ownerId });
+  expect(result.updated).toHaveLength(11);
+  expect(result.preserved).toEqual(['My Atreides']);
+  expect((await t.query(api.assets.getPage, { type: 'card-nexus', slug: 'my-atreides' }))?.asset.data).toEqual(renamed);
+  expect((await t.query(api.assets.getPage, { type: 'card-nexus', slug: 'atreides' }))?.asset.data).toEqual(separate);
+  const deck = await t.query(api.assets.getPage, { type: 'deck', slug: imported.slug });
+  expect(deck?.members).toHaveLength(12);
+  expect(deck?.members.map(({ member }) => member.id).sort()).toEqual([...imported.cardIds].sort());
+});
