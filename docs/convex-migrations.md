@@ -31,11 +31,14 @@ Use this process when a change can invalidate existing production documents, inc
 
 ## Production policy
 
-- Agents may make administrative production data writes only for a necessary migration whose exact
-  scope the human has explicitly approved. Feature delivery, stock asset creation, and visual
-  corrections do not authorize this exception. See [Production data writes](../AGENTS.md#production-data-writes).
-- Before executing that migration, present the affected records and fields, the need for the change,
-  committed code, local verification, and a recovery plan. Approval does not extend to other writes.
+- Administrative production data writes require an explicit user request for the operation and the
+  user's confirmation of the proposed action and scope. This applies to migrations, stock content
+  creation, and repairs. General feature delivery requests do not authorize administrative writes.
+  See [Production data writes](../AGENTS.md#production-data-writes).
+- Before executing a production migration, present the production target, affected records and
+  fields, any ownership or identity used, why the migration is necessary, committed code, local
+  verification, and a recovery plan. An earlier request and confirmation remain valid within their
+  stated scope, including when the deployment workflow runs the approved migration.
 - Migration code is committed and deployed with app code.
 - Production deploy automatically runs required widen migrations.
 - Deployment entrypoints are internal functions invoked by the Convex CLI with its deploy key.

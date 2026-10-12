@@ -37,22 +37,31 @@ Convex agent skills for common tasks can be installed by running
 
 ## Production data writes
 
-Agents must not create, edit, delete, or assign ownership of production application records through
-administrative access. This includes direct database writes, Convex CLI or MCP mutations, Dashboard
-edits, imports, seed scripts, repair functions, and requests made with a fabricated user identity.
-Do not add or deploy an administrative write path to bypass the application's authentication and
-ownership checks. A request to build, publish, verify, or deliver a feature does not authorize these
-operations. Create requested assets through the normal authenticated application flow, under an
-owner established by the user's instructions or verified signed-in identity. Never infer the owner
-from an existing asset, a fixture, or a remembered profile name.
+Administrative production data writes require both an explicit user request for the administrative
+operation and the user's confirmation that the proposed action and scope are okay. This includes
+creating, editing, deleting, or assigning ownership of application records through direct database
+writes, Convex command-line or connector mutations, Dashboard edits, imports, seed scripts, repair
+functions, or requests made with a supplied or fabricated user identity. Adding or deploying an
+administrative write path to bypass the application's authentication and ownership checks requires
+the same request and confirmation.
 
-The only exception is a necessary production migration that the human explicitly approves. Before
-execution, present the exact records and fields affected, why the migration is necessary, the
-committed migration code, local verification, and the recovery plan. Follow
-[`docs/convex-migrations.md`](docs/convex-migrations.md). Approval applies only to that migration and
-its stated scope. Creating stock content or fixing a visual rendering defect does not become a
-migration by naming it one. The established deployment workflow may run migrations whose scope the
-human has already approved; it does not authorize additional administrative writes.
+Before seeking confirmation, describe the production target, the records and fields affected, any
+ownership or identity used, the expected result, and how to recover if the operation goes wrong.
+Execute only the confirmed scope. A request to build, publish, verify, or deliver a feature does not
+authorize administrative production writes. An earlier explicit request and confirmation remain
+valid for the same action and scope; do not ask again unless that scope changes.
+
+Use the normal authenticated application flow by default. Create requested assets under an owner
+established by the user's instructions or verified signed-in identity. Never infer the owner from
+an existing asset, a fixture, or a remembered profile name. Administrative stock content creation
+and data repairs are allowed when explicitly requested and confirmed; they do not need to be
+classified as migrations.
+
+For production migrations, also present why the migration is necessary, the committed migration
+code, and local verification before execution. Follow
+[`docs/convex-migrations.md`](docs/convex-migrations.md). The established deployment workflow may run
+migrations whose scope the user has already requested and confirmed; it does not authorize
+additional administrative writes.
 
 This is an agent instruction, not a credential boundary. Do not claim production writes are
 technically blocked while the agent can access production administrative credentials or the
