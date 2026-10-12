@@ -41,8 +41,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [NEXUS_CARD_ASSET_TYPE]: 2,
   /* Revision 2 uses the supplied palace emblem, original raster illustrations and single-line titles. */
   [STRONGHOLD_CARD_ASSET_TYPE]: 2,
-  /* Revision 2 removes the extra symbol ring and matches the scanned movement and corner numeral. */
-  [STORM_CARD_ASSET_TYPE]: 2,
+  /* Revision 3 fixes the head and symbol to the standard Storm design. */
+  [STORM_CARD_ASSET_TYPE]: 3,
   /* Revision 3 restores regular back labels with automatic sizing and vector emblems. */
   [DECK_ASSET_TYPE]: 3,
   /* Revision 5 restores regular back labels with automatic sizing and vector emblems; saved designs are kept. */
