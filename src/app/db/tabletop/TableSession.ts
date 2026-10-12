@@ -1704,17 +1704,8 @@ export class TableSession {
   /* A piece in hand turns over where it is held at once; the room answers with any face it turned up, and the table logs the flip when it lands. */
   private flipCarried() {
     const carry = this.carry;
-    if (!carry || carry.pendingDrop) {
-      return;
-    }
-    const held = heldPieceFor(this.requireTable().state, carry.draft);
-    /* The room never counts back, so a carry stops turning at its cap rather than send a count it refuses. */
-    const unrevealed = (stepId: string) => this.snapshot.predictions?.[stepId]?.revealedAt === null;
-    if (!canFlipInHand(held, unrevealed) || (carry.draft.flips ?? 0) >= CARRY_FLIPS_LIMIT) {
-      return;
-    }
-    /* A piece still turning over in hand finishes that turn before it takes another, as one on the table does. */
-    if (!held || this.flipping.has(held.id)) {
+    const held = carry && !carry.pendingDrop ? this.pieceToFlipInHand(carry) : null;
+    if (!carry || !held) {
       return;
     }
     const flips = (carry.draft.flips ?? 0) + 1;
@@ -1722,6 +1713,17 @@ export class TableSession {
     this.carry = { ...carry, draft: { ...carry.draft, flips } };
     this.send({ type: 'flip', carryId: carry.id, flips });
     this.emit();
+  }
+  /* The piece in hand when it may turn over once more: one the room would let turn, below the carry's cap, and not still turning. */
+  private pieceToFlipInHand(carry: LocalCarry) {
+    const held = heldPieceFor(this.requireTable().state, carry.draft);
+    /* The room never counts back, so a carry stops turning at its cap rather than send a count it refuses. */
+    const unrevealed = (stepId: string) => this.snapshot.predictions?.[stepId]?.revealedAt === null;
+    if (!held || !canFlipInHand(held, unrevealed) || (carry.draft.flips ?? 0) >= CARRY_FLIPS_LIMIT) {
+      return null;
+    }
+    /* A piece still turning over in hand finishes that turn before it takes another, as one on the table does. */
+    return this.flipping.has(held.id) ? null : held;
   }
   toggleLockSelected = (id?: string) => {
     const pieceId = this.target(id);
