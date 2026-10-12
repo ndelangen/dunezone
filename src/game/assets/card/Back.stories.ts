@@ -65,16 +65,37 @@ async function verifyLabelPaint({ canvasElement }: { canvasElement: HTMLElement 
   const label = canvasElement.querySelector<SVGTextElement>('text')!.ownerSVGElement!;
   const glyphs = Array.from(label.querySelectorAll<SVGTextElement>('text'));
   const paints = Array.from(label.querySelectorAll<SVGRectElement>('rect[mask]'));
+  /* Glyph cells include blank font space, so the canvas metrics locate their painted ink. */
+  const context = document.createElement('canvas').getContext('2d')!;
   for (const paint of paints) {
     const painted = paint.getBBox();
     for (const glyph of glyphs) {
-      const bounds = glyph.getBBox();
-      await expect(painted.y).toBeLessThanOrEqual(bounds.y);
-      await expect(painted.y + painted.height).toBeGreaterThanOrEqual(bounds.y + bounds.height);
+      const nodes = document.createTreeWalker(glyph, NodeFilter.SHOW_TEXT);
+      let characterIndex = 0;
+      while (nodes.nextNode()) {
+        const node = nodes.currentNode;
+        const font = getComputedStyle(node.parentElement!);
+        context.font = `${font.fontStyle} ${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
+        for (const character of node.textContent!.toUpperCase()) {
+          const cell = glyph.getExtentOfChar(characterIndex++);
+          const ink = context.measureText(character);
+          const baseline = cell.y + ink.fontBoundingBoxAscent;
+          await expect(painted.y).toBeLessThanOrEqual(baseline - ink.actualBoundingBoxAscent);
+          await expect(painted.y + painted.height).toBeGreaterThanOrEqual(baseline + ink.actualBoundingBoxDescent);
+        }
+      }
     }
   }
 }
 
+export const SmallestStormLabel = meta.story({
+  args: { ...STANDARD_STORM_CARDBACK, nameScale: 0.5 },
+  play: verifyLabelPaint,
+});
+export const DefaultStormLabel = meta.story({
+  args: { ...STANDARD_STORM_CARDBACK, nameScale: 1 },
+  play: verifyLabelPaint,
+});
 export const StormDeckLabel = meta.story({ args: STANDARD_STORM_CARDBACK, play: verifyLabelPaint });
 export const LargestStormLabel = meta.story({
   args: { ...STANDARD_STORM_CARDBACK, nameScale: 2 },
