@@ -1156,9 +1156,12 @@ describe('hosted table interaction', () => {
     client.beginGesture('treachery-deck', 'top');
     const begin = socket().sent.find((message) => message.type === 'begin');
     const draft = table(client).state.draftMove;
-    const held = draft && heldPieceFor(table(client).state, draft);
-    if (!begin || !draft || !held) {
+    if (!begin || !draft) {
       throw new Error('The draw did not start.');
+    }
+    const held = heldPieceFor(table(client).state, draft);
+    if (!held) {
+      throw new Error('The draw holds no card.');
     }
     socket().deliver({ type: 'carry', carryId: begin.carryId, draft });
     const carries = [
