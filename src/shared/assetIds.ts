@@ -1733,6 +1733,7 @@ export const TROOP = z.enum([
   '/vector/troop/smuggler.svg',
   '/vector/troop/spice-driller.svg',
   '/vector/troop/suspensor-lancer.svg',
+  '/vector/troop/sword-bearer.svg',
   '/vector/troop/veiled-adept.svg',
   '/vector/troop/void-walker.svg',
   '/vector/troop/water-keeper.svg',
