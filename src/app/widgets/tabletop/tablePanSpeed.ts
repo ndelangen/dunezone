@@ -2,11 +2,11 @@ import { viewerPreference } from './viewerPreference';
 
 /*
  * How fast this viewer wants the pan keys to slide a close look, a per-browser preference that never reaches the game.
- * 1 is the table's own speed; the slider in the game menu scales it from a fifth to five times as fast (Norbert, 2026-10-12).
+ * 1 is the table's own speed; the slider in the game menu scales it from a fifth to three times as fast (Norbert, 2026-10-12).
  */
 
 export const TABLE_PAN_SPEED_MIN = 0.2;
-export const TABLE_PAN_SPEED_MAX = 5;
+export const TABLE_PAN_SPEED_MAX = 3;
 
 const panSpeed = viewerPreference('dunezone-table-pan-speed', {
   min: TABLE_PAN_SPEED_MIN,

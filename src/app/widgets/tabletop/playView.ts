@@ -267,12 +267,14 @@ export const CAMERA_CLOSEST_DISTANCE = 1;
 const CAMERA_ZOOM_FULL_TILT = 0.85;
 /*
  * How quickly the pan keys slide a close look, in table units per second at the view's own distance; closer looks slide slower.
- * A held key starts at the first speed and builds to the second over the ramp, quickly at first and gently near the top; the look eases into and out of its speed.
+ * A held key starts at the first speed and builds to the second over the ramp, quickly at first and gently near the top.
+ * The look takes up its speed quickly and lets go of it gently, so it gets going at once and coasts to a stop (Norbert, 2026-10-12).
  */
-const CAMERA_PAN_START_SPEED = 14;
-const CAMERA_PAN_TOP_SPEED = 30;
-const CAMERA_PAN_RAMP_S = 0.8;
-const CAMERA_PAN_EASE_S = 0.12;
+const CAMERA_PAN_START_SPEED = 16;
+const CAMERA_PAN_TOP_SPEED = 26;
+const CAMERA_PAN_RAMP_S = 0.5;
+const CAMERA_PAN_SPEED_UP_S = 0.05;
+const CAMERA_PAN_SLOW_DOWN_S = 0.22;
 /* Within this distance of the edge a close look may reach, sliding further out slows to a stop. */
 const CAMERA_PAN_EDGE_MARGIN = 1.2;
 /* Scroll distance, in pixels, that brings the camera e times closer. */
@@ -445,7 +447,7 @@ export function cameraPanMotionAfter(
       : 0;
   const wanted: [number, number] =
     length > 0 ? [(direction[0] / length) * speed, (direction[1] / length) * speed] : [0, 0];
-  const share = 1 - Math.exp(-step / CAMERA_PAN_EASE_S);
+  const share = 1 - Math.exp(-step / (length > 0 ? CAMERA_PAN_SPEED_UP_S : CAMERA_PAN_SLOW_DOWN_S));
   const velocity: [number, number] = [
     motion.velocity[0] + (wanted[0] - motion.velocity[0]) * share,
     motion.velocity[1] + (wanted[1] - motion.velocity[1]) * share,
