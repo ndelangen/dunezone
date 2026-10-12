@@ -21,7 +21,8 @@ import { emptyPublicControls } from '../../src/shared/play/inventory';
 import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import { composeTurn, lobbyPhaseIndex } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
-import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import { rosterFactionIds } from '../../src/shared/play/protocol';
+import type { ClientMessage, CommitMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
 import { isResultAction } from '../../src/shared/play/result';
@@ -39,7 +40,7 @@ import { expireBattle } from './battle';
 import { biddingDeadline, expireBidding } from './bidding';
 import { moveStoredGameOntoCurrentBoard } from './boardLayout';
 import { CaptureStore } from './captures';
-import { Conversations, seatedFactions } from './conversations';
+import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
 import {
   applyDraftAction,
@@ -109,7 +110,6 @@ export type Metadata = {
 };
 
 type CommandMessage = Extract<ClientMessage, { type: 'command' }>;
-type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 type TableMessage =
   | Extract<CommitMessage, { type: 'drop' }>
   | (CommandMessage & { action: Parameters<Room['command']>[1] });
@@ -125,6 +125,7 @@ function draftStamp(seated: readonly string[], draft: NonNullable<StoredSnapshot
   });
 }
 
+/** The seat a real game's creator holds from creation. */
 const CREATOR_SEAT = 'seat-1';
 
 /** A capture refused for readiness, carrying its first problem alone for the draft to show beside the faction. */
@@ -191,10 +192,7 @@ export class GameSession {
       this.log.enabled = Boolean(this.metadata.game);
       this.repairDeletedHistory();
       moveStoredGameOntoCurrentBoard(this.storage);
-      const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
-      this.room = this.openRoom(
-        this.withRoster(this.spiceLedger.project(storedSnapshotSchema.parse(JSON.parse(stored.data))))
-      );
+      this.room = this.openRoom(this.withRoster(this.spiceLedger.project(this.storedSnapshot())));
       this.history.restoreBoundary();
       /* A room evicted mid-attempt wakes owing a deal; the gates are judged again without waiting for a command. */
       this.closeDueTrading();
@@ -247,7 +245,7 @@ export class GameSession {
    * A game whose seated factions declare nothing (a fixture, one still drafting, or plain factions) plays the standard turn and carries no list.
    */
   private composedTurn(roster: TableRoster, stormSectorIndex: number): PhaseEntry[] | undefined {
-    const seated = new Set(roster.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])));
+    const seated = new Set(rosterFactionIds(roster));
     const factions = this.captures
       .phaseDeclarations()
       .filter((entry) => seated.has(entry.factionId) && entry.declarations.length > 0);
@@ -356,13 +354,7 @@ export class GameSession {
 
   private installSetupProgress() {
     const room = this.room;
-    if (!room) {
-      return;
-    }
-    if (room.snapshot.stage !== 'setup') {
-      return;
-    }
-    if (room.snapshot.setup) {
+    if (!room || room.snapshot.stage !== 'setup' || room.snapshot.setup) {
       return;
     }
     const next = {
@@ -460,32 +452,15 @@ export class GameSession {
     }
   }
 
-  private revealDueBattle() {
+  /*
+   * A deadline that ran out: a battle reveal or a bidder pass. Each is a playback step between two others,
+   * so it stores its change; the outcome after it is the checkpoint.
+   */
+  private applyDue(expire: (snapshot: StoredSnapshot, now: number) => StoredSnapshot | undefined) {
     if (!this.room) {
       return;
     }
-    const next = expireBattle(this.room.snapshot, Date.now());
-    if (!next) {
-      return;
-    }
-    /* The reveal is a playback step between two others, so it stores its change; the outcome after it is the checkpoint. */
-    const history = this.history.patch(next);
-    this.storage.transactionSync(() => {
-      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-      this.history.write(history);
-      this.stageDirectory(next, Date.now());
-    });
-    this.history.accept(history.step, next);
-    this.room.accept(next);
-    return true;
-  }
-
-  /* The bidder passes for a faction whose time ran out; like any command, the pass is a playback step. */
-  private passDueBid() {
-    if (!this.room) {
-      return;
-    }
-    const next = expireBidding(this.room.snapshot, Date.now());
+    const next = expire(this.room.snapshot, Date.now());
     if (!next) {
       return;
     }
@@ -617,15 +592,19 @@ export class GameSession {
       this.log.recordStage(this.room!.snapshot, next);
       this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
       this.stageDirectory(next, Date.now());
-      this.storage.sql.exec(
-        'INSERT INTO receipts VALUES(?,?,?,?)',
-        key,
-        viewer.userId,
-        JSON.stringify(message),
-        next.revision
-      );
+      this.recordReceipt(key, viewer, message, next.revision);
       return next;
     });
+  }
+
+  private recordReceipt(key: string, viewer: Viewer, message: CommitMessage, revision: number) {
+    this.storage.sql.exec(
+      'INSERT INTO receipts VALUES(?,?,?,?)',
+      key,
+      viewer.userId,
+      JSON.stringify(message),
+      revision
+    );
   }
 
   private persistCommit(commit: {
@@ -656,13 +635,7 @@ export class GameSession {
         transfer,
         holders: this.actors.occupants(),
       });
-      this.storage.sql.exec(
-        'INSERT INTO receipts VALUES(?,?,?,?)',
-        key,
-        viewer.userId,
-        JSON.stringify(message),
-        next.revision
-      );
+      this.recordReceipt(key, viewer, message, next.revision);
       this.publicActions.record({
         key,
         viewer,
@@ -1065,8 +1038,8 @@ export class GameSession {
     return deadlines.length ? Math.min(...deadlines) : undefined;
   }
   advanceDeadlines() {
-    const battle = this.revealDueBattle();
-    const bidding = this.passDueBid();
+    const battle = this.applyDue(expireBattle);
+    const bidding = this.applyDue(expireBidding);
     const trading = this.closeDueTrading();
     return Boolean(battle || bidding || trading);
   }
@@ -1103,12 +1076,13 @@ export class GameSession {
   }
   viewer(...args: Parameters<ActorDirectory['viewer']>) {
     const viewer = this.actors.viewer(...args);
-    const controls = this.room!.snapshot.controls ?? emptyPublicControls();
-    this.room!.snapshot = this.withRoster({
-      ...this.room!.snapshot,
-      controls: { ...controls, seats: this.actors.seats() },
-    });
+    this.restampSeats(this.room!);
     return viewer;
+  }
+  /** The snapshot's seats and roster are read again from the seat rows. */
+  private restampSeats(room: Room) {
+    const controls = room.snapshot.controls ?? emptyPublicControls();
+    room.snapshot = this.withRoster({ ...room.snapshot, controls: { ...controls, seats: this.actors.seats() } });
   }
   /** A connection whose seat changed loses its activity, and the roster is read again. */
   refreshViewers(viewers: readonly Viewer[]) {
@@ -1117,11 +1091,7 @@ export class GameSession {
       if (current[index]?.viewerSeat !== viewer.viewerSeat) {
         this.clearActivity(viewer.connectionId);
         if (this.room) {
-          const controls = this.room.snapshot.controls ?? emptyPublicControls();
-          this.room.snapshot = this.withRoster({
-            ...this.room.snapshot,
-            controls: { ...controls, seats: this.actors.seats() },
-          });
+          this.restampSeats(this.room);
         }
       }
     });
@@ -1179,14 +1149,14 @@ export class GameSession {
     });
   }
   conversationMembers(request: Extract<ClientMessage, { type: 'conversation-send' }>) {
-    return conversationMembers(request.factionId, request.peerId, seatedFactions(this.room!.snapshot)) ?? [];
+    return conversationMembers(request.factionId, request.peerId, rosterFactionIds(this.room!.snapshot.roster)) ?? [];
   }
   conversationSummaries(viewer: Viewer): Extract<ServerMessage, { type: 'conversations' }> | undefined {
     const factionId = this.conversationFaction(viewer);
     if (!factionId) {
       return;
     }
-    const peers = seatedFactions(this.room!.snapshot);
+    const peers = rosterFactionIds(this.room!.snapshot.roster);
     return {
       type: 'conversations',
       factionId,
@@ -1196,13 +1166,7 @@ export class GameSession {
   }
   draftWork() {
     const draft = this.room?.snapshot.draft;
-    if (!this.metadata?.game) {
-      return;
-    }
-    if (this.room?.snapshot.stage !== 'drafting') {
-      return;
-    }
-    if (!draft) {
+    if (!this.metadata?.game || this.room?.snapshot.stage !== 'drafting' || !draft) {
       return;
     }
     return { refresh: Date.now() - draft.catalogueAt >= PLAY_DRAFT_CATALOGUE_TTL_MS };

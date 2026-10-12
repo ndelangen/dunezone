@@ -28,11 +28,6 @@ export type PlacementAnchor = Readonly<{
   captureSize: Readonly<{ width: number; depth: number }>;
 }>;
 
-export function sideShelfPosition(side: CardBaySide): Vector3Tuple {
-  const direction = side === 'left' ? -1 : 1;
-  return [direction * SIDE_SHELF_CENTER_X, FURNITURE_SURFACE_Y - SIDE_SHELF_SIZE[1] / 2, 0];
-}
-
 function positionsForCardBay(side: CardBaySide): Vector3Tuple[] {
   const direction = side === 'left' ? -1 : 1;
   const innerX = direction * 5.72;

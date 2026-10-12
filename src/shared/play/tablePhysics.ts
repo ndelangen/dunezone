@@ -1,12 +1,11 @@
 import type { TablePiece, Vector3Tuple } from './model';
-import { isSpicePiece, SPICE_FOOTPRINT_RADIUS } from './spice';
 import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, placementAnchorForPose } from './tableFurnitureLayout';
 import {
   CARD_FOOTPRINT_HALF_X,
   CARD_FOOTPRINT_HALF_Z,
+  circleFootprintRadius,
   TROOP_FOOTPRINT_RADIUS,
   troopScale,
-  MARKER_FOOTPRINT_RADIUS,
   tokenBoxRatio,
 } from './tableGeometry';
 
@@ -63,14 +62,7 @@ function footprintFor(piece: TablePiece): Footprint {
     const halfX = TROOP_FOOTPRINT_RADIUS * troopScale(piece);
     return { shape: 'box', halfX, halfZ: halfX * ratio };
   }
-  return {
-    shape: 'circle',
-    radius: isSpicePiece(piece)
-      ? SPICE_FOOTPRINT_RADIUS
-      : piece.kind === 'marker'
-        ? MARKER_FOOTPRINT_RADIUS
-        : TROOP_FOOTPRINT_RADIUS * troopScale(piece),
-  };
+  return { shape: 'circle', radius: circleFootprintRadius(piece) };
 }
 
 function centerOf(position: Vector3Tuple): Vector2 {

@@ -1,5 +1,6 @@
 import { conversationMembers, conversationsAvailable, TABLE_CONVERSATION } from '../../src/shared/play/conversations';
 import type { ConversationMessage } from '../../src/shared/play/conversations';
+import { rosterFactionIds } from '../../src/shared/play/protocol';
 import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { ActorDirectory } from './actors';
@@ -56,7 +57,7 @@ export class Conversations {
 
   authorize(snapshot: StoredSnapshot, viewer: Viewer, pair: Pair) {
     const own = this.faction(snapshot, viewer);
-    if (!own || own !== pair.factionId || !conversationMembers(own, pair.peerId, seatedFactions(snapshot))) {
+    if (!own || own !== pair.factionId || !conversationMembers(own, pair.peerId, rosterFactionIds(snapshot.roster))) {
       throw new GameRejection('This conversation is not available.');
     }
     return own;
@@ -154,8 +155,4 @@ export class Conversations {
       userId
     );
   }
-}
-
-export function seatedFactions(snapshot: StoredSnapshot) {
-  return snapshot.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])) ?? [];
 }

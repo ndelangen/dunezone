@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { actionKindGuard } from './actionKinds';
 import { tableCountSchema, tableIdSchema, tableSeatSchema } from './schema';
 
 const SWAPPING_DURATION_MS = 4 * 60 * 1000;
@@ -30,10 +31,7 @@ export const swapActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('swap-ready'), ...expected, ready: z.boolean() }),
 ]);
 export type SwapAction = z.infer<typeof swapActionSchema>;
-const kinds: ReadonlySet<string> = new Set(swapActionSchema.options.map((option) => option.shape.kind.value));
-export function isSwapAction(action: { kind: string }): action is SwapAction {
-  return kinds.has(action.kind);
-}
+export const isSwapAction = actionKindGuard(swapActionSchema);
 
 export function openSwapping(round: string, now: number): SwappingState {
   return {

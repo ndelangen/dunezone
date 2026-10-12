@@ -1,7 +1,8 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
 import { alliesOf } from '@shared/play/alliances';
-import { factionTokenStackKey } from '@shared/play/factionToken';
+import { factionTokenOf } from '@shared/play/factionToken';
 import type { TablePiece } from '@shared/play/model';
+import { rosterFactionIds } from '@shared/play/protocol';
 import { useMemo } from 'react';
 import { Vector3 } from 'three';
 
@@ -19,9 +20,8 @@ export function AllianceCoinsScene({ table }: { table: TableProjection }) {
     return null;
   }
   const alliances = table.snapshot.alliances;
-  const token = (factionId: string) =>
-    table.state.pieces.find((piece) => piece.stackKey === factionTokenStackKey(factionId));
-  const factions = table.snapshot.roster?.seats.flatMap(({ faction }) => (faction ? [faction.id] : [])) ?? [];
+  const token = (factionId: string) => factionTokenOf(table.state.pieces, factionId);
+  const factions = rosterFactionIds(table.snapshot.roster);
   const coins = factions.flatMap((factionId) => {
     const own = token(factionId);
     if (!own) {

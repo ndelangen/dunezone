@@ -328,10 +328,7 @@ export function applyRoomUpdate(base: RoomView | undefined, update: Update): Roo
   const snapshot = update.snapshot ? applySnapshot(base.snapshot, update.snapshot) : base.snapshot;
   const carries = applyCarries(base.carries, update.activity);
   const pointers = applyPointers(base.pointers, update.activity);
-  if (!snapshot) {
-    return null;
-  }
-  if (!carries || !pointers) {
+  if (!snapshot || !carries || !pointers) {
     return null;
   }
   return {

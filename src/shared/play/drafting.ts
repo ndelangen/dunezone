@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { Background, CanonicalFactionStoredObject } from '../factions/schema';
+import { actionKindGuard } from './actionKinds';
 import { tableCountSchema, tableIdentitySchema, tableSeatSchema } from './schema';
 
 /*
@@ -66,13 +67,7 @@ export const draftActionSchema = z.discriminatedUnion('kind', [
 ]);
 export type DraftAction = z.infer<typeof draftActionSchema>;
 
-const DRAFT_ACTION_KINDS: ReadonlySet<string> = new Set(
-  draftActionSchema.options.map((option) => option.shape.kind.value)
-);
-
-export function isDraftAction(action: { kind: string }): action is DraftAction {
-  return DRAFT_ACTION_KINDS.has(action.kind);
-}
+export const isDraftAction = actionKindGuard(draftActionSchema);
 
 export function bannedIds(draft: DraftState): string[] {
   return [...new Set(Object.values(draft.bans).flat())];
@@ -108,12 +103,16 @@ export function draftedPool(draft: DraftState): string[] {
   return pool;
 }
 
+function seatsListing(lists: DraftState['picks'], factionId: string): string[] {
+  return Object.entries(lists).flatMap(([seat, list]) => (list.includes(factionId) ? [seat] : []));
+}
+
 export function pickersOf(draft: DraftState, factionId: string): string[] {
-  return Object.entries(draft.picks).flatMap(([seat, list]) => (list.includes(factionId) ? [seat] : []));
+  return seatsListing(draft.picks, factionId);
 }
 
 export function bannersOf(draft: DraftState, factionId: string): string[] {
-  return Object.entries(draft.bans).flatMap(([seat, list]) => (list.includes(factionId) ? [seat] : []));
+  return seatsListing(draft.bans, factionId);
 }
 
 /** Linked, published, unbanned factions outside the drafted pool and not set aside: what random filling can add. */

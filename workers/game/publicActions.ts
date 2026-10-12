@@ -1,5 +1,5 @@
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
-import type { ClientMessage, DeckAction, Viewer } from '../../src/shared/play/protocol';
+import type { ClientMessage, CommitMessage, DeckAction, Viewer } from '../../src/shared/play/protocol';
 import type { StoredSnapshot } from './state';
 
 type Command = Extract<ClientMessage, { type: 'command' }>;
@@ -7,7 +7,7 @@ type SpawnAction = Extract<Command['action'], { kind: 'spawn-request' | 'spawn-a
 type Commit = {
   key: string;
   viewer: Viewer;
-  message: Extract<ClientMessage, { type: 'drop' | 'command' }>;
+  message: CommitMessage;
   before: StoredSnapshot;
   next: StoredSnapshot;
   contents: StoredSpawnContents | undefined;

@@ -4,6 +4,7 @@ import type { TablePing } from '@shared/play/protocol';
 import { useEffect, useRef, useState } from 'react';
 import type { Mesh, MeshBasicMaterial } from 'three';
 
+import { ignoreRaycast } from './ignoreRaycast';
 import { playPingSound } from './pingSound';
 import { useTabletopActions } from './TabletopContext';
 
@@ -19,8 +20,6 @@ const LIFT = 0.006;
 const FLAT: [number, number, number] = [-Math.PI / 2, 0, 0];
 
 type ShownPing = TablePing & { key: number };
-
-function ignoreRaycast() {}
 
 /** Every ping at the table, this page's own included, as one ripple in the pinger's faction colour lying where it landed, with a sound. */
 export function ScenePings() {

@@ -1,11 +1,12 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
-import { factionTokenFaceUp, factionTokenStackKey } from '@shared/play/factionToken';
+import { factionTokenFaceUp, factionTokenOf } from '@shared/play/factionToken';
 import { handCountGrid } from '@shared/play/handCounts';
 import { stormOrder } from '@shared/play/stormSector';
 import { CARD_SLOT_OUTER_SIZE, cardBaySlotPositions } from '@shared/play/tableFurnitureLayout';
 import { useEffect, useMemo, useState } from 'react';
 import { CanvasTexture, LinearMipmapLinearFilter, SRGBColorSpace } from 'three';
 
+import { ignoreRaycast } from '@app/widgets/tabletop/ignoreRaycast';
 import {
   FALLBACK_FONT_FAMILY,
   loadTableLabelFont,
@@ -39,10 +40,6 @@ type Row = {
   initials: string;
   ring: string | null;
 };
-
-function ignoreRaycast() {
-  // Painted table lettering is never an interaction target.
-}
 
 function loadImage(href: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
@@ -154,7 +151,7 @@ function paint(
 function handCountRows(table: TableProjection, order: readonly string[]): Row[] {
   const counts = table.snapshot.handCounts ?? {};
   return order.map((id) => {
-    const token = table.state.pieces.find((piece) => piece.stackKey === factionTokenStackKey(id));
+    const token = factionTokenOf(table.state.pieces, id);
     const name = table.state.factionNames[id] ?? id;
     const alliance = allianceSlot(table.snapshot, id);
     return {

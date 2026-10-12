@@ -291,9 +291,16 @@ function mergeAffordance(piece: TablePiece): Affordance {
   };
 }
 
+export function isFlippablePiece(piece: TablePiece | null | undefined): piece is TablePiece {
+  if (!piece) {
+    return false;
+  }
+  const canFlipKind = piece.kind === 'card' || piece.kind === 'force';
+  return pieceCount(piece) > 0 && canFlipKind;
+}
+
 function canOfferFlip(state: TableState, piece: TablePiece): boolean {
-  const supportedKind = piece.kind === 'card' || piece.kind === 'force';
-  return !state.draftMove && pieceCount(piece) > 0 && supportedKind;
+  return !state.draftMove && isFlippablePiece(piece);
 }
 
 function flipAffordance(piece: TablePiece): Affordance {

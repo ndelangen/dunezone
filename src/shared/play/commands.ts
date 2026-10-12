@@ -6,19 +6,21 @@ import type { PhaseEntry } from './phases';
 import { ROTATE_STEPS_LIMIT } from './protocol';
 import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
-import { createSpiceStack, isSpicePiece } from './spiceBank';
+import { isSpicePiece } from './spice';
+import { createSpiceStack } from './spiceBank';
 import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
 import {
-  appendEvent,
+  accepted,
   applyDraftToState,
   compatibleStackTarget,
-  eventId,
   flipPieceInState,
   labelForCount,
   moveStormInState,
 } from './tableState';
 import { isTroopStack } from './troop';
+
+export { accepted };
 
 function durableTable(table: TableState): DurableTable {
   const {
@@ -61,14 +63,6 @@ export function nextSnapshot<Snapshot extends GameSnapshot>(
     })
   );
   return { ...previous, revision, table: durableTable(table), versions, phase };
-}
-
-/** The table with one accepted event appended, numbered from the table's own event counter. */
-export function accepted(state: TableState, command: string, message: string): TableState {
-  return {
-    ...state,
-    ...appendEvent(state, { id: eventId(state.nextEventNumber), command, message, status: 'accepted' }),
-  };
 }
 
 export function requireAccepted(before: TableState, after: TableState): TableState {
