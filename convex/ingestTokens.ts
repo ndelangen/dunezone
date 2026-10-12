@@ -9,8 +9,7 @@ import {
   userImageRulebookCoverIngestCallbackSchema,
 } from '../src/shared/user-images/contract';
 import { internal } from './_generated/api';
-import { query } from './_generated/server';
-import { internalMutation, mutation } from './functions';
+import { internalMutation, mutation, publicQuery } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
 import {
   INGEST_TOKEN_TTL_MS,
@@ -95,7 +94,7 @@ export const expire = internalMutation({
  * a hostile caller lying about the time only lies to itself, since this answer gates nothing.
  * The `consume` mutation re-checks expiry against the server clock and is the only gate that counts.
  */
-export const check = query({
+export const check = publicQuery({
   args: { token: v.string(), now: v.number() },
   returns: v.object({ valid: v.boolean(), kind: v.optional(ingestTokenCapabilityKindValidator) }),
   handler: async (ctx, args) => {

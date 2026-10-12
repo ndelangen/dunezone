@@ -4,9 +4,9 @@ import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
-import { internalAction, query } from './_generated/server';
+import { internalAction } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
-import { internalMutation, mutation } from './functions';
+import { adminQuery, internalMutation, mutation, publicQuery, viewerQuery } from './functions';
 import { optionalActiveUserId, accountStateOf } from './lib/accountLifecycle';
 import { advanceAccountMerge, profileForAccount, startAccountMerge } from './lib/accountMerge';
 import {
@@ -21,7 +21,7 @@ import { docValidator } from './lib/collaborativeAccessValidators';
 import { playCredential, playCredentialDigest } from './lib/playAuthorization';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 
-export const providers = query({
+export const providers = publicQuery({
   args: {},
   returns: v.array(v.object({ provider: authProviderValidator, available: v.boolean() })),
   handler: async () => signInProviders(),
@@ -35,7 +35,7 @@ const profileSummary = v.object({
 });
 const operationValidator = docValidator('account_merge_operations');
 
-export const adminPage = query({
+export const adminPage = adminQuery({
   args: { paginationOpts: paginationOptsValidator, selectedUserIds: v.array(v.id('users')) },
   returns: v.object({
     profiles: paginationResultValidator(profileSummary),
@@ -43,7 +43,6 @@ export const adminPage = query({
     operations: v.array(operationValidator),
   }),
   handler: async (ctx, args) => {
-    await requireAdminUserId(ctx);
     if (args.selectedUserIds.length > 2) {
       throw new Error('Select at most two profiles.');
     }
@@ -218,7 +217,7 @@ async function verifiedConnection(ctx: QueryCtx, intent: Doc<'account_connection
   return method?.connected ? userId : null;
 }
 
-export const connection = query({
+export const connection = viewerQuery({
   args: { token: v.string() },
   returns: v.union(
     v.null(),

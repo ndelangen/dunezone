@@ -3,8 +3,7 @@ import { v } from 'convex/values';
 import { profileUserEditFormSchema } from '../src/shared/profiles/validation';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
-import { query } from './_generated/server';
-import { mutation } from './functions';
+import { mutation, publicQuery, viewerQuery } from './functions';
 import { isActiveProfile, optionalActiveUserId } from './lib/accountLifecycle';
 import { accountMethods, authMethodValidator } from './lib/accountMethods';
 import {
@@ -57,7 +56,7 @@ async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
  * One query rather than two because every `_app` page holds this through the shell, and the pair cost two subscriptions to answer one question.
  * The envelope is never null: a signed-out viewer and a signed-in viewer with no profile row yet must stay distinguishable, or the client's bootstrap never fires for a new account.
  */
-export const session = query({
+export const session = viewerQuery({
   args: {},
   returns: v.object({
     userId: v.union(v.id('users'), v.null()),
@@ -86,7 +85,7 @@ export const session = query({
  * Its own query because it is a memberships join plus a group read per membership, and it used to ride on `session` to every page in the app.
  * `default_group_id` comes back sanitized against that same list, so a default pointing at a group the viewer left reads as none.
  */
-export const defaultGroupPreference = query({
+export const defaultGroupPreference = viewerQuery({
   args: {},
   returns: v.object({
     default_group_id: v.union(v.id('groups'), v.null()),
@@ -108,7 +107,7 @@ export const defaultGroupPreference = query({
 });
 
 /** The signed-in owner's settings, with one page subscription for Groups and sign-in methods. */
-export const settings = query({
+export const settings = viewerQuery({
   args: {},
   returns: v.object({
     default_group_id: v.union(v.id('groups'), v.null()),
@@ -147,7 +146,7 @@ export const bootstrapCurrent = mutation({
   },
 });
 
-export const getById = query({
+export const getById = publicQuery({
   args: { id: v.id('profiles') },
   handler: async (ctx, args) => {
     const profile = await ctx.db.get(args.id);
@@ -158,7 +157,7 @@ export const getById = query({
   },
 });
 
-export const getBySlug = query({
+export const getBySlug = viewerQuery({
   args: { slug: v.string() },
   returns: profileDetailPageValidator,
   handler: async (ctx, args) => await loadProfileDetailBySlug(ctx, args.slug),
@@ -173,7 +172,7 @@ const profileListEntryValidator = profileValidator.extend({
   }),
 });
 
-export const list = query({
+export const list = publicQuery({
   args: {},
   returns: v.array(profileListEntryValidator),
   handler: async (ctx) => {
@@ -194,7 +193,7 @@ export const list = query({
   },
 });
 
-export const newestDiscoverable = query({
+export const newestDiscoverable = publicQuery({
   args: { limit: v.optional(v.number()) },
   returns: v.array(discoverableProfileValidator),
   handler: async (ctx, args) => await loadNewestDiscoverableProfiles(ctx, args.limit ?? 4),

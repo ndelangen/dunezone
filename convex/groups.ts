@@ -3,8 +3,7 @@ import { ConvexError, v } from 'convex/values';
 import { groupInputSchema } from '../src/shared/groups/validation';
 import type { Doc } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
-import { query } from './_generated/server';
-import { mutation } from './functions';
+import { mutation, publicQuery, viewerQuery } from './functions';
 import { liveGroupOrNull, loadGroupAccessBundle, requireGroupCapability } from './lib/collaborativeAccess';
 import { groupDetailPageValidator } from './lib/collaborativeAccessValidators';
 import { factionRowForClient } from './lib/factionInput';
@@ -29,7 +28,7 @@ async function resolveUniqueGroupSlug(ctx: MutationCtx, name: string, own?: Doc<
   });
 }
 
-export const getById = query({
+export const getById = publicQuery({
   args: { id: v.id('groups') },
   handler: async (ctx, args) => {
     const group = liveGroupOrNull(await ctx.db.get(args.id));
@@ -41,7 +40,7 @@ export const getById = query({
 });
 
 /** Group detail page with canonical access, owner, roster, and associated assets. */
-export const detailBySlug = query({
+export const detailBySlug = viewerQuery({
   args: { slug: v.string() },
   returns: groupDetailPageValidator,
   handler: async (ctx, args) => {
@@ -78,7 +77,7 @@ export const detailBySlug = query({
   },
 });
 
-export const list = query({
+export const list = publicQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db
@@ -88,7 +87,7 @@ export const list = query({
   },
 });
 
-export const listByCreator = query({
+export const listByCreator = publicQuery({
   args: { created_by: v.id('users') },
   handler: async (ctx, args) => {
     return await ctx.db

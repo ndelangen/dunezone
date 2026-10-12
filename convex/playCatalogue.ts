@@ -14,9 +14,9 @@ import { assetSupplySchema, factionDefinitionWireSchema, rulesetSupplySchema } f
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
 import type { Doc } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
-import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
 import { CONTAINER_KINDS, liveAsset, membersOf, referencedCardbackDeck, tokenBackFor } from './assets';
+import { publicQuery } from './functions';
 import { resolveBackHref, TOKEN_ASSET_TYPES } from './lib/assetBacks';
 import { assetDisplayName } from './lib/assetInput';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
@@ -53,7 +53,7 @@ async function predictionFront(ctx: QueryCtx) {
 }
 
 /** The slotted supply a game captures at creation. A soft-deleted or unknown ruleset reads as absent. */
-export const rulesetSupply = query({
+export const rulesetSupply = publicQuery({
   args: { rulesetId: v.string() },
   returns: v.union(v.null(), zodToConvex(rulesetSupplySchema)),
   handler: async (ctx, args) => {
@@ -74,7 +74,7 @@ export const rulesetSupply = query({
  * A row that does not parse as a canonical faction reads with no definition;
  * the game contract decides what an absent or incomplete definition means.
  */
-export const factionDefinition = query({
+export const factionDefinition = publicQuery({
   args: { factionId: v.string() },
   returns: v.union(v.null(), zodToConvex(factionDefinitionWireSchema)),
   handler: async (ctx, args) => {
@@ -136,7 +136,7 @@ export const factionDefinition = query({
  * A row that does not parse is left out;
  * readiness beyond the token is judged by the capture at assignment.
  */
-export const draftableFactions = query({
+export const draftableFactions = publicQuery({
   args: { rulesetId: v.string() },
   returns: zodToConvex(playDraftableFactionsSchema),
   handler: async (ctx, args) => {
@@ -201,7 +201,7 @@ async function suppliedAsset(ctx: QueryCtx, row: Doc<'assets'>, presets: Cardbac
  * One card, token, deck or bundle as a game captures it, every member's faces included, in one read.
  * A soft-deleted or unknown asset reads as absent, and a soft-deleted member is left out, as the asset page leaves it out.
  */
-export const assetSupply = query({
+export const assetSupply = publicQuery({
   args: { type: v.string(), slug: v.string() },
   returns: v.union(v.null(), zodToConvex(assetSupplySchema)),
   handler: async (ctx, args) => {

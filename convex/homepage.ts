@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 
-import { query } from './_generated/server';
+import { publicQuery } from './functions';
 import { loadFactionCatalogueSpotlightPreviews } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
 import { discoverableProfileValidator, loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
@@ -29,7 +29,7 @@ const spotlightsValidator = v.object({
 const newestMembersValidator = v.array(discoverableProfileValidator);
 
 /** Permanent homepage read composed from reusable domain boundaries. */
-export const get = query({
+export const get = publicQuery({
   args: {},
   returns: v.object({
     spotlights: spotlightsValidator,

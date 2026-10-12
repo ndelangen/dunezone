@@ -3,10 +3,9 @@ import { ConvexError, v } from 'convex/values';
 import { factionExtraKey, storedFactionExtrasSchema } from '../src/shared/factions/extras';
 import type { FactionExtra } from '../src/shared/factions/extras';
 import type { Doc, Id } from './_generated/dataModel';
-import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
 import { liveAsset } from './assets';
-import { mutation } from './functions';
+import { mutation, publicQuery, viewerQuery } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
 import {
   loadAssetAccessBundle,
@@ -66,7 +65,7 @@ async function factionSlugHolder(
 }
 
 /** The faction editor's live name-conflict check, the save guard's rule as a subscription. */
-export const slugTaken = query({
+export const slugTaken = publicQuery({
   args: { slug: v.string() },
   returns: v.union(v.literal('live'), v.literal('deleted'), v.null()),
   handler: async (ctx, args) => (args.slug === 'create' ? null : await factionSlugHolder(ctx, args.slug)),
@@ -151,7 +150,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
   };
 }
 
-export const getBySlug = query({
+export const getBySlug = viewerQuery({
   args: { slug: v.string() },
   returns: factionDetailPageValidator,
   handler: async (ctx, args) => loadFactionDetailPageBySlug(ctx, args.slug),
@@ -162,7 +161,7 @@ export const getBySlug = query({
  * The game shows the faction as it captured it, and reads only the address live, since renaming a faction moves its page.
  * Null for an unknown or deleted faction, so a game table never fails on it.
  */
-export const pageSlug = query({
+export const pageSlug = publicQuery({
   args: { id: v.string() },
   returns: v.union(v.null(), v.string()),
   handler: async (ctx, args) => {
@@ -172,7 +171,7 @@ export const pageSlug = query({
   },
 });
 
-export const list = query({
+export const list = publicQuery({
   args: {},
   returns: v.array(factionValidator),
   handler: async (ctx) => {
@@ -185,7 +184,7 @@ export const list = query({
 });
 
 /** Public, viewer-independent bundle for the Faction catalogue route. */
-export const cataloguePage = query({
+export const cataloguePage = publicQuery({
   args: {},
   returns: v.object({
     factions: v.array(catalogueFactionValidator),
@@ -217,7 +216,7 @@ const loadPickerRowValidator = v.object({
   ownerUsername: v.union(v.string(), v.null()),
 });
 
-export const listForLoadPicker = query({
+export const listForLoadPicker = viewerQuery({
   args: {},
   returns: v.object({
     rows: v.array(loadPickerRowValidator),
@@ -280,7 +279,7 @@ export const listForLoadPicker = query({
   },
 });
 
-export const listByOwner = query({
+export const listByOwner = publicQuery({
   args: {
     owner_id: v.id('users'),
   },
@@ -296,7 +295,7 @@ export const listByOwner = query({
 /**
  * Factions the viewer owns, with their current group's name resolved, for the group-detail "add my faction to this group" picker.
  */
-export const listOwnedForGroupAssign = query({
+export const listOwnedForGroupAssign = viewerQuery({
   args: {},
   returns: v.array(ownedForGroupAssignRowValidator('factions')),
   handler: async (ctx) => {
@@ -309,7 +308,7 @@ export const listOwnedForGroupAssign = query({
   },
 });
 
-export const listByGroup = query({
+export const listByGroup = publicQuery({
   args: {
     group_id: v.id('groups'),
   },
