@@ -9,9 +9,9 @@ import type { DefaultFunctionArgs, FunctionArgs, FunctionReference } from 'conve
 
 import { api, internal } from '../convex/_generated/api';
 import type { Id } from '../convex/_generated/dataModel';
-import { playGameNameVocabulary } from '../convex/lib/playGameNames';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { normalizePlayGameSlug } from '../src/shared/play/gameNames';
+import { playGameNameVocabulary } from '../src/shared/play/generatedGameNames';
 import { createLocalDevelopmentInstance, localDevelopmentEnvironmentOverrides } from './local-dev-instance';
 import {
   backendUp,

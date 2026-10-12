@@ -1,0 +1,197 @@
+/*
+ * The create page as a boarding pass: the pass on the app's paper, the stub on the table's ground,
+ * and a perforation between them.
+ * The stub's ground and accent are the play shell's own, so the step into the table starts here.
+ */
+.pass {
+  --pass-ground: #17100c;
+  --pass-accent: #f8af40;
+  container: pass / inline-size;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 64rem;
+  margin: 0 auto;
+  border-radius: var(--radius-md);
+  box-shadow: 0 1.5rem 3.5rem rgba(30, 15, 5, 0.35);
+}
+
+.pass > * {
+  min-width: 0;
+}
+
+@container page-frame (width >= 48rem) {
+  .pass {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  }
+
+  /* The perforation, drawn on the stub's edge. */
+  .stub::before {
+    content: "";
+    position: absolute;
+    top: var(--space-md);
+    bottom: var(--space-md);
+    left: -1px;
+    width: 2px;
+    background: repeating-linear-gradient(180deg, var(--pass-accent) 0 0.5rem, transparent 0.5rem 1rem);
+    opacity: 0.45;
+    z-index: 1;
+  }
+}
+
+.stub {
+  position: relative;
+  display: flex;
+  border-radius: var(--radius-md);
+  background: var(--pass-ground);
+}
+
+.stub > * {
+  flex: 1 1 auto;
+}
+
+.main {
+  height: 100%;
+}
+
+/* The printed line along the pass's foot, set like a ticket's fields. */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md) var(--space-xl);
+  margin: auto 0 0;
+  padding-top: var(--space-md);
+  border-top: 1px dashed var(--mantine-color-default-border);
+}
+
+.facts dt {
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.facts dd {
+  margin: 0;
+  font-family: "C_Advokat_Modern", sans-serif;
+  font-size: var(--mantine-font-size-lg);
+}
+
+.name {
+  margin: 0;
+  font-family: "C_Desdemona", fantasy;
+  font-size: clamp(1.9rem, 4cqw, 2.8rem);
+  line-height: 1.05;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+/* A custom name not yet typed: the generated one stays on the pass, faded, until the first letter. */
+.name[data-pending] {
+  opacity: 0.4;
+}
+
+.rulesets {
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.ruleset {
+  padding: var(--space-sm) var(--space-md);
+}
+
+.count {
+  font-family: "C_Advokat_Modern", sans-serif;
+  font-size: 2.6rem;
+  line-height: 1;
+  color: var(--pass-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.berths {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 2.6rem));
+  justify-content: space-between;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.berth {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius-sm);
+  font-family: "C_Advokat_Modern", sans-serif;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  transition:
+    color 0.2s,
+    background-color 0.2s,
+    opacity 0.2s;
+}
+
+.berth[data-state="open"] {
+  color: var(--pass-accent);
+}
+
+.berth[data-state="you"] {
+  border-color: var(--pass-accent);
+  background: var(--pass-accent);
+  color: var(--pass-ground);
+}
+
+.berth[data-state="unused"] {
+  border-style: dashed;
+  opacity: 0.35;
+}
+
+.ring {
+  display: block;
+  width: 100%;
+  max-width: 15rem;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.ringGround {
+  fill: #0f0a07;
+  stroke: var(--pass-accent);
+  stroke-opacity: 0.2;
+}
+
+.station {
+  transition: transform 0.45s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+.station circle {
+  fill: var(--pass-ground);
+  stroke: var(--pass-accent);
+  stroke-width: 2;
+}
+
+.station text {
+  fill: var(--pass-accent);
+  font-family: "C_Advokat_Modern", sans-serif;
+  font-size: 9px;
+}
+
+.station[data-you] circle {
+  fill: var(--pass-accent);
+}
+
+.station[data-you] text {
+  fill: var(--pass-ground);
+  font-size: 7.5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station,
+  .berth {
+    transition: none;
+  }
+}

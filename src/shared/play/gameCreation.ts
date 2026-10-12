@@ -3,6 +3,11 @@ import { z } from 'zod';
 import { playCreateGameRequestSchema } from './admission';
 import { playCreateGameOutcomeSchema } from './seatLimit';
 
+/** The create page shows the generated name it will submit; the server keeps it only when it is one of its own phrases. */
+export const playGeneratedGameRequestSchema = playCreateGameRequestSchema.extend({
+  generatedName: z.string().optional(),
+});
+
 /** The server validates the custom wording before spending a provider request. */
 export const playNamedGameRequestSchema = playCreateGameRequestSchema.extend({ name: z.string() });
 

@@ -1,4 +1,5 @@
 import type { playCreateGameRequestSchema } from '@shared/play/admission';
+import type { playGeneratedGameRequestSchema } from '@shared/play/gameCreation';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 import { useCallback } from 'react';
@@ -34,14 +35,21 @@ export function useGameNameAvailability(name: string) {
 }
 
 export function useCreateGame() {
-  const create = useCallback(async (request: z.infer<typeof playCreateGameRequestSchema> & { name: string }) => {
-    const { name, ...settings } = request;
-    if (name.trim()) {
-      return await db.action(api.playGames.createGameWithName, { ...settings, name });
-    }
-    const result = await db.mutation(api.playGames.createGame, settings);
-    return result.ok ? { ...result, slug: null } : result;
-  }, []);
+  /* A custom name goes through the provider check; the generated one the page showed is the server's own phrase. */
+  const create = useCallback(
+    async (
+      request:
+        | (z.infer<typeof playCreateGameRequestSchema> & { name: string })
+        | z.infer<typeof playGeneratedGameRequestSchema>
+    ) => {
+      if ('name' in request) {
+        return await db.action(api.playGames.createGameWithName, request);
+      }
+      const result = await db.mutation(api.playGames.createGame, request);
+      return result.ok ? { ...result, slug: null } : result;
+    },
+    []
+  );
   return useLiveOperation(create);
 }
 

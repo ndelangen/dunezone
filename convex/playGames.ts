@@ -3,13 +3,15 @@ import { v } from 'convex/values';
 import type { Infer } from 'convex/values';
 import type { z } from 'zod';
 
+import type { playCreateGameRequestSchema } from '../src/shared/play/admission';
+import { playGameAccessSchema, playGameAddressAccessSchema } from '../src/shared/play/admission';
 import {
-  playCreateGameRequestSchema,
-  playGameAccessSchema,
-  playGameAddressAccessSchema,
-} from '../src/shared/play/admission';
-import { playNamedGameOutcomeSchema, playNamedGameRequestSchema } from '../src/shared/play/gameCreation';
+  playGeneratedGameRequestSchema,
+  playNamedGameOutcomeSchema,
+  playNamedGameRequestSchema,
+} from '../src/shared/play/gameCreation';
 import { normalizePlayGameSlug, playGameNameSchema, PLAY_RESERVED_GAME_ADDRESSES } from '../src/shared/play/gameNames';
+import { isGeneratedPlayGameName } from '../src/shared/play/generatedGameNames';
 import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
@@ -130,10 +132,16 @@ export const nameAvailability = query({
  * The creator takes the first seat when the Worker initializes, and that seat counts against the seat limit from creation;
  * nothing here grants them more.
  */
+/* A generated name skips the provider check: it is one of the server's own phrases, and anything else is drawn afresh. */
 export const createGame = mutation({
-  args: zodToConvex(playCreateGameRequestSchema),
+  args: zodToConvex(playGeneratedGameRequestSchema),
   returns: zodToConvex(playCreateGameOutcomeSchema),
-  handler: async (ctx, args) => await createAuthorizedGame(ctx, args),
+  handler: async (ctx, { generatedName, ...settings }) =>
+    await createAuthorizedGame(
+      ctx,
+      settings,
+      generatedName !== undefined && isGeneratedPlayGameName(generatedName) ? generatedName : undefined
+    ),
 });
 
 type NamedGameContract = z.infer<typeof playNamedGameOutcomeSchema>;
