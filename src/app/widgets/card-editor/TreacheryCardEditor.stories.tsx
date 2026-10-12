@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { backgroundPresets } from '@game/data/backgrounds';
+import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
 
 import { INITIAL_TREACHERY_DRAFT, INITIAL_TREACHERY_MEMORY, TreacheryCardEditor } from './TreacheryCardEditor';
 
@@ -41,5 +42,22 @@ export const SymbolChoice = meta.story({
     await expect(canvas.getByRole('combobox', { name: 'Icon' })).toBeVisible();
     await expect(canvas.queryByText('Icon background')).toBeNull();
     await expect(canvas.queryByRole('spinbutton')).toBeNull();
+  },
+});
+
+export const ExistingLogoSymbol = meta.story({
+  args: { chapter: 'icon' as const, draft: { ...INITIAL_TREACHERY_DRAFT, ...treacheryCardFixtures.richeseKarama } },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
+    const symbol = canvas.getByRole('combobox', { name: 'Icon' });
+    await expect(symbol).toHaveValue('Richese');
+    await expect(args.patch).not.toHaveBeenCalled();
+    await userEvent.click(symbol);
+    await userEvent.type(symbol, 'shield');
+    await userEvent.click(await page.findByRole('option', { name: /^Shield$/ }));
+    await expect(args.patch).toHaveBeenCalledWith({
+      icon: [backgroundPresets.stripedSpecial, '/vector/icon/shield.svg'],
+    });
   },
 });
