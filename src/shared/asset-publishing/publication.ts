@@ -7,6 +7,7 @@ import {
   CardBack,
   RectangleTokenFace,
   SpiceAsset,
+  StormCardAsset,
   TokenFace,
   TreacheryAsset,
 } from '../assets/schema';
@@ -38,6 +39,7 @@ export const factionTokenAssetDataSchema = HistoricalFactionPublicationObject.pi
 export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
 export const CUSTOM_CARD_ASSET_TYPE = 'card-custom' as const;
 export const NEXUS_CARD_ASSET_TYPE = 'card-nexus' as const;
+export const STORM_CARD_ASSET_TYPE = 'card-storm' as const;
 export const SPICE_CARD_ASSET_TYPE = 'card-spice' as const;
 export const DECK_ASSET_TYPE = 'deck' as const;
 export const RULEBOOK_FIRST_PAGE_ASSET_TYPE = 'rulebook-first-page' as const;
@@ -101,6 +103,8 @@ export const customCardAssetDataSchema = z.strictObject({
   card: CustomCardAsset,
   tokens: CustomCardTokens.optional(),
 });
+
+export const stormCardAssetDataSchema = customCardAssetDataSchema.extend({ card: StormCardAsset });
 
 /** The same envelope for a spice card, whose stored shape is the renderer's props plus its About. */
 export const spiceCardAssetDataSchema = z.strictObject({
@@ -173,6 +177,7 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   [SPICE_CARD_ASSET_TYPE]: spiceCardAssetDataSchema,
   [CUSTOM_CARD_ASSET_TYPE]: customCardAssetDataSchema,
   [NEXUS_CARD_ASSET_TYPE]: nexusCardAssetDataSchema,
+  [STORM_CARD_ASSET_TYPE]: stormCardAssetDataSchema,
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,
   'cardback-preset': deckCardbackAssetDataSchema,
   'token-disc': tokenFaceAssetDataSchema,

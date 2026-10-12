@@ -4,10 +4,11 @@ import { createFileRoute, notFound } from '@tanstack/react-router';
 import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../assetEditorStates';
+import { customCardEditing, stormCardEditing } from '../../layeredCardEditing';
 import { BoardCreatePage } from './boardCreate';
 import { BundleCreatePage } from './bundleCreate';
-import { CustomCreatePage } from './customCreate';
 import { DeckCreatePage } from './deckCreate';
+import { LayeredCreatePage } from './layeredCreate';
 import { NexusCreatePage } from './nexusCreate';
 import { RectangleCreatePage } from './rectangleCreate';
 import { SpiceCreatePage } from './spiceCreate';
@@ -43,7 +44,9 @@ function CreateAssetPage() {
     case 'card-nexus':
       return <NexusCreatePage />;
     case 'card-custom':
-      return <CustomCreatePage />;
+      return <LayeredCreatePage key={type} config={customCardEditing} />;
+    case 'card-storm':
+      return <LayeredCreatePage key={type} config={stormCardEditing} />;
     case 'card-spice':
       return <SpiceCreatePage />;
     /* One editor for all three shapes: shape is the type, and only the proof's clip differs. */

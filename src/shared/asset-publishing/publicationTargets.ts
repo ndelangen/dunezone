@@ -29,6 +29,7 @@ export const PUBLICATION_ASSET_TYPES = [
   'card-spice',
   'card-custom',
   'card-nexus',
+  'card-storm',
   'board',
   'deck',
   'cardback-preset',
@@ -174,6 +175,7 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
   },
   'card-custom': cardTarget('custom-cards', 'card.jpg', 'custom-card.jpg'),
   'card-nexus': cardTarget('nexus-cards', 'card.jpg', 'nexus-card.jpg'),
+  'card-storm': cardTarget('storm-cards', 'card.jpg', 'storm-card.jpg'),
   'card-spice': cardTarget('spice-cards', 'card.jpg', 'spice-card.jpg'),
   /*
    * A deck publishes its Cardback and nothing else (wayfinder #495), so the row is a card in every dimension that matters.

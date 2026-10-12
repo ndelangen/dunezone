@@ -7,6 +7,7 @@ import {
   RULEBOOK_FIRST_PAGE_ASSET_TYPE,
   CUSTOM_CARD_ASSET_TYPE,
   NEXUS_CARD_ASSET_TYPE,
+  STORM_CARD_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
 } from '../src/shared/asset-publishing/publication';
@@ -154,6 +155,7 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
     case SPICE_CARD_ASSET_TYPE:
     case CUSTOM_CARD_ASSET_TYPE:
     case NEXUS_CARD_ASSET_TYPE:
+    case STORM_CARD_ASSET_TYPE:
     case DECK_ASSET_TYPE:
     case 'token-disc':
     case 'token-tech':

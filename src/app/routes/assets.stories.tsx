@@ -152,13 +152,13 @@ export const EditDeckMissing = meta.story({
   },
 });
 
-/** A type the registry knows and nothing can author yet, which is a statement about the roadmap rather than a missing page. */
-export const CreateStormCardNoEditor = meta.story({
+/** Storm authoring opens with the standard one-sector face. */
+export const CreateStormCard = meta.story({
   args: { path: '/assets/card-storm/create' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Storm cards' }, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.findByRole('heading', { name: 'No editor yet' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('combobox', { name: 'Storm movement' })).resolves.toHaveValue('1 sector');
+    await expect(page.findByText('Move the storm 1 sector counterclockwise.')).resolves.toBeVisible();
   },
 });
 

@@ -7,6 +7,7 @@ import {
   DeckAssetInput,
   RectangleTokenAssetInput,
   SpiceAssetInput,
+  StormCardAssetInput,
   TokenAssetInput,
   TreacheryAssetInput,
 } from './schema';
@@ -41,6 +42,10 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
     }
     case 'card-custom': {
       const parsed = CustomCardAssetInput.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
+    case 'card-storm': {
+      const parsed = StormCardAssetInput.parse(data);
       return { data: parsed, name: parsed.name };
     }
     case 'deck': {

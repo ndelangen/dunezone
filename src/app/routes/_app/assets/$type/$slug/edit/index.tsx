@@ -5,10 +5,11 @@ import { loadAssetPage } from '@app/db/assets';
 import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../../assetEditorStates';
+import { customCardEditing, stormCardEditing } from '../../../layeredCardEditing';
 import { BoardEditPage } from './boardEdit';
 import { BundleEditPage } from './bundleEdit';
-import { CustomEditPage } from './customEdit';
 import { DeckEditPage } from './deckEdit';
+import { LayeredEditPage } from './layeredEdit';
 import { NexusEditPage } from './nexusEdit';
 import { RectangleEditPage } from './rectangleEdit';
 import { SpiceEditPage } from './spiceEdit';
@@ -42,7 +43,9 @@ function EditAssetPage() {
     case 'card-nexus':
       return <NexusEditPage slug={slug} loaderData={loaderData} />;
     case 'card-custom':
-      return <CustomEditPage slug={slug} loaderData={loaderData} />;
+      return <LayeredEditPage config={customCardEditing} slug={slug} loaderData={loaderData} />;
+    case 'card-storm':
+      return <LayeredEditPage config={stormCardEditing} slug={slug} loaderData={loaderData} />;
     case 'card-spice':
       return <SpiceEditPage slug={slug} loaderData={loaderData} />;
     case 'token-disc':
