@@ -45,10 +45,10 @@ test.each([
   const button = document.createElement('button');
   button.setAttribute('role', 'tab');
   button.setAttribute('aria-selected', 'false');
-  button.textContent = 'Spice';
+  button.textContent = 'Test panel';
   setTimeout(() => document.body.append(button), 100);
   let settled = false;
-  const outcome = openPanel(document.body, 'Spice').then(
+  const outcome = openPanel(document.body, 'Test panel').then(
     () => {
       settled = true;
       return 'opened';

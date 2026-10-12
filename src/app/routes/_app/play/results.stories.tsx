@@ -166,10 +166,13 @@ export const Finished = meta.story({
     const title = await page.findByText(`${first} and ${second} won as an alliance`, {}, { timeout: 30_000 });
     const bar = title.closest('section')!;
     expect(within(bar).getByText(new RegExp(`Declared by ${SIX[0]!.name}`))).toBeVisible();
+    expect(page.getByRole('tab', { name: 'Game log' })).toHaveAttribute('aria-selected', 'true');
+    await openTab(page, 'Battles');
+    expect(page.getByText('No agreed battle results yet.')).toBeVisible();
     await userEvent.click(within(bar).getByRole('button', { name: 'Continue playing' }));
     expect(lastCommand()?.action).toEqual({ kind: 'result-continue' });
     /* A finished table keeps its panels, so its players can still replay how the game went. */
-    await openTab(page, 'Phase');
+    await openTab(page, 'Replay');
     expect(await page.findByRole('button', { name: 'Replay from start' })).toBeVisible();
     expect(page.queryByRole('button', { name: 'Determine winner' })).toBeNull();
   },
