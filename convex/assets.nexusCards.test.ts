@@ -77,3 +77,25 @@ test('a reserved GF9 address rolls back the entire import', async () => {
   expect(await t.query(api.assets.getPage, { type: 'deck', slug: 'gf9-nexus-deck' })).toBeNull();
   expect(await t.query(api.assets.getPage, { type: 'card-nexus', slug: 'atreides' })).toBeNull();
 });
+
+test('a renderer regeneration scan republishes live Nexus cards and skips deleted cards', async () => {
+  const t = convexTest(schema, modules);
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
+  const owner = t.withIdentity({ subject: ownerId });
+  const live = await owner.mutation(api.assets.create, { type: 'card-nexus', data: GF9_NEXUS_CARDS[0]! });
+  const deleted = await owner.mutation(api.assets.create, { type: 'card-nexus', data: GF9_NEXUS_CARDS[1]! });
+  await t.run(async (ctx) => {
+    await ctx.db.patch(deleted.id, { is_deleted: true });
+    await Promise.all((await ctx.db.query('publication_jobs').collect()).map((job) => ctx.db.delete(job._id)));
+  });
+  await t.mutation(internal.publicationRegeneration.scan, {
+    assetType: 'card-nexus',
+    cursor: null,
+    scanned: 0,
+    enqueued: 0,
+  });
+  const jobs = await t.run((ctx) => ctx.db.query('publication_jobs').collect());
+  expect(jobs).toHaveLength(1);
+  expect(jobs[0]?.asset_id).toBe(live.id);
+  expect(jobs[0]?.asset_data.card).toEqual(GF9_NEXUS_CARDS[0]);
+});
