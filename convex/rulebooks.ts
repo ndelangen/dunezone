@@ -20,7 +20,11 @@ import type { RulebookDesign, RulebookSettings } from '../src/shared/rulebooks/s
 import { rulebookResolvedAssetsByIdSchema } from '../src/shared/rulebooks/sources';
 import type { Doc, Id } from './_generated/dataModel';
 import { mutation, publicQuery, viewerQuery } from './functions';
-import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './lib/collaborativeAccess';
+import {
+  assignedGroupSummary,
+  loadRulesetAccessForLoadedSubject,
+  requireRulesetMaintenance,
+} from './lib/collaborativeAccess';
 import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
 import { isRulebookCoverImageDeliveryUrl } from './lib/rulebookCoverImage';
@@ -646,8 +650,18 @@ async function selectedReaderEdition(
   return { ruleset, rulebook, selected };
 }
 
+const readerAccessValidator = v.object({
+  rulesetOwnerId: v.id('users'),
+  assignedGroup: v.union(v.object({ id: v.id('groups'), name: v.string(), slug: v.string() }), v.null()),
+});
+
+/** What the reader needs to know about a ruleset to show its edit and delete links, the same for every viewer. */
+async function readerAccess(ctx: QueryCtx, ruleset: Doc<'rulesets'>) {
+  return { rulesetOwnerId: ruleset.owner_id, assignedGroup: await assignedGroupSummary(ctx, ruleset.group_id) };
+}
+
 /** Public reading loads one immutable Edition and its complete metadata history, never the author's saved draft. */
-export const readerPage = viewerQuery({
+export const readerPage = publicQuery({
   args: {
     ruleset_slug: v.string(),
     rulebook_slug: v.string(),
@@ -659,8 +673,7 @@ export const readerPage = viewerQuery({
     v.object({
       ruleset: v.object({ name: v.string(), slug: v.string() }),
       rulebook: rulebookMetadataValidator,
-      canEdit: v.boolean(),
-      canDelete: v.boolean(),
+      access: readerAccessValidator,
       edition: readerEditionValidator,
       editions: v.array(readerEditionOptionValidator),
       assetsById: resolvedAssetsValidator,
@@ -681,12 +694,10 @@ export const readerPage = viewerQuery({
     const contents = parseEditionContents(await contentsForRulebookEdition(ctx, selected));
     const summary = await rulebookEditionSummary(ctx, selected);
     const firstPage = await rulebookFirstPagePublicationStatus(ctx, selected._id);
-    const { viewerId, viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
     return {
       ruleset: { name: ruleset.name, slug: ruleset.slug },
       rulebook: metadataFrom(rulebook),
-      canEdit: viewerAccess.capabilities.edit,
-      canDelete: viewerId === ruleset.owner_id,
+      access: await readerAccess(ctx, ruleset),
       edition: {
         first_page_image_url: firstPage.imageUrl,
         edition_number: selected.edition_number,
@@ -705,7 +716,74 @@ export const readerPage = viewerQuery({
   },
 });
 
-/** Ready HTML readers load metadata and access only; unfinished artifacts retain the live renderer. */
+/**
+ * The reader's page, one cached answer for every viewer: ready HTML readers load metadata only, unfinished artifacts retain the live renderer.
+ * `access` carries the ruleset's owner and live Group, which the browser combines with the viewer for the edit and delete links.
+ */
+export const readerDelivery = publicQuery({
+  args: {
+    ruleset_slug: v.string(),
+    rulebook_slug: v.string(),
+    edition_number: v.optional(v.number()),
+    render_contents: v.optional(v.boolean()),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({
+      ruleset: v.object({ name: v.string(), slug: v.string() }),
+      rulebook: rulebookMetadataValidator,
+      access: readerAccessValidator,
+      edition: readerEditionValidator.omit('settings', 'contents'),
+      editions: v.array(readerEditionOptionValidator),
+      body: v.union(
+        v.object({ kind: v.literal('html'), href: v.string() }),
+        v.object({
+          kind: v.literal('render'),
+          contents: zodToConvex(rulebookEditionContentsV1Schema),
+          settings: rulebookSettingsValidator,
+          assetsById: resolvedAssetsValidator,
+          factionsById: resolvedFactionsValidator,
+        })
+      ),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const found = await selectedReaderEdition(ctx, args);
+    if (!found) {
+      return null;
+    }
+    const { ruleset, rulebook, selected } = found;
+    const summary = await rulebookEditionSummary(ctx, selected);
+    const editions = await ctx.db
+      .query('rulebook_editions')
+      .withIndex('by_rulebook_and_edition_number', (q) => q.eq('rulebook_id', rulebook._id))
+      .order('desc')
+      .collect();
+    const image = await rulebookFirstPageImage(ctx, selected._id);
+    const metadata = {
+      ruleset: { name: ruleset.name, slug: ruleset.slug },
+      rulebook: metadataFrom(rulebook),
+      access: await readerAccess(ctx, ruleset),
+      edition: { ...summary, first_page_image_url: image },
+      editions: editions.map(({ edition_number, created_at }) => ({ edition_number, created_at })),
+    };
+    if (!args.render_contents && summary.html.status === 'ready' && summary.html.href) {
+      return { ...metadata, body: { kind: 'html' as const, href: summary.html.href } };
+    }
+    const contents = parseEditionContents(await contentsForRulebookEdition(ctx, selected));
+    return {
+      ...metadata,
+      body: {
+        kind: 'render' as const,
+        contents: readerContents(contents),
+        settings: selected.settings ?? DEFAULT_RULEBOOK_SETTINGS,
+        ...(await resolveRulebookReferences(ctx, contents, { factionTokenImages: true })),
+      },
+    };
+  },
+});
+
+/** Deprecated by `readerDelivery`: kept unchanged for bundles deployed before it, then deleted (see AGENTS.md). */
 export const readerDeliveryPage = viewerQuery({
   args: {
     ruleset_slug: v.string(),

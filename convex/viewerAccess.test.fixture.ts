@@ -1,4 +1,5 @@
 import type { TestConvexForDataModel } from 'convex-test';
+import type { FunctionArgs } from 'convex/server';
 
 import { assetAccessForViewer, assetSubjectFacts } from '../src/shared/access/collaborativeAccess';
 import type { AccessViewer } from '../src/shared/access/collaborativeAccess';
@@ -34,4 +35,22 @@ export async function factionPageAs(client: QueryClient, slug: string) {
     viewerAccess: assetAccessForViewer(assetSubjectFacts('faction', page.faction, page.assignedGroup), viewer),
     assignableGroups,
   };
+}
+
+/** The rulebook reader as a given viewer sees it: the public page plus its edit and delete links, combined as `useRulebookReader` does. */
+export async function rulebookReaderAs(
+  client: QueryClient,
+  locator: FunctionArgs<typeof api.rulebooks.readerDelivery>
+) {
+  const page = await client.query(api.rulebooks.readerDelivery, locator);
+  if (!page) {
+    return null;
+  }
+  const viewer = await accessViewerFor(client, page.access.assignedGroup?.id ?? null);
+  const subject = { owner_id: page.access.rulesetOwnerId, is_deleted: false };
+  const { capabilities } = assetAccessForViewer(
+    assetSubjectFacts('ruleset', subject, page.access.assignedGroup),
+    viewer
+  );
+  return { ...page, canEdit: capabilities.edit, canDelete: capabilities.delete };
 }

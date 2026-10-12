@@ -228,7 +228,8 @@ export const rulesetAssetSlotValidator = v.object({
 
 /**
  * The ruleset detail page, the same for every viewer.
- * `assignedGroup` is the ruleset's live Group or null; the browser combines it and `ruleset.owner_id` with the viewer.
+ * `assignedGroup` is the ruleset's live Group or null;
+ * the browser combines it and `ruleset.owner_id` with the viewer.
  */
 export const rulesetPublicDetailPageValidator = v.union(
   rulesetPageValidator.extend({

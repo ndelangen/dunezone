@@ -422,10 +422,8 @@ function RulesetDetailPage() {
     );
   }
 
+  /* The page is the same for everyone and usually settles first; controls wait for the viewer, as the anonymous capabilities grant none. */
   const viewerAccess = page.viewerAccess;
-  if (!viewerAccess) {
-    return <RulesetDetailPending />;
-  }
 
   const r = page.ruleset;
   const assignedGroup = viewerAccess.assignedGroup;

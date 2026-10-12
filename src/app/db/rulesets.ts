@@ -1,3 +1,5 @@
+import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
+import type { AssetViewerAccess } from '@shared/access/collaborativeAccess';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import { rulesetCoverThumbUrl } from '@shared/rulesets/cover';
 import { rulesetInputSchema } from '@shared/rulesets/validation';
@@ -11,10 +13,11 @@ import { factionCatalogueRowsToEntries } from '@db/factions';
 import type { FactionCatalogueEntry } from '@db/factions';
 import type { FaqAnswerEntry, FaqItemWithDetails } from '@db/faq';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { useAssetAccess, useViewerAssignableGroups } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
-import type { AssignedGroupSummary, CollaborativeAccess } from '../../../convex/lib/collaborativeAccess';
+import type { AssignedGroupSummary } from '../../../convex/lib/collaborativeAccess';
 import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
 /** What a caller authors, derived from the schema that validates it. Both fields are required, and About sits above its floor. */
@@ -34,44 +37,52 @@ export type RulesetEntry = Omit<RulesetRow, 'name' | 'about'> & {
   /** The thumb rendition for grids and chips, falling back like `coverUrl` where only a legacy or full URL exists. */
   coverThumbUrl: string | null;
 };
-/** What `api.rulesets.getBySlug` gives a page: the ruleset and the factions on it, nothing about the viewer. */
+/** What `api.rulesets.page` gives a page: the ruleset and the factions on it, nothing about the viewer. */
 export type RulesetPageData = {
   ruleset: RulesetEntry;
   /** Catalogue-shaped, so the page renders its factions with the same vocabulary the catalogue uses. */
   factions: FactionCatalogueEntry[];
-  viewerAccess: Extract<CollaborativeAccess, { kind: 'ruleset' }>;
 };
 
 /** One asset a ruleset has slotted: enough to name it and link to it, since a slot list is not a catalogue. */
 type RulesetSlottedAsset = { slot: string; asset: { id: string; type: string; slug: string; name: string } };
 
-/** What `api.rulesets.detailPageBySlug` gives the detail route: the page data plus everything the toolbar and FAQ need. */
-export type RulesetDetailPageData = RulesetPageData & {
+/** What `api.rulesets.detailPage` gives the detail routes, the same for every viewer: the page data plus everything the toolbar and FAQ draw. */
+export type RulesetDetailPublicPage = RulesetPageData & {
+  assignedGroup: AssignedGroupSummary | null;
   owner: ProfileSummary | null;
-  assignableGroups: AssignedGroupSummary[];
   faqItems: FaqItemWithDetails[];
   assetSlots: RulesetSlottedAsset[];
-  rulebooks: NonNullable<FunctionReturnType<typeof api.rulesets.detailPageBySlug>>['rulebooks'];
+  rulebooks: NonNullable<FunctionReturnType<typeof api.rulesets.detailPage>>['rulebooks'];
 };
 
-function toRulesetPageData(raw: FunctionReturnType<typeof api.rulesets.getBySlug>): RulesetPageData {
+/**
+ * The detail page as a route draws it: the public page combined with what this viewer may do.
+ * `viewerResolved` is false while the viewer is on its way;
+ * until then the capabilities are the anonymous ones.
+ */
+export type RulesetDetailPageData = RulesetDetailPublicPage & {
+  viewerResolved: boolean;
+  viewerAccess: AssetViewerAccess<'ruleset', AssignedGroupSummary>;
+  assignableGroups: AssignedGroupSummary[];
+};
+
+function toRulesetPageData(raw: FunctionReturnType<typeof api.rulesets.page>): RulesetPageData {
   return {
     ruleset: toRulesetEntry(raw.ruleset),
     factions: factionCatalogueRowsToEntries(raw.factions),
-    viewerAccess: raw.viewerAccess,
   };
 }
 
 /** Canonical detail page model, shared by the route loader and the live subscription. */
 function normalizeRulesetDetailPage(
-  raw: NonNullable<FunctionReturnType<typeof api.rulesets.detailPageBySlug>>
-): RulesetDetailPageData {
+  raw: NonNullable<FunctionReturnType<typeof api.rulesets.detailPage>>
+): RulesetDetailPublicPage {
   return {
     ruleset: toRulesetEntry(raw.ruleset),
     factions: factionCatalogueRowsToEntries(raw.factions),
-    viewerAccess: raw.viewerAccess,
+    assignedGroup: raw.assignedGroup,
     owner: raw.owner,
-    assignableGroups: raw.assignableGroups,
     faqItems: mapFaqItemsFromConvex(raw.faqItems),
     assetSlots: raw.assetSlots,
     rulebooks: raw.rulebooks,
@@ -114,7 +125,7 @@ export async function loadRulesetsAll(): Promise<RulesetEntry[]> {
 
 /** The loader behind pages that need the ruleset and its factions only, paired with `useRulesetBySlug`. */
 export async function loadRulesetBySlug(slug: string): Promise<RulesetPageData> {
-  const result = await db.query(api.rulesets.getBySlug, { slug });
+  const result = await db.query(api.rulesets.page, { slug });
   return toRulesetPageData(result);
 }
 
@@ -123,8 +134,8 @@ export async function loadRulesetBySlug(slug: string): Promise<RulesetPageData> 
  * Resolves `null` for a slug naming no ruleset rather than throwing, so the route renders its own not-found frame;
  * the other two loaders here throw.
  */
-export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetailPageData | null> {
-  const raw = await db.query(api.rulesets.detailPageBySlug, { slug });
+export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetailPublicPage | null> {
+  const raw = await db.query(api.rulesets.detailPage, { slug });
   return raw ? normalizeRulesetDetailPage(raw) : null;
 }
 
@@ -137,21 +148,34 @@ export function useRulesetsAll(options?: { initialData?: RulesetEntry[] }) {
 
 /** One ruleset with its factions, live, taking `loadRulesetBySlug`'s result as `initialData`. */
 export function useRulesetBySlug(slug: string, options?: { initialData?: RulesetPageData }) {
-  const liveData = useQuery(api.rulesets.getBySlug, { slug });
+  const liveData = useQuery(api.rulesets.page, { slug });
   const normalized = liveData ? toRulesetPageData(liveData) : undefined;
   const result = toLiveQueryResult(normalized, () => options?.initialData);
   return result;
 }
 
-/** The detail route's live query, taking `loadRulesetDetailPage`'s result as `initialData`. */
-export function useRulesetDetailPage(slug: string, options?: { initialData?: RulesetDetailPageData }) {
-  const liveData = useQuery(api.rulesets.detailPageBySlug, {
-    slug,
-  });
-  const normalized: RulesetDetailPageData | null | undefined =
+/* Hooks run unconditionally, so a missing page still needs facts: an unavailable subject grants nothing. */
+const NO_SUBJECT = { owner_id: '', is_deleted: true };
+
+/**
+ * The detail routes' live page, taking `loadRulesetDetailPage`'s result as `initialData`, combined with the viewer.
+ * The page query is one cached answer for everyone;
+ * the viewer half is the session, the viewer's membership of the ruleset's Group and the Groups they could move it into.
+ */
+export function useRulesetDetailPage(slug: string, options?: { initialData?: RulesetDetailPublicPage | null }) {
+  const liveData = useQuery(api.rulesets.detailPage, { slug });
+  const normalized: RulesetDetailPublicPage | null | undefined =
     liveData === undefined ? undefined : liveData === null ? null : normalizeRulesetDetailPage(liveData);
-  const result = toLiveQueryResult(normalized, () => options?.initialData);
-  return result;
+  const result = toLiveQueryResult(normalized, () => options?.initialData ?? undefined);
+  const page = result.data;
+  const { resolved, viewerAccess } = useAssetAccess(
+    assetSubjectFacts('ruleset', page?.ruleset ?? NO_SUBJECT, page?.assignedGroup ?? null)
+  );
+  const assignableGroups = useViewerAssignableGroups();
+  const data: RulesetDetailPageData | null | undefined = page
+    ? { ...page, viewerResolved: resolved, viewerAccess, assignableGroups }
+    : page;
+  return { ...result, data };
 }
 
 /** Creates a ruleset. `onSuccess` receives the new entry with the `route_notice` the redirect reads. */

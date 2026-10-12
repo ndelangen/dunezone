@@ -37,17 +37,24 @@ const VIEWER_QUERIES: Record<string, string> = {
  * This list only shrinks.
  */
 const PENDING_VIEWER_SPLIT: Record<string, string> = {
-  'assets:getPage': 'viewerAccess, assignableGroups, canConvertToCustom',
-  'factions:getBySlug': 'deprecated by factions:pageBySlug; kept for bundles deployed before it, then deleted',
   'faq:questionPage': 'edit, delete, accept and answer capabilities',
   'groups:detailBySlug': 'viewerAccess and roster moderation capabilities',
   'migrations:adminDashboard': 'reports access state; becomes adminQuery once the page gates on session.isAdmin',
   'profiles:getBySlug': 'the self-only account block, already served by profiles:settings',
   'publicationAdmin:page': 'reports access state; becomes adminQuery once the page gates on session.isAdmin',
-  'rulebooks:readerDeliveryPage': 'canEdit, canDelete',
-  'rulebooks:readerPage': 'canEdit, canDelete',
-  'rulesets:detailPageBySlug': 'viewerAccess, assignableGroups',
-  'rulesets:getBySlug': 'viewerAccess',
+};
+
+/**
+ * Per-viewer pages already replaced by a `publicQuery`, kept unchanged only so bundles deployed before the replacement keep working.
+ * Production deploys functions before the browser bundle, so these are deleted in a later release (see AGENTS.md).
+ * This list only shrinks too.
+ */
+const DEPRECATED_VIEWER_QUERIES: Record<string, string> = {
+  'assets:getPage': 'replaced by assets:page',
+  'factions:getBySlug': 'replaced by factions:pageBySlug',
+  'rulebooks:readerDeliveryPage': 'replaced by rulebooks:readerDelivery',
+  'rulesets:detailPageBySlug': 'replaced by rulesets:detailPage',
+  'rulesets:getBySlug': 'replaced by rulesets:page',
 };
 
 /** Queries a library registers for us, so they cannot carry a builder mark. They read the viewer by design. */
@@ -108,11 +115,24 @@ describe('query audience', () => {
 
   test('the pending split list only shrinks', () => {
     /* Lower this as pages move to publicQuery; never raise it. */
-    expect(Object.keys(PENDING_VIEWER_SPLIT).length).toBeLessThanOrEqual(11);
+    expect(Object.keys(PENDING_VIEWER_SPLIT).length).toBeLessThanOrEqual(5);
+  });
+
+  test('every deprecated viewer query names a public replacement that exists', () => {
+    for (const reason of Object.values(DEPRECATED_VIEWER_QUERIES)) {
+      const replacement = reason.replace(/^replaced by /, '');
+      expect(queries.get(replacement), replacement).toBe('public');
+    }
   });
 
   test('viewer queries are exactly the reviewed list', () => {
     const viewer = [...queries].filter(([, audience]) => audience === 'viewer').map(([name]) => name);
-    expect(viewer.sort()).toEqual([...Object.keys(VIEWER_QUERIES), ...Object.keys(PENDING_VIEWER_SPLIT)].sort());
+    expect(viewer.sort()).toEqual(
+      [
+        ...Object.keys(VIEWER_QUERIES),
+        ...Object.keys(PENDING_VIEWER_SPLIT),
+        ...Object.keys(DEPRECATED_VIEWER_QUERIES),
+      ].sort()
+    );
   });
 });

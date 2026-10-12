@@ -63,7 +63,8 @@ export type AssetPublicPage = FunctionReturnType<typeof api.assets.page>;
 
 /**
  * An asset's page as a route draws it: the public page combined with what this viewer may do.
- * `viewerResolved` is false while the viewer is on its way; until then the capabilities are the anonymous ones, so no control appears before it may.
+ * `viewerResolved` is false while the viewer is on its way;
+ * until then the capabilities are the anonymous ones, so no control appears before it may.
  */
 export type AssetPageData =
   | (NonNullable<AssetPublicPage> & {
@@ -84,7 +85,8 @@ const NO_SUBJECT = { owner_id: '', is_deleted: true };
 
 /**
  * One asset's page, live, taking `loadAssetPage`'s result as `initialData`, combined with the viewer.
- * The page query is one cached answer for everyone; the viewer half is the session, the viewer's membership of the asset's Group and the Groups they could move it into.
+ * The page query is one cached answer for everyone;
+ * the viewer half is the session, the viewer's membership of the asset's Group and the Groups they could move it into.
  */
 export function useAssetPage(
   type: string,
