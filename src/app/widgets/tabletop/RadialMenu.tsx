@@ -1,0 +1,255 @@
+import { useHoldToConfirm } from '@ui/control/useHoldToConfirm';
+import clsx from 'clsx';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+
+import styles from './RadialMenu.module.css';
+
+export type RadialIcon = 'peek' | 'draw' | 'shuffle' | 'reserve' | 'delete';
+
+export type RadialAction = Readonly<{
+  key: string;
+  /** The item's accessible name and its caption, as the list menu named it. */
+  label: string;
+  icon: RadialIcon;
+  /** A table shortcut that does the same, shown beside the caption so the ring teaches it. */
+  shortcut?: string;
+  disabled?: boolean;
+  /** Plain items act on click; a held item is the destructive one, which fires after the app's five-second hold. */
+  onSelect: () => void;
+  held?: boolean;
+}>;
+
+export type RadialTarget = Readonly<{
+  key: string;
+  label: string;
+  short: string;
+  disabled?: boolean;
+  onSelect: () => void;
+}>;
+
+const ICONS: Record<RadialIcon, ReactNode> = {
+  peek: (
+    <>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  draw: (
+    <>
+      <rect x="6" y="3" width="12" height="16" rx="2" />
+      <path d="M12 9v8M8.5 13.5 12 17l3.5-3.5" />
+    </>
+  ),
+  shuffle: (
+    <path d="M3 7h3.5c4 0 7 10 11 10H21M18 14l3 3-3 3M3 17h3.5c1.6 0 3-1.6 4.2-3.6M13.3 9.6C14.5 8 15.9 7 17.5 7H21M18 4l3 3-3 3" />
+  ),
+  reserve: (
+    <>
+      <ellipse cx="12" cy="6" rx="7" ry="3" />
+      <path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" />
+    </>
+  ),
+  delete: <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
+};
+
+/* Six places around the pointer, a sixth of a turn apart, starting at the top. The destructive action always takes the last one, top left, so a hand learns where it is and never meets it by accident. */
+const SLOTS = 6;
+const RING_RADIUS = 66;
+/* How far the ring keeps from the window's edges, so the targets below it stay on screen. */
+const EDGE = { side: 200, top: 110, bottom: 240 };
+
+function slotAngle(slot: number) {
+  return -Math.PI / 2 + (slot * 2 * Math.PI) / SLOTS;
+}
+
+function at(angle: number, radius: number): CSSProperties {
+  return { left: Math.cos(angle) * radius, top: Math.sin(angle) * radius };
+}
+
+function Glyph({ icon }: Readonly<{ icon: RadialIcon }>) {
+  return (
+    <svg className={styles.glyph} viewBox="0 0 24 24" aria-hidden>
+      {ICONS[icon]}
+    </svg>
+  );
+}
+
+type Caption = { text: string; shortcut?: string; tone?: 'danger' };
+
+function HeldItem({
+  action,
+  style,
+  onCaption,
+}: Readonly<{ action: RadialAction; style: CSSProperties; onCaption: (caption: Caption | null) => void }>) {
+  const { holding, remaining, handlers } = useHoldToConfirm({
+    pending: false,
+    blocked: Boolean(action.disabled),
+    onConfirm: action.onSelect,
+  });
+  const showing = holding ? `Deleting in ${remaining ?? 5}..` : null;
+  useEffect(() => {
+    if (showing) {
+      onCaption({ text: showing, tone: 'danger' });
+    }
+  }, [showing, onCaption]);
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      aria-label={action.label}
+      aria-disabled={action.disabled || undefined}
+      disabled={action.disabled}
+      className={clsx(styles.item, styles.danger)}
+      data-holding={holding || undefined}
+      style={{ ...style, '--hold-progress': holding ? (5 - (remaining ?? 5) + 1) / 5 : 0 } as CSSProperties}
+      {...handlers}
+      onPointerDown={(event) => {
+        event.currentTarget.focus();
+        handlers.onPointerDown(event);
+      }}
+      onPointerEnter={() => onCaption({ text: action.label, tone: 'danger' })}
+      onFocus={() => onCaption({ text: action.label, tone: 'danger' })}
+    >
+      <Glyph icon={action.icon} />
+      <svg className={styles.holdRing} viewBox="0 0 56 56" aria-hidden>
+        <circle cx="28" cy="28" r="26" pathLength={1} />
+      </svg>
+    </button>
+  );
+}
+
+/**
+ * A piece's actions as a ring around the pointer: one flick in a direction instead of reading down a list.
+ * It is still a menu to assistive technology and to the hosted verifiers: a named `menu` of `menuitem`s with the list menu's names, arrow keys move between them and Escape closes.
+ * Deal targets sit in a small tray under the ring, where long faction names stay readable.
+ */
+export function RadialMenu({
+  name,
+  hub,
+  x,
+  y,
+  actions,
+  targets = [],
+  onClose,
+}: Readonly<{
+  /** The menu's accessible name, for example "Deck actions". */
+  name: string;
+  /** The words in the middle while nothing is pointed at, for example "12 cards". */
+  hub: string;
+  x: number;
+  y: number;
+  actions: readonly RadialAction[];
+  targets?: readonly RadialTarget[];
+  onClose: () => void;
+}>) {
+  const labelId = useId();
+  const menu = useRef<HTMLDivElement>(null);
+  const [caption, setCaption] = useState<Caption | null>(null);
+  const centre = {
+    left: Math.min(Math.max(x, EDGE.side), Math.max(EDGE.side, window.innerWidth - EDGE.side)),
+    top: Math.min(Math.max(y, EDGE.top), Math.max(EDGE.top, window.innerHeight - EDGE.bottom)),
+  };
+
+  /* Focus lands on the ring itself, so the arrow keys and Escape work at once without lighting an item the pointer is not on. */
+  useLayoutEffect(() => {
+    menu.current?.focus({ preventScroll: true });
+  }, []);
+
+  /* A press anywhere else closes the ring before that press does its own work, so right-clicking the next piece opens its ring at once. */
+  useEffect(() => {
+    const close = (event: PointerEvent) => {
+      if (!menu.current?.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+    window.addEventListener('pointerdown', close, true);
+    return () => window.removeEventListener('pointerdown', close, true);
+  }, [onClose]);
+
+  const plain = actions.filter((action) => !action.held);
+  const held = actions.find((action) => action.held);
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    if (!step) {
+      return;
+    }
+    event.preventDefault();
+    const items = [...(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])];
+    const index = items.indexOf(document.activeElement as HTMLButtonElement);
+    items[(index + step + items.length) % items.length]?.focus();
+  };
+
+  return createPortal(
+    <div
+      ref={menu}
+      role="menu"
+      aria-labelledby={labelId}
+      tabIndex={-1}
+      className={styles.ring}
+      style={centre}
+      onKeyDown={onKeyDown}
+      onContextMenu={(event) => event.preventDefault()}
+      onPointerLeave={() => setCaption(null)}
+    >
+      <span id={labelId} hidden>
+        {name}
+      </span>
+      <span className={styles.halo} aria-hidden />
+      <span className={styles.pivot} aria-hidden />
+      {plain.map((action, slot) => (
+        <button
+          key={action.key}
+          type="button"
+          role="menuitem"
+          aria-label={action.label}
+          disabled={action.disabled}
+          className={styles.item}
+          style={at(slotAngle(slot), RING_RADIUS)}
+          onClick={action.onSelect}
+          onPointerEnter={() => setCaption({ text: action.label, shortcut: action.shortcut })}
+          onFocus={() => setCaption({ text: action.label, shortcut: action.shortcut })}
+        >
+          <Glyph icon={action.icon} />
+        </button>
+      ))}
+      {held && (
+        <HeldItem key={held.key} action={held} style={at(slotAngle(SLOTS - 1), RING_RADIUS)} onCaption={setCaption} />
+      )}
+      {targets.length > 0 && (
+        <div className={styles.targets} role="group" aria-label="Deal 1 card to">
+          <span className={styles.targetsLabel} aria-hidden>
+            Deal 1 card to
+          </span>
+          {targets.map((target) => (
+            <button
+              key={target.key}
+              type="button"
+              role="menuitem"
+              aria-label={target.label}
+              disabled={target.disabled}
+              className={styles.target}
+              onClick={target.onSelect}
+              onPointerEnter={() => setCaption({ text: target.label })}
+              onFocus={() => setCaption({ text: target.label })}
+            >
+              {target.short}
+            </button>
+          ))}
+        </div>
+      )}
+      <span className={styles.caption} data-tone={caption?.tone} aria-hidden>
+        <span className={styles.captionText}>{caption?.text ?? hub}</span>
+        {caption?.shortcut && <kbd className={styles.key}>{caption.shortcut}</kbd>}
+      </span>
+    </div>,
+    document.body
+  );
+}

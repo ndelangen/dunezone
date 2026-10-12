@@ -1,52 +1,31 @@
-import { Button, Menu } from '@mantine/core';
+import { Button } from '@mantine/core';
 import { deletablePiece } from '@shared/play/commands';
 import type { TablePiece } from '@shared/play/model';
 import { hasHiddenFace, peeksWholeDeck } from '@shared/play/peeking';
 import { isSpicePiece } from '@shared/play/spice';
 import { isTroopStack } from '@shared/play/troop';
-import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
-import { useId } from 'react';
 import type { RefObject } from 'react';
 
-import { deckShuffleHint } from './longPress';
 import { peekableToken } from './peekableToken';
 import { PeekView } from './PeekView';
 import { PieceCloseUp } from './PieceCloseUp';
 import { pieceHasMenu } from './pieceMenu';
+import { RadialMenu } from './RadialMenu';
+import type { RadialAction, RadialTarget } from './RadialMenu';
 import { useTabletopReader, useTabletopSelector } from './TabletopContext';
 
 export type PieceMenuAnchor = { pieceId: string; x: number; y: number; touch: boolean };
 
-/* Takes the piece out of the game once held, as every destructive control in the app is held rather than asked twice. */
-function DeletePieceItem({
-  piece,
-  remove,
-  onClose,
-  reserved,
-}: Readonly<{
-  piece: TablePiece;
-  remove: ((pieceId: string) => void) | undefined;
-  onClose: () => void;
-  /* Another player is carrying it, which the room would refuse after the whole hold. */
-  reserved: boolean;
-}>) {
+/* What deleting this piece takes away, in the hold's words. */
+function deleteLabel(piece: TablePiece) {
   const count = piece.items.length;
   const unit =
     piece.kind === 'card' ? 'cards' : isSpicePiece(piece) ? 'spice' : isTroopStack(piece) ? 'troops' : 'tokens';
   const what = count > 1 ? `all ${count} ${unit} ` : '';
-  return (
-    <ConfirmDeleteMenuItem
-      label={`Hold to delete ${what}permanently`}
-      disabled={!remove || reserved || piece.locked || !deletablePiece(piece)}
-      onConfirm={() => {
-        remove?.(piece.id);
-        onClose();
-      }}
-    />
-  );
+  return `Hold to delete ${what}permanently`;
 }
 
-/* A deck's or a spice pile's menu, opened from the piece; it follows the live table while open, apart from the canvas. */
+/* A deck's, a spice pile's or a token's actions as a ring at the pointer; it follows the live table while open, apart from the canvas. */
 function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor | null; onClose: () => void }>) {
   const menuPiece = useTabletopSelector((table) =>
     pieceMenu ? table.state.pieces.find((piece) => piece.id === pieceMenu.pieceId) : undefined
@@ -58,113 +37,95 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
   const menuPieceReserved = useTabletopSelector((table) =>
     pieceMenu ? table.reservedPieceIds.has(pieceMenu.pieceId) : false
   );
-  const pieceMenuName = isSpicePiece(menuPiece)
-    ? 'Spice actions'
-    : menuPiece?.kind === 'card'
-      ? 'Deck actions'
-      : 'Token actions';
-  const peekAvailable =
-    !!peekControls && !!menuPiece && !menuPiece.inventory && !menuPiece.battleOverlay && hasHiddenFace(menuPiece);
-  const peekItem = menuPiece && (
-    <Menu.Item
-      disabled={!peekAvailable}
-      onClick={() => {
-        peekControls?.peek(menuPiece.id);
+  if (!pieceMenu || !menuPiece) {
+    return null;
+  }
+  const spice = isSpicePiece(menuPiece);
+  const deck = !spice && menuPiece.kind === 'card';
+  const name = spice ? 'Spice actions' : deck ? 'Deck actions' : 'Token actions';
+  const count = menuPiece.items.length;
+  const hub = spice ? 'Spice' : deck ? `${count} card${count === 1 ? '' : 's'}` : 'Token';
+  const peekAvailable = !!peekControls && !menuPiece.inventory && !menuPiece.battleOverlay && hasHiddenFace(menuPiece);
+  const deckAvailable = !!deckControls && !menuPiece.locked && !menuPiece.inventory && count > 0;
+  const peek: RadialAction = {
+    key: 'peek',
+    label: peeksWholeDeck(menuPiece) ? 'Peek at the deck' : 'Peek',
+    icon: 'peek',
+    disabled: !peekAvailable,
+    onSelect: () => {
+      peekControls?.peek(menuPiece.id);
+      onClose();
+    },
+  };
+  const actions: RadialAction[] = spice
+    ? [
+        {
+          key: 'reserve',
+          label: 'Take into spice reserve',
+          icon: 'reserve',
+          disabled: !spiceReserveControls || menuPiece.locked || !spiceReserveControls.canCollect(menuPiece.id),
+          onSelect: () => {
+            spiceReserveControls?.collect(menuPiece.id);
+            onClose();
+          },
+        },
+      ]
+    : deck
+      ? [
+          peek,
+          {
+            key: 'draw',
+            label: 'Draw a card',
+            icon: 'draw',
+            disabled: !deckAvailable,
+            onSelect: () => deckControls?.draw(menuPiece.id),
+          },
+          {
+            key: 'shuffle',
+            label: 'Shuffle',
+            icon: 'shuffle',
+            /* Hovering a deck and pressing R shuffles it; a ring opened by a finger has no keyboard to teach. */
+            shortcut: pieceMenu.touch ? undefined : 'R',
+            disabled: !deckAvailable || count < 2,
+            onSelect: () => deckControls?.shuffle(menuPiece.id),
+          },
+        ]
+      : peekableToken(menuPiece)
+        ? [peek]
+        : [];
+  if (deletablePiece(menuPiece)) {
+    actions.push({
+      key: 'delete',
+      label: deleteLabel(menuPiece),
+      icon: 'delete',
+      held: true,
+      disabled: !deleteControls?.remove || menuPieceReserved || menuPiece.locked,
+      onSelect: () => {
+        deleteControls?.remove(menuPiece.id);
         onClose();
-      }}
-    >
-      {peeksWholeDeck(menuPiece) ? 'Peek at the deck' : 'Peek'}
-    </Menu.Item>
-  );
-  const pieceMenuLabelId = useId();
-  const deckAvailable =
-    !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
-  const shuffleHint = deckShuffleHint(pieceMenu?.touch ?? false);
+      },
+    });
+  }
+  const targets: RadialTarget[] = deck
+    ? (deckControls?.recipients ?? []).map((faction) => ({
+        key: faction.id,
+        label: `Deal 1 to ${faction.name}`,
+        short: faction.name,
+        disabled: !deckAvailable,
+        onSelect: () => deckControls?.draw(menuPiece.id, faction.id),
+      }))
+    : [];
   return (
-    <Menu
-      opened={!!pieceMenu && !!menuPiece}
-      onChange={(opened) => {
-        if (!opened) {
-          onClose();
-        }
-      }}
-      closeOnItemClick={false}
-      withinPortal
-      position="bottom-start"
-    >
-      <Menu.Target>
-        {/* An empty positioning anchor, not a control: hidden from assistive technology, so Mantine's expanded state on it names nothing. */}
-        <span
-          aria-hidden
-          style={{
-            position: 'fixed',
-            left: pieceMenu?.x ?? 0,
-            top: pieceMenu?.y ?? 0,
-            width: 1,
-            height: 1,
-            pointerEvents: 'none',
-          }}
-        />
-      </Menu.Target>
-      {/* Mantine names the dropdown by its target, here an empty anchor, so the menu points its name at its own hidden label instead. */}
-      <Menu.Dropdown aria-labelledby={pieceMenuLabelId}>
-        <span id={pieceMenuLabelId} hidden>
-          {pieceMenuName}
-        </span>
-        {isSpicePiece(menuPiece) ? (
-          <Menu.Item
-            disabled={!spiceReserveControls || menuPiece.locked || !spiceReserveControls.canCollect(menuPiece.id)}
-            onClick={() => {
-              spiceReserveControls?.collect(menuPiece.id);
-              onClose();
-            }}
-          >
-            Take into spice reserve
-          </Menu.Item>
-        ) : menuPiece && menuPiece.kind !== 'card' ? (
-          peekableToken(menuPiece) && peekItem
-        ) : (
-          <>
-            <Menu.Label>
-              {menuPiece ? `${menuPiece.items.length} card${menuPiece.items.length === 1 ? '' : 's'}` : 'Deck empty'}
-            </Menu.Label>
-            {peekItem}
-            <Menu.Item disabled={!deckAvailable} onClick={() => pieceMenu && deckControls?.draw(pieceMenu.pieceId)}>
-              Draw a card
-            </Menu.Item>
-            {deckControls?.recipients.map((faction) => (
-              <Menu.Item
-                key={faction.id}
-                disabled={!deckAvailable}
-                onClick={() => pieceMenu && deckControls.draw(pieceMenu.pieceId, faction.id)}
-              >
-                Deal 1 to {faction.name}
-              </Menu.Item>
-            ))}
-            <Menu.Divider />
-            <Menu.Item
-              disabled={!deckAvailable || (menuPiece?.items.length ?? 0) < 2}
-              onClick={() => pieceMenu && deckControls?.shuffle(pieceMenu.pieceId)}
-            >
-              Shuffle
-            </Menu.Item>
-            {shuffleHint && <Menu.Label>{shuffleHint}</Menu.Label>}
-          </>
-        )}
-        {menuPiece && deletablePiece(menuPiece) && (
-          <>
-            {(menuPiece.kind === 'card' || isSpicePiece(menuPiece) || peekableToken(menuPiece)) && <Menu.Divider />}
-            <DeletePieceItem
-              key={menuPiece.id}
-              piece={menuPiece}
-              remove={deleteControls?.remove}
-              onClose={onClose}
-              reserved={menuPieceReserved}
-            />
-          </>
-        )}
-      </Menu.Dropdown>
-    </Menu>
+    <RadialMenu
+      key={menuPiece.id}
+      name={name}
+      hub={hub}
+      x={pieceMenu.x}
+      y={pieceMenu.y}
+      actions={actions}
+      targets={targets}
+      onClose={onClose}
+    />
   );
 }
 

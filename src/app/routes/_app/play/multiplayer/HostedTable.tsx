@@ -186,6 +186,34 @@ function battleFocus(table: TableProjection) {
   return { key: 'battle', token: battle.id };
 }
 
+/*
+ * The tab each phase is about, which the dock opens once as the phase begins.
+ * Phases played on the table alone (spice blow, revival, movement) leave the dock where the player put it.
+ */
+const PHASE_TABS: Partial<Record<string, string>> = {
+  storm: 'table',
+  'choam-charity': 'spice',
+  bidding: 'hand',
+  battle: 'battle',
+  'spice-collection': 'spice',
+  'mentat-pause': 'table',
+};
+
+/* A seat's own tabs are disabled for a spectator, so only the battle, which they came to watch, opens for them. */
+const SPECTATOR_PHASE_TABS = new Set(['battle']);
+
+/* Opens the phase's tab when the phase changes during play, never for the phase the table loaded on: a reload or a late join keeps the tab the player opens on. */
+function usePhaseFocus(table: TableProjection, progress: ReturnType<typeof gameProgress>) {
+  const token = `${progress.turn}:${progress.activePhaseId}`;
+  const [loadedOn] = useState(token);
+  const key = PHASE_TABS[progress.activePhaseId];
+  const spectator = table.viewer.viewerSeat === SPECTATOR_SEAT;
+  if (table.snapshot.stage !== 'play' || token === loadedOn || !key || (spectator && !SPECTATOR_PHASE_TABS.has(key))) {
+    return null;
+  }
+  return { key, token: `phase:${token}` };
+}
+
 function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
   const phase = phaseAt(table.snapshot.phase, table.snapshot.phases);
   return (
@@ -742,6 +770,7 @@ function ConnectedTable({
   identity: GameIdentity;
 }>) {
   const progress = gameProgress(table.snapshot);
+  const phaseFocus = usePhaseFocus(table, progress);
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
@@ -906,7 +935,7 @@ function ConnectedTable({
                 />
               ) : undefined
             }
-            focusTab={battleFocus(table)}
+            focusTab={battleFocus(table) ?? phaseFocus}
             /* A spectator's Shared inventory and Spice are a seat's controls, all disabled; the battle or the Log is what they came to watch. */
             openOn={table.viewer.viewerSeat === SPECTATOR_SEAT ? SPECTATOR_OPENING_TABS : undefined}
             panelTabs={[
