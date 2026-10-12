@@ -19,9 +19,8 @@ describe('viewer preference', () => {
     expect(viewerPreference(KEY, bounds).read()).toBe(1);
   });
 
-  it('stops following other tabs once nothing listens, and ignores other keys', () => {
+  it('ignores other keys and follows other tabs even while nothing listens', () => {
     const preference = viewerPreference(KEY, bounds);
-    const removed = vi.spyOn(window, 'removeEventListener');
     const { result, unmount } = renderHook(() => preference.use());
     localStorage.setItem(KEY, '1.5');
     act(() => {
@@ -33,6 +32,8 @@ describe('viewer preference', () => {
     });
     expect(result.current).toBe(1.5);
     unmount();
-    expect(removed).toHaveBeenCalledWith('storage', expect.any(Function));
+    localStorage.setItem(KEY, '2');
+    window.dispatchEvent(new StorageEvent('storage', { key: KEY }));
+    expect(preference.read()).toBe(2);
   });
 });

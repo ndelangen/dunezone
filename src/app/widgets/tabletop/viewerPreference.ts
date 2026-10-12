@@ -32,7 +32,17 @@ export function viewerPreference(
     }
   }
 
+  /* Once anything reads the preference it follows other tabs for good, so a frame loop reading it with no slider open stays right. */
+  let following = false;
+  function follow(): void {
+    if (!following && typeof window !== 'undefined') {
+      window.addEventListener('storage', relayStorage);
+      following = true;
+    }
+  }
+
   function read(): number {
+    follow();
     value ??= readStored();
     return value;
   }
@@ -63,15 +73,10 @@ export function viewerPreference(
   }
 
   function subscribe(listener: () => void): () => void {
-    if (listeners.size === 0) {
-      window.addEventListener('storage', relayStorage);
-    }
+    follow();
     listeners.add(listener);
     return () => {
       listeners.delete(listener);
-      if (listeners.size === 0) {
-        window.removeEventListener('storage', relayStorage);
-      }
     };
   }
 
