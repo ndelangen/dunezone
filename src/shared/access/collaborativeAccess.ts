@@ -75,48 +75,68 @@ export function evaluateCollaborativeAccess<GroupSummary extends GroupSummarySha
 export function evaluateCollaborativeAccess<GroupSummary extends GroupSummaryShape>(
   facts: CollaborativeAccessFacts<GroupSummary>
 ): GroupViewerAccess | AssetViewerAccess<AssetAccessFacts['kind'], GroupSummary> {
-  const authenticated = facts.viewer.kind === 'authenticated';
-  const membership: MembershipState | null =
-    facts.viewer.kind === 'authenticated'
-      ? facts.viewer.membership === 'removed'
-        ? 'none'
-        : facts.viewer.membership
-      : null;
-  const activeMember = authenticated && membership === 'active';
-  const owner = facts.viewer.kind === 'authenticated' && facts.viewer.ownsSubject;
-  const viewer: PublicViewer =
-    facts.viewer.kind === 'anonymous' ? facts.viewer : { kind: 'authenticated', membership: membership ?? 'none' };
-  const requestMembership = authenticated && membership === 'none' && facts.group.eligible;
+  const standing = viewerStanding(facts.viewer);
+  return facts.kind === 'group' ? groupAccess(facts, standing) : assetAccess(facts, standing);
+}
 
-  if (facts.kind === 'group') {
-    return {
-      kind: 'group',
-      viewer,
-      capabilities: {
-        requestMembership,
-        rename: owner && facts.group.eligible,
-        delete: owner && facts.group.eligible,
-        addMember: activeMember && facts.group.eligible,
-      },
-    };
+type ViewerStanding = {
+  viewer: PublicViewer;
+  owner: boolean;
+  activeMember: boolean;
+  /** Signed in with no membership: the one standing that may ask to join. */
+  outsider: boolean;
+};
+
+/** What the rules need to know about the viewer, with `removed` already flattened to `none`. */
+function viewerStanding(facts: ViewerFacts): ViewerStanding {
+  if (facts.kind === 'anonymous') {
+    return { viewer: facts, owner: false, activeMember: false, outsider: false };
   }
+  const membership: MembershipState = facts.membership === 'removed' ? 'none' : facts.membership;
+  return {
+    viewer: { kind: 'authenticated', membership },
+    owner: facts.ownsSubject,
+    activeMember: membership === 'active',
+    outsider: membership === 'none',
+  };
+}
 
+function groupAccess(facts: GroupAccessFacts, standing: ViewerStanding): GroupViewerAccess {
+  const eligible = facts.group.eligible;
+  return {
+    kind: 'group',
+    viewer: standing.viewer,
+    capabilities: {
+      requestMembership: standing.outsider && eligible,
+      rename: standing.owner && eligible,
+      delete: standing.owner && eligible,
+      addMember: standing.activeMember && eligible,
+    },
+  };
+}
+
+function assetAccess<GroupSummary extends GroupSummaryShape>(
+  facts: AssetAccessFacts<GroupSummary>,
+  standing: ViewerStanding
+): AssetViewerAccess<AssetAccessFacts['kind'], GroupSummary> {
+  const available = facts.resource.available;
+  const ownerAction = available && standing.owner;
   return {
     kind: facts.kind,
     assignedGroup: facts.group.summary,
-    viewer,
+    viewer: standing.viewer,
     capabilities: {
-      requestMembership: requestMembership && facts.resource.available,
-      edit: facts.resource.available && (owner || (activeMember && facts.group.eligible)),
+      requestMembership: available && standing.outsider && facts.group.eligible,
+      edit: ownerAction || (available && standing.activeMember && facts.group.eligible),
       /*
        * Renaming is the owner's alone for every kind, because a name change is an identity change:
        * it recalculates the slug, moves the public URL, and leaves no redirect behind (#605).
        * An active collaborator keeps `edit` and loses only this, which is why the two are separate
        * capabilities rather than one.
        */
-      rename: facts.resource.available && owner,
-      changeGroup: facts.resource.available && owner,
-      delete: facts.resource.available && owner,
+      rename: ownerAction,
+      changeGroup: ownerAction,
+      delete: ownerAction,
     },
   };
 }
