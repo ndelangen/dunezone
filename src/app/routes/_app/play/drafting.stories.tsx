@@ -143,16 +143,21 @@ export const InsufficientFactionPool = meta.story({
     ).resolves.toBeVisible();
     await waitFor(
       () => {
-        const header = canvasElement.ownerDocument.querySelector('.seated-header');
-        expect(within(header as HTMLElement).getByRole('alert')).toHaveTextContent('Not enough factions in the pool');
-        expect(within(header as HTMLElement).getByRole('alert')).toHaveTextContent(
-          'Remove a ban or draft more factions'
-        );
+        expect(headerAlert(canvasElement)).toHaveTextContent('Not enough factions in the pool');
+        expect(headerAlert(canvasElement)).toHaveTextContent('Remove a ban or draft more factions');
       },
       { timeout: 30_000 }
     );
   },
 });
+
+/** The drafting chip's warning line, with the help it carries for assistive technology; it speaks through the header's polite region, so it has no alert role of its own. */
+function headerAlert(canvasElement: HTMLElement) {
+  const header = canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-header')!;
+  return within(header)
+    .getByText(/^(Seats were not dealt|Not enough factions in the pool)/u)
+    .closest('strong');
+}
 
 /** The deal found a drafted faction unready: it is set aside with its reason, readiness cleared, and it cannot be drafted again until it is ready. */
 const NOT_READY = 'faction token, The faction token back has no published face.';
@@ -172,9 +177,10 @@ export const FactionSetAside = meta.story({
     await expect(
       page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    await waitFor(() => expect(page.getByRole('alert')).toHaveTextContent('Set aside as not ready to deal: Iduali'), {
-      timeout: 30_000,
-    });
+    await waitFor(
+      () => expect(headerAlert(canvasElement)).toHaveTextContent('Set aside as not ready to deal: Iduali'),
+      { timeout: 30_000 }
+    );
     const list = () => within(page.getByRole('list', { name: 'Factions' }));
     await shows(() => list().getByText(`Not ready to deal: ${NOT_READY}`));
     const row = list().getByText('Iduali').closest('li') as HTMLElement;
@@ -196,10 +202,11 @@ export const ObserverAfterAFailedDeal = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(page.getByRole('alert')).toHaveTextContent('Set aside as not ready to deal: Iduali'), {
-      timeout: 30_000,
-    });
-    expect(page.getByRole('alert')).toHaveTextContent('Seats were not dealt');
+    await waitFor(
+      () => expect(headerAlert(canvasElement)).toHaveTextContent('Set aside as not ready to deal: Iduali'),
+      { timeout: 30_000 }
+    );
+    expect(headerAlert(canvasElement)).toHaveTextContent('Seats were not dealt');
     expect(page.queryByRole('button', { name: 'Ready' })).toBeNull();
   },
 });

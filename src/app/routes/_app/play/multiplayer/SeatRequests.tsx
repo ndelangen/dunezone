@@ -64,7 +64,7 @@ function SeatButton({
     <Button
       variant={variant}
       color={color}
-      disabled={disabled || table.seatCommandPending || table.reconnecting}
+      disabled={disabled || seatLocked(table)}
       onClick={() => client.command(action)}
     >
       {children}
@@ -363,7 +363,7 @@ export function GameMenu({
 }
 
 /** A seat command waits for the last one and for the live table; history is read only, so it would be refused there. */
-function seatLocked(table: TableProjection) {
+export function seatLocked(table: TableProjection): boolean {
   return Boolean(table.seatCommandPending || table.reconnecting || table.playback || table.historyPending);
 }
 

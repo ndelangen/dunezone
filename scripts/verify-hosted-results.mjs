@@ -129,7 +129,7 @@ export async function verifyResults({
   assert.equal(phaseAt(a.view().snapshot.phase).id, 'mentat-pause');
   for (const who of [a, b]) {
     assert.equal(await header(who).getByText(title, { exact: true }).count(), 0);
-    /* The Result tab closes with the result, so the panel falls back to its opening tab and Phase is chosen again. */
+    /* The Result tab closes with the result and the panel returns to the tab it opened over; Phase is chosen again so the check does not depend on which. */
     await openTab(who, 'Phase');
     await button(who, 'Determine winner').waitFor();
   }

@@ -446,16 +446,19 @@ function TableControlsPanel({
       setPath(next);
     }
   };
-  /* Each focus token opens its tab once, during render as React adjusts state from a changed prop. */
+  /* Each focus token opens its tab once, during render as React adjusts state from a changed prop. The tab it opened over is kept, so when the focused tab closes, as a result does, the panel returns to it. */
   const [focused, setFocused] = useState<string | null>(null);
+  const [beneath, setBeneath] = useState<string[] | null>(null);
   if (focusTab && focusTab.token !== focused && tabs.some((tab) => tab.key === focusTab.key)) {
     setFocused(focusTab.token);
+    setBeneath(path[0] === focusTab.key ? beneath : path);
     choose([focusTab.key]);
   }
-  const chosen = stageOpened ? undefined : tabs.find((tab) => tab.key === path[0]);
+  const shown = !tabs.some((tab) => tab.key === path[0]) && beneath ? beneath : path;
+  const chosen = stageOpened ? undefined : tabs.find((tab) => tab.key === shown[0]);
   /* The stage overlay shows the stage tab, never the opening one, which only stands in when no tab is chosen. */
   const active = chosen ?? (stageOpened ? tabs[0] : opening) ?? tableTab;
-  const subtab = (chosen && active.subtabs?.find((tab) => tab.key === path[1])) ?? active.subtabs?.[0];
+  const subtab = (chosen && active.subtabs?.find((tab) => tab.key === shown[1])) ?? active.subtabs?.[0];
   if (panelContent && panelTabs.length === 0) {
     return <div className="seated-stage-panel">{panelContent}</div>;
   }

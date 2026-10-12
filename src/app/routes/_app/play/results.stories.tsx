@@ -141,7 +141,7 @@ export const DeterminingElsewhere = meta.story({
   },
 });
 
-/** Without captured prediction faces the Worker deals no card, so the bar falls back to a reveal button. */
+/** Without captured prediction faces the Worker deals no card, so the Result tab falls back to a reveal button. */
 export const DeterminingElsewhereWithoutACard = meta.story({
   beforeEach: install(() => {
     const snapshot = mentatSnapshot('seat-2', { prediction: true });

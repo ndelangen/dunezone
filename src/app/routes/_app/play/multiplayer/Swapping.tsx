@@ -85,12 +85,13 @@ function TradingClock(props: Swapping) {
   return (
     <div className="seated-phase-status__copy">
       <span>Trading</span>
-      {/* A timer is not live, so the countdown is not read out every second; the tooltip names nothing to assistive technology, so its status also describes the timer until the timer shows that status itself. */}
+      {/* The timer is kept quiet inside the header's live region, so the countdown is not read out every second; the tooltip names nothing to assistive technology, so its status also describes the timer until the timer shows that status itself. */}
       <Tooltip label={status} multiline maw={320} events={{ hover: true, focus: true, touch: true }}>
         <Text
           component="strong"
           inherit
           role="timer"
+          aria-live="off"
           tabIndex={0}
           aria-label="Trading time remaining"
           aria-describedby={closed ? undefined : statusId}

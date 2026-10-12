@@ -48,8 +48,13 @@ function withRequests(seatRequests: { id: string; requesterName: string; seat: n
 
 test('every viewer reads in the drafting chip why the deal failed; Ready deals again', () => {
   show(<DraftingHeader table={projection('neutral', failed)} />);
-  expect(screen.getByRole('alert').textContent).toContain('Seats were not dealt');
-  expect(screen.getByRole('alert').textContent).toContain('Iduali (no token)');
+  const line = screen.getByText('Seats were not dealt', { exact: false });
+  expect(line.textContent).toContain('Iduali (no token)');
+});
+
+test("a spectator's refused seat request is said beneath the roster where it was asked", () => {
+  show(<DraftingOverlay client={client} table={projection('neutral')} error="The table is full." />);
+  expect(screen.getByText('The table is full.')).toBeTruthy();
 });
 
 test('the drafting chip draws the three steps before the deal, ringing the first one not met', () => {

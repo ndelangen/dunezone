@@ -772,17 +772,18 @@ function stageToolbar({
       </>
     );
   }
-  if (stage === 'drafting') {
-    return <DraftingReady client={client} table={table} />;
-  }
-  if (stage === 'swapping') {
-    return <SwappingReady client={client} table={table} />;
-  }
-  if (stage === 'finished') {
-    return <ContinuePlaying client={client} table={table} />;
-  }
-  return undefined;
+  const Control = stage ? STAGE_CONTROLS[stage] : undefined;
+  return Control ? <Control client={client} table={table} /> : undefined;
 }
+
+/** The control a stage with no phases to step puts in the header: its Ready, or Continue playing once finished. */
+const STAGE_CONTROLS: Partial<
+  Record<string, (props: Readonly<{ client: TableSession; table: TableProjection }>) => ReactNode>
+> = {
+  drafting: DraftingReady,
+  swapping: SwappingReady,
+  finished: ContinuePlaying,
+};
 
 /** What the phase chip says for a stage outside play: the drafting gates, the trading clock, the result or the setup step. */
 function stageStatus({
@@ -950,7 +951,9 @@ function ConnectedTable({
               </>
             }
             stageStatus={stageStatus({ client, table, identity })}
-            stageOverlay={stage === 'drafting' ? <DraftingOverlay client={client} table={table} /> : undefined}
+            stageOverlay={
+              stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
+            }
             panelContent={
               stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
                 <DraftingPanel client={client} table={table} error={error} />

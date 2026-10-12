@@ -40,6 +40,7 @@ import { Token } from '@game/assets/faction/token/Token';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Drafting.module.css';
 import { ReadyToggle } from './PhaseNavigation';
+import { seatLocked } from './SeatRequests';
 
 /*
  * Drafting as accepted on #1016 (overlay D, refined) and #1145 (the panel): the ledger over the
@@ -172,11 +173,6 @@ function names(players: Player[], seats: string[]): string {
   return seats.map((seat) => players.find((player) => player.seat === seat)?.name ?? seat).join(', ');
 }
 
-/** A seat command waits while another is on its way, or while the table cannot hear it. */
-function seatLocked(table: TableProjection): boolean {
-  return table.seatCommandPending || table.reconnecting || Boolean(table.playback);
-}
-
 /**
  * A pending seat request in the roster, under the seated players: the requester as a dashed ghost.
  * A player approves it here;
@@ -241,7 +237,7 @@ function RequestRow({ client, table, request }: Props & Readonly<{ request: Seat
 }
 
 /** The ledger on the table: every viewer sees the same draft. */
-export function DraftingOverlay({ client, table }: Props) {
+export function DraftingOverlay({ client, table, error = null }: Props & Readonly<{ error?: string | null }>) {
   const draft = draftOf(table);
   if (!draft) {
     return null;
@@ -323,6 +319,12 @@ export function DraftingOverlay({ client, table }: Props) {
                   </UnstyledButton>
                 </Tooltip>
                 <span className={styles.side} />
+              </li>
+            )}
+            {/* A spectator has no panel, so a refused request is said beneath the roster where it was asked. */}
+            {own === SPECTATOR_SEAT && error && (
+              <li className={styles.requestError}>
+                <FormError title="From the table">{error}</FormError>
               </li>
             )}
           </ol>
@@ -454,7 +456,7 @@ export function DraftingHeader({
       <span className={styles.headerLine}>
         {alert ? (
           <Tooltip label={alert.help} multiline maw={340} events={{ hover: true, focus: true, touch: true }}>
-            <strong className={styles.headerAlert} role="alert">
+            <strong className={styles.headerAlert}>
               {alert.line}
               <VisuallyHidden component="span">. {alert.help}</VisuallyHidden>
             </strong>

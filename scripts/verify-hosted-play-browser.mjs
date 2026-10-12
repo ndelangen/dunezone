@@ -673,7 +673,7 @@ async function seatThrough(approver, who) {
 /** A seated player gives up the seat by holding it in the game menu for five seconds; the seat stays open with its faction. */
 async function depart(who) {
   await who.page.getByRole('button', { name: 'Game menu', exact: true }).click();
-  const item = who.page.getByRole('menuitem', { name: /^Hold to (give up your seat|leave)/u });
+  const item = who.page.getByRole('menuitem', { name: /^Hold to (give up your (seat|place)|leave)/u });
   await item.hover();
   await who.page.mouse.down();
   await who.page.getByText(/^Leaving in \d\.\.$/u).waitFor();
