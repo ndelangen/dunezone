@@ -23,6 +23,7 @@ import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/p
 import { publishingSpiceCard } from '../../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
+import { GF9_LEADER_SKILLS } from '../../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS } from '../../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS } from '../../src/shared/assets/gf9StrongholdDeck';
 import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../../src/shared/assets/standardStormDeck';
@@ -443,6 +444,7 @@ async function checkPublisherImageCapture(
     | 'card-treachery'
     | 'card-spice'
     | 'card-custom'
+    | 'card-leaderability'
     | 'card-nexus'
     | 'card-stronghold'
     | 'card-storm'
@@ -597,6 +599,16 @@ try {
       `custom card ${format}`
     );
   }
+  await checkPublisherImageCapture(
+    browser,
+    'card-leaderability',
+    envelope('card-leaderability', {
+      assetId: 'k17publisherLeaderSkill',
+      slug: 'planetologist',
+      card: GF9_LEADER_SKILLS[5],
+    }),
+    'leader skill card'
+  );
   const strongholdCapture = await checkPublisherImageCapture(
     browser,
     'card-stronghold',

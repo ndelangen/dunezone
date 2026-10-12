@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import {
   CustomCardAsset,
+  LeaderSkillAsset,
   NexusCardAsset,
   CustomCardTokens,
   CardBack,
@@ -38,6 +39,7 @@ export const factionTokenAssetDataSchema = HistoricalFactionPublicationObject.pi
 });
 
 export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
+export const LEADER_SKILL_ASSET_TYPE = 'card-leaderability' as const;
 export const STRONGHOLD_CARD_ASSET_TYPE = 'card-stronghold' as const;
 export const CUSTOM_CARD_ASSET_TYPE = 'card-custom' as const;
 export const NEXUS_CARD_ASSET_TYPE = 'card-nexus' as const;
@@ -91,6 +93,12 @@ export const treacheryCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: TreacheryAsset,
+});
+
+export const leaderSkillAssetDataSchema = z.strictObject({
+  assetId: z.string().min(1),
+  slug: z.string().min(1),
+  card: LeaderSkillAsset,
 });
 
 export const nexusCardAssetDataSchema = z.strictObject({
@@ -184,6 +192,7 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   [TREACHERY_CARD_ASSET_TYPE]: treacheryCardAssetDataSchema,
   [SPICE_CARD_ASSET_TYPE]: spiceCardAssetDataSchema,
   [CUSTOM_CARD_ASSET_TYPE]: customCardAssetDataSchema,
+  [LEADER_SKILL_ASSET_TYPE]: leaderSkillAssetDataSchema,
   [NEXUS_CARD_ASSET_TYPE]: nexusCardAssetDataSchema,
   [STRONGHOLD_CARD_ASSET_TYPE]: strongholdCardAssetDataSchema,
   [STORM_CARD_ASSET_TYPE]: stormCardAssetDataSchema,

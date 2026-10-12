@@ -10,6 +10,7 @@ import {
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
+import { GF9_LEADER_SKILLS, GF9_LEADER_SKILL_DECK } from '../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
 import { StormCardAssetInput, DeckAssetInput } from '../src/shared/assets/schema';
@@ -1197,5 +1198,81 @@ export const seedGf9StrongholdDeck = internalMutation({
       });
     }
     return { deckId: deck.id, slug: deck.slug, created: true };
+  },
+});
+
+/** Installs the GF9 stock set once, preserving later edits and refusing occupied addresses. */
+export const seedGF9LeaderSkills = internalMutation({
+  args: { ownerId: v.id('users') },
+  returns: v.object({ deckId: v.id('assets'), cardIds: v.array(v.id('assets')), created: v.number() }),
+  handler: async (ctx, { ownerId }) => {
+    const owner = await ctx.db.get('users', ownerId);
+    const profile = await ctx.db
+      .query('profiles')
+      .withIndex('by_user_id', (q) => q.eq('user_id', ownerId))
+      .unique();
+    if (!owner?.isAdmin || owner.merged_into_user_id || (profile && profile.account_state !== 'active')) {
+      throw new ConvexError('The stock deck needs an active administrator as its owner.');
+    }
+    const installed = await ctx.db
+      .query('leader_skill_stock_sets')
+      .withIndex('by_key', (q) => q.eq('key', 'gf9-leader-skills'))
+      .unique();
+    if (installed) {
+      if (installed.owner_id !== ownerId) {
+        throw new ConvexError('The GF9 stock set already belongs to another administrator.');
+      }
+      const assets = await Promise.all(
+        [installed.deck_id, ...installed.card_ids].map((id) => ctx.db.get('assets', id))
+      );
+      if (assets.some((asset) => !asset || asset.is_deleted || asset.owner_id !== ownerId)) {
+        throw new ConvexError('An installed GF9 stock asset was deleted or transferred.');
+      }
+      return { deckId: installed.deck_id, cardIds: installed.card_ids, created: 0 };
+    }
+    async function install(type: string, data: unknown) {
+      const parsed = parseAssetDataForWrite(type, data);
+      const slug = slugify(parsed.name);
+      const existing = await ctx.db
+        .query('assets')
+        .withIndex('by_type_and_slug', (q) => q.eq('type', type).eq('slug', slug))
+        .unique();
+      if (existing) {
+        throw new ConvexError(`The stock address ${type}/${slug} is already reserved.`);
+      }
+      const now = nowIso();
+      const id = await ctx.db.insert('assets', {
+        owner_id: ownerId,
+        type,
+        slug,
+        data: parsed.data,
+        created_at: now,
+        updated_at: now,
+        is_deleted: false,
+        group_id: null,
+      });
+      await enqueueAssetPublication(ctx, { _id: id, type, slug, data: parsed.data });
+      return id;
+    }
+    const cardIds = await Promise.all(GF9_LEADER_SKILLS.map((card) => install('card-leaderability', card)));
+    const deckId = await install('deck', GF9_LEADER_SKILL_DECK);
+    /* Both ends are newly inserted in this transaction, so no relation can already exist. */
+    await Promise.all(
+      cardIds.map((cardId) =>
+        ctx.db.insert('asset_relations', {
+          from_asset_id: deckId,
+          to_asset_id: cardId,
+          kind: 'deck-card',
+          count: 1,
+        })
+      )
+    );
+    await ctx.db.insert('leader_skill_stock_sets', {
+      key: 'gf9-leader-skills',
+      owner_id: ownerId,
+      deck_id: deckId,
+      card_ids: cardIds,
+    });
+    return { deckId, cardIds, created: cardIds.length + 1 };
   },
 });

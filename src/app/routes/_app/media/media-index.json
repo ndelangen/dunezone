@@ -10363,6 +10363,24 @@
     "sourceHash": "5ab59d9fc91fdf8d41fa074ff83b7bab1995c37abe9fec31f603ac9b3e242d0c",
     "label": "Arrakis sietch"
   },
+  "/vector/decal/sandmaster.svg": {
+    "description": "A Sandmaster points across the dunes beside a sandtrout.",
+    "tags": ["sandmaster", "leader skill", "sandtrout", "desert", "GF9", "CHOAM", "Richese"],
+    "subjects": ["creatures"],
+    "sourceHash": "04d15ed2f78220103df5e32dedfc58d075ced70cf81b398da240895a2d547485"
+  },
+  "/vector/decal/sandmaster-multicolor.svg": {
+    "description": "A Sandmaster points across the dunes beside a sandtrout.",
+    "tags": ["sandmaster", "leader skill", "sandtrout", "desert", "GF9", "CHOAM", "Richese"],
+    "subjects": ["creatures"],
+    "sourceHash": "e377d02d468848a06ccee467983023d4324104d83553e12d6613ebe15522bc73"
+  },
+  "/vector/generic/leader-skills.svg": {
+    "description": "A head silhouette holds three gears, the GF9 Leader Skills deck emblem.",
+    "tags": ["leader skills", "head", "gears", "GF9", "CHOAM", "Richese"],
+    "subjects": ["machines"],
+    "sourceHash": "aab5f72303a22998d522383e80cf297ed90a4f289d7ee5f57ff863d94b53c0d2"
+  },
   "/vector/decal/stronghold-arrakeen.svg": {
     "description": "A pale city below rust-colored cliffs beneath a blue sky.",
     "tags": ["stronghold", "arrakeen", "landscape", "silhouette"],

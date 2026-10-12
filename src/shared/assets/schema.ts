@@ -443,6 +443,24 @@ export const CustomCard = CardHead.extend({
 export const CustomCardAsset = CustomCard.extend({ about: About });
 export const CustomCardAssetInput = CustomCardAsset.extend({ about: FormattedAbout });
 
+/** A leader skill keeps its general ability, illustration and battle ability in that order. */
+export const LeaderSkillCard = CardHead.extend({
+  generalText: z.string(),
+  battleText: z.string(),
+  decals: z.array(Decal).max(16),
+  textSize: z.number().min(24).max(40),
+});
+export const LeaderSkillAsset = LeaderSkillCard.extend({ about: About });
+export const LeaderSkillAssetInput = LeaderSkillAsset.extend({
+  about: FormattedAbout,
+  generalText: proseFormattedTextSchema.refine((value) => value.length <= 600, {
+    message: 'The general ability can hold at most 600 characters',
+  }),
+  battleText: proseFormattedTextSchema.refine((value) => value.length <= 600, {
+    message: 'The battle ability can hold at most 600 characters',
+  }),
+});
+
 /** A Nexus card keeps three rules regions and a faction identity inside the standard custom-card frame. */
 const NexusEffect = proseFormattedTextSchema
   .refine((text) => text.length <= 400, {

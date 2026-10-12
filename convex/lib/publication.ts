@@ -22,6 +22,7 @@ import {
   factionTokenAssetDataSchema,
   parsePublicationAssetData,
   CUSTOM_CARD_ASSET_TYPE,
+  LEADER_SKILL_ASSET_TYPE,
   NEXUS_CARD_ASSET_TYPE,
   STORM_CARD_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
@@ -214,6 +215,7 @@ export async function enqueueAssetPublication(
         assetData: { assetId: asset._id, slug: asset.slug, board: BoardAsset.parse(asset.data).board },
         now,
       });
+    case LEADER_SKILL_ASSET_TYPE:
     case NEXUS_CARD_ASSET_TYPE:
     case TREACHERY_CARD_ASSET_TYPE:
     case SPICE_CARD_ASSET_TYPE:

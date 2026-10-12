@@ -3,6 +3,7 @@ import { BoardAsset } from '../boards/schema';
 import {
   BundleAssetInput,
   CustomCardAssetInput,
+  LeaderSkillAssetInput,
   NexusCardAssetInput,
   DeckAssetInput,
   RectangleTokenAssetInput,
@@ -35,6 +36,10 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
     }
     case 'card-spice': {
       const parsed = SpiceAssetInput.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
+    case 'card-leaderability': {
+      const parsed = LeaderSkillAssetInput.parse(data);
       return { data: parsed, name: parsed.name };
     }
     case 'card-nexus': {

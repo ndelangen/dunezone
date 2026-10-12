@@ -34,6 +34,7 @@ type CardType =
   | 'card-nexus'
   | 'card-stronghold'
   | 'card-storm'
+  | 'card-leaderability'
   | 'board';
 
 type CardAsset = NonNullable<AssetPageData>['asset'];

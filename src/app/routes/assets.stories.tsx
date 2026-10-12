@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
 import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -33,6 +34,8 @@ export const EnhanceToken = meta.story({
   args: { path: '/assets/token-enhance/kwisatz-haderach' },
 });
 export const Bundle = meta.story({ args: { path: '/assets/bundle/atreides-tokens' } });
+
+export const CreateLeaderSkillCard = meta.story({ args: { path: '/assets/card-leaderability/create' } });
 
 export const CreateTreacheryCard = meta.story({
   args: { path: '/assets/card-treachery/create' },
@@ -486,6 +489,75 @@ export const ConvertAnotherCreatorsCard = meta.story({
     await expect(page.getByRole('link', { name: 'House Treachery ×3' })).toBeVisible();
     expect(page.queryByRole('link', { name: 'Edit Lasgun' })).toBeNull();
     expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
+  },
+});
+
+/** A new leader skill keeps both abilities through the create-to-edit handoff. */
+export const CreateLeaderSkillCardSaves = meta.story({
+  args: { path: '/assets/card-leaderability/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const name = await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
+    await userEvent.type(name, 'Storybook Leader Skill');
+    await userEvent.click(page.getByRole('tab', { name: 'Abilities' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'General ability' }), 'Collect one spice.');
+    await userEvent.type(page.getByRole('textbox', { name: 'Battle ability' }), 'Add +2 to this leader.');
+    await userEvent.click(await findSave(canvasElement));
+    await expect(page.findByRole('button', { name: 'Delete card' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('tab', { name: 'Abilities' }));
+    await expect(page.getByRole('textbox', { name: 'General ability' })).toHaveValue('Collect one spice.');
+    await expect(page.getByRole('textbox', { name: 'Battle ability' })).toHaveValue('Add +2 to this leader.');
+  },
+});
+
+/** Text that exceeds the fixed frame cannot be saved, and shortening it restores Save. */
+export const CreateLeaderSkillCardOverflow = meta.story({
+  args: { path: '/assets/card-leaderability/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.type(await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 }), 'Oversized Skill');
+    await userEvent.click(page.getByRole('tab', { name: 'Abilities' }));
+    const general = page.getByRole('textbox', { name: 'General ability' });
+    const battle = page.getByRole('textbox', { name: 'Battle ability' });
+    await userEvent.type(general, 'Wide words that fill the available card space. '.repeat(12));
+    await userEvent.type(battle, 'Wide words that fill the available card space. '.repeat(12));
+    const save = await findSave(canvasElement);
+    await expect(save).toHaveAttribute('aria-disabled', 'true');
+    await expect(save).toHaveAccessibleDescription(expect.stringContaining('extend beyond the card'));
+    await userEvent.clear(general);
+    await userEvent.type(general, 'Collect one spice.');
+    await userEvent.clear(battle);
+    await userEvent.type(battle, 'Add +2 to this leader.');
+    await waitFor(() => expect(save).not.toHaveAttribute('aria-disabled', 'true'));
+  },
+});
+
+/** An existing stock skill opens in the same editor and resets to its saved abilities. */
+export const EditLeaderSkillCard = meta.story({
+  args: { path: '/assets/card-leaderability/planetologist/edit' },
+  parameters: {
+    database: db((baseline) => {
+      baseline.assets.push({
+        $key: 'asset:leader-skill-planetologist',
+        owner_id: ref('storybook-viewer'),
+        type: 'card-leaderability',
+        slug: 'planetologist',
+        data: GF9_LEADER_SKILLS[5]!,
+        is_deleted: false,
+        group_id: null,
+        created_at: '2026-01-01T12:00:00.000Z',
+        updated_at: '2026-01-01T12:00:00.000Z',
+      });
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: 'Abilities' }, { timeout: 30_000 }));
+    const battle = page.getByRole('textbox', { name: 'Battle ability' });
+    await userEvent.clear(battle);
+    await userEvent.type(battle, 'An unsaved custom battle ability.');
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    await expect(battle).toHaveValue(GF9_LEADER_SKILLS[5]!.battleText);
   },
 });
 

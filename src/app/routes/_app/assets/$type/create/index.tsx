@@ -9,6 +9,7 @@ import { BoardCreatePage } from './boardCreate';
 import { BundleCreatePage } from './bundleCreate';
 import { DeckCreatePage } from './deckCreate';
 import { LayeredCreatePage } from './layeredCreate';
+import { LeaderSkillCreatePage } from './leaderSkillCreate';
 import { NexusCreatePage } from './nexusCreate';
 import { RectangleCreatePage } from './rectangleCreate';
 import { SpiceCreatePage } from './spiceCreate';
@@ -42,6 +43,8 @@ function CreateAssetPage() {
       return <BoardCreatePage />;
     case 'card-treachery':
       return <TreacheryCreatePage />;
+    case 'card-leaderability':
+      return <LeaderSkillCreatePage />;
     case 'card-nexus':
       return <NexusCreatePage />;
     case 'card-custom':
