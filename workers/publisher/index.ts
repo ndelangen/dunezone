@@ -1,5 +1,7 @@
 import { publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
+import { matchRulebookHtmlPath } from '../../src/shared/rulebooks/editionArtifacts';
+import type { RulebookReaderRequestContext } from '../../src/shared/rulebooks/readerDelivery';
 import { applicationReleaseIdentity, handleApplicationRequest } from './application';
 import { openPublisherBrowser } from './browser';
 import { handleCaptureRoute } from './capture-route';
@@ -14,6 +16,7 @@ import { handleMediaReleaseRequest } from './media-release';
 import { handleMediaSourceRequest } from './media-source';
 import { handlePublicDiscovery } from './public-discovery';
 import { rendererManifest } from './renderer-manifest.generated';
+import { handleRulebookHtmlRequest } from './rulebook-html-delivery';
 import { executeRulebookHtmlWork } from './rulebook-html-executor';
 import { executeRulebookPdfWork } from './rulebook-pdf-executor';
 import { handleSocialImageRequest } from './social-image';
@@ -182,7 +185,20 @@ const publisherWorker = {
       env,
       async (anonymousRequest) => {
         const { default: server } = await import('application-ssr-runtime');
-        return server.fetch(anonymousRequest);
+        const context: RulebookReaderRequestContext = {
+          publishedRulebookFetch: async (href) => {
+            const route = matchRulebookHtmlPath(href);
+            if (route?.kind !== 'edition') {
+              return reservedNotFound();
+            }
+            return handleRulebookHtmlRequest(new Request(new URL(href, env.PUBLIC_BASE_URL)), route, {
+              bucket: env.ASSET_BUCKET,
+              client: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+              publicBaseUrl: env.PUBLIC_BASE_URL,
+            });
+          },
+        };
+        return await server.fetch(anonymousRequest, { context });
       },
       { storage: caches.default, release: applicationReleaseIdentity(env) }
     );

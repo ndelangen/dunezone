@@ -18,13 +18,20 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, CalendarPlus, Check, FileText, History, Link2, Pencil, Pin, PinOff } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
-import { loadRulebookReader, useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
+import { useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
 import styles from './index.module.css';
+import {
+  loadReaderView,
+  loadPublishedRulebook,
+  resolvePublishedAnchor,
+  resolvePublishedLocator,
+} from './publishedReader';
+import type { PublishedRulebook } from './publishedReader';
 import {
   RULEBOOK_TARGET_RECOVERY_MS,
   findRulebookLocatorTarget,
@@ -58,14 +65,16 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
   validateSearch: parseReaderSearch,
   loaderDeps: ({ search }) => ({ editionNumber: search.edition }),
   loader: async ({ params, deps }) => {
-    const page = await loadRulebookReader({ ...params, editionNumber: deps.editionNumber });
+    const view = await loadReaderView({ ...params, editionNumber: deps.editionNumber });
+    const page = view.page;
     if (!page) {
       throw notFound();
     }
-    return page;
+    return view;
   },
-  head: ({ loaderData, params, match }) =>
-    publicPageHead({
+  head: ({ loaderData: view, params, match }) => {
+    const loaderData = view?.page;
+    return publicPageHead({
       name: loaderData?.rulebook.name ?? 'Rulebook',
       pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}/rulebooks/${encodeURIComponent(loaderData?.rulebook.slug ?? params.rulebookSlug)}${match.loaderDeps.editionNumber === undefined ? '' : `?edition=${match.loaderDeps.editionNumber}`}`,
       description: loaderData
@@ -74,7 +83,8 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
       image: loaderData?.edition.first_page_image_url,
       social: { kind: 'Rulebook', shape: 'portrait' },
       match,
-    }),
+    });
+  },
   pendingComponent: () => (
     <PageMessage title="Rulebook">
       <LoadPending title="Loading Rulebook">Loading the selected Edition.</LoadPending>
@@ -237,15 +247,55 @@ function ReaderStatus({
   return null;
 }
 
+type ReaderDeliveryState = { published: PublishedRulebook | null; failedHref: string | null };
+type ReaderDeliveryEvent = { kind: 'loaded'; published: PublishedRulebook } | { kind: 'failed'; href: string };
+function readerDeliveryReducer(state: ReaderDeliveryState, event: ReaderDeliveryEvent): ReaderDeliveryState {
+  return event.kind === 'loaded'
+    ? { published: event.published, failedHref: null }
+    : { ...state, failedHref: event.href };
+}
+
 function RulebookReaderPage() {
   const params = Route.useParams();
   const search = Route.useSearch();
-  const initialData = Route.useLoaderData();
+  const initial = Route.useLoaderData();
+  return (
+    <RulebookReaderDelivery
+      key={`${params.rulesetSlug}/${params.rulebookSlug}/${search.edition ?? 'current'}`}
+      initial={initial}
+    />
+  );
+}
+
+function RulebookReaderDelivery({ initial }: { initial: Awaited<ReturnType<typeof loadReaderView>> }) {
+  const params = Route.useParams();
+  const search = Route.useSearch();
+  const [delivery, sendDelivery] = useReducer(readerDeliveryReducer, {
+    published: initial.published,
+    failedHref: initial.renderEdition === null ? null : (initial.page?.edition.html.href ?? null),
+  });
   const { data } = useRulebookReader({
     ...params,
     editionNumber: search.edition,
-    initialData,
+    initialData: initial.page,
+    renderContents: delivery.failedHref !== null,
   });
+  const htmlHref = data?.edition.html.status === 'ready' ? data.edition.html.href : null;
+  useEffect(() => {
+    if (!htmlHref || delivery.published?.href === htmlHref || delivery.failedHref === htmlHref) {
+      return;
+    }
+    const controller = new AbortController();
+    void loadPublishedRulebook(htmlHref, controller.signal).then(
+      (published) => sendDelivery({ kind: 'loaded', published }),
+      () => {
+        if (!controller.signal.aborted) {
+          sendDelivery({ kind: 'failed', href: htmlHref });
+        }
+      }
+    );
+    return () => controller.abort();
+  }, [htmlHref, delivery.published?.href, delivery.failedHref]);
   useLivePageTitle(data?.rulebook.name);
   if (!data) {
     return (
@@ -261,19 +311,38 @@ function RulebookReaderPage() {
       </PageMessage>
     );
   }
-  return <RulebookReader data={data} />;
+  const published =
+    data.body.kind === 'html' && delivery.published?.href === data.body.href ? delivery.published : null;
+  if (data.body.kind === 'html' && !published) {
+    return (
+      <PageMessage title={data.rulebook.name}>
+        <LoadPending title="Loading Rulebook">Loading the selected Edition.</LoadPending>
+      </PageMessage>
+    );
+  }
+  return <RulebookReader data={data} published={published} />;
 }
 
-function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
+function RulebookReader({ data, published }: Readonly<{ data: ReaderData; published: PublishedRulebook | null }>) {
   const remove = useSoftDeleteRulebook();
   const params = Route.useParams();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
+  const renderBody = data.body.kind === 'render' ? data.body : undefined;
   const renderDocument = useMemo(
     () =>
-      projectRulebookRenderDocument(data.edition.contents, data.assetsById, data.edition.settings, data.factionsById),
-    [data.assetsById, data.factionsById, data.edition.contents, data.edition.settings]
+      renderBody
+        ? projectRulebookRenderDocument(
+            renderBody.contents,
+            renderBody.assetsById,
+            renderBody.settings,
+            renderBody.factionsById
+          )
+        : undefined,
+    [renderBody]
   );
+  const pagesById = published?.pagesById ?? renderDocument!.pagesById;
+  const pageOrder = published?.pageOrder ?? renderDocument!.pageOrder;
   const { anchor: hashAnchor, externalNavigation, setAnchor: setHashAnchor } = useReaderLocation();
   const [view, sendView] = useReducer(readerViewReducer, {
     activePageId: undefined,
@@ -284,12 +353,16 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
   });
   const parsedLocator = useMemo(() => parseRulebookTextLocator(view.locatorParam), [view.locatorParam]);
   const locatorResolution = useMemo(
-    () => resolveRulebookTextLocator(data.edition.contents, renderDocument, parsedLocator),
-    [data.edition.contents, parsedLocator, renderDocument]
+    () =>
+      published
+        ? resolvePublishedLocator(published, parsedLocator)
+        : resolveRulebookTextLocator(renderBody!.contents, renderDocument!, parsedLocator),
+    [published, renderBody, parsedLocator, renderDocument]
   );
   const anchorResolution = useMemo(
-    () => resolvePublicAnchor(data.edition.contents, hashAnchor),
-    [data.edition.contents, hashAnchor]
+    () =>
+      published ? resolvePublishedAnchor(published, hashAnchor) : resolvePublicAnchor(renderBody!.contents, hashAnchor),
+    [published, renderBody, hashAnchor]
   );
   const locatorTarget =
     locatorResolution.status === 'matched' || locatorResolution.status === 'stale' ? locatorResolution : undefined;
@@ -297,7 +370,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
   const targetMissing =
     locatorResolution.status === 'unresolved' ||
     (parsedLocator.status === 'missing' && hashAnchor !== undefined && anchorResolution === undefined);
-  const firstPageId = renderDocument.pageOrder[0];
+  const firstPageId = pageOrder[0];
   const readerRef = useRef<HTMLDivElement>(null);
   const meaningfulScroll = useRef(false);
   const ignoredRecoveryScroll = useRef(false);
@@ -394,7 +467,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
       }
       sendView({ kind: 'track-page', pageId });
       if (!view.pinned && meaningfulScroll.current) {
-        const page = data.edition.contents.pagesById[pageId];
+        const page = pagesById[pageId];
         if (page) {
           const url = new URL(window.location.href);
           const anchorChanged = publicAnchorFromUrl(url.href) !== page.anchor;
@@ -437,7 +510,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
         cancelAnimationFrame(frame);
       }
     };
-  }, [cancelRecovery, data.edition.contents, setHashAnchor, view.pinned]);
+  }, [cancelRecovery, pagesById, setHashAnchor, view.pinned]);
 
   useEffect(() => {
     cancelRecovery();
@@ -482,7 +555,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
   };
   const unpin = () => {
     sendView({ kind: 'unpin' });
-    const active = view.activePageId ? data.edition.contents.pagesById[view.activePageId] : undefined;
+    const active = view.activePageId ? pagesById[view.activePageId] : undefined;
     const url = new URL(window.location.href);
     url.searchParams.delete('loc');
     url.hash = active?.anchor ?? '';
@@ -495,10 +568,10 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
       sendView({ kind: 'announce', message: result.message });
       return;
     }
-    const resolution = resolveRulebookTextLocator(data.edition.contents, renderDocument, {
-      status: 'valid',
-      locator: result.locator,
-    });
+    const parsed = { status: 'valid' as const, locator: result.locator };
+    const resolution = published
+      ? resolvePublishedLocator(published, parsed)
+      : resolveRulebookTextLocator(renderBody!.contents, renderDocument!, parsed);
     if (resolution.status !== 'matched' && resolution.status !== 'stale') {
       sendView({ kind: 'announce', message: 'The selected text could not be tied to this Edition.' });
       return;
@@ -526,8 +599,8 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
     {
       key: 'pages',
       icon: <FileText size={17} aria-hidden />,
-      value: renderDocument.pageOrder.length,
-      label: `${renderDocument.pageOrder.length} ${renderDocument.pageOrder.length === 1 ? 'Page' : 'Pages'}`,
+      value: pageOrder.length,
+      label: `${pageOrder.length} ${pageOrder.length === 1 ? 'Page' : 'Pages'}`,
     },
   ];
 
@@ -679,8 +752,8 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                     )}
                   </Group>
                   <ol className={styles.pageLinks}>
-                    {renderDocument.pageOrder.flatMap((pageId, index) => {
-                      const page = renderDocument.pagesById[pageId];
+                    {pageOrder.flatMap((pageId, index) => {
+                      const page = pagesById[pageId];
                       return page
                         ? [
                             <li key={page.id}>
@@ -712,11 +785,18 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
               </nav>
             </Surface>
             <div ref={readerRef} className={styles.readerDocument} data-rulebook-reader-document>
-              <RulebookDocumentRenderer
-                document={renderDocument}
-                as="section"
-                label={`${data.rulebook.name} contents`}
-              />
+              {published ? (
+                <div data-published-rulebook>
+                  <style>{published.css}</style>
+                  <div dangerouslySetInnerHTML={{ __html: published.markup }} />
+                </div>
+              ) : (
+                <RulebookDocumentRenderer
+                  document={renderDocument!}
+                  as="section"
+                  label={`${data.rulebook.name} contents`}
+                />
+              )}
             </div>
           </div>
         </div>
