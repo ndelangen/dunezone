@@ -466,8 +466,7 @@ function barFor(
 }
 
 /**
- * Playback of a stage before play, whose frame has no Phase tab to hold the playback controls.
- * The bar steps through the checkpoints and returns to the live table, as the Phase tab does in play.
+ * Playback controls stay above the tabs in every stage, so leaving History never hides the way back to live.
  */
 function PlaybackBar({ client, table, error }: BarProps & Readonly<{ error: string | null }>) {
   const { playback, historyPending } = table;
@@ -525,10 +524,7 @@ export function SeatRequests({
     return null;
   }
   if (table.playback) {
-    /* In play and once finished the Phase tab carries playback; any earlier stage's frame has no such tab. */
-    return table.snapshot.stage === 'play' || table.snapshot.stage === 'finished' ? null : (
-      <PlaybackBar client={client} table={table} error={error} />
-    );
+    return <PlaybackBar client={client} table={table} error={error} />;
   }
   return (
     <div className={styles.dock} data-decision-bar="">

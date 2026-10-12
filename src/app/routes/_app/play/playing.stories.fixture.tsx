@@ -11,6 +11,7 @@ import { STORYBOOK_NOW } from '@db/storybook';
 
 import { cameraPoseFor, mapViewTopLimitForViewport, tableCamera } from '../../../widgets/tabletop/playView';
 import { mapViewFramingPoints } from '../../../widgets/tabletop/tablePlateGeometry';
+import { openControl } from './controls.stories.fixture';
 import { productTransport, playingSnapshot as initialSnapshot, SIX, factions } from './product.stories.fixture';
 
 export function phaseControls(canvasElement: HTMLElement) {
@@ -36,29 +37,13 @@ export function phaseControls(canvasElement: HTMLElement) {
     /* A phase change's cooldown may still hold the item, so its state is awaited while the menu stays open. */
     await waitFor(() => expect((item as HTMLButtonElement).disabled).toBe(!enabled));
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(page.queryByRole('menuitem', { name: 'Previous phase' })).toBeNull());
+    await waitForFrame(() => expect(page.queryByRole('menuitem', { name: 'Previous phase' })).toBeNull());
   };
   const pressPrevious = async () => userEvent.click(await openPrevious());
   return { page, controls, waitForPhase, openPrevious, expectPrevious, pressPrevious };
 }
 
-/**
- * Opens one tab of the controls panel and waits for it to become the selected one.
- * The panel arrives with the connection, so the click is retried until the tab takes.
- */
-export async function openTab(
-  page: ReturnType<typeof within>,
-  name: 'Shared inventory' | 'Spice' | 'Phase' | 'Hand' | 'Hidden zone' | 'Battle'
-) {
-  await waitFor(
-    async () => {
-      const tab = page.getByRole('tab', { name });
-      await userEvent.click(tab);
-      expect(tab).toHaveAttribute('aria-selected', 'true');
-    },
-    { timeout: 30_000 }
-  );
-}
+export { openControl as openTab };
 
 const SETTLE = { timeout: 30_000 } as const;
 

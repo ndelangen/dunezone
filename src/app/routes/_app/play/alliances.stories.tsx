@@ -7,6 +7,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
+import { openPanel } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 
@@ -97,7 +98,7 @@ export const IncomingOffer = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     /* An offer flows across the table as arcs; it is answered in the Alliances tab. */
-    await userEvent.click((await page.findAllByRole('tab', { name: 'Alliances' }, { timeout: 30_000 }))[0]!);
+    await openPanel(canvasElement, 'Alliances');
     await expect(page.findByText('Offers you an alliance')).resolves.toBeVisible();
     await userEvent.click(await page.findByRole('button', { name: 'Accept' }));
     expect(lastCommand()).toMatchObject({
@@ -159,7 +160,7 @@ export const FinishedReadOnly = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     expect(await page.findByRole('img', { name: /are allied/ }, { timeout: 30_000 })).toBeVisible();
-    await userEvent.click((await page.findAllByRole('tab', { name: 'Alliances' }))[0]!);
+    await openPanel(canvasElement, 'Alliances');
     expect(await page.findByText('Offers you an alliance')).toBeVisible();
     expect(page.queryByRole('button', { name: /Offer alliance|Accept|Withdraw offer|Break alliance/ })).toBeNull();
   },
