@@ -490,7 +490,12 @@ function TableControlsPanel({
   if (hasStage !== selection.stageShown) {
     select({ type: 'stage-changed', shown: hasStage });
   }
-  const choose = (path: string[]) => select({ type: 'destination-selected', path });
+  /* A group opens on its remembered child while that child still exists, else on its first, so a closed tab such as Result is never chosen again. */
+  const choose = ([key, child = selection.remembered[key!]]: string[]) => {
+    const subtabs = tabs.find((tab) => tab.key === key)?.subtabs;
+    const leaf = subtabs?.some((tab) => tab.key === child) ? child : subtabs?.[0]?.key;
+    select({ type: 'destination-selected', path: leaf ? [key!, leaf] : [key!] });
+  };
   /* A battle focuses its nested planner only once; subsequent updates preserve the player's choice. */
   const focusPath = focusTab && pathTo(focusTab.key);
   if (focusTab && focusTab.token !== selection.focused && focusPath) {

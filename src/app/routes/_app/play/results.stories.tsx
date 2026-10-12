@@ -6,7 +6,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { gameMeta, install, lastCommand, withPredictionCard } from './game.stories.fixture';
+import { gameMeta, install, lastCommand, session, withPredictionCard } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { playingSnapshot, productTransport, SIX } from './product.stories.fixture';
 
@@ -100,6 +100,23 @@ export const DeclaringKeepsChoiceAcrossTabs = meta.story({
     const back = (await page.findByText('Declare the result')).closest('section')!;
     await userEvent.click(within(back).getByRole('button', { name: 'Declare' }));
     expect(lastCommand()?.action).toEqual({ kind: 'result-declare', result: 'none', factionIds: [] });
+  },
+});
+
+/* Once the Result tab closes, the Game group opens on a tab that still exists, so Phase stays in reach. */
+export const StoppedDeclaringKeepsGameReachable = meta.story({
+  beforeEach: install(() => {
+    const snapshot = mentatSnapshot('seat-2');
+    snapshot.ending = { by: { seat: 'seat-2', name: SIX[1]!.name }, startedAt: 1 };
+    return productTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByText('Declare the result', {}, { timeout: 30_000 });
+    session.transport.deliver(session.transport.view({ ...mentatSnapshot('seat-2'), revision: 1 }));
+    await waitFor(() => expect(page.queryByRole('tab', { name: 'Result' })).toBeNull());
+    await openTab(page, 'Phase');
+    await expect(page.findByRole('button', { name: 'Determine winner' })).resolves.toBeVisible();
   },
 });
 

@@ -713,7 +713,8 @@ export const PhaseCooldown = meta.story({
       phaseCooldownMs: PHASE_CHANGE_COOLDOWN_MS,
     });
     await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled());
-    expect(previous).toBeDisabled();
+    /* The open menu's item re-renders on its own commit, which can land a frame after the button's. */
+    await waitFor(() => expect(previous).toBeDisabled());
     const toolbar = canvasElement.ownerDocument.querySelector('.seated-toolbar');
     /* Phase navigation keeps its place at the end of the toolbar, just before the settings gear. */
     expect(toolbar?.lastElementChild).toHaveClass('seated-toolbar__settings');

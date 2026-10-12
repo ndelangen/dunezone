@@ -359,7 +359,9 @@ export function GameMenu({
         </Menu.Item>
         {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
         {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up. */}
+        {/* Keyed by the seat, so a hold started on one seat never departs the seat a trade moved the viewer to. */}
         <ConfirmDeleteMenuItem
+          key={table.viewer.viewerSeat}
           label={seated ? leavingLabel(table) : 'Give up your seat'}
           holdingVerb="Leaving"
           disabled={!seated || seatLocked(table)}
@@ -384,7 +386,7 @@ export function StagePlayback({ client, table }: Readonly<{ client: TableSession
     return null;
   }
   return (
-    <Group gap="xs" wrap="nowrap" role="group" aria-label="Phase playback">
+    <Group gap="xs" justify="flex-end" role="group" aria-label="Phase playback">
       <Text size="sm" c="dimmed" role="status">
         Playback checkpoint {playback.step} of {playback.lastStep}
       </Text>
