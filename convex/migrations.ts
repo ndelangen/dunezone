@@ -1403,7 +1403,7 @@ async function verifyGameName(ctx: QueryCtx | MutationCtx, game: Doc<'play_games
 /** Fills only absent fields, including retired fixtures, without touching gameplay or provisioning. */
 export const play_game_names_v1 = migrations.define({
   table: 'play_games',
-  batchSize: 16,
+  batchSize: 2,
   migrateOne: async (ctx, game) => {
     const named =
       game.slug === undefined

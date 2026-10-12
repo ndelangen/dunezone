@@ -48,7 +48,7 @@ describe('game-name directory migration', () => {
     ]);
     const rows = () => t.run((ctx) => Promise.all(ids.map((id) => ctx.db.get('play_games', id))));
     const before = await rows();
-    await t.mutation(internal.migrations.play_game_names_v1, {});
+    await t.mutation(internal.migrations.play_game_names_v1, { batchSize: 100 });
     await t.mutation(internal.migrations.play_game_names_verify_v1, {});
     await expect(t.query(internal.migrations.assertReadyForNarrow, { required })).resolves.toMatchObject({ ok: true });
     const repaired = await rows();
@@ -74,7 +74,7 @@ describe('game-name directory migration', () => {
     expect(assigned.cursors).toEqual(
       expect.arrayContaining([expect.objectContaining({ base: 'caladan-picnic', next_suffix: 36 })])
     );
-    await t.mutation(internal.migrations.play_game_names_v1, { cursor: null });
+    await t.mutation(internal.migrations.play_game_names_v1, { cursor: null, batchSize: 100 });
     expect(await rows()).toEqual(repaired);
     expect(await allocations()).toEqual(assigned);
   });

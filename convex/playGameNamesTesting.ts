@@ -15,7 +15,7 @@ function requireLoopback() {
 /** Legacy shapes exist only on a disposable backend, never on the hosted directory. */
 export const seedLegacyDirectory = internalMutation({
   args: {},
-  returns: v.array(v.id('play_games')),
+  returns: v.object({ missing: v.array(v.id('play_games')), retained: v.id('play_games') }),
   handler: async (ctx) => {
     requireLoopback();
     const ids = [];
@@ -45,7 +45,7 @@ export const seedLegacyDirectory = internalMutation({
         })
       );
     }
-    return ids;
+    return { missing: ids.slice(0, -1), retained: ids[ids.length - 1]! };
   },
 });
 

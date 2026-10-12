@@ -327,10 +327,13 @@ async function proveDirectoryMigration(
   viewers: ConvexHttpClient[],
   request: FunctionArgs<typeof api.playGames.createGame>
 ) {
-  const ids = await admin.mutation(httpReference(internal.playGameNamesTesting.seedLegacyDirectory), {});
+  const legacy = await admin.mutation(httpReference(internal.playGameNamesTesting.seedLegacyDirectory), {});
+  const ids = [...legacy.missing, legacy.retained];
   await admin.mutation(httpReference(internal.migrations.play_game_names_v1), { dryRun: true, reset: true });
-  const uncommitted = await admin.query(httpReference(internal.playGameNamesTesting.inspect), { gameIds: ids });
-  assert(uncommitted.slice(0, 7).every(({ slug }) => slug === undefined));
+  const uncommitted = await admin.query(httpReference(internal.playGameNamesTesting.inspect), {
+    gameIds: legacy.missing,
+  });
+  assert(uncommitted.every(({ slug }) => slug === undefined));
   const first = await admin.mutation(httpReference(internal.migrations.play_game_names_v1), {
     cursor: null,
     dryRun: false,
@@ -338,8 +341,10 @@ async function proveDirectoryMigration(
     batchSize: 2,
   });
   assert.equal(first.isDone, false);
+  let continuation = first;
+  const concurrentViewers = viewers.slice(0, 2);
   const created = await completeBatch('Directory migration with concurrent creation', [
-    ...viewers.map(async (viewer) => {
+    ...concurrentViewers.map(async (viewer) => {
       const result = await viewer.mutation(httpReference(internal.playGames.createNamedGame), {
         ...request,
         name: 'Arrakeen legacy picnic',
@@ -354,17 +359,25 @@ async function proveDirectoryMigration(
         cursor: first.continueCursor,
         dryRun: false,
         oneBatchOnly: true,
-        batchSize: 100,
+        batchSize: 2,
       })
       .then((result) => {
-        assert.equal(result.isDone, true);
+        continuation = result;
         return ids[0]!;
       }),
   ]);
-  const gameIds = [...ids, ...created.slice(0, 8)];
+  while (!continuation.isDone) {
+    continuation = await admin.mutation(httpReference(internal.migrations.play_game_names_v1), {
+      cursor: continuation.continueCursor,
+      dryRun: false,
+      oneBatchOnly: true,
+      batchSize: 2,
+    });
+  }
+  const gameIds = [...ids, ...created.slice(0, concurrentViewers.length)];
   const beforeReplay = await admin.query(httpReference(internal.playGameNamesTesting.inspect), { gameIds });
   assert.equal(new Set(beforeReplay.map(({ slug }) => slug)).size, gameIds.length);
-  assert.equal(beforeReplay[7]!.slug, 'retained-legacy-link');
+  assert.equal(beforeReplay.find(({ id }) => id === legacy.retained)!.slug, 'retained-legacy-link');
   await admin.mutation(httpReference(internal.migrations.play_game_names_v1), {
     cursor: null,
     dryRun: false,
