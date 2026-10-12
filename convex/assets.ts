@@ -13,7 +13,7 @@ import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
 import { GF9_LEADER_SKILLS, GF9_LEADER_SKILL_DECK } from '../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
-import { StormCardAssetInput, DeckAssetInput } from '../src/shared/assets/schema';
+import { StormCardAssetInput, DeckAssetInput, StrongholdCardAsset } from '../src/shared/assets/schema';
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
 import { STANDARD_STORM_CARDS } from '../src/shared/assets/standardStormDeck';
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
@@ -1198,6 +1198,111 @@ export const seedGf9StrongholdDeck = internalMutation({
       });
     }
     return { deckId: deck.id, slug: deck.slug, created: true };
+  },
+});
+
+/** Corrects the original stock layout in place while retaining later authored content. */
+export const polishGf9StrongholdDeck = internalMutation({
+  args: { ownerProfileSlug: v.string() },
+  returns: v.object({ deckId: v.id('assets'), cardsChanged: v.number(), deckChanged: v.boolean() }),
+  handler: async (ctx, { ownerProfileSlug }) => {
+    const profile = await ctx.db
+      .query('profiles')
+      .withIndex('by_slug', (q) => q.eq('slug', ownerProfileSlug))
+      .unique();
+    const deck = await ctx.db
+      .query('assets')
+      .withIndex('by_type_and_slug', (q) => q.eq('type', 'deck').eq('slug', 'gf9-stronghold-deck'))
+      .unique();
+    if (
+      profile?.account_state !== 'active' ||
+      profile.merged_into_profile_id ||
+      !deck ||
+      deck.is_deleted ||
+      deck.owner_id !== profile.user_id
+    ) {
+      throw new Error('The correction needs the active GF9 Stronghold Deck owner');
+    }
+    const relations = await ctx.db
+      .query('asset_relations')
+      .withIndex('by_from_kind', (q) => q.eq('from_asset_id', deck._id).eq('kind', 'deck-card'))
+      .take(7);
+    const cards = await Promise.all(relations.map((relation) => ctx.db.get('assets', relation.to_asset_id)));
+    if (
+      relations.length !== 6 ||
+      relations.some((relation) => relation.kind !== 'deck-card' || relation.count !== 1) ||
+      cards.some(
+        (card) => !card || card.is_deleted || card.type !== 'card-stronghold' || card.owner_id !== profile.user_id
+      )
+    ) {
+      throw new Error('The correction needs the six original stronghold cards');
+    }
+    const now = nowIso();
+    let cardsChanged = 0;
+    for (const card of cards) {
+      if (!card) {
+        continue;
+      }
+      const data = StrongholdCardAsset.parse(card.data);
+      const original = GF9_STRONGHOLD_CARDS.find((stock) => {
+        const id = stock.decals[0]!.id;
+        const legacyId = id.replace('/image/decal/gf9-', '/vector/decal/').replace('.png', '-multicolor.svg');
+        return data.decals[0]?.id === id || data.decals[0]?.id === legacyId;
+      });
+      if (!original) {
+        continue;
+      }
+      const name =
+        original.name === 'HMS stronghold' && data.name === 'Ixian Hidden Mobile Stronghold'
+          ? original.name
+          : data.name;
+      const legacyId = original.decals[0]!.id.replace('/image/decal/gf9-', '/vector/decal/').replace(
+        '.png',
+        '-multicolor.svg'
+      );
+      const decals = data.decals.map((decal) =>
+        decal.id === legacyId &&
+        !decal.muted &&
+        decal.outline === false &&
+        decal.scale === 1.65 &&
+        decal.offset.every((value) => value === 0)
+          ? { ...decal, id: original.decals[0]!.id, scale: original.decals[0]!.scale }
+          : decal
+      );
+      const about =
+        data.about ===
+        'GF9 CHOAM & Richese advanced stronghold card. The Body summarizes the printed ability. The Decals are an original interpretation of its location.'
+          ? original.about
+          : data.about;
+      if (name === data.name && about === data.about && decals.every((decal, index) => decal === data.decals[index])) {
+        continue;
+      }
+      const next = { ...data, name, about, decals };
+      const slug = name === data.name ? card.slug : await allocateAssetSlug(ctx, card.type, slugify(name), card);
+      await ctx.db.patch(card._id, { data: next, slug, updated_at: now });
+      await enqueueAssetPublication(ctx, { ...card, data: next, slug });
+      cardsChanged += 1;
+    }
+    const data = DeckAssetInput.parse(deck.data);
+    const back = data.cardback;
+    const deckChanged =
+      'mode' in back &&
+      back.mode === 'custom' &&
+      back.image === '/vector/icon/stronghold.svg' &&
+      back.imageScale === 0.55;
+    if (deckChanged && 'mode' in back && back.mode === 'custom') {
+      const next = {
+        ...data,
+        cardback: {
+          ...back,
+          image: GF9_STRONGHOLD_DECK.cardback.image,
+          imageScale: GF9_STRONGHOLD_DECK.cardback.imageScale,
+        },
+      };
+      await ctx.db.patch(deck._id, { data: next, updated_at: now });
+      await enqueueAssetPublication(ctx, { ...deck, data: next });
+    }
+    return { deckId: deck._id, cardsChanged, deckChanged };
   },
 });
 

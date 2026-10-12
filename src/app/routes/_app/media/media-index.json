@@ -10454,9 +10454,51 @@
     "sourceHash": "c69bf92a1b141c45b2740a12ea689e5ff7c67b5e3704c5f366278deb57229750"
   },
   "/vector/icon/stronghold.svg": {
-    "description": "A stronghold emblem with three towers.",
-    "tags": ["stronghold", "fortress", "towers"],
+    "description": "The supplied palace emblem, with two tapering towers and a low city base.",
+    "tags": ["stronghold", "fortress", "city", "towers"],
     "subjects": ["symbols"],
-    "sourceHash": "f35c53b444319dac2cc96012f0d7ea24dfe78c440b8d9bf6005832aa330432bd"
+    "sourceHash": "769047c3edf2ba2507a7056a805720b9dd1592de2329b3015183929eea0114e7"
+  },
+  "/vector/icon/stronghold-multicolor.svg": {
+    "description": "The supplied palace emblem on the pink-red stronghold card back disc.",
+    "tags": ["stronghold", "fortress", "city", "towers"],
+    "subjects": ["symbols"],
+    "sourceHash": "a813376d29d0af14d9f93a5dc879f8369c6547c90f44177613d1f7ef1410562c"
+  },
+  "/image/decal/gf9-stronghold-arrakeen.png": {
+    "description": "A pale city below rust-colored cliffs beneath a blue sky.",
+    "tags": ["GF9", "stronghold", "original", "arrakeen"],
+    "subjects": ["places"],
+    "sourceHash": "b54c6aa1cd71c7deddb09d3980b98d71a4809e326550985e157ede2957a14a3a"
+  },
+  "/image/decal/gf9-stronghold-carthag.png": {
+    "description": "A dark city and an ornithopter against an orange sunset.",
+    "tags": ["GF9", "stronghold", "original", "carthag"],
+    "subjects": ["places"],
+    "sourceHash": "18cd65cb9494db07a9cbf395cfe0f72615079303f86df7d7eceaf336b4cb91dc"
+  },
+  "/image/decal/gf9-stronghold-habbanya.png": {
+    "description": "A tall brown rock with a dark entrance and a small figure crossing the dunes.",
+    "tags": ["GF9", "stronghold", "original", "habbanya"],
+    "subjects": ["places"],
+    "sourceHash": "1a3c5954105ad519e3d9f0bcbb4f033258571cc1fc0e1a5e2bcaccb1901b438b"
+  },
+  "/image/decal/gf9-stronghold-ixian.png": {
+    "description": "A wooden mobile stronghold over flowing bands of pale and orange sand.",
+    "tags": ["GF9", "stronghold", "original", "ixian"],
+    "subjects": ["places"],
+    "sourceHash": "f2b591d072066f0c2f17f52f3da8a4eabbd16b878f1935ed6760abfa63721cc6"
+  },
+  "/image/decal/gf9-stronghold-tabr.png": {
+    "description": "A toothed cavern mouth, a small white-robed figure and a dark blue night sky.",
+    "tags": ["GF9", "stronghold", "original", "tabr"],
+    "subjects": ["places"],
+    "sourceHash": "41d0a7ad36deedbce863b383bcc95dba3a7adca55f7833d9b43b81483c3e0e7b"
+  },
+  "/image/decal/gf9-stronghold-tuek.png": {
+    "description": "An ornithopter and marked crates viewed through a cave, beneath two crescent moons.",
+    "tags": ["GF9", "stronghold", "original", "tuek"],
+    "subjects": ["places"],
+    "sourceHash": "f2aba8407998eac399338de5c309611c87dbccfdafd946859665bb6c1a0cdf38"
   }
 }

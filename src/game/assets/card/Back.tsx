@@ -14,6 +14,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
   const gradient = `${prefix}gradient`;
   const textMask = `${prefix}text-mask`;
   const textShadeMask = `${prefix}text-shade-mask`;
+  const multicolor = image.endsWith('-multicolor.svg');
 
   return (
     <div className={styles.card}>
@@ -32,7 +33,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
       />
 
       <div
-        className={styles.icon}
+        className={`${styles.icon} ${multicolor ? styles.multicolor : ''}`}
         style={{
           marginLeft: imageOffset[0] - ((imageScale - 1) / 2) * 220,
           marginTop: imageOffset[1] - ((imageScale - 1) / 2) * 220,
@@ -41,8 +42,8 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
         }}
       >
         <img src={image} />
-        <img src={image} />
-        <img src={image} />
+        {!multicolor && <img src={image} />}
+        {!multicolor && <img src={image} />}
       </div>
 
       <svg className={styles.svg}>

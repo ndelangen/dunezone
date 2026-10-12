@@ -11,6 +11,11 @@ export const MEDIA_RECIPES: Readonly<Record<string, MediaRecipes>> = {
     small: '78b25dffe3',
     large: '6a76de3578',
   },
+  'image/decal': {
+    small: '1be0ded648',
+    large: 'bfafaed608',
+    print: '1263a5a093',
+  },
   'image/leader': {
     small: '23b99ea75d',
     large: 'bfc53569b2',
@@ -53,6 +58,10 @@ export const MEDIA_CANONICAL_RECIPES: Readonly<Record<string, CanonicalRecipes>>
     png: '24316e43f1',
     jpeg: '2abce5b151',
   },
+  'image/decal': {
+    png: 'c806b26bac',
+    jpeg: 'c44519ca7b',
+  },
   'image/leader': {
     png: '92aecdd069',
     jpeg: 'f42b157cc0',
@@ -92,6 +101,12 @@ export const MEDIA_MAP: Readonly<Record<string, MediaMapEntry>> = {
   '/image/card/front-aside-mask.png': ['02b85478ff2dfbe878e0', '#080808'],
   '/image/card/front-decal-bg.jpg': ['f9cf849c15382f2e19ee', '#f8f8f8'],
   '/image/card/head-shade.png': ['945764902077c1ba020c', '#080808'],
+  '/image/decal/gf9-stronghold-arrakeen.png': ['b54c6aa1cd71c7deddb0', '#a85828'],
+  '/image/decal/gf9-stronghold-carthag.png': ['18cd65cb9494db07a9cb', '#383848'],
+  '/image/decal/gf9-stronghold-habbanya.png': ['1a3c5954105ad519e3d9', '#884828'],
+  '/image/decal/gf9-stronghold-ixian.png': ['f2b591d072066f0c2f17', '#f8f8c8'],
+  '/image/decal/gf9-stronghold-tabr.png': ['41d0a7ad36deedbce863', '#182838'],
+  '/image/decal/gf9-stronghold-tuek.png': ['f2aba8407998eac39933', '#482818'],
   '/image/leader/alien/buzcle.png': ['253632bba762b1e4d4df', '#c8b878'],
   '/image/leader/alien/eeekkono.png': ['1396844c1e800a6f8c38', '#c8b878'],
   '/image/leader/alien/eeloo.png': ['b0e5c0abe3d511c94c20', '#c8b878'],

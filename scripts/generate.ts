@@ -31,7 +31,7 @@ const texture = rastersIn('/image/texture');
 // vectors (media/ sources are truth; public/vector is generated output with identical names)
 const background = await getFiles('/vector/background', 'media');
 const generic = await getFiles('/vector/generic', 'media');
-const decal = await getFiles('/vector/decal', 'media');
+const decal = [...(await getFiles('/vector/decal', 'media')), ...rastersIn('/image/decal')];
 const icon = await getFiles('/vector/icon', 'media');
 const logo = await getFiles('/vector/logo', 'media');
 const troop = await getFiles('/vector/troop', 'media');

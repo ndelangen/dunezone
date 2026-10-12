@@ -2076,8 +2076,8 @@
     ]
   },
   {
-    "label": "Decals / Strongholds",
-    "keywords": "stronghold Arrakeen Carthag Habbanya Sietch Tabr Tuek Ixian city desert fortress",
+    "label": "Decals / Custom stronghold illustrations",
+    "keywords": "stronghold cards custom illustrations Arrakeen Carthag Habbanya Sietch Tabr Tuek Ixian HMS city desert fortress",
     "assets": [
       "/vector/decal/stronghold-arrakeen.svg",
       "/vector/decal/stronghold-arrakeen-multicolor.svg",
@@ -2091,6 +2091,18 @@
       "/vector/decal/stronghold-tabr-multicolor.svg",
       "/vector/decal/stronghold-tuek.svg",
       "/vector/decal/stronghold-tuek-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / GF9 Stronghold cards",
+    "keywords": "GF9 stronghold cards Arrakeen Carthag Habbanya HMS Sietch Tabr Tuek's Sietch",
+    "assets": [
+      "/image/decal/gf9-stronghold-arrakeen.png",
+      "/image/decal/gf9-stronghold-carthag.png",
+      "/image/decal/gf9-stronghold-habbanya.png",
+      "/image/decal/gf9-stronghold-ixian.png",
+      "/image/decal/gf9-stronghold-tabr.png",
+      "/image/decal/gf9-stronghold-tuek.png"
     ]
   }
 ]

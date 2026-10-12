@@ -69,17 +69,17 @@ export function FrontDecals({ prefix, decals }: { decals: z.infer<typeof Decal>[
       {nonFadedDecals.map((d, i) => {
         const width = decalSize.width * d.scale;
         const height = decalSize.height * d.scale;
-        return (
-          <StrokedUse
-            key={i}
-            {...(d.outline !== false ? stroked : empty)}
-            xlinkHref={`${d.id}#root`}
-            x={card.width / 2 - width / 2 + d.offset[0]}
-            y={940 / 2 - height / 2 + d.offset[1]}
-            width={width}
-            height={height}
-          />
-        );
+        const placement = {
+          x: card.width / 2 - width / 2 + d.offset[0],
+          y: 940 / 2 - height / 2 + d.offset[1],
+          width,
+          height,
+          ...(d.outline !== false ? stroked : empty),
+        };
+        if (!d.id.endsWith('.svg')) {
+          return <image key={i} xlinkHref={d.id} {...placement} />;
+        }
+        return <StrokedUse key={i} {...placement} xlinkHref={`${d.id}#root`} />;
       })}
     </>
   );

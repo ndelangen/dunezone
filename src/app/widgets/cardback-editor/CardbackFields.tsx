@@ -84,7 +84,7 @@ export function CardbackFields({
           <Slider
             aria-label="Emblem scale"
             min={0}
-            max={1}
+            max={2}
             step={0.01}
             label={(value) => value.toFixed(2)}
             value={cardback.imageScale}

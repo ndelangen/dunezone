@@ -210,7 +210,7 @@ export const TokenAsset = z.strictObject({
 export const CardBack = z.strictObject({
   image: ALL,
   imageOffset: OFFSET,
-  imageScale: SCALE,
+  imageScale: z.number().min(0).max(2),
   background: Background,
   name: z.string(),
 });

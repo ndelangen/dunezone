@@ -342,6 +342,12 @@ export const LOGO = z.enum([
 ]);
 
 export const DECAL = z.enum([
+  '/image/decal/gf9-stronghold-arrakeen.png',
+  '/image/decal/gf9-stronghold-carthag.png',
+  '/image/decal/gf9-stronghold-habbanya.png',
+  '/image/decal/gf9-stronghold-ixian.png',
+  '/image/decal/gf9-stronghold-tabr.png',
+  '/image/decal/gf9-stronghold-tuek.png',
   '/vector/decal/amal.svg',
   '/vector/decal/antidote-rosary.svg',
   '/vector/decal/arc-bow.svg',
@@ -836,6 +842,7 @@ export const ICON = z.enum([
   '/vector/icon/spice.svg',
   '/vector/icon/storm_disc.svg',
   '/vector/icon/storrm_standalone.svg',
+  '/vector/icon/stronghold-multicolor.svg',
   '/vector/icon/stronghold.svg',
   '/vector/icon/tools.svg',
   '/vector/icon/traitor.svg',
