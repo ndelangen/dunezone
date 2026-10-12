@@ -8,16 +8,23 @@ import {
   storedBattlePlanSchema,
   storedBattleResultSchema,
 } from '../../src/shared/play/battle';
+import { nextSnapshot } from '../../src/shared/play/commands';
 import { treacheryHandCounts } from '../../src/shared/play/handCounts';
 import { storedControlsSchema } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { DraftMove, StoredPiece, TableItem, TablePiece } from '../../src/shared/play/model';
 import { showsPeeker } from '../../src/shared/play/peeking';
-import { gameSnapshotSchema } from '../../src/shared/play/protocol';
+import { gameSnapshotSchema, tableForViewer } from '../../src/shared/play/protocol';
 import type { GameSnapshot, PublicCarry, PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { gameEndingSchema, gameResultSchema } from '../../src/shared/play/result';
-import { storedPieceSchema, storedTableSchema, tableCountSchema, tableIdSchema } from '../../src/shared/play/schema';
+import {
+  SPECTATOR_SEAT,
+  storedPieceSchema,
+  storedTableSchema,
+  tableCountSchema,
+  tableIdSchema,
+} from '../../src/shared/play/schema';
 import { predictionSchema, predictionChoiceSchema } from '../../src/shared/play/setup';
 
 /** The board layout a stored game's positions are laid out for; see boardLayout.ts. */
@@ -89,6 +96,11 @@ export const storedSnapshotSchema = gameSnapshotSchema
     boardLayout: z.literal(BOARD_LAYOUT).default(BOARD_LAYOUT),
   });
 export type StoredSnapshot = z.infer<typeof storedSnapshotSchema>;
+
+/** The next revision of a snapshot whose table changed at most in its pieces, with no event of its own. */
+export function revised(snapshot: StoredSnapshot, pieces = snapshot.table.pieces): StoredSnapshot {
+  return nextSnapshot(snapshot, { ...tableForViewer(snapshot, SPECTATOR_SEAT), pieces });
+}
 
 /** Retired wire handles never name a live piece again; storage and receipts keep their identities. */
 export function internalPieceId(snapshot: StoredSnapshot, wireId: string): string {

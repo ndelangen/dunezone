@@ -414,6 +414,10 @@ export const KEEPALIVE_INTERVAL_MS = 30_000;
  */
 export const serverClockSchema = z.object({ serverNow: count });
 export type ServerClock = z.infer<typeof serverClockSchema>;
+/** The id of each seated faction, in seat order. */
+export function rosterFactionIds(roster: GameSnapshot['roster']): string[] {
+  return roster?.seats.flatMap(({ faction }) => (faction ? [faction.id] : [])) ?? [];
+}
 /** Each seated faction's display name by its id, as the roster fixed it. */
 export function rosterFactionNames(roster: GameSnapshot['roster']): TableState['factionNames'] {
   return Object.fromEntries(

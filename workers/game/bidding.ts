@@ -7,12 +7,10 @@ import {
   reconcileBidding,
 } from '../../src/shared/play/bidding';
 import type { BiddingAction, BiddingState } from '../../src/shared/play/bidding';
-import { nextSnapshot } from '../../src/shared/play/commands';
 import { phaseAt } from '../../src/shared/play/phases';
-import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
-import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { stormOrder } from '../../src/shared/play/stormSector';
+import { revised } from './state';
 import type { StoredSnapshot } from './state';
 
 function context(snapshot: StoredSnapshot, now: number) {
@@ -25,7 +23,7 @@ function context(snapshot: StoredSnapshot, now: number) {
 }
 
 function commit(snapshot: StoredSnapshot, bidding: BiddingState): StoredSnapshot {
-  return { ...nextSnapshot(snapshot, tableForViewer(snapshot, SPECTATOR_SEAT)), bidding };
+  return { ...revised(snapshot), bidding };
 }
 
 /** Room supplies the acting faction; the bidder's time setting can change in any phase, the bidder itself only while bidding. */

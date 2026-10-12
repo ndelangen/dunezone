@@ -1,9 +1,7 @@
 import { AllianceRefusal, applyAlliance, emptyAlliances } from '../../src/shared/play/alliances';
 import type { AllianceAction, AllianceState } from '../../src/shared/play/alliances';
-import { nextSnapshot } from '../../src/shared/play/commands';
-import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
-import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { revised } from './state';
 import type { StoredSnapshot } from './state';
 
 function seatedFactions(snapshot: StoredSnapshot): string[] {
@@ -44,5 +42,5 @@ export function allianceCommand(
   if (alliances === before(snapshot)) {
     return snapshot;
   }
-  return { ...nextSnapshot(snapshot, tableForViewer(snapshot, SPECTATOR_SEAT)), alliances };
+  return { ...revised(snapshot), alliances };
 }

@@ -1,11 +1,10 @@
-import { nextSnapshot } from '../../src/shared/play/commands';
 import { phaseAt } from '../../src/shared/play/phases';
-import { tableForViewer } from '../../src/shared/play/protocol';
 import type { Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { resultFactionCountFits } from '../../src/shared/play/result';
 import type { ResultAction } from '../../src/shared/play/result';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { revised } from './state';
 import type { StoredSnapshot } from './state';
 
 /*
@@ -25,7 +24,7 @@ export function applyResult(snapshot: StoredSnapshot, viewer: Viewer, action: Re
       return open(snapshot, by, now);
     case 'result-cancel':
       requireOpener(snapshot, viewer);
-      return changed({ ...snapshot, ending: null });
+      return revised({ ...snapshot, ending: null });
     case 'result-declare':
       return declare(snapshot, viewer, action, now);
     case 'result-continue':
@@ -41,14 +40,14 @@ function open(snapshot: StoredSnapshot, by: Actor, now: number) {
   if (snapshot.ending) {
     throw new GameRejection(`${snapshot.ending.by.name} is already determining the winner.`);
   }
-  return changed({ ...snapshot, ending: { by, startedAt: now } });
+  return revised({ ...snapshot, ending: { by, startedAt: now } });
 }
 
 function declare(snapshot: StoredSnapshot, viewer: Viewer, action: Declaration, now: number) {
   requireMentat(snapshot);
   requireOpener(snapshot, viewer);
   requireFittingFactions(snapshot, action);
-  return changed({
+  return revised({
     ...snapshot,
     stage: 'finished',
     ending: null,
@@ -61,7 +60,7 @@ function resume(snapshot: StoredSnapshot) {
     throw new GameRejection('Only a finished game can continue.');
   }
   const controls = snapshot.controls && { ...snapshot.controls, ready: [] };
-  return changed({ ...snapshot, stage: 'play', result: null, controls });
+  return revised({ ...snapshot, stage: 'play', result: null, controls });
 }
 
 /** One winner, an alliance of two or more, or none; each named once and each seated at this table. */
@@ -106,6 +105,3 @@ function requireOpener(snapshot: StoredSnapshot, viewer: Viewer) {
   }
 }
 
-function changed(snapshot: StoredSnapshot) {
-  return nextSnapshot(snapshot, tableForViewer(snapshot, SPECTATOR_SEAT));
-}

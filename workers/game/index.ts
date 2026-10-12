@@ -1401,7 +1401,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private dispatch(
     socket: WebSocket,
     connection: Connection,
-    message: Exclude<ClientMessage, { type: 'admit' | 'catalogue' }>
+    message: Exclude<ClientMessage, { type: 'admit' | 'catalogue' | 'pointer' | 'pose' }>
   ) {
     if (isPageRead(message)) {
       this.sendPage(socket, message);
@@ -1526,15 +1526,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     connection: Connection,
     message: Extract<
       ClientMessage,
-      { type: 'ping' | 'pointer' | 'pose' | 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }
+      { type: 'ping' | 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }
     >
   ) {
     if (message.type === 'ping') {
       this.relayPing(socket, connection, message);
-      return;
-    }
-    if (message.type === 'pointer' || message.type === 'pose') {
-      this.moveActivity(connection, message);
       return;
     }
     const revision = this.session.revision;
