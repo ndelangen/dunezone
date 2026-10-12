@@ -1,4 +1,5 @@
-import { useHoldToConfirm } from '@ui/control/useHoldToConfirm';
+import { VisuallyHidden } from '@mantine/core';
+import { HOLD_SECONDS, useHoldToConfirm } from '@ui/control/useHoldToConfirm';
 import clsx from 'clsx';
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
@@ -117,12 +118,15 @@ function HeldItem({
     blocked: Boolean(action.disabled),
     onConfirm: () => action.onSelect?.(),
   });
-  const showing = holding ? `Deleting in ${remaining ?? 5}..` : null;
+  const showing = holding ? `Deleting in ${remaining ?? HOLD_SECONDS}..` : null;
+  /* An early release puts the item's own label back, so no countdown lingers once nothing is counting. */
+  const counted = useRef(false);
   useEffect(() => {
-    if (showing) {
-      onCaption({ text: showing, tone: 'danger' });
+    if (showing || counted.current) {
+      onCaption({ text: showing ?? action.label, tone: 'danger' });
     }
-  }, [showing, onCaption]);
+    counted.current = Boolean(showing);
+  }, [showing, action.label, onCaption]);
   return (
     <button
       type="button"
@@ -132,7 +136,12 @@ function HeldItem({
       hidden={hidden}
       className={clsx(styles.item, styles.danger)}
       data-holding={holding || undefined}
-      style={{ ...style, '--hold-progress': holding ? (5 - (remaining ?? 5) + 1) / 5 : 0 } as CSSProperties}
+      style={
+        {
+          ...style,
+          '--hold-progress': holding ? (HOLD_SECONDS - (remaining ?? HOLD_SECONDS) + 1) / HOLD_SECONDS : 0,
+        } as CSSProperties
+      }
       {...handlers}
       onPointerDown={(event) => {
         event.currentTarget.focus();
@@ -142,11 +151,20 @@ function HeldItem({
       onFocus={() => onCaption({ text: action.label, tone: 'danger' })}
     >
       <Glyph icon={action.icon} />
+      <VisuallyHidden aria-live="polite">{showing}</VisuallyHidden>
       <svg className={styles.holdRing} viewBox="0 0 56 56" aria-hidden>
         <circle cx="28" cy="28" r="26" pathLength={1} />
       </svg>
     </button>
   );
+}
+
+/* Room kept for the caption beside the ring before it moves to the other side. */
+const CAPTION_ROOM = 240;
+
+/* Keeps a value between two bounds; when they cross, the lower bound wins. */
+function clamp(value: number, low: number, high: number) {
+  return Math.max(low, Math.min(value, high));
 }
 
 /* How long the pointer rests on an item with choices before the ring steps into it. */
@@ -180,13 +198,15 @@ export function RadialMenu({
   const [caption, setCaption] = useState<Caption | null>(null);
   const [steppedInto, setSteppedInto] = useState<string | null>(null);
   const restTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const centre = {
-    left: Math.min(Math.max(x, EDGE.side), Math.max(EDGE.side, window.innerWidth - EDGE.side)),
-    top: Math.min(Math.max(y, EDGE.top), Math.max(EDGE.top, window.innerHeight - EDGE.bottom)),
-  };
   const level = actions.find((action) => action.key === steppedInto && action.targets);
   const targets = level?.targets ?? [];
   const { disc, radius } = targetRing(targets.length);
+  /* A big choice ring needs more room than the first ring, so the centre keeps the whole ring on screen. */
+  const reach = level ? radius + disc / 2 + 12 : 0;
+  const centre = {
+    left: clamp(x, Math.max(EDGE.side, reach), window.innerWidth - Math.max(EDGE.side, reach)),
+    top: clamp(y, Math.max(EDGE.top, reach), window.innerHeight - Math.max(EDGE.bottom, reach)),
+  };
 
   const cancelRest = () => {
     if (restTimer.current) {
@@ -200,6 +220,8 @@ export function RadialMenu({
     cancelRest();
     setSteppedInto(action.key);
     setCaption({ text: action.targetsLabel ?? action.label });
+    /* The item that had focus hides, so focus stays on the ring for the arrow keys and Escape. */
+    menu.current?.focus({ preventScroll: true });
   };
   const stepOut = () => {
     setSteppedInto(null);
@@ -207,9 +229,20 @@ export function RadialMenu({
     menu.current?.focus({ preventScroll: true });
   };
 
-  /* Focus lands on the ring itself, so the arrow keys and Escape work at once without lighting an item the pointer is not on. */
+  /*
+   * Focus lands on the ring itself, so the arrow keys and Escape work at once without lighting an item the pointer is not on.
+   * Closing hands focus back to whatever held it before, unless a press elsewhere has already moved it.
+   */
   useLayoutEffect(() => {
-    menu.current?.focus({ preventScroll: true });
+    const opener = document.activeElement;
+    const ring = menu.current;
+    ring?.focus({ preventScroll: true });
+    return () => {
+      const current = document.activeElement;
+      if (opener instanceof HTMLElement && (!current || current === document.body || ring?.contains(current))) {
+        opener.focus({ preventScroll: true });
+      }
+    };
   }, []);
 
   /* A press anywhere else closes the ring before that press does its own work, so right-clicking the next piece opens its ring at once. */
@@ -227,6 +260,12 @@ export function RadialMenu({
   const held = actions.find((action) => action.held);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    /* Tab leaves the ring, so the ring closes rather than stay open over the board without focus. */
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      onClose();
+      return;
+    }
     if (event.key === 'Escape') {
       event.preventDefault();
       if (level) {
@@ -245,16 +284,24 @@ export function RadialMenu({
       ...(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled):not([hidden])') ?? []),
     ];
     const index = items.indexOf(document.activeElement as HTMLButtonElement);
-    items[(index + step + items.length) % items.length]?.focus();
+    /* From the ring itself, the first arrow lands on the first item forward or the last item back. */
+    const next = index === -1 ? (step > 0 ? 0 : items.length - 1) : (index + step + items.length) % items.length;
+    items[next]?.focus();
   };
 
   const captionOffset = level ? radius + disc / 2 + 14 : RING_RADIUS + 38;
+  /* The caption reads to the right of the ring, or to its left where the right edge is too close. */
+  const captionStyle: CSSProperties =
+    centre.left + captionOffset + CAPTION_ROOM > window.innerWidth
+      ? { left: -captionOffset, translate: '-100% -50%' }
+      : { left: captionOffset };
 
   return createPortal(
     <div
       ref={menu}
       role="menu"
       aria-labelledby={labelId}
+      aria-describedby={`${labelId}-hub`}
       tabIndex={-1}
       className={styles.ring}
       style={centre}
@@ -274,6 +321,9 @@ export function RadialMenu({
     >
       <span id={labelId} hidden>
         {name}
+      </span>
+      <span id={`${labelId}-hub`} hidden>
+        {hub}
       </span>
       <span
         className={styles.halo}
@@ -353,7 +403,7 @@ export function RadialMenu({
           ))}
         </>
       )}
-      <span className={styles.caption} style={{ left: captionOffset }} data-tone={caption?.tone} aria-hidden>
+      <span className={styles.caption} style={captionStyle} data-tone={caption?.tone} aria-hidden>
         <span>{caption?.text ?? hub}</span>
         {caption?.shortcut && <kbd className={styles.key}>{caption.shortcut}</kbd>}
       </span>

@@ -165,13 +165,13 @@ export type ConnectionView = {
 };
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
 
-/* Whether two sets hold the same members, so a table rebuilt for a move keeps the sets a panel already read. */
 /* Each faction a deck can deal to, with its token art for the deal ring. */
 function dealRecipients(snapshot: GameSnapshot) {
   const artwork = snapshot.factionArtwork ?? {};
   return Object.entries(snapshotFactionLabels(snapshot)).map(([id, name]) => ({ id, name, artwork: artwork[id] }));
 }
 
+/* Whether two sets hold the same members, so a table rebuilt for a move keeps the sets a panel already read. */
 function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: ReadonlySet<T> | ReadonlyMap<T, unknown>) {
   if (a.size !== b.size) {
     return false;

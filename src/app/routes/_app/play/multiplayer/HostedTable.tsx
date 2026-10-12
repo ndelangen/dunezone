@@ -167,9 +167,30 @@ function phaseTab(table: TableProjection, activePhaseId: string) {
 /* Opens the phase's tab when the phase changes during play, never for the phase the table loaded on or while browsing a replay: a reload or a late join keeps the tab the player opens on. */
 function usePhaseFocus(table: TableProjection, progress: ReturnType<typeof gameProgress>) {
   const token = `${progress.turn}:${progress.activePhaseId}`;
-  const [loadedOn] = useState(token);
+  /* Setup and drafting are not a phase the table loaded on: the first storm still opens its tab for players who sat through them. */
+  const [loadedOn] = useState(table.snapshot.stage === 'play' ? token : null);
   const key = phaseTab(table, progress.activePhaseId);
   return key && token !== loadedOn ? { key, token: `phase:${token}` } : null;
+}
+
+type FocusRequest = Readonly<{ key: string; token: string }>;
+
+/*
+ * The dock follows the newest focus request, so one that is merely still around is never applied again.
+ * Stopping a result or ending a battle then leaves the dock where the player is, instead of reopening the phase's tab beneath it.
+ * When several requests appear together, the earlier one in the list wins.
+ */
+function useNewestFocus(requests: readonly (FocusRequest | null)[]) {
+  const [state, setState] = useState<{ seen: readonly string[]; newest: FocusRequest | null }>({
+    seen: [],
+    newest: null,
+  });
+  const present = requests.filter((request): request is FocusRequest => request !== null);
+  const fresh = present.find((request) => !state.seen.includes(request.token));
+  if (fresh) {
+    setState({ seen: [...state.seen, ...present.map((request) => request.token)], newest: fresh });
+  }
+  return fresh ?? state.newest;
 }
 
 /* The end of the game opens the Result tab once for everyone: when someone starts determining the winner, and when it is declared. */
@@ -947,7 +968,7 @@ function ConnectedTable({
   identity: GameIdentity;
 }>) {
   const progress = gameProgress(table.snapshot);
-  const phaseFocus = usePhaseFocus(table, progress);
+  const focusTab = useNewestFocus([resultFocus(table), battleFocus(table), usePhaseFocus(table, progress)]);
   const celebration = useResultCelebration(table);
   const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
@@ -1061,7 +1082,7 @@ function ConnectedTable({
                 />
               ) : undefined
             }
-            focusTab={resultFocus(table) ?? battleFocus(table) ?? phaseFocus}
+            focusTab={focusTab}
             /* Spectators open the current battle when present, otherwise History. Finished games open History. */
             openOn={
               stage === 'finished'

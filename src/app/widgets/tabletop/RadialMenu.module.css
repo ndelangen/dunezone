@@ -13,8 +13,9 @@
 
   position: fixed;
   z-index: 400;
-  width: 0;
-  height: 0;
+  /* One pixel rather than none, so the menu itself has a box and counts as visible to browser automation. */
+  width: 1px;
+  height: 1px;
   color: var(--radial-ink);
   font-family: var(--font-sans, Inter, system-ui, sans-serif);
   outline: none;
