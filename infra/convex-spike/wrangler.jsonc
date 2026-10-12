@@ -1,0 +1,43 @@
+// Staging-only spike for #2078. Every resource is prefixed convex-spike; it uses the workers.dev URL and no custom domain.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "convex-spike",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["enable_ctx_exports"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  // Keeps the Durable Object and its container awake, and restarts the container after a host restart.
+  "triggers": { "crons": ["* * * * *"] },
+  "containers": [
+    {
+      "class_name": "ConvexBackend",
+      "image": "./Dockerfile",
+      "image_vars": { "IMAGE_REVISION": "3" },
+      // Custom sizes need at least 3 GiB per vCPU, so 1 vCPU / 2 GiB is not available.
+      "instance_type": { "vcpu": 1, "memory_mib": 3072, "disk_mb": 4000 },
+      "max_instances": 1,
+      "constraints": { "regions": ["WEUR"] },
+    },
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "BACKEND", "class_name": "ConvexBackend" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ConvexBackend"] }],
+  "version_metadata": { "binding": "VERSION" },
+  "r2_buckets": [
+    { "binding": "LITESTREAM", "bucket_name": "convex-spike-litestream" },
+    { "binding": "MODULES", "bucket_name": "convex-spike-modules" },
+    { "binding": "FILES", "bucket_name": "convex-spike-files" },
+    { "binding": "SEARCH", "bucket_name": "convex-spike-search" },
+    { "binding": "EXPORTS", "bucket_name": "convex-spike-exports" },
+    { "binding": "IMPORTS", "bucket_name": "convex-spike-imports" },
+  ],
+  "vars": {
+    "INSTANCE_NAME": "convex-spike",
+    "CONVEX_ORIGIN": "https://convex-spike.ndelangen.workers.dev",
+    "LITESTREAM_SYNC_INTERVAL": "1s",
+    "ISOLATE_ANALYZE_USER_TIMEOUT_SECONDS": "15",
+  },
+}

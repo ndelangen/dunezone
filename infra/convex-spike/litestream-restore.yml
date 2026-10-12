@@ -1,0 +1,12 @@
+# Restore reads the newest generation that reached its first sync, as recorded by the Durable Object.
+logging:
+  level: debug
+dbs:
+  - path: /data/convex.sqlite3
+    replica:
+      type: s3
+      bucket: ${LITESTREAM_BUCKET}
+      path: gen-${RESTORE_GENERATION}
+      endpoint: ${S3_ENDPOINT_URL}
+      region: auto
+      force-path-style: true

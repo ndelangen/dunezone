@@ -1,0 +1,12 @@
+# Each container start replicates to its own generation prefix, so a stale writer cannot touch the live replica.
+addr: 127.0.0.1:9090
+dbs:
+  - path: /data/convex.sqlite3
+    replica:
+      type: s3
+      bucket: ${LITESTREAM_BUCKET}
+      path: gen-${GENERATION}
+      endpoint: ${S3_ENDPOINT_URL}
+      region: auto
+      force-path-style: true
+      sync-interval: ${LITESTREAM_SYNC_INTERVAL}
