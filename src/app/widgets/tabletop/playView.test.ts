@@ -412,7 +412,9 @@ describe('close look', () => {
       speeds.push(motion.velocity[0]);
     }
     expect(speeds[30]).toBeGreaterThan(speeds[5]);
-    expect(speeds[179]).toBeGreaterThan(speeds[60]);
+    expect(speeds[179]).toBeGreaterThan(speeds[30]);
+    /* Most of the top speed is there within the first second. */
+    expect(speeds[60]).toBeGreaterThan(speeds[179] * 0.95);
     expect(speeds[179] - speeds[170]).toBeLessThan(0.01);
     for (let frame = 0; frame < 120 && motion !== CAMERA_PAN_AT_REST; frame++) {
       motion = cameraPanMotionAfter(motion, zoom, [0, 0], 1 / 60);
