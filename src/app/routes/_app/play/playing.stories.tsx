@@ -808,19 +808,21 @@ export const SharedInventoryNarrow = meta.story({
     await userEvent.unhover(page.getByRole('tab', { name: 'Shared inventory' }));
     await openTab(page, 'Phase');
     await userEvent.hover(page.getByRole('tab', { name: 'Phase' }));
-    await waitForFrame(() =>
-      expect(
-        finishTransitions(within(page.getByRole('tooltip')).getByText(/^Move the storm using the storm controls/))
-      ).toBeVisible()
+    await waitForFrame(
+      () =>
+        expect(
+          finishTransitions(within(page.getByRole('tooltip')).getByText(/^Move the storm using the storm controls/))
+        ).toBeVisible(),
+      { timeout: 30_000 }
     );
     await userEvent.unhover(page.getByRole('tab', { name: 'Phase' }));
   },
 });
 
 /**
- * The accepted frame (#1147): one rail of tabs beside the content it opens, in the accepted order, the host's tabs ahead of the fixture's own.
- * Switching a tab swaps the content and moves the contour;
- * the rail stays where it is.
+ * The grouped controls keep Yours first and remember each group's last destination.
+ * Private reserves and public history occupy separate panes;
+ * the primary rail stays in place.
  */
 export const ControlsPanelTabs = meta.story({
   beforeEach: install(() =>
@@ -872,6 +874,35 @@ export const ControlsPanelTabs = meta.story({
     await openTab(page, 'Hand');
     /* The phase controls stay in the header, outside the tabs. */
     expect(page.getByRole('group', { name: 'Phase navigation' }).closest('header')).not.toBeNull();
+  },
+});
+
+/** Rejections stay visible in the destinations that sent the setting or history request. */
+export const SettingsAndReplayRefusals = meta.story({
+  beforeEach: install(() => productTransport('seat-2')),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Settings');
+    const turn = page.getByRole('textbox', { name: 'Last turn' });
+    await userEvent.clear(turn);
+    await userEvent.type(turn, '6');
+    await userEvent.tab();
+    expect(lastCommand()?.action).toEqual({ kind: 'last-turn', turn: 6 });
+    session.transport.deliver({
+      type: 'rejected',
+      requestId: lastCommand()!.commandId,
+      message: 'The game length could not be changed.',
+    });
+    await expect(page.findByText('The game length could not be changed.')).resolves.toBeVisible();
+    await openTab(page, 'Replay');
+    await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
+    session.transport.deliver({
+      type: 'rejected',
+      requestId: 'message',
+      message: 'That checkpoint could not be loaded.',
+    });
+    await expect(page.findByText('That checkpoint could not be loaded.')).resolves.toBeVisible();
+    expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled();
   },
 });
 

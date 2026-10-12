@@ -74,7 +74,10 @@ export async function openPlayer(canvasElement: HTMLElement, player: string, tab
   page.getByRole('separator', { name: 'Resize controls panel' }).focus();
   await userEvent.keyboard('{End}');
   /* A player opens on one of their own tabs, so the player's tab showing proves the click. */
-  await choose(page, whole(player, '(,|$)'), () => expect(page.getByRole('tab', { name: whole(tab) })).toBeVisible());
-  await choose(page, whole(tab));
+  const players = within(page.getByRole('complementary', { name: 'Players' }));
+  await choose(players, whole(player, '(,|$)'), () =>
+    expect(players.getByRole('tab', { name: whole(tab) })).toBeVisible()
+  );
+  await choose(players, whole(tab));
   return page;
 }

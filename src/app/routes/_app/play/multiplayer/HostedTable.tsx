@@ -1008,7 +1008,12 @@ function ConnectedTable({
                                 label: 'Settings',
                                 topic: 'controls' as const,
                                 description: 'Game length and bidding time.',
-                                content: <TableSettings client={client} table={table} />,
+                                content: (
+                                  <>
+                                    {error && <FormError title="From the table">{error}</FormError>}
+                                    <TableSettings client={client} table={table} />
+                                  </>
+                                ),
                               },
                             ]
                           : []),
@@ -1062,7 +1067,12 @@ function ConnectedTable({
                           label: 'Replay',
                           topic: 'turn' as const,
                           description: 'Browse saved phases and return to the live table.',
-                          content: <PlaybackControls client={client} table={table} />,
+                          content: (
+                            <>
+                              {error && !table.playback && <FormError title="From the table">{error}</FormError>}
+                              <PlaybackControls client={client} table={table} />
+                            </>
+                          ),
                         },
                       ],
                     },

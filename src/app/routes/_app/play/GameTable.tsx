@@ -460,34 +460,37 @@ function TableControlsPanel({
         stageOpened: boolean;
         focused: string | null;
       },
-      patch: Partial<typeof state>
-    ) => ({ ...state, ...patch }),
+      event:
+        | { type: 'destination-selected'; path: string[] }
+        | { type: 'stage-changed'; shown: boolean }
+        | { type: 'focus-requested'; path: string[]; token: string }
+    ) => {
+      if (event.type === 'stage-changed') {
+        return { ...state, stageShown: event.shown, stageOpened: event.shown };
+      }
+      const group = event.path[0]!;
+      const child = event.path[1] ?? state.remembered[group];
+      const path = child ? [group, child] : [group];
+      const stageOpened = path[1] === 'stage';
+      return {
+        ...state,
+        focused: event.type === 'focus-requested' ? event.token : state.focused,
+        stageOpened,
+        path: stageOpened ? state.path : path,
+        remembered: !stageOpened && child ? { ...state.remembered, [group]: child } : state.remembered,
+      };
+    },
     { path: opening, remembered: {}, stageShown: hasStage, stageOpened: false, focused: null }
   );
   /* A newly seated drafter sees their stage. The previous destination remains underneath for playback and later stages. */
   if (hasStage !== selection.stageShown) {
-    select({ stageShown: hasStage, stageOpened: hasStage });
+    select({ type: 'stage-changed', shown: hasStage });
   }
-  const choose = (next: string[], focused = selection.focused) => {
-    const group = next[0]!;
-    const child = next[1] ?? selection.remembered[group];
-    const path = child ? [group, child] : [group];
-    const stageOpened = path[1] === 'stage';
-    select({
-      focused,
-      stageOpened,
-      ...(!stageOpened
-        ? {
-            path,
-            remembered: child ? { ...selection.remembered, [group]: child } : selection.remembered,
-          }
-        : {}),
-    });
-  };
+  const choose = (path: string[]) => select({ type: 'destination-selected', path });
   /* A battle focuses its nested planner only once; subsequent updates preserve the player's choice. */
   const focusPath = focusTab && pathTo(focusTab.key);
   if (focusTab && focusTab.token !== selection.focused && focusPath) {
-    choose(focusPath, focusTab.token);
+    select({ type: 'focus-requested', path: focusPath, token: focusTab.token });
   }
   const path = selection.stageOpened && hasStage ? pathTo('stage')! : selection.path;
   const active = tabs.find((tab) => tab.key === path[0]) ?? tabs.find((tab) => tab.key === opening[0]) ?? tabs[0];

@@ -37,7 +37,7 @@ export function phaseControls(canvasElement: HTMLElement) {
     /* A phase change's cooldown may still hold the item, so its state is awaited while the menu stays open. */
     await waitFor(() => expect((item as HTMLButtonElement).disabled).toBe(!enabled));
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(page.queryByRole('menuitem', { name: 'Previous phase' })).toBeNull());
+    await waitForFrame(() => expect(page.queryByRole('menuitem', { name: 'Previous phase' })).toBeNull());
   };
   const pressPrevious = async () => userEvent.click(await openPrevious());
   return { page, controls, waitForPhase, openPrevious, expectPrevious, pressPrevious };
