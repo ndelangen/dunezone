@@ -80,16 +80,3 @@
   left: 20px;
   opacity: 0.5;
 }
-
-.wrappedTitle {
-  top: 62px;
-  height: 96px;
-  line-height: 46px;
-  display: flex;
-  align-items: center;
-}
-
-.wrappedTitle .titleText {
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
