@@ -290,6 +290,22 @@ export const BattlePlanArtwork = meta.story({
   },
 });
 
+/** A participant sees their planner once, then keeps their chosen group across battle updates. */
+export const BattleFocusOnce = meta.story({
+  beforeEach: battleSetup('preparing'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() => expect(page.getByRole('tab', { name: 'Battle' })).toHaveAttribute('aria-selected', 'true'));
+    await openTab(page, 'Hand');
+    const snapshot = battleStory('preparing');
+    snapshot.revision = 1;
+    session.transport.deliver(session.transport.view(snapshot));
+    await settled(() => expect(page.getByRole('tab', { name: 'Hand' })).toHaveAttribute('aria-selected', 'true'));
+    await userEvent.click(within(page.getByRole('tablist', { name: 'Controls' })).getByRole('tab', { name: 'Game' }));
+    expect(page.getByRole('tab', { name: 'Battle' })).toHaveAttribute('aria-selected', 'true');
+  },
+});
+
 export const BattleReady = meta.story({
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
@@ -486,7 +502,7 @@ export const BattleResolved = meta.story({
   beforeEach: resolvedBattle(),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
+    await openTab(page, 'Battles');
     await settled(() =>
       expect(page.getByText('Arrakeen: House Harkonnen against House Atreides. Left side won.')).toBeInTheDocument()
     );
@@ -494,6 +510,15 @@ export const BattleResolved = meta.story({
       expect(canvasElement.ownerDocument.querySelector('[data-piece-id="treachery-card-loose"]')).not.toBeNull()
     );
     expect(page.queryByRole('button', { name: 'No winner' })).toBeNull();
+    const snapshot = session.transport.snapshot;
+    session.transport.deliver(
+      session.transport.view({ ...snapshot, phase: snapshot.phase + 1, revision: snapshot.revision + 1 })
+    );
+    await settled(() => expect(page.getByRole('tab', { name: 'Battles' })).toHaveAttribute('aria-selected', 'true'));
+    await openTab(page, 'Phase');
+    expect(page.queryByRole('tab', { name: 'Battle' })).toBeNull();
+    await openTab(page, 'Battles');
+    expect(page.getByText('Arrakeen: House Harkonnen against House Atreides. Left side won.')).toBeVisible();
   },
 });
 
@@ -502,7 +527,7 @@ export const BattleResolvedInRealGame = meta.story({
   beforeEach: resolvedBattle(withConvexIds),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
+    await openTab(page, 'Battles');
     await settled(() =>
       expect(page.getByText('Arrakeen: House Harkonnen against House Atreides. Left side won.')).toBeInTheDocument()
     );
