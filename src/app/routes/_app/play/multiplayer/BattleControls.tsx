@@ -350,7 +350,8 @@ function EarlyReveal({
 }
 
 function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan; battle: PublicBattle }) {
-  const factionId = table.snapshot.bank!.factionId;
+  const bank = table.snapshot.bank!;
+  const factionId = bank.factionId;
   const side = battle.sides.find((side) => side?.factionId === factionId)!;
   const locked = !table.canHandleTable || side.ready || battle.stage !== 'preparing';
   const dialLocked = locked || plan.disclosed.dial;
@@ -361,7 +362,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
     (piece, index, all) => all.findIndex((candidate) => candidate.id === piece.id) === index
   );
   const preview = { ...plan, pieces };
-  const availableSpice = table.snapshot.bank!.balance + plan.spice;
+  const availableSpice = bank.balance + plan.spice;
   return (
     <WorkbenchLayout gap="sm">
       <WorkbenchLayout.Workbench>
@@ -401,8 +402,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
             </div>
             <PlanInventory plan={plan} locked={locked} update={update} pieces={pieces} />
             <Text size="sm">
-              {table.snapshot.bank!.balance} in your spice reserve, {plan.spice} set aside. Troop strength excludes
-              leader strength.
+              {bank.balance} in your spice reserve, {plan.spice} set aside. Troop strength excludes leader strength.
             </Text>
             {battle.stage !== 'revealed' && (
               <Button
@@ -866,12 +866,13 @@ function SideContents({
 }: ActiveProps & { index: 0 | 1; active: Set<string> }) {
   const side = battle.sides[index];
   const motion = useMotionAllowed();
+  const names = snapshotFactionLabels(table.snapshot);
   if (battle.revealed) {
     return (
       <BattleWheel
         plan={battle.revealed[index]}
         factionId={side!.factionId}
-        factionName={rosterName(side!.factionId, snapshotFactionLabels(table.snapshot))}
+        factionName={rosterName(side!.factionId, names)}
         artwork={table.snapshot.factionArtwork}
         client={table.canHandleTable ? client : undefined}
         active={active}
@@ -880,18 +881,19 @@ function SideContents({
   }
   const early = battle.disclosed?.[index];
   if (side) {
+    const name = rosterName(side.factionId, names);
     const closed = (
       <BattleWheelAsset
         state="unrevealed"
         motion={motion}
-        label={`${rosterName(side.factionId, snapshotFactionLabels(table.snapshot))}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
+        label={`${name}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
         artwork={factionArtwork(side.factionId, table.snapshot.factionArtwork)}
         ready={side.ready}
       />
     );
     if (early && (early.leader || early.dial || early.cards.length)) {
       return (
-        <EarlyRevealWheel early={early} factionName={rosterName(side.factionId, snapshotFactionLabels(table.snapshot))}>
+        <EarlyRevealWheel early={early} factionName={name}>
           {closed}
         </EarlyRevealWheel>
       );

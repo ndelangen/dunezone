@@ -50,6 +50,10 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
   const textMask = `${prefix}text-mask`;
   const textShadeMask = `${prefix}text-shade-mask`;
   const multicolor = image.endsWith('-multicolor.svg') || !image.endsWith('.svg');
+  /* Clip each blended image to the fixed gold disc without isolating its blend from the card. */
+  const emblemClip = {
+    clipPath: `circle(145px at ${imageScale * 110 - imageOffset[0]}px ${imageScale * 110 - imageOffset[1]}px)`,
+  };
   const emblemBackgroundFilter = `${prefix}emblem-background`;
   const tint = emblemBackground?.color.match(/^#([0-9a-f]{6})$/i)?.[1];
   const intensity = emblemBackground?.intensity ?? 0;
@@ -80,12 +84,6 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
           filter: `${tintMatrix ? `url(#${emblemBackgroundFilter}) ` : ''}drop-shadow(0 0 3px black) drop-shadow(0 0 8px black)`,
         }}
       />
-      <div
-        className={styles.decal_bg_2}
-        style={{
-          filter: 'drop-shadow(0 0 3px black) drop-shadow(0 0 8px black)',
-        }}
-      />
 
       <div
         className={`${styles.icon} ${multicolor ? styles.multicolor : ''}`}
@@ -96,10 +94,17 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
           height: imageScale * 220,
         }}
       >
-        <img alt="" src={resolveAsset(image)} />
-        {!multicolor && <img alt="" src={resolveAsset(image)} />}
-        {!multicolor && <img alt="" src={resolveAsset(image)} />}
+        <img alt="" src={resolveAsset(image)} style={emblemClip} />
+        {!multicolor && <img alt="" src={resolveAsset(image)} style={emblemClip} />}
+        {!multicolor && <img alt="" src={resolveAsset(image)} style={emblemClip} />}
       </div>
+
+      <div
+        className={styles.decal_bg_2}
+        style={{
+          filter: 'drop-shadow(0 0 3px black) drop-shadow(0 0 8px black)',
+        }}
+      />
 
       <svg ref={label} className={styles.svg} fontSize={90}>
         <defs>

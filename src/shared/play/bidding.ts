@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { actionKindGuard } from './actionKinds';
 import { factionTokenFaceUp } from './factionToken';
 import type { TablePiece } from './model';
 import type { TableRoster } from './schema';
@@ -40,10 +41,7 @@ export const biddingActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('bid-seconds'), seconds: bidSecondsSchema }),
 ]);
 export type BiddingAction = z.infer<typeof biddingActionSchema>;
-const kinds: ReadonlySet<string> = new Set(biddingActionSchema.options.map((option) => option.shape.kind.value));
-export function isBiddingAction(action: { kind: string }): action is BiddingAction {
-  return kinds.has(action.kind);
-}
+export const isBiddingAction = actionKindGuard(biddingActionSchema);
 
 export function idleBidding(seconds = DEFAULT_BID_SECONDS): BiddingState {
   return { seconds, stage: 'idle', round: 0, opener: null, turn: null, bid: null, passed: [], deadline: null };

@@ -3,6 +3,7 @@ import { SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { useEffect, useState } from 'react';
 import type { ExtrudeGeometry } from 'three';
 
+import { ignoreRaycast } from './ignoreRaycast';
 import { loadPhaseSymbolGeometry } from './phaseSymbolGeometry';
 
 const SPICE_ICON = '/vector/icon/spice.svg';
@@ -39,10 +40,6 @@ function useSpiceIconGeometry(): ExtrudeGeometry | null {
     };
   }, []);
   return geometry;
-}
-
-function ignoreRaycast() {
-  /* The icon decorates the stack; the stack's own disc answers the pointer. */
 }
 
 /** The site's spice icon, sitting on the top face of a spice stack layer. */

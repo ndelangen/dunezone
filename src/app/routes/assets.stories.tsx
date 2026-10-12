@@ -221,20 +221,31 @@ export const EditDeckMemberCountWrites = meta.story({
 });
 
 /**
- * Declaring Custom is not an unsaved change, which is D6 on «Work the editors wave».
- *
- * The declared intent lives in the session's memory beside the draft, and memory is never posted, so a Save armed by it would write an identical payload and then report success over an unchanged row.
- * The assertion is the toolbar rather than the reducer, because the reducers are local to their pages by D7 and this is the behaviour the ruling is actually about.
- * It also states the accepted cost from the other side: this intent changes what a later head pick does, and the page still calls itself unchanged.
+ * Choosing the saved Treachery category leaves Save disabled.
+ * Treachery offers its standard categories.
  */
-export const EditTreacheryCardDeclaringCustomIsNotAChange = meta.story({
+export const EditTreacheryCardChoosingTheSameCategoryIsNotAChange = meta.story({
   args: { path: '/assets/card-treachery/lasgun/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(findSave(canvasElement)).resolves.toHaveAccessibleDescription(/^No unsaved changes/);
+    await userEvent.click(await page.findByRole('combobox', { name: 'Category' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('option', { name: /^Weapon$/ }));
+    await expect(findSave(canvasElement)).resolves.toHaveAccessibleDescription(/^No unsaved changes/);
+  },
+});
+
+/**
+ * Opening the Custom background composer changes session intent without changing saved data.
+ * Save must stay disabled until the author changes the background itself.
+ */
+export const EditCustomCardDeclaringCustomIsNotAChange = meta.story({
+  args: { path: '/assets/card-custom/battle-reference/edit' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(findSave(canvasElement)).resolves.toHaveAccessibleDescription(/^No unsaved changes/);
     const row = within(await page.findByRole('radiogroup', { name: 'Head background' }, { timeout: 30_000 }));
     await userEvent.click(row.getByRole('radio', { name: 'Custom' }));
-    /* The composer opening is the declaration, so this is the state the ruling had to answer for. */
     await expect(findSave(canvasElement)).resolves.toHaveAccessibleDescription(/^No unsaved changes/);
   },
 });
@@ -335,6 +346,7 @@ export const EditDeckShowsOnlyTheLatestSaveFailure = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
     await expect(page.findByText('Could not save', {}, { timeout: 30_000 })).resolves.toBeVisible();
 
+    await userEvent.click(page.getByRole('tab', { name: 'Back' }));
     await userEvent.click(page.getByRole('radio', { name: "Another deck's back" }));
     await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
     await expect(page.findByText('No deck picked', {}, { timeout: 30_000 })).resolves.toBeVisible();

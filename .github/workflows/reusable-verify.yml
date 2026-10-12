@@ -119,10 +119,10 @@ jobs:
     # A standard runner, which costs nothing on a public repository; a larger macOS runner is billed even
     # there. Pinned rather than macos-latest, because the WebGPU adapter comes with the image.
     runs-on: macos-26
-    # Above the regular flow's ten-minute budget, so a slow flow ends with its name and its evidence.
-    # Setup took about 45 s and the build and boot about 70 s, which comes near twelve minutes.
+    # Above the regular flow's fifteen-minute budget, so a slow flow ends with its name and its evidence.
+    # Setup took about 45 s and the build and boot about 70 s, which comes near seventeen minutes.
     # A passing job took 249 to 276 s when this was measured (#1322).
-    timeout-minutes: 15
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:

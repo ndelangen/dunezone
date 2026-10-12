@@ -23,6 +23,7 @@ import {
   Vector3,
 } from 'three';
 
+import { ignoreRaycast } from '../../../widgets/tabletop/ignoreRaycast';
 import { useTabletop } from '../../../widgets/tabletop/TabletopContext';
 import { ConfettiField, DISC_RADIUS, DISC_THICKNESS, FOIL_COLORS } from './confettiSimulation';
 import type { ConfettiSupport } from './confettiSimulation';
@@ -37,10 +38,6 @@ type Props = Readonly<{
 
 /* A card's footprint reaches to its half-diagonal; nothing else reaches past a marker's radius. */
 const CARD_REACH = Math.hypot(CARD_FOOTPRINT_HALF_X, CARD_FOOTPRINT_HALF_Z);
-
-function ignoreRaycast() {
-  /* Confetti is decoration: it never takes a pointer from the table. */
-}
 
 /* An emptied piece draws nothing, so foil falls through where it stood. */
 function pieceSupports(pieces: readonly TablePiece[]): ConfettiSupport[] {

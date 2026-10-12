@@ -60,6 +60,10 @@ function Harness() {
   );
 }
 
+function selectChapter(name: string) {
+  fireEvent.mouseDown(screen.getByRole('tab', { name }), { button: 0, ctrlKey: false });
+}
+
 /**
  * The one thing a stock-or-authored control has to do, asserted through the interface rather than the state.
  *
@@ -72,6 +76,7 @@ function Harness() {
  */
 it('reaches an authored cardback from the stock one it starts on', () => {
   const { container } = render(<Harness />);
+  selectChapter('Back');
   const tile = (name: string) => screen.getByRole('radio', { name }) as HTMLInputElement;
   /* By attribute rather than by label text: the composition panel names more than one thing 'Label'. */
   const labelField = () => container.querySelector('input[aria-label="Label"]');
@@ -82,6 +87,7 @@ it('reaches an authored cardback from the stock one it starts on', () => {
   fireEvent.click(tile('Composed here'));
 
   expect(tile('Composed here').checked).toBe(true);
+  selectChapter('Identity');
   /* The composition fields are the point: a control reading "Composed here" over a panel that never appeared is the defect. */
   expect(labelField()).not.toBeNull();
 });
@@ -94,15 +100,19 @@ it('reaches an authored cardback from the stock one it starts on', () => {
  */
 it('keeps a composed cardback across a trip through the reference tile', () => {
   const { container } = render(<Harness />);
+  selectChapter('Back');
   const tile = (name: string) => screen.getByRole('radio', { name }) as HTMLInputElement;
   const labelField = () => container.querySelector<HTMLInputElement>('input[aria-label="Label"]');
 
   fireEvent.click(tile('Composed here'));
+  selectChapter('Identity');
   fireEvent.change(labelField() as HTMLInputElement, { target: { value: 'Hand of the Emperor' } });
   expect(labelField()?.value).toBe('Hand of the Emperor');
 
+  selectChapter('Back');
   fireEvent.click(tile("Another deck's back"));
   fireEvent.click(tile('Composed here'));
+  selectChapter('Identity');
 
   expect(labelField()?.value).toBe('Hand of the Emperor');
 });
@@ -153,12 +163,7 @@ it('draws the cardback proof while a colour is still being typed', () => {
   };
 
   const complete = emblemCount(withFirstColor('#4B4C0D'));
-  /*
-   * More than one, not more than zero, and the difference is the whole guard.
-   * The stock picker tile draws this same emblem once, outside the canvas, so a count of exactly one means
-   * `CanvasScale` mounted nothing and there is no proof in the DOM to compare prefixes against.
-   * `CardBack` draws the emblem three times, so a proof that really mounted puts the count at four.
-   */
+  /* The layered emblem proves the live cardback mounted, even while a colour is incomplete. */
   expect(complete).toBeGreaterThan(1);
   /* Every prefix of that colour draws the same face, rather than the proof blanking and coming back. */
   for (const partial of ['#', '#4', '#4B', '#4B4', '#4B4C', '#4B4C0']) {

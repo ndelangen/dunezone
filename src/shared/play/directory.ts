@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { Background, CanonicalFactionStoredObject } from '../factions/schema';
 import { playStageSchema } from './admission';
+import { gameResultKindSchema } from './result';
 import { tableSeatCountSchema } from './schema';
 import { TABLE_SEAT_COUNTS } from './tableSettings';
 
@@ -34,7 +35,7 @@ const summarySeatSchema = z.object({
  * Each winning faction carries its name, since its seat may be empty by the time the lobby reads it.
  */
 const playResultSchema = z.object({
-  kind: z.enum(['faction', 'alliance', 'none']),
+  kind: gameResultKindSchema,
   factions: z
     .array(z.object({ id: identifierSchema, name: z.string().max(160) }))
     .max(TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!),

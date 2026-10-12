@@ -140,12 +140,21 @@ export type TablePing = z.infer<typeof pingSchema>;
 /** A connection pings at most this often; the Worker drops a ping that comes sooner, and the page does not send one. */
 export const TABLE_PING_INTERVAL_MS = 400;
 
+/** A rotate command turns at most half a turn, in 15° steps; a longer hold the other way round is shorter. */
+export const ROTATE_STEPS_LIMIT = 12;
+
 const tableActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
   z.strictObject({ kind: z.literal('stack'), pieceId: id }),
   z.strictObject({ kind: z.literal('flip'), pieceId: id }),
   z.strictObject({ kind: z.literal('lock'), pieceId: id }),
-  z.strictObject({ kind: z.literal('rotate'), pieceId: id, direction }),
+  /* A held Q or E sends its whole turn as one command, in 15° steps; a single step leaves `steps` out. */
+  z.strictObject({
+    kind: z.literal('rotate'),
+    pieceId: id,
+    direction,
+    steps: z.number().int().min(2).max(ROTATE_STEPS_LIMIT).optional(),
+  }),
   /* Takes a card, token or stack out of the game for good. */
   z.strictObject({ kind: z.literal('delete'), pieceId: id }),
   z.strictObject({ kind: z.literal('storm'), direction }),
@@ -246,6 +255,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('sync') }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
+/** A message that changes the table: a command or a drop, each answered with a receipt. */
+export type CommitMessage = Extract<ClientMessage, { type: 'command' | 'drop' }>;
 /* The keys a change carries whole; revision, phase, table and versions have change fields of their own. */
 const snapshotStateSchema = gameSnapshotSchema.omit({ revision: true, phase: true, table: true, versions: true });
 export const snapshotStateKeys = snapshotStateSchema.keyof().options;
@@ -392,6 +403,10 @@ export const TICKET_EXPIRED_CLOSE_CODE = 4410;
  * Nothing was refused: the browser requests a new ticket and reconnects, with the same doubling wait as an expired ticket.
  */
 export const ADMISSION_UNAVAILABLE_CLOSE_CODE = 1013;
+/** The code the Worker closes a socket with when admission was refused; final, so the browser does not reconnect. */
+export const ADMISSION_REFUSED_CLOSE_CODE = 4401;
+/** The code the Worker closes a socket with when it sent too many messages; the browser waits longer before reconnecting. */
+export const RATE_LIMITED_CLOSE_CODE = 4413;
 /*
  * Cloudflare closes a WebSocket that carries nothing for 100 seconds, so every client sends this frame while its socket is open.
  * The room answers it without waking, and a client ignores the answer.
@@ -405,6 +420,10 @@ export const KEEPALIVE_INTERVAL_MS = 30_000;
  */
 export const serverClockSchema = z.object({ serverNow: count });
 export type ServerClock = z.infer<typeof serverClockSchema>;
+/** The id of each seated faction, in seat order. */
+export function rosterFactionIds(roster: GameSnapshot['roster']): string[] {
+  return roster?.seats.flatMap(({ faction }) => (faction ? [faction.id] : [])) ?? [];
+}
 /** Each seated faction's display name by its id, as the roster fixed it. */
 export function rosterFactionNames(roster: GameSnapshot['roster']): TableState['factionNames'] {
   return Object.fromEntries(
