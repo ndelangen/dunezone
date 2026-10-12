@@ -1,6 +1,6 @@
 import { useReducer, useState } from 'react';
 
-import type { AssetPageData } from '@app/db/assets';
+import type { AssetPublicPage } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
@@ -16,7 +16,7 @@ import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
 /** The treachery card edit page. Mounted by the generic `$type/$slug/edit` route when the type is `card-treachery`. */
-export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
+export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPublicPage }) {
   return (
     <CardEditGate
       type="card-treachery"

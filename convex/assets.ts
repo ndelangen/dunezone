@@ -43,6 +43,7 @@ import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
 import { listCardbackPresets, presetFromKey, storeCardbackPreset } from './lib/cardbackPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import {
+  assignedGroupSummary,
   loadAssetAccessBundle,
   requireAssetSoftDelete,
   requireAssetUpdate,
@@ -260,16 +261,6 @@ const deckReferenceValidator = v.object({
 type DeckReference = Infer<typeof deckReferenceValidator>;
 
 /**
- * One Asset's whole page, for both the routes that show one.
- *
- * The detail page and the edit page take the same bundle, the way `loadRulesetDetailPage` already serves both ruleset routes.
- * They want the same things for the same reasons: the toolbars are the same toolbar (management actions live on the detail page *and* the edit page), so both need `viewerAccess` and `assignableGroups`, and both draw the asset itself.
- *
- * Nothing here is access-gated.
- * `loadAssetAccessBundle` reads the viewer without demanding one, so an anonymous reader gets the full bundle with every capability false, which is what makes this serve a public page.
- * A soft-deleted asset reads as absent: its slug stays reserved so the address survives, but nothing behind it is a viewer's to see, and the pages render the same body they would for a slug that never existed.
- */
-/**
  * A ruleset as a slotted asset's page cites it: enough to name it, link to it, and say which slot it fills.
  * No owner, deliberately.
  * That would be a `profiles` read per row for a name the section does not draw.
@@ -281,6 +272,115 @@ const rulesetSlotReferenceValidator = v.object({
   slot: v.string(),
 });
 
+const assetPageValidator = v.object({
+  asset: assetListEntryValidator,
+  cardTokens: v.optional(zodToConvex(CustomCardTokens)),
+  cardTokensError: v.optional(v.union(v.string(), v.null())),
+  /** Whether this type converts to a custom card; whether the viewer may is `session.isAdmin`. */
+  convertibleToCustom: v.boolean(),
+  cardbackPresets: v.array(zodToConvex(cardbackPresetSchema)),
+  /** The owner's user id and the asset's live Group, or null: the facts the browser combines with the viewer. */
+  ownerId: v.id('users'),
+  assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
+  /** The token serving as this one's backside, for the types that have one. Null covers both "custom back" and "none". */
+  backToken: v.union(assetListEntryValidator, v.null()),
+  /** The deck whose authored cardback this one wears, the deck analog of `backToken`. Null covers authored, transitional bare, and dangling alike. */
+  backDeck: v.union(assetListEntryValidator, v.null()),
+  /**
+   * What a container holds, with counts.
+   * Empty for every type that holds nothing.
+   * One field rather than one per container kind: a deck's cards and a bundle's tokens are the same relation read with a different `kind`, and the page's per-type body already knows which it is looking at.
+   */
+  members: v.array(v.object({ member: assetListEntryValidator, count: v.number() })),
+  membersTruncated: v.boolean(),
+  /** The decks holding this asset. Empty for a deck, which nothing may hold. */
+  inDecks: v.array(deckReferenceValidator),
+  /**
+   * The bundles holding this asset, the same shape and the same question one container kind over.
+   * Empty for every type a bundle cannot hold, which is everything but tokens.
+   * Its own field rather than merged into `inDecks`, because "in no deck" and "in no bundle" are different sentences and a page that ran them together could not say either.
+   */
+  inBundles: v.array(deckReferenceValidator),
+  /**
+   * The rulesets that slot this asset, and which slot each one puts it in.
+   * Read-only here: slots are managed on the ruleset edit page, per «Ruleset deck-slot residual semantics».
+   * Empty for every type a ruleset cannot slot, which is everything but decks and bundles.
+   */
+  linkingRulesets: v.array(rulesetSlotReferenceValidator),
+  /** Null for a type that publishes nothing, which today is a bundle and every planned type. */
+  assetPublishing: v.union(assetPublishingValidator, v.null()),
+  /**
+   * The authored back's own publication, which is a second artifact under a face-qualified id rather than a second field on the first.
+   * Null when the type has no second face, or when the back is a reference and therefore publishes nothing of its own.
+   * A sidecar rather than a widening of `assetPublishingValidator`, because that validator also types the faction page's publication, which is a single one and gains nothing from learning about faces.
+   */
+  backPublishing: v.union(assetPublishingValidator, v.null()),
+  /**
+   * The one server-side answer to "what is this asset's back?" («What does each back mode publish»): the mode the resolution took and the URL a consumer fetches for it, or null for a type with no back.
+   * Additive this release;
+   * the pages that draw from it land with the editor slice.
+   */
+  resolvedBack: v.union(v.object({ mode: v.string(), href: v.union(v.string(), v.null()) }), v.null()),
+});
+
+/**
+ * One Asset's whole page, for both the routes that show one, the way `loadRulesetDetailPage` serves both ruleset routes.
+ * Nothing here reads the viewer: the toolbars on both routes combine `assignedGroup` and the owner with the viewer in the browser.
+ * A soft-deleted asset reads as absent: its slug stays reserved so the address survives, but nothing behind it is a viewer's to see, and the pages render the same body they would for a slug that never existed.
+ */
+async function loadAssetPageFor(ctx: QueryCtx, row: Doc<'assets'>, args: { embeddedTokenIds?: Id<'assets'>[] }) {
+  const back = TOKEN_TYPES.has(row.type) ? await tokenBackFor(ctx, row._id, row.data) : null;
+  const backDeckRow = await referencedCardbackDeck(ctx, row);
+  /* The entry, the preset list and the resolved back all ask for presets; one memo reads each once. */
+  const presets: CardbackPresetMemo = new Map();
+  const resolvedTokens =
+    row.type === 'card-custom' || row.type === 'card-storm'
+      ? await resolveCustomCardTokens(ctx, args.embeddedTokenIds ?? customCardTokenIds(row.data))
+      : null;
+  return {
+    asset: await toListEntry(ctx, row, { presets }),
+    convertibleToCustom: row.type === 'card-treachery',
+    ...(resolvedTokens ? { cardTokens: resolvedTokens.tokens, cardTokensError: resolvedTokens.error } : {}),
+    cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx, presets) : [],
+    ownerId: row.owner_id,
+    assignedGroup: await assignedGroupSummary(ctx, row.group_id),
+    backToken: back ? await toListEntry(ctx, back) : null,
+    backDeck: backDeckRow ? await toListEntry(ctx, backDeckRow) : null,
+    ...(CONTAINER_KINDS[row.type]
+      ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind).then(async (m) => ({
+          members: await Promise.all(
+            m.entries.map(async ({ row: member, count }) => ({ member: await toListEntry(ctx, member), count }))
+          ),
+          membersTruncated: m.truncated,
+        }))
+      : { members: [], membersTruncated: false }),
+    inDecks: row.type === 'deck' ? [] : await containersHolding(ctx, row._id, DECK_CARD),
+    inBundles: TOKEN_TYPES.has(row.type) ? await containersHolding(ctx, row._id, BUNDLE_TOKEN) : [],
+    linkingRulesets: await rulesetsSlotting(ctx, row._id),
+    assetPublishing: isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null,
+    backPublishing: await backFacePublication(ctx, row),
+    resolvedBack: await resolveBackHref(ctx, row, presets),
+  };
+}
+
+/**
+ * One Asset's page, one cached answer for every viewer.
+ * The browser combines `ownerId` and `assignedGroup` with the viewer to decide what they may do, and `convertibleToCustom` with `session.isAdmin`.
+ */
+export const page = publicQuery({
+  args: { type: v.string(), slug: v.string(), embeddedTokenIds: v.optional(v.array(v.id('assets'))) },
+  returns: v.union(v.null(), assetPageValidator),
+  handler: async (ctx, args) => {
+    const row = await liveAsset(ctx, args.type, args.slug);
+    return row ? await loadAssetPageFor(ctx, row, args) : null;
+  },
+});
+
+/**
+ * Deprecated: the asset page with the viewer's capabilities computed on the server, as bundles from before `page` read it.
+ * Kept unchanged so a page or editor already open in an older bundle keeps working across the deploy;
+ * remove in a later release, once no deployed bundle asks for it (see AGENTS.md).
+ */
 export const getPage = viewerQuery({
   args: { type: v.string(), slug: v.string(), embeddedTokenIds: v.optional(v.array(v.id('assets'))) },
   returns: v.union(
@@ -340,37 +440,17 @@ export const getPage = viewerQuery({
       return null;
     }
     const access = await loadAssetAccessBundle(ctx, { kind: 'asset', row });
-    const back = TOKEN_TYPES.has(row.type) ? await tokenBackFor(ctx, row._id, row.data) : null;
-    const backDeckRow = await referencedCardbackDeck(ctx, row);
-    /* The entry, the preset list and the resolved back all ask for presets; one memo reads each once. */
-    const presets: CardbackPresetMemo = new Map();
-    const resolvedTokens =
-      row.type === 'card-custom' || row.type === 'card-storm'
-        ? await resolveCustomCardTokens(ctx, args.embeddedTokenIds ?? customCardTokenIds(row.data))
-        : null;
+    const {
+      ownerId: _ownerId,
+      assignedGroup: _assignedGroup,
+      convertibleToCustom: _convertible,
+      ...page
+    } = await loadAssetPageFor(ctx, row, args);
     return {
-      asset: await toListEntry(ctx, row, { presets }),
+      ...page,
       canConvertToCustom: await canConvertTreachery(ctx, row.type),
-      ...(resolvedTokens ? { cardTokens: resolvedTokens.tokens, cardTokensError: resolvedTokens.error } : {}),
-      cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx, presets) : [],
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,
-      backToken: back ? await toListEntry(ctx, back) : null,
-      backDeck: backDeckRow ? await toListEntry(ctx, backDeckRow) : null,
-      ...(CONTAINER_KINDS[row.type]
-        ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind).then(async (m) => ({
-            members: await Promise.all(
-              m.entries.map(async ({ row: member, count }) => ({ member: await toListEntry(ctx, member), count }))
-            ),
-            membersTruncated: m.truncated,
-          }))
-        : { members: [], membersTruncated: false }),
-      inDecks: row.type === 'deck' ? [] : await containersHolding(ctx, row._id, DECK_CARD),
-      inBundles: TOKEN_TYPES.has(row.type) ? await containersHolding(ctx, row._id, BUNDLE_TOKEN) : [],
-      linkingRulesets: await rulesetsSlotting(ctx, row._id),
-      assetPublishing: isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null,
-      backPublishing: await backFacePublication(ctx, row),
-      resolvedBack: await resolveBackHref(ctx, row, presets),
     };
   },
 });

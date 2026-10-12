@@ -11,7 +11,7 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
-import type { AssetPageData } from '@app/db/assets';
+import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
@@ -28,14 +28,15 @@ import {
   useAssetDeletion,
   useAssetGroupActions,
   assetNameField,
+  AssetEditorViewerPending,
 } from '../../../assetEditorStates';
 
 /** Every token type a bundle may hold. A bundle mixes shapes freely, which is the point of it. */
 const TOKEN_TYPES = ['token-disc', 'token-tech', 'token-plate', 'token-enhance'];
 
-export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
+export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPublicPage }) {
   const query = useAssetPage('bundle', slug, { initialData: loaderData });
-  const data = query.data ?? loaderData;
+  const data = query.data;
 
   if (data === null) {
     return (
@@ -43,6 +44,10 @@ export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData:
         <NotAvailable title="Bundle not found">No bundle lives at this address.</NotAvailable>
       </AssetEditorMessage>
     );
+  }
+
+  if (!data.viewerResolved) {
+    return <AssetEditorViewerPending name={data.asset.name} type="bundle" />;
   }
 
   if (data.viewerAccess.viewer.kind === 'anonymous') {

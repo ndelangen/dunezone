@@ -10,7 +10,12 @@ import {
   requireRulesetSoftDelete,
   requireRulesetUpdate,
 } from './lib/collaborativeAccess';
-import { rulesetDetailPageValidator, rulesetPublicBundleValidator } from './lib/collaborativeAccessValidators';
+import {
+  rulesetDetailPageValidator,
+  rulesetPageValidator,
+  rulesetPublicBundleValidator,
+  rulesetPublicDetailPageValidator,
+} from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import {
   buildOwnedForGroupAssignRows,
@@ -18,7 +23,12 @@ import {
   ownedForGroupAssignRowValidator,
 } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
-import { loadRulesetDetailPageBySlug, loadRulesetPublicBundleBySlug } from './lib/rulesetDetailPage';
+import {
+  loadRulesetDetailPageBySlug,
+  loadRulesetPageBySlug,
+  loadRulesetPublicBundleBySlug,
+  loadRulesetPublicDetailPageBySlug,
+} from './lib/rulesetDetailPage';
 import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -92,12 +102,31 @@ export const get = publicQuery({
   },
 });
 
+/** The ruleset and its factions, one cached answer for every viewer. */
+export const page = publicQuery({
+  args: { slug: v.string() },
+  returns: rulesetPageValidator,
+  handler: async (ctx, args) => await loadRulesetPageBySlug(ctx, args.slug),
+});
+
+/**
+ * The ruleset detail page, one cached answer for every viewer.
+ * The browser combines `ruleset.owner_id` and `assignedGroup` with the viewer to decide what they may do.
+ */
+export const detailPage = publicQuery({
+  args: { slug: v.string() },
+  returns: rulesetPublicDetailPageValidator,
+  handler: async (ctx, args) => await loadRulesetPublicDetailPageBySlug(ctx, args.slug),
+});
+
+/** Deprecated by `page`: kept unchanged for bundles deployed before it, then deleted (see AGENTS.md). */
 export const getBySlug = viewerQuery({
   args: { slug: v.string() },
   returns: rulesetPublicBundleValidator,
   handler: async (ctx, args) => await loadRulesetPublicBundleBySlug(ctx, args.slug),
 });
 
+/** Deprecated by `detailPage`: kept unchanged for bundles deployed before it, then deleted (see AGENTS.md). */
 export const detailPageBySlug = viewerQuery({
   args: { slug: v.string() },
   returns: rulesetDetailPageValidator,

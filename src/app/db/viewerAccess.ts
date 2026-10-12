@@ -51,3 +51,8 @@ export function useAssetAccess<Kind extends AssetSubjectFacts['kind']>(
 export function useViewerAssignableGroups(): AssignedGroupSummary[] {
   return useQuery(api.groups.viewerAssignableGroups, {}) ?? [];
 }
+
+/** Whether the viewer is an administrator, for the few page actions only admins see. False while the session is on its way. */
+export function useViewerIsAdmin(): boolean {
+  return useQuery(api.profiles.session, {})?.isAdmin === true;
+}

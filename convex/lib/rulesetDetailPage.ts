@@ -1,6 +1,6 @@
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
-import { loadAssetAccessBundle, loadRulesetAccessForLoadedSubject } from './collaborativeAccess';
+import { assignedGroupSummary, loadAssetAccessBundle, loadRulesetAccessForLoadedSubject } from './collaborativeAccess';
 import { toCatalogueFaction } from './factionCatalogue';
 import { loadFaqItemsForRuleset } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
@@ -76,6 +76,32 @@ export async function loadRulesetDetailPageBySlug(ctx: QueryCtx, slug: string) {
     faqItems: await loadFaqItemsForRuleset(ctx, row._id),
     owner: await profileSummary(ctx, row.owner_id),
     assignableGroups: access.assignableGroups,
+    assetSlots: await listRulesetAssetSlots(ctx, row._id),
+    rulebooks: await listRulesetRulebooks(ctx, row._id),
+  };
+}
+
+/** The ruleset and its factions, the same for every viewer: behind `api.rulesets.page`. Throws for an unknown slug, as `getBySlug` does. */
+export async function loadRulesetPageBySlug(ctx: QueryCtx, slug: string) {
+  const row = await loadPublicRulesetBySlug(ctx, slug);
+  if (!row) {
+    throw new Error(`Ruleset with slug ${slug} not found`);
+  }
+  return { ruleset: row, factions: await listPublicRulesetFactions(ctx, row._id) };
+}
+
+/** The ruleset detail page, the same for every viewer: behind `api.rulesets.detailPage`. Null for an unknown slug. */
+export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: string) {
+  const row = await loadPublicRulesetBySlug(ctx, slug);
+  if (!row) {
+    return null;
+  }
+  return {
+    ruleset: row,
+    factions: await listPublicRulesetFactions(ctx, row._id),
+    assignedGroup: await assignedGroupSummary(ctx, row.group_id),
+    faqItems: await loadFaqItemsForRuleset(ctx, row._id),
+    owner: await profileSummary(ctx, row.owner_id),
     assetSlots: await listRulesetAssetSlots(ctx, row._id),
     rulebooks: await listRulesetRulebooks(ctx, row._id),
   };

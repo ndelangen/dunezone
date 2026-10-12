@@ -13,7 +13,7 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { FilePlus2 } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
-import type { AssetPageData } from '@app/db/assets';
+import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
@@ -39,6 +39,7 @@ import {
   useAssetDeletion,
   useAssetGroupActions,
   assetNameField,
+  AssetEditorViewerPending,
 } from '../../../assetEditorStates';
 
 /**
@@ -51,9 +52,9 @@ const CARD_TYPES = ASSET_TYPE_KEYS.filter((type) => ASSET_TYPES[type].category =
 /* The card types that can be created today, offered by the toolbar's create action so a deck of any live card type can be filled from here. */
 const CREATABLE_CARD_TYPES = CARD_TYPES.filter((type) => ASSET_TYPES[type].status === 'live');
 
-export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
+export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPublicPage }) {
   const query = useAssetPage('deck', slug, { initialData: loaderData });
-  const data = query.data ?? loaderData;
+  const data = query.data;
 
   if (data === null) {
     return (
@@ -61,6 +62,10 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
         <NotAvailable title="Deck not found">No deck lives at this address.</NotAvailable>
       </AssetEditorMessage>
     );
+  }
+
+  if (!data.viewerResolved) {
+    return <AssetEditorViewerPending name={data.asset.name} type="deck" />;
   }
 
   if (data.viewerAccess.viewer.kind === 'anonymous') {

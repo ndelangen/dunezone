@@ -1,6 +1,6 @@
 import { useReducer, useState } from 'react';
 
-import type { AssetPageData } from '@app/db/assets';
+import type { AssetPublicPage } from '@app/db/assets';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { NexusCardEditor, nexusDraftWarnings } from '@app/widgets/card-editor/NexusCardEditor';
 import type { NexusChapter, NexusDraft } from '@app/widgets/card-editor/NexusCardEditor';
@@ -12,7 +12,7 @@ import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
 /** The nexus card edit page. Mounted by the generic `$type/$slug/edit` route when the type is `card-nexus`. */
-export function NexusEditPage({ slug, loaderData }: Readonly<{ slug: string; loaderData: AssetPageData }>) {
+export function NexusEditPage({ slug, loaderData }: Readonly<{ slug: string; loaderData: AssetPublicPage }>) {
   return (
     <CardEditGate
       type="card-nexus"

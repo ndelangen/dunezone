@@ -1,6 +1,6 @@
 import { useReducer, useState } from 'react';
 
-import type { AssetPageData } from '@app/db/assets';
+import type { AssetPublicPage } from '@app/db/assets';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { StrongholdCardEditor, strongholdDraftWarnings } from '@app/widgets/card-editor/StrongholdCardEditor';
 import type { StrongholdChapter, StrongholdDraft } from '@app/widgets/card-editor/StrongholdCardEditor';
@@ -17,7 +17,7 @@ import type { StrongholdEditingState, StrongholdEditingEvent } from '../../../st
 import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
-export function StrongholdEditPage({ slug, loaderData }: Readonly<{ slug: string; loaderData: AssetPageData }>) {
+export function StrongholdEditPage({ slug, loaderData }: Readonly<{ slug: string; loaderData: AssetPublicPage }>) {
   return (
     <CardEditGate
       type="card-stronghold"
