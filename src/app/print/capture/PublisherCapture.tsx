@@ -16,6 +16,7 @@ import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
 import { BoardMap } from '@game/assets/board/Board';
 import { CardBack } from '@game/assets/card/Back';
 import { CustomCard } from '@game/assets/card/Custom';
+import { NexusCard } from '@game/assets/card/Nexus';
 import { SpiceCard } from '@game/assets/card/Spice';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -95,6 +96,8 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
       };
     case 'card-treachery':
       return printedImage(snapshot.assetType, <TreacheryCard {...snapshot.payload.card} />);
+    case 'card-nexus':
+      return printedImage(snapshot.assetType, <NexusCard {...snapshot.payload.card} />);
     case 'card-custom':
       return printedImage(
         snapshot.assetType,

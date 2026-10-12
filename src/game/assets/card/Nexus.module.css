@@ -1,0 +1,77 @@
+.card {
+  position: relative;
+  width: 900px;
+  height: 1263px;
+  overflow: hidden;
+}
+.effects {
+  position: absolute;
+  top: 290px;
+  left: 89px;
+  width: 734px;
+  height: 900px;
+  color: #0b0503;
+  font-family: "C_Candara", sans-serif;
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+}
+.effect {
+  border-bottom: 2px solid #79613a;
+  padding: 12px 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.effect:last-child {
+  border-bottom: none;
+}
+.heading {
+  font-family: "C_Copperplate_Gothic", sans-serif;
+  font-size: 44px;
+  line-height: 1.1;
+  text-align: center;
+}
+.condition {
+  font-size: 27px;
+  line-height: 1.15;
+  font-style: italic;
+  text-align: center;
+  margin: 4px 0 8px;
+}
+.rules {
+  min-height: 0;
+  overflow: hidden;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.secret {
+  position: relative;
+  background: #191d18;
+  color: #faf0d8;
+  border: 2px solid #79613a;
+  border-radius: 12px;
+  padding: 12px 18px;
+}
+.secret .heading,
+.secret .condition {
+  text-align: left;
+  padding-right: 80px;
+}
+.factionSymbol {
+  position: absolute;
+  right: 12px;
+  top: -18px;
+  width: 82px;
+  height: 82px;
+  border: 3px solid #faf0d8;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.factionSymbol img {
+  width: 60px;
+  height: 60px;
+  filter: invert(1);
+}
