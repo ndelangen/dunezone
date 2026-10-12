@@ -113,9 +113,11 @@ export const LEADER_SKILL_HEAD: z.infer<typeof LeaderSkillAsset>['head'] = {
   invert: false,
   definition: 1,
 };
+const LEADER_SKILL_EMBLEM = '/vector/generic/leader-skills.svg';
+
 export const LEADER_SKILL_SYMBOL: z.infer<typeof LeaderSkillAsset>['icon'] = [
   { image: '/image/texture/076.jpg', colors: ['#D5AE3A', '#F3E086'], influence: 0.4, invert: false, definition: 1 },
-  '/vector/generic/star.svg',
+  LEADER_SKILL_EMBLEM,
 ];
 
 export const GF9_LEADER_SKILLS: z.infer<typeof LeaderSkillAsset>[] = SKILLS.map(
@@ -135,7 +137,7 @@ export const GF9_LEADER_SKILLS: z.infer<typeof LeaderSkillAsset>[] = SKILLS.map(
 export const GF9_LEADER_SKILL_DECK_BACK = {
   name: 'Leader skills',
   background: LEADER_SKILL_HEAD,
-  image: '/vector/generic/leader-skills.svg',
+  image: LEADER_SKILL_EMBLEM,
   imageOffset: [0, 10],
   imageScale: 0.9,
 } satisfies z.infer<typeof CardBack>;

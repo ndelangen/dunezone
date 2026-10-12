@@ -1495,6 +1495,7 @@ export const refreshGF9LeaderSkillPresentationV2 = internalMutation({
         const card = GF9_LEADER_SKILLS[index]!;
         const legacy = LeaderSkillAssetInput.parse({
           ...card,
+          icon: [card.icon[0], '/vector/generic/star.svg'],
           textSize: 32,
           decals: card.decals.map((decal) => ({
             ...decal,

@@ -122,6 +122,7 @@ test('GF9 presentation refresh repairs untouched cards once and preserves edits,
         return ctx.db.patch('assets', id, {
           data: {
             ...card,
+            icon: [card.icon[0], '/vector/generic/star.svg'],
             textSize: 32,
             decals: card.decals.map((decal) => ({
               ...decal,
