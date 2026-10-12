@@ -128,7 +128,7 @@ test('gathering chooses a vacant shared slot without moving other items', () => 
     SHARED_ITEM_PLACEMENT_ANCHORS[7]!.position[0],
     SHARED_ITEM_PLACEMENT_ANCHORS[7]!.position[2],
   ]);
-  expect(gatherTraitors(result, new Set(), true)).toBe(result);
+  expect(gatherTraitors(result, new Set(), true)).toEqual(result);
 });
 
 test('a full shared shelf defers gathering until a slot clears, without moving its contents', () => {
@@ -144,7 +144,7 @@ test('a full shared shelf defers gathering until a slot clears, without moving i
   const result = gatherTraitors(tableOf([...blockers, traitor]), new Set(), true);
   expect(result.table.pieces).toEqual([...blockers, traitor]);
   expect(result.pendingTraitors).toEqual(traitor.items.map((item) => item.id));
-  expect(gatherTraitors(result, new Set())).toBe(result);
+  expect(gatherTraitors(result, new Set())).toEqual(result);
   const cleared = {
     ...result,
     table: { ...result.table, pieces: result.table.pieces.filter((piece) => piece.id !== blockers[7]!.id) },

@@ -1,12 +1,13 @@
 import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';
+import { SHARED_ITEM_PLACEMENT_ANCHORS } from '../../src/shared/play/tableFurnitureLayout';
 import { BOARD_RADIUS, TABLE_VISIBLE_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
-import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
+import { isCollisionFreePosition, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { PLAYER_RING_RADIUS } from '../../src/shared/play/tableSettings';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
 import type { HistoryRow } from './sessionHistory';
 import type { StoredSnapshot } from './state';
-import { storedSnapshotSchema } from './state';
+import { BOARD_LAYOUT, storedSnapshotSchema } from './state';
 
 /*
  * The board shrank (board radius 4.25 to 3.98, seat ring 4.69 to 4.39) so troop reserves clear the card wells.
@@ -59,29 +60,59 @@ export function moveOntoCurrentBoard(snapshot: StoredSnapshot): StoredSnapshot {
   };
 }
 
-/** Whether a snapshot as read from storage was laid out for the current board. */
-function onCurrentLayout(stored: unknown): boolean {
-  return Boolean(stored && typeof stored === 'object' && 'boardLayout' in stored);
+/** The layout stamp before parsing adds the current schema's default. */
+function storedLayout(stored: unknown): unknown {
+  return stored && typeof stored === 'object' && 'boardLayout' in stored ? stored.boardLayout : undefined;
+}
+
+/* Only a card parked in the former shared well moves; player-arranged pieces keep their places. */
+function moveFormerSharedWell(snapshot: StoredSnapshot): StoredSnapshot {
+  const pieces = [...snapshot.table.pieces];
+  for (const [index, piece] of pieces.entries()) {
+    if (
+      piece.kind !== 'card' ||
+      piece.inventory ||
+      Math.abs(piece.position[0]) > 1e-6 ||
+      Math.abs(piece.position[2] - 7.5) > 1e-6 ||
+      Math.abs(Math.atan2(Math.sin(piece.orientation), Math.cos(piece.orientation))) > 1e-6
+    ) {
+      continue;
+    }
+    const others = pieces.filter((other) => other.id !== piece.id && !other.inventory) as TablePiece[];
+    const anchor = SHARED_ITEM_PLACEMENT_ANCHORS.find((slot) =>
+      isCollisionFreePosition(piece as TablePiece, slot.position, others)
+    );
+    if (anchor) {
+      pieces[index] = { ...piece, position: restingPositionAt(anchor.position, piece) };
+    }
+  }
+  return { ...snapshot, table: { ...snapshot.table, pieces } };
 }
 
 /** A stored snapshot as read from storage, moved onto the current board when it was laid out for the old one. */
 export function onCurrentBoard(stored: unknown): unknown {
-  if (onCurrentLayout(stored)) {
+  const layout = storedLayout(stored);
+  if (layout === BOARD_LAYOUT) {
     return stored;
   }
-  const parsed = storedSnapshotSchema.safeParse(stored);
-  return parsed.success ? moveOntoCurrentBoard(parsed.data) : stored;
+  const parsed = storedSnapshotSchema.safeParse(
+    stored && typeof stored === 'object' ? { ...stored, boardLayout: BOARD_LAYOUT } : stored
+  );
+  if (!parsed.success || (layout !== undefined && layout !== 2)) {
+    return stored;
+  }
+  return moveFormerSharedWell(layout === undefined ? moveOntoCurrentBoard(parsed.data) : parsed.data);
 }
 
 /*
- * Moves a stored game laid out for the old board onto the current one, once, with its whole playback history:
+ * Moves a stored game's earlier layout onto the current one, once, with its whole playback history:
  * every step is replayed as restore replays it, moved, and stored again, so playback and the live table agree.
  * The rewritten current state carries the layout stamp, so a room moved once never moves again.
  */
 export function moveStoredGameOntoCurrentBoard(storage: DurableObjectStorage) {
   const current = storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').toArray()[0];
   const stored = current && (JSON.parse(current.data) as unknown);
-  if (!current || onCurrentLayout(stored)) {
+  if (!current || storedLayout(stored) === BOARD_LAYOUT) {
     return;
   }
   storage.transactionSync(() => {
@@ -90,8 +121,8 @@ export function moveStoredGameOntoCurrentBoard(storage: DurableObjectStorage) {
     for (const row of storage.sql.exec<HistoryRow>('SELECT * FROM history ORDER BY step').toArray()) {
       const data = JSON.parse(row.data) as unknown;
       const checkpoint = row.kind === 'checkpoint';
-      legacy = storedSnapshotSchema.parse(checkpoint ? data : applyPatch(legacy!, data as Patch[]));
-      const next = moveOntoCurrentBoard(legacy);
+      legacy = (checkpoint ? data : applyPatch(legacy!, data as Patch[])) as StoredSnapshot;
+      const next = storedSnapshotSchema.parse(onCurrentBoard(legacy));
       const rewritten = JSON.stringify(checkpoint ? next : diff(moved!, next));
       storage.sql.exec(
         'UPDATE history SET data=?, bytes=? WHERE step=?',
@@ -103,7 +134,7 @@ export function moveStoredGameOntoCurrentBoard(storage: DurableObjectStorage) {
     }
     storage.sql.exec(
       'UPDATE current_state SET data=? WHERE id=1',
-      JSON.stringify(moveOntoCurrentBoard(storedSnapshotSchema.parse(stored)))
+      JSON.stringify(storedSnapshotSchema.parse(onCurrentBoard(stored)))
     );
   });
 }

@@ -275,22 +275,22 @@ describe('table furniture', () => {
     }
   });
 
-  test('frames the complete Tanks shelf in each supported layout', () => {
-    for (const aspectRatio of [1440 / 695, 1, 0.75, 390 / 844]) {
-      for (const tilt of [0, 0.5, 1]) {
-        const camera = tableCamera(cameraPoseFor('bottom', aspectRatio, undefined, undefined, tilt), aspectRatio);
+  test.each(
+    [1440 / 695, 1, 0.75, 390 / 844].flatMap((aspectRatio) => [0, 0.5, 1].map((tilt) => ({ aspectRatio, tilt })))
+  )('frames the complete Tanks shelf at aspect $aspectRatio and tilt $tilt', ({ aspectRatio, tilt }) => {
+    const camera = tableCamera(cameraPoseFor('bottom', aspectRatio, undefined, undefined, tilt), aspectRatio);
 
-        for (const xDirection of [-1, 1]) {
-          for (const zDirection of [-1, 1]) {
-            const projected = new Vector3(
-              BOTTOM_SHELF_POSITION[0] + (xDirection * BOTTOM_SHELF_SIZE[0]) / 2,
-              FURNITURE_SURFACE_Y,
-              BOTTOM_SHELF_POSITION[2] + (zDirection * BOTTOM_SHELF_SIZE[2]) / 2
-            ).project(camera);
-            expect(Math.abs(projected.x)).toBeLessThanOrEqual(0.92 + 1e-9);
-            expect(Math.abs(projected.y)).toBeLessThanOrEqual(0.92 + 1e-9);
-          }
-        }
+    for (const xDirection of [-1, 1]) {
+      for (const zDirection of [-1, 1]) {
+        const projected = new Vector3(
+          BOTTOM_SHELF_POSITION[0] + (xDirection * BOTTOM_SHELF_SIZE[0]) / 2,
+          FURNITURE_SURFACE_Y,
+          BOTTOM_SHELF_POSITION[2] + (zDirection * BOTTOM_SHELF_SIZE[2]) / 2
+        ).project(camera);
+        expect(Math.abs(projected.x)).toBeLessThanOrEqual(0.92 + 1e-9);
+        expect(Math.abs(projected.y)).toBeLessThanOrEqual(0.92 + 1e-9);
+        expect(projected.z).toBeGreaterThanOrEqual(-1);
+        expect(projected.z).toBeLessThanOrEqual(1);
       }
     }
   });

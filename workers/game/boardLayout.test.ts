@@ -4,6 +4,7 @@ import { expect, test } from 'vitest';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
 import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';
+import { SHARED_ITEM_PLACEMENT_ANCHORS } from '../../src/shared/play/tableFurnitureLayout';
 import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { isOverlapFreePosition } from '../../src/shared/play/tablePhysics';
 import { PLAYER_RING_RADIUS } from '../../src/shared/play/tableSettings';
@@ -85,12 +86,24 @@ test('a piece moved off the old board edge rests on what lies under its new plac
   expect(moved.position).toEqual(restingPositionAt(moved.position, moved));
 });
 
-test('a stored game moves once, with its playback history, so every step plays back on the current board', () => {
+test.each([undefined, 2])('layout %s moves once with playback history matching the current board', (layout) => {
   const storage = memoryStorage();
   const identity = { publicSnapshot: (snapshot: StoredSnapshot) => snapshot } as unknown as ActorDirectory;
   const ledger = { project: (snapshot: StoredSnapshot) => snapshot } as unknown as SpiceLedger;
   const history = new SessionHistory(storage, identity, ledger);
-  const steps = [legacyGame(0, LEGACY_RING), legacyGame(1, LEGACY_RING - 0.2), legacyGame(2, LEGACY_RING - 0.4)];
+  const sharedCard = initialSnapshot().table.pieces.find((entry) => entry.kind === 'card')!;
+  const steps = [legacyGame(0, LEGACY_RING), legacyGame(1, LEGACY_RING - 0.2), legacyGame(2, LEGACY_RING - 0.4)].map(
+    (snapshot) =>
+      ({
+        ...snapshot,
+        ...(layout === undefined ? {} : { boardLayout: layout }),
+        table: {
+          ...snapshot.table,
+          pieces: [...snapshot.table.pieces, { ...sharedCard, position: [0, 0.005, 7.5], orientation: 0 }],
+        },
+      }) as StoredSnapshot
+  );
+  const converted = (snapshot: StoredSnapshot) => storedSnapshotSchema.parse(onCurrentBoard(snapshot));
   history.write({
     step: 0,
     base_revision: 0,
@@ -123,17 +136,55 @@ test('a stored game moves once, with its playback history, so every step plays b
 
   moveStoredGameOntoCurrentBoard(storage);
   steps.forEach((step, index) => {
-    expect(where(history.restore(index))).toEqual(where(moveOntoCurrentBoard(step)));
+    expect(history.restore(index)).toEqual(converted(step));
   });
   const current = () => storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one().data;
   const stored = JSON.parse(current()) as StoredSnapshot;
   expect(stored.boardLayout).toBe(BOARD_LAYOUT);
-  expect(where(stored)).toEqual(where(moveOntoCurrentBoard(steps[2]!)));
+  expect(stored).toEqual(converted(steps[2]!));
+  expect(where(stored)[sharedCard.id]).toEqual(
+    restingPositionAt(SHARED_ITEM_PLACEMENT_ANCHORS[0]!.position, sharedCard)
+  );
+  if (layout === 2) {
+    expect(where(stored)['on-territory']).toEqual(where(steps[2]!)['on-territory']);
+  }
 
   const once = current();
   moveStoredGameOntoCurrentBoard(storage);
   expect(current()).toBe(once);
-  expect(where(history.restore(2))).toEqual(where(moveOntoCurrentBoard(steps[2]!)));
+  expect(history.restore(2)).toEqual(converted(steps[2]!));
+});
+
+test.each([0, 1, 8])('the former shared card takes a clear slot with %s slots occupied', (occupied) => {
+  const snapshot = storedSnapshotSchema.parse(initialSnapshot());
+  const card = snapshot.table.pieces.find((entry) => entry.kind === 'card')!;
+  const parked = { ...card, position: [0, 0.005, 7.5] as Vector3Tuple, orientation: 0 };
+  const blockers = SHARED_ITEM_PLACEMENT_ANCHORS.slice(0, occupied).map((anchor, index) =>
+    piece(`blocker-${index}`, anchor.position)
+  );
+  const stored = { ...snapshot, boardLayout: 2, table: { ...snapshot.table, pieces: [...blockers, parked] } };
+  const moved = storedSnapshotSchema.parse(onCurrentBoard(stored));
+  expect(moved.table.pieces.slice(0, occupied)).toEqual(blockers);
+  expect(moved.table.pieces.at(-1)).toEqual({
+    ...parked,
+    position:
+      occupied === 8 ? parked.position : restingPositionAt(SHARED_ITEM_PLACEMENT_ANCHORS[occupied]!.position, parked),
+  });
+  expect(moved.factionInventories).toEqual(snapshot.factionInventories);
+  expect(moved.revision).toBe(snapshot.revision);
+  expect(onCurrentBoard(moved)).toEqual(moved);
+});
+
+test('cards arranged by players or held in inventory keep their positions when the shelf expands', () => {
+  const snapshot = storedSnapshotSchema.parse(initialSnapshot());
+  const card = snapshot.table.pieces.find((entry) => entry.kind === 'card')!;
+  const pieces = [
+    { ...card, id: 'turned', position: [0, 0.005, 7.5] as Vector3Tuple, orientation: Math.PI / 4 },
+    { ...card, id: 'placed', position: [0.1, 0.005, 7.5] as Vector3Tuple, orientation: 0 },
+    { ...card, id: 'stored', position: [0, 0.005, 7.5] as Vector3Tuple, orientation: 0, inventory: 'shared' as const },
+  ];
+  const stored = { ...snapshot, boardLayout: 2, table: { ...snapshot.table, pieces } };
+  expect(storedSnapshotSchema.parse(onCurrentBoard(stored)).table.pieces).toEqual(pieces);
 });
 
 test('a snapshot read through the stored schema is stamped with the current board, so it never moves again', () => {
