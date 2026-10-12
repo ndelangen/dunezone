@@ -1641,25 +1641,24 @@ export class TableSession {
       this.turning = { ...turning, released: true };
       return;
     }
-    /* A piece locked or taken away while the key was held keeps the turn to itself, since the room would refuse it. */
-    const piece = this.requireTable().state.pieces.find((candidate) => candidate.id === turning.pieceId);
-    const turns = piece && !gestureBlockReason(piece) ? foldedTurns(turning.turns) : 0;
-    const steps = Math.abs(turns);
     /* The turn stays shown until the command is out, so the piece never springs back in between. */
-    const commandId = turns
-      ? this.command({
-          kind: 'rotate',
-          pieceId: turning.pieceId,
-          direction: turns > 0 ? 1 : -1,
-          ...(steps > 1 ? { steps } : {}),
-        })
-      : undefined;
+    const commandId = this.sendTurn(turning);
     this.turning = null;
     if (commandId) {
-      this.sentTurns.set(commandId, { pieceId: turning.pieceId, turns });
+      this.sentTurns.set(commandId, { pieceId: turning.pieceId, turns: foldedTurns(turning.turns) });
     }
     this.emit();
   };
+  /* A piece locked or taken away while the key was held keeps the turn to itself, since the room would refuse it; a turn back to the start sends nothing. */
+  private sendTurn({ pieceId, turns: held }: Turn) {
+    const piece = this.requireTable().state.pieces.find((candidate) => candidate.id === pieceId);
+    const turns = foldedTurns(held);
+    if (!piece || gestureBlockReason(piece) || !turns) {
+      return;
+    }
+    const steps = Math.abs(turns);
+    return this.command({ kind: 'rotate', pieceId, direction: turns > 0 ? 1 : -1, ...(steps > 1 ? { steps } : {}) });
+  }
   flipSelected = (id?: string) => {
     if (!this.canAct()) {
       return;
