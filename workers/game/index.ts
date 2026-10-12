@@ -1165,13 +1165,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.receiveMotion(socket, connection, message);
       return;
     }
-    if (message.type === 'command') {
-      if (connection.commandTokens < 1) {
-        this.send(socket, { type: 'rejected', requestId: message.commandId, message: COMMAND_RATE_REFUSAL });
-        return;
-      }
-      connection.commandTokens--;
-    }
     if (this.reconcileViewers()) {
       this.broadcastActivity();
     }
@@ -1358,9 +1351,22 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
     } else if (connection.tokens >= 1) {
       connection.tokens--;
-      return message;
+      return this.withinCommandBudget(socket, connection, message);
     }
     this.refuseRate(socket);
+  }
+
+  /* A table command past its own bucket is refused on its own: the socket stays open, and the room spends no write or frame on it. */
+  private withinCommandBudget(socket: WebSocket, connection: Connection, message: ClientMessage) {
+    if (message.type !== 'command') {
+      return message;
+    }
+    if (connection.commandTokens < 1) {
+      this.send(socket, { type: 'rejected', requestId: message.commandId, message: COMMAND_RATE_REFUSAL });
+      return;
+    }
+    connection.commandTokens--;
+    return message;
   }
 
   private refuseRate(socket: WebSocket) {
