@@ -58,8 +58,12 @@ describe('game-name directory migration', () => {
       const { name, slug, ...rest } = row!;
       const { name: oldName, slug: oldSlug, ...oldRest } = before[index]!;
       expect(rest).toEqual(oldRest);
-      if (oldName !== undefined) expect(name).toBe(oldName);
-      if (oldSlug !== undefined) expect(slug).toBe(oldSlug);
+      if (oldName !== undefined) {
+        expect(name).toBe(oldName);
+      }
+      if (oldSlug !== undefined) {
+        expect(slug).toBe(oldSlug);
+      }
     }
     const allocations = () =>
       t.run(async (ctx) => ({
@@ -82,7 +86,9 @@ describe('game-name directory migration', () => {
       await ctx.db.insert('play_game_slug_reservations', { slug: 'arrakeen-picnic-1' });
     });
     const ids: Id<'play_games'>[] = [];
-    for (let index = 0; index < 20; index += 1) ids.push(await seed(t, { name: 'Arrakeen picnic' }));
+    for (let index = 0; index < 20; index += 1) {
+      ids.push(await seed(t, { name: 'Arrakeen picnic' }));
+    }
     const first = await t.mutation(internal.migrations.play_game_names_v1, {
       cursor: null,
       dryRun: false,
