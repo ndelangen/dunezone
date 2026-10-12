@@ -28,6 +28,41 @@ test('only an Administrator saves presets, with a revision check against concurr
   await expect(admin.mutation(api.cardbackPresets.save, save)).rejects.toThrow('changed elsewhere');
 });
 
+test('disc tint survives saving, loading and publication for presets and authored deck backs', async () => {
+  const { t, admin, author } = await fixture();
+  await t.mutation(internal.publicationAdmin.initialize, {
+    rendererRevisions: { deck: 2, 'cardback-preset': 1 },
+  });
+  const tinted = { ...cardback, emblemBackground: { color: '#4466aa', intensity: 0.35 } };
+  await admin.mutation(api.cardbackPresets.save, { key: 'traitor', cardback: tinted, revision: 0 });
+  const deck = await author.mutation(api.assets.create, {
+    type: 'deck',
+    data: { name: 'Tinted deck', about: '', cardback: { mode: 'custom', ...tinted } },
+  });
+  expect((await t.query(api.cardbackPresets.list, {})).find((preset) => preset.key === 'traitor')?.cardback).toEqual(
+    tinted
+  );
+  expect((await author.query(api.assets.getPage, { type: 'deck', slug: 'tinted-deck' }))?.asset.data.cardback).toEqual({
+    mode: 'custom',
+    ...tinted,
+  });
+  for (const [assetType, assetId] of [
+    ['cardback-preset', 'traitor'],
+    ['deck', deck.id],
+  ] as const) {
+    const jobId = await t.run(async (ctx) => {
+      const job = await ctx.db
+        .query('publication_jobs')
+        .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
+        .unique();
+      await ctx.db.patch(job!._id, { status: 'in_progress', expires_at: Date.now() + 10_000 });
+      return job!._id;
+    });
+    const snapshot = await t.query(internal.publicationJobs.readJobForRender, { jobId });
+    expect(snapshot?.payload).toMatchObject({ cardback: tinted });
+  }
+});
+
 async function publishedDecks() {
   const { t, admin, author } = await fixture();
   await admin.mutation(api.cardbackPresets.save, { key: 'traitor', cardback, revision: 0 });

@@ -1,4 +1,4 @@
-import { NumberInput, Select, Slider, TextInput } from '@mantine/core';
+import { ColorInput, NumberInput, Select, Slider, TextInput } from '@mantine/core';
 import type { CardBack } from '@shared/assets/schema';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -107,6 +107,45 @@ export function CardbackFields({
                 onChange({ ...cardback, image: next as CardbackData['image'] });
               }
             }}
+          />
+        }
+      />
+      <ControlBlock
+        title="Emblem background shade"
+        description="Tint the gold disc behind the emblem."
+        input={
+          <ColorInput
+            aria-label="Emblem background shade"
+            eyeDropperButtonProps={{ 'aria-label': 'Pick emblem background shade from screen' }}
+            format="hex"
+            value={cardback.emblemBackground?.color ?? '#d9c879'}
+            onChange={(color) =>
+              onChange({
+                ...cardback,
+                emblemBackground: { color, intensity: cardback.emblemBackground?.intensity ?? 0.5 },
+              })
+            }
+          />
+        }
+      />
+      <ControlBlock
+        title="Emblem background intensity"
+        description="Zero keeps the original gold. Full strength applies the selected shade."
+        input={
+          <Slider
+            aria-label="Emblem background intensity"
+            thumbLabel="Emblem background intensity"
+            min={0}
+            max={1}
+            step={0.01}
+            label={(value) => `${Math.round(value * 100)}%`}
+            value={cardback.emblemBackground?.intensity ?? 0}
+            onChange={(intensity) =>
+              onChange({
+                ...cardback,
+                emblemBackground: { color: cardback.emblemBackground?.color ?? '#d9c879', intensity },
+              })
+            }
           />
         }
       />

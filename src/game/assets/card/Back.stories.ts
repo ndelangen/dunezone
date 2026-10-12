@@ -80,6 +80,27 @@ export const LargestStormLabel = meta.story({
   args: { ...STANDARD_STORM_CARDBACK, nameScale: 2 },
   play: verifyLabelPaint,
 });
+export const TintedEmblemBackground = meta.story({
+  args: {
+    ...GF9_LEADER_SKILL_DECK_BACK,
+    emblemBackground: { color: '#4466aa', intensity: 1 },
+  },
+});
+export const GentleEmblemBackground = meta.story({
+  args: {
+    ...GF9_LEADER_SKILL_DECK_BACK,
+    emblemBackground: { color: '#4466aa', intensity: 0.35 },
+  },
+});
+export const OriginalEmblemBackground = meta.story({
+  args: {
+    ...GF9_LEADER_SKILL_DECK_BACK,
+    emblemBackground: { color: '#4466aa', intensity: 0 },
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('feColorMatrix')).toBeNull();
+  },
+});
 export const StrongholdDeck = meta.story({
   args: GF9_STRONGHOLD_DECK.cardback,
   play: async ({ canvasElement }) => {

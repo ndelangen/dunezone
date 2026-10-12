@@ -215,6 +215,12 @@ export const CardBack = z.strictObject({
   name: z.string(),
   nameScale: z.number().min(0.5).max(2).optional(),
   nameFont: z.enum(['C_Busorama', 'C_Busorama_Bold']).optional(),
+  emblemBackground: z
+    .strictObject({
+      color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+      intensity: z.number().min(0).max(1),
+    })
+    .optional(),
 });
 
 /**
