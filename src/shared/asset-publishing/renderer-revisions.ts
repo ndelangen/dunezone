@@ -38,7 +38,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   /* Revision 2 fits illustrations to their painted bounds in the leader skill window. */
   [LEADER_SKILL_ASSET_TYPE]: 2,
   [NEXUS_CARD_ASSET_TYPE]: 1,
-  [STRONGHOLD_CARD_ASSET_TYPE]: 1,
+  /* Revision 2 keeps every Stronghold title on one line. */
+  [STRONGHOLD_CARD_ASSET_TYPE]: 2,
   [STORM_CARD_ASSET_TYPE]: 1,
   // 1: deck cardbacks join the pipeline (wayfinder #546). Activating this is also the backfill for decks that predate it.
   [DECK_ASSET_TYPE]: 1,
