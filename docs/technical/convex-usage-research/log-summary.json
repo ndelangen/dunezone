@@ -1,0 +1,286 @@
+{
+  "windowUtc": ["2026-10-12T06:40:17.606697+00:00", "2026-10-12T07:28:44.394435+00:00"],
+  "events": 1003,
+  "functions": {
+    "root/auth:store": {
+      "calls": 9,
+      "cached": 0,
+      "readBytes": 8901,
+      "writeBytes": 10188,
+      "documents": 45,
+      "minRead": 989,
+      "maxRead": 989,
+      "errors": 0
+    },
+    "root/auth:signIn": {
+      "calls": 9,
+      "cached": 0,
+      "readBytes": 0,
+      "writeBytes": 0,
+      "documents": 0,
+      "minRead": 0,
+      "maxRead": 0,
+      "errors": 0
+    },
+    "root/GET /.well-known/openid-configuration": {
+      "calls": 9,
+      "cached": 0,
+      "readBytes": 0,
+      "writeBytes": 0,
+      "documents": 0,
+      "minRead": 0,
+      "maxRead": 0,
+      "errors": 0
+    },
+    "root/GET /.well-known/jwks.json": {
+      "calls": 9,
+      "cached": 0,
+      "readBytes": 0,
+      "writeBytes": 0,
+      "documents": 0,
+      "minRead": 0,
+      "maxRead": 0,
+      "errors": 0
+    },
+    "root/profiles:session": {
+      "calls": 13,
+      "cached": 8,
+      "readBytes": 5700,
+      "writeBytes": 0,
+      "documents": 16,
+      "minRead": 0,
+      "maxRead": 1425,
+      "errors": 0
+    },
+    "root/assets:getPage": {
+      "calls": 7,
+      "cached": 0,
+      "readBytes": 124358,
+      "writeBytes": 0,
+      "documents": 240,
+      "minRead": 4173,
+      "maxRead": 36396,
+      "errors": 0
+    },
+    "root/rulebooks:editorPage": {
+      "calls": 1,
+      "cached": 0,
+      "readBytes": 338508,
+      "writeBytes": 0,
+      "documents": 11,
+      "minRead": 338508,
+      "maxRead": 338508,
+      "errors": 0
+    },
+    "root/homepageAdmission:expireTicket": {
+      "calls": 146,
+      "cached": 0,
+      "readBytes": 0,
+      "writeBytes": 0,
+      "documents": 0,
+      "minRead": 0,
+      "maxRead": 0,
+      "errors": 0
+    },
+    "root/homepageAdmission:issueTicket": {
+      "calls": 145,
+      "cached": 0,
+      "readBytes": 313345,
+      "writeBytes": 132095,
+      "documents": 1450,
+      "minRead": 2161,
+      "maxRead": 2161,
+      "errors": 0
+    },
+    "root/homepageAdmission:redeemTicket": {
+      "calls": 145,
+      "cached": 0,
+      "readBytes": 339300,
+      "writeBytes": 32915,
+      "documents": 1160,
+      "minRead": 2340,
+      "maxRead": 2340,
+      "errors": 0
+    },
+    "root/rulebookEditionArtifactWork:take": {
+      "calls": 20,
+      "cached": 0,
+      "readBytes": 0,
+      "writeBytes": 0,
+      "documents": 0,
+      "minRead": 0,
+      "maxRead": 0,
+      "errors": 0
+    },
+    "root/POST /asset-publishing/executor/rulebook-html/take-work": {
+      "calls": 10,
+      "cached": 0,
+      "readBytes": 0,
+      "writeBytes": 0,
+      "documents": 0,
+      "minRead": 0,
+      "maxRead": 0,
+      "errors": 0
+    },
+    "root/POST /asset-publishing/executor/rulebook-pdf/take-work": {
+      "calls": 10,
+      "cached": 0,
+      "readBytes": 0,
+      "writeBytes": 0,
+      "documents": 0,
+      "minRead": 0,
+      "maxRead": 0,
+      "errors": 0
+    },
+    "root/publicationJobs:takeWork": {
+      "calls": 10,
+      "cached": 0,
+      "readBytes": 6740,
+      "writeBytes": 0,
+      "documents": 10,
+      "minRead": 674,
+      "maxRead": 674,
+      "errors": 0
+    },
+    "root/POST /asset-publishing/executor/take-work": {
+      "calls": 10,
+      "cached": 0,
+      "readBytes": 0,
+      "writeBytes": 0,
+      "documents": 0,
+      "minRead": 0,
+      "maxRead": 0,
+      "errors": 0
+    },
+    "root/playAdmission:watchAuthorizations": {
+      "calls": 34,
+      "cached": 25,
+      "readBytes": 16830,
+      "writeBytes": 0,
+      "documents": 45,
+      "minRead": 0,
+      "maxRead": 1870,
+      "errors": 0
+    },
+    "root/playAdmission:reconcileAccounts": {
+      "calls": 33,
+      "cached": 24,
+      "readBytes": 18909,
+      "writeBytes": 0,
+      "documents": 45,
+      "minRead": 0,
+      "maxRead": 2101,
+      "errors": 0
+    },
+    "root/playDeletion:retryDueDeletions": {
+      "calls": 48,
+      "cached": 0,
+      "readBytes": 0,
+      "writeBytes": 0,
+      "documents": 0,
+      "minRead": 0,
+      "maxRead": 0,
+      "errors": 0
+    },
+    "root/factions:getBySlug": {
+      "calls": 30,
+      "cached": 12,
+      "readBytes": 97323,
+      "writeBytes": 0,
+      "documents": 69,
+      "minRead": 0,
+      "maxRead": 8493,
+      "errors": 0
+    },
+    "root/groups:detailBySlug": {
+      "calls": 1,
+      "cached": 0,
+      "readBytes": 59380,
+      "writeBytes": 0,
+      "documents": 23,
+      "minRead": 59380,
+      "maxRead": 59380,
+      "errors": 0
+    },
+    "root/profiles:list": {
+      "calls": 2,
+      "cached": 1,
+      "readBytes": 173528,
+      "writeBytes": 0,
+      "documents": 336,
+      "minRead": 0,
+      "maxRead": 173528,
+      "errors": 0
+    },
+    "root/rulesets:list": {
+      "calls": 1,
+      "cached": 1,
+      "readBytes": 0,
+      "writeBytes": 0,
+      "documents": 0,
+      "minRead": 0,
+      "maxRead": 0,
+      "errors": 0
+    },
+    "root/factions:cataloguePage": {
+      "calls": 2,
+      "cached": 1,
+      "readBytes": 159050,
+      "writeBytes": 0,
+      "documents": 54,
+      "minRead": 0,
+      "maxRead": 159050,
+      "errors": 0
+    },
+    "root/componentPublication:resolveDelivery": {
+      "calls": 148,
+      "cached": 12,
+      "readBytes": 97748,
+      "writeBytes": 0,
+      "documents": 136,
+      "minRead": 0,
+      "maxRead": 737,
+      "errors": 0
+    },
+    "root/POST /asset-publishing/executor/component/resolve-delivery": {
+      "calls": 148,
+      "cached": 0,
+      "readBytes": 0,
+      "writeBytes": 0,
+      "documents": 0,
+      "minRead": 0,
+      "maxRead": 0,
+      "errors": 0
+    },
+    "root/playAdmission:issueTicket": {
+      "calls": 1,
+      "cached": 0,
+      "readBytes": 4400,
+      "writeBytes": 979,
+      "documents": 13,
+      "minRead": 4400,
+      "maxRead": 4400,
+      "errors": 0
+    },
+    "root/playAdmission:redeemTicket": {
+      "calls": 1,
+      "cached": 0,
+      "readBytes": 9321,
+      "writeBytes": 742,
+      "documents": 24,
+      "minRead": 9321,
+      "maxRead": 9321,
+      "errors": 0
+    },
+    "root/playAdmission:expireTicket": {
+      "calls": 1,
+      "cached": 0,
+      "readBytes": 590,
+      "writeBytes": 0,
+      "documents": 2,
+      "minRead": 590,
+      "maxRead": 590,
+      "errors": 0
+    }
+  }
+}
