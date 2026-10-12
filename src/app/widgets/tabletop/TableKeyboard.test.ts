@@ -27,6 +27,7 @@ function table() {
     state: freshTableState(),
     hoveredPieceId: null as string | null,
     deckControls: undefined,
+    finishRotation: vi.fn(),
     flipSelected: vi.fn(),
     /* The cursor is over the table unless a test moves it off. */
     ping: vi.fn(() => true),
@@ -86,6 +87,39 @@ describe('over the hovered spice disc', () => {
 
     expect(controls.spawnSpice.mock.calls).toEqual([[3]]);
     expect(controls.splitSelected).not.toHaveBeenCalled();
+  });
+});
+
+describe('held keys', () => {
+  test('a held Q turns the piece a step on every repeat and sends the turn once, when it comes up', () => {
+    const { controls } = table();
+    key('keydown', { key: 'q', code: 'KeyQ' });
+    key('keydown', { key: 'q', code: 'KeyQ', repeat: true });
+    key('keydown', { key: 'q', code: 'KeyQ', repeat: true });
+    expect(controls.rotateSelected).toHaveBeenCalledTimes(3);
+    expect(controls.finishRotation).not.toHaveBeenCalled();
+
+    key('keyup', { key: 'q', code: 'KeyQ' });
+    expect(controls.finishRotation).toHaveBeenCalledTimes(1);
+  });
+
+  test('a turn held when the page loses focus goes out then', () => {
+    const { controls } = table();
+    key('keydown', { key: 'e', code: 'KeyE' });
+    window.dispatchEvent(new Event('blur'));
+    key('keyup', { key: 'e', code: 'KeyE' });
+    expect(controls.finishRotation).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    ['L', 'l', 'toggleLockSelected'],
+    ['G', 'g', 'stackSelected'],
+  ] as const)('a held %s acts once', (_name, press, control) => {
+    const { controls } = table();
+    key('keydown', { key: press });
+    key('keydown', { key: press, repeat: true });
+    key('keydown', { key: press, repeat: true });
+    expect(controls[control]).toHaveBeenCalledTimes(1);
   });
 });
 

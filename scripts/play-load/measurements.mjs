@@ -72,19 +72,52 @@ export function measurements(filename, stop, peers = []) {
     }
     return map.get(key);
   }
+  function missingRecipients(sample) {
+    return [...sample.expected].filter((recipient) => !sample.seen.has(recipient) && !sample.superseded.has(recipient));
+  }
+  function increment(map, key) {
+    map.set(key, (map.get(key) ?? 0) + 1);
+  }
   function retire(key, sample) {
-    for (const recipient of sample.expected) {
-      if (sample.seen.has(recipient) || sample.superseded?.has(recipient)) {
-        continue;
-      }
+    for (const recipient of missingRecipients(sample)) {
       missing++;
-      missingByPhase.set(sample.phase, (missingByPhase.get(sample.phase) ?? 0) + 1);
-      missingByClient.set(recipient, (missingByClient.get(recipient) ?? 0) + 1);
-      const clientPhase = `${recipient}/${sample.phase}`;
-      missingByClientPhase.set(clientPhase, (missingByClientPhase.get(clientPhase) ?? 0) + 1);
+      increment(missingByPhase, sample.phase);
+      increment(missingByClient, recipient);
+      increment(missingByClientPhase, `${recipient}/${sample.phase}`);
     }
     pending.delete(key);
     streams.get(sample.stream)?.delete(sample.seq);
+  }
+  /* Every recipient of a settled sample either saw it or was superseded past it. */
+  function retireIfSettled(key, sample) {
+    if (sample.seen.size + sample.superseded.size === sample.expected.size) {
+      retire(key, sample);
+    }
+  }
+  /* An observation of a later frame supersedes every earlier one of its stream the recipient has not seen. */
+  function supersedeEarlier(peer, kind, entry) {
+    const skipped = [];
+    for (const [seq, prior] of streams.get(`${kind}/${entry.connectionId}`) ?? []) {
+      if (seq >= entry.sourceSeq) {
+        break;
+      }
+      const sample = prior.sample;
+      if (sample.expected.has(peer.index) && !sample.seen.has(peer.index) && !sample.superseded.has(peer.index)) {
+        sample.superseded.add(peer.index);
+        superseded++;
+        skipped.push(seq);
+      }
+      retireIfSettled(prior.key, sample);
+    }
+    if (skipped.length) {
+      write({
+        superseded: skipped,
+        kind,
+        connectionId: entry.connectionId,
+        recipient: peer.index,
+        bySeq: entry.sourceSeq,
+      });
+    }
   }
   function expire() {
     const deadline = performance.now() - 30_000;
@@ -95,9 +128,7 @@ export function measurements(filename, stop, peers = []) {
       expired++;
       write({
         expired: key,
-        missingRecipients: [...sample.expected].filter(
-          (recipient) => !sample.seen.has(recipient) && !sample.superseded?.has(recipient)
-        ),
+        missingRecipients: missingRecipients(sample),
       });
       retire(key, sample);
     }
@@ -107,9 +138,7 @@ export function measurements(filename, stop, peers = []) {
       .filter(({ sample }) => !sources || sources.has(sample.source))
       .map(({ key, sample }) => ({
         key,
-        missingRecipients: [...sample.expected].filter(
-          (recipient) => !sample.seen.has(recipient) && !sample.superseded?.has(recipient)
-        ),
+        missingRecipients: missingRecipients(sample),
       }));
   }
   const timer = setInterval(expire, 1000);
@@ -138,30 +167,7 @@ export function measurements(filename, stop, peers = []) {
       if (!Number.isSafeInteger(entry.sourceSeq)) {
         return;
       }
-      const skipped = [];
-      for (const [seq, prior] of streams.get(`${kind}/${entry.connectionId}`) ?? []) {
-        if (seq >= entry.sourceSeq) {
-          break;
-        }
-        const sample = prior.sample;
-        if (sample.expected.has(peer.index) && !sample.seen.has(peer.index) && !sample.superseded.has(peer.index)) {
-          sample.superseded.add(peer.index);
-          superseded++;
-          skipped.push(seq);
-        }
-        if (sample.seen.size + sample.superseded.size === sample.expected.size) {
-          retire(prior.key, sample);
-        }
-      }
-      if (skipped.length) {
-        write({
-          superseded: skipped,
-          kind,
-          connectionId: entry.connectionId,
-          recipient: peer.index,
-          bySeq: entry.sourceSeq,
-        });
-      }
+      supersedeEarlier(peer, kind, entry);
       const key = `${kind}/${entry.connectionId}/${entry.sourceSeq}`;
       const sample = pending.get(key);
       if (!sample?.expected.has(peer.index)) {
@@ -193,9 +199,7 @@ export function measurements(filename, stop, peers = []) {
       if (sample.phase === 'measured') {
         client.measured.add(ms);
       }
-      if (sample.seen.size + sample.superseded.size === sample.expected.size) {
-        retire(key, sample);
-      }
+      retireIfSettled(key, sample);
     },
     async finish() {
       clearInterval(timer);

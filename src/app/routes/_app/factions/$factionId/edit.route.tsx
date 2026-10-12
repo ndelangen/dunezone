@@ -13,8 +13,9 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { UserRoundMinus } from 'lucide-react';
 import { useRef } from 'react';
 
-import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
+import { useDeleteFaction, useFaction, useFactionAccess, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
+import { useViewerAssignableGroups } from '@db/viewerAccess';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
@@ -75,7 +76,10 @@ function FactionEditPage() {
   const factionQuery = useFaction(factionId, {
     initialData: loaderData,
   });
-  const { faction, viewerAccess, assignableGroups, assetPublishing } = factionQuery.data ?? loaderData;
+  const page = factionQuery.data ?? loaderData;
+  const { resolved: viewerResolved, viewerAccess } = useFactionAccess(page);
+  const assignableGroups = useViewerAssignableGroups();
+  const { faction, assetPublishing } = page;
   const authoringFaction = faction ?? loaderData.faction;
   const authoring = useFactionAuthoring({
     sessionKey: authoringFaction._id,
@@ -112,7 +116,15 @@ function FactionEditPage() {
     </PageMessage.Back>
   );
 
-  if (viewerAccess?.viewer.kind === 'anonymous') {
+  if (!viewerResolved) {
+    return (
+      <PageMessage size="compact" title={`Edit ${faction.data.name}`} back={backToFaction}>
+        <LoadPending title="Loading faction">Checking what you can edit.</LoadPending>
+      </PageMessage>
+    );
+  }
+
+  if (viewerAccess.viewer.kind === 'anonymous') {
     /* The name stays conditional here, as it was in the old header: this guard runs before the one
        below that answers whether there is a faction at all, so the title cannot assume one. */
     return (
@@ -130,7 +142,7 @@ function FactionEditPage() {
     );
   }
 
-  if (!viewerAccess?.capabilities.edit) {
+  if (!viewerAccess.capabilities.edit) {
     return (
       <PageMessage size="compact" title={`Edit ${faction.data.name}`} back={backToFaction}>
         <NotAvailable title="You cannot edit this faction">

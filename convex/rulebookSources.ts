@@ -5,11 +5,11 @@ import { factionMemberPublicationId } from '../src/shared/asset-publishing/compo
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
 import { rulebookResolvedSourceSchema } from '../src/shared/rulebooks/sources';
-import { query } from './_generated/server';
+import { publicQuery } from './functions';
 import { resolveRulebookTroopSource, rulebookTroopReferences } from './lib/rulebookTroopSources';
 
 /** The Leader picker subscribes only after a faction has been chosen. */
-export const factionMembers = query({
+export const factionMembers = publicQuery({
   args: { faction_id: v.id('factions') },
   returns: v.union(
     v.null(),
@@ -59,7 +59,7 @@ export const factionMembers = query({
 });
 
 /* The troop picker reads only the selected faction, including each authored back face. */
-export const factionTroops = query({
+export const factionTroops = publicQuery({
   args: { faction_id: v.id('factions') },
   returns: v.union(
     v.null(),

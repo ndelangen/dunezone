@@ -190,11 +190,20 @@ function completeAuthorizationBatch(raw: unknown, { generation, registrationIds 
     return null;
   }
   const result = parsed.data;
-  if (result.generation !== generation || result.entries.length !== registrationIds.length) {
+  if (result.generation !== generation) {
     return null;
   }
-  const remaining = new Set(registrationIds);
-  return result.entries.every((entry) => remaining.delete(entry.registrationId)) ? result.entries : null;
+  return answersEachOnce(result.entries, registrationIds, (entry) => entry.registrationId) ? result.entries : null;
+}
+
+/** Whether a batch answer has one entry for every id it was asked about, in any order. */
+export function answersEachOnce<Entry>(
+  entries: readonly Entry[],
+  asked: readonly string[],
+  idOf: (entry: Entry) => string
+): boolean {
+  const remaining = new Set(asked);
+  return entries.length === asked.length && entries.every((entry) => remaining.delete(idOf(entry)));
 }
 
 /**

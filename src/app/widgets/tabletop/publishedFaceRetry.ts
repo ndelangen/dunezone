@@ -1,6 +1,6 @@
 import { startArtworkLoad } from './artworkLoads';
 
-export type RetryTimer = {
+type RetryTimer = {
   set: (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
   clear: (handle: ReturnType<typeof setTimeout> | undefined) => void;
 };

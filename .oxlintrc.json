@@ -245,6 +245,11 @@
                 "group": ["**/_generated/server"],
                 "importNames": ["mutation", "internalMutation"],
                 "message": "Use the trigger-aware builders from ./functions instead. Restated here because an override replaces the root rule for the files it matches rather than adding to it."
+              },
+              {
+                "group": ["**/_generated/server"],
+                "importNames": ["query"],
+                "message": "Use publicQuery, viewerQuery or adminQuery from ./functions instead. A query is public (the same answer for every caller, cacheable across users) unless it is listed as viewer-specific in convex/queryAudience.architecture.test.ts."
               }
             ]
           }
@@ -285,6 +290,11 @@
                 "group": ["**/_generated/server"],
                 "importNames": ["mutation", "internalMutation"],
                 "message": "Use the trigger-aware builders from ./functions instead. Restated here because an override replaces the root rule for the files it matches rather than adding to it."
+              },
+              {
+                "group": ["**/_generated/server"],
+                "importNames": ["query"],
+                "message": "Use publicQuery, viewerQuery or adminQuery from ./functions instead. A query is public (the same answer for every caller, cacheable across users) unless it is listed as viewer-specific in convex/queryAudience.architecture.test.ts."
               }
             ]
           }
@@ -356,6 +366,11 @@
             "group": ["**/_generated/server"],
             "importNames": ["mutation", "internalMutation"],
             "message": "Use the trigger-aware builders from ./functions instead."
+          },
+          {
+            "group": ["**/_generated/server"],
+            "importNames": ["query"],
+            "message": "Use publicQuery, viewerQuery or adminQuery from ./functions instead. A query is public (the same answer for every caller, cacheable across users) unless it is listed as viewer-specific in convex/queryAudience.architecture.test.ts."
           }
         ]
       }

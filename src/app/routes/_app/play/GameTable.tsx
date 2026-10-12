@@ -109,10 +109,7 @@ type GameTableProps = {
 };
 
 function flippableSelection(piece: TablePiece | null) {
-  if (!piece) {
-    return null;
-  }
-  return piece.kind === 'card' || piece.kind === 'force' ? piece : null;
+  return piece?.kind === 'card' || piece?.kind === 'force' ? piece : null;
 }
 
 function selectedFlipHelp({
@@ -378,29 +375,87 @@ function stageFrame(stage: GameSnapshot['stage']): StageFrame {
   }
 }
 
-/**
- * The controls panel groups personal resources, game actions, shared controls and history in two levels.
- * Each group remembers its last destination;
- * the current stage and phase join the Game group.
- * The per-player tabs are the host's `playerPanel`, in the pane beside this one.
- */
-function TableControlsPanel({
+/* Which destination the controls panel shows, which child each group last opened, and what a focus or the stage opened over. */
+type ControlsSelection = Readonly<{
+  path: string[];
+  remembered: Record<string, string>;
+  stageShown: boolean;
+  stageOpened: boolean;
+  focused: string | null;
+  beneath: string[] | null;
+}>;
+
+type ControlsSelectionEvent =
+  | { type: 'destination-selected'; path: string[] }
+  | { type: 'stage-changed'; shown: boolean }
+  | { type: 'focus-requested'; path: string[]; token: string };
+
+function reduceControlsSelection(state: ControlsSelection, event: ControlsSelectionEvent): ControlsSelection {
+  if (event.type === 'stage-changed') {
+    return { ...state, stageShown: event.shown, stageOpened: event.shown };
+  }
+  const group = event.path[0]!;
+  const child = event.path[1] ?? state.remembered[group];
+  const path = child ? [group, child] : [group];
+  const stageOpened = path[1] === 'stage';
+  return {
+    ...state,
+    focused: event.type === 'focus-requested' ? event.token : state.focused,
+    /* The destination a focus opened over, so when the focused tab closes, as a result does, the panel returns to it. */
+    beneath:
+      event.type === 'focus-requested' && state.path.join('/') !== event.path.join('/') ? state.path : state.beneath,
+    stageOpened,
+    path: stageOpened ? state.path : path,
+    remembered: !stageOpened && child ? { ...state.remembered, [group]: child } : state.remembered,
+  };
+}
+
+/* Focus and opening preferences name a destination, whether it is a group or one of its children. */
+function tabPath(tabs: readonly PanelTab[], key: string) {
+  for (const tab of tabs) {
+    if (tab.key === key) {
+      return [tab.key];
+    }
+    const child = tab.subtabs?.find((item) => item.key === key);
+    if (child) {
+      return [tab.key, child.key];
+    }
+  }
+  return undefined;
+}
+
+/* One tab of either level, which opens the destination at `path`. */
+function tabItem(tab: PanelTab, path: string[], onClick: () => void) {
+  return (
+    <NestedTabs.Item
+      key={tab.key}
+      as="button"
+      type="button"
+      path={path}
+      label={tab.label}
+      description={tab.description}
+      help={tab.help}
+      icon={<TopicIcon topic={tab.topic} size={22} />}
+      onClick={onClick}
+    />
+  );
+}
+
+type DockTabsProps = Readonly<
+  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'tableGuidance' | 'showStormControls' | 'panelContent'> &
+    StageFrame
+>;
+
+/* The host's groups, with the stage's own panel and the Table or Phase tab leading the Game group; a group left empty is dropped. */
+function dockTabs({
   panelTabs = [],
-  focusTab = null,
-  openOn = [],
   tableControls,
   tableGuidance,
   showStormControls,
   word,
   tableTab: tableTabLabel,
   panelContent,
-}: Readonly<
-  Pick<
-    GameTableProps,
-    'panelTabs' | 'focusTab' | 'openOn' | 'tableControls' | 'tableGuidance' | 'showStormControls' | 'panelContent'
-  > &
-    StageFrame
->) {
+}: DockTabsProps): PanelTab[] {
   const tableTab: PanelTab = {
     key: 'phase',
     label: tableTabLabel ?? 'Table',
@@ -424,7 +479,7 @@ function TableControlsPanel({
         padding: false,
       }
     : null;
-  const tabs = panelTabs
+  return panelTabs
     .map((tab) =>
       tab.key === 'game'
         ? {
@@ -434,58 +489,41 @@ function TableControlsPanel({
         : tab
     )
     .filter((tab) => !tab.subtabs || tab.subtabs.length > 0);
-  /* Focus and opening preferences name a destination, whether it is a group or one of its children. */
-  const pathTo = (key: string) => {
-    for (const tab of tabs) {
-      if (tab.key === key) {
-        return [tab.key];
-      }
-      const child = tab.subtabs?.find((item) => item.key === key);
-      if (child) {
-        return [tab.key, child.key];
-      }
-    }
-    return undefined;
-  };
-  const opening = openOn.map(pathTo).find(Boolean) ?? [tabs[0]?.key ?? 'game'];
-  const hasStage = Boolean(stageTab);
-  const [selection, select] = useReducer(
-    (
-      state: {
-        path: string[];
-        remembered: Record<string, string>;
-        stageShown: boolean;
-        stageOpened: boolean;
-        focused: string | null;
-        beneath: string[] | null;
-      },
-      event:
-        | { type: 'destination-selected'; path: string[] }
-        | { type: 'stage-changed'; shown: boolean }
-        | { type: 'focus-requested'; path: string[]; token: string }
-    ) => {
-      if (event.type === 'stage-changed') {
-        return { ...state, stageShown: event.shown, stageOpened: event.shown };
-      }
-      const group = event.path[0]!;
-      const child = event.path[1] ?? state.remembered[group];
-      const path = child ? [group, child] : [group];
-      const stageOpened = path[1] === 'stage';
-      return {
-        ...state,
-        focused: event.type === 'focus-requested' ? event.token : state.focused,
-        /* The destination a focus opened over, so when the focused tab closes, as a result does, the panel returns to it. */
-        beneath:
-          event.type === 'focus-requested' && state.path.join('/') !== event.path.join('/')
-            ? state.path
-            : state.beneath,
-        stageOpened,
-        path: stageOpened ? state.path : path,
-        remembered: !stageOpened && child ? { ...state.remembered, [group]: child } : state.remembered,
-      };
-    },
-    { path: opening, remembered: {}, stageShown: hasStage, stageOpened: false, focused: null, beneath: null }
-  );
+}
+
+/*
+ * The tab and subtab the panel shows: the stage while it is open, else the chosen destination,
+ * or the one a focus opened over once the focused tab has closed; a group stands in for a child that is gone.
+ */
+function shownDestination(
+  tabs: readonly PanelTab[],
+  selection: ControlsSelection,
+  hasStage: boolean,
+  opening: string[]
+) {
+  const pathTo = (key: string) => tabPath(tabs, key);
+  const closed = !pathTo(selection.path.at(-1)!) && selection.beneath;
+  const path = selection.stageOpened && hasStage ? pathTo('stage')! : closed || selection.path;
+  const active = tabs.find((tab) => tab.key === path[0]) ?? tabs.find((tab) => tab.key === opening[0]) ?? tabs[0];
+  const subtab = active?.subtabs?.find((tab) => tab.key === path[1]) ?? active?.subtabs?.[0];
+  return { active, subtab };
+}
+
+/** The panel's chosen destination, kept in step with the stage and with each new focus request. */
+function useControlsSelection(
+  tabs: readonly PanelTab[],
+  opening: string[],
+  hasStage: boolean,
+  focusTab: GameTableProps['focusTab']
+) {
+  const [selection, select] = useReducer(reduceControlsSelection, {
+    path: opening,
+    remembered: {},
+    stageShown: hasStage,
+    stageOpened: false,
+    focused: null,
+    beneath: null,
+  });
   /* A newly seated drafter sees their stage. The previous destination remains underneath for playback and later stages. */
   if (hasStage !== selection.stageShown) {
     select({ type: 'stage-changed', shown: hasStage });
@@ -497,14 +535,42 @@ function TableControlsPanel({
     select({ type: 'destination-selected', path: leaf ? [key!, leaf] : [key!] });
   };
   /* A battle focuses its nested planner only once; subsequent updates preserve the player's choice. */
-  const focusPath = focusTab && pathTo(focusTab.key);
-  if (focusTab && focusTab.token !== selection.focused && focusPath) {
-    select({ type: 'focus-requested', path: focusPath, token: focusTab.token });
+  const focus = pendingFocus(tabs, focusTab, selection.focused);
+  if (focus) {
+    select({ type: 'focus-requested', ...focus });
   }
-  const closed = !pathTo(selection.path.at(-1)!) && selection.beneath;
-  const path = selection.stageOpened && hasStage ? pathTo('stage')! : closed || selection.path;
-  const active = tabs.find((tab) => tab.key === path[0]) ?? tabs.find((tab) => tab.key === opening[0]) ?? tabs[0];
-  const subtab = active?.subtabs?.find((tab) => tab.key === path[1]) ?? active?.subtabs?.[0];
+  return [selection, choose] as const;
+}
+
+/* A focus request the panel has not yet followed, while its tab exists. */
+function pendingFocus(
+  tabs: readonly PanelTab[],
+  focusTab: GameTableProps['focusTab'],
+  focused: ControlsSelection['focused']
+) {
+  if (!focusTab || focusTab.token === focused) {
+    return null;
+  }
+  const path = tabPath(tabs, focusTab.key);
+  return path ? { path, token: focusTab.token } : null;
+}
+
+/**
+ * The controls panel groups personal resources, game actions, shared controls and history in two levels.
+ * Each group remembers its last destination;
+ * the current stage and phase join the Game group.
+ * The per-player tabs are the host's `playerPanel`, in the pane beside this one.
+ */
+function TableControlsPanel({
+  focusTab = null,
+  openOn = [],
+  ...dock
+}: DockTabsProps & Readonly<Pick<GameTableProps, 'focusTab' | 'openOn'>>) {
+  const tabs = dockTabs(dock);
+  const opening = openOn.map((key) => tabPath(tabs, key)).find(Boolean) ?? [tabs[0]?.key ?? 'game'];
+  const hasStage = Boolean(dock.panelContent);
+  const [selection, choose] = useControlsSelection(tabs, opening, hasStage, focusTab);
+  const { active, subtab } = shownDestination(tabs, selection, hasStage, opening);
   /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the dock holds only what the stage brings. */
   if (!active) {
     return null;
@@ -516,35 +582,11 @@ function TableControlsPanel({
       className="seated-controls-tabs"
     >
       <NestedTabs.Level label="Controls">
-        {tabs.map((tab) => (
-          <NestedTabs.Item
-            key={tab.key}
-            as="button"
-            type="button"
-            path={[tab.key]}
-            label={tab.label}
-            description={tab.description}
-            help={tab.help}
-            icon={<TopicIcon topic={tab.topic} size={22} />}
-            onClick={() => choose([tab.key])}
-          />
-        ))}
+        {tabs.map((tab) => tabItem(tab, [tab.key], () => choose([tab.key])))}
       </NestedTabs.Level>
       {active.subtabs && (
         <NestedTabs.Level label={active.label}>
-          {active.subtabs.map((tab) => (
-            <NestedTabs.Item
-              key={tab.key}
-              as="button"
-              type="button"
-              path={[active.key, tab.key]}
-              label={tab.label}
-              description={tab.description}
-              help={tab.help}
-              icon={<TopicIcon topic={tab.topic} size={22} />}
-              onClick={() => choose([active.key, tab.key])}
-            />
-          ))}
+          {active.subtabs.map((tab) => tabItem(tab, [active.key, tab.key], () => choose([active.key, tab.key])))}
         </NestedTabs.Level>
       )}
       {/* No label of its own: the panel is the tabs' tabpanel, which NestedTabs names after the selected tab, and the sections inside stay the regions. */}
@@ -638,6 +680,41 @@ function useHeldOverlays() {
   return held;
 }
 
+/* The overlays this viewer pinned on from the game menu, shown whether or not their key is held. */
+function usePinnedLabels() {
+  const [pinned, setPinned] = useState<TableLabels>({
+    counts: false,
+    names: false,
+  });
+  return useMemo(
+    () => ({
+      pinned,
+      toggle: (label: keyof TableLabels) =>
+        setPinned((current) => ({
+          ...current,
+          [label]: !current[label],
+        })),
+    }),
+    [pinned]
+  );
+}
+
+/* A request already standing when the table mounts was answered by an earlier mount, so only a later revision moves the camera. */
+function useRequestedView(
+  requestedView: GameTableProps['requestedView'],
+  selectView: (event: { type: 'view.selected'; view: TableView }) => void
+) {
+  const answeredRevision = useRef(requestedView?.revision);
+  const requestedRevision = requestedView?.revision;
+  const requestedTableView = requestedView?.view;
+  useEffect(() => {
+    if (requestedTableView && requestedRevision !== answeredRevision.current) {
+      answeredRevision.current = requestedRevision;
+      selectView({ type: 'view.selected', view: requestedTableView });
+    }
+  }, [requestedRevision, requestedTableView, selectView]);
+}
+
 /* Binds the keyboard owner to the window once; it reads the live table when a key needs it. */
 function useTableKeyboardBinding(keyboard: TableKeyboard) {
   const read = useTabletopReader();
@@ -723,21 +800,7 @@ export function GameTable({
   useTableKeyboardBinding(tableKeyboard);
   const gestureActive = useTabletopSelector((table) => table.gestureActivePieceId !== null);
   const heldOverlays = useHeldOverlays();
-  const [pinnedOverlays, setPinnedOverlays] = useState<TableLabels>({
-    counts: false,
-    names: false,
-  });
-  const tableLabels = useMemo(
-    () => ({
-      pinned: pinnedOverlays,
-      toggle: (label: keyof TableLabels) =>
-        setPinnedOverlays((current) => ({
-          ...current,
-          [label]: !current[label],
-        })),
-    }),
-    [pinnedOverlays]
-  );
+  const tableLabels = usePinnedLabels();
   const frame = stageFrame(stage);
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
@@ -759,16 +822,7 @@ export function GameTable({
   const activePhaseIndex = tableProgress.phases.findIndex((phase) => phase.id === tableProgress.activePhaseId);
   const activePhase = tableProgress.phases[activePhaseIndex];
 
-  /* A request already standing when the table mounts was answered by an earlier mount, so only a later revision moves the camera. */
-  const answeredRevision = useRef(requestedView?.revision);
-  const requestedRevision = requestedView?.revision;
-  const requestedTableView = requestedView?.view;
-  useEffect(() => {
-    if (requestedTableView && requestedRevision !== answeredRevision.current) {
-      answeredRevision.current = requestedRevision;
-      dispatchView({ type: 'view.selected', view: requestedTableView });
-    }
-  }, [requestedRevision, requestedTableView]);
+  useRequestedView(requestedView, dispatchView);
 
   const handleInteractionActiveChange = useCallback((active: boolean) => {
     dispatchView({ type: 'interaction.changed', active });
@@ -792,8 +846,8 @@ export function GameTable({
               {...darkSchemeIslandAttributes}
               data-board-gesture-active={overlaysInert}
               data-table-view={viewState.activeView}
-              data-show-counts={heldOverlays.counts || pinnedOverlays.counts}
-              data-show-names={heldOverlays.names || pinnedOverlays.names}
+              data-show-counts={heldOverlays.counts || tableLabels.pinned.counts}
+              data-show-names={heldOverlays.names || tableLabels.pinned.names}
             >
               {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order.
                 It has no bar of its own: the table runs to the top, and the phase, the game and the controls float over it as chips. Only the chips hide the cursor, so pointing at the table between them still shows to the others. */}

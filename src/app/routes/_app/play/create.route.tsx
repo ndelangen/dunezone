@@ -101,6 +101,11 @@ const REFUSALS = {
   profanity_detected: 'Choose a game name without profanity. Your other choices are still here.',
 } as const;
 
+/* The name the game will carry: the custom one once typed, else the generated one. */
+function shownName(draft: Draft) {
+  return draft.custom && draft.customName.trim() ? draft.customName.trim() : draft.generatedName;
+}
+
 function CreateGamePage() {
   /* The draft lives here so the page's one query can carry the chosen ruleset and answer with its manifest. */
   const [draft, dispatch] = useReducer(draftReducer, undefined, initialDraft);
@@ -137,6 +142,49 @@ function CreateGamePage() {
   }
 }
 
+/* A custom name's first problem once something is typed, and whether the name the game would carry is ready. */
+function customNameCheck(draft: Draft) {
+  const customName = draft.custom ? playGameNameSchema.safeParse(draft.customName) : null;
+  return {
+    nameError:
+      customName && !customName.success && draft.customName.trim() ? customName.error.issues[0]?.message : undefined,
+    nameReady: customName === null || customName.success,
+  };
+}
+
+type CreateGame = ReturnType<typeof useCreateGame>;
+
+/* Pressing Create game fades the page to the table's ground; the game opens once the fade is complete, and a refusal lifts it again. */
+function useDeparture(createGame: CreateGame, dispatch: Dispatch<DraftEvent>) {
+  const navigate = useNavigate();
+  const [departing, setDeparting] = useState(false);
+  const departedAt = useRef(0);
+  const opening = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(opening.current), []);
+  /* Convex holds a mutation while it cannot reach the server, so a fade with no answer lifts again and the page says why. */
+  const stalled = useServerUnreachable(departing && createGame.isPending);
+  const depart = (input: Parameters<CreateGame['mutate']>[0]) => {
+    departedAt.current = performance.now();
+    setDeparting(true);
+    createGame.mutate(input, {
+      onSuccess: (result) => {
+        if (result.ok) {
+          const remaining = Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
+          opening.current = setTimeout(
+            () => void navigate({ to: '/play/$gameId', params: { gameId: result.slug ?? result.gameId } }),
+            remaining
+          );
+        } else {
+          setDeparting(false);
+          dispatch({ kind: 'refused', reason: REFUSALS[result.reason] });
+        }
+      },
+      onError: () => setDeparting(false),
+    });
+  };
+  return { departing, stalled, depart };
+}
+
 function CreateGameForm({
   rulesets,
   preview,
@@ -148,7 +196,6 @@ function CreateGameForm({
   draft: Draft;
   dispatch: Dispatch<DraftEvent>;
 }>) {
-  const navigate = useNavigate();
   const createGame = useCreateGame();
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({
@@ -156,44 +203,17 @@ function CreateGameForm({
     minimumPlayers: draft.minimumPlayers,
     lastTurn: draft.lastTurn,
   });
-  const customName = draft.custom ? playGameNameSchema.safeParse(draft.customName) : null;
-  const nameError =
-    customName && !customName.success && draft.customName.trim() ? customName.error.issues[0]?.message : undefined;
-  const nameReady = customName === null || customName.success;
+  const { nameError, nameReady } = customNameCheck(draft);
   const objection = chosen?.objection ?? null;
-  const [departing, setDeparting] = useState(false);
+  const { departing, stalled, depart } = useDeparture(createGame, dispatch);
   const canCreate =
     nameReady && request.success && chosen !== undefined && objection === null && !createGame.isPending && !departing;
-  const shownName = draft.custom && draft.customName.trim() ? draft.customName.trim() : draft.generatedName;
-  /* Pressing Create game fades the page to the table's ground; the game opens once the fade is complete, and a refusal lifts it again. */
-  const departedAt = useRef(0);
-  const opening = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(opening.current), []);
-  /* Convex holds a mutation while it cannot reach the server, so a fade with no answer lifts again and the page says why. */
-  const stalled = useServerUnreachable(departing && createGame.isPending);
   const submit = () => {
     if (canCreate && request.success) {
-      departedAt.current = performance.now();
-      setDeparting(true);
-      createGame.mutate(
+      depart(
         draft.custom
           ? { ...request.data, name: draft.customName }
-          : { ...request.data, generatedName: draft.generatedName },
-        {
-          onSuccess: (result) => {
-            if (result.ok) {
-              const remaining = Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
-              opening.current = setTimeout(
-                () => void navigate({ to: '/play/$gameId', params: { gameId: result.slug ?? result.gameId } }),
-                remaining
-              );
-            } else {
-              setDeparting(false);
-              dispatch({ kind: 'refused', reason: REFUSALS[result.reason] });
-            }
-          },
-          onError: () => setDeparting(false),
-        }
+          : { ...request.data, generatedName: draft.generatedName }
       );
     }
   };
@@ -206,7 +226,7 @@ function CreateGameForm({
           chosen,
           objection,
           nameReady,
-          summary: `${shownName}, ${chosen?.name}, ${draft.minimumPlayers} seats, ${draft.lastTurn} turns.`,
+          summary: `${shownName(draft)}, ${chosen?.name}, ${draft.minimumPlayers} seats, ${draft.lastTurn} turns.`,
         });
 
   return (
@@ -300,7 +320,7 @@ function NameField({
         aria-live="polite"
         data-pending={draft.custom && !draft.customName.trim() ? '' : undefined}
       >
-        {draft.custom && draft.customName.trim() ? draft.customName.trim() : draft.generatedName}
+        {shownName(draft)}
       </p>
       <Group gap="md">
         {draft.custom ? null : (
@@ -404,6 +424,18 @@ function RulesetField({
   );
 }
 
+/* A stub field's heading, with its slider's value printed large beside it. */
+function CountHeading({ label, value }: Readonly<{ label: string; value: number }>) {
+  return (
+    <Group justify="space-between" align="baseline" wrap="nowrap">
+      <Eyebrow>{label}</Eyebrow>
+      <span className={styles.count} aria-hidden>
+        {value}
+      </span>
+    </Group>
+  );
+}
+
 function SeatsField({
   value,
   onChange,
@@ -411,12 +443,7 @@ function SeatsField({
 }: Readonly<{ value: number; onChange: (value: number) => void; disabled: boolean }>) {
   return (
     <Stack gap="md">
-      <Group justify="space-between" align="baseline" wrap="nowrap">
-        <Eyebrow>Seats at the table</Eyebrow>
-        <span className={styles.count} aria-hidden>
-          {value}
-        </span>
-      </Group>
+      <CountHeading label="Seats at the table" value={value} />
       <Slider
         min={MINIMUM}
         max={MAXIMUM}
@@ -449,12 +476,7 @@ function LastTurnField({
 }: Readonly<{ value: number; onChange: (value: number) => void; disabled: boolean }>) {
   return (
     <Stack gap="md" className={styles.turns}>
-      <Group justify="space-between" align="baseline" wrap="nowrap">
-        <Eyebrow>Last turn</Eyebrow>
-        <span className={styles.count} aria-hidden>
-          {value}
-        </span>
-      </Group>
+      <CountHeading label="Last turn" value={value} />
       <Slider
         min={MIN_LAST_TURN}
         max={MAX_LAST_TURN}

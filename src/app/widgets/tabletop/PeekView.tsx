@@ -4,18 +4,14 @@ import { PEEK_DECK_LIMIT, peeksWholeDeck, rearrangeable } from '@shared/play/pee
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, RefObject } from 'react';
 
-import { card } from '@game/data/sizes';
-
 import { sortShift, sortTarget } from './deckSort';
+import { cardWidthFor, TOKEN_SIZE_PX } from './faceSize';
 import { PieceArtwork } from './PieceArtwork';
 import { useTabletopSelector } from './TabletopContext';
 import styles from './TabletopScene.module.css';
 
 const CARD_HEIGHT_PX = 340;
 const DECK_CARD_HEIGHT_PX = 210;
-const TOKEN_SIZE_PX = 240;
-
-const widthFor = (height: number) => Math.round((height * card.width) / card.height);
 
 /* One card or token of the peeked piece, alone, so its artwork finds its own prediction overlay. */
 function itemPiece(piece: TablePiece, item: TablePiece['items'][number]): TablePiece {
@@ -51,7 +47,7 @@ function Face({
       piece={itemPiece(piece, item)}
       src={src}
       name={name}
-      width={isCard ? widthFor(height) : height}
+      width={isCard ? cardWidthFor(height) : height}
       height={height}
       radius="10px"
     />
@@ -171,10 +167,7 @@ function focusInside(element: HTMLElement) {
 
 /* The card at a place in the row takes focus back, unless focus already sits in the row. */
 function refocus(element: HTMLOListElement | null, place: number | null) {
-  if (!element || place === null) {
-    return;
-  }
-  if (focusInside(element)) {
+  if (!element || place === null || focusInside(element)) {
     return;
   }
   const handle = element.children[place]?.querySelector('[role="button"]');

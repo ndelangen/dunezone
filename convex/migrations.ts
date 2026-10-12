@@ -22,8 +22,8 @@ import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { internalQuery, query } from './_generated/server';
-import { internalMutation, mutation } from './functions';
+import { internalQuery } from './_generated/server';
+import { internalMutation, mutation, viewerQuery } from './functions';
 import { accountStateOf, optionalActiveUserId } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
@@ -1014,7 +1014,7 @@ export const listRunSnapshots = internalQuery({
 });
 
 /** Single subscription for admin UI: live statuses + recorded snapshots. */
-export const adminDashboard = query({
+export const adminDashboard = viewerQuery({
   args: {
     ids: v.optional(v.array(v.string())),
   },

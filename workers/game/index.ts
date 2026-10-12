@@ -28,26 +28,37 @@ import {
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
-import type { ClientMessage, PieceAction, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import type {
+  ClientMessage,
+  CommitMessage,
+  PieceAction,
+  ServerClock,
+  ServerMessage,
+  Viewer,
+} from '../../src/shared/play/protocol';
 import {
+  ADMISSION_REFUSED_CLOSE_CODE,
   ADMISSION_UNAVAILABLE_CLOSE_CODE,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
+  RATE_LIMITED_CLOSE_CODE,
   TABLE_PING_INTERVAL_MS,
   TICKET_EXPIRED_CLOSE_CODE,
   clientMessageSchema,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
-import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
+import type { SetupState } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
 import type { AlertEnv } from './alerts';
-import { AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
+import { answersEachOnce, AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
+import type { AdmissionRefusal } from './diagnostics';
 import { GameDiagnostics } from './diagnostics';
 import type { SetAsideJudgement } from './drafting';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
@@ -57,8 +68,6 @@ import { forwardPrivacyRequest } from './privacyRequests';
 import { CarryHistoryExhausted } from './room';
 import type { Metadata } from './session';
 import { GameSession, NotReady, readinessProblem } from './session';
-
-/** The seat a real game's creator holds from creation. */
 
 type Connection = {
   connectionId: string;
@@ -86,6 +95,7 @@ type Connection = {
   pingedAt: number;
   tokens: number;
   motionTokens: number;
+  commandTokens: number;
   refilledAt: number;
 };
 type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketOutcomeSchema.parse>, { ok: true }>;
@@ -100,6 +110,13 @@ const COMMAND_TIMINGS = 1024;
 /** Each connection's message buckets hold this many messages and refill at this rate. */
 const RATE_BURST = 120;
 const RATE_PER_SECOND = 60;
+/*
+ * Table commands draw on a smaller bucket of their own, since each one writes the table and sends every player a frame.
+ * Play by hand stays well inside it; a command over it is refused on its own, so the room never spends a write or a frame on it.
+ */
+const COMMAND_BURST = 30;
+const COMMANDS_PER_SECOND = 10;
+const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try again.';
 const SWEEP_MS = 1000;
 /** A sweep this late counts as a stall, and the room keeps the most recent ones. */
 const STALL_MS = 250;
@@ -125,6 +142,13 @@ function gameRequest(request: Request, applicationOrigin: string) {
   }
   return { gameId, operation };
 }
+type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
+/** An attempt Convex validated: a hosted fixture or a real game. A refused one never reaches initialization. */
+type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidationSchema.parse>, { ok: true }>;
+/** A player provisioning seats: the creator or a placeholder. */
+type ProvisionPlayer = { userId: string; displayName: string };
+/** Executes one action as a provisioning player would send it. */
+type ProvisionCommand = (player: ProvisionPlayer, action: PieceAction) => void;
 type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
 const isPageRead = (message: ClientMessage): message is PageRead =>
   message.type === 'log-history' || message.type === 'spice-history' || message.type === 'faction';
@@ -151,11 +175,16 @@ const credentialsMatch = (a: string, b: string) => {
   }
   return difference === 0;
 };
-async function readJson(request: Request): Promise<unknown> {
+/** A request body as its schema reads it, or undefined when it is missing, oversized, not JSON or not that shape. */
+async function readRequest<T>(request: Request, schema: { parse(value: unknown): T }): Promise<T | undefined> {
   if (!request.body || Number(request.headers.get('Content-Length') ?? 0) > 8192) {
-    throw new Error('Request refused.');
+    return undefined;
   }
-  return JSON.parse(await readLimitedBody(request.body)) as unknown;
+  try {
+    return schema.parse(JSON.parse(await readLimitedBody(request.body)));
+  } catch {
+    return undefined;
+  }
 }
 async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string> {
   const reader = body.getReader();
@@ -291,9 +320,7 @@ export class GameRoom extends DurableObject<GameEnv> {
    */
   private async captureFixtureDeck(): Promise<StoredSpawnContents | undefined> {
     try {
-      const deck = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).capture(
-        FIXTURE_TREACHERY_DECK
-      );
+      const deck = await this.catalogue().capture(FIXTURE_TREACHERY_DECK);
       /* The deal reads the pieces only; the definitions the inventory audits would bloat every metadata write. */
       return { ...deck, definitions: [] };
     } catch (error) {
@@ -323,7 +350,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (existing) {
       return existing;
     }
-    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureRuleset(rulesetId);
+    const capture = await this.catalogue().captureRuleset(rulesetId);
     return this.session.retainRuleset(capture, options);
   }
 
@@ -332,7 +359,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (existing) {
       return existing;
     }
-    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(factionId);
+    const capture = await this.catalogue().captureFaction(factionId);
     return this.session.retainFaction(capture, options);
   }
 
@@ -361,10 +388,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private async provision(request: Request, gameId: string): Promise<Response> {
-    let args: ReturnType<typeof playProvisionRequestSchema.parse>;
-    try {
-      args = playProvisionRequestSchema.parse(await readJson(request));
-    } catch {
+    const args = await readRequest(request, playProvisionRequestSchema);
+    if (!args) {
       return refused();
     }
     try {
@@ -376,44 +401,24 @@ export class GameRoom extends DurableObject<GameEnv> {
         args
       );
       const validation = playProvisioningValidationSchema.parse(raw);
-      /* Fail closed: a game without the real phase cooldown, or provisioned past drafting, exists only in the isolated local stack. */
-      if (
-        validation.ok &&
-        (validation.testPhaseCooldownMs !== undefined || validation.testStartStage !== undefined) &&
-        !isLocalIsolatedRuntime(this.env)
-      ) {
-        throw new Error('A test phase cooldown or start stage is refused outside the isolated local runtime.');
+      if (!validation.ok) {
+        return refused();
       }
-      /* A real game retains its ruleset before it exists; a ruleset that is not ready never becomes a game. */
-      if (validation.ok && 'game' in validation && !this.metadata) {
-        try {
-          await this.retainRulesetCapture(validation.game.rulesetId, { provisional: validation.provisional === true });
-        } catch (error) {
-          if (!(error instanceof GameRejection)) {
-            throw error;
-          }
-          if (!this.metadata) {
-            await gameHttpClient(this.env.CONVEX_URL).mutation(api.playProvisioning.failProvisioning, {
-              ...args,
-              reason: error.message,
-            });
-          }
-          return refused();
-        }
+      this.requireLocalTestOverrides(validation);
+      if (!(await this.retainProvisionedRuleset(args, validation))) {
+        return refused();
       }
       const factions =
-        validation.ok && 'game' in validation && !this.metadata
-          ? await this.draftableFactions(validation.game.rulesetId)
-          : null;
+        'game' in validation && !this.metadata ? await this.draftableFactions(validation.game.rulesetId) : null;
       /* The hosted fixture asks the catalogue for its deck before it exists; a refusal costs nothing, a slow answer only time. */
       const fixtureDeck =
-        validation.ok && 'fixtureKey' in validation && this.fixturePlan.hosted && !this.metadata
+        'fixtureKey' in validation && this.fixturePlan.hosted && !this.metadata
           ? await this.captureFixtureDeck()
           : undefined;
       if (!this.initializeValidated(args, validation, factions, fixtureDeck)) {
         return refused();
       }
-      if (validation.ok && 'game' in validation && validation.testStartStage === 'play') {
+      if ('game' in validation && validation.testStartStage === 'play') {
         await this.provisionThroughSetup(validation.game);
       }
       await this.confirmProvisioning();
@@ -424,14 +429,49 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /* Fail closed: a game without the real phase cooldown, or provisioned past drafting, exists only in the isolated local stack. */
+  private requireLocalTestOverrides(validation: ProvisioningValidation) {
+    if (
+      (validation.testPhaseCooldownMs !== undefined || validation.testStartStage !== undefined) &&
+      !isLocalIsolatedRuntime(this.env)
+    ) {
+      throw new Error('A test phase cooldown or start stage is refused outside the isolated local runtime.');
+    }
+  }
+
+  /**
+   * A real game retains its ruleset before it exists, and a ruleset that is not ready never becomes a game.
+   * False when the ruleset was refused, after the refusal is reported unless another request already provisioned the room.
+   */
+  private async retainProvisionedRuleset(args: ProvisionArgs, validation: ProvisioningValidation): Promise<boolean> {
+    if (!('game' in validation) || this.metadata) {
+      return true;
+    }
+    try {
+      await this.retainRulesetCapture(validation.game.rulesetId, { provisional: validation.provisional === true });
+      return true;
+    } catch (error) {
+      if (!(error instanceof GameRejection)) {
+        throw error;
+      }
+      if (!this.metadata) {
+        await gameHttpClient(this.env.CONVEX_URL).mutation(api.playProvisioning.failProvisioning, {
+          ...args,
+          reason: error.message,
+        });
+      }
+      return false;
+    }
+  }
+
   private initializeValidated(
-    args: ReturnType<typeof playProvisionRequestSchema.parse>,
-    validation: ReturnType<typeof playProvisioningValidationSchema.parse>,
+    args: ProvisionArgs,
+    validation: ProvisioningValidation,
     factions: DraftFaction[] | null,
     fixtureDeck?: StoredSpawnContents
   ): boolean {
     // Another request can finish while Convex validates this one and the ruleset is captured. Keep the guard and initialization synchronous.
-    if (!validation.ok || this.metadata) {
+    if (this.metadata) {
       return false;
     }
     if (validation.gameId !== args.gameId || validation.attemptId !== args.attemptId) {
@@ -462,7 +502,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   protected retainedCaptures() {
     return this.session.retainedCaptures();
   }
-  private broadcastViews() {
+  /** Settles seat changes, then sends every connection its view of the result. */
+  private refreshViews() {
+    this.reconcileViewers();
     for (const [socket, connection] of this.connections) {
       this.sendView(socket, connection);
     }
@@ -470,8 +512,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private advanceDeadlines() {
     if (this.session.advanceDeadlines()) {
       this.deliverDirectorySoon();
-      this.reconcileViewers();
-      this.broadcastViews();
+      this.refreshViews();
     }
   }
   private deleteActor(userId: string, eventId?: string) {
@@ -482,8 +523,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.deny(socket, false);
       }
     }
-    this.reconcileViewers();
-    this.broadcastViews();
+    this.refreshViews();
   }
 
   /*
@@ -505,13 +545,8 @@ export class GameRoom extends DurableObject<GameEnv> {
    * An empty room has nothing left to retire, so a repeated request succeeds.
    */
   private async retire(request: Request, gameId: string): Promise<Response> {
-    let args: ReturnType<typeof playRetireFixtureRequestSchema.parse>;
-    try {
-      args = playRetireFixtureRequestSchema.parse(await readJson(request));
-    } catch {
-      return refused();
-    }
-    if (args.gameId !== gameId) {
+    const args = await readRequest(request, playRetireFixtureRequestSchema);
+    if (args?.gameId !== gameId) {
       return refused();
     }
     let metadata: Metadata | undefined;
@@ -524,12 +559,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!metadata) {
       return json({ ok: true });
     }
-    if (
-      metadata.gameId !== gameId ||
-      !credentialsMatch(args.secret, metadata.secret) ||
-      metadata.game ||
-      !this.fixturePlan.hosted
-    ) {
+    if (!this.retiresAs(metadata, gameId, args.secret)) {
       return refused();
     }
     try {
@@ -553,11 +583,19 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /** Only the hosted fixture's own room retires, and only for the secret it was provisioned with. */
+  private retiresAs(metadata: Metadata, gameId: string, secret: string) {
+    return (
+      metadata.gameId === gameId &&
+      credentialsMatch(secret, metadata.secret) &&
+      !metadata.game &&
+      this.fixturePlan.hosted
+    );
+  }
+
   private async receiveAccountDeletion(request: Request, metadata: Metadata): Promise<Response> {
-    let args: ReturnType<typeof playAccountDeletionRequestSchema.parse>;
-    try {
-      args = playAccountDeletionRequestSchema.parse(await readJson(request));
-    } catch {
+    const args = await readRequest(request, playAccountDeletionRequestSchema);
+    if (!args) {
       return refused();
     }
     try {
@@ -602,6 +640,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       pingedAt: 0,
       tokens: RATE_BURST,
       motionTokens: RATE_BURST,
+      commandTokens: COMMAND_BURST,
       refilledAt: Date.now(),
     });
     this.ensureSweep();
@@ -815,11 +854,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       userIds,
     });
     const result = playReconcileAccountsResultSchema.parse(raw);
-    if (!result.ok || result.accounts.length !== userIds.length) {
-      throw new Error('Authorization unavailable.');
-    }
-    const remaining = new Set(userIds);
-    if (!result.accounts.every((account) => remaining.delete(account.userId))) {
+    if (!result.ok || !answersEachOnce(result.accounts, userIds, (account) => account.userId)) {
       throw new Error('Authorization unavailable.');
     }
     return result.accounts;
@@ -897,7 +932,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private async admit(socket: WebSocket, connection: Connection, ticket: string, replaces?: string) {
     if (connection.admitting || connection.viewer) {
-      this.deny(socket);
+      this.refuseAdmission(socket, 'duplicate');
       return;
     }
     connection.admitting = true;
@@ -916,12 +951,17 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.failAdmission(socket, error, false);
         return;
       }
-      if (!this.reconciled || !this.pendingConnection(socket, connection)) {
-        this.deny(socket);
+      /* An admission slower than the pending window is the one the sweep times out: the browser retries with a new ticket. */
+      if (!this.pendingConnection(socket, connection)) {
+        this.expirePending(socket);
+        return;
+      }
+      if (!this.reconciled) {
+        this.refuseAdmission(socket, 'unreconciled');
         return;
       }
       if (!this.canRegister(result.registrationId)) {
-        this.deny(socket);
+        this.refuseAdmission(socket, 'capacity');
         return;
       }
       this.registerConnection(connection, result);
@@ -955,6 +995,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.closeUnavailable(socket);
       return;
     }
+    this.refuseAdmission(socket, error instanceof GameRejection ? 'ticket' : 'unusable-answer');
+  }
+
+  private refuseAdmission(socket: WebSocket, reason: AdmissionRefusal) {
+    this.diagnostics.refused(reason);
     this.deny(socket);
   }
 
@@ -979,10 +1024,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       'authorized';
     if (allowed && connection.everAuthorized) {
       const seat = this.session.seatFor(connection.viewer.userId);
-      if (!seat) {
-        return false;
-      }
-      if (seat !== connection.viewer.viewerSeat) {
+      if (!seat || seat !== connection.viewer.viewerSeat) {
         return false;
       }
     }
@@ -1041,22 +1083,26 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.refreshAccounts();
     }
     this.reconcileViewers();
-    /* A held connection missed every frame of the fence; its update is computed against the last frame it received. */
     if (admitted.size || resumed) {
-      const frameFor = this.framePass();
-      for (const [socket, connection] of this.connections) {
-        if (!connection.viewer || !this.authorized(socket)) {
-          continue;
-        }
-        if (admitted.has(socket)) {
-          /* A resumed connection leaves suspension only after receiving a full view. */
-          this.sendView(socket, connection);
-        } else {
-          this.send(socket, this.delivery.update(socket, connection.viewer, frameFor(connection.viewer)));
-        }
-      }
+      this.sendAfterFence(admitted);
     } else if (activityChanged || this.session.revision !== revision) {
       this.broadcastActivity();
+    }
+  }
+
+  /** A held connection missed every frame of the fence; its update is computed against the last frame it received. */
+  private sendAfterFence(admitted: ReadonlySet<WebSocket>) {
+    const frameFor = this.framePass();
+    for (const [socket, connection] of this.connections) {
+      if (!connection.viewer || !this.authorized(socket)) {
+        continue;
+      }
+      if (admitted.has(socket)) {
+        /* A resumed connection leaves suspension only after receiving a full view. */
+        this.sendView(socket, connection);
+      } else {
+        this.send(socket, this.delivery.update(socket, connection.viewer, frameFor(connection.viewer)));
+      }
     }
   }
 
@@ -1073,28 +1119,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return 'denied';
     }
     if (this.authorized(socket)) {
-      if (connection.announced === 'authorized') {
-        return;
-      }
-      try {
-        connection.viewer = this.session.viewer(
-          connection.connectionId,
-          connection.viewer!.userId,
-          connection.viewer!.displayName,
-          {
-            seatNewcomers: !this.metadata?.game,
-            avatarUrl: connection.avatarUrl,
-            profileSlug: connection.profileSlug,
-          }
-        );
-      } catch {
-        this.deny(socket, false);
-        return 'activity';
-      }
-      connection.announced = 'authorized';
-      connection.everAuthorized = true;
-      this.retireReplaced(connection);
-      return 'admitted';
+      return connection.announced === 'authorized' ? undefined : this.announceAuthorized(socket, connection);
     }
     if (this.fenceFor(socket, connection)) {
       return;
@@ -1106,6 +1131,29 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.sendAdmission(socket, 'suspended');
       return connection.everAuthorized ? 'activity' : undefined;
     }
+  }
+
+  /** An authorized connection not yet announced as such takes its seat; one the room can no longer seat is denied. */
+  private announceAuthorized(socket: WebSocket, connection: Connection) {
+    try {
+      connection.viewer = this.session.viewer(
+        connection.connectionId,
+        connection.viewer!.userId,
+        connection.viewer!.displayName,
+        {
+          seatNewcomers: !this.metadata?.game,
+          avatarUrl: connection.avatarUrl,
+          profileSlug: connection.profileSlug,
+        }
+      );
+    } catch {
+      this.deny(socket, false);
+      return 'activity';
+    }
+    connection.announced = 'authorized';
+    connection.everAuthorized = true;
+    this.retireReplaced(connection);
+    return 'admitted';
   }
 
   /*
@@ -1263,7 +1311,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     message: Extract<ClientMessage, { type: 'catalogue' }>,
     suspensions: number
   ) {
-    const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
+    const catalogue = this.catalogue();
     try {
       const result = message.selection
         ? { contents: this.session.projectContents(await catalogue.capture(message.selection)) }
@@ -1290,11 +1338,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (message.action.kind !== 'spawn-request') {
       return;
     }
-    if (this.session.alreadyCommitted(`${connection.viewer!.userId}:${message.commandId}`, message)) {
+    if (this.session.alreadyCommitted(connection.viewer!, message)) {
       this.sendView(socket, connection, message.commandId);
       return;
     }
-    const contents = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).capture(message.action);
+    const contents = await this.catalogue().capture(message.action);
     /* Catalogue I/O yields, so the request waits out a fence like a new message. Commit rechecks authorization, the roster and the receipt afterward. */
     if (await this.outlastFence(socket, connection, suspensions)) {
       this.commit(socket, connection, message, contents);
@@ -1318,10 +1366,14 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     const now = Date.now();
-    const refill = (tokens: number) =>
-      Math.min(RATE_BURST, tokens + (Math.max(0, now - connection.refilledAt) * RATE_PER_SECOND) / 1000);
+    const elapsed = Math.max(0, now - connection.refilledAt);
+    const refill = (tokens: number) => Math.min(RATE_BURST, tokens + (elapsed * RATE_PER_SECOND) / 1000);
     connection.tokens = refill(connection.tokens);
     connection.motionTokens = refill(connection.motionTokens);
+    connection.commandTokens = Math.min(
+      COMMAND_BURST,
+      connection.commandTokens + (elapsed * COMMANDS_PER_SECOND) / 1000
+    );
     connection.refilledAt = now;
     /*
      * The refill follows the room's clock, which stands still while the room runs code, so a busy room can see a steady mover's frames as a burst.
@@ -1338,14 +1390,27 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
     } else if (connection.tokens >= 1) {
       connection.tokens--;
-      return message;
+      return this.withinCommandBudget(socket, connection, message);
     }
     this.refuseRate(socket);
   }
 
+  /* A table command past its own bucket is refused on its own: the socket stays open, and the room spends no write or frame on it. */
+  private withinCommandBudget(socket: WebSocket, connection: Connection, message: ClientMessage) {
+    if (message.type !== 'command') {
+      return message;
+    }
+    if (connection.commandTokens < 1) {
+      this.send(socket, { type: 'rejected', requestId: message.commandId, message: COMMAND_RATE_REFUSAL });
+      return;
+    }
+    connection.commandTokens--;
+    return message;
+  }
+
   private refuseRate(socket: WebSocket) {
     this.disconnect(socket);
-    socket.close(4413, 'Too many requests.');
+    socket.close(RATE_LIMITED_CLOSE_CODE, 'Too many requests.');
   }
 
   /* Reads that answer from the room's records alone, whatever the reader may do at the table. */
@@ -1375,7 +1440,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private dispatch(
     socket: WebSocket,
     connection: Connection,
-    message: Exclude<ClientMessage, { type: 'admit' | 'catalogue' }>
+    message: Exclude<ClientMessage, { type: 'admit' | 'catalogue' | 'pointer' | 'pose' }>
   ) {
     if (isPageRead(message)) {
       this.sendPage(socket, message);
@@ -1498,17 +1563,10 @@ export class GameRoom extends DurableObject<GameEnv> {
   private publishActivity(
     socket: WebSocket,
     connection: Connection,
-    message: Extract<
-      ClientMessage,
-      { type: 'ping' | 'pointer' | 'pose' | 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }
-    >
+    message: Extract<ClientMessage, { type: 'ping' | 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }>
   ) {
     if (message.type === 'ping') {
       this.relayPing(socket, connection, message);
-      return;
-    }
-    if (message.type === 'pointer' || message.type === 'pose') {
-      this.moveActivity(connection, message);
       return;
     }
     const revision = this.session.revision;
@@ -1564,12 +1622,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       message: error instanceof GameRejection ? error.message : 'Unable to process the command.',
     });
   }
-  private commit(
-    socket: WebSocket,
-    connection: Connection,
-    message: Extract<ClientMessage, { type: 'command' | 'drop' }>,
-    contents?: StoredSpawnContents
-  ) {
+  private commit(socket: WebSocket, connection: Connection, message: CommitMessage, contents?: StoredSpawnContents) {
     const timing: (typeof this.commandTimings)[number] = {
       userId: connection.viewer!.userId,
       commandId: message.commandId,
@@ -1631,18 +1684,15 @@ export class GameRoom extends DurableObject<GameEnv> {
       displayName: `Placeholder for seat ${index + 2}`,
     }));
     const everyone = [creator, ...placeholders];
-    const snapshot = () => this.session.currentSnapshot();
-    const viewerOf = (player: { userId: string; displayName: string }) =>
-      this.session.provisionViewer(player.userId, player.displayName);
     let sequence = 0;
-    const command = (player: { userId: string; displayName: string }, action: PieceAction) => {
+    const command: ProvisionCommand = (player, action) => {
       this.advanceDeadlines();
       sequence += 1;
-      this.session.execute(viewerOf(player), {
+      this.session.execute(this.session.provisionViewer(player.userId, player.displayName), {
         type: 'command',
         commandId: `provision-${sequence}`,
         action,
-        expectedRevision: snapshot().revision,
+        expectedRevision: this.session.currentSnapshot().revision,
       });
     };
     for (const placeholder of placeholders) {
@@ -1657,54 +1707,91 @@ export class GameRoom extends DurableObject<GameEnv> {
       command(player, { kind: 'draft-ready', ready: true });
     }
     await this.settleAssignment();
+    this.provisionSwapReady(everyone, command);
+    await this.provisionSetup(creator, everyone, command);
+    for (const placeholder of placeholders) {
+      command(placeholder, { kind: 'seat-depart' });
+    }
+  }
+
+  /** Every player readies the dealt trading round, which the deal must have opened. */
+  private provisionSwapReady(everyone: readonly ProvisionPlayer[], command: ProvisionCommand) {
+    const snapshot = () => this.session.currentSnapshot();
     for (const player of everyone) {
       const round = snapshot().swapping?.round;
       if (snapshot().stage !== 'swapping' || round === undefined) {
         const reason = snapshot().draft?.failure ?? `it is in ${snapshot().stage ?? 'no'} stage`;
         throw new Error(`The provisioned game was not dealt: ${reason}`);
       }
-      command(player, { kind: 'swap-ready', ready: true, round, seat: viewerOf(player).viewerSeat });
+      command(player, { kind: 'swap-ready', ready: true, round, seat: this.provisionSeat(player) });
     }
+  }
+
+  /** Each setup step is done as its players would do it, and the creator moves on, until play begins. */
+  private async provisionSetup(
+    creator: ProvisionPlayer,
+    everyone: readonly ProvisionPlayer[],
+    command: ProvisionCommand
+  ) {
+    const snapshot = () => this.session.currentSnapshot();
     for (let changes = 0; snapshot().stage === 'setup'; changes++) {
       const steps = snapshot().setup?.steps.length ?? 0;
       if (changes >= steps) {
         throw new Error(`Setup did not reach play within its ${steps} steps.`);
       }
-      const setup = snapshot().setup!;
-      const step = setupStep(setup);
-      if (step?.kind === 'prediction') {
-        /* A prediction gates on its lock, never on readiness; it is revealed at once so every seat starts play with the same public view. */
-        const predictor = everyone.find((player) => this.seatFaction(viewerOf(player).viewerSeat) === step.factionId);
-        if (!predictor) {
-          throw new Error(`No provisioned player holds the faction of ${step.title}.`);
-        }
-        command(predictor, {
-          kind: 'prediction-lock',
-          stepId: step.id,
-          choice: { factionId: step.factionId!, turn: 1 },
-        });
-        command(predictor, { kind: 'prediction-reveal', stepId: step.id });
-      } else if (setupReadyRequired(setup)) {
-        const ready = snapshot().controls?.ready ?? [];
-        for (const player of everyone) {
-          if (!ready.includes(viewerOf(player).viewerSeat)) {
-            command(player, { kind: 'ready', ready: true });
-          }
-        }
-      }
+      this.provisionSetupStep(everyone, command);
       await this.phaseCooldownElapsed();
       command(creator, { kind: 'phase', direction: 1 });
     }
     if (snapshot().stage !== 'play') {
       throw new Error(`The provisioned game did not reach play; it is in ${snapshot().stage ?? 'no'} stage.`);
     }
-    for (const placeholder of placeholders) {
-      command(placeholder, { kind: 'seat-depart' });
+  }
+
+  /** What the current setup step asks of the players before the creator moves on. */
+  private provisionSetupStep(everyone: readonly ProvisionPlayer[], command: ProvisionCommand) {
+    const snapshot = this.session.currentSnapshot();
+    const setup = snapshot.setup!;
+    const step = setupStep(setup);
+    if (step?.kind === 'prediction') {
+      this.provisionPrediction(everyone, command, step);
+    } else if (setupReadyRequired(setup)) {
+      const ready = snapshot.controls?.ready ?? [];
+      everyone
+        .filter((player) => !ready.includes(this.provisionSeat(player)))
+        .forEach((player) => command(player, { kind: 'ready', ready: true }));
     }
   }
 
+  private provisionSeat(player: ProvisionPlayer) {
+    return this.session.provisionViewer(player.userId, player.displayName).viewerSeat;
+  }
+
+  /* A prediction gates on its lock, never on readiness; it is revealed at once so every seat starts play with the same public view. */
+  private provisionPrediction(
+    everyone: readonly ProvisionPlayer[],
+    command: ProvisionCommand,
+    step: SetupState['steps'][number]
+  ) {
+    const predictor = everyone.find((player) => this.seatFaction(this.provisionSeat(player)) === step.factionId);
+    if (!predictor) {
+      throw new Error(`No provisioned player holds the faction of ${step.title}.`);
+    }
+    command(predictor, {
+      kind: 'prediction-lock',
+      stepId: step.id,
+      choice: { factionId: step.factionId!, turn: 1 },
+    });
+    command(predictor, { kind: 'prediction-reveal', stepId: step.id });
+  }
+
+  /** The catalogue this deployment reads factions, rulesets and decks from. */
+  private catalogue() {
+    return new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
+  }
+
   private seatFaction(seat: string) {
-    return this.session.currentSnapshot().roster?.seats.find((entry) => entry.id === seat)?.faction?.id;
+    return rosterSeat(this.session.currentSnapshot().roster, seat)?.faction?.id;
   }
 
   /**
@@ -1737,7 +1824,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private async draftableFactions(rulesetId: string): Promise<DraftFaction[] | null> {
     try {
-      return await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).draftableFactions(rulesetId);
+      return await this.catalogue().draftableFactions(rulesetId);
     } catch (error) {
       /* A game opens without the list, stamped stale, and reads it on the first draft command. */
       this.diagnostics.report('draft-catalogue', error);
@@ -1772,7 +1859,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     this.refreshingCatalogue = true;
     try {
-      const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
+      const catalogue = this.catalogue();
       const factions = await catalogue.draftableFactions(metadata.game.rulesetId);
       const setAside = await this.judgeSetAside(catalogue, factions);
       this.session.updateDraftCatalogue(factions, setAside);
@@ -1782,8 +1869,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (this.assigning) {
         this.draftChangedDuringAttempt = true;
       }
-      this.reconcileViewers();
-      this.broadcastViews();
+      this.refreshViews();
     } catch (error) {
       /* The copy in hand still judges the gates; the next command reads again. */
       this.diagnostics.report('draft-catalogue', error);
@@ -1823,7 +1909,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     const generation = this.catalogueGeneration;
-    const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
+    const catalogue = this.catalogue();
     const ready: string[] = [];
     const refused: Record<string, string> = {};
     for (const factionId of pending) {
@@ -1850,8 +1936,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (this.assigning) {
       this.draftChangedDuringAttempt = true;
     }
-    this.reconcileViewers();
-    this.broadcastViews();
+    this.refreshViews();
   }
 
   /** Why a pick cannot be dealt; nothing when it is ready, null when its capture could not be read, which is reported and judged again later. */
@@ -1941,12 +2026,10 @@ export class GameRoom extends DurableObject<GameEnv> {
         /* The deal never fails twice on the same faction: it is set aside, and the next attempt deals from what remains. */
         this.session.setFactionsAside(refused);
         this.draftChangedDuringAttempt = true;
-        this.reconcileViewers();
-        this.broadcastViews();
+        this.refreshViews();
       } else if (this.session.completeAssignment(prepared)) {
         this.deliverDirectorySoon();
-        this.reconcileViewers();
-        this.broadcastViews();
+        this.refreshViews();
       }
     } catch (error) {
       if (!(error instanceof GameRejection)) {
@@ -1955,8 +2038,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.session.assignmentFailed(
         error instanceof GameRejection ? error.message : 'The deal did not go through. Try again.'
       );
-      this.reconcileViewers();
-      this.broadcastViews();
+      this.refreshViews();
     } finally {
       this.assigning = false;
     }
@@ -1966,10 +2048,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private broadcastCommittedView(
-    connection: Connection,
-    message: Extract<ClientMessage, { type: 'command' | 'drop' }>
-  ) {
+  private broadcastCommittedView(connection: Connection, message: CommitMessage) {
     this.clearActivityTimer();
     const frameFor = this.framePass();
     for (const [peer, identity] of this.connections) {
@@ -2067,7 +2146,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private deny(socket: WebSocket, broadcast = true) {
     this.sendAdmission(socket, 'denied');
     this.disconnect(socket, broadcast);
-    socket.close(4401, 'Admission refused.');
+    socket.close(ADMISSION_REFUSED_CLOSE_CODE, 'Admission refused.');
   }
 
   private disconnect(socket: WebSocket, broadcast = true) {
@@ -2137,10 +2216,14 @@ export class GameRoom extends DurableObject<GameEnv> {
   private expirePendingConnections() {
     for (const [socket, connection] of this.connections) {
       if (!connection.everAuthorized && Date.now() >= connection.openedAt + PLAY_PENDING_TIMEOUT_MS) {
-        this.disconnect(socket);
-        socket.close(4408, 'Admission timed out.');
+        this.expirePending(socket);
       }
     }
+  }
+
+  private expirePending(socket: WebSocket) {
+    this.disconnect(socket);
+    socket.close(4408, 'Admission timed out.');
   }
 
   private sweepActivity() {

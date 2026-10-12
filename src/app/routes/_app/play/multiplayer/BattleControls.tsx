@@ -16,7 +16,6 @@ import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
-import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
@@ -44,13 +43,15 @@ import { PieceImage, pieceName } from './HandPiece';
 import { HandPieceMenu, handMenuAnchor } from './HiddenZone';
 import type { HandMenuAnchor } from './HiddenZone';
 import { battleHelp, handHelp } from './panelGuidance';
+import { isSpectator } from './tableFactions';
 
 type Props = { client: TableSession; table: TableProjection };
-const outcomes = [
-  ['left', 'Left side won'],
-  ['none', 'No winner'],
-  ['right', 'Right side won'],
-] as const;
+type Outcome = NonNullable<NonNullable<PublicBattle['sides'][number]>['choice']>;
+const OUTCOME_LABELS: Readonly<Record<Outcome, string>> = {
+  left: 'Left side won',
+  none: 'No winner',
+  right: 'Right side won',
+};
 type FactionArtwork = TableProjection['snapshot']['factionArtwork'];
 type FactionNames = TableProjection['state']['factionNames'];
 /* A real game keys factions by their Convex ids, so every battle label reads the roster's name and keeps the id only when the roster has none. */
@@ -95,49 +96,59 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
     </Button>
   );
 }
+/* The plan's capable troops as the wheel shows them, each dressed in the faction's own troop artwork. */
+function wheelTroops(
+  plan: BattlePlan,
+  factionId: string,
+  background: ReturnType<typeof factionArtwork>['background'],
+  retained: NonNullable<FactionArtwork>[string] | undefined
+) {
+  const retainedFaces = retained && new Map(troopBattleFaces(retained.troops).map((entry) => [entry.id, entry.face]));
+  return plan.faces
+    .filter((face) => face.capable)
+    .flatMap((face) => {
+      const troop = plan.troops.find((entry) => entry.faceId === face.id);
+      const authored = retainedFaces?.get(face.id);
+      /* Real games never borrow a fixture house's troop artwork; a captured face is found by its identity, not its name. */
+      if (retainedFaces && !authored) {
+        return [];
+      }
+      return [
+        {
+          id: face.id,
+          name: face.name,
+          dialed: troop?.dialed ?? 0,
+          undialed: troop?.undialed ?? 0,
+          artwork: {
+            background,
+            image:
+              authored?.image ??
+              (factionId === 'atreides' ? '/vector/troop/atreides.svg' : '/vector/troop/harkonnen.svg'),
+            star: authored?.star,
+            hue: authored?.hue,
+            striped: authored?.striped,
+          },
+        },
+      ];
+    });
+}
 /** Play owns piece visibility, pointer sessions and the Motion verdict; the asset owns the wheel artwork. */
 function BattleWheel({ plan, factionId, factionName, client, active, artwork }: WheelProps) {
   const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
   const motion = useMotionAllowed();
   const retained = artwork?.[factionId];
-  const retainedFaces = retained && new Map(troopBattleFaces(retained.troops).map((entry) => [entry.id, entry.face]));
+  const { background } = factionArtwork(factionId, artwork);
   return (
     <BattleWheelAsset
       state="revealed"
       motion={motion}
       className={styles.wheel}
       label={`${factionName} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
-      background={factionArtwork(factionId, artwork).background}
+      background={background}
       strength={plan.strength}
       spice={plan.spice}
       adjustment={plan.adjustment}
-      troops={plan.faces
-        .filter((face) => face.capable)
-        .flatMap((face) => {
-          const troop = plan.troops.find((entry) => entry.faceId === face.id);
-          const authored = retainedFaces?.get(face.id);
-          /* Real games never borrow a fixture house's troop artwork; a captured face is found by its identity, not its name. */
-          if (retainedFaces && !authored) {
-            return [];
-          }
-          return [
-            {
-              id: face.id,
-              name: face.name,
-              dialed: troop?.dialed ?? 0,
-              undialed: troop?.undialed ?? 0,
-              artwork: {
-                background: factionArtwork(factionId, artwork).background,
-                image:
-                  authored?.image ??
-                  (factionId === 'atreides' ? '/vector/troop/atreides.svg' : '/vector/troop/harkonnen.svg'),
-                star: authored?.star,
-                hue: authored?.hue,
-                striped: authored?.striped,
-              },
-            },
-          ];
-        })}
+      troops={wheelTroops(plan, factionId, background, retained)}
       cards={plan.pieces
         .filter((piece) => plan.cardIds.includes(piece.id) && visiblePiece(piece, active))
         .map((piece) => (
@@ -350,7 +361,8 @@ function EarlyReveal({
 }
 
 function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan; battle: PublicBattle }) {
-  const factionId = table.snapshot.bank!.factionId;
+  const bank = table.snapshot.bank!;
+  const factionId = bank.factionId;
   const side = battle.sides.find((side) => side?.factionId === factionId)!;
   const locked = !table.canHandleTable || side.ready || battle.stage !== 'preparing';
   const dialLocked = locked || plan.disclosed.dial;
@@ -361,7 +373,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
     (piece, index, all) => all.findIndex((candidate) => candidate.id === piece.id) === index
   );
   const preview = { ...plan, pieces };
-  const availableSpice = table.snapshot.bank!.balance + plan.spice;
+  const availableSpice = bank.balance + plan.spice;
   return (
     <WorkbenchLayout gap="sm">
       <WorkbenchLayout.Workbench>
@@ -401,8 +413,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
             </div>
             <PlanInventory plan={plan} locked={locked} update={update} pieces={pieces} />
             <Text size="sm">
-              {table.snapshot.bank!.balance} in your spice reserve, {plan.spice} set aside. Troop strength excludes
-              leader strength.
+              {bank.balance} in your spice reserve, {plan.spice} set aside. Troop strength excludes leader strength.
             </Text>
             {battle.stage !== 'revealed' && (
               <Button
@@ -440,16 +451,13 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
 }
 
 function canTakeSelected(piece: TablePiece | undefined) {
-  if (!piece) {
-    return false;
-  }
-  if (piece.inventory || piece.locked) {
-    return false;
-  }
-  if (piece.items.length !== 1) {
-    return false;
-  }
-  return piece.kind === 'card' || isBattleLeader(piece);
+  return (
+    !!piece &&
+    !piece.inventory &&
+    !piece.locked &&
+    piece.items.length === 1 &&
+    (piece.kind === 'card' || isBattleLeader(piece))
+  );
 }
 export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
@@ -522,7 +530,7 @@ function BattleResults({
           <Stack key={result.id} gap="xs">
             <Text>
               {result.territory}: {result.factions.map((id) => rosterName(id, names)).join(' against ')}.{' '}
-              {outcomes.find(([outcome]) => outcome === result.outcome)?.[1]}.
+              {OUTCOME_LABELS[result.outcome]}.
             </Text>
             <Group pt={40}>
               {result.plans.map((plan, side) => (
@@ -552,7 +560,7 @@ function battleNotice(table: TableProjection, battle: PublicBattle | null | unde
   if (battle.stage === 'revealed') {
     return 'Both plans are revealed on the table.';
   }
-  if (table.viewer.viewerSeat === SPECTATOR_SEAT || battle.sides.every(Boolean)) {
+  if (isSpectator(table) || battle.sides.every(Boolean)) {
     return 'Only the two sides see their plans until the reveal.';
   }
   return 'Claim a side on the table to prepare your private plan.';
@@ -708,13 +716,13 @@ function BattleMarker({ table }: Props) {
   );
 }
 type ActiveProps = Props & { battle: PublicBattle; own: number };
-function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { outcome: 'left' | 'none' | 'right' }) {
+function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { outcome: Outcome }) {
   return (
     <Button
       size="xs"
       className={outcome === 'none' ? undefined : styles.outcome}
       data-outcome={outcome}
-      aria-label={outcomes.find(([choice]) => choice === outcome)![1]}
+      aria-label={OUTCOME_LABELS[outcome]}
       variant={own >= 0 && battle.sides[own]?.choice === outcome ? 'filled' : 'default'}
       disabled={!table.canHandleTable || own < 0}
       onClick={() => client.command({ kind: 'battle-outcome', battleId: battle.id, outcome })}
@@ -773,7 +781,7 @@ function waitingOn({ battle, table, own }: ActiveProps) {
   if (!other.choice) {
     return `Waiting for ${rosterName(other.factionId, names)} to agree`;
   }
-  const call = outcomes.find(([choice]) => choice === other.choice)![1];
+  const call = OUTCOME_LABELS[other.choice];
   return `${rosterName(other.factionId, names)} says ${call.toLowerCase()}`;
 }
 function BattleCentre(props: ActiveProps) {
@@ -866,12 +874,13 @@ function SideContents({
 }: ActiveProps & { index: 0 | 1; active: Set<string> }) {
   const side = battle.sides[index];
   const motion = useMotionAllowed();
+  const names = snapshotFactionLabels(table.snapshot);
   if (battle.revealed) {
     return (
       <BattleWheel
         plan={battle.revealed[index]}
         factionId={side!.factionId}
-        factionName={rosterName(side!.factionId, snapshotFactionLabels(table.snapshot))}
+        factionName={rosterName(side!.factionId, names)}
         artwork={table.snapshot.factionArtwork}
         client={table.canHandleTable ? client : undefined}
         active={active}
@@ -880,18 +889,19 @@ function SideContents({
   }
   const early = battle.disclosed?.[index];
   if (side) {
+    const name = rosterName(side.factionId, names);
     const closed = (
       <BattleWheelAsset
         state="unrevealed"
         motion={motion}
-        label={`${rosterName(side.factionId, snapshotFactionLabels(table.snapshot))}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
+        label={`${name}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
         artwork={factionArtwork(side.factionId, table.snapshot.factionArtwork)}
         ready={side.ready}
       />
     );
     if (early && (early.leader || early.dial || early.cards.length)) {
       return (
-        <EarlyRevealWheel early={early} factionName={rosterName(side.factionId, snapshotFactionLabels(table.snapshot))}>
+        <EarlyRevealWheel early={early} factionName={name}>
           {closed}
         </EarlyRevealWheel>
       );
@@ -925,7 +935,7 @@ function BattleSides(props: ActiveProps) {
             <SideContents {...props} index={index} active={active} />
             {side?.choice && (
               <Text className={styles.choice} size="xs">
-                {outcomes.find(([choice]) => choice === side.choice)?.[1]}
+                {OUTCOME_LABELS[side.choice]}
               </Text>
             )}
           </div>

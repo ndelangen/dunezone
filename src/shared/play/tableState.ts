@@ -1,9 +1,11 @@
-import { gestureBlockReason, nearestZone, pieceCount, zoneById } from './model';
+import { gestureBlockReason, isFlippablePiece, nearestZone, pieceCount, zoneById } from './model';
 import type { DraftMove, TableEvent, TableItem, TablePiece, TableState, Vector3Tuple } from './model';
-import { isSpicePiece, isSpiceBankPosition } from './spiceBank';
+import { isSpicePiece } from './spice';
+import { isSpiceBankPosition } from './spiceBank';
 import { moveStormCounterclockwise } from './stormSector';
 import { placementAnchorAtPosition } from './tableFurnitureLayout';
-import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
+import type { PlacementAnchor } from './tableFurnitureLayout';
+import { nearestBy, planarDistance, restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import {
   clampPositionToTable,
   isOverlapFreePosition,
@@ -54,18 +56,37 @@ export function labelForCount(
     return 'Spice';
   }
   if (piece.kind === 'card') {
-    const noun = count === 1 ? 'card' : held ? 'cards' : 'deck';
-    const name = cardStackName(piece);
-    return name ? `${name} ${noun}` : `${noun.charAt(0).toUpperCase()}${noun.slice(1)}`;
+    return cardStackLabel(piece, count, held);
   }
   if (piece.kind === 'force') {
-    const owner = piece.owner === 'shared' ? 'Shared' : factionNames[piece.owner];
-    const [unit, units] = isTroopStack(piece) ? ['troop', 'troops'] : ['token', 'tokens'];
-    /* Every faction that owns a piece has a seat, so a missing name reads as plain troops or tokens rather than an id. */
-    const [one, many] = owner ? [`${owner} ${unit}`, `${owner} ${units}`] : [capitalized(unit), capitalized(units)];
-    return count === 1 ? one : many;
+    return forceStackLabel(piece, count, factionNames);
   }
   return piece.label;
+}
+
+function cardStackLabel(piece: TablePiece, count: number, held: boolean): string {
+  const noun = count === 1 ? 'card' : held ? 'cards' : 'deck';
+  const name = cardStackName(piece);
+  return name ? `${name} ${noun}` : capitalized(noun);
+}
+
+function forceStackLabel(piece: TablePiece, count: number, factionNames: TableState['factionNames']): string {
+  const owner = piece.owner === 'shared' ? 'Shared' : factionNames[piece.owner];
+  const [unit, units] = pieceUnits(piece);
+  /* Every faction that owns a piece has a seat, so a missing name reads as plain troops or tokens rather than an id. */
+  const [one, many] = owner ? [`${owner} ${unit}`, `${owner} ${units}`] : [capitalized(unit), capitalized(units)];
+  return count === 1 ? one : many;
+}
+
+/** What one and several of a stack's units are called in a table event: cards, spice, troops or tokens. */
+export function pieceUnits(piece: TablePiece): readonly [one: string, many: string] {
+  if (piece.kind === 'card') {
+    return ['card', 'cards'];
+  }
+  if (isSpicePiece(piece)) {
+    return ['spice', 'spice'];
+  }
+  return isTroopStack(piece) ? ['troop', 'troops'] : ['token', 'tokens'];
 }
 
 function capitalized(word: string): string {
@@ -151,6 +172,15 @@ function pieceAsPickedUp(state: TableState, draft: DraftMove): TablePiece | null
       ? { ...held, items: held.items.map((item) => ({ ...item, faceUp: false })) }
       : held;
   }
+  return withdrawalsAsPickedUp(state, draft, canonicalHeld);
+}
+
+/* A carry that took items off stacks holds them on top of whatever it already held, dressed as its source. */
+function withdrawalsAsPickedUp(
+  state: TableState,
+  draft: DraftMove,
+  canonicalHeld: TablePiece | undefined
+): TablePiece | null {
   const source = state.pieces.find((piece) => piece.id === draft.sourcePieceId);
   if (!source) {
     return null;
@@ -187,12 +217,21 @@ function remainingRenderedPiece(
   if (piece.id === draft.pieceId) {
     return [heldPiece];
   }
+  const remaining = pieceWithoutWithdrawals(state, piece, draft);
+  if (remaining.length) {
+    return remaining;
+  }
+  return withdrawnIdsFor(draft, piece.id).size > 0 ? [{ ...piece, items: [] }] : [];
+}
+
+/** A piece with the draft's withdrawals taken off, renamed only if it lost items; nothing once it has none left. */
+function pieceWithoutWithdrawals(state: TableState, piece: TablePiece, draft: DraftMove): TablePiece[] {
   const withdrawn = withdrawnIdsFor(draft, piece.id).size > 0;
   const items = remainingItemsFor(piece, draft);
-  if (items.length) {
-    return [withdrawn ? { ...piece, label: labelForCount(piece, items.length, state.factionNames), items } : piece];
+  if (!items.length) {
+    return [];
   }
-  return withdrawn ? [{ ...piece, items: [] }] : [];
+  return [withdrawn ? { ...piece, label: labelForCount(piece, items.length, state.factionNames), items } : piece];
 }
 
 /* A whole piece in hand shows each flip made while it is held. */
@@ -206,32 +245,37 @@ function withHeldTurnedOver(state: TableState, draft: DraftMove | null | undefin
 
 export function renderedPiecesFor(state: TableState): TablePiece[] {
   const draft = state.draftMove;
+  const isShown = (piece: TablePiece) => !piece.inventory || piece.id === draft?.pieceId;
   if (!draft || draft.withdrawals.length === 0) {
-    return withHeldTurnedOver(state, draft).filter((piece) => !piece.inventory || piece.id === draft?.pieceId);
+    return withHeldTurnedOver(state, draft).filter(isShown);
   }
   const heldPiece = heldPieceFor(state, draft);
   if (!heldPiece) {
-    return state.pieces.filter((piece) => !piece.inventory || piece.id === draft?.pieceId);
+    return state.pieces.filter(isShown);
   }
   const canonicalHeld = state.pieces.some((piece) => piece.id === draft.pieceId);
   const remainingPieces = state.pieces.flatMap((piece) => remainingRenderedPiece(state, piece, draft, heldPiece));
-  return (canonicalHeld ? remainingPieces : [...remainingPieces, heldPiece]).filter(
-    (piece) => !piece.inventory || piece.id === draft.pieceId
-  );
+  return (canonicalHeld ? remainingPieces : [...remainingPieces, heldPiece]).filter(isShown);
 }
 
-function rejection(state: TableState, command: string, message: string): TableState {
-  const event: TableEvent = {
-    id: eventId(state.nextEventNumber),
-    command,
-    message,
-    status: 'rejected',
-  };
+function appendEvent(state: TableState, event: TableEvent): Pick<TableState, 'events' | 'nextEventNumber'> {
   return {
-    ...state,
     events: [event, ...state.events].slice(0, 8),
     nextEventNumber: state.nextEventNumber + 1,
   };
+}
+
+function logged(state: TableState, command: string, message: string, status: TableEvent['status']): TableState {
+  return { ...state, ...appendEvent(state, { id: eventId(state.nextEventNumber), command, message, status }) };
+}
+
+/** The table with one accepted event appended, numbered from the table's own event counter. */
+export function accepted(state: TableState, command: string, message: string): TableState {
+  return logged(state, command, message, 'accepted');
+}
+
+function rejection(state: TableState, command: string, message: string): TableState {
+  return logged(state, command, message, 'rejected');
 }
 
 type StackTargetOptions = { draft?: DraftMove | null; includeNearby?: boolean };
@@ -253,8 +297,7 @@ function stackCandidateIsNear(
     return true;
   }
   const nearbyRange = source.kind === 'card' ? 1.3 : 0.575;
-  const distance = Math.hypot(position[0] - candidate.position[0], position[2] - candidate.position[2]);
-  return includeNearby && distance <= nearbyRange;
+  return includeNearby && planarDistance(position, candidate.position) <= nearbyRange;
 }
 
 function availableStackCandidates(state: TableState, source: TablePiece, draft: DraftMove | null): TablePiece[] {
@@ -272,17 +315,11 @@ export function compatibleStackTarget(
   position: Vector3Tuple,
   { draft = null, includeNearby = false }: StackTargetOptions = {}
 ): TablePiece | null {
-  let closest: { piece: TablePiece; distance: number } | null = null;
-  for (const candidate of availableStackCandidates(state, source, draft)) {
-    const distance = Math.hypot(position[0] - candidate.position[0], position[2] - candidate.position[2]);
-    if (!stackCandidateIsNear(source, position, candidate, includeNearby)) {
-      continue;
-    }
-    if (!closest || distance < closest.distance) {
-      closest = { piece: candidate, distance };
-    }
-  }
-  return closest?.piece ?? null;
+  return nearestBy(availableStackCandidates(state, source, draft), (candidate) =>
+    stackCandidateIsNear(source, position, candidate, includeNearby)
+      ? planarDistance(position, candidate.position)
+      : null
+  );
 }
 
 function placementObstaclesFor(state: TableState, draft: DraftMove): TablePiece[] {
@@ -291,24 +328,21 @@ function placementObstaclesFor(state: TableState, draft: DraftMove): TablePiece[
   );
 }
 
+/** The draft as a plain move to a position, landing in a zone or none, onto no stack. */
+function moveDraftTo(draft: DraftMove, position: Vector3Tuple, targetZoneId: string | null): DraftMove {
+  return { ...draft, operation: 'move', position, targetZoneId, targetPieceId: null };
+}
+
 export function projectCarryAtPosition(state: TableState, draft: DraftMove, position: Vector3Tuple): DraftMove | null {
   const piece = heldPieceFor(state, draft);
   if (!piece) {
     return null;
   }
   if (isSpicePiece(piece) && isSpiceBankPosition(position)) {
-    return {
-      ...draft,
-      operation: 'move',
-      position: [...position],
-      targetZoneId: null,
-      targetPieceId: null,
-    };
+    return moveDraftTo(draft, [...position], null);
   }
   const placementAnchor = placementAnchorAtPosition(piece, position);
-  const projectedPiece = placementAnchor ? { ...piece, orientation: placementAnchor.orientation } : piece;
-  const targetPosition = placementAnchor?.position ?? position;
-  const targetPiece = compatibleStackTarget(state, projectedPiece, targetPosition, { draft });
+  const targetPiece = anchoredStackTarget(state, draft, piece, position, placementAnchor);
   if (targetPiece) {
     return {
       ...draft,
@@ -319,22 +353,22 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
     };
   }
   if (placementAnchor) {
-    return {
-      ...draft,
-      operation: 'move',
-      position: [placementAnchor.position[0], position[1], placementAnchor.position[2]],
-      targetZoneId: null,
-      targetPieceId: null,
-    };
+    return moveDraftTo(draft, [placementAnchor.position[0], position[1], placementAnchor.position[2]], null);
   }
-  const targetZoneId = nearestZone(position)?.id ?? null;
-  return {
-    ...draft,
-    operation: 'move',
-    position: [...position],
-    targetZoneId,
-    targetPieceId: null,
-  };
+  return moveDraftTo(draft, [...position], nearestZone(position)?.id ?? null);
+}
+
+/* The stack a held piece would join at `position`, judged in the anchor's pose and spot when it falls in one. */
+function anchoredStackTarget(
+  state: TableState,
+  draft: DraftMove,
+  piece: TablePiece,
+  position: Vector3Tuple,
+  placementAnchor: PlacementAnchor | null
+): TablePiece | null {
+  const projectedPiece = placementAnchor ? { ...piece, orientation: placementAnchor.orientation } : piece;
+  const targetPosition = placementAnchor?.position ?? position;
+  return compatibleStackTarget(state, projectedPiece, targetPosition, { draft });
 }
 
 function settleMoveAtPosition(
@@ -353,14 +387,7 @@ function settleMoveAtPosition(
     if (!isOverlapFreePosition(anchoredPiece, anchoredPosition, placementObstaclesFor(state, draft))) {
       return null;
     }
-    return {
-      ...draft,
-      operation: 'move',
-      position: anchoredPosition,
-      orientation: placementAnchor.orientation,
-      targetZoneId: null,
-      targetPieceId: null,
-    };
+    return { ...moveDraftTo(draft, anchoredPosition, null), orientation: placementAnchor.orientation };
   }
   const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece));
   const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, placementObstaclesFor(state, draft));
@@ -368,14 +395,7 @@ function settleMoveAtPosition(
     return null;
   }
   const restingPosition = restingPositionAt(resolvedPosition, piece);
-  const targetZoneId = nearestZone(restingPosition)?.id ?? null;
-  return {
-    ...draft,
-    operation: 'move',
-    position: restingPosition,
-    targetZoneId,
-    targetPieceId: null,
-  };
+  return moveDraftTo(draft, restingPosition, nearestZone(restingPosition)?.id ?? null);
 }
 
 export function settleCarryAtPosition(state: TableState, draft: DraftMove, position: Vector3Tuple): DraftMove | null {
@@ -422,13 +442,6 @@ export function playFromHandAtAnchor(state: TableState, piece: TablePiece, posit
   return applyDraftToState(table, settled);
 }
 
-export function appendEvent(state: TableState, event: TableEvent): Pick<TableState, 'events' | 'nextEventNumber'> {
-  return {
-    events: [event, ...state.events].slice(0, 8),
-    nextEventNumber: state.nextEventNumber + 1,
-  };
-}
-
 /*
  * A held piece turns over in hand as it would at rest, except a prediction card not yet revealed,
  * which lands face down so placing it stays its reveal (#1753). Once placed it turns like any card.
@@ -443,32 +456,19 @@ export function canFlipInHand(
   );
 }
 
-function isFlippablePiece(piece: TablePiece | null | undefined): piece is TablePiece {
-  if (!piece) {
-    return false;
-  }
-  const canFlipKind = piece.kind === 'card' || piece.kind === 'force';
-  return pieceCount(piece) > 0 && canFlipKind;
-}
-
 /** A stack turned over: its order reversed and every face the other way up. */
 function turnedOver(items: TablePiece['items']): TablePiece['items'] {
   return [...items].reverse().map((item) => ({ ...item, faceUp: !item.faceUp }));
 }
 
-function flipEventFor(state: TableState, flipped: TablePiece): TableEvent {
-  return {
-    id: eventId(state.nextEventNumber),
-    command: 'piece.flip',
-    message: `${flipped.label} flipped ${flipped.items.at(-1)?.faceUp ? 'face up' : 'face down'}.`,
-    status: 'accepted',
-  };
+function flipMessageFor(flipped: TablePiece): string {
+  return `${flipped.label} flipped ${flipped.items.at(-1)?.faceUp ? 'face up' : 'face down'}.`;
 }
 
 /* A carry that landed turned over is logged as a flip first, as if it were flipped where it was picked up. */
 function withCarryFlipEvent(current: TableState, draft: DraftMove, piece: TablePiece): TableState {
   const turned = (draft.flips ?? 0) % 2 === 1 && isFlippablePiece(piece);
-  return turned ? { ...current, ...appendEvent(current, flipEventFor(current, piece)) } : current;
+  return turned ? accepted(current, 'piece.flip', flipMessageFor(piece)) : current;
 }
 
 export function flipPieceInState(state: TableState, pieceId?: string): TableState {
@@ -485,16 +485,19 @@ export function flipPieceInState(state: TableState, pieceId?: string): TableStat
     return rejection(state, 'piece.flip', blockedReason);
   }
   const items = turnedOver(piece.items);
-  return {
-    ...state,
-    selectedPieceId: piece.id,
-    pieces: state.pieces.map((candidate) =>
-      candidate.id === piece.id
-        ? { ...piece, items, battleOverlay: undefined, flipRevision: (piece.flipRevision ?? 0) + 1 }
-        : candidate
-    ),
-    ...appendEvent(state, flipEventFor(state, { ...piece, items })),
-  };
+  return accepted(
+    {
+      ...state,
+      selectedPieceId: piece.id,
+      pieces: state.pieces.map((candidate) =>
+        candidate.id === piece.id
+          ? { ...piece, items, battleOverlay: undefined, flipRevision: (piece.flipRevision ?? 0) + 1 }
+          : candidate
+      ),
+    },
+    'piece.flip',
+    flipMessageFor({ ...piece, items })
+  );
 }
 
 export function moveStormInState(state: TableState, direction: -1 | 1 = 1): TableState {
@@ -502,20 +505,13 @@ export function moveStormInState(state: TableState, direction: -1 | 1 = 1): Tabl
     return state;
   }
   const stormSectorIndex = moveStormCounterclockwise(state.stormSectorIndex, direction);
-  const event: TableEvent = {
-    id: eventId(state.nextEventNumber),
-    command: 'storm.move',
-    message:
-      direction > 0
-        ? `Storm advanced to sector ${stormSectorIndex + 1}.`
-        : `Storm moved back to sector ${stormSectorIndex + 1}.`,
-    status: 'accepted',
-  };
-  return {
-    ...state,
-    stormSectorIndex,
-    ...appendEvent(state, event),
-  };
+  return accepted(
+    { ...state, stormSectorIndex },
+    'storm.move',
+    direction > 0
+      ? `Storm advanced to sector ${stormSectorIndex + 1}.`
+      : `Storm moved back to sector ${stormSectorIndex + 1}.`
+  );
 }
 
 function withdrawalSource(
@@ -557,14 +553,7 @@ function withdrawalConstraintMessage(state: TableState, draft: DraftMove): strin
 
 /** Only a stack that lost items is renamed; every other stack keeps the name it has. */
 function piecesWithoutWithdrawals(state: TableState, draft: DraftMove): TablePiece[] {
-  return state.pieces.flatMap((piece) => {
-    const withdrawn = withdrawnIdsFor(draft, piece.id).size > 0;
-    const items = remainingItemsFor(piece, draft);
-    if (!items.length) {
-      return [];
-    }
-    return [withdrawn ? { ...piece, label: labelForCount(piece, items.length, state.factionNames), items } : piece];
-  });
+  return state.pieces.flatMap((piece) => pieceWithoutWithdrawals(state, piece, draft));
 }
 
 type DraftApplication = {
@@ -625,7 +614,7 @@ function mergeTargetIsStable(piece: TablePiece, draft: DraftMove, target: TableP
   if (!piecesCanStack(piece, target) || target.zoneId !== draft.targetZoneId) {
     return false;
   }
-  const shift = Math.hypot(draft.position[0] - target.position[0], draft.position[2] - target.position[2]);
+  const shift = planarDistance(draft.position, target.position);
   if (shift > 0.001) {
     return false;
   }
@@ -646,25 +635,12 @@ function piecesWithoutHeld(current: TableState, draft: DraftMove, piece: TablePi
   return pieces.filter((candidate) => candidate.id !== piece.id);
 }
 
-function mergeEventFor(application: DraftApplication, target: TablePiece): TableEvent {
-  const { current, piece } = application;
+function mergeMessageFor(piece: TablePiece, target: TablePiece): string {
   const count = pieceCount(piece);
-  const units =
-    piece.kind === 'card'
-      ? ['card', 'cards']
-      : isSpicePiece(piece)
-        ? ['spice', 'spice']
-        : isTroopStack(piece)
-          ? ['troop', 'troops']
-          : ['token', 'tokens'];
-  const unit = count === 1 ? units[0] : units[1];
+  const [one, many] = pieceUnits(piece);
+  const unit = count === 1 ? one : many;
   const placement = piece.kind === 'card' ? 'placed on' : 'stacked with';
-  return {
-    id: eventId(current.nextEventNumber),
-    command: 'stack.merge',
-    message: `${count} ${unit} ${placement} ${target.label}.`,
-    status: 'accepted',
-  };
+  return `${count} ${unit} ${placement} ${target.label}.`;
 }
 
 function mergeHeldItems(
@@ -697,13 +673,16 @@ function applyMerge(application: DraftApplication): TableState {
   if (!baseTarget) {
     return rejection(rejectedBase, 'stack.merge', 'That stack target has no items left.');
   }
-  return {
-    ...current,
-    pieces: mergeHeldItems(current, basePieces, baseTarget, piece),
-    selectedPieceId: baseTarget.id,
-    draftMove: null,
-    ...appendEvent(current, mergeEventFor(application, target)),
-  };
+  return accepted(
+    {
+      ...current,
+      pieces: mergeHeldItems(current, basePieces, baseTarget, piece),
+      selectedPieceId: baseTarget.id,
+      draftMove: null,
+    },
+    'stack.merge',
+    mergeMessageFor(piece, target)
+  );
 }
 
 function moveCommandFor({ current, draft, piece }: DraftApplication): string {
@@ -725,25 +704,22 @@ function piecesAfterMove(current: TableState, draft: DraftMove, movedPiece: Tabl
 function applyMove(application: DraftApplication): TableState {
   const { current, draft, piece } = application;
   const destination = zoneById(draft.targetZoneId)?.label ?? 'a free table position';
-  const event: TableEvent = {
-    id: eventId(current.nextEventNumber),
-    command: moveCommandFor(application),
-    message: `${piece.label} moved to ${destination}.`,
-    status: 'accepted',
-  };
   const movedPiece: TablePiece = {
     ...piece,
     position: [...draft.position],
     orientation: draft.orientation,
     zoneId: draft.targetZoneId,
   };
-  return {
-    ...current,
-    pieces: piecesAfterMove(current, draft, movedPiece),
-    selectedPieceId: movedPiece.id,
-    draftMove: null,
-    ...appendEvent(current, event),
-  };
+  return accepted(
+    {
+      ...current,
+      pieces: piecesAfterMove(current, draft, movedPiece),
+      selectedPieceId: movedPiece.id,
+      draftMove: null,
+    },
+    moveCommandFor(application),
+    `${piece.label} moved to ${destination}.`
+  );
 }
 
 function returnSpiceDraftToSpiceBank(current: TableState, draft: DraftMove, actorName = 'A player'): TableState {
@@ -760,18 +736,11 @@ function returnSpiceDraftToSpiceBank(current: TableState, draft: DraftMove, acto
   ) {
     return rejection(rejectedBase, 'spice.return', 'Only carried spice can be dropped on the Spice Bank.');
   }
-  return {
-    ...current,
-    pieces: piecesWithoutHeld(current, draft, piece),
-    selectedPieceId: null,
-    draftMove: null,
-    ...appendEvent(current, {
-      id: eventId(current.nextEventNumber),
-      command: 'spice.return',
-      message: `${actorName} returned ${pieceCount(piece)} spice to the Spice Bank.`,
-      status: 'accepted',
-    }),
-  };
+  return accepted(
+    { ...current, pieces: piecesWithoutHeld(current, draft, piece), selectedPieceId: null, draftMove: null },
+    'spice.return',
+    `${actorName} returned ${pieceCount(piece)} spice to the Spice Bank.`
+  );
 }
 
 export function applyDraftToState(current: TableState, requestedDraft: DraftMove, actorName = 'A player'): TableState {
@@ -782,12 +751,12 @@ export function applyDraftToState(current: TableState, requestedDraft: DraftMove
   if ('rejected' in application) {
     return application.rejected;
   }
-  const logged = {
+  const flipLogged = {
     ...application,
     current: withCarryFlipEvent(application.current, application.draft, application.piece),
   };
-  const { draft } = logged;
-  return draft.operation === 'merge' && draft.targetPieceId ? applyMerge(logged) : applyMove(logged);
+  const { draft } = flipLogged;
+  return draft.operation === 'merge' && draft.targetPieceId ? applyMerge(flipLogged) : applyMove(flipLogged);
 }
 
 function additionalTargetMatches(held: TablePiece, target: TablePiece, draft: DraftMove): boolean {
@@ -850,19 +819,15 @@ export function draftForGesture(piece: TablePiece, pickup: 'top' | 'whole'): Dra
    * A singleton is already the whole physical object.
    * Withdrawing its only item would replace the captured mesh during the drag.
    */
-  const peelsItem = pickup === 'top' && count > 1;
-  const topItem = piece.items.at(-1);
-  if (peelsItem && !topItem) {
-    return null;
-  }
-  const gesturePieceId = peelsItem ? `${piece.id}-held-${topItem?.id}` : piece.id;
+  const topItem = pickup === 'top' && count > 1 ? piece.items.at(-1) : undefined;
+  const gesturePieceId = topItem ? `${piece.id}-held-${topItem.id}` : piece.id;
 
   return {
     operation: 'move',
     pieceId: gesturePieceId,
     sourcePieceId: piece.id,
-    pickedUpItemIds: peelsItem && topItem ? [topItem.id] : piece.items.map((item) => item.id),
-    withdrawals: peelsItem && topItem ? [{ sourcePieceId: piece.id, itemId: topItem.id }] : [],
+    pickedUpItemIds: topItem ? [topItem.id] : piece.items.map((item) => item.id),
+    withdrawals: topItem ? [{ sourcePieceId: piece.id, itemId: topItem.id }] : [],
     origin: [...piece.position],
     originOrientation: piece.orientation,
     position: [...piece.position],

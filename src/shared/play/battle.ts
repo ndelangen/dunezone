@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { withSupportNames } from '../factions/schema';
 import type { AuthoredFace, AuthoredTroop } from '../factions/troopBattle';
 import { troopBattleFaces } from '../factions/troopBattle';
+import { actionKindGuard } from './actionKinds';
 import { isFactionToken } from './factionToken';
 import {
   hiddenZoneSpotSchema,
@@ -123,10 +124,7 @@ export const battleActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('hand-zone'), pieceId: id, at: hiddenZoneSpotSchema.nullable() }),
 ]);
 export type BattleAction = z.infer<typeof battleActionSchema>;
-const kinds: ReadonlySet<string> = new Set(battleActionSchema.options.map((option) => option.shape.kind.value));
-export function isBattleAction(action: { kind: string }): action is BattleAction {
-  return kinds.has(action.kind);
-}
+export const isBattleAction = actionKindGuard(battleActionSchema);
 
 /** The hosted fixture's houses have no catalogue definition; a real game reads its captured faction's faces instead. */
 export function fixtureBattleFaces(factionId: string): BattleFace[] {

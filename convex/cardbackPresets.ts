@@ -4,13 +4,12 @@ import { ConvexError, v } from 'convex/values';
 import { cardbackPresetKeySchema } from '../src/shared/assets/cardbackPresetKeys';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
 import { CardBack } from '../src/shared/assets/schema';
-import { query } from './_generated/server';
-import { mutation } from './functions';
+import { mutation, publicQuery } from './functions';
 import { listCardbackPresets, storeCardbackPreset } from './lib/cardbackPresets';
 import { requireAdminUserId } from './lib/policy';
 import { publicationSettings } from './lib/publication';
 
-export const list = query({
+export const list = publicQuery({
   args: {},
   returns: v.array(zodToConvex(cardbackPresetSchema)),
   handler: async (ctx) => await listCardbackPresets(ctx),

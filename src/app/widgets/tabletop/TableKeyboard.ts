@@ -9,6 +9,7 @@ type Controls = Pick<
   TabletopContextValue,
   | 'canHandleTable'
   | 'deckControls'
+  | 'finishRotation'
   | 'flipSelected'
   | 'hoveredPieceId'
   | 'ping'
@@ -91,6 +92,8 @@ export class TableKeyboard {
   private drawDigit: number | null = null;
   private drawCode = '';
   private panAvailable = false;
+  /* The physical keys turning a piece; the turn goes out when the last comes up. */
+  private readonly rotateHeld = new Set<string>();
   /* Whether the Tab held down now pinged, so its repeats stay with the table too. */
   private pingHeld = false;
   /* The held pan keys, by the physical key that went down, with the direction it typed then. */
@@ -105,6 +108,7 @@ export class TableKeyboard {
     binding.events.addEventListener('blur', this.cancelDraw);
     binding.events.addEventListener('blur', this.releasePan);
     binding.events.addEventListener('blur', this.releasePing);
+    binding.events.addEventListener('blur', this.releaseRotation);
     return () => {
       if (this.binding === binding) {
         this.release();
@@ -159,8 +163,10 @@ export class TableKeyboard {
     }
     this.cancelDraw();
     this.releasePan();
+    this.releaseRotation();
     binding.events.removeEventListener('blur', this.releasePan);
     binding.events.removeEventListener('blur', this.releasePing);
+    binding.events.removeEventListener('blur', this.releaseRotation);
     binding.events.removeEventListener('keydown', this.keyDown);
     binding.events.removeEventListener('keyup', this.keyUp);
     binding.events.removeEventListener('blur', this.cancelDraw);
@@ -172,6 +178,7 @@ export class TableKeyboard {
     if (event.key === 'Meta') {
       this.releasePan();
       this.cancelDraw();
+      this.releaseRotation();
     }
     const controls = this.binding?.read();
     /* A key a control already answered, such as an arrow moving a peeked card, is not the table's. */
@@ -187,10 +194,7 @@ export class TableKeyboard {
     }
     const digit = digitOf(event);
     if (digit !== null && this.spiceBankAnswers(event, controls)) {
-      event.preventDefault();
-      if (!event.repeat) {
-        controls.spawnSpice(digit === 0 ? 10 : digit);
-      }
+      pressOnce(event, () => controls.spawnSpice(digit === 0 ? 10 : digit));
     } else if (!focusKeepsKey(event.target, 'table')) {
       this.tableKey(event, controls);
     }
@@ -229,20 +233,32 @@ export class TableKeyboard {
     }
   }
 
-  /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
   /* A Tab let go while the page had no focus never comes up here, so leaving the page lets it go. */
   private releasePing = () => {
     this.pingHeld = false;
+  };
+
+  /* A turn held when the page loses the key, as when it loses focus, goes out as far as it got. */
+  private releaseRotation = () => {
+    if (this.rotateHeld.size === 0) {
+      return;
+    }
+    this.rotateHeld.clear();
+    this.binding?.read().finishRotation();
   };
 
   private keyUp = (event: KeyboardEvent) => {
     if (event.key === 'Tab') {
       this.releasePing();
     }
+    if (this.rotateHeld.delete(physicalKey(event)) && this.rotateHeld.size === 0) {
+      this.binding?.read().finishRotation();
+    }
     /* The physical key ends its pan, whatever it types by then: macOS's Option turns a held W into "∑" before it comes up. */
     if (this.panHeld.delete(physicalKey(event))) {
       this.panListeners.forEach((listener) => listener());
     }
+    /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
     const sameKey = this.drawCode !== '' && event.code === this.drawCode;
     if (this.drawDigit !== null && (sameKey || digitOf(event) === this.drawDigit)) {
       this.cancelDraw();
@@ -274,8 +290,10 @@ export class TableKeyboard {
     if (!pieceId) {
       return;
     }
+    /* Each repeat of a held Q or E turns the piece a step further on this page; the room hears the whole turn once the key comes up. */
     if (key === 'q' || key === 'e') {
       event.preventDefault();
+      this.rotateHeld.add(physicalKey(event));
       controls.rotateSelected(key === 'q' ? -1 : 1, pieceId);
       return;
     }
@@ -306,12 +324,10 @@ export class TableKeyboard {
         return;
       }
       case 'l':
-        event.preventDefault();
-        controls.toggleLockSelected(pieceId);
+        pressOnce(event, () => controls.toggleLockSelected(pieceId));
         return;
       case 'g':
-        event.preventDefault();
-        controls.stackSelected(pieceId);
+        pressOnce(event, () => controls.stackSelected(pieceId));
         return;
     }
     const digit = digitOf(event);
@@ -329,9 +345,7 @@ export class TableKeyboard {
     this.drawDigit = digit;
     this.drawCode = event.code === 'Unidentified' ? '' : event.code;
     this.drawTimer = setTimeout(() => {
-      this.drawTimer = null;
-      this.drawDigit = null;
-      this.drawCode = '';
+      this.cancelDraw();
       this.binding?.read().splitSelected(digit, pieceId);
     }, DRAW_HOLD_MS);
   }

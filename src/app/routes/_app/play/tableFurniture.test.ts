@@ -9,7 +9,6 @@ import {
   FURNITURE_SURFACE_Y,
   placementAnchorAtPosition,
   placementAnchorForPose,
-  sideShelfPosition,
   SIDE_SHELF_CENTER_X,
   SIDE_SHELF_SIZE,
 } from '@shared/play/tableFurnitureLayout';
@@ -21,6 +20,7 @@ import {
   TABLE_VISIBLE_RADIUS,
 } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
+import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { describe, expect, test } from 'vitest';
@@ -29,7 +29,6 @@ import { cameraPoseFor, tableCamera } from '../../../widgets/tabletop/playView';
 import {
   createTablePlateShape,
   createTablePlateLayers,
-  tablePlateBounds,
   TABLE_PLATE_BOUNDS,
   TABLE_PLATE_CORNER_RADIUS,
   TABLE_PLATE_JOINS,
@@ -38,6 +37,22 @@ import {
   tableSurfacePointOnRay,
   trackerScallopRadius,
 } from '../../../widgets/tabletop/tablePlateGeometry';
+
+/* The plate's x/z extent: the shelves' bounds widened to take in each tracker's scallop. */
+function tablePlateBounds(slots: readonly TrackerArcSlot[]) {
+  return slots.reduce(
+    (bounds, slot) => {
+      const radius = trackerScallopRadius(slot);
+      return {
+        minX: Math.min(bounds.minX, slot.position[0] - radius),
+        maxX: Math.max(bounds.maxX, slot.position[0] + radius),
+        minZ: Math.min(bounds.minZ, slot.position[2] - radius),
+        maxZ: Math.max(bounds.maxZ, slot.position[2] + radius),
+      };
+    },
+    { ...TABLE_PLATE_BOUNDS }
+  );
+}
 
 type Point2D = Readonly<{ x: number; y: number }>;
 
@@ -109,6 +124,11 @@ function sharpestContourTurnNear(contour: readonly Point2D[], target: Point2D, s
   );
 }
 
+function sideShelfPosition(side: 'left' | 'right'): Vector3Tuple {
+  const direction = side === 'left' ? -1 : 1;
+  return [direction * SIDE_SHELF_CENTER_X, FURNITURE_SURFACE_Y - SIDE_SHELF_SIZE[1] / 2, 0];
+}
+
 describe('table furniture', () => {
   test("uses the rulebook's five-slot pattern on each side", () => {
     const left = cardBaySlotPositions('left');
@@ -127,8 +147,6 @@ describe('table furniture', () => {
     expect(new Set(right.map(([x, , z]) => `${x}:${z}`)).size).toBe(5);
     expect(rowCounts(left)).toEqual([2, 2, 1]);
     expect(rowCounts(right)).toEqual([1, 2, 2]);
-    const leftShelf = sideShelfPosition('left');
-    expect(sideShelfPosition('right')).toEqual([-leftShelf[0], leftShelf[1], leftShelf[2]]);
   });
 
   test('defines ten stable card-placement anchors from the rendered wells', () => {

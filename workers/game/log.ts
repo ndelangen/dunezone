@@ -6,7 +6,7 @@ import type { LogClass, LogEntry, LogTab } from '../../src/shared/play/log';
 import { seatLabel } from '../../src/shared/play/participation';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
-import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
+import type { CommitMessage, PieceAction, Viewer } from '../../src/shared/play/protocol';
 import { describeResult, isResultAction } from '../../src/shared/play/result';
 import type { ResultAction } from '../../src/shared/play/result';
 import { rosterSeat } from '../../src/shared/play/schema';
@@ -16,9 +16,8 @@ import { internalPieceId } from './state';
 import type { StoredSnapshot } from './state';
 
 /** The one name retained history shows for a deleted account. */
-const DELETED_USER = '[deleted user]';
+export const DELETED_USER = '[deleted user]';
 
-type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 type BattleResult = StoredSnapshot['battleResults'][number];
 /* `deletedAs` is what the slot reads once the account is deleted, when `[deleted user]` alone would not tell it apart. */
 type Person = { userId: string | null; name: string; deletedAs?: string };
@@ -41,7 +40,7 @@ type Row = {
   context: string;
   created_at: number | null;
 };
-type SeatCause = 'creation' | 'admission' | 'departure' | 'deletion' | 'removal';
+export type SeatCause = 'creation' | 'admission' | 'departure' | 'deletion' | 'removal';
 type SeatChange = {
   event: 'joined' | 'vacated';
   cause: SeatCause;
@@ -395,12 +394,7 @@ function endingClosed(before: StoredSnapshot, next: StoredSnapshot): Entry | und
 }
 
 /* A lock names only the faction; the choice appears once its player reveals it. */
-function predictionEntries(
-  next: StoredSnapshot,
-  action: Extract<CommitMessage, { type: 'command' }>['action'],
-  faction: FactionNamer,
-  context: string
-): Entry[] {
+function predictionEntries(next: StoredSnapshot, action: PieceAction, faction: FactionNamer, context: string): Entry[] {
   if (action.kind !== 'prediction-lock' && action.kind !== 'prediction-reveal') {
     return [];
   }
@@ -436,10 +430,7 @@ function allianceEntries(
     return [];
   }
   const people: Person[] = [];
-  const names = (ids: readonly string[]) => {
-    const labels = ids.map((id) => faction(id, people));
-    return labels.length < 2 ? (labels[0] ?? '') : `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}`;
-  };
+  const names = (ids: readonly string[]) => list(ids.map((id) => faction(id, people)));
   const template = (() => {
     if (message.action.kind === 'alliance-break') {
       const leaver = rosterSeat(before.roster, viewer.viewerSeat)?.faction?.id;
@@ -465,7 +456,7 @@ function allianceEntries(
 function disclosureEntries(
   before: StoredSnapshot,
   next: StoredSnapshot,
-  action: Extract<CommitMessage, { type: 'command' }>['action'],
+  action: PieceAction,
   faction: FactionNamer,
   context: string
 ): Entry[] {

@@ -3,6 +3,7 @@ import { randomInt } from 'node:crypto';
 import { tableHandlingOpen } from '../../src/shared/play/admission';
 import { isAllianceAction } from '../../src/shared/play/alliances';
 import { isBattleAction } from '../../src/shared/play/battle';
+import type { BattleAction } from '../../src/shared/play/battle';
 import { isBiddingAction } from '../../src/shared/play/bidding';
 import type { BiddingAction } from '../../src/shared/play/bidding';
 import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
@@ -39,7 +40,8 @@ import type { RemovalAction } from '../../src/shared/play/removal';
 import type { ResultAction } from '../../src/shared/play/result';
 import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { isSetupAction, phaseGate } from '../../src/shared/play/setup';
-import { createSpiceStack, isSpicePiece } from '../../src/shared/play/spiceBank';
+import { isSpicePiece } from '../../src/shared/play/spice';
+import { createSpiceStack } from '../../src/shared/play/spiceBank';
 import type { SpiceReserveAction } from '../../src/shared/play/spiceReserve';
 import type { SwapAction } from '../../src/shared/play/swapping';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
@@ -554,25 +556,7 @@ export class Room {
       return peekCommand(this.snapshot, this.requireFaction(identity), action);
     }
     if (isBattleAction(action)) {
-      const factionId = this.requireFaction(identity);
-      const next = battleCommand(this.snapshot, factionId, action, now);
-      /* Settling a revealed battle, by outcome or cancel, moves its overlay pieces even mid-carry; refusing it would let a carry hold the battle open. */
-      if (this.snapshot.battleState?.stage !== 'revealed' || next.battleState) {
-        this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
-      }
-      if (action.kind === 'hand-take' || action.kind === 'hand-play') {
-        /* A played card is taken from the hand it left: one merged onto a pile no longer exists on the table under its own id. */
-        const pieces =
-          action.kind === 'hand-take'
-            ? next.factionInventories[factionId]
-            : this.snapshot.factionInventories[factionId];
-        return concealCards(
-          next,
-          (pieces ?? []).filter((piece) => piece.id === action.pieceId),
-          true
-        );
-      }
-      return next;
+      return this.battleCommand(identity, action, now);
     }
     if (isFactionSetting(action)) {
       return this.factionSettingCommand(identity, action, now);
@@ -580,21 +564,51 @@ export class Room {
     if (isAllianceAction(action)) {
       return allianceCommand(this.snapshot, this.requireFaction(identity), action, now);
     }
+    this.assertTableSettled(action, now);
+    if (action.kind === 'bank-withdraw' || action.kind === 'bank-collect') {
+      return this.spiceReserveCommand(identity, action);
+    }
+    if (isPublicAction(action)) {
+      return this.publicCommand(identity, action);
+    }
+    return this.tableCommand(identity, action, now);
+  }
+
+  /** A reset waits for the battle to end and every private piece to return; a flip waits for the piece's last flip to finish. */
+  private assertTableSettled(action: RoomAction, now: number) {
     if (
       action.kind === 'reset' &&
       (this.snapshot.battleState || Object.values(this.snapshot.factionInventories).some((pieces) => pieces.length))
     ) {
       throw new GameRejection('Finish the battle and return private pieces to the table before resetting the fixture.');
     }
-    if (action.kind === 'bank-withdraw' || action.kind === 'bank-collect') {
-      return this.spiceReserveCommand(identity, action);
-    }
     if (action.kind === 'flip' && (this.flipUntil.get(action.pieceId) ?? 0) > now) {
       throw new GameRejection('Wait for that piece to finish flipping.');
     }
-    if (isPublicAction(action)) {
-      return this.publicCommand(identity, action);
+  }
+
+  private battleCommand(identity: Identity, action: BattleAction, now: number): StoredSnapshot {
+    const factionId = this.requireFaction(identity);
+    const next = battleCommand(this.snapshot, factionId, action, now);
+    /* Settling a revealed battle, by outcome or cancel, moves its overlay pieces even mid-carry; refusing it would let a carry hold the battle open. */
+    if (this.snapshot.battleState?.stage !== 'revealed' || next.battleState) {
+      this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
     }
+    if (action.kind !== 'hand-take' && action.kind !== 'hand-play') {
+      return next;
+    }
+    /* A played card is taken from the hand it left: one merged onto a pile no longer exists on the table under its own id. */
+    const pieces =
+      action.kind === 'hand-take' ? next.factionInventories[factionId] : this.snapshot.factionInventories[factionId];
+    return concealCards(
+      next,
+      (pieces ?? []).filter((piece) => piece.id === action.pieceId),
+      true
+    );
+  }
+
+  /** A plain table command: the piece move or phase change itself, kept clear of every other player's carry. */
+  private tableCommand(identity: Identity, action: TableAction, now: number): StoredSnapshot {
     this.assertPhaseChange(action, now);
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
     const guarded = this.table(identity);

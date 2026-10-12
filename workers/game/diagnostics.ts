@@ -27,6 +27,9 @@ type Operation =
 
 const REPEAT_INTERVAL_MS = 60_000;
 
+/** Why the Worker refused an admission; the browser shows every refusal as a login that lost access. */
+export type AdmissionRefusal = 'duplicate' | 'ticket' | 'unreconciled' | 'capacity' | 'unusable-answer';
+
 function errorKind(error: unknown) {
   if (error instanceof TypeError) {
     return 'TypeError';
@@ -84,12 +87,23 @@ function failureDetails(error: unknown) {
     return {
       failureCategory: reset ? 'storage-reset' : 'exception',
       ...(reset ? { storageReference: reset[1] } : {}),
-      ...('retryable' in error && typeof error.retryable === 'boolean' ? { retryable: error.retryable } : {}),
-      ...('overloaded' in error && typeof error.overloaded === 'boolean' ? { overloaded: error.overloaded } : {}),
-      ...('remote' in error && typeof error.remote === 'boolean' ? { remote: error.remote } : {}),
+      ...platformFlag(error, 'retryable'),
+      ...platformFlag(error, 'overloaded'),
+      ...platformFlag(error, 'remote'),
     };
   }
   return { failureCategory: 'unknown' };
+}
+
+type PlatformFlag = 'retryable' | 'overloaded' | 'remote';
+
+/** A boolean the platform sets on its own errors, kept under its own name when present. */
+function platformFlag(error: Error, flag: PlatformFlag): Partial<Record<PlatformFlag, boolean>> {
+  if (!(flag in error)) {
+    return {};
+  }
+  const value = (error as unknown as Record<PlatformFlag, unknown>)[flag];
+  return typeof value === 'boolean' ? { [flag]: value } : {};
 }
 
 /** Each room retains bounded entries per fixed operation, with no timers or storage writes. */
@@ -143,6 +157,11 @@ export class GameDiagnostics {
       suppressed: previous?.suppressed ?? 0,
       since: previous?.emittedAt ?? now,
     });
+  }
+
+  /** A refusal is not a failure, but it ends the player's session, so its reason is kept. */
+  refused(reason: AdmissionRefusal) {
+    console.info({ event: 'game-admission-refused', reason, ...this.identity(Date.now()) });
   }
 
   recovered(operation: Operation) {

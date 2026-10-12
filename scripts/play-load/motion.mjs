@@ -58,11 +58,15 @@ export async function runMotionSchedule({
       row[outcome]++;
     }
   };
-  for (let seq = 0; seq < slots; seq++) {
-    for (const input of inputs(seq)) {
-      count(input, 'pending');
+  /* Every input of the slots from `from` up to `to`, accounted for under one outcome. */
+  const countSlots = (from, to, outcome) => {
+    for (let slot = from; slot < to; slot++) {
+      for (const input of inputs(slot)) {
+        count(input, outcome);
+      }
     }
-  }
+  };
+  countSlots(0, slots, 'pending');
   let seq = 0;
   let group = 0;
   let gapReason = 'coalesced';
@@ -80,11 +84,8 @@ export async function runMotionSchedule({
       const current = Math.min(slots, Math.floor((now - startedAt) / interval));
       if (current > seq) {
         report.gaps.push({ from: seq, to: current - 1, reason: gapReason });
-        for (; seq < current; seq++) {
-          for (const input of inputs(seq)) {
-            count(input, gapReason);
-          }
-        }
+        countSlots(seq, current, gapReason);
+        seq = current;
       }
       gapReason = 'coalesced';
       if (seq >= slots) {
@@ -106,30 +107,32 @@ export async function runMotionSchedule({
   } catch (error) {
     report.failure = failureMessage(error);
   } finally {
-    const reason = stopping() ? 'skippedStop' : report.failure ? 'skippedFailure' : 'coalesced';
-    if (report.totals.pending) {
-      report.gaps.push({ from: seq, to: slots - 1, reason });
-    }
-    const rows = [
-      report.totals,
-      ...Object.values(report.byPhase).flatMap(Object.values),
-      ...Object.values(report.bySource).flatMap(Object.values),
-    ];
-    for (const row of rows) {
-      row[reason] += row.pending;
-      row.pending = 0;
-    }
-    report.coordinatorLateness = distribution(lateness);
-    report.elapsedMs = performance.now() - startedAt;
-    report.achievedHzPerActiveSource = report.totals.transmitted / 2 / moverCount / (durationMs / 1000);
-    for (const kind of ['pointer', 'pose']) {
-      const transmitted = Object.values(report.byPhase).reduce(
-        (sum, phase) => sum + (phase[kind]?.transmitted ?? 0),
-        0
-      );
-      report[`${kind}Hz`] = transmitted / moverCount / (durationMs / 1000);
-    }
-    report.status = stopping() ? 'incomplete' : report.failure ? 'failed' : 'complete';
+    closeMotionReport(report, { seq, slots, lateness, startedAt, durationMs, moverCount, stopping });
   }
   return report;
+}
+
+/** Every input still pending is skipped for the reason the run ended, and the achieved rates are taken. */
+function closeMotionReport(report, { seq, slots, lateness, startedAt, durationMs, moverCount, stopping }) {
+  const reason = stopping() ? 'skippedStop' : report.failure ? 'skippedFailure' : 'coalesced';
+  if (report.totals.pending) {
+    report.gaps.push({ from: seq, to: slots - 1, reason });
+  }
+  const rows = [
+    report.totals,
+    ...Object.values(report.byPhase).flatMap(Object.values),
+    ...Object.values(report.bySource).flatMap(Object.values),
+  ];
+  for (const row of rows) {
+    row[reason] += row.pending;
+    row.pending = 0;
+  }
+  report.coordinatorLateness = distribution(lateness);
+  report.elapsedMs = performance.now() - startedAt;
+  report.achievedHzPerActiveSource = report.totals.transmitted / 2 / moverCount / (durationMs / 1000);
+  for (const kind of ['pointer', 'pose']) {
+    const transmitted = Object.values(report.byPhase).reduce((sum, phase) => sum + (phase[kind]?.transmitted ?? 0), 0);
+    report[`${kind}Hz`] = transmitted / moverCount / (durationMs / 1000);
+  }
+  report.status = stopping() ? 'incomplete' : report.failure ? 'failed' : 'complete';
 }

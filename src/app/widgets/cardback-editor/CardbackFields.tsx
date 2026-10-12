@@ -1,4 +1,4 @@
-import { ColorInput, NumberInput, Select, Slider, TextInput } from '@mantine/core';
+import { ColorInput, NumberInput, Slider, TextInput } from '@mantine/core';
 import type { CardBack } from '@shared/assets/schema';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -7,11 +7,11 @@ import type { z } from 'zod';
 
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
-import { assetOptionToPreviewSrc, decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 type CardbackData = z.infer<typeof CardBack>;
-const emblemOptions = stockAssetOptions(decalAssetOptions);
+const emblemOptions = stockAssetOptions(vectorDecalAssetOptions);
 const BACK_PRESETS = [
   { key: 'weapon', label: 'Weapon', background: backgroundPresets.weapon },
   { key: 'defense', label: 'Defense', background: backgroundPresets.defense },
@@ -19,7 +19,10 @@ const BACK_PRESETS = [
   { key: 'worthless', label: 'Worthless', background: backgroundPresets.worthless },
 ];
 
+export type CardbackSection = 'label' | 'background' | 'emblem';
+
 export function CardbackFields({
+  section,
   cardback,
   onChange,
   declaredCustom,
@@ -27,6 +30,7 @@ export function CardbackFields({
   modeMemory,
   onModeMemoryChange,
 }: Readonly<{
+  section?: CardbackSection;
   cardback: CardbackData;
   onChange: (next: CardbackData) => void;
   declaredCustom: boolean;
@@ -36,145 +40,137 @@ export function CardbackFields({
 }>) {
   return (
     <>
-      <ControlBlock
-        title="Label"
-        description="The word printed across the back."
-        input={
-          <TextInput
-            aria-label="Label"
-            value={cardback.name}
-            onChange={(event) => onChange({ ...cardback, name: event.currentTarget.value })}
-          />
-        }
-      />
-      <ControlBlock
-        title="Label weight"
-        input={
-          <Select
-            aria-label="Label weight"
-            allowDeselect={false}
-            data={[
-              { value: 'C_Busorama', label: 'Regular' },
-              { value: 'C_Busorama_Bold', label: 'Bold' },
-            ]}
-            value={cardback.nameFont ?? 'C_Busorama'}
-            onChange={(nameFont) => {
-              if (nameFont === 'C_Busorama' || nameFont === 'C_Busorama_Bold') {
-                onChange({ ...cardback, nameFont });
-              }
-            }}
-          />
-        }
-      />
-      <ControlBlock
-        title="Label size"
-        input={
-          <Slider
-            aria-label="Label size"
-            min={0.5}
-            max={2}
-            step={0.01}
-            value={cardback.nameScale ?? 1}
-            onChange={(nameScale) => onChange({ ...cardback, nameScale })}
-          />
-        }
-      />
-      <BackgroundPresetControl
-        title="Background"
-        description="Behind the emblem."
-        usedOn="this card back"
-        presets={BACK_PRESETS}
-        value={cardback.background}
-        declaredCustom={declaredCustom}
-        onDeclaredCustomChange={onDeclaredCustomChange}
-        modeMemory={modeMemory}
-        onModeMemoryChange={onModeMemoryChange}
-        onChange={(background) => onChange({ ...cardback, background })}
-      />
-      <ControlBlock
-        title="Emblem"
-        description="The artwork at the centre of the back."
-        input={
-          <AssetSelect
-            aria-label="Emblem"
-            allowDeselect={false}
-            data={emblemOptions}
-            getPreviewSrc={assetOptionToPreviewSrc}
-            glyphPreviews
-            value={cardback.image}
-            onChange={(next) => {
-              if (next) {
-                onChange({ ...cardback, image: next as CardbackData['image'] });
-              }
-            }}
-          />
-        }
-      />
-      <ControlBlock
-        title="Emblem background shade"
-        description="Tint the gold disc behind the emblem."
-        input={
-          <ColorInput
-            aria-label="Emblem background shade"
-            eyeDropperButtonProps={{ 'aria-label': 'Pick emblem background shade from screen' }}
-            format="hex"
-            value={cardback.emblemBackground?.color ?? '#d9c879'}
-            onChange={(color) =>
-              onChange({
-                ...cardback,
-                emblemBackground: { color, intensity: cardback.emblemBackground?.intensity ?? 0.5 },
-              })
+      {!section || section === 'label' ? (
+        <ControlBlock
+          title="Label"
+          description="The word printed across the back."
+          input={
+            <TextInput
+              aria-label="Label"
+              value={cardback.name}
+              onChange={(event) => onChange({ ...cardback, name: event.currentTarget.value })}
+            />
+          }
+        />
+      ) : null}
+      {!section || section === 'background' ? (
+        <BackgroundPresetControl
+          title="Background"
+          description="Behind the emblem."
+          usedOn="this card back"
+          presets={BACK_PRESETS}
+          value={cardback.background}
+          declaredCustom={declaredCustom}
+          onDeclaredCustomChange={onDeclaredCustomChange}
+          modeMemory={modeMemory}
+          onModeMemoryChange={onModeMemoryChange}
+          onChange={(background) => onChange({ ...cardback, background })}
+        />
+      ) : null}
+      {!section || section === 'emblem' ? (
+        <>
+          <ControlBlock
+            title="Emblem"
+            description="The artwork at the centre of the back."
+            input={
+              <AssetSelect
+                aria-label="Emblem"
+                allowDeselect={false}
+                data={emblemOptions}
+                getPreviewSrc={assetOptionToPreviewSrc}
+                glyphPreviews
+                value={cardback.image}
+                onChange={(next) => {
+                  if (next) {
+                    onChange({ ...cardback, image: next as CardbackData['image'] });
+                  }
+                }}
+              />
             }
           />
-        }
-      />
-      <ControlBlock
-        title="Emblem background intensity"
-        description="Zero keeps the original gold. Full strength applies the selected shade."
-        input={
-          <Slider
-            aria-label="Emblem background intensity"
-            thumbLabel="Emblem background intensity"
-            min={0}
-            max={1}
-            step={0.01}
-            label={(value) => `${Math.round(value * 100)}%`}
-            value={cardback.emblemBackground?.intensity ?? 0}
-            onChange={(intensity) =>
-              onChange({
-                ...cardback,
-                emblemBackground: { color: cardback.emblemBackground?.color ?? '#d9c879', intensity },
-              })
+          <ControlBlock
+            title="Emblem background shade"
+            description="Tint the gold disc behind the emblem."
+            input={
+              <ColorInput
+                aria-label="Emblem background shade"
+                eyeDropperButtonProps={{ 'aria-label': 'Pick emblem background shade from screen' }}
+                format="hex"
+                value={cardback.emblemBackground?.color ?? '#d9c879'}
+                onChange={(color) =>
+                  onChange({
+                    ...cardback,
+                    emblemBackground: { color, intensity: cardback.emblemBackground?.intensity ?? 0.5 },
+                  })
+                }
+              />
             }
           />
-        }
-      />
-      <ControlBlock
-        title="Emblem scale"
-        input={
-          <Slider
-            aria-label="Emblem scale"
-            thumbLabel="Emblem scale"
-            min={0}
-            max={2}
-            step={0.01}
-            label={(value) => value.toFixed(2)}
-            value={cardback.imageScale}
-            onChange={(imageScale) => onChange({ ...cardback, imageScale })}
+          <ControlBlock
+            title="Emblem background intensity"
+            description="Zero keeps the original gold. Full strength applies the selected shade."
+            input={
+              <Slider
+                aria-label="Emblem background intensity"
+                thumbLabel="Emblem background intensity"
+                min={0}
+                max={1}
+                step={0.01}
+                label={(value) => `${Math.round(value * 100)}%`}
+                value={cardback.emblemBackground?.intensity ?? 0}
+                onChange={(intensity) =>
+                  onChange({
+                    ...cardback,
+                    emblemBackground: { color: cardback.emblemBackground?.color ?? '#d9c879', intensity },
+                  })
+                }
+              />
+            }
           />
-        }
-      />
-      <ControlBlock
-        title="Emblem offset"
-        description="Vertical nudge, in card space."
-        input={
-          <NumberInput
-            aria-label="Emblem offset"
-            value={cardback.imageOffset[1]}
-            onChange={(value) => onChange({ ...cardback, imageOffset: [cardback.imageOffset[0], Number(value) || 0] })}
+          <ControlBlock
+            title="Emblem scale"
+            input={
+              <Slider
+                aria-label="Emblem scale"
+                thumbLabel="Emblem scale"
+                min={0}
+                max={2}
+                step={0.01}
+                label={(value) => value.toFixed(2)}
+                value={cardback.imageScale}
+                onChange={(imageScale) => onChange({ ...cardback, imageScale })}
+              />
+            }
           />
-        }
-      />
+          <ControlBlock
+            title="Emblem offset"
+            description="Move the emblem up with a negative value or down with a positive value."
+            tool={
+              <NumberInput
+                aria-label="Emblem offset value"
+                w={96}
+                value={cardback.imageOffset[1]}
+                onChange={(value) => {
+                  if (typeof value === 'number') {
+                    onChange({ ...cardback, imageOffset: [cardback.imageOffset[0], value] });
+                  }
+                }}
+              />
+            }
+            input={
+              <Slider
+                aria-label="Emblem offset"
+                thumbLabel="Emblem offset"
+                min={-60}
+                max={60}
+                step={1}
+                value={Math.min(60, Math.max(-60, cardback.imageOffset[1]))}
+                onChange={(offset) => onChange({ ...cardback, imageOffset: [cardback.imageOffset[0], offset] })}
+              />
+            }
+          />
+        </>
+      ) : null}
     </>
   );
 }

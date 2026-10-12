@@ -53,21 +53,6 @@ export function trackerScallopRadius(slot: TrackerArcSlot): number {
   return slot.radius + TRACKER_SCALLOP_BORDER;
 }
 
-export function tablePlateBounds(slots: readonly TrackerArcSlot[]) {
-  return slots.reduce(
-    (bounds, slot) => {
-      const radius = trackerScallopRadius(slot);
-      return {
-        minX: Math.min(bounds.minX, slot.position[0] - radius),
-        maxX: Math.max(bounds.maxX, slot.position[0] + radius),
-        minZ: Math.min(bounds.minZ, slot.position[2] - radius),
-        maxZ: Math.max(bounds.maxZ, slot.position[2] + radius),
-      };
-    },
-    { ...TABLE_PLATE_BOUNDS }
-  );
-}
-
 function appendCircleBoundary(points: Vector3Tuple[], center: Vector3Tuple, radius: number, sampleCount: number) {
   for (let sample = 0; sample < sampleCount; sample += 1) {
     const angle = (sample / sampleCount) * Math.PI * 2;
@@ -264,7 +249,7 @@ type TablePlateLayer = Readonly<{
   thickness: number;
 }>;
 
-export type TablePlateLayers = Readonly<{
+type TablePlateLayers = Readonly<{
   upper: TablePlateLayer;
   lower: TablePlateLayer;
 }>;
@@ -290,7 +275,7 @@ export function createTablePlateLayers(slots: readonly TrackerArcSlot[] = []): T
 }
 
 /** The drawn table plate's edge as [x, z] corners: the round top, the shelves with their rounded corners, and the tracker crown. */
-export type TablePlateOutline = readonly (readonly [x: number, z: number])[];
+type TablePlateOutline = readonly (readonly [x: number, z: number])[];
 
 export function tablePlateOutline(slots: readonly TrackerArcSlot[] = []): TablePlateOutline {
   /* The shape is drawn flat with its y along the table's z. */

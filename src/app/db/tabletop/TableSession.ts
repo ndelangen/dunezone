@@ -1,6 +1,7 @@
 import { tableHandlingOpen } from '@shared/play/admission';
 import type { BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
 import type { PublicFaction } from '@shared/play/capture';
+import { foldedTurns, rotatedPiece } from '@shared/play/commands';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
@@ -83,6 +84,12 @@ function lacksShownFace(item: TablePiece['items'][number]) {
 function flipsOf(draft: DraftMove) {
   return draft.flips ? { flips: draft.flips } : {};
 }
+
+/* How many of this page's commands may wait on the room at once before a further one is dropped. */
+const UNANSWERED_COMMANDS_LIMIT = 4;
+
+/* A turn of a piece at rest in 15° steps, clockwise positive; `released` once the key is up but the turn is still to go out. */
+type Turn = { pieceId: string; turns: number; released?: boolean };
 
 type LocalCarry = {
   id: string;
@@ -341,6 +348,16 @@ export class TableSession {
   private pointers: PublicPointer[] = [];
   private flipping = new Map<string, number>();
   private readonly pendingFlips = new Map<string, string>();
+  /* The turn-over a piece in hand is playing, kept apart from the table's flips: a drawn card's id is the carry's own, and a cancelled carry's turn no longer matters. */
+  private handFlip: { carryId: string; pieceId: string; revision: number } | null = null;
+  /* The commands this page sent that the room has not answered yet. */
+  private readonly unanswered = new Set<string>();
+  /* A rotation held on a piece at rest turns it on this page only, and goes out as one command when the key comes up. */
+  private turning: Turn | null = null;
+  /* Rotations sent and not yet answered, by command, shown until the frame that settles them. */
+  private readonly sentTurns = new Map<string, Turn>();
+  /* Sent turns the room has done whose new table is still on its way after a resync; they show until it arrives. */
+  private readonly doneTurns = new Set<string>();
   private pointer: Vector3Tuple | null = null;
   /* The table, board or rim surface under the cursor, where a ping lands so every viewer sees it at the same spot. */
   private pingPoint: Vector3Tuple | null = null;
@@ -784,7 +801,7 @@ export class TableSession {
     const pieces = renderedPiecesFor(state).map((piece) =>
       draft?.pieceId === piece.id
         ? this.withRevealedFaces({ ...piece, position: draft.position, orientation: draft.orientation })
-        : piece
+        : this.withTurns(state, piece)
     );
     return {
       pieces,
@@ -796,6 +813,22 @@ export class TableSession {
         ),
       ]),
     };
+  }
+  /* The pending turns this page has on a piece, held and sent alike. */
+  private turnsOf(pieceId: string) {
+    let turns = this.turning?.pieceId === pieceId ? this.turning.turns : 0;
+    for (const turn of this.sentTurns.values()) {
+      if (turn.pieceId === pieceId) {
+        turns += turn.turns;
+      }
+    }
+    return foldedTurns(turns);
+  }
+  /* A piece this page is turning shows the turn before the room has it; one the turn no longer fits shows as the room has it. */
+  private withTurns(state: TableState, piece: TablePiece) {
+    /* A look back in time shows the table as it was, and a piece the room has locked, or a table it has closed, shows as the room has it. */
+    const turns = this.history ? 0 : this.turnsOf(piece.id);
+    return turns && this.turnablePiece(piece.id) ? (rotatedPiece(state, piece, turns) ?? piece) : piece;
   }
   private emit() {
     this.keep();
@@ -920,6 +953,12 @@ export class TableSession {
       this.carry = null;
     }
     this.pendingFlips.delete(id);
+    this.unanswered.delete(id);
+    if (viewFollows && this.sentTurns.has(id)) {
+      this.doneTurns.add(id);
+    } else {
+      this.sentTurns.delete(id);
+    }
     /* Refused, the room's order shows again; done, the frame that settles it carries the deck as arranged. */
     if (this.pendingArrangement?.commandId === id) {
       this.pendingArrangement = null;
@@ -953,6 +992,13 @@ export class TableSession {
     this.flushCatalogue();
     this.flushBattlePlan();
     this.flushBattleActions();
+    this.flushRotation();
+  }
+  /* A turn let go of while a resync paused the table goes out with the first current view. */
+  private flushRotation() {
+    if (this.turning?.released && this.current()) {
+      this.finishRotation();
+    }
   }
   private receiveAuthorizedUpdate(
     message: Exclude<TableSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>
@@ -1050,6 +1096,10 @@ export class TableSession {
   private receiveRoomUpdate(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
     this.replaceActivity(message);
     if (message.snapshotChanged) {
+      for (const id of this.doneTurns) {
+        this.sentTurns.delete(id);
+      }
+      this.doneTurns.clear();
       this.receiveView(message);
     }
     if (this.droppedCarryNotice) {
@@ -1165,6 +1215,11 @@ export class TableSession {
     this.poseTimer = undefined;
     this.pointerTimer = undefined;
     this.pendingFlips.clear();
+    this.handFlip = null;
+    this.unanswered.clear();
+    this.turning = null;
+    this.sentTurns.clear();
+    this.doneTurns.clear();
     this.flipping = new Map();
   }
   /* Each tab keeps the page it asked for through live updates; the newest page is the default and the reset. */
@@ -1267,7 +1322,10 @@ export class TableSession {
     this.emit();
   };
   beginGesture = (sourceId: string, pickup: 'top' | 'whole') => {
+    this.finishRotation();
+    /* A piece picks up as the room has it, so one whose turn is still on its way waits for it, as a flipping one does. */
     if (
+      [...this.sentTurns.values()].some((turn) => turn.pieceId === sourceId) ||
       !this.canHandle() ||
       this.carry ||
       this.requireTable().reservedPieceIds.has(sourceId) ||
@@ -1476,12 +1534,36 @@ export class TableSession {
         }
       : snapshot;
   }
+  /*
+   * Queued readiness and reveals go out in order, only as many as the unanswered limit lets through; the rest wait
+   * for earlier commands to be answered, since each answer flushes the queues again.
+   */
   private flushBattleActions() {
-    if (this.canAct() && !this.planInFlight() && this.queuedBattleActions.length) {
-      const actions = this.queuedBattleActions;
+    while (this.mayFlushBattleAction()) {
+      const [next, ...rest] = this.queuedBattleActions;
       this.queuedBattleActions = [];
-      actions.forEach((action) => this.command(action));
+      this.command(next);
+      this.queuedBattleActions = [...rest, ...this.queuedBattleActions];
     }
+  }
+  private mayFlushBattleAction() {
+    const room = this.unanswered.size < UNANSWERED_COMMANDS_LIMIT;
+    return room && this.canAct() && !this.planInFlight() && this.queuedBattleActions.length > 0;
+  }
+  /*
+   * Whether this page may send the command now. Past a few unanswered commands a further one is dropped, not queued,
+   * so mashing a button or key never stacks up work for the room; play by hand is answered long before it gets there.
+   */
+  private mayCommand(action: PieceAction) {
+    const allowed = isSeatAction(action) ? this.current() : this.canAct();
+    return allowed && !(this.carry && !passesCarry(action)) && this.unanswered.size < UNANSWERED_COMMANDS_LIMIT;
+  }
+  private sendCommand(commandId: string, action: PieceAction) {
+    const sent = this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision });
+    if (sent) {
+      this.unanswered.add(commandId);
+    }
+    return sent;
   }
   /** Sends a table command, and returns its id when it went out. */
   command = (action: PieceAction): string | undefined => {
@@ -1496,7 +1578,7 @@ export class TableSession {
       this.emit();
       return;
     }
-    if (!(isSeatAction(action) ? this.current() : this.canAct()) || (this.carry && !passesCarry(action))) {
+    if (!this.mayCommand(action)) {
       return;
     }
     if (action.kind === 'flip' && this.requireTable().flippingPieceIds.has(action.pieceId)) {
@@ -1513,7 +1595,7 @@ export class TableSession {
     if (action.kind === 'flip') {
       this.pendingFlips.set(commandId, action.pieceId);
     }
-    if (!this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision })) {
+    if (!this.sendCommand(commandId, action)) {
       this.pendingFlips.delete(commandId);
       this.error = 'The connection closed before the action could be sent.';
     } else if (seatCommand) {
@@ -1551,7 +1633,11 @@ export class TableSession {
     }
   };
   rotateSelected = (direction: -1 | 1 = 1, id?: string) => {
-    if (this.carry && !this.carry.pendingDrop) {
+    /* A piece let go of turns no more, and nothing at rest turns while it lands, since the room would refuse that turn. */
+    if (this.carry?.pendingDrop) {
+      return;
+    }
+    if (this.carry) {
       this.carry = {
         ...this.carry,
         draft: { ...this.carry.draft, orientation: this.carry.draft.orientation - (direction * Math.PI) / 12 },
@@ -1562,10 +1648,61 @@ export class TableSession {
       return;
     }
     const pieceId = this.target(id);
-    if (pieceId) {
-      this.command({ kind: 'rotate', pieceId, direction });
+    if (!pieceId) {
+      return;
     }
+    if (this.turning && this.turning.pieceId !== pieceId) {
+      this.finishRotation();
+    }
+    const turns = (this.turning?.turns ?? 0) + direction;
+    const piece = this.turnablePiece(pieceId);
+    /* A step that would overlap another piece is not taken, as the room would refuse it; the turn so far stays. */
+    if (!piece || !rotatedPiece(this.requireTable().state, piece, foldedTurns(this.turnsOf(pieceId) + direction))) {
+      return;
+    }
+    this.turning = { pieceId, turns };
+    this.emit();
   };
+  /** Sends the held rotation as one command, its net turn folded into half a turn either way; a turn back to where it started sends nothing. */
+  finishRotation = () => {
+    const turning = this.turning;
+    if (!turning) {
+      return;
+    }
+    /* Let go of while a resync pauses the table, the turn waits for the fresh view instead of being lost. */
+    if (!this.current()) {
+      this.turning = { ...turning, released: true };
+      return;
+    }
+    /* The turn stays shown until the command is out, so the piece never springs back in between. */
+    const commandId = this.sendTurn(turning);
+    this.turning = null;
+    if (commandId) {
+      this.sentTurns.set(commandId, { pieceId: turning.pieceId, turns: foldedTurns(turning.turns) });
+    }
+    this.emit();
+  };
+  /* The piece as the room last sent it, while the room would let it turn: the table open to handling, the piece present, unlocked and not in another player's hand. */
+  private turnablePiece(pieceId: string) {
+    const snapshot = this.snapshot;
+    const piece = tableHandlingOpen(snapshot.stage)
+      ? snapshot.table.pieces.find((candidate) => candidate.id === pieceId)
+      : undefined;
+    if (!piece || gestureBlockReason(piece)) {
+      return null;
+    }
+    /* A piece another player is carrying, as from a deck they draw on, is theirs until they let go. */
+    return this.activityForView().carries.some((carry) => carry.reservedIds.includes(pieceId)) ? null : piece;
+  }
+  /* A piece locked or taken away while the key was held keeps the turn to itself, since the room would refuse it; a turn back to the start sends nothing. */
+  private sendTurn({ pieceId, turns: held }: Turn) {
+    const turns = foldedTurns(held);
+    if (!turns || !this.turnablePiece(pieceId)) {
+      return;
+    }
+    const steps = Math.abs(turns);
+    return this.command({ kind: 'rotate', pieceId, direction: turns > 0 ? 1 : -1, ...(steps > 1 ? { steps } : {}) });
+  }
   flipSelected = (id?: string) => {
     if (!this.canAct()) {
       return;
@@ -1583,19 +1720,26 @@ export class TableSession {
   /* A piece in hand turns over where it is held at once; the room answers with any face it turned up, and the table logs the flip when it lands. */
   private flipCarried() {
     const carry = this.carry;
-    if (!carry || carry.pendingDrop) {
-      return;
-    }
-    const held = heldPieceFor(this.requireTable().state, carry.draft);
-    /* The room never counts back, so a carry stops turning at its cap rather than send a count it refuses. */
-    const unrevealed = (stepId: string) => this.snapshot.predictions?.[stepId]?.revealedAt === null;
-    if (!canFlipInHand(held, unrevealed) || (carry.draft.flips ?? 0) >= CARRY_FLIPS_LIMIT) {
+    const held = carry && !carry.pendingDrop ? this.pieceToFlipInHand(carry) : null;
+    if (!carry || !held) {
       return;
     }
     const flips = (carry.draft.flips ?? 0) + 1;
+    this.handFlip = { carryId: carry.id, pieceId: held.id, revision: (held.flipRevision ?? 0) + 1 };
     this.carry = { ...carry, draft: { ...carry.draft, flips } };
     this.send({ type: 'flip', carryId: carry.id, flips });
     this.emit();
+  }
+  /* The piece in hand when it may turn over once more: one the room would let turn, below the carry's cap, and not still turning. */
+  private pieceToFlipInHand(carry: LocalCarry) {
+    const held = heldPieceFor(this.requireTable().state, carry.draft);
+    /* The room never counts back, so a carry stops turning at its cap rather than send a count it refuses. */
+    const unrevealed = (stepId: string) => this.snapshot.predictions?.[stepId]?.revealedAt === null;
+    if (!held || !canFlipInHand(held, unrevealed) || (carry.draft.flips ?? 0) >= CARRY_FLIPS_LIMIT) {
+      return null;
+    }
+    /* A piece still turning over in hand finishes that turn before it takes another, as one on the table does. */
+    return this.handFlip?.carryId === carry.id ? null : held;
   }
   toggleLockSelected = (id?: string) => {
     const pieceId = this.target(id);
@@ -1606,6 +1750,9 @@ export class TableSession {
   moveStormBy = (direction: -1 | 1 = 1) => this.command({ kind: 'storm', direction });
   spawnSpice = (count: number) => this.command({ kind: 'spice-spawn', count });
   finishPieceFlip = (pieceId: string, revision: number) => {
+    if (this.handFlip?.pieceId === pieceId && this.handFlip.revision === revision) {
+      this.handFlip = null;
+    }
     if (this.flipping.get(pieceId) !== revision) {
       return;
     }

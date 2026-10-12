@@ -206,9 +206,10 @@ async function serviceResponds(url: string): Promise<boolean> {
  * Convex Auth runs Scrypt inside the `auth:store` mutation at every Password sign-in, and on a loaded machine that alone passed 1 s (#1493).
  * A query or mutation that takes between 1 and 2 s passes here and fails on a hosted deployment, so this is the smallest whole raise.
  * Sign-in's `auth:store` took at most 0.13 s in a run of every browser flow and 1.5 s under 120 busy loops on a 10-core Mac.
+ * The macOS runner draws the table with WebGPU on the same three cores, and on 12 Oct 2026 single-read functions such as `playGames:getGameByAddress` passed 2 s there on 8 of 58 runs, with nothing else running in the backend's log (#1045), so macOS gets 3 s.
  * It applies to this launcher's own backend only, and the verifiers still never retry.
  */
-const LOCAL_FUNCTION_LIMIT_SECONDS = 2;
+const LOCAL_FUNCTION_LIMIT_SECONDS = process.platform === 'darwin' ? 3 : 2;
 
 function backendBinary(): string {
   if (values['backend-binary']) {
@@ -463,6 +464,24 @@ try {
     environment.PLAY_LOAD_LOCAL_ACCOUNT_SUFFIX = runId;
   }
   convex(['deploy', '--yes']);
+  /* Retain execution times and request IDs after the disposable backend is removed. */
+  start({
+    command: node,
+    args: [
+      path.join(root, 'node_modules/convex/bin/main.js'),
+      'logs',
+      '--history',
+      '10000',
+      '--success',
+      '--jsonl',
+      '--url',
+      backendUrl,
+      '--admin-key',
+      adminKey,
+    ],
+    env: localEnv,
+    logPath: path.join(evidence, 'functions.log'),
+  });
   console.log(`Synthetic Auth backend ready at ${backendUrl}; same-origin publisher ${origin}.`);
   /* Wrangler's own debug log goes to its global log directory by default, outside the evidence the artifact keeps. */
   const wranglerLog = path.join(evidence, 'wrangler.log');

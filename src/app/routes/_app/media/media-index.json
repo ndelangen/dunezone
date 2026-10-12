@@ -5537,6 +5537,12 @@
     "subjects": ["people", "weapons"],
     "sourceHash": "a5e2ee884703c1e463889a198888bc1935a641fa2ff2836e2c5f468edc94b45f"
   },
+  "/vector/troop/sword-bearer.svg": {
+    "description": "Armoured soldier with a sword over one shoulder and a blade at the hip.",
+    "tags": ["troop", "silhouette", "soldier", "armour", "sword", "blade", "f11", "F11v20230824"],
+    "subjects": ["people", "weapons"],
+    "sourceHash": "2fde7ab6bad0ca59decc32e66e205a72256a3c7cc05cb8c9d7338c0fc5a8257f"
+  },
   "/vector/troop/veiled-adept.svg": {
     "description": "Flowing robed figure extending an arm and carrying a curved knife.",
     "tags": ["silhouette", "knife", "figure", "vector", "blade", "weapon"],
@@ -10460,10 +10466,10 @@
     "sourceHash": "769047c3edf2ba2507a7056a805720b9dd1592de2329b3015183929eea0114e7"
   },
   "/vector/icon/stronghold-multicolor.svg": {
-    "description": "The supplied palace emblem on the pink-red stronghold card back disc.",
+    "description": "A dark red palace emblem on a transparent background.",
     "tags": ["stronghold", "fortress", "city", "towers"],
     "subjects": ["symbols"],
-    "sourceHash": "a813376d29d0af14d9f93a5dc879f8369c6547c90f44177613d1f7ef1410562c"
+    "sourceHash": "35c265db1d9febecad48321bb12579126d706575c0f487040ba562845d211c4e"
   },
   "/image/decal/gf9-stronghold-arrakeen.png": {
     "description": "A pale city below rust-colored cliffs beneath a blue sky.",

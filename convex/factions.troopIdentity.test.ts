@@ -43,7 +43,7 @@ describe('persistent faction troop identities (#1227)', () => {
     const again = await author.mutation(api.factions.update, { id: created._id, data: saved.data });
     expect(troopIds(saved.data)).toEqual([assigned[1], assigned[0]]);
     expect(troopIds(again.data)).toEqual(troopIds(saved.data));
-    const reloaded = await t.query(api.factions.getBySlug, { slug: created.slug });
+    const reloaded = await t.query(api.factions.pageBySlug, { slug: created.slug });
     expect(troopIds(reloaded!.faction!.data)).toEqual(troopIds(saved.data));
   });
 

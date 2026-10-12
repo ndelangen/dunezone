@@ -79,7 +79,7 @@ describe('faction reads across the Faction leader key rename', () => {
     group.factions.forEach((row) => expectLeaderKey(row.slug, row.data));
 
     for (const slug of ['hero-only', 'both-keys']) {
-      const page = await viewer.query(api.factions.getBySlug, { slug });
+      const page = await viewer.query(api.factions.pageBySlug, { slug });
       expectLeaderKey(slug, page.faction.data);
     }
 

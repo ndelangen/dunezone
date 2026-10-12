@@ -12,7 +12,6 @@ import type { ComponentProps } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
-import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { StormCard } from '@game/assets/card/Storm';
 import { card } from '@game/data/sizes';
 
@@ -23,7 +22,10 @@ import { CustomCardLayerPanel, CustomCardLayers } from './CustomCardLayers';
 import styles from './StormCardEditor.module.css';
 
 export type StormCardDraft = z.infer<typeof StormCardAsset>;
-export const INITIAL_STORM_CARD_DRAFT: StormCardDraft = { ...standardStormCard(1), name: '' };
+export const INITIAL_STORM_CARD_DRAFT: StormCardDraft = {
+  ...standardStormCard(1),
+  name: '',
+};
 export { INITIAL_CUSTOM_CARD_MEMORY as INITIAL_STORM_CARD_MEMORY };
 export type { CustomCardChapter as StormCardChapter, CustomCardMemory as StormCardMemory } from './CustomCardEditor';
 
@@ -37,13 +39,7 @@ const LAYERS = {
   text: { label: 'Text', topic: 'text' },
 } as const;
 
-function StormIdentity({
-  draft,
-  patch,
-  memory,
-  remember,
-  nameField,
-}: Pick<Props, 'draft' | 'patch' | 'memory' | 'remember' | 'nameField'>) {
+function StormIdentity({ draft, patch, nameField }: Readonly<Pick<Props, 'draft' | 'patch' | 'nameField'>>) {
   return (
     <Stack gap="md">
       <ControlBlock
@@ -71,30 +67,6 @@ function StormIdentity({
           />
         }
       />
-      <BackgroundPresetControl
-        title="Head background"
-        description="Colour and texture behind the movement title."
-        usedOn="this storm card's head"
-        presets={[{ key: 'storm', label: 'Storm', background: standardStormCard(1).head }]}
-        value={draft.head}
-        declaredCustom={memory.headCustom}
-        onDeclaredCustomChange={(headCustom) => remember({ headCustom })}
-        modeMemory={memory.headModeMemory}
-        onModeMemoryChange={(headModeMemory) => remember({ headModeMemory })}
-        onChange={(head) => patch({ head })}
-      />
-      <BackgroundPresetControl
-        title="Symbol background"
-        description="Colour and texture behind the fixed storm symbol."
-        usedOn="this storm card's symbol"
-        presets={[{ key: 'storm', label: 'Storm', background: standardStormCard(1).icon[0] }]}
-        value={draft.icon[0]}
-        declaredCustom={memory.iconCustom}
-        onDeclaredCustomChange={(iconCustom) => remember({ iconCustom })}
-        modeMemory={memory.iconModeMemory}
-        onModeMemoryChange={(iconModeMemory) => remember({ iconModeMemory })}
-        onChange={(background) => patch({ icon: [background, '/vector/icon/storrm_standalone.svg'] })}
-      />
     </Stack>
   );
 }
@@ -103,8 +75,6 @@ function StormIdentity({
 export function StormCardEditor({
   draft,
   patch,
-  memory,
-  remember,
   nameField,
   chapter,
   onChapterChange,
@@ -140,15 +110,7 @@ export function StormCardEditor({
                 value: 'head',
                 label: 'Storm',
                 icon: <TopicIcon topic="storm" size={21} />,
-                panel: (
-                  <StormIdentity
-                    draft={draft}
-                    patch={patch}
-                    memory={memory}
-                    remember={remember}
-                    nameField={nameField}
-                  />
-                ),
+                panel: <StormIdentity draft={draft} patch={patch} nameField={nameField} />,
               },
               {
                 value: 'layers',

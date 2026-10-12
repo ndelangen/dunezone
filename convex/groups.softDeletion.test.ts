@@ -8,6 +8,7 @@ import { describe, expect, test } from 'vitest';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import schema from './schema';
+import { factionPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-09T00:00:00.000Z';
@@ -163,7 +164,7 @@ describe('Group soft deletion lifecycle', () => {
       })
     ).rejects.toThrow('Not authorized');
 
-    const faction = await member.query(api.factions.getBySlug, { slug: 'collaborative-faction' });
+    const faction = await factionPageAs(member, 'collaborative-faction');
     expect(faction.viewerAccess.assignedGroup).toBeNull();
     expect(faction.viewerAccess.capabilities.edit).toBe(false);
   });
@@ -237,9 +238,7 @@ describe('Group soft deletion lifecycle', () => {
     });
 
     const assetOwner = t.withIdentity({ subject: ids.assetOwnerId });
-    const faction = await assetOwner.query(api.factions.getBySlug, {
-      slug: 'collaborative-faction',
-    });
+    const faction = await factionPageAs(assetOwner, 'collaborative-faction');
     expect(faction.viewerAccess.assignedGroup).toBeNull();
     expect(faction.viewerAccess.capabilities).toMatchObject({
       edit: true,

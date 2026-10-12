@@ -1,12 +1,12 @@
 import type { TablePiece, Vector3Tuple } from './model';
-import { isSpicePiece, SPICE_FOOTPRINT_RADIUS } from './spice';
 import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, placementAnchorForPose } from './tableFurnitureLayout';
 import {
   CARD_FOOTPRINT_HALF_X,
   CARD_FOOTPRINT_HALF_Z,
+  circleFootprintRadius,
+  planarDistance,
   TROOP_FOOTPRINT_RADIUS,
   troopScale,
-  MARKER_FOOTPRINT_RADIUS,
   tokenBoxRatio,
 } from './tableGeometry';
 
@@ -63,14 +63,7 @@ function footprintFor(piece: TablePiece): Footprint {
     const halfX = TROOP_FOOTPRINT_RADIUS * troopScale(piece);
     return { shape: 'box', halfX, halfZ: halfX * ratio };
   }
-  return {
-    shape: 'circle',
-    radius: isSpicePiece(piece)
-      ? SPICE_FOOTPRINT_RADIUS
-      : piece.kind === 'marker'
-        ? MARKER_FOOTPRINT_RADIUS
-        : TROOP_FOOTPRINT_RADIUS * troopScale(piece),
-  };
+  return { shape: 'circle', radius: circleFootprintRadius(piece) };
 }
 
 function centerOf(position: Vector3Tuple): Vector2 {
@@ -188,7 +181,7 @@ export function piecesTouchForStack(source: TablePiece, position: Vector3Tuple, 
   if (!piecesCanStack(source, target)) {
     return false;
   }
-  const distance = Math.hypot(position[0] - target.position[0], position[2] - target.position[2]);
+  const distance = planarDistance(position, target.position);
   const magneticRange = source.kind === 'card' ? 0.95 : 0.36;
   return distance <= magneticRange || piecesOverlapAt(source, position, target);
 }
@@ -262,7 +255,7 @@ export function clampPositionToTable(piece: TablePiece, position: Vector3Tuple):
   }
   const onTable = clampToRoundTable(piece, position);
   const onTanks = clampToTanksShelf(piece, position);
-  const distance = (candidate: Vector3Tuple) => Math.hypot(candidate[0] - position[0], candidate[2] - position[2]);
+  const distance = (candidate: Vector3Tuple) => planarDistance(candidate, position);
   return distance(onTanks) < distance(onTable) ? onTanks : onTable;
 }
 
@@ -295,7 +288,7 @@ export function isCollisionFreePosition(
 }
 
 function searchAngleFor(pieceId: string): number {
-  // Preserve the leading UTF-16 unit used to place existing piece IDs.
+  /* Preserve the leading UTF-16 unit used to place existing piece IDs. */
   const seed = [...pieceId].reduce((sum, character, index) => sum + character.charCodeAt(0) * (index + 1), 0);
   return ((seed % SEARCH_DIRECTIONS) / SEARCH_DIRECTIONS) * Math.PI * 2;
 }

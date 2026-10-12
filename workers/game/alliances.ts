@@ -1,14 +1,9 @@
 import { AllianceRefusal, applyAlliance, emptyAlliances } from '../../src/shared/play/alliances';
 import type { AllianceAction, AllianceState } from '../../src/shared/play/alliances';
-import { nextSnapshot } from '../../src/shared/play/commands';
-import { tableForViewer } from '../../src/shared/play/protocol';
+import { rosterFactionIds } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
-import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { revised } from './state';
 import type { StoredSnapshot } from './state';
-
-function seatedFactions(snapshot: StoredSnapshot): string[] {
-  return snapshot.roster?.seats.flatMap(({ faction }) => (faction ? [faction.id] : [])) ?? [];
-}
 
 /* A table that never saw an alliance starts from one shared empty state, so a command that changes nothing returns it unchanged. */
 const NONE = emptyAlliances();
@@ -21,7 +16,7 @@ function nextAlliances(snapshot: StoredSnapshot, factionId: string, action: Alli
   try {
     return applyAlliance(before(snapshot), action, {
       factionId,
-      factions: seatedFactions(snapshot),
+      factions: rosterFactionIds(snapshot.roster),
       now,
       revision: snapshot.revision,
     });
@@ -44,5 +39,5 @@ export function allianceCommand(
   if (alliances === before(snapshot)) {
     return snapshot;
   }
-  return { ...nextSnapshot(snapshot, tableForViewer(snapshot, SPECTATOR_SEAT)), alliances };
+  return { ...revised(snapshot), alliances };
 }

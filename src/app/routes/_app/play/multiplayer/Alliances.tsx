@@ -2,8 +2,7 @@ import { Avatar, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
 import { alliesOf } from '@shared/play/alliances';
 import type { AllianceAction, AllianceState } from '@shared/play/alliances';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import { factionTokenStackKey } from '@shared/play/factionToken';
-import { rosterSeat } from '@shared/play/schema';
+import { factionTokenOf } from '@shared/play/factionToken';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { ReactNode } from 'react';
@@ -11,12 +10,9 @@ import type { ReactNode } from 'react';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { allianceSlot, allianceThemeColor } from './allianceHues';
 import { ALLIANCES_HELP } from './panelGuidance';
+import { seatFaction, viewerFaction } from './tableFactions';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
-
-function viewerFaction(table: TableProjection): string | undefined {
-  return rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
-}
 
 /** The ring colour of the alliance `factionId` belongs to, or undefined when it stands alone. */
 export function allianceHue(snapshot: TableProjection['snapshot'], factionId: string | undefined) {
@@ -36,7 +32,7 @@ export function showsAlliances(stage: string | undefined) {
 
 /** A player's alliance on their Info tab, with what the viewer can do about it: offer, accept or decline, withdraw, or break an alliance. */
 export function PlayerAlliance({ client, table, seat }: Props & Readonly<{ seat: string }>) {
-  const factionId = rosterSeat(table.snapshot.roster, seat)?.faction?.id;
+  const factionId = seatFaction(table, seat);
   if (!factionId || !showsAlliances(table.snapshot.stage)) {
     return null;
   }
@@ -252,8 +248,7 @@ export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
     return null;
   }
   const names = snapshotFactionLabels(table.snapshot);
-  const face = (factionId: string) =>
-    table.state.pieces.find((piece) => piece.stackKey === factionTokenStackKey(factionId))?.items[0]?.artwork?.front;
+  const face = (factionId: string) => factionTokenOf(table.state.pieces, factionId)?.items[0]?.artwork?.front;
   return (
     <Group
       gap="xs"

@@ -1,4 +1,5 @@
 /* oxlint-disable jsx-a11y/alt-text -- Decorative game-card layers. */
+import { useLayoutEffect, useRef } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -15,17 +16,44 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
   name,
   imageOffset,
   imageScale,
-  nameScale = 1,
-  nameFont = 'C_Busorama',
   emblemBackground,
 }) => {
   const prefix = useCountId();
   const resolveAsset = useAssetResolver();
+  const label = useRef<SVGSVGElement>(null);
+  useLayoutEffect(() => {
+    const element = label.current!;
+    let active = true;
+    /* Start every label at the original size, reducing it only when its measured width exceeds the panel. */
+    const fit = () => {
+      if (!active) {
+        return;
+      }
+      let size = 90;
+      for (let pass = 0; pass < 4; pass++) {
+        element.style.fontSize = `${size}px`;
+        const width = element.querySelector('text')!.getComputedTextLength();
+        if (width <= 680) {
+          break;
+        }
+        size *= (680 / width) * 0.9999;
+      }
+    };
+    fit();
+    void document.fonts.load('90px C_Busorama', name.toUpperCase()).then(fit);
+    return () => {
+      active = false;
+    };
+  }, [name]);
 
   const gradient = `${prefix}gradient`;
   const textMask = `${prefix}text-mask`;
   const textShadeMask = `${prefix}text-shade-mask`;
   const multicolor = image.endsWith('-multicolor.svg') || !image.endsWith('.svg');
+  /* Clip each blended image to the fixed gold disc without isolating its blend from the card. */
+  const emblemClip = {
+    clipPath: `circle(145px at ${imageScale * 110 - imageOffset[0]}px ${imageScale * 110 - imageOffset[1]}px)`,
+  };
   const emblemBackgroundFilter = `${prefix}emblem-background`;
   const tint = emblemBackground?.color.match(/^#([0-9a-f]{6})$/i)?.[1];
   const intensity = emblemBackground?.intensity ?? 0;
@@ -56,21 +84,20 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
           filter: `${tintMatrix ? `url(#${emblemBackgroundFilter}) ` : ''}drop-shadow(0 0 3px black) drop-shadow(0 0 8px black)`,
         }}
       />
-      {/* Each masked layer blends separately so monochrome emblems keep their existing three-pass shading. */}
-      {(multicolor ? [0] : [0, 1, 2]).map((layer) => (
-        <div key={layer} className={`${styles.icon} ${multicolor ? styles.multicolor : ''}`}>
-          <img
-            alt=""
-            src={resolveAsset(image)}
-            style={{
-              marginLeft: imageOffset[0] - ((imageScale - 1) / 2) * 220,
-              marginTop: imageOffset[1] - ((imageScale - 1) / 2) * 220,
-              width: imageScale * 220,
-              height: imageScale * 220,
-            }}
-          />
-        </div>
-      ))}
+
+      <div
+        className={`${styles.icon} ${multicolor ? styles.multicolor : ''}`}
+        style={{
+          marginLeft: imageOffset[0] - ((imageScale - 1) / 2) * 220,
+          marginTop: imageOffset[1] - ((imageScale - 1) / 2) * 220,
+          width: imageScale * 220,
+          height: imageScale * 220,
+        }}
+      >
+        <img alt="" src={resolveAsset(image)} style={emblemClip} />
+        {!multicolor && <img alt="" src={resolveAsset(image)} style={emblemClip} />}
+        {!multicolor && <img alt="" src={resolveAsset(image)} style={emblemClip} />}
+      </div>
 
       <div
         className={styles.decal_bg_2}
@@ -79,7 +106,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
         }}
       />
 
-      <svg className={styles.svg}>
+      <svg ref={label} className={styles.svg} fontSize={90}>
         <defs>
           {tintMatrix && (
             <filter id={emblemBackgroundFilter} colorInterpolationFilters="sRGB">
@@ -95,8 +122,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
             <text
               dominantBaseline="middle"
               fill="white"
-              fontFamily={nameFont}
-              fontSize={90 * nameScale}
+              fontFamily="C_Busorama"
               letterSpacing="-0.7"
               style={{ textTransform: 'uppercase' }}
               textAnchor="middle"
@@ -111,8 +137,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
             <text
               dominantBaseline="middle"
               fill="white"
-              fontFamily={nameFont}
-              fontSize={90 * nameScale}
+              fontFamily="C_Busorama"
               letterSpacing="-0.7"
               style={{ textTransform: 'uppercase' }}
               textAnchor="middle"
@@ -124,8 +149,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
             <text
               dominantBaseline="middle"
               fill="black"
-              fontFamily={nameFont}
-              fontSize={90 * nameScale}
+              fontFamily="C_Busorama"
               letterSpacing="-0.7"
               style={{ textTransform: 'uppercase' }}
               textAnchor="middle"
@@ -145,8 +169,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
           <text
             dominantBaseline="middle"
             fill="black"
-            fontFamily={nameFont}
-            fontSize={90 * nameScale}
+            fontFamily="C_Busorama"
             letterSpacing="-0.7"
             style={{ textTransform: 'uppercase' }}
             textAnchor="middle"
@@ -156,9 +179,9 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
             {name}
           </text>
         </g>
-        <rect fill={`url(#${gradient})`} y={card.height - 300} {...card} height={100} mask={`url(#${textMask})`} />
+        <rect fill={`url(#${gradient})`} {...card} y={card.height - 300} height={100} mask={`url(#${textMask})`} />
         <g style={{ mixBlendMode: 'overlay' }}>
-          <rect fill="black" y={card.height - 300} {...card} height={100} mask={`url(#${textShadeMask})`} />
+          <rect fill="black" {...card} y={card.height - 300} height={100} mask={`url(#${textShadeMask})`} />
         </g>
       </svg>
     </div>

@@ -1,5 +1,5 @@
 import type { TablePiece, Vector3Tuple } from './model';
-import { CARD_DEPTH, CARD_WIDTH, TABLE_SURFACE_Y } from './tableGeometry';
+import { CARD_DEPTH, CARD_WIDTH, nearestBy, planarDistance, TABLE_SURFACE_Y } from './tableGeometry';
 
 export type CardBaySide = 'left' | 'right';
 
@@ -27,11 +27,6 @@ export type PlacementAnchor = Readonly<{
   acceptedKinds: readonly TablePiece['kind'][];
   captureSize: Readonly<{ width: number; depth: number }>;
 }>;
-
-export function sideShelfPosition(side: CardBaySide): Vector3Tuple {
-  const direction = side === 'left' ? -1 : 1;
-  return [direction * SIDE_SHELF_CENTER_X, FURNITURE_SURFACE_Y - SIDE_SHELF_SIZE[1] / 2, 0];
-}
 
 function positionsForCardBay(side: CardBaySide): Vector3Tuple[] {
   const direction = side === 'left' ? -1 : 1;
@@ -84,27 +79,24 @@ export function cardBaySlotPositions(side: CardBaySide): Vector3Tuple[] {
   ]);
 }
 
+/** Whether a piece of this kind dropped at `position` falls inside the anchor's capture box. */
+function anchorCaptures(anchor: PlacementAnchor, piece: Pick<TablePiece, 'kind'>, position: Vector3Tuple): boolean {
+  return (
+    anchor.acceptedKinds.includes(piece.kind) &&
+    !(
+      Math.abs(position[0] - anchor.position[0]) > anchor.captureSize.width / 2 ||
+      Math.abs(position[2] - anchor.position[2]) > anchor.captureSize.depth / 2
+    )
+  );
+}
+
 export function placementAnchorAtPosition(
   piece: Pick<TablePiece, 'kind'>,
   position: Vector3Tuple
 ): PlacementAnchor | null {
-  let nearest: { anchor: PlacementAnchor; distance: number } | null = null;
-  for (const anchor of TABLE_PLACEMENT_ANCHORS) {
-    if (!anchor.acceptedKinds.includes(piece.kind)) {
-      continue;
-    }
-    if (
-      Math.abs(position[0] - anchor.position[0]) > anchor.captureSize.width / 2 ||
-      Math.abs(position[2] - anchor.position[2]) > anchor.captureSize.depth / 2
-    ) {
-      continue;
-    }
-    const distance = Math.hypot(position[0] - anchor.position[0], position[2] - anchor.position[2]);
-    if (!nearest || distance < nearest.distance) {
-      nearest = { anchor, distance };
-    }
-  }
-  return nearest?.anchor ?? null;
+  return nearestBy(TABLE_PLACEMENT_ANCHORS, (anchor) =>
+    anchorCaptures(anchor, piece, position) ? planarDistance(position, anchor.position) : null
+  );
 }
 
 export function placementAnchorForPose(

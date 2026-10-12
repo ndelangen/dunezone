@@ -33,6 +33,7 @@ export type TabletopContextValue = Pick<
     | 'cancelDraft'
     | 'finishGesture'
     | 'finishPieceFlip'
+    | 'finishRotation'
     | 'flipSelected'
     | 'moveStormBy'
     | 'ping'
@@ -51,12 +52,12 @@ export type TabletopContextValue = Pick<
 type TabletopCommands = Omit<TabletopContextValue, keyof TableProjection>;
 
 /** The session's commands and its pointer feed, which stay the same for the session's life, for parts that must not follow every update. */
-export type TabletopActions = Pick<
+type TabletopActions = Pick<
   TableSession,
   'finishPieceFlip' | 'getPointers' | 'selectPiece' | 'setHoveredPiece' | 'subscribePings' | 'subscribePointers'
 >;
 
-export type TabletopSession = Pick<
+type TabletopSession = Pick<
   TableSession,
   keyof TabletopCommands | keyof TabletopActions | 'getTable' | 'subscribeTable'
 >;
@@ -85,6 +86,7 @@ export function TabletopSessionProvider({
         cancelDraft: session.cancelDraft,
         finishGesture: session.finishGesture,
         finishPieceFlip: session.finishPieceFlip,
+        finishRotation: session.finishRotation,
         flipSelected: session.flipSelected,
         moveStormBy: session.moveStormBy,
         ping: session.ping,

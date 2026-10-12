@@ -10,7 +10,7 @@ import type { StoredPiece } from '../../src/shared/play/model';
 import { seatSubject } from '../../src/shared/play/participation';
 import { composeSetup, phaseAt, requirePhaseCooldownElapsed, tableProgressFor } from '../../src/shared/play/phases';
 import type { SetupPlacement } from '../../src/shared/play/phases';
-import { rosterFactionNames, tableForViewer } from '../../src/shared/play/protocol';
+import { rosterFactionIds, rosterFactionNames, tableForViewer } from '../../src/shared/play/protocol';
 import type { PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
@@ -22,6 +22,7 @@ import { OTHER_DECK_POSITION } from '../../src/shared/play/tableFurnitureLayout'
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { labelForCount } from '../../src/shared/play/tableState';
 import { dealPredictionCard } from './predictionCards';
+import { seatedFaction } from './state';
 import type { StoredSnapshot } from './state';
 
 function setupTargetSymbol(id: (typeof SETUP_PHASE_TARGETS)[number]['id']) {
@@ -57,7 +58,7 @@ export function initialSetup(
   roster: TableRoster | undefined,
   stormSectorIndex: number
 ): SetupState {
-  const seated = new Set(roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])) ?? []);
+  const seated = new Set(rosterFactionIds(roster));
   const factions = captures
     .filter((capture) => seated.has(capture.faction.id))
     .map((capture) => ({ factionId: capture.faction.id, declarations: capturedDeclarations(capture) }));
@@ -95,10 +96,6 @@ export function initialSetup(
 
 function event(snapshot: StoredSnapshot, command: string, message: string): StoredSnapshot {
   return nextSnapshot(snapshot, accepted(tableForViewer(snapshot, SPECTATOR_SEAT), command, message));
-}
-
-function retainedFaction(snapshot: StoredSnapshot, id: string) {
-  return snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction;
 }
 
 function factionName(snapshot: StoredSnapshot, id: string) {
@@ -195,7 +192,7 @@ function predictionStep(snapshot: StoredSnapshot, stepId: string) {
 }
 
 function requireRetainedFaction(snapshot: StoredSnapshot, id: string) {
-  const retained = retainedFaction(snapshot, id);
+  const retained = seatedFaction(snapshot, id);
   if (!retained) {
     throw new GameRejection('Choose a faction retained in this game.');
   }

@@ -3,21 +3,24 @@ import { freshTableState, gestureBlockReason, nearestZone, pieceCount } from './
 import type { TablePiece, TableState } from './model';
 import { phaseAt, STANDARD_PHASES, stepPhase, tableProgressFor, TURN_SELECT_REFUSAL } from './phases';
 import type { PhaseEntry } from './phases';
+import { ROTATE_STEPS_LIMIT } from './protocol';
 import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
-import { createSpiceStack, isSpicePiece } from './spiceBank';
-import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
+import { isSpicePiece } from './spice';
+import { createSpiceStack } from './spiceBank';
+import { planarDistance, restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
 import {
-  appendEvent,
+  accepted,
   applyDraftToState,
   compatibleStackTarget,
-  eventId,
   flipPieceInState,
   labelForCount,
   moveStormInState,
+  pieceUnits,
 } from './tableState';
-import { isTroopStack } from './troop';
+
+export { accepted };
 
 function durableTable(table: TableState): DurableTable {
   const {
@@ -60,14 +63,6 @@ export function nextSnapshot<Snapshot extends GameSnapshot>(
     })
   );
   return { ...previous, revision, table: durableTable(table), versions, phase };
-}
-
-/** The table with one accepted event appended, numbered from the table's own event counter. */
-export function accepted(state: TableState, command: string, message: string): TableState {
-  return {
-    ...state,
-    ...appendEvent(state, { id: eventId(state.nextEventNumber), command, message, status: 'accepted' }),
-  };
 }
 
 export function requireAccepted(before: TableState, after: TableState): TableState {
@@ -145,7 +140,7 @@ export function applyPieceAction(
     case 'lock':
       return lockPiece(state, piece);
     case 'rotate':
-      return rotatePiece(state, piece, action.direction);
+      return rotatePiece(state, piece, action.direction, action.steps);
     case 'stack':
       return stackPiece(state, piece);
     case 'split':
@@ -182,13 +177,25 @@ function deletePiece(state: TableState, piece: TablePiece, actorName: string): T
   );
 }
 
+/** The spice already resting on the spot a new stack would spawn at, if any. */
+function spiceAt(state: TableState, piece: TablePiece): TablePiece | undefined {
+  return state.pieces.find(
+    (candidate) => isSpicePiece(candidate) && planarDistance(candidate.position, piece.position) < 0.000001
+  );
+}
+
+/** The table with new spice added to the stack already on the spot, or set down as its own stack. */
+function withSpawnedSpice(state: TableState, piece: TablePiece, existing: TablePiece | undefined): TablePiece[] {
+  return existing
+    ? state.pieces.map((candidate) =>
+        candidate === existing ? { ...existing, items: [...existing.items, ...piece.items] } : candidate
+      )
+    : [...state.pieces, piece];
+}
+
 export function spawnSpiceInState(state: TableState, count: number, actorName = 'A player'): TableState {
   const piece = createSpiceStack(state.nextEventNumber, count);
-  const existing = state.pieces.find(
-    (candidate) =>
-      isSpicePiece(candidate) &&
-      Math.hypot(candidate.position[0] - piece.position[0], candidate.position[2] - piece.position[2]) < 0.000001
-  );
+  const existing = spiceAt(state, piece);
   if (existing?.locked) {
     throw new GameRejection('The spice at the Spice Bank is locked or being moved.');
   }
@@ -202,11 +209,7 @@ export function spawnSpiceInState(state: TableState, count: number, actorName = 
     throw new GameRejection('Move the piece blocking the Spice Bank spawn point first.');
   }
   piece.zoneId = nearestZone(piece.position)?.id ?? null;
-  const pieces = existing
-    ? state.pieces.map((candidate) =>
-        candidate === existing ? { ...existing, items: [...existing.items, ...piece.items] } : candidate
-      )
-    : [...state.pieces, piece];
+  const pieces = withSpawnedSpice(state, piece, existing);
   return accepted(
     { ...state, pieces, selectedPieceId: existing?.id ?? piece.id },
     'spice.spawn',
@@ -226,26 +229,41 @@ function lockPiece(state: TableState, piece: TablePiece): TableState {
   );
 }
 
-function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1): TableState {
-  const orientation = piece.orientation - (direction * Math.PI) / 12;
+/** One press of Q or E turns a piece this far. */
+const ROTATE_STEP = Math.PI / 12;
+
+/** The net turn of a held rotation in 15° steps, clockwise positive, folded into half a turn either way. */
+export function foldedTurns(turns: number): number {
+  const folded = ((turns % 24) + 24) % 24;
+  return folded > ROTATE_STEPS_LIMIT ? folded - 24 : folded;
+}
+
+/** The piece turned by `turns` 15° steps, clockwise positive, resting where it lands; null when it would overlap another piece. */
+export function rotatedPiece(state: TableState, piece: TablePiece, turns: number): TablePiece | null {
+  const orientation = piece.orientation - turns * ROTATE_STEP;
   const rotated = {
     ...piece,
     orientation,
     position: restingPositionAt(piece.position, { ...piece, orientation }),
   };
-  if (
-    !isCollisionFreePosition(
-      rotated,
-      rotated.position,
-      state.pieces.filter((candidate) => candidate.id !== piece.id)
-    )
-  ) {
+  return isCollisionFreePosition(
+    rotated,
+    rotated.position,
+    state.pieces.filter((candidate) => candidate.id !== piece.id)
+  )
+    ? rotated
+    : null;
+}
+
+function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1, steps = 1): TableState {
+  const rotated = rotatedPiece(state, piece, direction * steps);
+  if (!rotated) {
     throw new GameRejection(`There is no room to rotate ${piece.label} here.`);
   }
   return accepted(
     { ...state, pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? rotated : candidate)) },
     'piece.rotate',
-    `${piece.label} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by 15 degrees.`
+    `${piece.label} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by ${steps * 15} degrees.`
   );
 }
 
@@ -305,12 +323,8 @@ function splitPlacement(state: TableState, piece: TablePiece, count: number) {
 }
 
 function splitDescription(piece: TablePiece, count: number) {
-  if (isSpicePiece(piece)) {
-    return `${count} spice taken from ${piece.label}.`;
-  }
-  const unit = piece.kind === 'card' ? 'card' : isTroopStack(piece) ? 'troop' : 'token';
-  const plural = count === 1 ? '' : 's';
-  return `${count} ${unit}${plural} taken from ${piece.label}.`;
+  const [one, many] = pieceUnits(piece);
+  return `${count} ${count === 1 ? one : many} taken from ${piece.label}.`;
 }
 
 function splitPiece(state: TableState, piece: TablePiece, requestedCount: number): TableState {

@@ -9,9 +9,8 @@ import {
 } from '../src/shared/play/directory';
 import type { PlayDirectorySummary } from '../src/shared/play/directory';
 import type { Doc, Id } from './_generated/dataModel';
-import { query } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
-import { mutation } from './functions';
+import { mutation, viewerQuery } from './functions';
 import { canonicalAccount } from './lib/accountIdentity';
 import { isActiveProfile } from './lib/accountLifecycle';
 import { authenticatedPlayRequest, currentPlaySession, isRealGame } from './lib/playAuthorization';
@@ -144,7 +143,7 @@ async function gamesInStage(ctx: QueryCtx, stage: PlayDirectorySummary['stage'])
  * The lobby's ongoing and past lists.
  * Any active signed-in player sees every listed game.
  */
-export const listGames = query({
+export const listGames = viewerQuery({
   args: {},
   returns: zodToConvex(playLobbySchema),
   handler: async (ctx) => {

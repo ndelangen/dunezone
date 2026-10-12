@@ -11,7 +11,7 @@ import type {
 } from './schema';
 import { isSpicePiece } from './spice';
 import { DEFAULT_STORM_SECTOR_INDEX } from './stormSector';
-import { restingPositionAt } from './tableGeometry';
+import { nearestBy, planarDistance, restingPositionAt } from './tableGeometry';
 import { isTroopStack } from './troop';
 
 export type Vector3Tuple = z.infer<typeof tablePositionSchema>;
@@ -249,37 +249,26 @@ export function zoneById(zoneId: string | null): Zone | null {
 }
 
 export function nearestZone(position: Vector3Tuple): Zone | null {
-  let nearest: { zone: Zone; distance: number } | null = null;
-
-  for (const zone of ZONES) {
-    const dx = position[0] - zone.position[0];
-    const dz = position[2] - zone.position[2];
-    const distance = Math.hypot(dx, dz);
-    if (Number.isNaN(distance) || distance > zone.radius) {
-      continue;
-    }
-    if (!nearest || distance < nearest.distance) {
-      nearest = { zone, distance };
-    }
-  }
-
-  return nearest?.zone ?? null;
+  return nearestBy(ZONES, (zone) => {
+    const distance = planarDistance(position, zone.position);
+    return Number.isNaN(distance) || distance > zone.radius ? null : distance;
+  });
 }
 
 function splitAffordance(piece: TablePiece): Affordance {
-  const isCard = piece.kind === 'card';
-  const isSpice = isSpicePiece(piece);
+  if (piece.kind === 'card') {
+    return {
+      id: 'draw',
+      commandType: 'deck.draw',
+      label: 'Draw top card',
+      description: 'Take the top card into a new loose table object.',
+    };
+  }
   const unit = isTroopStack(piece) ? 'troop' : 'token';
-  return {
-    id: isCard ? 'draw' : 'split',
-    commandType: isCard ? 'deck.draw' : 'stack.split',
-    label: isCard ? 'Draw top card' : isSpice ? 'Split one spice' : `Split one ${unit}`,
-    description: isCard
-      ? 'Take the top card into a new loose table object.'
-      : isSpice
-        ? 'Create a separate spice stack beside this stack.'
-        : `Create a separate one-${unit} stack beside this stack.`,
-  };
+  const [label, description] = isSpicePiece(piece)
+    ? ['Split one spice', 'Create a separate spice stack beside this stack.']
+    : [`Split one ${unit}`, `Create a separate one-${unit} stack beside this stack.`];
+  return { id: 'split', commandType: 'stack.split', label, description };
 }
 
 function mergeAffordance(piece: TablePiece): Affordance {
@@ -291,9 +280,16 @@ function mergeAffordance(piece: TablePiece): Affordance {
   };
 }
 
+export function isFlippablePiece(piece: TablePiece | null | undefined): piece is TablePiece {
+  if (!piece) {
+    return false;
+  }
+  const canFlipKind = piece.kind === 'card' || piece.kind === 'force';
+  return pieceCount(piece) > 0 && canFlipKind;
+}
+
 function canOfferFlip(state: TableState, piece: TablePiece): boolean {
-  const supportedKind = piece.kind === 'card' || piece.kind === 'force';
-  return !state.draftMove && pieceCount(piece) > 0 && supportedKind;
+  return !state.draftMove && isFlippablePiece(piece);
 }
 
 function flipAffordance(piece: TablePiece): Affordance {

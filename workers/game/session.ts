@@ -21,7 +21,8 @@ import { emptyPublicControls } from '../../src/shared/play/inventory';
 import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import { composeTurn, lobbyPhaseIndex } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
-import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import { rosterFactionIds } from '../../src/shared/play/protocol';
+import type { ClientMessage, CommitMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
 import { isResultAction } from '../../src/shared/play/result';
@@ -39,7 +40,7 @@ import { expireBattle } from './battle';
 import { biddingDeadline, expireBidding } from './bidding';
 import { moveStoredGameOntoCurrentBoard } from './boardLayout';
 import { CaptureStore } from './captures';
-import { Conversations, seatedFactions } from './conversations';
+import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
 import {
   applyDraftAction,
@@ -67,7 +68,14 @@ import { SetupSupply } from './setup';
 import { initialSetup } from './setup-progress';
 import { SpiceLedger } from './spiceLedger';
 import type { StoredSnapshot } from './state';
-import { internalAction, internalPieceId, RoomProjection, storedSnapshotSchema, withKnownCardFaces } from './state';
+import {
+  internalAction,
+  internalPieceId,
+  RoomProjection,
+  seatedFaction,
+  storedSnapshotSchema,
+  withKnownCardFaces,
+} from './state';
 import { Swapping } from './swapping';
 
 /** The opening table records that the creator holds the first seat, so the log starts with the seating and not after it. */
@@ -109,7 +117,6 @@ export type Metadata = {
 };
 
 type CommandMessage = Extract<ClientMessage, { type: 'command' }>;
-type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 type TableMessage =
   | Extract<CommitMessage, { type: 'drop' }>
   | (CommandMessage & { action: Parameters<Room['command']>[1] });
@@ -125,6 +132,12 @@ function draftStamp(seated: readonly string[], draft: NonNullable<StoredSnapshot
   });
 }
 
+/** A command's receipt row: one per user and command id, so a retry finds the commit it repeats. */
+function receiptKey(viewer: Viewer, message: CommitMessage): string {
+  return `${viewer.userId}:${message.commandId}`;
+}
+
+/** The seat a real game's creator holds from creation. */
 const CREATOR_SEAT = 'seat-1';
 
 /** A capture refused for readiness, carrying its first problem alone for the draft to show beside the faction. */
@@ -191,10 +204,7 @@ export class GameSession {
       this.log.enabled = Boolean(this.metadata.game);
       this.repairDeletedHistory();
       moveStoredGameOntoCurrentBoard(this.storage);
-      const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
-      this.room = this.openRoom(
-        this.withRoster(this.spiceLedger.project(storedSnapshotSchema.parse(JSON.parse(stored.data))))
-      );
+      this.room = this.openRoom(this.withRoster(this.spiceLedger.project(this.storedSnapshot())));
       this.history.restoreBoundary();
       /* A room evicted mid-attempt wakes owing a deal; the gates are judged again without waiting for a command. */
       this.closeDueTrading();
@@ -247,7 +257,7 @@ export class GameSession {
    * A game whose seated factions declare nothing (a fixture, one still drafting, or plain factions) plays the standard turn and carries no list.
    */
   private composedTurn(roster: TableRoster, stormSectorIndex: number): PhaseEntry[] | undefined {
-    const seated = new Set(roster.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])));
+    const seated = new Set(rosterFactionIds(roster));
     const factions = this.captures
       .phaseDeclarations()
       .filter((entry) => seated.has(entry.factionId) && entry.declarations.length > 0);
@@ -307,7 +317,7 @@ export class GameSession {
    * A deal refused partway can leave captures of factions never seated, and those stay unanswered.
    */
   publicFaction(factionId: string) {
-    const seated = this.room?.snapshot.roster?.seats.some((seat) => seat.faction?.id === factionId);
+    const seated = this.room && seatedFaction(this.room.snapshot, factionId);
     const capture = seated ? this.captures.faction(factionId) : undefined;
     return capture ? publicFaction(capture) : null;
   }
@@ -356,13 +366,7 @@ export class GameSession {
 
   private installSetupProgress() {
     const room = this.room;
-    if (!room) {
-      return;
-    }
-    if (room.snapshot.stage !== 'setup') {
-      return;
-    }
-    if (room.snapshot.setup) {
+    if (!room || room.snapshot.stage !== 'setup' || room.snapshot.setup) {
       return;
     }
     const next = {
@@ -370,7 +374,7 @@ export class GameSession {
       setup: initialSetup(this.captures.factions(), room.snapshot.roster, room.snapshot.table.stormSectorIndex),
       controls: { ...(room.snapshot.controls ?? emptyPublicControls()), ready: [] },
     };
-    this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+    this.writeState(next);
     room.accept(next);
   }
 
@@ -382,7 +386,7 @@ export class GameSession {
     }
     const history = this.history.checkpoint(next);
     this.storage.transactionSync(() => {
-      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.writeState(next);
       this.history.write(history);
     });
     room.accept(next);
@@ -415,7 +419,7 @@ export class GameSession {
         this.swapping.reconcile(prior, { commandId: `deadline-${swapping.round}`, now: Date.now(), actor: null })
       );
       this.log.recordStage(prior, result);
-      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(result));
+      this.writeState(result);
       this.stageDirectory(result, Date.now());
       return result;
     });
@@ -460,38 +464,21 @@ export class GameSession {
     }
   }
 
-  private revealDueBattle() {
+  /*
+   * A deadline that ran out: a battle reveal or a bidder pass. Each is a playback step between two others,
+   * so it stores its change; the outcome after it is the checkpoint.
+   */
+  private applyDue(expire: (snapshot: StoredSnapshot, now: number) => StoredSnapshot | undefined) {
     if (!this.room) {
       return;
     }
-    const next = expireBattle(this.room.snapshot, Date.now());
-    if (!next) {
-      return;
-    }
-    /* The reveal is a playback step between two others, so it stores its change; the outcome after it is the checkpoint. */
-    const history = this.history.patch(next);
-    this.storage.transactionSync(() => {
-      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-      this.history.write(history);
-      this.stageDirectory(next, Date.now());
-    });
-    this.history.accept(history.step, next);
-    this.room.accept(next);
-    return true;
-  }
-
-  /* The bidder passes for a faction whose time ran out; like any command, the pass is a playback step. */
-  private passDueBid() {
-    if (!this.room) {
-      return;
-    }
-    const next = expireBidding(this.room.snapshot, Date.now());
+    const next = expire(this.room.snapshot, Date.now());
     if (!next) {
       return;
     }
     const history = this.history.patch(next);
     this.storage.transactionSync(() => {
-      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.writeState(next);
       this.history.write(history);
       this.stageDirectory(next, Date.now());
     });
@@ -503,6 +490,10 @@ export class GameSession {
   private storedSnapshot(): StoredSnapshot {
     const row = this.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
     return storedSnapshotSchema.parse(JSON.parse(row.data));
+  }
+
+  private writeState(next: StoredSnapshot) {
+    this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
   }
 
   deleteActor(userId: string, eventId?: string) {
@@ -528,19 +519,12 @@ export class GameSession {
         roster: this.actors.roster(this.seatCount()),
         now: Date.now(),
       });
-      const commandId = eventId ?? `deletion-${departed.revision}`;
-      this.swapping.recordParticipation({
+      const settled = this.swapping.settleParticipation({
         before: scrubbed,
         after: departed,
-        commandId,
+        commandId: eventId ?? `deletion-${departed.revision}`,
         actor: null,
         occupants,
-        now: Date.now(),
-      });
-      const settled = this.swapping.reconcile(departed, {
-        commandId,
-        now: Date.now(),
-        actor: null,
       });
       const voted = this.reconcileVotes(settled, Date.now());
       const next = this.withRoster(
@@ -550,7 +534,7 @@ export class GameSession {
         })
       );
       this.log.recordStage(scrubbed, next);
-      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.writeState(next);
       this.stageDirectory(next, Date.now());
       return { snapshot: next, boundary: this.history.restore(this.history.steps) };
     });
@@ -561,7 +545,11 @@ export class GameSession {
     }
   }
 
-  alreadyCommitted(key: string, message: CommitMessage): boolean {
+  alreadyCommitted(viewer: Viewer, message: CommitMessage): boolean {
+    return this.hasReceipt(receiptKey(viewer, message), message);
+  }
+
+  private hasReceipt(key: string, message: CommitMessage): boolean {
     const receipt = this.storage.sql
       .exec<{ payload: string }>('SELECT payload FROM receipts WHERE receipt_key=?', key)
       .toArray()[0];
@@ -582,8 +570,7 @@ export class GameSession {
   ): StoredSnapshot => {
     const occupants = this.actors.seated();
     const after = this.participation.remove(userId, snapshot, now);
-    this.swapping.recordParticipation({ before: snapshot, after, commandId, actor: null, occupants, now });
-    return this.swapping.reconcile(after, { commandId, actor: null, now });
+    return this.swapping.settleParticipation({ before: snapshot, after, commandId, actor: null, occupants }, () => now);
   };
 
   private reconcileVotes(snapshot: StoredSnapshot, now: number) {
@@ -599,33 +586,31 @@ export class GameSession {
     return this.storage.transactionSync(() => {
       const occupants = this.actors.seated();
       const participated = plan.apply();
-      this.swapping.recordParticipation({
+      const applied = this.swapping.settleParticipation({
         before: this.room!.snapshot,
         after: participated,
         commandId: message.commandId,
         actor: viewer.userId,
         occupants,
-        now: Date.now(),
-      });
-      const applied = this.swapping.reconcile(participated, {
-        commandId: message.commandId,
-        now: Date.now(),
-        actor: viewer.userId,
       });
       this.growStations();
       const next = this.withRoster(this.reconcileVotes(applied, Date.now()));
       this.log.recordStage(this.room!.snapshot, next);
-      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.writeState(next);
       this.stageDirectory(next, Date.now());
-      this.storage.sql.exec(
-        'INSERT INTO receipts VALUES(?,?,?,?)',
-        key,
-        viewer.userId,
-        JSON.stringify(message),
-        next.revision
-      );
+      this.recordReceipt(key, viewer, message, next.revision);
       return next;
     });
+  }
+
+  private recordReceipt(key: string, viewer: Viewer, message: CommitMessage, revision: number) {
+    this.storage.sql.exec(
+      'INSERT INTO receipts VALUES(?,?,?,?)',
+      key,
+      viewer.userId,
+      JSON.stringify(message),
+      revision
+    );
   }
 
   private persistCommit(commit: {
@@ -639,7 +624,7 @@ export class GameSession {
   }) {
     const { key, viewer, message, next, history, contents, transfer } = commit;
     this.storage.transactionSync(() => {
-      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.writeState(next);
       this.stageDirectory(next, Date.now());
       const result = next.battleResults[0];
       if (result && result.revision === next.revision) {
@@ -656,13 +641,7 @@ export class GameSession {
         transfer,
         holders: this.actors.occupants(),
       });
-      this.storage.sql.exec(
-        'INSERT INTO receipts VALUES(?,?,?,?)',
-        key,
-        viewer.userId,
-        JSON.stringify(message),
-        next.revision
-      );
+      this.recordReceipt(key, viewer, message, next.revision);
       this.publicActions.record({
         key,
         viewer,
@@ -729,31 +708,34 @@ export class GameSession {
       return { epoch: room.epoch, snapshot, carries, pointers };
     };
   }
-  private applyCommand(viewer: Viewer, message: CommitMessage, contents?: StoredSpawnContents) {
+  private applyCommand(key: string, viewer: Viewer, message: CommitMessage, contents?: StoredSpawnContents) {
     if (message.type === 'drop') {
-      return this.commitTable(viewer, message);
+      return this.commitTable(key, viewer, message);
     }
     const { action } = message;
     if (isSwapAction(action)) {
-      return this.commitSwap(viewer, { ...message, action });
+      return this.commitSwap(key, viewer, { ...message, action });
     }
     if (isDraftAction(action)) {
-      return this.commitDraft(viewer, { ...message, action });
+      return this.commitDraft(key, viewer, { ...message, action });
     }
     if (isRemovalAction(action)) {
-      return this.commitRemoval(viewer, { ...message, action });
+      return this.commitRemoval(key, viewer, { ...message, action });
     }
     if (isResultAction(action)) {
-      return this.commitResult(viewer, { ...message, action });
+      return this.commitResult(key, viewer, { ...message, action });
     }
     if (isSeatAction(action)) {
-      return this.commitSeat(viewer, { ...message, action });
+      return this.commitSeat(key, viewer, { ...message, action });
     }
-    return this.commitTable(viewer, { ...message, action }, contents);
+    return this.commitTable(key, viewer, { ...message, action }, contents);
   }
-  private commitSwap(viewer: Viewer, message: CommandMessage & { action: Parameters<Swapping['apply']>[0]['action'] }) {
+  private commitSwap(
+    key: string,
+    viewer: Viewer,
+    message: CommandMessage & { action: Parameters<Swapping['apply']>[0]['action'] }
+  ) {
     const room = this.room!;
-    const key = `${viewer.userId}:${message.commandId}`;
     room.assertRevision(message.action, message.expectedRevision);
     const action = message.action;
     const next = this.storage.transactionSync(() => {
@@ -773,9 +755,12 @@ export class GameSession {
     room.accept(next);
   }
 
-  private commitDraft(viewer: Viewer, message: CommandMessage & { action: Parameters<typeof applyDraftAction>[2] }) {
+  private commitDraft(
+    key: string,
+    viewer: Viewer,
+    message: CommandMessage & { action: Parameters<typeof applyDraftAction>[2] }
+  ) {
     const room = this.room!;
-    const key = `${viewer.userId}:${message.commandId}`;
     room.assertRevision(message.action, message.expectedRevision, 'The draft changed. Try the action again.');
     const applied = applyDraftAction(
       room.snapshot,
@@ -789,9 +774,12 @@ export class GameSession {
     room.accept(next);
   }
 
-  private commitRemoval(viewer: Viewer, message: CommandMessage & { action: Parameters<RemovalVotes['apply']>[2] }) {
+  private commitRemoval(
+    key: string,
+    viewer: Viewer,
+    message: CommandMessage & { action: Parameters<RemovalVotes['apply']>[2] }
+  ) {
     const room = this.room!;
-    const key = `${viewer.userId}:${message.commandId}`;
     room.assertRevision(message.action, message.expectedRevision);
     const action = message.action;
     const next = this.storage.transactionSync(() => {
@@ -805,9 +793,12 @@ export class GameSession {
   }
 
   /* Determine winner, its declaration and Continue playing commit with their log rows and the summary the lobby is owed. */
-  private commitResult(viewer: Viewer, message: CommandMessage & { action: Parameters<typeof applyResult>[2] }) {
+  private commitResult(
+    key: string,
+    viewer: Viewer,
+    message: CommandMessage & { action: Parameters<typeof applyResult>[2] }
+  ) {
     const room = this.room!;
-    const key = `${viewer.userId}:${message.commandId}`;
     room.assertRevision(message.action, message.expectedRevision);
     const next = this.withRoster(applyResult(room.snapshot, viewer, message.action, Date.now()));
     const history = this.history.entry(message, room.snapshot, next);
@@ -818,9 +809,12 @@ export class GameSession {
     }
   }
 
-  private commitSeat(viewer: Viewer, message: CommandMessage & { action: Parameters<Participation['plan']>[0] }) {
+  private commitSeat(
+    key: string,
+    viewer: Viewer,
+    message: CommandMessage & { action: Parameters<Participation['plan']>[0] }
+  ) {
     const room = this.room!;
-    const key = `${viewer.userId}:${message.commandId}`;
     room.assertRevision(message.action, message.expectedRevision);
     const plan = this.participation.plan(message.action, {
       viewer,
@@ -842,9 +836,8 @@ export class GameSession {
     }
     return room.command(viewer, internalAction(room.snapshot, message.action), message.expectedRevision);
   }
-  private commitTable(viewer: Viewer, message: TableMessage, contents?: StoredSpawnContents) {
+  private commitTable(key: string, viewer: Viewer, message: TableMessage, contents?: StoredSpawnContents) {
     const room = this.room!;
-    const key = `${viewer.userId}:${message.commandId}`;
     const next = withKnownCardFaces(
       room.snapshot,
       revealPlacedPredictions(
@@ -870,7 +863,7 @@ export class GameSession {
     this.storage.transactionSync(() => {
       this.persistCommit({ key, viewer, message, next, history, contents, transfer });
       if (cleaned && cleanupHistory) {
-        this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(cleaned));
+        this.writeState(cleaned);
         this.history.write(cleanupHistory);
       }
     });
@@ -889,7 +882,7 @@ export class GameSession {
     }
     const next = rewrittenDraft(room.snapshot, rewrite(room.snapshot.draft));
     this.storage.transactionSync(() => {
-      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.writeState(next);
     });
     room.accept(next);
   }
@@ -961,7 +954,7 @@ export class GameSession {
       const next = this.recordAssignment(stored, current, deal);
       const history = this.history.checkpoint(next);
       this.log.recordStage(stored, next);
-      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.writeState(next);
       this.history.write(history);
       this.stageDirectory(next, Date.now());
       return { next, history };
@@ -1065,17 +1058,18 @@ export class GameSession {
     return deadlines.length ? Math.min(...deadlines) : undefined;
   }
   advanceDeadlines() {
-    const battle = this.revealDueBattle();
-    const bidding = this.passDueBid();
+    const battle = this.applyDue(expireBattle);
+    const bidding = this.applyDue(expireBidding);
     const trading = this.closeDueTrading();
     return Boolean(battle || bidding || trading);
   }
   execute(viewer: Viewer, message: CommitMessage, contents?: StoredSpawnContents) {
-    if (this.alreadyCommitted(`${viewer.userId}:${message.commandId}`, message)) {
+    const key = receiptKey(viewer, message);
+    if (this.hasReceipt(key, message)) {
       return false;
     }
     this.room!.commit(message.type === 'command' ? message.action.kind : undefined, () =>
-      this.applyCommand(viewer, message, contents)
+      this.applyCommand(key, viewer, message, contents)
     );
     this.reloadMetadata();
     return true;
@@ -1103,12 +1097,13 @@ export class GameSession {
   }
   viewer(...args: Parameters<ActorDirectory['viewer']>) {
     const viewer = this.actors.viewer(...args);
-    const controls = this.room!.snapshot.controls ?? emptyPublicControls();
-    this.room!.snapshot = this.withRoster({
-      ...this.room!.snapshot,
-      controls: { ...controls, seats: this.actors.seats() },
-    });
+    this.restampSeats(this.room!);
     return viewer;
+  }
+  /** The snapshot's seats and roster are read again from the seat rows. */
+  private restampSeats(room: Room) {
+    const controls = room.snapshot.controls ?? emptyPublicControls();
+    room.snapshot = this.withRoster({ ...room.snapshot, controls: { ...controls, seats: this.actors.seats() } });
   }
   /** A connection whose seat changed loses its activity, and the roster is read again. */
   refreshViewers(viewers: readonly Viewer[]) {
@@ -1117,11 +1112,7 @@ export class GameSession {
       if (current[index]?.viewerSeat !== viewer.viewerSeat) {
         this.clearActivity(viewer.connectionId);
         if (this.room) {
-          const controls = this.room.snapshot.controls ?? emptyPublicControls();
-          this.room.snapshot = this.withRoster({
-            ...this.room.snapshot,
-            controls: { ...controls, seats: this.actors.seats() },
-          });
+          this.restampSeats(this.room);
         }
       }
     });
@@ -1179,14 +1170,14 @@ export class GameSession {
     });
   }
   conversationMembers(request: Extract<ClientMessage, { type: 'conversation-send' }>) {
-    return conversationMembers(request.factionId, request.peerId, seatedFactions(this.room!.snapshot)) ?? [];
+    return conversationMembers(request.factionId, request.peerId, rosterFactionIds(this.room!.snapshot.roster)) ?? [];
   }
   conversationSummaries(viewer: Viewer): Extract<ServerMessage, { type: 'conversations' }> | undefined {
     const factionId = this.conversationFaction(viewer);
     if (!factionId) {
       return;
     }
-    const peers = seatedFactions(this.room!.snapshot);
+    const peers = rosterFactionIds(this.room!.snapshot.roster);
     return {
       type: 'conversations',
       factionId,
@@ -1196,13 +1187,7 @@ export class GameSession {
   }
   draftWork() {
     const draft = this.room?.snapshot.draft;
-    if (!this.metadata?.game) {
-      return;
-    }
-    if (this.room?.snapshot.stage !== 'drafting') {
-      return;
-    }
-    if (!draft) {
+    if (!this.metadata?.game || this.room?.snapshot.stage !== 'drafting' || !draft) {
       return;
     }
     return { refresh: Date.now() - draft.catalogueAt >= PLAY_DRAFT_CATALOGUE_TTL_MS };

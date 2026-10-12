@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { actionKindGuard } from './actionKinds';
 import { tableCountSchema as count, tableIdSchema as id } from './schema';
 
 /**
@@ -29,10 +30,7 @@ export const allianceActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('alliance-break'), factionId: id }),
 ]);
 export type AllianceAction = z.infer<typeof allianceActionSchema>;
-const kinds: ReadonlySet<string> = new Set(allianceActionSchema.options.map((option) => option.shape.kind.value));
-export function isAllianceAction(action: { kind: string }): action is AllianceAction {
-  return kinds.has(action.kind);
-}
+export const isAllianceAction = actionKindGuard(allianceActionSchema);
 
 export function emptyAlliances(): AllianceState {
   return { groups: [], offers: [] };
@@ -126,7 +124,7 @@ function offer(
   if (waitingOffer(state, { from: to, to: factionId })) {
     return refuse('That faction has offered you an alliance. Accept or decline it instead.');
   }
-  if (state.offers.some((entry) => entry.from === factionId && entry.to === to)) {
+  if (waitingOffer(state, { from: factionId, to })) {
     return state;
   }
   return { ...state, offers: [...state.offers, { from: factionId, to, at: now, id: revision }] };

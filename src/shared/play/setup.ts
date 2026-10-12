@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { actionKindGuard } from './actionKinds';
 import { phaseAt } from './phases';
 import type { GameSnapshot } from './protocol';
 import { tableCountSchema, tableIdSchema } from './schema';
@@ -39,11 +40,7 @@ export const setupActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('traitors-gather') }),
   z.strictObject({ kind: z.literal('storm-random') }),
 ]);
-type SetupAction = z.infer<typeof setupActionSchema>;
-const kinds: ReadonlySet<string> = new Set(setupActionSchema.options.map((option) => option.shape.kind.value));
-export function isSetupAction(action: { kind: string }): action is SetupAction {
-  return kinds.has(action.kind);
-}
+export const isSetupAction = actionKindGuard(setupActionSchema);
 
 export function setupStep(setup: SetupState) {
   return setup.steps[setup.index];
@@ -72,6 +69,29 @@ type PhaseGateInput = Pick<
   battle?: object | null;
 };
 
+/** The gate outside setup: an open battle or an undeclared winner holds the phase, then the phase's own readiness rule. */
+function turnPhaseGate(
+  { phase, phases, battle, ending }: Pick<PhaseGateInput, 'phase' | 'phases' | 'battle' | 'ending'>,
+  allReady: boolean
+) {
+  const needsReady = phaseAt(phase, phases).allPlayersMustBeReady;
+  /* A battle left open past its phase would block every later battle, so the table waits for it to end. */
+  if (battle) {
+    return { needsReady, refusal: 'A battle is still open. Resolve or cancel it before moving to the next phase.' };
+  }
+  /* Moving on would close Determine winner under its player, whose declaration would then be refused. */
+  if (ending) {
+    return {
+      needsReady,
+      refusal: 'The winner is being determined. Declare or cancel it before moving to the next phase.',
+    };
+  }
+  return {
+    needsReady,
+    refusal: needsReady && !allReady ? 'Every seated player must be ready before advancing.' : null,
+  };
+}
+
 /**
  * Whether Next may advance the phase: the Worker refuses with `refusal`, and the view disables Next on it.
  * The Worker passes its private predictions and a view its public ones.
@@ -91,23 +111,17 @@ export function phaseGate({
 }: PhaseGateInput) {
   const allReady = seats.length > 0 && seats.every((seat) => ready.includes(seat));
   if (stage !== 'setup' || !setup) {
-    const needsReady = phaseAt(phase, phases).allPlayersMustBeReady;
-    /* A battle left open past its phase would block every later battle, so the table waits for it to end. */
-    if (battle) {
-      return { needsReady, refusal: 'A battle is still open. Resolve or cancel it before moving to the next phase.' };
-    }
-    /* Moving on would close Determine winner under its player, whose declaration would then be refused. */
-    if (ending) {
-      return {
-        needsReady,
-        refusal: 'The winner is being determined. Declare or cancel it before moving to the next phase.',
-      };
-    }
-    return {
-      needsReady,
-      refusal: needsReady && !allReady ? 'Every seated player must be ready before advancing.' : null,
-    };
+    return turnPhaseGate({ phase, phases, battle, ending }, allReady);
   }
+  return setupPhaseGate(setup, { roster, seats, predictions }, allReady);
+}
+
+/** The gate during setup: a prediction step waits on its lock, any other step on its readiness rule over every fixed seat. */
+function setupPhaseGate(
+  setup: SetupState,
+  { roster, seats, predictions }: Pick<PhaseGateInput, 'roster' | 'seats' | 'predictions'>,
+  allReady: boolean
+) {
   const step = setupStep(setup);
   if (step?.kind === 'prediction') {
     const locked = Boolean(predictions?.[step.id]);

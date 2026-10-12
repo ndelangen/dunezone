@@ -14,12 +14,12 @@ export const STRONGHOLD_BACKGROUND: z.infer<typeof Background> = {
 
 /** Builds the constrained face with the same composition renderer used by custom cards. */
 export function strongholdCardComposition(value: z.infer<typeof StrongholdCard>): z.infer<typeof CustomCard> {
-  const { name, decals, text, textSize } = value;
+  const { name, decals, text } = value;
   const ordered = [...decals.filter((decal) => decal.muted), ...decals.filter((decal) => !decal.muted)];
   const identity = (index: number) => `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`;
   return {
     name,
-    subName: '',
+    subName: 'Stronghold',
     head: STRONGHOLD_BACKGROUND,
     icon: [
       {
@@ -31,7 +31,7 @@ export function strongholdCardComposition(value: z.infer<typeof StrongholdCard>)
       },
       '/vector/icon/stronghold.svg',
     ],
-    iconScale: 1.3,
+    iconScale: 1,
     format: 'decal-window',
     layers: [
       ...ordered.map((decal, index) => ({
@@ -50,7 +50,7 @@ export function strongholdCardComposition(value: z.infer<typeof StrongholdCard>)
         offset: [-361, 72.5],
         width: 734,
         height: 499,
-        size: textSize,
+        size: 40,
         font: 'C_Candara',
         color: '#0b0503',
         align: 'left',

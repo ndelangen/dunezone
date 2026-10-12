@@ -16,8 +16,9 @@ import { card as CARD_SIZE } from '@game/data/sizes';
 
 import { cardDecalChapter } from './CardDecalChapter';
 import styles from './CardEditor.module.css';
-import { cardHeadAndSymbolChapters, initialCardHeadMemory } from './CardHeadChapters';
+import { initialCardHeadMemory } from './CardHeadChapters';
 import type { CardHeadMemory } from './CardHeadChapters';
+import { treacheryIdentityChapters } from './TreacheryIdentity';
 
 /* The draft model. */
 /* The draft IS the stored shape: the same TreacheryAsset zod validates on save (server-side
@@ -114,8 +115,6 @@ export function TreacheryCardEditor({
   nameField,
   draft,
   patch,
-  memory,
-  remember,
   chapter,
   onChapterChange,
   onSettle,
@@ -145,7 +144,7 @@ export function TreacheryCardEditor({
             }}
             ariaLabel="Card chapters"
             items={[
-              ...cardHeadAndSymbolChapters({ draft, patch, memory, remember, nameField }),
+              ...treacheryIdentityChapters({ draft, patch, nameField }),
               cardDecalChapter({
                 decals: draft.decals,
                 onChange: (decals) => patch({ decals }),

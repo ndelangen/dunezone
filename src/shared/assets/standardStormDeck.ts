@@ -10,6 +10,16 @@ const background = {
   definition: 1,
 } as const;
 
+/** Storm cards share one fixed head and symbol; saved styling fields remain compatible. */
+export const STORM_CARD_HEAD: z.infer<typeof StormCardAsset>['head'] = {
+  ...background,
+  colors: [...background.colors],
+};
+export const STORM_CARD_ICON: z.infer<typeof StormCardAsset>['icon'] = [
+  { ...background, colors: ['#E9C55B', '#B9922D'], influence: 0.4 },
+  '/vector/icon/storrm_standalone.svg',
+];
+
 /** The six standard cards share editable artwork and rules, with movement rendered from sectors. */
 export function standardStormCard(sectors: number): z.infer<typeof StormCardAsset> {
   return {
@@ -18,8 +28,8 @@ export function standardStormCard(sectors: number): z.infer<typeof StormCardAsse
     sectors,
     format: 'decal-window',
     about: '',
-    head: { ...background, colors: [...background.colors] },
-    icon: [{ ...background, colors: ['#E9C55B', '#B9922D'], influence: 0.4 }, '/vector/icon/storrm_standalone.svg'],
+    head: STORM_CARD_HEAD,
+    icon: STORM_CARD_ICON,
     layers: [
       {
         kind: 'decal',
@@ -55,8 +65,6 @@ export function standardStormCard(sectors: number): z.infer<typeof StormCardAsse
 export const STANDARD_STORM_CARDS = [1, 2, 3, 4, 5, 6].map(standardStormCard);
 export const STANDARD_STORM_CARDBACK: z.infer<typeof CardBack> = {
   name: 'Storm',
-  nameScale: 1.43,
-  nameFont: 'C_Busorama_Bold',
   background: { ...background, colors: ['#7A4120', '#3F200D'] },
   image: '/vector/icon/storrm_standalone.svg',
   imageScale: 0.72,

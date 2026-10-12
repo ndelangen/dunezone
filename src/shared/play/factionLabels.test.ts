@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { rosterFactionEventName, rosterFactionLabels, snapshotFactionTieBreaks } from './factionLabels';
+import { rosterFactionEventName, snapshotFactionLabels, snapshotFactionTieBreaks } from './factionLabels';
 import type { TableRoster } from './schema';
 
 function roster(...names: string[]): TableRoster {
@@ -12,6 +12,10 @@ function roster(...names: string[]): TableRoster {
       faction: { id: `faction-${index + 1}`, name, color: '#000' },
     })),
   } as TableRoster;
+}
+
+function rosterFactionLabels(table: TableRoster, players: { seat: string; name: string }[]) {
+  return snapshotFactionLabels({ roster: table, controls: { players } });
 }
 
 describe('faction labels', () => {
