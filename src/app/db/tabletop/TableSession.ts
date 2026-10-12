@@ -124,7 +124,8 @@ export type TableProjection = {
     collect(pieceId: string): void;
   };
   deckControls?: {
-    recipients: { id: string; name: string }[];
+    /* Each faction a card can be dealt to, with its token artwork where the room published one. */
+    recipients: { id: string; name: string; artwork?: NonNullable<GameSnapshot['factionArtwork']>[string] }[];
     draw(pieceId: string, recipient?: string): void;
     shuffle(pieceId: string): void;
   };
@@ -163,6 +164,12 @@ export type ConnectionView = {
   factions: Readonly<Partial<Record<string, PublicFaction | null>>>;
 };
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
+
+/* Each faction a deck can deal to, with its token art for the deal ring. */
+function dealRecipients(snapshot: GameSnapshot) {
+  const artwork = snapshot.factionArtwork ?? {};
+  return Object.entries(snapshotFactionLabels(snapshot)).map(([id, name]) => ({ id, name, artwork: artwork[id] }));
+}
 
 /* Whether two sets hold the same members, so a table rebuilt for a move keeps the sets a panel already read. */
 function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: ReadonlySet<T> | ReadonlyMap<T, unknown>) {
@@ -669,7 +676,7 @@ export class TableSession {
       deckControls:
         canHandleTable && this.subscription.supportsCommand('deck-draw')
           ? {
-              recipients: Object.entries(snapshotFactionLabels(displayed)).map(([id, name]) => ({ id, name })),
+              recipients: dealRecipients(displayed),
               draw: (pieceId, recipient) => this.command({ kind: 'deck-draw', pieceId, recipient }),
               shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
             }

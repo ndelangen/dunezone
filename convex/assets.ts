@@ -13,12 +13,17 @@ import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
 import { GF9_LEADER_SKILLS, GF9_LEADER_SKILL_DECK } from '../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
-import { StormCardAssetInput, DeckAssetInput } from '../src/shared/assets/schema';
+import {
+  StormCardAssetInput,
+  DeckAssetInput,
+  StrongholdCardAsset,
+  LeaderSkillAssetInput,
+} from '../src/shared/assets/schema';
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
-import { STANDARD_STORM_CARDS } from '../src/shared/assets/standardStormDeck';
+import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../src/shared/assets/standardStormDeck';
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
-import { parseAssetDataForWrite } from '../src/shared/assets/validation';
+import { parseAssetDataForWrite, parseNexusCardInput } from '../src/shared/assets/validation';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
@@ -36,7 +41,7 @@ import {
   tokenBackOf,
 } from './lib/assetBacks';
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
-import { listCardbackPresets, presetFromKey } from './lib/cardbackPresets';
+import { listCardbackPresets, presetFromKey, storeCardbackPreset } from './lib/cardbackPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import {
   loadAssetAccessBundle,
@@ -56,6 +61,7 @@ import {
   syncCustomCardTokenRelations,
   validateCustomCardTokens,
 } from './lib/customCardTokens';
+import { parseStoredFactionForRead } from './lib/factionInput';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { enqueueAssetPublication, supersedePendingPublication } from './lib/publication';
@@ -516,10 +522,37 @@ async function withValidatedBack(
   return data;
 }
 
+/* A linked Nexus face snapshots the faction artwork through the ordinary asset writer. */
+async function withNexusFaction(ctx: MutationCtx, type: string, input: unknown, previous?: unknown) {
+  if (type !== 'card-nexus') {
+    return input;
+  }
+  const card = parseNexusCardInput(input);
+  if (!card.factionLink) {
+    if (previous && parseNexusCardInput(previous).factionLink) {
+      throw new ConvexError('Choose a faction before saving this Nexus card');
+    }
+    return card;
+  }
+  const id = ctx.db.normalizeId('factions', card.factionLink.id);
+  const row = id ? await ctx.db.get('factions', id) : null;
+  if (!row || row.is_deleted) {
+    throw new ConvexError('Choose an available faction for this Nexus card');
+  }
+  const faction = parseStoredFactionForRead(row.data);
+  return {
+    ...card,
+    factionLink: { id: row._id, slug: row.slug },
+    faction: faction.name,
+    factionSymbol: { image: faction.logo, background: faction.background },
+    icon: [faction.background, faction.logo],
+  };
+}
+
 /* The public writer and the GF9 import share validation, slug allocation and publication. */
 async function createOwnedAsset(ctx: MutationCtx, userId: Id<'users'>, type: string, data: unknown) {
   assertKnownAssetType(type);
-  const parsed = parseAssetDataForWrite(type, data);
+  const parsed = parseAssetDataForWrite(type, await withNexusFaction(ctx, type, data));
   parsed.data = await withValidatedBack(ctx, { type }, parsed.data as Record<string, unknown>);
   if (type === 'card-custom' || type === 'card-storm') {
     await validateCustomCardTokens(ctx, parsed.data);
@@ -548,6 +581,9 @@ export const create = mutation({
   returns: v.object({ id: v.id('assets'), slug: v.string() }),
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
+    if (args.type === 'card-nexus' && !parseNexusCardInput(args.data).factionLink) {
+      throw new ConvexError('Choose a faction before creating this Nexus card');
+    }
     return await createOwnedAsset(ctx, userId, args.type, args.data);
   },
 });
@@ -561,7 +597,7 @@ export const update = mutation({
       throw new Error(`Asset with id ${args.id} not found`);
     }
     /* The type is immutable: the stored row decides which schema the incoming data must satisfy. */
-    const parsed = parseAssetDataForWrite(row.type, args.data);
+    const parsed = parseAssetDataForWrite(row.type, await withNexusFaction(ctx, row.type, args.data, row.data));
     parsed.data = await withValidatedBack(ctx, row, parsed.data as Record<string, unknown>);
     await requireAssetUpdate(ctx, args.id, parsed.name);
     if (row.type === 'card-custom' || row.type === 'card-storm') {
@@ -1104,6 +1140,93 @@ export const seedGf9NexusDeck = internalMutation({
   },
 });
 
+/* The original import marker and untouched timestamp keep later authoring out of this correction. */
+async function correctImportedNexusAsset(
+  ctx: MutationCtx,
+  row: Doc<'assets'>,
+  replacement: unknown,
+  originalAbout: string
+): Promise<'updated' | 'unchanged' | 'preserved'> {
+  const data = parseAssetDataForWrite(row.type, replacement).data;
+  const current = parseAssetDataForWrite(row.type, row.data).data;
+  if (JSON.stringify(current) === JSON.stringify(data)) {
+    return 'unchanged';
+  }
+  if (row.updated_at !== row.created_at || row.data.about !== originalAbout) {
+    return 'preserved';
+  }
+  await ctx.db.patch(row._id, { data, updated_at: nowIso() });
+  await enqueueAssetPublication(ctx, { ...row, data });
+  return 'updated';
+}
+
+/* Corrects the supplied GF9 deck in place after release, preserving custom edits and every reference. */
+export const correctGf9NexusDeck = internalMutation({
+  args: { ownerId: v.id('users') },
+  returns: v.object({
+    deckId: v.id('assets'),
+    deckUpdated: v.boolean(),
+    deckPreserved: v.boolean(),
+    updated: v.array(v.id('assets')),
+    unchanged: v.array(v.id('assets')),
+    preserved: v.array(v.string()),
+  }),
+  handler: async (ctx, { ownerId }) => {
+    const [owner, deck] = await Promise.all([
+      ctx.db.get('users', ownerId),
+      assetSlugHolder(ctx, 'deck', 'gf9-nexus-deck'),
+    ]);
+    if (!owner || (owner.account_state ?? 'active') !== 'active') {
+      throw new ConvexError('The Nexus deck needs an active owner');
+    }
+    if (!deck || deck.is_deleted || deck.owner_id !== ownerId) {
+      throw new ConvexError('The selected owner must own GF9 Nexus Deck');
+    }
+    const members = await ctx.db
+      .query('asset_relations')
+      .withIndex('by_from_kind', (q) => q.eq('from_asset_id', deck._id).eq('kind', DECK_CARD))
+      .take(13);
+    const memberIds = new Set(members.map((member) => member.to_asset_id));
+    if (members.length !== 12 || memberIds.size !== 12) {
+      throw new ConvexError('GF9 Nexus Deck must still contain its twelve cards');
+    }
+    const results = await Promise.all(
+      members.map(async (member) => {
+        const row = await ctx.db.get('assets', member.to_asset_id);
+        if (!row || row.is_deleted || row.type !== 'card-nexus' || row.owner_id !== ownerId) {
+          throw new ConvexError('The Nexus card no longer belongs to this deck');
+        }
+        const card = GF9_NEXUS_CARDS.find((stock) => slugify(stock.name) === row.slug);
+        if (!card) {
+          const name = typeof row.data.name === 'string' ? row.data.name : row.slug;
+          return { id: row._id, name, status: 'preserved' as const };
+        }
+        const status = await correctImportedNexusAsset(
+          ctx,
+          row,
+          card,
+          'GF9 Ecaz & Moritani Nexus card. Rules paraphrased from the printed card. Reference: https://boardgamegeek.com/image/7767032/dune-ecaz-and-moritani'
+        );
+        return { id: row._id, name: card.name, status };
+      })
+    );
+    const deckStatus = await correctImportedNexusAsset(
+      ctx,
+      deck,
+      GF9_NEXUS_DECK,
+      "The twelve Nexus cards from GF9's Ecaz & Moritani expansion, one of each faction. Rules follow the printed deck. Card artwork is recreated for Dune Zone."
+    );
+    return {
+      deckId: deck._id,
+      deckUpdated: deckStatus === 'updated',
+      deckPreserved: deckStatus === 'preserved',
+      updated: results.filter((result) => result.status === 'updated').map((result) => result.id),
+      unchanged: results.filter((result) => result.status === 'unchanged').map((result) => result.id),
+      preserved: results.filter((result) => result.status === 'preserved').map((result) => result.name),
+    };
+  },
+});
+
 async function preservedStandardStormDeck(ctx: MutationCtx, existing: Doc<'assets'>, ownerId: Id<'users'>) {
   if (existing.owner_id !== ownerId || existing.is_deleted) {
     throw new ConvexError('The Standard Storm Deck address is already reserved');
@@ -1188,6 +1311,55 @@ export const provisionStandardStormDeck = internalMutation({
   },
 });
 
+/** Replaces reviewed standard designs only while all six cards and the shared back still match the review. */
+export const replaceStandardStormDesigns = internalMutation({
+  args: {
+    ownerId: v.id('users'),
+    expectedCards: v.array(v.object({ id: v.id('assets'), data: v.any() })),
+    expectedBackRevision: v.number(),
+  },
+  returns: v.array(v.id('assets')),
+  handler: async (ctx, { ownerId, expectedCards, expectedBackRevision }) => {
+    const deck = await assetSlugHolder(ctx, 'deck', 'standard-storm-deck');
+    if (!deck) {
+      throw new ConvexError('The Standard Storm Deck does not exist');
+    }
+    const back = DeckAssetInput.parse(deck.data).cardback;
+    if (!('mode' in back) || back.mode !== 'preset' || back.key !== 'storm') {
+      throw new ConvexError('The Standard Storm Deck no longer uses the shared Storm back');
+    }
+    const { cardIds } = await preservedStandardStormDeck(ctx, deck, ownerId);
+    if (
+      expectedCards.length !== 6 ||
+      new Set(expectedCards.map((card) => card.id)).size !== 6 ||
+      expectedCards.some((card) => !cardIds.includes(card.id))
+    ) {
+      throw new ConvexError('Review all six Standard Storm Deck cards before replacing their designs');
+    }
+    for (const expected of expectedCards) {
+      const row = await ctx.db.get('assets', expected.id);
+      if (
+        !row ||
+        row.owner_id !== ownerId ||
+        JSON.stringify(StormCardAssetInput.parse(row.data)) !== JSON.stringify(StormCardAssetInput.parse(expected.data))
+      ) {
+        throw new ConvexError('A Storm card changed after review. Review the saved designs again.');
+      }
+      const reviewed = StormCardAssetInput.parse(row.data);
+      const data = StormCardAssetInput.parse({
+        ...STANDARD_STORM_CARDS[reviewed.sectors - 1],
+        name: reviewed.name,
+        about: reviewed.about,
+      });
+      await ctx.db.patch(row._id, { data, updated_at: nowIso() });
+      await syncCustomCardTokenRelations(ctx, row._id, data);
+      await enqueueAssetPublication(ctx, { ...row, data });
+    }
+    await storeCardbackPreset(ctx, 'storm', STANDARD_STORM_CARDBACK, expectedBackRevision);
+    return cardIds;
+  },
+});
+
 /** Creates the requested reference deck once, preserving later edits when called again. */
 export const seedGf9StrongholdDeck = internalMutation({
   args: { ownerProfileSlug: v.string() },
@@ -1243,6 +1415,180 @@ export const seedGf9StrongholdDeck = internalMutation({
       });
     }
     return { deckId: deck.id, slug: deck.slug, created: true };
+  },
+});
+
+/** Preserves authored fields and changes only the original stock artwork treatment. */
+function polishedStrongholdData(data: (typeof GF9_STRONGHOLD_CARDS)[number]) {
+  const original = GF9_STRONGHOLD_CARDS.find((stock) => {
+    const id = stock.decals[0]!.id;
+    const legacyId = id.replace('/image/decal/gf9-', '/vector/decal/').replace('.png', '-multicolor.svg');
+    return data.decals[0]?.id === id || data.decals[0]?.id === legacyId;
+  });
+  if (!original) {
+    return data;
+  }
+  const name =
+    original.name === 'HMS stronghold' && data.name === 'Ixian Hidden Mobile Stronghold' ? original.name : data.name;
+  const legacyId = original.decals[0]!.id.replace('/image/decal/gf9-', '/vector/decal/').replace(
+    '.png',
+    '-multicolor.svg'
+  );
+  const decals = data.decals.map((decal) =>
+    decal.id === legacyId &&
+    !decal.muted &&
+    decal.outline === false &&
+    decal.scale === 1.65 /* NOSONAR: only the exact stored stock value identifies the untouched seed. */ &&
+    decal.offset.every((value) => value === 0)
+      ? { ...decal, id: original.decals[0]!.id, scale: original.decals[0]!.scale }
+      : decal
+  );
+  const about =
+    data.about ===
+    'GF9 CHOAM & Richese advanced stronghold card. The Body summarizes the printed ability. The Decals are an original interpretation of its location.'
+      ? original.about
+      : data.about;
+  if (name === data.name && about === data.about && decals.every((decal, index) => decal === data.decals[index])) {
+    return data;
+  }
+  return { ...data, name, about, decals };
+}
+
+/** Allocates the corrected title before writing and publishing that same card. */
+async function publishPolishedStronghold(ctx: MutationCtx, card: Doc<'assets'>, now: string) {
+  const data = StrongholdCardAsset.parse(card.data);
+  const next = polishedStrongholdData(data);
+  if (next === data) {
+    return 0;
+  }
+  const slug = next.name === data.name ? card.slug : await allocateAssetSlug(ctx, card.type, slugify(next.name), card);
+  await ctx.db.patch(card._id, {
+    data: next,
+    slug,
+    updated_at: now,
+  });
+  await enqueueAssetPublication(ctx, {
+    ...card,
+    data: next,
+    slug,
+  });
+  return 1;
+}
+
+/** Corrects the original stock layout in place while retaining later authored content. */
+export const polishGf9StrongholdDeck = internalMutation({
+  args: { ownerProfileSlug: v.string() },
+  returns: v.object({ deckId: v.id('assets'), cardsChanged: v.number(), deckChanged: v.boolean() }),
+  handler: async (ctx, { ownerProfileSlug }) => {
+    const profile = await ctx.db
+      .query('profiles')
+      .withIndex('by_slug', (q) => q.eq('slug', ownerProfileSlug))
+      .unique();
+    const deck = await ctx.db
+      .query('assets')
+      .withIndex('by_type_and_slug', (q) => q.eq('type', 'deck').eq('slug', 'gf9-stronghold-deck'))
+      .unique();
+    if (
+      profile?.account_state !== 'active' ||
+      profile.merged_into_profile_id ||
+      !deck ||
+      deck.is_deleted ||
+      deck.owner_id !== profile.user_id
+    ) {
+      throw new Error('The correction needs the active GF9 Stronghold Deck owner');
+    }
+    const relations = await ctx.db
+      .query('asset_relations')
+      .withIndex('by_from_kind', (q) => q.eq('from_asset_id', deck._id).eq('kind', 'deck-card'))
+      .take(7);
+    const cards = await Promise.all(relations.map((relation) => ctx.db.get('assets', relation.to_asset_id)));
+    if (
+      relations.length !== 6 ||
+      relations.some((relation) => relation.kind !== 'deck-card' || relation.count !== 1) ||
+      cards.some(
+        (card) => !card || card.is_deleted || card.type !== 'card-stronghold' || card.owner_id !== profile.user_id
+      )
+    ) {
+      throw new Error('The correction needs the six original stronghold cards');
+    }
+    const now = nowIso();
+    let cardsChanged = 0;
+    for (const card of cards) {
+      if (!card) {
+        continue;
+      }
+      cardsChanged += await publishPolishedStronghold(ctx, card, now); /* NOSONAR: sequential slug writes. */
+    }
+    const data = DeckAssetInput.parse(deck.data);
+    const back = data.cardback;
+    const deckChanged =
+      'mode' in back &&
+      back.mode === 'custom' &&
+      back.image === '/vector/icon/stronghold.svg' &&
+      back.imageScale === 0.55; /* NOSONAR: the exact stored stock value identifies the untouched seed. */
+    if (deckChanged && 'mode' in back && back.mode === 'custom') {
+      const next = {
+        ...data,
+        cardback: {
+          ...back,
+          image: GF9_STRONGHOLD_DECK.cardback.image,
+          imageScale: GF9_STRONGHOLD_DECK.cardback.imageScale,
+        },
+      };
+      await ctx.db.patch(deck._id, { data: next, updated_at: now });
+      await enqueueAssetPublication(ctx, { ...deck, data: next });
+    }
+    return { deckId: deck._id, cardsChanged, deckChanged };
+  },
+});
+
+/** Corrects the untouched first GF9 printing without replacing authored or transferred cards. */
+export const refreshGF9LeaderSkillPresentationV2 = internalMutation({
+  args: {},
+  returns: v.array(v.id('assets')),
+  handler: async (ctx) => {
+    const installed = await ctx.db
+      .query('leader_skill_stock_sets')
+      .withIndex('by_key', (q) => q.eq('key', 'gf9-leader-skills'))
+      .unique();
+    if (!installed) {
+      return [];
+    }
+    if (installed.card_ids.length !== GF9_LEADER_SKILLS.length) {
+      throw new ConvexError('The GF9 stock set has an unexpected card count.');
+    }
+    const updated = await Promise.all(
+      installed.card_ids.map(async (id, index) => {
+        const asset = await ctx.db.get('assets', id);
+        if (
+          !asset ||
+          asset.is_deleted ||
+          asset.owner_id !== installed.owner_id ||
+          asset.type !== 'card-leaderability'
+        ) {
+          return null;
+        }
+        const card = GF9_LEADER_SKILLS[index]!;
+        const legacy = LeaderSkillAssetInput.parse({
+          ...card,
+          icon: [card.icon[0], '/vector/generic/star.svg'],
+          textSize: 32,
+          decals: card.decals.map((decal) => ({
+            ...decal,
+            id: card.name === 'Smuggler' ? '/vector/decal/smuggler-multicolor.svg' : decal.id,
+          })),
+        });
+        const current = LeaderSkillAssetInput.safeParse(asset.data);
+        if (!current.success || JSON.stringify(current.data) !== JSON.stringify(legacy)) {
+          return null;
+        }
+        const data = LeaderSkillAssetInput.parse(card);
+        await ctx.db.patch('assets', id, { data, updated_at: nowIso() });
+        await enqueueAssetPublication(ctx, { ...asset, data });
+        return id;
+      })
+    );
+    return updated.filter((id) => id !== null);
   },
 });
 

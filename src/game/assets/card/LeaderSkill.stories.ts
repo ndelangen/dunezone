@@ -1,8 +1,10 @@
 import preview from '@sb/preview';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
-import { expect } from 'storybook/test';
+import { expect, waitFor } from 'storybook/test';
 
+import headStyles from './CardHead.module.css';
 import { LeaderSkillCard } from './LeaderSkill';
+import leaderStyles from './LeaderSkill.module.css';
 
 const meta = preview.meta({
   component: LeaderSkillCard,
@@ -11,6 +13,24 @@ const meta = preview.meta({
 });
 async function checkFit(canvasElement: HTMLElement) {
   await document.fonts.ready;
+  const title = canvasElement.querySelector<HTMLElement>(`.${headStyles.title}`)!;
+  const titleText = title.firstElementChild!;
+  const titleRange = document.createRange();
+  titleRange.selectNodeContents(titleText);
+  await expect(titleRange.getClientRects()).toHaveLength(1);
+  await expect(titleText.getBoundingClientRect().width).toBeLessThanOrEqual(title.clientWidth);
+  const decals = Array.from(canvasElement.querySelectorAll<SVGUseElement>('use'));
+  await waitFor(() => expect(decals[0]!.getBoundingClientRect().height).toBeGreaterThan(0));
+  const window = decals[0]!.ownerSVGElement!.parentElement!.getBoundingClientRect();
+  await Promise.all(
+    decals.map(async (decal) => {
+      const bounds = decal.getBoundingClientRect();
+      await expect(bounds.top).toBeGreaterThanOrEqual(window.top);
+      await expect(bounds.bottom).toBeLessThanOrEqual(window.bottom);
+      await expect(bounds.left).toBeGreaterThanOrEqual(window.left);
+      await expect(bounds.right).toBeLessThanOrEqual(window.right);
+    })
+  );
   const card = canvasElement.firstElementChild!.getBoundingClientRect();
   const battle = Array.from(canvasElement.querySelectorAll<HTMLElement>('div')).find(
     (node) => node.textContent?.startsWith('This leader in battle:') && node.children.length === 1
@@ -76,4 +96,45 @@ export const SwordmasterOfGinaz = meta.story({
 export const Warmaster = meta.story({
   args: GF9_LEADER_SKILLS[13]!,
   play: async ({ canvasElement }) => checkFit(canvasElement),
+});
+
+export const ForegroundOverMuted = meta.story({
+  args: {
+    decals: [
+      { id: '/vector/generic/star.svg', scale: 0.5, offset: [0, 0], muted: false, outline: false },
+      { id: '/vector/decal/suk-graduate.svg', scale: 1, offset: [0, 0], muted: true, outline: false },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const foreground = Array.from(canvasElement.querySelectorAll<SVGUseElement>('use')).at(-1)!;
+    await waitFor(() => expect(foreground.getBoundingClientRect().height).toBeGreaterThan(0));
+    const bounds = foreground.getBoundingClientRect();
+    await expect(document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)).toBe(foreground);
+  },
+});
+
+export const RasterIllustration = meta.story({
+  args: {
+    decals: [
+      { id: '/image/decal/gf9-stronghold-arrakeen.png', scale: 1, offset: [0, 0], muted: false, outline: false },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const illustration = canvasElement.querySelector<SVGImageElement>(`.${leaderStyles.art} svg image`)!;
+    const image = new Image();
+    image.src = illustration.href.baseVal;
+    await image.decode();
+    await waitFor(() => expect(illustration.getBoundingClientRect().height).toBeGreaterThan(0));
+    const box = illustration.getBoundingClientRect();
+    const fit = Math.min(box.width / image.naturalWidth, box.height / image.naturalHeight);
+    const width = image.naturalWidth * fit;
+    const height = image.naturalHeight * fit;
+    const left = box.left + (box.width - width) / 2;
+    const top = box.top + (box.height - height) / 2;
+    const window = illustration.ownerSVGElement!.parentElement!.getBoundingClientRect();
+    await expect(left).toBeGreaterThanOrEqual(window.left);
+    await expect(left + width).toBeLessThanOrEqual(window.right);
+    await expect(top).toBeGreaterThanOrEqual(window.top);
+    await expect(top + height).toBeLessThanOrEqual(window.bottom);
+  },
 });

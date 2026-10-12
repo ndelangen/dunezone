@@ -118,7 +118,7 @@ export const StormCardCopy = meta.story({
     await userEvent.click(await waitForFrame(() => page.getByRole('option', { name: /3 Sectors/ })));
     await userEvent.click(page.getByRole('button', { name: /^Load card$/ }));
     await expect(name).toHaveValue('3 Sectors');
-    await expect(page.getByText('Move the storm 3 sectors counterclockwise.')).toBeVisible();
+    await expect(page.getByText('Move the storm 3 sectors counter-clockwise.')).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await expect(page.findByRole('button', { name: 'Delete card' })).resolves.toBeVisible();
     const source = await loadAssetPage('card-storm', '3-sectors');

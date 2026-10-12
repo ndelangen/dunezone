@@ -31,11 +31,19 @@ export function reduceNexusDraft(state: NexusState, event: NexusEvent): NexusSta
 }
 
 /* Both pages own their reducer state; these rules keep reset and validation consistent. */
-export function nexusDraftStatus(state: NexusState) {
+export function nexusDraftStatus(state: NexusState, requireFaction = false) {
   const validation = NexusCardAssetInput.safeParse(state.data);
   return {
     isDirty: JSON.stringify(state.data) !== JSON.stringify(state.baseline),
-    invalid: validation.success ? undefined : validation.error.issues[0]?.message,
-    payload: validation.success ? postedPayload(NexusCardAssetInput, state.data) : null,
+    invalid:
+      requireFaction && !state.data.factionLink
+        ? 'Choose a faction'
+        : validation.success
+          ? undefined
+          : validation.error.issues[0]?.message,
+    payload:
+      validation.success && (!requireFaction || state.data.factionLink)
+        ? postedPayload(NexusCardAssetInput, state.data)
+        : null,
   };
 }

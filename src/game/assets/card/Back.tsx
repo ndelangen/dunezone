@@ -4,16 +4,27 @@ import type { z } from 'zod';
 
 import type { CardBack as CardBackType } from '../../data/objects';
 import { card } from '../../data/sizes';
+import { useAssetResolver } from '../assetRenderMode';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { useCountId } from '../utils/useCountId';
 import styles from './Back.module.css';
 
-export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, name, imageOffset, imageScale }) => {
+export const CardBack: FC<z.infer<typeof CardBackType>> = ({
+  image,
+  background,
+  name,
+  imageOffset,
+  imageScale,
+  nameScale = 1,
+  nameFont = 'C_Busorama',
+}) => {
   const prefix = useCountId();
+  const resolveAsset = useAssetResolver();
 
   const gradient = `${prefix}gradient`;
   const textMask = `${prefix}text-mask`;
   const textShadeMask = `${prefix}text-shade-mask`;
+  const multicolor = image.endsWith('-multicolor.svg') || !image.endsWith('.svg');
 
   return (
     <div className={styles.card}>
@@ -32,7 +43,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
       />
 
       <div
-        className={styles.icon}
+        className={`${styles.icon} ${multicolor ? styles.multicolor : ''}`}
         style={{
           marginLeft: imageOffset[0] - ((imageScale - 1) / 2) * 220,
           marginTop: imageOffset[1] - ((imageScale - 1) / 2) * 220,
@@ -40,9 +51,9 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
           height: imageScale * 220,
         }}
       >
-        <img src={image} />
-        <img src={image} />
-        <img src={image} />
+        <img alt="" src={resolveAsset(image)} />
+        {!multicolor && <img alt="" src={resolveAsset(image)} />}
+        {!multicolor && <img alt="" src={resolveAsset(image)} />}
       </div>
 
       <svg className={styles.svg}>
@@ -56,8 +67,8 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
             <text
               dominantBaseline="middle"
               fill="white"
-              fontFamily="C_Busorama"
-              fontSize="90"
+              fontFamily={nameFont}
+              fontSize={90 * nameScale}
               letterSpacing="-0.7"
               style={{ textTransform: 'uppercase' }}
               textAnchor="middle"
@@ -72,8 +83,8 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
             <text
               dominantBaseline="middle"
               fill="white"
-              fontFamily="C_Busorama"
-              fontSize="90"
+              fontFamily={nameFont}
+              fontSize={90 * nameScale}
               letterSpacing="-0.7"
               style={{ textTransform: 'uppercase' }}
               textAnchor="middle"
@@ -85,8 +96,8 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
             <text
               dominantBaseline="middle"
               fill="black"
-              fontFamily="C_Busorama"
-              fontSize="90"
+              fontFamily={nameFont}
+              fontSize={90 * nameScale}
               letterSpacing="-0.7"
               style={{ textTransform: 'uppercase' }}
               textAnchor="middle"
@@ -106,8 +117,8 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
           <text
             dominantBaseline="middle"
             fill="black"
-            fontFamily="C_Busorama"
-            fontSize="90"
+            fontFamily={nameFont}
+            fontSize={90 * nameScale}
             letterSpacing="-0.7"
             style={{ textTransform: 'uppercase' }}
             textAnchor="middle"

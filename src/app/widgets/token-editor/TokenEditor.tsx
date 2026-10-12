@@ -17,7 +17,7 @@ import { assetFaceAspect, TokenFrame } from '@app/widgets/asset-face/AssetFace';
 import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
-import { assetOptionToPreviewSrc, decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { CustomToken } from '@game/assets/token/Custom';
 import { backgroundPresets } from '@game/data/backgrounds';
 
@@ -58,7 +58,7 @@ const FACE_PRESETS = [
   { key: 'worthless', label: 'Worthless', background: backgroundPresets.worthless },
 ];
 
-const symbolOptions = stockAssetOptions(decalAssetOptions);
+const symbolOptions = stockAssetOptions(vectorDecalAssetOptions);
 
 const INITIAL_FACE: TokenFaceDraft = {
   image: '/vector/icon/projectile.svg',

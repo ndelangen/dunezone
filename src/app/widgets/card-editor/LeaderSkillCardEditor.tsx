@@ -31,11 +31,11 @@ export const INITIAL_LEADER_SKILL_DRAFT: LeaderSkillDraft = {
   decals: [],
   generalText: '',
   battleText: '',
-  textSize: 32,
+  textSize: 36,
 };
 
 /* Artwork is clipped to the illustration window. */
-const DECAL_OFFSET_RANGE = [370, 165] as const;
+const DECAL_OFFSET_RANGE = [370, 210] as const;
 
 /* The rail proof. */
 
@@ -188,7 +188,7 @@ export function LeaderSkillCardEditor({
                 decals: draft.decals,
                 onChange: (decals) => patch({ decals }),
                 offsetRange: DECAL_OFFSET_RANGE,
-                defaultScale: 0.75,
+                defaultScale: 1,
                 maximum: 16,
               }),
               {

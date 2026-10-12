@@ -37,6 +37,7 @@ import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
 import { BattleControls, BattleHistory, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { OfflineConversations } from './Conversation';
+import { initialDockFocus, nextDockFocus } from './dockFocus';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner, ResultControls, useDeclareChoice } from './GameResult';
 import type { DeclareChoice } from './GameResult';
@@ -136,6 +137,48 @@ function battleFocus(table: TableProjection) {
     return null;
   }
   return { key: 'battle', token: battle.id };
+}
+
+/*
+ * The tab each phase is about, which the dock opens once as the phase begins.
+ * Phases played on the table alone (spice blow, revival, movement) leave the dock where the player put it.
+ */
+const PHASE_TABS: Partial<Record<string, string>> = {
+  storm: 'phase',
+  'choam-charity': 'spice',
+  bidding: 'hand',
+  battle: 'battle',
+  'spice-collection': 'spice',
+  'mentat-pause': 'phase',
+};
+
+/* A seat's own tabs are disabled for a spectator, so only the battle, which they came to watch, opens for them. */
+const SPECTATOR_PHASE_TABS = new Set(['battle']);
+
+/* The tab this phase opens for this viewer, or null when the phase leaves the dock alone. */
+function phaseTab(table: TableProjection, activePhaseId: string) {
+  if (table.playback || table.snapshot.stage !== 'play') {
+    return null;
+  }
+  const key = PHASE_TABS[activePhaseId] ?? null;
+  const spectator = table.viewer.viewerSeat === SPECTATOR_SEAT;
+  return spectator && key && !SPECTATOR_PHASE_TABS.has(key) ? null : key;
+}
+
+/* The dock follows the live table: each phase change, battle and end-of-game event opens its tab once (see dockFocus.ts). */
+function useDockFocus(table: TableProjection, progress: ReturnType<typeof gameProgress>) {
+  const phase = `${table.snapshot.stage}:${progress.turn}:${progress.activePhaseId}`;
+  const [state, setState] = useState(() => initialDockFocus(phase, table.snapshot.stage === 'play'));
+  const next = nextDockFocus(state, {
+    playback: Boolean(table.playback),
+    phase,
+    phaseTab: phaseTab(table, progress.activePhaseId),
+    events: [resultFocus(table), battleFocus(table)],
+  });
+  if (next !== state) {
+    setState(next);
+  }
+  return next.focus;
 }
 
 /* The end of the game opens the Result tab once for everyone: when someone starts determining the winner, and when it is declared. */
@@ -913,6 +956,7 @@ function ConnectedTable({
   identity: GameIdentity;
 }>) {
   const progress = gameProgress(table.snapshot);
+  const focusTab = useDockFocus(table, progress);
   const celebration = useResultCelebration(table);
   const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
@@ -1026,7 +1070,7 @@ function ConnectedTable({
                 />
               ) : undefined
             }
-            focusTab={resultFocus(table) ?? battleFocus(table)}
+            focusTab={focusTab}
             /* Spectators open the current battle when present, otherwise History. Finished games open History. */
             openOn={
               stage === 'finished'

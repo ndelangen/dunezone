@@ -31,7 +31,27 @@ export const Decals = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
     await expect(page.findByRole('heading', { name: 'Decals / Blades and melee weapons' })).resolves.toBeVisible();
-    await expect(page.getAllByRole('article')).toHaveLength(300);
+    await expect(page.getAllByRole('article')).toHaveLength(307);
+  },
+});
+
+export const Gf9StrongholdIllustrations = meta.story({
+  args: { path: '/media/game/decals?group=Decals+%2F+GF9+Stronghold+cards' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    await expect(page.findByRole('heading', { name: 'Decals / GF9 Stronghold cards' })).resolves.toBeVisible();
+    await expect(page.getAllByRole('article')).toHaveLength(6);
+  },
+});
+
+export const CustomStrongholdIllustrations = meta.story({
+  args: { path: '/media/game/decals?group=Decals+%2F+Custom+stronghold+illustrations' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    await expect(
+      page.findByRole('heading', { name: 'Decals / Custom stronghold illustrations' })
+    ).resolves.toBeVisible();
+    await expect(page.getAllByRole('article')).toHaveLength(6);
   },
 });
 export const LeaderLink = meta.story({

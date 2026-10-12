@@ -1,4 +1,4 @@
-import { Alert, Stack } from '@mantine/core';
+import { Alert, NumberInput, Slider, Stack } from '@mantine/core';
 import { CustomCardAssetInput } from '@shared/assets/schema';
 import type { CustomCardTokens } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -73,6 +73,36 @@ function CardFormat({
           />
         }
       />
+      {draft.format === 'decal-window' ? (
+        <ControlBlock
+          title="Window position"
+          description="Move the decal window down. Layers stay where you placed them, so text can sit above and below it."
+          tool={
+            <NumberInput
+              aria-label="Window vertical offset"
+              w={110}
+              min={0}
+              max={440}
+              value={draft.windowOffsetY ?? 0}
+              onChange={(value) => {
+                if (typeof value === 'number') {
+                  patch({ windowOffsetY: Math.max(0, Math.min(440, value)) });
+                }
+              }}
+            />
+          }
+          input={
+            <Slider
+              thumbLabel="Window vertical offset"
+              min={0}
+              max={440}
+              step={1}
+              value={draft.windowOffsetY ?? 0}
+              onChange={(windowOffsetY) => patch({ windowOffsetY })}
+            />
+          }
+        />
+      ) : null}
       <ControlBlock
         title="Starting preset"
         description="An editable starting layout. Every layer can be changed afterward."

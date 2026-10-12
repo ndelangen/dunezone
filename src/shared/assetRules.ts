@@ -36,6 +36,13 @@ export const ASSET_RULES: Record<string, CategoryRule> = {
     safetyCapPx: 1280,
     quality: 80,
   },
+  'image/decal': {
+    format: 'webp',
+    transparent: true,
+    sizes: { small: 256, large: 1024, print: 1280 },
+    safetyCapPx: 1280,
+    quality: 90,
+  },
   'image/leader': {
     format: 'webp',
     transparent: true,

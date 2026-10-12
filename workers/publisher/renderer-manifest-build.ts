@@ -65,6 +65,7 @@ const GENERATED_VECTOR_INGREDIENT_PATHS = [
   'src/shared/vectorRules.ts',
   'src/shared/vectorNormalize.ts',
   'scripts/generate-vectors.ts',
+  'scripts/generate.ts',
 ] as const;
 
 const RENDERER_MANIFEST_INPUT_PREFIXES = [

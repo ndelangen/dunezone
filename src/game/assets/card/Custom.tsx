@@ -15,6 +15,7 @@ export function CustomCard({
   name,
   subName,
   format,
+  windowOffsetY = 0,
   head,
   icon,
   iconScale = 1,
@@ -23,21 +24,61 @@ export function CustomCard({
   iconOpacity = 1,
   layers,
   tokens = {},
-  wrapTitle = false,
-}: z.infer<typeof CustomCardSchema> & { tokens?: z.infer<typeof CustomCardTokens>; wrapTitle?: boolean }) {
+  iconTreatment,
+}: z.infer<typeof CustomCardSchema> & {
+  tokens?: z.infer<typeof CustomCardTokens>;
+  iconTreatment?: 'shaded' | 'printed';
+}) {
+  const prefix = useCountId();
+  const shiftedWindow = format === 'decal-window' && windowOffsetY !== 0;
   return (
     <div className={styles.card}>
-      <div className={styles.windowBackground} />
+      <div
+        className={styles.windowBackground}
+        style={shiftedWindow ? { transform: `translateY(${windowOffsetY}px)` } : undefined}
+      />
       {layers
         .filter((layer) => layer.kind === 'decal' && layer.behindFrame)
         .map((layer) => (
           <CardLayer key={layer.layerId} layer={layer} tokens={tokens} />
         ))}
       <CardHeadBackground head={head} />
-      <div
-        className={styles.frame}
-        style={{ backgroundImage: `url('/image/card/${format === 'plain' ? 'base-full' : 'base-decal'}-large.webp')` }}
-      />
+      {shiftedWindow ? (
+        <svg className={styles.frame} viewBox="0 0 900 1263" aria-hidden>
+          <defs>
+            <mask id={`${prefix}_window`} maskUnits="userSpaceOnUse" x="0" y="0" width="900" height="1263">
+              <rect width="900" height="1263" fill="white" />
+              <rect x="70" y={249 + windowOffsetY} width="762" height="440" fill="black" />
+            </mask>
+            <clipPath id={`${prefix}_border`}>
+              <rect x="70" y="249" width="762" height="440" />
+            </clipPath>
+          </defs>
+          <image
+            href="/image/card/base-full-large.webp"
+            preserveAspectRatio="none"
+            width="900"
+            height="1263"
+            mask={`url(#${prefix}_window)`}
+          />
+          <g transform={`translate(0 ${windowOffsetY})`}>
+            <image
+              href="/image/card/base-decal-large.webp"
+              preserveAspectRatio="none"
+              width="900"
+              height="1263"
+              clipPath={`url(#${prefix}_border)`}
+            />
+          </g>
+        </svg>
+      ) : (
+        <div
+          className={styles.frame}
+          style={{
+            backgroundImage: `url('/image/card/${format === 'plain' ? 'base-full' : 'base-decal'}-large.webp')`,
+          }}
+        />
+      )}
       {layers
         .filter((layer) => layer.kind !== 'decal' || !layer.behindFrame)
         .map((layer) => (
@@ -45,13 +86,13 @@ export function CustomCard({
         ))}
       <CardHeadContents
         name={name}
-        wrapTitle={wrapTitle}
         subName={subName}
         icon={icon}
         iconOffset={iconOffset}
         iconScale={iconScale}
         iconInvert={iconInvert}
         iconOpacity={iconOpacity}
+        iconTreatment={iconTreatment}
       />
     </div>
   );

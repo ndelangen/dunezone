@@ -59,6 +59,16 @@
 }
 
 @font-face {
+  font-family: "C_Busorama_Bold";
+  src:
+    url("/font/busorama2.woff2") format("woff2"),
+    url("/font/busorama2.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "C_Trebuchet";
   font-display: swap;
   src:

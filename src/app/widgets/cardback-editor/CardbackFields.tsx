@@ -1,4 +1,4 @@
-import { NumberInput, Slider, TextInput } from '@mantine/core';
+import { NumberInput, Select, Slider, TextInput } from '@mantine/core';
 import type { CardBack } from '@shared/assets/schema';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -47,6 +47,38 @@ export function CardbackFields({
           />
         }
       />
+      <ControlBlock
+        title="Label weight"
+        input={
+          <Select
+            aria-label="Label weight"
+            allowDeselect={false}
+            data={[
+              { value: 'C_Busorama', label: 'Regular' },
+              { value: 'C_Busorama_Bold', label: 'Bold' },
+            ]}
+            value={cardback.nameFont ?? 'C_Busorama'}
+            onChange={(nameFont) => {
+              if (nameFont === 'C_Busorama' || nameFont === 'C_Busorama_Bold') {
+                onChange({ ...cardback, nameFont });
+              }
+            }}
+          />
+        }
+      />
+      <ControlBlock
+        title="Label size"
+        input={
+          <Slider
+            aria-label="Label size"
+            min={0.5}
+            max={2}
+            step={0.01}
+            value={cardback.nameScale ?? 1}
+            onChange={(nameScale) => onChange({ ...cardback, nameScale })}
+          />
+        }
+      />
       <BackgroundPresetControl
         title="Background"
         description="Behind the emblem."
@@ -61,7 +93,7 @@ export function CardbackFields({
       />
       <ControlBlock
         title="Emblem"
-        description="The vector at the centre of the back."
+        description="The artwork at the centre of the back."
         input={
           <AssetSelect
             aria-label="Emblem"
@@ -83,8 +115,9 @@ export function CardbackFields({
         input={
           <Slider
             aria-label="Emblem scale"
+            thumbLabel="Emblem scale"
             min={0}
-            max={1}
+            max={2}
             step={0.01}
             label={(value) => value.toFixed(2)}
             value={cardback.imageScale}

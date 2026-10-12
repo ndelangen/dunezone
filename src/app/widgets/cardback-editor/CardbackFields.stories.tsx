@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
-import { fn } from 'storybook/test';
+import { GF9_STRONGHOLD_DECK } from '@shared/assets/gf9StrongholdDeck';
+import { expect, fn, within } from 'storybook/test';
 
 import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 
@@ -17,3 +18,11 @@ const meta = preview.meta({
   },
 });
 export const Traitor = meta.story({});
+export const Stronghold = meta.story({
+  args: { cardback: GF9_STRONGHOLD_DECK.cardback },
+  play: async ({ canvasElement }) => {
+    const scale = within(canvasElement).getByRole('slider', { name: 'Emblem scale' });
+    await expect(scale).toHaveAttribute('aria-valuenow', '1.3');
+    await expect(scale).toHaveAttribute('aria-valuemax', '2');
+  },
+});

@@ -643,7 +643,10 @@ export const LongPressOnTheDeckOpensItsMenu = meta.story({
 
     await waitFor(
       async () => {
-        scene.dispatchEvent(new PointerEvent('pointerdown', { ...touch, button: 0, buttons: 1 }));
+        /* A press while the ring is open closes it, so the finger only goes down again while no ring shows. */
+        if (!page.queryByRole('menu')) {
+          scene.dispatchEvent(new PointerEvent('pointerdown', { ...touch, button: 0, buttons: 1 }));
+        }
         await expect(page.findByRole('menuitem', { name: 'Shuffle' }, { timeout: 1500 })).resolves.toBeVisible();
       },
       { timeout: 30_000 }
