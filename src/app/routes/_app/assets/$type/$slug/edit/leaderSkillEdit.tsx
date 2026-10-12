@@ -1,7 +1,7 @@
 import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
-import type { AssetPageData } from '@app/db/assets';
+import type { AssetPublicPage } from '@app/db/assets';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LeaderSkillCardEditor, leaderSkillDraftWarnings } from '@app/widgets/card-editor/LeaderSkillCardEditor';
 import type { LeaderSkillChapter, LeaderSkillDraft } from '@app/widgets/card-editor/LeaderSkillCardEditor';
@@ -13,7 +13,7 @@ import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
 /** The leader skill card edit page, mounted by the generic asset edit route. */
-export function LeaderSkillEditPage({ slug, loaderData }: Readonly<{ slug: string; loaderData: AssetPageData }>) {
+export function LeaderSkillEditPage({ slug, loaderData }: Readonly<{ slug: string; loaderData: AssetPublicPage }>) {
   return (
     <CardEditGate
       type="card-leaderability"

@@ -9,6 +9,7 @@ import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishin
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { api } from './_generated/api';
 import schema from './schema';
+import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 async function setup() {
@@ -50,9 +51,7 @@ test('admin conversion preserves identity and deck membership and replaces pendi
       updated_at: 1,
     })
   );
-  expect((await admin.query(api.assets.getPage, { type: 'card-treachery', slug: card.slug }))?.canConvertToCustom).toBe(
-    true
-  );
+  expect((await assetPageAs(admin, { type: 'card-treachery', slug: card.slug }))?.canConvertToCustom).toBe(true);
   expect(await admin.mutation(api.assets.convertTreacheryToCustom, { id: card.id })).toEqual(card);
   expect(await t.run((ctx) => ctx.db.get('publication_assets', retainedPublication))).toMatchObject({
     cache_token: 'original',
@@ -64,11 +63,11 @@ test('admin conversion preserves identity and deck membership and replaces pendi
     data: treacheryToCustomCard(publishingTreacheryCard),
     updated_at: expect.any(String),
   });
-  expect(await t.query(api.assets.getPage, { type: 'card-treachery', slug: card.slug })).toBeNull();
-  const custom = await owner.query(api.assets.getPage, { type: 'card-custom', slug: card.slug });
+  expect(await assetPageAs(t, { type: 'card-treachery', slug: card.slug })).toBeNull();
+  const custom = await assetPageAs(owner, { type: 'card-custom', slug: card.slug });
   expect(custom?.inDecks).toEqual([expect.objectContaining({ id: deck.id, count: 3 })]);
   expect(custom?.viewerAccess.capabilities.edit).toBe(true);
-  const deckPage = await t.query(api.assets.getPage, { type: 'deck', slug: deck.slug });
+  const deckPage = await assetPageAs(t, { type: 'deck', slug: deck.slug });
   expect(deckPage?.members).toEqual([
     expect.objectContaining({ count: 3, member: expect.objectContaining({ id: card.id, type: 'card-custom' }) }),
   ]);
@@ -86,12 +85,8 @@ test('admin conversion preserves identity and deck membership and replaces pendi
 
 test('conversion requires an active administrator even when the caller owns the card', async () => {
   const { t, owner, admin, card } = await setup();
-  expect((await owner.query(api.assets.getPage, { type: 'card-treachery', slug: card.slug }))?.canConvertToCustom).toBe(
-    false
-  );
-  expect((await t.query(api.assets.getPage, { type: 'card-treachery', slug: card.slug }))?.canConvertToCustom).toBe(
-    false
-  );
+  expect((await assetPageAs(owner, { type: 'card-treachery', slug: card.slug }))?.canConvertToCustom).toBe(false);
+  expect((await assetPageAs(t, { type: 'card-treachery', slug: card.slug }))?.canConvertToCustom).toBe(false);
   await expect(t.mutation(api.assets.convertTreacheryToCustom, { id: card.id })).rejects.toThrow('Not authenticated');
   await expect(owner.mutation(api.assets.convertTreacheryToCustom, { id: card.id })).rejects.toThrow('Not authorized');
   await admin.mutation(api.assets.convertTreacheryToCustom, { id: card.id });
@@ -147,9 +142,7 @@ test('deleted or oversized treachery cards are left intact', async () => {
 test('inactive administrators cannot convert cards', async () => {
   const { t, admin, adminId, card } = await setup();
   await t.run((ctx) => ctx.db.patch(adminId, { account_state: 'deletion_pending' }));
-  expect((await admin.query(api.assets.getPage, { type: 'card-treachery', slug: card.slug }))?.canConvertToCustom).toBe(
-    false
-  );
+  expect((await assetPageAs(admin, { type: 'card-treachery', slug: card.slug }))?.canConvertToCustom).toBe(false);
   await expect(admin.mutation(api.assets.convertTreacheryToCustom, { id: card.id })).rejects.toThrow(
     'Not authenticated'
   );

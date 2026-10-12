@@ -9,6 +9,7 @@ import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { rulebookEditionArtifactPath } from '../src/shared/rulebooks/editionArtifacts';
 import { api } from './_generated/api';
 import { rulebookFixture, seedRulebookStarterContents } from './rulebooks.test.fixture';
+import { rulebookReaderAs } from './viewerAccess.test.fixture';
 
 async function readerFixture() {
   const fixture = await rulebookFixture();
@@ -51,10 +52,16 @@ describe('Rulebook current-Edition reader', () => {
 
   test('offers editing to maintainers and deletion only to the Ruleset owner', async () => {
     const { t, owner, member, outsider, locator } = await readerFixture();
-    expect(await owner.query(api.rulebooks.readerPage, locator)).toMatchObject({ canEdit: true, canDelete: true });
-    expect(await member.query(api.rulebooks.readerPage, locator)).toMatchObject({ canEdit: true, canDelete: false });
+    expect(await rulebookReaderAs(owner, locator)).toMatchObject({ canEdit: true, canDelete: true });
+    expect(await rulebookReaderAs(member, locator)).toMatchObject({ canEdit: true, canDelete: false });
     for (const reader of [t, outsider]) {
-      expect(await reader.query(api.rulebooks.readerPage, locator)).toMatchObject({ canEdit: false, canDelete: false });
+      expect(await rulebookReaderAs(reader, locator)).toMatchObject({ canEdit: false, canDelete: false });
+    }
+    const pages = await Promise.all(
+      [t, owner, member, outsider].map((reader) => reader.query(api.rulebooks.readerDelivery, locator))
+    );
+    for (const page of pages) {
+      expect(page).toEqual(pages[0]);
     }
   });
 
@@ -306,7 +313,7 @@ describe('Rulebook HTML reader delivery', () => {
       await ctx.db.delete('rulebook_edition_contents', contents!._id);
       await ctx.db.delete('rulebook_drafts', fixture.created.draft._id);
     });
-    const page = await fixture.t.query(api.rulebooks.readerDeliveryPage, fixture.locator);
+    const page = await rulebookReaderAs(fixture.t, fixture.locator);
     expect(page?.body).toEqual({
       kind: 'html',
       href: rulebookEditionArtifactPath(fixture.created.rulebook._id, 1, 'html'),
@@ -314,6 +321,17 @@ describe('Rulebook HTML reader delivery', () => {
     expect(page).not.toHaveProperty('draft');
     expect(page?.edition).not.toHaveProperty('contents');
     expect(page).toMatchObject({ canEdit: false, canDelete: false });
+    expect(await rulebookReaderAs(fixture.owner, fixture.locator)).toMatchObject({ canEdit: true, canDelete: true });
+    expect(await rulebookReaderAs(fixture.member, fixture.locator)).toMatchObject({ canEdit: true, canDelete: false });
+  });
+
+  test('the deprecated per-viewer delivery still answers older bundles with their links', async () => {
+    const fixture = await readerFixture();
+    await readyHtml(fixture);
+    expect(await fixture.t.query(api.rulebooks.readerDeliveryPage, fixture.locator)).toMatchObject({
+      canEdit: false,
+      canDelete: false,
+    });
     expect(await fixture.owner.query(api.rulebooks.readerDeliveryPage, fixture.locator)).toMatchObject({
       canEdit: true,
       canDelete: true,
@@ -337,18 +355,18 @@ describe('Rulebook HTML reader delivery', () => {
       await ctx.db.insert('rulebook_edition_contents', { edition_id: id, contents: fixture.created.edition.contents });
       await ctx.db.patch('rulebooks', fixture.created.rulebook._id, { current_edition_number: 2 });
     });
-    expect(await fixture.t.query(api.rulebooks.readerDeliveryPage, fixture.locator)).toMatchObject({
+    expect(await fixture.t.query(api.rulebooks.readerDelivery, fixture.locator)).toMatchObject({
       edition: { edition_number: 2, html: { status: 'preparing' } },
       body: { kind: 'render', contents: fixture.created.edition.contents },
     });
     expect(
-      await fixture.t.query(api.rulebooks.readerDeliveryPage, { ...fixture.locator, edition_number: 1 })
+      await fixture.t.query(api.rulebooks.readerDelivery, { ...fixture.locator, edition_number: 1 })
     ).toMatchObject({
       edition: { edition_number: 1 },
       body: { kind: 'html' },
     });
     expect(
-      await fixture.t.query(api.rulebooks.readerDeliveryPage, {
+      await fixture.t.query(api.rulebooks.readerDelivery, {
         ...fixture.locator,
         edition_number: 1,
         render_contents: true,
@@ -369,6 +387,6 @@ describe('Rulebook HTML reader delivery', () => {
         await ctx.db.patch('rulesets', fixture.ids.rulesetId, { is_deleted: true });
       }
     });
-    expect(await fixture.t.query(api.rulebooks.readerDeliveryPage, fixture.locator)).toBeNull();
+    expect(await fixture.t.query(api.rulebooks.readerDelivery, fixture.locator)).toBeNull();
   });
 });

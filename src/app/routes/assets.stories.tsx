@@ -63,8 +63,8 @@ export const EditBundle = meta.story({
  * The editor reached by a reader who is not signed in.
  * The assertions are the point rather than the render: this state and the two below all rendered before this frame existed, so a story that only mounts them would go green either way.
  *
- * This one asks the server: its gate reads `viewerAccess.viewer.kind`, which the asset query decides from the identity.
- * The create page gates below read the profile session through `useSessionViewer` instead, and became coverable when `toLiveQueryResult` stopped collapsing a signed-out null into the pending shape (#803).
+ * Its gate reads `viewerAccess.viewer.kind`, which `useAssetAccess` combines in the browser from the public asset page and the profile session.
+ * The create page gates below read the profile session through `useSessionViewer` directly, and became coverable when `toLiveQueryResult` stopped collapsing a signed-out null into the pending shape (#803).
  */
 export const EditDeckSignedOut = meta.story({
   args: { path: '/assets/deck/house-treachery/edit' },

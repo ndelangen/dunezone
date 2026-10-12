@@ -8,6 +8,7 @@ import { publicationFaceId } from '../src/shared/asset-publishing/publicationTar
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { api } from './_generated/api';
 import schema from './schema';
+import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -58,9 +59,9 @@ describe('asset update', () => {
       .mutation(api.assets.update, { id: created.id, data: cardData('Hunter-Seeker') });
     expect(renamed.slug).toBe('hunter-seeker');
 
-    const page = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'hunter-seeker' });
+    const page = await assetPageAs(t, { type: 'card-treachery', slug: 'hunter-seeker' });
     expect(page?.asset.name).toBe('Hunter-Seeker');
-    expect(await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' })).toBeNull();
+    expect(await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' })).toBeNull();
   });
 
   test('a viewer without edit capability cannot update, and anonymous viewers get read-only access facts', async () => {
@@ -71,7 +72,7 @@ describe('asset update', () => {
       t.withIdentity({ subject: outsiderId }).mutation(api.assets.update, { id: created.id, data: cardData('Stolen') })
     ).rejects.toThrow('Not authorized');
 
-    const page = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    const page = await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.viewerAccess.viewer.kind).toBe('anonymous');
     expect(page?.viewerAccess.capabilities.edit).toBe(false);
   });
@@ -87,9 +88,7 @@ describe('asset update', () => {
       .withIdentity({ subject: ownerId })
       .mutation(api.assets.update, { id: created.id, data: cardData('Stunner') });
     expect(renamed.slug).toBe('stunner-1');
-    expect((await t.query(api.assets.getPage, { type: 'card-treachery', slug: renamed.slug }))?.asset.name).toBe(
-      'Stunner'
-    );
+    expect((await assetPageAs(t, { type: 'card-treachery', slug: renamed.slug }))?.asset.name).toBe('Stunner');
   });
 });
 
@@ -100,7 +99,7 @@ describe('asset soft delete', () => {
 
     await t.withIdentity({ subject: ownerId }).mutation(api.assets.softDelete, { id: created.id });
 
-    expect(await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' })).toBeNull();
+    expect(await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' })).toBeNull();
     expect(await t.query(api.assets.listByTypes, { types: ['card-treachery'] })).toEqual([]);
     const replacement = await t
       .withIdentity({ subject: ownerId })
@@ -133,9 +132,7 @@ describe('asset soft delete', () => {
       await ctx.db.patch(created.id, { group_id: groupId });
     });
 
-    const page = await t
-      .withIdentity({ subject: outsiderId })
-      .query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    const page = await assetPageAs(t.withIdentity({ subject: outsiderId }), { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.viewerAccess.capabilities.edit).toBe(true);
     expect(page?.viewerAccess.capabilities.rename).toBe(false);
     expect(page?.viewerAccess.capabilities.delete).toBe(false);
@@ -187,17 +184,31 @@ describe('asset group assignment', () => {
 
     await t.withIdentity({ subject: ownerId }).mutation(api.assets.setGroup, { id: created.id, group_id: groupId });
 
-    const page = await t
-      .withIdentity({ subject: outsiderId })
-      .query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    const page = await assetPageAs(t.withIdentity({ subject: outsiderId }), { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.viewerAccess.assignedGroup?.slug).toBe('arrakeen-rules-council');
     expect(page?.viewerAccess.capabilities.edit).toBe(true);
     /* Reassignment and deletion stay with the owner even once a group can edit. */
     expect(page?.viewerAccess.capabilities.changeGroup).toBe(false);
 
     await t.withIdentity({ subject: ownerId }).mutation(api.assets.setGroup, { id: created.id, group_id: null });
-    const cleared = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    const cleared = await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' });
     expect(cleared?.viewerAccess.assignedGroup).toBeNull();
+  });
+
+  test('the asset page is the same answer for every viewer, and the deprecated page still answers older bundles', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, outsiderId } = await seedCard(t);
+    const address = { type: 'card-treachery', slug: 'lasgun' };
+    const anonymous = await t.query(api.assets.page, address);
+    for (const userId of [ownerId, outsiderId]) {
+      expect(await t.withIdentity({ subject: userId }).query(api.assets.page, address)).toEqual(anonymous);
+    }
+    const owner = t.withIdentity({ subject: ownerId });
+    const current = await assetPageAs(owner, address);
+    const legacy = await owner.query(api.assets.getPage, address);
+    const { ownerId: _ownerId, assignedGroup: _assignedGroup, convertibleToCustom: _convertible, ...facts } = current!;
+    expect(legacy).toEqual(facts);
+    expect(legacy?.viewerAccess.capabilities.edit).toBe(true);
   });
 
   test('a group the viewer cannot add members to is not a valid target', async () => {
@@ -259,12 +270,12 @@ describe('token backsides', () => {
     const backB = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Spice') });
 
     await owner.mutation(api.assets.update, { id: front.id, data: withReference('Axlotl', backA.id) });
-    let page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
+    let page = await assetPageAs(t, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken?.name).toBe('Sietch');
 
     /* Re-pointing replaces rather than accumulates: the reference is one field on one row. */
     await owner.mutation(api.assets.update, { id: front.id, data: withReference('Axlotl', backB.id) });
-    page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
+    page = await assetPageAs(t, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken?.name).toBe('Spice');
 
     /* The reference lives in data now, so no relation row exists to leak or dangle. */
@@ -278,7 +289,7 @@ describe('token backsides', () => {
       id: front.id,
       data: { ...tokenData('Axlotl'), back: { mode: 'same' } },
     });
-    page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
+    page = await assetPageAs(t, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken).toBeNull();
   });
 
@@ -318,7 +329,7 @@ describe('token backsides', () => {
 
     await owner.mutation(api.assets.softDelete, { id: back.id });
 
-    const page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
+    const page = await assetPageAs(t, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken).toBeNull();
     /* The stored reference stays: dangling is a read-time judgement, the soft-delete rule for every kind. */
     const stored = await t.run(async (ctx) => (await ctx.db.get('assets', front.id))?.data);
@@ -339,7 +350,7 @@ describe('token backsides', () => {
       data: { ...tokenData('Axlotl'), back: { mode: 'reference' } },
     });
 
-    const page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
+    const page = await assetPageAs(t, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken?.name).toBe('Sietch');
   });
 
@@ -362,7 +373,7 @@ describe('token backsides', () => {
     });
 
     expect(await backJobs()).toEqual([]);
-    const page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
+    const page = await assetPageAs(t, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.resolvedBack).toMatchObject({ mode: 'same' });
   });
 });
@@ -393,16 +404,16 @@ describe('deck composition', () => {
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
 
     await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 3 });
-    let page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
+    let page = await assetPageAs(t, { type: 'deck', slug: 'house-treachery' });
     expect(page?.members).toEqual([expect.objectContaining({ count: 3 })]);
 
     await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 5 });
-    page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
+    page = await assetPageAs(t, { type: 'deck', slug: 'house-treachery' });
     expect(page?.members).toHaveLength(1);
     expect(page?.members[0]?.count).toBe(5);
 
     await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 0 });
-    page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
+    page = await assetPageAs(t, { type: 'deck', slug: 'house-treachery' });
     expect(page?.members).toEqual([]);
     const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
     expect(relations).toEqual([]);
@@ -435,7 +446,7 @@ describe('deck composition', () => {
 
     await owner.mutation(api.assets.softDelete, { id: created.id });
 
-    const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
+    const page = await assetPageAs(t, { type: 'deck', slug: 'house-treachery' });
     expect(page?.members).toEqual([]);
     const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
     expect(relations).toHaveLength(1);
@@ -450,14 +461,14 @@ describe('asset page bundle', () => {
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
     await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 3 });
 
-    const card = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    const card = await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' });
     expect(card?.inDecks).toEqual([
       expect.objectContaining({ id: deck.id, type: 'deck', slug: 'house-treachery', count: 3 }),
     ]);
     /* Saving the card enqueued a publication, so it has capture state but no published asset yet. */
     expect(card?.assetPublishing).toMatchObject({ status: null, captureStatus: 'scheduled', publicationHref: null });
 
-    const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
+    const page = await assetPageAs(t, { type: 'deck', slug: 'house-treachery' });
     /* Nothing may hold a deck. Its own Cardback publishes like any other image type since wayfinder #546. */
     expect(page?.inDecks).toEqual([]);
     expect(page?.assetPublishing).toMatchObject({ status: null, captureStatus: 'scheduled', publicationHref: null });
@@ -471,7 +482,7 @@ describe('asset page bundle', () => {
     await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 1 });
     await owner.mutation(api.assets.softDelete, { id: deck.id });
 
-    const card = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    const card = await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' });
     expect(card?.inDecks).toEqual([]);
     const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
     expect(relations).toHaveLength(1);
@@ -488,7 +499,7 @@ describe('asset about', () => {
       data: { ...cardData('Lasgun'), about: '  A lasgun hitting a shield destroys the territory.\n  ' },
     });
 
-    const page = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    const page = await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.asset.data).toMatchObject({
       about: 'A lasgun hitting a shield destroys the territory.',
     });
@@ -498,7 +509,7 @@ describe('asset about', () => {
     const t = convexTest(schema, modules);
     const { created } = await seedCard(t);
 
-    const page = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    const page = await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.asset.data).toMatchObject({ about: '' });
     expect(created.slug).toBe('lasgun');
   });
@@ -555,7 +566,7 @@ describe('asset publication', () => {
     expect(jobs).toHaveLength(1);
     expect(jobs[0]?.asset_data).toEqual({ assetId: created.id, slug: 'arsunt', card: publishingSpiceCard });
 
-    const page = await t.query(api.assets.getPage, { type: 'card-spice', slug: 'arsunt' });
+    const page = await assetPageAs(t, { type: 'card-spice', slug: 'arsunt' });
     expect(page?.asset.data).toEqual(publishingSpiceCard);
     expect(page?.assetPublishing).not.toBeNull();
 
@@ -683,17 +694,17 @@ describe('a token page reports both of its faces', () => {
       data: { ...tokenData('Sietch'), back: { mode: 'reference' } },
     });
 
-    const authored = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
+    const authored = await assetPageAs(t, { type: 'token-disc', slug: 'axlotl' });
     expect(authored?.backPublishing).toMatchObject({ captureStatus: 'scheduled', publicationHref: null });
 
     /*
      * A referenced back is another token's front, so this token publishes nothing of its own for it.
      * Read from the stored mode rather than from whether bytes exist: switching a back from authored to referenced orphans the object instead of deleting it.
      */
-    const referenced = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'sietch' });
+    const referenced = await assetPageAs(t, { type: 'token-disc', slug: 'sietch' });
     expect(referenced?.backPublishing).toBeNull();
 
-    const card = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    const card = await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' });
     expect(card?.backPublishing).toBeNull();
     expect(card?.assetPublishing).toMatchObject({ captureStatus: 'scheduled' });
     expect(created.slug).toBe('lasgun');
@@ -709,7 +720,7 @@ describe('enhance tokens', () => {
       .mutation(api.assets.create, { type: 'token-enhance', data: rectangleData('Kwisatz Haderach') });
 
     expect(created.slug).toBe('kwisatz-haderach');
-    const page = await t.query(api.assets.getPage, { type: 'token-enhance', slug: 'kwisatz-haderach' });
+    const page = await assetPageAs(t, { type: 'token-enhance', slug: 'kwisatz-haderach' });
     expect(page?.asset.data).toEqual(rectangleData('Kwisatz Haderach'));
   });
 
@@ -752,7 +763,7 @@ describe('bundles', () => {
     await owner.mutation(api.assets.setMemberCount, { container_id: bundle.id, member_id: round.id, count: 20 });
     await owner.mutation(api.assets.setMemberCount, { container_id: bundle.id, member_id: gear.id, count: 1 });
 
-    const page = await t.query(api.assets.getPage, { type: 'bundle', slug: 'tech-tokens' });
+    const page = await assetPageAs(t, { type: 'bundle', slug: 'tech-tokens' });
     expect(page?.members).toHaveLength(2);
     expect(page?.members.map((entry) => entry.count).sort()).toEqual([1, 20]);
 
@@ -798,7 +809,7 @@ describe('bundles', () => {
     });
 
     expect(await t.run(async (ctx) => await ctx.db.query('publication_jobs').collect())).toEqual([]);
-    const page = await t.query(api.assets.getPage, { type: 'bundle', slug: 'tech-tokens' });
+    const page = await assetPageAs(t, { type: 'bundle', slug: 'tech-tokens' });
     expect(page?.assetPublishing).toBeNull();
   });
 });
@@ -818,7 +829,7 @@ describe('deck cardback references', () => {
     const jobs = await t.run(async (ctx) => await ctx.db.query('publication_jobs').collect());
     expect(jobs.map((job) => job.asset_id)).toEqual([source.id]);
 
-    const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'wearer' });
+    const page = await assetPageAs(t, { type: 'deck', slug: 'wearer' });
     expect(page?.resolvedBack).toMatchObject({ mode: 'reference' });
 
     /* List surfaces present the target's composition, so tiles render unchanged. */
@@ -842,7 +853,7 @@ describe('deck cardback references', () => {
      * The editor's reference guard reads this data; a presented composition here would open the deck
      * wearing the target's cardback as its own, and a save would persist the copy.
      */
-    const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'wearer' });
+    const page = await assetPageAs(t, { type: 'deck', slug: 'wearer' });
     const pageData = page?.asset.data as { cardback: unknown } | undefined;
     expect(pageData?.cardback).toEqual({ mode: 'reference', asset_id: source.id });
   });
@@ -870,7 +881,7 @@ describe('deck cardback references', () => {
       type: 'deck',
       data: { name: 'Wearer', about: '', cardback: { mode: 'reference', asset_id: source.id } },
     });
-    const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'wearer' });
+    const page = await assetPageAs(t, { type: 'deck', slug: 'wearer' });
     expect(page?.resolvedBack).toMatchObject({ mode: 'reference' });
   });
 
@@ -909,7 +920,7 @@ describe('deck cardback references', () => {
     const presentedData = presented?.data as { cardback: unknown } | undefined;
     expect(presentedData?.cardback).toBeNull();
 
-    const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'wearer' });
+    const page = await assetPageAs(t, { type: 'deck', slug: 'wearer' });
     expect(page?.resolvedBack).toEqual({ mode: 'dangling', href: '/web/no-deck-back.svg' });
   });
 });
@@ -929,9 +940,7 @@ describe('slug allocation', () => {
     expect(next.slug).toBe('lasgun-4');
     const changed = { ...cardData('Lasgun'), text: 'Changed content' };
     expect(await owner.mutation(api.assets.update, { id: next.id, data: changed })).toEqual(next);
-    expect((await t.query(api.assets.getPage, { type: 'card-treachery', slug: next.slug }))?.asset.data).toEqual(
-      changed
-    );
+    expect((await assetPageAs(t, { type: 'card-treachery', slug: next.slug }))?.asset.data).toEqual(changed);
     const renamed = await owner.mutation(api.assets.update, { id: collision.id, data: cardData('Lasgun') });
     expect(renamed.slug).toBe(collision.slug);
     expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun-2' })).toBe('deleted');
@@ -964,9 +973,7 @@ describe('slug allocation', () => {
     }
     const crowded = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') });
     expect(crowded.slug).toMatch(/^lasgun-[a-z0-9]{12,}$/);
-    expect((await t.query(api.assets.getPage, { type: 'card-treachery', slug: crowded.slug }))?.asset.name).toBe(
-      'Lasgun'
-    );
+    expect((await assetPageAs(t, { type: 'card-treachery', slug: crowded.slug }))?.asset.name).toBe('Lasgun');
   });
 
   test('reserved creation paths and legacy addresses stay usable across spelling and genuine renames', async () => {
@@ -979,7 +986,7 @@ describe('slug allocation', () => {
     await t.run(async (ctx) => await ctx.db.patch(legacy.id, { slug: 'legacy-0123456789abcdef01234567' }));
     const saved = await owner.mutation(api.assets.update, { id: legacy.id, data: cardData('Legacy!') });
     expect(saved.slug).toBe('legacy-0123456789abcdef01234567');
-    expect((await t.query(api.assets.getPage, { type: 'card-treachery', slug: saved.slug }))?.asset.id).toBe(legacy.id);
+    expect((await assetPageAs(t, { type: 'card-treachery', slug: saved.slug }))?.asset.id).toBe(legacy.id);
     expect((await owner.mutation(api.assets.update, { id: legacy.id, data: cardData('Renamed') })).slug).toBe(
       'renamed'
     );
@@ -999,9 +1006,7 @@ describe('slug allocation', () => {
     );
     const copy = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') });
     expect(copy.slug).toBe('lasgun-11');
-    expect((await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun-10' }))?.asset.name).toBe(
-      'Lasgun 10'
-    );
+    expect((await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun-10' }))?.asset.name).toBe('Lasgun 10');
   });
 
   test('different asset types may use the same slug and tokens accept repeated names', async () => {
@@ -1012,6 +1017,6 @@ describe('slug allocation', () => {
     expect(token.slug).toBe('lasgun');
     const copy = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Lasgun') });
     expect(copy.slug).toBe('lasgun-1');
-    expect((await t.query(api.assets.getPage, { type: 'token-disc', slug: copy.slug }))?.asset.name).toBe('Lasgun');
+    expect((await assetPageAs(t, { type: 'token-disc', slug: copy.slug }))?.asset.name).toBe('Lasgun');
   });
 });

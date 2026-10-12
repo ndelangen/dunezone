@@ -6,6 +6,7 @@ import { expect, test } from 'vitest';
 import { INITIAL_CARDBACK_PRESETS } from '../src/shared/assets/cardbackPresets';
 import { api, internal } from './_generated/api';
 import schema from './schema';
+import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 const cardback = INITIAL_CARDBACK_PRESETS.find((preset) => preset.key === 'traitor')!.cardback;
@@ -42,7 +43,7 @@ test('disc tint survives saving, loading and publication for presets and authore
   expect((await t.query(api.cardbackPresets.list, {})).find((preset) => preset.key === 'traitor')?.cardback).toEqual(
     tinted
   );
-  expect((await author.query(api.assets.getPage, { type: 'deck', slug: 'tinted-deck' }))?.asset.data.cardback).toEqual({
+  expect((await assetPageAs(author, { type: 'deck', slug: 'tinted-deck' }))?.asset.data.cardback).toEqual({
     mode: 'custom',
     ...tinted,
   });
@@ -90,7 +91,7 @@ async function publishedDecks() {
   };
   await publish('first');
   const page = async (slug: string) => {
-    const result = await t.query(api.assets.getPage, { type: 'deck', slug });
+    const result = await assetPageAs(t, { type: 'deck', slug });
     expect(result, `Fixture deck ${slug} must exist`).not.toBeNull();
     return result!;
   };
@@ -216,6 +217,6 @@ test('decks on different presets each read their own preset in one query', async
     ['spice-deck', '/published/cardback-presets/spice/cardback.jpg?v=spice'],
     ['traitor-deck', '/published/cardback-presets/traitor/cardback.jpg?v=traitor'],
   ]);
-  const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'spice-deck' });
+  const page = await assetPageAs(t, { type: 'deck', slug: 'spice-deck' });
   expect(page?.cardbackPresets.map((preset) => preset.key)).toEqual(INITIAL_CARDBACK_PRESETS.map(({ key }) => key));
 });

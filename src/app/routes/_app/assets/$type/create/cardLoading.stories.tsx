@@ -50,7 +50,7 @@ export const CustomCardCopy = meta.story({
     const copy = await loadAssetPage('card-custom', 'battle-reference-1');
     expect(copy?.asset.id).not.toEqual(source?.asset.id);
     expect(copy?.asset.data).toEqual(source?.asset.data);
-    expect(copy?.viewerAccess.assignedGroup).toBeNull();
+    expect(copy?.assignedGroup).toBeNull();
     expect(copy?.inDecks).toEqual([]);
     expect((await loadAssetPage('card-custom', 'battle-reference'))?.asset.data).toEqual(source?.asset.data);
   },

@@ -159,11 +159,11 @@ export type AssetSubjectFacts<GroupSummary extends GroupSummaryShape = GroupSumm
 };
 
 /** The subject facts for a faction, ruleset or asset row and its live Group. One mapping, shared by the browser hooks and the tests that stand in for them. */
-export function assetSubjectFacts<GroupSummary extends GroupSummaryShape>(
-  kind: AssetAccessFacts['kind'],
+export function assetSubjectFacts<Kind extends AssetAccessFacts['kind'], GroupSummary extends GroupSummaryShape>(
+  kind: Kind,
   row: { owner_id: string; is_deleted: boolean },
   assignedGroup: GroupSummary | null
-): AssetSubjectFacts<GroupSummary> {
+): AssetSubjectFacts<GroupSummary> & { kind: Kind } {
   return { kind, ownerId: row.owner_id, available: !row.is_deleted, assignedGroup };
 }
 

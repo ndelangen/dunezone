@@ -98,7 +98,7 @@ test.each(families)('$key captures its shared style without changing authored da
   const style = { ...preset.style, head: { ...preset.style.head, influence: 0.91 } };
   await admin.mutation(api.cardFrontPresets.save, { key: preset.key, style, revision: 0 });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
-  const page = await author.query(api.assets.getPage, { type: family.type, slug: created.slug });
+  const page = await t.query(api.assets.page, { type: family.type, slug: created.slug });
   expect(page?.asset.data).toEqual(card);
   expect(page?.cardFrontPresets.find((entry) => entry.key === preset.key)).toMatchObject({ style, revision: 1 });
   const job = await t.run((ctx) =>

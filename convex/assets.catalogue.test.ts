@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vitest';
 
 import { api } from './_generated/api';
 import schema from './schema';
+import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -120,7 +121,7 @@ describe('deck cardback reference on the page', () => {
       });
     });
 
-    const wearer = await t.query(api.assets.getPage, { type: 'deck', slug: 'wearer' });
+    const wearer = await assetPageAs(t, { type: 'deck', slug: 'wearer' });
     expect(wearer?.backDeck?.slug).toBe('authored');
     expect(wearer?.resolvedBack?.mode).toBe('reference');
     const catalogue = await t.query(api.assets.cataloguePage, {});
@@ -137,7 +138,7 @@ describe('deck cardback reference on the page', () => {
     const picker = await t.query(api.assets.listByTypes, { types: ['deck'] });
     expect(picker.find((entry) => entry.slug === 'wearer')?.previewHref).toBe(target.previewHref);
 
-    const orphan = await t.query(api.assets.getPage, { type: 'deck', slug: 'orphan' });
+    const orphan = await assetPageAs(t, { type: 'deck', slug: 'orphan' });
     expect(orphan?.backDeck).toBeNull();
     expect(orphan?.resolvedBack?.mode).toBe('dangling');
     expect(orphan?.asset.previewHref).toBe('/web/no-deck-back.svg');
@@ -182,11 +183,11 @@ describe('deck membership', () => {
       return { lasgun: lasgunId, shield: shieldId, treachery: treacheryId };
     });
 
-    const held = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    const held = await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' });
     expect(held?.inDecks).toEqual([
       { id: treachery, type: 'deck', slug: 'house-treachery', name: 'House Treachery', count: 3 },
     ]);
-    const free = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'shield' });
+    const free = await assetPageAs(t, { type: 'card-treachery', slug: 'shield' });
     expect(free?.inDecks).toEqual([]);
   });
 
@@ -220,7 +221,7 @@ describe('deck membership', () => {
       return lasgunId;
     });
 
-    const page = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    const page = await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.inDecks).toEqual([]);
     const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
     expect(relations).toHaveLength(1);

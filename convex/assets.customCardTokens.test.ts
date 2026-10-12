@@ -7,6 +7,7 @@ import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCu
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import { api } from './_generated/api';
 import schema from './schema';
+import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -57,7 +58,7 @@ test('linked token layers resolve current fronts and refresh immutable card capt
     const changed = { ...tokenData, front: { ...publishingTokenFace, top: 'UPDATED TOKEN' } };
     await owner.mutation(api.assets.update, { id: token.id, data: changed });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    const page = await owner.query(api.assets.getPage, { type: 'card-custom', slug: card.slug });
+    const page = await assetPageAs(owner, { type: 'card-custom', slug: card.slug });
     expect(page!.asset.data).toEqual(cardData);
     expect(page!.cardTokens![token.id]!.face).toEqual(changed.front);
     const jobs = await t.run((ctx) =>
@@ -70,9 +71,7 @@ test('linked token layers resolve current fronts and refresh immutable card capt
     expect(jobs.find((job) => job.status === 'pending')!.asset_data.tokens[token.id].face).toEqual(changed.front);
     await owner.mutation(api.assets.softDelete, { id: token.id });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    expect(
-      (await owner.query(api.assets.getPage, { type: 'card-custom', slug: card.slug }))?.cardTokens?.[token.id]
-    ).toBeNull();
+    expect((await assetPageAs(owner, { type: 'card-custom', slug: card.slug }))?.cardTokens?.[token.id]).toBeNull();
     await owner.mutation(api.assets.update, { id: card.id, data: cardData });
     await expect(
       owner.mutation(api.assets.create, { type: 'card-custom', data: { ...cardData, name: 'New dangling card' } })
@@ -116,7 +115,7 @@ test('token layers reject non-token assets and invalid identities before saving'
       })
     ).rejects.toThrow('available token');
   }
-  expect((await owner.query(api.assets.getPage, { type: 'card-custom', slug: card.slug }))?.asset.data).toEqual(
+  expect((await assetPageAs(owner, { type: 'card-custom', slug: card.slug }))?.asset.data).toEqual(
     publishingCustomCard
   );
 });
@@ -154,7 +153,7 @@ test('oversized linked artwork reports an error while other dependent cards keep
     const changed = { ...tokenData, front: { ...publishingTokenFace, top: 'y'.repeat(270_000) } };
     await owner.mutation(api.assets.update, { id: growing.id, data: changed });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    const page = await owner.query(api.assets.getPage, { type: 'card-custom', slug: oversized.slug });
+    const page = await assetPageAs(owner, { type: 'card-custom', slug: oversized.slug });
     expect(page!.cardTokens).toEqual({});
     expect(page!.cardTokensError).toContain('too large');
     await expect(

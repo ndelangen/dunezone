@@ -8,7 +8,7 @@ import { describe, expect, test } from 'vitest';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import schema from './schema';
-import { factionPageAs } from './viewerAccess.test.fixture';
+import { factionPageAs, rulesetDetailPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-05T00:00:00.000Z';
@@ -208,9 +208,7 @@ describe('collaborative access public projections', () => {
     const member = t.withIdentity({ subject: ids.activeId });
 
     const factionPage = await factionPageAs(member, 'collaborative-faction');
-    const rulesetPage = await member.query(api.rulesets.detailPageBySlug, {
-      slug: 'collaborative-ruleset',
-    });
+    const rulesetPage = (await rulesetDetailPageAs(member, 'collaborative-ruleset'))!;
 
     expect(factionPage.viewerAccess).toMatchObject({
       kind: 'faction',
@@ -268,9 +266,7 @@ describe('collaborative access public projections', () => {
     const assetOwner = t.withIdentity({ subject: ids.assetOwnerId });
 
     const factionPage = await factionPageAs(assetOwner, 'collaborative-faction');
-    const rulesetPage = await assetOwner.query(api.rulesets.detailPageBySlug, {
-      slug: 'collaborative-ruleset',
-    });
+    const rulesetPage = (await rulesetDetailPageAs(assetOwner, 'collaborative-ruleset'))!;
     const expectedGroups = [{ id: assignmentTargets.activeGroupId, name: 'Active target', slug: 'active-target' }];
 
     expect(factionPage.assignableGroups).toEqual(expectedGroups);
@@ -401,9 +397,7 @@ describe('collaborative access public projections', () => {
     for (const actor of cases) {
       const client = actor.userId ? t.withIdentity({ subject: actor.userId }) : t;
       const faction = await factionPageAs(client, 'collaborative-faction');
-      const ruleset = await client.query(api.rulesets.getBySlug, {
-        slug: 'collaborative-ruleset',
-      });
+      const ruleset = (await rulesetDetailPageAs(client, 'collaborative-ruleset'))!;
       expect(faction.viewerAccess.viewer, actor.label).toEqual(actor.viewer);
       expect(ruleset.viewerAccess.viewer, actor.label).toEqual(actor.viewer);
       expect(faction.viewerAccess.capabilities, actor.label).toEqual(actor.faction);
@@ -420,6 +414,36 @@ describe('collaborative access public projections', () => {
       });
       expect(page).toEqual(anonymous);
     }
+  });
+
+  test('the ruleset pages are the same answer for every viewer', async () => {
+    const { t, ids } = await groupAccessFixture();
+    const anonymous = await Promise.all([
+      t.query(api.rulesets.page, { slug: 'collaborative-ruleset' }),
+      t.query(api.rulesets.detailPage, { slug: 'collaborative-ruleset' }),
+    ]);
+    for (const userId of [ids.ownerId, ids.assetOwnerId, ids.pendingId, ids.removedId]) {
+      const viewer = t.withIdentity({ subject: userId });
+      const pages = await Promise.all([
+        viewer.query(api.rulesets.page, { slug: 'collaborative-ruleset' }),
+        viewer.query(api.rulesets.detailPage, { slug: 'collaborative-ruleset' }),
+      ]);
+      expect(pages).toEqual(anonymous);
+    }
+  });
+
+  test('the deprecated per-viewer ruleset pages still answer older bundles with their capabilities', async () => {
+    const { t, ids } = await groupAccessFixture();
+    const viewer = t.withIdentity({ subject: ids.assetOwnerId });
+    const current = (await rulesetDetailPageAs(viewer, 'collaborative-ruleset'))!;
+    const bundle = await viewer.query(api.rulesets.getBySlug, { slug: 'collaborative-ruleset' });
+    const detail = await viewer.query(api.rulesets.detailPageBySlug, { slug: 'collaborative-ruleset' });
+    expect(bundle.viewerAccess).toEqual(current.viewerAccess);
+    expect(detail?.viewerAccess).toEqual(current.viewerAccess);
+    expect(detail?.assignableGroups).toEqual(current.assignableGroups);
+    const { assignedGroup: _assignedGroup, viewerAccess: _viewerAccess, ...facts } = current;
+    expect(detail).toMatchObject(facts);
+    expect(current.viewerAccess.capabilities.edit).toBe(true);
   });
 
   test('the deprecated per-viewer faction page still answers older bundles with their capabilities', async () => {
@@ -482,12 +506,12 @@ describe('collaborative access public projections', () => {
     });
 
     await expect(
-      t.withIdentity({ subject: ids.assetOwnerId }).query(api.rulesets.getBySlug, {
+      t.withIdentity({ subject: ids.assetOwnerId }).query(api.rulesets.page, {
         slug: 'collaborative-ruleset',
       })
     ).rejects.toThrow('not found');
     await expect(
-      t.withIdentity({ subject: ids.assetOwnerId }).query(api.rulesets.detailPageBySlug, {
+      t.withIdentity({ subject: ids.assetOwnerId }).query(api.rulesets.detailPage, {
         slug: 'collaborative-ruleset',
       })
     ).resolves.toBeNull();
@@ -585,9 +609,7 @@ describe('collaborative access public projections', () => {
 
     const viewer = t.withIdentity({ subject: capped.viewerId });
     const faction = await factionPageAs(viewer, 'collaborative-faction');
-    const ruleset = await viewer.query(api.rulesets.detailPageBySlug, {
-      slug: 'collaborative-ruleset',
-    });
+    const ruleset = (await rulesetDetailPageAs(viewer, 'collaborative-ruleset'))!;
     const group = await viewer.query(api.groups.detailBySlug, { slug: 'dune-designers' });
 
     expect(faction.viewerAccess).toMatchObject({
@@ -618,9 +640,7 @@ describe('collaborative access moderation commands', () => {
     await expect(assetOwner.mutation(api.factions.softDelete, { id: ids.factionId })).resolves.toBe(null);
     await expect(assetOwner.mutation(api.rulesets.softDelete, { id: ids.rulesetId })).resolves.toBe(null);
     await expect(assetOwner.mutation(api.rulesets.softDelete, { id: ids.rulesetId })).resolves.toBe(null);
-    await expect(
-      assetOwner.query(api.rulesets.detailPageBySlug, { slug: 'collaborative-ruleset' })
-    ).resolves.toBeNull();
+    await expect(assetOwner.query(api.rulesets.detailPage, { slug: 'collaborative-ruleset' })).resolves.toBeNull();
   });
 
   test('request is authoritative, idempotent, and reactivates the same removed row', async () => {
@@ -893,9 +913,7 @@ describe('collaborative access moderation commands', () => {
 
     const factionPage = await factionPageAs(assetOwner, 'collaborative-faction');
     const ruleset = await assetOwner.query(api.rulesets.get, { id: ids.rulesetId });
-    const rulesetPage = await assetOwner.query(api.rulesets.detailPageBySlug, {
-      slug: ruleset.slug,
-    });
+    const rulesetPage = await rulesetDetailPageAs(assetOwner, ruleset.slug);
     expect(factionPage.viewerAccess.assignedGroup?.id).toBe(targetGroupIds.active);
     expect(ruleset.group_id).toBe(targetGroupIds.active);
     expect(rulesetPage?.viewerAccess.assignedGroup?.id).toBe(targetGroupIds.active);
