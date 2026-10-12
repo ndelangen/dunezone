@@ -273,7 +273,10 @@ async function proveModeration(
 async function main() {
   const instance = createLocalDevelopmentInstance({});
   const environment = commandEnvironment(
-    localApplicationEnvironment(process.env),
+    localApplicationEnvironment({
+      ...process.env,
+      DATABASE_UDF_USER_TIMEOUT_SECONDS: String(process.platform === 'darwin' ? 3 : 2),
+    }),
     localDevelopmentEnvironmentOverrides(instance)
   );
   const directory = mkdtempSync(path.join(tmpdir(), 'dunezone-game-addresses-'));
