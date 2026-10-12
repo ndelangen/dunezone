@@ -2025,6 +2025,15 @@ describe('a held rotation', () => {
     expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(1));
   });
 
+  test('a look back in time shows the table without the turn this page holds on the live one', async () => {
+    const client = await connected();
+    client.rotateSelected(1, deck().id);
+    client.requestHistory(0);
+    socket().deliver({ type: 'history', step: 0, lastStep: 2, snapshot: initialSnapshot() });
+    expect(table(client).playback?.step).toBe(0);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(deck().orientation);
+  });
+
   test('a turn back to the start sends nothing, and more than half a turn goes the short way round', async () => {
     const client = await connected();
     const sent = socket().sent.length;

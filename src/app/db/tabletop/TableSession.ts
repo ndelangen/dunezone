@@ -819,7 +819,8 @@ export class TableSession {
   }
   /* A piece this page is turning shows the turn before the room has it; one the turn no longer fits shows as the room has it. */
   private withTurns(state: TableState, piece: TablePiece) {
-    const turns = this.turnsOf(piece.id);
+    /* A look back in time shows the table as it was, without the turns this page has on the live one. */
+    const turns = this.history ? 0 : this.turnsOf(piece.id);
     return turns ? (rotatedPiece(state, piece, turns) ?? piece) : piece;
   }
   private emit() {
