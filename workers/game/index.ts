@@ -51,6 +51,7 @@ import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
+import type { SetupState } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
 import type { AlertEnv } from './alerts';
@@ -1738,28 +1739,36 @@ export class GameRoom extends DurableObject<GameEnv> {
     const snapshot = this.session.currentSnapshot();
     const setup = snapshot.setup!;
     const step = setupStep(setup);
-    const seatOf = (player: ProvisionPlayer) =>
-      this.session.provisionViewer(player.userId, player.displayName).viewerSeat;
     if (step?.kind === 'prediction') {
-      /* A prediction gates on its lock, never on readiness; it is revealed at once so every seat starts play with the same public view. */
-      const predictor = everyone.find((player) => this.seatFaction(seatOf(player)) === step.factionId);
-      if (!predictor) {
-        throw new Error(`No provisioned player holds the faction of ${step.title}.`);
-      }
-      command(predictor, {
-        kind: 'prediction-lock',
-        stepId: step.id,
-        choice: { factionId: step.factionId!, turn: 1 },
-      });
-      command(predictor, { kind: 'prediction-reveal', stepId: step.id });
+      this.provisionPrediction(everyone, command, step);
     } else if (setupReadyRequired(setup)) {
       const ready = snapshot.controls?.ready ?? [];
-      for (const player of everyone) {
-        if (!ready.includes(seatOf(player))) {
-          command(player, { kind: 'ready', ready: true });
-        }
-      }
+      everyone
+        .filter((player) => !ready.includes(this.provisionSeat(player)))
+        .forEach((player) => command(player, { kind: 'ready', ready: true }));
     }
+  }
+
+  private provisionSeat(player: ProvisionPlayer) {
+    return this.session.provisionViewer(player.userId, player.displayName).viewerSeat;
+  }
+
+  /* A prediction gates on its lock, never on readiness; it is revealed at once so every seat starts play with the same public view. */
+  private provisionPrediction(
+    everyone: readonly ProvisionPlayer[],
+    command: (player: ProvisionPlayer, action: PieceAction) => void,
+    step: SetupState['steps'][number]
+  ) {
+    const predictor = everyone.find((player) => this.seatFaction(this.provisionSeat(player)) === step.factionId);
+    if (!predictor) {
+      throw new Error(`No provisioned player holds the faction of ${step.title}.`);
+    }
+    command(predictor, {
+      kind: 'prediction-lock',
+      stepId: step.id,
+      choice: { factionId: step.factionId!, turn: 1 },
+    });
+    command(predictor, { kind: 'prediction-reveal', stepId: step.id });
   }
 
   /** The catalogue this deployment reads factions, rulesets and decks from. */
