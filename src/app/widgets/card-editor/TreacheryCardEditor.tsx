@@ -1,8 +1,6 @@
-import { Alert, Divider, Group, Stack, Text } from '@mantine/core';
-import { TopicIcon } from '@ui/content/TopicIcon';
+import { Stack } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
@@ -11,13 +9,12 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
-import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
-import { decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { backgroundPresets } from '@game/data/backgrounds';
 import type { TreacheryAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
+import { cardDecalChapter } from './CardDecalChapter';
 import styles from './CardEditor.module.css';
 import { cardHeadAndSymbolChapters, initialCardHeadMemory } from './CardHeadChapters';
 import type { CardHeadMemory } from './CardHeadChapters';
@@ -64,58 +61,6 @@ type Patch = (update: Partial<TreacheryDraft>) => void;
 export type TreacheryMemory = CardHeadMemory;
 export const INITIAL_TREACHERY_MEMORY: TreacheryMemory = initialCardHeadMemory();
 type Remember = (update: Partial<TreacheryMemory>) => void;
-
-function DecalFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
-  const decals = draft.decals;
-  return (
-    <Stack gap="md">
-      <Group justify="space-between" align="center">
-        <Text fw={700} size="sm">
-          Decals
-        </Text>
-        <ListLengthActions
-          addLabel="Add decal"
-          removeLabel="Remove last decal"
-          removeDisabled={decals.length === 0}
-          onAdd={() =>
-            patch({
-              decals: [
-                ...decals,
-                {
-                  id: (decalAssetOptions[0] ?? '') as TreacheryDraft['decals'][number]['id'],
-                  muted: false,
-                  outline: true,
-                  scale: 1,
-                  offset: [0, 0],
-                },
-              ],
-            })
-          }
-          onRemove={() => patch({ decals: decals.slice(0, -1) })}
-        />
-      </Group>
-      {decals.length === 0 ? (
-        <Alert color="gray" variant="light" title="No decals">
-          Decals are optional. The card remains valid without them.
-        </Alert>
-      ) : null}
-      {decals.map((decal, index) => (
-        <Stack key={index} gap="sm">
-          {index > 0 ? <Divider /> : null}
-          <Text size="sm" fw={600}>
-            Decal {index + 1}
-          </Text>
-          <DecalControls
-            value={decal}
-            onChange={(next) => patch({ decals: decals.map((current, i) => (i === index ? next : current)) })}
-            label={`decal ${index + 1}`}
-            offsetRange={DECAL_OFFSET_RANGE}
-          />
-        </Stack>
-      ))}
-    </Stack>
-  );
-}
 
 /* The card's body: the text under the art band. */
 function BodyField({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
@@ -201,12 +146,12 @@ export function TreacheryCardEditor({
             ariaLabel="Card chapters"
             items={[
               ...cardHeadAndSymbolChapters({ draft, patch, memory, remember, nameField }),
-              {
-                value: 'decals',
-                label: 'Decals',
-                icon: <TopicIcon topic="decals" size={21} />,
-                panel: panel(<DecalFields draft={draft} patch={patch} />),
-              },
+              cardDecalChapter({
+                decals: draft.decals,
+                onChange: (decals) => patch({ decals }),
+                offsetRange: DECAL_OFFSET_RANGE,
+                defaultScale: 1,
+              }),
               {
                 value: 'body',
                 label: 'Body',

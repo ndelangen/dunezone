@@ -19,7 +19,7 @@ const meta = preview.meta({
   },
 });
 export const Head = meta.story({});
-export const Symbol = meta.story({ args: { chapter: 'icon' as const } });
+export const SymbolChapter = meta.story({ name: 'Symbol', args: { chapter: 'icon' as const } });
 export const Artwork = meta.story({ args: { chapter: 'decals' as const } });
 export const Abilities = meta.story({ args: { chapter: 'abilities' as const } });
 export const About = meta.story({ args: { chapter: 'about' as const } });

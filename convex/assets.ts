@@ -1019,15 +1019,14 @@ export const seedGF9LeaderSkills = internalMutation({
       if (installed.owner_id !== ownerId) {
         throw new ConvexError('The GF9 stock set already belongs to another administrator.');
       }
-      for (const id of [installed.deck_id, ...installed.card_ids]) {
-        const asset = await ctx.db.get('assets', id);
-        if (!asset || asset.is_deleted || asset.owner_id !== ownerId) {
-          throw new ConvexError('An installed GF9 stock asset was deleted or transferred.');
-        }
+      const assets = await Promise.all(
+        [installed.deck_id, ...installed.card_ids].map((id) => ctx.db.get('assets', id))
+      );
+      if (assets.some((asset) => !asset || asset.is_deleted || asset.owner_id !== ownerId)) {
+        throw new ConvexError('An installed GF9 stock asset was deleted or transferred.');
       }
       return { deckId: installed.deck_id, cardIds: installed.card_ids, created: 0 };
     }
-    let created = 0;
     async function install(type: string, data: unknown) {
       const parsed = parseAssetDataForWrite(type, data);
       const slug = slugify(parsed.name);
@@ -1050,36 +1049,27 @@ export const seedGF9LeaderSkills = internalMutation({
         group_id: null,
       });
       await enqueueAssetPublication(ctx, { _id: id, type, slug, data: parsed.data });
-      created += 1;
       return id;
     }
-    const cardIds: Id<'assets'>[] = [];
-    for (const card of GF9_LEADER_SKILLS) {
-      cardIds.push(await install('card-leaderability', card));
-    }
+    const cardIds = await Promise.all(GF9_LEADER_SKILLS.map((card) => install('card-leaderability', card)));
     const deckId = await install('deck', GF9_LEADER_SKILL_DECK);
-    for (const cardId of cardIds) {
-      const relation = await ctx.db
-        .query('asset_relations')
-        .withIndex('by_from_to_kind', (q) =>
-          q.eq('from_asset_id', deckId).eq('to_asset_id', cardId).eq('kind', 'deck-card')
-        )
-        .unique();
-      if (!relation) {
-        await ctx.db.insert('asset_relations', {
+    /* Both ends are newly inserted in this transaction, so no relation can already exist. */
+    await Promise.all(
+      cardIds.map((cardId) =>
+        ctx.db.insert('asset_relations', {
           from_asset_id: deckId,
           to_asset_id: cardId,
           kind: 'deck-card',
           count: 1,
-        });
-      }
-    }
+        })
+      )
+    );
     await ctx.db.insert('leader_skill_stock_sets', {
       key: 'gf9-leader-skills',
       owner_id: ownerId,
       deck_id: deckId,
       card_ids: cardIds,
     });
-    return { deckId, cardIds, created };
+    return { deckId, cardIds, created: cardIds.length + 1 };
   },
 });
