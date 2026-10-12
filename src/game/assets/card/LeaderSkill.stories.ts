@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
 import { expect, waitFor } from 'storybook/test';
 
+import headStyles from './CardHead.module.css';
 import { LeaderSkillCard } from './LeaderSkill';
 
 const meta = preview.meta({
@@ -11,6 +12,12 @@ const meta = preview.meta({
 });
 async function checkFit(canvasElement: HTMLElement) {
   await document.fonts.ready;
+  const title = canvasElement.querySelector<HTMLElement>(`.${headStyles.title}`)!;
+  const titleText = title.firstElementChild!;
+  const titleRange = document.createRange();
+  titleRange.selectNodeContents(titleText);
+  await expect(titleRange.getClientRects()).toHaveLength(1);
+  await expect(titleText.getBoundingClientRect().width).toBeLessThanOrEqual(title.clientWidth);
   const decals = Array.from(canvasElement.querySelectorAll<SVGUseElement>('use'));
   await waitFor(() => expect(decals[0]!.getBoundingClientRect().height).toBeGreaterThan(0));
   const window = decals[0]!.ownerSVGElement!.parentElement!.getBoundingClientRect();

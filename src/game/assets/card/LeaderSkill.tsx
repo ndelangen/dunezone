@@ -48,7 +48,7 @@ export function LeaderSkillCard({
     <div className={styles.card}>
       <CardHeadBackground head={head.head} />
       <div className={styles.frame} />
-      <CardHeadContents {...head} wrapTitle wrappedTitleSize={60} />
+      <CardHeadContents {...head} />
       <div ref={body} className={styles.body} style={{ fontSize: textSize }}>
         <CardText value={generalText} className={styles.general} />
         <div className={styles.art}>
