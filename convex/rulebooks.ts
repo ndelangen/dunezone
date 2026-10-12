@@ -1,5 +1,6 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 import { ConvexError, v } from 'convex/values';
+import type { ObjectType } from 'convex/values';
 
 import {
   canonicalRulebookCoverControlValues,
@@ -716,137 +717,96 @@ export const readerPage = publicQuery({
   },
 });
 
+const readerDeliveryArgs = {
+  ruleset_slug: v.string(),
+  rulebook_slug: v.string(),
+  edition_number: v.optional(v.number()),
+  render_contents: v.optional(v.boolean()),
+};
+
+const readerDeliveryValidator = v.object({
+  ruleset: v.object({ name: v.string(), slug: v.string() }),
+  rulebook: rulebookMetadataValidator,
+  access: readerAccessValidator,
+  edition: readerEditionValidator.omit('settings', 'contents'),
+  editions: v.array(readerEditionOptionValidator),
+  body: v.union(
+    v.object({ kind: v.literal('html'), href: v.string() }),
+    v.object({
+      kind: v.literal('render'),
+      contents: zodToConvex(rulebookEditionContentsV1Schema),
+      settings: rulebookSettingsValidator,
+      assetsById: resolvedAssetsValidator,
+      factionsById: resolvedFactionsValidator,
+    })
+  ),
+});
+
+/** The reader's page for one Edition, with the loaded ruleset so the deprecated per-viewer query can add the viewer's links. */
+async function loadReaderDelivery(ctx: QueryCtx, args: ObjectType<typeof readerDeliveryArgs>) {
+  const found = await selectedReaderEdition(ctx, args);
+  if (!found) {
+    return null;
+  }
+  const { ruleset, rulebook, selected } = found;
+  const summary = await rulebookEditionSummary(ctx, selected);
+  const editions = await ctx.db
+    .query('rulebook_editions')
+    .withIndex('by_rulebook_and_edition_number', (q) => q.eq('rulebook_id', rulebook._id))
+    .order('desc')
+    .collect();
+  const image = await rulebookFirstPageImage(ctx, selected._id);
+  const metadata = {
+    ruleset: { name: ruleset.name, slug: ruleset.slug },
+    rulebook: metadataFrom(rulebook),
+    edition: { ...summary, first_page_image_url: image },
+    editions: editions.map(({ edition_number, created_at }) => ({ edition_number, created_at })),
+  };
+  if (!args.render_contents && summary.html.status === 'ready' && summary.html.href) {
+    return { ruleset, page: { ...metadata, body: { kind: 'html' as const, href: summary.html.href } } };
+  }
+  const contents = parseEditionContents(await contentsForRulebookEdition(ctx, selected));
+  return {
+    ruleset,
+    page: {
+      ...metadata,
+      body: {
+        kind: 'render' as const,
+        contents: readerContents(contents),
+        settings: selected.settings ?? DEFAULT_RULEBOOK_SETTINGS,
+        ...(await resolveRulebookReferences(ctx, contents, { factionTokenImages: true })),
+      },
+    },
+  };
+}
+
 /**
  * The reader's page, one cached answer for every viewer: ready HTML readers load metadata only, unfinished artifacts retain the live renderer.
  * `access` carries the ruleset's owner and live Group, which the browser combines with the viewer for the edit and delete links.
  */
 export const readerDelivery = publicQuery({
-  args: {
-    ruleset_slug: v.string(),
-    rulebook_slug: v.string(),
-    edition_number: v.optional(v.number()),
-    render_contents: v.optional(v.boolean()),
-  },
-  returns: v.union(
-    v.null(),
-    v.object({
-      ruleset: v.object({ name: v.string(), slug: v.string() }),
-      rulebook: rulebookMetadataValidator,
-      access: readerAccessValidator,
-      edition: readerEditionValidator.omit('settings', 'contents'),
-      editions: v.array(readerEditionOptionValidator),
-      body: v.union(
-        v.object({ kind: v.literal('html'), href: v.string() }),
-        v.object({
-          kind: v.literal('render'),
-          contents: zodToConvex(rulebookEditionContentsV1Schema),
-          settings: rulebookSettingsValidator,
-          assetsById: resolvedAssetsValidator,
-          factionsById: resolvedFactionsValidator,
-        })
-      ),
-    })
-  ),
+  args: readerDeliveryArgs,
+  returns: v.union(v.null(), readerDeliveryValidator),
   handler: async (ctx, args) => {
-    const found = await selectedReaderEdition(ctx, args);
-    if (!found) {
-      return null;
-    }
-    const { ruleset, rulebook, selected } = found;
-    const summary = await rulebookEditionSummary(ctx, selected);
-    const editions = await ctx.db
-      .query('rulebook_editions')
-      .withIndex('by_rulebook_and_edition_number', (q) => q.eq('rulebook_id', rulebook._id))
-      .order('desc')
-      .collect();
-    const image = await rulebookFirstPageImage(ctx, selected._id);
-    const metadata = {
-      ruleset: { name: ruleset.name, slug: ruleset.slug },
-      rulebook: metadataFrom(rulebook),
-      access: await readerAccess(ctx, ruleset),
-      edition: { ...summary, first_page_image_url: image },
-      editions: editions.map(({ edition_number, created_at }) => ({ edition_number, created_at })),
-    };
-    if (!args.render_contents && summary.html.status === 'ready' && summary.html.href) {
-      return { ...metadata, body: { kind: 'html' as const, href: summary.html.href } };
-    }
-    const contents = parseEditionContents(await contentsForRulebookEdition(ctx, selected));
-    return {
-      ...metadata,
-      body: {
-        kind: 'render' as const,
-        contents: readerContents(contents),
-        settings: selected.settings ?? DEFAULT_RULEBOOK_SETTINGS,
-        ...(await resolveRulebookReferences(ctx, contents, { factionTokenImages: true })),
-      },
-    };
+    const found = await loadReaderDelivery(ctx, args);
+    return found && { ...found.page, access: await readerAccess(ctx, found.ruleset) };
   },
 });
 
-/** Deprecated by `readerDelivery`: kept unchanged for bundles deployed before it, then deleted (see AGENTS.md). */
+/** Deprecated by `readerDelivery`: kept unchanged on the wire for bundles deployed before it, then deleted (see AGENTS.md). */
 export const readerDeliveryPage = viewerQuery({
-  args: {
-    ruleset_slug: v.string(),
-    rulebook_slug: v.string(),
-    edition_number: v.optional(v.number()),
-    render_contents: v.optional(v.boolean()),
-  },
+  args: readerDeliveryArgs,
   returns: v.union(
     v.null(),
-    v.object({
-      ruleset: v.object({ name: v.string(), slug: v.string() }),
-      rulebook: rulebookMetadataValidator,
-      canEdit: v.boolean(),
-      canDelete: v.boolean(),
-      edition: readerEditionValidator.omit('settings', 'contents'),
-      editions: v.array(readerEditionOptionValidator),
-      body: v.union(
-        v.object({ kind: v.literal('html'), href: v.string() }),
-        v.object({
-          kind: v.literal('render'),
-          contents: zodToConvex(rulebookEditionContentsV1Schema),
-          settings: rulebookSettingsValidator,
-          assetsById: resolvedAssetsValidator,
-          factionsById: resolvedFactionsValidator,
-        })
-      ),
-    })
+    readerDeliveryValidator.omit('access').extend({ canEdit: v.boolean(), canDelete: v.boolean() })
   ),
   handler: async (ctx, args) => {
-    const found = await selectedReaderEdition(ctx, args);
+    const found = await loadReaderDelivery(ctx, args);
     if (!found) {
       return null;
     }
-    const { ruleset, rulebook, selected } = found;
-    const summary = await rulebookEditionSummary(ctx, selected);
-    const { viewerId, viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
-    const editions = await ctx.db
-      .query('rulebook_editions')
-      .withIndex('by_rulebook_and_edition_number', (q) => q.eq('rulebook_id', rulebook._id))
-      .order('desc')
-      .collect();
-    const image = await rulebookFirstPageImage(ctx, selected._id);
-    const metadata = {
-      ruleset: { name: ruleset.name, slug: ruleset.slug },
-      rulebook: metadataFrom(rulebook),
-      canEdit: viewerAccess.capabilities.edit,
-      canDelete: viewerId === ruleset.owner_id,
-      edition: { ...summary, first_page_image_url: image },
-      editions: editions.map(({ edition_number, created_at }) => ({ edition_number, created_at })),
-    };
-    if (!args.render_contents && summary.html.status === 'ready' && summary.html.href) {
-      return { ...metadata, body: { kind: 'html' as const, href: summary.html.href } };
-    }
-    const contents = parseEditionContents(await contentsForRulebookEdition(ctx, selected));
-    return {
-      ...metadata,
-      body: {
-        kind: 'render' as const,
-        contents: readerContents(contents),
-        settings: selected.settings ?? DEFAULT_RULEBOOK_SETTINGS,
-        ...(await resolveRulebookReferences(ctx, contents, { factionTokenImages: true })),
-      },
-    };
+    const { viewerId, viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, found.ruleset);
+    return { ...found.page, canEdit: viewerAccess.capabilities.edit, canDelete: viewerId === found.ruleset.owner_id };
   },
 });
 

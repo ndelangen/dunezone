@@ -167,18 +167,14 @@ export const catalogueFactionValidator = schema.tables.factions.validator
     rulesets: v.array(rulesetSummaryValidator),
   });
 
-/** Deprecated with `rulesets.getBySlug`: the ruleset bundle with the viewer's access. Remove with it. */
-export const rulesetPublicBundleValidator = v.object({
-  ruleset: rulesetValidator,
-  factions: v.array(catalogueFactionValidator),
-  viewerAccess: rulesetViewerAccessValidator,
-});
-
 /** The ruleset and its factions, the same for every viewer. */
 export const rulesetPageValidator = v.object({
   ruleset: rulesetValidator,
   factions: v.array(catalogueFactionValidator),
 });
+
+/** Deprecated with `rulesets.getBySlug`: the ruleset bundle with the viewer's access. Remove with it. */
+export const rulesetPublicBundleValidator = rulesetPageValidator.extend({ viewerAccess: rulesetViewerAccessValidator });
 
 const faqAnswerValidator = docValidator('faq_answers');
 

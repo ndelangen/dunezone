@@ -385,53 +385,10 @@ export const getPage = viewerQuery({
   args: { type: v.string(), slug: v.string(), embeddedTokenIds: v.optional(v.array(v.id('assets'))) },
   returns: v.union(
     v.null(),
-    v.object({
-      asset: assetListEntryValidator,
-      cardTokens: v.optional(zodToConvex(CustomCardTokens)),
-      cardTokensError: v.optional(v.union(v.string(), v.null())),
+    assetPageValidator.omit('ownerId', 'assignedGroup', 'convertibleToCustom').extend({
       canConvertToCustom: v.boolean(),
-      cardbackPresets: v.array(zodToConvex(cardbackPresetSchema)),
       viewerAccess: assetViewerAccessValidator,
       assignableGroups: v.array(assignedGroupSummaryValidator),
-      /** The token serving as this one's backside, for the types that have one. Null covers both "custom back" and "none". */
-      backToken: v.union(assetListEntryValidator, v.null()),
-      /** The deck whose authored cardback this one wears, the deck analog of `backToken`. Null covers authored, transitional bare, and dangling alike. */
-      backDeck: v.union(assetListEntryValidator, v.null()),
-      /**
-       * What a container holds, with counts.
-       * Empty for every type that holds nothing.
-       * One field rather than one per container kind: a deck's cards and a bundle's tokens are the same relation read with a different `kind`, and the page's per-type body already knows which it is looking at.
-       */
-      members: v.array(v.object({ member: assetListEntryValidator, count: v.number() })),
-      membersTruncated: v.boolean(),
-      /** The decks holding this asset. Empty for a deck, which nothing may hold. */
-      inDecks: v.array(deckReferenceValidator),
-      /**
-       * The bundles holding this asset, the same shape and the same question one container kind over.
-       * Empty for every type a bundle cannot hold, which is everything but tokens.
-       * Its own field rather than merged into `inDecks`, because "in no deck" and "in no bundle" are different sentences and a page that ran them together could not say either.
-       */
-      inBundles: v.array(deckReferenceValidator),
-      /**
-       * The rulesets that slot this asset, and which slot each one puts it in.
-       * Read-only here: slots are managed on the ruleset edit page, per «Ruleset deck-slot residual semantics».
-       * Empty for every type a ruleset cannot slot, which is everything but decks and bundles.
-       */
-      linkingRulesets: v.array(rulesetSlotReferenceValidator),
-      /** Null for a type that publishes nothing, which today is a bundle and every planned type. */
-      assetPublishing: v.union(assetPublishingValidator, v.null()),
-      /**
-       * The authored back's own publication, which is a second artifact under a face-qualified id rather than a second field on the first.
-       * Null when the type has no second face, or when the back is a reference and therefore publishes nothing of its own.
-       * A sidecar rather than a widening of `assetPublishingValidator`, because that validator also types the faction page's publication, which is a single one and gains nothing from learning about faces.
-       */
-      backPublishing: v.union(assetPublishingValidator, v.null()),
-      /**
-       * The one server-side answer to "what is this asset's back?" («What does each back mode publish»): the mode the resolution took and the URL a consumer fetches for it, or null for a type with no back.
-       * Additive this release;
-       * the pages that draw from it land with the editor slice.
-       */
-      resolvedBack: v.union(v.object({ mode: v.string(), href: v.union(v.string(), v.null()) }), v.null()),
     })
   ),
   handler: async (ctx, args) => {
