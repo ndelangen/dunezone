@@ -158,7 +158,7 @@ export const GF9_NEXUS_CARDS: readonly z.infer<typeof NexusCardAsset>[] = effect
 export const GF9_NEXUS_DECK: z.infer<typeof DeckAsset> = {
   name: 'GF9 Nexus Deck',
   about:
-    'The twelve Nexus cards from GF9’s Ecaz & Moritani expansion, one of each faction. Rules follow the printed deck. Card artwork is recreated for Dune Zone.',
+    "The twelve Nexus cards from GF9's Ecaz & Moritani expansion, one of each faction. Rules follow the printed deck. Card artwork is recreated for Dune Zone.",
   cardback: {
     mode: 'custom',
     name: 'Nexus',
