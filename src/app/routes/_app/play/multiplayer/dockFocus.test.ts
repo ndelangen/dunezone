@@ -68,6 +68,17 @@ describe('the dock follows the live table', () => {
     expect(tokens[2]).toBe(tokens[0]);
   });
 
+  test('a live game that moved on during a replay opens nothing on return, and the next change does', () => {
+    const tokens = play(initialDockFocus('play:1:mentat', true), [
+      { phase: 'play:1:storm' },
+      { phase: 'play:1:storm', playback: true },
+      { phase: 'play:1:bidding' },
+      { phase: 'play:1:battle', events: [{ key: 'battle', token: 'battle-2' }] },
+    ]);
+    expect(tokens[2]).toBe(tokens[0]);
+    expect(tokens[3]).toMatch(/^battle-2#/);
+  });
+
   test('an event wins over the phase change it arrives with, and goes again only when it comes back', () => {
     const battle = { key: 'battle', token: 'battle-7' };
     const tokens = play(initialDockFocus('play:1:blow', true), [

@@ -7,7 +7,7 @@ import { RadialMenu } from './RadialMenu';
 
 afterEach(cleanup);
 
-function deckMenu(onClose = vi.fn()) {
+function deckMenu(onClose = vi.fn(), recipients = ['Atreides', 'Fremen']) {
   render(
     <RadialMenu
       name="Deck actions"
@@ -21,7 +21,7 @@ function deckMenu(onClose = vi.fn()) {
           key: 'deal',
           label: 'Deal a card',
           icon: 'deal',
-          targets: ['Atreides', 'Fremen'].map((name) => ({
+          targets: recipients.map((name) => ({
             key: name,
             label: `Deal 1 to ${name}`,
             name,
@@ -80,6 +80,26 @@ test('a window narrower than the ring centres it rather than push it off one sid
     const menu = deckMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Deal a card' }));
     expect(menu.style.left).toBe('160px');
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test('a caption with no room beside the ring stays inside a short window', () => {
+  vi.stubGlobal('innerWidth', 568);
+  vi.stubGlobal('innerHeight', 320);
+  try {
+    deckMenu(
+      vi.fn(),
+      Array.from({ length: 18 }, (_, index) => `Faction ${index + 1}`)
+    );
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Deal a card' }));
+    /* Stepping in captions the ring with the action's label. */
+    const caption = [...document.querySelectorAll<HTMLElement>('[role="menu"] span')].find(
+      (element) => element.style.top !== ''
+    );
+    expect(caption?.textContent).toContain('Deal a card');
+    expect(160 + Number.parseFloat(caption!.style.top) + 64).toBeLessThanOrEqual(320);
   } finally {
     vi.unstubAllGlobals();
   }

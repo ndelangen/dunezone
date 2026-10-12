@@ -161,6 +161,8 @@ function HeldItem({
 
 /* Room kept for the caption beside the ring before it moves to the other side. */
 const CAPTION_ROOM = 240;
+/* Room for a caption wrapped onto two lines. */
+const CAPTION_HEIGHT = 64;
 
 /*
  * The caption reads to the right of the ring, or to its left where the right edge is too close.
@@ -173,9 +175,11 @@ function captionPlacement(centre: { left: number; top: number }, offset: number)
   if (centre.left - offset - CAPTION_ROOM >= 0) {
     return { left: -offset, translate: '-100% -50%' };
   }
-  return centre.top > window.innerHeight / 2
-    ? { top: -offset, translate: '-50% -100%' }
-    : { top: offset, translate: '-50% 0' };
+  /* The roomier side, pulled in over the ring's edge when a short window has no room beyond it. */
+  const below = window.innerHeight - centre.top;
+  return centre.top > below
+    ? { top: -Math.min(offset, centre.top - CAPTION_HEIGHT), translate: '-50% -100%' }
+    : { top: Math.min(offset, below - CAPTION_HEIGHT), translate: '-50% 0' };
 }
 
 /* Keeps a value between two bounds; when they cross, the lower bound wins. */
