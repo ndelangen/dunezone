@@ -7,11 +7,11 @@ import type { z } from 'zod';
 
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
-import { assetOptionToPreviewSrc, decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 type CardbackData = z.infer<typeof CardBack>;
-const emblemOptions = stockAssetOptions(decalAssetOptions);
+const emblemOptions = stockAssetOptions(vectorDecalAssetOptions);
 const BACK_PRESETS = [
   { key: 'weapon', label: 'Weapon', background: backgroundPresets.weapon },
   { key: 'defense', label: 'Defense', background: backgroundPresets.defense },

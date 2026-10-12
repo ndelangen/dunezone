@@ -208,7 +208,9 @@ export const TokenAsset = z.strictObject({
 });
 
 export const CardBack = z.strictObject({
-  image: ALL,
+  image: ALL.refine((image) => image.startsWith('/vector/') && image.endsWith('.svg'), {
+    message: 'Choose a vector emblem.',
+  }),
   imageOffset: OFFSET,
   imageScale: z.number().min(0).max(2),
   background: Background,
