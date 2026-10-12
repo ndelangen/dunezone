@@ -2,7 +2,7 @@ import type { TablePiece, Vector3Tuple } from './model';
 import { TABLE_PHASES } from './phases';
 import { GameRejection } from './rejection';
 import { SPICE_FOOTPRINT_RADIUS } from './spice';
-import { restingPositionAt } from './tableGeometry';
+import { planarDistance, restingPositionAt } from './tableGeometry';
 import { trackerArcSlots } from './tableTrackers';
 
 export function spiceBankSlot() {
@@ -11,7 +11,7 @@ export function spiceBankSlot() {
 
 export function isSpiceBankPosition(position: Vector3Tuple): boolean {
   const slot = spiceBankSlot();
-  return Math.hypot(position[0] - slot.position[0], position[2] - slot.position[2]) <= slot.radius;
+  return planarDistance(position, slot.position) <= slot.radius;
 }
 
 export function createSpiceStack(eventNumber: number, count: number): TablePiece {

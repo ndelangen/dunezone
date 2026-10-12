@@ -66,6 +66,23 @@ export function tokenBoxRatio(piece: Pick<TablePiece, 'items'>): number | null {
   return type === 'token-plate' ? 1 : type === 'token-enhance' ? 372 / 600 : null;
 }
 
+/** How far apart two points lie across the table, whatever their heights. */
+export function planarDistance(a: Readonly<Vector3Tuple>, b: Readonly<Vector3Tuple>): number {
+  return Math.hypot(a[0] - b[0], a[2] - b[2]);
+}
+
+/** The candidate `distanceOf` puts nearest, the first of any tie; a candidate it gives null is out of reach. */
+export function nearestBy<T>(candidates: Iterable<T>, distanceOf: (candidate: T) => number | null): T | null {
+  let nearest: { candidate: T; distance: number } | null = null;
+  for (const candidate of candidates) {
+    const distance = distanceOf(candidate);
+    if (distance !== null && (!nearest || distance < nearest.distance)) {
+      nearest = { candidate, distance };
+    }
+  }
+  return nearest?.candidate ?? null;
+}
+
 export function surfaceHeightAt(position: Vector3Tuple): number {
   const radius = Math.hypot(position[0], position[2]);
   if (radius <= BOARD_RADIUS) {

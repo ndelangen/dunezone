@@ -59,31 +59,26 @@ export function factionTitleText(title: FactionTitle): string {
   return tieBreak ? `${title.name} (${tieBreak})` : title.name;
 }
 
-/** Every seated faction's label by its id, told apart by its player only where two seated factions share a name. */
-export function rosterFactionLabels(
-  roster: TableRoster | undefined,
-  holders: readonly { seat: string; name: string }[]
-): Readonly<Record<string, string>> {
-  return Object.fromEntries(
-    [...rosterFactionTitles(roster, holders)].map(([id, title]) => [id, factionTitleText(title)])
-  );
-}
-
 /** The part of a snapshot its faction labels read: the roster, and who holds each seat. */
 type LabelledSnapshot = {
   roster?: TableRoster;
   controls?: { players: readonly { seat: string; name: string }[] };
 };
 
-/** The labels a snapshot shows, by who holds each seat as its controls say now. */
+/** A snapshot's faction titles, by who holds each seat as its controls say now. */
+function snapshotFactionTitles(snapshot: LabelledSnapshot) {
+  return [...rosterFactionTitles(snapshot.roster, snapshot.controls?.players ?? [])];
+}
+
+/** Every seated faction's label by its id, told apart by its player only where two seated factions share a name. */
 export function snapshotFactionLabels(snapshot: LabelledSnapshot): Readonly<Record<string, string>> {
-  return rosterFactionLabels(snapshot.roster, snapshot.controls?.players ?? []);
+  return Object.fromEntries(snapshotFactionTitles(snapshot).map(([id, title]) => [id, factionTitleText(title)]));
 }
 
 /** Only the tie-breakers a snapshot shows, by faction id, for a place that already names the faction. */
 export function snapshotFactionTieBreaks(snapshot: LabelledSnapshot): Readonly<Partial<Record<string, string>>> {
   return Object.fromEntries(
-    [...rosterFactionTitles(snapshot.roster, snapshot.controls?.players ?? [])].flatMap(([id, title]) => {
+    snapshotFactionTitles(snapshot).flatMap(([id, title]) => {
       const tieBreak = factionTieBreakText(title);
       return tieBreak ? [[id, tieBreak]] : [];
     })

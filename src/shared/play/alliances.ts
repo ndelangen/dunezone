@@ -124,7 +124,7 @@ function offer(
   if (waitingOffer(state, { from: to, to: factionId })) {
     return refuse('That faction has offered you an alliance. Accept or decline it instead.');
   }
-  if (state.offers.some((entry) => entry.from === factionId && entry.to === to)) {
+  if (waitingOffer(state, { from: factionId, to })) {
     return state;
   }
   return { ...state, offers: [...state.offers, { from: factionId, to, at: now, id: revision }] };

@@ -4,7 +4,8 @@ import { isSpicePiece } from './spice';
 import { isSpiceBankPosition } from './spiceBank';
 import { moveStormCounterclockwise } from './stormSector';
 import { placementAnchorAtPosition } from './tableFurnitureLayout';
-import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
+import type { PlacementAnchor } from './tableFurnitureLayout';
+import { nearestBy, planarDistance, restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import {
   clampPositionToTable,
   isOverlapFreePosition,
@@ -55,18 +56,37 @@ export function labelForCount(
     return 'Spice';
   }
   if (piece.kind === 'card') {
-    const noun = count === 1 ? 'card' : held ? 'cards' : 'deck';
-    const name = cardStackName(piece);
-    return name ? `${name} ${noun}` : capitalized(noun);
+    return cardStackLabel(piece, count, held);
   }
   if (piece.kind === 'force') {
-    const owner = piece.owner === 'shared' ? 'Shared' : factionNames[piece.owner];
-    const [unit, units] = isTroopStack(piece) ? ['troop', 'troops'] : ['token', 'tokens'];
-    /* Every faction that owns a piece has a seat, so a missing name reads as plain troops or tokens rather than an id. */
-    const [one, many] = owner ? [`${owner} ${unit}`, `${owner} ${units}`] : [capitalized(unit), capitalized(units)];
-    return count === 1 ? one : many;
+    return forceStackLabel(piece, count, factionNames);
   }
   return piece.label;
+}
+
+function cardStackLabel(piece: TablePiece, count: number, held: boolean): string {
+  const noun = count === 1 ? 'card' : held ? 'cards' : 'deck';
+  const name = cardStackName(piece);
+  return name ? `${name} ${noun}` : capitalized(noun);
+}
+
+function forceStackLabel(piece: TablePiece, count: number, factionNames: TableState['factionNames']): string {
+  const owner = piece.owner === 'shared' ? 'Shared' : factionNames[piece.owner];
+  const [unit, units] = pieceUnits(piece);
+  /* Every faction that owns a piece has a seat, so a missing name reads as plain troops or tokens rather than an id. */
+  const [one, many] = owner ? [`${owner} ${unit}`, `${owner} ${units}`] : [capitalized(unit), capitalized(units)];
+  return count === 1 ? one : many;
+}
+
+/** What one and several of a stack's units are called in a table event: cards, spice, troops or tokens. */
+export function pieceUnits(piece: TablePiece): readonly [one: string, many: string] {
+  if (piece.kind === 'card') {
+    return ['card', 'cards'];
+  }
+  if (isSpicePiece(piece)) {
+    return ['spice', 'spice'];
+  }
+  return isTroopStack(piece) ? ['troop', 'troops'] : ['token', 'tokens'];
 }
 
 function capitalized(word: string): string {
@@ -152,6 +172,15 @@ function pieceAsPickedUp(state: TableState, draft: DraftMove): TablePiece | null
       ? { ...held, items: held.items.map((item) => ({ ...item, faceUp: false })) }
       : held;
   }
+  return withdrawalsAsPickedUp(state, draft, canonicalHeld);
+}
+
+/* A carry that took items off stacks holds them on top of whatever it already held, dressed as its source. */
+function withdrawalsAsPickedUp(
+  state: TableState,
+  draft: DraftMove,
+  canonicalHeld: TablePiece | undefined
+): TablePiece | null {
   const source = state.pieces.find((piece) => piece.id === draft.sourcePieceId);
   if (!source) {
     return null;
@@ -188,12 +217,21 @@ function remainingRenderedPiece(
   if (piece.id === draft.pieceId) {
     return [heldPiece];
   }
+  const remaining = pieceWithoutWithdrawals(state, piece, draft);
+  if (remaining.length) {
+    return remaining;
+  }
+  return withdrawnIdsFor(draft, piece.id).size > 0 ? [{ ...piece, items: [] }] : [];
+}
+
+/** A piece with the draft's withdrawals taken off, renamed only if it lost items; nothing once it has none left. */
+function pieceWithoutWithdrawals(state: TableState, piece: TablePiece, draft: DraftMove): TablePiece[] {
   const withdrawn = withdrawnIdsFor(draft, piece.id).size > 0;
   const items = remainingItemsFor(piece, draft);
-  if (items.length) {
-    return [withdrawn ? { ...piece, label: labelForCount(piece, items.length, state.factionNames), items } : piece];
+  if (!items.length) {
+    return [];
   }
-  return withdrawn ? [{ ...piece, items: [] }] : [];
+  return [withdrawn ? { ...piece, label: labelForCount(piece, items.length, state.factionNames), items } : piece];
 }
 
 /* A whole piece in hand shows each flip made while it is held. */
@@ -259,8 +297,7 @@ function stackCandidateIsNear(
     return true;
   }
   const nearbyRange = source.kind === 'card' ? 1.3 : 0.575;
-  const distance = Math.hypot(position[0] - candidate.position[0], position[2] - candidate.position[2]);
-  return includeNearby && distance <= nearbyRange;
+  return includeNearby && planarDistance(position, candidate.position) <= nearbyRange;
 }
 
 function availableStackCandidates(state: TableState, source: TablePiece, draft: DraftMove | null): TablePiece[] {
@@ -278,17 +315,11 @@ export function compatibleStackTarget(
   position: Vector3Tuple,
   { draft = null, includeNearby = false }: StackTargetOptions = {}
 ): TablePiece | null {
-  let closest: { piece: TablePiece; distance: number } | null = null;
-  for (const candidate of availableStackCandidates(state, source, draft)) {
-    const distance = Math.hypot(position[0] - candidate.position[0], position[2] - candidate.position[2]);
-    if (!stackCandidateIsNear(source, position, candidate, includeNearby)) {
-      continue;
-    }
-    if (!closest || distance < closest.distance) {
-      closest = { piece: candidate, distance };
-    }
-  }
-  return closest?.piece ?? null;
+  return nearestBy(availableStackCandidates(state, source, draft), (candidate) =>
+    stackCandidateIsNear(source, position, candidate, includeNearby)
+      ? planarDistance(position, candidate.position)
+      : null
+  );
 }
 
 function placementObstaclesFor(state: TableState, draft: DraftMove): TablePiece[] {
@@ -297,24 +328,21 @@ function placementObstaclesFor(state: TableState, draft: DraftMove): TablePiece[
   );
 }
 
+/** The draft as a plain move to a position, landing in a zone or none, onto no stack. */
+function moveDraftTo(draft: DraftMove, position: Vector3Tuple, targetZoneId: string | null): DraftMove {
+  return { ...draft, operation: 'move', position, targetZoneId, targetPieceId: null };
+}
+
 export function projectCarryAtPosition(state: TableState, draft: DraftMove, position: Vector3Tuple): DraftMove | null {
   const piece = heldPieceFor(state, draft);
   if (!piece) {
     return null;
   }
   if (isSpicePiece(piece) && isSpiceBankPosition(position)) {
-    return {
-      ...draft,
-      operation: 'move',
-      position: [...position],
-      targetZoneId: null,
-      targetPieceId: null,
-    };
+    return moveDraftTo(draft, [...position], null);
   }
   const placementAnchor = placementAnchorAtPosition(piece, position);
-  const projectedPiece = placementAnchor ? { ...piece, orientation: placementAnchor.orientation } : piece;
-  const targetPosition = placementAnchor?.position ?? position;
-  const targetPiece = compatibleStackTarget(state, projectedPiece, targetPosition, { draft });
+  const targetPiece = anchoredStackTarget(state, draft, piece, position, placementAnchor);
   if (targetPiece) {
     return {
       ...draft,
@@ -325,22 +353,22 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
     };
   }
   if (placementAnchor) {
-    return {
-      ...draft,
-      operation: 'move',
-      position: [placementAnchor.position[0], position[1], placementAnchor.position[2]],
-      targetZoneId: null,
-      targetPieceId: null,
-    };
+    return moveDraftTo(draft, [placementAnchor.position[0], position[1], placementAnchor.position[2]], null);
   }
-  const targetZoneId = nearestZone(position)?.id ?? null;
-  return {
-    ...draft,
-    operation: 'move',
-    position: [...position],
-    targetZoneId,
-    targetPieceId: null,
-  };
+  return moveDraftTo(draft, [...position], nearestZone(position)?.id ?? null);
+}
+
+/* The stack a held piece would join at `position`, judged in the anchor's pose and spot when it falls in one. */
+function anchoredStackTarget(
+  state: TableState,
+  draft: DraftMove,
+  piece: TablePiece,
+  position: Vector3Tuple,
+  placementAnchor: PlacementAnchor | null
+): TablePiece | null {
+  const projectedPiece = placementAnchor ? { ...piece, orientation: placementAnchor.orientation } : piece;
+  const targetPosition = placementAnchor?.position ?? position;
+  return compatibleStackTarget(state, projectedPiece, targetPosition, { draft });
 }
 
 function settleMoveAtPosition(
@@ -359,14 +387,7 @@ function settleMoveAtPosition(
     if (!isOverlapFreePosition(anchoredPiece, anchoredPosition, placementObstaclesFor(state, draft))) {
       return null;
     }
-    return {
-      ...draft,
-      operation: 'move',
-      position: anchoredPosition,
-      orientation: placementAnchor.orientation,
-      targetZoneId: null,
-      targetPieceId: null,
-    };
+    return { ...moveDraftTo(draft, anchoredPosition, null), orientation: placementAnchor.orientation };
   }
   const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece));
   const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, placementObstaclesFor(state, draft));
@@ -374,14 +395,7 @@ function settleMoveAtPosition(
     return null;
   }
   const restingPosition = restingPositionAt(resolvedPosition, piece);
-  const targetZoneId = nearestZone(restingPosition)?.id ?? null;
-  return {
-    ...draft,
-    operation: 'move',
-    position: restingPosition,
-    targetZoneId,
-    targetPieceId: null,
-  };
+  return moveDraftTo(draft, restingPosition, nearestZone(restingPosition)?.id ?? null);
 }
 
 export function settleCarryAtPosition(state: TableState, draft: DraftMove, position: Vector3Tuple): DraftMove | null {
@@ -539,14 +553,7 @@ function withdrawalConstraintMessage(state: TableState, draft: DraftMove): strin
 
 /** Only a stack that lost items is renamed; every other stack keeps the name it has. */
 function piecesWithoutWithdrawals(state: TableState, draft: DraftMove): TablePiece[] {
-  return state.pieces.flatMap((piece) => {
-    const withdrawn = withdrawnIdsFor(draft, piece.id).size > 0;
-    const items = remainingItemsFor(piece, draft);
-    if (!items.length) {
-      return [];
-    }
-    return [withdrawn ? { ...piece, label: labelForCount(piece, items.length, state.factionNames), items } : piece];
-  });
+  return state.pieces.flatMap((piece) => pieceWithoutWithdrawals(state, piece, draft));
 }
 
 type DraftApplication = {
@@ -607,7 +614,7 @@ function mergeTargetIsStable(piece: TablePiece, draft: DraftMove, target: TableP
   if (!piecesCanStack(piece, target) || target.zoneId !== draft.targetZoneId) {
     return false;
   }
-  const shift = Math.hypot(draft.position[0] - target.position[0], draft.position[2] - target.position[2]);
+  const shift = planarDistance(draft.position, target.position);
   if (shift > 0.001) {
     return false;
   }
@@ -630,15 +637,8 @@ function piecesWithoutHeld(current: TableState, draft: DraftMove, piece: TablePi
 
 function mergeMessageFor(piece: TablePiece, target: TablePiece): string {
   const count = pieceCount(piece);
-  const units =
-    piece.kind === 'card'
-      ? ['card', 'cards']
-      : isSpicePiece(piece)
-        ? ['spice', 'spice']
-        : isTroopStack(piece)
-          ? ['troop', 'troops']
-          : ['token', 'tokens'];
-  const unit = count === 1 ? units[0] : units[1];
+  const [one, many] = pieceUnits(piece);
+  const unit = count === 1 ? one : many;
   const placement = piece.kind === 'card' ? 'placed on' : 'stacked with';
   return `${count} ${unit} ${placement} ${target.label}.`;
 }
@@ -751,12 +751,12 @@ export function applyDraftToState(current: TableState, requestedDraft: DraftMove
   if ('rejected' in application) {
     return application.rejected;
   }
-  const logged = {
+  const flipLogged = {
     ...application,
     current: withCarryFlipEvent(application.current, application.draft, application.piece),
   };
-  const { draft } = logged;
-  return draft.operation === 'merge' && draft.targetPieceId ? applyMerge(logged) : applyMove(logged);
+  const { draft } = flipLogged;
+  return draft.operation === 'merge' && draft.targetPieceId ? applyMerge(flipLogged) : applyMove(flipLogged);
 }
 
 function additionalTargetMatches(held: TablePiece, target: TablePiece, draft: DraftMove): boolean {

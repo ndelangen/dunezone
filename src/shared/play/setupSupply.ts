@@ -66,15 +66,11 @@ export function place<Piece extends TablePiece>(piece: Piece, position: Vector3T
   };
 }
 
-/**
- * One faction's setup supply from its capture, laid out for the Seat at `angle`: its faction token, troop reserves and the face-down Traitor deck on the table, leaders and the alliance card in hand.
- * The caller appends the faction's Extras to the hand.
- */
-export function factionSupply(capture: FactionCapture, angle: number, { id, shuffle }: SupplyDependencies) {
-  const { faction, components, definition } = capture;
-  const color = definition.themeColor;
-  const layout = factionSupplyLayout(angle, components.troops.length);
-  const reserves = components.troops.map((troop, index) => {
+type FactionKit = { capture: FactionCapture; color: string; id: () => string };
+
+function troopReserves({ capture, color, id }: FactionKit, layout: ReturnType<typeof factionSupplyLayout>) {
+  const { faction, components } = capture;
+  return components.troops.map((troop, index) => {
     const stackKey = `troops:${faction.id}:${troop.troopId ?? index}`;
     const stack = piece(id(), troop.name, faction.id, color, 'force', stackKey);
     stack.items = Array.from({ length: troop.count }, () =>
@@ -82,22 +78,32 @@ export function factionSupply(capture: FactionCapture, angle: number, { id, shuf
     );
     return place(stack, layout.reserves[index]!);
   });
-  /*
-   * The token stays on the table all game; turning it face down says the faction sits out, as in a bidding round.
-   * It has no back of its own: the table draws a face-down token as its front under a black prohibition sign, so both sides carry the front.
-   */
-  const token = components.token.front
-    ? [
-        place(
-          {
-            ...piece(id(), `${faction.name} token`, faction.id, color, 'force', factionTokenStackKey(faction.id)),
-            items: [item(id(), faction.name, components.token.front, components.token.front, 'token-disc', true)],
-          },
-          layout.token.position,
-          layout.token.orientation
-        ),
-      ]
-    : [];
+}
+
+/*
+ * The token stays on the table all game; turning it face down says the faction sits out, as in a bidding round.
+ * It has no back of its own: the table draws a face-down token as its front under a black prohibition sign, so both sides carry the front.
+ */
+function factionTokenPiece({ capture, color, id }: FactionKit, layout: ReturnType<typeof factionSupplyLayout>) {
+  const { faction, components } = capture;
+  if (!components.token.front) {
+    return [];
+  }
+  return [
+    place(
+      {
+        ...piece(id(), `${faction.name} token`, faction.id, color, 'force', factionTokenStackKey(faction.id)),
+        items: [item(id(), faction.name, components.token.front, components.token.front, 'token-disc', true)],
+      },
+      layout.token.position,
+      layout.token.orientation
+    ),
+  ];
+}
+
+/** The leaders, then the alliance card when both its faces were captured. */
+function handPieces({ capture, color, id }: FactionKit): StoredPiece[] {
+  const { faction, components } = capture;
   const hand = components.leaders.map((leader) => {
     const token = piece(id(), leader.name, faction.id, color, 'force', `leader:${faction.id}:${leader.memberId}`);
     token.items = [item(id(), leader.name, leader.front, leader.back, 'token-disc', true)];
@@ -118,12 +124,35 @@ export function factionSupply(capture: FactionCapture, angle: number, { id, shuf
     ];
     hand.push(alliance);
   }
+  return hand;
+}
+
+function traitorDeck(
+  { capture, id }: FactionKit,
+  shuffle: SupplyDependencies['shuffle'],
+  layout: ReturnType<typeof factionSupplyLayout>
+) {
+  const { traitors } = capture.components;
   const deck = piece(id(), 'Traitor cards', 'shared', '#d5ba8c', 'card', 'cards:traitor');
   deck.items = shuffle(
-    components.traitors.cards.map((card) =>
-      item(id(), card.name, card.front, components.traitors.back, 'card-traitor', false, cardbackPresetLabel('traitor'))
+    traitors.cards.map((card) =>
+      item(id(), card.name, card.front, traitors.back, 'card-traitor', false, cardbackPresetLabel('traitor'))
     )
   );
-  const traitors = deck.items.length ? [place(deck, layout.traitors.position, layout.traitors.orientation)] : [];
+  return deck.items.length ? [place(deck, layout.traitors.position, layout.traitors.orientation)] : [];
+}
+
+/**
+ * One faction's setup supply from its capture, laid out for the Seat at `angle`: its faction token, troop reserves and the face-down Traitor deck on the table, leaders and the alliance card in hand.
+ * The caller appends the faction's Extras to the hand.
+ * Every identity is drawn in the order the pieces are listed here, so a counter gives the same ids as ever.
+ */
+export function factionSupply(capture: FactionCapture, angle: number, { id, shuffle }: SupplyDependencies) {
+  const kit: FactionKit = { capture, color: capture.definition.themeColor, id };
+  const layout = factionSupplyLayout(angle, capture.components.troops.length);
+  const reserves = troopReserves(kit, layout);
+  const token = factionTokenPiece(kit, layout);
+  const hand = handPieces(kit);
+  const traitors = traitorDeck(kit, shuffle, layout);
   return { token, reserves, hand, traitors };
 }
