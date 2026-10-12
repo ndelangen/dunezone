@@ -28,6 +28,7 @@ export const PUBLICATION_ASSET_TYPES = [
   'card-treachery',
   'card-spice',
   'card-custom',
+  'card-storm',
   'board',
   'deck',
   'cardback-preset',
@@ -172,6 +173,7 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     capture: { output: 'image', widthPx: 1948, heightPx: 1948, jpegQuality: 95, maxBytes: 3_000_000 },
   },
   'card-custom': cardTarget('custom-cards', 'card.jpg', 'custom-card.jpg'),
+  'card-storm': cardTarget('storm-cards', 'card.jpg', 'storm-card.jpg'),
   'card-spice': cardTarget('spice-cards', 'card.jpg', 'spice-card.jpg'),
   /*
    * A deck publishes its Cardback and nothing else (wayfinder #495), so the row is a card in every dimension that matters.

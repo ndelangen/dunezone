@@ -10,6 +10,7 @@ import { CustomCreatePage } from './customCreate';
 import { DeckCreatePage } from './deckCreate';
 import { RectangleCreatePage } from './rectangleCreate';
 import { SpiceCreatePage } from './spiceCreate';
+import { StormCreatePage } from './stormCreate';
 import { TokenCreatePage } from './tokenCreate';
 import { TreacheryCreatePage } from './treacheryCreate';
 
@@ -41,6 +42,8 @@ function CreateAssetPage() {
       return <TreacheryCreatePage />;
     case 'card-custom':
       return <CustomCreatePage />;
+    case 'card-storm':
+      return <StormCreatePage />;
     case 'card-spice':
       return <SpiceCreatePage />;
     /* One editor for all three shapes: shape is the type, and only the proof's clip differs. */

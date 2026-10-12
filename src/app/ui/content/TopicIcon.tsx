@@ -56,6 +56,7 @@ const TOPIC_ICON_DEFINITIONS = {
   rules: { kind: 'mask', src: '/vector/icon/balance.svg' },
   advantages: { kind: 'mask', src: '/vector/icon/kwisatz.svg' },
   spice: { kind: 'mask', src: '/vector/icon/spice.svg' },
+  storm: { kind: 'mask', src: '/vector/icon/storm_disc.svg' },
   complexityNovice: { kind: 'mask', src: '/vector/icon/faction-complexity-1.svg' },
   complexityIntermediate: { kind: 'mask', src: '/vector/icon/faction-complexity-2.svg' },
   complexityExpert: { kind: 'mask', src: '/vector/icon/faction-complexity-3.svg' },

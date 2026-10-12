@@ -11,6 +11,7 @@ import { CustomEditPage } from './customEdit';
 import { DeckEditPage } from './deckEdit';
 import { RectangleEditPage } from './rectangleEdit';
 import { SpiceEditPage } from './spiceEdit';
+import { StormEditPage } from './stormEdit';
 import { TokenEditPage } from './tokenEdit';
 import { TreacheryEditPage } from './treacheryEdit';
 
@@ -40,6 +41,8 @@ function EditAssetPage() {
       return <TreacheryEditPage slug={slug} loaderData={loaderData} />;
     case 'card-custom':
       return <CustomEditPage slug={slug} loaderData={loaderData} />;
+    case 'card-storm':
+      return <StormEditPage slug={slug} loaderData={loaderData} />;
     case 'card-spice':
       return <SpiceEditPage slug={slug} loaderData={loaderData} />;
     case 'token-disc':
