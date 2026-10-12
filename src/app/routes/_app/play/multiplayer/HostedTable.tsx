@@ -154,22 +154,22 @@ const PHASE_TABS: Partial<Record<string, string>> = {
 /* A seat's own tabs are disabled for a spectator, so only the battle, which they came to watch, opens for them. */
 const SPECTATOR_PHASE_TABS = new Set(['battle']);
 
+/* The tab this phase opens for this viewer, or null when the phase leaves the dock alone. */
+function phaseTab(table: TableProjection, activePhaseId: string) {
+  if (table.playback || table.snapshot.stage !== 'play') {
+    return null;
+  }
+  const key = PHASE_TABS[activePhaseId] ?? null;
+  const spectator = table.viewer.viewerSeat === SPECTATOR_SEAT;
+  return spectator && key && !SPECTATOR_PHASE_TABS.has(key) ? null : key;
+}
+
 /* Opens the phase's tab when the phase changes during play, never for the phase the table loaded on or while browsing a replay: a reload or a late join keeps the tab the player opens on. */
 function usePhaseFocus(table: TableProjection, progress: ReturnType<typeof gameProgress>) {
   const token = `${progress.turn}:${progress.activePhaseId}`;
   const [loadedOn] = useState(token);
-  const key = PHASE_TABS[progress.activePhaseId];
-  const spectator = table.viewer.viewerSeat === SPECTATOR_SEAT;
-  if (
-    table.playback ||
-    table.snapshot.stage !== 'play' ||
-    token === loadedOn ||
-    !key ||
-    (spectator && !SPECTATOR_PHASE_TABS.has(key))
-  ) {
-    return null;
-  }
-  return { key, token: `phase:${token}` };
+  const key = phaseTab(table, progress.activePhaseId);
+  return key && token !== loadedOn ? { key, token: `phase:${token}` } : null;
 }
 
 /* The end of the game opens the Result tab once for everyone: when someone starts determining the winner, and when it is declared. */

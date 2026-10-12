@@ -166,6 +166,12 @@ export type ConnectionView = {
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
 
 /* Whether two sets hold the same members, so a table rebuilt for a move keeps the sets a panel already read. */
+/* Each faction a deck can deal to, with its token art for the deal ring. */
+function dealRecipients(snapshot: GameSnapshot) {
+  const artwork = snapshot.factionArtwork ?? {};
+  return Object.entries(snapshotFactionLabels(snapshot)).map(([id, name]) => ({ id, name, artwork: artwork[id] }));
+}
+
 function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: ReadonlySet<T> | ReadonlyMap<T, unknown>) {
   if (a.size !== b.size) {
     return false;
@@ -670,11 +676,7 @@ export class TableSession {
       deckControls:
         canHandleTable && this.subscription.supportsCommand('deck-draw')
           ? {
-              recipients: Object.entries(snapshotFactionLabels(displayed)).map(([id, name]) => ({
-                id,
-                name,
-                artwork: displayed.factionArtwork?.[id],
-              })),
+              recipients: dealRecipients(displayed),
               draw: (pieceId, recipient) => this.command({ kind: 'deck-draw', pieceId, recipient }),
               shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
             }
