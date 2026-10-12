@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { expect, spyOn, userEvent, within } from 'storybook/test';
 
-import { convexNeverAnswers, db, ref, storybookViewer } from '@db/storybook';
+import { convexNeverAnswers, db, ref, ruleset, storybookViewer } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { factions, productDatabase } from './product.stories.fixture';
@@ -87,18 +87,19 @@ const creatable = {
     const treachery = baseline.ruleset_asset_slots.find((slot) => slot.slot === 'treachery')!;
     baseline.ruleset_asset_slots.push({ ...treachery, slot: 'spice' });
     baseline.play_game_slug_reservations.push({ slug: 'arrakeen-picnic' });
-    /* A ruleset worth previewing: a cover, an About and all six factions of the base game. */
+    /* A manifest worth reading: all six base factions, four of them shared with a second ruleset and two made for this one. */
     const [chosen] = baseline.rulesets;
-    Object.assign(chosen!, {
-      image_cover: '/homepage-table/arrakeen.webp',
-      about:
-        'The base game as our group plays it, with a few house rules.\n\nSix factions, the standard treachery and spice decks, and alliances from the first turn. Read the Rulebook for the changes.',
-    });
+    const classic = { ...ruleset({ name: 'Classic Dune' }), group_id: chosen!.group_id };
+    baseline.rulesets.push(classic);
     const [atreides] = baseline.factions;
+    baseline.ruleset_factions.push({ ruleset_id: ref(classic.$key!), faction_id: ref(atreides!.$key!) });
     for (const entry of factions.slice(1)) {
       const key = `faction:${entry.slug}`;
       baseline.factions.push({ ...atreides!, $key: key, slug: entry.slug, data: entry.data });
       baseline.ruleset_factions.push({ ruleset_id: ref(chosen!.$key!), faction_id: ref(key) });
+      if (!['spacing-guild', 'bene-gesserit'].includes(entry.slug)) {
+        baseline.ruleset_factions.push({ ruleset_id: ref(classic.$key!), faction_id: ref(key) });
+      }
     }
   }),
 };
@@ -136,11 +137,17 @@ export const Creatable = meta.story({
     expect(page.getByRole('img', { name: '8 seats round the board' })).toBeVisible();
     expect(page.getByRole('slider', { name: 'Last turn' })).toHaveAttribute('aria-valuenow', '10');
     expect(page.getByRole('button', { name: 'Create game' })).toBeEnabled();
-    /* The chosen ruleset is previewed on the pass, its page a new tab away. */
-    const preview = within(await page.findByRole('region', { name: 'About Dreamrules' }, { timeout: 10_000 }));
-    await expect(preview.findByText('6 factions')).resolves.toBeVisible();
-    expect(preview.getByText('Bene Gesserit')).toBeVisible();
-    expect(preview.getByRole('link', { name: /Read the ruleset/ })).toHaveAttribute('target', '_blank');
+    /* The chosen ruleset's manifest is printed on the pass, its page a new tab away. */
+    const manifest = within(
+      await page.findByRole('region', { name: 'What Dreamrules puts on the table' }, { timeout: 10_000 })
+    );
+    expect(manifest.getByText('Treachery deck')).toBeVisible();
+    expect(manifest.getAllByLabelText('3 cards')).toHaveLength(2);
+    expect(manifest.getByText('Custom tokens')).toBeVisible();
+    expect(manifest.getByText('6 factions')).toBeVisible();
+    expect(manifest.getByText('Made for Dreamrules')).toBeVisible();
+    expect(manifest.getByText('Also in other rulesets')).toBeVisible();
+    expect(manifest.getByRole('link', { name: /Read the ruleset/ })).toHaveAttribute('target', '_blank');
   },
 });
 

@@ -20,17 +20,18 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Dices } from 'lucide-react';
 import { useReducer, useRef, useState } from 'react';
+import type { Dispatch } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useCreatableRulesets, useCreateGame } from '@db/play';
-import type { CreatableRuleset } from '@db/play';
+import type { CreatableRuleset, CreatableRulesetPreview } from '@db/play';
 import { GameNameInput } from '@app/pickers/GameNameInput';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './create.module.css';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
-import { RulesetPreview } from './RulesetPreview';
+import { RulesetManifest } from './RulesetManifest';
 import { SERVER_RETRYING, SERVER_UNREACHABLE_TITLE, useServerUnreachable } from './useServerUnreachable';
 
 export const Route = createFileRoute('/_app/play/create')({
@@ -96,7 +97,9 @@ const REFUSALS = {
 } as const;
 
 function CreateGamePage() {
-  const { data } = useCreatableRulesets();
+  /* The draft lives here so the page's one query can carry the chosen ruleset and answer with its manifest. */
+  const [draft, dispatch] = useReducer(draftReducer, undefined, initialDraft);
+  const { data } = useCreatableRulesets(draft.rulesetId);
   const unreachable = useServerUnreachable(data === undefined);
   switch (data?.access) {
     case undefined:
@@ -118,14 +121,30 @@ function CreateGamePage() {
         </PageMessage>
       );
     case 'allowed':
-      return <CreateGameForm rulesets={data.rulesets} />;
+      return (
+        <CreateGameForm
+          rulesets={data.rulesets}
+          preview={data.preview?.rulesetId === draft.rulesetId ? data.preview : null}
+          draft={draft}
+          dispatch={dispatch}
+        />
+      );
   }
 }
 
-function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>) {
+function CreateGameForm({
+  rulesets,
+  preview,
+  draft,
+  dispatch,
+}: Readonly<{
+  rulesets: CreatableRuleset[];
+  preview: CreatableRulesetPreview | null;
+  draft: Draft;
+  dispatch: Dispatch<DraftEvent>;
+}>) {
   const navigate = useNavigate();
   const createGame = useCreateGame();
-  const [draft, dispatch] = useReducer(draftReducer, undefined, initialDraft);
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({
     rulesetId: draft.rulesetId,
@@ -200,7 +219,7 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>
                 onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId } })}
                 disabled={createGame.isPending}
               />
-              {chosen ? <RulesetPreview slug={chosen.slug} /> : null}
+              {chosen && preview ? <RulesetManifest ruleset={chosen} preview={preview} /> : null}
               <PassFacts ruleset={chosen?.name ?? null} seats={draft.minimumPlayers} lastTurn={draft.lastTurn} />
             </Stack>
           </Surface>

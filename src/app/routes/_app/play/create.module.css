@@ -232,54 +232,71 @@ html[data-motion="reduce"] .departure {
   }
 }
 
-/* The chosen ruleset, previewed in the pass's open space under the choices. */
-.preview {
+/* The chosen ruleset's manifest: printed on the pass and ruled off with its dashed lines, not a pane within it. */
+.manifest {
   display: grid;
+  gap: var(--space-sm);
+}
+
+.packed {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px dashed var(--mantine-color-default-border);
+}
+
+.packedLine {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
   gap: var(--space-md);
-  padding: var(--space-md);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--pass-ground) 4%, transparent);
+  align-items: center;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px dashed var(--mantine-color-default-border);
 }
 
-.previewCover {
-  flex: none;
-  width: 5.5rem;
-  aspect-ratio: 3 / 4;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0.4rem 1rem rgba(30, 15, 5, 0.25);
+.packedFace {
+  display: grid;
+  place-items: center;
 }
 
-.previewBody {
+.packedFace > * {
+  width: 2.25rem;
+}
+
+.packedFace > .packedCard {
+  width: 1.75rem;
+}
+
+.packedWhat {
   min-width: 0;
 }
 
-/* The start of the About, faded out after a few lines: a taste, with the full text a click away. */
-.previewAbout {
-  max-height: 7.5rem;
-  overflow: hidden;
-  mask-image: linear-gradient(180deg, #000 60%, transparent);
+.packedCount {
+  font-family: "C_Advokat_Modern", sans-serif;
+  font-size: var(--mantine-font-size-xl);
+  font-variant-numeric: tabular-nums;
 }
 
-.previewFactions {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
-  gap: var(--space-xs) var(--space-md);
+.manifestFactions {
+  padding-top: var(--space-xs);
+}
+
+.factionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-lg);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.previewFactions li {
+.factionRow li {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  min-width: 0;
 }
 
-.previewToken {
+.factionDisc {
   flex: none;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.9rem;
 }

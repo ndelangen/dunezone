@@ -190,6 +190,44 @@ describe('real games are created and entered by any signed-in player, Administra
     ]);
   });
 
+  test('a chosen ruleset reads back its manifest: decks with their counts, then its own factions before shared ones', async () => {
+    const { t, member, rulesets } = await world();
+    await t.run(async (ctx) => {
+      const owner = (await ctx.db.query('users').first())!._id;
+      const stamp = new Date().toISOString();
+      const faction = (slug: string, name: string) =>
+        ctx.db.insert('factions', {
+          owner_id: owner,
+          data: { name },
+          slug,
+          created_at: stamp,
+          updated_at: stamp,
+          is_deleted: false,
+          group_id: null,
+        });
+      const shared = await faction('atreides', 'House Atreides');
+      const own = await faction('ixians', 'Ixians');
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.ready, faction_id: shared });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.ready, faction_id: own });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.emptySpice, faction_id: shared });
+    });
+    const listing = await member.query(api.playGames.creatable, { rulesetId: rulesets.ready });
+    if (listing.access !== 'allowed') {
+      throw new Error('unreachable');
+    }
+    expect(listing.preview?.rulesetId).toBe(rulesets.ready);
+    expect(listing.preview?.packed.map(({ slot, name, count }) => [slot, name, count])).toEqual([
+      ['treachery', 'treachery', 2],
+      ['spice', 'spice', 2],
+    ]);
+    expect(listing.preview?.factions.map(({ name, own }) => [name, own])).toEqual([
+      ['Ixians', true],
+      ['House Atreides', false],
+    ]);
+    const unchosen = await member.query(api.playGames.creatable, {});
+    expect(unchosen.access === 'allowed' ? unchosen.preview : 'unreachable').toBeNull();
+  });
+
   test('creation records the ruleset, minimum and creator on a pending game any signed-in player can watch', async () => {
     const { t, admin, member, memberId, rulesets } = await world();
     const request = { rulesetId: rulesets.ready, minimumPlayers: 4 as const };

@@ -2,13 +2,14 @@ import type { playCreateGameRequestSchema } from '@shared/play/admission';
 import type { playGeneratedGameRequestSchema } from '@shared/play/gameCreation';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import type { z } from 'zod';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveOperation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
+import type { Id } from '../../../convex/_generated/dataModel';
 
 export type CreatableRuleset = Extract<
   FunctionReturnType<typeof api.playGames.creatable>,
@@ -25,9 +26,22 @@ export function useLobbyGames() {
   return toLiveQueryResult(useQuery(api.playDirectory.listGames, {}));
 }
 
-/** The rulesets a signed-in player may start a game with, or that the viewer must sign in first. */
-export function useCreatableRulesets() {
-  return toLiveQueryResult(useQuery(api.playGames.creatable, {}));
+/** What a chosen ruleset puts on the table, as the create page's manifest lists it. */
+export type CreatableRulesetPreview = NonNullable<
+  Extract<FunctionReturnType<typeof api.playGames.creatable>, { access: 'allowed' }>['preview']
+>;
+
+/**
+ * The rulesets a signed-in player may start a game with, or that the viewer must sign in first, with the chosen one's manifest.
+ * Choosing another ruleset changes the query's arguments, so the last answer stays in place until the new one lands rather than the page falling back to loading.
+ */
+export function useCreatableRulesets(rulesetId: string) {
+  const live = useQuery(api.playGames.creatable, rulesetId ? { rulesetId: rulesetId as Id<'rulesets'> } : {});
+  const [last, setLast] = useState(live);
+  if (live !== undefined && live !== last) {
+    setLast(live);
+  }
+  return toLiveQueryResult(live ?? last);
 }
 
 export function useGameNameAvailability(name: string) {

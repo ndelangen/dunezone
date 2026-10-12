@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import type { Infer } from 'convex/values';
 import type { z } from 'zod';
 
+import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import type { playCreateGameRequestSchema } from '../src/shared/play/admission';
 import { playGameAccessSchema, playGameAddressAccessSchema } from '../src/shared/play/admission';
 import {
@@ -13,10 +14,12 @@ import {
 import { normalizePlayGameSlug, playGameNameSchema, PLAY_RESERVED_GAME_ADDRESSES } from '../src/shared/play/gameNames';
 import { isGeneratedPlayGameName } from '../src/shared/play/generatedGameNames';
 import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
+import { RULESET_ASSET_SLOT_ORDER } from '../src/shared/rulesets/assetSlots';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { action, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
+import { containerSummary } from './assets';
 import { internalMutation, mutation } from './functions';
 import { admitsPlayers, currentPlaySession, isRealGame, livePlaySession } from './lib/playAuthorization';
 import { playGameAddressAvailable } from './lib/playGameAddresses';
@@ -77,9 +80,72 @@ async function requiredDeck(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slot: 'tre
 
 const RULESET_CHOICE_LIMIT = 200;
 
-/** The rulesets a signed-in player may start a game with, each with the directory's objection when it has one. */
+const rulesetPreviewValidator = v.object({
+  rulesetId: v.id('rulesets'),
+  packed: v.array(
+    v.object({
+      slot: v.string(),
+      name: v.string(),
+      count: v.number(),
+      truncated: v.boolean(),
+      face: v.union(v.string(), v.null()),
+      faceType: v.string(),
+    })
+  ),
+  factions: v.array(v.object({ id: v.id('factions'), name: v.string(), token: v.string(), own: v.boolean() })),
+});
+
+const PREVIEW_FACTION_LIMIT = 50;
+
+/*
+ * What a ruleset puts on the table, for the create page's manifest: its decks and token bundles in slot order, with counts and one face each,
+ * then its factions, marked `own` when no other ruleset links them.
+ */
+async function rulesetPreview(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const slots = await ctx.db
+    .query('ruleset_asset_slots')
+    .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
+    .take(RULESET_ASSET_SLOT_ORDER.length * 10);
+  slots.sort((a, b) => RULESET_ASSET_SLOT_ORDER.indexOf(a.slot) - RULESET_ASSET_SLOT_ORDER.indexOf(b.slot));
+  const packed = [];
+  for (const slot of slots) {
+    const asset = await ctx.db.get(slot.asset_id);
+    const summary = asset && !asset.is_deleted ? await containerSummary(ctx, asset) : null;
+    if (summary) {
+      packed.push({ slot: slot.slot, ...summary });
+    }
+  }
+  const links = await ctx.db
+    .query('ruleset_factions')
+    .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
+    .take(PREVIEW_FACTION_LIMIT);
+  const factions = [];
+  for (const link of links) {
+    const faction = await ctx.db.get(link.faction_id);
+    if (!faction || faction.is_deleted) {
+      continue;
+    }
+    const shared = await ctx.db
+      .query('ruleset_factions')
+      .withIndex('by_faction', (q) => q.eq('faction_id', faction._id))
+      .take(2);
+    factions.push({
+      id: faction._id,
+      name: typeof faction.data?.name === 'string' ? faction.data.name : faction.slug,
+      token: publishedHref('faction-token', faction._id, faction.updated_at),
+      own: shared.length === 1,
+    });
+  }
+  factions.sort((a, b) => Number(b.own) - Number(a.own));
+  return { rulesetId, packed, factions };
+}
+
+/**
+ * The rulesets a signed-in player may start a game with, each with the directory's objection when it has one.
+ * With `rulesetId`, also what that ruleset puts on the table, so the page reads its manifest through this one query.
+ */
 export const creatable = query({
-  args: {},
+  args: { rulesetId: v.optional(v.id('rulesets')) },
   returns: v.union(
     v.object({ access: v.literal('unauthenticated') }),
     v.object({
@@ -92,9 +158,10 @@ export const creatable = query({
           objection: v.union(v.string(), v.null()),
         })
       ),
+      preview: v.union(rulesetPreviewValidator, v.null()),
     })
   ),
-  handler: async (ctx) => {
+  handler: async (ctx, { rulesetId }) => {
     if (!(await currentPlaySession(ctx))) {
       return { access: 'unauthenticated' as const };
     }
@@ -106,7 +173,8 @@ export const creatable = query({
     for (const row of rows) {
       rulesets.push({ id: row._id, slug: row.slug, name: row.name, objection: await rulesetObjection(ctx, row._id) });
     }
-    return { access: 'allowed' as const, rulesets };
+    const chosen = rulesetId === undefined ? undefined : rows.find((row) => row._id === rulesetId);
+    return { access: 'allowed' as const, rulesets, preview: chosen ? await rulesetPreview(ctx, chosen._id) : null };
   },
 });
 

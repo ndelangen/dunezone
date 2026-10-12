@@ -996,3 +996,29 @@ export const customCardTokens = query({
   returns: zodToConvex(CustomCardTokenResolution),
   handler: async (ctx, args) => await resolveCustomCardTokens(ctx, args.ids),
 });
+
+/**
+ * One deck or token bundle as a summary line cites it: its name, how many pieces it holds and one face to show for it.
+ * A deck shows its Cardback, a bundle its first token, with that token's type so the caller cuts it to its shape.
+ * Shared with the create page's ruleset preview, which lists what a ruleset puts on the table.
+ */
+export async function containerSummary(ctx: QueryCtx, row: Doc<'assets'>) {
+  const kind = CONTAINER_KINDS[row.type]?.kind;
+  if (!kind) {
+    return null;
+  }
+  const { entries, truncated } = await membersOf(ctx, row._id, kind);
+  const count = entries.reduce((total, entry) => total + entry.count, 0);
+  if (row.type === 'deck') {
+    const appearance = await presentedAppearance(ctx, row, new Map(), new Map());
+    return { name: nameOf(row), count, truncated, face: appearance.href, faceType: 'deck' };
+  }
+  const first = entries[0]?.row;
+  return {
+    name: nameOf(row),
+    count,
+    truncated,
+    face: first && isPublicationAssetType(first.type) ? publishedHref(first.type, first._id, first.updated_at) : null,
+    faceType: first?.type ?? 'token-disc',
+  };
+}
