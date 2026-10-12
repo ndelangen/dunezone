@@ -358,3 +358,13 @@ decision after that evidence exists.
 The investigation establishes real billed-resource counters and concrete source
 opportunities. It does not establish human visitor attribution, monthly cache-hit
 ratios, realized optimization savings, self-hosted capacity or a migration schedule.
+
+## Follow-up after approval
+
+The user approved making published HTML the default reader. Implementation and
+verification are tracked in [PR #2075](https://github.com/ndelangen/dunezone/pull/2075).
+The [editor audit](rulebook-editor-performance-research.md) records Page-oriented
+opportunities without changing the editor. The continued research covers
+[next savings](convex-next-savings-research.md) and
+[year-ahead costs and growth assumptions](convex-year-ahead-research.md).
+No plan or hosting change has been made.
