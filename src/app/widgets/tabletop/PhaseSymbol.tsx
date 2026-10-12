@@ -2,12 +2,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ExtrudeGeometry } from 'three';
 
+import { ignoreRaycast } from './ignoreRaycast';
 import { createPhaseRingGeometry, loadPhaseSymbolGeometry } from './phaseSymbolGeometry';
 import { PHASE_DISC_COLOR, PHASE_INK_COLOR } from './phaseSymbolLayout';
-
-function ignoreRaycast() {
-  /* Symbols decorate the raised discs and never intercept tabletop gestures. */
-}
 
 function PhaseArtwork({ symbol, radius }: Readonly<{ symbol: string; radius: number }>) {
   const [geometry, setGeometry] = useState<ExtrudeGeometry | null>(null);

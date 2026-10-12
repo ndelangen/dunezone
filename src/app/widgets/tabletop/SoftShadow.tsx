@@ -1,6 +1,8 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
 import { CanvasTexture } from 'three';
 
+import { ignoreRaycast } from './ignoreRaycast';
+
 /*
  * A soft shadow painted flat under something round: dark under its `radius` and fading out over `spread` past its edge.
  * The table casts no shadow maps, so a painted disc is all a shadow costs.
@@ -25,10 +27,6 @@ function shadowTexture(solid: number, size: number) {
   const texture = new CanvasTexture(canvas);
   shadowTextures.set(key, texture);
   return texture;
-}
-
-function ignoreRaycast() {
-  // A shadow is never an interaction target.
 }
 
 export function SoftShadow({

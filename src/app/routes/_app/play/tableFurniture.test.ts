@@ -9,7 +9,6 @@ import {
   FURNITURE_SURFACE_Y,
   placementAnchorAtPosition,
   placementAnchorForPose,
-  sideShelfPosition,
   SIDE_SHELF_CENTER_X,
   SIDE_SHELF_SIZE,
 } from '@shared/play/tableFurnitureLayout';
@@ -109,6 +108,11 @@ function sharpestContourTurnNear(contour: readonly Point2D[], target: Point2D, s
   );
 }
 
+function sideShelfPosition(side: 'left' | 'right'): Vector3Tuple {
+  const direction = side === 'left' ? -1 : 1;
+  return [direction * SIDE_SHELF_CENTER_X, FURNITURE_SURFACE_Y - SIDE_SHELF_SIZE[1] / 2, 0];
+}
+
 describe('table furniture', () => {
   test("uses the rulebook's five-slot pattern on each side", () => {
     const left = cardBaySlotPositions('left');
@@ -127,8 +131,6 @@ describe('table furniture', () => {
     expect(new Set(right.map(([x, , z]) => `${x}:${z}`)).size).toBe(5);
     expect(rowCounts(left)).toEqual([2, 2, 1]);
     expect(rowCounts(right)).toEqual([1, 2, 2]);
-    const leftShelf = sideShelfPosition('left');
-    expect(sideShelfPosition('right')).toEqual([-leftShelf[0], leftShelf[1], leftShelf[2]]);
   });
 
   test('defines ten stable card-placement anchors from the rendered wells', () => {

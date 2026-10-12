@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { actionKindGuard } from './actionKinds';
 import { isFactionToken } from './factionToken';
 import type { TablePiece } from './model';
 import { tableIdSchema as id, tablePieceSchema } from './schema';
@@ -10,7 +11,6 @@ import { tableIdSchema as id, tablePieceSchema } from './schema';
  * While a deck is open to its peeker, they may put its cards in another order or pull one out beside it.
  */
 
-/* A deck past this many cards is still peeked whole; the order an arrangement names is bounded so a frame stays small. */
 /**
  * The most cards a deck held open can be rearranged or pulled from;
  * a bigger deck can only be looked through.
@@ -42,10 +42,10 @@ export const peekActionSchema = z.discriminatedUnion('kind', [
 ]);
 export type PeekAction = z.infer<typeof peekActionSchema>;
 
-const PEEK_KINDS = new Set<string>(peekActionSchema.options.map((option) => option.shape.kind.value));
+const isPeekKind = actionKindGuard(peekActionSchema);
 
 export function isPeekAction<Action extends { kind: string }>(action: Action): action is Action & PeekAction {
-  return PEEK_KINDS.has(action.kind);
+  return isPeekKind(action);
 }
 
 /** What the peeking faction is shown: the piece it holds open, every face showing. Only that faction's view carries it. */

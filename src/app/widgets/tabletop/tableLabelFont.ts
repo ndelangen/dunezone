@@ -11,10 +11,7 @@ export function loadTableLabelFont(): Promise<boolean> {
     return tableLabelFontPromise;
   }
 
-  if (typeof document === 'undefined' || typeof FontFace === 'undefined') {
-    return Promise.resolve(false);
-  }
-  if (!document.fonts) {
+  if (typeof document === 'undefined' || typeof FontFace === 'undefined' || !document.fonts) {
     return Promise.resolve(false);
   }
 

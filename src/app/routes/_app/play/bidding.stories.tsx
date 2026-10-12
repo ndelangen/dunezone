@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import { idleBidding } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
 import { STANDARD_PHASES } from '@shared/play/phases';
+import { rosterFactionIds } from '@shared/play/protocol';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -124,7 +125,7 @@ export const HandCounts = meta.story({
     if (emperor) {
       emperor.items = emperor.items.map((item) => ({ ...item, faceUp: false }));
     }
-    const factions = snapshot.roster?.seats.flatMap(({ faction }) => (faction ? [faction.id] : [])) ?? [];
+    const factions = rosterFactionIds(snapshot.roster);
     snapshot.handCounts = Object.fromEntries(factions.map((id, index) => [id, [0, 1, 2, 4, 3, 8][index % 6]!]));
     return productTransport('seat-2', snapshot);
   }),

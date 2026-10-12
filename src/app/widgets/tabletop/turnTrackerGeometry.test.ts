@@ -1,11 +1,10 @@
-import { Matrix4, Vector3 } from 'three';
+import { Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
 import {
   createTurnTrackerFrame,
   createTurnTrackerPointer,
   createTurnTrackerWedge,
-  turnAtTrackerPoint,
   turnTrackerLayout,
 } from './turnTrackerGeometry';
 
@@ -20,10 +19,9 @@ describe('turn tracker layout and selection', () => {
   });
 
   /* The first and last turn of the first block and the next, a mid-block turn, and a three-digit turn. */
-  test.each([1, 10, 11, 20, 37, 100])('selects every label in the block containing turn %i', (turn) => {
+  test.each([1, 10, 11, 20, 37, 100])('places every label in the block containing turn %i on the face', (turn) => {
     const layout = turnTrackerLayout({ radius: 0.8, turn });
     for (const sector of layout.sectors) {
-      expect(turnAtTrackerPoint(layout, { x: sector.position[0], z: sector.position[2] })).toBe(sector.turn);
       expect(sector.position[1]).toBe(0.019);
     }
     expect(layout.sectors[layout.selectedIndex].turn).toBe(turn);
@@ -53,31 +51,9 @@ describe('turn tracker layout and selection', () => {
     [6, 5],
     [15, 12],
     [1, 1],
-  ])('selects every label on a %i-turn wheel at turn %i', (lastTurn, turn) => {
+  ])('selects the turn on a %i-turn wheel at turn %i', (lastTurn, turn) => {
     const layout = turnTrackerLayout({ radius: 0.8, turn, lastTurn });
-    for (const sector of layout.sectors) {
-      expect(turnAtTrackerPoint(layout, { x: sector.position[0], z: sector.position[2] })).toBe(sector.turn);
-    }
     expect(layout.sectors[layout.selectedIndex].turn).toBe(turn);
-  });
-
-  test('rejects the hub, positions outside the disc and invalid coordinates', () => {
-    const layout = turnTrackerLayout({ radius: 1, turn: 1 });
-    expect(turnAtTrackerPoint(layout, { x: 0, z: 0 })).toBeNull();
-    expect(turnAtTrackerPoint(layout, { x: 1.001, z: 0 })).toBeNull();
-    expect(turnAtTrackerPoint(layout, { x: NaN, z: 0 })).toBeNull();
-    expect(turnAtTrackerPoint(layout, { x: 0, z: Infinity })).toBeNull();
-    expect(turnAtTrackerPoint(layout, { x: 0.001, z: -0.8 })).toBe(1);
-    expect(turnAtTrackerPoint(layout, { x: -0.001, z: -0.8 })).toBe(10);
-  });
-
-  test('selects the same sector after a transformed tracker hit is converted to local space', () => {
-    const transform = new Matrix4().makeRotationY(0.6).setPosition(3, 0.7, -5);
-    const layout = turnTrackerLayout({ radius: 0.7, turn: 13 });
-    const sector = layout.sectors[5];
-    const world = new Vector3(...sector.position).applyMatrix4(transform);
-    const local = world.applyMatrix4(transform.clone().invert());
-    expect(turnAtTrackerPoint(layout, local)).toBe(16);
   });
 
   test.each([0, -1, NaN, Infinity])('rejects invalid radius %s', (radius) => {
@@ -88,6 +64,13 @@ describe('turn tracker layout and selection', () => {
     expect(() => turnTrackerLayout({ radius: 1, turn })).toThrow(RangeError);
   });
 });
+
+type TrackerLayout = ReturnType<typeof turnTrackerLayout>;
+
+/* The turn whose sector holds a point on the tracker face, measured clockwise from the top. */
+function sectorTurnAt({ firstTurn, sectorAngle }: TrackerLayout, { x, z }: Readonly<{ x: number; z: number }>) {
+  return firstTurn + Math.floor(((Math.atan2(x, -z) + Math.PI * 2) % (Math.PI * 2)) / sectorAngle);
+}
 
 describe('turn tracker geometry', () => {
   test('keeps raised frame and pointer within the disc above its top', () => {
@@ -118,7 +101,7 @@ describe('turn tracker geometry', () => {
         tip = candidate;
       }
     }
-    expect(turnAtTrackerPoint(layout, tip)).toBe(turn);
+    expect(sectorTurnAt(layout, tip)).toBe(turn);
     const wedge = createTurnTrackerWedge(layout);
     const vertices = wedge.getAttribute('position');
     const center = new Vector3();
@@ -126,7 +109,7 @@ describe('turn tracker geometry', () => {
       center.add(new Vector3().fromBufferAttribute(vertices, index));
     }
     center.divideScalar(vertices.count);
-    expect(turnAtTrackerPoint(layout, center)).toBe(turn);
+    expect(sectorTurnAt(layout, center)).toBe(turn);
     expect(wedge.boundingBox!.max.y).toBeLessThan(pointer.boundingBox!.min.y);
     pointer.dispose();
     wedge.dispose();

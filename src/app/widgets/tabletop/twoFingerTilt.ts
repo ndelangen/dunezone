@@ -53,12 +53,12 @@ export function watchTwoFingerTilt(
     }
   };
 
-  surface.addEventListener('pointerdown', down as EventListener);
+  surface.addEventListener('pointerdown', down);
   events.addEventListener('pointermove', move);
   events.addEventListener('pointerup', up);
   events.addEventListener('pointercancel', up);
   return () => {
-    surface.removeEventListener('pointerdown', down as EventListener);
+    surface.removeEventListener('pointerdown', down);
     events.removeEventListener('pointermove', move);
     events.removeEventListener('pointerup', up);
     events.removeEventListener('pointercancel', up);

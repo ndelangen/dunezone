@@ -28,18 +28,27 @@ import {
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
-import type { ClientMessage, PieceAction, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import type {
+  ClientMessage,
+  CommitMessage,
+  PieceAction,
+  ServerClock,
+  ServerMessage,
+  Viewer,
+} from '../../src/shared/play/protocol';
 import {
+  ADMISSION_REFUSED_CLOSE_CODE,
   ADMISSION_UNAVAILABLE_CLOSE_CODE,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
+  RATE_LIMITED_CLOSE_CODE,
   TABLE_PING_INTERVAL_MS,
   TICKET_EXPIRED_CLOSE_CODE,
   clientMessageSchema,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
-import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
@@ -58,8 +67,6 @@ import { forwardPrivacyRequest } from './privacyRequests';
 import { CarryHistoryExhausted } from './room';
 import type { Metadata } from './session';
 import { GameSession, NotReady, readinessProblem } from './session';
-
-/** The seat a real game's creator holds from creation. */
 
 type Connection = {
   connectionId: string;
@@ -300,9 +307,7 @@ export class GameRoom extends DurableObject<GameEnv> {
    */
   private async captureFixtureDeck(): Promise<StoredSpawnContents | undefined> {
     try {
-      const deck = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).capture(
-        FIXTURE_TREACHERY_DECK
-      );
+      const deck = await this.catalogue().capture(FIXTURE_TREACHERY_DECK);
       /* The deal reads the pieces only; the definitions the inventory audits would bloat every metadata write. */
       return { ...deck, definitions: [] };
     } catch (error) {
@@ -332,7 +337,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (existing) {
       return existing;
     }
-    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureRuleset(rulesetId);
+    const capture = await this.catalogue().captureRuleset(rulesetId);
     return this.session.retainRuleset(capture, options);
   }
 
@@ -341,7 +346,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (existing) {
       return existing;
     }
-    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(factionId);
+    const capture = await this.catalogue().captureFaction(factionId);
     return this.session.retainFaction(capture, options);
   }
 
@@ -1283,7 +1288,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     message: Extract<ClientMessage, { type: 'catalogue' }>,
     suspensions: number
   ) {
-    const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
+    const catalogue = this.catalogue();
     try {
       const result = message.selection
         ? { contents: this.session.projectContents(await catalogue.capture(message.selection)) }
@@ -1314,7 +1319,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.sendView(socket, connection, message.commandId);
       return;
     }
-    const contents = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).capture(message.action);
+    const contents = await this.catalogue().capture(message.action);
     /* Catalogue I/O yields, so the request waits out a fence like a new message. Commit rechecks authorization, the roster and the receipt afterward. */
     if (await this.outlastFence(socket, connection, suspensions)) {
       this.commit(socket, connection, message, contents);
@@ -1382,7 +1387,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private refuseRate(socket: WebSocket) {
     this.disconnect(socket);
-    socket.close(4413, 'Too many requests.');
+    socket.close(RATE_LIMITED_CLOSE_CODE, 'Too many requests.');
   }
 
   /* Reads that answer from the room's records alone, whatever the reader may do at the table. */
@@ -1412,7 +1417,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private dispatch(
     socket: WebSocket,
     connection: Connection,
-    message: Exclude<ClientMessage, { type: 'admit' | 'catalogue' }>
+    message: Exclude<ClientMessage, { type: 'admit' | 'catalogue' | 'pointer' | 'pose' }>
   ) {
     if (isPageRead(message)) {
       this.sendPage(socket, message);
@@ -1535,17 +1540,10 @@ export class GameRoom extends DurableObject<GameEnv> {
   private publishActivity(
     socket: WebSocket,
     connection: Connection,
-    message: Extract<
-      ClientMessage,
-      { type: 'ping' | 'pointer' | 'pose' | 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }
-    >
+    message: Extract<ClientMessage, { type: 'ping' | 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }>
   ) {
     if (message.type === 'ping') {
       this.relayPing(socket, connection, message);
-      return;
-    }
-    if (message.type === 'pointer' || message.type === 'pose') {
-      this.moveActivity(connection, message);
       return;
     }
     const revision = this.session.revision;
@@ -1601,12 +1599,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       message: error instanceof GameRejection ? error.message : 'Unable to process the command.',
     });
   }
-  private commit(
-    socket: WebSocket,
-    connection: Connection,
-    message: Extract<ClientMessage, { type: 'command' | 'drop' }>,
-    contents?: StoredSpawnContents
-  ) {
+  private commit(socket: WebSocket, connection: Connection, message: CommitMessage, contents?: StoredSpawnContents) {
     const timing: (typeof this.commandTimings)[number] = {
       userId: connection.viewer!.userId,
       commandId: message.commandId,
@@ -1740,8 +1733,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /** The catalogue this deployment reads factions, rulesets and decks from. */
+  private catalogue() {
+    return new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
+  }
+
   private seatFaction(seat: string) {
-    return this.session.currentSnapshot().roster?.seats.find((entry) => entry.id === seat)?.faction?.id;
+    return rosterSeat(this.session.currentSnapshot().roster, seat)?.faction?.id;
   }
 
   /**
@@ -1774,7 +1772,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private async draftableFactions(rulesetId: string): Promise<DraftFaction[] | null> {
     try {
-      return await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).draftableFactions(rulesetId);
+      return await this.catalogue().draftableFactions(rulesetId);
     } catch (error) {
       /* A game opens without the list, stamped stale, and reads it on the first draft command. */
       this.diagnostics.report('draft-catalogue', error);
@@ -1809,7 +1807,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     this.refreshingCatalogue = true;
     try {
-      const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
+      const catalogue = this.catalogue();
       const factions = await catalogue.draftableFactions(metadata.game.rulesetId);
       const setAside = await this.judgeSetAside(catalogue, factions);
       this.session.updateDraftCatalogue(factions, setAside);
@@ -1860,7 +1858,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     const generation = this.catalogueGeneration;
-    const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
+    const catalogue = this.catalogue();
     const ready: string[] = [];
     const refused: Record<string, string> = {};
     for (const factionId of pending) {
@@ -2003,10 +2001,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private broadcastCommittedView(
-    connection: Connection,
-    message: Extract<ClientMessage, { type: 'command' | 'drop' }>
-  ) {
+  private broadcastCommittedView(connection: Connection, message: CommitMessage) {
     this.clearActivityTimer();
     const frameFor = this.framePass();
     for (const [peer, identity] of this.connections) {
@@ -2104,7 +2099,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private deny(socket: WebSocket, broadcast = true) {
     this.sendAdmission(socket, 'denied');
     this.disconnect(socket, broadcast);
-    socket.close(4401, 'Admission refused.');
+    socket.close(ADMISSION_REFUSED_CLOSE_CODE, 'Admission refused.');
   }
 
   private disconnect(socket: WebSocket, broadcast = true) {

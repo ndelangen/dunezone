@@ -32,17 +32,15 @@ export function stageToolbar({
   const inPlay = stage === undefined || stage === 'play';
   /* Playback steps through the checkpoints from the header in every stage, so no tab hides the way back to live. */
   const playback = table.playback ? <StagePlayback client={client} table={table} error={error} /> : null;
+  /* In play the header steps phases beside the bidder; setup steps its phases alone. */
   if (inPlay || settingUp(table)) {
     return (
       <>
         {playback}
-        <PhaseToolbar
-          client={client}
-          table={table}
-          bidder={inPlay}
-          faded={bidderFaded}
-          onFadedChange={onBidderFadedChange}
-        />
+        {inPlay && (
+          <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={onBidderFadedChange} />
+        )}
+        <PhaseNavigation client={client} table={table} />
       </>
     );
   }
@@ -56,28 +54,6 @@ export function stageToolbar({
 /** Setup steps its phases once its first step is dealt. */
 function settingUp(table: TableProjection): boolean {
   return table.snapshot.stage === 'setup' && Boolean(table.snapshot.setup);
-}
-
-/** In play the header steps phases beside the bidder; setup steps its phases alone. */
-function PhaseToolbar({
-  client,
-  table,
-  bidder,
-  faded,
-  onFadedChange,
-}: Readonly<{
-  client: TableSession;
-  table: TableProjection;
-  bidder: boolean;
-  faded: boolean;
-  onFadedChange: (faded: boolean) => void;
-}>) {
-  return (
-    <>
-      {bidder && <BidderToolbar client={client} table={table} faded={faded} onFadedChange={onFadedChange} />}
-      <PhaseNavigation client={client} table={table} />
-    </>
-  );
 }
 
 /** The control a stage with no phases to step puts in the header: its Ready, or Continue playing once finished. */
