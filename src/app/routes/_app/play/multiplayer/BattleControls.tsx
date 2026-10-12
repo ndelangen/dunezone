@@ -559,7 +559,7 @@ function battleNotice(table: TableProjection, battle: PublicBattle | null | unde
 }
 
 export function BattleControls({ client, table }: Props) {
-  const { battle, battlePlan, hand, battleResults = [] } = table.snapshot;
+  const { battle, battlePlan, hand } = table.snapshot;
   return (
     <>
       <Section hiddenHeading title="Battle" description={battleHelp(table)}>
@@ -570,14 +570,18 @@ export function BattleControls({ client, table }: Props) {
         )}
       </Section>
       {hand && <HandControls client={client} table={table} hand={hand} />}
-      {!!battleResults.length && (
-        <BattleResults
-          results={battleResults}
-          artwork={table.snapshot.factionArtwork}
-          names={snapshotFactionLabels(table.snapshot)}
-        />
-      )}
     </>
+  );
+}
+
+/** Agreed battle results remain readable independently of the current battle and phase. */
+export function BattleHistory({ table }: Pick<Props, 'table'>) {
+  return (
+    <BattleResults
+      results={table.snapshot.battleResults ?? []}
+      artwork={table.snapshot.factionArtwork}
+      names={snapshotFactionLabels(table.snapshot)}
+    />
   );
 }
 
