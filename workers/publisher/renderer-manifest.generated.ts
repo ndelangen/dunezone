@@ -4,12 +4,12 @@
 // sharp version), so this file is reproducible on any machine (wayfinder #269).
 export const rendererManifest = {
   schemaVersion: 2,
-  rendererIdentity: 'faction-sheet/sha256:f8c64b851893944b8dad345f8a5a7367ef35191fc8d4a91c13bf9cd1522c12ec',
-  digest: 'f8c64b851893944b8dad345f8a5a7367ef35191fc8d4a91c13bf9cd1522c12ec',
+  rendererIdentity: 'faction-sheet/sha256:860b92129719f263b1754c89ceaaee8801f1b7fe19d87e5caf71645469dfa038',
+  digest: '860b92129719f263b1754c89ceaaee8801f1b7fe19d87e5caf71645469dfa038',
   components: {
-    sources: '5570b7126a626fc14cbf9d05b00ab4d1c279faaeb75d7056ae02f9f85c534d90',
+    sources: 'a00fae12aeb5e2da0202de0ad3bf2675381eadf24de4fca2a055197637d4435d',
     toolchain: 'f3a1b265a116b4fd4fe11cf401918ef561a9d8c134cb9ce21267698147960224',
-    code: '432e5ab96088aef90b023fadb1116d29bfe4ed9eb7f0d97fdcd9332775c849f2',
+    code: 'a5708db02b44fb24f55c6845cb62f9318e4ec69ca00d7b073216f7a1a58e0a45',
     contract: '2920714c87493d104342355dda2b956202259513c78ce6195670034f31a656a6',
   },
   contract: {

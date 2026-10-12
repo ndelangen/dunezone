@@ -30,7 +30,7 @@ export const ASSET_TYPES = {
     status: 'planned',
   },
   'card-storm': { category: 'cards', label: 'Storm cards', shortLabel: 'Storm', status: 'live' },
-  'card-stronghold': { category: 'cards', label: 'Stronghold cards', shortLabel: 'Stronghold', status: 'planned' },
+  'card-stronghold': { category: 'cards', label: 'Stronghold cards', shortLabel: 'Stronghold', status: 'live' },
   'card-nexus': { category: 'cards', label: 'Nexus cards', shortLabel: 'Nexus', status: 'live' },
   deck: { category: 'decks', label: 'Decks', shortLabel: 'Decks', status: 'live' },
   'token-disc': { category: 'tokens', label: 'Disc tokens', shortLabel: 'Disc', status: 'live' },

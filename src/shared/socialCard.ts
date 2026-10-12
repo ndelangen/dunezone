@@ -14,6 +14,7 @@ const artworkTypes = new Set([
   'card-spice',
   'card-custom',
   'card-nexus',
+  'card-stronghold',
   'card-storm',
   'deck',
   'cardback-preset',

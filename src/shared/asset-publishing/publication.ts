@@ -7,6 +7,7 @@ import {
   CardBack,
   RectangleTokenFace,
   SpiceAsset,
+  StrongholdCardAsset,
   StormCardAsset,
   TokenFace,
   TreacheryAsset,
@@ -37,6 +38,7 @@ export const factionTokenAssetDataSchema = HistoricalFactionPublicationObject.pi
 });
 
 export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
+export const STRONGHOLD_CARD_ASSET_TYPE = 'card-stronghold' as const;
 export const CUSTOM_CARD_ASSET_TYPE = 'card-custom' as const;
 export const NEXUS_CARD_ASSET_TYPE = 'card-nexus' as const;
 export const STORM_CARD_ASSET_TYPE = 'card-storm' as const;
@@ -95,6 +97,12 @@ export const nexusCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: NexusCardAsset,
+});
+
+export const strongholdCardAssetDataSchema = z.strictObject({
+  assetId: z.string().min(1),
+  slug: z.string().min(1),
+  card: StrongholdCardAsset,
 });
 
 export const customCardAssetDataSchema = z.strictObject({
@@ -177,6 +185,7 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   [SPICE_CARD_ASSET_TYPE]: spiceCardAssetDataSchema,
   [CUSTOM_CARD_ASSET_TYPE]: customCardAssetDataSchema,
   [NEXUS_CARD_ASSET_TYPE]: nexusCardAssetDataSchema,
+  [STRONGHOLD_CARD_ASSET_TYPE]: strongholdCardAssetDataSchema,
   [STORM_CARD_ASSET_TYPE]: stormCardAssetDataSchema,
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,
   'cardback-preset': deckCardbackAssetDataSchema,

@@ -488,3 +488,24 @@ export const ConvertAnotherCreatorsCard = meta.story({
     expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
   },
 });
+
+export const StrongholdCards = meta.story({ args: { path: '/assets/card-stronghold' } });
+export const StrongholdCard = meta.story({ args: { path: '/assets/card-stronghold/arrakeen' } });
+export const StrongholdDeck = meta.story({ args: { path: '/assets/deck/gf9-stronghold-deck' } });
+export const EditStrongholdCard = meta.story({ args: { path: '/assets/card-stronghold/arrakeen/edit' } });
+
+/** A new stronghold saves its constrained face and reopens for editing. */
+export const CreateStrongholdCardSaves = meta.story({
+  args: { path: '/assets/card-stronghold/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const name = await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
+    await userEvent.type(name, 'Storybook Stronghold');
+    await userEvent.click(page.getByRole('tab', { name: 'Body' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Body' }), 'Win tied battles here.');
+    await userEvent.click(page.getByRole('button', { name: 'Save card' }));
+    await expect(page.findByRole('button', { name: 'Delete card' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('tab', { name: 'Body' }));
+    await expect(page.findByRole('textbox', { name: 'Body' })).resolves.toHaveValue('Win tied battles here.');
+  },
+});

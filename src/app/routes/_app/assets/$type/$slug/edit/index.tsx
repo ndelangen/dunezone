@@ -13,6 +13,7 @@ import { LayeredEditPage } from './layeredEdit';
 import { NexusEditPage } from './nexusEdit';
 import { RectangleEditPage } from './rectangleEdit';
 import { SpiceEditPage } from './spiceEdit';
+import { StrongholdEditPage } from './strongholdEdit';
 import { TokenEditPage } from './tokenEdit';
 import { TreacheryEditPage } from './treacheryEdit';
 
@@ -46,6 +47,8 @@ function EditAssetPage() {
       return <LayeredEditPage config={customCardEditing} slug={slug} loaderData={loaderData} />;
     case 'card-storm':
       return <LayeredEditPage config={stormCardEditing} slug={slug} loaderData={loaderData} />;
+    case 'card-stronghold':
+      return <StrongholdEditPage slug={slug} loaderData={loaderData} />;
     case 'card-spice':
       return <SpiceEditPage slug={slug} loaderData={loaderData} />;
     case 'token-disc':

@@ -24,6 +24,7 @@ import { publishingSpiceCard } from '../../src/shared/assets/fixtures/publishing
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { GF9_NEXUS_CARDS } from '../../src/shared/assets/gf9Nexus';
+import { GF9_STRONGHOLD_CARDS } from '../../src/shared/assets/gf9StrongholdDeck';
 import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../../src/shared/assets/standardStormDeck';
 import { arrakisBoard } from '../../src/shared/boards/geometry';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
@@ -443,6 +444,7 @@ async function checkPublisherImageCapture(
     | 'card-spice'
     | 'card-custom'
     | 'card-nexus'
+    | 'card-stronghold'
     | 'card-storm'
     | 'faction-troop'
     | 'faction-traitor'
@@ -594,6 +596,19 @@ try {
       }),
       `custom card ${format}`
     );
+  }
+  const strongholdCapture = await checkPublisherImageCapture(
+    browser,
+    'card-stronghold',
+    envelope('card-stronghold', {
+      assetId: 'k17publisherStrongholdCard',
+      slug: 'arrakeen',
+      card: GF9_STRONGHOLD_CARDS[0],
+    }),
+    'stronghold card'
+  );
+  if (process.env.STRONGHOLD_PROOF_PATH) {
+    await Bun.write(process.env.STRONGHOLD_PROOF_PATH, strongholdCapture);
   }
   for (const card of STANDARD_STORM_CARDS) {
     const proof = await checkPublisherImageCapture(

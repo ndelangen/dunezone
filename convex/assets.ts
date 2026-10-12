@@ -11,6 +11,7 @@ import {
 } from '../src/shared/asset-publishing/publicationTargets';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
 import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
+import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
 import { StormCardAssetInput, DeckAssetInput } from '../src/shared/assets/schema';
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
 import { STANDARD_STORM_CARDS } from '../src/shared/assets/standardStormDeck';
@@ -1138,5 +1139,63 @@ export const provisionStandardStormDeck = internalMutation({
     }
     await enqueueAssetPublication(ctx, { _id: deckId, type: 'deck', slug: 'standard-storm-deck', data });
     return { deckId, cardIds, created: true };
+  },
+});
+
+/** Creates the requested reference deck once, preserving later edits when called again. */
+export const seedGf9StrongholdDeck = internalMutation({
+  args: { ownerProfileSlug: v.string() },
+  returns: v.object({ deckId: v.id('assets'), slug: v.string(), created: v.boolean() }),
+  handler: async (ctx, { ownerProfileSlug }) => {
+    const profile = await ctx.db
+      .query('profiles')
+      .withIndex('by_slug', (q) => q.eq('slug', ownerProfileSlug))
+      .unique();
+    if (profile?.account_state !== 'active' || profile.merged_into_profile_id) {
+      throw new Error('The deck needs an active owner profile');
+    }
+    const deckSlug = slugify(GF9_STRONGHOLD_DECK.name);
+    const existing = await ctx.db
+      .query('assets')
+      .withIndex('by_type_and_slug', (q) => q.eq('type', 'deck').eq('slug', deckSlug))
+      .unique();
+    if (existing) {
+      if (existing.is_deleted || existing.owner_id !== profile.user_id) {
+        throw new Error('The GF9 Stronghold Deck address is already reserved');
+      }
+      return { deckId: existing._id, slug: existing.slug, created: false };
+    }
+    const now = nowIso();
+    const insert = async (type: string, data: unknown) => {
+      const parsed = parseAssetDataForWrite(type, data);
+      const slug = await allocateAssetSlug(ctx, type, slugify(parsed.name));
+      const id = await ctx.db.insert('assets', {
+        owner_id: profile.user_id,
+        type,
+        data: parsed.data,
+        slug,
+        created_at: now,
+        updated_at: now,
+        is_deleted: false,
+        group_id: null,
+      });
+      await enqueueAssetPublication(ctx, { _id: id, type, data: parsed.data, slug });
+      return { id, slug };
+    };
+    const deck = await insert('deck', GF9_STRONGHOLD_DECK);
+    for (const card of GF9_STRONGHOLD_CARDS) {
+      const member = await insert(
+        'card-stronghold',
+        card
+      ); /* NOSONAR: slug allocation and trigger-aware writes stay sequential. */
+      await ctx.db.insert('asset_relations', {
+        /* NOSONAR: each relation follows its inserted card. */
+        from_asset_id: deck.id,
+        to_asset_id: member.id,
+        kind: 'deck-card',
+        count: 1,
+      });
+    }
+    return { deckId: deck.id, slug: deck.slug, created: true };
   },
 });

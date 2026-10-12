@@ -12,6 +12,7 @@ import { LayeredCreatePage } from './layeredCreate';
 import { NexusCreatePage } from './nexusCreate';
 import { RectangleCreatePage } from './rectangleCreate';
 import { SpiceCreatePage } from './spiceCreate';
+import { StrongholdCreatePage } from './strongholdCreate';
 import { TokenCreatePage } from './tokenCreate';
 import { TreacheryCreatePage } from './treacheryCreate';
 
@@ -47,6 +48,8 @@ function CreateAssetPage() {
       return <LayeredCreatePage key={type} config={customCardEditing} />;
     case 'card-storm':
       return <LayeredCreatePage key={type} config={stormCardEditing} />;
+    case 'card-stronghold':
+      return <StrongholdCreatePage />;
     case 'card-spice':
       return <SpiceCreatePage />;
     /* One editor for all three shapes: shape is the type, and only the proof's clip differs. */

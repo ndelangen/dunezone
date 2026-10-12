@@ -39,7 +39,7 @@ const effects = [
     symbol: 'ecaz',
     colors: ['#496650', '#173A21'],
     betrayal:
-      'Before Shipping and Movement, if Ecaz and their ally share a territory, return the ally’s forces in one such territory to their reserves.',
+      "Before Shipping and Movement, if Ecaz and their ally share a territory, return the ally's forces in one such territory to their reserves.",
     cunning:
       'Take Duke Vidal for this turn, even if he is captured, in the tanks, a ghola or held by Moritani. Set him aside at the end of the turn.',
     secretAlly:
@@ -113,7 +113,7 @@ const effects = [
     symbol: 'guild',
     colors: ['#D83C13', '#B41C0C'],
     betrayal:
-      'Take the full payment for one shipment, including your own, that would go to the Guild or Spice Bank. This overrides Junction’s shipment income.',
+      "Take the full payment for one shipment, including your own, that would go to the Guild or Spice Bank. This overrides Junction's shipment income.",
     cunning:
       'Make a second shipment immediately after Shipping and Movement. You cannot move those forces unless you use Hajr.',
     secretAlly:

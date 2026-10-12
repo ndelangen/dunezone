@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="root" data-authored="svg-authoring" viewBox="0 0 760 360">
+  <defs>
+    <clipPath id="scene">
+      <path d="M15 0H745Q760 0 760 15V345Q760 360 745 360H15Q0 360 0 345V15Q0 0 15 0Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#scene)">
+    <path d="M15 0H745Q760 0 760 15V345Q760 360 745 360H15Q0 360 0 345V15Q0 0 15 0Z" fill="#7FADBE"/>
+    <path d="M0 292Q220 212 390 276T760 225V360H0Z" fill="#D6A86C"/>
+    <path d="M0 315Q230 250 435 315T760 290V360H0Z" fill="#F0D299"/>
+    <path d="M0 256V52L82 88 145 22 225 63 294 31 361 76 453 10 523 55 618 33 702 70 760 23V266Z" fill="#9E593A"/>
+    <path d="M0 242 90 107 120 220 221 92 266 202 340 131 360 262 490 94 501 223 583 111 604 245 683 100 760 252Z" fill="#704331"/>
+    <path d="M35 328V256H87V227H132V186L150 135 169 186V254H201V236H245V270H296V168L313 110 331 170V258H385V229H430V253H474V296H534V325Z" fill="#E9E3CC" stroke="#FFF7DE" stroke-width="4"/>
+    <path d="M40 327Q295 345 528 302" fill="none" stroke="#BBA98B" stroke-width="7"/>
+  </g>
+</svg>
