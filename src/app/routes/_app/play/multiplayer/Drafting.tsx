@@ -455,11 +455,14 @@ export function DraftingHeader({
       </span>
       <span className={styles.headerLine}>
         {alert ? (
+          /* A button, like a gate step, so the keyboard reaches the reason and the way out as the pointer does. */
           <Tooltip label={alert.help} multiline maw={340} events={{ hover: true, focus: true, touch: true }}>
-            <strong className={styles.headerAlert}>
-              {alert.line}
-              <VisuallyHidden component="span">. {alert.help}</VisuallyHidden>
-            </strong>
+            <UnstyledButton type="button" className={styles.headerAlert}>
+              <strong>
+                {alert.line}
+                <VisuallyHidden component="span">. {alert.help}</VisuallyHidden>
+              </strong>
+            </UnstyledButton>
           </Tooltip>
         ) : (
           <strong>{draftStatus(gates)}</strong>

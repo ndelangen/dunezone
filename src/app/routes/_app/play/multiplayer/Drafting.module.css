@@ -265,6 +265,7 @@ button.token {
 }
 
 .headerAlert {
+  font: inherit;
   color: #f0b44c !important;
   pointer-events: auto;
 }
@@ -375,8 +376,13 @@ button.token {
   }
 }
 
+/* The ring obeys the site's Ambient motion verdict, falling back to the OS preference when none is set. */
+:global(html[data-motion="reduce"]) .requestGhost::after {
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .requestGhost::after {
+  :global(html:not([data-motion="ok"])) .requestGhost::after {
     animation: none;
   }
 }
