@@ -206,8 +206,15 @@ describe('asset group assignment', () => {
     const owner = t.withIdentity({ subject: ownerId });
     const current = await assetPageAs(owner, address);
     const legacy = await owner.query(api.assets.getPage, address);
-    const { ownerId: _ownerId, assignedGroup: _assignedGroup, convertibleToCustom: _convertible, ...facts } = current!;
+    const {
+      ownerId: _ownerId,
+      assignedGroup: _assignedGroup,
+      convertibleToCustom: _convertible,
+      cardFrontPresets: _cardFrontPresets,
+      ...facts
+    } = current!;
     expect(legacy).toEqual(facts);
+    expect(legacy).not.toHaveProperty('cardFrontPresets');
     expect(legacy?.viewerAccess.capabilities.edit).toBe(true);
   });
 
