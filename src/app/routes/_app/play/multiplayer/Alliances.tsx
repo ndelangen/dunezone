@@ -3,7 +3,6 @@ import { alliesOf } from '@shared/play/alliances';
 import type { AllianceAction, AllianceState } from '@shared/play/alliances';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { factionTokenOf } from '@shared/play/factionToken';
-import { rosterSeat } from '@shared/play/schema';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { ReactNode } from 'react';
@@ -11,7 +10,7 @@ import type { ReactNode } from 'react';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { allianceSlot, allianceThemeColor } from './allianceHues';
 import { ALLIANCES_HELP } from './panelGuidance';
-import { viewerFaction } from './tableFactions';
+import { seatFaction, viewerFaction } from './tableFactions';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
@@ -33,7 +32,7 @@ export function showsAlliances(stage: string | undefined) {
 
 /** A player's alliance on their Info tab, with what the viewer can do about it: offer, accept or decline, withdraw, or break an alliance. */
 export function PlayerAlliance({ client, table, seat }: Props & Readonly<{ seat: string }>) {
-  const factionId = rosterSeat(table.snapshot.roster, seat)?.faction?.id;
+  const factionId = seatFaction(table, seat);
   if (!factionId || !showsAlliances(table.snapshot.stage)) {
     return null;
   }

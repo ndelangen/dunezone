@@ -16,7 +16,6 @@ import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
-import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
@@ -44,6 +43,7 @@ import { PieceImage, pieceName } from './HandPiece';
 import { HandPieceMenu, handMenuAnchor } from './HiddenZone';
 import type { HandMenuAnchor } from './HiddenZone';
 import { battleHelp, handHelp } from './panelGuidance';
+import { isSpectator } from './tableFactions';
 
 type Props = { client: TableSession; table: TableProjection };
 type Outcome = NonNullable<NonNullable<PublicBattle['sides'][number]>['choice']>;
@@ -96,12 +96,47 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
     </Button>
   );
 }
+/* The plan's capable troops as the wheel shows them, each dressed in the faction's own troop artwork. */
+function wheelTroops(
+  plan: BattlePlan,
+  factionId: string,
+  background: ReturnType<typeof factionArtwork>['background'],
+  retained: NonNullable<FactionArtwork>[string] | undefined
+) {
+  const retainedFaces = retained && new Map(troopBattleFaces(retained.troops).map((entry) => [entry.id, entry.face]));
+  return plan.faces
+    .filter((face) => face.capable)
+    .flatMap((face) => {
+      const troop = plan.troops.find((entry) => entry.faceId === face.id);
+      const authored = retainedFaces?.get(face.id);
+      /* Real games never borrow a fixture house's troop artwork; a captured face is found by its identity, not its name. */
+      if (retainedFaces && !authored) {
+        return [];
+      }
+      return [
+        {
+          id: face.id,
+          name: face.name,
+          dialed: troop?.dialed ?? 0,
+          undialed: troop?.undialed ?? 0,
+          artwork: {
+            background,
+            image:
+              authored?.image ??
+              (factionId === 'atreides' ? '/vector/troop/atreides.svg' : '/vector/troop/harkonnen.svg'),
+            star: authored?.star,
+            hue: authored?.hue,
+            striped: authored?.striped,
+          },
+        },
+      ];
+    });
+}
 /** Play owns piece visibility, pointer sessions and the Motion verdict; the asset owns the wheel artwork. */
 function BattleWheel({ plan, factionId, factionName, client, active, artwork }: WheelProps) {
   const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
   const motion = useMotionAllowed();
   const retained = artwork?.[factionId];
-  const retainedFaces = retained && new Map(troopBattleFaces(retained.troops).map((entry) => [entry.id, entry.face]));
   const { background } = factionArtwork(factionId, artwork);
   return (
     <BattleWheelAsset
@@ -113,33 +148,7 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork }: 
       strength={plan.strength}
       spice={plan.spice}
       adjustment={plan.adjustment}
-      troops={plan.faces
-        .filter((face) => face.capable)
-        .flatMap((face) => {
-          const troop = plan.troops.find((entry) => entry.faceId === face.id);
-          const authored = retainedFaces?.get(face.id);
-          /* Real games never borrow a fixture house's troop artwork; a captured face is found by its identity, not its name. */
-          if (retainedFaces && !authored) {
-            return [];
-          }
-          return [
-            {
-              id: face.id,
-              name: face.name,
-              dialed: troop?.dialed ?? 0,
-              undialed: troop?.undialed ?? 0,
-              artwork: {
-                background,
-                image:
-                  authored?.image ??
-                  (factionId === 'atreides' ? '/vector/troop/atreides.svg' : '/vector/troop/harkonnen.svg'),
-                star: authored?.star,
-                hue: authored?.hue,
-                striped: authored?.striped,
-              },
-            },
-          ];
-        })}
+      troops={wheelTroops(plan, factionId, background, retained)}
       cards={plan.pieces
         .filter((piece) => plan.cardIds.includes(piece.id) && visiblePiece(piece, active))
         .map((piece) => (
@@ -551,7 +560,7 @@ function battleNotice(table: TableProjection, battle: PublicBattle | null | unde
   if (battle.stage === 'revealed') {
     return 'Both plans are revealed on the table.';
   }
-  if (table.viewer.viewerSeat === SPECTATOR_SEAT || battle.sides.every(Boolean)) {
+  if (isSpectator(table) || battle.sides.every(Boolean)) {
     return 'Only the two sides see their plans until the reveal.';
   }
   return 'Claim a side on the table to prepare your private plan.';

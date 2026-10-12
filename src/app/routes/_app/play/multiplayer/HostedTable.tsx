@@ -1,9 +1,8 @@
 import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import type { SpawnSelection } from '@shared/play/inventory';
+import type { PublicControls, SpawnSelection } from '@shared/play/inventory';
 import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
-import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { setupMapVisible, setupStep } from '@shared/play/setup';
 import type { SpiceTransfer } from '@shared/play/spiceReserve';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
@@ -70,7 +69,7 @@ import { GameMenu, SeatPopover } from './SeatRequests';
 import { stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
-import { factionName, factionOptions, viewerFaction } from './tableFactions';
+import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction } from './tableFactions';
 import { TableSettings } from './TableSettings';
 import { ServerClockContext } from './useServerNow';
 import '../dune-play.css';
@@ -97,12 +96,11 @@ function gameProgress(snapshot: TableProjection['snapshot']) {
 
 /* A seat reads by the faction it carries; a seat with no faction yet, or a spectator, by what it is. */
 function seatLabel(table: TableProjection): string {
-  const seat = table.viewer.viewerSeat;
-  if (seat === SPECTATOR_SEAT) {
+  if (isSpectator(table)) {
     return 'Spectator';
   }
-  const faction = rosterSeat(table.snapshot.roster, seat)?.faction;
-  return (faction && snapshotFactionLabels(table.snapshot)[faction.id]) ?? seat;
+  const faction = viewerFaction(table);
+  return (faction && snapshotFactionLabels(table.snapshot)[faction]) ?? table.viewer.viewerSeat;
 }
 
 function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
@@ -130,13 +128,7 @@ function battleFocus(table: TableProjection) {
   const battle = table.snapshot.battle;
   const own = viewerFaction(table);
   /* The same "in play" test that shows the Battle tab: a hosted game in play, or a table with no stage. */
-  const stage = table.snapshot.stage;
-  if (
-    (stage !== undefined && stage !== 'play') ||
-    !battle ||
-    !own ||
-    !battle.sides.some((side) => side?.factionId === own)
-  ) {
+  if (!stageInPlay(table.snapshot.stage) || !battle || !own || !battle.sides.some((side) => side?.factionId === own)) {
     return null;
   }
   return { key: 'battle', token: battle.id };
@@ -164,8 +156,7 @@ function phaseTab(table: TableProjection, activePhaseId: string) {
     return null;
   }
   const key = PHASE_TABS[activePhaseId] ?? null;
-  const spectator = table.viewer.viewerSeat === SPECTATOR_SEAT;
-  return spectator && key && !SPECTATOR_PHASE_TABS.has(key) ? null : key;
+  return isSpectator(table) && key && !SPECTATOR_PHASE_TABS.has(key) ? null : key;
 }
 
 /* The dock follows the live table: each phase change, battle and end-of-game event opens its tab once (see dockFocus.ts). */
@@ -279,6 +270,14 @@ function PredictionInput({ client, table, stepId }: TableControlProps & { stepId
   );
 }
 
+/* A locked prediction is revealed, waits for its card on the table, or stays locked until its player reveals it. */
+function lockedPredictionText(revealed: boolean, byCard: boolean) {
+  if (revealed) {
+    return 'Prediction revealed';
+  }
+  return byCard ? 'Prediction locked. Place your prediction card on the table to reveal it.' : 'Prediction locked';
+}
+
 function Predictions({ client, table }: TableControlProps) {
   const ownFaction = viewerFaction(table);
   const current = table.snapshot.setup && setupStep(table.snapshot.setup);
@@ -300,13 +299,7 @@ function Predictions({ client, table }: TableControlProps) {
           <Stack gap="sm">
             {prediction ? (
               <>
-                <Text size="sm">
-                  {prediction.revealedAt !== null
-                    ? 'Prediction revealed'
-                    : byCard
-                      ? 'Prediction locked. Place your prediction card on the table to reveal it.'
-                      : 'Prediction locked'}
-                </Text>
+                <Text size="sm">{lockedPredictionText(prediction.revealedAt !== null, byCard)}</Text>
                 {prediction.choice && !byCard && (
                   <PredictionCards
                     table={table}
@@ -490,15 +483,7 @@ function SharedInventory({ client, table }: TableControlProps) {
             >
               {controls.seats.length === 1 ? 'Spawn' : 'Request'}
             </Button>
-            {picker.selection && (
-              <Text size="sm">
-                {contents
-                  ? `${contents.pieces.reduce((count, piece) => count + piece.items.length, 0)} items ready to add`
-                  : view.catalogue?.requestId === picker.requestId && view.catalogue.error
-                    ? view.catalogue.error
-                    : 'Checking published definitions and images...'}
-              </Text>
-            )}
+            {picker.selection && <Text size="sm">{catalogueStatus(view.catalogue, picker.requestId)}</Text>}
           </Group>
         )}
         <Group align="start">
@@ -533,39 +518,62 @@ function SharedInventory({ client, table }: TableControlProps) {
           ))}
         </Group>
         {controls.requests.map((request) => (
-          <Group key={request.id} justify="space-between">
-            <Text>
-              {request.contents.name} requested by {request.requesterName}
-            </Text>
-            <Group gap="xs">
-              <Button
-                disabled={!table.canHandleTable || request.requesterSeat === table.viewer.viewerSeat}
-                onClick={() =>
-                  client.command({
-                    kind: 'spawn-approve',
-                    requestId: request.id,
-                  })
-                }
-              >
-                Approve
-              </Button>
-              <Button
-                variant="default"
-                disabled={!table.canHandleTable}
-                onClick={() =>
-                  client.command({
-                    kind: 'spawn-dismiss',
-                    requestId: request.id,
-                  })
-                }
-              >
-                Dismiss
-              </Button>
-            </Group>
-          </Group>
+          <SpawnRequest key={request.id} client={client} table={table} request={request} />
         ))}
       </Stack>
     </Section>
+  );
+}
+
+/* What the picker says about the chosen asset: how many items it adds, why it cannot, or that it is still being checked. */
+function catalogueStatus(catalogue: ReturnType<TableSession['getSnapshot']>['catalogue'], requestId: string | null) {
+  const checking = 'Checking published definitions and images...';
+  if (!catalogue || catalogue.requestId !== requestId) {
+    return checking;
+  }
+  if (catalogue.contents) {
+    return `${catalogue.contents.pieces.reduce((count, piece) => count + piece.items.length, 0)} items ready to add`;
+  }
+  return catalogue.error || checking;
+}
+
+/* A request to spawn an asset, which any other player can approve and anyone can dismiss. */
+function SpawnRequest({
+  client,
+  table,
+  request,
+}: TableControlProps & Readonly<{ request: PublicControls['requests'][number] }>) {
+  return (
+    <Group justify="space-between">
+      <Text>
+        {request.contents.name} requested by {request.requesterName}
+      </Text>
+      <Group gap="xs">
+        <Button
+          disabled={!table.canHandleTable || request.requesterSeat === table.viewer.viewerSeat}
+          onClick={() =>
+            client.command({
+              kind: 'spawn-approve',
+              requestId: request.id,
+            })
+          }
+        >
+          Approve
+        </Button>
+        <Button
+          variant="default"
+          disabled={!table.canHandleTable}
+          onClick={() =>
+            client.command({
+              kind: 'spawn-dismiss',
+              requestId: request.id,
+            })
+          }
+        >
+          Dismiss
+        </Button>
+      </Group>
+    </Group>
   );
 }
 
@@ -910,7 +918,7 @@ type ControlTabsProps = ConnectionControlsProps & Readonly<{ declare: DeclareCho
 
 function controlTabs(props: ControlTabsProps): PanelTab[] {
   const { stage, hand } = props.table.snapshot;
-  const inPlay = stage === undefined || stage === 'play';
+  const inPlay = stageInPlay(stage);
   const hasInventory = inPlay || stage === 'finished' || stage === 'setup';
   return [
     ...(hasInventory && hand ? [yoursTab(props)] : []),
@@ -922,6 +930,86 @@ function controlTabs(props: ControlTabsProps): PanelTab[] {
 
 /* The player the panel shows, through their seat or the removal vote against them, and which of its tabs is open. */
 type PlayerSelection = Readonly<{ seat: string | null; vote: string | null; tab: 'public' | 'conversation' }>;
+
+/* While a removal vote stands against the chosen player the panel follows its target, otherwise the chosen seat. */
+function usePlayerSelection(table: TableProjection) {
+  const [selection, setSelection] = useState<PlayerSelection>({ seat: null, vote: null, tab: 'conversation' });
+  const removalVotes = table.snapshot.removalVotes ?? [];
+  return {
+    seat: removalVotes.find((vote) => vote.id === selection.vote)?.target.seat ?? selection.seat,
+    tab: selection.tab,
+    select: (seat: string, tab: PlayerSelection['tab']) =>
+      setSelection({ seat, vote: removalVotes.find((vote) => vote.target.seat === seat)?.id ?? null, tab }),
+  };
+}
+
+/* The pieces the stage stands on the board: the trade and setup scenes before play, then the battle, bidder, hands and coins. */
+function stageScene({ client, table, bidderFaded }: TableControlProps & Readonly<{ bidderFaded: boolean }>) {
+  const stage = table.snapshot.stage;
+  if (stage === 'swapping' || stage === 'setup') {
+    return (
+      <>
+        <SwapScene snapshot={table.snapshot} />
+        {stage === 'setup' && <BattleScene client={client} table={table} />}
+      </>
+    );
+  }
+  return (
+    <>
+      <BattleScene client={client} table={table} />
+      {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
+      {stageInPlay(stage) && <HandCountsScene table={table} />}
+      <AllianceCoinsScene table={table} />
+    </>
+  );
+}
+
+/* Spectators open the current battle when present, otherwise History. Finished games open History. */
+function openingTabs(table: TableProjection) {
+  const stage = table.snapshot.stage;
+  if (stage === 'finished') {
+    return ['history'];
+  }
+  if (isSpectator(table)) {
+    return SPECTATOR_OPENING_TABS;
+  }
+  return stage === 'setup' ? ['setup'] : undefined;
+}
+
+/* A finished game keeps its panels and playback; only the phase controls stop. */
+function phaseTabControls({
+  client,
+  table,
+  error,
+  progress,
+}: ConnectionControlsProps & Readonly<{ progress: ReturnType<typeof gameProgress> }>) {
+  const stage = table.snapshot.stage;
+  if (!stageInPlay(stage) && stage !== 'finished') {
+    return undefined;
+  }
+  return (
+    <>
+      <PhaseControls table={table} />
+      {stage === 'play' && table.snapshot.setup && progress.turn === 1 && progress.activePhaseId === 'storm' && (
+        <Button
+          variant="default"
+          disabled={!table.canInteract}
+          onClick={() => client.command({ kind: 'storm-random' })}
+        >
+          Place storm randomly
+        </Button>
+      )}
+      {stage === 'play' || stage === 'finished' ? (
+        <>
+          <DetermineWinner client={client} table={table} />
+          {error && <FormError title="From the table">{error}</FormError>}
+        </>
+      ) : (
+        <ConnectionControls client={client} table={table} error={error} />
+      )}
+    </>
+  );
+}
 
 function ConnectedTable({
   client,
@@ -942,15 +1030,8 @@ function ConnectedTable({
   const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
-  const [playerSelection, selectPlayer] = useState<PlayerSelection>({ seat: null, vote: null, tab: 'conversation' });
-  const removalVotes = table.snapshot.removalVotes ?? [];
-  const selectedPlayer =
-    removalVotes.find((vote) => vote.id === playerSelection.vote)?.target.seat ?? playerSelection.seat;
+  const player = usePlayerSelection(table);
   const stage = table.snapshot.stage;
-  /* The fixture has no stage and plays like a game in play. */
-  const inPlay = stage === undefined || stage === 'play';
-  /* A finished game keeps its panels and playback; only the phase controls stop. */
-  const tabled = inPlay || stage === 'finished';
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionLogos = useMemo(
     () => Object.fromEntries(Object.entries(factionArtwork ?? {}).map(([id, artwork]) => [id, artwork.logo])),
@@ -979,22 +1060,10 @@ function ConnectedTable({
             toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
             /* The gathered Traitor pile lies under the Tleilaxu tanks, below the Map view's frame on a wide screen (#1635). */
             requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
-            showStormControls={inPlay && progress.activePhaseId === 'storm'}
+            showStormControls={stageInPlay(stage) && progress.activePhaseId === 'storm'}
             sceneContent={
               <>
-                {stage === 'swapping' || stage === 'setup' ? (
-                  <>
-                    <SwapScene snapshot={table.snapshot} />
-                    {stage === 'setup' && <BattleScene client={client} table={table} />}
-                  </>
-                ) : (
-                  <>
-                    <BattleScene client={client} table={table} />
-                    {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
-                    {inPlay && <HandCountsScene table={table} />}
-                    <AllianceCoinsScene table={table} />
-                  </>
-                )}
+                {stageScene({ client, table, bidderFaded })}
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
               </>
             }
@@ -1015,7 +1084,7 @@ function ConnectedTable({
               stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
             }
             panelContent={
-              stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
+              stage === 'drafting' && !isSpectator(table) ? (
                 <DraftingPanel client={client} table={table} error={error} />
               ) : undefined
             }
@@ -1025,58 +1094,17 @@ function ConnectedTable({
                   client={client}
                   table={table}
                   error={error}
-                  selected={selectedPlayer}
-                  selectedTab={playerSelection.tab}
-                  onSelect={(seat, tab) =>
-                    selectPlayer({
-                      seat,
-                      vote: removalVotes.find((vote) => vote.target.seat === seat)?.id ?? null,
-                      tab,
-                    })
-                  }
+                  selected={player.seat}
+                  selectedTab={player.tab}
+                  onSelect={player.select}
                 />
               ) : undefined
             }
             focusTab={focusTab}
-            /* Spectators open the current battle when present, otherwise History. Finished games open History. */
-            openOn={
-              stage === 'finished'
-                ? ['history']
-                : table.viewer.viewerSeat === SPECTATOR_SEAT
-                  ? SPECTATOR_OPENING_TABS
-                  : stage === 'setup'
-                    ? ['setup']
-                    : undefined
-            }
+            openOn={openingTabs(table)}
             panelTabs={controlTabs({ client, table, error, declare })}
             tableGuidance={phaseGuidance(table)}
-            tableControls={
-              tabled ? (
-                <>
-                  <PhaseControls table={table} />
-                  {stage === 'play' &&
-                    table.snapshot.setup &&
-                    progress.turn === 1 &&
-                    progress.activePhaseId === 'storm' && (
-                      <Button
-                        variant="default"
-                        disabled={!table.canInteract}
-                        onClick={() => client.command({ kind: 'storm-random' })}
-                      >
-                        Place storm randomly
-                      </Button>
-                    )}
-                  {stage === 'play' || stage === 'finished' ? (
-                    <>
-                      <DetermineWinner client={client} table={table} />
-                      {error && <FormError title="From the table">{error}</FormError>}
-                    </>
-                  ) : (
-                    <ConnectionControls client={client} table={table} error={error} />
-                  )}
-                </>
-              ) : undefined
-            }
+            tableControls={phaseTabControls({ client, table, error, progress })}
           />
         </div>
       </TabletopSessionProvider>

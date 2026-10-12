@@ -52,27 +52,8 @@ function GamePage() {
   const navigate = Route.useNavigate();
   const runtime = useContext(GameRuntimeContext);
   const { data } = useGameAccess(address);
-  const [known, remember] = useReducer((_previous: KnownGame | null, event: GamePageEvent) => event.game, null);
   const authorized = data && 'gameId' in data ? data : null;
-  if (
-    authorized &&
-    (known?.gameId !== authorized.gameId ||
-      known.slug !== authorized.slug ||
-      known.name !== authorized.name ||
-      known.status !== authorized.status)
-  ) {
-    remember({
-      type: 'resolved',
-      game: {
-        gameId: authorized.gameId,
-        slug: authorized.slug,
-        name: authorized.name,
-        status: authorized.status,
-        ruleset: 'ruleset' in authorized ? authorized.ruleset : undefined,
-      },
-    });
-  }
-  const current = authorized ?? (known && (address === known.gameId || address === known.slug) ? known : null);
+  const current = useKnownGame(address, authorized);
   const unreachable = useServerUnreachable(data === undefined);
   const stored = useSyncExternalStore(
     noSubscription,
@@ -81,13 +62,15 @@ function GamePage() {
   );
   const refused = data !== undefined && data.status !== 'ready' && data.status !== 'preparing';
   useEffect(() => {
+    const forget = (gameId: string) => {
+      forgetStoredPlayTable(gameId);
+      runtime.tables?.clear(gameId);
+    };
     if (stored && (refused || (authorized && authorized.gameId !== stored))) {
-      forgetStoredPlayTable(stored);
-      runtime.tables?.clear(stored);
+      forget(stored);
     }
     if (refused && current) {
-      forgetStoredPlayTable(current.gameId);
-      runtime.tables?.clear(current.gameId);
+      forget(current.gameId);
     }
   }, [refused, stored, authorized, current, runtime]);
   useEffect(() => {
@@ -119,14 +102,9 @@ function GamePage() {
         return <TablePage game={current ?? { gameId: stored!, name: 'Game', slug: null }} exit={exit} />;
       }
       return (
-        <PageLayout height="fullscreen">
-          <PageLayout.Header size="compact">
-            <PageTitle title="Game" />
-          </PageLayout.Header>
-          <PageLayout.Content width="viewport">
-            <TableWait status={unreachable ? SERVER_UNREACHABLE : 'Loading the game...'}>{exit}</TableWait>
-          </PageLayout.Content>
-        </PageLayout>
+        <TableFrame title="Game">
+          <TableWait status={unreachable ? SERVER_UNREACHABLE : 'Loading the game...'}>{exit}</TableWait>
+        </TableFrame>
       );
     case 'sign_in_required':
       return (
@@ -143,19 +121,14 @@ function GamePage() {
     case 'preparing':
       return (
         /* The same dark frame the table loads in, so the create page's fade to black opens straight onto it. */
-        <PageLayout height="fullscreen">
-          <PageLayout.Header size="compact">
-            <PageTitle title={data.name} />
-          </PageLayout.Header>
-          <PageLayout.Content width="viewport">
-            <TableWait status="Preparing the table">
-              <ClientOnly>
-                <GameLink address={data.slug ?? data.gameId} />
-              </ClientOnly>
-              {exit}
-            </TableWait>
-          </PageLayout.Content>
-        </PageLayout>
+        <TableFrame title={data.name}>
+          <TableWait status="Preparing the table">
+            <ClientOnly>
+              <GameLink address={data.slug ?? data.gameId} />
+            </ClientOnly>
+            {exit}
+          </TableWait>
+        </TableFrame>
       );
     case 'unavailable':
       return (
@@ -177,6 +150,42 @@ type KnownGame = Pick<Extract<GameAccess, { gameId: string }>, 'gameId' | 'slug'
 };
 type GamePageEvent = { type: 'resolved'; game: KnownGame };
 
+/* The game the directory resolved, or the one it last resolved at this address while it has not answered again. */
+function useKnownGame(address: string, authorized: Extract<GameAccess, { gameId: string }> | null) {
+  const [known, remember] = useReducer((_previous: KnownGame | null, event: GamePageEvent) => event.game, null);
+  if (
+    authorized &&
+    (known?.gameId !== authorized.gameId ||
+      known.slug !== authorized.slug ||
+      known.name !== authorized.name ||
+      known.status !== authorized.status)
+  ) {
+    remember({
+      type: 'resolved',
+      game: {
+        gameId: authorized.gameId,
+        slug: authorized.slug,
+        name: authorized.name,
+        status: authorized.status,
+        ruleset: 'ruleset' in authorized ? authorized.ruleset : undefined,
+      },
+    });
+  }
+  return authorized ?? (known && (address === known.gameId || address === known.slug) ? known : null);
+}
+
+/* The dark full-screen frame a game's table loads in, under the game's name. */
+function TableFrame({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
+  return (
+    <PageLayout height="fullscreen">
+      <PageLayout.Header size="compact">
+        <PageTitle title={title} />
+      </PageLayout.Header>
+      <PageLayout.Content width="viewport">{children}</PageLayout.Content>
+    </PageLayout>
+  );
+}
+
 /* One element for a ready game and for a kept table, so the table a reload restored stays mounted when the directory answers. */
 function TablePage({
   game,
@@ -184,22 +193,17 @@ function TablePage({
 }: Readonly<{ game: Omit<KnownGame, 'status' | 'gameId'> & { gameId: string }; exit: ReactNode }>) {
   const loading = <TableWait status="Loading the table...">{exit}</TableWait>;
   return (
-    <PageLayout height="fullscreen">
-      <PageLayout.Header size="compact">
-        <PageTitle title={game.name} />
-      </PageLayout.Header>
-      <PageLayout.Content width="viewport">
-        <ClientOnly fallback={loading}>
-          <Suspense fallback={loading}>
-            <HostedTable
-              key={game.gameId}
-              gameId={game.gameId}
-              exitControl={exit}
-              identity={{ rulesetName: game.ruleset?.name ?? null, address: game.slug ?? game.gameId }}
-            />
-          </Suspense>
-        </ClientOnly>
-      </PageLayout.Content>
-    </PageLayout>
+    <TableFrame title={game.name}>
+      <ClientOnly fallback={loading}>
+        <Suspense fallback={loading}>
+          <HostedTable
+            key={game.gameId}
+            gameId={game.gameId}
+            exitControl={exit}
+            identity={{ rulesetName: game.ruleset?.name ?? null, address: game.slug ?? game.gameId }}
+          />
+        </Suspense>
+      </ClientOnly>
+    </TableFrame>
   );
 }

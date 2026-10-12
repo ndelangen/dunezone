@@ -96,27 +96,34 @@ export function applyDraftAction(
     throw new GameRejection('Only a seated player drafts.');
   }
   const draft = snapshot.draft ?? emptyDraft(minimum);
-  const own = { picks: draft.picks[seat] ?? [], bans: draft.bans[seat] ?? [] };
-  switch (action.kind) {
-    case 'draft-pick': {
-      const faction = factionNamed(draft, action.factionId);
-      requirePickable(draft, faction, own.picks);
-      const next = changed({ ...draft, picks: { ...draft.picks, [seat]: [...own.picks, faction.id] } });
-      return withEvent(snapshot, viewer, next, action.kind, faction);
+  if (action.kind === 'draft-ready') {
+    /* Readiness already as asked changes nothing, so a withdrawal that crossed another one leaves no event and keeps the failure. */
+    if (draft.ready.includes(seat) === action.ready) {
+      return snapshot;
     }
-    case 'draft-unpick': {
-      const faction = factionNamed(draft, action.factionId);
+    const ready = draft.ready.filter((candidate) => candidate !== seat);
+    const next = { ...draft, ready: action.ready ? [...ready, seat] : ready, failure: null };
+    const table = tableForViewer(snapshot, SPECTATOR_SEAT);
+    const message = `${seatSubject(seat)} ${action.ready ? 'is ready to be dealt' : 'withdrew readiness'}.`;
+    return { ...nextSnapshot(snapshot, accepted(table, action.kind, message)), draft: next };
+  }
+  const faction = factionNamed(draft, action.factionId);
+  return withEvent(snapshot, viewer, changed(listsAfter(draft, seat, action.kind, faction)), action.kind, faction);
+}
+
+/** The draft after one seat's list change, refused when its own picks or bans cannot change that way. */
+function listsAfter(draft: DraftState, seat: string, kind: ListChange, faction: DraftFaction): DraftState {
+  const own = { picks: draft.picks[seat] ?? [], bans: draft.bans[seat] ?? [] };
+  switch (kind) {
+    case 'draft-pick':
+      requirePickable(draft, faction, own.picks);
+      return { ...draft, picks: { ...draft.picks, [seat]: [...own.picks, faction.id] } };
+    case 'draft-unpick':
       if (!own.picks.includes(faction.id)) {
         throw new GameRejection(`${faction.name} is not in your draft.`);
       }
-      const next = changed({
-        ...draft,
-        picks: { ...draft.picks, [seat]: own.picks.filter((id) => id !== faction.id) },
-      });
-      return withEvent(snapshot, viewer, next, action.kind, faction);
-    }
+      return { ...draft, picks: { ...draft.picks, [seat]: own.picks.filter((id) => id !== faction.id) } };
     case 'draft-ban': {
-      const faction = factionNamed(draft, action.factionId);
       if (own.bans.includes(faction.id)) {
         throw new GameRejection(`You already banned ${faction.name}.`);
       }
@@ -124,28 +131,13 @@ export function applyDraftAction(
       const picks = Object.fromEntries(
         Object.entries(draft.picks).map(([owner, list]) => [owner, list.filter((id) => id !== faction.id)])
       );
-      const next = changed({ ...draft, picks, bans: { ...draft.bans, [seat]: [...own.bans, faction.id] } });
-      return withEvent(snapshot, viewer, next, action.kind, faction);
+      return { ...draft, picks, bans: { ...draft.bans, [seat]: [...own.bans, faction.id] } };
     }
-    case 'draft-unban': {
-      const faction = factionNamed(draft, action.factionId);
+    case 'draft-unban':
       if (!own.bans.includes(faction.id)) {
         throw new GameRejection(`You have no ban on ${faction.name}.`);
       }
-      const next = changed({ ...draft, bans: { ...draft.bans, [seat]: own.bans.filter((id) => id !== faction.id) } });
-      return withEvent(snapshot, viewer, next, action.kind, faction);
-    }
-    case 'draft-ready': {
-      /* Readiness already as asked changes nothing, so a withdrawal that crossed another one leaves no event and keeps the failure. */
-      if (draft.ready.includes(seat) === action.ready) {
-        return snapshot;
-      }
-      const ready = draft.ready.filter((candidate) => candidate !== seat);
-      const next = { ...draft, ready: action.ready ? [...ready, seat] : ready, failure: null };
-      const table = tableForViewer(snapshot, SPECTATOR_SEAT);
-      const message = `${seatSubject(seat)} ${action.ready ? 'is ready to be dealt' : 'withdrew readiness'}.`;
-      return { ...nextSnapshot(snapshot, accepted(table, action.kind, message)), draft: next };
-    }
+      return { ...draft, bans: { ...draft.bans, [seat]: own.bans.filter((id) => id !== faction.id) } };
   }
 }
 

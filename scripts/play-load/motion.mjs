@@ -58,11 +58,15 @@ export async function runMotionSchedule({
       row[outcome]++;
     }
   };
-  for (let seq = 0; seq < slots; seq++) {
-    for (const input of inputs(seq)) {
-      count(input, 'pending');
+  /* Every input of the slots from `from` up to `to`, accounted for under one outcome. */
+  const countSlots = (from, to, outcome) => {
+    for (let slot = from; slot < to; slot++) {
+      for (const input of inputs(slot)) {
+        count(input, outcome);
+      }
     }
-  }
+  };
+  countSlots(0, slots, 'pending');
   let seq = 0;
   let group = 0;
   let gapReason = 'coalesced';
@@ -80,11 +84,8 @@ export async function runMotionSchedule({
       const current = Math.min(slots, Math.floor((now - startedAt) / interval));
       if (current > seq) {
         report.gaps.push({ from: seq, to: current - 1, reason: gapReason });
-        for (; seq < current; seq++) {
-          for (const input of inputs(seq)) {
-            count(input, gapReason);
-          }
-        }
+        countSlots(seq, current, gapReason);
+        seq = current;
       }
       gapReason = 'coalesced';
       if (seq >= slots) {

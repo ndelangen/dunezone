@@ -2,7 +2,7 @@ import { Avatar, Button, Group, Indicator, Stack, Text, VisuallyHidden } from '@
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
-import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
+import { rosterSeat } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -20,6 +20,7 @@ import { FactionDetails } from './FactionDetails';
 import { PLAYER_CONVERSATION_GUIDANCE, PLAYER_INFO_GUIDANCE, TABLE_CONVERSATION_GUIDANCE } from './panelGuidance';
 import { requestedSeats, VacantSeatRequests } from './SeatRequests';
 import { SwappingSeat } from './Swapping';
+import { isSpectator, seatFaction } from './tableFactions';
 import { useServerNow } from './useServerNow';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
@@ -143,50 +144,18 @@ export function PlayerPanel({
   }
   const vote = votes.find((entry) => entry.target.seat === player.seat);
   const unread = (seat: string) =>
-    conversations.summaries.find((entry) => entry.peerId === rosterSeat(table.snapshot.roster, seat)?.faction?.id)
-      ?.unread ?? 0;
+    conversations.summaries.find((entry) => entry.peerId === seatFaction(table, seat))?.unread ?? 0;
   const asked = requestedSeats(table);
-  const playerItems = players.map((entry) => {
-    const active = votes.some((candidate) => candidate.target.seat === entry.seat);
-    /* A vacant seat someone asks for carries a sand dot until a player approves them from its Info; it and a player under a removal vote open on Info. */
-    const requested = asked.has(entry.seat);
-    const token = table.snapshot.swapping?.tokens[entry.seat];
-    const unreadCount = unread(entry.seat);
-    const unreadLabel = unreadCount ? `, ${unreadCount} unread` : '';
-    const hue = allianceHue(table.snapshot, rosterSeat(table.snapshot.roster, entry.seat)?.faction?.id);
-    return (
-      <NestedTabs.Item
-        key={entry.seat}
-        as="button"
-        type="button"
-        path={[entry.seat]}
-        label={`${entry.name}${hue ? ', in an alliance' : ''}${active ? ', removal vote in progress' : ''}${requested ? ', a spectator asks for this seat' : ''}${unreadLabel}`}
-        icon={
-          <Indicator
-            color={active ? 'red.6' : requested ? 'yellow.5' : undefined}
-            size={16}
-            label={unreadCount || undefined}
-            disabled={!active && !requested && !unreadCount}
-          >
-            <Avatar
-              src={token ?? entry.avatar}
-              size={26}
-              radius="xl"
-              alt=""
-              /* Allies share a ring, one hue per alliance. */
-              style={hue ? { boxShadow: `0 0 0 2px ${hue}` } : undefined}
-            >
-              {entry.name.slice(0, 1)}
-            </Avatar>
-          </Indicator>
-        }
-        onClick={() => {
-          onSelect(entry.seat, requested || active ? 'public' : 'conversation');
-        }}
-      />
-    );
-  });
-  const peerId = rosterSeat(table.snapshot.roster, player.seat)?.faction?.id;
+  const playerItems = players.map((entry) =>
+    playerItem(table, entry, {
+      active: votes.some((candidate) => candidate.target.seat === entry.seat),
+      /* A vacant seat someone asks for carries a sand dot until a player approves them from its Info; it and a player under a removal vote open on Info. */
+      requested: asked.has(entry.seat),
+      unread: unread(entry.seat),
+      onSelect,
+    })
+  );
+  const peerId = seatFaction(table, player.seat);
   const canConverse = peerId && conversations.context?.peers.some((peer) => peer.id === peerId);
   const activeTab = canConverse ? selectedTab : 'public';
   const tableItem = conversations.context
@@ -283,6 +252,61 @@ export function PlayerPanel({
 }
 
 /*
+ * One player in the rail, their avatar ringed in their alliance's hue and dotted while a vote, a request or unread messages wait.
+ * It is an element rather than a component because the rail only sees items it is handed directly.
+ */
+function playerItem(
+  table: TableProjection,
+  entry: Player,
+  {
+    active,
+    requested,
+    unread,
+    onSelect,
+  }: Readonly<{
+    active: boolean;
+    requested: boolean;
+    unread: number;
+    onSelect(seat: string, tab: 'public' | 'conversation'): void;
+  }>
+) {
+  const token = table.snapshot.swapping?.tokens[entry.seat];
+  const unreadLabel = unread ? `, ${unread} unread` : '';
+  const hue = allianceHue(table.snapshot, seatFaction(table, entry.seat));
+  return (
+    <NestedTabs.Item
+      key={entry.seat}
+      as="button"
+      type="button"
+      path={[entry.seat]}
+      label={`${entry.name}${hue ? ', in an alliance' : ''}${active ? ', removal vote in progress' : ''}${requested ? ', a spectator asks for this seat' : ''}${unreadLabel}`}
+      icon={
+        <Indicator
+          color={active ? 'red.6' : requested ? 'yellow.5' : undefined}
+          size={16}
+          label={unread || undefined}
+          disabled={!active && !requested && !unread}
+        >
+          <Avatar
+            src={token ?? entry.avatar}
+            size={26}
+            radius="xl"
+            alt=""
+            /* Allies share a ring, one hue per alliance. */
+            style={hue ? { boxShadow: `0 0 0 2px ${hue}` } : undefined}
+          >
+            {entry.name.slice(0, 1)}
+          </Avatar>
+        </Indicator>
+      }
+      onClick={() => {
+        onSelect(entry.seat, requested || active ? 'public' : 'conversation');
+      }}
+    />
+  );
+}
+
+/*
  * The whole table's conversation, a planet at the head of the players.
  * It is an element rather than a component because the rail only sees items it is handed directly.
  */
@@ -304,23 +328,33 @@ function tableConversationItem(unread: number, onSelect: () => void) {
   );
 }
 
-function PlayerInformation({ client, table, player, hasVote }: Props & Readonly<{ player: Player; hasVote: boolean }>) {
-  const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
-  const count = table.snapshot.controls?.players.length ?? 0;
-  const canStart =
-    table.snapshot.controls?.players.some((entry) => entry.seat === player.seat) &&
+/* Another seated player, under no vote yet, can be put to one by a seated viewer. */
+function removable(table: TableProjection, seat: string, hasVote: boolean) {
+  return (
+    table.snapshot.controls?.players.some((entry) => entry.seat === seat) &&
     !hasVote &&
-    table.viewer.viewerSeat !== player.seat &&
-    table.viewer.viewerSeat !== SPECTATOR_SEAT;
+    table.viewer.viewerSeat !== seat &&
+    !isSpectator(table)
+  );
+}
+
+/* A faction's page and its details, read from the table once the connection is authorized. */
+function useFactionDetails(client: TableSession, factionId: string | undefined) {
   const { status, factions } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const factionId = faction?.id;
   useEffect(() => {
     if (factionId && status === 'authorized') {
       client.readFaction(factionId);
     }
   }, [client, factionId, status]);
   const slug = useFactionPageSlug(factionId ?? '');
-  const details = factionId ? factions[factionId] : undefined;
+  return { slug, details: factionId ? factions[factionId] : undefined };
+}
+
+function PlayerInformation({ client, table, player, hasVote }: Props & Readonly<{ player: Player; hasVote: boolean }>) {
+  const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
+  const count = table.snapshot.controls?.players.length ?? 0;
+  const canStart = removable(table, player.seat, hasVote);
+  const { slug, details } = useFactionDetails(client, faction?.id);
   return (
     <Section hiddenHeading title={player.name}>
       <Stack gap="md">

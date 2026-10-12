@@ -564,22 +564,27 @@ export class Room {
     if (isAllianceAction(action)) {
       return allianceCommand(this.snapshot, this.requireFaction(identity), action, now);
     }
+    this.assertTableSettled(action, now);
+    if (action.kind === 'bank-withdraw' || action.kind === 'bank-collect') {
+      return this.spiceReserveCommand(identity, action);
+    }
+    if (isPublicAction(action)) {
+      return this.publicCommand(identity, action);
+    }
+    return this.tableCommand(identity, action, now);
+  }
+
+  /** A reset waits for the battle to end and every private piece to return; a flip waits for the piece's last flip to finish. */
+  private assertTableSettled(action: RoomAction, now: number) {
     if (
       action.kind === 'reset' &&
       (this.snapshot.battleState || Object.values(this.snapshot.factionInventories).some((pieces) => pieces.length))
     ) {
       throw new GameRejection('Finish the battle and return private pieces to the table before resetting the fixture.');
     }
-    if (action.kind === 'bank-withdraw' || action.kind === 'bank-collect') {
-      return this.spiceReserveCommand(identity, action);
-    }
     if (action.kind === 'flip' && (this.flipUntil.get(action.pieceId) ?? 0) > now) {
       throw new GameRejection('Wait for that piece to finish flipping.');
     }
-    if (isPublicAction(action)) {
-      return this.publicCommand(identity, action);
-    }
-    return this.tableCommand(identity, action, now);
   }
 
   private battleCommand(identity: Identity, action: BattleAction, now: number): StoredSnapshot {
