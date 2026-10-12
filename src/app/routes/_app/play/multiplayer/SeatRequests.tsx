@@ -19,6 +19,12 @@ import {
   TABLE_LIGHTING_MIN,
   useTableLighting,
 } from '../../../../widgets/tabletop/tableLighting';
+import {
+  setTablePanSpeed,
+  TABLE_PAN_SPEED_MAX,
+  TABLE_PAN_SPEED_MIN,
+  useTablePanSpeed,
+} from '../../../../widgets/tabletop/tablePanSpeed';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 
 /*
@@ -293,6 +299,35 @@ function TableLightingSlider() {
   );
 }
 
+/*
+ * How fast this viewer's pan keys slide a close look; it stays in this browser and never reaches the game.
+ * The slider runs on a log scale, so halving and doubling the speed are the same distance either side of the table's own.
+ */
+function TablePanSpeedSlider() {
+  const speed = useTablePanSpeed();
+  const labelId = useId();
+  /* The steps start at the slow end, so the one nearest the table's own speed snaps onto it. */
+  const toSpeed = (position: number) => (Math.abs(position) < 0.03 ? 1 : Math.exp(position));
+  const times = (position: number) => `${Number(toSpeed(position).toPrecision(2))}×`;
+  return (
+    <Stack role="group" aria-labelledby={labelId} gap={4} px="sm" py="xs" miw={200}>
+      <Text id={labelId} size="sm">
+        Pan speed
+      </Text>
+      <Slider
+        thumbLabel="Pan speed"
+        thumbValueText={times}
+        min={Math.log(TABLE_PAN_SPEED_MIN)}
+        max={Math.log(TABLE_PAN_SPEED_MAX)}
+        step={0.05}
+        value={Math.log(speed)}
+        onChange={(position) => setTablePanSpeed(toSpeed(position))}
+        label={times}
+      />
+    </Stack>
+  );
+}
+
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
 function TableLabelItems() {
   const labels = useTableLabels();
@@ -352,6 +387,7 @@ export function GameMenu({
         {sharing}
         <Menu.Divider />
         <TableLightingSlider />
+        <TablePanSpeedSlider />
         <TableLabelItems />
         <Menu.Divider />
         <Menu.Item component={Link} to="/play">
