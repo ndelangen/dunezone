@@ -23,8 +23,10 @@ export function DecalControls({
   label,
   offsetRange,
   placement,
+  assetOptions,
 }: {
   value: DecalData;
+  assetOptions?: readonly string[];
   onChange: (decal: DecalData) => void;
   /** Names this decal in control aria-labels, e.g. "alliance decal 1". */
   label: string;
@@ -42,7 +44,7 @@ export function DecalControls({
           <AssetSelect
             aria-label={`Asset for ${label}`}
             allowDeselect={false}
-            data={decalOptions}
+            data={assetOptions ? stockAssetOptions(assetOptions) : decalOptions}
             getPreviewSrc={assetOptionToPreviewSrc}
             glyphPreviews
             value={value.id}

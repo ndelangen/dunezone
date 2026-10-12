@@ -16,7 +16,7 @@ import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/Back
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
-import { decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { RectangleToken } from '@game/assets/token/Rectangle';
 import { backgroundPresets } from '@game/data/backgrounds';
 
@@ -80,7 +80,7 @@ export const INITIAL_RECTANGLE_DRAFT: RectangleDraft = {
 };
 
 const newDecal = (): RectangleFaceDraft['decals'][number] => ({
-  id: (decalAssetOptions[0] ?? '') as RectangleFaceDraft['decals'][number]['id'],
+  id: (vectorDecalAssetOptions[0] ?? '') as RectangleFaceDraft['decals'][number]['id'],
   muted: false,
   outline: false,
   scale: 1,
@@ -239,6 +239,7 @@ function DecalsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePa
             Decal {index + 1}
           </Text>
           <DecalControls
+            assetOptions={vectorDecalAssetOptions}
             value={decal}
             onChange={(next) =>
               patch({

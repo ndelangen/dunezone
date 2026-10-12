@@ -1,4 +1,5 @@
 import type { LeaderSkillCard as LeaderSkillSchema } from '@shared/assets/schema';
+import { VECTOR_CROPS } from '@shared/media/vectorCrops.generated';
 import { useEffect, useRef } from 'react';
 import type { z } from 'zod';
 
@@ -7,6 +8,8 @@ import { CardHeadBackground, CardHeadContents } from './CardHead';
 import { CardText } from './CardText';
 import { FrontDecals } from './Decals';
 import styles from './LeaderSkill.module.css';
+
+const vectorCrops: Partial<Record<string, readonly [number, number, number, number]>> = VECTOR_CROPS;
 
 /** The title stays fixed; general rules, clipped artwork and battle rules fill the body in order. */
 export function LeaderSkillCard({
@@ -19,6 +22,7 @@ export function LeaderSkillCard({
 }: z.infer<typeof LeaderSkillSchema> & { onOverflow?: (overflow: boolean) => void }) {
   const prefix = useCountId();
   const body = useRef<HTMLDivElement>(null);
+  const artworkDecals = [...decals.filter((decal) => decal.muted), ...decals.filter((decal) => !decal.muted)];
   useEffect(() => {
     if (!onOverflow || !body.current) {
       return;
@@ -50,13 +54,35 @@ export function LeaderSkillCard({
       <div ref={body} className={styles.body} style={{ fontSize: textSize }}>
         <CardText value={generalText} className={styles.general} />
         <div className={styles.art}>
-          <svg viewBox="0 0 900 330" className={styles.decals}>
-            <g transform="translate(0 -305)">
-              <FrontDecals prefix={`${prefix}_`} decals={decals} />
+          <svg viewBox="0 0 734 420" className={styles.decals}>
+            <g transform="translate(-83 -260)">
+              {artworkDecals.map((decal, index) => {
+                /* Raster images retain their intrinsic ratio inside the existing centred square slot. */
+                const [x, y, width, height] = vectorCrops[decal.id] ?? [50, 50, 100, 100];
+                const size = Math.min(680 / width, 384 / height) * 100;
+                return (
+                  <FrontDecals
+                    key={
+                      index
+                    } /* NOSONAR: decals have no persistent id; this index also scopes their SVG definitions. */
+                    prefix={`${prefix}_${index}_`}
+                    size={size}
+                    decals={[
+                      {
+                        ...decal,
+                        offset: [
+                          decal.offset[0] + ((50 - x) * size * decal.scale) / 100,
+                          decal.offset[1] + ((50 - y) * size * decal.scale) / 100,
+                        ],
+                      },
+                    ]}
+                  />
+                );
+              })}
             </g>
           </svg>
         </div>
-        <CardText value={`*This leader in battle:* ${battleText}`} className={styles.battle} />
+        <CardText value={`*-This leader in battle:-* ${battleText}`} className={styles.battle} />
       </div>
     </div>
   );

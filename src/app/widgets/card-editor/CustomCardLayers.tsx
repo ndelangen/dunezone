@@ -195,6 +195,7 @@ function LayerFields({
   layer,
   index,
   format,
+  windowOffsetY,
   onChange,
   tokens,
   tokenPicker,
@@ -202,6 +203,7 @@ function LayerFields({
   layer: CardLayer;
   index: number;
   format: CustomCardDraft['format'];
+  windowOffsetY: number;
   onChange: (layer: CardLayer) => void;
 }) {
   const label = `Layer ${index + 1}`;
@@ -212,7 +214,7 @@ function LayerFields({
           value={layer}
           label={label.toLowerCase()}
           offsetRange={[450, 631.5]}
-          placement={<LayerPlacement layer={layer} format={format} onChange={onChange} />}
+          placement={<LayerPlacement layer={layer} format={format} windowOffsetY={windowOffsetY} onChange={onChange} />}
           onChange={(decal) => onChange({ ...layer, ...decal })}
         />
       ) : layer.kind === 'token' ? (
@@ -231,7 +233,9 @@ function LayerFields({
           onChange={(event) => onChange({ ...layer, behindFrame: event.currentTarget.checked })}
         />
       ) : null}
-      {layer.kind !== 'decal' ? <LayerPlacement layer={layer} format={format} onChange={onChange} /> : null}
+      {layer.kind !== 'decal' ? (
+        <LayerPlacement layer={layer} format={format} windowOffsetY={windowOffsetY} onChange={onChange} />
+      ) : null}
       {(
         [
           { key: 'opacity', title: 'Opacity', min: 0, max: 1, step: 0.05 },
@@ -276,10 +280,12 @@ function LayerFields({
 function LayerPlacement({
   layer,
   format,
+  windowOffsetY,
   onChange,
 }: {
   layer: CardLayer;
   format: CustomCardDraft['format'];
+  windowOffsetY: number;
   onChange: (layer: CardLayer) => void;
 }) {
   const origin = [card.width / 2, card.height / 2];
@@ -350,14 +356,18 @@ function LayerPlacement({
             variant="default"
             size="xs"
             onClick={() => {
-              const body = newCardText(format);
+              const body = newCardText(format, undefined, windowOffsetY);
               onChange({ ...layer, offset: body.offset, width: body.width, height: body.height });
             }}
           >
             Fit box to text body
           </Button>
         ) : format === 'decal-window' ? (
-          <Button variant="default" size="xs" onClick={() => onChange({ ...layer, offset: [0, -161.5] })}>
+          <Button
+            variant="default"
+            size="xs"
+            onClick={() => onChange({ ...layer, offset: [0, -161.5 + windowOffsetY] })}
+          >
             {layer.kind === 'token' ? 'Centre in window' : 'Centre in decal window'}
           </Button>
         ) : null}
@@ -427,6 +437,7 @@ export function CustomCardLayerPanel({
         layer={layer}
         index={index}
         format={draft.format}
+        windowOffsetY={draft.windowOffsetY ?? 0}
         onChange={(next) =>
           patch({ layers: draft.layers.map((current) => (current.layerId === layer.layerId ? next : current)) })
         }
@@ -464,7 +475,7 @@ export function CustomCardLayers({
         <Button
           variant="default"
           disabled={draft.layers.length >= CUSTOM_CARD_MAX_LAYERS}
-          onClick={() => add(newCardText(draft.format))}
+          onClick={() => add(newCardText(draft.format, undefined, draft.windowOffsetY))}
         >
           Add text
         </Button>

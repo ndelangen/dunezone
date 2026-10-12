@@ -210,9 +210,11 @@ export const TokenAsset = z.strictObject({
 export const CardBack = z.strictObject({
   image: ALL,
   imageOffset: OFFSET,
-  imageScale: SCALE,
+  imageScale: z.number().min(0).max(2),
   background: Background,
   name: z.string(),
+  nameScale: z.number().min(0.5).max(2).optional(),
+  nameFont: z.enum(['C_Busorama', 'C_Busorama_Bold']).optional(),
 });
 
 /**
@@ -430,6 +432,7 @@ export const CustomCardLayer = z.discriminatedUnion('kind', [
 /** The standard Head stays fixed; the rest of the card is a free composition. */
 export const CustomCard = CardHead.extend({
   format: z.enum(['decal-window', 'plain']),
+  windowOffsetY: z.number().min(0).max(440).optional(),
   layers: z
     .array(CustomCardLayer)
     .max(CUSTOM_CARD_MAX_LAYERS, `A card can hold at most ${CUSTOM_CARD_MAX_LAYERS} layers`)
@@ -471,7 +474,8 @@ const NexusEffect = proseFormattedTextSchema
   });
 export const NexusCard = CardHead.extend({
   subName: z.literal('Nexus'),
-  faction: z.string().trim().max(40),
+  faction: z.string().trim(),
+  factionLink: z.strictObject({ id: z.string().min(1), slug: z.string().min(1) }).optional(),
   factionSymbol: FactionSide,
   betrayal: NexusEffect,
   cunning: NexusEffect,
@@ -501,7 +505,7 @@ export const StormCard = CustomCard.omit({
   sectors: z.number().int().min(1).max(6),
   format: z.literal('decal-window'),
   subName: z.literal('Storm'),
-  icon: z.tuple([Background, z.literal('/vector/icon/storm_disc.svg')]),
+  icon: z.tuple([Background, z.enum(['/vector/icon/storrm_standalone.svg', '/vector/icon/storm_disc.svg'])]),
 });
 export const StormCardAsset = StormCard.extend({ about: About });
 export const StormCardAssetInput = StormCardAsset.extend({ about: FormattedAbout });

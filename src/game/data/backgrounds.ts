@@ -1,3 +1,4 @@
+import { NEXUS_HEAD } from '@shared/assets/nexusTemplate';
 import type { Background } from '@shared/factions/schema';
 import type { z } from 'zod';
 
@@ -9,13 +10,7 @@ export type BackgroundData = z.infer<typeof Background>;
  * Components may compose them directly through BackgroundRenderer.
  */
 export const backgroundPresets = {
-  nexus: {
-    image: '/image/texture/082.jpg',
-    colors: ['#264C43', '#15352E'],
-    influence: 0.5,
-    invert: false,
-    definition: 1,
-  },
+  nexus: NEXUS_HEAD,
   atreides: {
     image: '/image/texture/015.jpg',
     colors: ['#4B4C0D', '#262B04'],

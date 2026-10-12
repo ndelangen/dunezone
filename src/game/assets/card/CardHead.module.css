@@ -72,6 +72,9 @@
   mix-blend-mode: overlay;
   flex-shrink: 0;
 }
+.printedSymbol .symbolOverlay {
+  mix-blend-mode: normal;
+}
 .symbolShade {
   width: 85px;
   height: 85px;
@@ -79,17 +82,4 @@
   top: 20px;
   left: 20px;
   opacity: 0.5;
-}
-
-.wrappedTitle {
-  top: 62px;
-  height: 96px;
-  line-height: 46px;
-  display: flex;
-  align-items: center;
-}
-
-.wrappedTitle .titleText {
-  white-space: normal;
-  overflow-wrap: anywhere;
 }

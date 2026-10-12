@@ -17,6 +17,7 @@ export function CustomCardStartingPreset({ draft, patch }: { draft: CustomCardDr
     if (preset) {
       patch({
         format: preset.format,
+        windowOffsetY: 0,
         layers: preset.layers.map((layer) => ({ ...structuredClone(layer), layerId: crypto.randomUUID() })),
       });
     }
@@ -33,7 +34,14 @@ export function CustomCardStartingPreset({ draft, patch }: { draft: CustomCardDr
           value: preset.key,
           label: preset.label,
           preview: (
-            <CustomCard {...draft} name="Custom card" subName="" format={preset.format} layers={preset.layers} />
+            <CustomCard
+              {...draft}
+              name="Custom card"
+              subName=""
+              format={preset.format}
+              windowOffsetY={0}
+              layers={preset.layers}
+            />
           ),
           canvas: { width: card.width, height: card.height },
         }))}

@@ -9,6 +9,10 @@
   overflow: hidden;
 }
 
+.icon.multicolor img {
+  mix-blend-mode: normal;
+}
+
 .svg {
   position: absolute;
   top: 0;

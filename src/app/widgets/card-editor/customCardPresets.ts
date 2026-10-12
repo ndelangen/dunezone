@@ -9,15 +9,16 @@ export type CardLayer = z.infer<typeof CustomCardLayer>;
 /** Starts a text box in the chosen frame's Body. Offsets use the card centre. */
 export function newCardText(
   format: CustomCardDraft['format'],
-  layerId = crypto.randomUUID()
+  layerId = crypto.randomUUID(),
+  windowOffsetY = 0
 ): Extract<CardLayer, { kind: 'text' }> {
   return {
     kind: 'text',
     layerId,
     content: '',
-    offset: [-361, format === 'plain' ? -331.5 : 72.5],
+    offset: [-361, format === 'plain' ? -331.5 : 72.5 + windowOffsetY],
     width: 734,
-    height: format === 'plain' ? 903 : 499,
+    height: format === 'plain' ? 903 : 499 - windowOffsetY,
     size: 40,
     font: 'C_Candara',
     color: '#0b0503',

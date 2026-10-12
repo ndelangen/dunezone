@@ -34,15 +34,19 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [TREACHERY_CARD_ASSET_TYPE]: 4,
   // 1: spice cards join the pipeline with their editor (#1229).
   [SPICE_CARD_ASSET_TYPE]: 1,
-  [CUSTOM_CARD_ASSET_TYPE]: 1,
-  [LEADER_SKILL_ASSET_TYPE]: 1,
-  [NEXUS_CARD_ASSET_TYPE]: 1,
-  [STRONGHOLD_CARD_ASSET_TYPE]: 1,
-  [STORM_CARD_ASSET_TYPE]: 1,
-  // 1: deck cardbacks join the pipeline (wayfinder #546). Activating this is also the backfill for decks that predate it.
-  [DECK_ASSET_TYPE]: 1,
-  /* Revision 3 publishes the Storm preset; saved designs are kept. */
-  'cardback-preset': 3,
+  /* Revision 2 supports a movable decal window without changing existing layouts. */
+  [CUSTOM_CARD_ASSET_TYPE]: 2,
+  /* Revision 2 fits illustrations to their painted bounds in the leader skill window. */
+  [LEADER_SKILL_ASSET_TYPE]: 2,
+  [NEXUS_CARD_ASSET_TYPE]: 2,
+  /* Revision 2 uses the supplied palace emblem, original raster illustrations and single-line titles. */
+  [STRONGHOLD_CARD_ASSET_TYPE]: 2,
+  /* Revision 2 removes the extra symbol ring and matches the scanned movement and corner numeral. */
+  [STORM_CARD_ASSET_TYPE]: 2,
+  /* Revision 2 retains multicolor back emblems and supports the original Storm label size. */
+  [DECK_ASSET_TYPE]: 2,
+  /* Revision 4 updates the Stronghold emblem and original Storm back label; saved designs are kept. */
+  'cardback-preset': 4,
   /*
    * 1: token faces join the pipeline (wayfinder #547). Activating these is also the backfill for tokens that predate them.
    * One entry per shape rather than one per face, because both faces of a shape are drawn by one renderer, so bumping a front without its back is not a thing that can be meant.

@@ -12,10 +12,24 @@ export function StormCard({
   const distance = `${sectors} ${sectors === 1 ? 'sector' : 'sectors'}`;
   return (
     <div className={styles.card}>
-      <CustomCard {...card} name={`${sectors} ${sectors === 1 ? 'Sector' : 'Sectors'}`} />
-      <div className={styles.movement}>Move the storm {distance} counterclockwise.</div>
+      <CustomCard
+        {...card}
+        icon={[card.icon[0], '/vector/icon/storrm_standalone.svg']}
+        name=""
+        subName=""
+        iconScale={0.85}
+      />
+      <div className={styles.title}>
+        {sectors} {sectors === 1 ? 'Sector' : 'Sectors'}
+      </div>
+      <div className={styles.type}>Storm</div>
+      <div className={styles.movement}>
+        Move the storm {distance} counter-
+        <br />
+        clockwise.
+      </div>
       <div className={styles.distance}>
-        <img src="/vector/icon/storm_disc.svg" alt="" />
+        <img src="/vector/icon/storrm_standalone.svg" alt="" />
         <span>{sectors}</span>
       </div>
     </div>

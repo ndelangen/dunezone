@@ -14,6 +14,14 @@ import {
   TreacheryAssetInput,
 } from './schema';
 
+export function parseNexusCardInput(data: unknown) {
+  const result = NexusCardAssetInput.safeParse(data);
+  if (!result.success) {
+    throw new Error('The Nexus card contains invalid fields');
+  }
+  return result.data;
+}
+
 /**
  * Validates writable Asset data against the renderer-owned shape shared by the browser and server.
  */
@@ -43,7 +51,7 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
       return { data: parsed, name: parsed.name };
     }
     case 'card-nexus': {
-      const parsed = NexusCardAssetInput.parse(data);
+      const parsed = parseNexusCardInput(data);
       return { data: parsed, name: parsed.name };
     }
     case 'card-stronghold': {

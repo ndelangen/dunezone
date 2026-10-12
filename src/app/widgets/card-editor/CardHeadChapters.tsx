@@ -11,7 +11,7 @@ import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/Back
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { hasWorkToLose, sameBackground } from '@app/widgets/background-composer/presetChoice';
-import { assetOptionToPreviewSrc, decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 import { CardIconAdjustments } from './CardIconAdjustments';
@@ -36,7 +36,7 @@ export function initialCardHeadMemory(): CardHeadMemory {
 }
 type Patch = (update: Partial<CardHeadDraft>) => void;
 type RememberHead = (update: Partial<CardHeadMemory>) => void;
-const iconOptions = stockAssetOptions(decalAssetOptions);
+const iconOptions = stockAssetOptions(vectorDecalAssetOptions);
 /* The four stock treachery looks: a head Background paired with its striped icon Background. */
 const CARD_PRESETS = [
   { key: 'weapon', label: 'Weapon', head: backgroundPresets.weapon, striped: backgroundPresets.stripedWeapon },

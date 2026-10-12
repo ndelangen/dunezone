@@ -27,7 +27,7 @@ export function NexusCreatePage() {
     warnings: [...nexusDraftWarnings(state.data)],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
-  const { isDirty, invalid, payload } = nexusDraftStatus(state);
+  const { isDirty, invalid, payload } = nexusDraftStatus(state, true);
   const save = () => {
     if (payload) {
       saving.save(payload, () => dispatch({ kind: 'saved', data: payload }));

@@ -71,6 +71,60 @@
     "isOpaque": false,
     "color": "#080808"
   },
+  "/image/decal/gf9-stronghold-arrakeen.png": {
+    "sha256": "b54c6aa1cd71c7deddb09d3980b98d71a4809e326550985e157ede2957a14a3a",
+    "bytes": 428020,
+    "width": 624,
+    "height": 358,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#a85828"
+  },
+  "/image/decal/gf9-stronghold-carthag.png": {
+    "sha256": "18cd65cb9494db07a9cbf395cfe0f72615079303f86df7d7eceaf336b4cb91dc",
+    "bytes": 239943,
+    "width": 624,
+    "height": 358,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#383848"
+  },
+  "/image/decal/gf9-stronghold-habbanya.png": {
+    "sha256": "1a3c5954105ad519e3d9f0bcbb4f033258571cc1fc0e1a5e2bcaccb1901b438b",
+    "bytes": 300502,
+    "width": 624,
+    "height": 358,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#884828"
+  },
+  "/image/decal/gf9-stronghold-ixian.png": {
+    "sha256": "f2b591d072066f0c2f17f52f3da8a4eabbd16b878f1935ed6760abfa63721cc6",
+    "bytes": 92115,
+    "width": 332,
+    "height": 190,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#f8f8c8"
+  },
+  "/image/decal/gf9-stronghold-tabr.png": {
+    "sha256": "41d0a7ad36deedbce863b383bcc95dba3a7adca55f7833d9b43b81483c3e0e7b",
+    "bytes": 406126,
+    "width": 624,
+    "height": 358,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#182838"
+  },
+  "/image/decal/gf9-stronghold-tuek.png": {
+    "sha256": "f2aba8407998eac399338de5c309611c87dbccfdafd946859665bb6c1a0cdf38",
+    "bytes": 284309,
+    "width": 624,
+    "height": 358,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#482818"
+  },
   "/image/leader/alien/buzcle.png": {
     "sha256": "253632bba762b1e4d4dfbe199b68d3cff10178d9a3b1d64198f885fddae16e79",
     "bytes": 183312,

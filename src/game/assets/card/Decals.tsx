@@ -4,6 +4,7 @@ import type { z } from 'zod';
 
 import type { Decal } from '../../data/objects';
 import { card } from '../../data/sizes';
+import { useAssetResolver } from '../assetRenderMode';
 
 const foreGroundColor = '#e3dbb3';
 const middleColor = '#847954';
@@ -15,7 +16,16 @@ const StrokedUse: FC<SVGProps<SVGUseElement>> = ({ filter, ...rest }) => (
   </>
 );
 
-export function FrontDecals({ prefix, decals }: { decals: z.infer<typeof Decal>[]; prefix: string }) {
+export function FrontDecals({
+  prefix,
+  decals,
+  size = 439,
+}: {
+  decals: z.infer<typeof Decal>[];
+  prefix: string;
+  size?: number;
+}) {
+  const resolveAsset = useAssetResolver();
   const fadedDecals = useMemo(() => decals.filter((d) => typeof d !== 'string' && d.muted === true), [decals]);
   const nonFadedDecals = useMemo(() => decals.filter((d) => typeof d === 'string' || d.muted !== true), [decals]);
   const decalsMask = `${prefix}decals-mask`;
@@ -23,9 +33,10 @@ export function FrontDecals({ prefix, decals }: { decals: z.infer<typeof Decal>[
 
   /**
    * Square slot for square-normalized decal files (#307): stored scales were retuned by clamp(originalRatio, 1,
-   * 763/439) when the old 763×439 slot was retired, so art renders pixel-identically.
+   * 763/439) when the old 763×439 slot was retired, so the default preserves their placement.
+   * A shallower card window supplies its own fitted square size.
    */
-  const decalSize = { width: 439, height: 439 };
+  const decalSize = { width: size, height: size };
   const stroked = { filter: `url(#${decalsFilter})` };
   const empty = {};
 
@@ -51,13 +62,13 @@ export function FrontDecals({ prefix, decals }: { decals: z.infer<typeof Decal>[
               const height = decalSize.height * d.scale;
               return (
                 <image
-                  key={i}
+                  key={`${d.id}-${i}`}
                   x={card.width / 2 - width / 2 + d.offset[0]}
                   y={940 / 2 - height / 2 + d.offset[1]}
                   width={width}
                   height={height}
                   filter="invert(100%)"
-                  xlinkHref={d.id}
+                  xlinkHref={resolveAsset(d.id)}
                 />
               );
             })}
@@ -69,17 +80,17 @@ export function FrontDecals({ prefix, decals }: { decals: z.infer<typeof Decal>[
       {nonFadedDecals.map((d, i) => {
         const width = decalSize.width * d.scale;
         const height = decalSize.height * d.scale;
-        return (
-          <StrokedUse
-            key={i}
-            {...(d.outline !== false ? stroked : empty)}
-            xlinkHref={`${d.id}#root`}
-            x={card.width / 2 - width / 2 + d.offset[0]}
-            y={940 / 2 - height / 2 + d.offset[1]}
-            width={width}
-            height={height}
-          />
-        );
+        const placement = {
+          x: card.width / 2 - width / 2 + d.offset[0],
+          y: 940 / 2 - height / 2 + d.offset[1],
+          width,
+          height,
+          ...(d.outline !== false ? stroked : empty),
+        };
+        if (!d.id.endsWith('.svg')) {
+          return <image key={`${d.id}-${i}`} xlinkHref={resolveAsset(d.id)} {...placement} />;
+        }
+        return <StrokedUse key={`${d.id}-${i}`} {...placement} xlinkHref={`${d.id}#root`} />;
       })}
     </>
   );

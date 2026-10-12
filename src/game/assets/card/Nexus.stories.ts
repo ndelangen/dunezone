@@ -7,7 +7,16 @@ import { NexusCard } from './Nexus';
 const { about: _about, ...face } = GF9_NEXUS_CARDS[0]!;
 const meta = preview.meta({ component: NexusCard, globals: { viewport: { value: 'card' } }, args: face });
 
-export const Atreides = meta.story();
+export const Atreides = meta.story({
+  play: async ({ canvasElement }) => {
+    const emblems = canvasElement.querySelectorAll<HTMLImageElement>('img[src="/vector/logo/atreides.svg"]');
+    await expect(emblems).toHaveLength(1);
+    for (const emblem of emblems) {
+      await expect(getComputedStyle(emblem).mixBlendMode).toBe('normal');
+      await expect(getComputedStyle(emblem).filter).toContain('invert(1)');
+    }
+  },
+});
 export const Emperor = meta.story({ args: GF9_NEXUS_CARDS.find(({ faction }) => faction === 'Emperor')! });
 export const LongEffects = meta.story({
   args: {
@@ -24,6 +33,9 @@ export const LongEffects = meta.story({
         await waitFor(() => {
           expect(rules.scrollHeight).toBeLessThanOrEqual(rules.clientHeight + 1);
           expect(rules.scrollWidth).toBeLessThanOrEqual(rules.clientWidth + 1);
+          expect(section.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+            section.parentElement!.getBoundingClientRect().bottom + 1
+          );
         });
       })
     );
