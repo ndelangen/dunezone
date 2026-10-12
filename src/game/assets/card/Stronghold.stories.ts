@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { GF9_STRONGHOLD_CARDS } from '@shared/assets/gf9StrongholdDeck';
-import { expect } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { StrongholdCard } from './Stronghold';
 
@@ -11,12 +11,10 @@ const meta = preview.meta({
 });
 
 /** Each face must show its whole Body inside the printed frame. */
-async function checkBody({ canvasElement }: { canvasElement: HTMLElement }) {
+async function checkBody({ canvasElement, args }: { canvasElement: HTMLElement; args: { text: string } }) {
   await document.fonts.ready;
-  const body = [...canvasElement.querySelectorAll<HTMLElement>('div')].find(
-    (element) => element.style.fontSize === '40px' && element.style.height === '499px'
-  );
-  await expect(body).toBeDefined();
+  const body = within(canvasElement).getByText(args.text, { exact: true }).closest('div');
+  await expect(body).not.toBeNull();
   await expect(body!.scrollHeight).toBeLessThanOrEqual(body!.clientHeight);
 }
 
