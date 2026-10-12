@@ -55,7 +55,7 @@ import type { SetupState } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
 import type { AlertEnv } from './alerts';
-import { AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
+import { answersEachOnce, AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import type { AdmissionRefusal } from './diagnostics';
@@ -143,9 +143,12 @@ function gameRequest(request: Request, applicationOrigin: string) {
   return { gameId, operation };
 }
 type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
-type ProvisioningValidation = ReturnType<typeof playProvisioningValidationSchema.parse>;
+/** An attempt Convex validated: a hosted fixture or a real game. A refused one never reaches initialization. */
+type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidationSchema.parse>, { ok: true }>;
 /** A player provisioning seats: the creator or a placeholder. */
 type ProvisionPlayer = { userId: string; displayName: string };
+/** Executes one action as a provisioning player would send it. */
+type ProvisionCommand = (player: ProvisionPlayer, action: PieceAction) => void;
 type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
 const isPageRead = (message: ClientMessage): message is PageRead =>
   message.type === 'log-history' || message.type === 'spice-history' || message.type === 'faction';
@@ -172,11 +175,16 @@ const credentialsMatch = (a: string, b: string) => {
   }
   return difference === 0;
 };
-async function readJson(request: Request): Promise<unknown> {
+/** A request body as its schema reads it, or undefined when it is missing, oversized, not JSON or not that shape. */
+async function readRequest<T>(request: Request, schema: { parse(value: unknown): T }): Promise<T | undefined> {
   if (!request.body || Number(request.headers.get('Content-Length') ?? 0) > 8192) {
-    throw new Error('Request refused.');
+    return undefined;
   }
-  return JSON.parse(await readLimitedBody(request.body)) as unknown;
+  try {
+    return schema.parse(JSON.parse(await readLimitedBody(request.body)));
+  } catch {
+    return undefined;
+  }
 }
 async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string> {
   const reader = body.getReader();
@@ -380,10 +388,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private async provision(request: Request, gameId: string): Promise<Response> {
-    let args: ProvisionArgs;
-    try {
-      args = playProvisionRequestSchema.parse(await readJson(request));
-    } catch {
+    const args = await readRequest(request, playProvisionRequestSchema);
+    if (!args) {
       return refused();
     }
     try {
@@ -395,23 +401,24 @@ export class GameRoom extends DurableObject<GameEnv> {
         args
       );
       const validation = playProvisioningValidationSchema.parse(raw);
+      if (!validation.ok) {
+        return refused();
+      }
       this.requireLocalTestOverrides(validation);
       if (!(await this.retainProvisionedRuleset(args, validation))) {
         return refused();
       }
       const factions =
-        validation.ok && 'game' in validation && !this.metadata
-          ? await this.draftableFactions(validation.game.rulesetId)
-          : null;
+        'game' in validation && !this.metadata ? await this.draftableFactions(validation.game.rulesetId) : null;
       /* The hosted fixture asks the catalogue for its deck before it exists; a refusal costs nothing, a slow answer only time. */
       const fixtureDeck =
-        validation.ok && 'fixtureKey' in validation && this.fixturePlan.hosted && !this.metadata
+        'fixtureKey' in validation && this.fixturePlan.hosted && !this.metadata
           ? await this.captureFixtureDeck()
           : undefined;
       if (!this.initializeValidated(args, validation, factions, fixtureDeck)) {
         return refused();
       }
-      if (validation.ok && 'game' in validation && validation.testStartStage === 'play') {
+      if ('game' in validation && validation.testStartStage === 'play') {
         await this.provisionThroughSetup(validation.game);
       }
       await this.confirmProvisioning();
@@ -425,7 +432,6 @@ export class GameRoom extends DurableObject<GameEnv> {
   /* Fail closed: a game without the real phase cooldown, or provisioned past drafting, exists only in the isolated local stack. */
   private requireLocalTestOverrides(validation: ProvisioningValidation) {
     if (
-      validation.ok &&
       (validation.testPhaseCooldownMs !== undefined || validation.testStartStage !== undefined) &&
       !isLocalIsolatedRuntime(this.env)
     ) {
@@ -438,7 +444,7 @@ export class GameRoom extends DurableObject<GameEnv> {
    * False when the ruleset was refused, after the refusal is reported unless another request already provisioned the room.
    */
   private async retainProvisionedRuleset(args: ProvisionArgs, validation: ProvisioningValidation): Promise<boolean> {
-    if (!validation.ok || !('game' in validation) || this.metadata) {
+    if (!('game' in validation) || this.metadata) {
       return true;
     }
     try {
@@ -465,7 +471,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     fixtureDeck?: StoredSpawnContents
   ): boolean {
     // Another request can finish while Convex validates this one and the ruleset is captured. Keep the guard and initialization synchronous.
-    if (!validation.ok || this.metadata) {
+    if (this.metadata) {
       return false;
     }
     if (validation.gameId !== args.gameId || validation.attemptId !== args.attemptId) {
@@ -539,13 +545,8 @@ export class GameRoom extends DurableObject<GameEnv> {
    * An empty room has nothing left to retire, so a repeated request succeeds.
    */
   private async retire(request: Request, gameId: string): Promise<Response> {
-    let args: ReturnType<typeof playRetireFixtureRequestSchema.parse>;
-    try {
-      args = playRetireFixtureRequestSchema.parse(await readJson(request));
-    } catch {
-      return refused();
-    }
-    if (args.gameId !== gameId) {
+    const args = await readRequest(request, playRetireFixtureRequestSchema);
+    if (args?.gameId !== gameId) {
       return refused();
     }
     let metadata: Metadata | undefined;
@@ -588,10 +589,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private async receiveAccountDeletion(request: Request, metadata: Metadata): Promise<Response> {
-    let args: ReturnType<typeof playAccountDeletionRequestSchema.parse>;
-    try {
-      args = playAccountDeletionRequestSchema.parse(await readJson(request));
-    } catch {
+    const args = await readRequest(request, playAccountDeletionRequestSchema);
+    if (!args) {
       return refused();
     }
     try {
@@ -850,11 +849,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       userIds,
     });
     const result = playReconcileAccountsResultSchema.parse(raw);
-    if (!result.ok || result.accounts.length !== userIds.length) {
-      throw new Error('Authorization unavailable.');
-    }
-    const remaining = new Set(userIds);
-    if (!result.accounts.every((account) => remaining.delete(account.userId))) {
+    if (!result.ok || !answersEachOnce(result.accounts, userIds, (account) => account.userId)) {
       throw new Error('Authorization unavailable.');
     }
     return result.accounts;
@@ -1024,10 +1019,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       'authorized';
     if (allowed && connection.everAuthorized) {
       const seat = this.session.seatFor(connection.viewer.userId);
-      if (!seat) {
-        return false;
-      }
-      if (seat !== connection.viewer.viewerSeat) {
+      if (!seat || seat !== connection.viewer.viewerSeat) {
         return false;
       }
     }
@@ -1086,22 +1078,26 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.refreshAccounts();
     }
     this.reconcileViewers();
-    /* A held connection missed every frame of the fence; its update is computed against the last frame it received. */
     if (admitted.size || resumed) {
-      const frameFor = this.framePass();
-      for (const [socket, connection] of this.connections) {
-        if (!connection.viewer || !this.authorized(socket)) {
-          continue;
-        }
-        if (admitted.has(socket)) {
-          /* A resumed connection leaves suspension only after receiving a full view. */
-          this.sendView(socket, connection);
-        } else {
-          this.send(socket, this.delivery.update(socket, connection.viewer, frameFor(connection.viewer)));
-        }
-      }
+      this.sendAfterFence(admitted);
     } else if (activityChanged || this.session.revision !== revision) {
       this.broadcastActivity();
+    }
+  }
+
+  /** A held connection missed every frame of the fence; its update is computed against the last frame it received. */
+  private sendAfterFence(admitted: ReadonlySet<WebSocket>) {
+    const frameFor = this.framePass();
+    for (const [socket, connection] of this.connections) {
+      if (!connection.viewer || !this.authorized(socket)) {
+        continue;
+      }
+      if (admitted.has(socket)) {
+        /* A resumed connection leaves suspension only after receiving a full view. */
+        this.sendView(socket, connection);
+      } else {
+        this.send(socket, this.delivery.update(socket, connection.viewer, frameFor(connection.viewer)));
+      }
     }
   }
 
@@ -1118,28 +1114,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return 'denied';
     }
     if (this.authorized(socket)) {
-      if (connection.announced === 'authorized') {
-        return;
-      }
-      try {
-        connection.viewer = this.session.viewer(
-          connection.connectionId,
-          connection.viewer!.userId,
-          connection.viewer!.displayName,
-          {
-            seatNewcomers: !this.metadata?.game,
-            avatarUrl: connection.avatarUrl,
-            profileSlug: connection.profileSlug,
-          }
-        );
-      } catch {
-        this.deny(socket, false);
-        return 'activity';
-      }
-      connection.announced = 'authorized';
-      connection.everAuthorized = true;
-      this.retireReplaced(connection);
-      return 'admitted';
+      return connection.announced === 'authorized' ? undefined : this.announceAuthorized(socket, connection);
     }
     if (this.fenceFor(socket, connection)) {
       return;
@@ -1151,6 +1126,29 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.sendAdmission(socket, 'suspended');
       return connection.everAuthorized ? 'activity' : undefined;
     }
+  }
+
+  /** An authorized connection not yet announced as such takes its seat; one the room can no longer seat is denied. */
+  private announceAuthorized(socket: WebSocket, connection: Connection) {
+    try {
+      connection.viewer = this.session.viewer(
+        connection.connectionId,
+        connection.viewer!.userId,
+        connection.viewer!.displayName,
+        {
+          seatNewcomers: !this.metadata?.game,
+          avatarUrl: connection.avatarUrl,
+          profileSlug: connection.profileSlug,
+        }
+      );
+    } catch {
+      this.deny(socket, false);
+      return 'activity';
+    }
+    connection.announced = 'authorized';
+    connection.everAuthorized = true;
+    this.retireReplaced(connection);
+    return 'admitted';
   }
 
   /*
@@ -1681,17 +1679,15 @@ export class GameRoom extends DurableObject<GameEnv> {
       displayName: `Placeholder for seat ${index + 2}`,
     }));
     const everyone = [creator, ...placeholders];
-    const snapshot = () => this.session.currentSnapshot();
-    const viewerOf = (player: ProvisionPlayer) => this.session.provisionViewer(player.userId, player.displayName);
     let sequence = 0;
-    const command = (player: ProvisionPlayer, action: PieceAction) => {
+    const command: ProvisionCommand = (player, action) => {
       this.advanceDeadlines();
       sequence += 1;
-      this.session.execute(viewerOf(player), {
+      this.session.execute(this.session.provisionViewer(player.userId, player.displayName), {
         type: 'command',
         commandId: `provision-${sequence}`,
         action,
-        expectedRevision: snapshot().revision,
+        expectedRevision: this.session.currentSnapshot().revision,
       });
     };
     for (const placeholder of placeholders) {
@@ -1706,14 +1702,33 @@ export class GameRoom extends DurableObject<GameEnv> {
       command(player, { kind: 'draft-ready', ready: true });
     }
     await this.settleAssignment();
+    this.provisionSwapReady(everyone, command);
+    await this.provisionSetup(creator, everyone, command);
+    for (const placeholder of placeholders) {
+      command(placeholder, { kind: 'seat-depart' });
+    }
+  }
+
+  /** Every player readies the dealt trading round, which the deal must have opened. */
+  private provisionSwapReady(everyone: readonly ProvisionPlayer[], command: ProvisionCommand) {
+    const snapshot = () => this.session.currentSnapshot();
     for (const player of everyone) {
       const round = snapshot().swapping?.round;
       if (snapshot().stage !== 'swapping' || round === undefined) {
         const reason = snapshot().draft?.failure ?? `it is in ${snapshot().stage ?? 'no'} stage`;
         throw new Error(`The provisioned game was not dealt: ${reason}`);
       }
-      command(player, { kind: 'swap-ready', ready: true, round, seat: viewerOf(player).viewerSeat });
+      command(player, { kind: 'swap-ready', ready: true, round, seat: this.provisionSeat(player) });
     }
+  }
+
+  /** Each setup step is done as its players would do it, and the creator moves on, until play begins. */
+  private async provisionSetup(
+    creator: ProvisionPlayer,
+    everyone: readonly ProvisionPlayer[],
+    command: ProvisionCommand
+  ) {
+    const snapshot = () => this.session.currentSnapshot();
     for (let changes = 0; snapshot().stage === 'setup'; changes++) {
       const steps = snapshot().setup?.steps.length ?? 0;
       if (changes >= steps) {
@@ -1726,16 +1741,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (snapshot().stage !== 'play') {
       throw new Error(`The provisioned game did not reach play; it is in ${snapshot().stage ?? 'no'} stage.`);
     }
-    for (const placeholder of placeholders) {
-      command(placeholder, { kind: 'seat-depart' });
-    }
   }
 
   /** What the current setup step asks of the players before the creator moves on. */
-  private provisionSetupStep(
-    everyone: readonly ProvisionPlayer[],
-    command: (player: ProvisionPlayer, action: PieceAction) => void
-  ) {
+  private provisionSetupStep(everyone: readonly ProvisionPlayer[], command: ProvisionCommand) {
     const snapshot = this.session.currentSnapshot();
     const setup = snapshot.setup!;
     const step = setupStep(setup);
@@ -1756,7 +1765,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   /* A prediction gates on its lock, never on readiness; it is revealed at once so every seat starts play with the same public view. */
   private provisionPrediction(
     everyone: readonly ProvisionPlayer[],
-    command: (player: ProvisionPlayer, action: PieceAction) => void,
+    command: ProvisionCommand,
     step: SetupState['steps'][number]
   ) {
     const predictor = everyone.find((player) => this.seatFaction(this.provisionSeat(player)) === step.factionId);

@@ -289,6 +289,21 @@ export class GameCatalogue {
     return face;
   }
 
+  /** The faction token's two faces; either one missing is a problem, named after both are read. */
+  private capturedToken(source: FactionSource, problems: CaptureProblem[]) {
+    const token = {
+      front: this.publishedFace(source.token, 'faction token', problems),
+      back: this.publishedFace(source.tokenBack ?? null, 'faction token', problems),
+    };
+    if (!token.front) {
+      problems.push({ subject: 'faction token', reason: 'The faction token has no published face.' });
+    }
+    if (!token.back) {
+      problems.push({ subject: 'faction token', reason: 'The faction token back has no published face.' });
+    }
+    return token;
+  }
+
   /** Each troop's faces, then every troop face that can fight without authored battle values. */
   private capturedTroops(
     troops: FactionDefinition['troops'],
@@ -369,16 +384,7 @@ export class GameCatalogue {
     const problems: CaptureProblem[] = [];
     const extraPhases = capturedPhases(declarations, problems);
     const definition = declarations.length ? { ...parsed.data, extraPhases } : parsed.data;
-    const token = {
-      front: this.publishedFace(source.token, 'faction token', problems),
-      back: this.publishedFace(source.tokenBack ?? null, 'faction token', problems),
-    };
-    if (!token.front) {
-      problems.push({ subject: 'faction token', reason: 'The faction token has no published face.' });
-    }
-    if (!token.back) {
-      problems.push({ subject: 'faction token', reason: 'The faction token back has no published face.' });
-    }
+    const token = this.capturedToken(source, problems);
     const leaders = definition.leaders.map((leader) => {
       const subject = `leader ${leader.name}`;
       const published = source.leaders.find((entry) => entry.memberId === leader.memberId)?.front ?? null;
