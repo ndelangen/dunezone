@@ -108,9 +108,6 @@ export function leaderSkillDraftWarnings(draft: LeaderSkillDraft): LeaderSkillDr
   if (!draft.name.trim()) {
     warnings.push({ source: 'Head', missing: 'a name', chapter: 'head' });
   }
-  if (!draft.subName.trim()) {
-    warnings.push({ source: 'Head', missing: 'a type', chapter: 'head' });
-  }
   if (!draft.generalText.trim()) {
     warnings.push({ source: 'Abilities', missing: 'a general ability', chapter: 'abilities' });
   }
