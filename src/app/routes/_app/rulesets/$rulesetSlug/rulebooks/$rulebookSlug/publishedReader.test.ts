@@ -103,6 +103,29 @@ describe('published Rulebook reading', () => {
     expect(result.status).toBe('matched');
   });
 
+  test('matches a selection crossing table headers and cells', () => {
+    const source = html().replace(
+      '</main>',
+      '<article data-rulebook-page-id="TBLE" data-rulebook-page-anchor="table"><section data-rulebook-block-id="GRID"><table><thead><tr><th>Faction</th><th>Strength</th></tr></thead><tbody><tr><td>Atreides</td><td>Five</td></tr></tbody></table></section></article></main>'
+    );
+    const book = parsePublishedRulebook(source, href);
+    for (const exact of ['Faction Strength', 'Atreides Five']) {
+      expect(
+        resolvePublishedLocator(book, {
+          status: 'valid',
+          locator: {
+            v: 1,
+            path: [
+              { kind: 'page', id: 'TBLE' },
+              { kind: 'block', id: 'GRID' },
+            ],
+            exact,
+          },
+        }).status
+      ).toBe('matched');
+    }
+  });
+
   test('retains body-level SVG definitions needed by published token artwork', () => {
     const source = rulebookHtmlSvg(
       html().replace('</main>', '<svg><use href="/vector/troop/atreides.svg#root"/></svg></main>'),

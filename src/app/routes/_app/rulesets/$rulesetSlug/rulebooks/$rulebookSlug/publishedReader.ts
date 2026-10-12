@@ -40,6 +40,14 @@ function identity(element: Element, attribute: string) {
 }
 
 function publicationText(element: Element) {
+  if (element.querySelector('th, td')) {
+    /* LinkeDOM inserts block separators but omits table cells, which browser selections separate. */
+    const copy = element.cloneNode(true) as Element;
+    for (const cell of copy.querySelectorAll('th, td')) {
+      cell.appendChild(copy.ownerDocument.createTextNode(' '));
+    }
+    element = copy;
+  }
   return 'innerText' in element && typeof element.innerText === 'string'
     ? element.innerText
     : (element.textContent ?? '');
