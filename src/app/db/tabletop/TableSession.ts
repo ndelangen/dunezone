@@ -85,8 +85,8 @@ function flipsOf(draft: DraftMove) {
   return draft.flips ? { flips: draft.flips } : {};
 }
 
-/* A turn of a piece at rest in 15° steps, clockwise positive. */
-type Turn = { pieceId: string; turns: number };
+/* A turn of a piece at rest in 15° steps, clockwise positive; `released` once the key is up but the turn is still to go out. */
+type Turn = { pieceId: string; turns: number; released?: boolean };
 
 type LocalCarry = {
   id: string;
@@ -349,6 +349,8 @@ export class TableSession {
   private turning: Turn | null = null;
   /* Rotations sent and not yet answered, by command, shown until the frame that settles them. */
   private readonly sentTurns = new Map<string, Turn>();
+  /* Sent turns the room has done whose new table is still on its way after a resync; they show until it arrives. */
+  private readonly doneTurns = new Set<string>();
   private pointer: Vector3Tuple | null = null;
   /* The table, board or rim surface under the cursor, where a ping lands so every viewer sees it at the same spot. */
   private pingPoint: Vector3Tuple | null = null;
@@ -943,7 +945,11 @@ export class TableSession {
       this.carry = null;
     }
     this.pendingFlips.delete(id);
-    this.sentTurns.delete(id);
+    if (viewFollows && this.sentTurns.has(id)) {
+      this.doneTurns.add(id);
+    } else {
+      this.sentTurns.delete(id);
+    }
     /* Refused, the room's order shows again; done, the frame that settles it carries the deck as arranged. */
     if (this.pendingArrangement?.commandId === id) {
       this.pendingArrangement = null;
@@ -977,6 +983,13 @@ export class TableSession {
     this.flushCatalogue();
     this.flushBattlePlan();
     this.flushBattleActions();
+    this.flushRotation();
+  }
+  /* A turn let go of while a resync paused the table goes out with the first current view. */
+  private flushRotation() {
+    if (this.turning?.released && this.current()) {
+      this.finishRotation();
+    }
   }
   private receiveAuthorizedUpdate(
     message: Exclude<TableSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>
@@ -1074,6 +1087,10 @@ export class TableSession {
   private receiveRoomUpdate(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
     this.replaceActivity(message);
     if (message.snapshotChanged) {
+      for (const id of this.doneTurns) {
+        this.sentTurns.delete(id);
+      }
+      this.doneTurns.clear();
       this.receiveView(message);
     }
     if (this.droppedCarryNotice) {
@@ -1191,6 +1208,7 @@ export class TableSession {
     this.pendingFlips.clear();
     this.turning = null;
     this.sentTurns.clear();
+    this.doneTurns.clear();
     this.flipping = new Map();
   }
   /* Each tab keeps the page it asked for through live updates; the newest page is the default and the reset. */
@@ -1600,8 +1618,12 @@ export class TableSession {
     const turns = (this.turning?.turns ?? 0) + direction;
     const state = this.requireTable().state;
     const piece = state.pieces.find((candidate) => candidate.id === pieceId);
-    /* A step that would overlap another piece is not taken, as the room would refuse it; the turn so far stays. */
-    if (!piece || !rotatedPiece(state, piece, foldedTurns(this.turnsOf(pieceId) + direction))) {
+    /* A locked piece does not turn, and a step that would overlap another piece is not taken, as the room would refuse either; the turn so far stays. */
+    if (
+      !piece ||
+      gestureBlockReason(piece) ||
+      !rotatedPiece(state, piece, foldedTurns(this.turnsOf(pieceId) + direction))
+    ) {
       return;
     }
     this.turning = { pieceId, turns };
@@ -1611,6 +1633,11 @@ export class TableSession {
   finishRotation = () => {
     const turning = this.turning;
     if (!turning) {
+      return;
+    }
+    /* Let go of while a resync pauses the table, the turn waits for the fresh view instead of being lost. */
+    if (!this.current()) {
+      this.turning = { ...turning, released: true };
       return;
     }
     const turns = foldedTurns(turning.turns);

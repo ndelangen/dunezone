@@ -1979,6 +1979,52 @@ describe('a held rotation', () => {
     expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(-1));
   });
 
+  const withDeck = (change: (piece: ReturnType<typeof deck>) => ReturnType<typeof deck>) => {
+    const snapshot = initialSnapshot();
+    return {
+      ...snapshot,
+      revision: snapshot.revision + 1,
+      table: {
+        ...snapshot.table,
+        pieces: snapshot.table.pieces.map((piece) => (piece.id === deck().id ? change(piece) : piece)),
+      },
+    };
+  };
+
+  test('a locked piece does not turn and sends nothing', async () => {
+    const client = await connected();
+    socket().deliver(view({ snapshot: withDeck((piece) => ({ ...piece, locked: true })), sequence: 2 }));
+    const sent = socket().sent.length;
+    client.rotateSelected(1, deck().id);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(deck().orientation);
+    client.finishRotation();
+    expect(socket().sent).toHaveLength(sent);
+  });
+
+  test('a turn let go of during a resync goes out with the fresh view', async () => {
+    const client = await connected();
+    client.rotateSelected(1, deck().id);
+    client.rotateSelected(1, deck().id);
+    deliverGap();
+    client.finishRotation();
+    expect(socket().sent.some((message) => message.type === 'command')).toBe(false);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(2));
+
+    socket().deliver(view({ sequence: 9 }));
+    expect(command().action).toEqual({ kind: 'rotate', pieceId: deck().id, direction: 1, steps: 2 });
+  });
+
+  test('a turn the room did shows through the resync until the new table arrives', async () => {
+    const client = await connected();
+    client.rotateSelected(1, deck().id);
+    client.finishRotation();
+    deliverGap(command().commandId);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(1));
+
+    socket().deliver(view({ snapshot: withDeck((piece) => ({ ...piece, orientation: turned(1) })), sequence: 9 }));
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(1));
+  });
+
   test('a turn back to the start sends nothing, and more than half a turn goes the short way round', async () => {
     const client = await connected();
     const sent = socket().sent.length;
