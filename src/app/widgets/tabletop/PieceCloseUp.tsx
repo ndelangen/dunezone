@@ -6,6 +6,7 @@ import type { RefObject } from 'react';
 import { cardWidthFor, TOKEN_SIZE_PX } from './faceSize';
 import { PieceArtwork } from './PieceArtwork';
 import { topFaceHref } from './pieceFaceHref';
+import { seatedHeaderOf } from './seatedHeader';
 import { useTabletopSelector } from './TabletopContext';
 import styles from './TabletopScene.module.css';
 
@@ -70,6 +71,16 @@ function placeBeside(pointer: Pointer, width: number, height: number, bounds: Bo
   return { left: Math.max(bounds.left + EDGE_PX, left), top: Math.max(bounds.top + EDGE_PX, top) };
 }
 
+/* The table's area below the seated header, which lies over the canvas's top, rather than the window: the dock covers the rest. */
+function tableAreaBounds(area: HTMLElement | null): Bounds {
+  if (!area) {
+    return { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
+  }
+  const rect = area.getBoundingClientRect();
+  const header = seatedHeaderOf(area)?.getBoundingClientRect();
+  return { left: rect.left, top: Math.max(rect.top, header?.bottom ?? 0), right: rect.right, bottom: rect.bottom };
+}
+
 /*
  * Holding Alt over a card or token shows its face flat and large beside the pointer, out of the table's perspective, the way it is printed.
  * It shows the face the table shows, so a face-down card shows its back.
@@ -89,13 +100,7 @@ export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | 
   const width = isCard ? cardWidthFor(CARD_HEIGHT_PX) : TOKEN_SIZE_PX;
   const height = isCard ? CARD_HEIGHT_PX : TOKEN_SIZE_PX;
   const count = pieceCount(piece);
-  /* The table's area below the seated header, which lies over the canvas's top, rather than the window: the dock covers the rest. */
-  const rect = area.current?.getBoundingClientRect();
-  const header = area.current?.closest('.dune-play-shell')?.querySelector('.seated-header')?.getBoundingClientRect();
-  const bounds = rect
-    ? { left: rect.left, top: Math.max(rect.top, header?.bottom ?? 0), right: rect.right, bottom: rect.bottom }
-    : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
-  const position = placeBeside(pointer, width, height + (count > 1 && !round ? 40 : 16), bounds);
+  const position = placeBeside(pointer, width, height + (count > 1 && !round ? 40 : 16), tableAreaBounds(area.current));
   return (
     <div className={styles.closeUp} data-round={round || undefined} style={position} aria-hidden>
       <PieceArtwork piece={piece} src={href} name={piece.label} width={width} height={height} radius="10px" />

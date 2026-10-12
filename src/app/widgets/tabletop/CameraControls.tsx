@@ -24,6 +24,7 @@ import {
 } from './playView';
 import type { CameraPanMotion, CameraPose, CameraViewCommand, CameraZoom } from './playView';
 import { usePointerSession } from './PointerSessionContext';
+import { seatedHeaderOf } from './seatedHeader';
 import { TableKeyboardContext } from './TableKeyboardContext';
 import { readTablePanSpeed } from './tablePanSpeed';
 import { watchTwoFingerTilt } from './twoFingerTilt';
@@ -334,7 +335,7 @@ function useSeatedHeaderHeight(canvas: HTMLCanvasElement): number {
   const [height, setHeight] = useState(0);
 
   useLayoutEffect(() => {
-    const header = canvas.closest('.dune-play-shell')?.querySelector<HTMLElement>('.seated-header');
+    const header = seatedHeaderOf(canvas);
     if (!header) {
       setHeight(0);
       return;
