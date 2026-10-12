@@ -1,4 +1,4 @@
-import { ColorInput, NumberInput, Select, Slider, TextInput } from '@mantine/core';
+import { ColorInput, Select, Slider, TextInput } from '@mantine/core';
 import type { CardBack } from '@shared/assets/schema';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -166,12 +166,16 @@ export function CardbackFields({
       />
       <ControlBlock
         title="Emblem offset"
-        description="Vertical nudge, in card space."
+        description="Move the emblem up with a negative value or down with a positive value."
         input={
-          <NumberInput
+          <Slider
             aria-label="Emblem offset"
+            thumbLabel="Emblem offset"
+            min={Math.min(-60, cardback.imageOffset[1])}
+            max={Math.max(60, cardback.imageOffset[1])}
+            step={1}
             value={cardback.imageOffset[1]}
-            onChange={(value) => onChange({ ...cardback, imageOffset: [cardback.imageOffset[0], Number(value) || 0] })}
+            onChange={(offset) => onChange({ ...cardback, imageOffset: [cardback.imageOffset[0], offset] })}
           />
         }
       />
