@@ -13,8 +13,33 @@ import stockAssetCollections from '../src/shared/stockAssetCollections.json';
 import { normalizeSvg } from '../src/shared/vectorNormalize';
 import { linkedomDom } from './generate-vectors';
 
-/* SVGLoader uses the same headless parser as the OBJ generator. */
-(globalThis as { DOMParser?: unknown }).DOMParser = DOMParser;
+/* SVGLoader expects unset inline CSS values to be empty strings, while linkedom returns undefined. */
+class PaintDOMParser {
+  parseFromString(markup: string, mimeType: 'image/svg+xml') {
+    const document = new DOMParser().parseFromString(markup, mimeType);
+    for (const node of document.querySelectorAll('*')) {
+      for (const property of [
+        'fill',
+        'fill-opacity',
+        'fill-rule',
+        'opacity',
+        'stroke',
+        'stroke-opacity',
+        'stroke-width',
+        'stroke-linejoin',
+        'stroke-linecap',
+        'stroke-miterlimit',
+        'visibility',
+      ]) {
+        if (node.style.getPropertyValue(property) === undefined) {
+          node.style.setProperty(property, '');
+        }
+      }
+    }
+    return document;
+  }
+}
+(globalThis as { DOMParser?: unknown }).DOMParser = PaintDOMParser;
 
 async function getFiles(path: string, root: 'public' | 'media' = 'public') {
   /*
@@ -118,8 +143,17 @@ for (const key of [...generic, ...logo, ...decal, ...icon, ...troop].sort((a, b)
   const source = readFileSync(join(import.meta.dirname, '..', 'media', key), 'utf8');
   const bounds = new Box2();
   for (const path of loader.parse(normalizeSvg(source, linkedomDom)).paths) {
-    const pathBounds = new Box2().setFromPoints(path.subPaths.flatMap((subPath) => subPath.getPoints(64)));
     const style = path.userData?.style;
+    if (
+      style &&
+      typeof style === 'object' &&
+      'fill' in style &&
+      style.fill === 'none' &&
+      (!('stroke' in style) || style.stroke === 'none')
+    ) {
+      continue;
+    }
+    const pathBounds = new Box2().setFromPoints(path.subPaths.flatMap((subPath) => subPath.getPoints(64)));
     if (
       style &&
       typeof style === 'object' &&
