@@ -42,7 +42,11 @@ import {
   rulebookMetadataValidator,
   rulebookListEntryValidator,
 } from './lib/rulebookList';
-import { enqueueRulebookFirstPagePublication, rulebookFirstPagePublicationStatus } from './lib/rulebookPublication';
+import {
+  enqueueRulebookFirstPagePublication,
+  rulebookFirstPageImage,
+  rulebookFirstPagePublicationStatus,
+} from './lib/rulebookPublication';
 import { resolveRulebookReferences } from './lib/rulebookReferences';
 import { rulebookDesignValidator, rulebookSettingsValidator } from './lib/rulebookSettings';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
@@ -616,6 +620,33 @@ export const editionHistory = query({
   },
 });
 
+async function selectedReaderEdition(
+  ctx: QueryCtx,
+  args: { ruleset_slug: string; rulebook_slug: string; edition_number?: number }
+) {
+  const found = await rulebookAtSlugs(ctx, args);
+  if (!found) {
+    return null;
+  }
+  const { ruleset, rulebook } = found;
+  const selectedNumber = args.edition_number ?? rulebook.current_edition_number;
+  const selected = await ctx.db
+    .query('rulebook_editions')
+    .withIndex('by_rulebook_and_edition_number', (q) =>
+      q.eq('rulebook_id', rulebook._id).eq('edition_number', selectedNumber)
+    )
+    .unique();
+  if (!selected) {
+    if (args.edition_number === undefined) {
+      /* A Rulebook whose current Edition row is gone is a broken invariant, not something a reader asked for. */
+      throw new Error('Rulebook edition not found');
+    }
+    /* A ConvexError, so the sentence survives to the reader's banner; a plain Error is redacted to "Server Error" outside dev. */
+    throw new ConvexError(`Rulebook Edition ${selectedNumber} does not exist`);
+  }
+  return { ruleset, rulebook, selected };
+}
+
 /** Public reading loads one immutable Edition and its complete metadata history, never the author's saved draft. */
 export const readerPage = query({
   args: {
@@ -638,26 +669,11 @@ export const readerPage = query({
     })
   ),
   handler: async (ctx, args) => {
-    const found = await rulebookAtSlugs(ctx, args);
+    const found = await selectedReaderEdition(ctx, args);
     if (!found) {
       return null;
     }
-    const { ruleset, rulebook } = found;
-    const selectedNumber = args.edition_number ?? rulebook.current_edition_number;
-    const selected = await ctx.db
-      .query('rulebook_editions')
-      .withIndex('by_rulebook_and_edition_number', (q) =>
-        q.eq('rulebook_id', rulebook._id).eq('edition_number', selectedNumber)
-      )
-      .unique();
-    if (!selected) {
-      if (args.edition_number === undefined) {
-        /* A Rulebook whose current Edition row is gone is a broken invariant, not something a reader asked for. */
-        throw new Error('Rulebook edition not found');
-      }
-      /* A ConvexError, so the sentence survives to the reader's banner; a plain Error is redacted to "Server Error" outside dev. */
-      throw new ConvexError(`Rulebook Edition ${selectedNumber} does not exist`);
-    }
+    const { ruleset, rulebook, selected } = found;
     const editions = await ctx.db
       .query('rulebook_editions')
       .withIndex('by_rulebook_and_edition_number', (q) => q.eq('rulebook_id', rulebook._id))
@@ -686,6 +702,73 @@ export const readerPage = query({
         created_at,
       })),
       ...(await resolveRulebookReferences(ctx, contents, { factionTokenImages: args.faction_token_images === true })),
+    };
+  },
+});
+
+/** Ready HTML readers load metadata and access only; unfinished artifacts retain the live renderer. */
+export const readerDeliveryPage = query({
+  args: {
+    ruleset_slug: v.string(),
+    rulebook_slug: v.string(),
+    edition_number: v.optional(v.number()),
+    render_contents: v.optional(v.boolean()),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({
+      ruleset: v.object({ name: v.string(), slug: v.string() }),
+      rulebook: rulebookMetadataValidator,
+      canEdit: v.boolean(),
+      canDelete: v.boolean(),
+      edition: readerEditionValidator.omit('settings', 'contents'),
+      editions: v.array(readerEditionOptionValidator),
+      body: v.union(
+        v.object({ kind: v.literal('html'), href: v.string() }),
+        v.object({
+          kind: v.literal('render'),
+          contents: zodToConvex(rulebookEditionContentsV1Schema),
+          settings: rulebookSettingsValidator,
+          assetsById: resolvedAssetsValidator,
+          factionsById: resolvedFactionsValidator,
+        })
+      ),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const found = await selectedReaderEdition(ctx, args);
+    if (!found) {
+      return null;
+    }
+    const { ruleset, rulebook, selected } = found;
+    const summary = await rulebookEditionSummary(ctx, selected);
+    const { viewerId, viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
+    const editions = await ctx.db
+      .query('rulebook_editions')
+      .withIndex('by_rulebook_and_edition_number', (q) => q.eq('rulebook_id', rulebook._id))
+      .order('desc')
+      .collect();
+    const image = await rulebookFirstPageImage(ctx, selected._id);
+    const metadata = {
+      ruleset: { name: ruleset.name, slug: ruleset.slug },
+      rulebook: metadataFrom(rulebook),
+      canEdit: viewerAccess.capabilities.edit,
+      canDelete: viewerId === ruleset.owner_id,
+      edition: { ...summary, first_page_image_url: image },
+      editions: editions.map(({ edition_number, created_at }) => ({ edition_number, created_at })),
+    };
+    if (!args.render_contents && summary.html.status === 'ready' && summary.html.href) {
+      return { ...metadata, body: { kind: 'html' as const, href: summary.html.href } };
+    }
+    const contents = parseEditionContents(await contentsForRulebookEdition(ctx, selected));
+    return {
+      ...metadata,
+      body: {
+        kind: 'render' as const,
+        contents: readerContents(contents),
+        settings: selected.settings ?? DEFAULT_RULEBOOK_SETTINGS,
+        ...(await resolveRulebookReferences(ctx, contents, { factionTokenImages: true })),
+      },
     };
   },
 });
