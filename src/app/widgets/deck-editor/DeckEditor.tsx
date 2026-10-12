@@ -20,6 +20,7 @@ import { AssetFace, CardFrame, assetFaceAspect } from '@app/widgets/asset-face/A
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { CUSTOM_PRESET } from '@app/widgets/background-composer/presetChoice';
+import type { CardbackSection } from '@app/widgets/cardback-editor/CardbackFields';
 import { CardbackFields } from '@app/widgets/cardback-editor/CardbackFields';
 import { CardBack } from '@game/assets/card/Back';
 
@@ -48,7 +49,7 @@ export type DeckDraftCardback =
   | { mode: 'preset'; key: CardbackPresetKey };
 
 export type DeckDraft = Omit<z.infer<typeof DeckAsset>, 'cardback'> & { cardback: DeckDraftCardback };
-export type DeckChapter = 'identity' | 'cards' | 'about';
+export type DeckChapter = 'identity' | 'back' | 'background' | 'emblem' | 'cards' | 'about';
 
 /** One member of a deck as the editor sees it: the card itself, and how many copies. */
 export type DeckMember = { card: AssetFaceMember; count: number };
@@ -117,7 +118,7 @@ export function deckDraftWarnings(draft: DeckDraft, members: DeckMember[]): Deck
     warnings.push({ source: 'Identity', missing: 'a back label', chapter: 'identity' });
   }
   if (draft.cardback.mode === 'reference' && draft.cardback.asset_id === null) {
-    warnings.push({ source: 'Cardback', missing: 'a deck to reference', chapter: 'identity' });
+    warnings.push({ source: 'Cardback', missing: 'a deck to reference', chapter: 'back' });
   }
   if (members.length === 0) {
     warnings.push({ source: 'Cards', missing: 'any cards', chapter: 'cards' });
@@ -151,8 +152,6 @@ const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
 
 /**
  * The deck workbench.
- *
- * Two chapters, because a deck is only two things: what it is, and what is in it.
  *
  * Membership is not draft state.
  * Each count change writes an `asset_relations` row immediately, the way a token's referenced backside does, because relations do not travel through the asset's `data`.
@@ -207,6 +206,19 @@ export function DeckEditor({
     setRemovingId(null);
   }
 
+  const cardbackFields = (section: CardbackSection) =>
+    composition ? (
+      <CardbackFields
+        section={section}
+        cardback={composition}
+        onChange={(next) => patch({ cardback: { mode: 'custom', ...next } })}
+        declaredCustom={memory.backgroundCustom}
+        modeMemory={memory.backgroundModeMemory}
+        onModeMemoryChange={(backgroundModeMemory) => remember({ backgroundModeMemory })}
+        onDeclaredCustomChange={(backgroundCustom) => remember({ backgroundCustom })}
+      />
+    ) : null;
+
   const totalCards = members.reduce((sum, member) => sum + member.count, 0);
 
   return (
@@ -215,7 +227,7 @@ export function DeckEditor({
         {/* Settling on focus leaving the fields is the editors' idiom, not the layout's, so it rides an element this widget owns. */}
         <div onBlurCapture={onSettle}>
           <ConnectedTabs<DeckChapter>
-            value={chapter}
+            value={!composition && (chapter === 'background' || chapter === 'emblem') ? 'back' : chapter}
             onValueChange={(next) => {
               onChapterChange(next);
               onSettle();
@@ -229,6 +241,16 @@ export function DeckEditor({
                 panel: panel(
                   <>
                     <ControlBlock title="Name" description="Determines the deck's URL." input={nameField} />
+                    {cardbackFields('label')}
+                  </>
+                ),
+              },
+              {
+                value: 'back',
+                label: 'Back',
+                icon: <TopicIcon topic="cards" size={21} />,
+                panel: panel(
+                  <>
                     <ControlBlock
                       title="Card back"
                       description="A shared preset follows published updates. A back composed here belongs only to this deck."
@@ -293,19 +315,25 @@ export function DeckEditor({
                         />
                       }
                     />
-                    {composition ? (
-                      <CardbackFields
-                        cardback={composition}
-                        onChange={(next) => patch({ cardback: { mode: 'custom', ...next } })}
-                        declaredCustom={memory.backgroundCustom}
-                        modeMemory={memory.backgroundModeMemory}
-                        onModeMemoryChange={(backgroundModeMemory) => remember({ backgroundModeMemory })}
-                        onDeclaredCustomChange={(backgroundCustom) => remember({ backgroundCustom })}
-                      />
-                    ) : null}
                   </>
                 ),
               },
+              ...(composition
+                ? [
+                    {
+                      value: 'background' as const,
+                      label: 'Background',
+                      icon: <TopicIcon topic="face" size={21} />,
+                      panel: panel(cardbackFields('background')),
+                    },
+                    {
+                      value: 'emblem' as const,
+                      label: 'Emblem',
+                      icon: <TopicIcon topic="symbol" size={21} />,
+                      panel: panel(cardbackFields('emblem')),
+                    },
+                  ]
+                : []),
               {
                 value: 'cards',
                 label: 'Cards',
