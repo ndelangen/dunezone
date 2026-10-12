@@ -10,6 +10,7 @@ import { ContinuePlaying, resultTitle } from './GameResult';
 import { PhaseNavigation } from './PhaseNavigation';
 import { StagePlayback } from './SeatRequests';
 import { SwappingReady, SwappingStatus } from './Swapping';
+import { stageInPlay } from './tableFactions';
 
 export type GameIdentity = Readonly<{ rulesetName: string | null; address: string }>;
 
@@ -28,8 +29,7 @@ export function stageToolbar({
   onBidderFadedChange: (faded: boolean) => void;
 }>) {
   const stage = table.snapshot.stage;
-  /* The fixture has no stage and plays like a game in play. */
-  const inPlay = stage === undefined || stage === 'play';
+  const inPlay = stageInPlay(stage);
   /* Playback steps through the checkpoints from the header in every stage, so no tab hides the way back to live. */
   const playback = table.playback ? <StagePlayback client={client} table={table} error={error} /> : null;
   /* In play the header steps phases beside the bidder; setup steps its phases alone. */

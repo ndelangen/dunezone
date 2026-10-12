@@ -23,7 +23,7 @@ import {
   pickersOf,
   setAsideReason,
 } from '@shared/play/drafting';
-import type { DraftFaction, DraftState } from '@shared/play/drafting';
+import type { DraftFaction, DraftState, DraftWarning } from '@shared/play/drafting';
 import type { PublicControls } from '@shared/play/inventory';
 import type { SeatRequest } from '@shared/play/participation';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
@@ -385,6 +385,17 @@ function GateStep({ gate }: Readonly<{ gate: Gate }>) {
   );
 }
 
+/* What turns the header's line amber: a failed deal, or a pool too small to deal. */
+function draftAlert(draft: DraftState, warning: DraftWarning) {
+  if (draft.failure) {
+    return {
+      line: 'Seats were not dealt',
+      help: `${draft.failure} Fix the content or change the draft, then deal again.`,
+    };
+  }
+  return warning.kind === 'short' ? { line: 'Not enough factions in the pool', help: warning.text } : null;
+}
+
 /**
  * The drafting chip at the top left of the header (#2056's phase chip, direction B of the drafting header round): the stage and the ruleset, the three things the deal waits for as one track that fills in, and one line saying what the table waits for now.
  * A failed deal or a pool too small to deal turns that line amber.
@@ -404,11 +415,7 @@ export function DraftingHeader({
   const poolHelp =
     warning.kind === 'none' ? 'Drafted factions are dealt randomly when everyone is ready.' : warning.text;
   const current = !gates.minimumMet ? 'players' : !gates.enoughFactions ? 'factions' : 'ready';
-  const alert = draft.failure
-    ? { line: 'Seats were not dealt', help: `${draft.failure} Fix the content or change the draft, then deal again.` }
-    : warning.kind === 'short'
-      ? { line: 'Not enough factions in the pool', help: warning.text }
-      : null;
+  const alert = draftAlert(draft, warning);
   /* The header around this is already the polite live region, so the line announces through it rather than again. */
   return (
     <div className={styles.header}>

@@ -142,6 +142,49 @@ function CreateGamePage() {
   }
 }
 
+/* A custom name's first problem once something is typed, and whether the name the game would carry is ready. */
+function customNameCheck(draft: Draft) {
+  const customName = draft.custom ? playGameNameSchema.safeParse(draft.customName) : null;
+  return {
+    nameError:
+      customName && !customName.success && draft.customName.trim() ? customName.error.issues[0]?.message : undefined,
+    nameReady: customName === null || customName.success,
+  };
+}
+
+type CreateGame = ReturnType<typeof useCreateGame>;
+
+/* Pressing Create game fades the page to the table's ground; the game opens once the fade is complete, and a refusal lifts it again. */
+function useDeparture(createGame: CreateGame, dispatch: Dispatch<DraftEvent>) {
+  const navigate = useNavigate();
+  const [departing, setDeparting] = useState(false);
+  const departedAt = useRef(0);
+  const opening = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(opening.current), []);
+  /* Convex holds a mutation while it cannot reach the server, so a fade with no answer lifts again and the page says why. */
+  const stalled = useServerUnreachable(departing && createGame.isPending);
+  const depart = (input: Parameters<CreateGame['mutate']>[0]) => {
+    departedAt.current = performance.now();
+    setDeparting(true);
+    createGame.mutate(input, {
+      onSuccess: (result) => {
+        if (result.ok) {
+          const remaining = Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
+          opening.current = setTimeout(
+            () => void navigate({ to: '/play/$gameId', params: { gameId: result.slug ?? result.gameId } }),
+            remaining
+          );
+        } else {
+          setDeparting(false);
+          dispatch({ kind: 'refused', reason: REFUSALS[result.reason] });
+        }
+      },
+      onError: () => setDeparting(false),
+    });
+  };
+  return { departing, stalled, depart };
+}
+
 function CreateGameForm({
   rulesets,
   preview,
@@ -153,7 +196,6 @@ function CreateGameForm({
   draft: Draft;
   dispatch: Dispatch<DraftEvent>;
 }>) {
-  const navigate = useNavigate();
   const createGame = useCreateGame();
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({
@@ -161,43 +203,17 @@ function CreateGameForm({
     minimumPlayers: draft.minimumPlayers,
     lastTurn: draft.lastTurn,
   });
-  const customName = draft.custom ? playGameNameSchema.safeParse(draft.customName) : null;
-  const nameError =
-    customName && !customName.success && draft.customName.trim() ? customName.error.issues[0]?.message : undefined;
-  const nameReady = customName === null || customName.success;
+  const { nameError, nameReady } = customNameCheck(draft);
   const objection = chosen?.objection ?? null;
-  const [departing, setDeparting] = useState(false);
+  const { departing, stalled, depart } = useDeparture(createGame, dispatch);
   const canCreate =
     nameReady && request.success && chosen !== undefined && objection === null && !createGame.isPending && !departing;
-  /* Pressing Create game fades the page to the table's ground; the game opens once the fade is complete, and a refusal lifts it again. */
-  const departedAt = useRef(0);
-  const opening = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(opening.current), []);
-  /* Convex holds a mutation while it cannot reach the server, so a fade with no answer lifts again and the page says why. */
-  const stalled = useServerUnreachable(departing && createGame.isPending);
   const submit = () => {
     if (canCreate && request.success) {
-      departedAt.current = performance.now();
-      setDeparting(true);
-      createGame.mutate(
+      depart(
         draft.custom
           ? { ...request.data, name: draft.customName }
-          : { ...request.data, generatedName: draft.generatedName },
-        {
-          onSuccess: (result) => {
-            if (result.ok) {
-              const remaining = Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
-              opening.current = setTimeout(
-                () => void navigate({ to: '/play/$gameId', params: { gameId: result.slug ?? result.gameId } }),
-                remaining
-              );
-            } else {
-              setDeparting(false);
-              dispatch({ kind: 'refused', reason: REFUSALS[result.reason] });
-            }
-          },
-          onError: () => setDeparting(false),
-        }
+          : { ...request.data, generatedName: draft.generatedName }
       );
     }
   };
