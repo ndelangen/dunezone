@@ -45,30 +45,32 @@ const viewerIndependentAuth = {
 const REFERENCE_PATH = Symbol.for('toReferencePath');
 
 /**
- * Whether a reference is positively a component's function.
+ * The component address a reference names, read once, or null when it is not positively a component's function.
  * Anything else is refused: an app function by name, and a function handle, which is a string that can name an app function as easily as a component's.
  */
-function isComponentFunction(reference: Parameters<QueryCtx['runQuery']>[0]) {
+function componentPath(reference: Parameters<QueryCtx['runQuery']>[0]): string | null {
   if (typeof reference !== 'object' || reference === null) {
-    return false;
+    return null;
   }
   const path: unknown = (reference as unknown as Record<symbol, unknown>)[REFERENCE_PATH];
-  return typeof path === 'string' && path.startsWith('_reference/childComponent/');
+  return typeof path === 'string' && path.startsWith('_reference/childComponent/') ? path : null;
 }
 
 /**
  * A nested app query runs with the caller's identity, so it would carry the viewer past the `auth` stub.
  * Components, such as the aggregates, run without the app's identity and stay callable;
  * everything else is refused.
+ * The call goes out on a fresh reference holding only the checked path, so an object that also names an app function, or answers differently when read twice, cannot reach one.
  */
 function viewerIndependentRunQuery(runQuery: QueryCtx['runQuery']): QueryCtx['runQuery'] {
   return (reference, ...args) => {
-    if (!isComponentFunction(reference)) {
+    const path = componentPath(reference);
+    if (path === null) {
       throw new Error(
         `${VIEWER_INDEPENDENCE} Nested ctx.runQuery is refused for the same reason, except into a component.`
       );
     }
-    return runQuery(reference, ...args);
+    return runQuery({ [REFERENCE_PATH]: path } as unknown as typeof reference, ...args);
   };
 }
 
