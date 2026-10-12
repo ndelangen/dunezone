@@ -5,6 +5,7 @@ import {
   RECTANGLE_TOKEN_ASSET_TYPE,
   RULEBOOK_FIRST_PAGE_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
+  STRONGHOLD_CARD_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
 } from './publication';
 
@@ -31,6 +32,7 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   // 1: spice cards join the pipeline with their editor (#1229).
   [SPICE_CARD_ASSET_TYPE]: 1,
   [CUSTOM_CARD_ASSET_TYPE]: 1,
+  [STRONGHOLD_CARD_ASSET_TYPE]: 1,
   // 1: deck cardbacks join the pipeline (wayfinder #546). Activating this is also the backfill for decks that predate it.
   [DECK_ASSET_TYPE]: 1,
   /* Revision 2 publishes the Prediction preset added for prediction cards (#1753); saved designs are kept. */

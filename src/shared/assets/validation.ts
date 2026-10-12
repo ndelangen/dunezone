@@ -6,6 +6,7 @@ import {
   DeckAssetInput,
   RectangleTokenAssetInput,
   SpiceAssetInput,
+  StrongholdCardAssetInput,
   TokenAssetInput,
   TreacheryAssetInput,
 } from './schema';
@@ -32,6 +33,10 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
     }
     case 'card-spice': {
       const parsed = SpiceAssetInput.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
+    case 'card-stronghold': {
+      const parsed = StrongholdCardAssetInput.parse(data);
       return { data: parsed, name: parsed.name };
     }
     case 'card-custom': {

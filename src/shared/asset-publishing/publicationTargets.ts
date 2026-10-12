@@ -28,6 +28,7 @@ export const PUBLICATION_ASSET_TYPES = [
   'card-treachery',
   'card-spice',
   'card-custom',
+  'card-stronghold',
   'board',
   'deck',
   'cardback-preset',
@@ -171,6 +172,7 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     downloadFilename: 'board.jpg',
     capture: { output: 'image', widthPx: 1948, heightPx: 1948, jpegQuality: 95, maxBytes: 3_000_000 },
   },
+  'card-stronghold': cardTarget('stronghold-cards', 'card.jpg', 'stronghold-card.jpg'),
   'card-custom': cardTarget('custom-cards', 'card.jpg', 'custom-card.jpg'),
   'card-spice': cardTarget('spice-cards', 'card.jpg', 'spice-card.jpg'),
   /*

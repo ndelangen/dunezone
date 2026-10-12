@@ -442,3 +442,16 @@ export const CustomCard = CardHead.extend({
 });
 export const CustomCardAsset = CustomCard.extend({ about: About });
 export const CustomCardAssetInput = CustomCardAsset.extend({ about: FormattedAbout });
+
+/** A stronghold authors its name, Decals and Body inside one fixed card template. */
+export const StrongholdCard = Treachery.pick({ name: true, decals: true, text: true }).extend({
+  decals: z.array(Decal).max(16),
+  textSize: z.number().min(24).max(44),
+});
+export const StrongholdCardAsset = StrongholdCard.extend({ about: About });
+export const StrongholdCardAssetInput = StrongholdCardAsset.extend({
+  about: FormattedAbout,
+  text: proseFormattedTextSchema.refine((text) => text.length <= 1200, {
+    message: 'The Body can hold at most 1200 characters',
+  }),
+});

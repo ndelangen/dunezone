@@ -17,6 +17,7 @@ import { BoardMap } from '@game/assets/board/Board';
 import { CardBack } from '@game/assets/card/Back';
 import { CustomCard } from '@game/assets/card/Custom';
 import { SpiceCard } from '@game/assets/card/Spice';
+import { StrongholdCard } from '@game/assets/card/Stronghold';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -95,6 +96,8 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
       };
     case 'card-treachery':
       return printedImage(snapshot.assetType, <TreacheryCard {...snapshot.payload.card} />);
+    case 'card-stronghold':
+      return printedImage(snapshot.assetType, <StrongholdCard {...snapshot.payload.card} />);
     case 'card-custom':
       return printedImage(
         snapshot.assetType,
