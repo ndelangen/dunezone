@@ -317,6 +317,25 @@ export class ConvexBackend extends DurableObject<Env> {
           max: samples.at(-1),
         });
       }
+      case '/_spike/purge': {
+        // Teardown only: deletes up to 5,000 objects per bucket per call; repeat until every count is 0.
+        if (request.method !== 'POST' || url.searchParams.get('confirm') !== 'delete-all-spike-data') {
+          return new Response('POST with confirm=delete-all-spike-data', { status: 400 });
+        }
+        const deleted: Record<string, number> = {};
+        for (const name of ['LITESTREAM', 'MODULES', 'FILES', 'SEARCH', 'EXPORTS', 'IMPORTS'] as const) {
+          deleted[name] = 0;
+          for (let round = 0; round < 5; round++) {
+            const listed = await this.env[name].list({ limit: 1000 });
+            if (listed.objects.length === 0) {
+              break;
+            }
+            await this.env[name].delete(listed.objects.map((object) => object.key));
+            deleted[name] += listed.objects.length;
+          }
+        }
+        return Response.json(deleted);
+      }
       case '/_spike/metrics':
         return new Response(await this.sh('curl -fsS http://127.0.0.1:9090/metrics | grep -E "^litestream_" | head -80'));
       case '/_spike/signal': {
