@@ -14,7 +14,8 @@ import { BundleBand } from '@shared/assets/schema';
  * It was once handed a pixel width instead, which made every caller state a size the face already knew: six of them wrapped it in a `CanvasScale` restating the same 900 and the same ratio, and the landing page ran a `ResizeObserver` whose entire output was that one prop.
  * A surface needing exact pixels still gets them, by giving the face a fixed-size parent, so there is never a second way to say the same thing.
  */
-import { GEAR_CLIP } from '@shared/assets/tokenOutline';
+import { GEAR_CLIP, tokenOutline, tokenShapeAspect, tokenShapeOfType } from '@shared/assets/tokenOutline';
+import type { TokenShape } from '@shared/assets/tokenOutline';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import type { ReactNode } from 'react';
@@ -67,9 +68,6 @@ function bundleHeadroom(memberCount: number): number {
   return memberCount > 0 ? MEMBER_WIDTH_RATIO * (MEMBER_RISE_RATIO + MEMBER_TILT_RISE) : 0;
 }
 
-/** An enhance token is wider than it is tall; every other token shape is square. */
-const RECTANGLE_TOKEN_ASPECT = 0.62;
-
 /**
  * The card's corner, as a share of its own box rather than a pixel count read off a width.
  *
@@ -101,16 +99,6 @@ export function CardFrame({ children }: { children: ReactNode }) {
       {children}
     </CanvasScale>
   );
-}
-
-type TokenShape = 'round' | 'gear' | 'square' | 'rectangle';
-
-/**
- * The height of a token shape as a multiple of its width.
- * Read by the frame that draws one and by `assetFaceAspect`, which used to answer the same question from its own copy of this switch.
- */
-function tokenShapeAspect(shape: TokenShape): number {
-  return shape === 'rectangle' ? RECTANGLE_TOKEN_ASPECT : 1;
 }
 
 /**
@@ -165,21 +153,6 @@ export function assetFaceAspect(type: string, memberCount = 0): number {
   /* No token shape means no token, and every remaining type draws at card proportions. */
   const shape = tokenShapeOfType(type);
   return shape === null ? CARD_ASPECT : tokenShapeAspect(shape);
-}
-
-export function tokenShapeOfType(type: string): TokenShape | null {
-  switch (type) {
-    case 'token-disc':
-      return 'round';
-    case 'token-tech':
-      return 'gear';
-    case 'token-plate':
-      return 'square';
-    case 'token-enhance':
-      return 'rectangle';
-    default:
-      return null;
-  }
 }
 
 /**
@@ -264,13 +237,10 @@ function publishedOutline(shape: TokenShape | null): { radius?: string; clipPath
   switch (shape) {
     case null:
       return { radius: CARD_CORNER, raised: true };
-    case 'round':
-      return { radius: '50%', raised: true };
     case 'gear':
-      return { clipPath: GEAR_CLIP, raised: false };
-    case 'square':
-    case 'rectangle':
-      return { radius: '8px', raised: true };
+      return { ...tokenOutline(shape), raised: false };
+    default:
+      return { ...tokenOutline(shape), raised: true };
   }
 }
 

@@ -100,14 +100,7 @@ export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | 
   const position = placeBeside(pointer, width, height + (count > 1 && !round ? 40 : 16), bounds);
   return (
     <div className={styles.closeUp} data-round={round || undefined} style={position} aria-hidden>
-      <PieceArtwork
-        piece={piece}
-        src={href}
-        name={piece.label}
-        width={width}
-        height={height}
-        radius={round ? '50%' : '10px'}
-      />
+      <PieceArtwork piece={piece} src={href} name={piece.label} width={width} height={height} radius="10px" />
       {count > 1 ? <div className={styles.closeUpCount}>×{count}</div> : null}
     </div>
   );

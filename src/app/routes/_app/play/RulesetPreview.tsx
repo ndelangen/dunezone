@@ -2,10 +2,10 @@ import { Anchor, Group, Stack, Text } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { FormattedTextSource } from '@ui/content/FormattedText';
+import { TokenImage } from '@ui/content/TokenImage';
 import { ExternalLink } from 'lucide-react';
 
 import { useRulesetBySlug } from '@db/rulesets';
-import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from './create.module.css';
 
@@ -53,7 +53,7 @@ export function RulesetPreview({ slug }: Readonly<{ slug: string }>) {
             {factions.map((faction) => (
               <li key={faction._id}>
                 <span className={styles.previewToken} aria-hidden>
-                  <FactionToken logo={faction.data.logo} background={faction.data.background} />
+                  <TokenImage src={faction.tokenImages?.faction ?? null} name={faction.data.name} shape="round" />
                 </span>
                 <Text size="sm" lineClamp={1}>
                   {faction.data.name}
