@@ -17,6 +17,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
   imageScale,
   nameScale = 1,
   nameFont = 'C_Busorama',
+  emblemBackground,
 }) => {
   const prefix = useCountId();
   const resolveAsset = useAssetResolver();
@@ -25,6 +26,26 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
   const textMask = `${prefix}text-mask`;
   const textShadeMask = `${prefix}text-shade-mask`;
   const multicolor = image.endsWith('-multicolor.svg') || !image.endsWith('.svg');
+  const emblemBackgroundFilter = `${prefix}emblem-background`;
+  const tint = emblemBackground?.color.match(/^#([0-9a-f]{6})$/i)?.[1];
+  const intensity = emblemBackground?.intensity ?? 0;
+  /* Blend a luminance-based tint with the original disc, retaining its grain and transparent edge. */
+  const tintMatrix =
+    tint && intensity > 0
+      ? [0, 2, 4]
+          .map((offset, row) => {
+            const channel = Number.parseInt(tint.slice(offset, offset + 2), 16) / 255;
+            return [
+              ...[0.2126, 0.7152, 0.0722].map(
+                (weight, column) => channel * weight * intensity + (row === column ? 1 - intensity : 0)
+              ),
+              0,
+              0,
+            ].join(' ');
+          })
+          .concat('0 0 0 1 0')
+          .join(' ')
+      : undefined;
 
   return (
     <div className={styles.card}>
@@ -32,7 +53,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
       <div
         className={styles.decal_bg_1}
         style={{
-          filter: 'drop-shadow(0 0 3px black) drop-shadow(0 0 8px black)',
+          filter: `${tintMatrix ? `url(#${emblemBackgroundFilter}) ` : ''}drop-shadow(0 0 3px black) drop-shadow(0 0 8px black)`,
         }}
       />
       <div
@@ -58,6 +79,11 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
 
       <svg className={styles.svg}>
         <defs>
+          {tintMatrix && (
+            <filter id={emblemBackgroundFilter} colorInterpolationFilters="sRGB">
+              <feColorMatrix type="matrix" values={tintMatrix} />
+            </filter>
+          )}
           <linearGradient id={gradient} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#faf8eb" />
             <stop offset="100%" stopColor="#cfaf45" />
