@@ -9,6 +9,7 @@ import { cardTitleFontSize } from './cardTitleFontSize';
 type HeadProps = z.infer<typeof CardHead> & {
   measureParts?: boolean;
   wrapTitle?: boolean;
+  wrappedTitleSize?: number;
 };
 
 /** Draws the shared Head background underneath the card's printed frame. */
@@ -32,6 +33,7 @@ export function CardHeadContents({
   iconOpacity = 1,
   measureParts = false,
   wrapTitle = false,
+  wrappedTitleSize = 44,
 }: Omit<HeadProps, 'head'>) {
   const iconSize = 85 * iconScale;
   const titleSize = cardTitleFontSize(name);
@@ -73,7 +75,7 @@ export function CardHeadContents({
       </BackgroundRenderer>
       <div
         className={wrapped ? `${styles.title} ${styles.wrappedTitle}` : styles.title}
-        style={{ width: 560, fontSize: wrapped ? Math.min(44, titleSize * 2) : titleSize }}
+        style={{ width: 560, fontSize: wrapped ? Math.min(wrappedTitleSize, titleSize * 2) : titleSize }}
         {...{
           [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: measureParts && name.trim() ? 'name' : undefined,
         }}
