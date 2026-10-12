@@ -61,7 +61,7 @@ export type RulesetDetailPublicPage = RulesetPageData & {
  * `viewerResolved` is false while the viewer is on its way;
  * until then the capabilities are the anonymous ones.
  */
-export type RulesetDetailPageData = RulesetDetailPublicPage & {
+type RulesetDetailPageData = RulesetDetailPublicPage & {
   viewerResolved: boolean;
   viewerAccess: AssetViewerAccess<'ruleset', AssignedGroupSummary>;
   assignableGroups: AssignedGroupSummary[];

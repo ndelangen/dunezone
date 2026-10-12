@@ -30,6 +30,24 @@ const probes = {
         {}
       ),
   }),
+  /* A component reference while some backend code has planted an app function's name on Object.prototype. */
+  nestsUnderPollutedPrototype: publicQuery({
+    args: {},
+    handler: async (ctx) => {
+      const prototype = Object.prototype as Record<symbol, unknown>;
+      prototype[Symbol.for('functionName')] = 'publicQueryProbe:viewer';
+      try {
+        return await ctx.runQuery(
+          {
+            [Symbol.for('toReferencePath')]: '_reference/childComponent/statistics/btree/count',
+          } as unknown as Parameters<typeof ctx.runQuery>[0],
+          {}
+        );
+      } finally {
+        delete prototype[Symbol.for('functionName')];
+      }
+    },
+  }),
   viewer: viewerQuery({ args: {}, handler: async (ctx) => (await ctx.auth.getUserIdentity())?.subject ?? null }),
 };
 
@@ -59,5 +77,10 @@ describe('publicQuery', () => {
   test('a reference that names an app query while claiming a component path never reaches the app query', async () => {
     const t = convexTest(schema, modules).withIdentity({ subject: 'probe-viewer' });
     await expect(t.query(probe('nestsDisguisedViewerQuery'), {})).rejects.toThrow();
+  });
+
+  test('a name planted on Object.prototype cannot redirect a component call to an app query', async () => {
+    const t = convexTest(schema, modules).withIdentity({ subject: 'probe-viewer' });
+    await expect(t.query(probe('nestsUnderPollutedPrototype'), {})).rejects.toThrow();
   });
 });

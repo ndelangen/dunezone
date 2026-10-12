@@ -70,7 +70,9 @@ function viewerIndependentRunQuery(runQuery: QueryCtx['runQuery']): QueryCtx['ru
         `${VIEWER_INDEPENDENCE} Nested ctx.runQuery is refused for the same reason, except into a component.`
       );
     }
-    return runQuery({ [REFERENCE_PATH]: path } as unknown as typeof reference, ...args);
+    /* No prototype, so not even a `functionName` symbol planted on Object.prototype can name an app function. */
+    const forwarded = Object.assign(Object.create(null) as object, { [REFERENCE_PATH]: path });
+    return runQuery(forwarded as unknown as typeof reference, ...args);
   };
 }
 
