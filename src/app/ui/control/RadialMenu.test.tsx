@@ -73,3 +73,14 @@ test('closing hands focus back to what held it before the ring opened', () => {
   expect(document.activeElement).toBe(opener);
   opener.remove();
 });
+
+test('a window narrower than the ring centres it rather than push it off one side', () => {
+  vi.stubGlobal('innerWidth', 320);
+  try {
+    const menu = deckMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Deal a card' }));
+    expect(menu.style.left).toBe('160px');
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

@@ -179,8 +179,9 @@ function captionPlacement(centre: { left: number; top: number }, offset: number)
 }
 
 /* Keeps a value between two bounds; when they cross, the lower bound wins. */
-function clamp(value: number, low: number, high: number) {
-  return Math.max(low, Math.min(value, high));
+/* Keeps a point at least `margin` from both ends of `size`, or in the middle when the margins would cross. */
+function keepInside(value: number, margin: number, size: number) {
+  return 2 * margin >= size ? size / 2 : Math.max(margin, Math.min(value, size - margin));
 }
 
 /* How long the pointer rests on an item with choices before the ring steps into it. */
@@ -220,8 +221,8 @@ export function RadialMenu({
   /* A big choice ring needs more room than the first ring, so the centre keeps the whole ring on screen. */
   const reach = level ? radius + disc / 2 + 12 : 0;
   const centre = {
-    left: clamp(x, Math.max(EDGE.side, reach), window.innerWidth - Math.max(EDGE.side, reach)),
-    top: clamp(y, Math.max(EDGE.top, reach), window.innerHeight - Math.max(EDGE.bottom, reach)),
+    left: keepInside(x, Math.max(EDGE.side, reach), window.innerWidth),
+    top: keepInside(y, Math.max(EDGE.top, EDGE.bottom, reach), window.innerHeight),
   };
 
   const cancelRest = () => {

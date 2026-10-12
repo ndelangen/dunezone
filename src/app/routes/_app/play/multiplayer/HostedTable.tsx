@@ -182,18 +182,22 @@ type FocusRequest = Readonly<{ key: string; token: string }>;
  * When several requests appear together, the earlier one in the list wins.
  */
 function useNewestFocus(requests: readonly (FocusRequest | null)[]) {
-  const [state, setState] = useState<{ present: readonly string[]; newest: FocusRequest | null }>({
+  const [state, setState] = useState<{ present: readonly string[]; newest: FocusRequest | null; arrivals: number }>({
     present: [],
     newest: null,
+    arrivals: 0,
   });
   const present = requests.filter((request): request is FocusRequest => request !== null);
   const tokens = present.map((request) => request.token);
-  if (tokens.join('\n') !== state.present.join('\n')) {
-    const fresh = present.find((request) => !state.present.includes(request.token));
-    setState({ present: tokens, newest: fresh ?? state.newest });
-    return fresh ?? state.newest;
+  if (tokens.join('\n') === state.present.join('\n')) {
+    return state.newest;
   }
-  return state.newest;
+  const fresh = present.find((request) => !state.present.includes(request.token));
+  /* Each arrival gets its own delivery token, so the dock applies a returning request even if it was the last one applied. */
+  const arrivals = state.arrivals + (fresh ? 1 : 0);
+  const newest = fresh ? { key: fresh.key, token: `${fresh.token}#${arrivals}` } : state.newest;
+  setState({ present: tokens, newest, arrivals });
+  return newest;
 }
 
 /* The end of the game opens the Result tab once for everyone: when someone starts determining the winner, and when it is declared. */
