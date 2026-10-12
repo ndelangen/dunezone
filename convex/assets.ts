@@ -13,7 +13,12 @@ import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
 import { GF9_LEADER_SKILLS, GF9_LEADER_SKILL_DECK } from '../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
-import { StormCardAssetInput, DeckAssetInput, StrongholdCardAsset, LeaderSkillAssetInput } from '../src/shared/assets/schema';
+import {
+  StormCardAssetInput,
+  DeckAssetInput,
+  StrongholdCardAsset,
+  LeaderSkillAssetInput,
+} from '../src/shared/assets/schema';
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
 import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../src/shared/assets/standardStormDeck';
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
@@ -1502,7 +1507,6 @@ export const refreshGF9LeaderSkillPresentationV2 = internalMutation({
       })
     );
     return updated.filter((id) => id !== null);
-
   },
 });
 

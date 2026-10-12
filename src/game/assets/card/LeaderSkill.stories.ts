@@ -4,6 +4,7 @@ import { expect, waitFor } from 'storybook/test';
 
 import headStyles from './CardHead.module.css';
 import { LeaderSkillCard } from './LeaderSkill';
+import leaderStyles from './LeaderSkill.module.css';
 
 const meta = preview.meta({
   component: LeaderSkillCard,
@@ -119,7 +120,7 @@ export const RasterIllustration = meta.story({
     ],
   },
   play: async ({ canvasElement }) => {
-    const illustration = canvasElement.querySelector<SVGImageElement>('svg image')!;
+    const illustration = canvasElement.querySelector<SVGImageElement>(`.${leaderStyles.art} svg image`)!;
     const image = new Image();
     image.src = illustration.href.baseVal;
     await image.decode();
