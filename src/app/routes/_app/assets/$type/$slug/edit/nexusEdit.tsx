@@ -1,13 +1,13 @@
 import { useReducer, useState } from 'react';
 
 import type { AssetPageData } from '@app/db/assets';
-import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
-import { INITIAL_NEXUS_MEMORY, NexusCardEditor, nexusDraftWarnings } from '@app/widgets/card-editor/NexusCardEditor';
-import type { NexusChapter, NexusDraft, NexusMemory } from '@app/widgets/card-editor/NexusCardEditor';
+import { NexusCardEditor, nexusDraftWarnings } from '@app/widgets/card-editor/NexusCardEditor';
+import type { NexusChapter, NexusDraft } from '@app/widgets/card-editor/NexusCardEditor';
 import { NexusCardAssetInput } from '@game/data/objects';
 
 import { assetNameField } from '../../../assetEditorStates';
+import { nexusDraftStatus, openingNexusState, reduceNexusDraft } from '../../nexusAuthoring';
 import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
@@ -25,33 +25,6 @@ export function NexusEditPage({ slug, loaderData }: Readonly<{ slug: string; loa
   );
 }
 
-/* The page owns the saved baseline, draft and temporary background choices. */
-type NexusState = { data: NexusDraft; memory: NexusMemory; baseline: NexusDraft };
-
-type NexusEvent =
-  | { kind: 'patch'; update: Partial<NexusDraft> }
-  | { kind: 'remember'; update: Partial<NexusMemory> }
-  | { kind: 'replace'; data: NexusDraft }
-  | { kind: 'saved'; data: NexusDraft };
-
-function openingState(data: NexusDraft, baseline: NexusDraft): NexusState {
-  return { data, memory: INITIAL_NEXUS_MEMORY, baseline };
-}
-
-function reduce(state: NexusState, event: NexusEvent): NexusState {
-  switch (event.kind) {
-    case 'patch':
-      return { ...state, data: { ...state.data, ...event.update } };
-    case 'remember':
-      return { ...state, memory: { ...state.memory, ...event.update } };
-    /* A reset rebuilds the whole state rather than assigning a field at a time, so a piece added here later cannot be the one a reset forgets. */
-    case 'replace':
-      return openingState(event.data, state.baseline);
-    case 'saved':
-      return { ...state, baseline: event.data };
-  }
-}
-
 function renderEditSession(props: Readonly<CardEditSessionProps<NexusDraft>>) {
   return <CardEditSession {...props} />;
 }
@@ -59,7 +32,9 @@ function renderEditSession(props: Readonly<CardEditSessionProps<NexusDraft>>) {
 function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessionProps<NexusDraft>>) {
   const saving = useCardSave('card-nexus', asset);
   const [chapter, setChapter] = useState<NexusChapter>('head');
-  const [state, dispatch] = useReducer(reduce, undefined, () => openingState(initialDraft, initialDraft));
+  const [state, dispatch] = useReducer(reduceNexusDraft, undefined, () =>
+    openingNexusState(initialDraft, initialDraft)
+  );
   const patch = (update: Partial<NexusDraft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({
     name: state.data.name,
@@ -71,18 +46,11 @@ function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessi
     warnings: [...nexusDraftWarnings(state.data)],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
-  /* Only draft changes enable Save. */
-  const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
-
-  const validation = NexusCardAssetInput.safeParse(state.data);
-  const invalid = validation.success ? undefined : validation.error.issues[0]?.message;
+  const { isDirty, invalid, payload } = nexusDraftStatus(state);
   const save = () => {
-    if (!validation.success) {
-      return;
+    if (payload) {
+      saving.save(payload, () => dispatch({ kind: 'saved', data: payload }));
     }
-
-    const payload = postedPayload(NexusCardAssetInput, state.data);
-    saving.save(payload, () => dispatch({ kind: 'saved', data: payload }));
   };
 
   return (
