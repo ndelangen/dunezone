@@ -154,17 +154,17 @@ export const EmblemStaysInsideDisc = meta.story({
     await Promise.all(images.map((image) => image.decode()));
     const bounds = canvasElement.querySelector('img')!.parentElement!.parentElement!.getBoundingClientRect();
     /* The oversized image covers these corners, but the circular emblem window must exclude them. */
-    for (const [x, y] of [
-      [340, 345],
-      [560, 345],
-      [340, 565],
-      [560, 565],
-    ]) {
-      const painted = document.elementsFromPoint(bounds.x + x!, bounds.y + y!);
-      for (const image of images) {
-        await expect(painted).not.toContain(image);
-      }
-    }
+    await Promise.all(
+      [
+        [340, 345],
+        [560, 345],
+        [340, 565],
+        [560, 565],
+      ].flatMap(([x, y]) => {
+        const painted = document.elementsFromPoint(bounds.x + x!, bounds.y + y!);
+        return images.map((image) => expect(painted).not.toContain(image));
+      })
+    );
     await expect(document.elementsFromPoint(bounds.x + 450, bounds.y + 455)).toContain(images[0]);
   },
 });

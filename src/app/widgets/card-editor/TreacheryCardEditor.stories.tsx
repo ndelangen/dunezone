@@ -34,7 +34,7 @@ export const Category = meta.story({
     });
   },
 });
-export const Symbol = meta.story({
+export const SymbolChoice = meta.story({
   args: { chapter: 'icon' as const },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

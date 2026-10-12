@@ -39,7 +39,7 @@ const LAYERS = {
   text: { label: 'Text', topic: 'text' },
 } as const;
 
-function StormIdentity({ draft, patch, nameField }: Pick<Props, 'draft' | 'patch' | 'nameField'>) {
+function StormIdentity({ draft, patch, nameField }: Readonly<Pick<Props, 'draft' | 'patch' | 'nameField'>>) {
   return (
     <Stack gap="md">
       <ControlBlock

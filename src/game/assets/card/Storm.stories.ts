@@ -40,20 +40,26 @@ export const FixedIdentity = meta.story({
       (image) => image.src.endsWith('/vector/icon/storrm_standalone.svg') && image.style.width
     );
     await expect(symbols).toHaveLength(2);
-    for (const symbol of symbols) {
-      const style = getComputedStyle(symbol);
-      await expect(style.width).toBe('85px');
-      await expect(style.marginLeft).toBe('0px');
-      await expect(style.marginTop).toBe('0px');
-      await expect(style.filter).toBe('none');
-    }
+    await Promise.all(
+      symbols.flatMap((symbol) => {
+        const style = getComputedStyle(symbol);
+        return [
+          expect(style.width).toBe('85px'),
+          expect(style.marginLeft).toBe('0px'),
+          expect(style.marginTop).toBe('0px'),
+          expect(style.filter).toBe('none'),
+        ];
+      })
+    );
     const textures = Array.from(canvasElement.querySelectorAll('pattern image'));
     await expect(textures).toHaveLength(2);
-    for (const texture of textures) {
-      await expect(texture.getAttribute('href') ?? texture.getAttribute('xlink:href')).toBe(
-        resolveAsset('/image/texture/082.jpg', 'large')
-      );
-    }
+    await Promise.all(
+      textures.map((texture) =>
+        expect(texture.getAttribute('href') ?? texture.getAttribute('xlink:href')).toBe(
+          resolveAsset('/image/texture/082.jpg', 'large')
+        )
+      )
+    );
     const fills = Array.from(canvasElement.querySelectorAll('rect')).map((rect) => rect.getAttribute('fill'));
     await expect(fills).toContain('#7A3A07');
     await expect(fills).toContain('#E9C55B');
