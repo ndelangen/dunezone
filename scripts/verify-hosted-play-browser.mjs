@@ -612,7 +612,11 @@ async function createGame(who) {
   assert.equal(who.sockets.length, 1, 'Canonical creation opens exactly one ID socket.');
   await who.page.getByRole('heading', { name: created.name, level: 1, exact: true }).waitFor();
   const header = who.page.locator('.seated-header');
-  await header.locator('.seated-chip--game').getByText('Ruleset:', { exact: false }).waitFor();
+  /* Drafting names the ruleset in its chip's heading; from play on it has a chip of its own. */
+  await header
+    .getByText(flow.startsInPlay ? /^Ruleset: / : /^ · /u)
+    .first()
+    .waitFor();
   await header.getByText(created.name, { exact: true }).waitFor({ state: 'hidden' });
   await who.page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await who.page.getByRole('button', { name: 'Game menu', exact: true }).click();
@@ -643,24 +647,38 @@ async function account(label) {
   await signIn(who);
   return who;
 }
-/** A spectator asks for a seat and a seated player approves it, through the seat bar. */
+/**
+ * A spectator asks for a seat and a seated player approves it where the seat is shown.
+ * Drafting: the (+) in the roster on the table, and the requester's ghost there carries Approve.
+ * Later: the header's Seats popover names the open seat, and the vacant seat's Info in the player rail carries Approve.
+ */
 async function seatThrough(approver, who) {
-  /* A spectator's seat opens from the header's Seats action. Drafting asks for any seat; later a spectator asks for the open seat by name. */
-  await who.page.getByRole('button', { name: 'Seats', exact: true }).click();
-  const request = who.page.getByRole('button', { name: /^Request (a seat|seat \d+)/u });
+  const drafting = who.view().snapshot.stage === 'drafting';
+  if (!drafting) {
+    await who.page.getByRole('button', { name: 'Seats', exact: true }).click();
+  }
+  const request = drafting
+    ? who.page.getByRole('button', { name: 'Take a seat', exact: true })
+    : who.page.getByRole('button', { name: /^Request (a seat|seat \d+)/u });
   await until(() => request.isEnabled(), 'The seat request did not become available.', 20_000);
   const before = who.view().snapshot.revision;
   await request.click();
   await until(() => who.view().snapshot.revision > before, 'The seat request did not commit.');
+  if (!drafting) {
+    await approver.page.getByRole('tab', { name: /, a spectator asks for this seat/u }).click();
+  }
   await act(approver, 'Approve');
   await until(() => who.view().viewer.viewerSeat !== SPECTATOR, 'The approved request did not seat its player.');
 }
-/** A seated player gives up the seat through the game menu; the seat stays open with its faction. */
+/** A seated player gives up the seat by holding it in the game menu for five seconds; the seat stays open with its faction. */
 async function depart(who) {
   await who.page.getByRole('button', { name: 'Game menu', exact: true }).click();
-  await who.page.getByRole('menuitem', { name: 'Give up your seat', exact: true }).click();
-  await act(who, 'Leave');
-  await until(() => who.view().viewer.viewerSeat === SPECTATOR, 'The departure did not release the seat.');
+  const item = who.page.getByRole('menuitem', { name: /^Hold to (give up your (seat|place)|leave)/u });
+  await item.hover();
+  await who.page.mouse.down();
+  await who.page.getByText(/^Leaving in \d\.\.$/u).waitFor();
+  await until(() => who.view().viewer.viewerSeat === SPECTATOR, 'The departure did not release the seat.', 15_000);
+  await who.page.mouse.up();
 }
 /** Seat indices do not name factions: each player's faction is the one public assignment dealt to their seat. */
 function factionOf(who) {
@@ -725,7 +743,7 @@ async function playThroughSetup(players) {
   }
   await until(() => stage() === 'swapping', 'The deal did not assign factions.', 30_000);
   for (const who of players) {
-    await act(who, 'Ready to start');
+    await act(who, 'Ready');
   }
   await until(() => stage() === 'setup', 'Trading did not close into setup.', 30_000);
   while (stage() === 'setup') {
@@ -770,7 +788,7 @@ async function seated() {
   await playReady([a, b], [observer]);
   return { a, b, observer };
 }
-/* In play, readiness is one Ready toggle that withdraws while pressed; drafting keeps its own Ready and Withdraw readiness buttons. */
+/* Readiness is one Ready toggle in the header that withdraws while pressed, in drafting, trading and play alike. */
 function button(who, name) {
   const exact = who.page.getByRole('button', { name, exact: true });
   if (name === 'Ready') {
@@ -825,6 +843,7 @@ async function openTab(who, name) {
     Phase: 'Game',
     Battle: 'Game',
     Alliances: 'Game',
+    Result: 'Game',
     'Shared inventory': 'Table',
     Settings: 'Table',
     'Game log': 'History',
@@ -843,7 +862,7 @@ async function openTab(who, name) {
   await tab.waitFor({ state: 'attached' }).catch((error) => {
     throw new Error(`${who.label} has no ${name} tab: ${error.message}`);
   });
-  /* A real game's seat bar sits above the panel, whose default height then pushes the lower tabs below the window. */
+  /* A short window can push the lower tabs below the panel's default height. */
   const box = await tab.boundingBox();
   if (!box || box.y + box.height > who.page.viewportSize().height) {
     await who.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
@@ -1532,7 +1551,7 @@ async function verifyCheckpointPlayback(a, b) {
   await openTab(b, 'Replay');
   await b.page.getByRole('button', { name: 'Replay from start' }).click();
   await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
-  /* A real game's first checkpoints are its stages before play, shown with the playback bar; stepping reaches Turn 1. */
+  /* A real game's first checkpoints are its stages before play, stepped from the header; stepping reaches Turn 1. */
   let checkpoint = 0;
   while (
     (await b.page

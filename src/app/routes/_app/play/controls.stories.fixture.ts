@@ -38,6 +38,7 @@ export async function openControl(page: Page, tab: string, subtab?: string) {
     Phase: 'Game',
     Battle: 'Game',
     Alliances: 'Game',
+    Result: 'Game',
     'Shared inventory': 'Table',
     Settings: 'Table',
     'Game log': 'History',

@@ -1,13 +1,13 @@
 import { Button, Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
 import { seatLabel, seatSubject } from '@shared/play/participation';
-import type { SeatAction, SeatRequest } from '@shared/play/participation';
+import type { SeatAction } from '@shared/play/participation';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
 import { IconAction } from '@ui/control/IconAction';
-import { Surface } from '@ui/surface/Surface';
 import { Armchair, Settings } from 'lucide-react';
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -20,46 +20,14 @@ import {
   useTableLighting,
 } from '../../../../widgets/tabletop/tableLighting';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
-import styles from './SeatRequests.module.css';
 
 /*
- * The important-decision bar for participation, in the accepted arrangement (#1016): who is
- * asking, what for, and the one action the viewer may take. A spectator asks for a place and can
- * withdraw; a player approves the next request, and confirms giving up their seat here after choosing
- * it in the game menu. Nothing is added to the table, and the bar says nothing once a game is
- * discarded except that it was.
+ * Participation without a bar between the board and the controls (Norbert, 2026-10-11): a spectator asks from the
+ * Seats popover in the header (or the (+) in the drafting roster), a player approves where the seat is shown (the
+ * drafting roster, or the vacant seat's Info in play), and giving up a seat is held in the game menu.
  */
-export function DecisionBar({
-  eyebrow,
-  title,
-  context,
-  action,
-  readiness,
-}: Readonly<{ eyebrow: string; title: string; context?: string; action?: ReactNode; readiness?: ReactNode }>) {
-  const labelId = useId();
-  return (
-    <Surface as="section" aria-labelledby={labelId} padding="sm" className={styles.bar}>
-      <Group justify="space-between" align="center" wrap="wrap" gap="md">
-        {/* The copy is a polite status, so a change to a bar already shown is heard, not only seen; a bar that appears with its copy is not announced. */}
-        <Stack gap={2} miw={0} className={styles.copy} role="status">
-          <Eyebrow tone="inverse" id={labelId}>
-            {eyebrow}
-          </Eyebrow>
-          <Text fw={700}>{title}</Text>
-          {context && (
-            <Text size="sm" c="dimmed">
-              {context}
-            </Text>
-          )}
-        </Stack>
-        {action}
-      </Group>
-      {readiness && <div className={styles.readiness}>{readiness}</div>}
-    </Surface>
-  );
-}
 
-type BarProps = Readonly<{ client: TableSession; table: TableProjection; readiness?: ReactNode }>;
+type BarProps = Readonly<{ client: TableSession; table: TableProjection }>;
 
 function seatWords(table: TableProjection, seat: string | null, label: (seat: string) => string = seatLabel): string {
   if (seat === null) {
@@ -96,7 +64,7 @@ function SeatButton({
     <Button
       variant={variant}
       color={color}
-      disabled={disabled || table.seatCommandPending || table.reconnecting}
+      disabled={disabled || seatLocked(table)}
       onClick={() => client.command(action)}
     >
       {children}
@@ -235,36 +203,69 @@ function SeatNoticePopover({ notice, error }: Readonly<{ notice: SeatNotice; err
   );
 }
 
-/** What leaving costs, for the confirmation: the game, a roster place, or a seat left open. */
-function leavingWords(table: TableProjection): string {
+/** The game menu's hold-to-leave item names what leaving costs: the game, a roster place, or a seat left open. */
+function leavingLabel(table: TableProjection): string {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   switch (true) {
     case controls.seats.length === 1:
-      return 'You are the last player. Leaving discards the game for good.';
+      return 'Hold to leave and discard the game';
     case table.snapshot.stage === 'drafting':
-      return 'Your place in the roster goes; the other players keep theirs.';
+      return 'Hold to give up your place';
     default:
-      return `${seatSubject(table.viewer.viewerSeat)} stays open with its faction for a replacement.`;
+      return 'Hold to give up your seat';
   }
 }
 
-function LeavingBar({ client, table, onStay }: BarProps & Readonly<{ onStay: () => void }>) {
-  return (
-    <DecisionBar
-      eyebrow="Leaving"
-      title="Give up your seat?"
-      context={leavingWords(table)}
-      action={
-        <Group gap="xs" wrap="nowrap">
-          <Button variant="default" onClick={onStay}>
-            Stay
-          </Button>
-          <SeatButton client={client} table={table} action={{ kind: 'seat-depart' }} color="red">
-            Leave
+/** A player approves a spectator's request for this vacant seat from the seat's Info, where the seat is shown. */
+export function VacantSeatRequests({
+  client,
+  table,
+  seat,
+}: Readonly<{ client: TableSession; table: TableProjection; seat: string }>) {
+  const controls = table.snapshot.controls ?? emptyPublicControls();
+  if (!approvable(table) || !openSeats(table).includes(seat)) {
+    return null;
+  }
+  const requests = controls.seatRequests.filter((request) => request.seat === seat);
+  return requests.length ? (
+    <Stack gap="xs" component="section" aria-label="Seat requests">
+      {requests.map((request) => (
+        <Group key={request.id} gap="sm" justify="space-between" wrap="nowrap">
+          <Text size="sm">
+            <strong>{request.requesterName}</strong> asks for {seatWords(table, seat)}.
+          </Text>
+          {/* Keyed by the request, so a press that began on one request never approves the next. */}
+          <SeatButton
+            key={request.id}
+            client={client}
+            table={table}
+            action={{ kind: 'seat-approve', requestId: request.id }}
+            color="green"
+          >
+            Approve
           </SeatButton>
         </Group>
-      }
-    />
+      ))}
+    </Stack>
+  ) : null;
+}
+
+/** The vacant seats a spectator is asking for, so the player rail can mark them. */
+/** A player approves while the game runs live; a finished game takes no one until it continues. */
+function approvable(table: TableProjection): boolean {
+  return table.viewer.viewerSeat !== SPECTATOR_SEAT && !table.playback && table.snapshot.stage !== 'finished';
+}
+
+export function requestedSeats(table: TableProjection): ReadonlySet<string> {
+  if (!approvable(table)) {
+    return new Set();
+  }
+  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const open = openSeats(table);
+  return new Set(
+    controls.seatRequests.flatMap((request) =>
+      request.seat !== null && open.includes(request.seat) ? [request.seat] : []
+    )
   );
 }
 
@@ -321,16 +322,16 @@ function TableLabelItems() {
 
 /**
  * The settings menu behind the gear at the right end of the header, in every stage, after the phase controls.
- * It gives up the viewer's seat, with the confirmation in the decision bar, never in a modal;
+ * It gives up the viewer's seat with a five-second hold, never a modal or a bar;
  * a spectator has no seat to give up.
  * While a result's confetti is on the table it also stops and clears it, for this viewer alone.
  */
 export function GameMenu({
+  client,
   table,
-  onLeave,
   onClearConfetti,
   sharing,
-}: Readonly<{ table: TableProjection; onLeave: () => void; onClearConfetti?: () => void; sharing: ReactNode }>) {
+}: Readonly<{ client: TableSession; table: TableProjection; onClearConfetti?: () => void; sharing: ReactNode }>) {
   /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
   const seated =
     table.viewer.viewerSeat !== SPECTATOR_SEAT &&
@@ -357,182 +358,63 @@ export function GameMenu({
           Back to the lobby
         </Menu.Item>
         {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
-        <Menu.Item color="red" disabled={!seated} onClick={onLeave}>
-          Give up your seat
-        </Menu.Item>
+        {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up. */}
+        {/* Keyed by the seat, so a hold started on one seat never departs the seat a trade moved the viewer to. */}
+        <ConfirmDeleteMenuItem
+          key={table.viewer.viewerSeat}
+          label={seated ? leavingLabel(table) : 'Give up your seat'}
+          holdingVerb="Leaving"
+          disabled={!seated || seatLocked(table)}
+          onConfirm={() => client.command({ kind: 'seat-depart' })}
+        />
       </Menu.Dropdown>
     </Menu>
   );
 }
 
-function PlayerBar({ client, table, readiness }: BarProps) {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
-  const open = openSeats(table);
-  const grantableRequest = (candidate: SeatRequest) =>
-    table.snapshot.stage === 'drafting' || (candidate.seat !== null && open.includes(candidate.seat));
-  /* The bar offers one request: the first one an approval can grant, so a request for a seat taken since never hides a later one for an open seat. */
-  const request = controls.seatRequests.find(grantableRequest) ?? controls.seatRequests[0];
-  /* A removal vote or the end of the game has its own bar; "nobody is asking" would only add noise beside it.
-     Past drafting it would only take height from the dock's tabs, so the bar comes back with the next request. */
-  const otherBar = table.snapshot.removalVotes?.length || table.snapshot.ending || table.snapshot.result;
-  if (
-    table.snapshot.stage === 'finished' ||
-    (!request && (otherBar || table.snapshot.stage !== 'drafting') && !readiness)
-  ) {
-    return null;
-  }
-  if (!request) {
-    return (
-      <DecisionBar
-        readiness={readiness}
-        eyebrow="Your seat"
-        title={`You hold ${seatWords(table, table.viewer.viewerSeat)}`}
-        context={
-          table.snapshot.stage === 'drafting' && controls.seats.length === 1
-            ? 'You are seated alone. Share the game link; approve seat requests here.'
-            : 'Nobody is asking for a seat right now.'
-        }
-      />
-    );
-  }
-  const more = controls.seatRequests.length - 1;
-  const grantable = grantableRequest(request);
-  return (
-    <DecisionBar
-      readiness={readiness}
-      eyebrow="Seat request"
-      title={`${request.requesterName} asks for ${seatWords(table, request.seat)}`}
-      context={`${
-        grantable ? 'Your approval seats them.' : 'That seat is taken now; the request cannot be granted.'
-      }${more > 0 ? ` ${more} more ${more === 1 ? 'request waits' : 'requests wait'}.` : ''}`}
-      action={
-        /* Keyed by the request, so a button pressed for one request never approves the next: when an approval elsewhere swaps
-           the next request in between pointerdown and click, the press ends on a new button and sends nothing. */
-        <SeatButton
-          key={request.id}
-          client={client}
-          table={table}
-          action={{ kind: 'seat-approve', requestId: request.id }}
-          disabled={!grantable}
-        >
-          Approve
-        </SeatButton>
-      }
-    />
-  );
-}
-
-/* A seated player drafting with others and no seat request to answer: the seat column shows who is at the table, and the seat number only matters once factions are dealt. */
-function draftingIdle(table: TableProjection): boolean {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
-  return table.snapshot.stage === 'drafting' && controls.seatRequests.length === 0 && controls.seats.length > 1;
-}
-
-/* Drafting with nothing to ask, the bar is the draft summary and Ready on one row, so the faction list keeps the dock's height (#1633). */
-function ReadinessBar({ readiness, label = 'Your seat' }: Readonly<{ readiness: ReactNode; label?: string }>) {
-  return (
-    <Surface as="section" aria-label={label} padding="sm" className={styles.bar}>
-      {readiness}
-    </Surface>
-  );
-}
-
-function barFor(
-  client: TableSession,
-  table: TableProjection,
-  leaving: boolean,
-  onStay: () => void,
-  readiness?: ReactNode
-): ReactNode {
-  switch (true) {
-    case leaving && table.viewer.viewerSeat !== SPECTATOR_SEAT && table.snapshot.stage !== 'discarded':
-      return <LeavingBar client={client} table={table} onStay={onStay} />;
-    case table.snapshot.stage === 'discarded':
-      return (
-        <DecisionBar
-          eyebrow="Discarded"
-          title="This game was discarded"
-          context="Its last player left. The table stays readable; nobody can take a seat again."
-        />
-      );
-    /* A spectator's seat lives in the header's seat popover; the dock keeps only the stage's readiness. */
-    case table.viewer.viewerSeat === SPECTATOR_SEAT:
-      return readiness ? <ReadinessBar readiness={readiness} label="Readiness" /> : null;
-    case Boolean(readiness) && draftingIdle(table):
-      return <ReadinessBar readiness={readiness} />;
-    default:
-      return <PlayerBar client={client} table={table} readiness={readiness} />;
-  }
+/** A seat command waits for the last one and for the live table; history is read only, so it would be refused there. */
+export function seatLocked(table: TableProjection): boolean {
+  return Boolean(table.seatCommandPending || table.reconnecting || table.playback || table.historyPending);
 }
 
 /**
- * Playback controls stay above the tabs in every stage, so leaving History never hides the way back to live.
+ * Playback in the header, in every stage, so leaving the Replay tab never hides the way back to live: it steps through the checkpoints and returns to the live table.
  */
-function PlaybackBar({ client, table, error }: BarProps & Readonly<{ error: string | null }>) {
-  const { playback, historyPending } = table;
-  if (!playback) {
-    return null;
-  }
-  return (
-    <div className={styles.dock} data-decision-bar="">
-      {error && <FormError title="From the table">{error}</FormError>}
-      <DecisionBar
-        eyebrow="Playback"
-        title={`Playback checkpoint ${playback.step} of ${playback.lastStep}`}
-        context="Table actions are paused while you look back at the game."
-        action={
-          <Group gap="xs" wrap="nowrap" role="group" aria-label="Phase playback">
-            <Button
-              variant="default"
-              disabled={historyPending || playback.step === 0}
-              onClick={() => client.requestHistory(playback.step - 1)}
-            >
-              Earlier phase
-            </Button>
-            <Button
-              variant="default"
-              disabled={historyPending || playback.step === playback.lastStep}
-              onClick={() => client.requestHistory(playback.step + 1)}
-            >
-              Later phase
-            </Button>
-            <Button variant="default" onClick={client.resumeLive}>
-              Return to live
-            </Button>
-          </Group>
-        }
-      />
-    </div>
-  );
-}
-
-/**
- * The seat bar for the viewer's role, above the panel, on a real game only;
- * the fixture seats its players itself.
- * Before play the bar is the only place a rejection can show;
- * in play the Table tab already shows it.
- */
-export function SeatRequests({
+export function StagePlayback({
   client,
   table,
-  error,
-  leaving,
-  onStay,
-  readiness,
-}: BarProps & Readonly<{ error: string | null; leaving: boolean; onStay: () => void }>) {
-  if (!table.snapshot.stage) {
+  error = null,
+}: Readonly<{ client: TableSession; table: TableProjection; error?: string | null }>) {
+  const { playback, historyPending } = table;
+  if (!playback || !table.snapshot.stage) {
     return null;
   }
-  if (table.playback) {
-    return <PlaybackBar client={client} table={table} error={error} />;
-  }
+  /* A refused step keeps the checkpoint; its reason hangs under the controls that asked, whichever tab is open. */
   return (
-    <div className={styles.dock} data-decision-bar="">
-      {/* A spectator's only commands are seat requests, so their refusal shows in the seat popover instead. */}
-      {error && table.snapshot.stage !== 'play' && table.viewer.viewerSeat !== SPECTATOR_SEAT && (
-        <FormError title="From the table">{error}</FormError>
-      )}
-      {barFor(client, table, leaving, onStay, readiness)}
-    </div>
+    <Popover opened={Boolean(error)} position="bottom-end" withArrow withinPortal>
+      <Popover.Target>
+        <Group gap="xs" justify="flex-end" role="group" aria-label="Phase playback">
+          <Text size="sm" c="dimmed" role="status">
+            Playback checkpoint {playback.step} of {playback.lastStep}
+          </Text>
+          <Button
+            variant="default"
+            disabled={historyPending || playback.step === 0}
+            onClick={() => client.requestHistory(playback.step - 1)}
+          >
+            Earlier phase
+          </Button>
+          <Button
+            variant="default"
+            disabled={historyPending || playback.step === playback.lastStep}
+            onClick={() => client.requestHistory(playback.step + 1)}
+          >
+            Later phase
+          </Button>
+          <Button onClick={client.resumeLive}>Return to live</Button>
+        </Group>
+      </Popover.Target>
+      <Popover.Dropdown maw={320}>{error && <FormError title="From the table">{error}</FormError>}</Popover.Dropdown>
+    </Popover>
   );
 }

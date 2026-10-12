@@ -330,8 +330,8 @@ signed-in browser processes and a spectator, and it retains received game frames
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow results` for the end
 of a real game. Two players step to Mentat pause, one opens Determine winner and declares a faction,
-and a spectator watches. It checks each panel's decision bar, a reload into the finished game, the
-lobby's Past entry with its winner, and Continue playing back to Mentat pause and the Ongoing list.
+and a spectator watches. It checks each panel's Result tab, the result in the header, a reload into the
+finished game, the lobby's Past entry with its winner, and Continue playing back to Mentat pause and the Ongoing list.
 
 ### Real-game journeys
 

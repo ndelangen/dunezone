@@ -36,10 +36,10 @@ import { AllianceCoinsScene } from './AllianceCoins';
 import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
 import { BattleControls, BattleHistory, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
-import { BidderToolbar } from './BidderToolbar';
 import { OfflineConversations } from './Conversation';
-import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, DraftingReadiness } from './Drafting';
-import { DetermineWinner, ResultDecisionBar } from './GameResult';
+import { DraftingOverlay, DraftingPanel } from './Drafting';
+import { DetermineWinner, ResultControls, useDeclareChoice } from './GameResult';
+import type { DeclareChoice } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
 import { HiddenZone } from './HiddenZone';
@@ -54,6 +54,7 @@ import {
   LOG_GUIDANCE,
   phaseGuidance,
   phaseHelp,
+  RESULT_GUIDANCE,
   setupGuidance,
   setupHelp,
   SHARED_INVENTORY_GUIDANCE,
@@ -61,12 +62,12 @@ import {
   SPICE_GUIDANCE,
   SPICE_RESERVE_HELP,
 } from './panelGuidance';
-import { PhaseNavigation } from './PhaseNavigation';
 import { PlaybackControls } from './PlaybackControls';
-import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
+import { PlayerPanel } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
-import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
-import { SwappingReadiness } from './Swapping';
+import { GameMenu, SeatPopover } from './SeatRequests';
+import { stageStatus, stageToolbar } from './StageHeader';
+import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { TableSettings } from './TableSettings';
 import { ServerClockContext } from './useServerNow';
@@ -135,6 +136,18 @@ function battleFocus(table: TableProjection) {
     return null;
   }
   return { key: 'battle', token: battle.id };
+}
+
+/* The end of the game opens the Result tab once for everyone: when someone starts determining the winner, and when it is declared. */
+function resultFocus(table: TableProjection) {
+  const { ending, result, stage } = table.snapshot;
+  if (table.playback) {
+    return null;
+  }
+  if (stage === 'play' && ending) {
+    return { key: 'result', token: `ending-${ending.startedAt}` };
+  }
+  return stage === 'finished' && result ? { key: 'result', token: `result-${result.declaredAt}` } : null;
 }
 
 function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
@@ -679,6 +692,31 @@ function handTabs({ client, table }: Pick<ConnectionControlsProps, 'client' | 't
   ];
 }
 
+/** The Result tab, while a declared result or an ending game asks the table to settle it. */
+function resultTabs({
+  client,
+  table,
+  error,
+  declare,
+}: Readonly<{ client: TableSession; table: TableProjection; error: string | null; declare: DeclareChoice }>) {
+  return resultFocus(table)
+    ? [
+        {
+          key: 'result',
+          label: 'Result',
+          topic: 'result' as const,
+          ...RESULT_GUIDANCE,
+          content: (
+            <>
+              {error && <FormError title="From the table">{error}</FormError>}
+              <ResultControls client={client} table={table} declare={declare} />
+            </>
+          ),
+        },
+      ]
+    : [];
+}
+
 /** The private destinations are only installed for a viewer with a hand. */
 function yoursTab({ client, table }: SetupControlProps): PanelTab {
   return {
@@ -705,7 +743,7 @@ function yoursTab({ client, table }: SetupControlProps): PanelTab {
 }
 
 /** GameTable supplies the stage and phase controls beside these game actions. */
-function gameTab({ client, table, error }: ConnectionControlsProps, inPlay: boolean): PanelTab {
+function gameTab({ client, table, error, declare }: ControlTabsProps, inPlay: boolean): PanelTab {
   const { setup, stage, battle } = table.snapshot;
   const activePhaseId = gameProgress(table.snapshot).activePhaseId;
   return {
@@ -722,7 +760,12 @@ function gameTab({ client, table, error }: ConnectionControlsProps, inPlay: bool
               label: 'Setup',
               topic: SETUP_TOPICS[setupStep(setup).kind],
               ...setupGuidance(setupStep(setup)),
-              content: <SetupControls client={client} table={table} />,
+              content: (
+                <>
+                  {error && <FormError title="From the table">{error}</FormError>}
+                  <SetupControls client={client} table={table} />
+                </>
+              ),
             },
           ]
         : []),
@@ -742,6 +785,7 @@ function gameTab({ client, table, error }: ConnectionControlsProps, inPlay: bool
             },
           ]
         : []),
+      ...resultTabs({ client, table, error, declare }),
       ...alliancesTab({ client, table, error }),
     ],
   };
@@ -841,7 +885,9 @@ function historyTab({ client, table, error }: ConnectionControlsProps, hasInvent
 }
 
 /** The left rail keeps personal resources first and omits groups with no stage content. */
-function controlTabs(props: ConnectionControlsProps): PanelTab[] {
+type ControlTabsProps = ConnectionControlsProps & Readonly<{ declare: DeclareChoice }>;
+
+function controlTabs(props: ControlTabsProps): PanelTab[] {
   const { stage, hand } = props.table.snapshot;
   const inPlay = stage === undefined || stage === 'play';
   const hasInventory = inPlay || stage === 'finished' || stage === 'setup';
@@ -868,16 +914,9 @@ function ConnectedTable({
 }>) {
   const progress = gameProgress(table.snapshot);
   const celebration = useResultCelebration(table);
-  /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
-  const [leaving, setLeaving] = useState(false);
+  const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
-  /* The confirmation is about the seat held when it opened: leaving, a removal vote or a new seat closes it, so a player seated again is not asked to give up the new seat. */
-  const [leavingFrom, setLeavingFrom] = useState(table.viewer.viewerSeat);
-  if (leavingFrom !== table.viewer.viewerSeat) {
-    setLeavingFrom(table.viewer.viewerSeat);
-    setLeaving(false);
-  }
   const [playerSelection, selectPlayer] = useReducer(
     (
       _: {
@@ -913,7 +952,8 @@ function ConnectedTable({
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
             gameIdentity={
-              identity.rulesetName ? (
+              /* While drafting the ruleset heads the drafting chip, so it is not said twice. */
+              identity.rulesetName && stage !== 'drafting' ? (
                 <Text size="xs" c="dimmed">
                   Ruleset: {identity.rulesetName}
                 </Text>
@@ -925,16 +965,7 @@ function ConnectedTable({
             mapVisible={setupMapVisible(table.snapshot.setup)}
             connectionStatus={<ConnectionStatus table={table} />}
             alliances={<AllianceStrip table={table} />}
-            toolbarControl={
-              inPlay || (stage === 'setup' && table.snapshot.setup) ? (
-                <>
-                  {inPlay && (
-                    <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={setBidderFaded} />
-                  )}
-                  <PhaseNavigation client={client} table={table} />
-                </>
-              ) : undefined
-            }
+            toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
             /* The gathered Traitor pile lies under the Tleilaxu tanks, below the Map view's frame on a wide screen (#1635). */
             requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
             showStormControls={inPlay && progress.activePhaseId === 'storm'}
@@ -956,61 +987,25 @@ function ConnectedTable({
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
               </>
             }
-            decisionBar={
-              <Stack data-decision-bar gap="xs">
-                <ResultDecisionBar client={client} table={table} />
-                <RemovalDecisionBar
-                  votes={removalVotes}
-                  onOpen={(vote) =>
-                    selectPlayer({
-                      seat: vote.target.seat,
-                      vote: vote.id,
-                      tab: 'public',
-                    })
-                  }
-                />
-                <SeatRequests
-                  client={client}
-                  table={table}
-                  error={error}
-                  leaving={leaving}
-                  onStay={() => setLeaving(false)}
-                  readiness={
-                    /* A spectator has no draft to ready, so drafting gives them no readiness row at all. */
-                    stage === 'drafting' ? (
-                      table.viewer.viewerSeat === SPECTATOR_SEAT ? undefined : (
-                        <DraftingReadiness client={client} table={table} />
-                      )
-                    ) : stage === 'swapping' ? (
-                      <SwappingReadiness client={client} table={table} />
-                    ) : undefined
-                  }
-                />
-                {stage === 'drafting' && <DraftingNotice client={client} table={table} />}
-              </Stack>
-            }
             gameMenu={
               <>
-                <SeatPopover client={client} table={table} error={error} />
+                {/* While drafting a spectator asks with the (+) in the roster on the table, so the popover waits for play. */}
+                {stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
                 <GameMenu
                   sharing={<GameLink address={identity.address} />}
+                  client={client}
                   table={table}
-                  onLeave={() => setLeaving(true)}
                   onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
                 />
               </>
             }
-            stageStatus={
-              stage === 'drafting' ? (
-                <DraftingHeader table={table} />
-              ) : stage === 'setup' && table.snapshot.setup ? (
-                <Text size="sm">{setupStep(table.snapshot.setup).title}</Text>
-              ) : undefined
+            stageStatus={stageStatus({ client, table, identity })}
+            stageOverlay={
+              stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
             }
-            stageOverlay={stage === 'drafting' ? <DraftingOverlay client={client} table={table} /> : undefined}
             panelContent={
               stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
-                <DraftingPanel client={client} table={table} />
+                <DraftingPanel client={client} table={table} error={error} />
               ) : undefined
             }
             playerPanel={
@@ -1031,7 +1026,7 @@ function ConnectedTable({
                 />
               ) : undefined
             }
-            focusTab={battleFocus(table)}
+            focusTab={resultFocus(table) ?? battleFocus(table)}
             /* Spectators open the current battle when present, otherwise History. Finished games open History. */
             openOn={
               stage === 'finished'
@@ -1042,7 +1037,7 @@ function ConnectedTable({
                     ? ['setup']
                     : undefined
             }
-            panelTabs={controlTabs({ client, table, error })}
+            panelTabs={controlTabs({ client, table, error, declare })}
             tableGuidance={phaseGuidance(table)}
             tableControls={
               tabled ? (
@@ -1077,8 +1072,6 @@ function ConnectedTable({
     </PredictionLogosContext>
   );
 }
-
-type GameIdentity = Readonly<{ rulesetName: string | null; address: string }>;
 
 export default function HostedTable({
   gameId,

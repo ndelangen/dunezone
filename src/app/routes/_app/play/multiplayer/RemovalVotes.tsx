@@ -8,7 +8,6 @@ import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { NestedTabs } from '@ui/surface/NestedTabs';
-import { Surface } from '@ui/surface/Surface';
 import { ExternalLink, MessageCircle } from 'lucide-react';
 import { useEffect, useSyncExternalStore } from 'react';
 
@@ -19,43 +18,11 @@ import { allianceHue, PlayerAlliance } from './Alliances';
 import { Conversation } from './Conversation';
 import { FactionDetails } from './FactionDetails';
 import { PLAYER_CONVERSATION_GUIDANCE, PLAYER_INFO_GUIDANCE, TABLE_CONVERSATION_GUIDANCE } from './panelGuidance';
+import { requestedSeats, VacantSeatRequests } from './SeatRequests';
 import { SwappingSeat } from './Swapping';
 import { useServerNow } from './useServerNow';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
-
-export function RemovalDecisionBar({
-  votes,
-  onOpen,
-}: Readonly<{ votes: RemovalVote[]; onOpen(vote: RemovalVote): void }>) {
-  if (!votes.length) {
-    return null;
-  }
-  return (
-    <Surface padding="sm">
-      <Group gap="sm" wrap="wrap">
-        <TopicIcon topic="audit" />
-        <Text size="sm" fw={700}>
-          Removal voting
-        </Text>
-        {votes.map((vote) => (
-          <Button
-            key={vote.id}
-            size="compact-sm"
-            variant="subtle"
-            aria-controls="player-public-state"
-            onClick={() => {
-              onOpen(vote);
-              document.getElementById('player-public-state')?.scrollIntoView({ block: 'nearest' });
-            }}
-          >
-            View vote about {vote.target.name}
-          </Button>
-        ))}
-      </Group>
-    </Surface>
-  );
-}
 
 function Ballots({ ballots }: Readonly<{ ballots: RemovalVote['ballots'] }>) {
   return (
@@ -166,8 +133,11 @@ export function PlayerPanel({
   const unread = (seat: string) =>
     conversations.summaries.find((entry) => entry.peerId === rosterSeat(table.snapshot.roster, seat)?.faction?.id)
       ?.unread ?? 0;
+  const asked = requestedSeats(table);
   const playerItems = players.map((entry) => {
     const active = votes.some((candidate) => candidate.target.seat === entry.seat);
+    /* A vacant seat someone asks for carries a sand dot until a player approves them from its Info; it and a player under a removal vote open on Info. */
+    const requested = asked.has(entry.seat);
     const token = table.snapshot.swapping?.tokens[entry.seat];
     const unreadLabel = unread(entry.seat) ? `, ${unread(entry.seat)} unread` : '';
     const hue = allianceHue(table.snapshot, rosterSeat(table.snapshot.roster, entry.seat)?.faction?.id);
@@ -177,13 +147,13 @@ export function PlayerPanel({
         as="button"
         type="button"
         path={[entry.seat]}
-        label={`${entry.name}${hue ? ', in an alliance' : ''}${active ? ', removal vote in progress' : ''}${unreadLabel}`}
+        label={`${entry.name}${hue ? ', in an alliance' : ''}${active ? ', removal vote in progress' : ''}${requested ? ', a spectator asks for this seat' : ''}${unreadLabel}`}
         icon={
           <Indicator
-            color={active ? 'red.6' : undefined}
+            color={active ? 'red.6' : requested ? 'yellow.5' : undefined}
             size={16}
             label={unread(entry.seat) || undefined}
-            disabled={!active && !unread(entry.seat)}
+            disabled={!active && !requested && !unread(entry.seat)}
           >
             <Avatar
               src={token ?? entry.avatar}
@@ -198,7 +168,7 @@ export function PlayerPanel({
           </Indicator>
         }
         onClick={() => {
-          onSelect(entry.seat, 'conversation');
+          onSelect(entry.seat, requested || active ? 'public' : 'conversation');
         }}
       />
     );
@@ -290,6 +260,7 @@ export function PlayerPanel({
           <Stack id="player-public-state" gap="lg">
             {error && <FormError title="From the table">{error}</FormError>}
             {vote && <OpenVote client={client} table={table} vote={vote} />}
+            <VacantSeatRequests client={client} table={table} seat={player.seat} />
             <PlayerInformation client={client} table={table} player={player} hasVote={Boolean(vote)} />
           </Stack>
         )}

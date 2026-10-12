@@ -2,7 +2,7 @@ import { Button, Group, Text } from '@mantine/core';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 
-/** Fixture playback stays inline; a real game's playback bar owns stepping and return to live. */
+/** Fixture playback stays inline; a real game's header owns stepping and return to live. */
 function FixturePlaybackControls({
   client,
   playback,
@@ -43,7 +43,7 @@ function FixturePlaybackControls({
 export function PlaybackControls({ client, table }: Readonly<{ client: TableSession; table: TableProjection }>) {
   const { playback, historyPending } = table;
   if (playback && table.snapshot.stage) {
-    return <Text size="sm">Use the playback controls above the panel to step through the game or return to live.</Text>;
+    return <Text size="sm">Use the playback controls in the header to step through the game or return to live.</Text>;
   }
   return (
     <>

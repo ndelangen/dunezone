@@ -83,8 +83,6 @@ type GameTableProps = {
   tableControls?: ReactNode;
   /** What the Table tab's tooltip says about it: play's Phase tab explains the phase. */
   tableGuidance?: Pick<PanelTab, 'description' | 'help'>;
-  /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
-  decisionBar?: ReactNode;
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
   gameIdentity?: ReactNode;
@@ -103,7 +101,7 @@ type GameTableProps = {
   stageStatus?: ReactNode;
   /* Play chrome laid over the scene for a stage, between the header and the panel: the drafting ledger. */
   stageOverlay?: ReactNode;
-  /* A stage's own panel in place of the tabs, under the decision bar: the drafting panel. Its tab's pane is flush, so the content insets itself with --nested-tabs-panel-inset. */
+  /* A stage's own panel in place of the tabs: the drafting panel. Its tab's pane is flush, so the content insets itself with --nested-tabs-panel-inset. */
   panelContent?: ReactNode;
   playerPanel?: ReactNode;
   /* A view the host asks for after something the viewer did lands out of frame; each new revision moves the camera once. */
@@ -459,6 +457,7 @@ function TableControlsPanel({
         stageShown: boolean;
         stageOpened: boolean;
         focused: string | null;
+        beneath: string[] | null;
       },
       event:
         | { type: 'destination-selected'; path: string[] }
@@ -475,27 +474,38 @@ function TableControlsPanel({
       return {
         ...state,
         focused: event.type === 'focus-requested' ? event.token : state.focused,
+        /* The destination a focus opened over, so when the focused tab closes, as a result does, the panel returns to it. */
+        beneath:
+          event.type === 'focus-requested' && state.path.join('/') !== event.path.join('/')
+            ? state.path
+            : state.beneath,
         stageOpened,
         path: stageOpened ? state.path : path,
         remembered: !stageOpened && child ? { ...state.remembered, [group]: child } : state.remembered,
       };
     },
-    { path: opening, remembered: {}, stageShown: hasStage, stageOpened: false, focused: null }
+    { path: opening, remembered: {}, stageShown: hasStage, stageOpened: false, focused: null, beneath: null }
   );
   /* A newly seated drafter sees their stage. The previous destination remains underneath for playback and later stages. */
   if (hasStage !== selection.stageShown) {
     select({ type: 'stage-changed', shown: hasStage });
   }
-  const choose = (path: string[]) => select({ type: 'destination-selected', path });
+  /* A group opens on its remembered child while that child still exists, else on its first, so a closed tab such as Result is never chosen again. */
+  const choose = ([key, child = selection.remembered[key!]]: string[]) => {
+    const subtabs = tabs.find((tab) => tab.key === key)?.subtabs;
+    const leaf = subtabs?.some((tab) => tab.key === child) ? child : subtabs?.[0]?.key;
+    select({ type: 'destination-selected', path: leaf ? [key!, leaf] : [key!] });
+  };
   /* A battle focuses its nested planner only once; subsequent updates preserve the player's choice. */
   const focusPath = focusTab && pathTo(focusTab.key);
   if (focusTab && focusTab.token !== selection.focused && focusPath) {
     select({ type: 'focus-requested', path: focusPath, token: focusTab.token });
   }
-  const path = selection.stageOpened && hasStage ? pathTo('stage')! : selection.path;
+  const closed = !pathTo(selection.path.at(-1)!) && selection.beneath;
+  const path = selection.stageOpened && hasStage ? pathTo('stage')! : closed || selection.path;
   const active = tabs.find((tab) => tab.key === path[0]) ?? tabs.find((tab) => tab.key === opening[0]) ?? tabs[0];
   const subtab = active?.subtabs?.find((tab) => tab.key === path[1]) ?? active?.subtabs?.[0];
-  /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the decision bar stands alone. */
+  /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the dock holds only what the stage brings. */
   if (!active) {
     return null;
   }
@@ -692,7 +702,6 @@ export function GameTable({
   openOn,
   tableControls,
   tableGuidance,
-  decisionBar,
   gameMenu,
   gameIdentity,
   stageStatus,
@@ -856,7 +865,6 @@ export function GameTable({
                       preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
                       onSelect={(view) => dispatchView({ type: 'view.selected', view })}
                     />
-                    {decisionBar}
                     <PanelPanes secondary={playerPanel}>
                       <TableControlsPanel
                         panelTabs={panelTabs}

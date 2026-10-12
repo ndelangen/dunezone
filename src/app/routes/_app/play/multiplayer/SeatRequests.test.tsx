@@ -7,7 +7,7 @@ import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vitest';
 
 import type { TableSession } from '../../../../db/tabletop/TableSession';
-import { SeatPopover, SeatRequests } from './SeatRequests';
+import { SeatPopover, StagePlayback, VacantSeatRequests } from './SeatRequests';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -40,31 +40,24 @@ function pressAcross(pressed: HTMLElement, change: () => void) {
   fireEvent.click(pressed);
 }
 
-function renderPlayback(stage: 'drafting' | 'play' | 'finished', step: number) {
+function renderPlayback(stage: 'drafting' | 'play' | 'finished', step: number, error: string | null = null) {
   const client = { requestHistory: vi.fn(), resumeLive: vi.fn() };
   const table = {
     snapshot: { stage },
     playback: { step, lastStep: 3 },
     historyPending: false,
-  } as unknown as Parameters<typeof SeatRequests>[0]['table'];
+  } as unknown as Parameters<typeof StagePlayback>[0]['table'];
   render(
     <MantineProvider theme={appContentTheme}>
-      <SeatRequests
-        client={client as unknown as TableSession}
-        table={table}
-        error="The table refused that."
-        leaving={false}
-        onStay={() => {}}
-      />
+      <StagePlayback client={client as unknown as TableSession} table={table} error={error} />
     </MantineProvider>
   );
   return client;
 }
 
-test('playback of a stage before play steps through checkpoints, returns to live and shows a rejection', () => {
+test('playback of a stage before play steps through checkpoints from the header and returns to live', () => {
   const client = renderPlayback('drafting', 0);
   expect(screen.getByText('Playback checkpoint 0 of 3')).toBeTruthy();
-  expect(screen.getByText('The table refused that.')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Earlier phase' }).hasAttribute('disabled')).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Later phase' }));
   expect(client.requestHistory).toHaveBeenCalledWith(1);
@@ -72,7 +65,7 @@ test('playback of a stage before play steps through checkpoints, returns to live
   expect(client.resumeLive).toHaveBeenCalled();
 });
 
-test('playback of a finished game keeps stepping and returning to live in the bar', () => {
+test('playback of a finished game keeps stepping and returning to live in the header', () => {
   const client = renderPlayback('finished', 3);
   expect(screen.getByText('Playback checkpoint 3 of 3')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Later phase' }).hasAttribute('disabled')).toBe(true);
@@ -82,9 +75,8 @@ test('playback of a finished game keeps stepping and returning to live in the ba
   expect(client.resumeLive).toHaveBeenCalled();
 });
 
-test('a player approves the request for an open seat when an earlier request names a seat taken since', () => {
-  const client = { command: vi.fn() };
-  const table = {
+function vacantTable(seatRequests: { id: string; requesterName: string; seat: string }[]) {
+  return {
     viewer: { viewerSeat: 'seat-1' },
     snapshot: {
       stage: 'play',
@@ -92,65 +84,59 @@ test('a player approves the request for an open seat when an earlier request nam
         seatCount: 3,
         seats: ['seat-1', 'seat-2', 'seat-3'].map((id, position) => ({ id, position, faction: null })),
       },
-      controls: {
-        seats: ['seat-1', 'seat-2'],
-        seatRequests: [
-          { id: 'request-taken', requesterName: 'Late', seat: 'seat-2' },
-          { id: 'request-open', requesterName: 'Next', seat: 'seat-3' },
-        ],
-      },
+      controls: { seats: ['seat-1', 'seat-2'], seatRequests },
     },
     playback: null,
     seatCommandPending: false,
-  } as unknown as Parameters<typeof SeatRequests>[0]['table'];
-  render(
+  } as unknown as Parameters<typeof VacantSeatRequests>[0]['table'];
+}
+
+test("a player approves a request from the vacant seat's Info; a seat taken since offers nothing", () => {
+  const client = { command: vi.fn() };
+  const table = vacantTable([
+    { id: 'request-taken', requesterName: 'Late', seat: 'seat-2' },
+    { id: 'request-open', requesterName: 'Next', seat: 'seat-3' },
+  ]);
+  const { rerender } = render(
     <MantineProvider theme={appContentTheme}>
-      <SeatRequests
-        client={client as unknown as TableSession}
-        table={table}
-        error={null}
-        leaving={false}
-        onStay={() => {}}
-      />
+      <VacantSeatRequests client={client as unknown as TableSession} table={table} seat="seat-2" />
     </MantineProvider>
   );
-  expect(screen.getByText('Next asks for seat 3')).toBeTruthy();
-  const approve = screen.getByRole('button', { name: 'Approve' });
-  expect(approve.hasAttribute('disabled')).toBe(false);
-  fireEvent.click(approve);
+  expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+  rerender(
+    <MantineProvider theme={appContentTheme}>
+      <VacantSeatRequests client={client as unknown as TableSession} table={table} seat="seat-3" />
+    </MantineProvider>
+  );
+  expect(screen.getByText('Next', { exact: false }).textContent).toBe('Next');
+  fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
   expect(client.command).toHaveBeenCalledWith({ kind: 'seat-approve', requestId: 'request-open' });
+});
+
+test('a finished game offers no approval until it continues', () => {
+  const table = vacantTable([{ id: 'request-open', requesterName: 'Next', seat: 'seat-3' }]);
+  const finished = { ...table, snapshot: { ...table.snapshot, stage: 'finished' } } as typeof table;
+  render(
+    <MantineProvider theme={appContentTheme}>
+      <VacantSeatRequests client={{ command: vi.fn() } as unknown as TableSession} table={finished} seat="seat-3" />
+    </MantineProvider>
+  );
+  expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
 });
 
 test('a press that began on one request never approves the request swapped in under it', () => {
   const client = { command: vi.fn() };
-  const tableWith = (seatRequests: { id: string; requesterName: string; seat: null }[]) =>
-    ({
-      viewer: { viewerSeat: 'seat-1' },
-      snapshot: { stage: 'drafting', roster: null, controls: { seats: ['seat-1'], seatRequests } },
-      playback: null,
-      seatCommandPending: false,
-    }) as unknown as Parameters<typeof SeatRequests>[0]['table'];
-  const bar = (table: Parameters<typeof SeatRequests>[0]['table']) => (
+  const info = (table: ReturnType<typeof vacantTable>) => (
     <MantineProvider theme={appContentTheme}>
-      <SeatRequests
-        client={client as unknown as TableSession}
-        table={table}
-        error={null}
-        leaving={false}
-        onStay={() => {}}
-      />
+      <VacantSeatRequests client={client as unknown as TableSession} table={table} seat="seat-3" />
     </MantineProvider>
   );
-  const first = { id: 'seat-request-1', requesterName: 'First', seat: null };
-  const second = { id: 'seat-request-2', requesterName: 'Second', seat: null };
-  const { rerender } = render(bar(tableWith([first, second])));
-  expect(screen.getByText('First asks for a seat')).toBeTruthy();
-  /* Another tab approves the first request before this press ends, so the bar now offers the second. */
-  pressAcross(screen.getByRole('button', { name: 'Approve' }), () => rerender(bar(tableWith([second]))));
-  expect(screen.getByText('Second asks for a seat')).toBeTruthy();
+  const first = { id: 'seat-request-1', requesterName: 'First', seat: 'seat-3' };
+  const second = { id: 'seat-request-2', requesterName: 'Second', seat: 'seat-3' };
+  const { rerender } = render(info(vacantTable([first])));
+  /* Another tab approves the first request before this press ends, and a second request takes its place. */
+  pressAcross(screen.getByRole('button', { name: 'Approve' }), () => rerender(info(vacantTable([second]))));
   expect(client.command).not.toHaveBeenCalled();
-
-  /* A fresh press on the request now on screen approves that one. */
   fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
   expect(client.command).toHaveBeenCalledExactlyOnceWith({ kind: 'seat-approve', requestId: 'seat-request-2' });
 });
@@ -186,10 +172,14 @@ test('a spectator press that began on one open seat never requests the seat left
   expect(client.command).toHaveBeenCalledExactlyOnceWith({ kind: 'seat-request', seat: 'seat-4' });
 });
 
-test('playback in play keeps returning to live available outside the tabs', () => {
+test('a refused playback step says why beside the header controls', () => {
+  renderPlayback('play', 2, 'The table refused that.');
+  expect(screen.getByText('The table refused that.')).toBeTruthy();
+});
+
+test('playback in play keeps returning to live in the header, outside the tabs', () => {
   const client = renderPlayback('play', 2);
   expect(screen.getByText('Playback checkpoint 2 of 3')).toBeTruthy();
-  expect(screen.getByText('The table refused that.')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Return to live' }));
   expect(client.resumeLive).toHaveBeenCalled();
 });
@@ -230,25 +220,4 @@ test('a spectator whose requested seat was taken since is told so and can still 
   expect(screen.queryByText('Waiting for a player to approve you')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Withdraw' }));
   expect(client.command).toHaveBeenCalledWith({ kind: 'seat-withdraw' });
-});
-
-test('giving up a seat in play names the seat that stays open at the start of the sentence', () => {
-  const table = {
-    snapshot: { stage: 'play', controls: { seats: ['seat-1', 'seat-2', 'seat-4'] } },
-    viewer: { viewerSeat: 'seat-4' },
-    playback: null,
-    seatCommandPending: false,
-  } as unknown as Parameters<typeof SeatRequests>[0]['table'];
-  render(
-    <MantineProvider theme={appContentTheme}>
-      <SeatRequests
-        client={{ command: vi.fn() } as unknown as TableSession}
-        table={table}
-        error={null}
-        leaving
-        onStay={() => {}}
-      />
-    </MantineProvider>
-  );
-  expect(screen.getByText('Seat 4 stays open with its faction for a replacement.')).toBeTruthy();
 });
