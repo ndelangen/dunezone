@@ -49,7 +49,7 @@ const peekGrantSchema = z.object({
   items: z.array(tableIdSchema).default([]),
   shuffleRevision: z.number().int().nullable().default(null),
 });
-export type PeekGrant = z.infer<typeof peekGrantSchema>;
+type PeekGrant = z.infer<typeof peekGrantSchema>;
 
 export const storedSnapshotSchema = gameSnapshotSchema
   .omit({
@@ -100,6 +100,11 @@ export type StoredSnapshot = z.infer<typeof storedSnapshotSchema>;
 /** The next revision of a snapshot whose table changed at most in its pieces, with no event of its own. */
 export function revised(snapshot: StoredSnapshot, pieces = snapshot.table.pieces): StoredSnapshot {
   return nextSnapshot(snapshot, { ...tableForViewer(snapshot, SPECTATOR_SEAT), pieces });
+}
+
+/** The faction a seat holds by its id, as the roster fixed it; nothing when no seat holds it. */
+export function seatedFaction(snapshot: GameSnapshot, factionId: string) {
+  return snapshot.roster?.seats.find((seat) => seat.faction?.id === factionId)?.faction;
 }
 
 /** Retired wire handles never name a live piece again; storage and receipts keep their identities. */
@@ -325,153 +330,170 @@ export class RoomProjection {
     }
     let projected = audiences.get(factionId);
     if (!projected) {
-      const { revision, table, versions, phase, phases, roster, stage, draft, swapping, controls, spiceTransfers } =
-        snapshot;
-      const battle = snapshot.battleState;
-      /* An empty side has no faction, so a viewer without one must not match it. */
-      const ownSide =
-        factionId === undefined ? -1 : (battle?.sides.findIndex((side) => side?.factionId === factionId) ?? -1);
-      const plan = (plan: NonNullable<typeof battle>['plans'][number], revealId?: string) => {
-        if (!plan) {
-          return null;
-        }
-        const pieceHandles = revealId
-          ? Object.fromEntries(
-              plan.pieces
-                .filter((piece) => piece.kind === 'card')
-                .map((piece) => [
-                  piece.id,
-                  table.pieces.some(
-                    (live) =>
-                      live.id === piece.id &&
-                      live.battleOverlay === revealId &&
-                      live.items.length === piece.items.length &&
-                      live.items.every((item, index) => item.faceUp && item.id === piece.items[index]?.id)
-                  )
-                    ? (snapshot.pieceHandles[piece.id] ?? piece.id)
-                    : this.cardId(`reveal-piece-${revealId}-${piece.id}`),
-                ])
-            )
-          : snapshot.pieceHandles;
-        return {
-          ...plan,
-          cardIds: plan.cardIds.map((id) => pieceHandles[id] ?? id),
-          disclosed: { ...plan.disclosed, cardIds: plan.disclosed.cardIds.map((id) => pieceHandles[id] ?? id) },
-          pieces: plan.pieces.map((piece) =>
-            this.piece(
-              piece,
-              true,
-              revealId === undefined
-                ? snapshot.cardHandles
-                : Object.fromEntries(piece.items.map((item) => [item.id, `reveal-${revealId}-${item.id}`])),
-              pieceHandles
-            )
-          ),
-        };
-      };
-      /* Early-revealed cards travel under fresh handles, so nobody can tie them to a hand or to the cards the reveal later lays out. */
-      const disclosed = (plan: NonNullable<typeof battle>['plans'][number], battleId: string) => {
-        if (!plan) {
-          return null;
-        }
-        const { leader, dial, cardIds } = plan.disclosed;
-        const cards = plan.pieces
-          .filter((piece) => cardIds.includes(piece.id))
-          .map((piece) =>
-            this.piece(
-              piece,
-              true,
-              Object.fromEntries(piece.items.map((item) => [item.id, `disclosed-${battleId}-${item.id}`])),
-              { [piece.id]: this.cardId(`disclosed-piece-${battleId}-${piece.id}`) }
-            )
-          );
-        const leaderPiece = leader ? plan.pieces.find((piece) => piece.id === plan.leaderId) : undefined;
-        return {
-          cards,
-          ...(leaderPiece ? { leader: leaderPiece } : {}),
-          ...(dial ? { dial: { strength: plan.strength } } : {}),
-        };
-      };
-      projected = {
-        battle: battle
-          ? {
-              id: battle.id,
-              anchor: battle.anchor,
-              territory: battle.territory,
-              stage: battle.stage,
-              sides: battle.sides,
-              deadline: battle.deadline,
-              ...(battle.stage === 'revealed'
-                ? { revealed: [plan(battle.plans[0], battle.id)!, plan(battle.plans[1], battle.id)!] }
-                : { disclosed: [disclosed(battle.plans[0], battle.id), disclosed(battle.plans[1], battle.id)] }),
-            }
-          : null,
-        battlePlan:
-          ownSide >= 0 ? plan(battle!.plans[ownSide], battle!.stage === 'revealed' ? battle!.id : undefined) : null,
-        ...(factionId
-          ? {
-              hand: (snapshot.factionInventories[factionId] ?? []).map((piece) =>
-                this.piece(piece, true, snapshot.cardHandles, snapshot.pieceHandles)
-              ),
-            }
-          : {}),
-        ...(roster
-          ? {
-              handCounts: treacheryHandCounts(heldCards(snapshot), rosterFactionIds(roster)),
-            }
-          : {}),
-        ...(factionId ? { peek: this.peek(snapshot, factionId) } : {}),
-        ...(snapshot.setup ? { setup: snapshot.setup } : {}),
-        ...(snapshot.setup
-          ? {
-              predictions: Object.fromEntries(
-                Object.entries(snapshot.privatePredictions).map(([id, prediction]) => {
-                  const { choice: _choice, ...publicFacts } = prediction;
-                  return [
-                    id,
-                    prediction.factionId === factionId || prediction.revealedAt !== null ? prediction : publicFacts,
-                  ];
-                })
-              ),
-            }
-          : {}),
-        factionArtwork: snapshot.factionArtwork,
-        cardFaces: this.cardFaces(faces),
-        combatFaces: snapshot.combatFaces,
-        battleResults: snapshot.battleResults.map((result) => ({
-          ...result,
-          plans: [plan(result.plans[0], result.id)!, plan(result.plans[1], result.id)!],
-        })),
-        revision,
-        table: {
-          ...table,
-          pieces: table.pieces.map((piece) => this.piece(piece, false, snapshot.cardHandles, snapshot.pieceHandles)),
-        },
-        versions: Object.fromEntries(
-          Object.entries(versions).map(([id, version]) => [snapshot.pieceHandles[id] ?? id, version])
-        ),
-        phase,
-        ...(phases ? { phases } : {}),
-        ...(roster ? { roster } : {}),
-        ...(stage ? { stage } : {}),
-        ...(draft ? { draft } : {}),
-        ...(swapping ? { swapping } : {}),
-        ...(snapshot.bidding ? { bidding: snapshot.bidding } : {}),
-        ...(snapshot.alliances ? { alliances: snapshot.alliances } : {}),
-        ...(snapshot.lastTurn ? { lastTurn: snapshot.lastTurn } : {}),
-        controls: controls && {
-          ...controls,
-          requests: controls.requests.map((request) => ({ ...request, contents: this.contents(request.contents) })),
-        },
-        ...(spiceTransfers ? { spiceTransfers } : {}),
-        ...(snapshot.ending ? { ending: { ...snapshot.ending, by: publicActor(snapshot.ending.by) } } : {}),
-        ...(snapshot.result ? { result: { ...snapshot.result, by: publicActor(snapshot.result.by) } } : {}),
-        ...(factionId ? { bank: { factionId, balance: snapshot.factionBanks[factionId] ?? 0 } } : {}),
-      };
+      projected = this.project(snapshot, factionId, faces);
       audiences.set(factionId, projected);
     }
     return projected;
   }
+
+  private project(snapshot: StoredSnapshot, factionId: string | undefined, faces: StoredSnapshot): GameSnapshot {
+    const { revision, table, versions, phase, phases, roster, stage, draft, swapping, controls, spiceTransfers } =
+      snapshot;
+    const battle = snapshot.battleState;
+    /* An empty side has no faction, so a viewer without one must not match it. */
+    const ownSide =
+      factionId === undefined ? -1 : (battle?.sides.findIndex((side) => side?.factionId === factionId) ?? -1);
+    return {
+      battle: battle ? this.battle(snapshot, battle) : null,
+      battlePlan:
+        ownSide >= 0
+          ? this.plan(snapshot, battle!.plans[ownSide], battle!.stage === 'revealed' ? battle!.id : undefined)
+          : null,
+      ...(factionId
+        ? {
+            hand: (snapshot.factionInventories[factionId] ?? []).map((piece) =>
+              this.piece(piece, true, snapshot.cardHandles, snapshot.pieceHandles)
+            ),
+          }
+        : {}),
+      ...(roster
+        ? {
+            handCounts: treacheryHandCounts(heldCards(snapshot), rosterFactionIds(roster)),
+          }
+        : {}),
+      ...(factionId ? { peek: this.peek(snapshot, factionId) } : {}),
+      ...(snapshot.setup ? { setup: snapshot.setup } : {}),
+      ...(snapshot.setup ? { predictions: predictionsFor(snapshot, factionId) } : {}),
+      factionArtwork: snapshot.factionArtwork,
+      cardFaces: this.cardFaces(faces),
+      combatFaces: snapshot.combatFaces,
+      battleResults: snapshot.battleResults.map((result) => ({
+        ...result,
+        plans: [this.plan(snapshot, result.plans[0], result.id)!, this.plan(snapshot, result.plans[1], result.id)!],
+      })),
+      revision,
+      table: {
+        ...table,
+        pieces: table.pieces.map((piece) => this.piece(piece, false, snapshot.cardHandles, snapshot.pieceHandles)),
+      },
+      versions: Object.fromEntries(
+        Object.entries(versions).map(([id, version]) => [snapshot.pieceHandles[id] ?? id, version])
+      ),
+      phase,
+      ...(phases ? { phases } : {}),
+      ...(roster ? { roster } : {}),
+      ...(stage ? { stage } : {}),
+      ...(draft ? { draft } : {}),
+      ...(swapping ? { swapping } : {}),
+      ...(snapshot.bidding ? { bidding: snapshot.bidding } : {}),
+      ...(snapshot.alliances ? { alliances: snapshot.alliances } : {}),
+      ...(snapshot.lastTurn ? { lastTurn: snapshot.lastTurn } : {}),
+      controls: controls && {
+        ...controls,
+        requests: controls.requests.map((request) => ({ ...request, contents: this.contents(request.contents) })),
+      },
+      ...(spiceTransfers ? { spiceTransfers } : {}),
+      ...(snapshot.ending ? { ending: { ...snapshot.ending, by: publicActor(snapshot.ending.by) } } : {}),
+      ...(snapshot.result ? { result: { ...snapshot.result, by: publicActor(snapshot.result.by) } } : {}),
+      ...(factionId ? { bank: { factionId, balance: snapshot.factionBanks[factionId] ?? 0 } } : {}),
+    };
+  }
+
+  /** The battle everyone sees: both plans once revealed, and until then only what each side disclosed early. */
+  private battle(snapshot: StoredSnapshot, battle: BattleState): NonNullable<GameSnapshot['battle']> {
+    return {
+      id: battle.id,
+      anchor: battle.anchor,
+      territory: battle.territory,
+      stage: battle.stage,
+      sides: battle.sides,
+      deadline: battle.deadline,
+      ...(battle.stage === 'revealed'
+        ? {
+            revealed: [
+              this.plan(snapshot, battle.plans[0], battle.id)!,
+              this.plan(snapshot, battle.plans[1], battle.id)!,
+            ],
+          }
+        : { disclosed: [this.disclosed(battle.plans[0], battle.id), this.disclosed(battle.plans[1], battle.id)] }),
+    };
+  }
+
+  private plan(snapshot: StoredSnapshot, plan: BattlePlan, revealId?: string) {
+    if (!plan) {
+      return null;
+    }
+    const pieceHandles = revealId
+      ? Object.fromEntries(
+          plan.pieces
+            .filter((piece) => piece.kind === 'card')
+            .map((piece) => [
+              piece.id,
+              snapshot.table.pieces.some(
+                (live) =>
+                  live.id === piece.id &&
+                  live.battleOverlay === revealId &&
+                  live.items.length === piece.items.length &&
+                  live.items.every((item, index) => item.faceUp && item.id === piece.items[index]?.id)
+              )
+                ? (snapshot.pieceHandles[piece.id] ?? piece.id)
+                : this.cardId(`reveal-piece-${revealId}-${piece.id}`),
+            ])
+        )
+      : snapshot.pieceHandles;
+    return {
+      ...plan,
+      cardIds: plan.cardIds.map((id) => pieceHandles[id] ?? id),
+      disclosed: { ...plan.disclosed, cardIds: plan.disclosed.cardIds.map((id) => pieceHandles[id] ?? id) },
+      pieces: plan.pieces.map((piece) =>
+        this.piece(
+          piece,
+          true,
+          revealId === undefined
+            ? snapshot.cardHandles
+            : Object.fromEntries(piece.items.map((item) => [item.id, `reveal-${revealId}-${item.id}`])),
+          pieceHandles
+        )
+      ),
+    };
+  }
+
+  /* Early-revealed cards travel under fresh handles, so nobody can tie them to a hand or to the cards the reveal later lays out. */
+  private disclosed(plan: BattlePlan, battleId: string) {
+    if (!plan) {
+      return null;
+    }
+    const { leader, dial, cardIds } = plan.disclosed;
+    const cards = plan.pieces
+      .filter((piece) => cardIds.includes(piece.id))
+      .map((piece) =>
+        this.piece(
+          piece,
+          true,
+          Object.fromEntries(piece.items.map((item) => [item.id, `disclosed-${battleId}-${item.id}`])),
+          { [piece.id]: this.cardId(`disclosed-piece-${battleId}-${piece.id}`) }
+        )
+      );
+    const leaderPiece = leader ? plan.pieces.find((piece) => piece.id === plan.leaderId) : undefined;
+    return {
+      cards,
+      ...(leaderPiece ? { leader: leaderPiece } : {}),
+      ...(dial ? { dial: { strength: plan.strength } } : {}),
+    };
+  }
+}
+
+type BattleState = NonNullable<StoredSnapshot['battleState']>;
+type BattlePlan = BattleState['plans'][number];
+
+/** Each prediction in full for its own faction or once revealed; everyone else sees it without its choice. */
+function predictionsFor(snapshot: StoredSnapshot, factionId: string | undefined) {
+  return Object.fromEntries(
+    Object.entries(snapshot.privatePredictions).map(([id, prediction]) => {
+      const { choice: _choice, ...publicFacts } = prediction;
+      return [id, prediction.factionId === factionId || prediction.revealedAt !== null ? prediction : publicFacts];
+    })
+  );
 }
 
 /**

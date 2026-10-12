@@ -87,12 +87,23 @@ function failureDetails(error: unknown) {
     return {
       failureCategory: reset ? 'storage-reset' : 'exception',
       ...(reset ? { storageReference: reset[1] } : {}),
-      ...('retryable' in error && typeof error.retryable === 'boolean' ? { retryable: error.retryable } : {}),
-      ...('overloaded' in error && typeof error.overloaded === 'boolean' ? { overloaded: error.overloaded } : {}),
-      ...('remote' in error && typeof error.remote === 'boolean' ? { remote: error.remote } : {}),
+      ...platformFlag(error, 'retryable'),
+      ...platformFlag(error, 'overloaded'),
+      ...platformFlag(error, 'remote'),
     };
   }
   return { failureCategory: 'unknown' };
+}
+
+type PlatformFlag = 'retryable' | 'overloaded' | 'remote';
+
+/** A boolean the platform sets on its own errors, kept under its own name when present. */
+function platformFlag(error: Error, flag: PlatformFlag): Partial<Record<PlatformFlag, boolean>> {
+  if (!(flag in error)) {
+    return {};
+  }
+  const value = (error as unknown as Record<PlatformFlag, unknown>)[flag];
+  return typeof value === 'boolean' ? { [flag]: value } : {};
 }
 
 /** Each room retains bounded entries per fixed operation, with no timers or storage writes. */

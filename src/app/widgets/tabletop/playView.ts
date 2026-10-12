@@ -33,7 +33,7 @@ export type CameraViewCommand = Readonly<{
 
 type PendingView = Readonly<{ view: TableView; source: 'player' | 'phase' }>;
 
-export type TableViewState = Readonly<{
+type TableViewState = Readonly<{
   activeView: TableView;
   cameraRevision: number;
   interactionActive: boolean;
@@ -45,7 +45,7 @@ export type TableViewState = Readonly<{
   phase: TablePhaseId | null;
 }>;
 
-export type TableViewEvent =
+type TableViewEvent =
   | Readonly<{ type: 'view.selected'; view: TableView }>
   | Readonly<{ type: 'phase.changed'; phase: TablePhaseId | null }>
   | Readonly<{ type: 'interaction.changed'; active: boolean }>
@@ -56,7 +56,7 @@ export type CameraPose = Readonly<{
   target: Vector3Tuple;
 }>;
 
-export type CameraFogRange = Readonly<{
+type CameraFogRange = Readonly<{
   near: number;
   far: number;
 }>;
@@ -114,10 +114,15 @@ function clampCameraTilt(tilt: number): number {
   return Number.isFinite(tilt) ? Math.max(0, Math.min(1, tilt)) : 0;
 }
 
+/* A wheel turn in pixels, whether the browser counts it in pixels, lines or pages; an unreadable turn is none. */
+function wheelPixels(deltaY: number, deltaMode: number): number {
+  const pixels = deltaY * (deltaMode === 1 ? WHEEL_LINE_PX : deltaMode === 2 ? WHEEL_PAGE_PX : 1);
+  return Number.isFinite(pixels) ? pixels : 0;
+}
+
 /** The tilt after a wheel turn: scrolling down raises the camera toward top-down, scrolling up lowers it back to the approved angle. */
 export function cameraTiltAfterWheel(tilt: number, deltaY: number, deltaMode = 0): number {
-  const pixels = deltaY * (deltaMode === 1 ? WHEEL_LINE_PX : deltaMode === 2 ? WHEEL_PAGE_PX : 1);
-  return Number.isFinite(pixels) ? clampCameraTilt(tilt + pixels / CAMERA_TILT_SCROLL_RANGE_PX) : clampCameraTilt(tilt);
+  return clampCameraTilt(tilt + wheelPixels(deltaY, deltaMode) / CAMERA_TILT_SCROLL_RANGE_PX);
 }
 
 function cameraBasisFor(tilt: number): CameraBasis {
@@ -213,6 +218,17 @@ export function mapViewTopLimitForViewport(
   return Math.max(MAP_VIEW_MINIMUM_TOP_LIMIT, Math.min(MAP_VIEW_TOP_LIMIT, unobscuredTop));
 }
 
+/* Where a side or bottom view looks; a narrow canvas moves a side view further out, so its card well stays in frame. */
+function fixedViewTarget(view: Exclude<TableView, 'map'>, aspectRatio: number): Vector3Tuple {
+  const baseTarget = TABLE_VIEW_TARGETS[view];
+  if (view === 'bottom') {
+    return [...baseTarget];
+  }
+  const narrowViewOffset = Math.max(0, SIDE_VIEW_WIDE_ASPECT - aspectRatio) * SIDE_VIEW_ASPECT_COMPENSATION;
+  const sideTargetX = Math.min(SIDE_VIEW_MAX_TARGET_X, SIDE_VIEW_TARGET_X + narrowViewOffset);
+  return [view === 'left' ? -sideTargetX : sideTargetX, baseTarget[1], baseTarget[2]];
+}
+
 export function cameraPoseFor(
   view: TableView,
   aspectRatio = 1,
@@ -222,19 +238,12 @@ export function cameraPoseFor(
 ): CameraPose {
   const basis = cameraBasisFor(tilt);
   const safeAspectRatio = Number.isFinite(aspectRatio) && aspectRatio > 0 ? aspectRatio : 1;
-  const baseTarget = TABLE_VIEW_TARGETS[view];
   const safeMapTopLimit =
     Number.isFinite(mapTopLimit) && mapTopLimit > 0 ? Math.min(MAP_VIEW_TOP_LIMIT, mapTopLimit) : MAP_VIEW_TOP_LIMIT;
-  const narrowViewOffset = Math.max(0, SIDE_VIEW_WIDE_ASPECT - safeAspectRatio) * SIDE_VIEW_ASPECT_COMPENSATION;
-  const sideTargetX = Math.min(SIDE_VIEW_MAX_TARGET_X, SIDE_VIEW_TARGET_X + narrowViewOffset);
   const target: Vector3Tuple =
-    view === 'left'
-      ? [-sideTargetX, baseTarget[1], baseTarget[2]]
-      : view === 'right'
-        ? [sideTargetX, baseTarget[1], baseTarget[2]]
-        : view === 'map'
-          ? tiltedMapTarget(safeAspectRatio, mapFramingPoints, safeMapTopLimit, basis, clampCameraTilt(tilt))
-          : [...baseTarget];
+    view === 'map'
+      ? tiltedMapTarget(safeAspectRatio, mapFramingPoints, safeMapTopLimit, basis, clampCameraTilt(tilt))
+      : fixedViewTarget(view, safeAspectRatio);
   const cameraScale =
     view === 'map'
       ? mapCameraScaleFor(safeAspectRatio, mapFramingPoints, safeMapTopLimit, basis, target)
@@ -312,11 +321,6 @@ function nearestZoomTarget(x: number, z: number): [number, number] {
     }
   }
   return best;
-}
-
-function wheelPixels(deltaY: number, deltaMode: number): number {
-  const pixels = deltaY * (deltaMode === 1 ? WHEEL_LINE_PX : deltaMode === 2 ? WHEEL_PAGE_PX : 1);
-  return Number.isFinite(pixels) ? pixels : 0;
 }
 
 /** The tilt a close look adds to the player's own: none at the view's distance, turning toward top-down as the camera closes in. */
@@ -527,7 +531,7 @@ export function tableCamera(pose: CameraPose, aspectRatio: number): PerspectiveC
 export function cameraViewTransitionProgress(elapsedMs: number): number {
   const progress = Math.max(0, Math.min(1, elapsedMs / CAMERA_VIEW_TRANSITION_MS));
 
-  // Cubic Bezier (0, 0), (1/3, 0), (2/3, 1), (1, 1).
+  /* Cubic Bezier (0, 0), (1/3, 0), (2/3, 1), (1, 1). */
   return progress * progress * (3 - 2 * progress);
 }
 

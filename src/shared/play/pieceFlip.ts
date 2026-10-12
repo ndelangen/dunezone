@@ -26,7 +26,7 @@ export function stackLayerItemIndex(
     return 0;
   }
   const sample = (index: number) => Math.round((index * (itemCount - 1)) / (shownLayers - 1));
-  // Mirror the same sampled items when the canonical stack reverses.
+  /* Mirror the same sampled items when the canonical stack reverses. */
   return flipRevision % 2 === 0 ? sample(layerIndex) : itemCount - 1 - sample(shownLayers - 1 - layerIndex);
 }
 
@@ -69,7 +69,7 @@ export function retargetPieceFlipMotion(
   const active =
     motion.heldSince !== null || (motion.startedAt !== null && nowMs - motion.startedAt < PIECE_FLIP_DURATION_MS);
   if (active || revision !== motion.targetRevision + 1) {
-    // Commands block repeated flips. Unexpected snapshots settle to their canonical pose.
+    /* Commands block repeated flips. Unexpected snapshots settle to their canonical pose. */
     return createPieceFlipMotion(revision);
   }
 

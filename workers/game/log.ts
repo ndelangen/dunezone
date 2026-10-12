@@ -16,7 +16,7 @@ import { internalPieceId } from './state';
 import type { StoredSnapshot } from './state';
 
 /** The one name retained history shows for a deleted account. */
-const DELETED_USER = '[deleted user]';
+export const DELETED_USER = '[deleted user]';
 
 type BattleResult = StoredSnapshot['battleResults'][number];
 /* `deletedAs` is what the slot reads once the account is deleted, when `[deleted user]` alone would not tell it apart. */
@@ -430,10 +430,7 @@ function allianceEntries(
     return [];
   }
   const people: Person[] = [];
-  const names = (ids: readonly string[]) => {
-    const labels = ids.map((id) => faction(id, people));
-    return labels.length < 2 ? (labels[0] ?? '') : `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}`;
-  };
+  const names = (ids: readonly string[]) => list(ids.map((id) => faction(id, people)));
   const template = (() => {
     if (message.action.kind === 'alliance-break') {
       const leaver = rosterSeat(before.roster, viewer.viewerSeat)?.faction?.id;

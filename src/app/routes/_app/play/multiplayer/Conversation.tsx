@@ -11,6 +11,8 @@ import { CONVERSATION_HELP } from './panelGuidance';
 import { useServerNow } from './useServerNow';
 
 const EMPTY_MESSAGES: ConversationMessage[] = [];
+/* A message keeps its line breaks and wraps even a long unbroken word. */
+const MESSAGE_TEXT_STYLE = { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } as const;
 
 /** The caller selects the faction pair; this panel owns composing and observing the visible newest message. */
 export function Conversation({ client, peerId }: Readonly<{ client: TableSession; peerId: string }>) {
@@ -86,6 +88,11 @@ export function OfflineConversations({ client }: Readonly<{ client: TableSession
   );
 }
 
+/* Whether the history is scrolled to its newest message, give or take a few pixels of rounding. */
+function atBottom(element: HTMLElement) {
+  return element.scrollHeight - element.scrollTop - element.clientHeight < 8;
+}
+
 function useConversationScroll(entries: ConversationMessage[], pendingCount: number) {
   const viewport = useRef<HTMLDivElement>(null);
   const scroll = useRef({ bottom: true, height: 0, first: 0 });
@@ -103,7 +110,7 @@ function useConversationScroll(entries: ConversationMessage[], pendingCount: num
       element.scrollTop = element.scrollHeight;
     }
     scroll.current = {
-      bottom: element.scrollHeight - element.scrollTop - element.clientHeight < 8,
+      bottom: atBottom(element),
       first,
       height: element.scrollHeight,
     };
@@ -124,7 +131,7 @@ function useConversationScroll(entries: ConversationMessage[], pendingCount: num
   }, []);
   const onScroll = () => {
     const element = viewport.current!;
-    scroll.current.bottom = element.scrollHeight - element.scrollTop - element.clientHeight < 8;
+    scroll.current.bottom = atBottom(element);
   };
   return { viewport, onScroll };
 }
@@ -134,10 +141,7 @@ function useVisibleRead(client: TableSession, peerId: string, latest: number, vi
   const summary = view.summaries.find((entry) => entry.peerId === peerId);
   useEffect(() => {
     const target = newest.current;
-    if (!target || !view.online) {
-      return;
-    }
-    if (!summary?.unread || latest !== summary.latest) {
+    if (!target || !view.online || !summary?.unread || latest !== summary.latest) {
       return;
     }
     return observeVisible(target, () => client.conversations.read({ peerId, through: latest }));
@@ -191,7 +195,7 @@ function SavedMessage({
   return (
     <Stack gap="xs">
       <SavedMessageHeader message={message} faction={faction} />
-      <Text size="sm" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+      <Text size="sm" style={MESSAGE_TEXT_STYLE}>
         {message.text}
       </Text>
       {message.senderFactionId === factionId && (
@@ -209,7 +213,7 @@ function PendingMessage({
 }: Readonly<{ entry: ConversationView['pending'][number]; retry: (requestId: string) => void }>) {
   return (
     <Stack gap="xs">
-      <Text size="sm" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+      <Text size="sm" style={MESSAGE_TEXT_STYLE}>
         {entry.request.text}
       </Text>
       <PendingStatus entry={entry} retry={retry} />

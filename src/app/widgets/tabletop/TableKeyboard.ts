@@ -194,10 +194,7 @@ export class TableKeyboard {
     }
     const digit = digitOf(event);
     if (digit !== null && this.spiceBankAnswers(event, controls)) {
-      event.preventDefault();
-      if (!event.repeat) {
-        controls.spawnSpice(digit === 0 ? 10 : digit);
-      }
+      pressOnce(event, () => controls.spawnSpice(digit === 0 ? 10 : digit));
     } else if (!focusKeepsKey(event.target, 'table')) {
       this.tableKey(event, controls);
     }
@@ -236,7 +233,6 @@ export class TableKeyboard {
     }
   }
 
-  /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
   /* A Tab let go while the page had no focus never comes up here, so leaving the page lets it go. */
   private releasePing = () => {
     this.pingHeld = false;
@@ -262,6 +258,7 @@ export class TableKeyboard {
     if (this.panHeld.delete(physicalKey(event))) {
       this.panListeners.forEach((listener) => listener());
     }
+    /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
     const sameKey = this.drawCode !== '' && event.code === this.drawCode;
     if (this.drawDigit !== null && (sameKey || digitOf(event) === this.drawDigit)) {
       this.cancelDraw();
@@ -348,9 +345,7 @@ export class TableKeyboard {
     this.drawDigit = digit;
     this.drawCode = event.code === 'Unidentified' ? '' : event.code;
     this.drawTimer = setTimeout(() => {
-      this.drawTimer = null;
-      this.drawDigit = null;
-      this.drawCode = '';
+      this.cancelDraw();
       this.binding?.read().splitSelected(digit, pieceId);
     }, DRAW_HOLD_MS);
   }

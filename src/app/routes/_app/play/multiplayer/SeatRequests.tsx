@@ -1,8 +1,8 @@
 import { Button, Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
-import { emptyPublicControls } from '@shared/play/inventory';
+import type { PublicControls } from '@shared/play/inventory';
 import { seatLabel, seatSubject } from '@shared/play/participation';
 import type { SeatAction } from '@shared/play/participation';
-import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
+import { rosterSeat } from '@shared/play/schema';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Eyebrow } from '@ui/content/Eyebrow';
@@ -26,6 +26,8 @@ import {
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
+import { publicControlsOf } from './publicControls';
+import { isSpectator } from './tableFactions';
 
 /*
  * Participation without a bar between the board and the controls (Norbert, 2026-10-11): a spectator asks from the
@@ -45,7 +47,7 @@ function seatWords(table: TableProjection, seat: string | null, label: (seat: st
 
 /** The seats nobody holds, once the seating is fixed; while drafting a request names no seat. */
 function openSeats(table: TableProjection): string[] {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   return (table.snapshot.roster?.seats ?? []).map((seat) => seat.id).filter((seat) => !controls.seats.includes(seat));
 }
 
@@ -80,42 +82,39 @@ function SeatButton({
 
 type SeatNotice = Readonly<{ eyebrow: string; title: string; context?: string; action?: ReactNode }>;
 
-/** What a spectator's seat says and the one action it offers, or nothing once there is nothing to say. */
-function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNotice | null {
-  const [chosen, setChosen] = useState<string | null>(null);
-  const controls = table.snapshot.controls ?? emptyPublicControls();
-  if (table.viewer.viewerSeat !== SPECTATOR_SEAT || !table.snapshot.stage || table.snapshot.stage === 'discarded') {
-    return null;
-  }
-  const own = controls.seatRequests.find((request) => request.own);
-  if (own) {
+type SeatRequest = PublicControls['seatRequests'][number];
+
+/** What a spectator's standing request says: the game is over, the seat it names was taken, or it waits for a player. */
+function ownRequestCopy(table: TableProjection, own: SeatRequest): Pick<SeatNotice, 'title' | 'context'> {
+  if (table.snapshot.stage === 'finished') {
     return {
-      eyebrow: 'Seat requested',
-      ...(table.snapshot.stage === 'finished'
-        ? { title: 'This game has finished', context: 'Nobody can take a seat now. Withdraw the request to clear it.' }
-        : /* The table keeps a request for a seat someone else took, so it can be approved if that seat opens again. */
-          table.snapshot.stage !== 'drafting' && own.seat !== null && !openSeats(table).includes(own.seat)
-          ? {
-              title: `${seatWords(table, own.seat, seatSubject)} is taken now`,
-              context: 'A player can approve you if it opens again. Withdraw to ask for another seat.',
-            }
-          : {
-              title: 'Waiting for a player to approve you',
-              context: `You asked for ${seatWords(table, own.seat)}. Any current player can approve; until then you keep watching.`,
-            }),
-      action: (
-        <SeatButton client={client} table={table} action={{ kind: 'seat-withdraw' }} variant="default">
-          Withdraw
-        </SeatButton>
-      ),
+      title: 'This game has finished',
+      context: 'Nobody can take a seat now. Withdraw the request to clear it.',
     };
   }
-  if (table.snapshot.stage === 'finished') {
-    return null;
+  /* The table keeps a request for a seat someone else took, so it can be approved if that seat opens again. */
+  if (table.snapshot.stage !== 'drafting' && own.seat !== null && !openSeats(table).includes(own.seat)) {
+    return {
+      title: `${seatWords(table, own.seat, seatSubject)} is taken now`,
+      context: 'A player can approve you if it opens again. Withdraw to ask for another seat.',
+    };
   }
+  return {
+    title: 'Waiting for a player to approve you',
+    context: `You asked for ${seatWords(table, own.seat)}. Any current player can approve; until then you keep watching.`,
+  };
+}
+
+/** A spectator's way into a running game: a request for a seat, or for the chosen open seat once the seating is fixed. */
+function seatOffer(
+  client: TableSession,
+  table: TableProjection,
+  chosen: string | null,
+  choose: (seat: string | null) => void
+): SeatNotice {
   const drafting = table.snapshot.stage === 'drafting';
   const open = openSeats(table);
-  const seated = controls.seats.length;
+  const seated = publicControlsOf(table).seats.length;
   const seatCount = table.snapshot.roster?.seatCount ?? seated;
   /* A full game has nothing to ask for; the notice says so and grows back into a request when a seat opens. */
   if (!drafting && open.length === 0) {
@@ -137,7 +136,7 @@ function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNot
             aria-label="Open seat"
             data={open.map((seat) => ({ value: seat, label: seatWords(table, seat) }))}
             value={selected}
-            onChange={setChosen}
+            onChange={choose}
             allowDeselect={false}
             comboboxProps={{ withinPortal: false }}
           />
@@ -149,6 +148,28 @@ function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNot
       </Group>
     ),
   };
+}
+
+/** What a spectator's seat says and the one action it offers, or nothing once there is nothing to say. */
+function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNotice | null {
+  const [chosen, setChosen] = useState<string | null>(null);
+  const stage = table.snapshot.stage;
+  if (!isSpectator(table) || !stage || stage === 'discarded') {
+    return null;
+  }
+  const own = publicControlsOf(table).seatRequests.find((request) => request.own);
+  if (own) {
+    return {
+      eyebrow: 'Seat requested',
+      ...ownRequestCopy(table, own),
+      action: (
+        <SeatButton client={client} table={table} action={{ kind: 'seat-withdraw' }} variant="default">
+          Withdraw
+        </SeatButton>
+      ),
+    };
+  }
+  return stage === 'finished' ? null : seatOffer(client, table, chosen, setChosen);
 }
 
 /**
@@ -211,7 +232,7 @@ function SeatNoticePopover({ notice, error }: Readonly<{ notice: SeatNotice; err
 
 /** The game menu's hold-to-leave item names what leaving costs: the game, a roster place, or a seat left open. */
 function leavingLabel(table: TableProjection): string {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   switch (true) {
     case controls.seats.length === 1:
       return 'Hold to leave and discard the game';
@@ -228,7 +249,7 @@ export function VacantSeatRequests({
   table,
   seat,
 }: Readonly<{ client: TableSession; table: TableProjection; seat: string }>) {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   if (!approvable(table) || !openSeats(table).includes(seat)) {
     return null;
   }
@@ -256,17 +277,17 @@ export function VacantSeatRequests({
   ) : null;
 }
 
-/** The vacant seats a spectator is asking for, so the player rail can mark them. */
 /** A player approves while the game runs live; a finished game takes no one until it continues. */
 function approvable(table: TableProjection): boolean {
-  return table.viewer.viewerSeat !== SPECTATOR_SEAT && !table.playback && table.snapshot.stage !== 'finished';
+  return !isSpectator(table) && !table.playback && table.snapshot.stage !== 'finished';
 }
 
+/** The vacant seats a spectator is asking for, so the player rail can mark them. */
 export function requestedSeats(table: TableProjection): ReadonlySet<string> {
   if (!approvable(table)) {
     return new Set();
   }
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   const open = openSeats(table);
   return new Set(
     controls.seatRequests.flatMap((request) =>
@@ -368,10 +389,7 @@ export function GameMenu({
   sharing,
 }: Readonly<{ client: TableSession; table: TableProjection; onClearConfetti?: () => void; sharing: ReactNode }>) {
   /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
-  const seated =
-    table.viewer.viewerSeat !== SPECTATOR_SEAT &&
-    table.snapshot.stage !== undefined &&
-    table.snapshot.stage !== 'discarded';
+  const seated = !isSpectator(table) && table.snapshot.stage !== undefined && table.snapshot.stage !== 'discarded';
   return (
     <Menu position="bottom-end" shadow="md" withinPortal>
       <Menu.Target>

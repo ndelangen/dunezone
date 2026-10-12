@@ -2,14 +2,13 @@ import { Button, Group, MultiSelect, SegmentedControl, Select, Stack } from '@ma
 import { phaseAt } from '@shared/play/phases';
 import { describeResult, resultFactionCountFits } from '@shared/play/result';
 import type { GameResult, GameResultKind } from '@shared/play/result';
-import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { Section } from '@ui/block/Section';
 import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
-import { factionName, factionOptions, viewerFaction } from './tableFactions';
+import { factionName, factionOptions, isSpectator, viewerFaction } from './tableFactions';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
@@ -176,7 +175,7 @@ function ownUnrevealed(table: TableProjection) {
 }
 
 function seated(table: TableProjection) {
-  return table.viewer.viewerSeat !== SPECTATOR_SEAT;
+  return !isSpectator(table);
 }
 
 /* Every other panel while one player determines the winner: the reveal reminder, never a block. */

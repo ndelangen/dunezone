@@ -52,12 +52,12 @@ export type TabletopContextValue = Pick<
 type TabletopCommands = Omit<TabletopContextValue, keyof TableProjection>;
 
 /** The session's commands and its pointer feed, which stay the same for the session's life, for parts that must not follow every update. */
-export type TabletopActions = Pick<
+type TabletopActions = Pick<
   TableSession,
   'finishPieceFlip' | 'getPointers' | 'selectPiece' | 'setHoveredPiece' | 'subscribePings' | 'subscribePointers'
 >;
 
-export type TabletopSession = Pick<
+type TabletopSession = Pick<
   TableSession,
   keyof TabletopCommands | keyof TabletopActions | 'getTable' | 'subscribeTable'
 >;

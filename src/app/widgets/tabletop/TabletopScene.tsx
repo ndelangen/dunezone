@@ -545,9 +545,13 @@ function BoardSurface({
   );
 }
 
+/* The item a stack layer shows, counted from the bottom of the layers drawn. */
+function layerItemIndex(piece: TablePiece, index: number, shownLayers: number) {
+  return stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision);
+}
+
 function stackLayerFaceUp(piece: TablePiece, index: number, shownLayers: number) {
-  const itemIndex = stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision);
-  return piece.items[itemIndex]?.faceUp ?? true;
+  return piece.items[layerItemIndex(piece, index, shownLayers)]?.faceUp ?? true;
 }
 
 function PieceFace({ height, underside, children }: { height: number; underside: boolean; children: ReactNode }) {
@@ -586,18 +590,21 @@ function usePublishedFace(href: string | undefined): Texture | undefined {
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
+/* A token's face: a box token's rectangle at its ratio, or a disc. */
+function tokenFaceGeometry(ratio: number | null | undefined) {
+  return ratio != null ? (
+    <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * ratio]} />
+  ) : (
+    <circleGeometry args={[TROOP_FACE_RADIUS, 48]} />
+  );
+}
+
 function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
   const texture = usePublishedFace(href) ?? null;
   return (
     <mesh position={[0, 0, 0.002]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
-      {card ? (
-        <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
-      ) : ratio != null ? (
-        <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * ratio]} />
-      ) : (
-        <circleGeometry args={[TROOP_FACE_RADIUS, 48]} />
-      )}
+      {card ? <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} /> : tokenFaceGeometry(ratio)}
       {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
       {texture ? (
         <meshBasicMaterial key={href} map={texture} transparent />
@@ -616,7 +623,7 @@ function usePublishedFaceReady(href: string | undefined): boolean {
 /* A card turned face up in hand shows its face only once the room has sent it, so its flip waits for that too. */
 function faceStillHidden(piece: TablePiece) {
   const shownLayers = visibleLayerCount(piece);
-  const item = piece.items[stackLayerItemIndex(piece.items.length, shownLayers, shownLayers - 1, piece.flipRevision)];
+  const item = piece.items[layerItemIndex(piece, shownLayers - 1, shownLayers)];
   return piece.kind === 'card' && !!item?.faceUp && !!item.artwork && !item.artwork.front;
 }
 
@@ -654,16 +661,13 @@ function TokenFace({
   /* A faction token has no back of its own: face down, it shows its front under a black prohibition sign. */
   const blocked = !faceUp && isFactionToken(piece);
   const href = piece.items[itemIndex]?.artwork?.[faceUp || blocked ? 'front' : 'back'];
+  const ratio = tokenBoxRatio(piece);
   return (
     <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
-      {href && <PublishedFace href={href} card={false} ratio={tokenBoxRatio(piece)} />}
+      {href && <PublishedFace href={href} card={false} ratio={ratio} />}
       {blocked && <SittingOutSign />}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
-        {tokenBoxRatio(piece) != null ? (
-          <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * tokenBoxRatio(piece)!]} />
-        ) : (
-          <circleGeometry args={[TROOP_FACE_RADIUS, 48]} />
-        )}
+        {tokenFaceGeometry(ratio)}
         <meshStandardMaterial color={faceUp ? piece.accent : '#261c18'} roughness={0.5} metalness={0.08} />
       </mesh>
       {!faceUp && !piece.items[itemIndex]?.artwork ? (
@@ -683,10 +687,12 @@ function TokenFace({
 function TroopStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
   const scale = troopScale(piece);
+  const ratio = tokenBoxRatio(piece);
   return (
     <group scale={[scale, 1, scale]}>
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
+        const itemIndex = layerItemIndex(piece, index, shownLayers);
         return (
           <group key={index} position={[0, index * TROOP_LAYER_PITCH, 0]}>
             <mesh
@@ -694,30 +700,15 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
               rotation={[0, 0, faceUp ? 0 : Math.PI]}
             >
-              {tokenBoxRatio(piece) != null ? (
-                <boxGeometry
-                  args={[TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * tokenBoxRatio(piece)!]}
-                />
+              {ratio != null ? (
+                <boxGeometry args={[TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * ratio]} />
               ) : (
                 <cylinderGeometry args={[TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48]} />
               )}
               <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
             </mesh>
-            {index === shownLayers - 1 ? (
-              <TokenFace
-                piece={piece}
-                faceUp={faceUp}
-                itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-              />
-            ) : null}
-            {index === 0 ? (
-              <TokenFace
-                piece={piece}
-                faceUp={!faceUp}
-                underside
-                itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-              />
-            ) : null}
+            {index === shownLayers - 1 ? <TokenFace piece={piece} faceUp={faceUp} itemIndex={itemIndex} /> : null}
+            {index === 0 ? <TokenFace piece={piece} faceUp={!faceUp} underside itemIndex={itemIndex} /> : null}
           </group>
         );
       })}
@@ -739,14 +730,14 @@ function CardFace({
   covered?: boolean;
   itemIndex: number;
 }) {
+  const artwork = piece.items[itemIndex]?.artwork;
+  const href = artwork?.[faceUp ? 'front' : 'back'];
   return (
     <PieceFace height={CARD_LAYER_HEIGHT} underside={underside}>
-      {piece.items[itemIndex]?.artwork?.[faceUp ? 'front' : 'back'] && (
-        <PublishedFace href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']!} card />
-      )}
-      {faceUp && piece.items[itemIndex]?.artwork?.prediction && (
+      {href && <PublishedFace href={href} card />}
+      {faceUp && artwork?.prediction && (
         <Suspense fallback={null}>
-          <PredictionOverlay prediction={piece.items[itemIndex].artwork.prediction} />
+          <PredictionOverlay prediction={artwork.prediction} />
         </Suspense>
       )}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
@@ -773,6 +764,7 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
     <group>
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
+        const itemIndex = layerItemIndex(piece, index, shownLayers);
         return (
           <group
             key={index}
@@ -782,19 +774,8 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
               <boxGeometry args={[CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH]} />
               <meshStandardMaterial color="#ead9bb" roughness={0.68} metalness={0.03} />
             </mesh>
-            <CardFace
-              piece={piece}
-              faceUp={faceUp}
-              covered={index < shownLayers - 1}
-              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-            />
-            <CardFace
-              piece={piece}
-              faceUp={!faceUp}
-              underside
-              covered={index > 0}
-              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-            />
+            <CardFace piece={piece} faceUp={faceUp} covered={index < shownLayers - 1} itemIndex={itemIndex} />
+            <CardFace piece={piece} faceUp={!faceUp} underside covered={index > 0} itemIndex={itemIndex} />
           </group>
         );
       })}
@@ -1121,13 +1102,10 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
       if (event.pointerType === 'touch') {
         return;
       }
-      const cursor = pieceHoverCursor(canHandleTable, interactionBlocked, Boolean(gestureBlocked));
-      if (interactionBlocked) {
-        renderer.domElement.style.cursor = cursor;
-        return;
+      if (!interactionBlocked) {
+        setHoveredPiece(piece.id);
       }
-      setHoveredPiece(piece.id);
-      renderer.domElement.style.cursor = cursor;
+      renderer.domElement.style.cursor = pieceHoverCursor(canHandleTable, interactionBlocked, Boolean(gestureBlocked));
     },
     onPointerLeave: () => {
       setHoveredPiece(null);
@@ -1237,6 +1215,15 @@ function pieceOwnerName(piece: TablePiece, state: Pick<TableState, 'factionNames
   return tieBreak ? `${owner} (${tieBreak})` : owner;
 }
 
+const PIECE_BADGE_CLASS_NAMES = {
+  pieceTag: styles.pieceTag,
+  pieceName: styles.pieceName,
+  pieceNameOwner: styles.pieceNameOwner,
+  pieceNamePeeked: styles.pieceNamePeeked,
+  pieceCount: styles.pieceCount,
+  pieceCountSelected: styles.pieceCountSelected,
+};
+
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
   const { piece, drafted, remoteCarried, locallyCarried, reserved, selected, stackTargeted, owner, peeked } = props;
   const { finishPieceFlip } = useTabletopActions();
@@ -1305,14 +1292,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
           {props.showLabels !== false && (
             <Suspense fallback={null}>
               <PieceBadge
-                classNames={{
-                  pieceTag: styles.pieceTag,
-                  pieceName: styles.pieceName,
-                  pieceNameOwner: styles.pieceNameOwner,
-                  pieceNamePeeked: styles.pieceNamePeeked,
-                  pieceCount: styles.pieceCount,
-                  pieceCountSelected: styles.pieceCountSelected,
-                }}
+                classNames={PIECE_BADGE_CLASS_NAMES}
                 piece={piece}
                 owner={owner}
                 peeked={peeked}
@@ -1455,6 +1435,32 @@ function SceneContents({
   );
 }
 
+/* The trackers the stage shows, and the map view and opening camera that frame the board with them. */
+function useTableFraming(
+  stage: TabletopSceneProps['stage'],
+  providedProgress: TabletopSceneProps['tableProgress'],
+  seatCount: TableSeatCount
+) {
+  const { trackers } = boardFurnitureFor(stage);
+  const tableProgress = trackers === 'none' ? undefined : providedProgress;
+  const phaseCount = tableProgress?.phases.length ?? null;
+  const trackerSlots = useMemo(() => {
+    const slots = phaseCount === null ? [] : trackerArcSlots(phaseCount);
+    return trackers === 'spice' ? slots.filter((slot) => slot.kind === 'spice') : slots;
+  }, [phaseCount, trackers]);
+  const mapFramingPoints = useMemo(() => mapViewFramingPoints(trackerSlots, seatCount), [seatCount, trackerSlots]);
+  const camera = useMemo(
+    () => ({
+      position: cameraPoseFor('map', 1, mapFramingPoints).position,
+      fov: TABLE_CAMERA_FIELD_OF_VIEW,
+      near: TABLE_CAMERA_NEAR,
+      far: TABLE_CAMERA_FAR,
+    }),
+    [mapFramingPoints]
+  );
+  return { tableProgress, trackerSlots, mapFramingPoints, camera };
+}
+
 export function TabletopScene({
   children,
   className,
@@ -1487,24 +1493,10 @@ export function TabletopScene({
       })),
     []
   );
-  const { trackers } = boardFurnitureFor(stage);
-  const tableProgress = trackers === 'none' ? undefined : providedProgress;
-  const phaseCount = tableProgress?.phases.length ?? null;
-  const trackerSlots = useMemo(() => {
-    const slots = phaseCount === null ? [] : trackerArcSlots(phaseCount);
-    return trackers === 'spice' ? slots.filter((slot) => slot.kind === 'spice') : slots;
-  }, [phaseCount, trackers]);
-  const mapFramingPoints = useMemo(() => mapViewFramingPoints(trackerSlots, seatCount), [seatCount, trackerSlots]);
-  const camera = useMemo(
-    () => ({
-      position: cameraPoseFor('map', 1, mapFramingPoints).position,
-      fov: TABLE_CAMERA_FIELD_OF_VIEW,
-      near: TABLE_CAMERA_NEAR,
-      far: TABLE_CAMERA_FAR,
-    }),
-    [mapFramingPoints]
-  );
+  const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(stage, providedProgress, seatCount);
   const graphics = useTableGraphics();
+  /* Where the table cannot be drawn, its notice still opens the shell. */
+  const onGraphicsUnavailable = onSceneUnavailable ?? onSceneReady;
   const areaRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -1515,7 +1507,6 @@ export function TabletopScene({
         event.preventDefault();
         if (hasDraft) {
           takeAdditionalFromTarget();
-          return;
         }
       }}
     >
@@ -1531,10 +1522,10 @@ export function TabletopScene({
       )}
       <PieceMenuContext.Provider value={presentation === 'play' && menuAvailable ? openPieceMenu : null}>
         {graphics === 'unavailable' && (
-          <TableGraphicsUnavailable silent={presentation === 'preview'} onShown={onSceneUnavailable ?? onSceneReady} />
+          <TableGraphicsUnavailable silent={presentation === 'preview'} onShown={onGraphicsUnavailable} />
         )}
         {graphics === 'ready' && (
-          <TableGraphicsBoundary silent={presentation === 'preview'} onShown={onSceneUnavailable ?? onSceneReady}>
+          <TableGraphicsBoundary silent={presentation === 'preview'} onShown={onGraphicsUnavailable}>
             <Canvas
               camera={camera}
               dpr={[1, 2]}

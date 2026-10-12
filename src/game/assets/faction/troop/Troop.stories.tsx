@@ -36,6 +36,11 @@ export const Default = meta.story({
 });
 
 const troops = {
+  SwordBearer: {
+    name: 'Sword bearer',
+    image: '/vector/troop/sword-bearer.svg',
+    detail: 'Armoured soldier with a sword over one shoulder and a blade at the hip.',
+  },
   DesertPathfinder: {
     name: 'Desert pathfinder',
     image: '/vector/troop/desert-pathfinder.svg',
@@ -271,9 +276,9 @@ export const NewSilhouettes = meta.story({
   parameters: { layout: 'fullscreen' },
   render: () =>
     renderGallery(
-      [...fourthWave, ...thirdWave, ...secondWave, ...additions],
+      [troops.SwordBearer, ...fourthWave, ...thirdWave, ...secondWave, ...additions],
       'Troops for new factions',
-      'Twenty-four silhouettes, newest first. Below each: regular, striped, and elite tokens at 64 px.'
+      'Twenty-five silhouettes, newest first. Below each: regular, striped, and elite tokens at 64 px.'
     ),
 });
 
@@ -327,11 +332,12 @@ export const AtTokenSize = meta.story({
   render: () => (
     <div style={{ padding: 28, background: '#eee3cd', color: '#302a23', minHeight: '100vh' }}>
       <h1 style={{ fontFamily: 'Caladea, serif' }}>Small-size comparison</h1>
-      <p>Existing Atreides and Fremen troops beside all twenty-four additions. Columns are 32, 48, and 72 px.</p>
+      <p>Existing Atreides and Fremen troops beside all twenty-five additions. Columns are 32, 48, and 72 px.</p>
       {(
         [
           { name: 'Atreides, existing', image: '/vector/troop/atreides.svg' },
           { name: 'Fremen, existing', image: '/vector/troop/fremen.svg' },
+          troops.SwordBearer,
           ...fourthWave,
           ...thirdWave,
           ...secondWave,
@@ -376,3 +382,5 @@ export const ResonanceAdept = meta.story({ args: { ...token, image: troops.Reson
 export const NeedleSniper = meta.story({ args: { ...token, image: troops.NeedleSniper.image } });
 export const FurnaceBearer = meta.story({ args: { ...token, image: troops.FurnaceBearer.image } });
 export const MantisGuard = meta.story({ args: { ...token, image: troops.MantisGuard.image } });
+
+export const SwordBearer = meta.story({ args: { ...token, image: troops.SwordBearer.image } });

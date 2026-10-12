@@ -54,9 +54,9 @@ export type ConfettiSupport = Readonly<{
 type Stream = { angles: readonly number[]; elapsed: number; owed: number };
 
 /** A point on the table, seen from above. */
-export type TablePoint = Readonly<{ x: number; z: number }>;
+type TablePoint = Readonly<{ x: number; z: number }>;
 /** One step of the simulation: how long it lasts, and what the discs can land on. */
-export type ConfettiFrame = Readonly<{ seconds: number; supports?: readonly ConfettiSupport[] }>;
+type ConfettiFrame = Readonly<{ seconds: number; supports?: readonly ConfettiSupport[] }>;
 /** A stream to start: the table angles of its slots, and how far into it the viewer arrives. */
 type StreamStart = Readonly<{ angles: readonly number[]; elapsed?: number }>;
 type Cell = Readonly<{ column: number; row: number }>;
