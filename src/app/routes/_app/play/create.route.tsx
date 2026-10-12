@@ -19,7 +19,7 @@ import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Dices } from 'lucide-react';
-import { useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import type { Dispatch } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -32,7 +32,12 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import styles from './create.module.css';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import { RulesetManifest } from './RulesetManifest';
-import { SERVER_RETRYING, SERVER_UNREACHABLE_TITLE, useServerUnreachable } from './useServerUnreachable';
+import {
+  SERVER_RETRYING,
+  SERVER_UNREACHABLE,
+  SERVER_UNREACHABLE_TITLE,
+  useServerUnreachable,
+} from './useServerUnreachable';
 
 export const Route = createFileRoute('/_app/play/create')({
   head: () => pageHead('Create a game', { noindex: true }),
@@ -161,6 +166,10 @@ function CreateGameForm({
   /* Pressing Create game fades the page to the table's ground; the game opens once the fade is complete, and a refusal lifts it again. */
   const [departing, setDeparting] = useState(false);
   const departedAt = useRef(0);
+  const opening = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(opening.current), []);
+  /* Convex holds a mutation while it cannot reach the server, so a fade with no answer lifts again and the page says why. */
+  const stalled = useServerUnreachable(departing && createGame.isPending);
   const submit = () => {
     if (canCreate && request.success) {
       departedAt.current = performance.now();
@@ -173,7 +182,7 @@ function CreateGameForm({
           onSuccess: (result) => {
             if (result.ok) {
               const remaining = Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
-              setTimeout(
+              opening.current = setTimeout(
                 () => void navigate({ to: '/play/$gameId', params: { gameId: result.slug ?? result.gameId } }),
                 remaining
               );
@@ -188,13 +197,16 @@ function CreateGameForm({
     }
   };
   const failure = draft.refusal ?? (createGame.error ? 'The game could not be created. Try again.' : null);
-  const waiting = !chosen
-    ? 'Choose a ruleset to board.'
-    : objection
-      ? `${chosen.name} cannot start a game yet.`
-      : !nameReady
-        ? 'Type a custom name, or turn the switch off to keep the generated one.'
-        : `${shownName}, ${chosen.name}, ${draft.minimumPlayers} seats, ${draft.lastTurn} turns.`;
+  const waiting = stalled
+    ? SERVER_UNREACHABLE
+    : departing
+      ? 'Opening the table...'
+      : readiness({
+          chosen,
+          objection,
+          nameReady,
+          summary: `${shownName}, ${chosen?.name}, ${draft.minimumPlayers} seats, ${draft.lastTurn} turns.`,
+        });
 
   return (
     <PageLayout>
@@ -251,10 +263,26 @@ function CreateGameForm({
             </div>
           </DarkSchemeIsland>
         </form>
-        {departing ? createPortal(<div className={styles.departure} aria-hidden />, document.body) : null}
+        {departing && !stalled ? createPortal(<div className={styles.departure} aria-hidden />, document.body) : null}
       </PageLayout.Content>
     </PageLayout>
   );
+}
+
+/* What the line under Create game says while the pass is still being filled in. */
+function readiness({
+  chosen,
+  objection,
+  nameReady,
+  summary,
+}: Readonly<{ chosen: CreatableRuleset | undefined; objection: string | null; nameReady: boolean; summary: string }>) {
+  if (!chosen) {
+    return 'Choose a ruleset to board.';
+  }
+  if (objection) {
+    return `${chosen.name} cannot start a game yet.`;
+  }
+  return nameReady ? summary : 'Type a custom name, or turn the switch off to keep the generated one.';
 }
 
 function NameField({
@@ -266,7 +294,11 @@ function NameField({
   return (
     <Stack gap="sm">
       <Eyebrow>This will be the name of your game</Eyebrow>
-      <p className={styles.name} data-pending={draft.custom && !draft.customName.trim() ? '' : undefined}>
+      <p
+        className={styles.name}
+        aria-live="polite"
+        data-pending={draft.custom && !draft.customName.trim() ? '' : undefined}
+      >
         {draft.custom && draft.customName.trim() ? draft.customName.trim() : draft.generatedName}
       </p>
       <Group gap="md">

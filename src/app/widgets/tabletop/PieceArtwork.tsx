@@ -31,8 +31,9 @@ function artworkAspect(piece: TablePiece) {
  */
 export function PieceArtwork({ piece, src, name, width, height, radius }: Props) {
   const aspect = artworkAspect(piece);
-  const outline =
-    piece.kind === 'card' ? { radius } : tokenOutline(tokenShapeOfType(piece.items[0]?.artwork?.type) ?? 'round');
+  const shape = piece.kind === 'card' ? null : tokenShapeOfType(piece.items[0]?.artwork?.type);
+  /* A token whose type names no shape keeps its square, the same as an uncut card. */
+  const outline = piece.kind === 'card' ? { radius } : shape ? tokenOutline(shape) : {};
   return (
     <div style={{ width, height, display: 'grid', placeItems: 'center' }}>
       <div style={{ width: Math.min(width, height / aspect), position: 'relative' }}>

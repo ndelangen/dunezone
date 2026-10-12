@@ -96,6 +96,8 @@ const rulesetPreviewValidator = v.object({
 });
 
 const PREVIEW_FACTION_LIMIT = 50;
+/* Each container reads its members to skip deleted ones, so the manifest stops after this many to keep the page's one query inside its read budget. */
+const PREVIEW_CONTAINER_LIMIT = 8;
 
 /*
  * What a ruleset puts on the table, for the create page's manifest: its decks and token bundles in slot order, with counts and one face each,
@@ -113,7 +115,7 @@ async function packedFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
     .take(RULESET_ASSET_SLOT_ORDER.length * 10);
   slots.sort((a, b) => RULESET_ASSET_SLOT_ORDER.indexOf(a.slot) - RULESET_ASSET_SLOT_ORDER.indexOf(b.slot));
   const packed = [];
-  for (const slot of slots) {
+  for (const slot of slots.slice(0, PREVIEW_CONTAINER_LIMIT)) {
     const asset = await ctx.db.get(slot.asset_id);
     const summary = asset && !asset.is_deleted ? await containerSummary(ctx, asset) : null;
     if (summary) {
@@ -139,16 +141,24 @@ async function factionsFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   return factions.sort((a, b) => Number(b.own) - Number(a.own));
 }
 
+/* A faction is the ruleset's own when no other live ruleset links it; a deleted ruleset's leftover link does not count. */
 async function factionLine(ctx: QueryCtx, faction: Doc<'factions'>) {
   const links = await ctx.db
     .query('ruleset_factions')
     .withIndex('by_faction', (q) => q.eq('faction_id', faction._id))
-    .take(2);
+    .take(10);
+  const rulesets = new Set<string>();
+  for (const link of links) {
+    const ruleset = await ctx.db.get(link.ruleset_id);
+    if (ruleset && !ruleset.is_deleted) {
+      rulesets.add(ruleset._id);
+    }
+  }
   return {
     id: faction._id,
     name: typeof faction.data?.name === 'string' ? faction.data.name : faction.slug,
     token: publishedHref('faction-token', faction._id, faction.updated_at),
-    own: links.length === 1,
+    own: rulesets.size <= 1,
   };
 }
 
