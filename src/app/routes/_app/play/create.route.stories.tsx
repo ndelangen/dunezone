@@ -4,7 +4,7 @@ import { expect, spyOn, userEvent, within } from 'storybook/test';
 import { convexNeverAnswers, db, ref, storybookViewer } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
-import { productDatabase } from './product.stories.fixture';
+import { factions, productDatabase } from './product.stories.fixture';
 
 /* No account carries the Administrator flag: creation is open to every signed-in player. */
 const signedIn = {
@@ -87,6 +87,19 @@ const creatable = {
     const treachery = baseline.ruleset_asset_slots.find((slot) => slot.slot === 'treachery')!;
     baseline.ruleset_asset_slots.push({ ...treachery, slot: 'spice' });
     baseline.play_game_slug_reservations.push({ slug: 'arrakeen-picnic' });
+    /* A ruleset worth previewing: a cover, an About and all six factions of the base game. */
+    const [chosen] = baseline.rulesets;
+    Object.assign(chosen!, {
+      image_cover: '/homepage-table/arrakeen.webp',
+      about:
+        'The base game as our group plays it, with a few house rules.\n\nSix factions, the standard treachery and spice decks, and alliances from the first turn. Read the Rulebook for the changes.',
+    });
+    const [atreides] = baseline.factions;
+    for (const entry of factions.slice(1)) {
+      const key = `faction:${entry.slug}`;
+      baseline.factions.push({ ...atreides!, $key: key, slug: entry.slug, data: entry.data });
+      baseline.ruleset_factions.push({ ruleset_id: ref(chosen!.$key!), faction_id: ref(key) });
+    }
   }),
 };
 
@@ -123,6 +136,11 @@ export const Creatable = meta.story({
     expect(page.getByRole('img', { name: '8 seats round the board' })).toBeVisible();
     expect(page.getByRole('slider', { name: 'Last turn' })).toHaveAttribute('aria-valuenow', '10');
     expect(page.getByRole('button', { name: 'Create game' })).toBeEnabled();
+    /* The chosen ruleset is previewed on the pass, its page a new tab away. */
+    const preview = within(await page.findByRole('region', { name: 'About Dreamrules' }, { timeout: 10_000 }));
+    await expect(preview.findByText('6 factions')).resolves.toBeVisible();
+    expect(preview.getByText('Bene Gesserit')).toBeVisible();
+    expect(preview.getByRole('link', { name: /Read the ruleset/ })).toHaveAttribute('target', '_blank');
   },
 });
 

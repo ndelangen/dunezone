@@ -30,6 +30,7 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './create.module.css';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
+import { RulesetPreview } from './RulesetPreview';
 import { SERVER_RETRYING, SERVER_UNREACHABLE_TITLE, useServerUnreachable } from './useServerUnreachable';
 
 export const Route = createFileRoute('/_app/play/create')({
@@ -199,6 +200,7 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>
                 onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId } })}
                 disabled={createGame.isPending}
               />
+              {chosen ? <RulesetPreview slug={chosen.slug} /> : null}
               <PassFacts ruleset={chosen?.name ?? null} seats={draft.minimumPlayers} lastTurn={draft.lastTurn} />
             </Stack>
           </Surface>
