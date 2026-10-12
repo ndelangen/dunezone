@@ -83,7 +83,9 @@ test('Nexus writes enforce the fixed sections and reject oversized effects witho
     { factionSymbol: { ...card.factionSymbol, image: 'https://example.com/private.svg' } },
     { layers: [] },
   ]) {
-    await expect(owner.mutation(api.assets.update, { id: created.id, data: { ...card, ...update } })).rejects.toThrow();
+    await expect(owner.mutation(api.assets.update, { id: created.id, data: { ...card, ...update } })).rejects.toThrow(
+      'The Nexus card contains invalid fields'
+    );
   }
   expect((await t.query(api.assets.getPage, { type: 'card-nexus', slug: created.slug }))?.asset.data).toEqual(card);
   await owner.mutation(api.assets.update, { id: created.id, data: { ...card, cunning: 'a'.repeat(400) } });

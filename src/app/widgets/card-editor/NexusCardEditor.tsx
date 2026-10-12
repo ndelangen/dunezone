@@ -1,6 +1,7 @@
-import { Anchor, Button, Stack, TextInput } from '@mantine/core';
+import { Button, Stack, TextInput } from '@mantine/core';
+import { GENERIC, LOGO } from '@shared/assetIds';
 import type { NexusCardAsset } from '@shared/assets/schema';
-import { Link } from '@tanstack/react-router';
+import { FactionLink } from '@ui/content/FactionLink';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { CanvasScale } from '@ui/layout/CanvasScale';
@@ -65,6 +66,7 @@ function FactionFields({
   patch,
 }: Readonly<{ draft: NexusDraft; patch: (update: Partial<NexusDraft>) => void }>) {
   const [choosing, setChoosing] = useState(false);
+  const factionLogo = LOGO.or(GENERIC).safeParse(draft.factionSymbol.image);
   return (
     <Stack gap="md">
       <ControlBlock
@@ -72,14 +74,13 @@ function FactionFields({
         description="The linked faction supplies the name, symbol and colours."
         input={<TextInput aria-label="Faction" value={draft.faction} readOnly placeholder="Choose a faction" />}
       />
-      {draft.factionLink ? (
-        <Anchor
-          renderRoot={(props) => (
-            <Link {...props} to="/factions/$factionId" params={{ factionId: draft.factionLink!.slug }} />
-          )}
-        >
-          View faction
-        </Anchor>
+      {draft.factionLink && factionLogo.success ? (
+        <FactionLink
+          slug={draft.factionLink.slug}
+          name={draft.faction}
+          logo={factionLogo.data}
+          background={draft.factionSymbol.background}
+        />
       ) : null}
       <Button type="button" variant="default" onClick={() => setChoosing((current) => !current)}>
         {draft.factionLink ? 'Change faction' : 'Choose faction'}

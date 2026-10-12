@@ -18,13 +18,12 @@ import {
   DeckAssetInput,
   StrongholdCardAsset,
   LeaderSkillAssetInput,
-  NexusCardAssetInput,
 } from '../src/shared/assets/schema';
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
 import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../src/shared/assets/standardStormDeck';
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
-import { parseAssetDataForWrite } from '../src/shared/assets/validation';
+import { parseAssetDataForWrite, parseNexusCardInput } from '../src/shared/assets/validation';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
@@ -528,9 +527,9 @@ async function withNexusFaction(ctx: MutationCtx, type: string, input: unknown, 
   if (type !== 'card-nexus') {
     return input;
   }
-  const card = NexusCardAssetInput.parse(input);
+  const card = parseNexusCardInput(input);
   if (!card.factionLink) {
-    if (previous && NexusCardAssetInput.parse(previous).factionLink) {
+    if (previous && parseNexusCardInput(previous).factionLink) {
       throw new ConvexError('Choose a faction before saving this Nexus card');
     }
     return card;
@@ -582,7 +581,7 @@ export const create = mutation({
   returns: v.object({ id: v.id('assets'), slug: v.string() }),
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
-    if (args.type === 'card-nexus' && !NexusCardAssetInput.parse(args.data).factionLink) {
+    if (args.type === 'card-nexus' && !parseNexusCardInput(args.data).factionLink) {
       throw new ConvexError('Choose a faction before creating this Nexus card');
     }
     return await createOwnedAsset(ctx, userId, args.type, args.data);
