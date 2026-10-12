@@ -833,26 +833,25 @@ async function converged(peers) {
     'Recipient revisions did not converge.'
   );
 }
-/** Opens one tab of the controls panel unless it is already the current one. */
-async function openTab(who, name) {
-  const groups = {
-    Hand: 'Yours',
-    'Hidden zone': 'Yours',
-    Spice: 'Yours',
-    Setup: 'Game',
-    Phase: 'Game',
-    Battle: 'Game',
-    Alliances: 'Game',
-    Result: 'Game',
-    'Shared inventory': 'Table',
-    Settings: 'Table',
-    'Game log': 'History',
-    Audit: 'History',
-    Battles: 'History',
-    'Spice transfers': 'History',
-    Replay: 'History',
-  };
-  const tab = who.page.getByRole('tab', { name, exact: true });
+const TAB_GROUPS = {
+  Hand: 'Yours',
+  'Hidden zone': 'Yours',
+  Spice: 'Yours',
+  Setup: 'Game',
+  Phase: 'Game',
+  Battle: 'Game',
+  Alliances: 'Game',
+  Result: 'Game',
+  'Shared inventory': 'Table',
+  Settings: 'Table',
+  'Game log': 'History',
+  Audit: 'History',
+  Battles: 'History',
+  'Spice transfers': 'History',
+  Replay: 'History',
+};
+/** Shows the group holding a dock tab until the tab stays, outlasting a phase opening its own tab. */
+async function revealTab(who, name, tab) {
   /*
    * The dock opens a phase's own tab once as the phase begins (Spice for Spice collection, Hand for Bidding), and that
    * can land just after this looks, moving the dock to another group. So the group is clicked again until the tab stays.
@@ -869,14 +868,19 @@ async function openTab(who, name) {
     if (Date.now() > deadline) {
       throw new Error(`${who.label} has no ${name} tab.`);
     }
-    if (groups[name]) {
+    if (TAB_GROUPS[name]) {
       await who.page
         .getByRole('tablist', { name: 'Controls' })
-        .getByRole('tab', { name: groups[name], exact: true })
+        .getByRole('tab', { name: TAB_GROUPS[name], exact: true })
         .click();
     }
     await tab.waitFor({ state: 'attached', timeout: 2000 }).catch(() => {});
   }
+}
+/** Opens one tab of the controls panel unless it is already the current one. */
+async function openTab(who, name) {
+  const tab = who.page.getByRole('tab', { name, exact: true });
+  await revealTab(who, name, tab);
   /* A short window can push the lower tabs below the panel's default height. */
   const box = await tab.boundingBox();
   if (!box || box.y + box.height > who.page.viewportSize().height) {
