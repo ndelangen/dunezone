@@ -25,9 +25,9 @@ export const ASSET_TYPES = {
   'card-custom': { category: 'cards', label: 'Custom cards', shortLabel: 'Custom', status: 'live' },
   'card-leaderability': {
     category: 'cards',
-    label: 'Leader ability cards',
-    shortLabel: 'Leader ability',
-    status: 'planned',
+    label: 'Leader skill cards',
+    shortLabel: 'Leader skill',
+    status: 'live',
   },
   'card-storm': { category: 'cards', label: 'Storm cards', shortLabel: 'Storm', status: 'planned' },
   'card-stronghold': { category: 'cards', label: 'Stronghold cards', shortLabel: 'Stronghold', status: 'planned' },

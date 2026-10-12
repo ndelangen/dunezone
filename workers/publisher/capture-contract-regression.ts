@@ -23,6 +23,7 @@ import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/p
 import { publishingSpiceCard } from '../../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
+import { GF9_LEADER_SKILLS } from '../../src/shared/assets/gf9LeaderSkills';
 import { arrakisBoard } from '../../src/shared/boards/geometry';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { resolveAsset } from '../../src/shared/media/resolveAsset';
@@ -440,6 +441,7 @@ async function checkPublisherImageCapture(
     | 'card-treachery'
     | 'card-spice'
     | 'card-custom'
+    | 'card-leaderability'
     | 'faction-troop'
     | 'faction-traitor'
     | 'faction-alliance'
@@ -554,6 +556,16 @@ try {
       `custom card ${format}`
     );
   }
+  await checkPublisherImageCapture(
+    browser,
+    'card-leaderability',
+    envelope('card-leaderability', {
+      assetId: 'k17publisherLeaderSkill',
+      slug: 'planetologist',
+      card: GF9_LEADER_SKILLS[5],
+    }),
+    'leader skill card'
+  );
   await checkPublisherImageCapture(browser, 'card-spice', spiceSnapshot, 'spice card');
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
   await checkPublisherImageCapture(

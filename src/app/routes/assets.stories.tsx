@@ -488,3 +488,43 @@ export const ConvertAnotherCreatorsCard = meta.story({
     expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
   },
 });
+
+/** A new leader skill keeps both abilities through the create-to-edit handoff. */
+export const CreateLeaderSkillCardSaves = meta.story({
+  args: { path: '/assets/card-leaderability/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const name = await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
+    await userEvent.type(name, 'Storybook Leader Skill');
+    await userEvent.click(page.getByRole('tab', { name: 'Abilities' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'General ability' }), 'Collect one spice.');
+    await userEvent.type(page.getByRole('textbox', { name: 'Battle ability' }), 'Add +2 to this leader.');
+    await userEvent.click(await findSave(canvasElement));
+    await expect(page.findByRole('button', { name: 'Delete card' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('tab', { name: 'Abilities' }));
+    await expect(page.getByRole('textbox', { name: 'General ability' })).toHaveValue('Collect one spice.');
+    await expect(page.getByRole('textbox', { name: 'Battle ability' })).toHaveValue('Add +2 to this leader.');
+  },
+});
+
+/** Text that exceeds the fixed frame cannot be saved, and shortening it restores Save. */
+export const CreateLeaderSkillCardOverflow = meta.story({
+  args: { path: '/assets/card-leaderability/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.type(await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 }), 'Oversized Skill');
+    await userEvent.click(page.getByRole('tab', { name: 'Abilities' }));
+    const general = page.getByRole('textbox', { name: 'General ability' });
+    const battle = page.getByRole('textbox', { name: 'Battle ability' });
+    await userEvent.type(general, 'Wide words that fill the available card space. '.repeat(12));
+    await userEvent.type(battle, 'Wide words that fill the available card space. '.repeat(12));
+    const save = await findSave(canvasElement);
+    await expect(save).toHaveAttribute('aria-disabled', 'true');
+    await expect(save).toHaveAccessibleDescription(expect.stringContaining('extend beyond the card'));
+    await userEvent.clear(general);
+    await userEvent.type(general, 'Collect one spice.');
+    await userEvent.clear(battle);
+    await userEvent.type(battle, 'Add +2 to this leader.');
+    await waitFor(() => expect(save).not.toHaveAttribute('aria-disabled', 'true'));
+  },
+});

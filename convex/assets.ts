@@ -10,6 +10,7 @@ import {
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
+import { GF9_LEADER_SKILLS, GF9_LEADER_SKILL_DECK } from '../src/shared/assets/gf9LeaderSkills';
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
@@ -995,4 +996,71 @@ export const customCardTokens = query({
   args: { ids: v.array(v.id('assets')) },
   returns: zodToConvex(CustomCardTokenResolution),
   handler: async (ctx, args) => await resolveCustomCardTokens(ctx, args.ids),
+});
+
+/** Installs the GF9 stock set once, preserving later edits and refusing occupied addresses. */
+export const seedGF9LeaderSkills = internalMutation({
+  args: { ownerId: v.id('users') },
+  returns: v.object({ deckId: v.id('assets'), cardIds: v.array(v.id('assets')), created: v.number() }),
+  handler: async (ctx, { ownerId }) => {
+    const owner = await ctx.db.get('users', ownerId);
+    const profile = await ctx.db
+      .query('profiles')
+      .withIndex('by_user_id', (q) => q.eq('user_id', ownerId))
+      .unique();
+    if (!owner?.isAdmin || owner.merged_into_user_id || (profile && profile.account_state !== 'active')) {
+      throw new ConvexError('The stock deck needs an active administrator as its owner.');
+    }
+    let created = 0;
+    async function install(type: string, data: unknown) {
+      const parsed = parseAssetDataForWrite(type, data);
+      const slug = slugify(parsed.name);
+      const existing = await ctx.db
+        .query('assets')
+        .withIndex('by_type_and_slug', (q) => q.eq('type', type).eq('slug', slug))
+        .unique();
+      if (existing) {
+        if (existing.is_deleted || existing.owner_id !== ownerId || nameOf(existing) !== parsed.name) {
+          throw new ConvexError(`The stock address ${type}/${slug} is already reserved.`);
+        }
+        return existing._id;
+      }
+      const now = nowIso();
+      const id = await ctx.db.insert('assets', {
+        owner_id: ownerId,
+        type,
+        slug,
+        data: parsed.data,
+        created_at: now,
+        updated_at: now,
+        is_deleted: false,
+        group_id: null,
+      });
+      await enqueueAssetPublication(ctx, { _id: id, type, slug, data: parsed.data });
+      created += 1;
+      return id;
+    }
+    const cardIds: Id<'assets'>[] = [];
+    for (const card of GF9_LEADER_SKILLS) {
+      cardIds.push(await install('card-leaderability', card));
+    }
+    const deckId = await install('deck', GF9_LEADER_SKILL_DECK);
+    for (const cardId of cardIds) {
+      const relation = await ctx.db
+        .query('asset_relations')
+        .withIndex('by_from_to_kind', (q) =>
+          q.eq('from_asset_id', deckId).eq('to_asset_id', cardId).eq('kind', 'deck-card')
+        )
+        .unique();
+      if (!relation) {
+        await ctx.db.insert('asset_relations', {
+          from_asset_id: deckId,
+          to_asset_id: cardId,
+          kind: 'deck-card',
+          count: 1,
+        });
+      }
+    }
+    return { deckId, cardIds, created };
+  },
 });

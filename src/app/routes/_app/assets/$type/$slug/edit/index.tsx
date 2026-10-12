@@ -9,6 +9,7 @@ import { BoardEditPage } from './boardEdit';
 import { BundleEditPage } from './bundleEdit';
 import { CustomEditPage } from './customEdit';
 import { DeckEditPage } from './deckEdit';
+import { LeaderSkillEditPage } from './leaderSkillEdit';
 import { RectangleEditPage } from './rectangleEdit';
 import { SpiceEditPage } from './spiceEdit';
 import { TokenEditPage } from './tokenEdit';
@@ -38,6 +39,8 @@ function EditAssetPage() {
       return <BoardEditPage slug={slug} loaderData={loaderData} />;
     case 'card-treachery':
       return <TreacheryEditPage slug={slug} loaderData={loaderData} />;
+    case 'card-leaderability':
+      return <LeaderSkillEditPage slug={slug} loaderData={loaderData} />;
     case 'card-custom':
       return <CustomEditPage slug={slug} loaderData={loaderData} />;
     case 'card-spice':
