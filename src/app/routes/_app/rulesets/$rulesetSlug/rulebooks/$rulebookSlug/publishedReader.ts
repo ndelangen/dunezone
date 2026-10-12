@@ -43,18 +43,20 @@ function identity(element: Element, attribute: string) {
   return id;
 }
 
-function publicationText(element: Element) {
-  if (element.querySelector('th, td')) {
-    /* LinkeDOM inserts block separators but omits table cells, which browser selections separate. */
-    const copy = element.cloneNode(true) as Element;
-    for (const cell of copy.querySelectorAll('th, td')) {
-      cell.appendChild(copy.ownerDocument.createTextNode(' '));
-    }
-    element = copy;
+function withTableCellSeparators(element: Element) {
+  /* LinkeDOM inserts block separators but omits table cells, which browser selections separate. */
+  const copy = element.cloneNode(true) as Element;
+  for (const cell of copy.querySelectorAll('th, td')) {
+    cell.appendChild(copy.ownerDocument.createTextNode(' '));
   }
-  return 'innerText' in element && typeof element.innerText === 'string'
-    ? element.innerText
-    : (element.textContent ?? '');
+  return copy;
+}
+
+function publicationText(element: Element & { innerText?: string }) {
+  if (element.querySelector('th, td')) {
+    element = withTableCellSeparators(element);
+  }
+  return element.innerText ?? element.textContent ?? '';
 }
 
 function isExecutableAttribute(attribute: Attr) {
@@ -124,6 +126,13 @@ function publishedReadingTargets(root: Element) {
   return { pageOrder, pagesById };
 }
 
+function deferPublicationImages(section: Element) {
+  /* Offscreen publication images need not trigger live availability reads before the reader reaches them. */
+  for (const image of section.querySelectorAll('img')) {
+    image.setAttribute('loading', 'lazy');
+  }
+}
+
 function publishedSectionMarkup(document: Document, root: Element) {
   /* The app already owns its main landmark; retain the artifact's attributes on a section. */
   const section = document.createElement('section');
@@ -134,10 +143,7 @@ function publishedSectionMarkup(document: Document, root: Element) {
     (element) => element !== root && element.tagName.toLowerCase() === 'svg'
   );
   section.innerHTML = definitions.map((element) => element.outerHTML).join('') + root.innerHTML;
-  /* Offscreen publication images need not trigger live availability reads before the reader reaches them. */
-  for (const image of section.querySelectorAll('img')) {
-    image.setAttribute('loading', 'lazy');
-  }
+  deferPublicationImages(section);
   return section.outerHTML;
 }
 
@@ -172,10 +178,14 @@ async function fetchPublishedRulebook(href: string, signal?: AbortSignal) {
 
 const MAX_PUBLISHED_RULEBOOK_BYTES = 4_000_000;
 
-async function readPublishedRulebookResponse(response: Response) {
+function assertHtmlResponse(response: Response) {
   if (!response.ok || !response.headers.get('Content-Type')?.includes('text/html')) {
     throw new Error('Published Rulebook HTML is unavailable');
   }
+}
+
+async function readPublishedRulebookResponse(response: Response) {
+  assertHtmlResponse(response);
   if (Number(response.headers.get('Content-Length')) > MAX_PUBLISHED_RULEBOOK_BYTES) {
     await response.body?.cancel();
     throw new Error('Published Rulebook HTML exceeds the reader limit');
