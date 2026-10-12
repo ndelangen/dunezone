@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { api, internal } from './_generated/api';
-import { account, setup, stubAuthEnvironment, restoreAuthEnvironment } from './authAccount.test.fixture';
+import { account, liveSession, restoreAuthEnvironment, setup, stubAuthEnvironment } from './authAccount.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
 beforeEach(stubAuthEnvironment);
@@ -143,7 +143,7 @@ test('Discord connection requires both proofs and a fresh second session, then c
   expect(await t.query(api.accounts.connection, { token: intent.token })).toBeNull();
   const secondSession = await t.run(async (ctx) => {
     await ctx.db.delete(target.sessionId);
-    return await ctx.db.insert('authSessions', { userId: source.userId, expirationTime: Date.now() + 600_000 });
+    return await liveSession(ctx, source.userId, 600_000);
   });
   const verified = t.withIdentity({ subject: `${source.userId}|${secondSession}` });
   expect(await verified.query(api.accounts.connection, { token: intent.token })).toMatchObject({
@@ -205,9 +205,7 @@ test('ordinary users cannot perform admin merges, and expired connection credent
   ).rejects.toThrow('Not authorized');
   const intent = await original.mutation(api.accounts.beginConnection, { provider: 'discord' });
   vi.advanceTimersByTime(600_001);
-  const sessionId = await t.run((ctx) =>
-    ctx.db.insert('authSessions', { userId: source.userId, expirationTime: Date.now() + 600_000 })
-  );
+  const sessionId = await t.run((ctx) => liveSession(ctx, source.userId, 600_000));
   await expect(
     t
       .withIdentity({ subject: `${source.userId}|${sessionId}` })
@@ -372,9 +370,7 @@ test('a connected Discord account protects the last usable method', async () => 
   );
   await viewer.mutation(api.accounts.disconnect, { provider: 'google' });
   vi.advanceTimersByTime(1);
-  const sessionId = await t.run((ctx) =>
-    ctx.db.insert('authSessions', { userId: owner.userId, expirationTime: Date.now() + 600_000 })
-  );
+  const sessionId = await t.run((ctx) => liveSession(ctx, owner.userId, 600_000));
   const signedIn = t.withIdentity({ subject: `${owner.userId}|${sessionId}` });
   expect((await signedIn.query(api.profiles.settings, {})).account?.methods).toContainEqual({
     provider: 'discord',

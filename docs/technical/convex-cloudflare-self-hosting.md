@@ -135,7 +135,7 @@ That fallback could appear healthy until a Container replacement deletes its dat
 
 ## Restarts, scheduled work and upgrades
 
-Dune Zone has a one-minute deletion-repair cron and scheduled authentication work.
+Dune Zone has a fifteen-minute deletion-repair cron and scheduled authentication work.
 A backend that sleeps until a visitor arrives cannot maintain timely execution.
 Use an independent controller alarm or Worker cron to start/check the singleton,
 and budget for continuous operation first. A wakeup design needs to prove what

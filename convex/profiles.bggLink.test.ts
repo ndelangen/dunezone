@@ -6,6 +6,7 @@ import { convexTest } from 'convex-test';
 import { expect, test } from 'vitest';
 
 import { api } from './_generated/api';
+import { liveSession } from './authAccount.test.fixture';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -26,7 +27,7 @@ async function setup() {
       created_at: '2026-10-10T00:00:00.000Z',
       updated_at: '2026-10-10T00:00:00.000Z',
     });
-    const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 60_000 });
+    const sessionId = await liveSession(ctx, userId, 60_000);
     return { userId, sessionId };
   });
   return { t, owner: t.withIdentity({ subject: `${userId}|${sessionId}` }) };

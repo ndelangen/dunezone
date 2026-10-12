@@ -16,8 +16,12 @@ import { TABLE_SEAT_COUNTS } from './tableSettings';
 /** Retry cadence for an undelivered summary: doubles from the base to the ceiling, then holds. */
 export const PLAY_DIRECTORY_RETRY_MS = 2000;
 export const PLAY_DIRECTORY_RETRY_CEILING_MS = 30_000;
-/** Activity alone earns a new summary at most this often; a change to stage, seats, phase or result always does. */
-export const PLAY_DIRECTORY_ACTIVITY_MS = 60_000;
+/*
+ * Activity alone earns a new summary at most this often; a change to stage, seats, phase or result always does.
+ * Each summary rewrites the game row that every player's page and every lobby viewer subscribes to, so the lobby's
+ * "last active" time is allowed to lag by this much.
+ */
+export const PLAY_DIRECTORY_ACTIVITY_MS = 10 * 60_000;
 
 const identifierSchema = z.string().min(1).max(128);
 const timestampSchema = z.number().finite().nonnegative();

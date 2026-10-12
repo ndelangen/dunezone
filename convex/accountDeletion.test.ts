@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import { liveSession } from './authAccount.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import schema from './schema';
 
@@ -42,7 +43,7 @@ async function seedAccount(
       created_at: now,
       updated_at: now,
     });
-    const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 86_400_000 });
+    const sessionId = await liveSession(ctx, userId, 86_400_000);
     return { userId, profileId, subject: `${userId}|${sessionId}` };
   });
 }

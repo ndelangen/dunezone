@@ -4,6 +4,8 @@ import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
 import { vi } from 'vitest';
 
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
 import type { AuthProvider } from './lib/accountMethods';
 import { applicationTriggers } from './lib/applicationTriggers';
 import schema from './schema';
@@ -31,8 +33,7 @@ export function account(t: ReturnType<typeof setup>, slug: string, provider: Aut
       updated_at: new Date().toISOString(),
     });
     const authId = await ctx.db.insert('authAccounts', { userId, provider, providerAccountId: slug });
-    const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 3_600_000 });
-    await ctx.db.insert('authRefreshTokens', { sessionId, expirationTime: Date.now() + 600_000 });
+    const sessionId = await liveSession(ctx, userId, 3_600_000);
     return { userId, profileId, authId, sessionId };
   });
 }
@@ -51,4 +52,11 @@ export function restoreAuthEnvironment() {
   vi.clearAllTimers();
   vi.useRealTimers();
   vi.unstubAllEnvs();
+}
+
+/** A signed-in session as Convex Auth leaves one: the session and its unused refresh token, without which the session is dead. */
+export async function liveSession(ctx: Pick<MutationCtx, 'db'>, userId: Id<'users'>, lifetimeMs: number) {
+  const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + lifetimeMs });
+  await ctx.db.insert('authRefreshTokens', { sessionId, expirationTime: Date.now() + Math.min(lifetimeMs, 600_000) });
+  return sessionId;
 }

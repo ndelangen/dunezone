@@ -2,7 +2,12 @@ import { MINUTE, RateLimiter } from '@convex-dev/rate-limiter';
 import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
-import { HOMEPAGE_LEASE_MS, homepageAdmissionSchema, homepageTicketSchema } from '../src/shared/homepage/protocol';
+import {
+  HOMEPAGE_LEASE_MS,
+  HOMEPAGE_TICKET_TTL_MS,
+  homepageAdmissionSchema,
+  homepageTicketSchema,
+} from '../src/shared/homepage/protocol';
 import { components, internal } from './_generated/api';
 import { internalMutation, mutation } from './functions';
 import {
@@ -35,7 +40,7 @@ export const issueTicket = mutation({
       return null;
     }
     const ticket = playCredential();
-    const expiresAt = Math.min(Date.now() + HOMEPAGE_LEASE_MS, session.authExpiresAt);
+    const expiresAt = Math.min(Date.now() + HOMEPAGE_TICKET_TTL_MS, session.authExpiresAt);
     const ticketId = await ctx.db.insert('homepage_tickets', {
       digest: await playCredentialDigest(ticket),
       user_id: session.userId,

@@ -23,9 +23,10 @@ Each new session receives a scheduled expiry job, and a one-time migration regis
 sessions. The job rechecks refreshed deadlines and removes expired sessions and refresh credentials
 in bounded batches. There is no recurring authentication poll. Queries never read the clock and
 lose private access when the job removes the session. A delayed job can therefore allow new private
-reads until removal; mutations and Play enforce their deadlines independently. An unexpired JWT
-retains ordinary account access when its refresh branch has been invalidated, until session cleanup
-or JWT expiry. Play requires an unused refresh token.
+reads until removal; mutations and Play enforce their deadlines independently. A session whose
+refresh branch has been invalidated, for example by refresh-token reuse, loses access at once,
+whatever its JWT's expiry; Play has always required an unused refresh token. JWTs last 12 hours
+(`convex/auth.ts`), so a signed-in tab refreshes twice a day rather than hourly. Play requires an unused refresh token.
 
 Disconnecting a provider revokes every existing session for the account. A revocation checkpoint
 blocks private reads, writes and token refresh before asynchronous cleanup finishes. A later sign-in
