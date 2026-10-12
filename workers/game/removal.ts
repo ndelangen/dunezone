@@ -4,7 +4,7 @@ import { removalThreshold } from '../../src/shared/play/removal';
 import type { RemovalAction, RemovalVote } from '../../src/shared/play/removal';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { ActorDirectory } from './actors';
-import { logContext } from './log';
+import { DELETED_USER, logContext } from './log';
 import type { PublicLog } from './log';
 import { revised } from './state';
 import type { StoredSnapshot } from './state';
@@ -159,10 +159,10 @@ export class RemovalVotes {
     for (const row of this.storage.sql.exec<VoteRow>('SELECT * FROM removal_votes').toArray()) {
       const vote: Vote = JSON.parse(row.data);
       if (vote.target.userId === userId) {
-        vote.target = { ...vote.target, userId: null, name: '[deleted user]' };
+        vote.target = { ...vote.target, userId: null, name: DELETED_USER };
       }
       vote.ballots = vote.ballots.map((ballot) =>
-        ballot.userId === userId ? { ...ballot, userId: null, name: '[deleted user]' } : ballot
+        ballot.userId === userId ? { ...ballot, userId: null, name: DELETED_USER } : ballot
       );
       this.save(vote);
     }

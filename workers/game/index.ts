@@ -141,6 +141,10 @@ function gameRequest(request: Request, applicationOrigin: string) {
   }
   return { gameId, operation };
 }
+type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
+type ProvisioningValidation = ReturnType<typeof playProvisioningValidationSchema.parse>;
+/** A player provisioning seats: the creator or a placeholder. */
+type ProvisionPlayer = { userId: string; displayName: string };
 type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
 const isPageRead = (message: ClientMessage): message is PageRead =>
   message.type === 'log-history' || message.type === 'spice-history' || message.type === 'faction';
@@ -375,7 +379,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private async provision(request: Request, gameId: string): Promise<Response> {
-    let args: ReturnType<typeof playProvisionRequestSchema.parse>;
+    let args: ProvisionArgs;
     try {
       args = playProvisionRequestSchema.parse(await readJson(request));
     } catch {
@@ -390,30 +394,9 @@ export class GameRoom extends DurableObject<GameEnv> {
         args
       );
       const validation = playProvisioningValidationSchema.parse(raw);
-      /* Fail closed: a game without the real phase cooldown, or provisioned past drafting, exists only in the isolated local stack. */
-      if (
-        validation.ok &&
-        (validation.testPhaseCooldownMs !== undefined || validation.testStartStage !== undefined) &&
-        !isLocalIsolatedRuntime(this.env)
-      ) {
-        throw new Error('A test phase cooldown or start stage is refused outside the isolated local runtime.');
-      }
-      /* A real game retains its ruleset before it exists; a ruleset that is not ready never becomes a game. */
-      if (validation.ok && 'game' in validation && !this.metadata) {
-        try {
-          await this.retainRulesetCapture(validation.game.rulesetId, { provisional: validation.provisional === true });
-        } catch (error) {
-          if (!(error instanceof GameRejection)) {
-            throw error;
-          }
-          if (!this.metadata) {
-            await gameHttpClient(this.env.CONVEX_URL).mutation(api.playProvisioning.failProvisioning, {
-              ...args,
-              reason: error.message,
-            });
-          }
-          return refused();
-        }
+      this.requireLocalTestOverrides(validation);
+      if (!(await this.retainProvisionedRuleset(args, validation))) {
+        return refused();
       }
       const factions =
         validation.ok && 'game' in validation && !this.metadata
@@ -438,9 +421,45 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /* Fail closed: a game without the real phase cooldown, or provisioned past drafting, exists only in the isolated local stack. */
+  private requireLocalTestOverrides(validation: ProvisioningValidation) {
+    if (
+      validation.ok &&
+      (validation.testPhaseCooldownMs !== undefined || validation.testStartStage !== undefined) &&
+      !isLocalIsolatedRuntime(this.env)
+    ) {
+      throw new Error('A test phase cooldown or start stage is refused outside the isolated local runtime.');
+    }
+  }
+
+  /**
+   * A real game retains its ruleset before it exists, and a ruleset that is not ready never becomes a game.
+   * False when the ruleset was refused, after the refusal is reported unless another request already provisioned the room.
+   */
+  private async retainProvisionedRuleset(args: ProvisionArgs, validation: ProvisioningValidation): Promise<boolean> {
+    if (!validation.ok || !('game' in validation) || this.metadata) {
+      return true;
+    }
+    try {
+      await this.retainRulesetCapture(validation.game.rulesetId, { provisional: validation.provisional === true });
+      return true;
+    } catch (error) {
+      if (!(error instanceof GameRejection)) {
+        throw error;
+      }
+      if (!this.metadata) {
+        await gameHttpClient(this.env.CONVEX_URL).mutation(api.playProvisioning.failProvisioning, {
+          ...args,
+          reason: error.message,
+        });
+      }
+      return false;
+    }
+  }
+
   private initializeValidated(
-    args: ReturnType<typeof playProvisionRequestSchema.parse>,
-    validation: ReturnType<typeof playProvisioningValidationSchema.parse>,
+    args: ProvisionArgs,
+    validation: ProvisioningValidation,
     factions: DraftFaction[] | null,
     fixtureDeck?: StoredSpawnContents
   ): boolean {
@@ -476,7 +495,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   protected retainedCaptures() {
     return this.session.retainedCaptures();
   }
-  private broadcastViews() {
+  /** Settles seat changes, then sends every connection its view of the result. */
+  private refreshViews() {
+    this.reconcileViewers();
     for (const [socket, connection] of this.connections) {
       this.sendView(socket, connection);
     }
@@ -484,8 +505,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private advanceDeadlines() {
     if (this.session.advanceDeadlines()) {
       this.deliverDirectorySoon();
-      this.reconcileViewers();
-      this.broadcastViews();
+      this.refreshViews();
     }
   }
   private deleteActor(userId: string, eventId?: string) {
@@ -496,8 +516,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.deny(socket, false);
       }
     }
-    this.reconcileViewers();
-    this.broadcastViews();
+    this.refreshViews();
   }
 
   /*
@@ -1315,7 +1334,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (message.action.kind !== 'spawn-request') {
       return;
     }
-    if (this.session.alreadyCommitted(`${connection.viewer!.userId}:${message.commandId}`, message)) {
+    if (this.session.alreadyCommitted(connection.viewer!, message)) {
       this.sendView(socket, connection, message.commandId);
       return;
     }
@@ -1662,10 +1681,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     }));
     const everyone = [creator, ...placeholders];
     const snapshot = () => this.session.currentSnapshot();
-    const viewerOf = (player: { userId: string; displayName: string }) =>
-      this.session.provisionViewer(player.userId, player.displayName);
+    const viewerOf = (player: ProvisionPlayer) => this.session.provisionViewer(player.userId, player.displayName);
     let sequence = 0;
-    const command = (player: { userId: string; displayName: string }, action: PieceAction) => {
+    const command = (player: ProvisionPlayer, action: PieceAction) => {
       this.advanceDeadlines();
       sequence += 1;
       this.session.execute(viewerOf(player), {
@@ -1700,28 +1718,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (changes >= steps) {
         throw new Error(`Setup did not reach play within its ${steps} steps.`);
       }
-      const setup = snapshot().setup!;
-      const step = setupStep(setup);
-      if (step?.kind === 'prediction') {
-        /* A prediction gates on its lock, never on readiness; it is revealed at once so every seat starts play with the same public view. */
-        const predictor = everyone.find((player) => this.seatFaction(viewerOf(player).viewerSeat) === step.factionId);
-        if (!predictor) {
-          throw new Error(`No provisioned player holds the faction of ${step.title}.`);
-        }
-        command(predictor, {
-          kind: 'prediction-lock',
-          stepId: step.id,
-          choice: { factionId: step.factionId!, turn: 1 },
-        });
-        command(predictor, { kind: 'prediction-reveal', stepId: step.id });
-      } else if (setupReadyRequired(setup)) {
-        const ready = snapshot().controls?.ready ?? [];
-        for (const player of everyone) {
-          if (!ready.includes(viewerOf(player).viewerSeat)) {
-            command(player, { kind: 'ready', ready: true });
-          }
-        }
-      }
+      this.provisionSetupStep(everyone, command);
       await this.phaseCooldownElapsed();
       command(creator, { kind: 'phase', direction: 1 });
     }
@@ -1730,6 +1727,38 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     for (const placeholder of placeholders) {
       command(placeholder, { kind: 'seat-depart' });
+    }
+  }
+
+  /** What the current setup step asks of the players before the creator moves on. */
+  private provisionSetupStep(
+    everyone: readonly ProvisionPlayer[],
+    command: (player: ProvisionPlayer, action: PieceAction) => void
+  ) {
+    const snapshot = this.session.currentSnapshot();
+    const setup = snapshot.setup!;
+    const step = setupStep(setup);
+    const seatOf = (player: ProvisionPlayer) =>
+      this.session.provisionViewer(player.userId, player.displayName).viewerSeat;
+    if (step?.kind === 'prediction') {
+      /* A prediction gates on its lock, never on readiness; it is revealed at once so every seat starts play with the same public view. */
+      const predictor = everyone.find((player) => this.seatFaction(seatOf(player)) === step.factionId);
+      if (!predictor) {
+        throw new Error(`No provisioned player holds the faction of ${step.title}.`);
+      }
+      command(predictor, {
+        kind: 'prediction-lock',
+        stepId: step.id,
+        choice: { factionId: step.factionId!, turn: 1 },
+      });
+      command(predictor, { kind: 'prediction-reveal', stepId: step.id });
+    } else if (setupReadyRequired(setup)) {
+      const ready = snapshot.controls?.ready ?? [];
+      for (const player of everyone) {
+        if (!ready.includes(seatOf(player))) {
+          command(player, { kind: 'ready', ready: true });
+        }
+      }
     }
   }
 
@@ -1817,8 +1846,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (this.assigning) {
         this.draftChangedDuringAttempt = true;
       }
-      this.reconcileViewers();
-      this.broadcastViews();
+      this.refreshViews();
     } catch (error) {
       /* The copy in hand still judges the gates; the next command reads again. */
       this.diagnostics.report('draft-catalogue', error);
@@ -1885,8 +1913,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (this.assigning) {
       this.draftChangedDuringAttempt = true;
     }
-    this.reconcileViewers();
-    this.broadcastViews();
+    this.refreshViews();
   }
 
   /** Why a pick cannot be dealt; nothing when it is ready, null when its capture could not be read, which is reported and judged again later. */
@@ -1976,12 +2003,10 @@ export class GameRoom extends DurableObject<GameEnv> {
         /* The deal never fails twice on the same faction: it is set aside, and the next attempt deals from what remains. */
         this.session.setFactionsAside(refused);
         this.draftChangedDuringAttempt = true;
-        this.reconcileViewers();
-        this.broadcastViews();
+        this.refreshViews();
       } else if (this.session.completeAssignment(prepared)) {
         this.deliverDirectorySoon();
-        this.reconcileViewers();
-        this.broadcastViews();
+        this.refreshViews();
       }
     } catch (error) {
       if (!(error instanceof GameRejection)) {
@@ -1990,8 +2015,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.session.assignmentFailed(
         error instanceof GameRejection ? error.message : 'The deal did not go through. Try again.'
       );
-      this.reconcileViewers();
-      this.broadcastViews();
+      this.refreshViews();
     } finally {
       this.assigning = false;
     }

@@ -310,16 +310,22 @@ function takeIntoHand(
   );
 }
 
+/** A faction's hand and the piece of it an action names; a piece not in the hand is refused. */
+function handPiece(snapshot: StoredSnapshot, factionId: string, pieceId: string) {
+  const inventory = snapshot.factionInventories[factionId] ?? [];
+  const piece = inventory.find((candidate) => candidate.id === pieceId);
+  if (!piece) {
+    return refuse('That piece is not in your inventory.');
+  }
+  return { inventory, piece };
+}
+
 function playFromHand(
   snapshot: StoredSnapshot,
   factionId: string,
   action: Extract<BattleAction, { kind: 'hand-play' }>
 ) {
-  const inventory = snapshot.factionInventories[factionId] ?? [];
-  const piece = inventory.find((piece) => piece.id === action.pieceId);
-  if (!piece) {
-    return refuse('That piece is not in your inventory.');
-  }
+  const { inventory, piece } = handPiece(snapshot, factionId, action.pieceId);
   const { hiddenZone: _spot, ...leaving } = piece;
   const faceDown = { ...leaving, inventory: undefined, items: piece.items.map((item) => ({ ...item, faceUp: false })) };
   const factionInventories = {
@@ -353,11 +359,7 @@ function arrangeHiddenZone(
   factionId: string,
   action: Extract<BattleAction, { kind: 'hand-zone' }>
 ) {
-  const inventory = snapshot.factionInventories[factionId] ?? [];
-  const piece = inventory.find((piece) => piece.id === action.pieceId);
-  if (!piece) {
-    return refuse('That piece is not in your inventory.');
-  }
+  const { inventory, piece } = handPiece(snapshot, factionId, action.pieceId);
   const { hiddenZone: _spot, ...plain } = piece;
   const arranged = action.at ? { ...plain, hiddenZone: action.at } : plain;
   return commit(snapshot, {

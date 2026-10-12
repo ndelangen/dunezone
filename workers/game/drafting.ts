@@ -64,6 +64,23 @@ function changed(draft: DraftState): DraftState {
   return { ...draft, ready: [], failure: null };
 }
 
+/** A faction a player may add to their list: published, not set aside, unbanned and not already on it. */
+function requirePickable(draft: DraftState, faction: DraftFaction, picks: readonly string[]) {
+  if (!faction.published) {
+    throw new GameRejection(`${faction.name} is not generated yet; its assets are not published.`);
+  }
+  const aside = setAsideReason(draft, faction.id);
+  if (aside !== undefined) {
+    throw new GameRejection(`${faction.name} cannot be dealt yet: ${aside}`);
+  }
+  if (isBanned(draft, faction.id)) {
+    throw new GameRejection(`${faction.name} is banned; every ban on it has to go first.`);
+  }
+  if (picks.includes(faction.id)) {
+    throw new GameRejection(`${faction.name} is already in your draft.`);
+  }
+}
+
 export function applyDraftAction(
   snapshot: StoredSnapshot,
   viewer: Viewer,
@@ -83,19 +100,7 @@ export function applyDraftAction(
   switch (action.kind) {
     case 'draft-pick': {
       const faction = factionNamed(draft, action.factionId);
-      if (!faction.published) {
-        throw new GameRejection(`${faction.name} is not generated yet; its assets are not published.`);
-      }
-      const aside = setAsideReason(draft, faction.id);
-      if (aside !== undefined) {
-        throw new GameRejection(`${faction.name} cannot be dealt yet: ${aside}`);
-      }
-      if (isBanned(draft, faction.id)) {
-        throw new GameRejection(`${faction.name} is banned; every ban on it has to go first.`);
-      }
-      if (own.picks.includes(faction.id)) {
-        throw new GameRejection(`${faction.name} is already in your draft.`);
-      }
+      requirePickable(draft, faction, own.picks);
       const next = changed({ ...draft, picks: { ...draft.picks, [seat]: [...own.picks, faction.id] } });
       return withEvent(snapshot, viewer, next, action.kind, faction);
     }

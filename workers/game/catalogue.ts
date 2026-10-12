@@ -280,6 +280,40 @@ export class GameCatalogue {
     }
   }
 
+  /** A face the faction cannot do without: as published, or nothing and a problem saying it has no published face. */
+  private requiredFace(href: string | null, subject: string, missing: string, problems: CaptureProblem[]) {
+    const face = this.publishedFace(href, subject, problems);
+    if (!face) {
+      problems.push({ subject, reason: missing });
+    }
+    return face;
+  }
+
+  /** Each troop's faces, then every troop face that can fight without authored battle values. */
+  private capturedTroops(
+    troops: FactionDefinition['troops'],
+    published: FactionSource['troops'],
+    problems: CaptureProblem[]
+  ) {
+    const captured = troops.map((troop) => {
+      const subject = `troop ${troop.name}`;
+      const faces = published?.find((entry) => entry.troopId === troop.troopId);
+      const front = this.requiredFace(faces?.front ?? null, subject, 'This troop has no published face.', problems);
+      /* A troop without an authored back shows its front on both sides. */
+      const back = troop.back
+        ? this.requiredFace(faces?.back ?? null, subject, 'This troop back has no published face.', problems)
+        : front;
+      return { troopId: troop.troopId, name: troop.name, count: troop.count, front, back };
+    });
+    for (const face of troopBattleFaces(troops).filter(lacksBattleValues)) {
+      problems.push({
+        subject: `troop ${face.face.name}${face.side === 'back' ? ' back' : ''}`,
+        reason: 'This troop face can fight but has no authored battle values.',
+      });
+    }
+    return captured;
+  }
+
   /**
    * One referenced asset through the shared inventory's capture, or its name and the refusal when it is not complete.
    * A ruleset slot names the asset it expects;
@@ -333,19 +367,7 @@ export class GameCatalogue {
       throw new GameRejection('This faction has an incomplete definition.');
     }
     const problems: CaptureProblem[] = [];
-    /* Each declaration is judged alone: an invalid one is a readiness problem naming it, the valid ones are captured (#1138). */
-    const extraPhases = declarations.flatMap((declaration, index) => {
-      const checked = phaseDeclarationSchema.safeParse(declaration);
-      if (checked.success) {
-        return [checked.data];
-      }
-      const title = (declaration as { title?: unknown } | null)?.title;
-      problems.push({
-        subject: `phase ${typeof title === 'string' && title.trim() ? title.trim() : index + 1}`,
-        reason: checked.error.issues[0]?.message ?? 'This phase declaration is invalid.',
-      });
-      return [];
-    });
+    const extraPhases = capturedPhases(declarations, problems);
     const definition = declarations.length ? { ...parsed.data, extraPhases } : parsed.data;
     const token = {
       front: this.publishedFace(source.token, 'faction token', problems),
@@ -360,10 +382,7 @@ export class GameCatalogue {
     const leaders = definition.leaders.map((leader) => {
       const subject = `leader ${leader.name}`;
       const published = source.leaders.find((entry) => entry.memberId === leader.memberId)?.front ?? null;
-      const front = this.publishedFace(published, subject, problems);
-      if (!front) {
-        problems.push({ subject, reason: 'This leader has no published face.' });
-      }
+      const front = this.requiredFace(published, subject, 'This leader has no published face.', problems);
       return {
         memberId: leader.memberId,
         name: leader.name,
@@ -372,37 +391,17 @@ export class GameCatalogue {
         back: token.front,
       };
     });
-    const troops = definition.troops.map((troop) => {
-      const subject = `troop ${troop.name}`;
-      const published = source.troops?.find((entry) => entry.troopId === troop.troopId);
-      const front = this.publishedFace(published?.front ?? null, subject, problems);
-      if (!front) {
-        problems.push({ subject, reason: 'This troop has no published face.' });
-      }
-      /* A troop without an authored back shows its front on both sides. */
-      const back = troop.back ? this.publishedFace(published?.back ?? null, subject, problems) : front;
-      if (troop.back && !back) {
-        problems.push({ subject, reason: 'This troop back has no published face.' });
-      }
-      return { troopId: troop.troopId, name: troop.name, count: troop.count, front, back };
-    });
-    for (const face of troopBattleFaces(definition.troops).filter(lacksBattleValues)) {
-      problems.push({
-        subject: `troop ${face.face.name}${face.side === 'back' ? ' back' : ''}`,
-        reason: 'This troop face can fight but has no authored battle values.',
-      });
-    }
-    const allianceFront = this.publishedFace(source.alliance ?? null, 'alliance card', problems);
-    if (!allianceFront) {
-      problems.push({ subject: 'alliance card', reason: 'The alliance card has no published face.' });
-    }
+    const troops = this.capturedTroops(definition.troops, source.troops, problems);
+    const allianceFront = this.requiredFace(
+      source.alliance ?? null,
+      'alliance card',
+      'The alliance card has no published face.',
+      problems
+    );
     const traitorCards = definition.leaders.map((leader) => {
       const subject = `traitor ${leader.name}`;
       const published = source.traitors?.find((entry) => entry.memberId === leader.memberId)?.front ?? null;
-      const front = this.publishedFace(published, subject, problems);
-      if (!front) {
-        problems.push({ subject, reason: 'This traitor card has no published face.' });
-      }
+      const front = this.requiredFace(published, subject, 'This traitor card has no published face.', problems);
       return { memberId: leader.memberId, name: leader.name, front };
     });
     const captured: SlotCapture[] = [];
@@ -436,6 +435,25 @@ export class GameCatalogue {
       readiness: readiness(problems),
     });
   }
+}
+
+type FactionSource = z.infer<typeof factionDefinitionSchema>;
+type FactionDefinition = z.infer<typeof IdentifiedFactionStoredSchema>;
+
+/* Each declaration is judged alone: an invalid one is a readiness problem naming it, the valid ones are captured (#1138). */
+function capturedPhases(declarations: unknown[], problems: CaptureProblem[]) {
+  return declarations.flatMap((declaration, index) => {
+    const checked = phaseDeclarationSchema.safeParse(declaration);
+    if (checked.success) {
+      return [checked.data];
+    }
+    const title = (declaration as { title?: unknown } | null)?.title;
+    problems.push({
+      subject: `phase ${typeof title === 'string' && title.trim() ? title.trim() : index + 1}`,
+      reason: checked.error.issues[0]?.message ?? 'This phase declaration is invalid.',
+    });
+    return [];
+  });
 }
 
 /** The stored faction with its phase declarations set aside, so one invalid declaration cannot refuse the whole definition. */

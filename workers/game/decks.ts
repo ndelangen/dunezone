@@ -8,6 +8,7 @@ import type { DeckAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { labelForCount } from '../../src/shared/play/tableState';
+import { seatedFaction } from './state';
 import type { StoredSnapshot } from './state';
 
 /** Keep physical card identities and history intact while retiring their observable handles. */
@@ -60,7 +61,7 @@ function shuffleDeck(snapshot: StoredSnapshot, deck: StoredPiece): DeckTransitio
 }
 
 function drawCard(snapshot: StoredSnapshot, deck: StoredPiece, recipient: string): DeckTransition {
-  const faction = snapshot.roster?.seats.find((seat) => seat.faction?.id === recipient)?.faction;
+  const faction = seatedFaction(snapshot, recipient);
   if (!faction) {
     throw new GameRejection('That faction has no seat at this table.');
   }
