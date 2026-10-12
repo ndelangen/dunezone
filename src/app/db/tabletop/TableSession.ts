@@ -1,6 +1,7 @@
 import { tableHandlingOpen } from '@shared/play/admission';
 import type { BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
 import type { PublicFaction } from '@shared/play/capture';
+import { foldedTurns, rotatedPiece } from '@shared/play/commands';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
@@ -83,6 +84,9 @@ function lacksShownFace(item: TablePiece['items'][number]) {
 function flipsOf(draft: DraftMove) {
   return draft.flips ? { flips: draft.flips } : {};
 }
+
+/* A turn of a piece at rest in 15° steps, clockwise positive. */
+type Turn = { pieceId: string; turns: number };
 
 type LocalCarry = {
   id: string;
@@ -341,6 +345,10 @@ export class TableSession {
   private pointers: PublicPointer[] = [];
   private flipping = new Map<string, number>();
   private readonly pendingFlips = new Map<string, string>();
+  /* A rotation held on a piece at rest turns it on this page only, and goes out as one command when the key comes up. */
+  private turning: Turn | null = null;
+  /* Rotations sent and not yet answered, by command, shown until the frame that settles them. */
+  private readonly sentTurns = new Map<string, Turn>();
   private pointer: Vector3Tuple | null = null;
   /* The table, board or rim surface under the cursor, where a ping lands so every viewer sees it at the same spot. */
   private pingPoint: Vector3Tuple | null = null;
@@ -784,7 +792,7 @@ export class TableSession {
     const pieces = renderedPiecesFor(state).map((piece) =>
       draft?.pieceId === piece.id
         ? this.withRevealedFaces({ ...piece, position: draft.position, orientation: draft.orientation })
-        : piece
+        : this.withTurns(state, piece)
     );
     return {
       pieces,
@@ -796,6 +804,21 @@ export class TableSession {
         ),
       ]),
     };
+  }
+  /* The pending turns this page has on a piece, held and sent alike. */
+  private turnsOf(pieceId: string) {
+    let turns = this.turning?.pieceId === pieceId ? this.turning.turns : 0;
+    for (const turn of this.sentTurns.values()) {
+      if (turn.pieceId === pieceId) {
+        turns += turn.turns;
+      }
+    }
+    return foldedTurns(turns);
+  }
+  /* A piece this page is turning shows the turn before the room has it; one the turn no longer fits shows as the room has it. */
+  private withTurns(state: TableState, piece: TablePiece) {
+    const turns = this.turnsOf(piece.id);
+    return turns ? (rotatedPiece(state, piece, turns) ?? piece) : piece;
   }
   private emit() {
     this.keep();
@@ -920,6 +943,7 @@ export class TableSession {
       this.carry = null;
     }
     this.pendingFlips.delete(id);
+    this.sentTurns.delete(id);
     /* Refused, the room's order shows again; done, the frame that settles it carries the deck as arranged. */
     if (this.pendingArrangement?.commandId === id) {
       this.pendingArrangement = null;
@@ -1165,6 +1189,8 @@ export class TableSession {
     this.poseTimer = undefined;
     this.pointerTimer = undefined;
     this.pendingFlips.clear();
+    this.turning = null;
+    this.sentTurns.clear();
     this.flipping = new Map();
   }
   /* Each tab keeps the page it asked for through live updates; the newest page is the default and the reset. */
@@ -1267,7 +1293,10 @@ export class TableSession {
     this.emit();
   };
   beginGesture = (sourceId: string, pickup: 'top' | 'whole') => {
+    this.finishRotation();
+    /* A piece picks up as the room has it, so one whose turn is still on its way waits for it, as a flipping one does. */
     if (
+      [...this.sentTurns.values()].some((turn) => turn.pieceId === sourceId) ||
       !this.canHandle() ||
       this.carry ||
       this.requireTable().reservedPieceIds.has(sourceId) ||
@@ -1562,9 +1591,44 @@ export class TableSession {
       return;
     }
     const pieceId = this.target(id);
-    if (pieceId) {
-      this.command({ kind: 'rotate', pieceId, direction });
+    if (!pieceId) {
+      return;
     }
+    if (this.turning && this.turning.pieceId !== pieceId) {
+      this.finishRotation();
+    }
+    const turns = (this.turning?.turns ?? 0) + direction;
+    const state = this.requireTable().state;
+    const piece = state.pieces.find((candidate) => candidate.id === pieceId);
+    /* A step that would overlap another piece is not taken, as the room would refuse it; the turn so far stays. */
+    if (!piece || !rotatedPiece(state, piece, foldedTurns(this.turnsOf(pieceId) + direction))) {
+      return;
+    }
+    this.turning = { pieceId, turns };
+    this.emit();
+  };
+  /** Sends the held rotation as one command, its net turn folded into half a turn either way; a turn back to where it started sends nothing. */
+  finishRotation = () => {
+    const turning = this.turning;
+    if (!turning) {
+      return;
+    }
+    const turns = foldedTurns(turning.turns);
+    const steps = Math.abs(turns);
+    /* The turn stays shown until the command is out, so the piece never springs back in between. */
+    const commandId = turns
+      ? this.command({
+          kind: 'rotate',
+          pieceId: turning.pieceId,
+          direction: turns > 0 ? 1 : -1,
+          ...(steps > 1 ? { steps } : {}),
+        })
+      : undefined;
+    this.turning = null;
+    if (commandId) {
+      this.sentTurns.set(commandId, { pieceId: turning.pieceId, turns });
+    }
+    this.emit();
   };
   flipSelected = (id?: string) => {
     if (!this.canAct()) {

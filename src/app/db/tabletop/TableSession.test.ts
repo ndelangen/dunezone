@@ -1932,3 +1932,65 @@ describe('peeking', () => {
     expect(command().action).toEqual({ kind: 'peek-close' });
   });
 });
+
+describe('a held rotation', () => {
+  const deck = () => initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+  const turned = (steps: number) => deck().orientation - (steps * Math.PI) / 12;
+
+  test('turns the piece on this page only, then sends the whole turn as one command', async () => {
+    const client = await connected();
+    const sent = socket().sent.length;
+    for (let step = 0; step < 3; step++) {
+      client.rotateSelected(1, deck().id);
+    }
+    expect(socket().sent).toHaveLength(sent);
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(3));
+
+    client.finishRotation();
+    expect(socket().sent).toHaveLength(sent + 1);
+    expect(command().action).toEqual({ kind: 'rotate', pieceId: deck().id, direction: 1, steps: 3 });
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(3));
+  });
+
+  test('the turn shows once when the room settles it, and springs back when the room refuses it', async () => {
+    const client = await connected();
+    client.rotateSelected(-1, deck().id);
+    client.finishRotation();
+    expect(command().action).toEqual({ kind: 'rotate', pieceId: deck().id, direction: -1 });
+    const snapshot = initialSnapshot();
+    const settled = {
+      ...snapshot,
+      revision: snapshot.revision + 1,
+      table: {
+        ...snapshot.table,
+        pieces: snapshot.table.pieces.map((piece) =>
+          piece.id === deck().id ? { ...piece, orientation: turned(-1) } : piece
+        ),
+      },
+    };
+    socket().deliver(view({ snapshot: settled, sequence: 2, completedCommandId: command().commandId }));
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(-1));
+
+    client.rotateSelected(1, deck().id);
+    client.rotateSelected(1, deck().id);
+    client.finishRotation();
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(1));
+    socket().deliver({ type: 'rejected', requestId: command().commandId, message: 'No room.' });
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(turned(-1));
+  });
+
+  test('a turn back to the start sends nothing, and more than half a turn goes the short way round', async () => {
+    const client = await connected();
+    const sent = socket().sent.length;
+    client.rotateSelected(1, deck().id);
+    client.rotateSelected(-1, deck().id);
+    client.finishRotation();
+    expect(socket().sent).toHaveLength(sent);
+
+    for (let step = 0; step < 20; step++) {
+      client.rotateSelected(1, deck().id);
+    }
+    client.finishRotation();
+    expect(command().action).toEqual({ kind: 'rotate', pieceId: deck().id, direction: -1, steps: 4 });
+  });
+});
