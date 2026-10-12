@@ -46,7 +46,7 @@ import type { HandMenuAnchor } from './HiddenZone';
 import { battleHelp, handHelp } from './panelGuidance';
 
 type Props = { client: TableSession; table: TableProjection };
-type Outcome = 'left' | 'none' | 'right';
+type Outcome = NonNullable<NonNullable<PublicBattle['sides'][number]>['choice']>;
 const OUTCOME_LABELS: Readonly<Record<Outcome, string>> = {
   left: 'Left side won',
   none: 'No winner',

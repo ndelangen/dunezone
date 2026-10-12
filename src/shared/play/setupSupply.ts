@@ -66,7 +66,10 @@ export function place<Piece extends TablePiece>(piece: Piece, position: Vector3T
   };
 }
 
-type FactionKit = { capture: FactionCapture; color: string; id: () => string };
+type FactionKit = {
+  capture: FactionCapture;
+  color: FactionCapture['definition']['themeColor'];
+} & Pick<SupplyDependencies, 'id'>;
 
 function troopReserves({ capture, color, id }: FactionKit, layout: ReturnType<typeof factionSupplyLayout>) {
   const { faction, components } = capture;
