@@ -4,6 +4,7 @@ import path from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
+import sharp from 'sharp';
 
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import {
@@ -650,6 +651,19 @@ try {
     envelope('cardback-preset', { assetId: 'storm', slug: 'storm', cardback: STANDARD_STORM_CARDBACK }),
     'shared Storm back'
   );
+  /* The original S has a lower-left curve; the open font variant leaves this region unpainted. */
+  const lowerCurve = await sharp(stormBack)
+    .extract({ left: 268, top: 1040, width: 23, height: 21 })
+    .removeAlpha()
+    .raw()
+    .toBuffer();
+  let lowerCurvePixels = 0;
+  for (let index = 0; index < lowerCurve.length; index += 3) {
+    if (lowerCurve[index]! > 170 && lowerCurve[index + 1]! > 130 && lowerCurve[index + 2]! > 50) {
+      lowerCurvePixels++;
+    }
+  }
+  invariant(lowerCurvePixels > 100, 'Storm back S must retain its complete lower curve');
   if (process.env.STORM_PROOF_DIRECTORY) {
     await Bun.write(path.join(process.env.STORM_PROOF_DIRECTORY, 'storm-back.png'), stormBack);
   }

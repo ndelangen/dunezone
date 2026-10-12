@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { GF9_LEADER_SKILL_DECK_BACK } from '@shared/assets/gf9LeaderSkills';
 import { GF9_STRONGHOLD_DECK } from '@shared/assets/gf9StrongholdDeck';
+import { STANDARD_STORM_CARDBACK } from '@shared/assets/standardStormDeck';
 import { expect } from 'storybook/test';
 
 import { backgroundPresets } from '../../data/backgrounds';
@@ -56,6 +57,29 @@ export const OversizedSymbol = meta.story({
 });
 
 export const LeaderSkillDeck = meta.story({ args: GF9_LEADER_SKILL_DECK_BACK });
+async function verifyLabelPaint({ canvasElement }: { canvasElement: HTMLElement }) {
+  await Promise.all([
+    document.fonts.load('128.7px C_Busorama_Bold', 'STORM'),
+    document.fonts.load('bold 128.7px C_Busorama', 'S'),
+  ]);
+  const label = canvasElement.querySelector<SVGTextElement>('text')!.ownerSVGElement!;
+  const glyphs = Array.from(label.querySelectorAll<SVGTextElement>('text'));
+  const paints = Array.from(label.querySelectorAll<SVGRectElement>('rect[mask]'));
+  for (const paint of paints) {
+    const painted = paint.getBBox();
+    for (const glyph of glyphs) {
+      const bounds = glyph.getBBox();
+      await expect(painted.y).toBeLessThanOrEqual(bounds.y);
+      await expect(painted.y + painted.height).toBeGreaterThanOrEqual(bounds.y + bounds.height);
+    }
+  }
+}
+
+export const StormDeckLabel = meta.story({ args: STANDARD_STORM_CARDBACK, play: verifyLabelPaint });
+export const LargestStormLabel = meta.story({
+  args: { ...STANDARD_STORM_CARDBACK, nameScale: 2 },
+  play: verifyLabelPaint,
+});
 export const StrongholdDeck = meta.story({
   args: GF9_STRONGHOLD_DECK.cardback,
   play: async ({ canvasElement }) => {

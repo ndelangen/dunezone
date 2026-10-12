@@ -25,6 +25,23 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
   const textMask = `${prefix}text-mask`;
   const textShadeMask = `${prefix}text-shade-mask`;
   const multicolor = image.endsWith('-multicolor.svg') || !image.endsWith('.svg');
+  /* Larger labels may extend beyond the original paint strip; the text masks still limit the paint to their glyphs. */
+  const labelPaint = nameScale > 1 ? card : { ...card, y: card.height - 300, height: 100 };
+  /*
+   * The Storm back needs the closed S from the existing regular face.
+   * Its size and baseline align that letter with the other bold capitals.
+   */
+  const label =
+    nameFont === 'C_Busorama_Bold' && name.toUpperCase() === 'STORM' ? (
+      <>
+        <tspan baselineShift="0.025em" fontFamily="C_Busorama" fontSize="95%" fontWeight="bold">
+          S
+        </tspan>
+        {name.slice(1)}
+      </>
+    ) : (
+      name
+    );
 
   return (
     <div className={styles.card}>
@@ -58,7 +75,14 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
 
       <svg className={styles.svg}>
         <defs>
-          <linearGradient id={gradient} x1="0" x2="0" y1="0" y2="1">
+          <linearGradient
+            gradientUnits="userSpaceOnUse"
+            id={gradient}
+            x1="0"
+            x2="0"
+            y1={card.height - 300}
+            y2={card.height - 200}
+          >
             <stop offset="0%" stopColor="#faf8eb" />
             <stop offset="100%" stopColor="#cfaf45" />
           </linearGradient>
@@ -75,7 +99,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
               x="50%"
               y={card.height - 250}
             >
-              {name}
+              {label}
             </text>
           </mask>
           <mask id={textShadeMask} maskUnits="userSpaceOnUse">
@@ -91,7 +115,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
               x="50%"
               y={card.height - 250}
             >
-              {name}
+              {label}
             </text>
             <text
               dominantBaseline="middle"
@@ -104,7 +128,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
               x="50%"
               y={card.height - 254}
             >
-              {name}
+              {label}
             </text>
           </mask>
 
@@ -125,12 +149,12 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
             x="50%"
             y={card.height - 250}
           >
-            {name}
+            {label}
           </text>
         </g>
-        <rect fill={`url(#${gradient})`} y={card.height - 300} {...card} height={100} mask={`url(#${textMask})`} />
+        <rect fill={`url(#${gradient})`} {...labelPaint} mask={`url(#${textMask})`} />
         <g style={{ mixBlendMode: 'overlay' }}>
-          <rect fill="black" y={card.height - 300} {...card} height={100} mask={`url(#${textShadeMask})`} />
+          <rect fill="black" {...labelPaint} mask={`url(#${textShadeMask})`} />
         </g>
       </svg>
     </div>
