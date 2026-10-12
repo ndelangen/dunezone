@@ -282,13 +282,20 @@ async function main() {
     const deployment = await backendUp(environment, { url: instance.backendUrl });
     configureLocalAuth(deployment, environment, { siteUrl: instance.appUrl, artifactsDirectory: directory });
     pushCode(deployment, environment);
+    /* Let code installation's component writes leave the local backend's one-second write window. */
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     const admin = localClient(deployment.url, deployment.adminKey);
     const { rulesetId } = await admin.mutation(httpReference(internal.playTesting.seedRealGameCatalogue), {});
     const { subjects, absentGameId } = await admin.mutation(httpReference(internal.playGameNamesTesting.seed), {});
     const viewers = subjects.map((subject) => localClient(deployment.url, deployment.adminKey, subject));
     const request = { rulesetId, minimumPlayers: 4 as const };
-    await proveAllocation(admin, viewers, request, absentGameId);
-    await proveCounterAllocation(viewers);
+    await proveDirectoryMigration(admin, viewers, request);
+    const allocation = await admin.mutation(httpReference(internal.playGameNamesTesting.seed), {});
+    const allocationViewers = allocation.subjects.map((subject) =>
+      localClient(deployment.url, deployment.adminKey, subject)
+    );
+    await proveAllocation(admin, allocationViewers, request, absentGameId);
+    await proveCounterAllocation(allocationViewers);
     const fresh = await admin.mutation(httpReference(internal.playGameNamesTesting.seed), {});
     await proveRecovery(
       admin,
@@ -309,6 +316,69 @@ async function main() {
     }
     console.log('Removed the proof backend, its volume and temporary credentials.');
   }
+}
+
+/** The real backend arbitrates old-row repairs and simultaneous new allocations in the same namespace. */
+async function proveDirectoryMigration(
+  admin: ConvexHttpClient,
+  viewers: ConvexHttpClient[],
+  request: FunctionArgs<typeof api.playGames.createGame>
+) {
+  const ids = await admin.mutation(httpReference(internal.playGameNamesTesting.seedLegacyDirectory), {});
+  await admin.mutation(httpReference(internal.migrations.play_game_names_v1), { dryRun: true, reset: true });
+  const uncommitted = await admin.query(httpReference(internal.playGameNamesTesting.inspect), { gameIds: ids });
+  assert(uncommitted.slice(0, 7).every(({ slug }) => slug === undefined));
+  const first = await admin.mutation(httpReference(internal.migrations.play_game_names_v1), {
+    cursor: null,
+    dryRun: false,
+    oneBatchOnly: true,
+    batchSize: 2,
+  });
+  assert.equal(first.isDone, false);
+  const created = await completeBatch('Directory migration with concurrent creation', [
+    ...viewers.map(async (viewer) => {
+      const result = await viewer.mutation(httpReference(internal.playGames.createNamedGame), {
+        ...request,
+        name: 'Arrakeen legacy picnic',
+        base: 'arrakeen-legacy-picnic',
+        check: { outcome: 'no_profanity_detected' },
+      });
+      assert(result.ok);
+      return result.gameId;
+    }),
+    admin
+      .mutation(httpReference(internal.migrations.play_game_names_v1), {
+        cursor: first.continueCursor,
+        dryRun: false,
+        oneBatchOnly: true,
+        batchSize: 100,
+      })
+      .then((result) => {
+        assert.equal(result.isDone, true);
+        return ids[0]!;
+      }),
+  ]);
+  const gameIds = [...ids, ...created.slice(0, 8)];
+  const beforeReplay = await admin.query(httpReference(internal.playGameNamesTesting.inspect), { gameIds });
+  assert.equal(new Set(beforeReplay.map(({ slug }) => slug)).size, gameIds.length);
+  assert.equal(beforeReplay[7]!.slug, 'retained-legacy-link');
+  await admin.mutation(httpReference(internal.migrations.play_game_names_v1), {
+    cursor: null,
+    dryRun: false,
+    oneBatchOnly: true,
+    batchSize: 100,
+  });
+  const verified = await admin.mutation(httpReference(internal.migrations.play_game_names_verify_v1), {
+    cursor: null,
+    dryRun: false,
+    oneBatchOnly: true,
+    batchSize: 100,
+  });
+  assert.equal(verified.isDone, true);
+  assert.deepEqual(await admin.query(httpReference(internal.playGameNamesTesting.inspect), { gameIds }), beforeReplay);
+  console.log(
+    'PASS: dry run, interrupted backfill, every stage, retained URL, concurrent creation and replay verified on the real disposable backend.'
+  );
 }
 
 await main();

@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 
+import { playStageSchema } from '../src/shared/play/admission';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
 import { isIsolatedLoopbackBackend } from './lib/isolatedBackend';
@@ -10,6 +11,43 @@ function requireLoopback() {
     throw new Error('The game-name proof requires an isolated loopback backend');
   }
 }
+
+/** Legacy shapes exist only on a disposable backend, never on the hosted directory. */
+export const seedLegacyDirectory = internalMutation({
+  args: {},
+  returns: v.array(v.id('play_games')),
+  handler: async (ctx) => {
+    requireLoopback();
+    const ids = [];
+    for (const directory_stage of playStageSchema.options) {
+      ids.push(
+        await ctx.db.insert('play_games', {
+          name: 'Arrakeen legacy picnic',
+          directory_stage,
+          state: 'ready',
+          secret: 'synthetic-legacy-secret',
+          attempt_id: 'synthetic-legacy-attempt',
+          created_at: 1,
+          provision_expires_at: 1,
+        })
+      );
+    }
+    for (const state of ['pending', 'expired'] as const) {
+      ids.push(
+        await ctx.db.insert('play_games', {
+          state,
+          fixture_key: 'retired-name-proof',
+          ...(state === 'expired' ? { slug: 'retained-legacy-link' } : {}),
+          secret: 'synthetic-legacy-secret',
+          attempt_id: 'synthetic-legacy-attempt',
+          created_at: 1,
+          provision_expires_at: 1,
+        })
+      );
+    }
+    return ids;
+  },
+});
 
 /** Eight independent active sessions exercise real transaction conflicts without spending shared quotas. */
 export const seed = internalMutation({
