@@ -1,11 +1,11 @@
 import { VisuallyHidden } from '@mantine/core';
-import { HOLD_SECONDS, useHoldToConfirm } from '@ui/control/useHoldToConfirm';
 import clsx from 'clsx';
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 import styles from './RadialMenu.module.css';
+import { HOLD_SECONDS, useHoldToConfirm } from './useHoldToConfirm';
 
 type RadialIcon = 'peek' | 'draw' | 'deal' | 'shuffle' | 'reserve' | 'delete' | 'back';
 

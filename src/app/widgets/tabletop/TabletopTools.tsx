@@ -4,6 +4,8 @@ import type { TablePiece } from '@shared/play/model';
 import { hasHiddenFace, peeksWholeDeck } from '@shared/play/peeking';
 import { isSpicePiece } from '@shared/play/spice';
 import { isTroopStack } from '@shared/play/troop';
+import { RadialMenu } from '@ui/control/RadialMenu';
+import type { RadialAction } from '@ui/control/RadialMenu';
 import type { RefObject } from 'react';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -12,8 +14,6 @@ import { peekableToken } from './peekableToken';
 import { PeekView } from './PeekView';
 import { PieceCloseUp } from './PieceCloseUp';
 import { pieceHasMenu } from './pieceMenu';
-import { RadialMenu } from './RadialMenu';
-import type { RadialAction } from './RadialMenu';
 import { useTabletopReader, useTabletopSelector } from './TabletopContext';
 
 export type PieceMenuAnchor = { pieceId: string; x: number; y: number; touch: boolean };
