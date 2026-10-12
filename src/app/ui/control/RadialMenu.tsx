@@ -162,6 +162,22 @@ function HeldItem({
 /* Room kept for the caption beside the ring before it moves to the other side. */
 const CAPTION_ROOM = 240;
 
+/*
+ * The caption reads to the right of the ring, or to its left where the right edge is too close.
+ * A window too narrow for either side gets it below the ring, or above it when the ring sits low.
+ */
+function captionPlacement(centre: { left: number; top: number }, offset: number): CSSProperties {
+  if (centre.left + offset + CAPTION_ROOM <= window.innerWidth) {
+    return { left: offset };
+  }
+  if (centre.left - offset - CAPTION_ROOM >= 0) {
+    return { left: -offset, translate: '-100% -50%' };
+  }
+  return centre.top > window.innerHeight / 2
+    ? { top: -offset, translate: '-50% -100%' }
+    : { top: offset, translate: '-50% 0' };
+}
+
 /* Keeps a value between two bounds; when they cross, the lower bound wins. */
 function clamp(value: number, low: number, high: number) {
   return Math.max(low, Math.min(value, high));
@@ -289,12 +305,7 @@ export function RadialMenu({
     items[next]?.focus();
   };
 
-  const captionOffset = level ? radius + disc / 2 + 14 : RING_RADIUS + 38;
-  /* The caption reads to the right of the ring, or to its left where the right edge is too close. */
-  const captionStyle: CSSProperties =
-    centre.left + captionOffset + CAPTION_ROOM > window.innerWidth
-      ? { left: -captionOffset, translate: '-100% -50%' }
-      : { left: captionOffset };
+  const captionStyle = captionPlacement(centre, level ? radius + disc / 2 + 14 : RING_RADIUS + 38);
 
   return createPortal(
     <div

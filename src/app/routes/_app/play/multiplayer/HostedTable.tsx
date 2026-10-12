@@ -176,21 +176,24 @@ function usePhaseFocus(table: TableProjection, progress: ReturnType<typeof gameP
 type FocusRequest = Readonly<{ key: string; token: string }>;
 
 /*
- * The dock follows the newest focus request, so one that is merely still around is never applied again.
+ * The dock follows the newest focus request, so one that has merely stayed around is never applied again.
  * Stopping a result or ending a battle then leaves the dock where the player is, instead of reopening the phase's tab beneath it.
+ * A request that goes away and comes back, like a phase entered again after Previous phase, counts as new.
  * When several requests appear together, the earlier one in the list wins.
  */
 function useNewestFocus(requests: readonly (FocusRequest | null)[]) {
-  const [state, setState] = useState<{ seen: readonly string[]; newest: FocusRequest | null }>({
-    seen: [],
+  const [state, setState] = useState<{ present: readonly string[]; newest: FocusRequest | null }>({
+    present: [],
     newest: null,
   });
   const present = requests.filter((request): request is FocusRequest => request !== null);
-  const fresh = present.find((request) => !state.seen.includes(request.token));
-  if (fresh) {
-    setState({ seen: [...state.seen, ...present.map((request) => request.token)], newest: fresh });
+  const tokens = present.map((request) => request.token);
+  if (tokens.join('\n') !== state.present.join('\n')) {
+    const fresh = present.find((request) => !state.present.includes(request.token));
+    setState({ present: tokens, newest: fresh ?? state.newest });
+    return fresh ?? state.newest;
   }
-  return fresh ?? state.newest;
+  return state.newest;
 }
 
 /* The end of the game opens the Result tab once for everyone: when someone starts determining the winner, and when it is declared. */
