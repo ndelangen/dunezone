@@ -15,8 +15,10 @@ RUN curl -fsSL -o /tmp/backend.zip \
   && chmod 755 /usr/local/bin/convex-local-backend \
   && rm /tmp/backend.zip
 
-ARG LITESTREAM_VERSION=0.5.6
-ARG LITESTREAM_SHA256=959f72ef0b28acf2d7785c622df4936f7813a381931366ef732157048a5a45e5
+# 0.5.6 skipped a sync whenever the WAL's size and header were unchanged, so frames written after a WAL restart
+# were not replicated until the WAL outgrew its old size (benbjohnson/litestream#1187 reverted that in 0.5.10).
+ARG LITESTREAM_VERSION=0.5.17
+ARG LITESTREAM_SHA256=cfb371176d164437ae869f8351cfde49bd1804ae71c61923f75c9cba9c9c006d
 RUN curl -fsSL -o /tmp/litestream.tar.gz \
     "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}/litestream-${LITESTREAM_VERSION}-linux-x86_64.tar.gz" \
   && echo "${LITESTREAM_SHA256}  /tmp/litestream.tar.gz" | sha256sum -c - \

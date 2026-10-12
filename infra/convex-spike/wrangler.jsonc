@@ -14,7 +14,7 @@
     {
       "class_name": "ConvexBackend",
       "image": "./Dockerfile",
-      "image_vars": { "IMAGE_REVISION": "3" },
+      "image_vars": { "IMAGE_REVISION": "8" },
       // Custom sizes need at least 3 GiB per vCPU, so 1 vCPU / 2 GiB is not available.
       "instance_type": { "vcpu": 1, "memory_mib": 3072, "disk_mb": 4000 },
       "max_instances": 1,

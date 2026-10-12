@@ -7,6 +7,7 @@ import { DurableObject } from 'cloudflare:workers';
 import type { Env } from './env';
 
 export { S3Shim } from './s3';
+import type { ShimProps } from './s3';
 
 const OBJECT_NAME = 'convex-spike';
 const READY_TIMEOUT_MS = 180_000;
@@ -35,9 +36,15 @@ export class ConvexBackend extends DurableObject<Env> {
     );
     if (this.container.running) {
       void ctx.blockConcurrencyWhile(async () => {
-        await this.container.setInactivityTimeout(INACTIVITY_TIMEOUT_MS);
-        await this.intercept();
-        this.record(await this.runningGeneration(), 'object-restarted', 'container was already running');
+        // A throw here would reset the object; log it instead, and let the next boot re-register the intercept.
+        try {
+          await this.container.setInactivityTimeout(INACTIVITY_TIMEOUT_MS);
+          const generation = await this.runningGeneration();
+          await this.intercept(generation);
+          this.record(generation, 'object-restarted', 'container was already running');
+        } catch (error) {
+          console.error('[do] re-attaching to the running container failed', error);
+        }
       });
     }
   }
@@ -61,8 +68,14 @@ export class ConvexBackend extends DurableObject<Env> {
     return Number(info?.labels.generation ?? 0);
   }
 
-  private async intercept() {
-    const shim = (this.ctx as unknown as { exports: { S3Shim(options: { props: object }): Fetcher } }).exports.S3Shim({ props: {} });
+  /** Routes the container's S3 traffic to the shim, which only accepts this generation's token and fences its writes. */
+  private async intercept(generation: number) {
+    // Generations started before tokens existed used the fixed key 'spike'.
+    const token = this.kv.get<string>(`token:${generation}`) ?? 'spike';
+    const props: ShimProps = { generation, token };
+    const shim = (this.ctx as unknown as { exports: { S3Shim(options: { props: ShimProps }): Fetcher } }).exports.S3Shim({
+      props,
+    });
     await this.container.interceptOutboundHttp('r2.internal', shim);
     await this.container.interceptOutboundHttp('*.r2.internal', shim);
   }
@@ -102,8 +115,11 @@ export class ConvexBackend extends DurableObject<Env> {
     } else {
       generation = (this.kv.get<number>('generation') ?? 0) + 1;
       this.kv.put('generation', generation);
+      this.kv.put(`token:${generation}`, crypto.randomUUID());
+      // The bump must be durable before a container can write under gen-N/, or a crash could hand N to two writers.
+      await this.ctx.storage.sync();
       const restoreGeneration = this.kv.get<number>('readyGeneration') ?? 0;
-      await this.intercept();
+      await this.intercept(generation);
       const origin = this.env.CONVEX_ORIGIN;
       container.start({
         enableInternet: false,
@@ -116,7 +132,7 @@ export class ConvexBackend extends DurableObject<Env> {
           CONVEX_ORIGIN: origin,
           CONVEX_SITE: `${origin}/http`,
           S3_ENDPOINT_URL: 'http://r2.internal',
-          AWS_ACCESS_KEY_ID: 'spike',
+          AWS_ACCESS_KEY_ID: this.kv.get<string>(`token:${generation}`)!,
           AWS_SECRET_ACCESS_KEY: 'spike',
           AWS_REGION: 'auto',
           AWS_S3_FORCE_PATH_STYLE: 'true',
@@ -152,6 +168,7 @@ export class ConvexBackend extends DurableObject<Env> {
         this.readyGeneration = generation;
         if (generation > (this.kv.get<number>('readyGeneration') ?? 0)) {
           this.kv.put('readyGeneration', generation);
+          await this.ctx.storage.sync();
         }
         this.record(generation, 'ready', `ms_since_request=${Date.now() - requestedAt}`);
         return generation;

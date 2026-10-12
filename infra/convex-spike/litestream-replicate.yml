@@ -1,5 +1,8 @@
 # Each container start replicates to its own generation prefix, so a stale writer cannot touch the live replica.
 addr: 127.0.0.1:9090
+# Debug logging shows each sync and checkpoint, to explain the replication stalls seen under write load.
+logging:
+  level: debug
 dbs:
   - path: /data/convex.sqlite3
     replica:
