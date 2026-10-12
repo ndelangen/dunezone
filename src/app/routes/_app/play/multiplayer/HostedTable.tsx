@@ -62,6 +62,7 @@ import {
   SPICE_RESERVE_HELP,
 } from './panelGuidance';
 import { PhaseNavigation } from './PhaseNavigation';
+import { PlaybackControls } from './PlaybackControls';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
@@ -83,78 +84,6 @@ type ConnectionControlsProps = Readonly<{
   table: TableProjection;
   error: string | null;
 }>;
-
-/** Fixture playback stays inline; a real game's playback bar owns stepping and return to live. */
-function FixturePlaybackControls({
-  client,
-  playback,
-  pending,
-}: {
-  client: TableSession;
-  playback: NonNullable<TableProjection['playback']>;
-  pending: boolean;
-}) {
-  return (
-    <>
-      <Text component="output" size="sm">
-        Playback checkpoint {playback.step} of {playback.lastStep}. Table actions are paused.
-      </Text>
-      <Group gap="sm" role="group" aria-label="Phase playback">
-        <Button
-          variant="default"
-          disabled={pending || playback.step === 0}
-          onClick={() => client.requestHistory(playback.step - 1)}
-        >
-          Earlier phase
-        </Button>
-        <Button
-          variant="default"
-          disabled={pending || playback.step === playback.lastStep}
-          onClick={() => client.requestHistory(playback.step + 1)}
-        >
-          Later phase
-        </Button>
-        <Button variant="default" onClick={client.resumeLive}>
-          Return to live
-        </Button>
-      </Group>
-    </>
-  );
-}
-
-function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
-  const { playback, historyPending } = table;
-  if (playback && table.snapshot.stage) {
-    return <Text size="sm">Use the playback controls above the panel to step through the game or return to live.</Text>;
-  }
-  return (
-    <>
-      {historyPending && (
-        <Text component="output" size="sm">
-          Loading playback...
-        </Text>
-      )}
-      {playback ? (
-        <FixturePlaybackControls client={client} playback={playback} pending={historyPending} />
-      ) : (
-        <Group gap="sm" role="group" aria-label="Phase playback">
-          <Button
-            variant="default"
-            disabled={historyPending || !!table.state.draftMove || table.reconnecting}
-            onClick={() => client.requestHistory(0)}
-          >
-            Replay from start
-          </Button>
-          {historyPending && (
-            <Button variant="default" onClick={client.resumeLive}>
-              Return to live
-            </Button>
-          )}
-        </Group>
-      )}
-    </>
-  );
-}
 
 /* A seat reads by the faction it carries; a seat with no faction yet, or a spectator, by what it is. */
 /** Where the game stands, with the last turn its wheel counts up to. */
