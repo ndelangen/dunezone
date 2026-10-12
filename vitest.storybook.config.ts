@@ -63,6 +63,7 @@ export default defineConfig({
       '@radix-ui/react-tabs',
       '@tanstack/react-form',
       'fuse.js',
+      'linkedom/worker',
       'react-icons/fa6',
       'react-icons/si',
       'storybook/internal/core-events',

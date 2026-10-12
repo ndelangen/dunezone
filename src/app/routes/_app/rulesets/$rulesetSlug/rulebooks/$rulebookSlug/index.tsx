@@ -247,24 +247,19 @@ function ReaderStatus({
   return null;
 }
 
-type ReaderDeliveryState = { published: PublishedRulebook | null; failedHref: string | null };
-type ReaderDeliveryEvent = { kind: 'loaded'; published: PublishedRulebook } | { kind: 'failed'; href: string };
+type ReaderDeliveryFailure = { href: string; editionNumber: number; selectedEdition: number | undefined };
+type ReaderDeliveryState = { published: PublishedRulebook | null; failure: ReaderDeliveryFailure | null };
+type ReaderDeliveryEvent =
+  | { kind: 'loaded'; published: PublishedRulebook }
+  | { kind: 'failed'; failure: ReaderDeliveryFailure };
 function readerDeliveryReducer(state: ReaderDeliveryState, event: ReaderDeliveryEvent): ReaderDeliveryState {
-  return event.kind === 'loaded'
-    ? { published: event.published, failedHref: null }
-    : { ...state, failedHref: event.href };
+  return event.kind === 'loaded' ? { published: event.published, failure: null } : { ...state, failure: event.failure };
 }
 
 function RulebookReaderPage() {
   const params = Route.useParams();
-  const search = Route.useSearch();
   const initial = Route.useLoaderData();
-  return (
-    <RulebookReaderDelivery
-      key={`${params.rulesetSlug}/${params.rulebookSlug}/${search.edition ?? 'current'}`}
-      initial={initial}
-    />
-  );
+  return <RulebookReaderDelivery key={`${params.rulesetSlug}/${params.rulebookSlug}`} initial={initial} />;
 }
 
 function RulebookReaderDelivery({ initial }: { initial: Awaited<ReturnType<typeof loadReaderView>> }) {
@@ -272,17 +267,34 @@ function RulebookReaderDelivery({ initial }: { initial: Awaited<ReturnType<typeo
   const search = Route.useSearch();
   const [delivery, sendDelivery] = useReducer(readerDeliveryReducer, {
     published: initial.published,
-    failedHref: initial.renderEdition === null ? null : (initial.page?.edition.html.href ?? null),
+    failure:
+      initial.renderEdition !== null && initial.page?.edition.html.href
+        ? {
+            href: initial.page.edition.html.href,
+            editionNumber: initial.renderEdition,
+            selectedEdition: search.edition,
+          }
+        : null,
   });
+  const forceRender = Boolean(
+    delivery.failure &&
+    delivery.failure.selectedEdition === search.edition &&
+    delivery.failure.editionNumber >= (initial.page?.edition.edition_number ?? 0)
+  );
   const { data } = useRulebookReader({
     ...params,
     editionNumber: search.edition,
     initialData: initial.page,
-    renderContents: delivery.failedHref !== null,
+    renderContents: forceRender,
   });
   const htmlHref = data?.edition.html.status === 'ready' ? data.edition.html.href : null;
   useEffect(() => {
-    if (!htmlHref || delivery.published?.href === htmlHref || delivery.failedHref === htmlHref) {
+    if (
+      !htmlHref ||
+      initial.published?.href === htmlHref ||
+      delivery.published?.href === htmlHref ||
+      (forceRender && delivery.failure?.href === htmlHref)
+    ) {
       return;
     }
     const controller = new AbortController();
@@ -290,12 +302,23 @@ function RulebookReaderDelivery({ initial }: { initial: Awaited<ReturnType<typeo
       (published) => sendDelivery({ kind: 'loaded', published }),
       () => {
         if (!controller.signal.aborted) {
-          sendDelivery({ kind: 'failed', href: htmlHref });
+          sendDelivery({
+            kind: 'failed',
+            failure: { href: htmlHref, editionNumber: data!.edition.edition_number, selectedEdition: search.edition },
+          });
         }
       }
     );
     return () => controller.abort();
-  }, [htmlHref, delivery.published?.href, delivery.failedHref]);
+  }, [
+    htmlHref,
+    forceRender,
+    initial.published?.href,
+    delivery.published?.href,
+    delivery.failure?.href,
+    data?.edition.edition_number,
+    search.edition,
+  ]);
   useLivePageTitle(data?.rulebook.name);
   if (!data) {
     return (
@@ -311,8 +334,8 @@ function RulebookReaderDelivery({ initial }: { initial: Awaited<ReturnType<typeo
       </PageMessage>
     );
   }
-  const published =
-    data.body.kind === 'html' && delivery.published?.href === data.body.href ? delivery.published : null;
+  const loadedPublication = initial.published?.href === htmlHref ? initial.published : delivery.published;
+  const published = data.body.kind === 'html' && loadedPublication?.href === data.body.href ? loadedPublication : null;
   if (data.body.kind === 'html' && !published) {
     return (
       <PageMessage title={data.rulebook.name}>

@@ -36,6 +36,17 @@ describe('published Rulebook reading', () => {
     expect(resolvePublishedAnchor(book, 'missing')).toBeUndefined();
   });
 
+  test('defers offscreen publication images while preserving their addresses and dimensions', () => {
+    const book = parsePublishedRulebook(
+      html().replace('</main>', '<img src="/published/diagram.svg" width="530" height="530"/></main>'),
+      href
+    );
+    const image = parseHTML(book.markup).document.querySelector('img[src="/published/diagram.svg"]');
+    expect(image?.getAttribute('loading')).toBe('lazy');
+    expect(image?.getAttribute('width')).toBe('530');
+    expect(image?.getAttribute('height')).toBe('530');
+  });
+
   test('resolves selected text and preserves a stable Block when its words have changed', () => {
     const book = parsePublishedRulebook(html(), href);
     const resolved = resolvePublishedAnchor(book, 'storm-boundary')!;

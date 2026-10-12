@@ -14,7 +14,11 @@ import { loadRulebookReader } from '@db/rulebooks';
 import type { RulebookReaderLocator } from '@db/rulebooks';
 
 import { locatorMatches } from './rulebookReaderLinks';
-import type { RulebookTextLocatorParseResult, RulebookTextLocatorResolution } from './rulebookReaderLinks';
+import type {
+  RulebookTextLocator,
+  RulebookTextLocatorParseResult,
+  RulebookTextLocatorResolution,
+} from './rulebookReaderLinks';
 
 type PublishedItem = { id: string; text: string };
 type PublishedBlock = PublishedItem & { anchor: string; itemsById: Record<string, PublishedItem> };
@@ -53,24 +57,57 @@ function publicationText(element: Element) {
     : (element.textContent ?? '');
 }
 
-/** Reads only publisher-generated markup, retaining its frozen styles and stable reading targets. */
-export function parsePublishedRulebook(html: string, href: string): PublishedRulebook {
-  const { document } = parseHTML(html);
-  const root = document.body.querySelector('[data-rulebook-document]');
-  const css = document.head.querySelector('style')?.textContent;
-  if (!root || !css || document.querySelector('script, iframe, object, embed, base, form')) {
-    throw new Error('Published Rulebook HTML is unavailable');
+function isExecutableAttribute(attribute: Attr) {
+  if (/^on/i.test(attribute.name)) {
+    return true;
   }
-  for (const element of [document.body, ...document.body.querySelectorAll('*')]) {
+  if (!['href', 'src', 'xlink:href'].includes(attribute.name)) {
+    return false;
+  }
+  return /^\s*(javascript|vbscript):/i.test(attribute.value);
+}
+
+function assertNoExecutableAttributes(body: Element) {
+  for (const element of [body, ...body.querySelectorAll('*')]) {
     for (const attribute of element.attributes) {
-      if (
-        /^on/i.test(attribute.name) ||
-        (['href', 'src', 'xlink:href'].includes(attribute.name) && /^\s*(javascript|vbscript):/i.test(attribute.value))
-      ) {
+      if (isExecutableAttribute(attribute)) {
         throw new Error('Published Rulebook HTML contains executable content');
       }
     }
   }
+}
+
+function publishedBlock(block: Element): PublishedBlock {
+  const itemsById: PublishedBlock['itemsById'] = Object.create(null);
+  for (const item of block.querySelectorAll('[data-rulebook-item-id]')) {
+    const itemId = identity(item, 'data-rulebook-item-id');
+    /* Nested entries can repeat an item marker; the outer entry owns the complete text. */
+    itemsById[itemId] ??= { id: itemId, text: publicationText(item) };
+  }
+  return {
+    id: identity(block, 'data-rulebook-block-id'),
+    anchor: block.getAttribute('data-rulebook-block-anchor') ?? '',
+    text: publicationText(block),
+    itemsById,
+  };
+}
+
+function publishedPage(page: Element, pageNumber: number): PublishedPage {
+  const blocksById: PublishedPage['blocksById'] = Object.create(null);
+  for (const block of page.querySelectorAll('[data-rulebook-block-id]')) {
+    const entry = publishedBlock(block);
+    blocksById[entry.id] = entry;
+  }
+  return {
+    id: identity(page, 'data-rulebook-page-id'),
+    anchor: identity(page, 'data-rulebook-page-anchor'),
+    title: (page.getAttribute('aria-label') ?? '').replace(/^Rulebook page: /, '') || `Page ${pageNumber}`,
+    text: publicationText(page),
+    blocksById,
+  };
+}
+
+function publishedReadingTargets(root: Element) {
   const pagesById: Record<string, PublishedPage> = Object.create(null);
   const pageOrder: string[] = [];
   for (const page of root.querySelectorAll('[data-rulebook-page-id]')) {
@@ -78,34 +115,16 @@ export function parsePublishedRulebook(html: string, href: string): PublishedRul
     if (pagesById[id]) {
       throw new Error('Published Rulebook contains duplicate Pages');
     }
-    const blocksById: PublishedPage['blocksById'] = Object.create(null);
-    for (const block of page.querySelectorAll('[data-rulebook-block-id]')) {
-      const blockId = identity(block, 'data-rulebook-block-id');
-      const itemsById: PublishedBlock['itemsById'] = Object.create(null);
-      for (const item of block.querySelectorAll('[data-rulebook-item-id]')) {
-        const itemId = identity(item, 'data-rulebook-item-id');
-        /* Nested entries can repeat an item marker; the outer entry owns the complete text. */
-        itemsById[itemId] ??= { id: itemId, text: publicationText(item) };
-      }
-      blocksById[blockId] = {
-        id: blockId,
-        anchor: block.getAttribute('data-rulebook-block-anchor') ?? '',
-        text: publicationText(block),
-        itemsById,
-      };
-    }
-    pagesById[id] = {
-      id,
-      anchor: identity(page, 'data-rulebook-page-anchor'),
-      title: (page.getAttribute('aria-label') ?? '').replace(/^Rulebook page: /, '') || `Page ${pageOrder.length + 1}`,
-      text: publicationText(page),
-      blocksById,
-    };
+    pagesById[id] = publishedPage(page, pageOrder.length + 1);
     pageOrder.push(id);
   }
   if (!pageOrder.length) {
     throw new Error('Published Rulebook has no Pages');
   }
+  return { pageOrder, pagesById };
+}
+
+function publishedSectionMarkup(document: Document, root: Element) {
   /* The app already owns its main landmark; retain the artifact's attributes on a section. */
   const section = document.createElement('section');
   for (const attribute of root.attributes) {
@@ -115,7 +134,57 @@ export function parsePublishedRulebook(html: string, href: string): PublishedRul
     (element) => element !== root && element.tagName.toLowerCase() === 'svg'
   );
   section.innerHTML = definitions.map((element) => element.outerHTML).join('') + root.innerHTML;
-  return { href, markup: section.outerHTML, css: `@scope ([data-published-rulebook]) {${css}}`, pageOrder, pagesById };
+  /* Offscreen publication images need not trigger live availability reads before the reader reaches them. */
+  for (const image of section.querySelectorAll('img')) {
+    image.setAttribute('loading', 'lazy');
+  }
+  return section.outerHTML;
+}
+
+/** Reads only publisher-generated markup, retaining its frozen styles and stable reading targets. */
+export function parsePublishedRulebook(html: string, href: string): PublishedRulebook {
+  const { document } = parseHTML(html);
+  const root = document.body.querySelector('[data-rulebook-document]');
+  const css = document.head.querySelector('style')?.textContent;
+  if (document.querySelector('script, iframe, object, embed, base, form')) {
+    throw new Error('Published Rulebook HTML is unavailable');
+  }
+  if (!root || !css) {
+    throw new Error('Published Rulebook HTML is unavailable');
+  }
+  assertNoExecutableAttributes(document.body);
+  return {
+    href,
+    markup: publishedSectionMarkup(document, root),
+    css: `@scope ([data-published-rulebook]) {${css}}`,
+    ...publishedReadingTargets(root),
+  };
+}
+
+async function fetchPublishedRulebook(href: string, signal?: AbortSignal) {
+  const origin = import.meta.env.SSR ? PUBLIC_SITE_ORIGIN : window.location.origin;
+  const internalFetch = import.meta.env.SSR ? getGlobalStartContext()?.publishedRulebookFetch : undefined;
+  if (internalFetch) {
+    return internalFetch(href);
+  }
+  return fetch(new URL(href, origin), { signal, redirect: 'error' });
+}
+
+const MAX_PUBLISHED_RULEBOOK_BYTES = 4_000_000;
+
+async function readPublishedRulebookResponse(response: Response) {
+  if (!response.ok || !response.headers.get('Content-Type')?.includes('text/html')) {
+    throw new Error('Published Rulebook HTML is unavailable');
+  }
+  if (Number(response.headers.get('Content-Length')) > MAX_PUBLISHED_RULEBOOK_BYTES) {
+    await response.body?.cancel();
+    throw new Error('Published Rulebook HTML exceeds the reader limit');
+  }
+  const html = await response.text();
+  if (new TextEncoder().encode(html).byteLength > MAX_PUBLISHED_RULEBOOK_BYTES) {
+    throw new Error('Published Rulebook HTML exceeds the reader limit');
+  }
+  return html;
 }
 
 export async function loadPublishedRulebook(href: string, signal?: AbortSignal) {
@@ -123,22 +192,7 @@ export async function loadPublishedRulebook(href: string, signal?: AbortSignal) 
   if (route?.kind !== 'edition') {
     throw new Error('Published Rulebook must identify one Edition');
   }
-  const origin = import.meta.env.SSR ? PUBLIC_SITE_ORIGIN : window.location.origin;
-  const internalFetch = import.meta.env.SSR ? getGlobalStartContext()?.publishedRulebookFetch : undefined;
-  const response = internalFetch
-    ? await internalFetch(href)
-    : await fetch(new URL(href, origin), { signal, redirect: 'error' });
-  if (!response.ok || !response.headers.get('Content-Type')?.includes('text/html')) {
-    throw new Error('Published Rulebook HTML is unavailable');
-  }
-  if (Number(response.headers.get('Content-Length')) > 4_000_000) {
-    await response.body?.cancel();
-    throw new Error('Published Rulebook HTML exceeds the reader limit');
-  }
-  const html = await response.text();
-  if (new TextEncoder().encode(html).byteLength > 4_000_000) {
-    throw new Error('Published Rulebook HTML exceeds the reader limit');
-  }
+  const html = await readPublishedRulebookResponse(await fetchPublishedRulebook(href, signal));
   return parsePublishedRulebook(html, href);
 }
 
@@ -183,18 +237,55 @@ export function resolvePublishedLocator(
   if (result.status !== 'valid') {
     return { status: result.status };
   }
-  const [pageEntry, blockEntry, itemEntry] = result.locator.path;
-  const page = book.pagesById[pageEntry.id];
-  const block = blockEntry ? page?.blocksById[blockEntry.id] : undefined;
-  const item = itemEntry ? block?.itemsById[itemEntry.id] : undefined;
-  if (!page || (blockEntry && !block) || (itemEntry && !item)) {
+  const target = publishedLocatorTarget(book, result.locator.path);
+  if (!target) {
     return { status: 'unresolved' };
   }
+  const { text, ...resolution } = target;
   return {
-    status: locatorMatches((item ?? block ?? page).text, result.locator) ? 'matched' : 'stale',
-    pageId: page.id,
-    ...(block ? { blockId: block.id } : {}),
-    ...(item ? { itemId: item.id } : {}),
-    anchorId: block?.anchor || page.anchor,
+    status: locatorMatches(text, result.locator) ? 'matched' : 'stale',
+    ...resolution,
   };
+}
+
+type PublishedLocatorTarget = Omit<
+  Extract<RulebookTextLocatorResolution, { status: 'matched' | 'stale' }>,
+  'status'
+> & {
+  text: string;
+};
+
+function publishedBlockTarget(
+  page: PublishedPage,
+  blockId: string,
+  itemId: string | undefined
+): PublishedLocatorTarget | undefined {
+  const block = page.blocksById[blockId];
+  if (!block) {
+    return undefined;
+  }
+  const target = { pageId: page.id, blockId: block.id, anchorId: block.anchor || page.anchor, text: block.text };
+  if (!itemId) {
+    return target;
+  }
+  const item = block.itemsById[itemId];
+  if (!item) {
+    return undefined;
+  }
+  return { ...target, itemId: item.id, text: item.text };
+}
+
+function publishedLocatorTarget(
+  book: PublishedRulebook,
+  path: RulebookTextLocator['path']
+): PublishedLocatorTarget | undefined {
+  const [pageEntry, blockEntry, itemEntry] = path;
+  const page = book.pagesById[pageEntry.id];
+  if (!page) {
+    return undefined;
+  }
+  if (blockEntry) {
+    return publishedBlockTarget(page, blockEntry.id, itemEntry?.id);
+  }
+  return { pageId: page.id, anchorId: page.anchor, text: page.text };
 }
