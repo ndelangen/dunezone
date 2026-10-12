@@ -69,19 +69,19 @@ export function rosterFactionLabels(
   );
 }
 
-/** The labels a snapshot shows, by who holds each seat as its controls say now. */
-export function snapshotFactionLabels(snapshot: {
+/** The part of a snapshot its faction labels read: the roster, and who holds each seat. */
+type LabelledSnapshot = {
   roster?: TableRoster;
   controls?: { players: readonly { seat: string; name: string }[] };
-}): Readonly<Record<string, string>> {
+};
+
+/** The labels a snapshot shows, by who holds each seat as its controls say now. */
+export function snapshotFactionLabels(snapshot: LabelledSnapshot): Readonly<Record<string, string>> {
   return rosterFactionLabels(snapshot.roster, snapshot.controls?.players ?? []);
 }
 
 /** Only the tie-breakers a snapshot shows, by faction id, for a place that already names the faction. */
-export function snapshotFactionTieBreaks(snapshot: {
-  roster?: TableRoster;
-  controls?: { players: readonly { seat: string; name: string }[] };
-}): Readonly<Partial<Record<string, string>>> {
+export function snapshotFactionTieBreaks(snapshot: LabelledSnapshot): Readonly<Partial<Record<string, string>>> {
   return Object.fromEntries(
     [...rosterFactionTitles(snapshot.roster, snapshot.controls?.players ?? [])].flatMap(([id, title]) => {
       const tieBreak = factionTieBreakText(title);

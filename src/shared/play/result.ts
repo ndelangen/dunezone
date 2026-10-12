@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { actionKindGuard } from './actionKinds';
 import { tableCountSchema, tableIdentitySchema } from './schema';
 import { TABLE_SEAT_COUNTS } from './tableSettings';
 
@@ -8,7 +9,7 @@ import { TABLE_SEAT_COUNTS } from './tableSettings';
  * One seated player acts each time;
  * nobody votes or confirms.
  */
-const gameResultKindSchema = z.enum(['faction', 'alliance', 'none']);
+export const gameResultKindSchema = z.enum(['faction', 'alliance', 'none']);
 export type GameResultKind = z.infer<typeof gameResultKindSchema>;
 
 const factionIdsSchema = z.array(tableIdentitySchema).max(TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!);
@@ -35,10 +36,7 @@ export const resultActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('result-continue') }),
 ]);
 export type ResultAction = z.infer<typeof resultActionSchema>;
-const kinds: ReadonlySet<string> = new Set(resultActionSchema.options.map((option) => option.shape.kind.value));
-export function isResultAction(action: { kind: string }): action is ResultAction {
-  return kinds.has(action.kind);
-}
+export const isResultAction = actionKindGuard(resultActionSchema);
 
 /** How many factions each kind names: one winner, an alliance of two or more, or none. */
 export function resultFactionCountFits(kind: GameResultKind, count: number): boolean {
