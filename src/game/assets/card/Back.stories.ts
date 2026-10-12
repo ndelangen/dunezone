@@ -70,23 +70,15 @@ async function verifyLabelPaint({ canvasElement }: { canvasElement: HTMLElement 
   });
   /* Glyph cells include blank font space, so the canvas metrics locate their painted ink. */
   const context = document.createElement('canvas').getContext('2d')!;
-  for (const paint of paints) {
-    const painted = paint.getBBox();
-    for (const glyph of glyphs) {
-      const nodes = document.createTreeWalker(glyph, NodeFilter.SHOW_TEXT);
-      let characterIndex = 0;
-      while (nodes.nextNode()) {
-        const node = nodes.currentNode;
-        const font = getComputedStyle(node.parentElement!);
-        context.font = `${font.fontStyle} ${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
-        for (const character of node.textContent!.toUpperCase()) {
-          const cell = glyph.getExtentOfChar(characterIndex++);
-          const ink = context.measureText(character);
-          const baseline = cell.y + ink.fontBoundingBoxAscent;
-          await expect(painted.y).toBeLessThanOrEqual(baseline - ink.actualBoundingBoxAscent);
-          await expect(painted.y + painted.height).toBeGreaterThanOrEqual(baseline + ink.actualBoundingBoxDescent);
-        }
-      }
+  for (const glyph of glyphs) {
+    const font = getComputedStyle(glyph);
+    context.font = `${font.fontStyle} ${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
+    const ink = context.measureText(glyph.textContent!.toUpperCase());
+    const baseline = glyph.getExtentOfChar(0).y + ink.fontBoundingBoxAscent;
+    for (const paint of paints) {
+      const painted = paint.getBBox();
+      await expect(painted.y).toBeLessThanOrEqual(baseline - ink.actualBoundingBoxAscent);
+      await expect(painted.y + painted.height).toBeGreaterThanOrEqual(baseline + ink.actualBoundingBoxDescent);
     }
   }
 }
