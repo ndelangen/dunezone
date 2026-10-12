@@ -12,7 +12,7 @@ import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
 /** The nexus card edit page. Mounted by the generic `$type/$slug/edit` route when the type is `card-nexus`. */
-export function NexusEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
+export function NexusEditPage({ slug, loaderData }: Readonly<{ slug: string; loaderData: AssetPageData }>) {
   return (
     <CardEditGate
       type="card-nexus"
@@ -20,7 +20,7 @@ export function NexusEditPage({ slug, loaderData }: { slug: string; loaderData: 
       schema={NexusCardAssetInput}
       slug={slug}
       loaderData={loaderData}
-      session={(props) => <CardEditSession {...props} />}
+      session={renderEditSession}
     />
   );
 }
@@ -52,7 +52,11 @@ function reduce(state: NexusState, event: NexusEvent): NexusState {
   }
 }
 
-function CardEditSession({ asset, initialDraft, access }: CardEditSessionProps<NexusDraft>) {
+function renderEditSession(props: Readonly<CardEditSessionProps<NexusDraft>>) {
+  return <CardEditSession {...props} />;
+}
+
+function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessionProps<NexusDraft>>) {
   const saving = useCardSave('card-nexus', asset);
   const [chapter, setChapter] = useState<NexusChapter>('head');
   const [state, dispatch] = useReducer(reduce, undefined, () => openingState(initialDraft, initialDraft));

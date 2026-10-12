@@ -1003,6 +1003,34 @@ export const customCardTokens = query({
   handler: async (ctx, args) => await resolveCustomCardTokens(ctx, args.ids),
 });
 
+async function ensureImportedAsset(ctx: MutationCtx, ownerId: Id<'users'>, type: string, data: { name: string }) {
+  const slug = slugify(data.name);
+  const existing = await assetSlugHolder(ctx, type, slug);
+  if (!existing) {
+    return await createOwnedAsset(ctx, ownerId, type, data);
+  }
+  if (existing.owner_id !== ownerId || existing.is_deleted || nameOf(existing) !== data.name) {
+    throw new Error(`The ${type}/${slug} address is already reserved`);
+  }
+  return { id: existing._id, slug: existing.slug };
+}
+
+async function ensureImportedDeckCard(ctx: MutationCtx, deckId: Id<'assets'>, cardId: Id<'assets'>) {
+  const member = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_to_kind', (q) => q.eq('from_asset_id', deckId).eq('to_asset_id', cardId).eq('kind', DECK_CARD))
+    .unique();
+  if (member) {
+    return;
+  }
+  await ctx.db.insert('asset_relations', {
+    from_asset_id: deckId,
+    to_asset_id: cardId,
+    kind: DECK_CARD,
+    count: 1,
+  });
+}
+
 /* An operator imports the printed deck once for an explicitly selected active owner.
  * A repeat keeps authored content and existing counts intact.
  * Name collisions stop the transaction rather than adopting someone else's asset.
@@ -1015,37 +1043,14 @@ export const seedGf9NexusDeck = internalMutation({
     if (!owner || (owner.account_state ?? 'active') !== 'active') {
       throw new Error('The Nexus deck needs an active owner');
     }
-    const ensure = async (type: string, data: { name: string }) => {
-      const slug = slugify(data.name);
-      const existing = await assetSlugHolder(ctx, type, slug);
-      if (existing) {
-        if (existing.owner_id !== ownerId || existing.is_deleted || nameOf(existing) !== data.name) {
-          throw new Error(`The ${type}/${slug} address is already reserved`);
-        }
-        return { id: existing._id, slug: existing.slug };
-      }
-      return await createOwnedAsset(ctx, ownerId, type, data);
-    };
-    const deck = await ensure('deck', GF9_NEXUS_DECK);
-    const cardIds: Id<'assets'>[] = [];
-    for (const card of GF9_NEXUS_CARDS) {
-      const created = await ensure('card-nexus', card);
-      cardIds.push(created.id);
-      const member = await ctx.db
-        .query('asset_relations')
-        .withIndex('by_from_to_kind', (q) =>
-          q.eq('from_asset_id', deck.id).eq('to_asset_id', created.id).eq('kind', DECK_CARD)
-        )
-        .unique();
-      if (!member) {
-        await ctx.db.insert('asset_relations', {
-          from_asset_id: deck.id,
-          to_asset_id: created.id,
-          kind: DECK_CARD,
-          count: 1,
-        });
-      }
-    }
+    const deck = await ensureImportedAsset(ctx, ownerId, 'deck', GF9_NEXUS_DECK);
+    const cardIds = await Promise.all(
+      GF9_NEXUS_CARDS.map(async (card) => {
+        const created = await ensureImportedAsset(ctx, ownerId, 'card-nexus', card);
+        await ensureImportedDeckCard(ctx, deck.id, created.id);
+        return created.id;
+      })
+    );
     return { deckId: deck.id, slug: deck.slug, cardIds };
   },
 });

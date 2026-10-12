@@ -533,6 +533,20 @@ async function checkPublisherImageCapture(
 }
 
 const browser = await chromium.launch({ headless: true });
+async function checkNexusCapture(browser: Browser, card: (typeof GF9_NEXUS_CARDS)[number]) {
+  const slug = card.faction.toLowerCase().replaceAll(' ', '-');
+  const captured = await checkPublisherImageCapture(
+    browser,
+    'card-nexus',
+    envelope('card-nexus', { assetId: 'k17publisherNexusCard', slug, card }),
+    `Nexus ${card.faction}`
+  );
+  if (process.env.NEXUS_PROOF_DIRECTORY) {
+    await mkdir(process.env.NEXUS_PROOF_DIRECTORY, { recursive: true });
+    await Bun.write(path.join(process.env.NEXUS_PROOF_DIRECTORY, `${slug}.png`), captured);
+  }
+}
+
 try {
   await checkCorruptSvgImage(browser);
   await checkCorruptExternalUse(browser);
@@ -560,21 +574,7 @@ try {
   }
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
   for (const card of GF9_NEXUS_CARDS) {
-    const slug = card.faction.toLowerCase().replaceAll(' ', '-');
-    const captured = await checkPublisherImageCapture(
-      browser,
-      'card-nexus',
-      envelope('card-nexus', {
-        assetId: 'k17publisherNexusCard',
-        slug,
-        card,
-      }),
-      `Nexus ${card.faction}`
-    );
-    if (process.env.NEXUS_PROOF_DIRECTORY) {
-      await mkdir(process.env.NEXUS_PROOF_DIRECTORY, { recursive: true });
-      await Bun.write(path.join(process.env.NEXUS_PROOF_DIRECTORY, `${slug}.png`), captured);
-    }
+    await checkNexusCapture(browser, card); /* NOSONAR: Captures share the active snapshot. */
   }
   for (const format of ['plain', 'decal-window'] as const) {
     await checkPublisherImageCapture(

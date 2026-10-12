@@ -65,6 +65,85 @@ export function nexusDraftWarnings(draft: NexusDraft): { source: string; missing
   return warnings;
 }
 
+type FactionFieldsProps = Readonly<{
+  draft: NexusDraft;
+  patch: (update: Partial<NexusDraft>) => void;
+  memory: NexusMemory;
+  remember: (update: Partial<NexusMemory>) => void;
+}>;
+
+const FACTION_BACKGROUND_PRESETS = (
+  [
+    ['atreides', 'Atreides'],
+    ['beneGesserit', 'Bene Gesserit'],
+    ['beneTleilaxu', 'Tleilaxu'],
+    ['choam', 'CHOAM'],
+    ['ecaz', 'Ecaz'],
+    ['emperor', 'Emperor'],
+    ['fremen', 'Fremen'],
+    ['guild', 'Spacing Guild'],
+    ['harkonnen', 'Harkonnen'],
+    ['ixian', 'Ixians'],
+    ['moritani', 'Moritani'],
+    ['richese', 'Richese'],
+  ] as const
+).map(([key, label]) => ({ key, label, background: backgroundPresets[key] }));
+
+function FactionFields({ draft, patch, memory, remember }: FactionFieldsProps) {
+  return (
+    <Stack gap="md">
+      <ControlBlock
+        title="Faction"
+        description="Names the faction in the three printed conditions."
+        input={
+          <TextInput
+            aria-label="Faction"
+            value={draft.faction}
+            maxLength={40}
+            onChange={(event) => patch({ faction: event.currentTarget.value })}
+          />
+        }
+      />
+      <ControlBlock
+        title="Faction symbol"
+        description="The emblem beside Secret Ally."
+        input={
+          <AssetSelect
+            aria-label="Faction symbol"
+            allowDeselect={false}
+            data={stockAssetOptions(decalAssetOptions)}
+            getPreviewSrc={assetOptionToPreviewSrc}
+            glyphPreviews
+            value={draft.factionSymbol.image}
+            onChange={(image) => {
+              if (image) {
+                patch({
+                  factionSymbol: {
+                    ...draft.factionSymbol,
+                    image: image as NexusDraft['factionSymbol']['image'],
+                  },
+                });
+              }
+            }}
+          />
+        }
+      />
+      <BackgroundPresetControl
+        title="Faction background"
+        description="The colours behind the faction emblem."
+        usedOn="this card's faction emblem"
+        presets={FACTION_BACKGROUND_PRESETS}
+        value={draft.factionSymbol.background}
+        onChange={(background) => patch({ factionSymbol: { ...draft.factionSymbol, background } })}
+        declaredCustom={memory.factionCustom}
+        onDeclaredCustomChange={(factionCustom) => remember({ factionCustom })}
+        modeMemory={memory.factionModeMemory}
+        onModeMemoryChange={(factionModeMemory) => remember({ factionModeMemory })}
+      />
+    </Stack>
+  );
+}
+
 /** Pages own the draft and persistence; this workbench edits the constrained Nexus face and shows its proof. */
 export function NexusCardEditor({
   nameField,
@@ -75,7 +154,7 @@ export function NexusCardEditor({
   chapter,
   onChapterChange,
   onSettle,
-}: {
+}: Readonly<{
   nameField: ReactNode;
   draft: NexusDraft;
   patch: (update: Partial<NexusDraft>) => void;
@@ -84,7 +163,7 @@ export function NexusCardEditor({
   chapter: NexusChapter;
   onChapterChange: (chapter: NexusChapter) => void;
   onSettle: () => void;
-}) {
+}>) {
   return (
     <WorkbenchLayout.Workbench>
       <WorkbenchLayout.Chapters>
@@ -117,75 +196,7 @@ export function NexusCardEditor({
                 value: 'faction',
                 label: 'Faction',
                 icon: <Shield size={21} aria-hidden />,
-                panel: (
-                  <Stack gap="md">
-                    <ControlBlock
-                      title="Faction"
-                      description="Names the faction in the three printed conditions."
-                      input={
-                        <TextInput
-                          aria-label="Faction"
-                          value={draft.faction}
-                          maxLength={40}
-                          onChange={(event) => patch({ faction: event.currentTarget.value })}
-                        />
-                      }
-                    />
-                    <ControlBlock
-                      title="Faction symbol"
-                      description="The emblem beside Secret Ally."
-                      input={
-                        <AssetSelect
-                          aria-label="Faction symbol"
-                          allowDeselect={false}
-                          data={stockAssetOptions(decalAssetOptions)}
-                          getPreviewSrc={assetOptionToPreviewSrc}
-                          glyphPreviews
-                          value={draft.factionSymbol.image}
-                          onChange={(image) => {
-                            if (image) {
-                              patch({
-                                factionSymbol: {
-                                  ...draft.factionSymbol,
-                                  image: image as NexusDraft['factionSymbol']['image'],
-                                },
-                              });
-                            }
-                          }}
-                        />
-                      }
-                    />
-                    <BackgroundPresetControl
-                      title="Faction background"
-                      description="The colours behind the faction emblem."
-                      usedOn="this card's faction emblem"
-                      presets={[
-                        ['atreides', 'Atreides'],
-                        ['beneGesserit', 'Bene Gesserit'],
-                        ['beneTleilaxu', 'Tleilaxu'],
-                        ['choam', 'CHOAM'],
-                        ['ecaz', 'Ecaz'],
-                        ['emperor', 'Emperor'],
-                        ['fremen', 'Fremen'],
-                        ['guild', 'Spacing Guild'],
-                        ['harkonnen', 'Harkonnen'],
-                        ['ixian', 'Ixians'],
-                        ['moritani', 'Moritani'],
-                        ['richese', 'Richese'],
-                      ].map(([key, label]) => ({
-                        key: key!,
-                        label: label!,
-                        background: backgroundPresets[key as keyof typeof backgroundPresets],
-                      }))}
-                      value={draft.factionSymbol.background}
-                      onChange={(background) => patch({ factionSymbol: { ...draft.factionSymbol, background } })}
-                      declaredCustom={memory.factionCustom}
-                      onDeclaredCustomChange={(factionCustom) => remember({ factionCustom })}
-                      modeMemory={memory.factionModeMemory}
-                      onModeMemoryChange={(factionModeMemory) => remember({ factionModeMemory })}
-                    />
-                  </Stack>
-                ),
+                panel: <FactionFields draft={draft} patch={patch} memory={memory} remember={remember} />,
               },
               {
                 value: 'effects',

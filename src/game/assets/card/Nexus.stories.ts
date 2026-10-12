@@ -18,12 +18,14 @@ export const LongEffects = meta.story({
   },
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
-    for (const section of canvasElement.querySelectorAll('section')) {
-      const rules = section.lastElementChild as HTMLElement;
-      await waitFor(() => {
-        expect(rules.scrollHeight).toBeLessThanOrEqual(rules.clientHeight + 1);
-        expect(rules.scrollWidth).toBeLessThanOrEqual(rules.clientWidth + 1);
-      });
-    }
+    await Promise.all(
+      Array.from(canvasElement.querySelectorAll('section'), async (section) => {
+        const rules = section.lastElementChild as HTMLElement;
+        await waitFor(() => {
+          expect(rules.scrollHeight).toBeLessThanOrEqual(rules.clientHeight + 1);
+          expect(rules.scrollWidth).toBeLessThanOrEqual(rules.clientWidth + 1);
+        });
+      })
+    );
   },
 });

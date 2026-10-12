@@ -15,7 +15,7 @@ export function NexusCard({
   cunning,
   secretAlly,
   ...head
-}: z.infer<typeof NexusCardSchema>) {
+}: Readonly<z.infer<typeof NexusCardSchema>>) {
   const effects = [
     { title: 'Betrayal', condition: `${faction || 'This faction'} is played by another player`, text: betrayal },
     { title: 'Cunning', condition: `${faction || 'This faction'} only`, text: cunning },
@@ -47,7 +47,7 @@ export function NexusCard({
 }
 
 /* Each fixed rules region fits its text after the print fonts load. */
-function NexusRules({ value }: { value: string }) {
+function NexusRules({ value }: Readonly<{ value: string }>) {
   const region = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const element = region.current;
