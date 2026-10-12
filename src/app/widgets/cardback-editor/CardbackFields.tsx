@@ -47,19 +47,6 @@ export function CardbackFields({
           />
         }
       />
-      <ControlBlock
-        title="Label size"
-        input={
-          <Slider
-            aria-label="Label size"
-            min={0.5}
-            max={2}
-            step={0.01}
-            value={cardback.nameScale ?? 1}
-            onChange={(nameScale) => onChange({ ...cardback, nameScale })}
-          />
-        }
-      />
       <BackgroundPresetControl
         title="Background"
         description="Behind the emblem."

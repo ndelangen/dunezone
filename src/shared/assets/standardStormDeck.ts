@@ -55,7 +55,6 @@ export function standardStormCard(sectors: number): z.infer<typeof StormCardAsse
 export const STANDARD_STORM_CARDS = [1, 2, 3, 4, 5, 6].map(standardStormCard);
 export const STANDARD_STORM_CARDBACK: z.infer<typeof CardBack> = {
   name: 'Storm',
-  nameScale: 1.43,
   background: { ...background, colors: ['#7A4120', '#3F200D'] },
   image: '/vector/icon/storrm_standalone.svg',
   imageScale: 0.72,

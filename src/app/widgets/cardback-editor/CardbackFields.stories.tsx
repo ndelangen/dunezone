@@ -45,11 +45,12 @@ export const Stronghold = meta.story({
   },
 });
 
-export const LegacyLabelWeight = meta.story({
-  args: { cardback: { ...GF9_STRONGHOLD_DECK.cardback, nameFont: 'C_Busorama_Bold' } },
+export const LegacyLabelSettings = meta.story({
+  args: { cardback: { ...GF9_STRONGHOLD_DECK.cardback, nameFont: 'C_Busorama_Bold', nameScale: 2 } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.queryByRole('combobox', { name: 'Label weight' })).toBeNull();
+    await expect(canvas.queryByRole('slider', { name: 'Label size' })).toBeNull();
     await expect(canvas.getByRole('textbox', { name: 'Label' })).toHaveValue('Stronghold');
   },
 });

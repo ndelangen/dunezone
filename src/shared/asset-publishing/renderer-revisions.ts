@@ -43,9 +43,9 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [STRONGHOLD_CARD_ASSET_TYPE]: 2,
   /* Revision 2 removes the extra symbol ring and matches the scanned movement and corner numeral. */
   [STORM_CARD_ASSET_TYPE]: 2,
-  /* Revision 3 paints enlarged back labels without clipping their glyphs. */
+  /* Revision 3 restores regular back labels with automatic sizing and vector emblems. */
   [DECK_ASSET_TYPE]: 3,
-  /* Revision 5 paints enlarged back labels without clipping their glyphs; saved designs are kept. */
+  /* Revision 5 restores regular back labels with automatic sizing and vector emblems; saved designs are kept. */
   'cardback-preset': 5,
   /*
    * 1: token faces join the pipeline (wayfinder #547). Activating these is also the backfill for tokens that predate them.

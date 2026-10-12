@@ -215,6 +215,7 @@ export const CardBack = z.strictObject({
   imageScale: z.number().min(0).max(2),
   background: Background,
   name: z.string(),
+  /* Accept retired label sizing in saved cards; labels now shrink automatically from their fixed size. */
   nameScale: z.number().min(0.5).max(2).optional(),
   /* Accept the retired font selection in saved cards; every label renders in regular Busorama. */
   nameFont: z.enum(['C_Busorama', 'C_Busorama_Bold']).optional(),

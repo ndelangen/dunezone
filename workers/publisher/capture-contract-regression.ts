@@ -651,19 +651,20 @@ try {
     envelope('cardback-preset', { assetId: 'storm', slug: 'storm', cardback: STANDARD_STORM_CARDBACK }),
     'shared Storm back'
   );
-  /* The original S has a lower-left curve; the open font variant leaves this region unpainted. */
-  const lowerCurve = await sharp(stormBack)
-    .extract({ left: 268, top: 1040, width: 23, height: 21 })
-    .removeAlpha()
-    .raw()
-    .toBuffer();
-  let lowerCurvePixels = 0;
-  for (let index = 0; index < lowerCurve.length; index += 3) {
-    if (lowerCurve[index]! > 170 && lowerCurve[index + 1]! > 130 && lowerCurve[index + 2]! > 50) {
-      lowerCurvePixels++;
-    }
-  }
-  invariant(lowerCurvePixels > 100, 'Storm back S must retain its complete lower curve');
+  const legacyStormBack = await checkPublisherImageCapture(
+    browser,
+    'cardback-preset',
+    envelope('cardback-preset', {
+      assetId: 'storm',
+      slug: 'storm',
+      cardback: { ...STANDARD_STORM_CARDBACK, nameScale: 2, nameFont: 'C_Busorama_Bold' },
+    }),
+    'legacy Storm back'
+  );
+  invariant(
+    (await sharp(stormBack).raw().toBuffer()).equals(await sharp(legacyStormBack).raw().toBuffer()),
+    'Retired label settings must publish the same fixed regular label'
+  );
   if (process.env.STORM_PROOF_DIRECTORY) {
     await Bun.write(path.join(process.env.STORM_PROOF_DIRECTORY, 'storm-back.png'), stormBack);
   }
