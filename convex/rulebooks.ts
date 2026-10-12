@@ -727,7 +727,7 @@ export const readerDeliveryPage = query({
         v.object({ kind: v.literal('html'), href: v.string() }),
         v.object({
           kind: v.literal('render'),
-          contents: v.any(),
+          contents: zodToConvex(rulebookEditionContentsV1Schema),
           settings: rulebookSettingsValidator,
           assetsById: resolvedAssetsValidator,
           factionsById: resolvedFactionsValidator,

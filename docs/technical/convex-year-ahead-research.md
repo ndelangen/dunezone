@@ -93,10 +93,10 @@ month's overage separately.
 | Demand reached in month twelve | First-year Starter calls/I/O total | Annualized exit rate |
 | --- | ---: | ---: |
 | 1x | $4.80 | $4.80 |
-| 3x | $14.00 | $33.87 |
-| 10x | $60.45 | $189.22 |
-| 30x | $173.25 | $633.49 |
-| 100x | $506.64 | $2,188.23 |
+| 3x | $14.00 | $33.78 |
+| 10x | $60.45 | $189.25 |
+| 30x | $173.25 | $633.46 |
+| 100x | $506.64 | $2,188.18 |
 
 The unrounded inputs, formulas and results are saved in
 [year-scenarios.json](convex-usage-research/year-scenarios.json).
