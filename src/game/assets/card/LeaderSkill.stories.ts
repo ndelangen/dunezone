@@ -138,3 +138,26 @@ export const RasterIllustration = meta.story({
     await expect(top + height).toBeLessThanOrEqual(window.bottom);
   },
 });
+
+export const FixedIdentity = meta.story({
+  args: {
+    ...GF9_LEADER_SKILLS[0]!,
+    head: { ...GF9_LEADER_SKILLS[0]!.head, colors: ['#ff0000', '#00ff00'] },
+    icon: [GF9_LEADER_SKILLS[0]!.icon[0], '/vector/icon/projectile.svg'],
+    iconScale: 2,
+    iconOffset: [80, 80],
+    iconOpacity: 0,
+    subName: 'Weapon',
+    textSize: 24,
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector(`.${leaderStyles.body}`)).toHaveStyle({ fontSize: '36px' });
+    await expect(canvasElement.querySelector('rect[fill="#6B328E"]')).not.toBeNull();
+    await expect(canvasElement.querySelector('img[src="/vector/icon/projectile.svg"]')).toBeNull();
+    await expect(canvasElement.querySelector('img[src="/vector/generic/leader-skills.svg"]')).toHaveStyle({
+      width: '85px',
+      opacity: '1',
+    });
+    await checkFit(canvasElement);
+  },
+});

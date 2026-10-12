@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { GF9_LEADER_SKILL_DECK_BACK } from '@shared/assets/gf9LeaderSkills';
 import { GF9_STRONGHOLD_DECK } from '@shared/assets/gf9StrongholdDeck';
+import { NEXUS_HEAD } from '@shared/assets/nexusTemplate';
 import { STANDARD_STORM_CARDBACK } from '@shared/assets/standardStormDeck';
 import { expect, waitFor } from 'storybook/test';
 
@@ -136,5 +137,34 @@ export const LegacyBoldLabel = meta.story({
     for (const text of canvasElement.querySelectorAll('text')) {
       await expect(getComputedStyle(text).fontFamily).toBe('C_Busorama');
     }
+  },
+});
+
+export const EmblemStaysInsideDisc = meta.story({
+  args: {
+    ...STANDARD_STORM_CARDBACK,
+    name: 'Nexus',
+    image: '/vector/icon/nexus.svg',
+    background: NEXUS_HEAD,
+    imageScale: 1.49,
+    imageOffset: [0, 9],
+  },
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    const images = Array.from(canvasElement.querySelectorAll('img'));
+    await Promise.all(images.map((image) => image.decode()));
+    const bounds = canvasElement.querySelector('img')!.parentElement!.parentElement!.getBoundingClientRect();
+    /* The oversized image covers these corners, but the circular emblem window must exclude them. */
+    await Promise.all(
+      [
+        [340, 345],
+        [560, 345],
+        [340, 565],
+        [560, 565],
+      ].flatMap(([x, y]) => {
+        const painted = document.elementsFromPoint(bounds.x + x!, bounds.y + y!);
+        return images.map((image) => expect(painted).not.toContain(image));
+      })
+    );
+    await expect(document.elementsFromPoint(bounds.x + 450, bounds.y + 455)).toContain(images[0]);
   },
 });

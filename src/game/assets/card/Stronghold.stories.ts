@@ -38,3 +38,12 @@ export const HabbanyaSietch = meta.story({ args: GF9_STRONGHOLD_CARDS[2], play: 
 export const HMSStronghold = meta.story({ args: GF9_STRONGHOLD_CARDS[3], play: checkBody });
 export const SietchTabr = meta.story({ args: GF9_STRONGHOLD_CARDS[4], play: checkBody });
 export const TueksSietch = meta.story({ args: GF9_STRONGHOLD_CARDS[5], play: checkBody });
+
+export const FixedTypography = meta.story({
+  args: { textSize: 24 },
+  play: async ({ canvasElement, args }) => {
+    const body = within(canvasElement).getByText(args.text, { exact: true }).closest('div');
+    await expect(body).toHaveStyle({ fontSize: '40px' });
+    await checkBody({ canvasElement, args });
+  },
+});

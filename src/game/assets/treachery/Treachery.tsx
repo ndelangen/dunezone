@@ -11,19 +11,10 @@ import { CardText } from '../card/CardText';
 import { FrontDecals } from '../card/Decals';
 import { useCountId } from '../utils/useCountId';
 import unique from './Treachery.module.css';
+import { treacheryStyle } from './treacheryStyle';
 
-export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
-  name,
-  decals,
-  text,
-  head,
-  icon,
-  subName,
-  iconOffset,
-  iconScale,
-  iconInvert,
-  iconOpacity,
-}) => {
+export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({ name, decals, text, head, icon, subName }) => {
+  const style = treacheryStyle({ head, subName });
   const cid = useCountId();
   const prefix = useMemo(() => `${cid}_`, [cid]);
 
@@ -40,16 +31,16 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
         </svg>
       )}
 
-      <CardHeadBackground head={head} measureParts />
+      <CardHeadBackground head={style.head} measureParts />
       <div className={styles.shape} />
       <CardHeadContents
         name={name}
         subName={subName}
-        icon={icon}
-        iconOffset={iconOffset}
-        iconScale={iconScale}
-        iconInvert={iconInvert}
-        iconOpacity={iconOpacity}
+        icon={[style.striped, icon[1]]}
+        iconOffset={[0, 0]}
+        iconScale={1}
+        iconInvert={false}
+        iconOpacity={1}
         measureParts
       />
 

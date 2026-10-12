@@ -32,24 +32,3 @@
   height: 78px;
   margin-top: 18px;
 }
-
-.title {
-  position: absolute;
-  left: 105px;
-  top: 70px;
-  color: white;
-  font:
-    66px / 86px "C_Copperplate_Gothic",
-    sans-serif;
-  opacity: 0.937;
-}
-.type {
-  position: absolute;
-  left: 103px;
-  top: 170px;
-  color: #0b0503;
-  font:
-    bold 46px / 67px "C_Trebuchet",
-    sans-serif;
-  opacity: 0.937;
-}

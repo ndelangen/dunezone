@@ -10,11 +10,18 @@ const meta = preview.meta({ component: NexusCard, globals: { viewport: { value: 
 export const Atreides = meta.story({
   play: async ({ canvasElement }) => {
     const emblems = canvasElement.querySelectorAll<HTMLImageElement>('img[src="/vector/logo/atreides.svg"]');
-    await expect(emblems).toHaveLength(1);
-    for (const emblem of emblems) {
-      await expect(getComputedStyle(emblem).mixBlendMode).toBe('normal');
-      await expect(getComputedStyle(emblem).filter).toContain('invert(1)');
-    }
+    await expect(new Set(Array.from(emblems, (emblem) => emblem.parentElement)).size).toBe(1);
+    await expect(emblems[0]).toBeVisible();
+    await expect(getComputedStyle(emblems[0]!).mixBlendMode).toBe('overlay');
+    await expect(getComputedStyle(emblems[0]!).filter).toBe('none');
+    await expect(emblems[0]!.parentElement).toHaveStyle({ width: '125px', height: '125px' });
+    const subtitle = Array.from(canvasElement.querySelectorAll('div')).find(
+      (element) => element.textContent === 'Nexus'
+    );
+    await expect(subtitle).toBeVisible();
+    await expect(canvasElement.querySelector('section')!.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      subtitle!.getBoundingClientRect().bottom
+    );
   },
 });
 export const Emperor = meta.story({ args: GF9_NEXUS_CARDS.find(({ faction }) => faction === 'Emperor')! });
@@ -39,5 +46,13 @@ export const LongEffects = meta.story({
         });
       })
     );
+  },
+});
+
+export const FixedHead = meta.story({
+  args: { head: { ...GF9_NEXUS_CARDS[0]!.head, colors: ['#ff0000', '#00ff00'] } },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('rect[fill="#073A16"]')).not.toBeNull();
+    await expect(canvasElement.querySelector('rect[fill="#ff0000"]')).toBeNull();
   },
 });

@@ -464,6 +464,24 @@ try {
     environment.PLAY_LOAD_LOCAL_ACCOUNT_SUFFIX = runId;
   }
   convex(['deploy', '--yes']);
+  /* Retain execution times and request IDs after the disposable backend is removed. */
+  start({
+    command: node,
+    args: [
+      path.join(root, 'node_modules/convex/bin/main.js'),
+      'logs',
+      '--history',
+      '10000',
+      '--success',
+      '--jsonl',
+      '--url',
+      backendUrl,
+      '--admin-key',
+      adminKey,
+    ],
+    env: localEnv,
+    logPath: path.join(evidence, 'functions.log'),
+  });
   console.log(`Synthetic Auth backend ready at ${backendUrl}; same-origin publisher ${origin}.`);
   /* Wrangler's own debug log goes to its global log directory by default, outside the evidence the artifact keeps. */
   const wranglerLog = path.join(evidence, 'wrangler.log');
