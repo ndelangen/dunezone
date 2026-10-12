@@ -1059,6 +1059,88 @@ export const seedGf9NexusDeck = internalMutation({
   },
 });
 
+/* The original import marker and untouched timestamp keep later authoring out of this correction. */
+async function correctImportedNexusAsset(
+  ctx: MutationCtx,
+  row: Doc<'assets'>,
+  replacement: unknown,
+  originalAbout: string
+): Promise<'updated' | 'unchanged' | 'preserved'> {
+  const data = parseAssetDataForWrite(row.type, replacement).data;
+  const current = parseAssetDataForWrite(row.type, row.data).data;
+  if (JSON.stringify(current) === JSON.stringify(data)) {
+    return 'unchanged';
+  }
+  if (row.updated_at !== row.created_at || row.data.about !== originalAbout) {
+    return 'preserved';
+  }
+  await ctx.db.patch(row._id, { data, updated_at: nowIso() });
+  await enqueueAssetPublication(ctx, { ...row, data });
+  return 'updated';
+}
+
+/* Corrects the supplied GF9 deck in place after release, preserving custom edits and every reference. */
+export const correctGf9NexusDeck = internalMutation({
+  args: { ownerId: v.id('users') },
+  returns: v.object({
+    deckId: v.id('assets'),
+    deckUpdated: v.boolean(),
+    deckPreserved: v.boolean(),
+    updated: v.array(v.id('assets')),
+    unchanged: v.array(v.id('assets')),
+    preserved: v.array(v.string()),
+  }),
+  handler: async (ctx, { ownerId }) => {
+    const [owner, deck] = await Promise.all([
+      ctx.db.get('users', ownerId),
+      assetSlugHolder(ctx, 'deck', 'gf9-nexus-deck'),
+    ]);
+    if (!owner || (owner.account_state ?? 'active') !== 'active') {
+      throw new ConvexError('The Nexus deck needs an active owner');
+    }
+    if (!deck || deck.is_deleted || deck.owner_id !== ownerId) {
+      throw new ConvexError('The selected owner must own GF9 Nexus Deck');
+    }
+    const members = await ctx.db
+      .query('asset_relations')
+      .withIndex('by_from_kind', (q) => q.eq('from_asset_id', deck._id).eq('kind', DECK_CARD))
+      .take(13);
+    const memberIds = new Set(members.map((member) => member.to_asset_id));
+    if (members.length !== 12 || memberIds.size !== 12) {
+      throw new ConvexError('GF9 Nexus Deck must still contain its twelve cards');
+    }
+    const results = await Promise.all(
+      GF9_NEXUS_CARDS.map(async (card) => {
+        const row = await assetSlugHolder(ctx, 'card-nexus', slugify(card.name));
+        if (!row || row.is_deleted || row.owner_id !== ownerId || !memberIds.has(row._id)) {
+          throw new ConvexError(`The ${card.name} Nexus card no longer belongs to this deck`);
+        }
+        const status = await correctImportedNexusAsset(
+          ctx,
+          row,
+          card,
+          'GF9 Ecaz & Moritani Nexus card. Rules paraphrased from the printed card. Reference: https://boardgamegeek.com/image/7767032/dune-ecaz-and-moritani'
+        );
+        return { id: row._id, name: card.name, status };
+      })
+    );
+    const deckStatus = await correctImportedNexusAsset(
+      ctx,
+      deck,
+      GF9_NEXUS_DECK,
+      "The twelve Nexus cards from GF9's Ecaz & Moritani expansion, one of each faction. Rules follow the printed deck. Card artwork is recreated for Dune Zone."
+    );
+    return {
+      deckId: deck._id,
+      deckUpdated: deckStatus === 'updated',
+      deckPreserved: deckStatus === 'preserved',
+      updated: results.filter((result) => result.status === 'updated').map((result) => result.id),
+      unchanged: results.filter((result) => result.status === 'unchanged').map((result) => result.id),
+      preserved: results.filter((result) => result.status === 'preserved').map((result) => result.name),
+    };
+  },
+});
+
 async function preservedStandardStormDeck(ctx: MutationCtx, existing: Doc<'assets'>, ownerId: Id<'users'>) {
   if (existing.owner_id !== ownerId || existing.is_deleted) {
     throw new ConvexError('The Standard Storm Deck address is already reserved');

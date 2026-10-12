@@ -8,6 +8,7 @@ import { cardTitleFontSize } from './cardTitleFontSize';
 
 type HeadProps = z.infer<typeof CardHead> & {
   measureParts?: boolean;
+  iconTreatment?: 'shaded' | 'printed';
 };
 
 /** Draws the shared Head background underneath the card's printed frame. */
@@ -30,13 +31,14 @@ export function CardHeadContents({
   iconInvert = false,
   iconOpacity = 1,
   measureParts = false,
+  iconTreatment = 'shaded',
 }: Omit<HeadProps, 'head'>) {
   const iconSize = 85 * iconScale;
   const titleSize = cardTitleFontSize(name);
   return (
     <>
       <BackgroundRenderer
-        className={styles.symbol}
+        className={`${styles.symbol} ${iconTreatment === 'printed' ? styles.printedSymbol : ''}`}
         background={icon[0]}
         componentPart={measureParts ? 'icon' : undefined}
       >
@@ -53,20 +55,22 @@ export function CardHeadContents({
             opacity: iconOpacity,
           }}
         />
-        <img
-          alt=""
-          src={icon[1]}
-          className={styles.symbolShade}
-          style={{
-            marginLeft: iconOffset[0],
-            marginTop: iconOffset[1],
-            width: iconSize,
-            height: iconSize,
-            top: (125 - iconSize) / 2,
-            left: (125 - iconSize) / 2,
-            opacity: 0.5 * iconOpacity,
-          }}
-        />
+        {iconTreatment === 'shaded' ? (
+          <img
+            alt=""
+            src={icon[1]}
+            className={styles.symbolShade}
+            style={{
+              marginLeft: iconOffset[0],
+              marginTop: iconOffset[1],
+              width: iconSize,
+              height: iconSize,
+              top: (125 - iconSize) / 2,
+              left: (125 - iconSize) / 2,
+              opacity: 0.5 * iconOpacity,
+            }}
+          />
+        ) : null}
       </BackgroundRenderer>
       <div
         className={styles.title}

@@ -37,7 +37,7 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [CUSTOM_CARD_ASSET_TYPE]: 1,
   /* Revision 2 fits illustrations to their painted bounds in the leader skill window. */
   [LEADER_SKILL_ASSET_TYPE]: 2,
-  [NEXUS_CARD_ASSET_TYPE]: 1,
+  [NEXUS_CARD_ASSET_TYPE]: 2,
   /* Revision 2 uses the supplied palace emblem, original raster illustrations and single-line titles. */
   [STRONGHOLD_CARD_ASSET_TYPE]: 2,
   /* Revision 2 removes the extra symbol ring and matches the scanned movement and corner numeral. */

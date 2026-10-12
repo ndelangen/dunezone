@@ -1,4 +1,5 @@
 import { Stack, TextInput } from '@mantine/core';
+import { GF9_NEXUS_CARDS } from '@shared/assets/gf9Nexus';
 import type { NexusCardAsset } from '@shared/assets/schema';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -39,7 +40,7 @@ export const INITIAL_NEXUS_DRAFT: NexusDraft = {
   faction: '',
   factionSymbol: { image: '/vector/logo/atreides.svg', background: backgroundPresets.atreides },
   head: backgroundPresets.nexus,
-  icon: [backgroundPresets.nexus, '/vector/icon/alliance.svg'],
+  icon: [backgroundPresets.atreides, '/vector/logo/atreides.svg'],
   betrayal: '',
   cunning: '',
   secretAlly: '',
@@ -51,7 +52,7 @@ export function nexusDraftWarnings(draft: NexusDraft): { source: string; missing
     warnings.push({ source: 'Head', missing: 'a name', chapter: 'head' });
   }
   if (!draft.faction.trim()) {
-    warnings.push({ source: 'Effects', missing: 'a faction', chapter: 'faction' });
+    warnings.push({ source: 'Faction', missing: 'a faction', chapter: 'faction' });
   }
   for (const [key, label] of [
     ['betrayal', 'Betrayal'],
@@ -72,22 +73,11 @@ type FactionFieldsProps = Readonly<{
   remember: (update: Partial<NexusMemory>) => void;
 }>;
 
-const FACTION_BACKGROUND_PRESETS = (
-  [
-    ['atreides', 'Atreides'],
-    ['beneGesserit', 'Bene Gesserit'],
-    ['beneTleilaxu', 'Tleilaxu'],
-    ['choam', 'CHOAM'],
-    ['ecaz', 'Ecaz'],
-    ['emperor', 'Emperor'],
-    ['fremen', 'Fremen'],
-    ['guild', 'Spacing Guild'],
-    ['harkonnen', 'Harkonnen'],
-    ['ixian', 'Ixians'],
-    ['moritani', 'Moritani'],
-    ['richese', 'Richese'],
-  ] as const
-).map(([key, label]) => ({ key, label, background: backgroundPresets[key] }));
+const FACTION_BACKGROUND_PRESETS = GF9_NEXUS_CARDS.map(({ faction, factionSymbol }) => ({
+  key: faction,
+  label: faction,
+  background: factionSymbol.background,
+}));
 
 function FactionFields({ draft, patch, memory, remember }: FactionFieldsProps) {
   return (
@@ -106,7 +96,7 @@ function FactionFields({ draft, patch, memory, remember }: FactionFieldsProps) {
       />
       <ControlBlock
         title="Faction symbol"
-        description="The emblem beside Secret Ally."
+        description="The same faction emblem appears in the head and beside Secret Ally."
         input={
           <AssetSelect
             aria-label="Faction symbol"
@@ -191,7 +181,7 @@ export function NexusCardEditor({
                     striped: backgroundPresets.nexus,
                   },
                 ],
-              }),
+              }).filter(({ value }) => value === 'head'),
               {
                 value: 'faction',
                 label: 'Faction',

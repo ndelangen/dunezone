@@ -72,6 +72,9 @@
   mix-blend-mode: overlay;
   flex-shrink: 0;
 }
+.printedSymbol .symbolOverlay {
+  mix-blend-mode: normal;
+}
 .symbolShade {
   width: 85px;
   height: 85px;

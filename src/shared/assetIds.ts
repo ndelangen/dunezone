@@ -825,6 +825,7 @@ export const ICON = z.enum([
   '/vector/icon/landscape.svg',
   '/vector/icon/lightning.svg',
   '/vector/icon/mentat.svg',
+  '/vector/icon/nexus.svg',
   '/vector/icon/ornithopter.svg',
   '/vector/icon/poison.svg',
   '/vector/icon/projectile.svg',

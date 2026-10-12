@@ -10500,5 +10500,11 @@
     "tags": ["GF9", "stronghold", "original", "tuek"],
     "subjects": ["places"],
     "sourceHash": "f2aba8407998eac399338de5c309611c87dbccfdafd946859665bb6c1a0cdf38"
+  },
+  "/vector/icon/nexus.svg": {
+    "description": "Four inward arms around the central opening of the Nexus card emblem.",
+    "tags": ["nexus", "card", "emblem"],
+    "subjects": ["symbols"],
+    "sourceHash": "c516aeb354e81fee4ec46bf4851c14b0e78bcd64fbeee3b8004b20d3aee997de"
   }
 }

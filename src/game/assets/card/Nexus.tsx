@@ -1,5 +1,6 @@
 import type { NexusCard as NexusCardSchema } from '@shared/assets/schema';
 import { useLayoutEffect, useRef } from 'react';
+import type { RefObject } from 'react';
 import type { z } from 'zod';
 
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
@@ -7,48 +8,66 @@ import { CardText } from './CardText';
 import { CustomCard } from './Custom';
 import styles from './Nexus.module.css';
 
-/** Draws the custom-card frame with the three fixed Nexus effects. */
+/** Draws the three constrained effects in the printed Nexus template. */
 export function NexusCard({
+  name,
+  head,
   faction,
   factionSymbol,
   betrayal,
   cunning,
   secretAlly,
-  ...head
 }: Readonly<z.infer<typeof NexusCardSchema>>) {
+  const region = useRef<HTMLDivElement>(null);
+  useNexusFit(region, JSON.stringify([betrayal, cunning, secretAlly, faction]));
+  const adjective = faction === 'Ixians' ? 'Ixian' : faction || 'faction';
+  const article = /^[aeiou]/i.test(adjective) ? 'an' : 'a';
+  const secretCondition = faction
+    ? `If ${faction === 'CHOAM' ? '' : 'the '}${faction} ${faction === 'Emperor' ? 'is' : 'are'} not in the game`
+    : 'If this faction is not in the game';
   const effects = [
-    { title: 'Betrayal', condition: `${faction || 'This faction'} is played by another player`, text: betrayal },
-    { title: 'Cunning', condition: `${faction || 'This faction'} only`, text: cunning },
-    { title: 'Secret Ally', condition: `${faction || 'This faction'} is not in the game`, text: secretAlly },
+    { title: 'Betrayal', condition: `Cancel ${article} ${adjective} advantage`, text: betrayal },
+    { title: 'Cunning', condition: `${faction || 'Faction'} Only`, text: cunning },
+    { title: 'Secret Ally', condition: secretCondition, text: secretAlly },
   ];
   return (
     <div className={styles.card}>
-      <CustomCard {...head} format="plain" layers={[]} />
-      <div className={styles.effects}>
-        {effects.map(({ title, condition, text }) => (
-          <section
-            key={title}
-            className={`${styles.effect} ${title === 'Secret Ally' ? styles.secret : ''}`}
-            aria-label={title}
-          >
-            {title === 'Secret Ally' ? (
-              <BackgroundRenderer className={styles.factionSymbol} background={factionSymbol.background}>
-                <img src={factionSymbol.image} alt="" />
-              </BackgroundRenderer>
-            ) : null}
-            <div className={styles.heading}>{title}</div>
-            <div className={styles.condition}>{condition}</div>
-            <NexusRules value={text} />
-          </section>
-        ))}
+      <CustomCard
+        name={name}
+        subName=""
+        head={head}
+        icon={[factionSymbol.background, factionSymbol.image]}
+        iconInvert
+        iconTreatment="printed"
+        format="plain"
+        layers={[]}
+      />
+      <div className={styles.reference}>
+        <div ref={region} className={styles.effects}>
+          {effects.map(({ title, condition, text }) => (
+            <section
+              key={title}
+              className={`${styles.effect} ${title === 'Secret Ally' ? styles.secret : ''}`}
+              aria-label={title}
+            >
+              {title === 'Secret Ally' ? (
+                <BackgroundRenderer className={styles.factionSymbol} background={factionSymbol.background}>
+                  <img src={factionSymbol.image} alt="" />
+                </BackgroundRenderer>
+              ) : null}
+              <div className={styles.heading}>{title}</div>
+              <div className={styles.condition}>{condition}</div>
+              <CardText className={styles.rules} value={text} />
+            </section>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-/* Each fixed rules region fits its text after the print fonts load. */
-function NexusRules({ value }: Readonly<{ value: string }>) {
-  const region = useRef<HTMLDivElement>(null);
+/* The effects share one type size, with natural section heights and the Secret Ally anchored at the foot. */
+function useNexusFit(region: RefObject<HTMLDivElement | null>, content: string) {
   useLayoutEffect(() => {
     const element = region.current;
     if (!element) {
@@ -59,9 +78,15 @@ function NexusRules({ value }: Readonly<{ value: string }>) {
       if (!active) {
         return;
       }
-      for (let size = 32; size >= 14; size--) {
+      for (let size = 36; size >= 12; size--) {
         element.style.fontSize = `${size}px`;
-        if (element.scrollHeight <= element.clientHeight + 1 && element.scrollWidth <= element.clientWidth + 1) {
+        if (
+          element.scrollHeight <= element.clientHeight &&
+          Array.from(element.querySelectorAll('section')).every((section) => {
+            const rules = section.lastElementChild as HTMLElement;
+            return rules.scrollWidth <= rules.clientWidth + 1;
+          })
+        ) {
           break;
         }
       }
@@ -74,6 +99,5 @@ function NexusRules({ value }: Readonly<{ value: string }>) {
       active = false;
       observer.disconnect();
     };
-  }, [value]);
-  return <CardText ref={region} className={styles.rules} value={value} />;
+  }, [region, content]);
 }

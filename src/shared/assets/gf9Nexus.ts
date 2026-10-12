@@ -1,170 +1,188 @@
 import type { z } from 'zod';
 
+import { NEXUS_HEAD } from './nexusTemplate';
 import type { DeckAsset, NexusCardAsset } from './schema';
 
-/* Rules paraphrased from the twelve printed cards in GF9's Ecaz & Moritani expansion.
- * Reference photograph: https://boardgamegeek.com/image/7767032/dune-ecaz-and-moritani.
- * The faction names and conditions follow the printed deck, without tournament additions.
+/* These rules follow the twelve 2022 GF9 card scans supplied for the Nexus correction.
+ * Fremen grants three free revivals, and Richese repeats the Ixians Secret Ally in these scans.
  */
 const effects = [
   {
     faction: 'Atreides',
     symbol: 'atreides',
-    colors: ['#4B4C0D', '#262B04'],
-    betrayal: 'In a battle against Atreides, cancel their ability to see one element of your battle plan.',
-    cunning: 'In battle, require your opponent to reveal a second element of their battle plan.',
+    colors: ['#586721', '#263C10'],
+    betrayal: 'Prevent the Atreides Battle advantage of seeing one element of any Battle Plan.',
+    cunning: 'Force your opponent to show you a second element of their Battle Plan.',
     secretAlly:
-      'In battle, require your opponent to reveal one element you choose: leader, weapon, defense or number dialed.',
+      'During a battle, force your opponent to reveal your choice of one element of their Battle Plan: leader, weapon, defense, or number dialed.',
   },
   {
     faction: 'Bene Gesserit',
     symbol: 'bene-gesserit',
-    colors: ['#3A4491', '#101D65'],
-    betrayal: 'In a battle against Bene Gesserit, prevent them from using Voice.',
+    colors: ['#254F83', '#13294D'],
+    betrayal: 'Prevent the Bene Gesserit from using their Voice advantage.',
     cunning:
-      'During Shipping and Movement, flip any or all of your advisor groups to fighters. All your forces in a territory must be the same type.',
-    secretAlly: 'In battle, use Voice to require your opponent to play, or not play, a type of Treachery card.',
+      'You may flip any or all groups of your advisors to fighters during your turn in the Shipping and Movement phase (all forces in a territory must end up the same type).',
+    secretAlly:
+      'During a battle, you may use the Bene Gesserit Voice advantage of forcing your opponent to play or not play a Treachery Card.',
   },
   {
     faction: 'CHOAM',
     symbol: 'choam',
-    colors: ['#B48A23', '#5C4512'],
-    betrayal: 'Force CHOAM to discard a random Treachery card. They receive no spice for the discard.',
-    cunning: 'Discard any Treachery card to use the special effect of a Worthless card.',
+    colors: ['#EB0220', '#252527'],
+    betrayal: 'Force CHOAM to discard a card at random from their hand, and gain no spice for it.',
+    cunning: 'You may discard any Treachery Card to use any Worthless Card special effect.',
     secretAlly:
-      'During Spice Collection, discard a Worthless card to gain 2 spice. Or, after winning a battle, inspect a random Treachery card your opponent did not use in that battle.',
+      "You may either discard a Worthless Card and gain 2 spice during Spice Collection, or after winning a battle, you may look at a random card in your opponent's hand (not used in battle).",
   },
   {
     faction: 'Ecaz',
     symbol: 'ecaz',
-    colors: ['#496650', '#173A21'],
+    colors: ['#7F3D81', '#581858'],
     betrayal:
-      "Before Shipping and Movement, if Ecaz and their ally share a territory, return the ally's forces in one such territory to their reserves.",
+      "Any time before Shipping and Movement, if Ecaz and their ally both have forces in a territory, force the Ecaz ally to return their forces (from one territory that contains both factions' forces) to their reserves.",
     cunning:
-      'Take Duke Vidal for this turn, even if he is captured, in the tanks, a ghola or held by Moritani. Set him aside at the end of the turn.',
+      'Gain Duke Vidal for this turn (even if he is captured, in the Tanks, or a ghola, overriding Moritani). At the end of this turn, set him aside normally.',
     secretAlly:
-      'Choose a player. They must publicly say whether they hold any of your leaders as traitors, without saying which leaders.',
+      'Force one player to reveal whether or not they have any of your leaders as Traitors (though not which leaders).',
   },
   {
     faction: 'Emperor',
     symbol: 'emperor',
-    colors: ['#A40008', '#8D0006'],
+    colors: ['#A82012', '#651808'],
     betrayal:
-      'During Bidding, make the Emperor pay for a card bought by their ally, if they have enough spice. Or cancel the Sardaukar advantage in a battle against them.',
+      "Force the Emperor to pay for their ally's Treachery Card during Bidding (at least as much spice as necessary) or, while making Battle Plans, prevent the Emperor from using their Sardaukar advantage.",
     cunning:
-      'Before making your battle plan, count 5 of your forces as Sardaukar if you have no Sardaukar in that battle.',
+      'Before formulating your Battle Plan, you may count 5 of your forces as Sardaukar if you have none in that battle.',
     secretAlly:
-      'Keep the spice you would pay for a Treachery card, after showing you can afford it. Or revive 3 extra forces for free, beyond your normal revival limits.',
+      'Keep your spice when buying a Treachery Card (you must show that you have the amount you would have paid) or, revive 3 additional forces beyond Revival limits during Revival for free.',
   },
   {
     faction: 'Fremen',
     symbol: 'fremen',
-    colors: ['#F6A834', '#CF7317'],
+    colors: ['#D3961B', '#946013'],
     betrayal:
-      'Prevent the Fremen from riding a sandworm this turn. Or prevent their two-territory movement during Shipping and Movement.',
+      "Prevent Fremen from 'riding the worm' this turn, or prevent Fremen from moving 2 territories during Shipping and Movement.",
     cunning:
-      'When a sandworm appears in an empty territory, let one group of your forces in a desert territory ride it, subject to occupancy limits.',
-    secretAlly: 'Prevent your forces from being devoured by a sandworm. Or revive 4 of your forces for free.',
+      "If a sandworm appears in a territory with no forces, any forces you have in one desert territory may 'ride the worm' to any territory subject to storm and occupancy rules.",
+    secretAlly:
+      'You may either avoid losing forces to a sandworm, or revive a total of 3 of your forces for free during Revival.',
   },
   {
     faction: 'Harkonnen',
     symbol: 'harkonnen',
-    colors: ['#191311', '#000000'],
+    colors: ['#211F1C', '#050504'],
     betrayal:
-      'Cancel a traitor revealed by Harkonnen and shuffle it into the Traitor deck. Harkonnen draws a replacement during the Mentat Pause.',
+      'Cancel a revealed Harkonnen traitor. Shuffle the traitor into the Traitor Deck, and then the Harkonnen player draws a new Traitor Card during the Mentat Pause.',
     cunning:
-      'Draw a Traitor card, then secretly choose one of your Traitor cards and shuffle it into the Traitor deck.',
+      'Draw a Traitor Card and add it to your hand at any time. Then secretly shuffle any one of your Traitor Cards back into the Traitor Deck.',
     secretAlly:
-      'During the Mentat Pause, draw 2 Traitor cards and add them to your hand. Then secretly choose 2 of your Traitor cards and shuffle them into the Traitor deck.',
+      'During the Mentat Pause, draw two Traitor Cards and add them to your hand. Then shuffle two Traitor Cards you hold back into the Traitor deck.',
   },
   {
     faction: 'Ixians',
     symbol: 'ixian',
-    colors: ['#D4BE6B', '#A88E2A'],
-    betrayal: 'Prevent the Ixians from using their Bidding advantage or their Technology advantage, but not both.',
+    colors: ['#B6B568', '#666836'],
+    betrayal: 'Prevent Ixians from using either their Bidding advantage or their Technology advantage (but not both).',
     cunning:
-      'Before making your battle plan, count all your suboids at full strength, without paying spice, in every battle this turn.',
+      'Before formulating your Battle Plan, you may count all of your Suboids in all battles this turn as counting full strength (without needing to support them with spice).',
     secretAlly:
-      'During Bidding, you may discard a Treachery card you just bought and draw the top card of the Treachery deck instead.',
+      'You may discard a Treachery Card you just purchased during Bidding and then draw the top card of the Treachery deck.',
   },
   {
     faction: 'Moritani',
     symbol: 'moritani',
-    colors: ['#0B4D64', '#05333D'],
-    betrayal: 'Remove one terror token from the board and return it to Moritani without revealing it.',
+    colors: ['#1F6C78', '#073D48'],
+    betrayal: 'Remove a Terror token from the board, returning it to Moritani. It is not revealed.',
     cunning:
-      'When placing a terror token, you may place it in any Arrakis territory, including one that already contains a terror token.',
+      'When you place a Terror token, it may be placed in any territory on Arrakis, even one that already has a Terror token.',
     secretAlly:
-      'After losing a battle with a winner, keep one Treachery card you played that you could have kept if you had won.',
+      'When you lose a battle that had a winner, keep one Treachery Card you played in the battle you would have been able to keep had you won.',
   },
   {
     faction: 'Richese',
     symbol: 'richese',
-    colors: ['#A6AFB5', '#50616B'],
+    colors: ['#A39F8A', '#686652'],
     betrayal:
-      'Discard a Richese Treachery card they were going to buy; no spice is paid. Or send the spice from a Richese weapon-card sale to the Spice Bank instead of Richese.',
+      'Force Richese to discard a Richese Treachery Card they were going to buy (it is discarded and no spice is paid), or prevent Richese from receiving payment on a card they sell (spice goes to the Spice Bank).',
     cunning:
-      'Use 2 no-fields for a single shipment, which counts as one shipment. Reveal one immediately and put that no-field in front of your shield.',
+      'You may use 2 No-Field tokens for a single shipment (still counting it as shipping 1 force). Reveal one token immediately, to place in front of your shield.',
     secretAlly:
-      'Instead of your normal shipment, ship up to 5 forces from your reserves for the cost of shipping 1 force.',
+      'You may discard a Treachery Card you just purchased during Bidding and then draw the top card of the Treachery deck.',
   },
   {
     faction: 'Spacing Guild',
     symbol: 'guild',
-    colors: ['#D83C13', '#B41C0C'],
+    colors: ['#C95717', '#8C2D08'],
     betrayal:
-      "Take the full payment for one shipment, including your own, that would go to the Guild or Spice Bank. This overrides Junction's shipment income.",
+      'Gain any one payment in full for Shipping that would have gone to either the Spacing Guild or the Spice Bank, even your own. This overrides collection from a faction occupying Junction.',
     cunning:
-      'Make a second shipment immediately after Shipping and Movement. You cannot move those forces unless you use Hajr.',
+      'You may make a second Shipment immediately after performing your Shipment and Movement. The second Shipment does not get to move unless you play Hajr.',
     secretAlly:
-      'Use Guild shipment rates. As your shipping action, you may ship between territories or return forces to your reserves.',
+      'Your shipment is at Guild rates, and you may also ship cross-planet or back to your reserves as your Shipping action.',
   },
   {
     faction: 'Tleilaxu',
     symbol: 'bene-tleilaxu',
-    colors: ['#6E008F', '#2D006B'],
-    betrayal: 'Cancel a revealed Face Dancer. It stays revealed until all Face Dancers have been revealed.',
+    colors: ['#622B82', '#341547'],
+    betrayal:
+      'Cancel a revealed Face Dancer. It remains revealed until Tleilaxu have revealed all of their Face Dancers.',
     cunning:
-      'Set aside all revealed Face Dancers and secretly draw replacements. Then shuffle the set-aside cards back into the Traitor deck.',
-    secretAlly: 'During Revival, revive one of your leaders for free and up to 5 of your forces for 1 spice each.',
+      'Set aside all revealed Face Dancers. Secretly draw replacements and then shuffle the set-aside Face Dancers into the Traitor deck.',
+    secretAlly: 'Revive one of your leaders for free and up to 5 of your forces for 1 spice each during Revival.',
   },
 ] as const;
 
-const head = {
-  image: '/image/texture/082.jpg',
-  colors: ['#264C43', '#15352E'],
-  influence: 0.5,
-  invert: false,
-  definition: 1,
-} as const;
-
 export const GF9_NEXUS_CARDS: readonly z.infer<typeof NexusCardAsset>[] = effects.map(
-  ({ faction, symbol, colors, ...rules }) => ({
-    name: faction,
-    faction,
-    subName: 'Nexus',
-    about:
-      'GF9 Ecaz & Moritani Nexus card. Rules paraphrased from the printed card. Reference: https://boardgamegeek.com/image/7767032/dune-ecaz-and-moritani',
-    head: { ...head, colors: [...head.colors] },
-    icon: [{ ...head, colors: [...head.colors] }, '/vector/icon/alliance.svg'],
-    factionSymbol: {
-      image: `/vector/logo/${symbol}.svg` as z.infer<typeof NexusCardAsset>['factionSymbol']['image'],
-      background: { ...head, colors: [...colors] },
-    },
-    ...rules,
-  })
+  ({ faction, symbol, colors, ...rules }) => {
+    const image = `/vector/logo/${symbol}.svg` as z.infer<typeof NexusCardAsset>['factionSymbol']['image'];
+    const background: z.infer<typeof NexusCardAsset>['head'] = {
+      ...NEXUS_HEAD,
+      colors:
+        faction === 'CHOAM'
+          ? [
+              {
+                type: 'linear',
+                angle: 270,
+                stops: [
+                  ['#EB0220', 0.5],
+                  ['#252527', 0.5],
+                ],
+              },
+              {
+                type: 'linear',
+                angle: 270,
+                stops: [
+                  ['#B90010', 0.5],
+                  ['#0C0C0C', 0.5],
+                ],
+              },
+            ]
+          : [...colors],
+    };
+    return {
+      name: faction,
+      faction,
+      subName: 'Nexus',
+      about: 'GF9 Ecaz & Moritani Nexus card. Rules transcribed from the supplied 2022 original.',
+      head: { ...NEXUS_HEAD, colors: [...NEXUS_HEAD.colors] },
+      icon: [background, image],
+      factionSymbol: { image, background },
+      ...rules,
+    };
+  }
 );
 
 export const GF9_NEXUS_DECK: z.infer<typeof DeckAsset> = {
   name: 'GF9 Nexus Deck',
   about:
-    "The twelve Nexus cards from GF9's Ecaz & Moritani expansion, one of each faction. Rules follow the printed deck. Card artwork is recreated for Dune Zone.",
+    "The twelve Nexus cards from GF9's Ecaz & Moritani expansion, one of each faction. Rules follow the supplied 2022 cards. The custom Nexus back is recreated for Dune Zone.",
   cardback: {
     mode: 'custom',
     name: 'Nexus',
-    image: '/vector/icon/alliance.svg',
+    image: '/vector/icon/nexus.svg',
     imageOffset: [0, 0],
     imageScale: 0.55,
-    background: { ...head, colors: [...head.colors] },
+    background: { ...NEXUS_HEAD, colors: [...NEXUS_HEAD.colors] },
   },
 };

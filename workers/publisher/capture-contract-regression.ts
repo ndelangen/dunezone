@@ -490,15 +490,23 @@ async function checkPublisherImageCapture(
             contentHeight: rules.scrollHeight,
             width: rules.clientWidth,
             contentWidth: rules.scrollWidth,
+            bottom: section.getBoundingClientRect().bottom,
+            top: section.getBoundingClientRect().top,
+            availableBottom: section.parentElement!.getBoundingClientRect().bottom,
           };
         })
       );
       invariant(regions.length === 3, 'Nexus capture must contain its three effects');
       invariant(
         regions.every(
-          ({ height, contentHeight, width, contentWidth }) => contentHeight <= height + 1 && contentWidth <= width + 1
+          ({ height, contentHeight, width, contentWidth, top, bottom, availableBottom }) =>
+            contentHeight <= height + 1 &&
+            contentWidth <= width + 1 &&
+            top >= 0 &&
+            bottom <= availableBottom + 1 &&
+            bottom <= capture.heightPx
         ),
-        'Nexus effect text must fit its printed region'
+        `Nexus effect text must fit its printed region: ${JSON.stringify(regions)}`
       );
     }
     if (isComponentAssetType(assetType)) {
