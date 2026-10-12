@@ -367,4 +367,7 @@ The [editor audit](rulebook-editor-performance-research.md) records Page-oriente
 opportunities without changing the editor. The continued research covers
 [next savings](convex-next-savings-research.md) and
 [year-ahead costs and growth assumptions](convex-year-ahead-research.md).
+The [LiveStore assessment](livestore-convex-research.md) revisits the incomplete
+August investigation, checks current Cloudflare support and separates a local
+editor experiment from replacing authoritative application data.
 No plan or hosting change has been made.

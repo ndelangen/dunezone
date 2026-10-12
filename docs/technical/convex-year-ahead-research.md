@@ -165,6 +165,16 @@ usage and a guessed growth multiplier do not establish that it saves money or
 engineering time. A migration also replaces auth, authorization, transactions,
 live query invalidation, publication coordination and operational tooling.
 
+LiveStore has a supported Cloudflare sync backend and a server-side Durable Object
+adapter. Its strongest candidate here is persistent local Rulebook authoring.
+Small edit events could reduce repeated draft transfers, while retained history
+and fresh-client replay create new growth costs. A whole-store sync does not become
+Page-only because the editor queries one Page. The
+[LiveStore assessment](livestore-convex-research.md) gives an editor experiment,
+permissions and publication requirements, and a year of illustrative event growth.
+It supplies no measured replacement bill. At the 10x Convex scenario, cost alone
+still does not justify a full migration.
+
 ## Measurements that make the next decision defensible
 
 Record daily team totals and per-function attribution around the reader release,
