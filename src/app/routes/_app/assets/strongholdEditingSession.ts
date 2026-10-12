@@ -1,5 +1,6 @@
 import { StrongholdCardAssetInput } from '@shared/assets/schema';
 
+import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import type { StrongholdDraft } from '@app/widgets/card-editor/StrongholdCardEditor';
 
 export type StrongholdEditingState = { data: StrongholdDraft; baseline: StrongholdDraft };
@@ -27,7 +28,7 @@ export function savedStronghold(state: StrongholdEditingState, data: StrongholdD
 export function strongholdEditingStatus(state: StrongholdEditingState) {
   const validation = StrongholdCardAssetInput.safeParse(state.data);
   return {
-    validation,
+    payload: validation.success ? postedPayload(StrongholdCardAssetInput, state.data) : undefined,
     invalid: validation.success ? undefined : validation.error.issues[0]?.message,
     isDirty: JSON.stringify(state.data) !== JSON.stringify(state.baseline),
   };

@@ -1,7 +1,6 @@
 import { useReducer, useState } from 'react';
 
 import type { AssetPageData } from '@app/db/assets';
-import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { StrongholdCardEditor, strongholdDraftWarnings } from '@app/widgets/card-editor/StrongholdCardEditor';
 import type { StrongholdChapter, StrongholdDraft } from '@app/widgets/card-editor/StrongholdCardEditor';
@@ -61,14 +60,12 @@ function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessi
     warnings: [...strongholdDraftWarnings(state.data)],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
-  const { validation, invalid, isDirty } = strongholdEditingStatus(state);
+  const { payload, invalid, isDirty } = strongholdEditingStatus(state);
 
   const save = () => {
-    if (!validation.success) {
-      return;
+    if (payload) {
+      saving.save(payload, () => dispatch({ kind: 'saved', data: payload }));
     }
-    const payload = postedPayload(StrongholdCardAssetInput, state.data);
-    saving.save(payload, () => dispatch({ kind: 'saved', data: payload }));
   };
 
   return (

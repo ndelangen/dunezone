@@ -1,6 +1,5 @@
 import { useReducer, useState } from 'react';
 
-import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   INITIAL_STRONGHOLD_DRAFT,
@@ -48,15 +47,7 @@ export function StrongholdCreatePage() {
     warnings: [...strongholdDraftWarnings(state.data)],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
-  const { validation, invalid, isDirty } = strongholdEditingStatus(state);
-
-  const save = () => {
-    if (!validation.success) {
-      return;
-    }
-    const payload = postedPayload(StrongholdCardAssetInput, state.data);
-    saving.save(payload, () => dispatch({ kind: 'saved', data: payload }));
-  };
+  const { payload, invalid, isDirty } = strongholdEditingStatus(state);
 
   return (
     <CardCreateFrame
@@ -64,7 +55,11 @@ export function StrongholdCreatePage() {
       title="New stronghold card"
       headerSlot={header.slot}
       status={{ isDirty, isNameBlank: !state.data.name.trim(), saveState: saving.saveState, invalid }}
-      onSave={save}
+      onSave={() => {
+        if (payload) {
+          saving.save(payload, () => dispatch({ kind: 'saved', data: payload }));
+        }
+      }}
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
       load={{
         schema: StrongholdCardAssetInput,
