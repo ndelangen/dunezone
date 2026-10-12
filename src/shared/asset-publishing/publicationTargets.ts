@@ -29,6 +29,7 @@ export const PUBLICATION_ASSET_TYPES = [
   'card-spice',
   'card-custom',
   'card-leaderability',
+  'card-nexus',
   'card-stronghold',
   'card-storm',
   'board',
@@ -177,6 +178,7 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
   'card-leaderability': cardTarget('leader-skill-cards', 'card.jpg', 'leader-skill-card.jpg'),
   'card-stronghold': cardTarget('stronghold-cards', 'card.jpg', 'stronghold-card.jpg'),
   'card-custom': cardTarget('custom-cards', 'card.jpg', 'custom-card.jpg'),
+  'card-nexus': cardTarget('nexus-cards', 'card.jpg', 'nexus-card.jpg'),
   'card-storm': cardTarget('storm-cards', 'card.jpg', 'storm-card.jpg'),
   'card-spice': cardTarget('spice-cards', 'card.jpg', 'spice-card.jpg'),
   /*

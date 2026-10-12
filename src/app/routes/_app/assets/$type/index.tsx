@@ -1,5 +1,6 @@
 import { Select, Stack, Text, Title } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import type { AssetTypeDefinition } from '@shared/assets/types';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
 import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -57,7 +58,7 @@ function AssetTypePage() {
   const navigate = useNavigate();
   const loaderData = Route.useLoaderData();
   const validType = isAssetType(type) ? type : 'card-treachery';
-  const definition = ASSET_TYPES[validType];
+  const definition: AssetTypeDefinition = ASSET_TYPES[validType];
   const page = useAssetBrowsePage(validType, { initialData: loaderData });
   const data = page.data ?? loaderData;
   /*

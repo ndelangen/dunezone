@@ -17,6 +17,7 @@ import { BoardMap } from '@game/assets/board/Board';
 import { CardBack } from '@game/assets/card/Back';
 import { CustomCard } from '@game/assets/card/Custom';
 import { LeaderSkillCard } from '@game/assets/card/LeaderSkill';
+import { NexusCard } from '@game/assets/card/Nexus';
 import { SpiceCard } from '@game/assets/card/Spice';
 import { StormCard } from '@game/assets/card/Storm';
 import { StrongholdCard } from '@game/assets/card/Stronghold';
@@ -100,6 +101,8 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
       return printedImage(snapshot.assetType, <LeaderSkillCard {...snapshot.payload.card} />);
     case 'card-treachery':
       return printedImage(snapshot.assetType, <TreacheryCard {...snapshot.payload.card} />);
+    case 'card-nexus':
+      return printedImage(snapshot.assetType, <NexusCard {...snapshot.payload.card} />);
     case 'card-stronghold':
       return printedImage(snapshot.assetType, <StrongholdCard {...snapshot.payload.card} />);
     case 'card-custom':

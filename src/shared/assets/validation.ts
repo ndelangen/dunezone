@@ -4,6 +4,7 @@ import {
   BundleAssetInput,
   CustomCardAssetInput,
   LeaderSkillAssetInput,
+  NexusCardAssetInput,
   DeckAssetInput,
   RectangleTokenAssetInput,
   SpiceAssetInput,
@@ -39,6 +40,10 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
     }
     case 'card-leaderability': {
       const parsed = LeaderSkillAssetInput.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
+    case 'card-nexus': {
+      const parsed = NexusCardAssetInput.parse(data);
       return { data: parsed, name: parsed.name };
     }
     case 'card-stronghold': {

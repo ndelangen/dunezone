@@ -461,6 +461,24 @@ export const LeaderSkillAssetInput = LeaderSkillAsset.extend({
   }),
 });
 
+/** A Nexus card keeps three rules regions and a faction identity inside the standard custom-card frame. */
+const NexusEffect = proseFormattedTextSchema
+  .refine((text) => text.length <= 400, {
+    message: 'An effect can hold at most 400 characters',
+  })
+  .refine((text) => text.split('\n').length <= 6, {
+    message: 'An effect can hold at most six lines',
+  });
+export const NexusCard = CardHead.extend({
+  subName: z.literal('Nexus'),
+  faction: z.string().trim().max(40),
+  factionSymbol: FactionSide,
+  betrayal: NexusEffect,
+  cunning: NexusEffect,
+  secretAlly: NexusEffect,
+});
+export const NexusCardAsset = NexusCard.extend({ about: About });
+export const NexusCardAssetInput = NexusCardAsset.extend({ about: FormattedAbout });
 /** A stronghold authors its name, Decals and Body inside one fixed card template. */
 export const StrongholdCard = Treachery.pick({ name: true, decals: true, text: true }).extend({
   decals: z.array(Decal).max(16),

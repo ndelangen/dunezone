@@ -24,6 +24,7 @@ import { publishingSpiceCard } from '../../src/shared/assets/fixtures/publishing
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { GF9_LEADER_SKILLS } from '../../src/shared/assets/gf9LeaderSkills';
+import { GF9_NEXUS_CARDS } from '../../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS } from '../../src/shared/assets/gf9StrongholdDeck';
 import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../../src/shared/assets/standardStormDeck';
 import { arrakisBoard } from '../../src/shared/boards/geometry';
@@ -444,6 +445,7 @@ async function checkPublisherImageCapture(
     | 'card-spice'
     | 'card-custom'
     | 'card-leaderability'
+    | 'card-nexus'
     | 'card-stronghold'
     | 'card-storm'
     | 'faction-troop'
@@ -479,6 +481,26 @@ async function checkPublisherImageCapture(
     invariant(result.payloadHash === snapshot.payloadHash, `${label} capture did not expose the exact payload hash`);
     invariant(errors.length === 0, `${label} capture emitted errors: ${errors.join(' | ')}`);
     await assertCaptureImageBounds(page, capture);
+    if (assetType === 'card-nexus') {
+      const regions = await page.locator('section').evaluateAll((sections) =>
+        sections.map((section) => {
+          const rules = section.lastElementChild as HTMLElement;
+          return {
+            height: rules.clientHeight,
+            contentHeight: rules.scrollHeight,
+            width: rules.clientWidth,
+            contentWidth: rules.scrollWidth,
+          };
+        })
+      );
+      invariant(regions.length === 3, 'Nexus capture must contain its three effects');
+      invariant(
+        regions.every(
+          ({ height, contentHeight, width, contentWidth }) => contentHeight <= height + 1 && contentWidth <= width + 1
+        ),
+        'Nexus effect text must fit its printed region'
+      );
+    }
     if (isComponentAssetType(assetType)) {
       const serialized = await page
         .locator(`#${CAPTURE_PROTOCOL.marker.id}`)
@@ -517,6 +539,20 @@ async function checkPublisherImageCapture(
 }
 
 const browser = await chromium.launch({ headless: true });
+async function checkNexusCapture(browser: Browser, card: (typeof GF9_NEXUS_CARDS)[number]) {
+  const slug = card.faction.toLowerCase().replaceAll(' ', '-');
+  const captured = await checkPublisherImageCapture(
+    browser,
+    'card-nexus',
+    envelope('card-nexus', { assetId: 'k17publisherNexusCard', slug, card }),
+    `Nexus ${card.faction}`
+  );
+  if (process.env.NEXUS_PROOF_DIRECTORY) {
+    await mkdir(process.env.NEXUS_PROOF_DIRECTORY, { recursive: true });
+    await Bun.write(path.join(process.env.NEXUS_PROOF_DIRECTORY, `${slug}.png`), captured);
+  }
+}
+
 try {
   await checkCorruptSvgImage(browser);
   await checkCorruptExternalUse(browser);
@@ -543,6 +579,9 @@ try {
     await Bun.write(process.env.BOARD_PROOF_PATH, boardCapture);
   }
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
+  for (const card of GF9_NEXUS_CARDS) {
+    await checkNexusCapture(browser, card); /* NOSONAR: Captures share the active snapshot. */
+  }
   for (const format of ['plain', 'decal-window'] as const) {
     await checkPublisherImageCapture(
       browser,

@@ -28,6 +28,7 @@ type CardType =
   | 'card-treachery'
   | 'card-spice'
   | 'card-custom'
+  | 'card-nexus'
   | 'card-stronghold'
   | 'card-storm'
   | 'card-leaderability';
