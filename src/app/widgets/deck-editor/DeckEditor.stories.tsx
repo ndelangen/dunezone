@@ -2,7 +2,7 @@ import { Text } from '@mantine/core';
 import preview from '@sb/preview';
 import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
 import { GF9_LEADER_SKILL_DECK_BACK } from '@shared/assets/gf9LeaderSkills';
-import { fn } from 'storybook/test';
+import { expect, fn, within } from 'storybook/test';
 
 import type { DeckDraft } from './DeckEditor';
 import { DeckEditor, INITIAL_DECK_DRAFT, initialDeckMemory } from './DeckEditor';
@@ -17,7 +17,7 @@ const meta = preview.meta({
   args: {
     presets: INITIAL_CARDBACK_PRESETS.map((entry) => ({ ...entry, revision: 1, href: null, captureStatus: null })),
     nameField: <input aria-label="Name" readOnly value="Lasgun" />,
-    chapter: 'identity' as const,
+    chapter: 'back' as const,
     onChapterChange: fn(),
     onSettle: fn(),
     patch: fn(),
@@ -38,7 +38,7 @@ const meta = preview.meta({
  */
 export const CardbackFromStock = meta.story({});
 
-/** Composed here: the same union member as Stock, wearing a different tile, with the fields below. */
+/** A composed back exposes its background and emblem chapters. */
 export const CardbackComposedHere = meta.story({
   args: {
     draft: draftWith({ mode: 'custom', ...INITIAL_CARDBACK_PRESETS[1]!.cardback, name: 'Hand of the Emperor' }),
@@ -49,6 +49,7 @@ export const TintedCardbackComposedHere = meta.story({
   parameters: { layout: 'fullscreen' },
   globals: { colorScheme: 'dark' },
   args: {
+    chapter: 'emblem' as const,
     draft: draftWith({
       mode: 'custom',
       ...GF9_LEADER_SKILL_DECK_BACK,
@@ -65,4 +66,26 @@ export const CardbackFromAnotherDeck = meta.story({
 /** Chosen but not yet picked, the state the reference-without-target warning reads. */
 export const CardbackReferenceNotYetPicked = meta.story({
   args: { draft: draftWith({ mode: 'reference', asset_id: null }) },
+});
+
+export const Identity = meta.story({
+  args: { chapter: 'identity' as const, draft: draftWith({ mode: 'custom', ...GF9_LEADER_SKILL_DECK_BACK }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('textbox', { name: 'Label' })).toHaveValue('Leader skills');
+    await expect(canvas.queryByRole('slider', { name: 'Emblem scale' })).toBeNull();
+    await expect(canvas.queryByRole('radiogroup', { name: 'Background' })).toBeNull();
+  },
+});
+export const Background = meta.story({
+  args: { chapter: 'background' as const, draft: draftWith({ mode: 'custom', ...GF9_LEADER_SKILL_DECK_BACK }) },
+});
+export const ResetFromEmblemToPreset = meta.story({
+  args: { chapter: 'emblem' as const },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('tab', { name: 'Back' })).toHaveAttribute('aria-selected', 'true');
+    await expect(canvas.getByRole('radio', { name: 'Shared preset' })).toBeChecked();
+    await expect(canvas.queryByRole('tab', { name: 'Emblem' })).toBeNull();
+  },
 });
