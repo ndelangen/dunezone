@@ -4,6 +4,7 @@ import { assetCaptureStatusSchema } from '../asset-publishing/captureStatus';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
 import type { CardbackPresetKey } from './cardbackPresetKeys';
 import { CardBack } from './schema';
+import { STANDARD_STORM_CARDBACK } from './standardStormDeck';
 
 /** Initial authored designs. Persisted edits replace these values; existing decks are never matched by appearance. */
 const INITIAL_DESIGNS = [
@@ -44,19 +45,22 @@ const INITIAL_DESIGNS = [
   influence: number;
 }[];
 
-export const INITIAL_CARDBACK_PRESETS = INITIAL_DESIGNS.map(
-  ({ key, label, colors, image, influence }): Pick<CardbackPreset, 'key' | 'label' | 'cardback'> => ({
-    key,
-    label,
-    cardback: {
-      name: label,
-      background: { image: '/image/texture/082.jpg', colors, influence, invert: false, definition: 1 },
-      image,
-      imageScale: 0.55,
-      imageOffset: [0, 10],
-    },
-  })
-);
+export const INITIAL_CARDBACK_PRESETS = [
+  ...INITIAL_DESIGNS.map(
+    ({ key, label, colors, image, influence }): Pick<CardbackPreset, 'key' | 'label' | 'cardback'> => ({
+      key,
+      label,
+      cardback: {
+        name: label,
+        background: { image: '/image/texture/082.jpg', colors, influence, invert: false, definition: 1 },
+        image,
+        imageScale: 0.55,
+        imageOffset: [0, 10],
+      },
+    })
+  ),
+  { key: 'storm' as const, label: 'Storm', cardback: STANDARD_STORM_CARDBACK },
+];
 
 /**
  * A preset's fixed label, the word its initial design prints across the back.

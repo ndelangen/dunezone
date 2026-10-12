@@ -18,6 +18,7 @@ import { CardBack } from '@game/assets/card/Back';
 import { CustomCard } from '@game/assets/card/Custom';
 import { LeaderSkillCard } from '@game/assets/card/LeaderSkill';
 import { SpiceCard } from '@game/assets/card/Spice';
+import { StormCard } from '@game/assets/card/Storm';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -102,6 +103,11 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
       return printedImage(
         snapshot.assetType,
         <CustomCard {...snapshot.payload.card} tokens={snapshot.payload.tokens} />
+      );
+    case 'card-storm':
+      return printedImage(
+        snapshot.assetType,
+        <StormCard {...snapshot.payload.card} tokens={snapshot.payload.tokens} />
       );
     case 'card-spice':
       return printedImage(snapshot.assetType, <SpiceCard {...snapshot.payload.card} />);

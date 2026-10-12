@@ -156,6 +156,9 @@ The flat discriminator naming exactly what a community asset is: a treachery car
 **Card anatomy**:
 A card is described with a fixed vocabulary: the **Head** (its name, its Type line, and the Background behind them), the **Icon** (the vector in the top-right disc, its own Background, and its scale), its **Decals**, and the **Body** (the text). "Kind", "corner", "artwork", and "rules" are not card-anatomy words.
 
+**Storm card**:
+A card with movement from 1 to 6 sectors, a fixed Storm Type line and Icon, and the standard window frame. Its movement determines the printed title, instruction and corner number; its asset name determines its URL. Authors compose its Decals, text and linked tokens using the custom-card layers. The Standard Storm Deck holds one copy of each movement value and uses the Storm Cardback preset.
+
 **Asset category**:
 The presentational grouping of Asset types that arranges the assets landing page: cards, decks, tokens, boards. It is always derived from the Asset type, never maintained independently, and it appears nowhere in URLs or uniqueness rules: routes and slugs are per Asset type.
 
@@ -171,7 +174,7 @@ The reverse face every token has. It is either authored as part of the token its
 The shared back face of a deck, never a standalone Asset. Every deck has exactly one: its own composition, a link to a Cardback preset, or a reference to another deck's back. A custom composition publishes with its deck; a linked back uses its source's publication. Member cards publish their own front faces.
 
 **Cardback preset**:
-A shared Cardback definition edited by Administrators at `/assets/__presets`. Treachery, Spice, Traitor, Alliance and Prediction each own one published back image. A deck stores its chosen preset key explicitly and follows that preset's successful publications. Existing custom backs stay custom even when their appearance matches a preset. Play's generated Traitor and Alliance supplies read the shared backs through catalogue capture.
+A shared Cardback definition edited by Administrators at `/assets/__presets`. Treachery, Spice, Traitor, Alliance, Prediction and Storm each own one published back image. A deck stores its chosen preset key explicitly and follows that preset's successful publications. Existing custom backs stay custom even when their appearance matches a preset. Play's generated Traitor and Alliance supplies read the shared backs through catalogue capture.
 
 **Bundle**:
 An Asset type inside the tokens category that holds tokens of any shape, with a count for each. It is the one Asset type that publishes nothing at all: its members publish their own faces, and a bundle has no image of its own to publish. Membership lives in `asset_relations` rather than inside the bundle's `data`, so adding a token or changing a count writes a row at once rather than waiting for a save. A member's count is the same word, and the same meaning, as a deck's copies of a card; the vocabulary does not fork, so there is no bundle-specific counting word beside Troop count.

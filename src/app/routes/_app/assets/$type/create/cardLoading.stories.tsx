@@ -109,6 +109,32 @@ export const SpiceCardCopy = meta.story({
   },
 });
 
+export const StormCardCopy = meta.story({
+  args: { path: '/assets/card-storm/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const name = await page.findByRole('textbox', { name: 'Name' });
+    await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
+    await userEvent.click(await waitForFrame(() => page.getByRole('option', { name: /3 Sectors/ })));
+    await userEvent.click(page.getByRole('button', { name: /^Load card$/ }));
+    await expect(name).toHaveValue('3 Sectors');
+    await expect(page.getByText('Move the storm 3 sectors counterclockwise.')).toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Save card' }));
+    await expect(page.findByRole('button', { name: 'Delete card' })).resolves.toBeVisible();
+    const source = await loadAssetPage('card-storm', '3-sectors');
+    const copy = await loadAssetPage('card-storm', '3-sectors-1');
+    expect(copy?.asset.id).not.toEqual(source?.asset.id);
+    expect(copy?.asset.data).toEqual(source?.asset.data);
+    expect(copy?.inDecks).toEqual([]);
+    await userEvent.click(page.getByRole('combobox', { name: 'Storm movement' }));
+    await userEvent.click(await page.findByRole('option', { name: /^6 sectors$/ }));
+    await userEvent.click(page.getByRole('button', { name: 'Save card' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Save card' })).toHaveAccessibleDescription(/Saved/));
+    expect((await loadAssetPage('card-storm', '3-sectors-1'))?.asset.data).toMatchObject({ sectors: 6 });
+    expect((await loadAssetPage('card-storm', '3-sectors'))?.asset.data).toEqual(source?.asset.data);
+  },
+});
+
 export const EmptyCatalogue = meta.story({
   parameters: {
     database: db((baseline) => {

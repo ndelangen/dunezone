@@ -1,0 +1,33 @@
+.card {
+  position: relative;
+  width: 900px;
+  height: 1263px;
+  overflow: hidden;
+}
+.movement {
+  position: absolute;
+  left: 89px;
+  top: 704px;
+  width: 734px;
+  color: #0b0503;
+  font:
+    40px / 1.2 "C_Candara",
+    sans-serif;
+  opacity: 0.937;
+}
+.distance {
+  position: absolute;
+  right: 94px;
+  bottom: 90px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #0b0503;
+  font:
+    142px / 1 "C_Copperplate_Gothic_Heavy",
+    sans-serif;
+}
+.distance img {
+  width: 70px;
+  height: 70px;
+}
