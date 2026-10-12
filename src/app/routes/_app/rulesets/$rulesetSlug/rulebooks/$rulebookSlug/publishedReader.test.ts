@@ -1,7 +1,9 @@
 import { createRulebookRenderDocumentFixture } from '@shared/rulebooks/renderDocument.fixture';
+import { parseHTML } from 'linkedom/worker';
 import { describe, expect, test, vi } from 'vitest';
 
 import { renderRulebookHtmlDocument, rulebookRendererCss } from '@app/print/rulebookHtmlRuntime';
+import { rulebookHtmlSvg } from '@app/print/rulebookHtmlSvg';
 
 import { parsePublishedRulebook, resolvePublishedAnchor, resolvePublishedLocator } from './publishedReader';
 
@@ -60,6 +62,59 @@ describe('published Rulebook reading', () => {
     expect(
       resolvePublishedLocator(book, { status: 'valid', locator: { ...locator, path: [{ kind: 'page', id: 'MISS' }] } })
     ).toEqual({ status: 'unresolved' });
+  });
+
+  test('keeps rendered separators in a selection spanning a heading and paragraph', () => {
+    const book = parsePublishedRulebook(html(), href);
+    const page = Object.values(book.pagesById).find((candidate) => candidate.anchor === 'movement')!;
+    const block = Object.values(page.blocksById).find((candidate) => candidate.text.startsWith('Movement sequence'))!;
+    expect(
+      resolvePublishedLocator(book, {
+        status: 'valid',
+        locator: {
+          v: 1,
+          path: [
+            { kind: 'page', id: page.id },
+            { kind: 'block', id: block.id },
+          ],
+          exact: 'Movement sequence Choose a force, choose an adjacent destination, then resolve the move.',
+        },
+      })
+    ).toMatchObject({ status: 'matched' });
+  });
+
+  test('matches a selection crossing list entries without deleting word boundaries', () => {
+    const source = html().replace(
+      '</main>',
+      '<article data-rulebook-page-id="LIST" data-rulebook-page-anchor="list"><section data-rulebook-block-id="STEPS"><ol><li>First choice</li><li>Second choice</li></ol></section></article></main>'
+    );
+    const book = parsePublishedRulebook(source, href);
+    const result = resolvePublishedLocator(book, {
+      status: 'valid',
+      locator: {
+        v: 1,
+        path: [
+          { kind: 'page', id: 'LIST' },
+          { kind: 'block', id: 'STEPS' },
+        ],
+        exact: 'First choice Second choice',
+      },
+    });
+    expect(result.status).toBe('matched');
+  });
+
+  test('retains body-level SVG definitions needed by published token artwork', () => {
+    const source = rulebookHtmlSvg(
+      html().replace('</main>', '<svg><use href="/vector/troop/atreides.svg#root"/></svg></main>'),
+      'https://dune.zone/book.html'
+    );
+    const book = parsePublishedRulebook(source, href);
+    const document = parseHTML(`<html><body>${book.markup}</body></html>`).document;
+    expect(document.querySelectorAll('use').length).toBeGreaterThan(0);
+    for (const use of document.querySelectorAll('use')) {
+      const target = use.getAttribute('href') ?? use.getAttribute('xlink:href');
+      expect(document.getElementById(target!.slice(1))).not.toBeNull();
+    }
   });
 
   test.each(['<script>alert(1)</script>', '<img src="x" onerror="alert(1)">', '<a href="javascript:alert(1)">bad</a>'])(

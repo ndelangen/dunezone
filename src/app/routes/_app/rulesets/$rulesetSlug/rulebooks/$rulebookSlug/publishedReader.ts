@@ -39,6 +39,12 @@ function identity(element: Element, attribute: string) {
   return id;
 }
 
+function publicationText(element: Element) {
+  return 'innerText' in element && typeof element.innerText === 'string'
+    ? element.innerText
+    : (element.textContent ?? '');
+}
+
 /** Reads only publisher-generated markup, retaining its frozen styles and stable reading targets. */
 export function parsePublishedRulebook(html: string, href: string): PublishedRulebook {
   const { document } = parseHTML(html);
@@ -47,7 +53,7 @@ export function parsePublishedRulebook(html: string, href: string): PublishedRul
   if (!root || !css || document.querySelector('script, iframe, object, embed, base, form')) {
     throw new Error('Published Rulebook HTML is unavailable');
   }
-  for (const element of [root, ...root.querySelectorAll('*')]) {
+  for (const element of [document.body, ...document.body.querySelectorAll('*')]) {
     for (const attribute of element.attributes) {
       if (
         /^on/i.test(attribute.name) ||
@@ -71,12 +77,12 @@ export function parsePublishedRulebook(html: string, href: string): PublishedRul
       for (const item of block.querySelectorAll('[data-rulebook-item-id]')) {
         const itemId = identity(item, 'data-rulebook-item-id');
         /* Nested entries can repeat an item marker; the outer entry owns the complete text. */
-        itemsById[itemId] ??= { id: itemId, text: item.textContent ?? '' };
+        itemsById[itemId] ??= { id: itemId, text: publicationText(item) };
       }
       blocksById[blockId] = {
         id: blockId,
         anchor: block.getAttribute('data-rulebook-block-anchor') ?? '',
-        text: block.textContent ?? '',
+        text: publicationText(block),
         itemsById,
       };
     }
@@ -84,7 +90,7 @@ export function parsePublishedRulebook(html: string, href: string): PublishedRul
       id,
       anchor: identity(page, 'data-rulebook-page-anchor'),
       title: (page.getAttribute('aria-label') ?? '').replace(/^Rulebook page: /, '') || `Page ${pageOrder.length + 1}`,
-      text: page.textContent ?? '',
+      text: publicationText(page),
       blocksById,
     };
     pageOrder.push(id);
@@ -97,7 +103,10 @@ export function parsePublishedRulebook(html: string, href: string): PublishedRul
   for (const attribute of root.attributes) {
     section.setAttribute(attribute.name, attribute.value);
   }
-  section.innerHTML = root.innerHTML;
+  const definitions = [...document.body.children].filter(
+    (element) => element !== root && element.tagName.toLowerCase() === 'svg'
+  );
+  section.innerHTML = definitions.map((element) => element.outerHTML).join('') + root.innerHTML;
   return { href, markup: section.outerHTML, css: `@scope ([data-published-rulebook]) {${css}}`, pageOrder, pagesById };
 }
 
