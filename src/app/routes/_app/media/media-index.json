@@ -10460,10 +10460,10 @@
     "sourceHash": "769047c3edf2ba2507a7056a805720b9dd1592de2329b3015183929eea0114e7"
   },
   "/vector/icon/stronghold-multicolor.svg": {
-    "description": "The supplied palace emblem on the pink-red stronghold card back disc.",
+    "description": "A dark red palace emblem on a transparent background.",
     "tags": ["stronghold", "fortress", "city", "towers"],
     "subjects": ["symbols"],
-    "sourceHash": "a813376d29d0af14d9f93a5dc879f8369c6547c90f44177613d1f7ef1410562c"
+    "sourceHash": "35c265db1d9febecad48321bb12579126d706575c0f487040ba562845d211c4e"
   },
   "/image/decal/gf9-stronghold-arrakeen.png": {
     "description": "A pale city below rust-colored cliffs beneath a blue sky.",

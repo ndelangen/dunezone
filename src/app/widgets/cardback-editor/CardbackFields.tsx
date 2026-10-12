@@ -1,4 +1,4 @@
-import { ColorInput, NumberInput, Select, Slider, TextInput } from '@mantine/core';
+import { ColorInput, NumberInput, Slider, TextInput } from '@mantine/core';
 import type { CardBack } from '@shared/assets/schema';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -7,11 +7,11 @@ import type { z } from 'zod';
 
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
-import { assetOptionToPreviewSrc, decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 type CardbackData = z.infer<typeof CardBack>;
-const emblemOptions = stockAssetOptions(decalAssetOptions);
+const emblemOptions = stockAssetOptions(vectorDecalAssetOptions);
 const BACK_PRESETS = [
   { key: 'weapon', label: 'Weapon', background: backgroundPresets.weapon },
   { key: 'defense', label: 'Defense', background: backgroundPresets.defense },
@@ -44,38 +44,6 @@ export function CardbackFields({
             aria-label="Label"
             value={cardback.name}
             onChange={(event) => onChange({ ...cardback, name: event.currentTarget.value })}
-          />
-        }
-      />
-      <ControlBlock
-        title="Label weight"
-        input={
-          <Select
-            aria-label="Label weight"
-            allowDeselect={false}
-            data={[
-              { value: 'C_Busorama', label: 'Regular' },
-              { value: 'C_Busorama_Bold', label: 'Bold' },
-            ]}
-            value={cardback.nameFont ?? 'C_Busorama'}
-            onChange={(nameFont) => {
-              if (nameFont === 'C_Busorama' || nameFont === 'C_Busorama_Bold') {
-                onChange({ ...cardback, nameFont });
-              }
-            }}
-          />
-        }
-      />
-      <ControlBlock
-        title="Label size"
-        input={
-          <Slider
-            aria-label="Label size"
-            min={0.5}
-            max={2}
-            step={0.01}
-            value={cardback.nameScale ?? 1}
-            onChange={(nameScale) => onChange({ ...cardback, nameScale })}
           />
         }
       />

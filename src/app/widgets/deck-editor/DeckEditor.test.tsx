@@ -28,6 +28,10 @@ globalThis.ResizeObserver = class ResizeObserver {
   disconnect() {}
 };
 
+/* These editor state checks do not measure artwork; the browser stories cover label fitting. */
+Object.defineProperty(SVGElement.prototype, 'getComputedTextLength', { configurable: true, value: () => 0 });
+Object.defineProperty(document, 'fonts', { configurable: true, value: { load: vi.fn().mockResolvedValue([]) } });
+
 afterEach(cleanup);
 
 /** The draft is real state, because the defect this guards was the control failing to survive a re-render. */
