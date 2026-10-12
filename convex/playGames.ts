@@ -99,6 +99,7 @@ const rulesetPreviewValidator = v.object({
 const PREVIEW_FACTION_LIMIT = 50;
 /* Each container reads its members to skip deleted ones, so the manifest stops after this many to keep the page's one query inside its read budget. */
 const PREVIEW_CONTAINER_LIMIT = 8;
+const FACTION_LINK_SCAN = 10;
 
 /*
  * What a ruleset puts on the table, for the create page's manifest: its decks and token bundles in slot order, with counts and one face each,
@@ -108,19 +109,23 @@ async function rulesetPreview(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   return { rulesetId, packed: await packedFor(ctx, rulesetId), factions: await factionsFor(ctx, rulesetId) };
 }
 
-/* The decks and token bundles in slot order, each with its count and one face; a deleted asset is left out. */
+/* The decks and token bundles in slot order, each with its count and one face; a deleted asset is left out. Slots are read in order, so the required decks always come first. */
 async function packedFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
-  const slots = await ctx.db
-    .query('ruleset_asset_slots')
-    .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
-    .take(RULESET_ASSET_SLOT_ORDER.length * 10);
-  slots.sort((a, b) => RULESET_ASSET_SLOT_ORDER.indexOf(a.slot) - RULESET_ASSET_SLOT_ORDER.indexOf(b.slot));
   const packed = [];
-  for (const slot of slots.slice(0, PREVIEW_CONTAINER_LIMIT)) {
-    const asset = await ctx.db.get(slot.asset_id);
-    const summary = asset && !asset.is_deleted ? await containerSummary(ctx, asset) : null;
-    if (summary) {
-      packed.push({ slot: slot.slot, ...summary });
+  for (const slot of RULESET_ASSET_SLOT_ORDER) {
+    const rows = await ctx.db
+      .query('ruleset_asset_slots')
+      .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', slot))
+      .take(PREVIEW_CONTAINER_LIMIT - packed.length);
+    for (const row of rows) {
+      const asset = await ctx.db.get(row.asset_id);
+      const summary = asset && !asset.is_deleted ? await containerSummary(ctx, asset) : null;
+      if (summary) {
+        packed.push({ slot, ...summary });
+      }
+    }
+    if (packed.length >= PREVIEW_CONTAINER_LIMIT) {
+      break;
     }
   }
   return packed;
@@ -142,12 +147,15 @@ async function factionsFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   return factions.sort((a, b) => Number(b.own) - Number(a.own));
 }
 
-/* A faction is the ruleset's own when no other live ruleset links it; a deleted ruleset's leftover link does not count. */
+/*
+ * A faction is the ruleset's own when no other live ruleset links it; a deleted ruleset's leftover link does not count.
+ * A scan that stops at its bound before settling it calls the faction shared, never own.
+ */
 async function factionLine(ctx: QueryCtx, faction: Doc<'factions'>) {
   const links = await ctx.db
     .query('ruleset_factions')
     .withIndex('by_faction', (q) => q.eq('faction_id', faction._id))
-    .take(10);
+    .take(FACTION_LINK_SCAN);
   const rulesets = new Set<string>();
   for (const link of links) {
     const ruleset = await ctx.db.get(link.ruleset_id);
@@ -159,7 +167,7 @@ async function factionLine(ctx: QueryCtx, faction: Doc<'factions'>) {
     id: faction._id,
     name: typeof faction.data?.name === 'string' ? faction.data.name : faction.slug,
     token: publishedHref('faction-token', faction._id, faction.updated_at),
-    own: rulesets.size <= 1,
+    own: rulesets.size <= 1 && links.length < FACTION_LINK_SCAN,
   };
 }
 

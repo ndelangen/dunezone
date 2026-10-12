@@ -161,10 +161,11 @@ function CreateGameForm({
     customName && !customName.success && draft.customName.trim() ? customName.error.issues[0]?.message : undefined;
   const nameReady = customName === null || customName.success;
   const objection = chosen?.objection ?? null;
-  const canCreate = nameReady && request.success && chosen !== undefined && objection === null && !createGame.isPending;
+  const [departing, setDeparting] = useState(false);
+  const canCreate =
+    nameReady && request.success && chosen !== undefined && objection === null && !createGame.isPending && !departing;
   const shownName = draft.custom && draft.customName.trim() ? draft.customName.trim() : draft.generatedName;
   /* Pressing Create game fades the page to the table's ground; the game opens once the fade is complete, and a refusal lifts it again. */
-  const [departing, setDeparting] = useState(false);
   const departedAt = useRef(0);
   const opening = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(opening.current), []);

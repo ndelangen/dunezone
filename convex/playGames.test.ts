@@ -230,6 +230,30 @@ describe('real games are created and entered by any signed-in player, Administra
     expect(unchosen.access === 'allowed' ? unchosen.preview : 'unreachable').toBeNull();
   });
 
+  test('the manifest reads the required decks first, however many custom decks were linked before them', async () => {
+    const { t, member, rulesets } = await world();
+    const crowded = await t.run(async (ctx) => {
+      const ready = (await ctx.db.get(rulesets.ready))!;
+      const [deck] = await ctx.db
+        .query('ruleset_asset_slots')
+        .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesets.ready))
+        .collect();
+      const { _id, _creationTime, ...copy } = ready;
+      const id = await ctx.db.insert('rulesets', { ...copy, slug: 'crowded' });
+      for (let index = 0; index < 10; index += 1) {
+        await ctx.db.insert('ruleset_asset_slots', { ruleset_id: id, asset_id: deck!.asset_id, slot: 'custom' });
+      }
+      for (const slot of ['treachery', 'spice'] as const) {
+        await ctx.db.insert('ruleset_asset_slots', { ruleset_id: id, asset_id: deck!.asset_id, slot });
+      }
+      return id;
+    });
+    const listing = await member.query(api.playGames.creatable, { rulesetId: crowded });
+    const slots = listing.access === 'allowed' ? listing.preview?.packed.map(({ slot }) => slot) : [];
+    expect(slots?.slice(0, 2)).toEqual(['treachery', 'spice']);
+    expect(slots).toHaveLength(8);
+  });
+
   test('a last turn outside the whole-number range is refused before a game is made', async () => {
     const { t, member, rulesets } = await world();
     for (const lastTurn of [0, 1.5, 21]) {

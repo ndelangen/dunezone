@@ -1017,13 +1017,19 @@ export async function containerSummary(ctx: QueryCtx, row: Doc<'assets'>) {
   if (!kind) {
     return null;
   }
-  const { entries, truncated } = await membersOf(ctx, row._id, kind);
-  const count = entries.reduce((total, entry) => total + entry.count, 0);
+  /* Counted from the relation rows alone, so a summary costs one index range however large the container: a deleted member still counts until it is unlinked. */
+  const relations = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', row._id).eq('kind', kind))
+    .take(DECK_CARD_LIMIT + 1);
+  const truncated = relations.length > DECK_CARD_LIMIT;
+  const counted = truncated ? relations.slice(0, DECK_CARD_LIMIT) : relations;
+  const count = counted.reduce((total, relation) => total + relation.count, 0);
   if (row.type === 'deck') {
     const appearance = await presentedAppearance(ctx, row, new Map(), new Map());
     return { name: nameOf(row), count, truncated, face: appearance.href, faceType: 'deck' };
   }
-  const first = entries[0]?.row;
+  const first = await firstLiveMember(ctx, counted);
   return {
     name: nameOf(row),
     count,
@@ -1031,6 +1037,19 @@ export async function containerSummary(ctx: QueryCtx, row: Doc<'assets'>) {
     face: first && isPublicationAssetType(first.type) ? publishedHref(first.type, first._id, first.updated_at) : null,
     faceType: first?.type ?? 'token-disc',
   };
+}
+
+const FACE_SCAN_LIMIT = 5;
+
+/* The first member that is not deleted, from a few relations at most, to show as a bundle's face. */
+async function firstLiveMember(ctx: QueryCtx, relations: Doc<'asset_relations'>[]) {
+  for (const relation of relations.slice(0, FACE_SCAN_LIMIT)) {
+    const member = await ctx.db.get('assets', relation.to_asset_id);
+    if (member && !member.is_deleted) {
+      return member;
+    }
+  }
+  return null;
 }
 
 async function ensureImportedAsset(ctx: MutationCtx, ownerId: Id<'users'>, type: string, data: { name: string }) {
