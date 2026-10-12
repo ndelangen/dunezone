@@ -1,4 +1,4 @@
-import { NumberInput, Stack } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import { LEADER_SKILL_HEAD, LEADER_SKILL_SYMBOL } from '@shared/assets/gf9LeaderSkills';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -15,7 +15,7 @@ import type { LeaderSkillAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
 import { cardDecalChapter } from './CardDecalChapter';
-import { cardHeadAndSymbolChapters, initialCardHeadMemory } from './CardHeadChapters';
+import { fixedCardHeadChapter, initialCardHeadMemory } from './CardHeadChapters';
 import type { CardHeadMemory } from './CardHeadChapters';
 import styles from './LeaderSkillCardEditor.module.css';
 
@@ -93,23 +93,6 @@ function AbilityFields({ draft, patch }: Readonly<{ draft: LeaderSkillDraft; pat
           />
         }
       />
-      <ControlBlock
-        title="Text size"
-        description="Keep both abilities within the printed frame."
-        input={
-          <NumberInput
-            aria-label="Text size"
-            min={24}
-            max={40}
-            value={draft.textSize}
-            onChange={(value) => {
-              if (typeof value === 'number') {
-                patch({ textSize: value });
-              }
-            }}
-          />
-        }
-      />
     </Stack>
   );
 }
@@ -150,8 +133,6 @@ export function LeaderSkillCardEditor({
   nameField,
   draft,
   patch,
-  memory,
-  remember,
   chapter,
   onChapterChange,
   onSettle,
@@ -176,14 +157,14 @@ export function LeaderSkillCardEditor({
         {/* Settling on focus leaving the fields is the editors' idiom, not the layout's, so it rides an element this widget owns. */}
         <div onBlurCapture={onSettle}>
           <ConnectedTabs<LeaderSkillChapter>
-            value={chapter}
+            value={chapter === 'icon' ? 'head' : chapter}
             onValueChange={(next) => {
               onChapterChange(next);
               onSettle();
             }}
             ariaLabel="Card chapters"
             items={[
-              ...cardHeadAndSymbolChapters({ draft, patch, memory, remember, nameField }),
+              fixedCardHeadChapter(nameField, 'Leader skill'),
               cardDecalChapter({
                 decals: draft.decals,
                 onChange: (decals) => patch({ decals }),

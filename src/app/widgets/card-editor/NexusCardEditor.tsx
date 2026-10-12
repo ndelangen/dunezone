@@ -19,7 +19,7 @@ import { backgroundPresets } from '@game/data/backgrounds';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
 import styles from './CardEditor.module.css';
-import { cardHeadAndSymbolChapters, initialCardHeadMemory } from './CardHeadChapters';
+import { fixedCardHeadChapter, initialCardHeadMemory } from './CardHeadChapters';
 import type { CardHeadMemory } from './CardHeadChapters';
 
 export type NexusDraft = z.infer<typeof NexusCardAsset>;
@@ -117,8 +117,6 @@ export function NexusCardEditor({
   nameField,
   draft,
   patch,
-  memory,
-  remember,
   chapter,
   onChapterChange,
   onSettle,
@@ -144,22 +142,7 @@ export function NexusCardEditor({
             }}
             ariaLabel="Nexus card chapters"
             items={[
-              ...cardHeadAndSymbolChapters({
-                draft,
-                patch: (update) => patch({ ...update, subName: 'Nexus' }),
-                memory,
-                remember,
-                nameField,
-                fixedType: 'Nexus',
-                presets: [
-                  {
-                    key: 'nexus',
-                    label: 'Nexus',
-                    head: backgroundPresets.nexus,
-                    striped: backgroundPresets.nexus,
-                  },
-                ],
-              }).filter(({ value }) => value === 'head'),
+              fixedCardHeadChapter(nameField, 'Nexus'),
               {
                 value: 'faction',
                 label: 'Faction',

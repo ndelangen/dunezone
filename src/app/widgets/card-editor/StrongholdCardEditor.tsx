@@ -1,4 +1,4 @@
-import { Group, NumberInput, Stack, Text } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
 import type { StrongholdCardAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -165,23 +165,6 @@ function StrongholdBody({
             minRows={4}
             value={draft.text}
             onChange={(text) => patch({ text })}
-          />
-        }
-      />
-      <ControlBlock
-        title="Text size"
-        description="Adjust within the stronghold template when the Body needs more room."
-        input={
-          <NumberInput
-            aria-label="Text size"
-            min={24}
-            max={44}
-            value={draft.textSize}
-            onChange={(value) => {
-              if (typeof value === 'number') {
-                patch({ textSize: value });
-              }
-            }}
           />
         }
       />

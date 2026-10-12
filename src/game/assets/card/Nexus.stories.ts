@@ -41,3 +41,11 @@ export const LongEffects = meta.story({
     );
   },
 });
+
+export const FixedHead = meta.story({
+  args: { head: { ...GF9_NEXUS_CARDS[0]!.head, colors: ['#ff0000', '#00ff00'] } },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('rect[fill="#073A16"]')).not.toBeNull();
+    await expect(canvasElement.querySelector('rect[fill="#ff0000"]')).toBeNull();
+  },
+});

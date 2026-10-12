@@ -29,18 +29,19 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   'faction-alliance': 1,
   // 9: formatted text replaces Markdown while setup and revival stay inline (wayfinder #669).
   [FACTION_SHEET_ASSET_TYPE]: 9,
-  /* Revision 4 keeps authored symbols at their chosen size, even when moved within the disc. */
+  /* Revision 5 uses standard category backgrounds and symbol placement. */
   // 1: cards join the pipeline (wayfinder #516). Activating this is also the backfill for cards that predate it.
-  [TREACHERY_CARD_ASSET_TYPE]: 4,
+  [TREACHERY_CARD_ASSET_TYPE]: 5,
   // 1: spice cards join the pipeline with their editor (#1229).
   [SPICE_CARD_ASSET_TYPE]: 1,
   /* Revision 2 supports a movable decal window without changing existing layouts. */
   [CUSTOM_CARD_ASSET_TYPE]: 2,
-  /* Revision 2 fits illustrations to their painted bounds in the leader skill window. */
-  [LEADER_SKILL_ASSET_TYPE]: 2,
-  [NEXUS_CARD_ASSET_TYPE]: 2,
-  /* Revision 2 uses the supplied palace emblem, original raster illustrations and single-line titles. */
-  [STRONGHOLD_CARD_ASSET_TYPE]: 2,
+  /* Revision 3 fixes the leader skill head, symbol, type and text size. */
+  [LEADER_SKILL_ASSET_TYPE]: 3,
+  /* Revision 3 fixes the Nexus head while retaining its linked faction symbol. */
+  [NEXUS_CARD_ASSET_TYPE]: 3,
+  /* Revision 3 fixes stronghold rules to the standard text size. */
+  [STRONGHOLD_CARD_ASSET_TYPE]: 3,
   /* Revision 2 removes the extra symbol ring and matches the scanned movement and corner numeral. */
   [STORM_CARD_ASSET_TYPE]: 2,
   /* Revision 3 restores regular back labels with automatic sizing and vector emblems. */

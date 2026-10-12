@@ -1,3 +1,4 @@
+import { NEXUS_HEAD } from '@shared/assets/nexusTemplate';
 import type { NexusCard as NexusCardSchema } from '@shared/assets/schema';
 import { useLayoutEffect, useRef } from 'react';
 import type { RefObject } from 'react';
@@ -10,7 +11,6 @@ import styles from './Nexus.module.css';
 /** Draws the three constrained effects in the printed Nexus template. */
 export function NexusCard({
   name,
-  head,
   faction,
   factionSymbol,
   betrayal,
@@ -34,7 +34,7 @@ export function NexusCard({
       <CustomCard
         name={name}
         subName=""
-        head={head}
+        head={NEXUS_HEAD}
         icon={[factionSymbol.background, factionSymbol.image]}
         iconInvert
         iconTreatment="printed"
