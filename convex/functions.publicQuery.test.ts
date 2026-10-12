@@ -18,6 +18,18 @@ const probes = {
     handler: async (ctx) =>
       await ctx.runQuery(await createFunctionHandle(makeFunctionReference<'query'>('publicQueryProbe:viewer')), {}),
   }),
+  /* Names an app query the way Convex reads first, while claiming a component path the way the guard reads. */
+  nestsDisguisedViewerQuery: publicQuery({
+    args: {},
+    handler: async (ctx) =>
+      await ctx.runQuery(
+        {
+          [Symbol.for('functionName')]: 'publicQueryProbe:viewer',
+          [Symbol.for('toReferencePath')]: '_reference/childComponent/statistics/btree/count',
+        } as unknown as Parameters<typeof ctx.runQuery>[0],
+        {}
+      ),
+  }),
   viewer: viewerQuery({ args: {}, handler: async (ctx) => (await ctx.auth.getUserIdentity())?.subject ?? null }),
 };
 
@@ -42,5 +54,10 @@ describe('publicQuery', () => {
   test('refuses a nested query by function handle, which can name an app query as easily as a component', async () => {
     const t = convexTest(schema, modules).withIdentity({ subject: 'probe-viewer' });
     await expect(t.query(probe('nestsViewerQueryByHandle'), {})).rejects.toThrow('Nested ctx.runQuery is refused');
+  });
+
+  test('a reference that names an app query while claiming a component path never reaches the app query', async () => {
+    const t = convexTest(schema, modules).withIdentity({ subject: 'probe-viewer' });
+    await expect(t.query(probe('nestsDisguisedViewerQuery'), {})).rejects.toThrow();
   });
 });
