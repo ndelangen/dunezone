@@ -128,6 +128,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
   }
 
   const row = locatedRow;
+  const assignedGroup = await assignedGroupSummary(ctx, row.group_id);
   const ownerProfile = await ctx.db
     .query('profiles')
     .withIndex('by_user_id', (q) => q.eq('user_id', row.owner_id))
@@ -143,7 +144,14 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     },
     owner: isActiveProfile(ownerProfile) ? ownerProfile : null,
     assetPublishing: await publicationStatusFor(ctx, 'faction_sheet', row._id),
-    assignedGroup: await assignedGroupSummary(ctx, row.group_id),
+    assignedGroup,
+    viewerAccess: {
+      kind: 'faction' as const,
+      assignedGroup,
+      viewer: { kind: 'anonymous' as const },
+      capabilities: { requestMembership: false, edit: false, rename: false, changeGroup: false, delete: false },
+    },
+    assignableGroups: [],
     rulesets: await listFactionRulesets(ctx, row._id),
   };
 }

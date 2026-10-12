@@ -140,6 +140,13 @@ export const factionDetailPageValidator = v.object({
   owner: v.union(profileValidator, v.null()),
   assetPublishing: assetPublishingValidator,
   assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
+  /*
+   * Deprecated, always the anonymous answer: kept only so a browser bundle from before the split keeps rendering
+   * in the window where production runs the new functions against the old bundle (see AGENTS.md, expand/contract).
+   * Remove in a later release, once no deployed bundle reads them.
+   */
+  viewerAccess: factionViewerAccessValidator,
+  assignableGroups: v.array(assignedGroupSummaryValidator),
   rulesets: v.array(rulesetSummaryValidator),
 });
 

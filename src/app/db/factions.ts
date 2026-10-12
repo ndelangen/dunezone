@@ -153,7 +153,8 @@ export function factionRowsToEntries(rows: FactionRow[]): FactionEntry[] {
 
 type FactionDetailPageRaw = FunctionReturnType<typeof api.factions.getBySlug>;
 
-export type FactionDetailPageData = Omit<FactionDetailPageRaw, 'faction'> & {
+/** The deprecated `viewerAccess` and `assignableGroups` exist only for older bundles; the app reads `useFactionAccess`. */
+export type FactionDetailPageData = Omit<FactionDetailPageRaw, 'faction' | 'viewerAccess' | 'assignableGroups'> & {
   faction: FactionEntry;
 };
 
