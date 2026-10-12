@@ -1,6 +1,7 @@
 import { Text } from '@mantine/core';
 import preview from '@sb/preview';
 import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
+import { GF9_LEADER_SKILL_DECK_BACK } from '@shared/assets/gf9LeaderSkills';
 import { fn } from 'storybook/test';
 
 import type { DeckDraft } from './DeckEditor';
@@ -41,6 +42,18 @@ export const CardbackFromStock = meta.story({});
 export const CardbackComposedHere = meta.story({
   args: {
     draft: draftWith({ mode: 'custom', ...INITIAL_CARDBACK_PRESETS[1]!.cardback, name: 'Hand of the Emperor' }),
+  },
+});
+
+export const TintedCardbackComposedHere = meta.story({
+  parameters: { layout: 'fullscreen' },
+  globals: { colorScheme: 'dark' },
+  args: {
+    draft: draftWith({
+      mode: 'custom',
+      ...GF9_LEADER_SKILL_DECK_BACK,
+      emblemBackground: { color: '#4466aa', intensity: 0.35 },
+    }),
   },
 });
 
