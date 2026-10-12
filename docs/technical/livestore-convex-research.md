@@ -110,6 +110,12 @@ moving authoritative data.
 [Client-only events](https://docs.livestore.dev/api/livestore/variables/clientonly/),
 [web adapter](https://docs.livestore.dev/platform-adapters/web-adapter/).
 
+If recovering unsaved work after a reload is the only goal, compare this with
+persisting the current draft in IndexedDB. That simpler approach retains the
+existing reducer, explicit Save and conflict handling. LiveStore should justify
+its additional browser runtime through useful local queries, event history or
+collaboration, rather than through persistence alone.
+
 ## Permissions decide the store boundaries
 
 LiveStore has auth hooks, but the application implements authentication and
