@@ -380,31 +380,41 @@ export function seatLocked(table: TableProjection): boolean {
 /**
  * Playback in the header, in every stage, so leaving the Replay tab never hides the way back to live: it steps through the checkpoints and returns to the live table.
  */
-export function StagePlayback({ client, table }: Readonly<{ client: TableSession; table: TableProjection }>) {
+export function StagePlayback({
+  client,
+  table,
+  error = null,
+}: Readonly<{ client: TableSession; table: TableProjection; error?: string | null }>) {
   const { playback, historyPending } = table;
   if (!playback || !table.snapshot.stage) {
     return null;
   }
+  /* A refused step keeps the checkpoint; its reason hangs under the controls that asked, whichever tab is open. */
   return (
-    <Group gap="xs" justify="flex-end" role="group" aria-label="Phase playback">
-      <Text size="sm" c="dimmed" role="status">
-        Playback checkpoint {playback.step} of {playback.lastStep}
-      </Text>
-      <Button
-        variant="default"
-        disabled={historyPending || playback.step === 0}
-        onClick={() => client.requestHistory(playback.step - 1)}
-      >
-        Earlier phase
-      </Button>
-      <Button
-        variant="default"
-        disabled={historyPending || playback.step === playback.lastStep}
-        onClick={() => client.requestHistory(playback.step + 1)}
-      >
-        Later phase
-      </Button>
-      <Button onClick={client.resumeLive}>Return to live</Button>
-    </Group>
+    <Popover opened={Boolean(error)} position="bottom-end" withArrow withinPortal>
+      <Popover.Target>
+        <Group gap="xs" justify="flex-end" role="group" aria-label="Phase playback">
+          <Text size="sm" c="dimmed" role="status">
+            Playback checkpoint {playback.step} of {playback.lastStep}
+          </Text>
+          <Button
+            variant="default"
+            disabled={historyPending || playback.step === 0}
+            onClick={() => client.requestHistory(playback.step - 1)}
+          >
+            Earlier phase
+          </Button>
+          <Button
+            variant="default"
+            disabled={historyPending || playback.step === playback.lastStep}
+            onClick={() => client.requestHistory(playback.step + 1)}
+          >
+            Later phase
+          </Button>
+          <Button onClick={client.resumeLive}>Return to live</Button>
+        </Group>
+      </Popover.Target>
+      <Popover.Dropdown maw={320}>{error && <FormError title="From the table">{error}</FormError>}</Popover.Dropdown>
+    </Popover>
   );
 }

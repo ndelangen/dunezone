@@ -40,7 +40,7 @@ function pressAcross(pressed: HTMLElement, change: () => void) {
   fireEvent.click(pressed);
 }
 
-function renderPlayback(stage: 'drafting' | 'play' | 'finished', step: number) {
+function renderPlayback(stage: 'drafting' | 'play' | 'finished', step: number, error: string | null = null) {
   const client = { requestHistory: vi.fn(), resumeLive: vi.fn() };
   const table = {
     snapshot: { stage },
@@ -49,7 +49,7 @@ function renderPlayback(stage: 'drafting' | 'play' | 'finished', step: number) {
   } as unknown as Parameters<typeof StagePlayback>[0]['table'];
   render(
     <MantineProvider theme={appContentTheme}>
-      <StagePlayback client={client as unknown as TableSession} table={table} />
+      <StagePlayback client={client as unknown as TableSession} table={table} error={error} />
     </MantineProvider>
   );
   return client;
@@ -170,6 +170,11 @@ test('a spectator press that began on one open seat never requests the seat left
   /* A fresh press asks for the seat now named on the button. jsdom never finishes the popover's transition, hence hidden. */
   fireEvent.click(screen.getByRole('button', { name: /^Request seat 4$/i, hidden: true }));
   expect(client.command).toHaveBeenCalledExactlyOnceWith({ kind: 'seat-request', seat: 'seat-4' });
+});
+
+test('a refused playback step says why beside the header controls', () => {
+  renderPlayback('play', 2, 'The table refused that.');
+  expect(screen.getByText('The table refused that.')).toBeTruthy();
 });
 
 test('playback in play keeps returning to live in the header, outside the tabs', () => {

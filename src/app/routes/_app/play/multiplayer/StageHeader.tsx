@@ -17,11 +17,13 @@ export type GameIdentity = Readonly<{ rulesetName: string | null; address: strin
 export function stageToolbar({
   client,
   table,
+  error,
   bidderFaded,
   onBidderFadedChange,
 }: Readonly<{
   client: TableSession;
   table: TableProjection;
+  error: string | null;
   bidderFaded: boolean;
   onBidderFadedChange: (faded: boolean) => void;
 }>) {
@@ -29,7 +31,7 @@ export function stageToolbar({
   /* The fixture has no stage and plays like a game in play. */
   const inPlay = stage === undefined || stage === 'play';
   /* Playback steps through the checkpoints from the header in every stage, so no tab hides the way back to live. */
-  const playback = table.playback ? <StagePlayback client={client} table={table} /> : null;
+  const playback = table.playback ? <StagePlayback client={client} table={table} error={error} /> : null;
   if (inPlay || settingUp(table)) {
     return (
       <>
