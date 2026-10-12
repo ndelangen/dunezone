@@ -1,6 +1,6 @@
 import { Text } from '@mantine/core';
 import preview from '@sb/preview';
-import { fn } from 'storybook/test';
+import { expect, fn, screen, userEvent, within } from 'storybook/test';
 
 import { initialTokenDraft, initialTokenMemory, TokenEditor, TokenProof } from './TokenEditor';
 import type { TokenDraft } from './TokenEditor';
@@ -48,4 +48,14 @@ export const BackFromAnotherToken = meta.story({
 /** Chosen but not yet picked, which is the state the draft holds between the tile and the pick. */
 export const BackReferenceNotYetPicked = meta.story({
   args: { draft: draftWith({ mode: 'reference', asset_id: null }), backProof: null },
+});
+
+/** Raster illustrations stay in card editors while token symbols use SVG fragments. */
+export const FrontSymbols = meta.story({
+  args: { chapter: 'front' },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('combobox', { name: 'Symbol' }));
+    await expect(screen.getByRole('group', { name: 'Decals / Custom stronghold illustrations' })).toBeVisible();
+    await expect(screen.queryByRole('group', { name: 'Decals / GF9 Stronghold cards' })).toBeNull();
+  },
 });

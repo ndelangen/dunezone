@@ -4,17 +4,19 @@ import type { z } from 'zod';
 
 import type { CardBack as CardBackType } from '../../data/objects';
 import { card } from '../../data/sizes';
+import { useAssetResolver } from '../assetRenderMode';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { useCountId } from '../utils/useCountId';
 import styles from './Back.module.css';
 
 export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, name, imageOffset, imageScale }) => {
   const prefix = useCountId();
+  const resolveAsset = useAssetResolver();
 
   const gradient = `${prefix}gradient`;
   const textMask = `${prefix}text-mask`;
   const textShadeMask = `${prefix}text-shade-mask`;
-  const multicolor = image.endsWith('-multicolor.svg');
+  const multicolor = image.endsWith('-multicolor.svg') || !image.endsWith('.svg');
 
   return (
     <div className={styles.card}>
@@ -41,9 +43,9 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
           height: imageScale * 220,
         }}
       >
-        <img src={image} />
-        {!multicolor && <img src={image} />}
-        {!multicolor && <img src={image} />}
+        <img src={resolveAsset(image)} />
+        {!multicolor && <img src={resolveAsset(image)} />}
+        {!multicolor && <img src={resolveAsset(image)} />}
       </div>
 
       <svg className={styles.svg}>

@@ -4,6 +4,7 @@ import type { z } from 'zod';
 
 import type { Decal } from '../../data/objects';
 import { card } from '../../data/sizes';
+import { useAssetResolver } from '../assetRenderMode';
 
 const foreGroundColor = '#e3dbb3';
 const middleColor = '#847954';
@@ -16,6 +17,7 @@ const StrokedUse: FC<SVGProps<SVGUseElement>> = ({ filter, ...rest }) => (
 );
 
 export function FrontDecals({ prefix, decals }: { decals: z.infer<typeof Decal>[]; prefix: string }) {
+  const resolveAsset = useAssetResolver();
   const fadedDecals = useMemo(() => decals.filter((d) => typeof d !== 'string' && d.muted === true), [decals]);
   const nonFadedDecals = useMemo(() => decals.filter((d) => typeof d === 'string' || d.muted !== true), [decals]);
   const decalsMask = `${prefix}decals-mask`;
@@ -57,7 +59,7 @@ export function FrontDecals({ prefix, decals }: { decals: z.infer<typeof Decal>[
                   width={width}
                   height={height}
                   filter="invert(100%)"
-                  xlinkHref={d.id}
+                  xlinkHref={resolveAsset(d.id)}
                 />
               );
             })}
@@ -77,7 +79,7 @@ export function FrontDecals({ prefix, decals }: { decals: z.infer<typeof Decal>[
           ...(d.outline !== false ? stroked : empty),
         };
         if (!d.id.endsWith('.svg')) {
-          return <image key={i} xlinkHref={d.id} {...placement} />;
+          return <image key={i} xlinkHref={resolveAsset(d.id)} {...placement} />;
         }
         return <StrokedUse key={i} {...placement} xlinkHref={`${d.id}#root`} />;
       })}

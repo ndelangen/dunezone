@@ -73,7 +73,10 @@ export const logoOptions = [...LOGO.options, ...GENERIC.options] as readonly str
 /** Decal `id` is `ALL` in schema; picker focuses on paths used on alliance cards. */
 export const decalAssetOptions = [
   ...new Set([...DECAL.options, ...ICON.options, ...LOGO.options, ...GENERIC.options, ...TROOP.options]),
-].sort((a, b) => a.localeCompare(b)) as readonly string[];
+].sort((a, b) => Number(!a.endsWith('.svg')) - Number(!b.endsWith('.svg')) || a.localeCompare(b)) as readonly string[];
+
+/** Token symbols use SVG fragments; keep raster card illustrations out of their choices. */
+export const vectorDecalAssetOptions = decalAssetOptions.filter((asset) => asset.endsWith('.svg'));
 
 export const troopStarOptionToLabel = createPathOptionLabeler(TROOP_MODIFIER.options);
 

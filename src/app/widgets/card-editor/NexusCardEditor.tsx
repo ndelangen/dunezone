@@ -15,7 +15,7 @@ import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
-import { assetOptionToPreviewSrc, decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { NexusCard } from '@game/assets/card/Nexus';
 import { backgroundPresets } from '@game/data/backgrounds';
 import { card as CARD_SIZE } from '@game/data/sizes';
@@ -111,7 +111,7 @@ function FactionFields({ draft, patch, memory, remember }: FactionFieldsProps) {
           <AssetSelect
             aria-label="Faction symbol"
             allowDeselect={false}
-            data={stockAssetOptions(decalAssetOptions)}
+            data={stockAssetOptions(vectorDecalAssetOptions)}
             getPreviewSrc={assetOptionToPreviewSrc}
             glyphPreviews
             value={draft.factionSymbol.image}

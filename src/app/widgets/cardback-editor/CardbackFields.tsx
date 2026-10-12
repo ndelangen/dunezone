@@ -61,7 +61,7 @@ export function CardbackFields({
       />
       <ControlBlock
         title="Emblem"
-        description="The vector at the centre of the back."
+        description="The artwork at the centre of the back."
         input={
           <AssetSelect
             aria-label="Emblem"
@@ -83,6 +83,7 @@ export function CardbackFields({
         input={
           <Slider
             aria-label="Emblem scale"
+            thumbLabel="Emblem scale"
             min={0}
             max={2}
             step={0.01}
