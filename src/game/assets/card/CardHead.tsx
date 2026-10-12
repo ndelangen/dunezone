@@ -37,7 +37,7 @@ export function CardHeadContents({
 }: Omit<HeadProps, 'head'>) {
   const iconSize = 85 * iconScale;
   const titleSize = cardTitleFontSize(name);
-  const wrapped = wrapTitle && titleSize < 45;
+  const wrapped = wrapTitle && titleSize < Math.max(45, wrappedTitleSize);
   return (
     <>
       <BackgroundRenderer

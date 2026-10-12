@@ -31,7 +31,7 @@ export const INITIAL_LEADER_SKILL_DRAFT: LeaderSkillDraft = {
   decals: [],
   generalText: '',
   battleText: '',
-  textSize: 32,
+  textSize: 36,
 };
 
 /* Artwork is clipped to the illustration window. */

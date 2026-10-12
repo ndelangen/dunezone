@@ -73,7 +73,7 @@ const SKILLS = [
       'Whenever you ship forces from off-planet to an empty territory, you may bring one additional force for free.',
     battleText:
       'Collect 1 spice for each point of strength of this leader from the territory this battle is in (if spice is present) when Battle Plans are revealed.',
-    decal: '/vector/decal/smuggler-multicolor.svg',
+    decal: '/vector/decal/smuggler-alt-multicolor.svg',
   },
   {
     name: 'Spice Banker',
@@ -127,7 +127,7 @@ export const GF9_LEADER_SKILLS: z.infer<typeof LeaderSkillAsset>[] = SKILLS.map(
     subName: 'Leader skill',
     head: LEADER_SKILL_HEAD,
     icon: LEADER_SKILL_SYMBOL,
-    textSize: 32,
+    textSize: 36,
     decals: [{ id: decal, scale: 1.05, offset: [0, 0], muted: false, outline: true }],
   })
 );

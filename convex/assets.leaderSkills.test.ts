@@ -109,3 +109,47 @@ test('GF9 installation refuses an unrelated same-owner card at a stock address',
   await expect(t.mutation(internal.assets.seedGF9LeaderSkills, { ownerId })).rejects.toThrow('already reserved');
   expect(await t.run((ctx) => ctx.db.query('assets').collect())).toHaveLength(1);
 });
+
+test('GF9 presentation refresh repairs untouched cards once and preserves edits, transfers and deletion', async () => {
+  const t = convexTest(schema, modules);
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Stock owner', isAdmin: true }));
+  const otherId = await t.run((ctx) => ctx.db.insert('users', { name: 'Other' }));
+  const installed = await t.mutation(internal.assets.seedGF9LeaderSkills, { ownerId });
+  await t.run(async (ctx) => {
+    await Promise.all(
+      installed.cardIds.map((id, index) => {
+        const card = GF9_LEADER_SKILLS[index]!;
+        return ctx.db.patch('assets', id, {
+          data: {
+            ...card,
+            textSize: 32,
+            decals: card.decals.map((decal) => ({
+              ...decal,
+              id: card.name === 'Smuggler' ? '/vector/decal/smuggler-multicolor.svg' : decal.id,
+            })),
+          },
+        });
+      })
+    );
+    await ctx.db.patch('assets', installed.cardIds[1]!, { owner_id: otherId });
+    await ctx.db.patch('assets', installed.cardIds[2]!, { is_deleted: true });
+  });
+  const edited = { ...GF9_LEADER_SKILLS[0]!, textSize: 32, battleText: 'An authored replacement ability.' };
+  await t.withIdentity({ subject: ownerId }).mutation(api.assets.update, { id: installed.cardIds[0]!, data: edited });
+  expect(await t.mutation(internal.assets.refreshGF9LeaderSkillPresentationV2, {})).toEqual(installed.cardIds.slice(3));
+  const cards = await t.run((ctx) => Promise.all(installed.cardIds.map((id) => ctx.db.get('assets', id))));
+  expect(cards[0]?.data).toEqual(edited);
+  expect(cards[1]?.data.textSize).toBe(32);
+  expect(cards[2]?.data.textSize).toBe(32);
+  expect(cards.slice(3).map((card) => card?.data)).toEqual(GF9_LEADER_SKILLS.slice(3));
+  const smugglerJob = await t.run((ctx) =>
+    ctx.db
+      .query('publication_jobs')
+      .withIndex('by_asset_type_and_asset_id', (q) =>
+        q.eq('asset_type', 'card-leaderability').eq('asset_id', installed.cardIds[9]!)
+      )
+      .unique()
+  );
+  expect(smugglerJob?.asset_data.card).toEqual(GF9_LEADER_SKILLS[9]);
+  expect(await t.mutation(internal.assets.refreshGF9LeaderSkillPresentationV2, {})).toEqual([]);
+});
