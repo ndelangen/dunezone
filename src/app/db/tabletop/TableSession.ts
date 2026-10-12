@@ -85,6 +85,9 @@ function flipsOf(draft: DraftMove) {
   return draft.flips ? { flips: draft.flips } : {};
 }
 
+/* How many of this page's commands may wait on the room at once before a further one is dropped. */
+const UNANSWERED_COMMANDS_LIMIT = 4;
+
 /* A turn of a piece at rest in 15° steps, clockwise positive; `released` once the key is up but the turn is still to go out. */
 type Turn = { pieceId: string; turns: number; released?: boolean };
 
@@ -345,6 +348,8 @@ export class TableSession {
   private pointers: PublicPointer[] = [];
   private flipping = new Map<string, number>();
   private readonly pendingFlips = new Map<string, string>();
+  /* The commands this page sent that the room has not answered yet. */
+  private readonly unanswered = new Set<string>();
   /* A rotation held on a piece at rest turns it on this page only, and goes out as one command when the key comes up. */
   private turning: Turn | null = null;
   /* Rotations sent and not yet answered, by command, shown until the frame that settles them. */
@@ -946,6 +951,7 @@ export class TableSession {
       this.carry = null;
     }
     this.pendingFlips.delete(id);
+    this.unanswered.delete(id);
     if (viewFollows && this.sentTurns.has(id)) {
       this.doneTurns.add(id);
     } else {
@@ -1207,6 +1213,7 @@ export class TableSession {
     this.poseTimer = undefined;
     this.pointerTimer = undefined;
     this.pendingFlips.clear();
+    this.unanswered.clear();
     this.turning = null;
     this.sentTurns.clear();
     this.doneTurns.clear();
@@ -1531,6 +1538,21 @@ export class TableSession {
       actions.forEach((action) => this.command(action));
     }
   }
+  /*
+   * Whether this page may send the command now. Past a few unanswered commands a further one is dropped, not queued,
+   * so mashing a button or key never stacks up work for the room; play by hand is answered long before it gets there.
+   */
+  private mayCommand(action: PieceAction) {
+    const allowed = isSeatAction(action) ? this.current() : this.canAct();
+    return allowed && !(this.carry && !passesCarry(action)) && this.unanswered.size < UNANSWERED_COMMANDS_LIMIT;
+  }
+  private sendCommand(commandId: string, action: PieceAction) {
+    const sent = this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision });
+    if (sent) {
+      this.unanswered.add(commandId);
+    }
+    return sent;
+  }
   /** Sends a table command, and returns its id when it went out. */
   command = (action: PieceAction): string | undefined => {
     if (!this.subscription.supportsCommand(action.kind)) {
@@ -1544,7 +1566,7 @@ export class TableSession {
       this.emit();
       return;
     }
-    if (!(isSeatAction(action) ? this.current() : this.canAct()) || (this.carry && !passesCarry(action))) {
+    if (!this.mayCommand(action)) {
       return;
     }
     if (action.kind === 'flip' && this.requireTable().flippingPieceIds.has(action.pieceId)) {
@@ -1561,7 +1583,7 @@ export class TableSession {
     if (action.kind === 'flip') {
       this.pendingFlips.set(commandId, action.pieceId);
     }
-    if (!this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision })) {
+    if (!this.sendCommand(commandId, action)) {
       this.pendingFlips.delete(commandId);
       this.error = 'The connection closed before the action could be sent.';
     } else if (seatCommand) {
@@ -1691,7 +1713,12 @@ export class TableSession {
     if (!canFlipInHand(held, unrevealed) || (carry.draft.flips ?? 0) >= CARRY_FLIPS_LIMIT) {
       return;
     }
+    /* A piece still turning over in hand finishes that turn before it takes another, as one on the table does. */
+    if (!held || this.flipping.has(held.id)) {
+      return;
+    }
     const flips = (carry.draft.flips ?? 0) + 1;
+    this.flipping = new Map(this.flipping).set(held.id, (held.flipRevision ?? 0) + 1);
     this.carry = { ...carry, draft: { ...carry.draft, flips } };
     this.send({ type: 'flip', carryId: carry.id, flips });
     this.emit();

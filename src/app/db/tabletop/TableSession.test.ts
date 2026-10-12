@@ -1127,6 +1127,18 @@ describe('hosted table interaction', () => {
     expect(socket().sent.filter((message) => message.type === 'command')).toHaveLength(2);
   });
 
+  test('a piece turning over in hand takes no further flip until its animation finishes', async () => {
+    const { client, source, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    const handFlips = () => socket().sent.flatMap((message) => (message.type === 'flip' ? [message.flips] : []));
+    client.flipSelected();
+    client.flipSelected();
+    expect(handFlips()).toEqual([1]);
+    client.finishPieceFlip(source.id, 1);
+    client.flipSelected();
+    expect(handFlips()).toEqual([1, 2]);
+  });
+
   test('a held piece does not hold back a seat command', async () => {
     const { client, carried } = await grantedWholeCarry();
     socket().deliver(carried);
@@ -2116,5 +2128,20 @@ describe('a held rotation', () => {
     }
     client.finishRotation();
     expect(command().action).toEqual({ kind: 'rotate', pieceId: deck().id, direction: -1, steps: 4 });
+  });
+});
+
+describe('unanswered commands', () => {
+  test('past four waiting on the room, a further command is dropped until one is answered', async () => {
+    const client = await connected();
+    const commands = () => socket().sent.filter((message) => message.type === 'command');
+    for (let press = 0; press < 10; press++) {
+      client.moveStormBy(1);
+    }
+    expect(commands()).toHaveLength(4);
+
+    socket().deliver({ type: 'rejected', requestId: commands()[0]!.commandId, message: 'The table changed.' });
+    client.moveStormBy(1);
+    expect(commands()).toHaveLength(5);
   });
 });
