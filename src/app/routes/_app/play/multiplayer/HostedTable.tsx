@@ -37,6 +37,7 @@ import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
 import { BattleControls, BattleHistory, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { OfflineConversations } from './Conversation';
+import { initialDockFocus, nextDockFocus } from './dockFocus';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner, ResultControls, useDeclareChoice } from './GameResult';
 import type { DeclareChoice } from './GameResult';
@@ -164,40 +165,20 @@ function phaseTab(table: TableProjection, activePhaseId: string) {
   return spectator && key && !SPECTATOR_PHASE_TABS.has(key) ? null : key;
 }
 
-/* Opens the phase's tab when the phase changes during play, never for the phase the table loaded on or while browsing a replay: a reload or a late join keeps the tab the player opens on. */
-function usePhaseFocus(table: TableProjection, progress: ReturnType<typeof gameProgress>) {
-  const token = `${progress.turn}:${progress.activePhaseId}`;
-  /* Setup and drafting are not a phase the table loaded on: the first storm still opens its tab for players who sat through them. */
-  const [loadedOn] = useState(table.snapshot.stage === 'play' ? token : null);
-  const key = phaseTab(table, progress.activePhaseId);
-  return key && token !== loadedOn ? { key, token: `phase:${token}` } : null;
-}
-
-type FocusRequest = Readonly<{ key: string; token: string }>;
-
-/*
- * The dock follows the newest focus request, so one that has merely stayed around is never applied again.
- * Stopping a result or ending a battle then leaves the dock where the player is, instead of reopening the phase's tab beneath it.
- * A request that goes away and comes back, like a phase entered again after Previous phase, counts as new.
- * When several requests appear together, the earlier one in the list wins.
- */
-function useNewestFocus(requests: readonly (FocusRequest | null)[]) {
-  const [state, setState] = useState<{ present: readonly string[]; newest: FocusRequest | null; arrivals: number }>({
-    present: [],
-    newest: null,
-    arrivals: 0,
+/* The dock follows the live table: each phase change, battle and end-of-game event opens its tab once (see dockFocus.ts). */
+function useDockFocus(table: TableProjection, progress: ReturnType<typeof gameProgress>) {
+  const phase = `${table.snapshot.stage}:${progress.turn}:${progress.activePhaseId}`;
+  const [state, setState] = useState(() => initialDockFocus(phase, table.snapshot.stage === 'play'));
+  const next = nextDockFocus(state, {
+    playback: Boolean(table.playback),
+    phase,
+    phaseTab: phaseTab(table, progress.activePhaseId),
+    events: [resultFocus(table), battleFocus(table)],
   });
-  const present = requests.filter((request): request is FocusRequest => request !== null);
-  const tokens = present.map((request) => request.token);
-  if (tokens.join('\n') === state.present.join('\n')) {
-    return state.newest;
+  if (next !== state) {
+    setState(next);
   }
-  const fresh = present.find((request) => !state.present.includes(request.token));
-  /* Each arrival gets its own delivery token, so the dock applies a returning request even if it was the last one applied. */
-  const arrivals = state.arrivals + (fresh ? 1 : 0);
-  const newest = fresh ? { key: fresh.key, token: `${fresh.token}#${arrivals}` } : state.newest;
-  setState({ present: tokens, newest, arrivals });
-  return newest;
+  return next.focus;
 }
 
 /* The end of the game opens the Result tab once for everyone: when someone starts determining the winner, and when it is declared. */
@@ -975,7 +956,7 @@ function ConnectedTable({
   identity: GameIdentity;
 }>) {
   const progress = gameProgress(table.snapshot);
-  const focusTab = useNewestFocus([resultFocus(table), battleFocus(table), usePhaseFocus(table, progress)]);
+  const focusTab = useDockFocus(table, progress);
   const celebration = useResultCelebration(table);
   const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
