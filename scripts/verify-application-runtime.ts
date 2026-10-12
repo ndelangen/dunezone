@@ -1,17 +1,54 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { unstable_dev } from 'wrangler';
+import { getPlatformProxy, unstable_dev } from 'wrangler';
 
 import { jpegProfile, pngDimensions } from '../workers/publisher/image-inspection.ts';
 
 /* Exercise the assembled Worker, including Static Assets precedence and the real TanStack entry. */
 process.chdir(path.resolve(import.meta.dirname, '../workers/publisher'));
+type RuntimeFixture = {
+  backendUrl: string;
+  siteUrl: string;
+  storageDirectory: string;
+  artifactKey: string;
+  html: string;
+};
+const fixture: RuntimeFixture | undefined = process.env.APPLICATION_RUNTIME_FIXTURE
+  ? JSON.parse(readFileSync(process.env.APPLICATION_RUNTIME_FIXTURE, 'utf8'))
+  : undefined;
+if (fixture) {
+  for (const origin of [fixture.backendUrl, fixture.siteUrl]) {
+    assert.equal(new URL(origin).hostname, '127.0.0.1', 'Runtime fixtures only accept an isolated loopback backend');
+  }
+  const platform = await getPlatformProxy<{ ASSET_BUCKET: { put(key: string, value: string): Promise<unknown> } }>({
+    configPath: path.resolve('wrangler.jsonc'),
+    persist: { path: path.join(fixture.storageDirectory, 'v3') },
+    remoteBindings: false,
+    envFiles: [],
+  });
+  try {
+    await platform.env.ASSET_BUCKET.put(fixture.artifactKey, fixture.html);
+  } finally {
+    await platform.dispose();
+  }
+}
 const worker = await unstable_dev('index.ts', {
   config: 'wrangler.jsonc',
   local: true,
   port: 0,
-  persist: false,
+  persist: Boolean(fixture),
+  ...(fixture
+    ? {
+        persistTo: fixture.storageDirectory,
+        vars: {
+          CONVEX_CLOUD_BASE_URL: fixture.backendUrl,
+          CONVEX_EXECUTOR_BASE_URL: `${fixture.siteUrl}/asset-publishing/executor`,
+          CONVEX_RENDER_URL: `${fixture.siteUrl}/asset-publishing/render`,
+        },
+      }
+    : {}),
   logLevel: 'error',
   experimental: { disableExperimentalWarning: true, watch: false },
 });
@@ -43,8 +80,22 @@ try {
     assert.equal(response.headers.get('Cache-Control'), 'no-store', pathname);
     assert.equal(response.headers.get('Set-Cookie'), null, pathname);
     assert.equal(response.headers.get('X-Public-Cache'), 'miss', pathname);
-    assert.equal(Number(response.headers.get('X-Public-Metadata-Queries') ?? 0), pathname === '/' ? 0 : 1, pathname);
+    const historicalFallback = Boolean(fixture && pathname.endsWith('/runtime-manual?edition=1'));
+    assert.equal(
+      Number(response.headers.get('X-Public-Metadata-Queries') ?? 0),
+      pathname === '/' ? 0 : historicalFallback ? 2 : 1,
+      pathname
+    );
     const html = await response.text();
+    if (fixture && pathname.endsWith('/runtime-manual')) {
+      assert.match(html, /data-published-rulebook/);
+      assert.match(html, /Rulebook page: Runtime Edition 2/);
+    }
+    if (historicalFallback) {
+      assert.doesNotMatch(html, /data-published-rulebook/);
+      assert.match(html, /Rulebook page: Runtime Edition 1/);
+      assert.doesNotMatch(html, /Rulebook page: Runtime Edition 2/);
+    }
     const hit = await worker.fetch(pathname);
     assert.equal(hit.headers.get('X-Public-Cache'), 'hit', pathname);
     assert.equal(hit.headers.get('X-Public-Metadata-Queries'), '0', pathname);

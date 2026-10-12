@@ -245,14 +245,14 @@ export function mediaSourceEntries(repositoryRoot: string): RendererManifestEntr
 const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 
 /**
- * Requires a devDependency to be pinned to an exact version, and returns it.
+ * Requires a dependency to be pinned to an exact version, and returns it.
  * Despite the name it guards every dependency in `PINNED_TOOLCHAIN_DEPENDENCIES`, sharp being only the default;
  * a range would let two machines resolve different versions and produce different bytes from identical sources, which is the one thing Renderer identity may not permit.
  */
 export function assertExactSharpVersion(version: string | undefined, name = 'sharp'): string {
   if (!version || !EXACT_SEMVER.test(version)) {
     throw new Error(
-      `${name} must be an exact-pinned devDependency for renderer identity (got ${JSON.stringify(version)})`
+      `${name} must be an exact-pinned dependency for renderer identity (got ${JSON.stringify(version)})`
     );
   }
   return version;
@@ -261,10 +261,11 @@ export function assertExactSharpVersion(version: string | undefined, name = 'sha
 function pinnedToolchainVersions(repositoryRoot: string): Array<{ name: string; version: string }> {
   const manifest = JSON.parse(readFileSync(path.join(repositoryRoot, 'package.json'), 'utf8')) as {
     devDependencies?: Record<string, string>;
+    dependencies?: Record<string, string>;
   };
   return PINNED_TOOLCHAIN_DEPENDENCIES.map((name) => ({
     name,
-    version: assertExactSharpVersion(manifest.devDependencies?.[name], name),
+    version: assertExactSharpVersion(manifest.devDependencies?.[name] ?? manifest.dependencies?.[name], name),
   }));
 }
 

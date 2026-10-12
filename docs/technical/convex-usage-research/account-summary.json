@@ -1,0 +1,43 @@
+{
+  "observedDate": "2026-10-12",
+  "approximateObservationTimeUtc": "07:25",
+  "sourceGitSha": "3bc00a482a7e7014cc0c2719ee8e8f5c575757fc",
+  "dashboard": {
+    "url": "https://dashboard.convex.dev/t/norbert-de-langen/settings/usage",
+    "period": "2026-10-01 to 2026-10-31",
+    "databaseIoMb": 902.53,
+    "databaseReadMb": 861.4,
+    "databaseWriteMb": 41.13,
+    "functionCallsRounded": "201K",
+    "databaseStorageMb": 18.72,
+    "actionComputeGbHours": 0.27,
+    "fileStorageBytes": 0,
+    "dataEgressMb": 3.2,
+    "deployments": 2
+  },
+  "cli": {
+    "production": {
+      "deployment": "exuberant-finch-263",
+      "functionCalls": 183298,
+      "databaseIoGb": 0.7863842938095331
+    },
+    "development": {
+      "deployment": "tame-raccoon-541",
+      "functionCalls": 18129,
+      "databaseIoGb": 0.09399919304996729
+    }
+  },
+  "projection": {
+    "method": "monthly native counters multiplied by 31 divided by approximately 11.3 elapsed UTC calendar days; unchanged observed workload",
+    "databaseIoGb": 2.4,
+    "functionCalls": 550000,
+    "starterIrelandIoOverageDollars": 0.4
+  },
+  "limitations": [
+    "API and dashboard observation times differ.",
+    "Monthly projections are scenarios, not invoices.",
+    "Recent logs do not describe the month.",
+    "MB/GB formatting should not be assumed decimal.",
+    "No user identities, credentials, arguments or return values are included."
+  ]
+}
