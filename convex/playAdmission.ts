@@ -19,9 +19,8 @@ import {
 import { playRedeemTicketOutcomeSchema } from '../src/shared/play/seatLimit';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
-import { internalMutation, mutation } from './functions';
+import { internalMutation, mutation, publicQuery } from './functions';
 import { canonicalAccount, gameActorForAccount } from './lib/accountIdentity';
 import { accountStateOf } from './lib/accountLifecycle';
 import {
@@ -228,7 +227,7 @@ function readyGameQuery<Args extends GameCredentials, Result extends { ok: true 
     request: NonNullable<Awaited<ReturnType<typeof authenticatedPlayRequest<Args>>>>
   ) => ValidatorTypeToReturnType<Result>;
 }) {
-  return query({
+  return publicQuery({
     args: definition.args,
     returns: definition.returns,
     handler: async (ctx, input) => {

@@ -34,7 +34,7 @@ export function leaderSkillDraftStatus(state: LeaderSkillState, overflow: boolea
   const validation = LeaderSkillAssetInput.safeParse(state.data);
   let invalid = validation.success ? undefined : validation.error.issues[0]?.message;
   if (overflow) {
-    invalid = 'The abilities extend beyond the card. Shorten them or reduce the text size.';
+    invalid = 'The abilities extend beyond the card. Shorten them.';
   }
   return {
     invalid,

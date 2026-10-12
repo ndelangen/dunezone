@@ -224,7 +224,7 @@ describe('account lifecycle widen rollout', () => {
     expect(group.viewerAccess.viewer).toEqual({ kind: 'anonymous' });
     expect(group.roster.map((entry) => entry.user.slug)).toEqual(['active-owner']);
 
-    const faction = await t.query(api.factions.getBySlug, { slug: 'pending-owned-faction' });
+    const faction = await t.query(api.factions.pageBySlug, { slug: 'pending-owned-faction' });
     expect(faction.owner).toBeNull();
   });
 });

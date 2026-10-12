@@ -26,9 +26,8 @@ import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import { parseAssetDataForWrite, parseNexusCardInput } from '../src/shared/assets/validation';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
-import { internalMutation, mutation } from './functions';
+import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
 import { optionalActiveUserId } from './lib/accountLifecycle';
 import {
   assertReferenceableDeckCardback,
@@ -192,7 +191,7 @@ const PER_TYPE_LIMIT = 200;
  * It carried per-type counts over a thousand-row scan until the landing stopped showing numbers, a pile being its art and its name (Norbert, 2026-08-21), so now it reads exactly the rows it draws.
  * Per type rather than one newest-overall window, because a shared window starves quiet types: a burst of new cards would push an older type out entirely and its pile would claim "none yet" about assets that exist.
  */
-export const cataloguePage = query({
+export const cataloguePage = publicQuery({
   args: {},
   returns: v.object({
     recent: v.array(assetListEntryValidator),
@@ -223,7 +222,7 @@ export const cataloguePage = query({
 });
 
 /** A category browse page: the caller names the flat Asset types its category derives to. */
-export const listByTypes = query({
+export const listByTypes = publicQuery({
   args: { types: v.array(v.string()) },
   returns: v.array(assetListEntryValidator),
   handler: async (ctx, args) => {
@@ -282,7 +281,7 @@ const rulesetSlotReferenceValidator = v.object({
   slot: v.string(),
 });
 
-export const getPage = query({
+export const getPage = viewerQuery({
   args: { type: v.string(), slug: v.string(), embeddedTokenIds: v.optional(v.array(v.id('assets'))) },
   returns: v.union(
     v.null(),
@@ -444,7 +443,7 @@ async function assetSlugHolder(ctx: QueryCtx, type: string, slug: string): Promi
 }
 
 /** Retained for older deployed editors that check name conflicts before saving. */
-export const slugTaken = query({
+export const slugTaken = publicQuery({
   args: { type: v.string(), slug: v.string() },
   returns: v.union(v.literal('live'), v.literal('deleted'), v.null()),
   handler: async (ctx, args) => {
@@ -958,7 +957,7 @@ function memberPreviewKind(type: string): string | null {
  *
  * `truncated` exists so a full page says so rather than quietly under-reporting its own total.
  */
-export const browsePage = query({
+export const browsePage = publicQuery({
   args: { type: v.string() },
   returns: v.object({
     entries: v.array(assetBrowseEntryValidator),
@@ -1037,7 +1036,7 @@ export const refreshEmbeddedCard = internalMutation({
 });
 
 /** The create page's live token resolution, held only while its draft embeds tokens. */
-export const customCardTokens = query({
+export const customCardTokens = publicQuery({
   args: { ids: v.array(v.id('assets')) },
   returns: zodToConvex(CustomCardTokenResolution),
   handler: async (ctx, args) => await resolveCustomCardTokens(ctx, args.ids),

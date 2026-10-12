@@ -1,5 +1,5 @@
 import { tableProgressFor } from '../../src/shared/play/phases';
-import type { ClientMessage } from '../../src/shared/play/protocol';
+import type { CommitMessage, PieceAction } from '../../src/shared/play/protocol';
 import { isSetupAction } from '../../src/shared/play/setup';
 import type { ActorDirectory } from './actors';
 import type { Patch } from './history';
@@ -18,7 +18,6 @@ export type HistoryRow = {
   bytes: number;
 };
 
-type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 type RowInput = Pick<HistoryRow, 'kind' | 'data' | 'step' | 'base_revision'>;
 /* Declaring a result and continuing past it are playback steps, as phase and turn changes are. */
 const boundaryActions = new Set(['phase', 'turn', 'result-declare', 'result-continue']);
@@ -33,11 +32,7 @@ const turnOf = (snapshot: StoredSnapshot) => tableProgressFor(snapshot.phase, sn
  * settled battle closes a run of playback steps, so no restore replays more than one turn of patches however long the
  * table plays without a battle.
  */
-function requiresCheckpoint(
-  action: Extract<CommitMessage, { type: 'command' }>['action'],
-  before: StoredSnapshot,
-  next: StoredSnapshot
-) {
+function requiresCheckpoint(action: PieceAction, before: StoredSnapshot, next: StoredSnapshot) {
   if (action.kind === 'reset' || (before.stage === 'setup' && next.stage !== 'setup')) {
     return true;
   }
@@ -49,7 +44,7 @@ function requiresCheckpoint(
 }
 
 /* Setup steps change a few entries of the table each, so they are stored as their changes like any other playback step. */
-function isPlaybackStep(action: Extract<CommitMessage, { type: 'command' }>['action'], before: StoredSnapshot) {
+function isPlaybackStep(action: PieceAction, before: StoredSnapshot) {
   return (
     boundaryActions.has(action.kind) ||
     isSetupAction(action) ||

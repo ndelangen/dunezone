@@ -39,7 +39,7 @@ describe('faction slug reservations', () => {
     await asUser.mutation(api.factions.softDelete, { id: occupied._id });
     const created = await createFaction(asUser, 'Create');
     expect(created.slug).toBe('create-2');
-    expect((await asUser.query(api.factions.getBySlug, { slug: created.slug })).faction._id).toBe(created._id);
+    expect((await asUser.query(api.factions.pageBySlug, { slug: created.slug })).faction._id).toBe(created._id);
     const updated = await asUser.mutation(api.factions.update, {
       id: created._id,
       data: { ...created.data, name: 'CREATE' },
@@ -60,7 +60,7 @@ describe('faction slug reservations', () => {
     await expect(
       asUser.mutation(api.factions.update, { id: faction._id, data: { ...faction.data, name: '☀️' } })
     ).rejects.toThrow(message);
-    expect((await asUser.query(api.factions.getBySlug, { slug: faction.slug })).faction.data.name).toBe(
+    expect((await asUser.query(api.factions.pageBySlug, { slug: faction.slug })).faction.data.name).toBe(
       'Named Faction'
     );
   });
@@ -76,7 +76,7 @@ describe('faction slug reservations', () => {
       data: { ...faction.data, name: 'Create' },
     });
     expect(updated.slug).toBe('create-1');
-    expect((await asUser.query(api.factions.getBySlug, { slug: updated.slug })).faction.data.name).toBe('Create');
+    expect((await asUser.query(api.factions.pageBySlug, { slug: updated.slug })).faction.data.name).toBe('Create');
   });
 
   test('create rejects a blank faction name at the authoritative boundary', async () => {
@@ -182,7 +182,7 @@ describe('faction slug reservations', () => {
     }));
     expect(repaired.active?.slug).toBe('migrated-faction');
     expect(repaired.deleted?.slug).toBe(`migrated-faction-archived-${deletedId}`);
-    await expect(t.query(api.factions.getBySlug, { slug: 'migrated-faction' })).resolves.toMatchObject({
+    await expect(t.query(api.factions.pageBySlug, { slug: 'migrated-faction' })).resolves.toMatchObject({
       faction: { _id: activeId },
     });
   });

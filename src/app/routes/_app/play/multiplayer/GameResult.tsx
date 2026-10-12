@@ -1,15 +1,15 @@
 import { Button, Group, MultiSelect, SegmentedControl, Select, Stack } from '@mantine/core';
-import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { phaseAt } from '@shared/play/phases';
 import { describeResult, resultFactionCountFits } from '@shared/play/result';
 import type { GameResult, GameResultKind } from '@shared/play/result';
-import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { Section } from '@ui/block/Section';
 import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
+import { factionName, factionOptions, viewerFaction } from './tableFactions';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
@@ -19,17 +19,9 @@ const KINDS: { value: GameResultKind; label: string }[] = [
   { value: 'none', label: 'No winner' },
 ];
 
-function factionOptions(table: TableProjection) {
-  return Object.entries(snapshotFactionLabels(table.snapshot)).map(([value, label]) => ({ value, label }));
-}
-
-function factionName(table: TableProjection, id: string) {
-  return snapshotFactionLabels(table.snapshot)[id] ?? id;
-}
-
 /** The viewer's own locked prediction that nobody has seen yet, if any. */
 function unrevealedPrediction(table: TableProjection): string | undefined {
-  const own = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
+  const own = viewerFaction(table);
   return Object.entries(table.snapshot.predictions ?? {}).find(
     ([, prediction]) => prediction.factionId === own && prediction.revealedAt === null
   )?.[0];

@@ -2,8 +2,8 @@ import { paginationOptsValidator, paginationResultValidator } from 'convex/serve
 import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
-import { internalQuery, query } from './_generated/server';
-import { internalMutation } from './functions';
+import { internalQuery } from './_generated/server';
+import { internalMutation, publicQuery } from './functions';
 import {
   clearStatistics,
   loadGlobalStatisticsTotals,
@@ -48,13 +48,13 @@ type RebuildSource = 'profiles' | 'factions' | 'rulesets' | 'faq_items' | 'faq_a
 const REBUILD_SOURCES: RebuildSource[] = ['profiles', 'factions', 'rulesets', 'faq_items', 'faq_answers'];
 const REBUILD_BATCH_SIZE = 64;
 
-export const getGlobalTotals = query({
+export const getGlobalTotals = publicQuery({
   args: {},
   returns: globalTotalsValidator,
   handler: async (ctx) => await loadGlobalStatisticsTotals(ctx),
 });
 
-export const getRulesetTotals = query({
+export const getRulesetTotals = publicQuery({
   args: { rulesetId: v.id('rulesets') },
   returns: rulesetTotalsValidator,
   handler: async (ctx, args) => await loadRulesetStatisticsTotals(ctx, args.rulesetId),

@@ -17,6 +17,7 @@ import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeom
 import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
 import { holdsPredictionCard } from './predictionCards';
+import { revised } from './state';
 import type { StoredSnapshot, StoredBattle } from './state';
 
 type BattleActor = { snapshot: StoredSnapshot; battle: StoredBattle; factionId: string };
@@ -26,7 +27,7 @@ const refuse = (message: string): never => {
   throw new GameRejection(message);
 };
 function commit(snapshot: StoredSnapshot, changes: Partial<StoredSnapshot>, pieces = snapshot.table.pieces) {
-  return { ...nextSnapshot(snapshot, { ...tableForViewer(snapshot, SPECTATOR_SEAT), pieces }), ...changes };
+  return { ...revised(snapshot, pieces), ...changes };
 }
 function sideFor(battle: StoredBattle, factionId: string): 0 | 1 {
   const side = battle.sides.findIndex((side) => side?.factionId === factionId);

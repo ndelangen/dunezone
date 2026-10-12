@@ -3,7 +3,7 @@ import type { GameSnapshot, Viewer } from '../../src/shared/play/protocol';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { anonymizeHistory } from './anonymizeHistory';
-import type { PublicLog } from './log';
+import type { PublicLog, SeatCause } from './log';
 
 type Actor = {
   user_id: string;
@@ -24,7 +24,6 @@ type Seat = {
 };
 type SeatHistoryEvent = 'joined' | 'vacated';
 /** How a player arrived or left; the log distinguishes them, no free text is asked for. */
-type SeatCause = 'creation' | 'admission' | 'departure' | 'deletion' | 'removal';
 type SeatChange = { cause: SeatCause; eventId?: string; approver?: { userId: string; displayName: string } };
 export const SPECTATOR_COLOR = '#d0c8b9';
 /** A seat without a faction, and a faction row stored without a colour, take the table's default. */

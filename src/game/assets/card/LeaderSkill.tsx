@@ -1,3 +1,4 @@
+import { LEADER_SKILL_HEAD, LEADER_SKILL_SYMBOL } from '@shared/assets/gf9LeaderSkills';
 import type { LeaderSkillCard as LeaderSkillSchema } from '@shared/assets/schema';
 import { VECTOR_CROPS } from '@shared/media/vectorCrops.generated';
 import { useEffect, useRef } from 'react';
@@ -16,10 +17,11 @@ export function LeaderSkillCard({
   generalText,
   battleText,
   decals,
-  textSize,
+  textSize: _savedTextSize,
   onOverflow,
   ...head
 }: z.infer<typeof LeaderSkillSchema> & { onOverflow?: (overflow: boolean) => void }) {
+  const textSize = 36;
   const prefix = useCountId();
   const body = useRef<HTMLDivElement>(null);
   const artworkDecals = [...decals.filter((decal) => decal.muted), ...decals.filter((decal) => !decal.muted)];
@@ -48,9 +50,17 @@ export function LeaderSkillCard({
   }, [generalText, battleText, textSize, onOverflow]);
   return (
     <div className={styles.card}>
-      <CardHeadBackground head={head.head} />
+      <CardHeadBackground head={LEADER_SKILL_HEAD} />
       <div className={styles.frame} />
-      <CardHeadContents {...head} />
+      <CardHeadContents
+        {...head}
+        subName="Leader skill"
+        icon={LEADER_SKILL_SYMBOL}
+        iconScale={1}
+        iconOffset={[0, 0]}
+        iconInvert={false}
+        iconOpacity={1}
+      />
       <div ref={body} className={styles.body} style={{ fontSize: textSize }}>
         <CardText value={generalText} className={styles.general} />
         <div className={styles.art}>

@@ -3,8 +3,7 @@ import { v } from 'convex/values';
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import { rulesetInputSchema } from '../src/shared/rulesets/validation';
 import type { Doc, Id } from './_generated/dataModel';
-import { query } from './_generated/server';
-import { mutation } from './functions';
+import { mutation, publicQuery, viewerQuery } from './functions';
 import {
   requireGroupReassignment,
   requireRulesetMaintenance,
@@ -71,7 +70,7 @@ async function resolveUniqueRulesetSlug(ctx: MutationCtx, name: string, own?: Do
   });
 }
 
-export const list = query({
+export const list = publicQuery({
   args: {},
   handler: async (ctx) => {
     const rows = await ctx.db
@@ -82,7 +81,7 @@ export const list = query({
   },
 });
 
-export const get = query({
+export const get = publicQuery({
   args: { id: v.id('rulesets') },
   handler: async (ctx, args) => {
     const row = await getRulesetById(ctx, args.id);
@@ -93,13 +92,13 @@ export const get = query({
   },
 });
 
-export const getBySlug = query({
+export const getBySlug = viewerQuery({
   args: { slug: v.string() },
   returns: rulesetPublicBundleValidator,
   handler: async (ctx, args) => await loadRulesetPublicBundleBySlug(ctx, args.slug),
 });
 
-export const detailPageBySlug = query({
+export const detailPageBySlug = viewerQuery({
   args: { slug: v.string() },
   returns: rulesetDetailPageValidator,
   handler: async (ctx, args) => await loadRulesetDetailPageBySlug(ctx, args.slug),
@@ -108,7 +107,7 @@ export const detailPageBySlug = query({
 /**
  * Rulesets the viewer owns, with their current group's name resolved, for the group-detail "add my ruleset to this group" picker.
  */
-export const listOwnedForGroupAssign = query({
+export const listOwnedForGroupAssign = viewerQuery({
   args: {},
   returns: v.array(ownedForGroupAssignRowValidator('rulesets')),
   handler: async (ctx) => {
@@ -121,7 +120,7 @@ export const listOwnedForGroupAssign = query({
   },
 });
 
-export const listByFaction = query({
+export const listByFaction = publicQuery({
   args: { faction_id: v.id('factions') },
   handler: async (ctx, args) => {
     const links = await ctx.db

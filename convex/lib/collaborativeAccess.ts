@@ -1,5 +1,12 @@
 import type { Infer } from 'convex/values';
 
+import { evaluateCollaborativeAccess } from '../../src/shared/access/collaborativeAccess';
+import type {
+  CollaborativeAccessFacts,
+  MembershipState,
+  StoredMembershipState,
+  ViewerFacts,
+} from '../../src/shared/access/collaborativeAccess';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { isActiveProfile, optionalActiveUserId } from './accountLifecycle';
@@ -12,11 +19,11 @@ import type {
   rulesetViewerAccessValidator,
 } from './collaborativeAccessValidators';
 
-/** What a viewer's membership of a Group is, as the client sees it. `StoredMembershipState` is the same plus the state the database keeps and the client never receives. */
-export type MembershipState = 'none' | 'pending' | 'active';
-
 /** The viewer as a page is told about them: signed in with a membership, or anonymous. Never carries an id, which is why it is safe on the wire. */
 export type PublicViewer = Infer<typeof publicViewerValidator>;
+
+export { evaluateCollaborativeAccess };
+export type { CollaborativeAccessFacts, MembershipState, StoredMembershipState };
 
 export type AssignedGroupSummary = Infer<typeof assignedGroupSummaryValidator>;
 
@@ -25,34 +32,6 @@ export type CollaborativeAccess =
   | Infer<typeof factionViewerAccessValidator>
   | Infer<typeof rulesetViewerAccessValidator>
   | Infer<typeof assetViewerAccessValidator>;
-
-/**
- * Membership as the `group_members` row stores it, including `removed`.
- * `evaluateCollaborativeAccess` flattens `removed` to `none` for membership-derived capabilities before anything leaves the server.
- */
-export type StoredMembershipState = MembershipState | 'removed';
-
-type ViewerFacts =
-  | { kind: 'anonymous' }
-  | { kind: 'authenticated'; membership: StoredMembershipState; ownsSubject: boolean };
-
-/** The inputs the rules need about a Group, gathered from the database so the rules themselves need no database. */
-export type GroupAccessFacts = {
-  kind: 'group';
-  group: { eligible: boolean };
-  viewer: ViewerFacts;
-};
-
-/** The inputs the rules need about a faction, ruleset or asset. The three share one shape because they share one set of rules. */
-export type AssetAccessFacts = {
-  kind: 'faction' | 'ruleset' | 'asset';
-  resource: { available: boolean };
-  group: { eligible: boolean; summary: AssignedGroupSummary | null };
-  viewer: ViewerFacts;
-};
-
-/** Everything `evaluateCollaborativeAccess` reads. Build one of these and the answer is a pure function of it. */
-export type CollaborativeAccessFacts = GroupAccessFacts | AssetAccessFacts;
 
 type CollaborativeSubject =
   | { kind: 'group'; id: Id<'groups'> }
@@ -641,6 +620,47 @@ export async function loadAssetAccessBundle(
   }
 }
 
+/**
+ * The viewer's membership of one Group, through the same unique lookup the mutation gates use.
+ * A browser deciding what to show asks this per subject, so its answer cannot depend on how many other Groups the viewer is in.
+ */
+export async function loadViewerMembership(ctx: QueryCtx, groupId: Id<'groups'> | null): Promise<MembershipState> {
+  const viewerId = await optionalActiveUserId(ctx);
+  const membership = await membershipFor(
+    ctx,
+    liveGroupOrNull(groupId ? await ctx.db.get('groups', groupId) : null)?._id ?? null,
+    viewerId
+  );
+  return !membership || membership.status === 'removed' ? 'none' : membership.status;
+}
+
+/**
+ * The live Groups where the viewer's membership is active: the choices a Group picker offers when moving a subject.
+ * Capped for presentation like every list on a page;
+ * capabilities never read it.
+ */
+export async function loadViewerAssignableGroups(ctx: QueryCtx) {
+  const viewerId = await optionalActiveUserId(ctx);
+  if (!viewerId) {
+    return [];
+  }
+  const memberships = await ctx.db
+    .query('group_members')
+    .withIndex('by_user_status', (q) => q.eq('user_id', viewerId).eq('status', 'active'))
+    .take(200);
+  const groups = await Promise.all(memberships.map((membership) => ctx.db.get('groups', membership.group_id)));
+  return groups.flatMap((group) => {
+    const live = liveGroupOrNull(group);
+    return live ? [{ id: live._id, name: live.name, slug: live.slug }] : [];
+  });
+}
+
+/** The live Group a subject is assigned to, as a page's public facts carry it. */
+export async function assignedGroupSummary(ctx: QueryCtx, groupId: Id<'groups'> | undefined | null) {
+  const group = liveGroupOrNull(groupId ? await ctx.db.get('groups', groupId) : null);
+  return group ? { id: group._id, name: group.name, slug: group.slug } : null;
+}
+
 /** One member as the Group page lists them: the membership, the person, and what the viewer may do to that membership. */
 export type GroupRosterEntry = {
   membershipId: Id<'group_members'>;
@@ -738,57 +758,4 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
       : null;
 
   return { ...access, owner, roster };
-}
-
-/**
- * The base subject capability matrix: facts in, capabilities out.
- * Pure, with no `ctx` and no database, which is what lets the rules be tested exhaustively without one.
- * A caller wanting an answer about a real subject calls `loadCollaborativeAccess` or a `require*` gate;
- * gates load and evaluate access before applying operation-specific checks, rather than building facts by hand.
- */
-export function evaluateCollaborativeAccess(facts: CollaborativeAccessFacts): CollaborativeAccess {
-  const authenticated = facts.viewer.kind === 'authenticated';
-  const membership: MembershipState | null =
-    facts.viewer.kind === 'authenticated'
-      ? facts.viewer.membership === 'removed'
-        ? 'none'
-        : facts.viewer.membership
-      : null;
-  const activeMember = authenticated && membership === 'active';
-  const owner = facts.viewer.kind === 'authenticated' && facts.viewer.ownsSubject;
-  const viewer: PublicViewer =
-    facts.viewer.kind === 'anonymous' ? facts.viewer : { kind: 'authenticated', membership: membership ?? 'none' };
-  const requestMembership = authenticated && membership === 'none' && facts.group.eligible;
-
-  if (facts.kind === 'group') {
-    return {
-      kind: 'group',
-      viewer,
-      capabilities: {
-        requestMembership,
-        rename: owner && facts.group.eligible,
-        delete: owner && facts.group.eligible,
-        addMember: activeMember && facts.group.eligible,
-      },
-    };
-  }
-
-  return {
-    kind: facts.kind,
-    assignedGroup: facts.group.summary,
-    viewer,
-    capabilities: {
-      requestMembership: requestMembership && facts.resource.available,
-      edit: facts.resource.available && (owner || (activeMember && facts.group.eligible)),
-      /*
-       * Renaming is the owner's alone for every kind, because a name change is an identity change:
-       * it recalculates the slug, moves the public URL, and leaves no redirect behind (#605).
-       * An active collaborator keeps `edit` and loses only this, which is why the two are separate
-       * capabilities rather than one.
-       */
-      rename: facts.resource.available && owner,
-      changeGroup: facts.resource.available && owner,
-      delete: facts.resource.available && owner,
-    },
-  };
 }

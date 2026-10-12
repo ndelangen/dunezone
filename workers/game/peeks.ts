@@ -11,7 +11,7 @@ import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { labelForCount } from '../../src/shared/play/tableState';
 import { concealCards } from './decks';
-import { openPeek, peekGrant } from './state';
+import { openPeek, peekGrant, revised } from './state';
 import type { StoredSnapshot } from './state';
 
 /* Who is peeking, at which table: every transition here acts for one faction on one stored snapshot. */
@@ -113,7 +113,7 @@ function granted(snapshot: StoredSnapshot, factionId: string, pieceId: string): 
 }
 
 function close({ snapshot, factionId }: Peeker): StoredSnapshot {
-  return withoutPeek(nextSnapshot(snapshot, tableForViewer(snapshot, SPECTATOR_SEAT)), factionId);
+  return withoutPeek(revised(snapshot), factionId);
 }
 
 /* Whether an order names every card of the deck exactly once. */

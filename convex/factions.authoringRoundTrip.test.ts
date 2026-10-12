@@ -336,7 +336,7 @@ describe('faction authoring full-field round trip', () => {
       return id;
     });
 
-    const canonicalCreatePage = await t.query(api.factions.getBySlug, {
+    const canonicalCreatePage = await t.query(api.factions.pageBySlug, {
       slug: createdRow.slug,
     });
     expect(CanonicalFactionStoredSchema.parse(canonicalCreatePage.faction.data)).toEqual(createdInput);
@@ -394,7 +394,7 @@ describe('faction authoring full-field round trip', () => {
     });
 
     expect(updatedRow.slug).toBe('complete-authoring-proof-revised');
-    const canonicalEditPage = await t.query(api.factions.getBySlug, {
+    const canonicalEditPage = await t.query(api.factions.pageBySlug, {
       slug: updatedRow.slug,
     });
     const reloaded = CanonicalFactionStoredSchema.parse(canonicalEditPage.faction.data);
@@ -407,7 +407,7 @@ describe('faction authoring full-field round trip', () => {
     expect(reloaded.planet).toEqual(editedInput.planet);
     expect(reloaded.rules.advantages).toEqual(editedInput.rules.advantages);
 
-    await expect(t.query(api.factions.getBySlug, { slug: 'complete-authoring-proof' })).rejects.toThrow('not found');
+    await expect(t.query(api.factions.pageBySlug, { slug: 'complete-authoring-proof' })).rejects.toThrow('not found');
     await expect(t.run(async (ctx) => await ctx.db.get('publication_jobs', createdJob._id))).resolves.toMatchObject({
       status: 'pending',
       attempt_counter: 0,

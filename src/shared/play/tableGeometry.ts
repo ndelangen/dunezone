@@ -77,14 +77,17 @@ export function surfaceHeightAt(position: Vector3Tuple): number {
   return TABLE_SURFACE_Y;
 }
 
+/** The radius of a round piece's footprint: a spice stack, a marker, or a troop, leader disc or faction token. */
+export function circleFootprintRadius(piece: PieceFootprint): number {
+  if (isSpicePiece(piece)) {
+    return SPICE_FOOTPRINT_RADIUS;
+  }
+  return piece.kind === 'marker' ? MARKER_FOOTPRINT_RADIUS : TROOP_FOOTPRINT_RADIUS * troopScale(piece);
+}
+
 function minimumFootprintRadius(position: Vector3Tuple, piece: PieceFootprint): number {
   if (piece.kind !== 'card') {
-    const footprintRadius = isSpicePiece(piece)
-      ? SPICE_FOOTPRINT_RADIUS
-      : piece.kind === 'marker'
-        ? MARKER_FOOTPRINT_RADIUS
-        : TROOP_FOOTPRINT_RADIUS * troopScale(piece);
-    return Math.max(0, Math.hypot(position[0], position[2]) - footprintRadius);
+    return Math.max(0, Math.hypot(position[0], position[2]) - circleFootprintRadius(piece));
   }
 
   const cosine = Math.cos(piece.orientation);
