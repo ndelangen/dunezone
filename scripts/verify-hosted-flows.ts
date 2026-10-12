@@ -12,9 +12,9 @@ export const browserFlows = {
     startsInPlay: true,
     shard: 'regular',
   },
-  /* The regular flow steps through every phase and readies both players at each Mentat pause, so it has the longest budget. */
+  /* The regular flow steps through every phase and readies both players at each Mentat pause, so it has the longest budget. Passing runs took 460 to 590 s on 12 Oct 2026, so ten minutes no longer left room (#1045). */
   regular: {
-    timeoutMs: 600_000,
+    timeoutMs: 900_000,
     separateBrowsers: false,
     keepsFrames: false,
     needsCatalogue: false,
