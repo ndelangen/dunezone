@@ -1,8 +1,8 @@
 import { Box, Button, Center, Group, Loader, Select, Stack, Text } from '@mantine/core';
 import { RULEBOOK_BOARD_ARTWORK, RULEBOOK_STOCK_ARTWORK, rulebookArtworkName } from '@shared/rulebooks/sources';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
-import { PublishedImage } from '@ui/content/PublishedImage';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
+import { TokenImage } from '@ui/content/TokenImage';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { useReducer } from 'react';
@@ -54,7 +54,7 @@ function FactionMemberChoices({
                 {member.imageUrl ? (
                   /* Decorative beside the leader's name, which already names the button. */
                   <Box w={44} miw={44} aria-hidden>
-                    <PublishedImage src={member.imageUrl} name={member.name} aspect={1} radius="50%" />
+                    <TokenImage src={member.imageUrl} name={member.name} shape="round" />
                   </Box>
                 ) : null}
                 <Text size="sm">
@@ -109,7 +109,7 @@ function FactionTroopChoices({
                 <Group gap="sm" wrap="nowrap">
                   {source.status === 'ready' ? (
                     <Box w={44} miw={44} aria-hidden>
-                      <PublishedImage src={source.imageUrl} name={name} aspect={1} radius="50%" />
+                      <TokenImage src={source.imageUrl} name={name} shape="round" />
                     </Box>
                   ) : null}
                   <Text size="sm">

@@ -8,6 +8,7 @@ import { cardbackPresetKeySchema } from '../src/shared/assets/cardbackPresetKeys
 import { CardBack } from '../src/shared/assets/schema';
 import { playProvisionFailureReasonSchema, playStageSchema } from '../src/shared/play/admission';
 import { playDirectorySummarySchema } from '../src/shared/play/directory';
+import { lastTurnSchema } from '../src/shared/play/lastTurn';
 import { tableSeatCountSchema } from '../src/shared/play/schema';
 import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
 import { authProviderValidator } from './lib/accountMethods';
@@ -54,6 +55,8 @@ export default defineSchema({
     slug: v.optional(v.string()),
     ruleset_id: v.optional(v.id('rulesets')),
     minimum_players: v.optional(zodToConvex(tableSeatCountSchema)),
+    /* The last turn the creator chose; absent on games created before the create page offered it. */
+    last_turn: v.optional(zodToConvex(lastTurnSchema)),
     creator_id: v.optional(v.id('users')),
     /* Merging ownership keeps the actor the Worker originally seated as creator. */
     creator_actor_id: v.optional(v.id('users')),

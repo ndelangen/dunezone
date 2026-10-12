@@ -1,10 +1,10 @@
 import preview from '@sb/preview';
 import { expect, spyOn, userEvent, within } from 'storybook/test';
 
-import { convexNeverAnswers, db, ref, storybookViewer } from '@db/storybook';
+import { convexNeverAnswers, db, ref, ruleset, storybookViewer } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
-import { productDatabase } from './product.stories.fixture';
+import { factions, productDatabase } from './product.stories.fixture';
 
 /* No account carries the Administrator flag: creation is open to every signed-in player. */
 const signedIn = {
@@ -51,10 +51,13 @@ export const Member = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const create = await page.findByRole('button', { name: 'Create game' }, { timeout: 30_000 });
     expect(create).toBeDisabled();
-    await userEvent.click(page.getByPlaceholderText('Choose a ruleset'));
-    await userEvent.click(await page.findByRole('option', { name: 'Dreamrules' }));
-    await expect(page.findByRole('status')).resolves.toHaveTextContent('No spice deck is linked.');
-    expect(page.getByLabelText('Minimum players')).toHaveValue('6');
+    await userEvent.click(page.getByRole('combobox', { name: 'Ruleset' }));
+    /* The dropdown says why a ruleset cannot start a game before it is chosen. */
+    expect(await page.findByRole('option', { name: /^Dreamrules/ })).toHaveTextContent('No spice deck is linked.');
+    await userEvent.click(page.getByRole('option', { name: /^Dreamrules/ }));
+    expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveAccessibleDescription('No spice deck is linked.');
+    await expect(page.findByRole('status')).resolves.toHaveTextContent('Dreamrules cannot start a game yet.');
+    expect(page.getByRole('slider', { name: 'Minimum players' })).toHaveAttribute('aria-valuenow', '6');
     expect(create).toBeDisabled();
   },
 });
@@ -86,13 +89,70 @@ const creatable = {
     const treachery = baseline.ruleset_asset_slots.find((slot) => slot.slot === 'treachery')!;
     baseline.ruleset_asset_slots.push({ ...treachery, slot: 'spice' });
     baseline.play_game_slug_reservations.push({ slug: 'arrakeen-picnic' });
+    /* A manifest worth reading: all six base factions, four of them shared with a second ruleset and two made for this one. */
+    const [chosen] = baseline.rulesets;
+    const classic = { ...ruleset({ name: 'Classic Dune' }), group_id: chosen!.group_id };
+    baseline.rulesets.push(classic);
+    const [atreides] = baseline.factions;
+    baseline.ruleset_factions.push({ ruleset_id: ref(classic.$key!), faction_id: ref(atreides!.$key!) });
+    for (const entry of factions.slice(1)) {
+      const key = `faction:${entry.slug}`;
+      baseline.factions.push({ ...atreides!, $key: key, slug: entry.slug, data: entry.data });
+      baseline.ruleset_factions.push({ ruleset_id: ref(chosen!.$key!), faction_id: ref(key) });
+      if (!['spacing-guild', 'bene-gesserit'].includes(entry.slug)) {
+        baseline.ruleset_factions.push({ ruleset_id: ref(classic.$key!), faction_id: ref(key) });
+      }
+    }
   }),
 };
 
 async function chooseRuleset(page: ReturnType<typeof within>) {
-  await userEvent.click(await page.findByPlaceholderText('Choose a ruleset', {}, { timeout: 30_000 }));
-  await userEvent.click(await page.findByRole('option', { name: 'Dreamrules' }));
+  await userEvent.click(await page.findByRole('combobox', { name: 'Ruleset' }, { timeout: 30_000 }));
+  await userEvent.click(await page.findByRole('option', { name: /^Dreamrules/ }));
 }
+
+async function typeCustomName(page: ReturnType<typeof within>, name: string) {
+  await userEvent.click(page.getByRole('switch', { name: 'Set a custom name' }));
+  await userEvent.type(page.getByLabelText('Custom name'), name);
+}
+
+/* The generated name sits under the line that introduces it. */
+function shownName(page: ReturnType<typeof within>) {
+  return page.getByText('This will be the name of your game').nextElementSibling?.textContent ?? '';
+}
+
+/** The pass opens on a generated name; the dice draw another and the stub counts the seats. */
+export const Creatable = meta.story({
+  parameters: creatable,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await chooseRuleset(page);
+    const first = shownName(page);
+    expect(first).not.toBe('');
+    /* One draw in 840 repeats the last, so three tries rule out chance. */
+    for (let tries = 0; tries < 3 && shownName(page) === first; tries += 1) {
+      await userEvent.click(page.getByRole('button', { name: 'Roll another name' }));
+    }
+    expect(shownName(page)).not.toBe(first);
+    expect(page.getByRole('img', { name: '6 seats round the board' })).toBeVisible();
+    page.getByRole('slider', { name: 'Minimum players' }).focus();
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}');
+    expect(page.getByRole('img', { name: '8 seats round the board' })).toBeVisible();
+    expect(page.getByRole('slider', { name: 'Last turn' })).toHaveAttribute('aria-valuenow', '10');
+    expect(page.getByRole('button', { name: 'Create game' })).toBeEnabled();
+    /* The chosen ruleset's manifest is printed on the pass, its page a new tab away. */
+    const manifest = within(
+      await page.findByRole('region', { name: 'What Dreamrules puts on the table' }, { timeout: 10_000 })
+    );
+    expect(manifest.getByText('Treachery deck')).toBeVisible();
+    expect(manifest.getAllByLabelText('3 cards')).toHaveLength(2);
+    expect(manifest.getByText('Custom tokens')).toBeVisible();
+    expect(manifest.getByText('6 factions')).toBeVisible();
+    expect(manifest.getByText('Made for Dreamrules')).toBeVisible();
+    expect(manifest.getByText('Also in other rulesets')).toBeVisible();
+    expect(manifest.getByRole('link', { name: /Read the ruleset/ })).toHaveAttribute('target', '_blank');
+  },
+});
 
 /** A reserved address is advice, never a validation error. */
 export const DuplicateName = meta.story({
@@ -100,9 +160,9 @@ export const DuplicateName = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await chooseRuleset(page);
-    await userEvent.type(page.getByLabelText('Game name'), 'Arrakeen picnic');
+    await typeCustomName(page, 'Arrakeen picnic');
     await expect(page.findByText(/You can keep the name/, {}, { timeout: 10_000 })).resolves.toBeVisible();
-    expect(page.getByLabelText('Game name')).not.toHaveAttribute('aria-invalid', 'true');
+    expect(page.getByLabelText('Custom name')).not.toHaveAttribute('aria-invalid', 'true');
     expect(page.getByRole('button', { name: 'Create game' })).toBeEnabled();
   },
 });
@@ -113,16 +173,16 @@ export const NameRefused = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await chooseRuleset(page);
-    await userEvent.type(page.getByLabelText('Game name'), 'Fuck the spice harvest');
-    await userEvent.clear(page.getByLabelText('Minimum players'));
-    await userEvent.type(page.getByLabelText('Minimum players'), '4');
+    await typeCustomName(page, 'Fuck the spice harvest');
+    page.getByRole('slider', { name: 'Minimum players' }).focus();
+    await userEvent.keyboard('{ArrowLeft}{ArrowLeft}');
     await userEvent.click(page.getByRole('button', { name: 'Create game' }));
     await expect(
       page.findByText(/Choose a game name without profanity/, {}, { timeout: 10_000 })
     ).resolves.toBeVisible();
-    expect(page.getByLabelText('Game name')).toHaveValue('Fuck the spice harvest');
+    expect(page.getByLabelText('Custom name')).toHaveValue('Fuck the spice harvest');
     expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveValue('Dreamrules');
-    expect(page.getByLabelText('Minimum players')).toHaveValue('4');
+    expect(page.getByRole('slider', { name: 'Minimum players' })).toHaveAttribute('aria-valuenow', '4');
   },
 });
 
@@ -132,7 +192,7 @@ export const CustomNameCreated = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await chooseRuleset(page);
-    await userEvent.type(page.getByLabelText('Game name'), 'Arrakeen picnic');
+    await typeCustomName(page, 'Arrakeen picnic');
     await userEvent.click(page.getByRole('button', { name: 'Create game' }));
     await expect(
       page.findByRole('heading', { name: 'Arrakeen picnic', level: 1 }, { timeout: 30_000 })
@@ -148,15 +208,16 @@ export const CustomNameCreated = meta.story({
   },
 });
 
-/** Leaving the optional name blank retains the generated-name creation path. */
+/** The generated name the pass shows is the name the game gets. */
 export const GeneratedNameCreated = meta.story({
   parameters: creatable,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await chooseRuleset(page);
+    const name = shownName(page);
     await userEvent.click(page.getByRole('button', { name: 'Create game' }));
     /* The created game's page offers its link to copy. */
     await expect(page.findByRole('button', { name: 'Copy game link' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.getByRole('heading', { level: 1 })).not.toHaveTextContent('Create a game');
+    expect(page.getByRole('heading', { level: 1 })).toHaveTextContent(name);
   },
 });

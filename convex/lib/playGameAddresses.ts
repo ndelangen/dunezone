@@ -5,9 +5,9 @@ import {
   PLAY_RESERVED_GAME_ADDRESSES,
   playGameNameSchema,
 } from '../../src/shared/play/gameNames';
+import { generatePlayGameName } from '../../src/shared/play/generatedGameNames';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { acceptsPlayGameAddress, hasLocalPlayGameProfanity } from './playGameNameChecks';
-import { generatePlayGameName } from './playGameNames';
 import { selectSlug } from './slugAllocation';
 
 const GENERATED_NAME_DRAWS = 4;

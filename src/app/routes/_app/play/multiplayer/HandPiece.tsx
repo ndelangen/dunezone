@@ -26,9 +26,7 @@ export function PieceImage({
   const front = piece.items[0]?.artwork?.front;
   const radius = isBattleLeader(piece) ? '50%' : undefined;
   if (front) {
-    return (
-      <PieceArtwork piece={piece} src={front} name={pieceName(piece)} width={width} height={height} radius={radius} />
-    );
+    return <PieceArtwork piece={piece} src={front} name={pieceName(piece)} width={width} height={height} />;
   }
   if (piece.kind === 'card') {
     return (

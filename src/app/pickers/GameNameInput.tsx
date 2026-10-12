@@ -25,8 +25,9 @@ export function GameNameInput({
   return (
     <Stack gap="xs">
       <TextInput
-        label="Game name"
-        description="Leave blank for a Dune name. Keep names family-friendly."
+        label="Custom name"
+        description="Keep names family-friendly. Turn the switch off to go back to the generated name."
+        placeholder="Name your game"
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
         error={error}

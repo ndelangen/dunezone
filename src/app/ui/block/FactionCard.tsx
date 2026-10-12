@@ -2,7 +2,7 @@ import { Avatar, Text, UnstyledButton } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
-import { PublishedImage } from '@ui/content/PublishedImage';
+import { TokenImage } from '@ui/content/TokenImage';
 import type { ReactNode } from 'react';
 
 import type { FactionCatalogueEntry } from '@db/factions';
@@ -115,7 +115,7 @@ export function FactionCard({
 
 /*
  * One of the card's tokens as a disc.
- * A published token arrives through `PublishedImage`, handed to the Avatar as a child so the Avatar's own initials never stand in while it loads.
+ * A published token arrives through `TokenImage`, handed to the Avatar as a child so the Avatar's own initials never stand in while it loads.
  * With no publication the Avatar draws the cheap disc: `children` when given, the initials of `name` otherwise, on the faction's colour.
  */
 function TokenAvatar({
@@ -141,7 +141,7 @@ function TokenAvatar({
       className={styles.tokenImage}
       classNames={{ placeholder: src ? styles.tokenSlot : styles.tokenPlaceholder }}
     >
-      {src ? <PublishedImage src={src} name={name} aspect={1} radius="50%" /> : children}
+      {src ? <TokenImage src={src} name={name} shape="round" /> : children}
     </Avatar>
   );
 }

@@ -1,3 +1,4 @@
+import { tokenOutline, tokenShapeOfType } from '@shared/assets/tokenOutline';
 import type { TablePiece } from '@shared/play/model';
 import { tokenBoxRatio } from '@shared/play/tableGeometry';
 import { PublishedImage } from '@ui/content/PublishedImage';
@@ -15,6 +16,7 @@ type Props = {
   /** The box the control lays out, in pixels; the artwork is fitted inside it at the piece's own shape. */
   width: number;
   height: number;
+  /** A card's corner. A token ignores it: its own type decides its cut, the same as everywhere else it is shown. */
   radius?: string;
 };
 
@@ -29,10 +31,13 @@ function artworkAspect(piece: TablePiece) {
  */
 export function PieceArtwork({ piece, src, name, width, height, radius }: Props) {
   const aspect = artworkAspect(piece);
+  const shape = piece.kind === 'card' ? null : tokenShapeOfType(piece.items[0]?.artwork?.type);
+  /* A token whose type names no shape keeps its square, the same as an uncut card. */
+  const outline = piece.kind === 'card' ? { radius } : shape ? tokenOutline(shape) : {};
   return (
     <div style={{ width, height, display: 'grid', placeItems: 'center' }}>
       <div style={{ width: Math.min(width, height / aspect), position: 'relative' }}>
-        <PublishedImage src={src} name={name} aspect={aspect} radius={radius} />
+        <PublishedImage src={src} name={name} aspect={aspect} {...outline} />
         <PredictionOverlay piece={piece} src={src} />
       </div>
     </div>

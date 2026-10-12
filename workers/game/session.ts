@@ -335,6 +335,7 @@ export class GameSession {
       ? storedSnapshotSchema.parse({
           ...creatorSeated(emptySnapshot(), roster),
           draft: emptyDraft(game.minimumPlayers, factions ?? [], factions ? Date.now() : 0),
+          ...(game.lastTurn === undefined ? {} : { lastTurn: game.lastTurn }),
         })
       : this.fixturePlan.snapshot(roster, metadata.fixtureDeck);
     const data = JSON.stringify(snapshot);

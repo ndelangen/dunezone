@@ -40,7 +40,14 @@ export function playGameNameVocabulary() {
   );
 }
 
-/** Draw inside a mutation so Convex replays the random source with the transaction. */
+const GENERATED_NAMES = new Set(playGameNameVocabulary().map(({ name }) => name));
+
+/** The create page shows its draw before submitting it, so the server takes a supplied name only from this vocabulary. */
+export function isGeneratedPlayGameName(name: string): boolean {
+  return GENERATED_NAMES.has(name);
+}
+
+/** The create page draws in the browser; the server draws inside a mutation so Convex replays the random source with the transaction. */
 export function generatePlayGameName(): string {
   /* Sonar suppression: a display name, not a secret, and Convex seeds Math.random per mutation. */
   const pick = <T>(values: readonly T[]): T => values[Math.floor(Math.random() * values.length)]!; /* NOSONAR */

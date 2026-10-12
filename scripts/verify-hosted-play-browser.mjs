@@ -584,16 +584,22 @@ async function createGame(who) {
   await who.page.getByRole('combobox', { name: 'Ruleset', exact: true }).click();
   /* The seeded ruleset, by the id the launcher passed rather than by its name. */
   await who.page.locator(`[role="option"][value="${values['ruleset-id']}"]`).click();
-  await who.page.getByRole('textbox', { name: 'Minimum players', exact: true }).fill('2');
+  /* Minimum players is a slider whose floor is two seats. */
+  const seats = who.page.getByRole('slider', { name: 'Minimum players', exact: true });
+  await seats.focus();
+  await seats.press('Home');
+  assert.equal(await seats.getAttribute('aria-valuenow'), '2');
   const customName = values.flow === 'regular' ? 'Arrakeen picnic' : null;
-  const nameInput = who.page.getByRole('textbox', { name: 'Game name', exact: true });
-  assert.equal(await nameInput.inputValue(), '');
+  /* The pass opens on a generated name; the regular flow turns on a custom one. */
   if (customName) {
+    await who.page.getByRole('switch', { name: 'Set a custom name', exact: true }).click();
+    const nameInput = who.page.getByRole('textbox', { name: 'Custom name', exact: true });
+    assert.equal(await nameInput.inputValue(), '');
     await nameInput.fill('Fuck the spice harvest');
     await who.page.getByRole('button', { name: 'Create game', exact: true }).click();
     await who.page.getByText('Choose a game name without profanity.', { exact: false }).waitFor();
     assert.equal(await nameInput.inputValue(), 'Fuck the spice harvest');
-    assert.equal(await who.page.getByRole('textbox', { name: 'Minimum players', exact: true }).inputValue(), '2');
+    assert.equal(await seats.getAttribute('aria-valuenow'), '2');
     await nameInput.fill(customName);
   }
   await who.page.getByRole('button', { name: 'Create game', exact: true }).click();

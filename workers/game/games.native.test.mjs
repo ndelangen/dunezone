@@ -45,6 +45,16 @@ describe('A real game provisions from its ruleset', () => {
     expect((await runtime.captures()).ruleset).toBeNull();
   });
 
+  it('opens with the last turn its creator chose', async () => {
+    const card = cardPage('card-one');
+    const [treachery, spice] = [deckPage('treachery-deck', [card]), deckPage('spice-deck', [card], 5)];
+    seedRuleset([card, treachery, spice], [slot('treachery', treachery), slot('spice', spice)]);
+    peer.game = { ...peer.game, lastTurn: 6 };
+
+    expect((await provision(runtime)).status).toBe(200);
+    expect((await syncView(await admitPlayer(peer, runtime, 'a'))).snapshot.lastTurn).toBe(6);
+  });
+
   it('retains the ruleset, opens drafting on an empty table with the creator at the first seat, and seats no newcomer', async () => {
     const card = cardPage('card-one');
     const [treachery, spice] = [deckPage('treachery-deck', [card]), deckPage('spice-deck', [card], 5)];

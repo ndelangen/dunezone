@@ -190,6 +190,80 @@ describe('real games are created and entered by any signed-in player, Administra
     ]);
   });
 
+  test('a chosen ruleset reads back its manifest: decks with their counts, then its own factions before shared ones', async () => {
+    const { t, member, rulesets } = await world();
+    await t.run(async (ctx) => {
+      const owner = (await ctx.db.query('users').first())!._id;
+      const stamp = new Date().toISOString();
+      const faction = (slug: string, name: string) =>
+        ctx.db.insert('factions', {
+          owner_id: owner,
+          data: { name },
+          slug,
+          created_at: stamp,
+          updated_at: stamp,
+          is_deleted: false,
+          group_id: null,
+        });
+      const shared = await faction('atreides', 'House Atreides');
+      const own = await faction('ixians', 'Ixians');
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.ready, faction_id: shared });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.ready, faction_id: own });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.emptySpice, faction_id: shared });
+      /* A deleted ruleset's leftover link does not make a faction shared. */
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.deleted, faction_id: own });
+    });
+    const listing = await member.query(api.playGames.creatable, { rulesetId: rulesets.ready });
+    if (listing.access !== 'allowed') {
+      throw new Error('unreachable');
+    }
+    expect(listing.preview?.rulesetId).toBe(rulesets.ready);
+    expect(listing.preview?.packed.map(({ slot, name, count }) => [slot, name, count])).toEqual([
+      ['treachery', 'treachery', 2],
+      ['spice', 'spice', 2],
+    ]);
+    expect(listing.preview?.factions.map(({ name, own }) => [name, own])).toEqual([
+      ['Ixians', true],
+      ['House Atreides', false],
+    ]);
+    const unchosen = await member.query(api.playGames.creatable, {});
+    expect(unchosen.access === 'allowed' ? unchosen.preview : 'unreachable').toBeNull();
+  });
+
+  test('the manifest reads the required decks first, however many custom decks were linked before them', async () => {
+    const { t, member, rulesets } = await world();
+    const crowded = await t.run(async (ctx) => {
+      const ready = (await ctx.db.get(rulesets.ready))!;
+      const [deck] = await ctx.db
+        .query('ruleset_asset_slots')
+        .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesets.ready))
+        .collect();
+      const { _id, _creationTime, ...copy } = ready;
+      const id = await ctx.db.insert('rulesets', { ...copy, slug: 'crowded' });
+      for (let index = 0; index < 10; index += 1) {
+        await ctx.db.insert('ruleset_asset_slots', { ruleset_id: id, asset_id: deck!.asset_id, slot: 'custom' });
+      }
+      for (const slot of ['treachery', 'spice'] as const) {
+        await ctx.db.insert('ruleset_asset_slots', { ruleset_id: id, asset_id: deck!.asset_id, slot });
+      }
+      return id;
+    });
+    const listing = await member.query(api.playGames.creatable, { rulesetId: crowded });
+    const slots = listing.access === 'allowed' ? listing.preview?.packed.map(({ slot }) => slot) : [];
+    expect(slots?.slice(0, 2)).toEqual(['treachery', 'spice']);
+    expect(slots).toHaveLength(8);
+  });
+
+  test('a last turn outside the whole-number range is refused before a game is made', async () => {
+    const { t, member, rulesets } = await world();
+    for (const lastTurn of [0, 1.5, 21]) {
+      await expect(
+        member.mutation(api.playGames.createGame, { rulesetId: rulesets.ready, minimumPlayers: 4, lastTurn })
+      ).rejects.toThrow();
+    }
+    expect(await t.run(async (ctx) => await ctx.db.query('play_games').collect())).toHaveLength(0);
+  });
+
   test('creation records the ruleset, minimum and creator on a pending game any signed-in player can watch', async () => {
     const { t, admin, member, memberId, rulesets } = await world();
     const request = { rulesetId: rulesets.ready, minimumPlayers: 4 as const };

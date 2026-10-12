@@ -1,5 +1,6 @@
 import { Group, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
 import type { TokenAsset } from '@shared/assets/schema';
+import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -12,8 +13,7 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
-import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
-import { TokenFrame, tokenShapeOfType } from '@app/widgets/asset-face/AssetFace';
+import { assetFaceAspect, TokenFrame } from '@app/widgets/asset-face/AssetFace';
 import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';

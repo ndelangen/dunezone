@@ -7,9 +7,9 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/gameNames';
+import { playGameNameVocabulary } from '../src/shared/play/generatedGameNames';
 import { api, internal } from './_generated/api';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
-import { playGameNameVocabulary } from './lib/playGameNames';
 import { playRateLimiter } from './lib/playRateLimits';
 import schema from './schema';
 
@@ -385,5 +385,23 @@ describe('permanent Play names and addresses', () => {
     const game = await t.run(async (ctx) => await ctx.db.get(result.gameId));
     expect(playGameNameVocabulary().some(({ name }) => name === game?.name)).toBe(true);
     expect(game?.slug).toBe(normalizePlayGameSlug(game!.name!));
+  });
+
+  test('the generated name the create page showed is kept, numbered when taken, and only from the vocabulary', async () => {
+    const { t, viewer, request } = await world();
+    await t.run(async (ctx) => await ctx.db.insert('play_game_slug_reservations', { slug: 'secret-caladan-picnic' }));
+    const shown = await viewer.mutation(api.playGames.createGame, {
+      ...request,
+      generatedName: 'Secret Caladan picnic',
+    });
+    const invented = await viewer.mutation(api.playGames.createGame, { ...request, generatedName: 'Dune for sale' });
+    if (!shown.ok || !invented.ok) {
+      throw new Error('Creation refused');
+    }
+    const kept = await t.run(async (ctx) => await ctx.db.get(shown.gameId));
+    expect(kept).toMatchObject({ name: 'Secret Caladan picnic', slug: 'secret-caladan-picnic-1' });
+    const redrawn = await t.run(async (ctx) => await ctx.db.get(invented.gameId));
+    expect(redrawn?.name).not.toBe('Dune for sale');
+    expect(playGameNameVocabulary().some(({ name }) => name === redrawn?.name)).toBe(true);
   });
 });

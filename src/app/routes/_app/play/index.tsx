@@ -7,13 +7,14 @@ import { formatRelativeDate } from '@ui/content/dates';
 import { nameDiscColor } from '@ui/content/nameDisc';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { CallToAction } from '@ui/control/CallToAction';
+import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import clsx from 'clsx';
-import { ArrowRight, Clock, Crown, Trophy } from 'lucide-react';
+import { ArrowRight, Clock, Crown, ListFilter, Plus, Trophy } from 'lucide-react';
 import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { z } from 'zod';
@@ -393,6 +394,7 @@ function LobbyToolbar({
       allowDeselect={false}
       onChange={(value) => onViewChange((value as View | null) ?? 'ongoing')}
       aria-label="Show games"
+      leftSection={<ListFilter size={15} aria-hidden />}
     />
   );
   return (
@@ -412,6 +414,16 @@ function LobbyToolbar({
           {viewSelect(undefined, true)}
         </SearchRefine>
       </Toolbar.Center>
+      <Toolbar.Right label="Lobby actions">
+        <IconAction
+          label="Create a game"
+          emphasis="strong"
+          intent="positive"
+          size="lg"
+          renderRoot={createLink}
+          icon={<Plus size={17} aria-hidden />}
+        />
+      </Toolbar.Right>
     </Toolbar>
   );
 }

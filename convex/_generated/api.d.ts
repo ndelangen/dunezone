@@ -55,7 +55,6 @@ import type * as lib_playAuthorization from "../lib/playAuthorization.js";
 import type * as lib_playGameAddresses from "../lib/playGameAddresses.js";
 import type * as lib_playGameNameChecks from "../lib/playGameNameChecks.js";
 import type * as lib_playGameNameProvider from "../lib/playGameNameProvider.js";
-import type * as lib_playGameNames from "../lib/playGameNames.js";
 import type * as lib_playProvisioningSchedule from "../lib/playProvisioningSchedule.js";
 import type * as lib_playRateLimits from "../lib/playRateLimits.js";
 import type * as lib_playSeats from "../lib/playSeats.js";
@@ -175,7 +174,6 @@ declare const fullApi: ApiFromModules<{
   "lib/playGameAddresses": typeof lib_playGameAddresses;
   "lib/playGameNameChecks": typeof lib_playGameNameChecks;
   "lib/playGameNameProvider": typeof lib_playGameNameProvider;
-  "lib/playGameNames": typeof lib_playGameNames;
   "lib/playProvisioningSchedule": typeof lib_playProvisioningSchedule;
   "lib/playRateLimits": typeof lib_playRateLimits;
   "lib/playSeats": typeof lib_playSeats;

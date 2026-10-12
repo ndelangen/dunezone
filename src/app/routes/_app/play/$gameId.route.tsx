@@ -1,6 +1,5 @@
 import { Button } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -143,14 +142,20 @@ function GamePage() {
       );
     case 'preparing':
       return (
-        <PageMessage size="compact" title={data.name} back={exit}>
-          <LoadPending title="Preparing the table">
-            The game is being set up. This page opens the table as soon as it is ready.
-          </LoadPending>
-          <ClientOnly>
-            <GameLink address={data.slug ?? data.gameId} />
-          </ClientOnly>
-        </PageMessage>
+        /* The same dark frame the table loads in, so the create page's fade to black opens straight onto it. */
+        <PageLayout height="fullscreen">
+          <PageLayout.Header size="compact">
+            <PageTitle title={data.name} />
+          </PageLayout.Header>
+          <PageLayout.Content width="viewport">
+            <TableWait status="Preparing the table">
+              <ClientOnly>
+                <GameLink address={data.slug ?? data.gameId} />
+              </ClientOnly>
+              {exit}
+            </TableWait>
+          </PageLayout.Content>
+        </PageLayout>
       );
     case 'unavailable':
       return (

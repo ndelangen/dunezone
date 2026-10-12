@@ -3,18 +3,24 @@ import { v } from 'convex/values';
 import type { Infer } from 'convex/values';
 import type { z } from 'zod';
 
+import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
+import type { playCreateGameRequestSchema } from '../src/shared/play/admission';
+import { playGameAccessSchema, playGameAddressAccessSchema } from '../src/shared/play/admission';
 import {
-  playCreateGameRequestSchema,
-  playGameAccessSchema,
-  playGameAddressAccessSchema,
-} from '../src/shared/play/admission';
-import { playNamedGameOutcomeSchema, playNamedGameRequestSchema } from '../src/shared/play/gameCreation';
+  playGeneratedGameRequestSchema,
+  playNamedGameOutcomeSchema,
+  playNamedGameRequestSchema,
+} from '../src/shared/play/gameCreation';
 import { normalizePlayGameSlug, playGameNameSchema, PLAY_RESERVED_GAME_ADDRESSES } from '../src/shared/play/gameNames';
+import { isGeneratedPlayGameName } from '../src/shared/play/generatedGameNames';
+import { lastTurnSchema } from '../src/shared/play/lastTurn';
 import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
+import { RULESET_ASSET_SLOT_ORDER } from '../src/shared/rulesets/assetSlots';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { action, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
+import { containerSummary } from './assets';
 import { internalMutation, mutation } from './functions';
 import { admitsPlayers, currentPlaySession, isRealGame, livePlaySession } from './lib/playAuthorization';
 import { playGameAddressAvailable } from './lib/playGameAddresses';
@@ -75,9 +81,102 @@ async function requiredDeck(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slot: 'tre
 
 const RULESET_CHOICE_LIMIT = 200;
 
-/** The rulesets a signed-in player may start a game with, each with the directory's objection when it has one. */
+const rulesetPreviewValidator = v.object({
+  rulesetId: v.id('rulesets'),
+  packed: v.array(
+    v.object({
+      slot: v.string(),
+      name: v.string(),
+      count: v.number(),
+      truncated: v.boolean(),
+      face: v.union(v.string(), v.null()),
+      faceType: v.string(),
+    })
+  ),
+  factions: v.array(v.object({ id: v.id('factions'), name: v.string(), token: v.string(), own: v.boolean() })),
+});
+
+const PREVIEW_FACTION_LIMIT = 50;
+/* Each container reads its members to skip deleted ones, so the manifest stops after this many to keep the page's one query inside its read budget. */
+const PREVIEW_CONTAINER_LIMIT = 8;
+const FACTION_LINK_SCAN = 10;
+
+/*
+ * What a ruleset puts on the table, for the create page's manifest: its decks and token bundles in slot order, with counts and one face each,
+ * then its factions, marked `own` when no other ruleset links them.
+ */
+async function rulesetPreview(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  return { rulesetId, packed: await packedFor(ctx, rulesetId), factions: await factionsFor(ctx, rulesetId) };
+}
+
+/* The decks and token bundles in slot order, each with its count and one face; a deleted asset is left out. Slots are read in order, so the required decks always come first. */
+async function packedFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const packed = [];
+  for (const slot of RULESET_ASSET_SLOT_ORDER) {
+    const rows = await ctx.db
+      .query('ruleset_asset_slots')
+      .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', slot))
+      .take(PREVIEW_CONTAINER_LIMIT - packed.length);
+    for (const row of rows) {
+      const asset = await ctx.db.get(row.asset_id);
+      const summary = asset && !asset.is_deleted ? await containerSummary(ctx, asset) : null;
+      if (summary) {
+        packed.push({ slot, ...summary });
+      }
+    }
+    if (packed.length >= PREVIEW_CONTAINER_LIMIT) {
+      break;
+    }
+  }
+  return packed;
+}
+
+/* The linked factions, the ones no other ruleset links first. */
+async function factionsFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const links = await ctx.db
+    .query('ruleset_factions')
+    .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
+    .take(PREVIEW_FACTION_LIMIT);
+  const factions = [];
+  for (const link of links) {
+    const faction = await ctx.db.get(link.faction_id);
+    if (faction && !faction.is_deleted) {
+      factions.push(await factionLine(ctx, faction));
+    }
+  }
+  return factions.sort((a, b) => Number(b.own) - Number(a.own));
+}
+
+/*
+ * A faction is the ruleset's own when no other live ruleset links it; a deleted ruleset's leftover link does not count.
+ * A scan that stops at its bound before settling it calls the faction shared, never own.
+ */
+async function factionLine(ctx: QueryCtx, faction: Doc<'factions'>) {
+  const links = await ctx.db
+    .query('ruleset_factions')
+    .withIndex('by_faction', (q) => q.eq('faction_id', faction._id))
+    .take(FACTION_LINK_SCAN);
+  const rulesets = new Set<string>();
+  for (const link of links) {
+    const ruleset = await ctx.db.get(link.ruleset_id);
+    if (ruleset && !ruleset.is_deleted) {
+      rulesets.add(ruleset._id);
+    }
+  }
+  return {
+    id: faction._id,
+    name: typeof faction.data?.name === 'string' ? faction.data.name : faction.slug,
+    token: publishedHref('faction-token', faction._id, faction.updated_at),
+    own: rulesets.size <= 1 && links.length < FACTION_LINK_SCAN,
+  };
+}
+
+/**
+ * The rulesets a signed-in player may start a game with, each with the directory's objection when it has one.
+ * With `rulesetId`, also what that ruleset puts on the table, so the page reads its manifest through this one query.
+ */
 export const creatable = query({
-  args: {},
+  args: { rulesetId: v.optional(v.id('rulesets')) },
   returns: v.union(
     v.object({ access: v.literal('unauthenticated') }),
     v.object({
@@ -90,9 +189,10 @@ export const creatable = query({
           objection: v.union(v.string(), v.null()),
         })
       ),
+      preview: v.union(rulesetPreviewValidator, v.null()),
     })
   ),
-  handler: async (ctx) => {
+  handler: async (ctx, { rulesetId }) => {
     if (!(await currentPlaySession(ctx))) {
       return { access: 'unauthenticated' as const };
     }
@@ -104,7 +204,8 @@ export const creatable = query({
     for (const row of rows) {
       rulesets.push({ id: row._id, slug: row.slug, name: row.name, objection: await rulesetObjection(ctx, row._id) });
     }
-    return { access: 'allowed' as const, rulesets };
+    const chosen = rulesetId === undefined ? undefined : rows.find((row) => row._id === rulesetId);
+    return { access: 'allowed' as const, rulesets, preview: chosen ? await rulesetPreview(ctx, chosen._id) : null };
   },
 });
 
@@ -130,10 +231,16 @@ export const nameAvailability = query({
  * The creator takes the first seat when the Worker initializes, and that seat counts against the seat limit from creation;
  * nothing here grants them more.
  */
+/* A generated name skips the provider check: it is one of the server's own phrases, and anything else is drawn afresh. */
 export const createGame = mutation({
-  args: zodToConvex(playCreateGameRequestSchema),
+  args: zodToConvex(playGeneratedGameRequestSchema),
   returns: zodToConvex(playCreateGameOutcomeSchema),
-  handler: async (ctx, args) => await createAuthorizedGame(ctx, args),
+  handler: async (ctx, { generatedName, ...settings }) =>
+    await createAuthorizedGame(
+      ctx,
+      settings,
+      generatedName !== undefined && isGeneratedPlayGameName(generatedName) ? generatedName : undefined
+    ),
 });
 
 type NamedGameContract = z.infer<typeof playNamedGameOutcomeSchema>;
@@ -190,6 +297,7 @@ export const createGameWithName = action({
     return await ctx.runMutation(internal.playGames.createNamedGame, {
       rulesetId: args.rulesetId,
       minimumPlayers: args.minimumPlayers,
+      lastTurn: args.lastTurn,
       name: prepared.name,
       base: prepared.base,
       check,
@@ -238,6 +346,8 @@ export const createNamedGame = internalMutation({
 
 /** The same current session, readiness and seat checks run before spending and again when committing. */
 async function gameCreationEligibility(ctx: MutationCtx, args: z.infer<typeof playCreateGameRequestSchema>) {
+  /* The Convex validator keeps only the type, so the turn's whole-number range is enforced here, before any budget is spent. */
+  lastTurnSchema.optional().parse(args.lastTurn);
   const session = await livePlaySession(ctx);
   if (!session) {
     return { ok: false as const, reason: 'not_authorized' as const };
@@ -274,6 +384,7 @@ export async function createAuthorizedGame(
     {
       ruleset_id: eligible.rulesetId,
       minimum_players: args.minimumPlayers,
+      last_turn: args.lastTurn,
       creator_id: eligible.userId,
       name,
     },
