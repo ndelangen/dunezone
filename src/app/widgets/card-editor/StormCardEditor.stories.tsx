@@ -54,7 +54,7 @@ export const MovementAndLayers = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(canvas.getByRole('combobox', { name: 'Storm movement' }));
     await userEvent.click(await page.findByRole('option', { name: /^6 sectors$/ }));
-    await expect(canvas.getByText('Move the storm 6 sectors counterclockwise.')).toBeVisible();
+    await expect(canvas.getByText('Move the storm 6 sectors counter-clockwise.')).toBeVisible();
     await expect(canvas.getByText('6 Sectors', { exact: true })).toBeVisible();
     await expect(canvas.getByRole('textbox', { name: 'Name' })).toHaveValue('1 Sector');
     await expect(canvas.queryByRole('tab', { name: 'Format' })).toBeNull();
@@ -63,6 +63,6 @@ export const MovementAndLayers = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Duplicate layer' }));
     await expect(canvas.getByRole('tab', { name: '3. Text' })).toHaveAttribute('aria-selected', 'true');
     await userEvent.click(canvas.getByRole('tab', { name: /^Storm$/ }));
-    await expect(canvas.getByText('Move the storm 6 sectors counterclockwise.')).toBeVisible();
+    await expect(canvas.getByText('Move the storm 6 sectors counter-clockwise.')).toBeVisible();
   },
 });
