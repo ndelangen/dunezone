@@ -12,8 +12,14 @@ function InteractiveEditor({ sectors = 1 }: { sectors?: number }) {
   const [state, dispatch] = useReducer(
     (
       current: { draft: StormCardDraft; memory: StormCardMemory },
-      event: { draft?: Partial<StormCardDraft>; memory?: Partial<StormCardMemory> }
-    ) => ({ draft: { ...current.draft, ...event.draft }, memory: { ...current.memory, ...event.memory } }),
+      event: {
+        draft?: Partial<StormCardDraft>;
+        memory?: Partial<StormCardMemory>;
+      }
+    ) => ({
+      draft: { ...current.draft, ...event.draft },
+      memory: { ...current.memory, ...event.memory },
+    }),
     { draft: standardStormCard(sectors), memory: INITIAL_STORM_CARD_MEMORY }
   );
   const [chapter, setChapter] = useState<StormCardChapter>('head');
@@ -59,6 +65,8 @@ export const MovementAndLayers = meta.story({
     await expect(canvas.getByRole('textbox', { name: 'Name' })).toHaveValue('1 Sector');
     await expect(canvas.queryByRole('tab', { name: 'Format' })).toBeNull();
     await expect(canvas.queryByRole('tab', { name: 'Symbol' })).toBeNull();
+    await expect(canvas.queryByText('Head background')).toBeNull();
+    await expect(canvas.queryByText('Symbol background')).toBeNull();
     await userEvent.click(canvas.getByRole('tab', { name: '2. Text' }));
     await userEvent.click(canvas.getByRole('button', { name: 'Duplicate layer' }));
     await expect(canvas.getByRole('tab', { name: '3. Text' })).toHaveAttribute('aria-selected', 'true');
