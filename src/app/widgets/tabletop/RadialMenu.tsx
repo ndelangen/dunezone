@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 
 import styles from './RadialMenu.module.css';
 
-export type RadialIcon = 'peek' | 'draw' | 'deal' | 'shuffle' | 'reserve' | 'delete' | 'back';
+type RadialIcon = 'peek' | 'draw' | 'deal' | 'shuffle' | 'reserve' | 'delete' | 'back';
 
 export type RadialAction = Readonly<{
   key: string;
@@ -26,7 +26,7 @@ export type RadialAction = Readonly<{
 }>;
 
 /** One choice in a stepped-into ring, such as a faction to deal to. */
-export type RadialTarget = Readonly<{
+type RadialTarget = Readonly<{
   key: string;
   /** The accessible name, for example "Deal 1 to Fremen". */
   label: string;

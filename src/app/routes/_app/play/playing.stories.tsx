@@ -902,7 +902,7 @@ export const SpiceTransfers = meta.story({
 /**
  * The panel is a dark-scheme island: its title, eyebrow, prose and controls paint the same in both page schemes, and that paint is the dark tokens, the app's and Mantine's alike.
  * The page scheme is flipped on the document mid-story, which is what the app's own scheme bridge does, so one mount proves both schemes.
- * A floating pane opened on the island paints the island's paint in the light page although it portals out of the shell: a piece's menu its glass, a tab's tooltip Play's raised tooltip surface.
+ * A floating pane opened on the island keeps the table's paint in the light page although it portals out of the shell: a piece's ring its leather, a tab's tooltip Play's raised tooltip surface.
  * (Page stories take their scheme from the app chrome, not from the Storybook global.)
  */
 export const PanelSchemeIsland = meta.story({
@@ -922,7 +922,10 @@ export const PanelSchemeIsland = meta.story({
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
     const glass = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim());
     const menu = await openPieceMenu(canvasElement.ownerDocument, deck, 'Deck actions');
-    expect(view.getComputedStyle(menu).backgroundColor).toBe(glass);
+    /* The ring carries its own leather, the same in either page scheme. */
+    expect(view.getComputedStyle(within(menu).getByRole('menuitem', { name: 'Draw a card' })).backgroundColor).toBe(
+      'rgba(24, 16, 10, 0.95)'
+    );
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
     const raised = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--tip-surface').trim());
