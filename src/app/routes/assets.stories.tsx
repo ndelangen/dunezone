@@ -161,7 +161,7 @@ export const CreateStormCard = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('combobox', { name: 'Storm movement' })).resolves.toHaveValue('1 sector');
-    await expect(page.findByText('Move the storm 1 sector counterclockwise.')).resolves.toBeVisible();
+    await expect(page.findByText('Move the storm 1 sector counter-clockwise.')).resolves.toBeVisible();
   },
 });
 
