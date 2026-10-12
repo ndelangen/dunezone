@@ -22,6 +22,7 @@ import {
   factionTokenAssetDataSchema,
   parsePublicationAssetData,
   CUSTOM_CARD_ASSET_TYPE,
+  STORM_CARD_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
 } from '../../src/shared/asset-publishing/publication';
@@ -219,6 +220,7 @@ export async function enqueueAssetPublication(
         assetData: { assetId: asset._id, slug: asset.slug, card: asset.data },
         now,
       });
+    case STORM_CARD_ASSET_TYPE:
     case CUSTOM_CARD_ASSET_TYPE: {
       const ids = customCardTokenIds(asset.data);
       const resolved = ids.length ? await resolveCustomCardTokens(ctx, ids) : undefined;

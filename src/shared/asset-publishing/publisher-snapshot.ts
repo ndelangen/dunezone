@@ -6,7 +6,9 @@ import { factionAllianceAssetDataSchema, factionTraitorAssetDataSchema } from '.
 import { factionTroopAssetDataSchema } from './factionTroopPublication';
 import {
   CUSTOM_CARD_ASSET_TYPE,
+  STORM_CARD_ASSET_TYPE,
   customCardAssetDataSchema,
+  stormCardAssetDataSchema,
   boardAssetDataSchema,
   DECK_ASSET_TYPE,
   deckCardbackAssetDataSchema,
@@ -59,6 +61,7 @@ export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', 
   captureSnapshot(TREACHERY_CARD_ASSET_TYPE, treacheryCardAssetDataSchema),
   captureSnapshot(SPICE_CARD_ASSET_TYPE, spiceCardAssetDataSchema),
   captureSnapshot(CUSTOM_CARD_ASSET_TYPE, customCardAssetDataSchema),
+  captureSnapshot(STORM_CARD_ASSET_TYPE, stormCardAssetDataSchema),
   z.strictObject({
     ok: z.literal(true),
     assetType: z.enum([DECK_ASSET_TYPE, 'cardback-preset']),

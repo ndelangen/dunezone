@@ -10,7 +10,9 @@ import {
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
+import { StormCardAssetInput, DeckAssetInput } from '../src/shared/assets/schema';
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
+import { STANDARD_STORM_CARDS } from '../src/shared/assets/standardStormDeck';
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import { parseAssetDataForWrite } from '../src/shared/assets/validation';
@@ -335,7 +337,7 @@ export const getPage = query({
     /* The entry, the preset list and the resolved back all ask for presets; one memo reads each once. */
     const presets: CardbackPresetMemo = new Map();
     const resolvedTokens =
-      row.type === 'card-custom'
+      row.type === 'card-custom' || row.type === 'card-storm'
         ? await resolveCustomCardTokens(ctx, args.embeddedTokenIds ?? customCardTokenIds(row.data))
         : null;
     return {
@@ -519,7 +521,7 @@ export const create = mutation({
     assertKnownAssetType(args.type);
     const parsed = parseAssetDataForWrite(args.type, args.data);
     parsed.data = await withValidatedBack(ctx, { type: args.type }, parsed.data as Record<string, unknown>);
-    if (args.type === 'card-custom') {
+    if (args.type === 'card-custom' || args.type === 'card-storm') {
       await validateCustomCardTokens(ctx, parsed.data);
     }
     const slug = await allocateAssetSlug(ctx, args.type, slugify(parsed.name));
@@ -534,7 +536,7 @@ export const create = mutation({
       is_deleted: false,
       group_id: null,
     });
-    if (args.type === 'card-custom') {
+    if (args.type === 'card-custom' || args.type === 'card-storm') {
       await syncCustomCardTokenRelations(ctx, id, parsed.data);
     }
     await enqueueAssetPublication(ctx, { _id: id, type: args.type, slug, data: parsed.data });
@@ -554,13 +556,13 @@ export const update = mutation({
     const parsed = parseAssetDataForWrite(row.type, args.data);
     parsed.data = await withValidatedBack(ctx, row, parsed.data as Record<string, unknown>);
     await requireAssetUpdate(ctx, args.id, parsed.name);
-    if (row.type === 'card-custom') {
+    if (row.type === 'card-custom' || row.type === 'card-storm') {
       await validateCustomCardTokens(ctx, parsed.data, row.data);
     }
     const slug =
       parsed.name === nameOf(row) ? row.slug : await allocateAssetSlug(ctx, row.type, slugify(parsed.name), row);
     await ctx.db.patch(args.id, { data: parsed.data, slug, updated_at: nowIso() });
-    if (row.type === 'card-custom') {
+    if (row.type === 'card-custom' || row.type === 'card-storm') {
       await syncCustomCardTokenRelations(ctx, args.id, parsed.data);
     }
     await enqueueAssetPublication(ctx, { _id: args.id, type: row.type, slug, data: parsed.data });
@@ -980,7 +982,7 @@ export const refreshEmbeddedCard = internalMutation({
     if (
       card &&
       !card.is_deleted &&
-      card.type === 'card-custom' &&
+      (card.type === 'card-custom' || card.type === 'card-storm') &&
       customCardTokenIds(card.data).includes(args.tokenId)
     ) {
       await ctx.db.patch(card._id, { updated_at: nowIso() });
@@ -995,4 +997,88 @@ export const customCardTokens = query({
   args: { ids: v.array(v.id('assets')) },
   returns: zodToConvex(CustomCardTokenResolution),
   handler: async (ctx, args) => await resolveCustomCardTokens(ctx, args.ids),
+});
+
+async function preservedStandardStormDeck(ctx: MutationCtx, existing: Doc<'assets'>, ownerId: Id<'users'>) {
+  if (existing.owner_id !== ownerId || existing.is_deleted) {
+    throw new ConvexError('The Standard Storm Deck address is already reserved');
+  }
+  const members = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', existing._id).eq('kind', 'deck-card'))
+    .take(7);
+  const cards = await Promise.all(members.map((member) => ctx.db.get('assets', member.to_asset_id)));
+  const sectors = new Set(
+    cards.map((card) =>
+      card?.type === 'card-storm' && !card.is_deleted ? StormCardAssetInput.parse(card.data).sectors : null
+    )
+  );
+  if (members.length !== 6 || members.some((member) => member.count !== 1) || sectors.size !== 6 || sectors.has(null)) {
+    throw new ConvexError(
+      'The existing Standard Storm Deck has changed. Review its contents before provisioning again.'
+    );
+  }
+  return { deckId: existing._id, cardIds: members.map((member) => member.to_asset_id), created: false };
+}
+
+/** Creates the requested standard catalogue once; a rerun preserves authored cards and deck contents. */
+export const provisionStandardStormDeck = internalMutation({
+  args: { ownerId: v.id('users') },
+  returns: v.object({ deckId: v.id('assets'), cardIds: v.array(v.id('assets')), created: v.boolean() }),
+  handler: async (ctx, { ownerId }) => {
+    const owner = await ctx.db.get('users', ownerId);
+    if (!owner || (owner.account_state !== undefined && owner.account_state !== 'active')) {
+      throw new ConvexError('Choose an active owner for the standard storm deck');
+    }
+    const existing = await assetSlugHolder(ctx, 'deck', 'standard-storm-deck');
+    if (existing) {
+      return await preservedStandardStormDeck(ctx, existing, ownerId);
+    }
+    const now = nowIso();
+    const cardIds: Id<'assets'>[] = [];
+    for (const card of STANDARD_STORM_CARDS) {
+      const data = StormCardAssetInput.parse(card);
+      const slug = slugify(data.name);
+      if (await assetSlugHolder(ctx, 'card-storm', slug)) {
+        throw new ConvexError(`The storm card address ${slug} is already reserved`);
+      }
+      const id = await ctx.db.insert('assets', {
+        owner_id: ownerId,
+        type: 'card-storm',
+        data,
+        slug,
+        created_at: now,
+        updated_at: now,
+        is_deleted: false,
+        group_id: null,
+      });
+      cardIds.push(id);
+      await enqueueAssetPublication(ctx, { _id: id, type: 'card-storm', slug, data });
+    }
+    const data = DeckAssetInput.parse({
+      name: 'Standard Storm Deck',
+      about: 'Six storm cards, numbered 1 through 6, with one copy of each.',
+      cardback: { mode: 'preset', key: 'storm' },
+    });
+    const deckId = await ctx.db.insert('assets', {
+      owner_id: ownerId,
+      type: 'deck',
+      data,
+      slug: 'standard-storm-deck',
+      created_at: now,
+      updated_at: now,
+      is_deleted: false,
+      group_id: null,
+    });
+    for (const cardId of cardIds) {
+      await ctx.db.insert('asset_relations', {
+        from_asset_id: deckId,
+        to_asset_id: cardId,
+        kind: 'deck-card',
+        count: 1,
+      });
+    }
+    await enqueueAssetPublication(ctx, { _id: deckId, type: 'deck', slug: 'standard-storm-deck', data });
+    return { deckId, cardIds, created: true };
+  },
 });
