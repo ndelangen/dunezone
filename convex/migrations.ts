@@ -21,16 +21,13 @@ import {
 import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { normalizeFormattedText } from '../src/shared/formattedText';
 import { normalizePlayGameSlug, PLAY_RESERVED_GAME_ADDRESSES, playGameNameSchema } from '../src/shared/play/gameNames';
-import { generatePlayGameName } from '../src/shared/play/generatedGameNames';
 import { components, internal } from './_generated/api';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation, mutation, viewerQuery } from './functions';
 import { accountStateOf, optionalActiveUserId } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
-import { allocatePlayGameName } from './lib/playGameAddresses';
-import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
 import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
@@ -50,6 +47,7 @@ import {
   reconcileRulesetStatistics,
 } from './lib/statistics';
 import { nowIso, slugify } from './lib/utils';
+import { backfillGameName, verifyGameName } from './migrations.playGameNames';
 import { retireHostedFixture } from './playDeletion';
 import schema from './schema';
 import type { MutationCtx, QueryCtx } from './types';
@@ -1349,93 +1347,14 @@ export const auth_session_expiry_jobs_v1 = migrations.define({
   },
 });
 
-/** Only a canonical counter suffix relative to the stored name advances that name's cursor. */
-function gameNameCounter(name: string, slug: string) {
-  const base = normalizePlayGameSlug(name);
-  if (!slug.startsWith(`${base}-`)) {
-    return null;
-  }
-  const suffix = slug.slice(base.length + 1);
-  const counter = Number.parseInt(suffix, 36);
-  if (!Number.isSafeInteger(counter) || counter < 1 || counter.toString(36) !== suffix) {
-    return null;
-  }
-  return { base, next: Math.min(counter + 1, Number.MAX_SAFE_INTEGER) };
-}
-
-async function verifyGameName(ctx: QueryCtx | MutationCtx, game: Doc<'play_games'>) {
-  const { name, slug } = game;
-  const parsed = playGameNameSchema.safeParse(name);
-  if (!parsed.success || parsed.data !== name || !slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-    throw new Error(`Game ${game._id} has an invalid name or address`);
-  }
-  if (
-    hasLocalPlayGameProfanity(name) ||
-    hasLocalPlayGameProfanity(slug) ||
-    (PLAY_RESERVED_GAME_ADDRESSES as readonly string[]).includes(slug) ||
-    ctx.db.normalizeId('play_games', slug)
-  ) {
-    throw new Error(`Game ${game._id} has a forbidden name or address`);
-  }
-  const owner = await ctx.db
-    .query('play_games')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .unique();
-  const reservation = await ctx.db
-    .query('play_game_slug_reservations')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .unique();
-  if (owner?._id !== game._id || !reservation) {
-    throw new Error(`Game ${game._id} has no unique reserved address`);
-  }
-  const counter = gameNameCounter(name, slug);
-  if (counter) {
-    const cursor = await ctx.db
-      .query('play_game_slug_cursors')
-      .withIndex('by_base', (q) => q.eq('base', counter.base))
-      .unique();
-    if (!cursor || !Number.isSafeInteger(cursor.next_suffix) || cursor.next_suffix < counter.next) {
-      throw new Error(`Game ${game._id} has an outdated address cursor`);
-    }
-  }
-}
-
-/** Fills only absent fields, including retired fixtures, without touching gameplay or provisioning. */
+/** Fills absent directory fields without changing existing names or permanent links. */
 export const play_game_names_v1 = migrations.define({
   table: 'play_games',
   batchSize: 2,
-  migrateOne: async (ctx, game) => {
-    const named =
-      game.slug === undefined
-        ? await allocatePlayGameName(ctx, game.name)
-        : { name: game.name ?? generatePlayGameName(), slug: game.slug };
-    const reservation = await ctx.db
-      .query('play_game_slug_reservations')
-      .withIndex('by_slug', (q) => q.eq('slug', named.slug))
-      .unique();
-    if (!reservation) {
-      await ctx.db.insert('play_game_slug_reservations', { slug: named.slug });
-    }
-    const counter = gameNameCounter(named.name, named.slug);
-    if (counter) {
-      const cursor = await ctx.db
-        .query('play_game_slug_cursors')
-        .withIndex('by_base', (q) => q.eq('base', counter.base))
-        .unique();
-      if (!cursor) {
-        await ctx.db.insert('play_game_slug_cursors', { base: counter.base, next_suffix: counter.next });
-      } else if (Number.isSafeInteger(cursor.next_suffix) && cursor.next_suffix < counter.next) {
-        await ctx.db.patch(cursor._id, { next_suffix: counter.next });
-      }
-    }
-    if (game.name !== named.name || game.slug !== named.slug) {
-      await ctx.db.patch(game._id, named);
-    }
-    await verifyGameName(ctx, { ...game, ...named });
-  },
+  migrateOne: backfillGameName,
 });
 
-/** Completion proves every retained state has a usable name and a unique permanent reservation. */
+/** Completion verifies every retained state before the later schema contraction. */
 export const play_game_names_verify_v1 = migrations.define({
   table: 'play_games',
   batchSize: 16,
