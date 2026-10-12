@@ -1644,13 +1644,17 @@ export class TableSession {
     }
     this.emit();
   };
-  /* The piece as the room last sent it, while the room would let it turn: the table open to handling, the piece present and not locked. */
+  /* The piece as the room last sent it, while the room would let it turn: the table open to handling, the piece present, unlocked and not in another player's hand. */
   private turnablePiece(pieceId: string) {
     const snapshot = this.snapshot;
     const piece = tableHandlingOpen(snapshot.stage)
       ? snapshot.table.pieces.find((candidate) => candidate.id === pieceId)
       : undefined;
-    return piece && !gestureBlockReason(piece) ? piece : null;
+    if (!piece || gestureBlockReason(piece)) {
+      return null;
+    }
+    /* A piece another player is carrying, as from a deck they draw on, is theirs until they let go. */
+    return this.activityForView().carries.some((carry) => carry.reservedIds.includes(pieceId)) ? null : piece;
   }
   /* A piece locked or taken away while the key was held keeps the turn to itself, since the room would refuse it; a turn back to the start sends nothing. */
   private sendTurn({ pieceId, turns: held }: Turn) {

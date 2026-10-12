@@ -2053,6 +2053,36 @@ describe('a held rotation', () => {
     expect(socket().sent).toHaveLength(sent);
   });
 
+  test('a piece another player is carrying from does not turn and sends nothing', async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    socket().deliver({
+      type: 'update',
+      epoch: 'epoch-one',
+      baseSequence: 1,
+      sequence: 2,
+      activity: {
+        ...noActivity,
+        carries: [
+          {
+            ...viewer,
+            connectionId: 'other',
+            id: 'other-carry',
+            held: { ...deck(), id: 'drawn-card', items: deck().items.slice(0, 1) },
+            withdrawnCounts: { [deck().id]: 1 },
+            reservedIds: [deck().id],
+            expiresAt: Date.now() + 8000,
+          },
+        ],
+      },
+    });
+    expect(table(client).reservedPieceIds.has(deck().id)).toBe(true);
+    const sent = socket().sent.length;
+    client.rotateSelected(1, deck().id);
+    client.finishRotation();
+    expect(socket().sent).toHaveLength(sent);
+  });
+
   test('a turn the room did shows through the resync until the new table arrives', async () => {
     const client = await connected();
     client.rotateSelected(1, deck().id);
