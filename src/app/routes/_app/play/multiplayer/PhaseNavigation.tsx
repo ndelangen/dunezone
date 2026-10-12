@@ -1,14 +1,14 @@
 import { Button, Group, Menu, Text, Tooltip, VisuallyHidden } from '@mantine/core';
-import { emptyPublicControls } from '@shared/play/inventory';
 import { phaseGate } from '@shared/play/setup';
 import { Check, ChevronDown } from 'lucide-react';
 import { useId } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import { publicControlsOf } from './publicControls';
 
 /* The header's phase controls: the Ready toggle when the phase asks for readiness, then the Next phase split button. */
 export function PhaseNavigation({ client, table }: Readonly<{ client: TableSession; table: TableProjection }>) {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   const cooling = table.phaseCooling;
   const { needsReady, refusal } = phaseGate({
     ...table.snapshot,

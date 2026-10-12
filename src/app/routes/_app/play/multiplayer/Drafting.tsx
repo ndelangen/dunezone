@@ -24,7 +24,6 @@ import {
   setAsideReason,
 } from '@shared/play/drafting';
 import type { DraftFaction, DraftState } from '@shared/play/drafting';
-import { emptyPublicControls } from '@shared/play/inventory';
 import type { PublicControls } from '@shared/play/inventory';
 import type { SeatRequest } from '@shared/play/participation';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
@@ -40,6 +39,7 @@ import { Token } from '@game/assets/faction/token/Token';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Drafting.module.css';
 import { ReadyToggle } from './PhaseNavigation';
+import { publicControlsOf } from './publicControls';
 import { seatLocked } from './SeatRequests';
 
 /*
@@ -58,8 +58,13 @@ function draftOf(table: TableProjection): DraftState | undefined {
   return table.snapshot.stage === 'drafting' ? table.snapshot.draft : undefined;
 }
 
+/* What the deal waits for: enough players, enough factions in the pool, and everyone ready. */
+function gatesOf(table: TableProjection, draft: DraftState) {
+  return draftGates(draft, publicControlsOf(table).seats, draft.minimum);
+}
+
 function playersOf(table: TableProjection): Player[] {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   const seats = (table.snapshot.roster?.seats ?? []).map((seat) => seat.id);
   return controls.players
     .filter((player) => seats.includes(player.seat))
@@ -236,6 +241,40 @@ function RequestRow({ client, table, request }: Props & Readonly<{ request: Seat
   );
 }
 
+/* The pooled zones at the ledger's edges: every banned faction on the left, every drafted one on the right. */
+const POOL_ZONES = {
+  banned: { title: 'Banned', zone: styles.zoneBanned, list: undefined, ids: bannedIds, by: bannersOf },
+  drafted: { title: 'Drafted', zone: styles.zoneDrafted, list: styles.zoneListEnd, ids: draftedPool, by: pickersOf },
+} as const;
+
+function PoolZone({
+  kind,
+  draft,
+  players,
+}: Readonly<{ kind: keyof typeof POOL_ZONES; draft: DraftState; players: Player[] }>) {
+  const zone = POOL_ZONES[kind];
+  return (
+    <section className={clsx(styles.zone, zone.zone)} aria-label={`${zone.title} factions`}>
+      <h2 className={styles.zoneTitle}>{zone.title}</h2>
+      <ul className={clsx(styles.zoneList, zone.list)}>
+        {zone.ids(draft).map((id) => {
+          const faction = factionById(draft, id);
+          return faction ? (
+            <li key={id}>
+              <FactionToken
+                faction={faction}
+                size={2.6}
+                banned={kind === 'banned'}
+                title={`${faction.name}, ${kind} by ${names(players, zone.by(draft, id))}`}
+              />
+            </li>
+          ) : null;
+        })}
+      </ul>
+    </section>
+  );
+}
+
 /** The ledger on the table: every viewer sees the same draft. */
 export function DraftingOverlay({ client, table, error = null }: Props & Readonly<{ error?: string | null }>) {
   const draft = draftOf(table);
@@ -244,7 +283,7 @@ export function DraftingOverlay({ client, table, error = null }: Props & Readonl
   }
   const players = playersOf(table);
   const own = table.viewer.viewerSeat;
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   /* While drafting a request names no seat; a spectator sees only their own, a player every one they can approve. */
   const requests = controls.seatRequests.filter(
     (request) => request.seat === null && (own !== SPECTATOR_SEAT || request.own)
@@ -270,24 +309,7 @@ export function DraftingOverlay({ client, table, error = null }: Props & Readonl
   return (
     <div className={styles.overlay} data-drafting-overlay="">
       <div className={styles.layout}>
-        <section className={clsx(styles.zone, styles.zoneBanned)} aria-label="Banned factions">
-          <h2 className={styles.zoneTitle}>Banned</h2>
-          <ul className={styles.zoneList}>
-            {bannedIds(draft).map((id) => {
-              const faction = factionById(draft, id);
-              return faction ? (
-                <li key={id}>
-                  <FactionToken
-                    faction={faction}
-                    size={2.6}
-                    banned
-                    title={`${faction.name}, banned by ${names(players, bannersOf(draft, id))}`}
-                  />
-                </li>
-              ) : null;
-            })}
-          </ul>
-        </section>
+        <PoolZone kind="banned" draft={draft} players={players} />
         <section className={styles.ledger} aria-label="Players">
           <ol className={styles.ledgerList}>
             {players.map((player) => (
@@ -329,23 +351,7 @@ export function DraftingOverlay({ client, table, error = null }: Props & Readonl
             )}
           </ol>
         </section>
-        <section className={clsx(styles.zone, styles.zoneDrafted)} aria-label="Drafted factions">
-          <h2 className={styles.zoneTitle}>Drafted</h2>
-          <ul className={clsx(styles.zoneList, styles.zoneListEnd)}>
-            {draftedPool(draft).map((id) => {
-              const faction = factionById(draft, id);
-              return faction ? (
-                <li key={id}>
-                  <FactionToken
-                    faction={faction}
-                    size={2.6}
-                    title={`${faction.name}, drafted by ${names(players, pickersOf(draft, id))}`}
-                  />
-                </li>
-              ) : null;
-            })}
-          </ul>
-        </section>
+        <PoolZone kind="drafted" draft={draft} players={players} />
       </div>
     </div>
   );
@@ -392,8 +398,7 @@ export function DraftingHeader({
   if (!draft) {
     return null;
   }
-  const controls = table.snapshot.controls ?? emptyPublicControls();
-  const gates = draftGates(draft, controls.seats, draft.minimum);
+  const gates = gatesOf(table, draft);
   const warning = draftWarning(gates);
   const fill = gates.poolSize < gates.seated ? Math.min(gates.fillable, gates.seated - gates.poolSize) : 0;
   const poolHelp =
@@ -622,8 +627,7 @@ export function DraftingReady({ client, table }: Props) {
   if (!draft || own === SPECTATOR_SEAT) {
     return null;
   }
-  const controls = table.snapshot.controls ?? emptyPublicControls();
-  const gates = draftGates(draft, controls.seats, draft.minimum);
+  const gates = gatesOf(table, draft);
   const ready = draft.ready.includes(own);
   /* A failed deal keeps everyone's readiness, so a ready player deals again rather than withdrawing. */
   if (draft.failure && ready) {

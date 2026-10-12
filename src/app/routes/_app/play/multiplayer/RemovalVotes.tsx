@@ -24,16 +24,21 @@ import { useServerNow } from './useServerNow';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
+/* How each ballot reads: a Remove against, a Keep for, or not cast yet. */
+const BALLOT_BADGES = {
+  remove: { tone: 'negative', label: 'Remove' },
+  keep: { tone: 'positive', label: 'Keep' },
+  uncast: { tone: 'neutral', label: 'Uncast' },
+} as const;
+
 function Ballots({ ballots }: Readonly<{ ballots: RemovalVote['ballots'] }>) {
   return (
     <Stack gap={4}>
       {ballots.map((ballot, index) => (
         <Group key={`${ballot.seat}-${index}`} justify="space-between" gap="sm">
           <Text size="sm">{ballot.name}</Text>
-          <StatusBadge
-            tone={ballot.choice === 'remove' ? 'negative' : ballot.choice === 'keep' ? 'positive' : 'neutral'}
-          >
-            {ballot.choice === 'remove' ? 'Remove' : ballot.choice === 'keep' ? 'Keep' : 'Uncast'}
+          <StatusBadge tone={BALLOT_BADGES[ballot.choice ?? 'uncast'].tone}>
+            {BALLOT_BADGES[ballot.choice ?? 'uncast'].label}
           </StatusBadge>
         </Group>
       ))}
@@ -93,6 +98,27 @@ function OpenVote({ client, table, vote }: Props & Readonly<{ vote: RemovalVote 
   );
 }
 
+type Player = PublicControls['players'][number];
+
+/* Every seat's player, a vacant seat by its faction; the viewer's own seat comes last. */
+function seatPlayers(table: TableProjection): Player[] {
+  const occupants = table.snapshot.controls?.players ?? [];
+  return (
+    table.snapshot.roster?.seats.map(
+      (seat) =>
+        occupants.find((player) => player.seat === seat.id) ?? {
+          seat: seat.id,
+          /* A vacant seat's line under the name already gives the seat, which tells a shared faction name apart. */
+          name: seat.faction?.name ?? seat.id,
+          avatar: null,
+          slug: null,
+        }
+    ) ?? occupants
+  )
+    .slice()
+    .sort((a, b) => Number(a.seat === table.viewer.viewerSeat) - Number(b.seat === table.viewer.viewerSeat));
+}
+
 /** The caller owns selection; the panel owns faction conversations, public information and ballot controls. */
 export function PlayerPanel({
   client,
@@ -109,21 +135,7 @@ export function PlayerPanel({
     error: string | null;
   }>) {
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const occupants = table.snapshot.controls?.players ?? [];
-  const players = (
-    table.snapshot.roster?.seats.map(
-      (seat) =>
-        occupants.find((player) => player.seat === seat.id) ?? {
-          seat: seat.id,
-          /* A vacant seat's line under the name already gives the seat, which tells a shared faction name apart. */
-          name: seat.faction?.name ?? seat.id,
-          avatar: null,
-          slug: null,
-        }
-    ) ?? occupants
-  )
-    .slice()
-    .sort((a, b) => Number(a.seat === table.viewer.viewerSeat) - Number(b.seat === table.viewer.viewerSeat));
+  const players = seatPlayers(table);
   const votes = table.snapshot.removalVotes ?? [];
   const player = players.find((entry) => entry.seat === selected) ?? players[0];
   if (!player) {
@@ -139,7 +151,8 @@ export function PlayerPanel({
     /* A vacant seat someone asks for carries a sand dot until a player approves them from its Info; it and a player under a removal vote open on Info. */
     const requested = asked.has(entry.seat);
     const token = table.snapshot.swapping?.tokens[entry.seat];
-    const unreadLabel = unread(entry.seat) ? `, ${unread(entry.seat)} unread` : '';
+    const unreadCount = unread(entry.seat);
+    const unreadLabel = unreadCount ? `, ${unreadCount} unread` : '';
     const hue = allianceHue(table.snapshot, rosterSeat(table.snapshot.roster, entry.seat)?.faction?.id);
     return (
       <NestedTabs.Item
@@ -152,8 +165,8 @@ export function PlayerPanel({
           <Indicator
             color={active ? 'red.6' : requested ? 'yellow.5' : undefined}
             size={16}
-            label={unread(entry.seat) || undefined}
-            disabled={!active && !requested && !unread(entry.seat)}
+            label={unreadCount || undefined}
+            disabled={!active && !requested && !unreadCount}
           >
             <Avatar
               src={token ?? entry.avatar}
@@ -291,12 +304,7 @@ function tableConversationItem(unread: number, onSelect: () => void) {
   );
 }
 
-function PlayerInformation({
-  client,
-  table,
-  player,
-  hasVote,
-}: Props & Readonly<{ player: PublicControls['players'][number]; hasVote: boolean }>) {
+function PlayerInformation({ client, table, player, hasVote }: Props & Readonly<{ player: Player; hasVote: boolean }>) {
   const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
   const count = table.snapshot.controls?.players.length ?? 0;
   const canStart =

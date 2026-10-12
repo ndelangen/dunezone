@@ -1,5 +1,4 @@
 import { Button, Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
-import { emptyPublicControls } from '@shared/play/inventory';
 import { seatLabel, seatSubject } from '@shared/play/participation';
 import type { SeatAction } from '@shared/play/participation';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
@@ -26,6 +25,7 @@ import {
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
+import { publicControlsOf } from './publicControls';
 
 /*
  * Participation without a bar between the board and the controls (Norbert, 2026-10-11): a spectator asks from the
@@ -45,7 +45,7 @@ function seatWords(table: TableProjection, seat: string | null, label: (seat: st
 
 /** The seats nobody holds, once the seating is fixed; while drafting a request names no seat. */
 function openSeats(table: TableProjection): string[] {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   return (table.snapshot.roster?.seats ?? []).map((seat) => seat.id).filter((seat) => !controls.seats.includes(seat));
 }
 
@@ -83,7 +83,7 @@ type SeatNotice = Readonly<{ eyebrow: string; title: string; context?: string; a
 /** What a spectator's seat says and the one action it offers, or nothing once there is nothing to say. */
 function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNotice | null {
   const [chosen, setChosen] = useState<string | null>(null);
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   if (table.viewer.viewerSeat !== SPECTATOR_SEAT || !table.snapshot.stage || table.snapshot.stage === 'discarded') {
     return null;
   }
@@ -211,7 +211,7 @@ function SeatNoticePopover({ notice, error }: Readonly<{ notice: SeatNotice; err
 
 /** The game menu's hold-to-leave item names what leaving costs: the game, a roster place, or a seat left open. */
 function leavingLabel(table: TableProjection): string {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   switch (true) {
     case controls.seats.length === 1:
       return 'Hold to leave and discard the game';
@@ -228,7 +228,7 @@ export function VacantSeatRequests({
   table,
   seat,
 }: Readonly<{ client: TableSession; table: TableProjection; seat: string }>) {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   if (!approvable(table) || !openSeats(table).includes(seat)) {
     return null;
   }
@@ -256,17 +256,17 @@ export function VacantSeatRequests({
   ) : null;
 }
 
-/** The vacant seats a spectator is asking for, so the player rail can mark them. */
 /** A player approves while the game runs live; a finished game takes no one until it continues. */
 function approvable(table: TableProjection): boolean {
   return table.viewer.viewerSeat !== SPECTATOR_SEAT && !table.playback && table.snapshot.stage !== 'finished';
 }
 
+/** The vacant seats a spectator is asking for, so the player rail can mark them. */
 export function requestedSeats(table: TableProjection): ReadonlySet<string> {
   if (!approvable(table)) {
     return new Set();
   }
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   const open = openSeats(table);
   return new Set(
     controls.seatRequests.flatMap((request) =>

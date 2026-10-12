@@ -1,6 +1,5 @@
 import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
@@ -64,6 +63,7 @@ import {
   SPICE_RESERVE_HELP,
 } from './panelGuidance';
 import { PlaybackControls } from './PlaybackControls';
+import { publicControlsOf } from './publicControls';
 import { PlayerPanel } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
@@ -87,6 +87,8 @@ type ConnectionControlsProps = Readonly<{
   table: TableProjection;
   error: string | null;
 }>;
+
+type TableControlProps = Pick<ConnectionControlsProps, 'client' | 'table'>;
 
 /** Where the game stands, with the last turn its wheel counts up to. */
 function gameProgress(snapshot: TableProjection['snapshot']) {
@@ -210,8 +212,6 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
   );
 }
 
-type SetupControlProps = Pick<ConnectionControlsProps, 'client' | 'table'>;
-
 function PredictionCards({ table, factionId, turn }: { table: TableProjection; factionId: string; turn: number }) {
   const seat = table.snapshot.roster?.seats.find((entry) => entry.faction?.id === factionId);
   const token = seat && table.snapshot.swapping?.tokens[seat.id];
@@ -234,7 +234,7 @@ function PredictionCards({ table, factionId, turn }: { table: TableProjection; f
   );
 }
 
-function PredictionInput({ client, table, stepId }: SetupControlProps & { stepId: string }) {
+function PredictionInput({ client, table, stepId }: TableControlProps & { stepId: string }) {
   const [choice, change] = useReducer(
     (
       state: { factionId: string | null; turn: string | number },
@@ -279,7 +279,7 @@ function PredictionInput({ client, table, stepId }: SetupControlProps & { stepId
   );
 }
 
-function Predictions({ client, table }: SetupControlProps) {
+function Predictions({ client, table }: TableControlProps) {
   const ownFaction = viewerFaction(table);
   const current = table.snapshot.setup && setupStep(table.snapshot.setup);
   return table.snapshot.setup?.steps
@@ -340,7 +340,7 @@ function Predictions({ client, table }: SetupControlProps) {
     });
 }
 
-function SetupControls({ client, table }: SetupControlProps) {
+function SetupControls({ client, table }: TableControlProps) {
   const setup = table.snapshot.setup;
   if (!setup) {
     return null;
@@ -411,7 +411,7 @@ function pickerReducer(_state: PickerState, event: PickerEvent): PickerState {
   return { open: event.type === 'open', selection: null, requestId: null };
 }
 
-function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+function SharedInventory({ client, table }: TableControlProps) {
   const pointerSession = usePointerSession();
   const [picker, dispatch] = useReducer(pickerReducer, {
     open: false,
@@ -420,7 +420,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
   });
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const entries = view.catalogue?.entries ?? [];
-  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const controls = publicControlsOf(table);
   const contents = view.catalogue?.requestId === picker.requestId ? view.catalogue.contents : null;
   const pieces = table.snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   return (
@@ -569,7 +569,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
   );
 }
 
-function SpiceReserveControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+function SpiceReserveControls({ client, table }: TableControlProps) {
   const [amount, setAmount] = useState<string | number>(1);
   const reserve = table.snapshot.bank;
   if (!reserve) {
@@ -638,7 +638,7 @@ function spiceTransferText(labels: Readonly<Partial<Record<string, string>>>, tr
   return `${moved} from ${spicePlace(labels, transfer.source)} to ${spicePlace(labels, transfer.destination ?? 'table')}.`;
 }
 
-function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+function SpiceHistory({ client, table }: TableControlProps) {
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const entries = view.spiceHistory?.entries ?? table.snapshot.spiceTransfers ?? [];
   const more = view.spiceHistory?.more ?? entries.length === 20;
@@ -688,6 +688,16 @@ function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   );
 }
 
+/* A tab's controls beneath the table's refusal of the last command they sent, when there is one. */
+function withTableError(error: string | null, controls: ReactNode) {
+  return (
+    <>
+      {error && <FormError title="From the table">{error}</FormError>}
+      {controls}
+    </>
+  );
+}
+
 /* The Alliances tab, only while the game is in play. */
 function alliancesTab({ client, table, error }: ConnectionControlsProps) {
   if (!showsAlliances(table.snapshot.stage)) {
@@ -699,18 +709,13 @@ function alliancesTab({ client, table, error }: ConnectionControlsProps) {
       label: 'Alliances',
       topic: 'alliance' as const,
       ...ALLIANCES_GUIDANCE,
-      content: (
-        <>
-          {error && <FormError title="From the table">{error}</FormError>}
-          <AlliancesPanel client={client} table={table} />
-        </>
-      ),
+      content: withTableError(error, <AlliancesPanel client={client} table={table} />),
     },
   ];
 }
 
 /* The Hand and Hidden zone tabs, for a seat that holds a hand. */
-function handTabs({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+function handTabs({ client, table }: TableControlProps) {
   const hand = table.snapshot.hand;
   if (!hand) {
     return [];
@@ -734,12 +739,7 @@ function handTabs({ client, table }: Pick<ConnectionControlsProps, 'client' | 't
 }
 
 /** The Result tab, while a declared result or an ending game asks the table to settle it. */
-function resultTabs({
-  client,
-  table,
-  error,
-  declare,
-}: Readonly<{ client: TableSession; table: TableProjection; error: string | null; declare: DeclareChoice }>) {
+function resultTabs({ client, table, error, declare }: ControlTabsProps) {
   return resultFocus(table)
     ? [
         {
@@ -747,19 +747,14 @@ function resultTabs({
           label: 'Result',
           topic: 'result' as const,
           ...RESULT_GUIDANCE,
-          content: (
-            <>
-              {error && <FormError title="From the table">{error}</FormError>}
-              <ResultControls client={client} table={table} declare={declare} />
-            </>
-          ),
+          content: withTableError(error, <ResultControls client={client} table={table} declare={declare} />),
         },
       ]
     : [];
 }
 
 /** The private destinations are only installed for a viewer with a hand. */
-function yoursTab({ client, table }: SetupControlProps): PanelTab {
+function yoursTab({ client, table }: TableControlProps): PanelTab {
   return {
     key: 'yours',
     label: 'Yours',
@@ -801,12 +796,7 @@ function gameTab({ client, table, error, declare }: ControlTabsProps, inPlay: bo
               label: 'Setup',
               topic: SETUP_TOPICS[setupStep(setup).kind],
               ...setupGuidance(setupStep(setup)),
-              content: (
-                <>
-                  {error && <FormError title="From the table">{error}</FormError>}
-                  <SetupControls client={client} table={table} />
-                </>
-              ),
+              content: withTableError(error, <SetupControls client={client} table={table} />),
             },
           ]
         : []),
@@ -817,12 +807,7 @@ function gameTab({ client, table, error, declare }: ControlTabsProps, inPlay: bo
               label: 'Battle',
               topic: 'battle' as const,
               ...battleGuidance(table),
-              content: (
-                <>
-                  {error && <FormError title="From the table">{error}</FormError>}
-                  <BattleControls client={client} table={table} />
-                </>
-              ),
+              content: withTableError(error, <BattleControls client={client} table={table} />),
             },
           ]
         : []),
@@ -855,12 +840,7 @@ function tableTab({ client, table, error }: ConnectionControlsProps): PanelTab {
               label: 'Settings',
               topic: 'controls' as const,
               description: 'Game length and bidding time.',
-              content: (
-                <>
-                  {error && <FormError title="From the table">{error}</FormError>}
-                  <TableSettings client={client} table={table} />
-                </>
-              ),
+              content: withTableError(error, <TableSettings client={client} table={table} />),
             },
           ]
         : []),
@@ -940,6 +920,9 @@ function controlTabs(props: ControlTabsProps): PanelTab[] {
   ];
 }
 
+/* The player the panel shows, through their seat or the removal vote against them, and which of its tabs is open. */
+type PlayerSelection = Readonly<{ seat: string | null; vote: string | null; tab: 'public' | 'conversation' }>;
+
 function ConnectedTable({
   client,
   table,
@@ -959,21 +942,7 @@ function ConnectedTable({
   const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
-  const [playerSelection, selectPlayer] = useReducer(
-    (
-      _: {
-        seat: string | null;
-        vote: string | null;
-        tab: 'public' | 'conversation';
-      },
-      next: {
-        seat: string | null;
-        vote: string | null;
-        tab: 'public' | 'conversation';
-      }
-    ) => next,
-    { seat: null, vote: null, tab: 'conversation' }
-  );
+  const [playerSelection, selectPlayer] = useState<PlayerSelection>({ seat: null, vote: null, tab: 'conversation' });
   const removalVotes = table.snapshot.removalVotes ?? [];
   const selectedPlayer =
     removalVotes.find((vote) => vote.id === playerSelection.vote)?.target.seat ?? playerSelection.seat;

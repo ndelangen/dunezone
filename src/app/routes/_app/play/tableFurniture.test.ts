@@ -20,6 +20,7 @@ import {
   TABLE_VISIBLE_RADIUS,
 } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
+import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { describe, expect, test } from 'vitest';
@@ -28,7 +29,6 @@ import { cameraPoseFor, tableCamera } from '../../../widgets/tabletop/playView';
 import {
   createTablePlateShape,
   createTablePlateLayers,
-  tablePlateBounds,
   TABLE_PLATE_BOUNDS,
   TABLE_PLATE_CORNER_RADIUS,
   TABLE_PLATE_JOINS,
@@ -37,6 +37,22 @@ import {
   tableSurfacePointOnRay,
   trackerScallopRadius,
 } from '../../../widgets/tabletop/tablePlateGeometry';
+
+/* The plate's x/z extent: the shelves' bounds widened to take in each tracker's scallop. */
+function tablePlateBounds(slots: readonly TrackerArcSlot[]) {
+  return slots.reduce(
+    (bounds, slot) => {
+      const radius = trackerScallopRadius(slot);
+      return {
+        minX: Math.min(bounds.minX, slot.position[0] - radius),
+        maxX: Math.max(bounds.maxX, slot.position[0] + radius),
+        minZ: Math.min(bounds.minZ, slot.position[2] - radius),
+        maxZ: Math.max(bounds.maxZ, slot.position[2] + radius),
+      };
+    },
+    { ...TABLE_PLATE_BOUNDS }
+  );
+}
 
 type Point2D = Readonly<{ x: number; y: number }>;
 

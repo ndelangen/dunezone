@@ -46,11 +46,12 @@ import type { HandMenuAnchor } from './HiddenZone';
 import { battleHelp, handHelp } from './panelGuidance';
 
 type Props = { client: TableSession; table: TableProjection };
-const outcomes = [
-  ['left', 'Left side won'],
-  ['none', 'No winner'],
-  ['right', 'Right side won'],
-] as const;
+type Outcome = 'left' | 'none' | 'right';
+const OUTCOME_LABELS: Readonly<Record<Outcome, string>> = {
+  left: 'Left side won',
+  none: 'No winner',
+  right: 'Right side won',
+};
 type FactionArtwork = TableProjection['snapshot']['factionArtwork'];
 type FactionNames = TableProjection['state']['factionNames'];
 /* A real game keys factions by their Convex ids, so every battle label reads the roster's name and keeps the id only when the roster has none. */
@@ -101,13 +102,14 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork }: 
   const motion = useMotionAllowed();
   const retained = artwork?.[factionId];
   const retainedFaces = retained && new Map(troopBattleFaces(retained.troops).map((entry) => [entry.id, entry.face]));
+  const { background } = factionArtwork(factionId, artwork);
   return (
     <BattleWheelAsset
       state="revealed"
       motion={motion}
       className={styles.wheel}
       label={`${factionName} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
-      background={factionArtwork(factionId, artwork).background}
+      background={background}
       strength={plan.strength}
       spice={plan.spice}
       adjustment={plan.adjustment}
@@ -127,7 +129,7 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork }: 
               dialed: troop?.dialed ?? 0,
               undialed: troop?.undialed ?? 0,
               artwork: {
-                background: factionArtwork(factionId, artwork).background,
+                background,
                 image:
                   authored?.image ??
                   (factionId === 'atreides' ? '/vector/troop/atreides.svg' : '/vector/troop/harkonnen.svg'),
@@ -440,16 +442,13 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
 }
 
 function canTakeSelected(piece: TablePiece | undefined) {
-  if (!piece) {
-    return false;
-  }
-  if (piece.inventory || piece.locked) {
-    return false;
-  }
-  if (piece.items.length !== 1) {
-    return false;
-  }
-  return piece.kind === 'card' || isBattleLeader(piece);
+  return (
+    !!piece &&
+    !piece.inventory &&
+    !piece.locked &&
+    piece.items.length === 1 &&
+    (piece.kind === 'card' || isBattleLeader(piece))
+  );
 }
 export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
@@ -522,7 +521,7 @@ function BattleResults({
           <Stack key={result.id} gap="xs">
             <Text>
               {result.territory}: {result.factions.map((id) => rosterName(id, names)).join(' against ')}.{' '}
-              {outcomes.find(([outcome]) => outcome === result.outcome)?.[1]}.
+              {OUTCOME_LABELS[result.outcome]}.
             </Text>
             <Group pt={40}>
               {result.plans.map((plan, side) => (
@@ -708,13 +707,13 @@ function BattleMarker({ table }: Props) {
   );
 }
 type ActiveProps = Props & { battle: PublicBattle; own: number };
-function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { outcome: 'left' | 'none' | 'right' }) {
+function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { outcome: Outcome }) {
   return (
     <Button
       size="xs"
       className={outcome === 'none' ? undefined : styles.outcome}
       data-outcome={outcome}
-      aria-label={outcomes.find(([choice]) => choice === outcome)![1]}
+      aria-label={OUTCOME_LABELS[outcome]}
       variant={own >= 0 && battle.sides[own]?.choice === outcome ? 'filled' : 'default'}
       disabled={!table.canHandleTable || own < 0}
       onClick={() => client.command({ kind: 'battle-outcome', battleId: battle.id, outcome })}
@@ -773,7 +772,7 @@ function waitingOn({ battle, table, own }: ActiveProps) {
   if (!other.choice) {
     return `Waiting for ${rosterName(other.factionId, names)} to agree`;
   }
-  const call = outcomes.find(([choice]) => choice === other.choice)![1];
+  const call = OUTCOME_LABELS[other.choice];
   return `${rosterName(other.factionId, names)} says ${call.toLowerCase()}`;
 }
 function BattleCentre(props: ActiveProps) {
@@ -927,7 +926,7 @@ function BattleSides(props: ActiveProps) {
             <SideContents {...props} index={index} active={active} />
             {side?.choice && (
               <Text className={styles.choice} size="xs">
-                {outcomes.find(([choice]) => choice === side.choice)?.[1]}
+                {OUTCOME_LABELS[side.choice]}
               </Text>
             )}
           </div>
