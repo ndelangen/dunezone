@@ -48,7 +48,7 @@ bun run storybook:test:shard <shard> # One CI shard of the story suite, named in
 bun run storybook        # Storybook dev (port 6006)
 bun run build-storybook  # Static Storybook → storybook-static
 bun run verify:storybook-publication # Public bytes, headers, isolation, and browser runtime
-bun run generate         # Regenerate the asset-id vocabulary in src/shared/assetIds.ts, already formatted
+bun run generate         # Regenerate the asset-id vocabulary and normalized vector crops
 bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and dry-run gate
 ```
 
@@ -429,7 +429,8 @@ Everything under `public/m/**`, `public/image/**` and `public/web/**` is generat
 gitignored, apart from the committed files named in `COMMITTED_WEB_FILES`
 (`src/shared/assetRules.ts`). Run `bun run generate:images` locally, and see the image pipeline
 section of [`AGENTS.md`](../AGENTS.md) and the [media runbooks](./technical/media-runbooks.md). `scripts/generate.ts` refreshes `src/shared/assetIds.ts`,
-the typed public-asset catalog used by game schemas.
+the typed public-asset catalog used by game schemas, and `src/shared/media/vectorCrops.generated.ts`,
+the geometry used to fit illustrations after square normalization.
 
 ## Detailed documentation
 

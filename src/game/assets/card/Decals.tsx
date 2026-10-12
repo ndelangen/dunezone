@@ -16,7 +16,15 @@ const StrokedUse: FC<SVGProps<SVGUseElement>> = ({ filter, ...rest }) => (
   </>
 );
 
-export function FrontDecals({ prefix, decals }: { decals: z.infer<typeof Decal>[]; prefix: string }) {
+export function FrontDecals({
+  prefix,
+  decals,
+  size = 439,
+}: {
+  decals: z.infer<typeof Decal>[];
+  prefix: string;
+  size?: number;
+}) {
   const resolveAsset = useAssetResolver();
   const fadedDecals = useMemo(() => decals.filter((d) => typeof d !== 'string' && d.muted === true), [decals]);
   const nonFadedDecals = useMemo(() => decals.filter((d) => typeof d === 'string' || d.muted !== true), [decals]);
@@ -25,9 +33,10 @@ export function FrontDecals({ prefix, decals }: { decals: z.infer<typeof Decal>[
 
   /**
    * Square slot for square-normalized decal files (#307): stored scales were retuned by clamp(originalRatio, 1,
-   * 763/439) when the old 763×439 slot was retired, so art renders pixel-identically.
+   * 763/439) when the old 763×439 slot was retired, so the default preserves their placement.
+   * A shallower card window supplies its own fitted square size.
    */
-  const decalSize = { width: 439, height: 439 };
+  const decalSize = { width: size, height: size };
   const stroked = { filter: `url(#${decalsFilter})` };
   const empty = {};
 
