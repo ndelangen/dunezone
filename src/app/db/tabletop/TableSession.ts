@@ -348,6 +348,8 @@ export class TableSession {
   private pointers: PublicPointer[] = [];
   private flipping = new Map<string, number>();
   private readonly pendingFlips = new Map<string, string>();
+  /* The turn-over a piece in hand is playing, kept apart from the table's flips: a drawn card's id is the carry's own, and a cancelled carry's turn no longer matters. */
+  private handFlip: { carryId: string; pieceId: string; revision: number } | null = null;
   /* The commands this page sent that the room has not answered yet. */
   private readonly unanswered = new Set<string>();
   /* A rotation held on a piece at rest turns it on this page only, and goes out as one command when the key comes up. */
@@ -1213,6 +1215,7 @@ export class TableSession {
     this.poseTimer = undefined;
     this.pointerTimer = undefined;
     this.pendingFlips.clear();
+    this.handFlip = null;
     this.unanswered.clear();
     this.turning = null;
     this.sentTurns.clear();
@@ -1709,7 +1712,7 @@ export class TableSession {
       return;
     }
     const flips = (carry.draft.flips ?? 0) + 1;
-    this.flipping = new Map(this.flipping).set(held.id, (held.flipRevision ?? 0) + 1);
+    this.handFlip = { carryId: carry.id, pieceId: held.id, revision: (held.flipRevision ?? 0) + 1 };
     this.carry = { ...carry, draft: { ...carry.draft, flips } };
     this.send({ type: 'flip', carryId: carry.id, flips });
     this.emit();
@@ -1723,7 +1726,7 @@ export class TableSession {
       return null;
     }
     /* A piece still turning over in hand finishes that turn before it takes another, as one on the table does. */
-    return this.flipping.has(held.id) ? null : held;
+    return this.handFlip?.carryId === carry.id ? null : held;
   }
   toggleLockSelected = (id?: string) => {
     const pieceId = this.target(id);
@@ -1734,6 +1737,9 @@ export class TableSession {
   moveStormBy = (direction: -1 | 1 = 1) => this.command({ kind: 'storm', direction });
   spawnSpice = (count: number) => this.command({ kind: 'spice-spawn', count });
   finishPieceFlip = (pieceId: string, revision: number) => {
+    if (this.handFlip?.pieceId === pieceId && this.handFlip.revision === revision) {
+      this.handFlip = null;
+    }
     if (this.flipping.get(pieceId) !== revision) {
       return;
     }

@@ -5,7 +5,7 @@ import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
 import type { ActivityChange, GameSnapshot, ServerMessage, TablePing, Viewer } from '@shared/play/protocol';
-import { flipPieceInState } from '@shared/play/tableState';
+import { flipPieceInState, heldPieceFor } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
@@ -1135,6 +1135,55 @@ describe('hosted table interaction', () => {
     client.flipSelected();
     expect(handFlips()).toEqual([1]);
     client.finishPieceFlip(source.id, 1);
+    client.flipSelected();
+    expect(handFlips()).toEqual([1, 2]);
+  });
+
+  test('a carry put back mid-turn leaves the piece free to flip and pick up again', async () => {
+    const { client, source, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    client.flipSelected();
+    client.cancelDraft();
+    /* The piece goes back to its saved face, so its mesh finishes on the saved revision. */
+    client.finishPieceFlip(source.id, 0);
+    client.flipSelected(source.id);
+    expect(command().action).toEqual({ kind: 'flip', pieceId: source.id });
+  });
+
+  test('a card drawn from a deck keeps turning over through a saved table update', async () => {
+    const client = await connected();
+    const snapshot = table(client).snapshot;
+    client.beginGesture('treachery-deck', 'top');
+    const begin = socket().sent.find((message) => message.type === 'begin');
+    const draft = table(client).state.draftMove;
+    const held = draft && heldPieceFor(table(client).state, draft);
+    if (!begin || !draft || !held) {
+      throw new Error('The draw did not start.');
+    }
+    socket().deliver({ type: 'carry', carryId: begin.carryId, draft });
+    const carries = [
+      {
+        ...viewer,
+        id: begin.carryId,
+        held,
+        withdrawnCounts: { 'treachery-deck': 1 },
+        reservedIds: ['treachery-deck'],
+        expiresAt: Date.now() + 8000,
+      },
+    ];
+    socket().deliver(view({ snapshot, sequence: 1, carries }));
+    const handFlips = () => socket().sent.flatMap((message) => (message.type === 'flip' ? [message.flips] : []));
+    client.flipSelected();
+    expect(handFlips()).toEqual([1]);
+    const stackFlipped = nextSnapshot(
+      snapshot,
+      flipPieceInState(tableForViewer(snapshot, 'harkonnen'), 'harkonnen-force-stack')
+    );
+    socket().deliver(view({ snapshot: stackFlipped, sequence: 2, carries }));
+    expect(table(client).state.draftMove?.flips).toBe(1);
+    client.flipSelected();
+    expect(handFlips()).toEqual([1]);
+    client.finishPieceFlip(held.id, (held.flipRevision ?? 0) + 1);
     client.flipSelected();
     expect(handFlips()).toEqual([1, 2]);
   });
