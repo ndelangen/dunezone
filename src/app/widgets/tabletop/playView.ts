@@ -149,7 +149,7 @@ function dot(left: Vector3Tuple, right: Vector3Tuple): number {
   return left[0] * right[0] + left[1] * right[1] + left[2] * right[2];
 }
 
-function mapCameraScaleFor(
+function cameraScaleForFraming(
   aspectRatio: number,
   framingPoints: readonly Vector3Tuple[],
   topLimit: number,
@@ -195,7 +195,7 @@ function tiltedMapTarget(
     return [...approved];
   }
   const scaleAt = (depth: number) =>
-    mapCameraScaleFor(aspectRatio, framingPoints, topLimit, basis, [approved[0], approved[1], depth]);
+    cameraScaleForFraming(aspectRatio, framingPoints, topLimit, basis, [approved[0], approved[1], depth]);
   let near = approved[2] - MAP_VIEW_TARGET_SEARCH_RANGE;
   let far = approved[2] + MAP_VIEW_TARGET_SEARCH_RANGE;
   for (let step = 0; step < MAP_VIEW_TARGET_SEARCH_STEPS; step++) {
@@ -255,9 +255,9 @@ export function cameraPoseFor(
       : fixedViewTarget(view, safeAspectRatio);
   const cameraScale =
     view === 'map'
-      ? mapCameraScaleFor(safeAspectRatio, mapFramingPoints, safeMapTopLimit, basis, target)
+      ? cameraScaleForFraming(safeAspectRatio, mapFramingPoints, safeMapTopLimit, basis, target)
       : view === 'bottom'
-        ? mapCameraScaleFor(
+        ? cameraScaleForFraming(
             safeAspectRatio,
             BOTTOM_VIEW_FRAMING_POINTS,
             MAP_VIEW_TOP_LIMIT,

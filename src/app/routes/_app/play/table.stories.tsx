@@ -781,7 +781,7 @@ export const ReleasesItsRendererOnRemount = meta.story({
   },
 });
 
-/* Eight shared slots holding the published traitor deck, a treachery deck, a card and five troop stacks. */
+/* Eight shared slots holding the published traitor deck, a treachery deck, a card and five tokens. */
 export const SharedItemSlots = meta.story({
   beforeEach: install(() => {
     const snapshot = playingSnapshot();
