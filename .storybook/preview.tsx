@@ -5,6 +5,7 @@ import { sb } from 'storybook/test';
 
 import '@mantine/core/styles.layer.css';
 import '../src/app/styles/fonts.css';
+import '@fontsource/caladea/latin-700.css';
 import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
 import { StorybookDatabaseProvider, storybookViewer } from '../src/app/db/storybook';

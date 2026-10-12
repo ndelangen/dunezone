@@ -8,7 +8,15 @@ import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { useCountId } from '../utils/useCountId';
 import styles from './Back.module.css';
 
-export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, name, imageOffset, imageScale }) => {
+export const CardBack: FC<z.infer<typeof CardBackType>> = ({
+  image,
+  background,
+  name,
+  imageOffset,
+  imageScale,
+  nameScale = 1,
+  nameFont = 'C_Busorama',
+}) => {
   const prefix = useCountId();
 
   const gradient = `${prefix}gradient`;
@@ -56,8 +64,8 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
             <text
               dominantBaseline="middle"
               fill="white"
-              fontFamily="C_Busorama"
-              fontSize="90"
+              fontFamily={nameFont}
+              fontSize={90 * nameScale}
               letterSpacing="-0.7"
               style={{ textTransform: 'uppercase' }}
               textAnchor="middle"
@@ -72,8 +80,8 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
             <text
               dominantBaseline="middle"
               fill="white"
-              fontFamily="C_Busorama"
-              fontSize="90"
+              fontFamily={nameFont}
+              fontSize={90 * nameScale}
               letterSpacing="-0.7"
               style={{ textTransform: 'uppercase' }}
               textAnchor="middle"
@@ -85,8 +93,8 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
             <text
               dominantBaseline="middle"
               fill="black"
-              fontFamily="C_Busorama"
-              fontSize="90"
+              fontFamily={nameFont}
+              fontSize={90 * nameScale}
               letterSpacing="-0.7"
               style={{ textTransform: 'uppercase' }}
               textAnchor="middle"
@@ -106,8 +114,8 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
           <text
             dominantBaseline="middle"
             fill="black"
-            fontFamily="C_Busorama"
-            fontSize="90"
+            fontFamily={nameFont}
+            fontSize={90 * nameScale}
             letterSpacing="-0.7"
             style={{ textTransform: 'uppercase' }}
             textAnchor="middle"

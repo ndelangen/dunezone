@@ -1891,7 +1891,12 @@
   {
     "label": "Decals / Weather and natural hazards",
     "keywords": "storm wind dust weather hazard collapse terrain",
-    "assets": ["/vector/decal/storm-multicolor.svg", "/vector/decal/storm.svg"]
+    "assets": [
+      "/vector/decal/storm-multicolor.svg",
+      "/vector/decal/storm-standard-multicolor.svg",
+      "/vector/decal/storm-standard.svg",
+      "/vector/decal/storm.svg"
+    ]
   },
   {
     "label": "Decals / Hands and gestures",
