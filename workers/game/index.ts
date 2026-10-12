@@ -48,6 +48,7 @@ import type { AlertEnv } from './alerts';
 import { AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
+import type { AdmissionRefusal } from './diagnostics';
 import { GameDiagnostics } from './diagnostics';
 import type { SetAsideJudgement } from './drafting';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
@@ -906,7 +907,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private async admit(socket: WebSocket, connection: Connection, ticket: string, replaces?: string) {
     if (connection.admitting || connection.viewer) {
-      this.deny(socket);
+      this.refuseAdmission(socket, 'duplicate');
       return;
     }
     connection.admitting = true;
@@ -925,12 +926,17 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.failAdmission(socket, error, false);
         return;
       }
-      if (!this.reconciled || !this.pendingConnection(socket, connection)) {
-        this.deny(socket);
+      /* An admission slower than the pending window is the one the sweep times out: the browser retries with a new ticket. */
+      if (!this.pendingConnection(socket, connection)) {
+        this.expirePending(socket);
+        return;
+      }
+      if (!this.reconciled) {
+        this.refuseAdmission(socket, 'unreconciled');
         return;
       }
       if (!this.canRegister(result.registrationId)) {
-        this.deny(socket);
+        this.refuseAdmission(socket, 'capacity');
         return;
       }
       this.registerConnection(connection, result);
@@ -964,6 +970,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.closeUnavailable(socket);
       return;
     }
+    this.refuseAdmission(socket, error instanceof GameRejection ? 'ticket' : 'unusable-answer');
+  }
+
+  private refuseAdmission(socket: WebSocket, reason: AdmissionRefusal) {
+    this.diagnostics.refused(reason);
     this.deny(socket);
   }
 
@@ -2163,10 +2174,14 @@ export class GameRoom extends DurableObject<GameEnv> {
   private expirePendingConnections() {
     for (const [socket, connection] of this.connections) {
       if (!connection.everAuthorized && Date.now() >= connection.openedAt + PLAY_PENDING_TIMEOUT_MS) {
-        this.disconnect(socket);
-        socket.close(4408, 'Admission timed out.');
+        this.expirePending(socket);
       }
     }
+  }
+
+  private expirePending(socket: WebSocket) {
+    this.disconnect(socket);
+    socket.close(4408, 'Admission timed out.');
   }
 
   private sweepActivity() {
