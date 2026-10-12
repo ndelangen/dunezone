@@ -46,9 +46,7 @@ export function nextDockFocus(state: DockFocusState, input: DockFocusInput): Doc
   if (!phaseChanged && tokens.join('\n') === state.events.join('\n')) {
     return state;
   }
-  const event = events.find((request) => !state.events.includes(request.token));
-  const fresh =
-    event ?? (phaseChanged && input.phaseTab ? { key: input.phaseTab, token: `phase:${input.phase}` } : null);
+  const fresh = freshRequest(state, events, phaseChanged ? input : null);
   if (!fresh) {
     return { ...state, phase: input.phase, events: tokens };
   }
@@ -61,4 +59,17 @@ export function nextDockFocus(state: DockFocusState, input: DockFocusInput): Doc
     arrivals,
     focus: { key: fresh.key, token: `${fresh.token}#${arrivals}` },
   };
+}
+
+/* The request that just began: a new event first, else the phase's own tab when the phase changed. */
+function freshRequest(
+  state: DockFocusState,
+  events: readonly FocusRequest[],
+  changedPhase: DockFocusInput | null
+): FocusRequest | null {
+  const event = events.find((request) => !state.events.includes(request.token));
+  if (event) {
+    return event;
+  }
+  return changedPhase?.phaseTab ? { key: changedPhase.phaseTab, token: `phase:${changedPhase.phase}` } : null;
 }
