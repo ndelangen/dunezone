@@ -376,18 +376,17 @@ export function seatLocked(table: TableProjection): boolean {
 }
 
 /**
- * Playback of a stage before play, whose frame has no Phase tab to hold the playback controls: the header steps through the checkpoints and returns to the live table, in place of the stage's Ready.
+ * Playback in the header, in every stage, so leaving the Replay tab never hides the way back to live: it steps through the checkpoints and returns to the live table.
  */
 export function StagePlayback({ client, table }: Readonly<{ client: TableSession; table: TableProjection }>) {
   const { playback, historyPending } = table;
-  const stage = table.snapshot.stage;
-  if (!playback || !stage || stage === 'play' || stage === 'finished') {
+  if (!playback || !table.snapshot.stage) {
     return null;
   }
   return (
     <Group gap="xs" wrap="nowrap" role="group" aria-label="Phase playback">
       <Text size="sm" c="dimmed" role="status">
-        Checkpoint {playback.step} of {playback.lastStep}
+        Playback checkpoint {playback.step} of {playback.lastStep}
       </Text>
       <Button
         variant="default"

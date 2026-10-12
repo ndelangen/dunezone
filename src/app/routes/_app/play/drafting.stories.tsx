@@ -230,7 +230,7 @@ export const SeatedSpectatorLandsOnDrafting = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await shows(() => page.getByRole('button', { name: 'Take a seat' }));
     /* A spectator's dock holds the Log alone, so that is where it opens. */
-    await shows(() => page.getByRole('tab', { name: 'Log' }));
+    await shows(() => page.getByRole('tab', { name: 'History' }));
     expect(page.queryByRole('tab', { name: 'Drafting' })).toBeNull();
     const seated = session.transport.view({
       ...draftingSnapshot([SIX[0]!, SIX[1]!], 6),

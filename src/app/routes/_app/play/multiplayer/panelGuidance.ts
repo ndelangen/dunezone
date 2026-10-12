@@ -52,7 +52,7 @@ export function battleHelp(table: TableProjection) {
 }
 
 export function battleGuidance(table: TableProjection): Guidance {
-  return { description: 'The battle on the table, your plan and earlier results.', help: battleHelp(table) };
+  return { description: 'The battle on the table and your private plan.', help: battleHelp(table) };
 }
 
 export const ALLIANCES_HELP =
@@ -74,7 +74,7 @@ export const SPICE_RESERVE_HELP =
   'Only you see this balance. Withdraw onto the table. Right-click a spice stack to take it into your spice reserve. Drop a stack on the Spice Bank disc to return it to the Spice Bank.';
 
 export const SPICE_GUIDANCE: Guidance = {
-  description: 'Your private spice reserve and the public spice transfers.',
+  description: 'Your private spice reserve.',
   help: SPICE_RESERVE_HELP,
 };
 
@@ -97,7 +97,7 @@ export function phaseGuidance(table: TableProjection): Guidance | undefined {
     return undefined;
   }
   const phase = phaseAt(table.snapshot.phase, table.snapshot.phases);
-  return { description: `${phase.label}, and the table's settings.`, help: phaseHelp(table) };
+  return { description: `${phase.label}, instructions and actions.`, help: phaseHelp(table) };
 }
 
 export const CONVERSATION_HELP = 'Sent means saved. No read receipts.';

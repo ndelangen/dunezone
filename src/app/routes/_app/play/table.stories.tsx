@@ -689,7 +689,7 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
-    await openTab(page, 'Phase');
+    await openTab(page, 'Replay');
     const slot = spiceBankSlot();
     const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     const scene = document.querySelector('canvas')!;

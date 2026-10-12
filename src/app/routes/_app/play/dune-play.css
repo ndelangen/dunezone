@@ -140,15 +140,6 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   pointer-events: auto;
 }
 
-/* A stage's own panel, scrolling inside the dock. */
-:where(.dune-play-shell) .seated-stage-panel {
-  width: min(78rem, 100%);
-  min-height: 0;
-  margin: 0 auto;
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-
 /* Header: no bar of its own. The table runs to the top of the screen, and the phase with the game beside it (left) and
    the phase and settings controls (right) float over it as chips. It is the shell's child beside the split, not the scene
    panel's: the split makes each panel a stacking context, so a header inside the scene's panel would paint under the dock

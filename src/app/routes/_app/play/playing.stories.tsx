@@ -79,7 +79,7 @@ export const LogGame = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('tab', { name: 'Log' }));
+    await openTab(page, 'Game log');
     const log = await page.findByRole('region', { name: 'Game log' });
     await expect(within(log).findByText('Bene Gesserit locked its prediction.')).resolves.toBeVisible();
     expect(
@@ -104,7 +104,7 @@ export const LogAudit = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('tab', { name: 'Log' }));
+    await openTab(page, 'Game log');
     await userEvent.click(await page.findByRole('tab', { name: 'Audit' }));
     const log = await page.findByRole('region', { name: 'Audit log' });
     await expect(within(log).findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
@@ -117,7 +117,7 @@ export const LogPagination = meta.story({
   beforeEach: install(() => productTransport('seat-6', revealedPredictionSnapshot(), { holdLogHistory: true })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('tab', { name: 'Log' }));
+    await openTab(page, 'Game log');
     await waitFor(() => expect(gameLogReads(session.transport.messages).length).toBeGreaterThan(0));
     const latest = GAME_LOG[0]!;
     const older: LogEntry = {
@@ -211,7 +211,7 @@ export const RemovalResolution = meta.story({
     await waitFor(() => expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull());
     expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull();
     expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
-    await userEvent.click(page.getByRole('tab', { name: 'Log' }));
+    await openTab(page, 'Game log');
     await userEvent.click(await page.findByRole('tab', { name: 'Audit' }));
     await expect(page.findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
   },
@@ -486,7 +486,7 @@ export const SharedPhaseControls = meta.story({
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase, expectPrevious, pressPrevious } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Game' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => {
       expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
@@ -508,7 +508,7 @@ export const SharedPhaseControls = meta.story({
     await waitForPhase(() => {
       expect(page.getByRole('region', { name: TABLE_PHASES[1].label })).toBeVisible();
       expect(page.queryByRole('region', { name: 'Storm sector' })).toBeNull();
-      expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
+      expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();
       expectHeaderPhase(canvasElement, 1);
     });
     await expectPrevious(true);
@@ -524,7 +524,7 @@ export const SharedPhaseControls = meta.story({
       session.transport.view({ ...initialSnapshot(), phase: TABLE_PHASES.length - 1, revision: 3 }, previous?.commandId)
     );
     await waitForPhase(() => {
-      expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
+      expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();
       expect(page.getByRole('region', { name: TABLE_PHASES[TABLE_PHASES.length - 1].label })).toBeVisible();
       expectHeaderPhase(canvasElement, TABLE_PHASES.length - 1);
     });
@@ -535,7 +535,7 @@ export const ObserverPhaseControls = meta.story({
   beforeEach: install(() => productTransport('neutral', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase, expectPrevious } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Game' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => {
       expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
@@ -552,8 +552,8 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
   beforeEach: install(() => productTransport('seat-2', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase, expectPrevious } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
-    await openTab(page, 'Phase');
+    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Game' })).toBeVisible());
+    await openTab(page, 'Replay');
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
     expect(session.transport.messages).toContainEqual({ type: 'history', step: 0 });
@@ -561,6 +561,7 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
     await waitForPhase(() => expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled());
     await expectPrevious(false);
 
+    await openTab(page, 'Phase');
     session.transport.deliver(session.transport.view({ ...initialSnapshot(), phase: 6, revision: 1 }));
     expect(page.getByRole('region', { name: TABLE_PHASES[0].label })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
@@ -661,13 +662,13 @@ export const FactionPhase = meta.story({
   beforeEach: install(() => productTransport('seat-2', factionPhaseSnapshot(false))),
   play: async ({ canvasElement }) => {
     const { page, waitForPhase } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Game' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('region', { name: 'Guild negotiations' })).toBeInTheDocument());
     const phaseTab = page.getByRole('tab', { name: 'Phase' });
     /* The tab names the phase in its description; the short tooltip's timing is the kit's TabGuidance story, since a slow frame here can outlast it. Resting on the tab brings the phase's instructions. */
     await expect(phaseTab).toHaveAccessibleDescription(
-      expect.stringContaining("Guild negotiations, and the table's settings.")
+      expect.stringContaining('Guild negotiations, instructions and actions.')
     );
     await userEvent.hover(phaseTab);
     await waitForFrame(() =>
@@ -807,19 +808,21 @@ export const SharedInventoryNarrow = meta.story({
     await userEvent.unhover(page.getByRole('tab', { name: 'Shared inventory' }));
     await openTab(page, 'Phase');
     await userEvent.hover(page.getByRole('tab', { name: 'Phase' }));
-    await waitForFrame(() =>
-      expect(
-        finishTransitions(within(page.getByRole('tooltip')).getByText(/^Move the storm using the storm controls/))
-      ).toBeVisible()
+    await waitForFrame(
+      () =>
+        expect(
+          finishTransitions(within(page.getByRole('tooltip')).getByText(/^Move the storm using the storm controls/))
+        ).toBeVisible(),
+      { timeout: 30_000 }
     );
     await userEvent.unhover(page.getByRole('tab', { name: 'Phase' }));
   },
 });
 
 /**
- * The accepted frame (#1147): one rail of tabs beside the content it opens, in the accepted order, the host's tabs ahead of the fixture's own.
- * Switching a tab swaps the content and moves the contour;
- * the rail stays where it is.
+ * The grouped controls keep Yours first and remember each group's last destination.
+ * Private reserves and public history occupy separate panes;
+ * the primary rail stays in place.
  */
 export const ControlsPanelTabs = meta.story({
   beforeEach: install(() =>
@@ -837,7 +840,7 @@ export const ControlsPanelTabs = meta.story({
         within(rail())
           .getAllByRole('tab')
           .map((item) => item.getAttribute('aria-label'))
-      ).toEqual(['Hand', 'Hidden zone', 'Shared inventory', 'Alliances', 'Spice', 'Log', 'Phase']);
+      ).toEqual(['Yours', 'Game', 'Table', 'History']);
       expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAttribute('aria-selected', 'true');
       expect(page.getByRole('region', { name: 'Shared inventory' })).toBeVisible();
       expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
@@ -848,19 +851,58 @@ export const ControlsPanelTabs = meta.story({
     await openTab(page, 'Spice');
     await settled(() => {
       expect(page.getByRole('region', { name: 'Spice reserve' })).toBeVisible();
-      expect(page.getByRole('region', { name: 'Public spice transfers' })).toBeVisible();
+      expect(page.queryByRole('region', { name: 'Public spice transfers' })).toBeNull();
       expect(page.queryByRole('heading', { name: 'Shared inventory' })).toBeNull();
     });
 
     await openTab(page, 'Phase');
     await settled(() => {
-      expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
+      expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();
       expect(page.queryByRole('region', { name: 'Hosted connection' })).toBeNull();
       expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
       expect(rail().getBoundingClientRect().toJSON()).toEqual(railBox);
     });
+    await userEvent.click(within(rail()).getByRole('tab', { name: 'Yours' }));
+    expect(page.getByRole('tab', { name: 'Spice' })).toHaveAttribute('aria-selected', 'true');
+    await openTab(page, 'Spice transfers');
+    expect(page.getByRole('region', { name: 'Public spice transfers' })).toBeVisible();
+    expect(page.queryByRole('region', { name: 'Spice reserve' })).toBeNull();
+    await openTab(page, 'Settings');
+    expect(page.getByRole('textbox', { name: 'Last turn' })).toBeVisible();
+    await openTab(page, 'Replay');
+    expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
+    await openTab(page, 'Hand');
     /* The phase controls stay in the header, outside the tabs. */
     expect(page.getByRole('group', { name: 'Phase navigation' }).closest('header')).not.toBeNull();
+  },
+});
+
+/** Rejections stay visible in the destinations that sent the setting or history request. */
+export const SettingsAndReplayRefusals = meta.story({
+  beforeEach: install(() => productTransport('seat-2')),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Settings');
+    const turn = page.getByRole('textbox', { name: 'Last turn' });
+    await userEvent.clear(turn);
+    await userEvent.type(turn, '6');
+    await userEvent.tab();
+    expect(lastCommand()?.action).toEqual({ kind: 'last-turn', turn: 6 });
+    session.transport.deliver({
+      type: 'rejected',
+      requestId: lastCommand()!.commandId,
+      message: 'The game length could not be changed.',
+    });
+    await expect(page.findByText('The game length could not be changed.')).resolves.toBeVisible();
+    await openTab(page, 'Replay');
+    await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
+    session.transport.deliver({
+      type: 'rejected',
+      requestId: 'message',
+      message: 'That checkpoint could not be loaded.',
+    });
+    await expect(page.findByText('That checkpoint could not be loaded.')).resolves.toBeVisible();
+    expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled();
   },
 });
 
@@ -882,7 +924,7 @@ export const SpiceTransfers = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Spice');
+    await openTab(page, 'Spice transfers');
     const faction = initialSnapshot().roster!.seats[1]!.faction!;
     await settled(() => {
       expect(

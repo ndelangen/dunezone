@@ -103,14 +103,15 @@ export const DeclaringKeepsChoiceAcrossTabs = meta.story({
   },
 });
 
-/* The nearest ancestor a finger can scroll, as overflow hidden is not. */
-function touchScroller(element: Element) {
+/* The ancestors a finger can scroll, nearest first, as overflow hidden is not. */
+function touchScrollers(element: Element) {
+  const scrollers: HTMLElement[] = [];
   for (let node = element.parentElement; node; node = node.parentElement) {
     if (/^(auto|scroll)$/.test(getComputedStyle(node).overflowY) && node.scrollHeight > node.clientHeight) {
-      return node;
+      scrollers.push(node);
     }
   }
-  return null;
+  return scrollers;
 }
 
 /* On a phone the Result tab outgrows the dock's floor; it scrolls inside the dock, so Declare is in reach. */
@@ -130,10 +131,13 @@ export const DeclaringOnAPhone = meta.story({
     await waitFor(() => {
       const box = declare.getBoundingClientRect();
       if (box.bottom > view.innerHeight) {
-        const scroller = touchScroller(declare);
-        expect(scroller, 'Declare sits below the window with nothing to scroll it into view').not.toBeNull();
-        /* The Result tab sits above the players' pane in the phone's stacked dock, so the dock scrolls to Declare, not to its end. */
-        scroller!.scrollTop += box.bottom - scroller!.getBoundingClientRect().bottom;
+        const scrollers = touchScrollers(declare);
+        expect(scrollers, 'Declare sits below the window with nothing to scroll it into view').not.toHaveLength(0);
+        /* The Result tab sits above the players' pane in the phone's stacked dock, so each pane scrolls to Declare, not to its end, the panel first and then the dock around it. */
+        for (const scroller of scrollers) {
+          const bottom = Math.min(scroller.getBoundingClientRect().bottom, view.innerHeight);
+          scroller.scrollTop += Math.max(0, declare.getBoundingClientRect().bottom - bottom);
+        }
       }
       const shown = declare.getBoundingClientRect();
       expect(shown.bottom).toBeLessThanOrEqual(view.innerHeight);
@@ -199,11 +203,14 @@ export const Finished = meta.story({
     await expect(
       page.findByText(new RegExp(`Declared by ${SIX[0]!.name}`), {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
+    /* History keeps the finished game's record. */
+    await openTab(page, 'Battles');
+    expect(page.getByText('No agreed battle results yet.')).toBeVisible();
     /* Continue playing sits where Next phase did. */
     await userEvent.click(within(header).getByRole('button', { name: 'Continue playing' }));
     expect(lastCommand()?.action).toEqual({ kind: 'result-continue' });
     /* A finished table keeps its panels, so its players can still replay how the game went. */
-    await openTab(page, 'Phase');
+    await openTab(page, 'Replay');
     expect(await page.findByRole('button', { name: 'Replay from start' })).toBeVisible();
     expect(page.queryByRole('button', { name: 'Determine winner' })).toBeNull();
   },

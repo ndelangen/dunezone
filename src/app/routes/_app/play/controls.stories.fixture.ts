@@ -27,16 +27,39 @@ async function choose(
   await userEvent.unhover(selected);
 }
 
-/** Opens a tab of the controls panel and, for a tab with its own tabs (the Log), one of those. */
+/** Opens a destination through its group, then waits for the leaf to be selected. */
+export async function openControl(page: Page, tab: string, subtab?: string) {
+  const groups: Record<string, string> = {
+    Hand: 'Yours',
+    'Hidden zone': 'Yours',
+    Spice: 'Yours',
+    Drafting: 'Game',
+    Setup: 'Game',
+    Phase: 'Game',
+    Battle: 'Game',
+    Alliances: 'Game',
+    Result: 'Game',
+    'Shared inventory': 'Table',
+    Settings: 'Table',
+    'Game log': 'History',
+    Audit: 'History',
+    Battles: 'History',
+    'Spice transfers': 'History',
+    Replay: 'History',
+  };
+  const group = subtab ? tab : groups[tab];
+  const leaf = subtab ?? tab;
+  if (group) {
+    const controls = within(await page.findByRole('tablist', { name: 'Controls' }, { timeout: 30_000 }));
+    await choose(controls, whole(group), () => expect(page.getByRole('tab', { name: whole(leaf) })).toBeVisible());
+  }
+  await choose(page, whole(leaf));
+}
+
+/** Opens a controls destination from a story's canvas. */
 export async function openPanel(canvasElement: HTMLElement, tab: string, subtab?: string) {
   const page = within(canvasElement.ownerDocument.body);
-  if (subtab) {
-    /* A tab with its own tabs marks the inner tab as current, not itself; the inner tab showing proves the click. */
-    await choose(page, whole(tab), () => expect(page.getByRole('tab', { name: whole(subtab) })).toBeVisible());
-    await choose(page, whole(subtab));
-  } else {
-    await choose(page, whole(tab));
-  }
+  await openControl(page, tab, subtab);
   return page;
 }
 
@@ -52,7 +75,10 @@ export async function openPlayer(canvasElement: HTMLElement, player: string, tab
   page.getByRole('separator', { name: 'Resize controls panel' }).focus();
   await userEvent.keyboard('{End}');
   /* A player opens on one of their own tabs, so the player's tab showing proves the click. */
-  await choose(page, whole(player, '(,|$)'), () => expect(page.getByRole('tab', { name: whole(tab) })).toBeVisible());
-  await choose(page, whole(tab));
+  const players = within(page.getByRole('complementary', { name: 'Players' }));
+  await choose(players, whole(player, '(,|$)'), () =>
+    expect(players.getByRole('tab', { name: whole(tab) })).toBeVisible()
+  );
+  await choose(players, whole(tab));
   return page;
 }

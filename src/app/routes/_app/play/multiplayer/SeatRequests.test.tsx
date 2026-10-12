@@ -57,7 +57,7 @@ function renderPlayback(stage: 'drafting' | 'play' | 'finished', step: number) {
 
 test('playback of a stage before play steps through checkpoints from the header and returns to live', () => {
   const client = renderPlayback('drafting', 0);
-  expect(screen.getByText('Checkpoint 0 of 3')).toBeTruthy();
+  expect(screen.getByText('Playback checkpoint 0 of 3')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Earlier phase' }).hasAttribute('disabled')).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Later phase' }));
   expect(client.requestHistory).toHaveBeenCalledWith(1);
@@ -65,10 +65,14 @@ test('playback of a stage before play steps through checkpoints from the header 
   expect(client.resumeLive).toHaveBeenCalled();
 });
 
-test('playback of a finished game leaves its controls to the Phase tab, as in play', () => {
-  renderPlayback('finished', 3);
-  expect(screen.queryByText('Checkpoint 3 of 3')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Return to live' })).toBeNull();
+test('playback of a finished game keeps stepping and returning to live in the header', () => {
+  const client = renderPlayback('finished', 3);
+  expect(screen.getByText('Playback checkpoint 3 of 3')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Later phase' }).hasAttribute('disabled')).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Earlier phase' }));
+  expect(client.requestHistory).toHaveBeenCalledWith(2);
+  fireEvent.click(screen.getByRole('button', { name: 'Return to live' }));
+  expect(client.resumeLive).toHaveBeenCalled();
 });
 
 function vacantTable(seatRequests: { id: string; requesterName: string; seat: string }[]) {
@@ -168,9 +172,11 @@ test('a spectator press that began on one open seat never requests the seat left
   expect(client.command).toHaveBeenCalledExactlyOnceWith({ kind: 'seat-request', seat: 'seat-4' });
 });
 
-test('playback in play leaves the controls to the Phase tab', () => {
-  renderPlayback('play', 2);
-  expect(screen.queryByText(/Checkpoint/)).toBeNull();
+test('playback in play keeps returning to live in the header, outside the tabs', () => {
+  const client = renderPlayback('play', 2);
+  expect(screen.getByText('Playback checkpoint 2 of 3')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Return to live' }));
+  expect(client.resumeLive).toHaveBeenCalled();
 });
 
 test('a spectator whose requested seat was taken since is told so and can still withdraw', () => {
