@@ -2001,6 +2001,16 @@ describe('a held rotation', () => {
     expect(socket().sent).toHaveLength(sent);
   });
 
+  test('a turn held on a piece another player locks meanwhile stops showing and is never sent', async () => {
+    const client = await connected();
+    client.rotateSelected(1, deck().id);
+    const sent = socket().sent.length;
+    socket().deliver(view({ snapshot: withDeck((piece) => ({ ...piece, locked: true })), sequence: 2 }));
+    expect(renderedPiece(client, deck().id)?.orientation).toBeCloseTo(deck().orientation);
+    client.finishRotation();
+    expect(socket().sent).toHaveLength(sent);
+  });
+
   test('a turn let go of during a resync goes out with the fresh view', async () => {
     const client = await connected();
     client.rotateSelected(1, deck().id);

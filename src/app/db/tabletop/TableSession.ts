@@ -819,8 +819,8 @@ export class TableSession {
   }
   /* A piece this page is turning shows the turn before the room has it; one the turn no longer fits shows as the room has it. */
   private withTurns(state: TableState, piece: TablePiece) {
-    /* A look back in time shows the table as it was, without the turns this page has on the live one. */
-    const turns = this.history ? 0 : this.turnsOf(piece.id);
+    /* A look back in time shows the table as it was, and a piece locked meanwhile as the room has it. */
+    const turns = this.history || gestureBlockReason(piece) ? 0 : this.turnsOf(piece.id);
     return turns ? (rotatedPiece(state, piece, turns) ?? piece) : piece;
   }
   private emit() {
@@ -1641,7 +1641,9 @@ export class TableSession {
       this.turning = { ...turning, released: true };
       return;
     }
-    const turns = foldedTurns(turning.turns);
+    /* A piece locked or taken away while the key was held keeps the turn to itself, since the room would refuse it. */
+    const piece = this.requireTable().state.pieces.find((candidate) => candidate.id === turning.pieceId);
+    const turns = piece && !gestureBlockReason(piece) ? foldedTurns(turning.turns) : 0;
     const steps = Math.abs(turns);
     /* The turn stays shown until the command is out, so the piece never springs back in between. */
     const commandId = turns
