@@ -24,10 +24,8 @@ export function CustomCard({
   iconOpacity = 1,
   layers,
   tokens = {},
-  iconTreatment,
 }: z.infer<typeof CustomCardSchema> & {
   tokens?: z.infer<typeof CustomCardTokens>;
-  iconTreatment?: 'shaded' | 'printed';
 }) {
   const prefix = useCountId();
   const shiftedWindow = format === 'decal-window' && windowOffsetY !== 0;
@@ -92,7 +90,6 @@ export function CustomCard({
         iconScale={iconScale}
         iconInvert={iconInvert}
         iconOpacity={iconOpacity}
-        iconTreatment={iconTreatment}
       />
     </div>
   );
