@@ -7,7 +7,7 @@ function isActivationKey(event: KeyboardEvent<HTMLElement>): boolean {
 }
 
 /** How long a destructive trigger is held before it fires. One number for the whole application, so every hold means the same thing. */
-const HOLD_SECONDS = 5;
+export const HOLD_SECONDS = 5;
 
 /**
  * The hold behind every destructive trigger: five seconds of sustained press, then the action fires once.

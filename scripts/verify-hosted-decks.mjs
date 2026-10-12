@@ -32,6 +32,8 @@ export async function verifyDecks({
   await menu.getByRole('menuitem', { name: 'Draw a card', exact: true }).click();
   await until(() => hands(a).length === 1 && deck(a).items.length === size - 1, 'Draw did not move exactly one card.');
   assert.equal(await menu.isVisible(), true);
+  /* Deal is a spoke of the ring that steps into a ring of factions. */
+  await menu.getByRole('menuitem', { name: 'Deal a card', exact: true }).click();
   await menu.getByRole('menuitem', { name: `Deal 1 to ${factionOf(b).name}`, exact: true }).click();
   await until(() => hands(b).length === 1 && deck(b).items.length === size - 2, 'Deal did not reach the recipient.');
   /* The observer's empty hand counts only once its view holds the deal (#1481). */
@@ -41,7 +43,10 @@ export async function verifyDecks({
   assert.equal(await menu.isVisible(), true);
   passed('One-card draw and direct deal keep the same menu open and give each recipient a private hand');
   await capture(a, 'deck-menu-after-draw-and-deal');
+  /* Escape steps back out of the faction ring first, then closes the menu. */
   await a.page.keyboard.press('Escape');
+  await a.page.keyboard.press('Escape');
+  await menu.waitFor({ state: 'hidden' });
   await a.page.mouse.move(hit.x, hit.y);
   await a.page.keyboard.press('r');
   await until(() => !!deck(a).shuffleRevision, 'Hover plus R did not commit a shuffle.');

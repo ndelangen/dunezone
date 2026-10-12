@@ -1,0 +1,246 @@
+/* The ring is positioned by its centre: every child is placed from that point. */
+.ring {
+  --radial-item: 3.1rem;
+  --radial-ink: #f2e6cf;
+  --radial-sand: #f3a93c;
+  --radial-leather: rgba(24, 16, 10, 0.95);
+  --radial-edge: rgba(243, 169, 60, 0.5);
+  --radial-danger: #e0574a;
+  /* The halo, hold and target sizes are rewritten inline by RadialMenu; these are their starting values. */
+  --halo-size: 13rem;
+  --hold-progress: 0;
+  --target-size: 2.6rem;
+
+  position: fixed;
+  z-index: 400;
+  /* One pixel rather than none, so the menu itself has a box and counts as visible to browser automation. */
+  width: 1px;
+  height: 1px;
+  color: var(--radial-ink);
+  font-family: var(--font-sans, Inter, system-ui, sans-serif);
+  outline: none;
+  animation: radial-open 140ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+@keyframes radial-open {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation: none;
+  }
+}
+
+/* A soft dark band under the items, so the ring reads over a bright board. */
+.halo {
+  position: absolute;
+  width: var(--halo-size);
+  height: var(--halo-size);
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    transparent 46%,
+    rgba(10, 6, 4, 0.55) 48%,
+    rgba(10, 6, 4, 0.55) 98%,
+    transparent 100%
+  );
+  translate: -50% -50%;
+  pointer-events: none;
+  transition:
+    width 180ms,
+    height 180ms;
+}
+
+.pivot {
+  position: absolute;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--radial-sand);
+  box-shadow: 0 0 0 3px rgba(10, 6, 4, 0.6);
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.item {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: var(--radial-item);
+  height: var(--radial-item);
+  padding: 0;
+  border: 1px solid var(--radial-edge);
+  border-radius: 50%;
+  color: var(--radial-ink);
+  background: var(--radial-leather);
+  box-shadow: 0 0.5rem 1.2rem rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  translate: -50% -50%;
+  transition:
+    background 90ms,
+    color 90ms,
+    scale 90ms;
+}
+
+.item:hover:not(:disabled),
+.item:focus-visible {
+  color: #1b1206;
+  background: var(--radial-sand);
+  outline: none;
+  scale: 1.1;
+}
+
+.item:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.danger {
+  border-color: rgba(224, 87, 74, 0.55);
+  color: #ffb4a8;
+}
+
+.danger:hover:not(:disabled),
+.danger:focus-visible,
+.danger[data-holding] {
+  color: #ffe1dc;
+  background: #7a2a22;
+}
+
+.glyph {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The hold's five seconds drawn around the delete item. */
+.holdRing {
+  position: absolute;
+  inset: -0.3rem;
+  width: calc(100% + 0.6rem);
+  height: calc(100% + 0.6rem);
+  rotate: -90deg;
+  pointer-events: none;
+}
+
+.holdRing circle {
+  fill: none;
+  stroke: var(--radial-danger);
+  stroke-width: 3;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--hold-progress));
+  transition: stroke-dashoffset 1s linear;
+}
+
+/* A stepped-into choice: the faction's own token on a disc. */
+.target {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: var(--target-size);
+  height: var(--target-size);
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid rgba(255, 242, 216, 0.25);
+  border-radius: 50%;
+  color: var(--radial-ink);
+  background: var(--radial-leather);
+  box-shadow: 0 0.4rem 0.9rem rgba(0, 0, 0, 0.5);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  translate: -50% -50%;
+  transition:
+    scale 90ms,
+    border-color 90ms;
+  animation: radial-target 180ms ease-out both;
+}
+
+.target > * {
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes radial-target {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+
+.target:hover:not(:disabled),
+.target:focus-visible {
+  z-index: 2;
+  border-color: var(--radial-sand);
+  outline: none;
+  scale: 1.18;
+}
+
+.target:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.back .glyph {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .target {
+    animation: none;
+  }
+}
+
+/* What the pointer is on, to the right of the ring, with its shortcut. */
+.caption {
+  position: absolute;
+  top: 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--radial-edge);
+  border-radius: 0.5rem;
+  background: var(--radial-leather);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.5);
+  font-size: 0.82rem;
+  /* A long label wraps inside the room the ring keeps for it, rather than run off a narrow window. */
+  width: max-content;
+  max-width: min(15rem, 40vw);
+  translate: 0 -50%;
+  pointer-events: none;
+}
+
+.caption[data-tone="danger"] {
+  border-color: rgba(224, 87, 74, 0.6);
+  color: #ffc9c0;
+}
+
+.key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.35rem;
+  border: 1px solid rgba(255, 242, 216, 0.3);
+  border-bottom-width: 2px;
+  border-radius: 0.3rem;
+  background: #2a2018;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.72rem;
+}
+
+/* The first ring stays mounted while a choice ring is open, so its hold and focus state survive stepping back. */
+.item[hidden] {
+  display: none;
+}
