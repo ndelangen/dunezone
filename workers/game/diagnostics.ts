@@ -27,6 +27,9 @@ type Operation =
 
 const REPEAT_INTERVAL_MS = 60_000;
 
+/** Why the Worker refused an admission; the browser shows every refusal as a login that lost access. */
+export type AdmissionRefusal = 'duplicate' | 'ticket' | 'unreconciled' | 'capacity' | 'unusable-answer';
+
 function errorKind(error: unknown) {
   if (error instanceof TypeError) {
     return 'TypeError';
@@ -143,6 +146,11 @@ export class GameDiagnostics {
       suppressed: previous?.suppressed ?? 0,
       since: previous?.emittedAt ?? now,
     });
+  }
+
+  /** A refusal is not a failure, but it ends the player's session, so its reason is kept. */
+  refused(reason: AdmissionRefusal) {
+    console.info({ event: 'game-admission-refused', reason, ...this.identity(Date.now()) });
   }
 
   recovered(operation: Operation) {

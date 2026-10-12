@@ -137,3 +137,15 @@ test('only the fixed storage-reset reference and boolean runtime flags survive',
   new GameDiagnostics('room', 'sha').report('refresh', error);
   expect(log.mock.lastCall?.[0]).not.toHaveProperty('storageReference');
 });
+
+test('an admission refusal logs its reason with the room identity and nothing from the ticket', () => {
+  const log = vi.spyOn(console, 'info').mockImplementation(() => {});
+  new GameDiagnostics('room-a', 'revision').refused('unreconciled');
+  expect(log).toHaveBeenCalledWith({
+    event: 'game-admission-refused',
+    reason: 'unreconciled',
+    roomId: 'room-a',
+    gitSha: 'revision',
+    uptimeMs: expect.any(Number),
+  });
+});
