@@ -19,21 +19,21 @@ const fixture: RuntimeFixture | undefined = process.env.APPLICATION_RUNTIME_FIXT
   ? JSON.parse(readFileSync(process.env.APPLICATION_RUNTIME_FIXTURE, 'utf8'))
   : undefined;
 
-function assertPublicMetadataQueries(count: number, pathname: string, html: string, historicalFallback: boolean) {
-  if (pathname === '/') {
-    assert.equal(count, 0, pathname);
-    return;
-  }
+function isEmptyArtifactStoreReader(pathname: string, html: string) {
   /* The deployed-backend rehearsal has empty local R2, so ready HTML needs a second query for renderer fallback. */
-  const emptyArtifactStoreReader =
+  return (
     !fixture &&
     /^\/rulesets\/[^/?]+\/rulebooks\/[^/?]+(?:\?edition=\d+)?$/.test(pathname) &&
-    html.includes('data-rulebook-reader-document');
-  if (emptyArtifactStoreReader) {
+    html.includes('data-rulebook-reader-document')
+  );
+}
+
+function assertPublicMetadataQueries(count: number, pathname: string, html: string, historicalFallback: boolean) {
+  if (isEmptyArtifactStoreReader(pathname, html)) {
     assert.ok([1, 2].includes(count), `${pathname} has unexpected renderer query count ${count}`);
     return;
   }
-  assert.equal(count, historicalFallback ? 2 : 1, pathname);
+  assert.equal(count, pathname === '/' ? 0 : historicalFallback ? 2 : 1, pathname);
 }
 
 if (fixture) {
