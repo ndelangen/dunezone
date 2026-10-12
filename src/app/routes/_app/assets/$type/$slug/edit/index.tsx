@@ -10,6 +10,7 @@ import { BoardEditPage } from './boardEdit';
 import { BundleEditPage } from './bundleEdit';
 import { DeckEditPage } from './deckEdit';
 import { LayeredEditPage } from './layeredEdit';
+import { NexusEditPage } from './nexusEdit';
 import { RectangleEditPage } from './rectangleEdit';
 import { SpiceEditPage } from './spiceEdit';
 import { StrongholdEditPage } from './strongholdEdit';
@@ -40,6 +41,8 @@ function EditAssetPage() {
       return <BoardEditPage slug={slug} loaderData={loaderData} />;
     case 'card-treachery':
       return <TreacheryEditPage slug={slug} loaderData={loaderData} />;
+    case 'card-nexus':
+      return <NexusEditPage slug={slug} loaderData={loaderData} />;
     case 'card-custom':
       return <LayeredEditPage config={customCardEditing} slug={slug} loaderData={loaderData} />;
     case 'card-storm':

@@ -9,6 +9,13 @@ export type BackgroundData = z.infer<typeof Background>;
  * Components may compose them directly through BackgroundRenderer.
  */
 export const backgroundPresets = {
+  nexus: {
+    image: '/image/texture/082.jpg',
+    colors: ['#264C43', '#15352E'],
+    influence: 0.5,
+    invert: false,
+    definition: 1,
+  },
   atreides: {
     image: '/image/texture/015.jpg',
     colors: ['#4B4C0D', '#262B04'],

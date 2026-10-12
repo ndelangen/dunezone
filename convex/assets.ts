@@ -10,6 +10,7 @@ import {
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
+import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
 import { StormCardAssetInput, DeckAssetInput } from '../src/shared/assets/schema';
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
@@ -514,34 +515,39 @@ async function withValidatedBack(
   return data;
 }
 
+/* The public writer and the GF9 import share validation, slug allocation and publication. */
+async function createOwnedAsset(ctx: MutationCtx, userId: Id<'users'>, type: string, data: unknown) {
+  assertKnownAssetType(type);
+  const parsed = parseAssetDataForWrite(type, data);
+  parsed.data = await withValidatedBack(ctx, { type }, parsed.data as Record<string, unknown>);
+  if (type === 'card-custom' || type === 'card-storm') {
+    await validateCustomCardTokens(ctx, parsed.data);
+  }
+  const slug = await allocateAssetSlug(ctx, type, slugify(parsed.name));
+  const now = nowIso();
+  const id = await ctx.db.insert('assets', {
+    owner_id: userId,
+    type,
+    data: parsed.data,
+    slug,
+    created_at: now,
+    updated_at: now,
+    is_deleted: false,
+    group_id: null,
+  });
+  if (type === 'card-custom' || type === 'card-storm') {
+    await syncCustomCardTokenRelations(ctx, id, parsed.data);
+  }
+  await enqueueAssetPublication(ctx, { _id: id, type, slug, data: parsed.data });
+  return { id, slug };
+}
+
 export const create = mutation({
   args: { type: v.string(), data: v.any() },
   returns: v.object({ id: v.id('assets'), slug: v.string() }),
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
-    assertKnownAssetType(args.type);
-    const parsed = parseAssetDataForWrite(args.type, args.data);
-    parsed.data = await withValidatedBack(ctx, { type: args.type }, parsed.data as Record<string, unknown>);
-    if (args.type === 'card-custom' || args.type === 'card-storm') {
-      await validateCustomCardTokens(ctx, parsed.data);
-    }
-    const slug = await allocateAssetSlug(ctx, args.type, slugify(parsed.name));
-    const now = nowIso();
-    const id = await ctx.db.insert('assets', {
-      owner_id: userId,
-      type: args.type,
-      data: parsed.data,
-      slug,
-      created_at: now,
-      updated_at: now,
-      is_deleted: false,
-      group_id: null,
-    });
-    if (args.type === 'card-custom' || args.type === 'card-storm') {
-      await syncCustomCardTokenRelations(ctx, id, parsed.data);
-    }
-    await enqueueAssetPublication(ctx, { _id: id, type: args.type, slug, data: parsed.data });
-    return { id, slug };
+    return await createOwnedAsset(ctx, userId, args.type, args.data);
   },
 });
 
@@ -998,6 +1004,58 @@ export const customCardTokens = query({
   args: { ids: v.array(v.id('assets')) },
   returns: zodToConvex(CustomCardTokenResolution),
   handler: async (ctx, args) => await resolveCustomCardTokens(ctx, args.ids),
+});
+
+async function ensureImportedAsset(ctx: MutationCtx, ownerId: Id<'users'>, type: string, data: { name: string }) {
+  const slug = slugify(data.name);
+  const existing = await assetSlugHolder(ctx, type, slug);
+  if (!existing) {
+    return await createOwnedAsset(ctx, ownerId, type, data);
+  }
+  if (existing.owner_id !== ownerId || existing.is_deleted || nameOf(existing) !== data.name) {
+    throw new Error(`The ${type}/${slug} address is already reserved`);
+  }
+  return { id: existing._id, slug: existing.slug };
+}
+
+async function ensureImportedDeckCard(ctx: MutationCtx, deckId: Id<'assets'>, cardId: Id<'assets'>) {
+  const member = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_to_kind', (q) => q.eq('from_asset_id', deckId).eq('to_asset_id', cardId).eq('kind', DECK_CARD))
+    .unique();
+  if (member) {
+    return;
+  }
+  await ctx.db.insert('asset_relations', {
+    from_asset_id: deckId,
+    to_asset_id: cardId,
+    kind: DECK_CARD,
+    count: 1,
+  });
+}
+
+/* An operator imports the printed deck once for an explicitly selected active owner.
+ * A repeat keeps authored content and existing counts intact.
+ * Name collisions stop the transaction rather than adopting someone else's asset.
+ */
+export const seedGf9NexusDeck = internalMutation({
+  args: { ownerId: v.id('users') },
+  returns: v.object({ deckId: v.id('assets'), slug: v.string(), cardIds: v.array(v.id('assets')) }),
+  handler: async (ctx, { ownerId }) => {
+    const owner = await ctx.db.get(ownerId);
+    if (!owner || (owner.account_state ?? 'active') !== 'active') {
+      throw new Error('The Nexus deck needs an active owner');
+    }
+    const deck = await ensureImportedAsset(ctx, ownerId, 'deck', GF9_NEXUS_DECK);
+    const cardIds = await Promise.all(
+      GF9_NEXUS_CARDS.map(async (card) => {
+        const created = await ensureImportedAsset(ctx, ownerId, 'card-nexus', card);
+        await ensureImportedDeckCard(ctx, deck.id, created.id);
+        return created.id;
+      })
+    );
+    return { deckId: deck.id, slug: deck.slug, cardIds };
+  },
 });
 
 async function preservedStandardStormDeck(ctx: MutationCtx, existing: Doc<'assets'>, ownerId: Id<'users'>) {
