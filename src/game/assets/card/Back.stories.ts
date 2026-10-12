@@ -1,7 +1,8 @@
 import preview from '@sb/preview';
 import { GF9_LEADER_SKILL_DECK_BACK } from '@shared/assets/gf9LeaderSkills';
 import { GF9_STRONGHOLD_DECK } from '@shared/assets/gf9StrongholdDeck';
-import { expect } from 'storybook/test';
+import { STANDARD_STORM_CARDBACK } from '@shared/assets/standardStormDeck';
+import { expect, waitFor } from 'storybook/test';
 
 import { backgroundPresets } from '../../data/backgrounds';
 import { CardBack } from './Back';
@@ -56,6 +57,46 @@ export const OversizedSymbol = meta.story({
 });
 
 export const LeaderSkillDeck = meta.story({ args: GF9_LEADER_SKILL_DECK_BACK });
+async function verifyLabelPaint({ canvasElement }: { canvasElement: HTMLElement }) {
+  await document.fonts.load('90px C_Busorama', 'STORM');
+  const label = canvasElement.querySelector<SVGTextElement>('text')!.ownerSVGElement!;
+  const glyphs = Array.from(label.querySelectorAll<SVGTextElement>('text'));
+  const paints = Array.from(label.querySelectorAll<SVGRectElement>('rect[mask]'));
+  await waitFor(() => {
+    for (const glyph of glyphs) {
+      expect(glyph.getComputedTextLength()).toBeLessThanOrEqual(680);
+      expect(Number.parseFloat(getComputedStyle(glyph).fontSize)).toBeLessThanOrEqual(90);
+    }
+  });
+  /* Glyph cells include blank font space, so the canvas metrics locate their painted ink. */
+  const context = document.createElement('canvas').getContext('2d')!;
+  for (const glyph of glyphs) {
+    const font = getComputedStyle(glyph);
+    context.font = `${font.fontStyle} ${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
+    const ink = context.measureText(glyph.textContent!.toUpperCase());
+    const baseline = glyph.getExtentOfChar(0).y + ink.fontBoundingBoxAscent;
+    for (const paint of paints) {
+      const painted = paint.getBBox();
+      await expect(painted.y).toBeLessThanOrEqual(baseline - ink.actualBoundingBoxAscent);
+      await expect(painted.y + painted.height).toBeGreaterThanOrEqual(baseline + ink.actualBoundingBoxDescent);
+    }
+  }
+}
+
+export const LongLabel = meta.story({
+  args: { ...STANDARD_STORM_CARDBACK, name: 'A very long custom storm deck label' },
+  play: verifyLabelPaint,
+});
+export const StormDeckLabel = meta.story({ args: STANDARD_STORM_CARDBACK, play: verifyLabelPaint });
+export const LegacyLabelSize = meta.story({
+  args: { ...STANDARD_STORM_CARDBACK, nameScale: 2, nameFont: 'C_Busorama_Bold' },
+  play: async (context) => {
+    await verifyLabelPaint(context);
+    for (const text of context.canvasElement.querySelectorAll('text')) {
+      await expect(getComputedStyle(text).fontSize).toBe('90px');
+    }
+  },
+});
 export const TintedEmblemBackground = meta.story({
   args: {
     ...GF9_LEADER_SKILL_DECK_BACK,
@@ -86,5 +127,14 @@ export const StrongholdDeck = meta.story({
     await image.decode();
     await expect(getComputedStyle(image).mixBlendMode).toBe('normal');
     await expect(image.getBoundingClientRect().height).toBe(286);
+  },
+});
+
+export const LegacyBoldLabel = meta.story({
+  args: { ...GF9_LEADER_SKILL_DECK_BACK, nameFont: 'C_Busorama_Bold' },
+  play: async ({ canvasElement }) => {
+    for (const text of canvasElement.querySelectorAll('text')) {
+      await expect(getComputedStyle(text).fontFamily).toBe('C_Busorama');
+    }
   },
 });
