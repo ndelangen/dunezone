@@ -38,9 +38,9 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [CUSTOM_CARD_ASSET_TYPE]: 2,
   /* Revision 3 fixes the leader skill head, symbol, type and text size. */
   [LEADER_SKILL_ASSET_TYPE]: 3,
-  /* Revision 3 fixes the Nexus head while retaining its linked faction symbol. */
+  /* Revision 3 restores the standard Nexus header while retaining its linked faction symbol. */
   [NEXUS_CARD_ASSET_TYPE]: 3,
-  /* Revision 3 fixes stronghold rules to the standard text size. */
+  /* Revision 3 restores the standard Stronghold header and text size. */
   [STRONGHOLD_CARD_ASSET_TYPE]: 3,
   /* Revision 2 removes the extra symbol ring and matches the scanned movement and corner numeral. */
   [STORM_CARD_ASSET_TYPE]: 2,

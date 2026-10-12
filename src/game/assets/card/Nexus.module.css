@@ -17,10 +17,10 @@
 }
 .effects {
   position: absolute;
-  top: 162px;
+  top: 224px;
   left: 82px;
   width: 588px;
-  height: 826px;
+  height: 764px;
   display: flex;
   flex-direction: column;
   font-size: 36px;

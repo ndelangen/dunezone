@@ -19,7 +19,7 @@ export function strongholdCardComposition(value: z.infer<typeof StrongholdCard>)
   const identity = (index: number) => `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`;
   return {
     name,
-    subName: '',
+    subName: 'Stronghold',
     head: STRONGHOLD_BACKGROUND,
     icon: [
       {
@@ -31,7 +31,7 @@ export function strongholdCardComposition(value: z.infer<typeof StrongholdCard>)
       },
       '/vector/icon/stronghold.svg',
     ],
-    iconScale: 1.3,
+    iconScale: 1,
     format: 'decal-window',
     layers: [
       ...ordered.map((decal, index) => ({

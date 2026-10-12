@@ -33,11 +33,9 @@ export function NexusCard({
     <div className={styles.card}>
       <CustomCard
         name={name}
-        subName=""
+        subName="Nexus"
         head={NEXUS_HEAD}
         icon={[factionSymbol.background, factionSymbol.image]}
-        iconInvert
-        iconTreatment="printed"
         format="plain"
         layers={[]}
       />
