@@ -10,6 +10,7 @@ import {
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
+import { cardFrontPresetSchema, cardFrontAssetTypeSchema } from '../src/shared/assets/cardFrontPresets';
 import { GF9_LEADER_SKILLS, GF9_LEADER_SKILL_DECK } from '../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
@@ -42,6 +43,7 @@ import {
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
 import { listCardbackPresets, presetFromKey, storeCardbackPreset } from './lib/cardbackPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
+import { listCardFrontPresets } from './lib/cardFrontPresets';
 import {
   loadAssetAccessBundle,
   requireAssetSoftDelete,
@@ -290,6 +292,7 @@ export const getPage = viewerQuery({
       cardTokens: v.optional(zodToConvex(CustomCardTokens)),
       cardTokensError: v.optional(v.union(v.string(), v.null())),
       canConvertToCustom: v.boolean(),
+      cardFrontPresets: v.array(zodToConvex(cardFrontPresetSchema)),
       cardbackPresets: v.array(zodToConvex(cardbackPresetSchema)),
       viewerAccess: assetViewerAccessValidator,
       assignableGroups: v.array(assignedGroupSummaryValidator),
@@ -352,6 +355,7 @@ export const getPage = viewerQuery({
       asset: await toListEntry(ctx, row, { presets }),
       canConvertToCustom: await canConvertTreachery(ctx, row.type),
       ...(resolvedTokens ? { cardTokens: resolvedTokens.tokens, cardTokensError: resolvedTokens.error } : {}),
+      cardFrontPresets: cardFrontAssetTypeSchema.safeParse(row.type).success ? await listCardFrontPresets(ctx) : [],
       cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx, presets) : [],
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,

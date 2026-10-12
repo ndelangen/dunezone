@@ -1,3 +1,4 @@
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { CustomCardAsset } from '@shared/assets/schema';
 import {
   CustomCardAssetInput,
@@ -27,6 +28,7 @@ export type LayeredCardEditing<Draft extends LayeredCardDraft> = {
   warnings: (draft: Draft) => { source: string; missing: string; chapter: CustomCardChapter }[];
   Editor: ComponentType<
     Omit<ComponentProps<typeof CustomCardEditor>, 'draft' | 'patch'> & {
+      frontStyle?: CardFrontStyle;
       draft: Draft;
       patch: (update: Partial<Draft>) => void;
     }

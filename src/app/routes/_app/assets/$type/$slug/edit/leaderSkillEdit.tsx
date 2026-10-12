@@ -1,3 +1,4 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
 import type { AssetPageData } from '@app/db/assets';
@@ -29,7 +30,12 @@ function renderSession(props: CardEditSessionProps<LeaderSkillDraft>) {
   return <CardEditSession {...props} />;
 }
 
-function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessionProps<LeaderSkillDraft>>) {
+function CardEditSession({
+  frontPresets,
+  asset,
+  initialDraft,
+  access,
+}: Readonly<CardEditSessionProps<LeaderSkillDraft>>) {
   const saving = useCardSave('card-leaderability', asset);
   const [overflow, setOverflow] = useState(false);
   const [chapter, setChapter] = useState<LeaderSkillChapter>('head');
@@ -70,6 +76,7 @@ function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessi
       saveError={saving.error}
     >
       <LeaderSkillCardEditor
+        frontStyle={cardFrontStyleFor('card-leaderability', state.data, frontPresets)}
         nameField={nameField}
         draft={state.data}
         patch={patch}

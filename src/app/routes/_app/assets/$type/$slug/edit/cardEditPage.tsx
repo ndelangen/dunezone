@@ -1,4 +1,5 @@
 import { Alert } from '@mantine/core';
+import type { CardFrontPreset } from '@shared/assets/cardFrontPresets';
 import { useNavigate } from '@tanstack/react-router';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
@@ -46,6 +47,7 @@ type CardEditAccess = {
 };
 
 export type CardEditSessionProps<Draft> = {
+  frontPresets: CardFrontPreset[];
   asset: CardAsset;
   initialDraft: Draft;
   access: CardEditAccess;
@@ -125,6 +127,7 @@ export function CardEditChecks<Draft>({
   return (
     <Fragment key={data.asset.id}>
       {session({
+        frontPresets: data.cardFrontPresets,
         asset: data.asset,
         initialDraft: parsed.data,
         tokens: data.cardTokens,

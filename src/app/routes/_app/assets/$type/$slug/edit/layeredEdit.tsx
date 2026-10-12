@@ -1,3 +1,4 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { compareCodeUnits } from '@shared/compareText';
 import { useReducer, useState } from 'react';
 
@@ -111,6 +112,7 @@ function reduce<Draft extends LayeredCardDraft>(
 
 function CardEditSession<Draft extends LayeredCardDraft>({
   config,
+  frontPresets,
   asset,
   access,
   tokens,
@@ -160,6 +162,7 @@ function CardEditSession<Draft extends LayeredCardDraft>({
       saveError={saving.error}
     >
       <Editor
+        frontStyle={cardFrontStyleFor(config.type, state.data, frontPresets)}
         tokens={tokens ?? {}}
         tokensError={tokensError}
         tokenPicker={layeredCardTokenPicker}
