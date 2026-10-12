@@ -1,11 +1,13 @@
 /* oxlint-disable no-restricted-imports -- This is the sole raw function-builder boundary. */
 import { customCtx, customMutation, customQuery } from 'convex-helpers/server/customFunctions';
+import { getFunctionName } from 'convex/server';
 
 import {
   internalMutation as rawInternalMutation,
   mutation as rawMutation,
   query as rawQuery,
 } from './_generated/server';
+import type { QueryCtx } from './_generated/server';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { requireAdminUserId } from './lib/policy';
 
@@ -30,24 +32,48 @@ function withAudience<Builder extends (...args: never[]) => unknown>(
   }) as Builder;
 }
 
+const VIEWER_INDEPENDENCE =
+  'A publicQuery cannot read the viewer: its result is cached and shared across every user. ' +
+  'Return the facts the browser needs and combine them with the viewer client-side, or use viewerQuery.';
+
 const viewerIndependentAuth = {
   getUserIdentity: () => {
-    throw new Error(
-      'A publicQuery cannot read the viewer: its result is cached and shared across every user. ' +
-        'Return the facts the browser needs and combine them with the viewer client-side, or use viewerQuery.'
-    );
+    throw new Error(VIEWER_INDEPENDENCE);
   },
 };
 
+/** Whether a reference names one of this app's own functions, rather than a component's. */
+function isAppFunction(reference: Parameters<QueryCtx['runQuery']>[0]) {
+  try {
+    getFunctionName(reference);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A nested app query runs with the caller's identity, so it would carry the viewer past the `auth` stub.
+ * Components, such as the aggregates, run without the app's identity and stay callable.
+ */
+function viewerIndependentRunQuery(runQuery: QueryCtx['runQuery']): QueryCtx['runQuery'] {
+  return (reference, ...args) => {
+    if (isAppFunction(reference)) {
+      throw new Error(`${VIEWER_INDEPENDENCE} Nested ctx.runQuery into this app is refused for the same reason.`);
+    }
+    return runQuery(reference, ...args);
+  };
+}
+
 /**
  * The default query builder: the same answer for every caller, so Convex caches one result for all of them and the page can be prebuilt.
- * `ctx.auth` throws, which makes reading the viewer, directly or through any helper, fail loudly instead of quietly making the result per-user.
+ * `ctx.auth`, and `ctx.runQuery` into this app's own functions, throw, which makes reading the viewer, directly, through any helper or through a nested query, fail loudly instead of quietly making the result per-user.
  */
 export const publicQuery = withAudience(
   'public',
   customQuery(
     rawQuery,
-    customCtx(() => ({ auth: viewerIndependentAuth }))
+    customCtx((ctx) => ({ auth: viewerIndependentAuth, runQuery: viewerIndependentRunQuery(ctx.runQuery) }))
   )
 );
 

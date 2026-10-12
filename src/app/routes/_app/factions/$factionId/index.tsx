@@ -387,11 +387,13 @@ function FactionDetailContent({
   isPending: boolean;
   membershipWorkflow: ReturnType<typeof useGroupMembershipWorkflow>;
 }) {
-  const { viewerAccess } = useFactionAccess(page);
+  const { resolved, viewerAccess } = useFactionAccess(page);
   const { faction, owner, assetPublishing, rulesets } = page;
 
-  const canEdit = !isPending && viewerAccess.capabilities.edit;
-  const canRequestMembership = !isPending && viewerAccess.capabilities.requestMembership;
+  /* The shared page usually settles before the viewer does; controls wait for both. */
+  const settled = !isPending && resolved;
+  const canEdit = settled && viewerAccess.capabilities.edit;
+  const canRequestMembership = settled && viewerAccess.capabilities.requestMembership;
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
 

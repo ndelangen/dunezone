@@ -1,6 +1,6 @@
 import type { TestConvexForDataModel } from 'convex-test';
 
-import { assetAccessForViewer } from '../src/shared/access/collaborativeAccess';
+import { assetAccessForViewer, assetSubjectFacts } from '../src/shared/access/collaborativeAccess';
 import type { AccessViewer } from '../src/shared/access/collaborativeAccess';
 import { api } from './_generated/api';
 import type { DataModel, Id } from './_generated/dataModel';
@@ -24,22 +24,14 @@ async function accessViewerFor(client: QueryClient, groupId: Id<'groups'> | null
  * Tests assert capabilities through this so they keep exercising the path users actually run.
  */
 export async function factionPageAs(client: QueryClient, slug: string) {
-  const page = await client.query(api.factions.getBySlug, { slug });
+  const page = await client.query(api.factions.pageBySlug, { slug });
   const [viewer, assignableGroups] = await Promise.all([
     accessViewerFor(client, page.assignedGroup?.id ?? null),
     client.query(api.groups.viewerAssignableGroups, {}),
   ]);
   return {
     ...page,
-    viewerAccess: assetAccessForViewer(
-      {
-        kind: 'faction',
-        ownerId: page.faction.owner_id,
-        available: !page.faction.is_deleted,
-        assignedGroup: page.assignedGroup,
-      },
-      viewer
-    ),
+    viewerAccess: assetAccessForViewer(assetSubjectFacts('faction', page.faction, page.assignedGroup), viewer),
     assignableGroups,
   };
 }

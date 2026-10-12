@@ -411,6 +411,27 @@ describe('collaborative access public projections', () => {
     }
   });
 
+  test('the faction page is the same answer for every viewer', async () => {
+    const { t, ids } = await groupAccessFixture();
+    const anonymous = await t.query(api.factions.pageBySlug, { slug: 'collaborative-faction' });
+    for (const userId of [ids.ownerId, ids.assetOwnerId, ids.pendingId, ids.removedId]) {
+      const page = await t.withIdentity({ subject: userId }).query(api.factions.pageBySlug, {
+        slug: 'collaborative-faction',
+      });
+      expect(page).toEqual(anonymous);
+    }
+  });
+
+  test('the deprecated per-viewer faction page still answers older bundles with their capabilities', async () => {
+    const { t, ids } = await groupAccessFixture();
+    const legacy = await t
+      .withIdentity({ subject: ids.assetOwnerId })
+      .query(api.factions.getBySlug, { slug: 'collaborative-faction' });
+    const current = await factionPageAs(t.withIdentity({ subject: ids.assetOwnerId }), 'collaborative-faction');
+    expect(legacy.viewerAccess).toEqual(current.viewerAccess);
+    expect(legacy.viewerAccess.capabilities.edit).toBe(true);
+  });
+
   test('profile detail exposes canonical Group summaries without raw membership transport', async () => {
     const { t, ids } = await groupAccessFixture();
 

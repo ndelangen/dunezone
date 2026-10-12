@@ -9,12 +9,14 @@ import { mutation, publicQuery, viewerQuery } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
 import {
   assignedGroupSummary,
+  loadAssetAccessBundle,
   requireFactionSoftDelete,
   requireFactionUpdate,
   requireGroupReassignment,
 } from './lib/collaborativeAccess';
 import {
   factionDetailPageValidator,
+  legacyFactionDetailPageValidator,
   factionValidator,
   catalogueFactionValidator,
   rulesetSummaryValidator,
@@ -117,18 +119,20 @@ async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
   );
 }
 
-/** Faction detail page bundle (view, edit, and sheet preview). */
-async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
-  const locatedRow = await ctx.db
+/** The faction row a page is for: live, or NOT_FOUND. */
+async function liveFactionBySlug(ctx: QueryCtx, slug: string) {
+  const row = await ctx.db
     .query('factions')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
-  if (!locatedRow || locatedRow.is_deleted) {
+  if (!row || row.is_deleted) {
     throw new ConvexError({ code: 'NOT_FOUND', message: `Faction with slug ${slug} not found` });
   }
+  return row;
+}
 
-  const row = locatedRow;
-  const assignedGroup = await assignedGroupSummary(ctx, row.group_id);
+/** Faction detail page bundle (view, edit, and sheet preview): the same for every viewer. */
+async function loadFactionDetailPage(ctx: QueryCtx, row: Doc<'factions'>) {
   const ownerProfile = await ctx.db
     .query('profiles')
     .withIndex('by_user_id', (q) => q.eq('user_id', row.owner_id))
@@ -144,22 +148,34 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     },
     owner: isActiveProfile(ownerProfile) ? ownerProfile : null,
     assetPublishing: await publicationStatusFor(ctx, 'faction_sheet', row._id),
-    assignedGroup,
-    viewerAccess: {
-      kind: 'faction' as const,
-      assignedGroup,
-      viewer: { kind: 'anonymous' as const },
-      capabilities: { requestMembership: false, edit: false, rename: false, changeGroup: false, delete: false },
-    },
-    assignableGroups: [],
+    assignedGroup: await assignedGroupSummary(ctx, row.group_id),
     rulesets: await listFactionRulesets(ctx, row._id),
   };
 }
 
-export const getBySlug = publicQuery({
+/**
+ * The faction page, one cached answer for every viewer.
+ * The browser combines `faction.owner_id` and `assignedGroup` with the viewer to decide what they may do.
+ */
+export const pageBySlug = publicQuery({
   args: { slug: v.string() },
   returns: factionDetailPageValidator,
-  handler: async (ctx, args) => loadFactionDetailPageBySlug(ctx, args.slug),
+  handler: async (ctx, args) => loadFactionDetailPage(ctx, await liveFactionBySlug(ctx, args.slug)),
+});
+
+/**
+ * Deprecated: the faction page with the viewer's capabilities computed on the server, as bundles from before `pageBySlug` read it.
+ * Kept unchanged so a page or editor already open in an older bundle keeps working across the deploy;
+ * remove in a later release, once no deployed bundle asks for it (see AGENTS.md).
+ */
+export const getBySlug = viewerQuery({
+  args: { slug: v.string() },
+  returns: legacyFactionDetailPageValidator,
+  handler: async (ctx, args) => {
+    const access = await loadAssetAccessBundle(ctx, { kind: 'faction', row: await liveFactionBySlug(ctx, args.slug) });
+    const { assignedGroup: _assignedGroup, ...page } = await loadFactionDetailPage(ctx, access.subject);
+    return { ...page, viewerAccess: access.viewerAccess, assignableGroups: access.assignableGroups };
+  },
 });
 
 /**

@@ -15,6 +15,8 @@ import { db } from '@db/core';
 import { loadPublicPage } from '@db/core/publicPage';
 
 export { isPublicPageNotFound as isFactionNotFound } from '@db/core/publicPage';
+import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
+
 import { parseClientBoundary } from '@app/db/core/clientBoundary';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { useAssetAccess } from '@app/db/viewerAccess';
@@ -61,7 +63,7 @@ export type FactionRulesetSummary = {
 /**
  * A catalogue-shaped faction: the fields `FactionCard` draws, not a whole faction (#642).
  * Reach for `FactionEntry` when you need the authored blob;
- * it arrives from `factions.getBySlug`, a different contract.
+ * it arrives from `factions.pageBySlug`, a different contract.
  */
 export type FactionCatalogueEntry = Omit<FactionCatalogueRow, 'data'> & {
   data: CatalogueFactionData;
@@ -151,10 +153,9 @@ export function factionRowsToEntries(rows: FactionRow[]): FactionEntry[] {
   return rows.map(toFactionEntry);
 }
 
-type FactionDetailPageRaw = FunctionReturnType<typeof api.factions.getBySlug>;
+type FactionDetailPageRaw = FunctionReturnType<typeof api.factions.pageBySlug>;
 
-/** The deprecated `viewerAccess` and `assignableGroups` exist only for older bundles; the app reads `useFactionAccess`. */
-export type FactionDetailPageData = Omit<FactionDetailPageRaw, 'faction' | 'viewerAccess' | 'assignableGroups'> & {
+export type FactionDetailPageData = Omit<FactionDetailPageRaw, 'faction'> & {
   faction: FactionEntry;
 };
 
@@ -196,7 +197,7 @@ export function useFaction(
     initialData?: FactionDetailPageData;
   }
 ) {
-  const liveData = useQuery(api.factions.getBySlug, { slug });
+  const liveData = useQuery(api.factions.pageBySlug, { slug });
   const normalized = liveData ? toFactionDetailPageData(liveData) : undefined;
   const result = toLiveQueryResult(normalized, () => options?.initialData ?? undefined);
   return result;
@@ -208,12 +209,7 @@ export function useFaction(
  * this combines its owner and Group with the viewer's session and memberships.
  */
 export function useFactionAccess(page: FactionDetailPageData) {
-  return useAssetAccess({
-    kind: 'faction',
-    ownerId: page.faction.owner_id,
-    available: !page.faction.is_deleted,
-    assignedGroup: page.assignedGroup,
-  });
+  return useAssetAccess(assetSubjectFacts('faction', page.faction, page.assignedGroup));
 }
 
 /** A Play seat's faction page address by its id; undefined while loading, null when the faction is gone. */
@@ -380,7 +376,7 @@ export function useSetFactionGroup() {
 
 /** The faction detail route's loader. Hand its result to `useFaction` as `initialData` so the first paint has data and later renders are live. */
 export async function loadFaction(slug: string): Promise<FactionDetailPageData> {
-  const raw = await db.query(api.factions.getBySlug, { slug });
+  const raw = await db.query(api.factions.pageBySlug, { slug });
   return toFactionDetailPageData(raw);
 }
 

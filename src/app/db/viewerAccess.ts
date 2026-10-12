@@ -15,7 +15,11 @@ const ANONYMOUS: AccessViewer = { kind: 'anonymous' };
  */
 function useAccessViewer(groupId: Id<'groups'> | null): AccessViewer | undefined {
   const session = useQuery(api.profiles.session, {});
-  const membership = useQuery(api.groups.viewerMembership, { groupId });
+  /*
+   * Until the session says who this is, ask about no Group: the answer is "none" without a read,
+   * so an anonymous visitor's subscription costs nothing and never invalidates.
+   */
+  const membership = useQuery(api.groups.viewerMembership, { groupId: session?.userId ? groupId : null });
   if (session === undefined) {
     return undefined;
   }

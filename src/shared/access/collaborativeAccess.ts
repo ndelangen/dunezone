@@ -158,6 +158,15 @@ export type AssetSubjectFacts<GroupSummary extends GroupSummaryShape = GroupSumm
   assignedGroup: GroupSummary | null;
 };
 
+/** The subject facts for a faction, ruleset or asset row and its live Group. One mapping, shared by the browser hooks and the tests that stand in for them. */
+export function assetSubjectFacts<GroupSummary extends GroupSummaryShape>(
+  kind: AssetAccessFacts['kind'],
+  row: { owner_id: string; is_deleted: boolean },
+  assignedGroup: GroupSummary | null
+): AssetSubjectFacts<GroupSummary> {
+  return { kind, ownerId: row.owner_id, available: !row.is_deleted, assignedGroup };
+}
+
 /** A faction, ruleset or asset's capabilities for this viewer: the same rules the mutation gates apply, run on the page's public facts. */
 export function assetAccessForViewer<GroupSummary extends GroupSummaryShape>(
   subject: AssetSubjectFacts<GroupSummary>,

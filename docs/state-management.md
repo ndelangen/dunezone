@@ -32,7 +32,7 @@ Every read hook in `src/app/db/<domain>.ts` is the same three lines: subscribe, 
 
 ```typescript
 export function useFaction(slug: string, options?: { initialData?: FactionDetailPageData }) {
-  const liveData = useQuery(api.factions.getBySlug, { slug });
+  const liveData = useQuery(api.factions.pageBySlug, { slug });
   const normalized = liveData ? toFactionDetailPageData(liveData) : undefined;
   return toLiveQueryResult(normalized, () => options?.initialData);
 }

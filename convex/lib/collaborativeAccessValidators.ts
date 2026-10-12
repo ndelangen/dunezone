@@ -140,11 +140,14 @@ export const factionDetailPageValidator = v.object({
   owner: v.union(profileValidator, v.null()),
   assetPublishing: assetPublishingValidator,
   assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
-  /*
-   * Deprecated, always the anonymous answer: kept only so a browser bundle from before the split keeps rendering
-   * in the window where production runs the new functions against the old bundle (see AGENTS.md, expand/contract).
-   * Remove in a later release, once no deployed bundle reads them.
-   */
+  rulesets: v.array(rulesetSummaryValidator),
+});
+
+/** Deprecated: the per-viewer faction page `factions.getBySlug` still serves to older bundles. Remove with it. */
+export const legacyFactionDetailPageValidator = v.object({
+  faction: factionValidator,
+  owner: v.union(profileValidator, v.null()),
+  assetPublishing: assetPublishingValidator,
   viewerAccess: factionViewerAccessValidator,
   assignableGroups: v.array(assignedGroupSummaryValidator),
   rulesets: v.array(rulesetSummaryValidator),
@@ -154,7 +157,7 @@ export const factionDetailPageValidator = v.object({
  * A catalogue-shaped faction row: what '/factions', a ruleset's faction rail and a profile's faction list put on the wire.
  * Deliberately not a whole faction.
  * It carries what 'FactionCard' draws, what links and sorts the row, and the rulesets that caption it;
- * 'factions.getBySlug' remains the contract for anything that needs the authored blob.
+ * 'factions.pageBySlug' remains the contract for anything that needs the authored blob.
  */
 export const catalogueFactionValidator = schema.tables.factions.validator
   .pick('slug', 'created_at', 'updated_at')

@@ -65,7 +65,7 @@ async function publicStatus(t: ReturnType<typeof convexTest>, factionId: Id<'fac
   if (!faction) {
     throw new Error('Missing status projection faction');
   }
-  return (await t.query(api.factions.getBySlug, { slug: faction.slug })).assetPublishing;
+  return (await t.query(api.factions.pageBySlug, { slug: faction.slug })).assetPublishing;
 }
 
 describe('public asset publishing status projection', () => {
