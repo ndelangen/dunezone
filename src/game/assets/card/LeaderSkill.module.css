@@ -32,7 +32,8 @@
   overflow: hidden;
   border: 3px solid #51482e;
   border-radius: 18px;
-  background: url("/image/card/front-decal-bg-large.webp") center 32% / 123% 300% no-repeat;
+  /* Crop inside the source image's printed frame so only this window's border remains visible. */
+  background: url("/image/card/front-decal-bg-large.webp") center 31% / 123% 305% no-repeat;
 }
 .decals {
   display: block;
