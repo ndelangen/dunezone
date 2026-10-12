@@ -2,8 +2,8 @@ import { v } from 'convex/values';
 
 import { rendererRevisionsSchema } from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
-import { internalQuery, query } from './_generated/server';
-import { internalMutation, mutation } from './functions';
+import { internalQuery } from './_generated/server';
+import { internalMutation, mutation, viewerQuery } from './functions';
 import { optionalActiveUserId } from './lib/accountLifecycle';
 import { requireAdminUserId } from './lib/policy';
 import { publicationSettings } from './lib/publication';
@@ -104,7 +104,7 @@ export const activateRevisions = internalMutation({
   },
 });
 
-export const page = query({
+export const page = viewerQuery({
   args: {
     status: v.optional(publicationStatus),
     assetType: v.optional(v.string()),

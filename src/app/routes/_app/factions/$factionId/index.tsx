@@ -28,8 +28,8 @@ import { ArrowLeft, Download, Eye, FileText, Pencil, UserPlus } from 'lucide-rea
 import { Fragment, useId } from 'react';
 import type { ReactNode } from 'react';
 
-import { isFactionNotFound, loadPublicFaction, useFaction } from '@db/factions';
-import type { FactionData, PublicAssetPublishingStatusProjection } from '@db/factions';
+import { isFactionNotFound, loadPublicFaction, useFaction, useFactionAccess } from '@db/factions';
+import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusProjection } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
@@ -366,10 +366,34 @@ function FactionDetailPage() {
     return <FactionDetailPending />;
   }
 
-  const { faction, viewerAccess, owner, assetPublishing, rulesets } = page;
+  return (
+    <FactionDetailContent
+      factionId={factionId}
+      page={page}
+      isPending={factionQuery.isPending}
+      membershipWorkflow={membershipWorkflow}
+    />
+  );
+}
 
-  const canEdit = !factionQuery.isPending && viewerAccess.capabilities.edit;
-  const canRequestMembership = !factionQuery.isPending && viewerAccess.capabilities.requestMembership;
+function FactionDetailContent({
+  factionId,
+  page,
+  isPending,
+  membershipWorkflow,
+}: {
+  factionId: string;
+  page: FactionDetailPageData;
+  isPending: boolean;
+  membershipWorkflow: ReturnType<typeof useGroupMembershipWorkflow>;
+}) {
+  const { resolved, viewerAccess } = useFactionAccess(page);
+  const { faction, owner, assetPublishing, rulesets } = page;
+
+  /* The shared page usually settles before the viewer does; controls wait for both. */
+  const settled = !isPending && resolved;
+  const canEdit = settled && viewerAccess.capabilities.edit;
+  const canRequestMembership = settled && viewerAccess.capabilities.requestMembership;
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
 

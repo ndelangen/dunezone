@@ -32,7 +32,7 @@ Every read hook in `src/app/db/<domain>.ts` is the same three lines: subscribe, 
 
 ```typescript
 export function useFaction(slug: string, options?: { initialData?: FactionDetailPageData }) {
-  const liveData = useQuery(api.factions.getBySlug, { slug });
+  const liveData = useQuery(api.factions.pageBySlug, { slug });
   const normalized = liveData ? toFactionDetailPageData(liveData) : undefined;
   return toLiveQueryResult(normalized, () => options?.initialData);
 }
@@ -66,6 +66,13 @@ either no-ops or a second read of data that is already arriving.
 - One Convex page query per route, plus `useCurrentProfile` when the UI is auth-aware; see [*One
   Convex query per route*](technical/ui-design-decisions.md#one-convex-query-per-route). Derive what
   the screen needs inside that query rather than adding child subscriptions.
+- The page query is the same for every viewer. It is a `publicQuery` (`convex/functions.ts`), which
+  cannot read `ctx.auth`, so Convex caches one answer for everyone. What the viewer may do is decided
+  in the browser: the page returns its public facts (owner, assigned Group), the viewer's half comes
+  from `groups.viewerMembership` and the session, and `src/shared/access` runs the same rules the
+  mutations enforce. See `useFactionAccess` in [`src/app/db/factions.ts`](../src/app/db/factions.ts).
+  A query whose answer genuinely depends on the viewer is a `viewerQuery` and is listed, with its
+  reason, in `convex/queryAudience.architecture.test.ts`; admin-only reads are `adminQuery`.
 - Pass loader data down as `initialData`; do not re-query in a child for data the page already has.
 - Client-side parsing is for UX feedback only. The authoritative parse happens in the Convex
   handler; see [`data-layer.md`](data-layer.md).

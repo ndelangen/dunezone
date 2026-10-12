@@ -19,8 +19,7 @@ import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../src/shared
 import type { RulebookDesign, RulebookSettings } from '../src/shared/rulebooks/settings';
 import { rulebookResolvedAssetsByIdSchema } from '../src/shared/rulebooks/sources';
 import type { Doc, Id } from './_generated/dataModel';
-import { query } from './_generated/server';
-import { mutation } from './functions';
+import { mutation, publicQuery, viewerQuery } from './functions';
 import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './lib/collaborativeAccess';
 import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
@@ -495,7 +494,7 @@ async function insertRulebookBundle(
   };
 }
 
-export const listByRulesetSlug = query({
+export const listByRulesetSlug = publicQuery({
   args: { ruleset_slug: v.string() },
   returns: v.array(rulebookListEntryValidator),
   handler: async (ctx, args) => {
@@ -511,7 +510,7 @@ export const listByRulesetSlug = query({
 });
 
 /** Creation needs the owning Ruleset's access and live clone choices, never its saved Contents. */
-export const creationPage = query({
+export const creationPage = viewerQuery({
   args: { ruleset_slug: v.string() },
   returns: v.union(
     v.null(),
@@ -554,7 +553,7 @@ async function rulebookAtSlugs(ctx: QueryCtx, args: { ruleset_slug: string; rule
   return rulebook && !rulebook.is_deleted ? { ruleset, rulebook } : null;
 }
 
-export const editorBySlugs = query({
+export const editorBySlugs = viewerQuery({
   args: { ruleset_slug: v.string(), rulebook_slug: v.string() },
   returns: v.union(editorBundleValidator, v.null()),
   handler: async (ctx, args) => {
@@ -591,7 +590,7 @@ const readerEditionOptionValidator = v.object({
 });
 
 /** Every immutable Edition of a live Rulebook with its artifact readiness, newest first; a soft-deleted Rulebook has no history to show. */
-export const editionHistory = query({
+export const editionHistory = publicQuery({
   args: { ruleset_slug: v.string(), rulebook_slug: v.string() },
   returns: v.union(
     v.null(),
@@ -648,7 +647,7 @@ async function selectedReaderEdition(
 }
 
 /** Public reading loads one immutable Edition and its complete metadata history, never the author's saved draft. */
-export const readerPage = query({
+export const readerPage = viewerQuery({
   args: {
     ruleset_slug: v.string(),
     rulebook_slug: v.string(),
@@ -707,7 +706,7 @@ export const readerPage = query({
 });
 
 /** Ready HTML readers load metadata and access only; unfinished artifacts retain the live renderer. */
-export const readerDeliveryPage = query({
+export const readerDeliveryPage = viewerQuery({
   args: {
     ruleset_slug: v.string(),
     rulebook_slug: v.string(),
@@ -774,7 +773,7 @@ export const readerDeliveryPage = query({
 });
 
 /** The editor's one subscription checks access before loading private draft Contents. */
-export const editorPage = query({
+export const editorPage = viewerQuery({
   args: {
     ruleset_slug: v.string(),
     rulebook_slug: v.string(),

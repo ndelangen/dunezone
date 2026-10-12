@@ -18,10 +18,10 @@ import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
 import { RULESET_ASSET_SLOT_ORDER } from '../src/shared/rulesets/assetSlots';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { action, query } from './_generated/server';
+import { action } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { containerSummary } from './assets';
-import { internalMutation, mutation } from './functions';
+import { internalMutation, mutation, viewerQuery } from './functions';
 import { admitsPlayers, currentPlaySession, isRealGame, livePlaySession } from './lib/playAuthorization';
 import { playGameAddressAvailable } from './lib/playGameAddresses';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
@@ -175,7 +175,7 @@ async function factionLine(ctx: QueryCtx, faction: Doc<'factions'>) {
  * The rulesets a signed-in player may start a game with, each with the directory's objection when it has one.
  * With `rulesetId`, also what that ruleset puts on the table, so the page reads its manifest through this one query.
  */
-export const creatable = query({
+export const creatable = viewerQuery({
   args: { rulesetId: v.optional(v.id('rulesets')) },
   returns: v.union(
     v.object({ access: v.literal('unauthenticated') }),
@@ -210,7 +210,7 @@ export const creatable = query({
 });
 
 /** A read-only hint; creation still allocates its address in its own transaction. */
-export const nameAvailability = query({
+export const nameAvailability = viewerQuery({
   args: { name: v.string() },
   returns: v.union(v.null(), v.object({ base: v.string(), duplicate: v.boolean() })),
   handler: async (ctx, { name }) => {
@@ -394,7 +394,7 @@ export async function createAuthorizedGame(
 }
 
 /** What a game page learns before it opens a socket: any signed-in player may enter a game that admits players, and an unknown id or the closed hosted fixture reads as not found. */
-export const getGame = query({
+export const getGame = viewerQuery({
   args: { gameId: v.string() },
   returns: zodToConvex(playGameAccessSchema),
   handler: async (ctx, args) => {
@@ -412,7 +412,7 @@ export const getGame = query({
 });
 
 /** Resolves a friendly address or legacy ID without granting access or changing the game's identity. */
-export const getGameByAddress = query({
+export const getGameByAddress = viewerQuery({
   args: { address: v.string() },
   returns: zodToConvex(playGameAddressAccessSchema),
   handler: async (ctx, { address }) => {

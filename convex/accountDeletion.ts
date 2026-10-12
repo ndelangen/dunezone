@@ -3,9 +3,9 @@ import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { internalAction, query } from './_generated/server';
+import { internalAction } from './_generated/server';
 import type { ActionCtx, MutationCtx, QueryCtx } from './_generated/server';
-import { internalMutation, mutation } from './functions';
+import { internalMutation, mutation, viewerQuery } from './functions';
 import { accountStateOf, authenticatedLifecycleUser, lifecycleUserId } from './lib/accountLifecycle';
 import { requireUnlockedAccount } from './lib/accountMethods';
 import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
@@ -133,7 +133,7 @@ function operationProjection(operation: Doc<'account_deletion_operations'> | nul
 }
 
 /** The deletion page's single subscription. Pending/deleted sessions may observe only their own lifecycle operation. */
-export const page = query({
+export const page = viewerQuery({
   args: { profileSlug: v.string() },
   handler: async (ctx, args) => {
     const userId = await lifecycleUserId(ctx);
@@ -165,7 +165,7 @@ export const page = query({
 });
 
 /** Lightweight, indexed replacement-owner projection. The picker mounts this query lazily. */
-export const listReplacementProfiles = query({
+export const listReplacementProfiles = viewerQuery({
   args: { paginationOpts: paginationOptsValidator, search: v.string() },
   returns: paginationResultValidator(replacementProfileValidator),
   handler: async (ctx, args) => {

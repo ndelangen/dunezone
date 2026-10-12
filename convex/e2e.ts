@@ -3,9 +3,8 @@ import { v } from 'convex/values';
 import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey } from '../src/shared/rulebooks/metadata';
 import type { Id, TableNames } from './_generated/dataModel';
-import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
-import { mutation } from './functions';
+import { mutation, publicQuery } from './functions';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { isIsolatedLoopbackBackend } from './lib/isolatedBackend';
 import { nowIso, slugify } from './lib/utils';
@@ -89,7 +88,7 @@ async function clearAllAppData(ctx: MutationCtx) {
   }
 }
 
-export const status = query({
+export const status = publicQuery({
   args: {},
   handler: async (ctx) => {
     assertTestMode();

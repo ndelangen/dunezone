@@ -1,10 +1,10 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 
 import { sitemapArgsSchema, sitemapPageSchema, SITEMAP_PAGE_SIZE } from '../src/shared/publicDiscovery';
-import { query } from './_generated/server';
+import { publicQuery } from './functions';
 
 /** Only public URL identity leaves the database; owners, content and publication state stay here. */
-export const page = query({
+export const page = publicQuery({
   args: zodToConvex(sitemapArgsSchema).fields,
   returns: zodToConvex(sitemapPageSchema),
   handler: async (ctx, rawArgs) => {

@@ -4,8 +4,7 @@ import type { FAQ_TAG_VALUES } from '../src/shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared/faq/validation';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { query } from './_generated/server';
-import { internalMutation, mutation } from './functions';
+import { internalMutation, mutation, viewerQuery } from './functions';
 import { faqQuestionPageValidator, loadFaqQuestionPage } from './lib/faqQuestionPage';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
@@ -96,7 +95,7 @@ async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets
   }
 }
 
-export const questionPage = query({
+export const questionPage = viewerQuery({
   args: { rulesetSlug: v.string(), questionSlug: v.string() },
   returns: faqQuestionPageValidator,
   handler: async (ctx, args) => await loadFaqQuestionPage(ctx, args),
