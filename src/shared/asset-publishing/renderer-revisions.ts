@@ -39,11 +39,11 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [NEXUS_CARD_ASSET_TYPE]: 1,
   /* Revision 2 uses the supplied palace emblem and supports original raster illustrations. */
   [STRONGHOLD_CARD_ASSET_TYPE]: 2,
-  [STORM_CARD_ASSET_TYPE]: 1,
-  // 1: deck cardbacks join the pipeline (wayfinder #546). Activating this is also the backfill for decks that predate it.
-  /* Revision 2 retains the original colors of multicolor back emblems. */
+  /* Revision 2 removes the extra symbol ring and matches the scanned movement and corner numeral. */
+  [STORM_CARD_ASSET_TYPE]: 2,
+  /* Revision 2 retains multicolor back emblems and supports the original Storm label size. */
   [DECK_ASSET_TYPE]: 2,
-  /* Revision 3 publishes the Storm preset; saved designs are kept. */
+  /* Revision 4 updates the Stronghold emblem and original Storm back label; saved designs are kept. */
   'cardback-preset': 4,
   /*
    * 1: token faces join the pipeline (wayfinder #547). Activating these is also the backfill for tokens that predate them.

@@ -6,6 +6,7 @@ import { expect, test } from 'vitest';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import { standardStormCard } from '../src/shared/assets/standardStormDeck';
 import { api, internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -128,4 +129,64 @@ test('the standard Storm deck provisions one of each value and reruns without ov
     count: 2,
   });
   await expect(t.mutation(internal.assets.provisionStandardStormDeck, { ownerId })).rejects.toThrow('has changed');
+});
+
+async function reviewedStormCards(t: ReturnType<typeof convexTest>, cardIds: Id<'assets'>[]) {
+  return t.run(async (ctx) =>
+    Promise.all(cardIds.map(async (id) => ({ id, data: (await ctx.db.get('assets', id))!.data })))
+  );
+}
+
+test('reviewed Storm designs replace all six cards and the shared back atomically', async () => {
+  const t = convexTest(schema, modules);
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
+  const { cardIds } = await t.mutation(internal.assets.provisionStandardStormDeck, { ownerId });
+  await t.run(async (ctx) => {
+    for (const id of cardIds) {
+      const row = (await ctx.db.get('assets', id))!;
+      const data = row.data as ReturnType<typeof standardStormCard>;
+      await ctx.db.patch(id, {
+        data: { ...data, icon: [data.icon[0], '/vector/icon/storm_disc.svg'], about: 'Keep this note.' },
+      });
+    }
+  });
+  const expectedCards = await reviewedStormCards(t, cardIds);
+  await t.mutation(internal.assets.replaceStandardStormDesigns, { ownerId, expectedCards, expectedBackRevision: 0 });
+  const updated = await reviewedStormCards(t, cardIds);
+  expect(updated.map((row) => row.data)).toEqual(
+    [1, 2, 3, 4, 5, 6].map((sectors) => ({ ...standardStormCard(sectors), about: 'Keep this note.' }))
+  );
+  const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'standard-storm-deck' });
+  expect(page?.cardbackPresets?.find((preset) => preset.key === 'storm')).toMatchObject({
+    revision: 1,
+    cardback: { image: '/vector/icon/storrm_standalone.svg', imageScale: 0.72 },
+  });
+});
+
+test('a changed Storm card or back cancels the entire reviewed replacement', async () => {
+  const t = convexTest(schema, modules);
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
+  const { cardIds } = await t.mutation(internal.assets.provisionStandardStormDeck, { ownerId });
+  const expectedCards = await reviewedStormCards(t, cardIds);
+  const owner = t.withIdentity({ subject: ownerId });
+  await owner.mutation(api.assets.update, {
+    id: cardIds[5]!,
+    data: { ...standardStormCard(6), about: 'Edited after review.' },
+  });
+  const saved = await reviewedStormCards(t, cardIds);
+  await expect(
+    t.mutation(internal.assets.replaceStandardStormDesigns, { ownerId, expectedCards, expectedBackRevision: 0 })
+  ).rejects.toThrow('changed after review');
+  expect(await reviewedStormCards(t, cardIds)).toEqual(saved);
+  await expect(
+    t.mutation(internal.assets.replaceStandardStormDesigns, { ownerId, expectedCards: saved, expectedBackRevision: 1 })
+  ).rejects.toThrow('preset changed');
+  expect(await reviewedStormCards(t, cardIds)).toEqual(saved);
+  await expect(
+    t.mutation(internal.assets.replaceStandardStormDesigns, {
+      ownerId,
+      expectedCards: saved.slice(1),
+      expectedBackRevision: 0,
+    })
+  ).rejects.toThrow('all six');
 });

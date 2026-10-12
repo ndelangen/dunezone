@@ -15,7 +15,7 @@ import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
 import { StormCardAssetInput, DeckAssetInput, StrongholdCardAsset } from '../src/shared/assets/schema';
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
-import { STANDARD_STORM_CARDS } from '../src/shared/assets/standardStormDeck';
+import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../src/shared/assets/standardStormDeck';
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import { parseAssetDataForWrite } from '../src/shared/assets/validation';
@@ -36,7 +36,7 @@ import {
   tokenBackOf,
 } from './lib/assetBacks';
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
-import { listCardbackPresets, presetFromKey } from './lib/cardbackPresets';
+import { listCardbackPresets, presetFromKey, storeCardbackPreset } from './lib/cardbackPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import {
   loadAssetAccessBundle,
@@ -1140,6 +1140,55 @@ export const provisionStandardStormDeck = internalMutation({
     }
     await enqueueAssetPublication(ctx, { _id: deckId, type: 'deck', slug: 'standard-storm-deck', data });
     return { deckId, cardIds, created: true };
+  },
+});
+
+/** Replaces reviewed standard designs only while all six cards and the shared back still match the review. */
+export const replaceStandardStormDesigns = internalMutation({
+  args: {
+    ownerId: v.id('users'),
+    expectedCards: v.array(v.object({ id: v.id('assets'), data: v.any() })),
+    expectedBackRevision: v.number(),
+  },
+  returns: v.array(v.id('assets')),
+  handler: async (ctx, { ownerId, expectedCards, expectedBackRevision }) => {
+    const deck = await assetSlugHolder(ctx, 'deck', 'standard-storm-deck');
+    if (!deck) {
+      throw new ConvexError('The Standard Storm Deck does not exist');
+    }
+    const back = DeckAssetInput.parse(deck.data).cardback;
+    if (!('mode' in back) || back.mode !== 'preset' || back.key !== 'storm') {
+      throw new ConvexError('The Standard Storm Deck no longer uses the shared Storm back');
+    }
+    const { cardIds } = await preservedStandardStormDeck(ctx, deck, ownerId);
+    if (
+      expectedCards.length !== 6 ||
+      new Set(expectedCards.map((card) => card.id)).size !== 6 ||
+      expectedCards.some((card) => !cardIds.includes(card.id))
+    ) {
+      throw new ConvexError('Review all six Standard Storm Deck cards before replacing their designs');
+    }
+    for (const expected of expectedCards) {
+      const row = await ctx.db.get('assets', expected.id);
+      if (
+        !row ||
+        row.owner_id !== ownerId ||
+        JSON.stringify(StormCardAssetInput.parse(row.data)) !== JSON.stringify(StormCardAssetInput.parse(expected.data))
+      ) {
+        throw new ConvexError('A Storm card changed after review. Review the saved designs again.');
+      }
+      const reviewed = StormCardAssetInput.parse(row.data);
+      const data = StormCardAssetInput.parse({
+        ...STANDARD_STORM_CARDS[reviewed.sectors - 1],
+        name: reviewed.name,
+        about: reviewed.about,
+      });
+      await ctx.db.patch(row._id, { data, updated_at: nowIso() });
+      await syncCustomCardTokenRelations(ctx, row._id, data);
+      await enqueueAssetPublication(ctx, { ...row, data });
+    }
+    await storeCardbackPreset(ctx, 'storm', STANDARD_STORM_CARDBACK, expectedBackRevision);
+    return cardIds;
   },
 });
 

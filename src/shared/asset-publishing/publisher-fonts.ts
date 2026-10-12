@@ -8,6 +8,7 @@ export const requiredPublisherFontFaces = [
   { family: 'C_Desdemona', weight: '400', style: 'normal' },
   { family: 'C_Candara', weight: '400', style: 'normal' },
   { family: 'C_Advokat_Modern', weight: '400', style: 'normal' },
+  { family: 'C_Busorama_Bold', weight: '400', style: 'normal' },
   { family: 'C_Busorama', weight: '400', style: 'normal' },
   { family: 'C_Trebuchet', weight: '400', style: 'normal' },
 ] as const;

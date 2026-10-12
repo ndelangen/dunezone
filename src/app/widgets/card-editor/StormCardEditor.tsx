@@ -93,7 +93,7 @@ function StormIdentity({
         onDeclaredCustomChange={(iconCustom) => remember({ iconCustom })}
         modeMemory={memory.iconModeMemory}
         onModeMemoryChange={(iconModeMemory) => remember({ iconModeMemory })}
-        onChange={(background) => patch({ icon: [background, '/vector/icon/storm_disc.svg'] })}
+        onChange={(background) => patch({ icon: [background, '/vector/icon/storrm_standalone.svg'] })}
       />
     </Stack>
   );

@@ -213,6 +213,8 @@ export const CardBack = z.strictObject({
   imageScale: z.number().min(0).max(2),
   background: Background,
   name: z.string(),
+  nameScale: z.number().min(0.5).max(2).optional(),
+  nameFont: z.enum(['C_Busorama', 'C_Busorama_Bold']).optional(),
 });
 
 /**
@@ -501,7 +503,7 @@ export const StormCard = CustomCard.omit({
   sectors: z.number().int().min(1).max(6),
   format: z.literal('decal-window'),
   subName: z.literal('Storm'),
-  icon: z.tuple([Background, z.literal('/vector/icon/storm_disc.svg')]),
+  icon: z.tuple([Background, z.enum(['/vector/icon/storrm_standalone.svg', '/vector/icon/storm_disc.svg'])]),
 });
 export const StormCardAsset = StormCard.extend({ about: About });
 export const StormCardAssetInput = StormCardAsset.extend({ about: FormattedAbout });
