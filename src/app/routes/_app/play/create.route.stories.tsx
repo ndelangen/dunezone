@@ -51,9 +51,11 @@ export const Member = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const create = await page.findByRole('button', { name: 'Create game' }, { timeout: 30_000 });
     expect(create).toBeDisabled();
-    const ruleset = page.getByRole('radio', { name: /^Dreamrules/ });
-    expect(ruleset).toHaveTextContent('No spice deck is linked.');
-    await userEvent.click(ruleset);
+    await userEvent.click(page.getByRole('combobox', { name: 'Ruleset' }));
+    /* The dropdown says why a ruleset cannot start a game before it is chosen. */
+    expect(await page.findByRole('option', { name: /^Dreamrules/ })).toHaveTextContent('No spice deck is linked.');
+    await userEvent.click(page.getByRole('option', { name: /^Dreamrules/ }));
+    expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveAccessibleDescription('No spice deck is linked.');
     await expect(page.findByRole('status')).resolves.toHaveTextContent('Dreamrules cannot start a game yet.');
     expect(page.getByRole('slider', { name: 'Minimum players' })).toHaveAttribute('aria-valuenow', '6');
     expect(create).toBeDisabled();
@@ -105,7 +107,8 @@ const creatable = {
 };
 
 async function chooseRuleset(page: ReturnType<typeof within>) {
-  await userEvent.click(await page.findByRole('radio', { name: /^Dreamrules/ }, { timeout: 30_000 }));
+  await userEvent.click(await page.findByRole('combobox', { name: 'Ruleset' }, { timeout: 30_000 }));
+  await userEvent.click(await page.findByRole('option', { name: /^Dreamrules/ }));
 }
 
 async function typeCustomName(page: ReturnType<typeof within>, name: string) {
@@ -178,7 +181,7 @@ export const NameRefused = meta.story({
       page.findByText(/Choose a game name without profanity/, {}, { timeout: 10_000 })
     ).resolves.toBeVisible();
     expect(page.getByLabelText('Custom name')).toHaveValue('Fuck the spice harvest');
-    expect(page.getByRole('radio', { name: /^Dreamrules/ })).toBeChecked();
+    expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveValue('Dreamrules');
     expect(page.getByRole('slider', { name: 'Minimum players' })).toHaveAttribute('aria-valuenow', '4');
   },
 });

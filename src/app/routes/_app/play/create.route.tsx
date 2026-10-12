@@ -1,4 +1,4 @@
-import { Button, Group, Radio, Slider, Stack, Switch, Text } from '@mantine/core';
+import { Button, Group, Select, Slider, Stack, Switch, Text } from '@mantine/core';
 import { playCreateGameRequestSchema } from '@shared/play/admission';
 import { playGameNameSchema } from '@shared/play/gameNames';
 import { generatePlayGameName } from '@shared/play/generatedGameNames';
@@ -326,30 +326,48 @@ function PassFacts({
   );
 }
 
+/* A searchable dropdown, since a catalogue of forty rulesets would push the rest of the pass off the screen as a list. */
 function RulesetField({
   rulesets,
   value,
   onChange,
   disabled,
 }: Readonly<{ rulesets: CreatableRuleset[]; value: string; onChange: (id: string) => void; disabled: boolean }>) {
+  const chosen = rulesets.find((ruleset) => ruleset.id === value);
+  const objections = new Map<string, string | null>(rulesets.map((ruleset) => [ruleset.id, ruleset.objection]));
   return (
-    <Radio.Group value={value || null} onChange={onChange} label="Ruleset" labelElement="div">
-      <Stack gap="xs" mt="xs" className={styles.rulesets}>
-        {rulesets.map((ruleset) => (
-          <Radio.Card key={ruleset.id} value={ruleset.id} className={styles.ruleset} disabled={disabled}>
-            <Group wrap="nowrap" align="flex-start" gap="sm">
-              <Radio.Indicator />
-              <Stack gap={2}>
-                <Text fw={700}>{ruleset.name}</Text>
-                <Text size="sm" c={ruleset.objection ? 'red' : 'dimmed'}>
-                  {ruleset.objection ?? 'Both decks are linked. The table checks every card when it prepares.'}
-                </Text>
-              </Stack>
-            </Group>
-          </Radio.Card>
-        ))}
-      </Stack>
-    </Radio.Group>
+    <Select
+      label="Ruleset"
+      placeholder="Choose a ruleset"
+      searchable
+      nothingFoundMessage="No ruleset has that name"
+      value={value || null}
+      onChange={(id) => id && onChange(id)}
+      allowDeselect={false}
+      disabled={disabled}
+      data={rulesets.map((ruleset) => ({ value: ruleset.id, label: ruleset.name }))}
+      renderOption={({ option }) => {
+        const objection = objections.get(option.value);
+        return (
+          <Stack gap={0}>
+            <Text size="sm">{option.label}</Text>
+            {objection ? (
+              <Text size="xs" c="red">
+                {objection}
+              </Text>
+            ) : null}
+          </Stack>
+        );
+      }}
+      description={
+        chosen ? (
+          <Text component="span" size="xs" c={chosen.objection ? 'red' : 'dimmed'}>
+            {chosen.objection ?? 'Both decks are linked. The table checks every card when it prepares.'}
+          </Text>
+        ) : undefined
+      }
+      comboboxProps={{ shadow: 'md' }}
+    />
   );
 }
 
