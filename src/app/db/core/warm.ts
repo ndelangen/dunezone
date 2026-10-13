@@ -14,7 +14,8 @@ export const PAGE_HOLD_MS = 2 * 60_000;
 export const LOADER_HOLD_MS = 30_000;
 /* Sweeping the pointer over a long list preloads every link; past this many holds the oldest is released. */
 const HOLD_LIMIT = 32;
-const warm = new Map<string, { unsubscribe: () => void; timer: ReturnType<typeof setTimeout>; until: number }>();
+type Hold = { unsubscribe: () => void; timer: ReturnType<typeof setTimeout>; until: number };
+const warm = new Map<string, Hold>();
 
 function release(key: string) {
   const held = warm.get(key);
@@ -22,6 +23,27 @@ function release(key: string) {
     clearTimeout(held.timer);
     held.unsubscribe();
     warm.delete(key);
+  }
+}
+
+/* A hold only ever moves later: a loader's short hold must not cut short what a page just asked for. */
+function extend(key: string, held: Hold, until: number, holdMs: number) {
+  warm.delete(key);
+  warm.set(key, held);
+  if (until <= held.until) {
+    return;
+  }
+  clearTimeout(held.timer);
+  held.timer = setTimeout(() => release(key), holdMs);
+  held.until = until;
+}
+
+function releaseOverflow() {
+  for (const oldest of warm.keys()) {
+    if (warm.size <= HOLD_LIMIT) {
+      return;
+    }
+    release(oldest);
   }
 }
 
@@ -39,21 +61,10 @@ export function keepWarm<Query extends FunctionReference<'query'>>(
   const until = Date.now() + holdMs;
   const held = warm.get(key);
   if (held) {
-    warm.delete(key);
-    if (until > held.until) {
-      clearTimeout(held.timer);
-      held.timer = setTimeout(() => release(key), holdMs);
-      held.until = until;
-    }
-    warm.set(key, held);
+    extend(key, held, until, holdMs);
     return;
   }
   const unsubscribe = client.watchQuery(fn, args as never).onUpdate(() => undefined);
   warm.set(key, { unsubscribe, timer: setTimeout(() => release(key), holdMs), until });
-  for (const oldest of warm.keys()) {
-    if (warm.size <= HOLD_LIMIT) {
-      break;
-    }
-    release(oldest);
-  }
+  releaseOverflow();
 }
