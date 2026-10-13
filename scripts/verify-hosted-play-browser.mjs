@@ -1961,6 +1961,7 @@ try {
     spiceBankShortcut,
     carrySteps: CARRY_STEPS,
     capture,
+    evidencePath: (name) => new URL(name, directory).pathname,
     until,
     passed,
     origin,

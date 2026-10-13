@@ -284,6 +284,7 @@ export async function verifyHomepage({
   carrySteps,
   until,
   capture,
+  evidencePath,
   passed,
 }) {
   const member = await account('player-a');
@@ -322,6 +323,11 @@ export async function verifyHomepage({
   });
   let initialCanvas;
   for (const who of [member, guest]) {
+    if (who === guest) {
+      await guest.context
+        .browser()
+        .startTracing(guest.page, { path: evidencePath('homepage-observer-trace.json'), screenshots: true });
+    }
     await who.page.goto(origin, { waitUntil: 'domcontentloaded' });
     await who.page.getByRole('link', { name: 'Take a sneak peek', exact: true }).click();
     await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
@@ -335,7 +341,34 @@ export async function verifyHomepage({
       await capture(member, 'homepage-board-before-slow-artwork');
       releaseArtwork.resolve();
     } else {
-      await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
+      try {
+        await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
+      } catch (error) {
+        /* Experiment: does the stalled page still get animation frames, and what is its main thread doing? */
+        const probe = await who.page
+          .evaluate(
+            () =>
+              new Promise((resolve) => {
+                const start = performance.now();
+                let ticks = 0;
+                setTimeout(() => resolve({ ticks, hidden: document.hidden, focus: document.hasFocus() }), 3000);
+                requestAnimationFrame(function tick() {
+                  ticks += 1;
+                  if (performance.now() - start < 3000) {
+                    requestAnimationFrame(tick);
+                  }
+                });
+              })
+          )
+          .catch((probeError) => ({ probeError: String(probeError) }));
+        console.log(`OBSERVER-PROBE ${JSON.stringify(probe)}`);
+        throw error;
+      } finally {
+        await who.context
+          .browser()
+          .stopTracing()
+          .catch(() => {});
+      }
       assert.equal(await who.page.locator('[data-table-connected="true"]').count(), 0);
       initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
       assert.ok(initialCanvas);
