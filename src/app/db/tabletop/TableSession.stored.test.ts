@@ -234,3 +234,34 @@ test('a table kept while offline ages from when it was last live, not from its l
   expect(load().getSnapshot().table).toBeNull();
   expect(reloaded.getSnapshot().table).not.toBeNull();
 });
+
+test('hovering over an unchanged table writes nothing until the copy is due to be stamped live again', async () => {
+  const client = load();
+  await live();
+  await vi.advanceTimersByTimeAsync(2000);
+  const written = vi.spyOn(tabStorage, 'setItem');
+
+  for (let index = 0; index < 20; index++) {
+    client.setHoveredPiece(index % 2 ? 'a' : null);
+    await vi.advanceTimersByTimeAsync(100);
+  }
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(written).not.toHaveBeenCalled();
+
+  await vi.advanceTimersByTimeAsync(5000);
+  client.setHoveredPiece(null);
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(written).toHaveBeenCalledOnce();
+
+  socket().deliver({
+    type: 'view',
+    viewer,
+    epoch: 'epoch',
+    snapshot: { ...snapshot, bank: { factionId: 'one', balance: 9 } },
+    carries: [],
+    pointers: [],
+  });
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(written).toHaveBeenCalledTimes(2);
+  written.mockRestore();
+});

@@ -9,19 +9,28 @@ import { boardMapGeometry } from './boardMapGeometry';
 const svg = readFileSync(join(import.meta.dirname, 'assets/arrakis-map.svg'), 'utf8');
 
 describe('boardMapGeometry', () => {
+  /* The first build is the one that parses the map, so it is the one watched for warnings. */
+  const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
   const geometry = boardMapGeometry(svg, 4.25);
+  const warnings = warning.mock.calls.flat();
+  warning.mockRestore();
   const positions = geometry.getAttribute('position');
 
   it('loads the map without deprecated SVG conversion warnings', () => {
-    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      boardMapGeometry(svg, 4.25).dispose();
-      expect(
-        warning.mock.calls.flat().filter((message) => String(message).includes('SVGLoader: createShapes()'))
-      ).toEqual([]);
-    } finally {
-      warning.mockRestore();
-    }
+    expect(warnings.filter((message) => String(message).includes('SVGLoader: createShapes()'))).toEqual([]);
+  });
+
+  it('parses the map once, and gives each caller geometry of its own to dispose', () => {
+    const again = boardMapGeometry(svg, 4.25);
+    const position = again.getAttribute('position');
+    /* Identity checks as booleans: a failing `toBe` would diff tens of thousands of vertices. */
+    expect([again === geometry, position === positions, position.array === positions.array]).toEqual([
+      false,
+      false,
+      true,
+    ]);
+    again.dispose();
+    expect(geometry.getAttribute('position') === positions).toBe(true);
   });
 
   it('lays every shape flat on the board, within its radius', () => {

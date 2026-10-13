@@ -179,6 +179,24 @@ function dealRecipients(snapshot: GameSnapshot) {
 }
 
 /* Whether two sets hold the same members, so a table rebuilt for a move keeps the sets a panel already read. */
+/* The same requests in the same order: conversation sends keep their request objects while they wait. */
+function sameRequests(a: readonly unknown[], b: readonly unknown[]) {
+  return a.length === b.length && a.every((request, index) => request === b[index]);
+}
+
+function stampedLiveSince(saved: { live: boolean; at: number }, now: number) {
+  return saved.live && now - saved.at < LIVE_RESTAMP_INTERVAL_MS;
+}
+
+/* The same table and the same waiting messages as a save that already went out. */
+function sameSave(
+  saved: Pick<StoredTable, 'viewer' | 'snapshot'> & { pending: readonly unknown[] },
+  table: Pick<StoredTable, 'viewer' | 'snapshot'>,
+  pending: readonly unknown[]
+) {
+  return saved.viewer === table.viewer && saved.snapshot === table.snapshot && sameRequests(saved.pending, pending);
+}
+
 function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: ReadonlySet<T> | ReadonlyMap<T, unknown>) {
   if (a.size !== b.size) {
     return false;
@@ -197,6 +215,7 @@ const PANEL_CONTROLS = ['spiceReserveControls', 'deckControls', 'deleteControls'
 /*
  * Whether the panels would show `next` as they show `previous`: everything they read is the same, and only where held pieces are on their way differs.
  * A carry moves many times a second, and only the scene follows it, so the panels keep the table they have until something they show changes.
+ * The hovered piece is left out for the same reason: only the scene, the close-up and the keyboard read it, all from the live table.
  */
 function sameForPanels(previous: TableProjection, next: TableProjection) {
   return (
@@ -217,7 +236,6 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     previous.state.selectedPieceId === next.state.selectedPieceId &&
     previous.state.draftMove?.pieceId === next.state.draftMove?.pieceId &&
     previous.gestureActivePieceId === next.gestureActivePieceId &&
-    previous.hoveredPieceId === next.hoveredPieceId &&
     PANEL_CONTROLS.every((key) => Boolean(previous[key]) === Boolean(next[key])) &&
     (previous.peek === null) === (next.peek === null) &&
     sameMembers(previous.remoteCarriedIds, next.remoteCarriedIds) &&
@@ -275,8 +293,8 @@ function notify(listeners: ReadonlySet<() => void>) {
   }
 }
 
-/* How often a table hearing only pointer moves re-saves its kept copy, so a reload knows it was live recently. */
-const POINTER_KEEP_INTERVAL_MS = 5000;
+/* How often a live table whose saved copy is otherwise unchanged stamps that copy as live again. */
+const LIVE_RESTAMP_INTERVAL_MS = 5000;
 
 /* A table a reloaded tab kept from its last visit: read-only, with nothing in hand or in motion, until a fresh view replaces it. */
 function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TableProjection {
@@ -386,7 +404,14 @@ export class TableSession {
   private traitorsGathered = 0;
   private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
-  private keptOnPointersAt = Number.NEGATIVE_INFINITY;
+  /* What `keep` last handed the store, so an emit that changed nothing saved costs no write. */
+  private lastSaved: {
+    viewer: StoredTable['viewer'];
+    snapshot: StoredTable['snapshot'];
+    pending: readonly unknown[];
+    live: boolean;
+    at: number;
+  } | null = null;
   private battleCountdownUntil = 0;
   private pendingBattlePlan: { commandId: string; battleId: string; patch: Partial<BattlePlanInput> } | null = null;
   private queuedBattlePlan: { battleId: string; patch: Partial<BattlePlanInput> } | null = null;
@@ -443,28 +468,49 @@ export class TableSession {
     };
     this.lastLive = { table: storedProjection(stored), serverNow: () => stored.serverNow };
   }
-  /* A table that hears only pointers still stamps its saved copy as live, now and then rather than on every move. */
-  private keepWhilePointersMove() {
-    const now = this.runtime.monotonicNow();
-    if (now - this.keptOnPointersAt >= POINTER_KEEP_INTERVAL_MS) {
-      this.keptOnPointersAt = now;
-      this.keep();
-    }
-  }
+  /*
+   * Saves the table a reload of this tab shows. A carry, a hover or a pointer emits many times a second without changing
+   * what is saved, so an unchanged table is only stamped as live again now and then, never written out on every move.
+   */
   private keep() {
-    const live = this.subscription.getSnapshot();
     if (this.status === 'denied') {
       this.kept = null;
+      this.lastSaved = null;
       this.runtime.tables?.clear(this.game);
       return;
     }
-    const isLive = this.status === 'authorized' && live !== null;
-    if (isLive) {
+    const live = this.status === 'authorized' ? this.subscription.getSnapshot() : null;
+    const pending = this.conversations.unconfirmed();
+    const now = this.runtime.monotonicNow();
+    if (this.alreadySaved(live, pending, now)) {
+      return;
+    }
+    if (live) {
       this.kept = { viewer: live.viewer, snapshot: live.snapshot, serverNow: this.subscription.serverNow() };
     }
     if (this.kept) {
-      this.runtime.tables?.save(this.game, { ...this.kept, pending: this.conversations.unconfirmed() }, isLive);
+      const { viewer, snapshot } = this.kept;
+      this.lastSaved = { viewer, snapshot, pending, live: live !== null, at: now };
+      this.runtime.tables?.save(this.game, { ...this.kept, pending }, live !== null);
     }
+  }
+  /* Whether the store already holds what `keep` would save: the same table and messages, and, for a live table, stamped live recently. */
+  private alreadySaved(
+    live: Pick<StoredTable, 'viewer' | 'snapshot'> | null,
+    pending: readonly unknown[],
+    now: number
+  ) {
+    const saved = this.lastSaved;
+    if (!saved) {
+      return false;
+    }
+    const table = live ?? this.kept;
+    if (!table) {
+      return false;
+    }
+    /* A table that went live or offline since is saved again, and a live one is stamped again once the interval passes. */
+    const sameState = live ? stampedLiveSince(saved, now) : !saved.live;
+    return sameState && sameSave(saved, table, pending);
   }
   readonly conversations: ConversationSession;
   private get status() {
@@ -900,7 +946,7 @@ export class TableSession {
         if (!historyMoved && this.movesOnlyPointers(message)) {
           this.pointers = message.pointers;
           this.emitPointers();
-          this.keepWhilePointersMove();
+          this.keep();
           return;
         }
         this.receiveRoomUpdate(message);
@@ -1142,15 +1188,16 @@ export class TableSession {
     }
   }
   private acceptSnapshot(snapshot: GameSnapshot, previous: GameSnapshot | undefined) {
-    const oldPieces = previous?.table.pieces ?? [];
+    const oldRevisions = new Map(previous?.table.pieces.map((piece) => [piece.id, piece.flipRevision ?? 0]));
     const flips = new Map(this.flipping);
     for (const piece of snapshot.table.pieces) {
-      const old = oldPieces.find((candidate) => candidate.id === piece.id);
-      if (old && (old.flipRevision ?? 0) !== (piece.flipRevision ?? 0)) {
+      const old = oldRevisions.get(piece.id);
+      if (old !== undefined && old !== (piece.flipRevision ?? 0)) {
         flips.set(piece.id, piece.flipRevision ?? 0);
       }
     }
-    this.flipping = new Map([...flips].filter(([id]) => snapshot.table.pieces.some((piece) => piece.id === id)));
+    const present = new Set(snapshot.table.pieces.map((piece) => piece.id));
+    this.flipping = new Map([...flips].filter(([id]) => present.has(id)));
   }
   private competingCarry(local: LocalCarry) {
     const sources = new Set([local.sourceId, ...local.draft.withdrawals.map((withdrawal) => withdrawal.sourcePieceId)]);

@@ -1,4 +1,4 @@
-import { ExtrudeGeometry, Path, Shape, Vector3 } from 'three';
+import { ExtrudeGeometry, Path, Shape, ShapeUtils, Vector3 } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import type { SVGResult } from 'three/examples/jsm/loaders/SVGLoader.js';
 
@@ -33,6 +33,37 @@ export function createPhaseRingGeometry(wellRadius: number): ExtrudeGeometry {
   );
 }
 
+/*
+ * Every table mount builds its phase wells again, and the spice icon is shared by the bank and the stacks, so each symbol is
+ * fetched and parsed once for the page. The parsed paths are only read; each caller extrudes and owns its own geometry.
+ */
+const parsedSymbols = new Map<string, Promise<SVGResult>>();
+
+/* Whether a parsed symbol has any filled area to extrude; a zero-area outline, like a rect without a height, has none. */
+function drawsSomething(svg: SVGResult) {
+  return filledShapes(svg).some((shape) => Math.abs(ShapeUtils.area(shape.getPoints())) > 0);
+}
+
+/* Drops a request only while it is still the cached one, so a later request for the symbol is kept. */
+function forgetSymbol(symbol: string, request: Promise<SVGResult>) {
+  if (parsedSymbols.get(symbol) === request) {
+    parsedSymbols.delete(symbol);
+  }
+}
+
+function parsedSymbol(symbol: string): Promise<SVGResult> {
+  let parsed = parsedSymbols.get(symbol);
+  if (!parsed) {
+    const request = new SVGLoader().loadAsync(symbol);
+    /* A failed fetch, or a body with nothing to draw such as a page served for a missing file, is fetched again by the next mount. */
+    const forget = () => forgetSymbol(symbol, request);
+    request.then((svg) => drawsSomething(svg) || forget(), forget);
+    parsedSymbols.set(symbol, request);
+    parsed = request;
+  }
+  return parsed;
+}
+
 export function loadPhaseSymbolGeometry(
   symbol: string,
   radius: number,
@@ -41,13 +72,17 @@ export function loadPhaseSymbolGeometry(
   let cancelled = false;
   let ownedGeometry: ExtrudeGeometry | null = null;
   const settle = startArtworkLoad();
-  void new SVGLoader()
-    .loadAsync(symbol)
+  const request = parsedSymbol(symbol);
+  void request
     .then((svg) => {
       if (cancelled) {
         return;
       }
       ownedGeometry = createPhaseSymbolGeometry(svg, radius);
+      if (!ownedGeometry) {
+        /* The area check can pass a shape too small to build, such as one that collapses in single precision. */
+        forgetSymbol(symbol, request);
+      }
       onLoaded(ownedGeometry);
     })
     .catch(() => {
