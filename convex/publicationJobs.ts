@@ -218,7 +218,8 @@ export const normalizeJobId = internalQuery({
  * Component hashes also bind the saved member version, so an expired capture cannot complete a reused job.
  */
 export const readJobForRender = internalQuery({
-  args: { jobId: v.id('publication_jobs') },
+  /* Any string: an id that names no job reads as no job, so the render endpoint needs no separate normalizing call. */
+  args: { jobId: v.string() },
   returns: v.union(
     v.object({
       assetType: v.union(...PUBLICATION_ASSET_TYPES.map((assetType) => v.literal(assetType))),
@@ -228,7 +229,8 @@ export const readJobForRender = internalQuery({
     v.null()
   ),
   handler: async (ctx, args) => {
-    const job = await ctx.db.get(args.jobId);
+    const jobId = ctx.db.normalizeId('publication_jobs', args.jobId);
+    const job = jobId ? await ctx.db.get(jobId) : null;
     if (job?.status !== 'in_progress' || (job.expires_at ?? 0) <= Date.now()) {
       return null;
     }

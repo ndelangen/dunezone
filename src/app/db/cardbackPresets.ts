@@ -1,10 +1,9 @@
-import { useQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 
 import { api } from '../../../convex/_generated/api';
-import { useLiveMutation } from './core/live';
+import { useLiveMutation, useLiveQuery } from './core/live';
 export function useCardbackPresets() {
-  return useQuery(api.cardbackPresets.list, {});
+  return useLiveQuery(api.cardbackPresets.list, {});
 }
 export function useSaveCardbackPreset() {
   return useLiveMutation<

@@ -30,7 +30,17 @@
     },
     {
       "matchPackageNames": ["three", "@react-three/fiber", "@storybook/tanstack-react", "@convex-dev/auth"],
+      "groupName": null,
       "dependencyDashboardApproval": true
+    },
+    {
+      "matchPackageNames": ["storybook", "@storybook/**"],
+      "groupName": "Storybook",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchPackageNames": ["ghcr.io/get-convex/convex-backend", "ghcr.io/get-convex/convex-dashboard"],
+      "groupName": "Local Convex images"
     }
   ]
 }

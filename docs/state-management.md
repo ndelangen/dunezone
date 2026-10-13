@@ -23,8 +23,15 @@ flowchart TD
 - **Loader.** [`db.query`](../src/app/db/core/index.ts) from `src/app/db/core/index.ts`, awaited
   before the route renders. During prerendering and public request-time SSR it uses a fresh anonymous
   `ConvexHttpClient`. Browser loaders keep the existing authenticated client.
-- **Subscription.** `useQuery` from `convex/react` inside the domain hook, handed the loader's
-  result as `initialData` so the first render has data and later renders are live.
+- **Subscription.** `useLiveQuery` from `src/app/db/core/live.ts` inside the domain hook, handed the
+  loader's result as `initialData` so the first render has data and later renders are live.
+  `useLiveQuery` is Convex's `useQuery` plus a hold
+  ([`warm.ts`](../src/app/db/core/warm.ts)): the subscription stays open for two minutes after the
+  page unmounts, and a browser loader's query for thirty seconds, so going back to a page or
+  clicking a hovered link answers from the browser. Holds are capped and expire on their own; nothing
+  invalidates them, because Convex keeps them live. Probes whose arguments change as someone types,
+  pickers and admin screens use plain `useQuery`, since each argument value would otherwise stay
+  subscribed.
 
 ## Domain hook shape
 
@@ -32,7 +39,7 @@ Every read hook in `src/app/db/<domain>.ts` is the same three lines: subscribe, 
 
 ```typescript
 export function useFaction(slug: string, options?: { initialData?: FactionDetailPageData }) {
-  const liveData = useQuery(api.factions.pageBySlug, { slug });
+  const liveData = useLiveQuery(api.factions.pageBySlug, { slug });
   const normalized = liveData ? toFactionDetailPageData(liveData) : undefined;
   return toLiveQueryResult(normalized, () => options?.initialData);
 }

@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import type { z } from 'zod';
 
 import { db } from '@db/core';
-import { toLiveQueryResult, useLiveOperation } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveOperation, useLiveQuery } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
@@ -18,12 +18,12 @@ export type CreatableRuleset = Extract<
 
 /** What a game page learns before it opens a socket: whether the viewer may enter and whether the table is ready. */
 export function useGameAccess(address: string) {
-  return toLiveQueryResult(useQuery(api.playGames.getGameByAddress, { address }));
+  return toLiveQueryResult(useLiveQuery(api.playGames.getGameByAddress, { address }));
 }
 
 /** The lobby's ongoing and past games, as the directory may show them to this viewer. */
 export function useLobbyGames() {
-  return toLiveQueryResult(useQuery(api.playDirectory.listGames, {}));
+  return toLiveQueryResult(useLiveQuery(api.playDirectory.listGames, {}));
 }
 
 /** What a chosen ruleset puts on the table, as the create page's manifest lists it. */
