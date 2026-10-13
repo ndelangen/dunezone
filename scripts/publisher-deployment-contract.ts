@@ -98,6 +98,10 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
       not_found_handling: 'single-page-application',
       run_worker_first: [
         '/',
+        '/auth/signin',
+        '/auth/signin/*',
+        '/auth/callback',
+        '/auth/callback/*',
         '/__asset-publisher',
         '/__asset-publisher/*',
         '/social',
@@ -144,6 +148,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
       USER_IMAGE_PUBLIC_BASE_URL: APPLICATION_ORIGIN,
       CAPTURE_BASE_URL: PUBLISHER_ORIGIN,
       CONVEX_EXECUTOR_BASE_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/executor`,
+      CONVEX_AUTH_BASE_URL: PUBLISHER_CONVEX_SITE_ORIGIN,
       CONVEX_RENDER_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/render`,
       CONVEX_CLOUD_BASE_URL: PUBLISHER_PRODUCTION_CONVEX_URL,
       GIT_SHA: 'development',

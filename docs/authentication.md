@@ -34,6 +34,37 @@ after disconnection.
 
 ## Convex Auth
 
+Production sign-in starts at `https://dune.zone/auth/signin/google` or
+`https://dune.zone/auth/signin/discord`. Providers return to `/auth/callback/google`
+and `/auth/callback/discord` on the same origin. The publisher Worker forwards
+those paths to Convex Auth's `/api/auth` handlers. `/api` on dune.zone stays available
+for future application APIs.
+
+`convex/auth.production.env` sets the public origin and path together after the
+Worker deploys and passes its smoke checks. `CUSTOM_AUTH_SITE_URL` is Convex Auth's
+documented origin override. The pinned `@convex-dev/auth` patch adds
+`CUSTOM_AUTH_PATH` to its two URL builders, defaulting to the library's `/api/auth`
+path when absent. Both compiled JavaScript and TypeScript source carry the patch;
+remove it when upstream supports a public path override. Backend HTTP routes keep
+their existing paths.
+
+The token issuer, signing keys, auth tables and Convex client URL remain unchanged.
+Existing sessions can refresh through the same backend. Keep each provider's old
+callback registration for rollback. Removing the two `CUSTOM_AUTH_*` variables
+returns new sign-ins to the Convex address; a sign-in already in progress during
+either switch may need to restart.
+
+The auth proxy forwards only the selected provider's OAuth cookies, preserves
+individual `Set-Cookie` headers and browser redirects, and never caches responses.
+Its handler does not log request URLs, codes or cookies. Platform request logging
+is separate from handler logging.
+
+Google and Discord share the approved site icon and the name "Dune Zone". Discord's
+description is "Homebrew tools for the Dune board game." The exports live in
+[`technical/auth-domain-branding/`](technical/auth-domain-branding/); their source
+is [`public/dune-zone-favicon.svg`](../public/dune-zone-favicon.svg). Google's
+published display name and logo depend on its brand-verification status.
+
 **Client**: [`src/app/db/core/index.ts`](../src/app/db/core/index.ts)
 
 ```typescript
