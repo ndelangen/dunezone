@@ -67,7 +67,7 @@ type PublicationJobValidation = { status: 'valid'; body: unknown } | { status: '
 
 /*
  * Job ids this isolate validated a moment ago, so a capture page's hashed bundle files do not each ask Convex again.
- * Only the bundle reuses it: the document and the snapshot still validate on every request.
+ * Only the hashed bundle files reuse it: the documents and the snapshot still validate on every request.
  */
 const RECENT_VALIDATION_MS = 15_000;
 const RECENT_VALIDATION_LIMIT = 256;
@@ -89,6 +89,9 @@ export function forgetRecentCaptureValidations() {
 }
 
 function validatedRecently(request: Request) {
+  if (new URL(request.url).pathname === CAPTURE_PROTOCOL.paths.bundleDocument) {
+    return false;
+  }
   const jobId = publicationJobId(request);
   return jobId !== undefined && (recentlyValid.get(jobId) ?? 0) > Date.now();
 }

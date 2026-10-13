@@ -1,7 +1,7 @@
 import { makeFunctionReference } from 'convex/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { keepWarm, LOADER_HOLD_MS, PAGE_HOLD_MS } from './warm';
+import { keepWarm, LOADER_HOLD_MS, PAGE_HOLD_MS, releaseAllHolds } from './warm';
 
 const page = makeFunctionReference<'query', { slug: string }>('factions:pageBySlug');
 
@@ -35,6 +35,16 @@ describe('keepWarm', () => {
     expect(open.has('atreides')).toBe(true);
     vi.advanceTimersByTime(1);
     expect(open.has('atreides')).toBe(false);
+  });
+
+  test('signing in or out lets go of every hold at once', () => {
+    const { client, watchQuery, open } = fakeClient();
+    keepWarm(client, page, { slug: 'atreides' }, PAGE_HOLD_MS);
+    keepWarm(client, page, { slug: 'harkonnen' }, LOADER_HOLD_MS);
+    releaseAllHolds();
+    expect(open.size).toBe(0);
+    keepWarm(client, page, { slug: 'atreides' }, LOADER_HOLD_MS);
+    expect(watchQuery).toHaveBeenCalledTimes(3);
   });
 
   test('a shorter hold never cuts a longer one short', () => {

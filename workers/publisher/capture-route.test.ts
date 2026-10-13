@@ -109,6 +109,20 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(upstream).toHaveBeenCalledOnce();
   });
 
+  test('the capture HTML validates afresh even right after the bundle was validated', async () => {
+    const upstream = stubValidJob();
+    for (const pathname of ['/publisher-capture/entry-hash.js', '/publisher-capture.html']) {
+      const response = await handleCaptureRoute(
+        new Request(`https://publisher.example.com${pathname}`, {
+          headers: { Cookie: `__Host-publication_job=${jobId}` },
+        }),
+        env(vi.fn(async () => new Response('bundle')))
+      );
+      expect(response?.status, pathname).toBe(200);
+    }
+    expect(upstream).toHaveBeenCalledTimes(2);
+  });
+
   test.each([
     ['arbitrary token', 'arbitrary-capability-000000001'],
     ['invalid signature', 'invalid-signature-00000000001'],

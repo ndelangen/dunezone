@@ -38,6 +38,13 @@ function extend(key: string, held: Hold, until: number, holdMs: number) {
   held.until = until;
 }
 
+/* Whoever signs in or out next must not be answered from what the previous identity was allowed to read. */
+export function releaseAllHolds() {
+  for (const key of warm.keys()) {
+    release(key);
+  }
+}
+
 function releaseOverflow() {
   for (const oldest of warm.keys()) {
     if (warm.size <= HOLD_LIMIT) {
