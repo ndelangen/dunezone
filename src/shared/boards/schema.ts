@@ -59,7 +59,9 @@ const edge = z
   });
 const decal = z.strictObject({
   id: identity,
-  artwork: ALL.refine((path) => path.startsWith('/vector/'), { message: 'Choose bundled vector artwork' }),
+  artwork: z.string().refine((path) => path.startsWith('/vector/') && ALL.safeParse(path).success, {
+    message: 'Choose bundled vector artwork',
+  }),
   x: finite,
   y: finite,
   scale: finite.positive().max(487.06),
@@ -93,25 +95,38 @@ export function territoryNameError(name: string, otherNames: string[]): string |
   return otherNames.some((other) => territoryId(other) === id) ? `Territory ID "${id}" is already in use` : undefined;
 }
 
+const propertyShape = {
+  name: z.string(),
+  /* Older boards omit the ID; the name always supplies the saved value. */
+  id: z.string(),
+  type: z.enum(['sand', 'rock', 'stronghold', 'polar']),
+  insetLine: z.enum(['none', 'solid', 'dashed']),
+  decals: z.array(decal.extend({ artwork: z.string() })),
+  appearance: z.array(contour).max(8).optional(),
+  paintOrder: finite.optional(),
+  border: z
+    .strictObject({
+      width: finite.min(0).max(50),
+      linecap: z.enum(['round', 'square', 'butt']),
+      linejoin: z.enum(['round', 'bevel', 'miter']),
+    })
+    .optional(),
+};
 const properties = z
   .strictObject({
+    ...propertyShape,
     name: territoryName,
-    /* Older boards omit the ID; the name always supplies the saved value. */
     id: z.string().optional(),
-    type: z.enum(['sand', 'rock', 'stronghold', 'polar']),
-    insetLine: z.enum(['none', 'solid', 'dashed']),
     decals: z.array(decal).max(128),
-    appearance: z.array(contour).max(8).optional(),
-    paintOrder: finite.optional(),
-    border: z
-      .strictObject({
-        width: finite.min(0).max(50),
-        linecap: z.enum(['round', 'square', 'butt']),
-        linejoin: z.enum(['round', 'bevel', 'miter']),
-      })
-      .optional(),
   })
   .transform((property) => ({ ...property, id: territoryId(property.name) }));
+
+/* Retained games read structure without renaming territories or consulting today's artwork catalogue. */
+export const HistoricalBoardDefinition = z.object({
+  nodes: z.record(z.string(), point),
+  edges: z.array(edge),
+  properties: z.record(z.string(), z.object(propertyShape)),
+});
 
 /** Saved linework and properties own both the rendered map and its targeting geometry. */
 export const BoardDefinition = z
@@ -171,10 +186,10 @@ export const BoardAsset = z.strictObject({
   about: z.string().trim(),
   board: BoardDefinition,
 });
-export type Board = z.infer<typeof BoardDefinition>;
+export type Board = z.infer<typeof HistoricalBoardDefinition>;
 export type Point = z.infer<typeof point>;
 export type Edge = z.infer<typeof edge>;
 export type Properties = z.infer<typeof properties>;
-export type Decal = z.infer<typeof decal>;
+export type Decal = Board['properties'][string]['decals'][number];
 export type AppearanceContour = z.infer<typeof contour>;
 export type BoardAssetData = z.infer<typeof BoardAsset>;

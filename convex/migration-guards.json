@@ -1,7 +1,15 @@
 {
   "entries": [
-    { "id": "faction_member_ids_v1", "phase": "widen", "requires": [] },
-    { "id": "faction_member_ids_verify_v1", "phase": "widen", "requires": ["faction_member_ids_v1"] },
+    {
+      "id": "faction_member_ids_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "faction_member_ids_verify_v1",
+      "phase": "widen",
+      "requires": ["faction_member_ids_v1"]
+    },
     {
       "id": "faction_member_ids_narrow",
       "phase": "narrow",
@@ -323,10 +331,23 @@
       "phase": "widen",
       "requires": ["faction_faction_leader_key_v1"]
     },
-    { "id": "account_connections_expire_v1", "phase": "widen", "requires": [] },
-    { "id": "auth_session_expiry_jobs_v1", "phase": "widen", "requires": [] },
+    {
+      "id": "account_connections_expire_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "auth_session_expiry_jobs_v1",
+      "phase": "widen",
+      "requires": []
+    },
     {
       "id": "play_hosted_fixture_retire_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "board_readiness_v1",
       "phase": "widen",
       "requires": []
     }

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.mjs';
 import { admitPlayer, createPeer, createRuntime, eventually, provision, syncView } from './native-runtime.fixture.mjs';
 
@@ -21,6 +22,7 @@ describe('A real game removes its deleted creator from retained names', () => {
       peer.catalogue.set(`${page.asset.type}/${page.asset.slug}`, page);
     }
     peer.rulesets.set('ruleset-one', {
+      board: arrakisBoardCapture,
       ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
       slots: [slot('treachery', treachery), slot('spice', spice)],
     });

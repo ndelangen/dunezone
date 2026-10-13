@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { PLAY_DIRECTORY_ACTIVITY_MS, PLAY_DIRECTORY_RETRY_MS } from '../../src/shared/play/directory';
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { TABLE_PHASES } from '../../src/shared/play/phases';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.mjs';
 import {
@@ -28,6 +29,7 @@ describe('A real game keeps the directory current', () => {
       peer.catalogue.set(`${page.asset.type}/${page.asset.slug}`, page);
     }
     peer.rulesets.set('ruleset-one', {
+      board: arrakisBoardCapture,
       ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
       slots: [slot('treachery', treachery), slot('spice', spice)],
     });

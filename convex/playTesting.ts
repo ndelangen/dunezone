@@ -9,6 +9,7 @@ import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishin
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { ensureFactionTroopIds } from '../src/shared/factions/troopIdentity';
 import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
+import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
@@ -268,6 +269,13 @@ export const seedRealGameCatalogue = internalMutation({
       about: 'A disposable ruleset for isolated browser verification.',
       image_cover: null,
     });
+    const boardId = await ctx.db.insert('assets', {
+      ...row,
+      type: 'board',
+      slug: `synthetic-board-${suffix}`,
+      data: { name: 'Arrakis Official', about: '', board: arrakisBoardCapture.definition },
+    });
+    await ctx.db.insert('ruleset_asset_slots', { ruleset_id: rulesetId, asset_id: boardId, slot: 'board' });
     for (const slot of ['treachery', 'spice'] as const) {
       const deckId = await ctx.db.insert('assets', {
         ...row,

@@ -398,7 +398,11 @@ function RulesetField({
       onChange={(id) => id && onChange(id)}
       allowDeselect={false}
       disabled={disabled}
-      data={rulesets.map((ruleset) => ({ value: ruleset.id, label: ruleset.name }))}
+      data={rulesets.map((ruleset) => ({
+        value: ruleset.id,
+        label: ruleset.name,
+        disabled: !ruleset.selectable,
+      }))}
       renderOption={({ option }) => {
         const objection = objections.get(option.value);
         return (
@@ -415,7 +419,7 @@ function RulesetField({
       description={
         chosen ? (
           <Text component="span" size="xs" c={chosen.objection ? 'red' : 'dimmed'}>
-            {chosen.objection ?? 'Both decks are linked. The table checks every card when it prepares.'}
+            {chosen.objection ?? 'The board and decks are linked. The table checks every card when it prepares.'}
           </Text>
         ) : undefined
       }

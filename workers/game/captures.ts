@@ -12,6 +12,7 @@ type Row = { data: string };
  */
 export class CaptureStore {
   /* Captures never change once retained, so their declarations are read once and dropped only when another faction arrives. */
+  private retainedRuleset: RulesetCapture | undefined;
   private declarations: FactionPhaseDeclarations[] | undefined;
 
   constructor(private readonly storage: DurableObjectStorage) {
@@ -21,8 +22,12 @@ export class CaptureStore {
   }
 
   ruleset(): RulesetCapture | undefined {
+    if (this.retainedRuleset) {
+      return this.retainedRuleset;
+    }
     const row = this.storage.sql.exec<Row>("SELECT data FROM captures WHERE kind='ruleset' LIMIT 1").toArray()[0];
-    return row ? rulesetCaptureSchema.parse(JSON.parse(row.data)) : undefined;
+    this.retainedRuleset = row ? rulesetCaptureSchema.parse(JSON.parse(row.data)) : undefined;
+    return this.retainedRuleset;
   }
 
   faction(factionId: string): FactionCapture | undefined {

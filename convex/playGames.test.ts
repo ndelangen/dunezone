@@ -14,6 +14,7 @@ import {
   PLAY_PROFILE_SLUG_MAX_LENGTH,
 } from '../src/shared/play/admission';
 import type { playStageSchema } from '../src/shared/play/admission';
+import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import { PLAY_SEAT_LIMIT } from '../src/shared/play/seatLimit';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -80,6 +81,19 @@ async function catalogue(ctx: MutationCtx, owner: Id<'users'>) {
   await link(emptySpice, 'spice', await asset('deck', 'spice-empty'));
   const unlinked = await ctx.db.insert('rulesets', { ...ruleset, name: 'Bare', slug: 'bare' });
   const deleted = await ctx.db.insert('rulesets', { ...ruleset, name: 'Retired', slug: 'retired', is_deleted: true });
+  const boardId = await ctx.db.insert('assets', {
+    owner_id: owner,
+    type: 'board',
+    data: { name: 'Arrakis', about: '', board: arrakisBoardCapture.definition },
+    slug: 'arrakis',
+    created_at: stamp,
+    updated_at: stamp,
+    is_deleted: false,
+    group_id: null,
+  });
+  for (const rulesetId of [ready, emptySpice, unlinked]) {
+    await ctx.db.insert('ruleset_asset_slots', { ruleset_id: rulesetId, asset_id: boardId, slot: 'board' });
+  }
   return { ready, emptySpice, unlinked, deleted };
 }
 
@@ -219,6 +233,7 @@ describe('real games are created and entered by any signed-in player, Administra
     }
     expect(listing.preview?.rulesetId).toBe(rulesets.ready);
     expect(listing.preview?.packed.map(({ slot, name, count }) => [slot, name, count])).toEqual([
+      ['board', 'Arrakis', 1],
       ['treachery', 'treachery', 2],
       ['spice', 'spice', 2],
     ]);

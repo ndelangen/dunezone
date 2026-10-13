@@ -221,3 +221,29 @@ export const GeneratedNameCreated = meta.story({
     expect(page.getByRole('heading', { level: 1 })).toHaveTextContent(name);
   },
 });
+
+export const MissingBoard = meta.story({
+  parameters: {
+    ...signedIn,
+    database: db((baseline) => {
+      productDatabase(baseline);
+      baseline.ruleset_asset_slots = baseline.ruleset_asset_slots.filter((slot) => slot.slot !== 'board');
+      baseline.authSessions.push({
+        $key: 'create-session',
+        userId: ref(storybookViewer.subjectKey),
+        expirationTime: 4_102_444_800_000,
+      });
+      baseline.authRefreshTokens.push({ sessionId: ref('create-session'), expirationTime: 4_102_444_800_000 });
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('combobox', { name: 'Ruleset' }));
+    const option = await page.findByRole('option', { name: /^Dreamrules/ });
+    expect(option).toHaveAttribute('data-combobox-disabled', 'true');
+    await userEvent.click(option);
+    expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveValue('');
+    expect(option).toHaveTextContent('No usable board is linked.');
+    expect(page.getByRole('button', { name: 'Create game' })).toBeDisabled();
+  },
+});

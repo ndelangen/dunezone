@@ -930,20 +930,34 @@ export class GameRoom extends DurableObject<GameEnv> {
     });
   }
 
-  private async admit(socket: WebSocket, connection: Connection, ticket: string, replaces?: string) {
+  private canAdmit(socket: WebSocket, connection: Connection, request: Extract<ClientMessage, { type: 'admit' }>) {
     if (connection.admitting || connection.viewer) {
       this.refuseAdmission(socket, 'duplicate');
+      return false;
+    }
+    if (this.session.hasRetainedBoard && !request.supportsBoard) {
+      /* Older clients reject the new status and already show their refresh message. No game view or commands pass this gate. */
+      this.sendAdmission(socket, 'refresh');
+      this.disconnect(socket);
+      socket.close(ADMISSION_REFUSED_CLOSE_CODE, 'Refresh to load this board.');
+      return false;
+    }
+    return true;
+  }
+
+  private async admit(socket: WebSocket, connection: Connection, request: Extract<ClientMessage, { type: 'admit' }>) {
+    if (!this.canAdmit(socket, connection, request)) {
       return;
     }
     connection.admitting = true;
-    connection.replaces = replaces;
+    connection.replaces = request.replaces;
     /* A reconciliation that just failed waits out its backoff; a browser retrying meanwhile must not reach Convex ahead of it. */
     if (this.reconciliationBackingOff()) {
       this.closeUnavailable(socket);
       return;
     }
     try {
-      const result = await this.redeemAdmission(ticket);
+      const result = await this.redeemAdmission(request.ticket);
       try {
         await this.reconcileAccounts();
       } catch (error) {
@@ -1197,7 +1211,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     if (message.type === 'admit') {
-      await this.admit(socket, connection, message.ticket, message.replaces);
+      await this.admit(socket, connection, message);
       return;
     }
     if (message.type === 'pointer' || message.type === 'pose') {
@@ -2100,7 +2114,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private sendAdmission(socket: WebSocket, status: 'suspended' | 'denied') {
+  private sendAdmission(socket: WebSocket, status: 'suspended' | 'denied' | 'refresh') {
     if (socket.readyState === WebSocket.OPEN) {
       try {
         socket.send(JSON.stringify({ type: 'admission', status } satisfies ServerMessage));
