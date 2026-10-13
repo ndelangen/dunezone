@@ -2,10 +2,132 @@ diff --git a/node_modules/three/.bun-tag-cfe6290c95bb4ce1 b/.bun-tag-cfe6290c95b
 new file mode 100644
 index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/build/three.webgpu.js b/build/three.webgpu.js
-index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..9c356543d7ea8932c9aa71074489a25ca1c0b674 100644
+index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..02393601925165b8ce2c269fcddd02934456d6f7 100644
 --- a/build/three.webgpu.js
 +++ b/build/three.webgpu.js
-@@ -32897,6 +32897,12 @@ class Bindings extends DataMap {
+@@ -30110,6 +30110,9 @@ class RenderObject {
+ 	 */
+ 	setGeometry( geometry ) {
+ 
++		this.geometry.removeEventListener( 'dispose', this.onGeometryDispose );
++		geometry.addEventListener( 'dispose', this.onGeometryDispose );
++
+ 		this.geometry = geometry;
+ 		this.attributes = null;
+ 		this.attributesId = null;
+@@ -30565,9 +30568,9 @@ class RenderObject {
+ 	}
+ 
+ 	/**
+-	 * Frees internal resources.
++	 * Removes the listeners this render object put on its material and geometry.
+ 	 */
+-	dispose() {
++	removeDisposeListeners() {
+ 
+ 		this.material.removeEventListener( 'dispose', this.onMaterialDispose );
+ 		this.geometry.removeEventListener( 'dispose', this.onGeometryDispose );
+@@ -30578,6 +30581,15 @@ class RenderObject {
+ 
+ 		}
+ 
++	}
++
++	/**
++	 * Frees internal resources.
++	 */
++	dispose() {
++
++		this.removeDisposeListeners();
++
+ 		this.onDispose();
+ 
+ 	}
+@@ -30655,6 +30667,22 @@ class RenderObjects {
+ 		 */
+ 		this.chainMaps = {};
+ 
++		/**
++		 * The render objects this component created and that are not disposed yet, held weakly.
++		 *
++		 * @private
++		 * @type {Set<WeakRef<RenderObject>>}
++		 */
++		this._renderObjects = new Set();
++
++		/**
++		 * The size at which dead entries are next pruned from `_renderObjects`.
++		 *
++		 * @private
++		 * @type {number}
++		 */
++		this._pruneAt = 1024;
++
+ 	}
+ 
+ 	/**
+@@ -30755,6 +30783,17 @@ class RenderObjects {
+ 	 */
+ 	dispose() {
+ 
++		// a geometry or material that outlives the renderer (a shared or module-level one, such as the quad of an
++		// output pass) would otherwise keep each render object, and through it the whole renderer, alive
++
++		for ( const ref of this._renderObjects ) {
++
++			ref.deref()?.removeDisposeListeners();
++
++		}
++
++		this._renderObjects.clear();
++
+ 		this.chainMaps = {};
+ 
+ 	}
+@@ -30781,8 +30820,26 @@ class RenderObjects {
+ 
+ 		const renderObject = new RenderObject( nodes, geometries, renderer, object, material, scene, camera, lightsNode, renderContext, clippingContext );
+ 
++		const ref = new WeakRef( renderObject );
++
++		this._renderObjects.add( ref );
++
++		if ( this._renderObjects.size >= this._pruneAt ) {
++
++			for ( const entry of this._renderObjects ) {
++
++				if ( entry.deref() === undefined ) this._renderObjects.delete( entry );
++
++			}
++
++			this._pruneAt = Math.max( 1024, this._renderObjects.size * 2 );
++
++		}
++
+ 		renderObject.onDispose = () => {
+ 
++			this._renderObjects.delete( ref );
++
+ 			this.pipelines.delete( renderObject );
+ 			this.bindings.deleteForRender( renderObject );
+ 			this.nodes.delete( renderObject );
+@@ -31227,6 +31284,15 @@ class Geometries extends DataMap {
+ 
+ 			}
+ 
++			// the render object that first drew the geometry lists only the attributes its material read; a later
++			// material may have uploaded others (a textured face's uv), which would otherwise keep their buffers
++
++			for ( const name in geometry.attributes ) {
++
++				this.attributes.delete( geometry.attributes[ name ] );
++
++			}
++
+ 			const wireframeAttribute = this.wireframes.get( geometry );
+ 
+ 			if ( wireframeAttribute !== undefined ) {
+@@ -32897,6 +32963,12 @@ class Bindings extends DataMap {
  
  							this.backend.destroySampler( binding );
  
@@ -18,7 +140,115 @@ index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..9c356543d7ea8932c9aa71074489a25c
  						}
  
  						binding.release();
-@@ -67143,6 +67149,25 @@ class WebGLAttributeUtils {
+@@ -34021,6 +34093,71 @@ class Textures extends DataMap {
+ 		 */
+ 		this._htmlTextures = new Set();
+ 
++		/**
++		 * The textures and render targets this component listens to for disposal, held weakly.
++		 *
++		 * @private
++		 * @type {Set<WeakRef<Texture|RenderTarget>>}
++		 */
++		this._disposeTargets = new Set();
++
++	}
++
++	/**
++	 * Remembers that this component listens to the given texture or render target for disposal,
++	 * so {@link Textures#dispose} can remove the listener again.
++	 *
++	 * @private
++	 * @param {Texture|RenderTarget} target - The texture or render target.
++	 * @param {Object} targetData - The target's data.
++	 */
++	_listenForDispose( target, targetData ) {
++
++		target.addEventListener( 'dispose', targetData.onDispose );
++
++		targetData.disposeTarget = new WeakRef( target );
++		this._disposeTargets.add( targetData.disposeTarget );
++
++	}
++
++	/**
++	 * Removes this component's disposal listener from the given texture or render target.
++	 *
++	 * @private
++	 * @param {Texture|RenderTarget} target - The texture or render target.
++	 * @param {Object} targetData - The target's data.
++	 */
++	_stopListeningForDispose( target, targetData ) {
++
++		target.removeEventListener( 'dispose', targetData.onDispose );
++
++		this._disposeTargets.delete( targetData.disposeTarget );
++
++	}
++
++	/**
++	 * Frees internal resources. A texture or render target that outlives the renderer (a module-level
++	 * texture such as the DFG LUT, or one an application caches) would otherwise keep this component,
++	 * and through it the whole renderer, alive through its disposal listener.
++	 */
++	dispose() {
++
++		for ( const disposeTarget of this._disposeTargets ) {
++
++			const target = disposeTarget.deref();
++
++			if ( target !== undefined && this.has( target ) === true ) {
++
++				target.removeEventListener( 'dispose', this.get( target ).onDispose );
++
++			}
++
++		}
++
++		this._disposeTargets.clear();
++
++		super.dispose();
++
+ 	}
+ 
+ 	/**
+@@ -34153,7 +34290,7 @@ class Textures extends DataMap {
+ 
+ 			};
+ 
+-			renderTarget.addEventListener( 'dispose', renderTargetData.onDispose );
++			this._listenForDispose( renderTarget, renderTargetData );
+ 
+ 		}
+ 
+@@ -34373,7 +34510,7 @@ class Textures extends DataMap {
+ 
+ 			};
+ 
+-			texture.addEventListener( 'dispose', textureData.onDispose );
++			this._listenForDispose( texture, textureData );
+ 
+ 		}
+ 
+@@ -34524,7 +34661,7 @@ class Textures extends DataMap {
+ 
+ 			//
+ 
+-			renderTarget.removeEventListener( 'dispose', renderTargetData.onDispose );
++			this._stopListeningForDispose( renderTarget, renderTargetData );
+ 
+ 			//
+ 
+@@ -34563,7 +34700,7 @@ class Textures extends DataMap {
+ 
+ 			//
+ 
+-			texture.removeEventListener( 'dispose', textureData.onDispose );
++			this._stopListeningForDispose( texture, textureData );
+ 
+ 			// if a texture is not ready for use, it falls back to a default texture so it's possible
+ 			// to use it for rendering. If a texture in this state is disposed, it's important to
+@@ -67143,6 +67280,25 @@ class WebGLAttributeUtils {
  
  		const attributeData = backend.get( attribute );
  
@@ -45,10 +275,132 @@ index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..9c356543d7ea8932c9aa71074489a25c
  
  		backend.delete( attribute );
 diff --git a/build/three.webgpu.nodes.js b/build/three.webgpu.nodes.js
-index f707acc24f5711fdae065ce920b08435b0869c1b..19a4a88bd9ebd13e9bfd6791257b4b3014ac71b8 100644
+index f707acc24f5711fdae065ce920b08435b0869c1b..7b4f65b794106adc99d72046402a9230ec81d75d 100644
 --- a/build/three.webgpu.nodes.js
 +++ b/build/three.webgpu.nodes.js
-@@ -32897,6 +32897,12 @@ class Bindings extends DataMap {
+@@ -30110,6 +30110,9 @@ class RenderObject {
+ 	 */
+ 	setGeometry( geometry ) {
+ 
++		this.geometry.removeEventListener( 'dispose', this.onGeometryDispose );
++		geometry.addEventListener( 'dispose', this.onGeometryDispose );
++
+ 		this.geometry = geometry;
+ 		this.attributes = null;
+ 		this.attributesId = null;
+@@ -30565,9 +30568,9 @@ class RenderObject {
+ 	}
+ 
+ 	/**
+-	 * Frees internal resources.
++	 * Removes the listeners this render object put on its material and geometry.
+ 	 */
+-	dispose() {
++	removeDisposeListeners() {
+ 
+ 		this.material.removeEventListener( 'dispose', this.onMaterialDispose );
+ 		this.geometry.removeEventListener( 'dispose', this.onGeometryDispose );
+@@ -30578,6 +30581,15 @@ class RenderObject {
+ 
+ 		}
+ 
++	}
++
++	/**
++	 * Frees internal resources.
++	 */
++	dispose() {
++
++		this.removeDisposeListeners();
++
+ 		this.onDispose();
+ 
+ 	}
+@@ -30655,6 +30667,22 @@ class RenderObjects {
+ 		 */
+ 		this.chainMaps = {};
+ 
++		/**
++		 * The render objects this component created and that are not disposed yet, held weakly.
++		 *
++		 * @private
++		 * @type {Set<WeakRef<RenderObject>>}
++		 */
++		this._renderObjects = new Set();
++
++		/**
++		 * The size at which dead entries are next pruned from `_renderObjects`.
++		 *
++		 * @private
++		 * @type {number}
++		 */
++		this._pruneAt = 1024;
++
+ 	}
+ 
+ 	/**
+@@ -30755,6 +30783,17 @@ class RenderObjects {
+ 	 */
+ 	dispose() {
+ 
++		// a geometry or material that outlives the renderer (a shared or module-level one, such as the quad of an
++		// output pass) would otherwise keep each render object, and through it the whole renderer, alive
++
++		for ( const ref of this._renderObjects ) {
++
++			ref.deref()?.removeDisposeListeners();
++
++		}
++
++		this._renderObjects.clear();
++
+ 		this.chainMaps = {};
+ 
+ 	}
+@@ -30781,8 +30820,26 @@ class RenderObjects {
+ 
+ 		const renderObject = new RenderObject( nodes, geometries, renderer, object, material, scene, camera, lightsNode, renderContext, clippingContext );
+ 
++		const ref = new WeakRef( renderObject );
++
++		this._renderObjects.add( ref );
++
++		if ( this._renderObjects.size >= this._pruneAt ) {
++
++			for ( const entry of this._renderObjects ) {
++
++				if ( entry.deref() === undefined ) this._renderObjects.delete( entry );
++
++			}
++
++			this._pruneAt = Math.max( 1024, this._renderObjects.size * 2 );
++
++		}
++
+ 		renderObject.onDispose = () => {
+ 
++			this._renderObjects.delete( ref );
++
+ 			this.pipelines.delete( renderObject );
+ 			this.bindings.deleteForRender( renderObject );
+ 			this.nodes.delete( renderObject );
+@@ -31227,6 +31284,15 @@ class Geometries extends DataMap {
+ 
+ 			}
+ 
++			// the render object that first drew the geometry lists only the attributes its material read; a later
++			// material may have uploaded others (a textured face's uv), which would otherwise keep their buffers
++
++			for ( const name in geometry.attributes ) {
++
++				this.attributes.delete( geometry.attributes[ name ] );
++
++			}
++
+ 			const wireframeAttribute = this.wireframes.get( geometry );
+ 
+ 			if ( wireframeAttribute !== undefined ) {
+@@ -32897,6 +32963,12 @@ class Bindings extends DataMap {
  
  							this.backend.destroySampler( binding );
  
@@ -61,7 +413,115 @@ index f707acc24f5711fdae065ce920b08435b0869c1b..19a4a88bd9ebd13e9bfd6791257b4b30
  						}
  
  						binding.release();
-@@ -67143,6 +67149,25 @@ class WebGLAttributeUtils {
+@@ -34021,6 +34093,71 @@ class Textures extends DataMap {
+ 		 */
+ 		this._htmlTextures = new Set();
+ 
++		/**
++		 * The textures and render targets this component listens to for disposal, held weakly.
++		 *
++		 * @private
++		 * @type {Set<WeakRef<Texture|RenderTarget>>}
++		 */
++		this._disposeTargets = new Set();
++
++	}
++
++	/**
++	 * Remembers that this component listens to the given texture or render target for disposal,
++	 * so {@link Textures#dispose} can remove the listener again.
++	 *
++	 * @private
++	 * @param {Texture|RenderTarget} target - The texture or render target.
++	 * @param {Object} targetData - The target's data.
++	 */
++	_listenForDispose( target, targetData ) {
++
++		target.addEventListener( 'dispose', targetData.onDispose );
++
++		targetData.disposeTarget = new WeakRef( target );
++		this._disposeTargets.add( targetData.disposeTarget );
++
++	}
++
++	/**
++	 * Removes this component's disposal listener from the given texture or render target.
++	 *
++	 * @private
++	 * @param {Texture|RenderTarget} target - The texture or render target.
++	 * @param {Object} targetData - The target's data.
++	 */
++	_stopListeningForDispose( target, targetData ) {
++
++		target.removeEventListener( 'dispose', targetData.onDispose );
++
++		this._disposeTargets.delete( targetData.disposeTarget );
++
++	}
++
++	/**
++	 * Frees internal resources. A texture or render target that outlives the renderer (a module-level
++	 * texture such as the DFG LUT, or one an application caches) would otherwise keep this component,
++	 * and through it the whole renderer, alive through its disposal listener.
++	 */
++	dispose() {
++
++		for ( const disposeTarget of this._disposeTargets ) {
++
++			const target = disposeTarget.deref();
++
++			if ( target !== undefined && this.has( target ) === true ) {
++
++				target.removeEventListener( 'dispose', this.get( target ).onDispose );
++
++			}
++
++		}
++
++		this._disposeTargets.clear();
++
++		super.dispose();
++
+ 	}
+ 
+ 	/**
+@@ -34153,7 +34290,7 @@ class Textures extends DataMap {
+ 
+ 			};
+ 
+-			renderTarget.addEventListener( 'dispose', renderTargetData.onDispose );
++			this._listenForDispose( renderTarget, renderTargetData );
+ 
+ 		}
+ 
+@@ -34373,7 +34510,7 @@ class Textures extends DataMap {
+ 
+ 			};
+ 
+-			texture.addEventListener( 'dispose', textureData.onDispose );
++			this._listenForDispose( texture, textureData );
+ 
+ 		}
+ 
+@@ -34524,7 +34661,7 @@ class Textures extends DataMap {
+ 
+ 			//
+ 
+-			renderTarget.removeEventListener( 'dispose', renderTargetData.onDispose );
++			this._stopListeningForDispose( renderTarget, renderTargetData );
+ 
+ 			//
+ 
+@@ -34563,7 +34700,7 @@ class Textures extends DataMap {
+ 
+ 			//
+ 
+-			texture.removeEventListener( 'dispose', textureData.onDispose );
++			this._stopListeningForDispose( texture, textureData );
+ 
+ 			// if a texture is not ready for use, it falls back to a default texture so it's possible
+ 			// to use it for rendering. If a texture in this state is disposed, it's important to
+@@ -67143,6 +67280,25 @@ class WebGLAttributeUtils {
  
  		const attributeData = backend.get( attribute );
  
@@ -87,6 +547,53 @@ index f707acc24f5711fdae065ce920b08435b0869c1b..19a4a88bd9ebd13e9bfd6791257b4b30
  		gl.deleteBuffer( attributeData.bufferGPU );
  
  		backend.delete( attribute );
+diff --git a/examples/jsm/controls/OrbitControls.js b/examples/jsm/controls/OrbitControls.js
+index 6060cd4f9a1cb3adb531bf0c055449ab201d5f4c..dad685248cef634667d34ef88015f6af1b38efc4 100644
+--- a/examples/jsm/controls/OrbitControls.js
++++ b/examples/jsm/controls/OrbitControls.js
+@@ -502,8 +502,10 @@ class OrbitControls extends Controls {
+ 		this.domElement.addEventListener( 'contextmenu', this._onContextMenu );
+ 		this.domElement.addEventListener( 'wheel', this._onMouseWheel, { passive: false } );
+ 
+-		const document = this.domElement.getRootNode(); // offscreen canvas compatibility
+-		document.addEventListener( 'keydown', this._interceptControlDown, { passive: true, capture: true } );
++		// remembered, because the element may have left the page by the time it disconnects, and its root node
++		// then is no longer the document the listener is on, which would keep these controls alive with it
++		this._keyEventRoot = this.domElement.getRootNode(); // offscreen canvas compatibility
++		this._keyEventRoot.addEventListener( 'keydown', this._interceptControlDown, { passive: true, capture: true } );
+ 
+ 		this.domElement.style.touchAction = 'none'; // Disable touch scroll
+ 
+@@ -521,8 +523,10 @@ class OrbitControls extends Controls {
+ 
+ 		this.stopListenToKeyEvents();
+ 
+-		const document = this.domElement.getRootNode(); // offscreen canvas compatibility
++		const document = this._keyEventRoot ?? this.domElement.getRootNode(); // offscreen canvas compatibility
+ 		document.removeEventListener( 'keydown', this._interceptControlDown, { capture: true } );
++		document.removeEventListener( 'keyup', this._interceptControlUp, { passive: true, capture: true } );
++		this._keyEventRoot = null;
+ 
+ 		this.domElement.style.touchAction = ''; // Restore touch scroll
+ 
+@@ -1938,7 +1942,7 @@ function interceptControlDown( event ) {
+ 
+ 		this._controlActive = true;
+ 
+-		const document = this.domElement.getRootNode(); // offscreen canvas compatibility
++		const document = this._keyEventRoot ?? this.domElement.getRootNode(); // offscreen canvas compatibility
+ 
+ 		document.addEventListener( 'keyup', this._interceptControlUp, { passive: true, capture: true } );
+ 
+@@ -1952,7 +1956,7 @@ function interceptControlUp( event ) {
+ 
+ 		this._controlActive = false;
+ 
+-		const document = this.domElement.getRootNode(); // offscreen canvas compatibility
++		const document = this._keyEventRoot ?? this.domElement.getRootNode(); // offscreen canvas compatibility
+ 
+ 		document.removeEventListener( 'keyup', this._interceptControlUp, { passive: true, capture: true } );
+ 
 diff --git a/src/renderers/common/Bindings.js b/src/renderers/common/Bindings.js
 index 5f3d213a016b37db3b2e5d022da3dd0234d86f6d..38bf42c23ddf69bffaf802774ae98319b4e58d21 100644
 --- a/src/renderers/common/Bindings.js
@@ -104,6 +611,252 @@ index 5f3d213a016b37db3b2e5d022da3dd0234d86f6d..38bf42c23ddf69bffaf802774ae98319
  						}
  
  						binding.release();
+diff --git a/src/renderers/common/Geometries.js b/src/renderers/common/Geometries.js
+index eb332c415882927e2fc1ac9b0cc0ed903f70432c..c83b962f4e67d2d5f2e62b69e729558549ffedc5 100644
+--- a/src/renderers/common/Geometries.js
++++ b/src/renderers/common/Geometries.js
+@@ -201,6 +201,15 @@ class Geometries extends DataMap {
+ 
+ 			}
+ 
++			// the render object that first drew the geometry lists only the attributes its material read; a later
++			// material may have uploaded others (a textured face's uv), which would otherwise keep their buffers
++
++			for ( const name in geometry.attributes ) {
++
++				this.attributes.delete( geometry.attributes[ name ] );
++
++			}
++
+ 			const wireframeAttribute = this.wireframes.get( geometry );
+ 
+ 			if ( wireframeAttribute !== undefined ) {
+diff --git a/src/renderers/common/RenderObject.js b/src/renderers/common/RenderObject.js
+index c900fa4c9654f8cf3512e96de52a2c1c83e189a6..c922b0f974a3b1c542a6f5ca8dc7d6f3a82319f7 100644
+--- a/src/renderers/common/RenderObject.js
++++ b/src/renderers/common/RenderObject.js
+@@ -498,6 +498,9 @@ class RenderObject {
+ 	 */
+ 	setGeometry( geometry ) {
+ 
++		this.geometry.removeEventListener( 'dispose', this.onGeometryDispose );
++		geometry.addEventListener( 'dispose', this.onGeometryDispose );
++
+ 		this.geometry = geometry;
+ 		this.attributes = null;
+ 		this.attributesId = null;
+@@ -953,9 +956,9 @@ class RenderObject {
+ 	}
+ 
+ 	/**
+-	 * Frees internal resources.
++	 * Removes the listeners this render object put on its material and geometry.
+ 	 */
+-	dispose() {
++	removeDisposeListeners() {
+ 
+ 		this.material.removeEventListener( 'dispose', this.onMaterialDispose );
+ 		this.geometry.removeEventListener( 'dispose', this.onGeometryDispose );
+@@ -966,6 +969,15 @@ class RenderObject {
+ 
+ 		}
+ 
++	}
++
++	/**
++	 * Frees internal resources.
++	 */
++	dispose() {
++
++		this.removeDisposeListeners();
++
+ 		this.onDispose();
+ 
+ 	}
+diff --git a/src/renderers/common/RenderObjects.js b/src/renderers/common/RenderObjects.js
+index 676cc2bd4169427ed420f2467b1e6684bd2aeebc..3f8d354427ebd778b25227222a4baab73dd79c90 100644
+--- a/src/renderers/common/RenderObjects.js
++++ b/src/renderers/common/RenderObjects.js
+@@ -72,6 +72,22 @@ class RenderObjects {
+ 		 */
+ 		this.chainMaps = {};
+ 
++		/**
++		 * The render objects this component created and that are not disposed yet, held weakly.
++		 *
++		 * @private
++		 * @type {Set<WeakRef<RenderObject>>}
++		 */
++		this._renderObjects = new Set();
++
++		/**
++		 * The size at which dead entries are next pruned from `_renderObjects`.
++		 *
++		 * @private
++		 * @type {number}
++		 */
++		this._pruneAt = 1024;
++
+ 	}
+ 
+ 	/**
+@@ -172,6 +188,17 @@ class RenderObjects {
+ 	 */
+ 	dispose() {
+ 
++		// a geometry or material that outlives the renderer (a shared or module-level one, such as the quad of an
++		// output pass) would otherwise keep each render object, and through it the whole renderer, alive
++
++		for ( const ref of this._renderObjects ) {
++
++			ref.deref()?.removeDisposeListeners();
++
++		}
++
++		this._renderObjects.clear();
++
+ 		this.chainMaps = {};
+ 
+ 	}
+@@ -198,8 +225,26 @@ class RenderObjects {
+ 
+ 		const renderObject = new RenderObject( nodes, geometries, renderer, object, material, scene, camera, lightsNode, renderContext, clippingContext );
+ 
++		const ref = new WeakRef( renderObject );
++
++		this._renderObjects.add( ref );
++
++		if ( this._renderObjects.size >= this._pruneAt ) {
++
++			for ( const entry of this._renderObjects ) {
++
++				if ( entry.deref() === undefined ) this._renderObjects.delete( entry );
++
++			}
++
++			this._pruneAt = Math.max( 1024, this._renderObjects.size * 2 );
++
++		}
++
+ 		renderObject.onDispose = () => {
+ 
++			this._renderObjects.delete( ref );
++
+ 			this.pipelines.delete( renderObject );
+ 			this.bindings.deleteForRender( renderObject );
+ 			this.nodes.delete( renderObject );
+diff --git a/src/renderers/common/Textures.js b/src/renderers/common/Textures.js
+index f42b90eac69ca042c39e7999773d6b8303fc3dd0..16779b1629d2c22d560037bf698cc71ddddccd08 100644
+--- a/src/renderers/common/Textures.js
++++ b/src/renderers/common/Textures.js
+@@ -55,6 +55,71 @@ class Textures extends DataMap {
+ 		 */
+ 		this._htmlTextures = new Set();
+ 
++		/**
++		 * The textures and render targets this component listens to for disposal, held weakly.
++		 *
++		 * @private
++		 * @type {Set<WeakRef<Texture|RenderTarget>>}
++		 */
++		this._disposeTargets = new Set();
++
++	}
++
++	/**
++	 * Remembers that this component listens to the given texture or render target for disposal,
++	 * so {@link Textures#dispose} can remove the listener again.
++	 *
++	 * @private
++	 * @param {Texture|RenderTarget} target - The texture or render target.
++	 * @param {Object} targetData - The target's data.
++	 */
++	_listenForDispose( target, targetData ) {
++
++		target.addEventListener( 'dispose', targetData.onDispose );
++
++		targetData.disposeTarget = new WeakRef( target );
++		this._disposeTargets.add( targetData.disposeTarget );
++
++	}
++
++	/**
++	 * Removes this component's disposal listener from the given texture or render target.
++	 *
++	 * @private
++	 * @param {Texture|RenderTarget} target - The texture or render target.
++	 * @param {Object} targetData - The target's data.
++	 */
++	_stopListeningForDispose( target, targetData ) {
++
++		target.removeEventListener( 'dispose', targetData.onDispose );
++
++		this._disposeTargets.delete( targetData.disposeTarget );
++
++	}
++
++	/**
++	 * Frees internal resources. A texture or render target that outlives the renderer (a module-level
++	 * texture such as the DFG LUT, or one an application caches) would otherwise keep this component,
++	 * and through it the whole renderer, alive through its disposal listener.
++	 */
++	dispose() {
++
++		for ( const disposeTarget of this._disposeTargets ) {
++
++			const target = disposeTarget.deref();
++
++			if ( target !== undefined && this.has( target ) === true ) {
++
++				target.removeEventListener( 'dispose', this.get( target ).onDispose );
++
++			}
++
++		}
++
++		this._disposeTargets.clear();
++
++		super.dispose();
++
+ 	}
+ 
+ 	/**
+@@ -187,7 +252,7 @@ class Textures extends DataMap {
+ 
+ 			};
+ 
+-			renderTarget.addEventListener( 'dispose', renderTargetData.onDispose );
++			this._listenForDispose( renderTarget, renderTargetData );
+ 
+ 		}
+ 
+@@ -407,7 +472,7 @@ class Textures extends DataMap {
+ 
+ 			};
+ 
+-			texture.addEventListener( 'dispose', textureData.onDispose );
++			this._listenForDispose( texture, textureData );
+ 
+ 		}
+ 
+@@ -558,7 +623,7 @@ class Textures extends DataMap {
+ 
+ 			//
+ 
+-			renderTarget.removeEventListener( 'dispose', renderTargetData.onDispose );
++			this._stopListeningForDispose( renderTarget, renderTargetData );
+ 
+ 			//
+ 
+@@ -597,7 +662,7 @@ class Textures extends DataMap {
+ 
+ 			//
+ 
+-			texture.removeEventListener( 'dispose', textureData.onDispose );
++			this._stopListeningForDispose( texture, textureData );
+ 
+ 			// if a texture is not ready for use, it falls back to a default texture so it's possible
+ 			// to use it for rendering. If a texture in this state is disposed, it's important to
 diff --git a/src/renderers/webgl-fallback/utils/WebGLAttributeUtils.js b/src/renderers/webgl-fallback/utils/WebGLAttributeUtils.js
 index 5e2cf317c96b239c5b027b3dd73a0c08d75282e0..4abfb6fd4d005fa39310de76dfcd42ad781129fc 100644
 --- a/src/renderers/webgl-fallback/utils/WebGLAttributeUtils.js

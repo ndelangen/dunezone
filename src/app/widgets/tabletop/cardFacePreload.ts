@@ -4,12 +4,15 @@ import { useEffect } from 'react';
 const PARALLEL_LOADS = 4;
 
 /*
- * Every card face this page asked for, kept for the page's life.
+ * Every card face an open table asked for, kept while any table is open.
  * Holding the image keeps it in the browser's memory cache, so a face shown later is drawn from there instead of fetched again.
+ * Published images are served `no-cache`, so the memory cache is what spares a reveal its round trip.
+ * Once the last table closes they are let go, so the faces of games already left do not add up for the page's life.
  */
 const requested = new Map<string, HTMLImageElement>();
 const queue: string[] = [];
 let loading = 0;
+let openTables = 0;
 
 function loadNext() {
   while (loading < PARALLEL_LOADS && queue.length > 0) {
@@ -40,11 +43,24 @@ function preloadCardFaces(hrefs: readonly string[]) {
   loadNext();
 }
 
+/** Counts an open table; the returned release lets every face go once no table is open. */
+function holdFaces() {
+  openTables++;
+  return () => {
+    openTables--;
+    if (openTables === 0) {
+      queue.length = 0;
+      requested.clear();
+    }
+  };
+}
+
 /**
  * Downloads every card face in the game while the table is open, so a card turned up shows its face at once instead of fetching it then.
  * The room sends the whole set sorted, so loading it tells nobody which card lies where.
  */
 export function usePreloadedCardFaces(hrefs: readonly string[] | undefined) {
+  useEffect(holdFaces, []);
   useEffect(() => {
     if (hrefs?.length) {
       preloadCardFaces(hrefs);
