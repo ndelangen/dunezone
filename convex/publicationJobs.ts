@@ -12,7 +12,6 @@ import {
   RULEBOOK_FIRST_PAGE_ASSET_TYPE,
 } from '../src/shared/asset-publishing/publication';
 import { isPublicationAssetType, PUBLICATION_ASSET_TYPES } from '../src/shared/asset-publishing/publicationTargets';
-import { cardFrontAssetTypeSchema } from '../src/shared/assets/cardFrontPresets';
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
@@ -45,6 +44,9 @@ function renderPayloadHash(job: Doc<'publication_jobs'>, payload: unknown) {
   ).toString();
 }
 
+/* How many pending jobs one pickup reads past held ones to fill its batch. */
+const PUBLICATION_PICKUP_SCAN = PUBLICATION_MAX_PICKUP * 5;
+
 const publicationJobResult = v.object({
   jobId: v.id('publication_jobs'),
   assetType: v.string(),
@@ -68,10 +70,23 @@ const takeWorkResult = v.union(
 
 async function recordFailure(
   ctx: MutationCtx,
-  job: Pick<Doc<'publication_jobs'>, '_id' | 'attempt_counter'>,
+  job: Pick<Doc<'publication_jobs'>, '_id' | '_creationTime' | 'attempt_counter' | 'asset_type' | 'asset_id'>,
   error: string,
   now: number
-): Promise<'pending' | 'error'> {
+): Promise<'pending' | 'error' | 'superseded'> {
+  /*
+   * A successor saved during the capture holds newer data, so this job is dropped rather than retried after it.
+   * Only a newer pending job supersedes: an older one is left by captures that overlapped before they ran one at a time, and pickup order then captures it first.
+   */
+  const siblings = await publicationJobsForAsset(ctx, job.asset_type, job.asset_id);
+  if (
+    siblings.some(
+      (sibling) => sibling.status === 'pending' && sibling._id !== job._id && sibling._creationTime > job._creationTime
+    )
+  ) {
+    await ctx.db.delete(job._id);
+    return 'superseded';
+  }
   const attemptCounter = job.attempt_counter + 1;
   const status = attemptCounter >= PUBLICATION_MAX_ATTEMPTS ? 'error' : 'pending';
   await ctx.db.patch(job._id, {
@@ -95,6 +110,8 @@ export const takeWork = internalMutation({
     const expired = await ctx.db
       .query('publication_jobs')
       .withIndex('by_status_and_expires_at', (q) => q.eq('status', 'in_progress').lte('expires_at', now))
+      /* Newest lease first, so of two overlapping captures the later one is recovered before the earlier is weighed against it. */
+      .order('desc')
       .take(PUBLICATION_MAX_PICKUP);
     for (const job of expired) {
       await recordFailure(ctx, job, 'Capture expired before completion', now);
@@ -109,15 +126,23 @@ export const takeWork = internalMutation({
       };
     }
 
+    /* Held jobs, such as successors waiting on their asset's capture, are read past rather than filling the batch, up to a bounded scan. */
     const pending = await ctx.db
       .query('publication_jobs')
       .withIndex('by_status_and_created_at', (q) => q.eq('status', 'pending'))
-      .take(PUBLICATION_MAX_PICKUP);
+      .take(PUBLICATION_PICKUP_SCAN);
     const expiresAt = now + PUBLICATION_JOB_EXPIRY_MS;
     const items = [];
     for (const job of pending) {
-      /* The new Worker deploys before activation makes this type eligible for pickup. */
+      if (items.length >= PUBLICATION_MAX_PICKUP) {
+        break;
+      }
+      /*
+       * The new Worker deploys before activation makes this type eligible for pickup.
+       * Until then its jobs are dropped rather than held, where they would fill the scan and keep other work waiting; activation rescans every faction.
+       */
       if (job.asset_type === 'faction-leader' && !settings?.renderer_revisions['faction-leader']) {
+        await ctx.db.delete(job._id);
         continue;
       }
       /* A plain faction face whose revision was rolled back is dropped rather than held, like the blocked token face below; reactivation rescans. */
@@ -137,16 +162,10 @@ export const takeWork = internalMutation({
         await ctx.db.delete(job._id);
         continue;
       }
-      /* A shared front or roster face renders one capture at a time, so an older capture can never land after a newer one. */
-      if (
-        job.asset_type === 'faction-leader' ||
-        isFactionFaceAssetType(job.asset_type) ||
-        cardFrontAssetTypeSchema.safeParse(job.asset_type).success
-      ) {
-        const targetJobs = await publicationJobsForAsset(ctx, job.asset_type, job.asset_id);
-        if (targetJobs.some((candidate) => candidate.status === 'in_progress')) {
-          continue;
-        }
+      /* Each publication renders one capture at a time, so an older capture can never land after a newer one. */
+      const targetJobs = await publicationJobsForAsset(ctx, job.asset_type, job.asset_id);
+      if (targetJobs.some((candidate) => candidate.status === 'in_progress')) {
+        continue;
       }
       if ((await currentFactionComponentData(ctx, job.asset_type, job.asset_id)) === null) {
         await ctx.db.delete(job._id);
@@ -345,6 +364,10 @@ export const failJob = internalMutation({
       return { status: 'missing' as const };
     }
     const status = await recordFailure(ctx, job, args.error.slice(0, 2000), Date.now());
+    /* The job is gone and its successor carries the newer save, which the Worker counts like any vanished job. */
+    if (status === 'superseded') {
+      return { status: 'missing' as const };
+    }
     return { status, attemptCounter: job.attempt_counter + 1 };
   },
 });

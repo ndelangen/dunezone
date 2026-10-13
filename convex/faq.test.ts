@@ -55,8 +55,15 @@ async function viewerAnswerBeyondPageBound() {
     question: 'Can a bounded page still detect that I answered?',
     tags: ['rules'],
   });
+  /* The page shows the newest answers, so the oldest one falls outside it. */
   await t.run(async (ctx) => {
-    for (let index = 0; index < 200; index += 1) {
+    await ctx.db.insert('faq_answers', {
+      faq_item_id: question.questionId,
+      answer: 'The viewer answer beyond the page bound.',
+      answered_by: ids.answererId,
+      created_at: new Date(0).toISOString(),
+    });
+    for (let index = 1; index <= 200; index += 1) {
       await ctx.db.insert('faq_answers', {
         faq_item_id: question.questionId,
         answer: `Visible answer ${index}`,
@@ -64,12 +71,6 @@ async function viewerAnswerBeyondPageBound() {
         created_at: new Date(index).toISOString(),
       });
     }
-    await ctx.db.insert('faq_answers', {
-      faq_item_id: question.questionId,
-      answer: 'The viewer answer beyond the page bound.',
-      answered_by: ids.answererId,
-      created_at: new Date(200).toISOString(),
-    });
   });
   return { ...fixture, question };
 }

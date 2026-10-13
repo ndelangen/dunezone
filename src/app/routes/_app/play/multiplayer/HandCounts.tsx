@@ -41,14 +41,36 @@ type Row = {
   ring: string | null;
 };
 
+/*
+ * Each logo is decoded once and reused by every repaint; a failed load is tried again next time.
+ * A table seats at most 18 factions, so keeping the latest 32 holds a whole game's logos without piling up across games.
+ */
+const logoLoads = new Map<string, Promise<HTMLImageElement | null>>();
+const KEPT_LOGOS = 32;
+
 function loadImage(href: string): Promise<HTMLImageElement | null> {
-  return new Promise((resolve) => {
-    const image = new Image();
-    image.crossOrigin = 'anonymous';
-    image.onload = () => resolve(image);
-    image.onerror = () => resolve(null);
-    image.src = href;
-  });
+  let loading = logoLoads.get(href);
+  if (!loading) {
+    const request: Promise<HTMLImageElement | null> = new Promise((resolve) => {
+      const image = new Image();
+      image.crossOrigin = 'anonymous';
+      image.onload = () => resolve(image);
+      image.onerror = () => {
+        /* Only this request's own entry: an evicted request must not drop the one that replaced it. */
+        if (logoLoads.get(href) === request) {
+          logoLoads.delete(href);
+        }
+        resolve(null);
+      };
+      image.src = href;
+    });
+    loading = request;
+    logoLoads.set(href, loading);
+    if (logoLoads.size > KEPT_LOGOS) {
+      logoLoads.delete(logoLoads.keys().next().value!);
+    }
+  }
+  return loading;
 }
 
 /* `font` is the table's lettering face, or the same fallback the table's labels use when it cannot load. */
