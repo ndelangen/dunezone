@@ -69,7 +69,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         const snapshot = parsed?.success
           ? parsed.data
           : storedSnapshotSchema.parse(homepageSnapshot(env.APPLICATION_ORIGIN));
-        if (saved?.epoch) {
+        if (parsed?.success && saved?.epoch) {
           this.epoch = saved.epoch;
         } else if (saved && this.resetAt > Date.now()) {
           await ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot, epoch: this.epoch });

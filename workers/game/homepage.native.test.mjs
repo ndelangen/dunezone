@@ -51,6 +51,31 @@ async function command(connection, action) {
 }
 
 describe('the public homepage table', () => {
+  it('replaces the generation when an invalid saved table is replaced', async () => {
+    const member = await visitor(true);
+    const before = await syncView(member);
+    await runtime.fetch('/native-test/invalid-snapshot', { method: 'POST' });
+    await runtime.restart();
+    const resumed = await visitor(true);
+    const replaced = await syncView(resumed);
+    expect(replaced.epoch).not.toBe(before.epoch);
+    await act(
+      resumed,
+      {
+        type: 'command',
+        commandId: 'previous-table',
+        expectedRevision: before.snapshot.revision,
+        action: { kind: 'rotate', pieceId: 'treachery-card-loose', direction: 1 },
+      },
+      before
+    );
+    await resumed.message('rejected', (message) => message.requestId === 'previous-table');
+    expect((await syncView(resumed)).snapshot.revision).toBe(0);
+    await runtime.restart();
+    const nextWake = await visitor();
+    expect((await syncView(nextWake)).epoch).toBe(replaced.epoch);
+  });
+
   it('grants the first pickup after hibernation without a preliminary resync', async () => {
     const member = await visitor(true);
     const before = await syncView(member);
