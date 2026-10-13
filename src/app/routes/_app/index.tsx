@@ -224,9 +224,38 @@ function OnlineRulebooks() {
   );
 }
 
+/* Native image laziness can start downloads far below the viewport and compete with the opening scene. */
+function useNearbyArtwork() {
+  const region = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const element = region.current;
+    if (!element) {
+      return;
+    }
+    if (typeof IntersectionObserver === 'undefined') {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  return { region, visible };
+}
+
 function BookCloud() {
+  const { region, visible } = useNearbyArtwork();
   return (
-    <div className={styles.newBookFan}>
+    <div ref={region} className={styles.newBookFan}>
       {['map', 'factions', 'cover'].map((file, index) => (
         <div
           className={styles.fanPiece}
@@ -238,11 +267,13 @@ function BookCloud() {
             `${index * 120}ms`
           )}
         >
-          <PublishedImage
-            src={resolveAsset(`/web/homepage/${file}.jpg`, 'large')}
-            name={`Arrakis field guide demonstration ${file}`}
-            aspect={1.414}
-          />
+          {visible && (
+            <PublishedImage
+              src={resolveAsset(`/web/homepage/${file}.jpg`, 'large')}
+              name={`Arrakis field guide demonstration ${file}`}
+              aspect={1.414}
+            />
+          )}
         </div>
       ))}
     </div>
@@ -250,9 +281,11 @@ function BookCloud() {
 }
 
 function ArtworkCloud({ vectors = false }: { vectors?: boolean }) {
+  const { region, visible } = useNearbyArtwork();
   const entries = vectors ? cloudArtwork.filter((entry) => entry.troop) : cloudArtwork;
   return (
     <div
+      ref={region}
       className={styles.artworkCloud}
       aria-label={`A cloud of ${entries.length} ${vectors ? 'new troop designs' : 'homebrew leader portraits'}`}
     >
@@ -277,25 +310,26 @@ function ArtworkCloud({ vectors = false }: { vectors?: boolean }) {
               } as CSSProperties
             }
           >
-            {vectors ? (
-              <div className={styles.vectorDisc} role="img" aria-label={name}>
-                <TroopToken
-                  background={troopBackgrounds[index % troopBackgrounds.length]!}
-                  image={`/vector/troop/${troop!}.svg`}
-                  star={undefined}
-                  hue={undefined}
-                  striped={false}
+            {visible &&
+              (vectors ? (
+                <div className={styles.vectorDisc} role="img" aria-label={name}>
+                  <TroopToken
+                    background={troopBackgrounds[index % troopBackgrounds.length]!}
+                    image={`/vector/troop/${troop!}.svg`}
+                    star={undefined}
+                    hue={undefined}
+                    striped={false}
+                  />
+                </div>
+              ) : (
+                <img
+                  src={resolveAsset(`/image/leader/custom/${key}.png`, 'large')}
+                  alt={`${name}, homebrew portrait`}
+                  width={640}
+                  height={640}
+                  loading="lazy"
                 />
-              </div>
-            ) : (
-              <img
-                src={resolveAsset(`/image/leader/custom/${key}.png`, 'large')}
-                alt={`${name}, homebrew portrait`}
-                width={640}
-                height={640}
-                loading="lazy"
-              />
-            )}
+              ))}
           </div>
         );
       })}
@@ -335,8 +369,9 @@ function VectorCopy() {
 }
 
 function QualityCards() {
+  const { region, visible } = useNearbyArtwork();
   return (
-    <div className={styles.cardShowcase}>
+    <div ref={region} className={styles.cardShowcase}>
       <div className={styles.qualityCardFan}>
         {showcaseCards.map((card, index) => (
           <div
@@ -349,12 +384,14 @@ function QualityCards() {
               `${index * 150}ms`
             )}
           >
-            <AssetFace
-              href={`https://dune.zone/published/cards/${card.id}/card.jpg`}
-              type="card-treachery"
-              data={null}
-              name={card.name}
-            />
+            {visible && (
+              <AssetFace
+                href={`https://dune.zone/published/cards/${card.id}/card.jpg`}
+                type="card-treachery"
+                data={null}
+                name={card.name}
+              />
+            )}
           </div>
         ))}
       </div>
@@ -400,19 +437,22 @@ function AllianceInvitation() {
 }
 
 function GroupAllianceCard() {
+  const { region, visible } = useNearbyArtwork();
   return (
-    <div className={styles.allianceCard}>
+    <div ref={region} className={styles.allianceCard}>
       <CanvasScale canvasWidth={cardSize.width} canvasHeight={cardSize.height} rounded>
-        <AllianceCard
-          background={backgroundPresets.atreides}
-          logo="/vector/generic/alliance.svg"
-          title="Your Group"
-          troop="/vector/troop/banner-marshal.svg"
-          decals={[]}
-          text={
-            'Pool your ideas.\nBuild Rulesets, factions and Assets together.\n\nYour shared victory condition:\nmake the game you want to play.'
-          }
-        />
+        {visible && (
+          <AllianceCard
+            background={backgroundPresets.atreides}
+            logo="/vector/generic/alliance.svg"
+            title="Your Group"
+            troop="/vector/troop/banner-marshal.svg"
+            decals={[]}
+            text={
+              'Pool your ideas.\nBuild Rulesets, factions and Assets together.\n\nYour shared victory condition:\nmake the game you want to play.'
+            }
+          />
+        )}
       </CanvasScale>
       <Text size="xs" ta="center" mt="md">
         An alliance card made for this invitation.
@@ -422,13 +462,14 @@ function GroupAllianceCard() {
 }
 
 function OrkLeaders() {
+  const { region, visible } = useNearbyArtwork();
   const leaders = [
     { image: '/image/leader/alien/buzcle.png', name: 'Mad Dok Grotsnik', strength: '2' },
     { image: '/image/leader/alien/eeloo.png', name: 'Ufthak Blackhawk', strength: '4' },
     { image: '/image/leader/alien/eeriva.png', name: 'Kaptin Badrukk', strength: '6' },
   ] as const;
   return (
-    <div className={styles.orkLeaders}>
+    <div ref={region} className={styles.orkLeaders}>
       {leaders.map((leader, index) => (
         <div
           className={styles.orkDisc}
@@ -441,17 +482,19 @@ function OrkLeaders() {
           )}
         >
           <div className={styles.vectorDisc}>
-            <LeaderToken
-              {...leader}
-              logo="/vector/generic/axes.svg"
-              background={{
-                colors: ['#52a32b', '#52a32b'],
-                definition: 0.5,
-                image: '/image/texture/021.jpg',
-                influence: 1,
-                invert: true,
-              }}
-            />
+            {visible && (
+              <LeaderToken
+                {...leader}
+                logo="/vector/generic/axes.svg"
+                background={{
+                  colors: ['#52a32b', '#52a32b'],
+                  definition: 0.5,
+                  image: '/image/texture/021.jpg',
+                  influence: 1,
+                  invert: true,
+                }}
+              />
+            )}
           </div>
         </div>
       ))}

@@ -63,6 +63,7 @@
   isolation: isolate;
 }
 .fanPiece {
+  aspect-ratio: 1 / 1.414;
   grid-area: 1 / 1;
   width: 42%;
   transform: translate(var(--fan-x), var(--fan-y)) rotate(var(--fan-turn));
@@ -115,6 +116,7 @@
   isolation: isolate;
 }
 .showcaseCard {
+  aspect-ratio: 900 / 1263;
   grid-area: 1 / 1;
   width: 37%;
   transform: translate(var(--fan-x), var(--fan-y)) rotate(var(--fan-turn));
@@ -152,6 +154,7 @@
   margin-inline: auto;
 }
 .orkDisc {
+  aspect-ratio: 1;
   grid-area: 1 / 1;
   width: 34%;
   transform: translate(var(--fan-x), var(--fan-y)) rotate(var(--fan-turn));

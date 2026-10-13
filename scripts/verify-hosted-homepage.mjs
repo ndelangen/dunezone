@@ -96,6 +96,26 @@ export async function verifyHomepage({
     await releaseArtwork.promise;
     await route.continue();
   });
+  let releaseSnapshot;
+  await guest.context.routeWebSocket('**/__play/homepage/socket', (socket) => {
+    const server = socket.connectToServer();
+    const waiting = [];
+    let released = false;
+    server.onMessage((message) => {
+      if (released) {
+        socket.send(message);
+      } else {
+        waiting.push(message);
+      }
+    });
+    releaseSnapshot = () => {
+      released = true;
+      for (const message of waiting) {
+        socket.send(message);
+      }
+      waiting.length = 0;
+    };
+  });
   let initialCanvas;
   for (const who of [member, guest]) {
     await who.page.goto(origin, { waitUntil: 'domcontentloaded' });
@@ -104,25 +124,37 @@ export async function verifyHomepage({
     if (who === member) {
       await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
       await new Promise((resolve) => setTimeout(resolve, 12_000));
-      assert.equal(await who.page.locator('[data-live-ready="true"]').count(), 0);
+      await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
+      await who.page.locator('[data-table-connected="true"]').waitFor();
       assert.equal(await who.page.locator('#play-preview img[src*="homepage/board"]').count(), 0);
       initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
       assert.ok(initialCanvas);
-      await capture(member, 'homepage-waits-for-scene-artwork');
+      await capture(member, 'homepage-board-before-slow-artwork');
       releaseArtwork.resolve();
+    } else {
+      await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
+      assert.equal(await who.page.locator('[data-table-connected="true"]').count(), 0);
+      initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
+      assert.ok(initialCanvas);
+      assert.ok(releaseSnapshot);
+      await capture(guest, 'homepage-board-before-live-snapshot');
+      releaseSnapshot();
+      await who.page.locator('[data-table-connected="true"]').waitFor();
     }
     await who.page.locator('[data-live-ready="true"]').waitFor();
     await tableLoaded(who);
     await until(() => who.view(), `${who.label} received no homepage table.`);
+    assert.equal(
+      await initialCanvas.evaluate((canvas) => canvas === document.querySelector('#play-preview canvas')),
+      true
+    );
     if (who === member) {
-      assert.equal(
-        await initialCanvas.evaluate((canvas) => canvas === document.querySelector('#play-preview canvas')),
-        true
-      );
       await capture(member, 'homepage-member-ready-after-slow-artwork');
     }
   }
-  passed('The homepage draws one canvas without an image handoff and finishes its delayed artwork in place');
+  passed(
+    'The homepage draws one canvas without an image handoff and shows its board before delayed artwork, which finishes in place'
+  );
   await recordRenderer(member, '#play-preview canvas');
   await until(() => member.view().viewer.viewerSeat !== spectator, 'Signing in did not grant table handling.');
   assert.equal(guest.view().viewer.viewerSeat, spectator);
