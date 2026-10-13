@@ -50,9 +50,12 @@ scan quota live in [Socket](https://socket.dev/dashboard).
 The Renovate GitHub app reads [`renovate.json`](../../renovate.json). Routine updates run on Monday
 before 07:00 in Amsterdam, after a seven-day release delay. One routine update PR stays open, with
 at most one created per hour. Security fixes have a separate one-PR budget and form one group.
-Development dependencies, GitHub Actions and local Convex images have separate groups.
-Patched packages stay out of the ordinary development group, so they do not hold its updates for
-approval. Storybook has its own approval group to keep its packages aligned with the router patch.
+Routine minor, patch and digest upgrades form one broad group across application libraries,
+development tools and CI. Convex packages, test support and local images form a separate runtime
+group so the CLI, test seam and backend move together. Tabletop renderers and their types form an
+approval group, keeping Three, Fiber, Drei and the memory-leak and JSX patches aligned.
+Storybook has its own approval group to keep its packages aligned with the router patch.
+These groups keep patch-dependent upgrades from holding the routine batch for approval.
 Major upgrades and packages with checked-in patches need approval in the Dependency Dashboard.
 Automatic merging is off. Security updates can bypass the routine schedule under Renovate's
 security-update behaviour.

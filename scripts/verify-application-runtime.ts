@@ -111,8 +111,11 @@ try {
     assert.equal(response.headers.get('Cache-Control'), 'no-store', pathname);
     assert.equal(response.headers.get('Set-Cookie'), null, pathname);
     assert.equal(response.headers.get('X-Public-Cache'), 'miss', pathname);
+    /* A public page that says noindex silently drops out of search. */
+    assert.equal(response.headers.get('X-Robots-Tag'), null, pathname);
     const historicalFallback = Boolean(fixture && pathname.endsWith('/runtime-manual?edition=1'));
     const html = await response.text();
+    assert.doesNotMatch(html, /<meta\b[^>]*\bname=["']robots["']/i, pathname);
     assertPublicMetadataQueries(
       Number(response.headers.get('X-Public-Metadata-Queries') ?? 0),
       pathname,
