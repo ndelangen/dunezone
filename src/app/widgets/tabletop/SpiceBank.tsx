@@ -8,6 +8,16 @@ import { useTabletopCommands, useTabletopSelector } from './TabletopContext';
 import { SPICE_DISC_COLOR } from './tableTrackers';
 
 export function SpiceBank({ radius }: Readonly<{ radius: number }>) {
+  return (
+    <group>
+      <PhaseSymbol symbol="/vector/icon/spice.svg" radius={radius} faceColor={SPICE_DISC_COLOR} />
+      <SpiceBankInteraction radius={radius} />
+    </group>
+  );
+}
+
+/** The spice bank's pointer target, installed once a live table can handle it. */
+export function SpiceBankInteraction({ radius }: Readonly<{ radius: number }>) {
   const enabled = useTabletopSelector((table) => table.canHandleTable && !table.state.draftMove);
   const { setHoveredPiece } = useTabletopCommands();
   const keyboard = useTableKeyboard();
@@ -30,7 +40,6 @@ export function SpiceBank({ radius }: Readonly<{ radius: number }>) {
 
   return (
     <group>
-      <PhaseSymbol symbol="/vector/icon/spice.svg" radius={radius} faceColor={SPICE_DISC_COLOR} />
       <mesh
         position={[0, 0.015, 0]}
         rotation={[-Math.PI / 2, 0, 0]}

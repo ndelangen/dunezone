@@ -4,7 +4,8 @@
  */
 export const browserFlows = {
   homepage: {
-    timeoutMs: 120_000,
+    /* The expanded flow reached 115 seconds before its final scroll check under full Chromium on CI (#2127). */
+    timeoutMs: 180_000,
     separateBrowsers: false,
     keepsFrames: false,
     needsCatalogue: false,
