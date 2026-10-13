@@ -133,6 +133,22 @@ describe('FAQ question page interface', () => {
     expect(hook.result.current.page?.viewer.answerQuestion).toBe(true);
   });
 
+  test('keeps the combined question and answers referentially stable while their inputs are unchanged', () => {
+    serveQueries({ userId: 'asker', answered: false });
+    const hook = renderHook(() => useFaqQuestionPage({ rulesetSlug: 'test-ruleset', questionSlug: '1' }));
+    const first = hook.result.current.page;
+
+    /* The question route re-runs its hash scroll whenever these change identity, so an unrelated rerender must not change them. */
+    hook.rerender();
+    expect(hook.result.current.page).toBe(first);
+    expect(hook.result.current.page?.question).toBe(first?.question);
+    expect(hook.result.current.page?.answers).toBe(first?.answers);
+
+    serveQueries({ userId: 'asker', answered: true });
+    hook.rerender();
+    expect(hook.result.current.page?.answers).not.toBe(first?.answers);
+  });
+
   test('binds domain commands to the loaded question and canonical operations', async () => {
     serveQueries({ userId: 'asker', answered: false });
     const hook = renderHook(() => useFaqQuestionPage({ rulesetSlug: 'test-ruleset', questionSlug: '1' }));

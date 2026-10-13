@@ -3,6 +3,7 @@ import type { FaqTag } from '@shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '@shared/faq/validation';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
+import { useMemo } from 'react';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
@@ -96,8 +97,11 @@ export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<
  */
 export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { initialPage?: FaqQuestionPublicPage }) {
   const livePage = useQuery(api.faq.question, locator);
-  const query = toLiveQueryResult(livePage, () => options?.initialPage);
-  const questionId = query.data?.question.id;
+  const initialPage = options?.initialPage;
+  const query = toLiveQueryResult(livePage, () => initialPage);
+  /* The same page `query.data` holds, read from its sources so the memo below depends on the page alone, not on the result object around it. */
+  const publicPage = livePage === undefined ? initialPage : livePage;
+  const questionId = publicPage?.question.id;
   /*
    * The page is one cached answer for everyone; who may edit, delete, accept or answer is decided here from the viewer's user id
    * and whether they have answered. Until both settle the viewer counts as signed out, so no control appears before it may.
@@ -106,12 +110,17 @@ export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { init
   const viewerId = useViewerUserId();
   const viewerAnswered = useQuery(api.faq.viewerAnswered, { questionId: viewerId ? (questionId ?? null) : null });
   const viewerResolved = viewerId !== undefined && viewerAnswered !== undefined;
-  const page = query.data
-    ? {
-        ...faqQuestionPageForViewer(query.data, viewerResolved ? viewerId : null, viewerAnswered ?? false),
-        viewerResolved,
-      }
-    : undefined;
+  const resolvedViewerId = viewerResolved ? viewerId : null;
+  const answered = viewerAnswered ?? false;
+  /*
+   * Memoized on its real inputs: the question route scrolls to an answer's hash whenever the question or answers change identity,
+   * so a fresh object on every render would scroll the page back on each keystroke while editing.
+   */
+  const page = useMemo(
+    () =>
+      publicPage ? { ...faqQuestionPageForViewer(publicPage, resolvedViewerId, answered), viewerResolved } : undefined,
+    [publicPage, resolvedViewerId, answered, viewerResolved]
+  );
 
   const editQuestionMutation = useLiveMutation<
     { questionId: string; input: { question: string; tags: FaqTag[] } },
