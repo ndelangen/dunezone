@@ -23,7 +23,9 @@ const PUBLISHER_CONVEX_SITE_ORIGIN = 'https://exuberant-finch-263.eu-west-1.conv
 const PUBLISHER_CRON = '*/5 * * * *';
 const REQUIRED_SECRETS = ['ASSET_PUBLISHER_EXECUTOR_SECRET', 'MEDIA_PUBLISH_TOKEN', 'MEDIA_UPLOAD_TOKEN'];
 
-export async function verifyPublicAuthRouting(fetcher: typeof fetch = fetch): Promise<void> {
+export async function verifyPublicAuthRouting(
+  fetcher: (url: string, init: RequestInit) => Promise<Response> = fetch
+): Promise<void> {
   for (const provider of ['google', 'discord']) {
     const response = await fetcher(`${APPLICATION_ORIGIN}/auth/signin/${provider}`, {
       redirect: 'manual',
