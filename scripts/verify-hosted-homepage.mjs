@@ -260,6 +260,40 @@ async function verifyReservePickup(member, guest, point, until, passed) {
   );
 }
 
+async function verifyVisibilityBurst(page) {
+  const visibility = await page.evaluate(async () => {
+    const canvas = document.querySelector('#play-preview canvas');
+    const descriptor = Object.getOwnPropertyDescriptor(document, 'hidden');
+    let hidden = false;
+    try {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+      hidden = true;
+      document.dispatchEvent(new Event('visibilitychange'));
+      hidden = false;
+      document.dispatchEvent(new Event('visibilitychange'));
+    } finally {
+      if (descriptor) {
+        Object.defineProperty(document, 'hidden', descriptor);
+      } else {
+        delete document.hidden;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return {
+      retained: canvas === document.querySelector('#play-preview canvas'),
+      ready: !!document.querySelector('#play-preview [data-live-ready="true"]'),
+    };
+  });
+  if (visibility.retained) {
+    assert.equal(visibility.ready, true, 'A retained canvas lost readiness after a visibility burst.');
+  } else {
+    await page.locator('#play-preview [data-live-ready="true"]').waitFor();
+  }
+  const canvas = await page.locator('#play-preview canvas').elementHandle();
+  assert.ok(canvas);
+  return { canvas, retained: visibility.retained };
+}
+
 /** Keeps the homepage's published marketing thumbnails local without opening the runner to external traffic. */
 export async function installHomepageArtwork(context) {
   for (const [id, name] of thumbnails) {
@@ -395,36 +429,8 @@ export async function verifyHomepage({
       assert.ok(initialCanvas);
       assert.ok(releaseSnapshot);
       await capture(guest, 'homepage-board-before-live-snapshot');
-      const visibility = await who.page.evaluate(async () => {
-        const canvas = document.querySelector('#play-preview canvas');
-        const descriptor = Object.getOwnPropertyDescriptor(document, 'hidden');
-        let hidden = false;
-        try {
-          Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
-          hidden = true;
-          document.dispatchEvent(new Event('visibilitychange'));
-          hidden = false;
-          document.dispatchEvent(new Event('visibilitychange'));
-        } finally {
-          if (descriptor) {
-            Object.defineProperty(document, 'hidden', descriptor);
-          } else {
-            delete document.hidden;
-          }
-        }
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        return {
-          retained: canvas === document.querySelector('#play-preview canvas'),
-          ready: !!document.querySelector('#play-preview [data-live-ready="true"]'),
-        };
-      });
-      if (visibility.retained) {
-        assert.equal(visibility.ready, true, 'A retained canvas lost readiness after a visibility burst.');
-      } else {
-        await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
-        initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
-        assert.ok(initialCanvas);
-      }
+      const visibility = await verifyVisibilityBurst(who.page);
+      initialCanvas = visibility.canvas;
       releaseSnapshot();
       await who.page.locator('[data-table-connected="true"]').waitFor();
       assert.equal(
