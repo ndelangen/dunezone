@@ -167,6 +167,13 @@ export function assetSubjectFacts<Kind extends AssetAccessFacts['kind'], GroupSu
   return { kind, ownerId: row.owner_id, available: !row.is_deleted, assignedGroup };
 }
 
+/** The rules' view of a viewer for one subject: whether they own it is the one fact the browser's viewer and the page's facts decide together. */
+function viewerFactsFor(viewer: AccessViewer, ownerId: string): ViewerFacts {
+  return viewer.kind === 'anonymous'
+    ? viewer
+    : { kind: 'authenticated', membership: viewer.membership, ownsSubject: viewer.userId === ownerId };
+}
+
 /** A faction, ruleset or asset's capabilities for this viewer: the same rules the mutation gates apply, run on the page's public facts. */
 export function assetAccessForViewer<GroupSummary extends GroupSummaryShape>(
   subject: AssetSubjectFacts<GroupSummary>,
@@ -176,9 +183,40 @@ export function assetAccessForViewer<GroupSummary extends GroupSummaryShape>(
     kind: subject.kind,
     resource: { available: subject.available },
     group: { eligible: subject.assignedGroup !== null, summary: subject.assignedGroup },
-    viewer:
-      viewer.kind === 'anonymous'
-        ? viewer
-        : { kind: 'authenticated', membership: viewer.membership, ownsSubject: viewer.userId === subject.ownerId },
+    viewer: viewerFactsFor(viewer, subject.ownerId),
   });
+}
+
+/** The public facts a Group page carries about its Group: who created it and whether it is still live. */
+export type GroupSubjectFacts = { createdBy: string; available: boolean };
+
+/** The subject facts for a Group row. One mapping, shared by the browser hook and the tests that stand in for it. */
+export function groupSubjectFacts(row: { created_by: string; is_deleted: boolean }): GroupSubjectFacts {
+  return { createdBy: row.created_by, available: !row.is_deleted };
+}
+
+/** A Group's capabilities for this viewer: the same rules the mutation gates apply, run on the page's public facts. */
+export function groupAccessForViewer(subject: GroupSubjectFacts, viewer: AccessViewer): GroupViewerAccess {
+  return evaluateCollaborativeAccess({
+    kind: 'group',
+    group: { eligible: subject.available },
+    viewer: viewerFactsFor(viewer, subject.createdBy),
+  });
+}
+
+/** One roster membership as the rules need it: its state, and whether it is the Group creator's own. */
+export type GroupRosterMemberFacts = { status: 'pending' | 'active'; isGroupOwner: boolean };
+
+/**
+ * What the viewer may do to one roster membership, given their Group access.
+ * An active member of a live Group settles pending requests;
+ * the owner removes any active member but themself.
+ */
+export function groupRosterCapabilities(access: GroupViewerAccess, member: GroupRosterMemberFacts) {
+  const pending = member.status === 'pending';
+  return {
+    approve: access.capabilities.addMember && pending,
+    reject: access.capabilities.addMember && pending,
+    remove: access.capabilities.rename && !pending && !member.isGroupOwner,
+  };
 }

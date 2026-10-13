@@ -9,6 +9,7 @@ import { accountMethods, authMethodValidator } from './lib/accountMethods';
 import {
   assignedGroupSummaryValidator,
   profileDetailPageValidator,
+  profilePageValidator,
   profileValidator,
 } from './lib/collaborativeAccessValidators';
 import { canSetDefaultGroup, loadDefaultGroupPreferenceProjection } from './lib/defaultGroupPreference';
@@ -16,7 +17,7 @@ import { requireAuthUserId } from './lib/policy';
 import { loadProfileActivityCounts } from './lib/profileActivity';
 import { scheduleAvatarRehostIfPending } from './lib/profileAvatar';
 import { ensureProfileForUser } from './lib/profileBootstrap';
-import { loadProfileDetailBySlug } from './lib/profileDetail';
+import { loadProfileDetailBySlug, loadProfilePageBySlug } from './lib/profileDetail';
 import { discoverableProfileValidator, loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
 import { allocateProfileSlug } from './lib/profileSlugs';
 import { nowIso, slugify } from './lib/utils';
@@ -157,6 +158,14 @@ export const getById = publicQuery({
   },
 });
 
+/** A profile page, one cached answer for every viewer. */
+export const pageBySlug = publicQuery({
+  args: { slug: v.string() },
+  returns: profilePageValidator,
+  handler: async (ctx, args) => await loadProfilePageBySlug(ctx, args.slug),
+});
+
+/** Deprecated by `pageBySlug`: kept unchanged for bundles deployed before it, then deleted (see AGENTS.md). */
 export const getBySlug = viewerQuery({
   args: { slug: v.string() },
   returns: profileDetailPageValidator,

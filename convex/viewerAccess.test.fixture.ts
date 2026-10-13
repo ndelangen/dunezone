@@ -1,8 +1,15 @@
 import type { TestConvexForDataModel } from 'convex-test';
 import type { FunctionArgs } from 'convex/server';
 
-import { assetAccessForViewer, assetSubjectFacts } from '../src/shared/access/collaborativeAccess';
+import {
+  assetAccessForViewer,
+  assetSubjectFacts,
+  groupAccessForViewer,
+  groupRosterCapabilities,
+  groupSubjectFacts,
+} from '../src/shared/access/collaborativeAccess';
 import type { AccessViewer } from '../src/shared/access/collaborativeAccess';
+import { faqQuestionPageForViewer } from '../src/shared/faq/questionPageAccess';
 import { api } from './_generated/api';
 import type { DataModel, Id } from './_generated/dataModel';
 
@@ -90,4 +97,28 @@ export async function assetPageAs(client: QueryClient, args: FunctionArgs<typeof
     assignableGroups,
     canConvertToCustom: page.convertibleToCustom && session.isAdmin,
   };
+}
+
+/** The Group page as a given viewer sees it: its access and each roster member's moderation capabilities, combined as `useGroupDetailBySlug` does. */
+export async function groupPageAs(client: QueryClient, slug: string) {
+  const page = await client.query(api.groups.detailPage, { slug });
+  const viewerAccess = groupAccessForViewer(
+    groupSubjectFacts(page.group),
+    await accessViewerFor(client, page.group._id)
+  );
+  return {
+    ...page,
+    viewerAccess,
+    roster: page.roster.map((member) => ({ ...member, capabilities: groupRosterCapabilities(viewerAccess, member) })),
+  };
+}
+
+/** A FAQ question page as a given viewer sees it: who may edit, delete, accept and answer, combined as `useFaqQuestionPage` does. */
+export async function faqQuestionPageAs(client: QueryClient, locator: FunctionArgs<typeof api.faq.question>) {
+  const [page, session] = await Promise.all([
+    client.query(api.faq.question, locator),
+    client.query(api.profiles.session, {}),
+  ]);
+  const answered = await client.query(api.faq.viewerAnswered, { questionId: page.question.id });
+  return faqQuestionPageForViewer(page, session.userId, answered);
 }

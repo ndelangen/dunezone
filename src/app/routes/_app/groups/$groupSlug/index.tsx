@@ -112,17 +112,16 @@ function GroupDetailPage() {
 
   const group = page.group;
   const groupId = group._id;
+  /* The page is the same for everyone and usually settles first; controls wait for the viewer, as the anonymous capabilities grant none. */
   const viewerAccess = page.viewerAccess;
-  const capabilities = groupData.isPending ? undefined : viewerAccess.capabilities;
+  const capabilities = page.viewerResolved ? viewerAccess.capabilities : undefined;
   const ownerProfile = page.owner;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   const isOwner = viewerAccess.capabilities.rename;
-  const isActiveMember = !groupData.isPending && membershipStatus === 'active';
+  const isActiveMember = page.viewerResolved && membershipStatus === 'active';
   const factions = page.factions;
   const rulesets = page.rulesets;
-  const roster = groupData.isPending
-    ? page.roster.map((entry) => ({ ...entry, capabilities: { approve: false, reject: false, remove: false } }))
-    : page.roster;
+  const roster = page.roster;
 
   const activeMembers = roster.filter((member) => member.status === 'active');
   const pendingMembers = roster.filter((member) => member.status === 'pending');
@@ -376,7 +375,7 @@ function AddOwnedPopover({ noun, disabled, children }: { noun: string; disabled:
 /**
  * Only mounted for active members (see call sites): the owned-factions query requires authentication, so it must not be called for anonymous, pending, or non-member viewers.
  * The query itself now starts when the pane opens rather than when the page does, because the picker is mounted by the shell's own gate;
- * the lists staying separate from `detailBySlug` is still #348/#182's decision.
+ * the lists staying separate from `detailPage` is still #348/#182's decision.
  */
 function FactionAssignPicker({ disabled, currentGroupId, currentGroupName, onAssign }: AssignPickerProps) {
   return (

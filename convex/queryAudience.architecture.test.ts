@@ -15,6 +15,7 @@ const VIEWER_QUERIES: Record<string, string> = {
   'accounts:connection': "Resolves a connection intent against the viewer's session.",
   'factions:listForLoadPicker': "The viewer's own and their Groups' factions.",
   'factions:listOwnedForGroupAssign': "The viewer's own factions.",
+  'faq:viewerAnswered': "Whether the viewer answered one question: the viewer half of the question page's answer form.",
   'groups:viewerAssignableGroups': 'The Groups the viewer can move a subject into.',
   'groups:viewerMembership': "The viewer's membership of one Group: the viewer half of a page's capabilities.",
   'playDirectory:listGames': 'Marks the games the viewer is seated in.',
@@ -37,21 +38,21 @@ const VIEWER_QUERIES: Record<string, string> = {
  * This list only shrinks.
  */
 const PENDING_VIEWER_SPLIT: Record<string, string> = {
-  'faq:questionPage': 'edit, delete, accept and answer capabilities',
-  'groups:detailBySlug': 'viewerAccess and roster moderation capabilities',
   'migrations:adminDashboard': 'reports access state; becomes adminQuery once the page gates on session.isAdmin',
-  'profiles:getBySlug': 'the self-only account block, already served by profiles:settings',
   'publicationAdmin:page': 'reports access state; becomes adminQuery once the page gates on session.isAdmin',
 };
 
 /**
  * Per-viewer pages already replaced by a `publicQuery`, kept unchanged only so bundles deployed before the replacement keep working.
  * Production deploys functions before the browser bundle, so these are deleted in a later release (see AGENTS.md).
- * This list only shrinks too.
+ * It grows only by what leaves the pending split, so the two lists together only shrink.
  */
 const DEPRECATED_VIEWER_QUERIES: Record<string, string> = {
   'assets:getPage': 'replaced by assets:page',
   'factions:getBySlug': 'replaced by factions:pageBySlug',
+  'faq:questionPage': 'replaced by faq:question',
+  'groups:detailBySlug': 'replaced by groups:detailPage',
+  'profiles:getBySlug': 'replaced by profiles:pageBySlug',
   'rulebooks:readerDeliveryPage': 'replaced by rulebooks:readerDelivery',
   'rulesets:detailPageBySlug': 'replaced by rulesets:detailPage',
   'rulesets:getBySlug': 'replaced by rulesets:page',
@@ -114,9 +115,15 @@ describe('query audience', () => {
   });
 
   test('the pending split and deprecated lists only shrink', () => {
-    /* Lower this as pages move to publicQuery; never raise it. */
-    expect(Object.keys(PENDING_VIEWER_SPLIT).length).toBeLessThanOrEqual(5);
-    expect(Object.keys(DEPRECATED_VIEWER_QUERIES).length).toBeLessThanOrEqual(5);
+    /*
+     * Lower the pending cap as pages move to publicQuery, and the deprecated cap as releases delete the old names.
+     * The deprecated cap rises only by what the pending cap gave up; the combined cap never rises.
+     */
+    const pending = Object.keys(PENDING_VIEWER_SPLIT).length;
+    const deprecated = Object.keys(DEPRECATED_VIEWER_QUERIES).length;
+    expect(pending).toBeLessThanOrEqual(2);
+    expect(deprecated).toBeLessThanOrEqual(8);
+    expect(pending + deprecated).toBeLessThanOrEqual(10);
   });
 
   test('every deprecated viewer query names a public replacement that exists', () => {

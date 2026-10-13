@@ -7,6 +7,7 @@ import { describe, expect, test } from 'vitest';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import schema from './schema';
+import { faqQuestionPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -99,12 +100,12 @@ async function seedQuestionPage(t: ReturnType<typeof convexTest>): Promise<SeedR
 
 const locator = { rulesetSlug: 'advanced', questionSlug: '1' };
 
-describe('FAQ question page projection (api.faq.questionPage)', () => {
+describe('FAQ question page projection (api.faq.question)', () => {
   test('anonymous viewers get the page with no capabilities', async () => {
     const t = convexTest(schema, modules);
     await seedQuestionPage(t);
 
-    const page = await t.query(api.faq.questionPage, locator);
+    const page = await faqQuestionPageAs(t, locator);
 
     expect(page.viewer.answerQuestion).toBe(false);
     expect(page.question.capabilities).toEqual({ editQuestion: false, deleteQuestion: false });
@@ -122,7 +123,7 @@ describe('FAQ question page projection (api.faq.questionPage)', () => {
     const t = convexTest(schema, modules);
     const seed = await seedQuestionPage(t);
 
-    const page = await t.query(api.faq.questionPage, locator);
+    const page = await faqQuestionPageAs(t, locator);
 
     expect(page.answers[0]?.id).toBe(seed.acceptedAnswerId);
     expect(page.answers[0]?.accepted).toBe(true);
@@ -133,7 +134,7 @@ describe('FAQ question page projection (api.faq.questionPage)', () => {
     const t = convexTest(schema, modules);
     const seed = await seedQuestionPage(t);
 
-    const page = await t.withIdentity({ subject: seed.askerId }).query(api.faq.questionPage, locator);
+    const page = await faqQuestionPageAs(t.withIdentity({ subject: seed.askerId }), locator);
 
     expect(page.question.capabilities).toEqual({ editQuestion: true, deleteQuestion: true });
     const accepted = page.answers.find((answer) => answer.id === seed.acceptedAnswerId);
@@ -152,7 +153,7 @@ describe('FAQ question page projection (api.faq.questionPage)', () => {
     const t = convexTest(schema, modules);
     const seed = await seedQuestionPage(t);
 
-    const page = await t.withIdentity({ subject: seed.answererId }).query(api.faq.questionPage, locator);
+    const page = await faqQuestionPageAs(t.withIdentity({ subject: seed.answererId }), locator);
 
     const own = page.answers.find((answer) => answer.id === seed.acceptedAnswerId);
     expect(own?.capabilities).toMatchObject({ editAnswer: true, deleteAnswer: true });
@@ -165,7 +166,7 @@ describe('FAQ question page projection (api.faq.questionPage)', () => {
     const t = convexTest(schema, modules);
     const seed = await seedQuestionPage(t);
 
-    const page = await t.query(api.faq.questionPage, locator);
+    const page = await faqQuestionPageAs(t, locator);
 
     const ghost = page.answers.find((answer) => answer.id === seed.ghostAnswerId);
     expect(ghost?.author).toBeNull();
@@ -179,14 +180,39 @@ describe('FAQ question page projection (api.faq.questionPage)', () => {
     });
   });
 
+  test('is the same answer for every viewer', async () => {
+    const t = convexTest(schema, modules);
+    const seed = await seedQuestionPage(t);
+
+    const anonymous = await t.query(api.faq.question, locator);
+    for (const userId of [seed.askerId, seed.answererId]) {
+      expect(await t.withIdentity({ subject: userId }).query(api.faq.question, locator)).toEqual(anonymous);
+    }
+  });
+
+  test('the deprecated per-viewer page still answers older bundles with their capabilities', async () => {
+    const t = convexTest(schema, modules);
+    const seed = await seedQuestionPage(t);
+
+    for (const viewer of [t, t.withIdentity({ subject: seed.askerId }), t.withIdentity({ subject: seed.answererId })]) {
+      const { question, answers, ...current } = await faqQuestionPageAs(viewer, locator);
+      const { askedBy: _askedBy, ...legacyQuestion } = question;
+      expect(await viewer.query(api.faq.questionPage, locator)).toEqual({
+        ...current,
+        question: legacyQuestion,
+        answers: answers.map(({ answeredBy: _answeredBy, ...answer }) => answer),
+      });
+    }
+  });
+
   test('unknown locators throw', async () => {
     const t = convexTest(schema, modules);
     await seedQuestionPage(t);
 
-    await expect(t.query(api.faq.questionPage, { rulesetSlug: 'advanced', questionSlug: '99' })).rejects.toMatchObject({
+    await expect(t.query(api.faq.question, { rulesetSlug: 'advanced', questionSlug: '99' })).rejects.toMatchObject({
       data: { code: 'NOT_FOUND' },
     });
-    await expect(t.query(api.faq.questionPage, { rulesetSlug: 'missing', questionSlug: '1' })).rejects.toMatchObject({
+    await expect(t.query(api.faq.question, { rulesetSlug: 'missing', questionSlug: '1' })).rejects.toMatchObject({
       data: { code: 'NOT_FOUND' },
     });
   });

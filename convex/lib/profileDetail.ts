@@ -11,11 +11,12 @@ const PROFILE_DETAIL_LIMIT = 500;
 
 /**
  * Profile-detail read model.
- * Owns the joins, visibility rules (active memberships only, soft-deleted factions excluded, faction rulesets limited to active ones), and ordering (FAQ activity newest first, faction rulesets by name, Groups in membership order) behind `api.profiles.getBySlug`.
- * The runtime wire contract is `profileDetailPageValidator`;
+ * Owns the joins, visibility rules (active memberships only, soft-deleted factions excluded, faction rulesets limited to active ones), and ordering (FAQ activity newest first, faction rulesets by name, Groups in membership order) behind `api.profiles.pageBySlug`.
+ * The same for every viewer: the viewer's own sign-in methods are `api.profiles.settings`, never part of a profile page.
+ * The runtime wire contract is `profilePageValidator`;
  * the precise TS projection (parsed faction data included) is inferred from this loader.
  */
-export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
+export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string) {
   let profile = await ctx.db
     .query('profiles')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
@@ -53,19 +54,22 @@ export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
     ownerId: profile.user_id,
   });
 
+  return { profile, faqAsked, faqAnswers, factions, groupSummaries };
+}
+
+/** Deprecated with `api.profiles.getBySlug`: the public page plus the viewer's own account block on their own profile. Remove with it. */
+export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
+  const page = await loadProfilePageBySlug(ctx, slug);
   const viewerId = await optionalActiveUserId(ctx);
-  const user = viewerId === profile.user_id ? await ctx.db.get(viewerId) : null;
+  const userId = page.profile.user_id;
+  if (viewerId !== userId) {
+    return { ...page, account: null };
+  }
+  const user = await ctx.db.get(userId);
   return {
-    account:
-      viewerId === profile.user_id
-        ? { methods: await accountMethods(ctx, profile.user_id), merging: !!user?.account_merge_operation_id }
-        : null,
-    profile,
-    faqAsked,
-    faqAnswers,
-    factions,
-    groupSummaries,
+    ...page,
+    account: { methods: await accountMethods(ctx, userId), merging: !!user?.account_merge_operation_id },
   };
 }
 
-export type ProfileDetailProjection = Awaited<ReturnType<typeof loadProfileDetailBySlug>>;
+export type ProfileDetailProjection = Awaited<ReturnType<typeof loadProfilePageBySlug>>;

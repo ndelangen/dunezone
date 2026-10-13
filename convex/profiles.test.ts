@@ -149,7 +149,7 @@ test('profile detail returns the newest bounded FAQ activity', async () => {
     }
   });
 
-  const profile = await t.query(api.profiles.getBySlug, { slug: 'recent-faq-author' });
+  const profile = await t.query(api.profiles.pageBySlug, { slug: 'recent-faq-author' });
 
   expect(profile.faqAsked).toHaveLength(200);
   expect(profile.faqAsked[0].slug).toBe('200');

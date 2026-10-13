@@ -35,27 +35,35 @@ const serverPage = {
     text: 'How does loader handoff work?',
     tags: ['rules'] as const,
     author: null,
+    askedBy: 'asker',
     createdAt: '2026-08-05T00:00:00.000Z',
     updatedAt: '2026-08-05T00:00:00.000Z',
-    capabilities: { editQuestion: true, deleteQuestion: true },
   },
-  viewer: { answerQuestion: false },
   answers: [
     {
       id: 'answer-2',
       text: 'The accepted answer.',
       author: null,
+      answeredBy: 'answerer',
       createdAt: '2026-08-05T00:02:00.000Z',
       accepted: true,
-      capabilities: {
-        editAnswer: false,
-        deleteAnswer: true,
-        acceptAnswer: false,
-        unacceptAnswer: true,
-      },
     },
   ],
 };
+
+/** Answers the page, the session and the viewer's answered flag by function name, as Convex would for each subscription. */
+function serveQueries(viewer: { userId: string | null; answered: boolean | undefined }) {
+  mocks.useQuery.mockImplementation((reference) => {
+    switch (getFunctionName(reference)) {
+      case getFunctionName(api.profiles.session):
+        return { userId: viewer.userId, profile: null, isAdmin: false };
+      case getFunctionName(api.faq.viewerAnswered):
+        return viewer.answered;
+      default:
+        return serverPage;
+    }
+  });
+}
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -99,8 +107,50 @@ beforeEach(() => {
 });
 
 describe('FAQ question page interface', () => {
+  test('combines the shared page with the viewer once both halves settle', () => {
+    serveQueries({ userId: 'answerer', answered: undefined });
+    const hook = renderHook(() => useFaqQuestionPage({ rulesetSlug: 'test-ruleset', questionSlug: '1' }));
+    expect(hook.result.current.page).toMatchObject({ viewerResolved: false, viewer: { answerQuestion: false } });
+    expect(hook.result.current.page?.answers[0]?.capabilities.editAnswer).toBe(false);
+
+    serveQueries({ userId: 'answerer', answered: true });
+    hook.rerender();
+    expect(hook.result.current.page).toMatchObject({ viewerResolved: true, viewer: { answerQuestion: false } });
+    expect(hook.result.current.page?.answers[0]?.capabilities).toEqual({
+      editAnswer: true,
+      deleteAnswer: true,
+      acceptAnswer: false,
+      unacceptAnswer: false,
+    });
+
+    serveQueries({ userId: 'asker', answered: false });
+    hook.rerender();
+    expect(hook.result.current.page?.question.capabilities).toEqual({ editQuestion: true, deleteQuestion: true });
+    expect(hook.result.current.page?.answers[0]?.capabilities).toMatchObject({
+      unacceptAnswer: true,
+      editAnswer: false,
+    });
+    expect(hook.result.current.page?.viewer.answerQuestion).toBe(true);
+  });
+
+  test('keeps the combined question and answers referentially stable while their inputs are unchanged', () => {
+    serveQueries({ userId: 'asker', answered: false });
+    const hook = renderHook(() => useFaqQuestionPage({ rulesetSlug: 'test-ruleset', questionSlug: '1' }));
+    const first = hook.result.current.page;
+
+    /* The question route re-runs its hash scroll whenever these change identity, so an unrelated rerender must not change them. */
+    hook.rerender();
+    expect(hook.result.current.page).toBe(first);
+    expect(hook.result.current.page?.question).toBe(first?.question);
+    expect(hook.result.current.page?.answers).toBe(first?.answers);
+
+    serveQueries({ userId: 'asker', answered: true });
+    hook.rerender();
+    expect(hook.result.current.page?.answers).not.toBe(first?.answers);
+  });
+
   test('binds domain commands to the loaded question and canonical operations', async () => {
-    mocks.useQuery.mockReturnValue(serverPage);
+    serveQueries({ userId: 'asker', answered: false });
     const hook = renderHook(() => useFaqQuestionPage({ rulesetSlug: 'test-ruleset', questionSlug: '1' }));
 
     await act(() =>
@@ -141,7 +191,7 @@ describe('FAQ question page interface', () => {
   });
 
   test('keeps pending and error state isolated between commands', async () => {
-    mocks.useQuery.mockReturnValue(serverPage);
+    serveQueries({ userId: 'asker', answered: false });
     const pendingEdit = deferred<null>();
     const deleteError = new Error('Delete failed');
     mocks.editQuestion.mockReturnValueOnce(pendingEdit.promise);

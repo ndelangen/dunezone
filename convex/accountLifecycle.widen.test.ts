@@ -11,6 +11,7 @@ import { api, internal } from './_generated/api';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
 import schema from './schema';
+import { groupPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-20T00:00:00.000Z';
@@ -89,7 +90,7 @@ describe('account lifecycle widen rollout', () => {
       isAdmin: false,
     });
     await expect(pending.mutation(api.profiles.bootstrapCurrent, {})).rejects.toThrow(/Not authenticated/);
-    await expect(t.query(api.profiles.getBySlug, { slug: 'pending-user' })).rejects.toThrow(/not found/);
+    await expect(t.query(api.profiles.pageBySlug, { slug: 'pending-user' })).rejects.toThrow(/not found/);
     await expect(t.query(api.profiles.newestDiscoverable, {})).resolves.toEqual([]);
   });
 
@@ -218,9 +219,7 @@ describe('account lifecycle widen rollout', () => {
       return { pendingId };
     });
 
-    const group = await t.withIdentity({ subject: ids.pendingId }).query(api.groups.detailBySlug, {
-      slug: 'lifecycle-group',
-    });
+    const group = await groupPageAs(t.withIdentity({ subject: ids.pendingId }), 'lifecycle-group');
     expect(group.viewerAccess.viewer).toEqual({ kind: 'anonymous' });
     expect(group.roster.map((entry) => entry.user.slug)).toEqual(['active-owner']);
 
