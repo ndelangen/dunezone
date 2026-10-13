@@ -193,7 +193,7 @@
     animation: marketing-fan 1100ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
     animation-delay: var(--arrival-delay);
   }
-  [data-live-ready="true"] > .liveBoard {
+  .liveBoard[data-live-ready="true"] {
     animation: board-arrival 1400ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 }
@@ -285,7 +285,7 @@
   position: absolute;
   inset: 0;
 }
-[data-live-ready="true"] > .liveBoard {
+.liveBoard[data-live-ready="true"] {
   opacity: 1;
 }
 /* A narrow page shows the board as a still and says where the live table runs. */

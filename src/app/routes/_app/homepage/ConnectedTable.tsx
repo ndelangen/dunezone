@@ -62,13 +62,11 @@ export default function ConnectedTable({
   identity,
   className,
   sceneClassName,
-  onReady,
   onUnavailable,
 }: {
   identity: string | null;
   className: string;
   sceneClassName: string;
-  onReady(): void;
   onUnavailable(): void;
 }): ReactNode {
   const [subscription] = useState(() => new HomepageSubscription(runtime, null));
@@ -84,10 +82,7 @@ export default function ConnectedTable({
     }),
     { painted: false, interactive: false }
   );
-  const painted = useCallback(() => {
-    dispatch('painted');
-    onReady();
-  }, [onReady]);
+  const painted = useCallback(() => dispatch('painted'), []);
   const interactive = useCallback(() => dispatch('interactive'), []);
   const snapshot = useSyncExternalStore(
     session.subscribeTable,
@@ -111,6 +106,7 @@ export default function ConnectedTable({
   return (
     <div
       className={className}
+      data-live-ready={arrival.painted ? 'true' : undefined}
       data-table-connected={arrival.interactive ? 'true' : undefined}
       onContextMenu={(event) => {
         event.preventDefault();

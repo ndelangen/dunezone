@@ -395,8 +395,47 @@ export async function verifyHomepage({
       assert.ok(initialCanvas);
       assert.ok(releaseSnapshot);
       await capture(guest, 'homepage-board-before-live-snapshot');
+      const visibility = await who.page.evaluate(async () => {
+        const canvas = document.querySelector('#play-preview canvas');
+        const descriptor = Object.getOwnPropertyDescriptor(document, 'hidden');
+        let hidden = false;
+        try {
+          Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+          hidden = true;
+          document.dispatchEvent(new Event('visibilitychange'));
+          hidden = false;
+          document.dispatchEvent(new Event('visibilitychange'));
+        } finally {
+          if (descriptor) {
+            Object.defineProperty(document, 'hidden', descriptor);
+          } else {
+            delete document.hidden;
+          }
+        }
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        return {
+          retained: canvas === document.querySelector('#play-preview canvas'),
+          ready: !!document.querySelector('#play-preview [data-live-ready="true"]'),
+        };
+      });
+      if (visibility.retained) {
+        assert.equal(visibility.ready, true, 'A retained canvas lost readiness after a visibility burst.');
+      } else {
+        await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
+        initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
+        assert.ok(initialCanvas);
+      }
       releaseSnapshot();
       await who.page.locator('[data-table-connected="true"]').waitFor();
+      assert.equal(
+        await who.page.locator('#play-preview [data-live-ready="true"]').count(),
+        1,
+        'The painted scene lost readiness after a rapid visibility change.'
+      );
+      passed('A rapid hide/show keeps the painted board visible through the live snapshot', {
+        canvasRetained: visibility.retained,
+      });
+      await capture(guest, 'homepage-observer-after-visibility');
     }
     await who.page.locator('[data-live-ready="true"]').waitFor();
     await tableLoaded(who);
