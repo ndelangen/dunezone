@@ -2,8 +2,23 @@ import { ConvexHttpClient } from 'convex/browser';
 import { ConvexReactClient } from 'convex/react';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 
+import { keepWarm, LOADER_HOLD_MS, releaseAllHolds } from './warm';
+
+/* Sign-in and sign-out drop every held query first, so a loader never reuses a private result held for the identity before. */
+class HoldingConvexClient extends ConvexReactClient {
+  override setAuth(...args: Parameters<ConvexReactClient['setAuth']>) {
+    releaseAllHolds();
+    super.setAuth(...args);
+  }
+
+  override clearAuth() {
+    releaseAllHolds();
+    super.clearAuth();
+  }
+}
+
 const convexUrl = import.meta.env.VITE_CONVEX_URL!;
-export const convex = new ConvexReactClient(convexUrl);
+export const convex: ConvexReactClient = new HoldingConvexClient(convexUrl);
 
 /** Server reads never share the browser's authenticated client or open a WebSocket. */
 function convexBackendForDb(): ConvexReactClient | ConvexHttpClient {
@@ -31,8 +46,11 @@ export const db = {
       const queries = Number(getResponseHeader('X-Public-Metadata-Queries') ?? 0);
       setResponseHeader('X-Public-Metadata-Queries', String(queries + 1));
     }
-    const backend = convexBackendForDb();
-    return await backend.query(fn, args as never);
+    /* The hold goes in before the read, so the read answers from it rather than opening and dropping a subscription of its own. */
+    if (!import.meta.env.SSR) {
+      keepWarm(convex, fn, args, LOADER_HOLD_MS);
+    }
+    return await convexBackendForDb().query(fn, args as never);
   },
   mutation: async <Mutation extends FunctionReference<'mutation'>>(
     fn: Mutation,
