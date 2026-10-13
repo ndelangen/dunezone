@@ -325,22 +325,22 @@ export const createGameWithName = action({
  * Provider calls stay outside this recovery and each attempt rechecks authorization, seats and quota.
  * Three total attempts bound recovery when conflicts persist.
  */
-async function recoverCreationConflict<Result>(commit: () => Promise<Result>): Promise<Result> {
-  for (let attempt = 0; ; attempt += 1) {
-    try {
-      return await commit();
-    } catch (error) {
-      const conflict =
-        error instanceof Error &&
-        !(error instanceof ConvexError) &&
-        /^Documents read from or written to the "[A-Za-z][A-Za-z0-9_]*" table changed while this mutation was being run and on every subsequent retry\./.test(
-          error.message
-        );
-      if (!conflict || attempt >= 2) {
-        throw error;
-      }
-      await new Promise((resolve) => setTimeout(resolve, (attempt + 1) * 200 + Math.random() * 200));
+async function recoverCreationConflict<Result>(commit: () => Promise<Result>, attempt = 0): Promise<Result> {
+  try {
+    return await commit();
+  } catch (error) {
+    const conflict =
+      error instanceof Error &&
+      !(error instanceof ConvexError) &&
+      /^Documents read from or written to the "[A-Za-z]\w*" table changed while this mutation was being run and on every subsequent retry\./.test(
+        error.message
+      );
+    if (!conflict || attempt >= 2) {
+      throw error;
     }
+    const jitter = (crypto.getRandomValues(new Uint8Array(1))[0]! / 256) * 200;
+    await new Promise((resolve) => setTimeout(resolve, (attempt + 1) * 200 + jitter));
+    return await recoverCreationConflict(commit, attempt + 1);
   }
 }
 
