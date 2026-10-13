@@ -24,6 +24,7 @@ backend startup. The sandbox excludes the root tsconfig because Stryker's compil
 can resolve the native TypeScript package through Bun's shared dependency directory. The ordinary
 application typecheck still uses the native compiler.
 
+Stryker's instrumenter has a scoped Babel 8 override; the application build keeps Babel 7.
 Run `bun run test:mutation` locally with Node 24. The artifact includes `mutation.html` and
 `mutation.json`, which identify the code changes the tests missed. The mutation score is advisory;
 an initial test failure or scanner failure still fails the reporting job. Mutation coverage stays
