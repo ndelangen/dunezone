@@ -72,11 +72,9 @@ async function proveAllocation(
   absentGameId: Id<'play_games'>
 ) {
   async function named(client: ConvexHttpClient, name: string): Promise<Id<'play_games'>> {
-    const result = await client.mutation(httpReference(internal.playGames.createNamedGame), {
+    const result = await client.action(api.playGames.createGameWithName, {
       ...request,
       name,
-      base: normalizePlayGameSlug(name),
-      check: { outcome: 'no_profanity_detected' },
     });
     assert(result.ok, `Creation refused: ${JSON.stringify(result)}`);
     return result.gameId;
@@ -179,11 +177,9 @@ async function proveRecovery(
   const results = await completeBatch(
     'Dense Play recovery',
     viewers.map((viewer) =>
-      viewer.mutation(httpReference(internal.playGames.createNamedGame), {
+      viewer.action(api.playGames.createGameWithName, {
         ...request,
         name: 'Caladan dense picnic',
-        base: 'caladan-dense-picnic',
-        check: { outcome: 'no_profanity_detected' },
       })
     )
   );
@@ -273,7 +269,10 @@ async function proveModeration(
 async function main() {
   const instance = createLocalDevelopmentInstance({});
   const environment = commandEnvironment(
-    localApplicationEnvironment(process.env),
+    localApplicationEnvironment({
+      ...process.env,
+      DATABASE_UDF_USER_TIMEOUT_SECONDS: String(process.platform === 'darwin' ? 3 : 2),
+    }),
     localDevelopmentEnvironmentOverrides(instance)
   );
   const directory = mkdtempSync(path.join(tmpdir(), 'dunezone-game-addresses-'));
@@ -282,12 +281,36 @@ async function main() {
     const deployment = await backendUp(environment, { url: instance.backendUrl });
     configureLocalAuth(deployment, environment, { siteUrl: instance.appUrl, artifactsDirectory: directory });
     pushCode(deployment, environment);
+    /* Code installation's component writes leave the local backend's one-second write window before seeding. */
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     const admin = localClient(deployment.url, deployment.adminKey);
     const { rulesetId } = await admin.mutation(httpReference(internal.playTesting.seedRealGameCatalogue), {});
     const { subjects, absentGameId } = await admin.mutation(httpReference(internal.playGameNamesTesting.seed), {});
     const viewers = subjects.map((subject) => localClient(deployment.url, deployment.adminKey, subject));
     const request = { rulesetId, minimumPlayers: 4 as const };
     await proveAllocation(admin, viewers, request, absentGameId);
+    const generated = await admin.mutation(httpReference(internal.playGameNamesTesting.seed), {});
+    const generatedName = playGameNameVocabulary()[0]!.name;
+    const generatedGames = await completeBatch(
+      'Generated same-name contention',
+      generated.subjects.map((subject) =>
+        localClient(deployment.url, deployment.adminKey, subject).action(api.playGames.createGeneratedGame, {
+          ...request,
+          generatedName,
+        })
+      )
+    );
+    const generatedIds = generatedGames.map((result) => {
+      assert(result.ok);
+      return result.gameId;
+    });
+    assert.equal(new Set(generatedIds).size, 8);
+    const generatedDirectory = await admin.query(httpReference(internal.playGameNamesTesting.inspect), {
+      gameIds: generatedIds as Id<'play_games'>[],
+    });
+    assert(generatedDirectory.every(({ name }) => name === generatedName));
+    assert.equal(new Set(generatedDirectory.map(({ slug }) => slug)).size, 8);
+    console.log('PASS: eight public generated-name creations kept the chosen name and distinct permanent addresses.');
     await proveCounterAllocation(viewers);
     const fresh = await admin.mutation(httpReference(internal.playGameNamesTesting.seed), {});
     await proveRecovery(

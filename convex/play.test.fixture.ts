@@ -13,8 +13,8 @@ import schema from './schema';
 const modules = import.meta.glob('./**/*.ts');
 
 /** A fresh test world with the components Play's functions reach. */
-export function playTest() {
-  const t = convexTest(schema, modules);
+export function playTest(moduleOverrides: typeof modules = {}) {
+  const t = convexTest(schema, { ...modules, ...moduleOverrides });
   rateLimiterTest.register(t);
   aggregateTest.register(t, 'statistics');
   aggregateTest.register(t, 'profileActivity');
