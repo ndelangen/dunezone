@@ -214,6 +214,11 @@ because the ladder step looked worse by eye or because the screen waits for his 
 comment next to it names that decision. The ladder is the default for a threshold nobody has looked
 at, and the comment keeps a later sweep from snapping one that someone has.
 
+When a script has to act on a container query's verdict, for example to skip loading something a
+narrow page never shows, it reads the verdict from the stylesheet, such as whether an element the
+query shows is displayed. A `matchMedia` copy of the threshold disagrees with the container by the
+shell's gutters. The homepage's live board is the example.
+
 *Media queries enforced by `check:breakpoints`
 ([`assert-breakpoints.mjs`](../../scripts/assert-breakpoints.mjs)): a width query outside the window
 chrome, off the ladder, or in a form other than `width < step` or `width >= step`, fails. Media

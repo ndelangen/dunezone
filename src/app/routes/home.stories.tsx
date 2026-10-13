@@ -36,5 +36,8 @@ export const QuietMobile = meta.story({
     expect(preview?.closest('[data-homepage-motion]')).toHaveAttribute('data-homepage-motion', 'off');
     expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
     await expect(page.getByText('A development preview of the new table. Play is not available yet.')).toBeVisible();
+    await expect(page.getByText('Open this page on a larger screen to try the live preview.')).toBeVisible();
+    await expect(page.findByRole('img', { name: /The Dune Play board/ })).resolves.toBeInTheDocument();
+    expect(preview?.querySelector('canvas')).toBeNull();
   },
 });
