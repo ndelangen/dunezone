@@ -393,7 +393,8 @@ export class TableSession {
   private phaseCooldownUntil = 0;
   /* What `keep` last handed the store, so an emit that changed nothing saved costs no write. */
   private lastSaved: {
-    kept: Omit<StoredTable, 'pending'>;
+    viewer: StoredTable['viewer'];
+    snapshot: StoredTable['snapshot'];
     pending: readonly unknown[];
     live: boolean;
     at: number;
@@ -459,37 +460,45 @@ export class TableSession {
    * what is saved, so an unchanged table is only stamped as live again now and then, never written out on every move.
    */
   private keep() {
-    const live = this.subscription.getSnapshot();
     if (this.status === 'denied') {
       this.kept = null;
       this.lastSaved = null;
       this.runtime.tables?.clear(this.game);
       return;
     }
-    const isLive = this.status === 'authorized' && live !== null;
-    const saved = this.lastSaved;
+    const live = this.status === 'authorized' ? this.subscription.getSnapshot() : null;
+    const pending = this.conversations.unconfirmed();
     const now = this.runtime.monotonicNow();
-    if (isLive) {
-      if (
-        saved?.live &&
-        saved.kept.viewer === live.viewer &&
-        saved.kept.snapshot === live.snapshot &&
-        now - saved.at < LIVE_RESTAMP_INTERVAL_MS &&
-        sameRequests(saved.pending, this.conversations.unconfirmed())
-      ) {
-        return;
-      }
+    if (this.alreadySaved(live, pending, now)) {
+      return;
+    }
+    if (live) {
       this.kept = { viewer: live.viewer, snapshot: live.snapshot, serverNow: this.subscription.serverNow() };
     }
-    if (!this.kept) {
-      return;
+    if (this.kept) {
+      const { viewer, snapshot } = this.kept;
+      this.lastSaved = { viewer, snapshot, pending, live: live !== null, at: now };
+      this.runtime.tables?.save(this.game, { ...this.kept, pending }, live !== null);
     }
-    const pending = this.conversations.unconfirmed();
-    if (!isLive && saved && !saved.live && saved.kept === this.kept && sameRequests(saved.pending, pending)) {
-      return;
+  }
+  /* Whether the store already holds what `keep` would save: the same table and messages, and, for a live table, stamped live recently. */
+  private alreadySaved(
+    live: Pick<StoredTable, 'viewer' | 'snapshot'> | null,
+    pending: readonly unknown[],
+    now: number
+  ) {
+    const saved = this.lastSaved;
+    const table = live ?? this.kept;
+    if (!saved || !table || saved.live !== (live !== null)) {
+      return false;
     }
-    this.lastSaved = { kept: this.kept, pending, live: isLive, at: now };
-    this.runtime.tables?.save(this.game, { ...this.kept, pending }, isLive);
+    const fresh = !live || now - saved.at < LIVE_RESTAMP_INTERVAL_MS;
+    return (
+      fresh &&
+      saved.viewer === table.viewer &&
+      saved.snapshot === table.snapshot &&
+      sameRequests(saved.pending, pending)
+    );
   }
   readonly conversations: ConversationSession;
   private get status() {
