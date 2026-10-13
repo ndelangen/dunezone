@@ -167,11 +167,14 @@ export const catalogueFactionValidator = schema.tables.factions.validator
     rulesets: v.array(rulesetSummaryValidator),
   });
 
-export const rulesetPublicBundleValidator = v.object({
+/** The ruleset and its factions, the same for every viewer. */
+export const rulesetPageValidator = v.object({
   ruleset: rulesetValidator,
   factions: v.array(catalogueFactionValidator),
-  viewerAccess: rulesetViewerAccessValidator,
 });
+
+/** Deprecated with `rulesets.getBySlug`: the ruleset bundle with the viewer's access. Remove with it. */
+export const rulesetPublicBundleValidator = rulesetPageValidator.extend({ viewerAccess: rulesetViewerAccessValidator });
 
 const faqAnswerValidator = docValidator('faq_answers');
 
@@ -219,6 +222,23 @@ export const rulesetAssetSlotValidator = v.object({
   }),
 });
 
+/**
+ * The ruleset detail page, the same for every viewer.
+ * `assignedGroup` is the ruleset's live Group or null;
+ * the browser combines it and `ruleset.owner_id` with the viewer.
+ */
+export const rulesetPublicDetailPageValidator = v.union(
+  rulesetPageValidator.extend({
+    assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
+    faqItems: v.array(faqListItemValidator),
+    owner: v.union(profileSummaryValidator, v.null()),
+    assetSlots: v.array(rulesetAssetSlotValidator),
+    rulebooks: v.array(rulebookListEntryValidator),
+  }),
+  v.null()
+);
+
+/** Deprecated with `rulesets.detailPageBySlug`: the detail page with the viewer's access. Remove with it. */
 export const rulesetDetailPageValidator = v.union(
   rulesetPublicBundleValidator.extend({
     faqItems: v.array(faqListItemValidator),

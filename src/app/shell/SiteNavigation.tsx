@@ -140,7 +140,7 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
                       Publication jobs
                     </Menu.Item>
                     <Menu.Item renderRoot={(props) => <Link {...props} to="/assets/__presets" />}>
-                      Card-back presets
+                      Card presets
                     </Menu.Item>
                   </>
                 ) : null}

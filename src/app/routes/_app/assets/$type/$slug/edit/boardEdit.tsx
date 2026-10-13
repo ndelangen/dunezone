@@ -11,7 +11,7 @@ import { useReducer, useMemo } from 'react';
 import { Fragment } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@db/assets';
-import type { AssetPageData } from '@db/assets';
+import type { AssetPublicPage } from '@db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { BoardEditor } from '@app/widgets/board-editor/BoardEditor';
 import { BoardLoad } from '@app/widgets/board-editor/BoardLoad';
@@ -51,14 +51,14 @@ function reduce(state: State, event: Event): State {
   }
 }
 
-export function BoardEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
+export function BoardEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPublicPage }) {
   const query = useAssetPage('board', slug, { initialData: loaderData });
   return (
     <CardEditChecks
       type="board"
       schemaName="board"
       schema={BoardAsset}
-      data={query.data === undefined ? loaderData : query.data}
+      data={query.data}
       session={(props) => (
         <Fragment key={props.asset.id}>
           <BoardSession {...props} />

@@ -11,7 +11,7 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
-import type { AssetPageData } from '@app/db/assets';
+import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
@@ -26,12 +26,13 @@ import {
   useAssetDeletion,
   useAssetGroupActions,
   assetNameField,
+  AssetEditorViewerPending,
 } from '../../../assetEditorStates';
 import { referencedTokenBackFace } from './referencedBackFace';
 
-export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: string; loaderData: AssetPageData }) {
+export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: string; loaderData: AssetPublicPage }) {
   const query = useAssetPage(type, slug, { initialData: loaderData });
-  const data = query.data ?? loaderData;
+  const data = query.data;
   const label = isAssetType(type) ? ASSET_TYPES[type].shortLabel.toLowerCase() : 'token';
 
   if (data === null) {
@@ -40,6 +41,10 @@ export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: 
         <NotAvailable title="Token not found">{`No ${label} token lives at this address.`}</NotAvailable>
       </AssetEditorMessage>
     );
+  }
+
+  if (!data.viewerResolved) {
+    return <AssetEditorViewerPending name={data.asset.name} type={type} />;
   }
 
   if (data.viewerAccess.viewer.kind === 'anonymous') {

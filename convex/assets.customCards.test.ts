@@ -7,6 +7,7 @@ import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCu
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { api } from './_generated/api';
 import schema from './schema';
+import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -15,7 +16,7 @@ test('custom cards save their ordered composition, publish it and join mixed dec
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
   const created = await owner.mutation(api.assets.create, { type: 'card-custom', data: publishingCustomCard });
-  const page = await t.query(api.assets.getPage, { type: 'card-custom', slug: created.slug });
+  const page = await assetPageAs(t, { type: 'card-custom', slug: created.slug });
   expect(page?.asset.data).toEqual(publishingCustomCard);
   const job = await t.run((ctx) =>
     ctx.db
@@ -29,7 +30,7 @@ test('custom cards save their ordered composition, publish it and join mixed dec
     data: { name: 'Reference deck', about: '', cardback: publishingDeckCardback },
   });
   await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 2 });
-  const deckPage = await t.query(api.assets.getPage, { type: 'deck', slug: deck.slug });
+  const deckPage = await assetPageAs(t, { type: 'deck', slug: deck.slug });
   expect(deckPage?.members).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
@@ -46,7 +47,7 @@ test('custom cards save their ordered composition, publish it and join mixed dec
     layers: [...publishingCustomCard.layers].reverse(),
   };
   await owner.mutation(api.assets.update, { id: created.id, data: updated });
-  const saved = await t.query(api.assets.getPage, { type: 'card-custom', slug: 'window-reference' });
+  const saved = await assetPageAs(t, { type: 'card-custom', slug: 'window-reference' });
   expect(saved?.asset.data).toEqual(updated);
   const shiftedJob = await t.run((ctx) =>
     ctx.db
@@ -81,9 +82,7 @@ test('custom card writes enforce author access and reject invalid layer content'
       owner.mutation(api.assets.update, { id: created.id, data: { ...publishingCustomCard, ...update } })
     ).rejects.toThrow();
   }
-  expect((await t.query(api.assets.getPage, { type: 'card-custom', slug: created.slug }))?.asset.data).toEqual(
-    publishingCustomCard
-  );
+  expect((await assetPageAs(t, { type: 'card-custom', slug: created.slug }))?.asset.data).toEqual(publishingCustomCard);
 });
 
 test('custom card composition limits reject oversized saves without changing the asset', async () => {
@@ -102,7 +101,5 @@ test('custom card composition limits reject oversized saves without changing the
       owner.mutation(api.assets.update, { id: created.id, data: { ...publishingCustomCard, layers } })
     ).rejects.toThrow();
   }
-  expect((await t.query(api.assets.getPage, { type: 'card-custom', slug: created.slug }))?.asset.data).toEqual(
-    publishingCustomCard
-  );
+  expect((await assetPageAs(t, { type: 'card-custom', slug: created.slug }))?.asset.data).toEqual(publishingCustomCard);
 });

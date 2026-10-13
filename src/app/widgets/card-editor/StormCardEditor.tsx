@@ -1,4 +1,5 @@
 import { Alert, Select, Stack } from '@mantine/core';
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { StormCardAsset } from '@shared/assets/schema';
 import { StormCardAssetInput } from '@shared/assets/schema';
 import { standardStormCard } from '@shared/assets/standardStormDeck';
@@ -30,6 +31,7 @@ export { INITIAL_CUSTOM_CARD_MEMORY as INITIAL_STORM_CARD_MEMORY };
 export type { CustomCardChapter as StormCardChapter, CustomCardMemory as StormCardMemory } from './CustomCardEditor';
 
 type Props = Omit<ComponentProps<typeof CustomCardEditor>, 'draft' | 'patch'> & {
+  frontStyle?: CardFrontStyle;
   draft: StormCardDraft;
   patch: (update: Partial<StormCardDraft>) => void;
 };
@@ -73,6 +75,7 @@ function StormIdentity({ draft, patch, nameField }: Readonly<Pick<Props, 'draft'
 
 /** Callers own the storm draft; this edits its movement and custom layers within the Storm format. */
 export function StormCardEditor({
+  frontStyle,
   draft,
   patch,
   nameField,
@@ -152,7 +155,7 @@ export function StormCardEditor({
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         <CanvasScale rounded canvasWidth={card.width} canvasHeight={card.height} frameClassName={styles.proofFrame}>
-          <StormCard {...draft} tokens={tokens} />
+          <StormCard {...draft} frontStyle={frontStyle} tokens={tokens} />
         </CanvasScale>
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>

@@ -1,3 +1,4 @@
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { NEXUS_HEAD } from '@shared/assets/nexusTemplate';
 import type { NexusCard as NexusCardSchema } from '@shared/assets/schema';
 import { useLayoutEffect, useRef } from 'react';
@@ -11,12 +12,13 @@ import styles from './Nexus.module.css';
 /** Draws the three constrained effects in the printed Nexus template. */
 export function NexusCard({
   name,
+  frontStyle,
   faction,
   factionSymbol,
   betrayal,
   cunning,
   secretAlly,
-}: Readonly<z.infer<typeof NexusCardSchema>>) {
+}: Readonly<z.infer<typeof NexusCardSchema> & { frontStyle?: CardFrontStyle }>) {
   const region = useRef<HTMLDivElement>(null);
   useNexusFit(region, JSON.stringify([betrayal, cunning, secretAlly, faction]));
   const adjective = faction === 'Ixians' ? 'Ixian' : faction || 'faction';
@@ -34,8 +36,8 @@ export function NexusCard({
       <CustomCard
         name={name}
         subName="Nexus"
-        head={NEXUS_HEAD}
-        icon={[factionSymbol.background, factionSymbol.image]}
+        head={frontStyle?.head ?? NEXUS_HEAD}
+        icon={[frontStyle?.iconBackground ?? factionSymbol.background, factionSymbol.image]}
         format="plain"
         layers={[]}
       />

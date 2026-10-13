@@ -1,6 +1,7 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
-import type { AssetPageData } from '@app/db/assets';
+import type { AssetPublicPage } from '@app/db/assets';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LeaderSkillCardEditor, leaderSkillDraftWarnings } from '@app/widgets/card-editor/LeaderSkillCardEditor';
 import type { LeaderSkillChapter, LeaderSkillDraft } from '@app/widgets/card-editor/LeaderSkillCardEditor';
@@ -12,7 +13,7 @@ import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
 /** The leader skill card edit page, mounted by the generic asset edit route. */
-export function LeaderSkillEditPage({ slug, loaderData }: Readonly<{ slug: string; loaderData: AssetPageData }>) {
+export function LeaderSkillEditPage({ slug, loaderData }: Readonly<{ slug: string; loaderData: AssetPublicPage }>) {
   return (
     <CardEditGate
       type="card-leaderability"
@@ -29,7 +30,12 @@ function renderSession(props: CardEditSessionProps<LeaderSkillDraft>) {
   return <CardEditSession {...props} />;
 }
 
-function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessionProps<LeaderSkillDraft>>) {
+function CardEditSession({
+  frontPresets,
+  asset,
+  initialDraft,
+  access,
+}: Readonly<CardEditSessionProps<LeaderSkillDraft>>) {
   const saving = useCardSave('card-leaderability', asset);
   const [overflow, setOverflow] = useState(false);
   const [chapter, setChapter] = useState<LeaderSkillChapter>('head');
@@ -70,6 +76,7 @@ function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessi
       saveError={saving.error}
     >
       <LeaderSkillCardEditor
+        frontStyle={cardFrontStyleFor('card-leaderability', state.data, frontPresets)}
         nameField={nameField}
         draft={state.data}
         patch={patch}

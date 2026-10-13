@@ -98,13 +98,25 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
         ),
       };
     case 'card-leaderability':
-      return printedImage(snapshot.assetType, <LeaderSkillCard {...snapshot.payload.card} />);
+      return printedImage(
+        snapshot.assetType,
+        <LeaderSkillCard {...snapshot.payload.card} frontStyle={snapshot.payload.frontPreset?.style} />
+      );
     case 'card-treachery':
-      return printedImage(snapshot.assetType, <TreacheryCard {...snapshot.payload.card} />);
+      return printedImage(
+        snapshot.assetType,
+        <TreacheryCard {...snapshot.payload.card} frontStyle={snapshot.payload.frontPreset?.style} />
+      );
     case 'card-nexus':
-      return printedImage(snapshot.assetType, <NexusCard {...snapshot.payload.card} />);
+      return printedImage(
+        snapshot.assetType,
+        <NexusCard {...snapshot.payload.card} frontStyle={snapshot.payload.frontPreset?.style} />
+      );
     case 'card-stronghold':
-      return printedImage(snapshot.assetType, <StrongholdCard {...snapshot.payload.card} />);
+      return printedImage(
+        snapshot.assetType,
+        <StrongholdCard {...snapshot.payload.card} frontStyle={snapshot.payload.frontPreset?.style} />
+      );
     case 'card-custom':
       return printedImage(
         snapshot.assetType,
@@ -113,7 +125,11 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
     case 'card-storm':
       return printedImage(
         snapshot.assetType,
-        <StormCard {...snapshot.payload.card} tokens={snapshot.payload.tokens} />
+        <StormCard
+          {...snapshot.payload.card}
+          frontStyle={snapshot.payload.frontPreset?.style}
+          tokens={snapshot.payload.tokens}
+        />
       );
     case 'card-spice':
       return printedImage(snapshot.assetType, <SpiceCard {...snapshot.payload.card} />);

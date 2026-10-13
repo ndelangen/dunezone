@@ -1,6 +1,7 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
-import type { AssetPageData } from '@app/db/assets';
+import type { AssetPublicPage } from '@app/db/assets';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { NexusCardEditor, nexusDraftWarnings } from '@app/widgets/card-editor/NexusCardEditor';
 import type { NexusChapter, NexusDraft } from '@app/widgets/card-editor/NexusCardEditor';
@@ -12,7 +13,7 @@ import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
 /** The nexus card edit page. Mounted by the generic `$type/$slug/edit` route when the type is `card-nexus`. */
-export function NexusEditPage({ slug, loaderData }: Readonly<{ slug: string; loaderData: AssetPageData }>) {
+export function NexusEditPage({ slug, loaderData }: Readonly<{ slug: string; loaderData: AssetPublicPage }>) {
   return (
     <CardEditGate
       type="card-nexus"
@@ -29,7 +30,7 @@ function renderEditSession(props: Readonly<CardEditSessionProps<NexusDraft>>) {
   return <CardEditSession {...props} />;
 }
 
-function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessionProps<NexusDraft>>) {
+function CardEditSession({ frontPresets, asset, initialDraft, access }: Readonly<CardEditSessionProps<NexusDraft>>) {
   const saving = useCardSave('card-nexus', asset);
   const [chapter, setChapter] = useState<NexusChapter>('head');
   const [state, dispatch] = useReducer(reduceNexusDraft, undefined, () =>
@@ -65,6 +66,7 @@ function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessi
       saveError={saving.error}
     >
       <NexusCardEditor
+        frontStyle={cardFrontStyleFor('card-nexus', state.data, frontPresets)}
         nameField={nameField}
         draft={state.data}
         patch={patch}

@@ -1,4 +1,5 @@
 import type { TestConvexForDataModel } from 'convex-test';
+import type { FunctionArgs } from 'convex/server';
 
 import { assetAccessForViewer, assetSubjectFacts } from '../src/shared/access/collaborativeAccess';
 import type { AccessViewer } from '../src/shared/access/collaborativeAccess';
@@ -33,5 +34,60 @@ export async function factionPageAs(client: QueryClient, slug: string) {
     ...page,
     viewerAccess: assetAccessForViewer(assetSubjectFacts('faction', page.faction, page.assignedGroup), viewer),
     assignableGroups,
+  };
+}
+
+/** The rulebook reader as a given viewer sees it: the public page plus its edit and delete links, combined as `useRulebookReader` does. */
+export async function rulebookReaderAs(
+  client: QueryClient,
+  locator: FunctionArgs<typeof api.rulebooks.readerDelivery>
+) {
+  const page = await client.query(api.rulebooks.readerDelivery, locator);
+  if (!page) {
+    return null;
+  }
+  const viewer = await accessViewerFor(client, page.access.assignedGroup?.id ?? null);
+  const subject = { owner_id: page.access.rulesetOwnerId, is_deleted: false };
+  const { capabilities } = assetAccessForViewer(
+    assetSubjectFacts('ruleset', subject, page.access.assignedGroup),
+    viewer
+  );
+  return { ...page, canEdit: capabilities.edit, canDelete: capabilities.delete };
+}
+
+/** The ruleset detail page as a given viewer sees it, combined as `useRulesetDetailPage` does. Null for an unknown slug. */
+export async function rulesetDetailPageAs(client: QueryClient, slug: string) {
+  const page = await client.query(api.rulesets.detailPage, { slug });
+  if (!page) {
+    return null;
+  }
+  const [viewer, assignableGroups] = await Promise.all([
+    accessViewerFor(client, page.assignedGroup?.id ?? null),
+    client.query(api.groups.viewerAssignableGroups, {}),
+  ]);
+  return {
+    ...page,
+    viewerAccess: assetAccessForViewer(assetSubjectFacts('ruleset', page.ruleset, page.assignedGroup), viewer),
+    assignableGroups,
+  };
+}
+
+/** One asset's page as a given viewer sees it, combined as `useAssetPage` does. Null for an unknown address. */
+export async function assetPageAs(client: QueryClient, args: FunctionArgs<typeof api.assets.page>) {
+  const page = await client.query(api.assets.page, args);
+  if (!page) {
+    return null;
+  }
+  const [viewer, assignableGroups, session] = await Promise.all([
+    accessViewerFor(client, page.assignedGroup?.id ?? null),
+    client.query(api.groups.viewerAssignableGroups, {}),
+    client.query(api.profiles.session, {}),
+  ]);
+  const subject = { owner_id: page.ownerId, is_deleted: false };
+  return {
+    ...page,
+    viewerAccess: assetAccessForViewer(assetSubjectFacts('asset', subject, page.assignedGroup), viewer),
+    assignableGroups,
+    canConvertToCustom: page.convertibleToCustom && session.isAdmin,
   };
 }

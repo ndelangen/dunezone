@@ -1,4 +1,5 @@
 import { Alert } from '@mantine/core';
+import type { CardFrontPreset } from '@shared/assets/cardFrontPresets';
 import { useNavigate } from '@tanstack/react-router';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
@@ -11,7 +12,7 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
-import type { AssetPageData } from '@app/db/assets';
+import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 
 import {
@@ -20,6 +21,7 @@ import {
   SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
+  AssetEditorViewerPending,
 } from '../../../assetEditorStates';
 
 /*
@@ -46,6 +48,7 @@ type CardEditAccess = {
 };
 
 export type CardEditSessionProps<Draft> = {
+  frontPresets: CardFrontPreset[];
   asset: CardAsset;
   initialDraft: Draft;
   access: CardEditAccess;
@@ -60,7 +63,7 @@ type CardEditGateProps<Draft> = {
   schemaName: string;
   schema: z.ZodType<Draft>;
   slug: string;
-  loaderData: AssetPageData;
+  loaderData: AssetPublicPage;
   embeddedTokenIds?: string[];
   session: (props: CardEditSessionProps<Draft>) => ReactNode;
 };
@@ -70,7 +73,7 @@ export function CardEditGate<Draft>(props: CardEditGateProps<Draft>) {
     initialData: props.loaderData,
     embeddedTokenIds: props.embeddedTokenIds,
   });
-  return <CardEditChecks {...props} data={query.data === undefined ? props.loaderData : query.data} />;
+  return <CardEditChecks {...props} data={query.data} />;
 }
 
 /** The custom page owns the live read because its unsaved Token layers determine that read's arguments. */
@@ -90,6 +93,10 @@ export function CardEditChecks<Draft>({
         >{`No ${schemaName} lives at this address.`}</NotAvailable>
       </AssetEditorMessage>
     );
+  }
+
+  if (!data.viewerResolved) {
+    return <AssetEditorViewerPending name={data.asset.name} type={type} />;
   }
 
   if (data.viewerAccess.viewer.kind === 'anonymous') {
@@ -125,6 +132,7 @@ export function CardEditChecks<Draft>({
   return (
     <Fragment key={data.asset.id}>
       {session({
+        frontPresets: data.cardFrontPresets,
         asset: data.asset,
         initialDraft: parsed.data,
         tokens: data.cardTokens,

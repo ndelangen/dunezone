@@ -483,7 +483,7 @@ function AssetDetailPage() {
     );
   }
 
-  return <LoadedAssetDetail page={page} pending={live.isPending} />;
+  return <LoadedAssetDetail page={page} pending={live.isPending || !page.viewerResolved} />;
 }
 
 /**

@@ -1,8 +1,9 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { compareCodeUnits } from '@shared/compareText';
 import { useReducer, useState } from 'react';
 
 import { useAssetPage } from '@app/db/assets';
-import type { AssetPageData } from '@app/db/assets';
+import type { AssetPublicPage } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { INITIAL_CUSTOM_CARD_MEMORY } from '@app/widgets/card-editor/CustomCardEditor';
@@ -20,7 +21,7 @@ export function LayeredEditPage<Draft extends LayeredCardDraft>({
   config,
 }: {
   slug: string;
-  loaderData: AssetPageData;
+  loaderData: AssetPublicPage;
   config: LayeredCardEditing<Draft>;
 }) {
   const parsed = config.schema.safeParse(loaderData?.asset.data);
@@ -42,7 +43,7 @@ function LayeredCardSessionGate<Draft extends LayeredCardDraft>({
   initialDraft,
 }: {
   slug: string;
-  loaderData: AssetPageData;
+  loaderData: AssetPublicPage;
   initialDraft: Draft | null;
   config: LayeredCardEditing<Draft>;
 }) {
@@ -53,7 +54,7 @@ function LayeredCardSessionGate<Draft extends LayeredCardDraft>({
     ...new Set(state?.data.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : [])) ?? []),
   ].sort(compareCodeUnits);
   const query = useAssetPage(config.type, slug, { initialData: loaderData, embeddedTokenIds: tokenIds });
-  const data = query.data === undefined ? loaderData : query.data;
+  const data = query.data;
   /* A live recovery opens the draft once, before rendering its controls. Later reads never replace local edits. */
   if (!state && data) {
     const parsed = config.schema.safeParse(data.asset.data);
@@ -111,6 +112,7 @@ function reduce<Draft extends LayeredCardDraft>(
 
 function CardEditSession<Draft extends LayeredCardDraft>({
   config,
+  frontPresets,
   asset,
   access,
   tokens,
@@ -160,6 +162,7 @@ function CardEditSession<Draft extends LayeredCardDraft>({
       saveError={saving.error}
     >
       <Editor
+        frontStyle={cardFrontStyleFor(config.type, state.data, frontPresets)}
         tokens={tokens ?? {}}
         tokensError={tokensError}
         tokenPicker={layeredCardTokenPicker}

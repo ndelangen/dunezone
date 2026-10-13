@@ -8,6 +8,7 @@ import { standardStormCard } from '../src/shared/assets/standardStormDeck';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import schema from './schema';
+import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -35,7 +36,7 @@ test('storm cards publish ordered layers and refresh linked tokens', async () =>
     ],
   };
   const created = await owner.mutation(api.assets.create, { type: 'card-storm', data });
-  const page = await owner.query(api.assets.getPage, { type: 'card-storm', slug: created.slug });
+  const page = await assetPageAs(owner, { type: 'card-storm', slug: created.slug });
   expect(page?.asset.data).toEqual(data);
   expect(page?.cardTokens?.[token.id]?.name).toBe('Storm token');
   const job = await t.run((ctx) =>
@@ -46,9 +47,10 @@ test('storm cards publish ordered layers and refresh linked tokens', async () =>
   );
   expect(job?.asset_data).toMatchObject({ card: data, tokens: { [token.id]: { name: 'Storm token' } } });
   await owner.mutation(api.assets.update, { id: created.id, data: { ...data, sectors: 6 } });
-  expect((await owner.query(api.assets.getPage, { type: 'card-storm', slug: created.slug }))?.asset.data).toMatchObject(
-    { sectors: 6, layers: data.layers }
-  );
+  expect((await assetPageAs(owner, { type: 'card-storm', slug: created.slug }))?.asset.data).toMatchObject({
+    sectors: 6,
+    layers: data.layers,
+  });
   await owner.mutation(api.assets.update, {
     id: token.id,
     data: { name: 'Changed token', about: '', front: publishingTokenFace, back: { mode: 'same' } },
@@ -89,7 +91,7 @@ test('the standard Storm deck provisions one of each value and reruns without ov
   const result = await t.mutation(internal.assets.provisionStandardStormDeck, { ownerId });
   expect(result.created).toBe(true);
   expect(result.cardIds).toHaveLength(6);
-  const deck = await t.query(api.assets.getPage, { type: 'deck', slug: 'standard-storm-deck' });
+  const deck = await assetPageAs(t, { type: 'deck', slug: 'standard-storm-deck' });
   expect(deck?.members?.map((row) => row.count)).toEqual([1, 1, 1, 1, 1, 1]);
   expect(deck?.members?.map((row) => row.member.name).sort()).toEqual([
     '1 Sector',
@@ -120,7 +122,7 @@ test('the standard Storm deck provisions one of each value and reruns without ov
   });
   const again = await t.mutation(internal.assets.provisionStandardStormDeck, { ownerId });
   expect(again.created).toBe(false);
-  expect((await t.query(api.assets.getPage, { type: 'card-storm', slug: '1-sector' }))?.asset.data).toMatchObject({
+  expect((await assetPageAs(t, { type: 'card-storm', slug: '1-sector' }))?.asset.data).toMatchObject({
     about: 'An authored note.',
   });
   await owner.mutation(api.assets.setMemberCount, {
@@ -156,7 +158,7 @@ test('reviewed Storm designs replace all six cards and the shared back atomicall
   expect(updated.map((row) => row.data)).toEqual(
     [1, 2, 3, 4, 5, 6].map((sectors) => ({ ...standardStormCard(sectors), about: 'Keep this note.' }))
   );
-  const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'standard-storm-deck' });
+  const page = await assetPageAs(t, { type: 'deck', slug: 'standard-storm-deck' });
   expect(page?.cardbackPresets?.find((preset) => preset.key === 'storm')).toMatchObject({
     revision: 1,
     cardback: { image: '/vector/icon/storrm_standalone.svg', imageScale: 0.72 },

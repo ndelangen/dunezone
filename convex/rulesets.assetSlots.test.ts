@@ -8,6 +8,7 @@ import { describe, expect, test } from 'vitest';
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import { api } from './_generated/api';
 import schema from './schema';
+import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -129,7 +130,7 @@ describe('ruleset asset slots', () => {
       slot: 'treachery',
     });
 
-    const linked = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
+    const linked = await assetPageAs(t, { type: 'deck', slug: 'house-treachery' });
     expect(linked?.linkingRulesets).toEqual([
       { id: ruleset._id, slug: ruleset.slug, name: 'SlottedRuleset', slot: 'treachery' },
     ]);
@@ -137,7 +138,7 @@ describe('ruleset asset slots', () => {
     await owner.mutation(api.rulesets.softDelete, { id: ruleset._id });
 
     /* The slot row survives a deleted ruleset; the reverse view filters it, the same way the forward view filters a deleted asset. */
-    const orphaned = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
+    const orphaned = await assetPageAs(t, { type: 'deck', slug: 'house-treachery' });
     expect(orphaned?.linkingRulesets).toEqual([]);
     const rows = await t.run(async (ctx) => await ctx.db.query('ruleset_asset_slots').collect());
     expect(rows).toHaveLength(1);

@@ -32,11 +32,13 @@ import {
 import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/publication';
 import { publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
+import { CARD_FRONT_PUBLICATION_REVISIONS, cardFrontAssetTypeSchema } from '../../src/shared/assets/cardFrontPresets';
 import { authoredCardback, DeckAsset, RectangleTokenAsset, TokenAsset } from '../../src/shared/assets/schema';
 import { BoardAsset } from '../../src/shared/boards/schema';
 import { HistoricalFactionPublicationSchema } from '../../src/shared/factions/schema';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { resolveCardFrontPreset } from './cardFrontPresets';
 import { customCardTokenIds, customCardPublicationError, resolveCustomCardTokens } from './customCardTokens';
 
 type PublicationReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
@@ -207,6 +209,13 @@ export async function enqueueAssetPublication(
   },
   now?: number
 ) {
+  const frontType = cardFrontAssetTypeSchema.safeParse(asset.type);
+  const frontPreset =
+    frontType.success &&
+    ((await publicationSettings(ctx))?.renderer_revisions[frontType.data] ?? 0) >=
+      CARD_FRONT_PUBLICATION_REVISIONS[frontType.data]
+      ? await resolveCardFrontPreset(ctx, asset.type, asset.data)
+      : undefined;
   switch (asset.type) {
     case 'board':
       return await enqueuePublicationJob(ctx, {
@@ -223,7 +232,7 @@ export async function enqueueAssetPublication(
       return await enqueuePublicationJob(ctx, {
         assetType: asset.type,
         assetId: asset._id,
-        assetData: { assetId: asset._id, slug: asset.slug, card: asset.data },
+        assetData: { assetId: asset._id, slug: asset.slug, card: asset.data, ...(frontPreset ? { frontPreset } : {}) },
         now,
       });
     case STORM_CARD_ASSET_TYPE:
@@ -238,7 +247,13 @@ export async function enqueueAssetPublication(
       return await enqueuePublicationJob(ctx, {
         assetType: asset.type,
         assetId: asset._id,
-        assetData: { assetId: asset._id, slug: asset.slug, card: asset.data, ...(tokens ? { tokens } : {}) },
+        assetData: {
+          assetId: asset._id,
+          slug: asset.slug,
+          card: asset.data,
+          ...(frontPreset ? { frontPreset } : {}),
+          ...(tokens ? { tokens } : {}),
+        },
         now,
       });
     }

@@ -1,6 +1,7 @@
 import { Alert, Group, Text, TextInput } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
+import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -48,6 +49,15 @@ export function AssetEditorMessage({
     >
       {children}
     </PageMessage>
+  );
+}
+
+/** What an asset editor shows while it learns who the viewer is, so a signed-in owner never sees the sign-in gate first. */
+export function AssetEditorViewerPending({ name, type }: { name: string; type: string }) {
+  return (
+    <AssetEditorMessage title={`Edit ${name}`} type={type}>
+      <LoadPending title="Loading">Checking what you can edit.</LoadPending>
+    </AssetEditorMessage>
   );
 }
 

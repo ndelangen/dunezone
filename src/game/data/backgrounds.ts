@@ -1,4 +1,5 @@
 import { NEXUS_HEAD } from '@shared/assets/nexusTemplate';
+import { TREACHERY_BACKGROUNDS } from '@shared/assets/treacheryStyles';
 import type { Background } from '@shared/factions/schema';
 import type { z } from 'zod';
 
@@ -10,6 +11,7 @@ export type BackgroundData = z.infer<typeof Background>;
  * Components may compose them directly through BackgroundRenderer.
  */
 export const backgroundPresets = {
+  ...TREACHERY_BACKGROUNDS,
   nexus: NEXUS_HEAD,
   atreides: {
     image: '/image/texture/015.jpg',
@@ -375,20 +377,7 @@ export const backgroundPresets = {
     invert: false,
     definition: 1,
   },
-  weapon: {
-    image: '/image/texture/082.jpg',
-    colors: ['#8F2C1C', '#621D1A'],
-    influence: 0.5,
-    invert: false,
-    definition: 1,
-  },
-  defense: {
-    image: '/image/texture/082.jpg',
-    colors: ['#29335E', '#0A153C'],
-    influence: 0.6,
-    invert: false,
-    definition: 1,
-  },
+
   storm: {
     image: '/image/texture/082.jpg',
     colors: ['#582705', '#875818'],
@@ -403,20 +392,7 @@ export const backgroundPresets = {
     invert: false,
     definition: 1,
   },
-  special: {
-    image: '/image/texture/082.jpg',
-    colors: ['#474620', '#27260C'],
-    influence: 0.6,
-    invert: false,
-    definition: 1,
-  },
-  worthless: {
-    image: '/image/texture/082.jpg',
-    colors: ['#887849', '#6F6034'],
-    influence: 0.8,
-    invert: false,
-    definition: 1,
-  },
+
   fate: {
     image: '/image/texture/082.jpg',
     colors: ['#7E275A', '#C54E90'],
@@ -424,102 +400,7 @@ export const backgroundPresets = {
     invert: false,
     definition: 1,
   },
-  stripedWeapon: {
-    image: '/image/texture/076.jpg',
-    colors: [
-      {
-        type: 'linear',
-        angle: 90,
-        stops: [
-          ['#CB8E4A', 0],
-          ['#F3E086', 1],
-        ],
-      },
-      {
-        type: 'linear',
-        angle: 120,
-        stops: [
-          ['#CD7B38', 0.3],
-          ['#E9CA70', 1],
-        ],
-      },
-    ],
-    influence: 1,
-    invert: true,
-    definition: 0,
-  },
-  stripedDefense: {
-    image: '/image/texture/076.jpg',
-    colors: [
-      {
-        type: 'linear',
-        angle: 90,
-        stops: [
-          ['#757DAC', 0],
-          ['#CEDDF0', 1],
-        ],
-      },
-      {
-        type: 'linear',
-        angle: 120,
-        stops: [
-          ['#58608F', 0.3],
-          ['#B8BFDB', 1],
-        ],
-      },
-    ],
-    influence: 1,
-    invert: true,
-    definition: 0,
-  },
-  stripedSpecial: {
-    image: '/image/texture/076.jpg',
-    colors: [
-      {
-        type: 'linear',
-        angle: 90,
-        stops: [
-          ['#9A9256', 0],
-          ['#EEECA6', 1],
-        ],
-      },
-      {
-        type: 'linear',
-        angle: 120,
-        stops: [
-          ['#827E43', 0.3],
-          ['#DEDB91', 1],
-        ],
-      },
-    ],
-    influence: 1,
-    invert: true,
-    definition: 0,
-  },
-  stripedWorthless: {
-    image: '/image/texture/076.jpg',
-    colors: [
-      {
-        type: 'linear',
-        angle: 90,
-        stops: [
-          ['#A9945D', 0],
-          ['#F5EFB4', 1],
-        ],
-      },
-      {
-        type: 'linear',
-        angle: 120,
-        stops: [
-          ['#997E45', 0.3],
-          ['#D9CC91', 1],
-        ],
-      },
-    ],
-    influence: 1,
-    invert: true,
-    definition: 0,
-  },
+
   stripedFate: {
     image: '/image/texture/076.jpg',
     colors: [

@@ -78,10 +78,9 @@ export const Owner = meta.story({
       expect(edition).toHaveTextContent('v1');
     }
     expect(within(list).queryByText('Edition 1')).toBeNull();
-    expect(page.getByRole('link', { name: 'Add Rulebook' })).toHaveAttribute(
-      'href',
-      '/rulesets/classicrules/rulebooks/create'
-    );
+    /* The toolbar follows the viewer, which the browser resolves after the shared page. */
+    const add = await page.findByRole('link', { name: 'Add Rulebook' }, { timeout: 30_000 });
+    expect(add).toHaveAttribute('href', '/rulesets/classicrules/rulebooks/create');
     expect(page.queryByRole('button', { name: /Move .* up/ })).toBeNull();
     expect(page.queryByRole('button', { name: /Rename/ })).toBeNull();
     expect(within(list).queryByRole('button', { name: /Delete/ })).toBeNull();
@@ -238,11 +237,10 @@ export const MemberReader = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('region', { name: 'Rules contents' }, { timeout: 30_000 });
+    /* The links follow the viewer, which the browser resolves after the shared page, so wait for them. */
+    const edit = await page.findByRole('link', { name: 'Edit Rulebook' }, { timeout: 30_000 });
+    expect(edit).toHaveAttribute('href', '/rulesets/classicrules/rulebooks/book-0/edit');
     expect(page.queryByRole('button', { name: 'Delete Rulebook' })).toBeNull();
-    expect(page.getByRole('link', { name: 'Edit Rulebook' })).toHaveAttribute(
-      'href',
-      '/rulesets/classicrules/rulebooks/book-0/edit'
-    );
   },
 });
 

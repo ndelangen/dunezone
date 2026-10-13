@@ -1,6 +1,7 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
-import type { AssetPageData } from '@app/db/assets';
+import type { AssetPublicPage } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
@@ -16,7 +17,7 @@ import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
 /** The treachery card edit page. Mounted by the generic `$type/$slug/edit` route when the type is `card-treachery`. */
-export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
+export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPublicPage }) {
   return (
     <CardEditGate
       type="card-treachery"
@@ -61,7 +62,7 @@ function reduce(state: TreacheryState, event: TreacheryEvent): TreacheryState {
   }
 }
 
-function CardEditSession({ asset, initialDraft, access }: CardEditSessionProps<TreacheryDraft>) {
+function CardEditSession({ frontPresets, asset, initialDraft, access }: CardEditSessionProps<TreacheryDraft>) {
   const saving = useCardSave('card-treachery', asset);
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
   const [state, dispatch] = useReducer(reduce, undefined, () => openingState(initialDraft, initialDraft));
@@ -97,6 +98,7 @@ function CardEditSession({ asset, initialDraft, access }: CardEditSessionProps<T
       saveError={saving.error}
     >
       <TreacheryCardEditor
+        frontStyle={cardFrontStyleFor('card-treachery', state.data, frontPresets)}
         nameField={nameField}
         draft={state.data}
         patch={patch}

@@ -1,4 +1,5 @@
 import { Stack } from '@mantine/core';
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { LEADER_SKILL_HEAD, LEADER_SKILL_SYMBOL } from '@shared/assets/gf9LeaderSkills';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -40,9 +41,10 @@ const DECAL_OFFSET_RANGE = [370, 210] as const;
 /* The rail proof. */
 
 function FillCard({
+  frontStyle,
   draft,
   onOverflow,
-}: Readonly<{ draft: LeaderSkillDraft; onOverflow: (overflow: boolean) => void }>) {
+}: Readonly<{ frontStyle?: CardFrontStyle; draft: LeaderSkillDraft; onOverflow: (overflow: boolean) => void }>) {
   return (
     <CanvasScale
       rounded
@@ -50,7 +52,7 @@ function FillCard({
       canvasHeight={CARD_SIZE.height}
       frameClassName={styles.proofFrame}
     >
-      <LeaderSkillCard {...draft} onOverflow={onOverflow} />
+      <LeaderSkillCard {...draft} frontStyle={frontStyle} onOverflow={onOverflow} />
     </CanvasScale>
   );
 }
@@ -64,7 +66,10 @@ export const INITIAL_LEADER_SKILL_MEMORY: LeaderSkillMemory = initialCardHeadMem
 type Remember = (update: Partial<LeaderSkillMemory>) => void;
 
 /* The two abilities stay on either side of the illustration. */
-function AbilityFields({ draft, patch }: Readonly<{ draft: LeaderSkillDraft; patch: Patch }>) {
+function AbilityFields({
+  draft,
+  patch,
+}: Readonly<{ frontStyle?: CardFrontStyle; draft: LeaderSkillDraft; patch: Patch }>) {
   return (
     <Stack gap="md">
       <ControlBlock
@@ -127,6 +132,7 @@ const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
  * Pages own the draft, its persistence, and the surrounding authoring chrome.
  */
 export function LeaderSkillCardEditor({
+  frontStyle,
   nameField,
   draft,
   patch,
@@ -135,6 +141,7 @@ export function LeaderSkillCardEditor({
   onSettle,
   onOverflow,
 }: Readonly<{
+  frontStyle?: CardFrontStyle;
   draft: LeaderSkillDraft;
   /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
   nameField: ReactNode;
@@ -181,7 +188,7 @@ export function LeaderSkillCardEditor({
         </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
-        <FillCard draft={draft} onOverflow={onOverflow} />
+        <FillCard draft={draft} frontStyle={frontStyle} onOverflow={onOverflow} />
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>
   );
