@@ -188,7 +188,7 @@ export function useFactionSlugTaken(args: { slug: string }) {
 
 /**
  * The live faction behind a slug, for the detail and edit routes.
- * Pass the route loader's `loadFaction` result as `initialData`;
+ * Pass the route loader's `loadPublicFaction` result as `initialData`;
  * without it the first render has no faction and the page flashes its pending frame.
  */
 export function useFaction(

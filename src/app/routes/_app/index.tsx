@@ -1,6 +1,7 @@
 import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
 import { publishedPath } from '@shared/asset-publishing/publicationTargets';
 import { resolveAsset } from '@shared/media/resolveAsset';
+import { PUBLIC_SITE_ORIGIN } from '@shared/publicDiscovery';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -170,29 +171,31 @@ const troopBackgrounds = [
   backgroundPresets.guild,
   backgroundPresets.beneTleilaxu,
 ];
-const showcaseCards = [
-  {
-    name: 'Supplies!',
-    type: 'card-treachery',
-    slug: 'supplies',
-    id: 'ns78nmym3qpth6sm9wsfj3ka9s8cw350',
-    credit: 'Central',
-  },
-  {
-    name: 'Trishula!',
-    type: 'card-treachery',
-    slug: 'trishula',
-    id: 'ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq',
-    credit: 'Central',
-  },
-  {
-    name: 'Arrakeen',
-    type: 'card-custom',
-    slug: 'arrakeen',
-    id: 'ns74r72v6mdmnn8ahdmj27c8gs8cz5t6',
-    credit: 'IHasPinecone',
-  },
-] as const;
+const showcaseCards = (
+  [
+    {
+      name: 'Supplies!',
+      type: 'card-treachery',
+      slug: 'supplies',
+      id: 'ns78nmym3qpth6sm9wsfj3ka9s8cw350',
+      credit: 'Central',
+    },
+    {
+      name: 'Trishula!',
+      type: 'card-treachery',
+      slug: 'trishula',
+      id: 'ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq',
+      credit: 'Central',
+    },
+    {
+      name: 'Arrakeen',
+      type: 'card-custom',
+      slug: 'arrakeen',
+      id: 'ns74r72v6mdmnn8ahdmj27c8gs8cz5t6',
+      credit: 'IHasPinecone',
+    },
+  ] as const
+).map((card) => ({ ...card, imageHref: `${PUBLIC_SITE_ORIGIN}${publishedPath(card.type, card.id)}` }));
 
 function AssetInvitation() {
   return (
@@ -436,14 +439,7 @@ function QualityCards() {
               `${index * 150}ms`
             )}
           >
-            {visible && (
-              <AssetFace
-                href={`https://dune.zone${publishedPath(card.type, card.id)}`}
-                type={card.type}
-                data={null}
-                name={card.name}
-              />
-            )}
+            {visible && <AssetFace href={card.imageHref} type={card.type} data={null} name={card.name} />}
           </div>
         ))}
       </div>
