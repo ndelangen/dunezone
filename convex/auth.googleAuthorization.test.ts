@@ -60,6 +60,10 @@ test.each([
 
 /* The deploy smoke probes dune.zone/auth/signin/<provider> without a verifier and expects this 400. */
 test.each(['google', 'discord'])('%s sign-in without a verifier is a client error', async (provider) => {
+  vi.stubEnv('AUTH_GOOGLE_ID', 'test-google-client');
+  vi.stubEnv('AUTH_GOOGLE_SECRET', 'test-google-secret');
+  vi.stubEnv('AUTH_DISCORD_ID', 'test-discord-client');
+  vi.stubEnv('AUTH_DISCORD_SECRET', 'test-discord-secret');
   vi.stubEnv('CONVEX_SITE_URL', 'https://backend.convex.site');
   vi.stubEnv('SITE_URL', 'https://dune.zone');
   const t = convexTest(schema, modules);
