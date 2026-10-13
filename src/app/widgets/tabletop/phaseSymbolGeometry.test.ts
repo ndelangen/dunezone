@@ -215,6 +215,38 @@ describe('phase symbol loading lifetime', () => {
     release();
   });
 
+  test('fetches a symbol once for every mount that shows it', async () => {
+    const load = vi.spyOn(SVGLoader.prototype, 'loadAsync').mockResolvedValue(triangle());
+    const first = vi.fn();
+    const second = vi.fn();
+    const releaseFirst = loadPhaseSymbolGeometry('/vector/icon/shared.svg', PHASE_TRACKER_RADIUS, first);
+    const releaseSecond = loadPhaseSymbolGeometry('/vector/icon/shared.svg', PHASE_TRACKER_RADIUS, second);
+    await vi.waitFor(() => expect(second).toHaveBeenCalledOnce());
+
+    expect(load).toHaveBeenCalledOnce();
+    expect(first.mock.calls[0][0]).not.toBe(second.mock.calls[0][0]);
+    releaseFirst();
+    releaseSecond();
+  });
+
+  test('fetches a symbol again when its answer had nothing to draw, even if no mount was waiting for it', async () => {
+    const empty = Promise.withResolvers<SVGResult>();
+    const load = vi
+      .spyOn(SVGLoader.prototype, 'loadAsync')
+      .mockReturnValueOnce(empty.promise)
+      .mockResolvedValueOnce(triangle());
+    loadPhaseSymbolGeometry('/vector/icon/recovering.svg', PHASE_TRACKER_RADIUS, vi.fn())();
+    empty.resolve(new SVGLoader().parse('<svg xmlns="http://www.w3.org/2000/svg"></svg>'));
+    await empty.promise;
+    await Promise.resolve();
+
+    const receive = vi.fn();
+    const release = loadPhaseSymbolGeometry('/vector/icon/recovering.svg', PHASE_TRACKER_RADIUS, receive);
+    await vi.waitFor(() => expect(receive).toHaveBeenCalledWith(expect.anything()));
+    expect(load).toHaveBeenCalledTimes(2);
+    release();
+  });
+
   /* The browser verification waits for every artwork load to settle before it acts on a new table (#1592). */
   test('a symbol load settles once its request answers or fails, or once its owner releases it', async () => {
     const answered = Promise.withResolvers<SVGResult>();

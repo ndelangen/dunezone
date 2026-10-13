@@ -43,7 +43,11 @@ function parsedSymbol(symbol: string): Promise<SVGResult> {
   let parsed = parsedSymbols.get(symbol);
   if (!parsed) {
     parsed = new SVGLoader().loadAsync(symbol);
-    parsed.catch(() => parsedSymbols.delete(symbol));
+    /* A failed fetch, or a body with nothing to draw such as a page served for a missing file, is fetched again by the next mount. */
+    parsed.then(
+      (svg) => filledShapes(svg).length > 0 || parsedSymbols.delete(symbol),
+      () => parsedSymbols.delete(symbol)
+    );
     parsedSymbols.set(symbol, parsed);
   }
   return parsed;
@@ -63,10 +67,6 @@ export function loadPhaseSymbolGeometry(
         return;
       }
       ownedGeometry = createPhaseSymbolGeometry(svg, radius);
-      if (!ownedGeometry) {
-        /* A body with nothing to draw, such as a page served for a missing file, is fetched again by the next mount. */
-        parsedSymbols.delete(symbol);
-      }
       onLoaded(ownedGeometry);
     })
     .catch(() => {
