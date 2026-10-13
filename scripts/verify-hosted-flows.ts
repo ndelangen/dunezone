@@ -4,8 +4,12 @@
  */
 export const browserFlows = {
   homepage: {
-    /* The expanded flow reached 115 seconds before its final scroll check under full Chromium on CI (#2127). */
-    timeoutMs: 180_000,
+    /*
+     * Delayed sign-in and visibility checks expand this flow's startup coverage.
+     * On Linux it passed whole-stack cancellation at 177.5 s before the former 180 s launcher deadline closed Chromium (#2180).
+     * The total budget leaves room for every check; readiness and interaction deadlines stay unchanged.
+     */
+    timeoutMs: 300_000,
     /* The guest uses its own Chromium graphics process, avoiding the member's software WebGL startup contention (#1868). */
     separateBrowserPeer: 'homepage-observer',
     keepsFrames: false,

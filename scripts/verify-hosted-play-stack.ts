@@ -166,11 +166,18 @@ function start(invocation: Invocation & { logPath: string }): ChildProcess {
 /** Runs one verifier within its timeout, prints its log and reports whether it passed. */
 async function verify(invocation: Invocation & { logPath: string }, timeoutMs: number): Promise<boolean> {
   const verification = start(invocation);
-  const timeout = setTimeout(() => verification.kill('SIGTERM'), timeoutMs);
+  let expired = false;
+  const timeout = setTimeout(() => {
+    expired = true;
+    console.error(
+      `${path.basename(invocation.logPath)} exceeded its ${timeoutMs / 1000} s verification deadline; sending SIGTERM.`
+    );
+    verification.kill('SIGTERM');
+  }, timeoutMs);
   await childExits.get(verification);
   clearTimeout(timeout);
   console.log(readFileSync(invocation.logPath, 'utf8'));
-  return verification.exitCode === 0;
+  return !expired && verification.exitCode === 0;
 }
 
 async function ready(url: string, child: ChildProcess, timeoutMs: number): Promise<void> {
