@@ -65,6 +65,10 @@ export class SessionHistory {
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS history (step INTEGER PRIMARY KEY, base_revision INTEGER NOT NULL, revision INTEGER NOT NULL, phase INTEGER NOT NULL, kind TEXT NOT NULL, data TEXT NOT NULL, bytes INTEGER NOT NULL)'
     );
+    /* Older steps have no recorded clock, so they stay unknown instead of borrowing today's time. */
+    storage.sql.exec(
+      'CREATE TABLE IF NOT EXISTS history_clocks (step INTEGER PRIMARY KEY, recorded_at INTEGER NOT NULL)'
+    );
   }
 
   get steps() {
@@ -136,6 +140,13 @@ export class SessionHistory {
       history.data,
       history.bytes
     );
+    this.storage.sql.exec('INSERT INTO history_clocks VALUES(?,?)', history.step, Date.now());
+  }
+
+  recordedAt(step: number): number | undefined {
+    return this.storage.sql
+      .exec<{ recorded_at: number }>('SELECT recorded_at FROM history_clocks WHERE step=?', step)
+      .toArray()[0]?.recorded_at;
   }
 
   restore(step: number): StoredSnapshot {
