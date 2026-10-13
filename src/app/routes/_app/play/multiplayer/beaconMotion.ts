@@ -8,6 +8,8 @@ const CARRY_HEIGHT = 0.45;
 const HOVER_SCALE = 1.9;
 const PLACED_SCALE = 1;
 const RISE_SECONDS = 1.3;
+/* A frame long enough for every transition to finish, standing in for elapsed time when motion is turned off. */
+const SETTLE_AT_ONCE = 10;
 /* A landed beacon has done its job once the battle shows; it fades out from this far into its landing. */
 const LANDED = 0.95;
 const MARK_Y = BOARD_SURFACE_Y + 0.004;
@@ -54,8 +56,7 @@ export function beaconTarget(
   home: BeaconSpot,
   points: { anchor?: readonly number[]; pending?: readonly number[] | null; carry?: readonly number[] | null }
 ): BeaconSpot {
-  const point =
-    mode === 'anchor' ? points.anchor : mode === 'pending' ? points.pending : mode === 'carry' ? points.carry : null;
+  const point = mode === 'anchor' || mode === 'pending' || mode === 'carry' ? points[mode] : null;
   return point ? { x: point[0]!, z: point[2]!, ground: MARK_Y } : home;
 }
 
@@ -87,11 +88,12 @@ function goalsOf(state: BeaconMotion, mode: BeaconMode, present: boolean) {
 
 /* While the beacon is on its way, it eases towards its target, lies flat once dropped, and fades out once landed on its battle. */
 function follow(state: BeaconMotion, mode: BeaconMode, target: BeaconSpot, delta: number) {
-  const rate = mode === 'carry' ? 22 : 7;
+  /* A carried beacon sits exactly on the point a release would drop it on. */
+  const glide = mode === 'carry' ? 1 : 1 - Math.exp(-7 * delta);
   const goals = goalsOf(state, mode, true);
-  state.x = damp(state.x, target.x, rate, delta);
-  state.z = damp(state.z, target.z, rate, delta);
-  state.ground = damp(state.ground, target.ground, rate, delta);
+  state.x += (target.x - state.x) * glide;
+  state.z += (target.z - state.z) * glide;
+  state.ground += (target.ground - state.ground) * glide;
   state.flat = damp(state.flat, goals.flat, 6, delta);
   state.height = damp(state.height, goals.height, 8, delta);
   state.fade = damp(state.fade, goals.fade, 4, delta);
@@ -126,12 +128,8 @@ function frameOf(state: BeaconMotion, unsettled: boolean, motion: boolean) {
   };
 }
 
-/**
- * Moves the beacon one frame towards its target: it rises through the table and sinks back by `presence`, lies flat when dropped, and fades out once it has landed on its battle.
- * Leaving a battle sinks it where it stands, out of sight, then brings it back at the tracker.
- */
-export function stepBeacon(state: BeaconMotion, mode: BeaconMode, target: BeaconSpot, rawDelta: number, motion = true) {
-  const delta = Math.min(rawDelta, 0.1);
+/* A beacon leaving its battle sinks where it stands, and once out of sight jumps home to rise there. */
+function advance(state: BeaconMotion, mode: BeaconMode, target: BeaconSpot, delta: number) {
   state.respawn ||= state.last === 'anchor' && mode !== 'anchor';
   state.last = mode;
   if (!state.respawn) {
@@ -139,10 +137,29 @@ export function stepBeacon(state: BeaconMotion, mode: BeaconMode, target: Beacon
   } else if (state.presence <= 0.001) {
     Object.assign(state, target, { flat: 0, height: HOME_HEIGHT, fade: 1, respawn: false });
   }
+}
+
+/* Out of sight, only presence matters: a sunk beacon need not finish sliding or fading. */
+function unsettled(state: BeaconMotion, mode: BeaconMode, target: BeaconSpot, present: boolean) {
+  if (state.respawn) {
+    return true;
+  }
+  const hidden = state.presence <= 0 && !present;
+  return !hidden && distanceToRest(state, mode, target, present) > 1e-3;
+}
+
+type Step = { mode: BeaconMode; target: BeaconSpot; delta: number; motion?: boolean };
+
+/**
+ * Moves the beacon one frame towards its target: it rises through the table and sinks back by `presence`, lies flat when dropped, and fades out once it has landed on its battle.
+ * Leaving a battle sinks it where it stands, out of sight, then brings it back at the tracker.
+ */
+export function stepBeacon(state: BeaconMotion, { mode, target, delta: rawDelta, motion = true }: Step) {
+  /* With motion turned off every transition lands in one frame; only the carry still moves with the pointer. */
+  /* A slow machine draws few frames, so a long frame still counts for most of its time and the beacon keeps its pace. */
+  const delta = motion ? Math.min(rawDelta, 0.5) : SETTLE_AT_ONCE;
+  advance(state, mode, target, delta);
   const present = mode !== 'gone' && !state.respawn;
   state.presence = clamp01(state.presence + (present ? 1 : -1) * (delta / RISE_SECONDS));
-  /* Out of sight, only presence matters: a sunk beacon need not finish sliding or fading. */
-  const unsettled =
-    state.respawn || (state.presence > 0 || present ? distanceToRest(state, mode, target, present) > 1e-3 : false);
-  return frameOf(state, unsettled, motion);
+  return frameOf(state, unsettled(state, mode, target, present), motion);
 }

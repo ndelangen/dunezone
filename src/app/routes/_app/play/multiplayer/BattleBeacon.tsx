@@ -83,7 +83,7 @@ function useBeaconFrame({
   /* The handle appears only once the beacon is up, so nobody grabs a beacon still rising or sinking out of sight. */
   const [risen, setRisen] = useState(false);
   const risenShown = useRef(false);
-  useEffect(() => invalidate(), [mode, invalidate]);
+  useEffect(() => invalidate(), [mode, motion, invalidate]);
   useFrame((_state, delta) => {
     if (!home || !group.current) {
       return;
@@ -91,7 +91,7 @@ function useBeaconFrame({
     const target = beaconTarget(mode, home, { anchor, pending, carry: mode === 'carry' ? carryAt() : null });
     moving.current ??= initialMotion(home, mode, target);
     const state = moving.current;
-    const frame = stepBeacon(state, mode, target, delta, motion);
+    const frame = stepBeacon(state, { mode, target, delta, motion });
     if (beaconRisen(state) !== risenShown.current) {
       risenShown.current = beaconRisen(state);
       setRisen(risenShown.current);
@@ -133,7 +133,13 @@ function BeaconHandle({
           aria-label="Drag battle marker onto territory"
           data-local-carry
           disabled={!enabled}
-          onPointerDown={(event) => event.button === 0 && pickUp(event.nativeEvent)}
+          onPointerDown={(event) => {
+            /* The press is the beacon's alone: a piece under the handle must not start a carry of its own. */
+            event.stopPropagation();
+            if (enabled && event.button === 0) {
+              pickUp(event.nativeEvent);
+            }
+          }}
         />
       </Html>
     </group>
@@ -170,11 +176,13 @@ export function BattleBeacon({ table, battle, onDrop }: Props) {
   const group = useRef<Group>(null);
   const handle = useRef<Group>(null);
   const mode = beaconMode({ inBattle, battle: Boolean(battle), pending: Boolean(pending), carrying });
+  const carryAllowed = inBattle && !battle && table.canHandleTable;
   useEffect(() => {
-    if (!inBattle) {
+    /* A carry ends when the phase does, when someone else starts a battle, or when this player may no longer handle the table. */
+    if (!carryAllowed) {
       putDown();
     }
-  }, [inBattle, putDown]);
+  }, [carryAllowed, putDown]);
   const { pose, risen } = useBeaconFrame({
     home,
     mode,
@@ -193,7 +201,7 @@ export function BattleBeacon({ table, battle, onDrop }: Props) {
     <group ref={group} visible={false}>
       <StrikeMark pose={pose} />
       {(mode === 'home' && risen) || mode === 'carry' ? (
-        <BeaconHandle handle={handle} enabled={mode === 'home' && table.canHandleTable} pickUp={pickUp} />
+        <BeaconHandle handle={handle} enabled={mode === 'home' && carryAllowed} pickUp={pickUp} />
       ) : null}
     </group>
   );

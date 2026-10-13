@@ -26,6 +26,52 @@ function overTable(event: ScreenPoint, canvas: HTMLCanvasElement) {
   return under === canvas || Boolean(under?.closest('[data-local-carry]'));
 }
 
+/* Escaping a call that throws for a pointer the browser no longer tracks; the carry goes on regardless. */
+function tryPointer(action: () => void) {
+  try {
+    action();
+  } catch {
+    /* Untracked pointer. */
+  }
+}
+
+/**
+ * Follows one pointer from the canvas until it lifts (`finish` with the release) or the carry is called off by Escape, a cancelled or lost pointer or a window losing focus (`finish` with null).
+ * Returns the call-off.
+ */
+function followPointer(
+  canvas: HTMLCanvasElement,
+  pointerId: number,
+  on: { move(point: ScreenPoint): void; finish(lifted: PointerEvent | null): void }
+) {
+  tryPointer(() => canvas.setPointerCapture(pointerId));
+  canvas.style.cursor = 'grabbing';
+  const ours = (event: PointerEvent) => event.pointerId === pointerId;
+  const move = (moved: PointerEvent) => ours(moved) && on.move({ clientX: moved.clientX, clientY: moved.clientY });
+  const end = (lifted: PointerEvent | null) => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', lost);
+    window.removeEventListener('keydown', escape);
+    window.removeEventListener('blur', drop);
+    canvas.removeEventListener('lostpointercapture', lost);
+    tryPointer(() => canvas.releasePointerCapture(pointerId));
+    canvas.style.cursor = '';
+    on.finish(lifted);
+  };
+  const drop = () => end(null);
+  const up = (lifted: PointerEvent) => ours(lifted) && end(lifted);
+  const lost = (lifted: PointerEvent) => ours(lifted) && drop();
+  const escape = (pressed: KeyboardEvent) => pressed.key === 'Escape' && drop();
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', lost);
+  window.addEventListener('keydown', escape);
+  window.addEventListener('blur', drop);
+  canvas.addEventListener('lostpointercapture', lost);
+  return drop;
+}
+
 type Options = {
   canvas: HTMLCanvasElement;
   camera: Camera;
@@ -47,55 +93,24 @@ export function useBeaconCarry({ canvas, camera, invalidate, onDrop }: Options) 
   const pickUp = (event: PointerEvent) => {
     event.preventDefault();
     cancelCarry.current?.();
-    const pointerId = event.pointerId;
-    try {
-      canvas.setPointerCapture(pointerId);
-    } catch {
-      /* A pointer the browser no longer tracks still carries until it lifts. */
-    }
     screen.current = { clientX: event.clientX, clientY: event.clientY };
     setCarrying(true);
-    canvas.style.cursor = 'grabbing';
-    const move = (moved: PointerEvent) => {
-      if (moved.pointerId === pointerId) {
-        screen.current = { clientX: moved.clientX, clientY: moved.clientY };
+    cancelCarry.current = followPointer(canvas, event.pointerId, {
+      move(point) {
+        screen.current = point;
         invalidate();
-      }
-    };
-    const finish = (lifted: PointerEvent | null) => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', cancel);
-      window.removeEventListener('keydown', escape);
-      window.removeEventListener('blur', drop);
-      canvas.removeEventListener('lostpointercapture', lost);
-      try {
-        canvas.releasePointerCapture(pointerId);
-      } catch {
-        /* Already released. */
-      }
-      cancelCarry.current = null;
-      screen.current = null;
-      canvas.style.cursor = '';
-      setCarrying(false);
-      const point = lifted && overTable(lifted, canvas) ? boardPoint(lifted, canvas, camera) : null;
-      /* The game places battles on the board only, so a drop past its edge is no drop at all. */
-      if (point && Math.hypot(point[0], point[2]) <= BOARD_RADIUS) {
-        onDrop(point);
-      }
-    };
-    const drop = () => finish(null);
-    const up = (lifted: PointerEvent) => lifted.pointerId === pointerId && finish(lifted);
-    const cancel = (lifted: PointerEvent) => lifted.pointerId === pointerId && drop();
-    const lost = (lifted: PointerEvent) => lifted.pointerId === pointerId && drop();
-    const escape = (pressed: KeyboardEvent) => pressed.key === 'Escape' && drop();
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', cancel);
-    window.addEventListener('keydown', escape);
-    window.addEventListener('blur', drop);
-    canvas.addEventListener('lostpointercapture', lost);
-    cancelCarry.current = drop;
+      },
+      finish(lifted) {
+        cancelCarry.current = null;
+        screen.current = null;
+        setCarrying(false);
+        const point = lifted && overTable(lifted, canvas) ? boardPoint(lifted, canvas, camera) : null;
+        /* The game places battles on the board only, so a drop past its edge is no drop at all. */
+        if (point && Math.hypot(point[0], point[2]) <= BOARD_RADIUS) {
+          onDrop(point);
+        }
+      },
+    });
   };
 
   const putDown = useCallback(() => cancelCarry.current?.(), []);
