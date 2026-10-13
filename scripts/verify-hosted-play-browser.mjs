@@ -1991,6 +1991,38 @@ try {
     ...(frame ? { at: frame } : {}),
   };
   report.failure.admission = await Promise.all(peers.map(admissionTrace));
+  if (values.flow === 'homepage') {
+    /* Read before screenshots can wake a background page, and keep the original failure if a page closed. */
+    report.failure.sceneStartup = await Promise.all(
+      peers.map(async (who) => ({
+        label: who.label,
+        ...(await who.page
+          .evaluate(() => {
+            const canvas = document.querySelector('#play-preview canvas');
+            const renderer = window.hostedPlayRenderers?.get(canvas);
+            return {
+              visibility: document.visibilityState,
+              ready: document.querySelector('#play-preview [data-live-ready]')?.getAttribute('data-live-ready') ?? null,
+              connected: !!document.querySelector('#play-preview [data-table-connected="true"]'),
+              canvas: canvas?.getBoundingClientRect().toJSON() ?? null,
+              renderer: renderer
+                ? {
+                    initialized: renderer.initialized,
+                    frame: renderer.info?.frame,
+                    calls: renderer.info?.calls,
+                    backend: renderer.backend?.isWebGPUBackend
+                      ? 'webgpu'
+                      : renderer.backend?.isWebGLBackend
+                        ? 'webgl2'
+                        : 'unknown',
+                  }
+                : null,
+            };
+          })
+          .catch(() => ({ unavailable: true }))),
+      }))
+    );
+  }
   for (const who of peers) {
     try {
       await capture(who, `failure-${who.label}`);
