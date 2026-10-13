@@ -1,0 +1,16 @@
+/* An invisible handle over the acrylic disc: the piece players grab, and the control assistive tech and tests find. */
+.handle {
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.handle:focus-visible {
+  outline: 2px solid #3fe0ff;
+  outline-offset: 2px;
+}

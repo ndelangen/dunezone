@@ -104,20 +104,21 @@ export const BattleMarkerNamesItsTerritory = meta.story({
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
     const page = within(document.body);
-    await settled(() => expect(page.getByRole('button', { name: 'Drag battle marker onto territory' })).toBeVisible());
+    await settled(() => expect(page.getByRole('button', { name: 'Drag battle marker onto territory' })).toBeEnabled());
     const carthag = resolveRulebookBoardDefinition('arrakis')!.geometry.parts.find((part) => part.key === 'carthag')!;
     const [clientX, clientY] = mapViewPoint(document, [
       (carthag.x + carthag.width / 2 - 0.5) * BOARD_RADIUS * 2,
       0.18,
       (carthag.y + carthag.height / 2 - 0.5) * BOARD_RADIUS * 2,
     ]);
-    const dataTransfer = new DataTransfer();
-    dataTransfer.setData('application/dune-battle', 'marker');
-    /* The camera can still be settling on a cold worker, so the drop repeats until it lands. */
+    const view = document.defaultView!;
+    /* The camera can still be settling on a cold worker, so the carry repeats until it lands; a missed drop rebuilds the marker. */
     await settled(() => {
-      document
-        .querySelector('canvas')!
-        .dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX, clientY, dataTransfer }));
+      const marker = page.getByRole('button', { name: 'Drag battle marker onto territory' });
+      const pointer = { bubbles: true, cancelable: true, pointerId: 7, button: 0, clientX, clientY };
+      marker.dispatchEvent(new PointerEvent('pointerdown', pointer));
+      view.dispatchEvent(new PointerEvent('pointermove', pointer));
+      view.dispatchEvent(new PointerEvent('pointerup', pointer));
       expect(lastCommand()?.action).toMatchObject({ kind: 'battle-start', territory: 'Carthag' });
     });
   },

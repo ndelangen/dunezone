@@ -2,7 +2,7 @@
 import { useFrame } from '@react-three/fiber/webgpu';
 import type { RefObject } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
-import type { Group, Mesh, MeshBasicMaterial } from 'three';
+import type { Group, Material, Mesh, MeshBasicMaterial } from 'three';
 import { AdditiveBlending, DoubleSide, NormalBlending, Shape, ShapeGeometry } from 'three';
 
 import { ignoreRaycast } from '../../../../widgets/tabletop/ignoreRaycast';
@@ -13,6 +13,8 @@ export type BeaconPose = {
   flat: number;
   /* How high the acrylic disc floats above the ground point under it. */
   height: number;
+  /* 1 while the beacon shows, falling to 0 as it fades out over the battle it marks. */
+  fade: number;
   carried: boolean;
 };
 
@@ -22,8 +24,8 @@ const MARK_HOT = '#d8fbff';
 const UNDERLAY = '#06323a';
 const ACRYLIC = '#bff2ff';
 
-/** Radius of the acrylic disc a player picks up. */
-export const STRIKE_DISC_RADIUS = 0.16;
+/* Radius of the acrylic disc a player picks up. */
+const STRIKE_DISC_RADIUS = 0.16;
 const DISC_THICKNESS = 0.045;
 const FOOTPRINT = 0.27;
 const DASHES = 12;
@@ -49,6 +51,7 @@ function Glow({
       color={color}
       transparent
       opacity={opacity}
+      userData={materialRef ? undefined : { baseOpacity: opacity }}
       blending={additive ? AdditiveBlending : NormalBlending}
       depthWrite={false}
       side={DoubleSide}
@@ -185,11 +188,11 @@ function Projection({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) {
     const fade = 1 - flat;
     cone.current!.scale.set(1, length, 1);
     cone.current!.position.y = length / 2;
-    coneMaterial.current!.opacity = fade * (0.035 + 0.025 * pulseAt(time, 0.9));
+    coneMaterial.current!.opacity = pose.current.fade * fade * (0.035 + 0.025 * pulseAt(time, 0.9));
     const travel = (time * 0.7) % 1;
     scan.current!.position.y = length * (1 - travel);
     scan.current!.scale.setScalar(lerp(STRIKE_DISC_RADIUS * 0.85, FOOTPRINT, travel) / FOOTPRINT);
-    scanMaterial.current!.opacity = fade * 0.55 * Math.sin(travel * Math.PI);
+    scanMaterial.current!.opacity = pose.current.fade * fade * 0.55 * Math.sin(travel * Math.PI);
   });
   return (
     <group>
@@ -217,7 +220,7 @@ function AcrylicDisc({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) {
     const bob = carried ? 0 : 0.015 * Math.sin(time * 1.6);
     disc.current!.position.y = lerp(height + bob, DISC_THICKNESS / 2 + 0.006, flat);
     disc.current!.rotation.y = time * 0.25 * (1 - flat);
-    emitter.current!.opacity = (1 - flat) * (0.6 + 0.4 * pulseAt(time, 1.4));
+    emitter.current!.opacity = pose.current.fade * (1 - flat) * (0.6 + 0.4 * pulseAt(time, 1.4));
   });
   const top = DISC_THICKNESS / 2 + 0.001;
   return (
@@ -228,6 +231,7 @@ function AcrylicDisc({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) {
           color={ACRYLIC}
           transparent
           opacity={0.38}
+          userData={{ baseOpacity: 0.38 }}
           roughness={0.05}
           metalness={0}
           clearcoat={1}
@@ -253,11 +257,29 @@ function AcrylicDisc({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) {
 
 /**
  * The strike mark: an acrylic disc that hovers and projects a target onto the ground below it.
- * Dropped, the disc settles onto the target and the light goes out, leaving a flat mark.
+ * Dropped, the disc settles onto the target and the light goes out;
+ * once the battle shows, the whole mark fades away.
  */
 export function StrikeMark({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) {
+  const root = useRef<Group>(null);
+  const shownFade = useRef(1);
+  useFrame(() => {
+    const { fade } = pose.current;
+    if (fade === shownFade.current) {
+      return;
+    }
+    shownFade.current = fade;
+    /* Fixed parts keep their own opacity in userData; the animated ones fold the fade in themselves. */
+    root.current!.traverse((object) => {
+      const material = (object as Mesh).material as Material | undefined;
+      const base = material?.userData.baseOpacity as number | undefined;
+      if (material && base !== undefined) {
+        material.opacity = base * fade;
+      }
+    });
+  });
   return (
-    <group>
+    <group ref={root}>
       <Footprint pose={pose} />
       <Projection pose={pose} />
       <AcrylicDisc pose={pose} />
