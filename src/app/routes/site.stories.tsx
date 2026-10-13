@@ -3,6 +3,7 @@ import { expect, userEvent, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
 
+import { expectRefused, withoutAdmins } from './adminPages.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -54,19 +55,9 @@ export const PublicationJobsSignedOut = meta.story({
 /** The job queue reached by a signed-in reader without the administrative role. */
 export const PublicationJobsNotAuthorized = meta.story({
   args: { path: '/_admin/jobs' },
-  parameters: {
-    database: db((baseline) => {
-      for (const user of baseline.users) {
-        user.isAdmin = false;
-      }
-    }),
-  },
+  parameters: withoutAdmins,
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByRole('heading', { name: 'You cannot view publication jobs' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    expect(page.queryByRole('combobox', { name: 'Status' })).toBeNull();
+    await expectRefused(canvasElement, 'You cannot view publication jobs', { role: 'combobox', name: 'Status' });
   },
 });
 export const FuturePlans = meta.story({ args: { path: '/future-plans' } });
