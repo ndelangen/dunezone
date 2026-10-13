@@ -4,6 +4,7 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
+import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
@@ -182,6 +183,14 @@ function GroupEditPage() {
       Back to group
     </PageMessage.Back>
   );
+
+  if (!editPage.viewerResolved) {
+    return (
+      <PageMessage title={`Edit ${group.name}`} back={guardBack}>
+        <LoadPending title="Loading your profile">Checking what you may change here.</LoadPending>
+      </PageMessage>
+    );
+  }
 
   if (viewerAccess.viewer.kind === 'anonymous') {
     return (

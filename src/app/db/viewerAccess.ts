@@ -1,4 +1,4 @@
-import { assetAccessForViewer } from '@shared/access/collaborativeAccess';
+import { assetAccessForViewer, groupAccessForViewer, groupSubjectFacts } from '@shared/access/collaborativeAccess';
 import type { AccessViewer, AssetSubjectFacts } from '@shared/access/collaborativeAccess';
 import { useQuery } from 'convex/react';
 import { useState } from 'react';
@@ -58,6 +58,16 @@ export function useAssetAccess<Kind extends AssetSubjectFacts['kind']>(
   const viewer = useAccessViewer(subject.assignedGroup?.id ?? null);
   const access = assetAccessForViewer(subject, viewer ?? ANONYMOUS);
   return { resolved: viewer !== undefined, viewerAccess: { ...access, kind: subject.kind } };
+}
+
+/**
+ * A Group page's capabilities for the current viewer (null while the page is on its way), computed in the browser with the same rules the mutations enforce.
+ * While the viewer is still resolving, `resolved` is false and the capabilities are the anonymous ones, so no control appears before it may.
+ */
+export function useGroupAccess(group: { _id: Id<'groups'>; created_by: string; is_deleted: boolean } | null) {
+  const viewer = useAccessViewer(group?._id ?? null);
+  const subject = groupSubjectFacts(group ?? { created_by: UNAVAILABLE_SUBJECT.owner_id, is_deleted: true });
+  return { resolved: viewer !== undefined, viewerAccess: groupAccessForViewer(subject, viewer ?? ANONYMOUS) };
 }
 
 /**
