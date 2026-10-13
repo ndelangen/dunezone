@@ -182,7 +182,11 @@ try {
     if (pathname === '/') {
       assert.match(html, /Dune Play is coming soon/i);
       assert.match(html, /Your rules\. Always within reach\./, 'The homepage chapters are not rendered on the server');
-      assert.match(html, /<a[^>]+href="\/rulesets"/, 'The homepage has no rendered link to the Rulesets');
+      assert.match(
+        html,
+        /<a[^>]+href="\/rulesets"[^>]*>(?:<[^>]+>)*Read the Rulesets/,
+        'The homepage has no rendered Rulesets link'
+      );
       const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1];
       assert.ok(image, 'The homepage has no social image');
       assert.equal(new URL(image).origin, 'https://dune.zone');

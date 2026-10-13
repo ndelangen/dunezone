@@ -231,7 +231,10 @@ function OnlineRulebooks() {
   );
 }
 
-/* Native image laziness can start downloads far below the viewport and compete with the opening scene. */
+/*
+ * Native image laziness can start downloads far below the viewport and compete with the opening scene.
+ * The artwork also starts hidden on the server, so the server render and the first browser render agree.
+ */
 function useNearbyArtwork() {
   const region = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
