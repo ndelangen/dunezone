@@ -49,7 +49,7 @@ function PrivacyPage() {
               </Text>
               <Text>
                 For privacy questions or data requests, email{' '}
-                <Anchor href="mailto:requests@dune.zone">requests@dune.zone</Anchor>.
+                <Anchor href="mailto:support@dune.zone">support@dune.zone</Anchor>.
               </Text>
             </Stack>
           </Card>
@@ -133,7 +133,7 @@ function PrivacyPage() {
                 copies that other people made while your work was public.
               </Text>
               <Text>
-                To make a request, email <Anchor href="mailto:requests@dune.zone">requests@dune.zone</Anchor>. Do not
+                To make a request, email <Anchor href="mailto:support@dune.zone">support@dune.zone</Anchor>. Do not
                 include your password or other private sign-in details in your message.
               </Text>
               <Text>
@@ -282,7 +282,7 @@ function PrivacyPage() {
           </Surface>
 
           <Text c="dimmed" size="sm">
-            Last updated 11 October 2026. If anything changes, we will update this page.
+            Last updated 13 October 2026. If anything changes, we will update this page.
           </Text>
         </Stack>
       </PageLayout.Content>

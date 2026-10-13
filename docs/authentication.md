@@ -65,6 +65,17 @@ description is "Homebrew tools for the Dune board game." The exports live in
 is [`public/dune-zone-favicon.svg`](../public/dune-zone-favicon.svg). Google's
 published display name and logo depend on its brand-verification status.
 
+Discord also lists the support address and links to the privacy page.
+`support@dune.zone` is the public contact for support and privacy questions. Cloudflare
+Email Routing forwards it to the existing verified owner inbox. The old
+`requests@dune.zone` address remains a compatibility alias through the existing Email
+Worker, which forwards to the same inbox without reading the message. The site's
+footer and privacy page use only the support address.
+
+Google's public support-email selector accepts a Google account or a managed Google
+Group, rather than an arbitrary forwarding address. Its existing owner Gmail address
+remains selected until a Google identity for the support address is available.
+
 **Client**: [`src/app/db/core/index.ts`](../src/app/db/core/index.ts)
 
 ```typescript

@@ -1,6 +1,6 @@
 import { Tooltip } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
-import { BookA, Images, ShieldCheck } from 'lucide-react';
+import { BookA, Images, Mail, ShieldCheck } from 'lucide-react';
 import { useId } from 'react';
 import type { SVGProps } from 'react';
 import { FaRedditAlien } from 'react-icons/fa6';
@@ -94,9 +94,16 @@ const REDDIT_ORANGERED = '#FF4500';
 const BGG_ORANGE = '#FF5100';
 const SITE_BRAND = 'var(--color-brand)';
 
-/* `to` marks a routed page; `href` is a destination outside the router: the static Storybook
-   build, or an external site (opened in a new tab). */
+/* `to` marks a routed page; `href` points outside the router.
+   HTTPS destinations open in a new tab; the support address opens an email composer. */
 const footerLinks = [
+  {
+    href: 'mailto:support@dune.zone',
+    icon: Mail,
+    size: LINE_GLYPH,
+    tint: SITE_BRAND,
+    label: 'Email support',
+  },
   {
     to: '/media',
     icon: Images,
