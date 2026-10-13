@@ -1843,6 +1843,24 @@ describe('pointer moves', () => {
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual([2, 0.38, 2]);
   });
 
+  test('hovering a piece updates the scene and leaves the panels as they are', async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    const panels = client.getSnapshot();
+    const panelListener = vi.fn();
+    const sceneListener = vi.fn();
+    client.subscribe(panelListener);
+    client.subscribeTable(sceneListener);
+    const [piece] = table(client).renderedPieces;
+
+    client.setHoveredPiece(piece!.id);
+
+    expect(client.getSnapshot()).toBe(panels);
+    expect(panelListener).not.toHaveBeenCalled();
+    expect(sceneListener).toHaveBeenCalledTimes(1);
+    expect(client.getTable()?.hoveredPieceId).toBe(piece!.id);
+  });
+
   test('a carried piece moving updates the scene and leaves the panels as they are', async () => {
     const client = await connected();
     socket().deliver(view({ sequence: 1 }));

@@ -9,13 +9,14 @@ import {
   Image,
   Input,
   NumberInput,
-  SegmentedControl,
+  Radio,
   SimpleGrid,
   Slider,
   Stack,
   Switch,
   Text,
   UnstyledButton,
+  VisuallyHidden,
 } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
@@ -316,17 +317,17 @@ function ColorLayerEditor({
         {description}
       </Text>
 
-      <SegmentedControl
-        fullWidth
-        value={mode}
-        onChange={changeMode}
-        data={[
-          { value: 'solid', label: 'Solid' },
-          { value: 'linear', label: 'Linear' },
-          { value: 'radial', label: 'Radial' },
-        ]}
-        aria-label={`${label} color mode`}
-      />
+      <Radio.Group value={mode} onChange={changeMode} label={<VisuallyHidden>{`${label} color mode`}</VisuallyHidden>}>
+        <Group gap="lg" wrap="wrap">
+          {[
+            { value: 'solid', label: 'Solid' },
+            { value: 'linear', label: 'Linear' },
+            { value: 'radial', label: 'Radial' },
+          ].map(({ value, label }) => (
+            <Radio key={value} value={value} label={label} />
+          ))}
+        </Group>
+      </Radio.Group>
 
       {typeof value === 'string' ? (
         <ColorInput label={`${label} color`} value={value} format="hex" swatchesPerRow={6} onChange={onChange} />

@@ -120,6 +120,26 @@ describe('the directory keeps the newest published summary and lists it to every
     });
   });
 
+  test('a stage holding more games than the lobby shows keeps its newest ones', async () => {
+    const { t, admin, ids, game, publish, summary } = await world();
+    await publish(1, summary([ids.admin], { stage: 'finished', lastActivityAt: 1 }));
+    /* A hundred older finished games, then the newest one, which must still be listed. */
+    const newest = await t.run(async (ctx) => {
+      const { _id, _creationTime, ...row } = (await ctx.db.get(game._id))!;
+      for (let index = 0; index < 100; index += 1) {
+        await ctx.db.insert('play_games', { ...row, slug: `older-${index}` });
+      }
+      return await ctx.db.insert('play_games', { ...row, slug: 'newest' });
+    });
+    const lobby = await admin.query(api.playDirectory.listGames, {});
+    if (lobby.status !== 'ready') {
+      throw new Error('Expected a lobby');
+    }
+    expect(lobby.past).toHaveLength(100);
+    expect(lobby.past.map((entry) => entry.gameId)).toContain(newest);
+    expect(lobby.past.map((entry) => entry.gameId)).not.toContain(game._id);
+  });
+
   test('a seated faction carries its catalogue token, and a faction the catalogue no longer holds carries none', async () => {
     const { t, admin, ids, publish, summary } = await world();
     const factionId = await t.run(async (ctx) =>

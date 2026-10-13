@@ -130,6 +130,29 @@ describe('FAQ question page projection (api.faq.question)', () => {
     expect(page.answers.slice(1).every((answer) => !answer.accepted)).toBe(true);
   });
 
+  test('the page shows the newest answers, and the accepted one leads even when older than them', async () => {
+    const t = convexTest(schema, modules);
+    const seed = await seedQuestionPage(t);
+    await t.run(async (ctx) => {
+      const question = (await ctx.db.query('faq_items').first())!;
+      for (let index = 0; index < 200; index += 1) {
+        await ctx.db.insert('faq_answers', {
+          faq_item_id: question._id,
+          answer: `Filler ${index}`,
+          answered_by: seed.thirdId,
+          created_at: at(6),
+        });
+      }
+    });
+
+    const page = await t.query(api.faq.question, locator);
+
+    expect(page.answers[0]).toMatchObject({ id: seed.acceptedAnswerId, accepted: true });
+    expect(page.answers.slice(1).map((answer) => answer.text)).toEqual(
+      Array.from({ length: 200 }, (_, index) => `Filler ${index}`)
+    );
+  });
+
   test('the question owner moderates: edit, delete, accept, unaccept', async () => {
     const t = convexTest(schema, modules);
     const seed = await seedQuestionPage(t);

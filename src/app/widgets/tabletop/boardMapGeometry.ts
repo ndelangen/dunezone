@@ -254,6 +254,26 @@ function upwardFace(a: Point, b: Point, c: Point): Point[] {
  * Each triangle faces up, whatever winding the source gave it.
  */
 export function boardMapGeometry(svg: string, radius: number): BufferGeometry {
+  const key = `${radius}:${svg}`;
+  let arrays = builtMaps.get(key);
+  if (!arrays) {
+    arrays = boardMapArrays(svg, radius);
+    builtMaps.set(key, arrays);
+  }
+  /* Each geometry gets its own attributes, so disposing one table's map never touches another's; only the CPU arrays are shared. */
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new BufferAttribute(arrays.positions, 3));
+  geometry.setAttribute('color', new BufferAttribute(arrays.colors, 4));
+  geometry.setAttribute('normal', new BufferAttribute(arrays.normals, 3));
+  return geometry;
+}
+
+type BoardMapArrays = { positions: Float32Array; colors: Float32Array; normals: Float32Array };
+
+/* The map is one constant drawing, so it is parsed and triangulated once for the page, not on every mount of the board. */
+const builtMaps = new Map<string, BoardMapArrays>();
+
+function boardMapArrays(svg: string, radius: number): BoardMapArrays {
   const data = new SVGLoader().parse(svg);
   const frame = frameOf(data.xml, radius);
   const positionValues: number[] = [];
@@ -270,13 +290,9 @@ export function boardMapGeometry(svg: string, radius: number): BufferGeometry {
     }
   }
   const count = positionValues.length / 3;
-  const geometry = new BufferGeometry();
-  geometry.setAttribute('position', new BufferAttribute(new Float32Array(positionValues), 3));
-  geometry.setAttribute('color', new BufferAttribute(new Float32Array(colorValues), 4));
   const normals = new Float32Array(count * 3);
   for (let index = 0; index < count; index++) {
     normals[index * 3 + 1] = 1;
   }
-  geometry.setAttribute('normal', new BufferAttribute(normals, 3));
-  return geometry;
+  return { positions: new Float32Array(positionValues), colors: new Float32Array(colorValues), normals };
 }
