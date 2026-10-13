@@ -56,6 +56,39 @@ function usePendingDrop(battle: PublicBattle | null | undefined, inBattle: boole
   return [pending, setPending] as const;
 }
 
+/* Tracks whether the beacon is up at its tracker, rendering only when that changes. */
+function useRisen() {
+  /* The handle appears only once the beacon is up, so nobody grabs a beacon still rising or sinking out of sight. */
+  const [risen, setRisen] = useState(false);
+  const shown = useRef(false);
+  const report = (state: BeaconMotion) => {
+    if (beaconRisen(state) !== shown.current) {
+      shown.current = beaconRisen(state);
+      setRisen(shown.current);
+    }
+  };
+  return [risen, report] as const;
+}
+
+/* Places the beacon's group and handle for this frame, and updates the pose the strike mark draws from. */
+function applyFrame(
+  state: BeaconMotion,
+  frame: ReturnType<typeof stepBeacon>,
+  parts: { group: Group; handle: Group | null; pose: BeaconPose; carried: boolean; motion: boolean }
+) {
+  parts.group.position.set(state.x, frame.y, state.z);
+  parts.group.visible = frame.visible;
+  parts.group.scale.setScalar(frame.scale);
+  Object.assign(parts.pose, {
+    flat: state.flat,
+    height: state.height,
+    fade: state.fade,
+    motion: parts.motion,
+    carried: parts.carried,
+  });
+  parts.handle?.position.setY(state.height);
+}
+
 /** Moves the beacon every frame from its motion state, and hands the strike mark the pose it draws. */
 function useBeaconFrame({
   home,
@@ -80,33 +113,24 @@ function useBeaconFrame({
   const invalidate = useThree((state) => state.invalidate);
   const pose = useRef<BeaconPose>({ flat: 0, height: HOME_HEIGHT, fade: 1, carried: false, motion });
   const moving = useRef<BeaconMotion | null>(null);
-  /* The handle appears only once the beacon is up, so nobody grabs a beacon still rising or sinking out of sight. */
-  const [risen, setRisen] = useState(false);
-  const risenShown = useRef(false);
+  const [risen, reportRisen] = useRisen();
   useEffect(() => invalidate(), [mode, motion, invalidate]);
   useFrame((_state, delta) => {
     if (!home || !group.current) {
       return;
     }
-    const target = beaconTarget(mode, home, { anchor, pending, carry: mode === 'carry' ? carryAt() : null });
+    const carried = mode === 'carry';
+    const target = beaconTarget(mode, home, { anchor, pending, carry: carried ? carryAt() : null });
     moving.current ??= initialMotion(home, mode, target);
-    const state = moving.current;
-    const frame = stepBeacon(state, { mode, target, delta, motion });
-    if (beaconRisen(state) !== risenShown.current) {
-      risenShown.current = beaconRisen(state);
-      setRisen(risenShown.current);
-    }
-    group.current.position.set(state.x, frame.y, state.z);
-    group.current.visible = frame.visible;
-    group.current.scale.setScalar(frame.scale);
-    Object.assign(pose.current, {
-      flat: state.flat,
-      height: state.height,
-      fade: state.fade,
+    const frame = stepBeacon(moving.current, { mode, target, delta, motion });
+    reportRisen(moving.current);
+    applyFrame(moving.current, frame, {
+      group: group.current,
+      handle: handle.current,
+      pose: pose.current,
+      carried,
       motion,
-      carried: mode === 'carry',
     });
-    handle.current?.position.setY(state.height);
     if (frame.animating) {
       invalidate();
     }
