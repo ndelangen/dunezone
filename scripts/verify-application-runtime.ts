@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { getPlatformProxy, unstable_dev } from 'wrangler';
 
+import { MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../src/shared/recordlessPublicPages.ts';
 import { jpegProfile, pngDimensions } from '../workers/publisher/image-inspection.ts';
 
 /* Exercise the assembled Worker, including Static Assets precedence and the real TanStack entry. */
@@ -28,12 +29,15 @@ function isEmptyArtifactStoreReader(pathname: string, html: string) {
   );
 }
 
+/* Pages with no record behind them render without a metadata query. */
+const RECORDLESS_PAGES = ['/', ...RECORDLESS_PUBLIC_PAGES, ...MEDIA_PUBLIC_PAGES];
+
 function assertPublicMetadataQueries(count: number, pathname: string, html: string, historicalFallback: boolean) {
   if (isEmptyArtifactStoreReader(pathname, html)) {
     assert.ok([1, 2].includes(count), `${pathname} has unexpected renderer query count ${count}`);
     return;
   }
-  assert.equal(count, pathname === '/' ? 0 : historicalFallback ? 2 : 1, pathname);
+  assert.equal(count, RECORDLESS_PAGES.includes(pathname) ? 0 : historicalFallback ? 2 : 1, pathname);
 }
 
 if (fixture) {
@@ -82,7 +86,16 @@ try {
   assert.match(sitemap.headers.get('Content-Type') ?? '', /application\/xml/);
   assert.ok((await sitemap.text()).includes('https://dune.zone/sitemap-factions.xml'));
   assert.equal((await worker.fetch('/sitemap-missing.xml')).status, 404);
-  const pages = ['/', '/factions', '/assets', '/assets/token-disc', '/rulesets', '/profiles'];
+  const pages = [
+    '/',
+    '/factions',
+    '/assets',
+    '/assets/token-disc',
+    '/rulesets',
+    '/profiles',
+    ...RECORDLESS_PUBLIC_PAGES,
+    ...MEDIA_PUBLIC_PAGES,
+  ];
   let rulebookPage: string | undefined;
   let groupPage: string | undefined;
   let faqPage: string | undefined;
@@ -163,14 +176,25 @@ try {
         }
       }
     }
-    if (pathname !== '/') {
-      assert.match(html, /<h1[\s>]/, `${pathname} has no rendered heading`);
-    }
+    assert.match(html, /<h1[\s>]/, `${pathname} has no rendered heading`);
     assert.match(html, /rel="canonical"/, `${pathname} has no canonical URL`);
     assert.match(html, /property="og:title"/, `${pathname} has no social metadata`);
     assert.ok(html.endsWith('</html>'), `${pathname} returned a truncated document`);
+    if (MEDIA_PUBLIC_PAGES.includes(pathname)) {
+      /* The media layout builds each gallery's head from its child route's params, so check the canonical is the gallery's own. */
+      assert.ok(
+        html.includes(`rel="canonical" href="https://dune.zone${pathname}"`),
+        `${pathname} has the wrong canonical URL`
+      );
+    }
     if (pathname === '/') {
       assert.match(html, /Dune Play is coming soon/i);
+      assert.match(html, /Your rules\. Always within reach\./, 'The homepage chapters are not rendered on the server');
+      assert.match(
+        html,
+        /<a[^>]+href="\/rulesets"[^>]*>(?:<[^>]+>)*Read the Rulesets/,
+        'The homepage has no rendered Rulesets link'
+      );
       const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1];
       assert.ok(image, 'The homepage has no social image');
       assert.equal(new URL(image).origin, 'https://dune.zone');
@@ -188,7 +212,11 @@ try {
       assert.equal(head.status, 200);
       assert.equal(head.headers.get('X-Public-Cache'), 'hit');
       assert.equal(await head.text(), '');
-    } else if (pathname !== '/factions' && pathname !== '/assets' && pathname !== '/assets/token-disc') {
+    } else if (
+      !['/factions', '/assets', '/assets/token-disc'].includes(pathname) &&
+      /* The galleries share one card template, so one render covers them and the rest stay under the social render rate limit. */
+      !(pathname.startsWith('/media/game/') && pathname !== MEDIA_PUBLIC_PAGES[1])
+    ) {
       const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&');
       assert.ok(image, `${pathname} has no social image URL`);
       const imageUrl = new URL(image);
@@ -217,6 +245,7 @@ try {
   assert.ok(groupPage, 'No profile has a Group link');
   assert.ok(faqPage, 'No profile has a FAQ question link');
   const browserOnlyPages = [
+    '/media/topics',
     '/groups/create',
     '/groups/dreamers/edit',
     '/profiles/central/edit',
@@ -244,6 +273,10 @@ try {
     '/rulesets/__ssr_missing_ruleset__/rulebooks/__ssr_missing_rulebook__',
     '/factions/missing/extra',
     '/assets/unknown-type/missing/extra',
+    '/glossary/missing',
+    '/media/game/missing',
+    '/media/game',
+    '/media/missing',
   ]) {
     const missing = await worker.fetch(pathname);
     assert.equal(missing.status, 404, pathname);

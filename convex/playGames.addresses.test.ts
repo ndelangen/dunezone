@@ -85,14 +85,3 @@ test('a legacy ID never falls through to an address match, including after its r
   expect(await player.query(api.playGames.getGameByAddress, { address: gameId })).toEqual({ status: 'not_found' });
   expect(secondId).not.toBe(gameId);
 });
-
-test('legacy games without names or addresses still resolve by ID', async () => {
-  const { t, player, gameId } = await world();
-  await t.run(async (ctx) => ctx.db.patch(gameId, { state: 'ready', name: undefined, slug: undefined }));
-  expect(await player.query(api.playGames.getGameByAddress, { address: gameId })).toMatchObject({
-    gameId,
-    name: 'Classic',
-    slug: null,
-    status: 'ready',
-  });
-});

@@ -6,8 +6,9 @@ import type { QueryAudience } from './functions';
 /**
  * Every client-callable query declares who its answer is for.
  * `publicQuery` is the default: the same answer for every caller, so Convex caches one result for all of them.
+ * `adminQuery` serves admin-only pages, and its builder refuses everyone else.
  * A query lands here only when its answer genuinely depends on who asks, and the reason says why.
- * Adding a line to either list is a reviewed decision, never a way to make a failing test pass.
+ * Adding a line to this list is a reviewed decision, never a way to make a failing test pass.
  */
 const VIEWER_QUERIES: Record<string, string> = {
   'accountDeletion:page': "The viewer's own account deletion state.",
@@ -30,32 +31,6 @@ const VIEWER_QUERIES: Record<string, string> = {
   'rulebooks:editorBySlugs': 'Drafts are visible to editors only.',
   'rulebooks:editorPage': 'Drafts are visible to editors only.',
   'rulesets:listOwnedForGroupAssign': "The viewer's own rulesets.",
-};
-
-/**
- * Public pages that still compute the viewer's capabilities on the server.
- * Each moves to `publicQuery` by returning the facts and letting the browser combine them with the viewer, as `factions:pageBySlug` does.
- * This list only shrinks.
- */
-const PENDING_VIEWER_SPLIT: Record<string, string> = {
-  'migrations:adminDashboard': 'reports access state; becomes adminQuery once the page gates on session.isAdmin',
-  'publicationAdmin:page': 'reports access state; becomes adminQuery once the page gates on session.isAdmin',
-};
-
-/**
- * Per-viewer pages already replaced by a `publicQuery`, kept unchanged only so bundles deployed before the replacement keep working.
- * Production deploys functions before the browser bundle, so these are deleted in a later release (see AGENTS.md).
- * It grows only by what leaves the pending split, so the two lists together only shrink.
- */
-const DEPRECATED_VIEWER_QUERIES: Record<string, string> = {
-  'assets:getPage': 'replaced by assets:page',
-  'factions:getBySlug': 'replaced by factions:pageBySlug',
-  'faq:questionPage': 'replaced by faq:question',
-  'groups:detailBySlug': 'replaced by groups:detailPage',
-  'profiles:getBySlug': 'replaced by profiles:pageBySlug',
-  'rulebooks:readerDeliveryPage': 'replaced by rulebooks:readerDelivery',
-  'rulesets:detailPageBySlug': 'replaced by rulesets:detailPage',
-  'rulesets:getBySlug': 'replaced by rulesets:page',
 };
 
 /** Queries a library registers for us, so they cannot carry a builder mark. They read the viewer by design. */
@@ -114,33 +89,8 @@ describe('query audience', () => {
     expect(unmarked).toEqual([]);
   });
 
-  test('the pending split and deprecated lists only shrink', () => {
-    /*
-     * Lower the pending cap as pages move to publicQuery, and the deprecated cap as releases delete the old names.
-     * The deprecated cap rises only by what the pending cap gave up; the combined cap never rises.
-     */
-    const pending = Object.keys(PENDING_VIEWER_SPLIT).length;
-    const deprecated = Object.keys(DEPRECATED_VIEWER_QUERIES).length;
-    expect(pending).toBeLessThanOrEqual(2);
-    expect(deprecated).toBeLessThanOrEqual(8);
-    expect(pending + deprecated).toBeLessThanOrEqual(10);
-  });
-
-  test('every deprecated viewer query names a public replacement that exists', () => {
-    for (const reason of Object.values(DEPRECATED_VIEWER_QUERIES)) {
-      const replacement = reason.replace(/^replaced by /, '');
-      expect(queries.get(replacement), replacement).toBe('public');
-    }
-  });
-
   test('viewer queries are exactly the reviewed list', () => {
     const viewer = [...queries].filter(([, audience]) => audience === 'viewer').map(([name]) => name);
-    expect(viewer.sort()).toEqual(
-      [
-        ...Object.keys(VIEWER_QUERIES),
-        ...Object.keys(PENDING_VIEWER_SPLIT),
-        ...Object.keys(DEPRECATED_VIEWER_QUERIES),
-      ].sort()
-    );
+    expect(viewer.sort()).toEqual(Object.keys(VIEWER_QUERIES).sort());
   });
 });

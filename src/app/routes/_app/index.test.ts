@@ -21,6 +21,10 @@ describe('the homepage head', () => {
     expect(result.meta).toContainEqual({ property: 'og:url', content: 'https://dune.zone/' });
   });
 
+  it('renders the whole page on the server, so crawlers get its chapters without JavaScript', () => {
+    expect((Route as unknown as { options: { ssr: unknown } }).options.ssr).toBe(true);
+  });
+
   it('leaves the SPA shell, which runs no loaders below the root, without a page identity', () => {
     expect(head({ loaderData: undefined })).toEqual({});
   });

@@ -45,6 +45,9 @@ const config: KnipConfig = {
       vite: {
         config: ['vite.config.ts', 'workers/publisher/vite.config.ts', '.storybook/vite.config.ts'],
       },
+      vitest: {
+        config: ['vitest.*.config.ts'],
+      },
       /* The app's Vite aliases are an array, which knip's Vite plugin does not read; this one names a source file. */
       paths: {
         '@app/widgets/tabletop/three-jsx': ['src/app/widgets/tabletop/three-jsx/jsx-runtime.ts'],

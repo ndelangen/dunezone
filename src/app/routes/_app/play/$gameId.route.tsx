@@ -105,7 +105,7 @@ function GamePage() {
     case undefined:
       /* A reloaded tab that kept this table shows it, locked, while the directory has not answered (#1746). */
       if (current?.status === 'ready' || stored) {
-        return <TablePage game={current ?? { gameId: stored!, name: 'Game', slug: null }} exit={exit} />;
+        return <TablePage game={current ?? { gameId: stored!, name: 'Game', slug: stored! }} exit={exit} />;
       }
       return (
         <TableFrame title="Game">

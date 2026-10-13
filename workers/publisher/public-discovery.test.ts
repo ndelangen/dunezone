@@ -1,5 +1,6 @@
 import { expect, test, vi } from 'vitest';
 
+import { MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
 import type { PublicCache } from './public-cache';
 import { handlePublicDiscovery } from './public-discovery';
 
@@ -35,12 +36,19 @@ test('the index and landing sitemap enumerate supported canonical paths without 
   expect(body).toContain('<loc>https://dune.zone/sitemap-factions.xml</loc>');
   expect(body).toContain('<loc>https://dune.zone/sitemap-token-disc.xml</loc>');
   expect(body).toContain('<loc>https://dune.zone/sitemap-board.xml</loc>');
+  for (const name of ['rulesets', 'rulebooks', 'faq', 'profiles', 'groups']) {
+    expect(body).toContain(`<loc>https://dune.zone/sitemap-${name}.xml</loc>`);
+  }
   const pages = await handlePublicDiscovery(request('/sitemap-pages.xml'), env, undefined, load);
   const landing = await pages!.text();
   expect(landing).toContain('<loc>https://dune.zone/</loc>');
   expect(landing).toContain('<loc>https://dune.zone/rulesets</loc>');
   expect(landing).toContain('<loc>https://dune.zone/profiles</loc>');
   expect(landing).toContain('<loc>https://dune.zone/assets/token-disc</loc>');
+  for (const page of [...RECORDLESS_PUBLIC_PAGES, ...MEDIA_PUBLIC_PAGES]) {
+    expect(landing).toContain(`<loc>https://dune.zone${page}</loc>`);
+  }
+  expect(landing).not.toContain('/assets/rulesets');
   expect(load).not.toHaveBeenCalled();
 });
 

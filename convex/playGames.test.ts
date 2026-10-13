@@ -144,6 +144,8 @@ async function seatedGame(
   const ruleset = await ctx.db.query('rulesets').first();
   const players = player === creator ? [creator] : [creator, player];
   const gameId = await ctx.db.insert('play_games', {
+    name: 'Test game',
+    slug: `test-game-${crypto.randomUUID()}`,
     ruleset_id: ruleset!._id,
     minimum_players: 6,
     creator_id: creator,

@@ -50,7 +50,7 @@ async function slotFixture() {
   const second = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Spice') });
 
   const slotted = async () => {
-    const page = await t.query(api.rulesets.detailPageBySlug, { slug: ruleset.slug });
+    const page = await t.query(api.rulesets.detailPage, { slug: ruleset.slug });
     return (page?.assetSlots ?? []).map((entry) => [entry.slot, entry.asset.name]);
   };
 

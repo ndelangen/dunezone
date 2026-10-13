@@ -1,3 +1,4 @@
+import { RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
 import { PUBLIC_CACHE_SECONDS, publicCachedResponse } from './public-cache';
 import type { PublicCache } from './public-cache';
 
@@ -20,6 +21,14 @@ function isPublicPage(pathname: string): boolean {
     return false;
   }
   const [root, type, slug] = segments;
+  /* Unknown descendants reach the router's 404, as under every other public root. */
+  if (RECORDLESS_PUBLIC_PAGES.includes(`/${root}`)) {
+    return true;
+  }
+  /* The Topic and Lucide icon libraries stay in the browser-only shell; every other media path renders a page or the 404. */
+  if (root === 'media') {
+    return type !== 'topics' && type !== 'lucide';
+  }
   if (root === 'factions') {
     return !((segments.length === 2 && type === 'create') || (segments.length === 3 && slug === 'edit'));
   }

@@ -1,6 +1,5 @@
 import { ConvexError, v } from 'convex/values';
 
-import { faqQuestionPageForViewer } from '../../src/shared/faq/questionPageAccess';
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { optionalActiveUserId } from './accountLifecycle';
@@ -44,25 +43,6 @@ export const faqQuestionPublicPageValidator = v.object({
   ruleset: rulesetCitationValidator,
   question: questionValidator.extend({ askedBy: v.id('users') }),
   answers: v.array(answerValidator.extend({ answeredBy: v.id('users') })),
-});
-
-/** Deprecated with `api.faq.questionPage`: the question page with the viewer's capabilities. Remove with it. */
-export const faqQuestionPageValidator = v.object({
-  ruleset: rulesetCitationValidator,
-  question: questionValidator.extend({
-    capabilities: v.object({ editQuestion: v.boolean(), deleteQuestion: v.boolean() }),
-  }),
-  viewer: v.object({ answerQuestion: v.boolean() }),
-  answers: v.array(
-    answerValidator.extend({
-      capabilities: v.object({
-        editAnswer: v.boolean(),
-        deleteAnswer: v.boolean(),
-        acceptAnswer: v.boolean(),
-        unacceptAnswer: v.boolean(),
-      }),
-    })
-  ),
 });
 
 function authorChip(summary: Awaited<ReturnType<typeof profileSummary>>) {
@@ -157,21 +137,5 @@ export async function loadFaqQuestionPublicPage(ctx: QueryCtx, args: { rulesetSl
       updatedAt: item.updated_at,
     },
     answers: projectedAnswers,
-  };
-}
-
-/** Deprecated with `api.faq.questionPage`: the public page combined with the viewer on the server, without the authorship facts. Remove with it. */
-export async function loadFaqQuestionPage(ctx: QueryCtx, args: { rulesetSlug: string; questionSlug: string }) {
-  const page = await loadFaqQuestionPublicPage(ctx, args);
-  const combined = faqQuestionPageForViewer(
-    page,
-    await optionalActiveUserId(ctx),
-    await loadViewerAnswered(ctx, page.question.id)
-  );
-  const { askedBy: _askedBy, ...question } = combined.question;
-  return {
-    ...combined,
-    question,
-    answers: combined.answers.map(({ answeredBy: _answeredBy, ...answer }) => answer),
   };
 }

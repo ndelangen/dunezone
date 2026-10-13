@@ -1,6 +1,6 @@
 import type { FactionRender } from '@shared/factions/schema';
 /* oxlint-disable jsx-a11y/alt-text -- Decorative game-card layers. */
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -11,7 +11,6 @@ import { CardText } from '../../card/CardText';
 import { FrontDecals } from '../../card/Decals';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
 import { StrokedUse } from '../../utils/StrokedUse';
-import { useCountId } from '../../utils/useCountId';
 import unique from './Alliance.module.css';
 
 const foreGroundColor = '#e3dbb3';
@@ -24,7 +23,7 @@ export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
   text,
   troop,
 }) => {
-  const cid = useCountId();
+  const cid = useId();
   const prefix = useMemo(() => `${cid}_`, [cid]);
   const discMask = `${prefix}mask-disc`;
 

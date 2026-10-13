@@ -1,6 +1,6 @@
 import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
 import type { FactionRender } from '@shared/factions/schema';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -8,7 +8,6 @@ import { useAsset } from '../../assetRenderMode';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
 import { tint0 } from '../../utils/colors';
 import { StrokedUse } from '../../utils/StrokedUse';
-import { useCountId } from '../../utils/useCountId';
 import styles from './Leader.module.css';
 
 const iconSize = { width: 41, height: 41 };
@@ -18,7 +17,7 @@ type LeaderTokenProps = z.infer<typeof FactionRender.leaders>[0];
 
 export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, logo, name, strength }) => {
   const resolvedImage = useAsset(image);
-  const cid = useCountId();
+  const cid = useId();
   const prefix = useMemo(() => `${cid}_`, [cid]);
 
   const curvedTextPath = `${prefix}curvedTextPath`;

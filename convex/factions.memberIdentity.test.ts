@@ -60,8 +60,8 @@ describe('persistent faction member identities', () => {
     edited.leaders[0]!.strength = 9;
     const saved = await author.mutation(api.factions.update, { id: created._id, data: edited });
     expect(ids(saved.data)).toEqual(ids(edited));
-    const reloaded = await t.query(api.factions.getBySlug, { slug: created.slug });
-    expect(ids(reloaded!.faction!.data)).toEqual(ids(edited));
+    const reloaded = await t.query(api.factions.pageBySlug, { slug: created.slug });
+    expect(ids(reloaded.faction.data)).toEqual(ids(edited));
   });
 
   test('rejects an old tab that would erase an adopted roster and rejects duplicate identities', async () => {
