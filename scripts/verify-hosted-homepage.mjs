@@ -354,17 +354,8 @@ export async function verifyHomepage({
       await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
       await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
       await who.page.locator('[data-table-connected="true"]').waitFor();
-      assert.equal(
-        await who.page
-          .locator('#play-preview')
-          .getByRole('img', {
-            name: 'The Dune Play board with faction tokens and troops on the table',
-            exact: true,
-            includeHidden: true,
-          })
-          .count(),
-        0
-      );
+      /* Hand portraits are HTML overlays; the board itself must stay on the canvas. */
+      assert.equal(await who.page.locator('#play-preview img:not([data-table-hand] img)').count(), 0);
       initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
       assert.ok(initialCanvas);
       assert.ok(releaseSession);

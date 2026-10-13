@@ -57,6 +57,11 @@ approval group, keeping Three, Fiber, Drei and the memory-leak and JSX patches a
 Storybook has its own approval group to keep its packages aligned with the router patch.
 These groups keep patch-dependent upgrades from holding the routine batch for approval.
 Major upgrades and packages with checked-in patches need approval in the Dependency Dashboard.
+Oxlint and Satori also need approval and stay outside the routine batch. Oxlint 1.87 reports
+81 existing-code diagnostics; Satori 0.35.1 introduces a filesystem import that fails the publisher's
+Worker runtime test. Their upgrades require separate compatibility work in
+[#2176](https://github.com/ndelangen/dunezone/issues/2176) and
+[#2177](https://github.com/ndelangen/dunezone/issues/2177).
 Automatic merging is off. Security updates can bypass the routine schedule under Renovate's
 security-update behaviour.
 
