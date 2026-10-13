@@ -95,9 +95,8 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(upstream).toHaveBeenCalledOnce();
   });
 
-  test("the rest of a capture page's bundle reuses the job validation of a moment ago", async () => {
-    const upstream = stubValidJob();
-    for (const pathname of ['/publisher-capture/entry-hash.js', '/publisher-capture/style-hash.css']) {
+  async function expectServedInTurn(pathnames: string[]) {
+    for (const pathname of pathnames) {
       const response = await handleCaptureRoute(
         new Request(`https://publisher.example.com${pathname}`, {
           headers: { Cookie: `__Host-publication_job=${jobId}` },
@@ -106,20 +105,17 @@ describe('dedicated exact-snapshot capture boundary', () => {
       );
       expect(response?.status, pathname).toBe(200);
     }
+  }
+
+  test("the rest of a capture page's bundle reuses the job validation of a moment ago", async () => {
+    const upstream = stubValidJob();
+    await expectServedInTurn(['/publisher-capture/entry-hash.js', '/publisher-capture/style-hash.css']);
     expect(upstream).toHaveBeenCalledOnce();
   });
 
   test('the capture HTML validates afresh even right after the bundle was validated', async () => {
     const upstream = stubValidJob();
-    for (const pathname of ['/publisher-capture/entry-hash.js', '/publisher-capture.html']) {
-      const response = await handleCaptureRoute(
-        new Request(`https://publisher.example.com${pathname}`, {
-          headers: { Cookie: `__Host-publication_job=${jobId}` },
-        }),
-        env(vi.fn(async () => new Response('bundle')))
-      );
-      expect(response?.status, pathname).toBe(200);
-    }
+    await expectServedInTurn(['/publisher-capture/entry-hash.js', '/publisher-capture.html']);
     expect(upstream).toHaveBeenCalledTimes(2);
   });
 
