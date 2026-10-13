@@ -333,7 +333,11 @@ function evaluateAssetRequest(
 
 /* Stored bytes are reusable only after the handler checks the current R2 ETag. */
 const INTERNAL_CACHE_CONTROL = 'public, max-age=31536000';
-const CLIENT_CACHE_CONTROL = 'no-cache';
+/*
+ * Browsers keep a face for an hour, then revalidate it against the ETag. Pages that link a face with its `?v=` revision
+ * see a re-publish at once; Play, which links faces without it, sees it within the hour.
+ */
+const CLIENT_CACHE_CONTROL = 'public, max-age=3600';
 const NO_STORE = 'no-store';
 
 export type PublicAssetCache = {
