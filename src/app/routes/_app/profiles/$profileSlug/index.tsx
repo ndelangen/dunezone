@@ -69,6 +69,7 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
         to: '/profiles/$profileSlug',
         params: { profileSlug: profilePage.profile.slug },
         replace: true,
+        statusCode: 301,
       });
     }
     return { profilePage };
@@ -77,13 +78,13 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData?.profilePage.profile.username ?? 'Profile',
-      kind: 'Profile',
+      kind: loaderData ? 'Profile' : undefined,
       pathname: `/profiles/${encodeURIComponent(params.profileSlug)}`,
       description: loaderData ? profileDescription(loaderData.profilePage) : '',
       image: loaderData?.profilePage.profile.avatar?.url,
-      social: { kind: 'Profile', shape: 'round' },
+      social: { shape: 'round' },
       trail: [{ name: 'Profiles', pathname: '/profiles' }],
-      profile: true,
+      entity: { type: 'person' },
       match,
     }),
   component: ProfileDetailPage,

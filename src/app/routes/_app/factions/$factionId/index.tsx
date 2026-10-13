@@ -62,16 +62,16 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
   head: ({ match, loaderData, params }) =>
     publicPageHead({
       name: loaderData?.faction.data.name ?? 'Faction',
-      kind: FACTION_KIND,
+      kind: loaderData ? FACTION_KIND : undefined,
       pathname: `/factions/${encodeURIComponent(loaderData?.faction.slug ?? params.factionId)}`,
       description: loaderData
         ? publicDescription(loaderData.faction.data.rules.advantages[0]?.text) ||
           `${loaderData.faction.data.name} is a custom faction for Dune${loaderData.owner?.username ? ` by ${loaderData.owner.username}` : ''}, with its rules, leaders and troops.`
         : '',
       image: loaderData ? publishedHref('faction-token', loaderData.faction._id, loaderData.faction.updated_at) : null,
-      social: { kind: 'Faction', shape: 'round' },
+      social: { shape: 'round' },
       trail: [{ name: 'Factions', pathname: '/factions' }],
-      author: profileLink(loaderData?.owner),
+      entity: { type: 'work', author: profileLink(loaderData?.owner) },
       match,
     }),
   component: FactionDetailPage,

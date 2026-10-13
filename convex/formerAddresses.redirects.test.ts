@@ -63,6 +63,31 @@ describe('former addresses', () => {
     await expect(resolve('sietch')).resolves.toBeNull();
   });
 
+  test('a deleted record that left an address hands it back to the live record that left it earlier', async () => {
+    const { t, owner } = await world();
+    const resolve = (slug: string) => t.query(api.formerAddresses.resolve, { address: { kind: 'group', slug } });
+    const first = await owner.mutation(api.groups.create, { name: 'Sietch' });
+    await owner.mutation(api.groups.update, { id: first._id, name: 'Tabr' });
+    const second = await owner.mutation(api.groups.create, { name: 'Sietch' });
+    await owner.mutation(api.groups.update, { id: second._id, name: 'Jacurutu' });
+    await expect(resolve('sietch')).resolves.toBe('/groups/jacurutu');
+    await owner.mutation(api.groups.softDelete, { id: second._id });
+    await expect(resolve('sietch')).resolves.toBe('/groups/tabr');
+  });
+
+  test('a renamed profile page answers at its old address', async () => {
+    const { t, owner } = await world();
+    const before = await owner.mutation(api.profiles.bootstrapCurrent, {});
+    await owner.mutation(api.profiles.updateCurrent, {
+      username: 'Stilgar',
+      avatar_url: 'https://example.com/avatar.png',
+    });
+    expect(before.slug).not.toBe('stilgar');
+    /* The page answers with the profile's current slug, and its loader redirects the old address there. */
+    const page = await t.query(api.profiles.pageBySlug, { slug: before.slug });
+    expect(page.profile.slug).toBe('stilgar');
+  });
+
   test('a renamed or converted asset leads from its old type and slug to its current address', async () => {
     const { t, owner } = await world();
     const adminId = await t.run((ctx) => ctx.db.insert('users', { name: 'Administrator', isAdmin: true }));

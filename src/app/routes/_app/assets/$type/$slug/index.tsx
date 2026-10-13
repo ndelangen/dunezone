@@ -84,18 +84,17 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
   pendingComponent: AssetDetailPending,
   errorComponent: AssetDetailError,
   head: ({ match, loaderData, params }) => {
-    const noun = isAssetType(params.type) ? assetTypeNoun(params.type) : undefined;
+    const noun = loaderData && isAssetType(params.type) ? assetTypeNoun(params.type) : undefined;
     return publicPageHead({
       name: loaderData?.asset.name ?? 'Asset',
       kind: noun,
       pathname: `/assets/${encodeURIComponent(params.type)}/${encodeURIComponent(loaderData?.asset.slug ?? params.slug)}`,
       description: loaderData
         ? publicDescription(loaderData.asset.data.about) ||
-          `${loaderData.asset.name} is a custom ${(noun ?? 'asset').toLowerCase()} for Dune${loaderData.asset.owner?.username ? ` by ${loaderData.asset.owner.username}` : ''}.`
+          `${loaderData.asset.name} is ${/^[aeiou]/i.test(noun ?? 'asset') ? 'an' : 'a'} ${(noun ?? 'asset').toLowerCase()} for Dune${loaderData.asset.owner?.username ? ` by ${loaderData.asset.owner.username}` : ''}.`
         : '',
       image: loaderData?.asset.previewHref,
       social: {
-        kind: isAssetType(params.type) ? ASSET_TYPES[params.type].label : 'Asset',
         shape: params.type === 'token-disc' ? 'round' : params.type === 'token-enhance' ? 'landscape' : 'portrait',
       },
       trail: [
@@ -104,7 +103,7 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
           ? [{ name: ASSET_TYPES[params.type].label, pathname: `/assets/${encodeURIComponent(params.type)}` }]
           : []),
       ],
-      author: profileLink(loaderData?.asset.owner),
+      entity: { type: 'work', author: profileLink(loaderData?.asset.owner) },
       match,
     });
   },

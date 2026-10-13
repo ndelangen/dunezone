@@ -14,11 +14,19 @@ export const formerSlugValidator = v.object({
     v.literal('asset'),
     v.literal('group'),
     v.literal('ruleset'),
-    v.literal('rulebook')
+    v.literal('rulebook'),
+    v.literal('profile')
   ),
   scope: v.string(),
   slug: v.string(),
-  record_id: v.union(v.id('factions'), v.id('assets'), v.id('groups'), v.id('rulesets'), v.id('rulebooks')),
+  record_id: v.union(
+    v.id('factions'),
+    v.id('assets'),
+    v.id('groups'),
+    v.id('rulesets'),
+    v.id('rulebooks'),
+    v.id('profiles')
+  ),
 });
 
 export type FormerSlug = Infer<typeof formerSlugValidator>;

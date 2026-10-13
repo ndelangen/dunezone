@@ -22,7 +22,9 @@ say it.
 Detail pages also carry one schema.org graph: a breadcrumb trail from the homepage through the
 catalogue, and either the work with its creator's profile or, on a profile, the person. The homepage
 names the site. Every value repeats something the page shows; catalogues and pages without a named
-creator leave out what they cannot back. Detail metadata points to [the social PNG endpoint](social-images.md).
+creator leave out what they cannot back. Its images are the record's own artwork or avatar, because
+social PNGs are kept out of search. A social card names the same kind as the title unless the
+route gives it its own wording. Detail metadata points to [the social PNG endpoint](social-images.md).
 Its URL carries bounded words and the existing published artwork path. Catalogues retain the site
 poster. Image generation adds no metadata query.
 
@@ -38,9 +40,10 @@ Missing records and unknown public descendants return 404. A faction query repor
 `NOT_FOUND` so a connection failure cannot masquerade as absence. A faction that disappears from
 an open page uses the same absence presentation. A loader whose query found nothing asks
 `formerAddresses.resolve` whether a rename moved the record, and throws a 301 to its current
-address when one did. A page that exists makes no extra query. A failed lookup, including one
-against a backend deployed before the query, falls back to the 404. Redirects are not 200, so the
-HTML cache never stores them.
+address when one did. A page that exists makes no extra query. A backend deployed before the
+query leaves the page at its 404; any other failed lookup stays an error, like a failed page query.
+A profile page finds a renamed member through the same rows inside its own query, then redirects
+with the existing current-slug check. Redirects are not 200, so the HTML cache never stores them.
 
 Cloudflare caches successful anonymous HTML for five minutes, keyed by Worker version and normalized
 URL. Credential-bearing and anonymous visits share the same anonymous rendering. Credentials are

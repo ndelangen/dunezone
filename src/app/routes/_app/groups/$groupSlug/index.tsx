@@ -54,12 +54,12 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/')({
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData?.groupDetail.group.name ?? 'Group',
-      kind: 'Group',
+      kind: loaderData ? 'Group' : undefined,
       pathname: `/groups/${encodeURIComponent(params.groupSlug)}`,
       description: loaderData
         ? `Members: ${loaderData.groupDetail.roster.filter((member) => member.status === 'active').length}. Factions: ${loaderData.groupDetail.factions.length}. Rulesets: ${loaderData.groupDetail.rulesets.length}. Explore this Group on Dune Zone.`
         : '',
-      social: { kind: 'Group', shape: 'round' },
+      social: { shape: 'round' },
       trail: [],
       match,
     }),

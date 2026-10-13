@@ -36,4 +36,9 @@ describe('former address redirects', () => {
     );
     await expect(redirectFromFormerAddress(address, { searchStr: '', hash: '' })).resolves.toBeUndefined();
   });
+
+  test('an outage stays an error rather than telling crawlers the page is gone', async () => {
+    vi.mocked(db.query).mockRejectedValueOnce(new Error('fetch failed'));
+    await expect(redirectFromFormerAddress(address, { searchStr: '', hash: '' })).rejects.toThrow('fetch failed');
+  });
 });

@@ -17,7 +17,7 @@ export async function redirectFromFormerAddress(
   const pathname = await loadCurrentAddress(address);
   if (pathname) {
     throw redirect({
-      href: pathname + suffix + location.searchStr + (location.hash ? '#' + location.hash : ''),
+      href: pathname + suffix + location.searchStr + (location.hash ? '#' + encodeURI(location.hash) : ''),
       statusCode: 301,
     });
   }

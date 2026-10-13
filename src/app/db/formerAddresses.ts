@@ -9,12 +9,16 @@ export type FormerAddress = FunctionArgs<typeof api.formerAddresses.resolve>['ad
 
 /**
  * Where the record a rename moved away from `address` lives now, or null.
- * Any failure reads as null, including a backend deployed before this query existed, so the lookup can only ever leave a missing page at its 404.
+ * A backend deployed before this query existed reads as null, so the page keeps its 404.
+ * Every other failure stays an error, as a page query's own does, so an outage never tells crawlers a page is gone.
  */
 export async function loadCurrentAddress(address: FormerAddress): Promise<string | null> {
   try {
     return await db.query(api.formerAddresses.resolve, { address });
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof Error && /Could not find public function/.test(error.message)) {
+      return null;
+    }
+    throw error;
   }
 }

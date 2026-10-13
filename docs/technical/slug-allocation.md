@@ -70,7 +70,7 @@ run is retained alongside the passing proof. This is a bounded correctness check
 
 ## Former addresses
 
-A rename that changes a faction, Asset, Group, Ruleset or Rulebook slug writes the address it left
+A rename that changes a faction, Asset, Group, Ruleset, Rulebook or profile slug writes the address it left
 to `former_slugs`, in the same transaction, and so does converting a treachery card to a custom
 card. A row holds the kind, the scope the slug is unique within (the Asset type, the Ruleset id for
 a Rulebook, otherwise empty), the old slug and the record id. Naming the record rather than its new
@@ -80,8 +80,9 @@ removed, and renames before this table existed left none. The snapshot drops the
 
 `formerAddresses.resolve` answers a public page that found nothing. A record that currently holds
 the address, live or deleted, decides alone: deleted rows keep their addresses, so a current holder
-is always newer than any rename away from it. Otherwise the newest row names the record, and a
-deleted record leaves the address at 404. A Rulebook or FAQ address resolves its Ruleset first,
+is always newer than any rename away from it. Otherwise the newest live record among the address's
+eight newest rows answers, since a deleted record that left the address no longer holds it. With
+none live, the address stays at 404. Profiles take the same rows inside their page query. A Rulebook or FAQ address resolves its Ruleset first,
 current or former, then the child within it. The browser-only Edition history page uses the same
 lookup. Allocation ignores these rows, so a new record may take a freed address and then wins over
 the redirect.

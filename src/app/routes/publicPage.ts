@@ -55,32 +55,35 @@ export function profileLink(
 const absoluteUrl = (pathname: string) => new URL(pathname, PUBLIC_SITE_ORIGIN).href;
 
 /**
- * The schema.org graph search engines read beside the visible page: the site's name on the homepage, and on detail pages the trail back to it plus what the page is and who made it.
+ * What a page shows, for its structured data: the site itself on the homepage, a member's work with its creator, or the member.
+ * Catalogues and other pages name no entity.
+ */
+export type PublicPageEntity = { type: 'site' } | { type: 'work'; author: PublicPageLink | null } | { type: 'person' };
+
+/**
+ * The schema.org graph search engines read beside the visible page: the trail back to the homepage and what the page shows.
  * Every value repeats something the page already shows;
  * none is written for search engines alone.
+ * Images are the record's own artwork, since the social cards are kept out of search.
  */
 function structuredData({
   name,
   pathname,
   description,
-  imageUrl,
+  image,
   trail,
-  author,
-  profile,
+  entity,
 }: {
   name: string;
   pathname: string;
   description: string;
-  imageUrl: string;
-  trail?: readonly PublicPageLink[];
-  author?: PublicPageLink | null;
-  profile?: boolean;
+  image: string | null | undefined;
+  trail: readonly PublicPageLink[] | undefined;
+  entity: PublicPageEntity | undefined;
 }): Record<string, unknown> | null {
   const url = absoluteUrl(pathname);
+  const imageField = image ? { image: absoluteUrl(image) } : {};
   const graph: Record<string, unknown>[] = [];
-  if (pathname === '/') {
-    graph.push({ '@type': 'WebSite', name: APP_TITLE, url });
-  }
   if (trail) {
     graph.push({
       '@type': 'BreadcrumbList',
@@ -92,17 +95,25 @@ function structuredData({
       })),
     });
   }
-  if (profile) {
-    graph.push({ '@type': 'ProfilePage', url, mainEntity: { '@type': 'Person', name, url, image: imageUrl } });
-  } else if (author) {
-    graph.push({
-      '@type': 'CreativeWork',
-      name,
-      url,
-      image: imageUrl,
-      ...(description ? { description } : {}),
-      author: { '@type': 'Person', name: author.name, url: absoluteUrl(author.pathname) },
-    });
+  switch (entity?.type) {
+    case 'site':
+      graph.push({ '@type': 'WebSite', name: APP_TITLE, url });
+      break;
+    case 'person':
+      graph.push({ '@type': 'ProfilePage', url, mainEntity: { '@type': 'Person', name, url, ...imageField } });
+      break;
+    case 'work':
+      graph.push({
+        '@type': 'CreativeWork',
+        name,
+        url,
+        ...imageField,
+        ...(description ? { description } : {}),
+        ...(entity.author
+          ? { author: { '@type': 'Person', name: entity.author.name, url: absoluteUrl(entity.author.pathname) } }
+          : {}),
+      });
+      break;
   }
   return graph.length ? { '@context': 'https://schema.org', '@graph': graph } : null;
 }
@@ -117,24 +128,20 @@ export function publicPageHead({
   imageDetails,
   social,
   trail,
-  author,
-  profile,
+  entity,
   match,
 }: {
   name: string;
-  /** What the page is, such as "Custom faction", named in the title between the page and the site. */
+  /** What the page is, such as "Custom faction", named in the title between the page and the site, and on the social card unless that names its own. */
   kind?: string;
   pathname: string;
   description: string;
   image?: string | null;
   imageDetails?: { alt: string; type: string; width: number; height: number };
-  social?: { kind: string; shape: SocialCardInput['shape'] };
+  social?: { kind?: string; shape: SocialCardInput['shape'] };
   /** The catalogue pages between the homepage and this one, for the breadcrumb trail. */
   trail?: readonly PublicPageLink[];
-  /** The profile of whoever made what this page shows. */
-  author?: PublicPageLink | null;
-  /** The page is a member's profile, so the structured data names a person rather than a work. */
-  profile?: boolean;
+  entity?: PublicPageEntity;
   match?: { status: string };
 }) {
   if (match?.status === 'notFound') {
@@ -143,13 +150,13 @@ export function publicPageHead({
   const url = absoluteUrl(pathname);
   const title = pageTitle(name, kind);
   const imagePath = social
-    ? socialCardHref({ name, description, image, ...social })
+    ? socialCardHref({ name, description, image, kind: social.kind ?? kind ?? '', shape: social.shape })
     : image || '/video/band-poster.jpg';
   const imageUrl = absoluteUrl(imagePath);
   const details = social
     ? { alt: name, type: 'image/png', width: SOCIAL_CARD_WIDTH, height: SOCIAL_CARD_HEIGHT }
     : imageDetails;
-  const graph = structuredData({ name, pathname, description, imageUrl, trail, author, profile });
+  const graph = structuredData({ name, pathname, description, image, trail, entity });
   return {
     links: [{ rel: 'canonical', href: url }],
     meta: [

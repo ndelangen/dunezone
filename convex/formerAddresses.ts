@@ -20,7 +20,13 @@ function pathname(...segments: string[]) {
   return segments.map((segment) => '/' + encodeURIComponent(segment)).join('');
 }
 
-/** The record a rename most recently moved away from this address, read from the table the kind names. */
+/** Renames away from one address that a lookup follows, newest first, before giving up on it. */
+const FORMER_HOLDERS_READ = 8;
+
+/**
+ * The newest live record a rename moved away from this address, read from the table the kind names.
+ * A deleted former holder no longer holds the address, so an older live one behind it still answers.
+ */
 async function formerRecord<Table extends 'factions' | 'assets' | 'groups' | 'rulesets' | 'rulebooks'>(
   ctx: QueryCtx,
   table: Table,
@@ -28,13 +34,19 @@ async function formerRecord<Table extends 'factions' | 'assets' | 'groups' | 'ru
   scope: string,
   slug: string
 ) {
-  const row = await ctx.db
+  const rows = await ctx.db
     .query('former_slugs')
     .withIndex('by_kind_and_scope_and_slug', (q) => q.eq('kind', kind).eq('scope', scope).eq('slug', slug))
     .order('desc')
-    .first();
-  const id = row && ctx.db.normalizeId(table, row.record_id);
-  return id ? await ctx.db.get(table, id) : null;
+    .take(FORMER_HOLDERS_READ);
+  for (const row of rows) {
+    const id = ctx.db.normalizeId(table, row.record_id);
+    const record = id && (await ctx.db.get(table, id));
+    if (record && !record.is_deleted) {
+      return record;
+    }
+  }
+  return null;
 }
 
 /**

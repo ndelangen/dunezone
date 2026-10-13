@@ -50,7 +50,7 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionS
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData ? questionTitle(loaderData.page.question.text) : 'FAQ question',
-      kind: 'FAQ',
+      kind: loaderData ? 'FAQ' : undefined,
       pathname: `/rulesets/${encodeURIComponent(params.rulesetSlug)}/faq/${encodeURIComponent(params.questionSlug)}`,
       description: loaderData
         ? publicDescription(

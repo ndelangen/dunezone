@@ -87,13 +87,13 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
     const editionSearch = historical ? '?edition=' + editionNumber : '';
     return publicPageHead({
       name: loaderData?.rulebook.name ?? 'Rulebook',
-      kind: 'Rulebook',
+      kind: loaderData ? 'Rulebook' : undefined,
       pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}/rulebooks/${encodeURIComponent(loaderData?.rulebook.slug ?? params.rulebookSlug)}${editionSearch}`,
       description: loaderData
         ? `${loaderData.ruleset.name}. Edition ${loaderData.edition.edition_number}. Read the published Rulebook on Dune Zone.`
         : '',
       image: loaderData?.edition.first_page_image_url,
-      social: { kind: 'Rulebook', shape: 'portrait' },
+      social: { shape: 'portrait' },
       trail: [
         { name: 'Rulesets', pathname: '/rulesets' },
         ...(loaderData

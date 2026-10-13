@@ -29,9 +29,10 @@ describe('public page heads', () => {
     kind: 'Custom faction',
     pathname: '/factions/atreides',
     description: 'Prescience.',
+    image: '/published/atreides.png',
     trail: [{ name: 'Factions', pathname: '/factions' }],
-    author: profileLink({ slug: 'paul', username: 'Paul' }),
-  };
+    entity: { type: 'work', author: profileLink({ slug: 'paul', username: 'Paul' }) },
+  } as const;
 
   test('titles name the kind of page for the tab and for sharing', () => {
     const meta = metaOf(publicPageHead(faction));
@@ -40,7 +41,18 @@ describe('public page heads', () => {
     expect(meta).toContainEqual({ name: 'twitter:title', content: 'Atreides · Custom faction · Dune Zone' });
   });
 
-  test('a detail page carries its breadcrumb trail and its creator', () => {
+  test('a social card names the page kind unless it names its own', () => {
+    const cardOf = (head: ReturnType<typeof publicPageHead>) =>
+      new URL(String(metaOf(head).find((meta) => meta.property === 'og:image')?.content)).searchParams;
+    expect([...cardOf(publicPageHead({ ...faction, social: { shape: 'round' } })).values()]).toContain(
+      'Custom faction'
+    );
+    expect([
+      ...cardOf(publicPageHead({ ...faction, social: { kind: 'FAQ question', shape: 'round' } })).values(),
+    ]).toContain('FAQ question');
+  });
+
+  test('a detail page carries its breadcrumb trail and its work with the artwork and creator', () => {
     expect(graphOf(publicPageHead(faction))).toEqual([
       {
         '@type': 'BreadcrumbList',
@@ -54,7 +66,7 @@ describe('public page heads', () => {
         '@type': 'CreativeWork',
         name: 'Atreides',
         url: 'https://dune.zone/factions/atreides',
-        image: 'https://dune.zone/video/band-poster.jpg',
+        image: 'https://dune.zone/published/atreides.png',
         description: 'Prescience.',
         author: { '@type': 'Person', name: 'Paul', url: 'https://dune.zone/profiles/paul' },
       },
@@ -62,24 +74,31 @@ describe('public page heads', () => {
   });
 
   test('the homepage names the site, and a profile names a person', () => {
-    expect(graphOf(publicPageHead({ name: '', pathname: '/', description: 'Home.' }))).toEqual([
-      { '@type': 'WebSite', name: 'Dune Zone', url: 'https://dune.zone/' },
-    ]);
+    expect(
+      graphOf(publicPageHead({ name: '', pathname: '/', description: 'Home.', entity: { type: 'site' } }))
+    ).toEqual([{ '@type': 'WebSite', name: 'Dune Zone', url: 'https://dune.zone/' }]);
     const profile = graphOf(
-      publicPageHead({ name: 'Paul', pathname: '/profiles/paul', description: '', trail: [], profile: true })
+      publicPageHead({
+        name: 'Paul',
+        pathname: '/profiles/paul',
+        description: '',
+        trail: [],
+        entity: { type: 'person' },
+      })
     );
-    expect(profile?.[1]).toMatchObject({
+    expect(profile?.[1]).toEqual({
       '@type': 'ProfilePage',
+      url: 'https://dune.zone/profiles/paul',
       mainEntity: { '@type': 'Person', name: 'Paul', url: 'https://dune.zone/profiles/paul' },
     });
   });
 
-  test('catalogues and creatorless pages add no structured data they cannot back', () => {
+  test('catalogues and creatorless works add no structured data they cannot back', () => {
     expect(graphOf(publicPageHead({ name: 'Factions', pathname: '/factions', description: '' }))).toBeUndefined();
     expect(profileLink({ slug: 'ghost', username: null })).toBeNull();
-    expect(graphOf(publicPageHead({ ...faction, author: null }))?.map((node) => node['@type'])).toEqual([
-      'BreadcrumbList',
-    ]);
+    const work = graphOf(publicPageHead({ ...faction, image: null, entity: { type: 'work', author: null } }))?.[1];
+    expect(work).not.toHaveProperty('author');
+    expect(work).not.toHaveProperty('image');
   });
 
   test('a page that threw notFound has no head at all', () => {

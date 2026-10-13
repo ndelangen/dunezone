@@ -8,6 +8,16 @@ import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './faqProfileActi
 
 const PROFILE_DETAIL_LIMIT = 500;
 
+async function formerProfile(ctx: QueryCtx, slug: string) {
+  const row = await ctx.db
+    .query('former_slugs')
+    .withIndex('by_kind_and_scope_and_slug', (q) => q.eq('kind', 'profile').eq('scope', '').eq('slug', slug))
+    .order('desc')
+    .first();
+  const id = row && ctx.db.normalizeId('profiles', row.record_id);
+  return id ? await ctx.db.get('profiles', id) : null;
+}
+
 /**
  * Profile-detail read model.
  * Owns the joins, visibility rules (active memberships only, soft-deleted factions excluded, faction rulesets limited to active ones), and ordering (FAQ activity newest first, faction rulesets by name, Groups in membership order) behind `api.profiles.pageBySlug`.
@@ -16,10 +26,12 @@ const PROFILE_DETAIL_LIMIT = 500;
  * the precise TS projection (parsed faction data included) is inferred from this loader.
  */
 export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string) {
-  let profile = await ctx.db
-    .query('profiles')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .unique();
+  /* An address no profile holds may be one a rename left, and the page's own redirect then moves the visitor on. */
+  let profile =
+    (await ctx.db
+      .query('profiles')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique()) ?? (await formerProfile(ctx, slug));
   for (let depth = 0; profile?.merged_into_profile_id && depth < 16; depth += 1) {
     profile = await ctx.db.get(profile.merged_into_profile_id);
   }

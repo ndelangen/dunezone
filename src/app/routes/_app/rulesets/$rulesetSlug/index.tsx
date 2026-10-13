@@ -369,15 +369,15 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData?.ruleset.name ?? 'Ruleset',
-      kind: 'Ruleset',
+      kind: loaderData ? 'Ruleset' : undefined,
       pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}`,
       description:
         publicDescription(loaderData?.ruleset.about) ||
         `Explore ${loaderData?.ruleset.name ?? 'this ruleset'} and its published Rulebooks.`,
       image: loaderData?.ruleset.coverThumbUrl,
-      social: { kind: 'Ruleset', shape: 'portrait' },
+      social: { shape: 'portrait' },
       trail: [{ name: 'Rulesets', pathname: '/rulesets' }],
-      author: profileLink(loaderData?.owner),
+      entity: { type: 'work', author: profileLink(loaderData?.owner) },
       match,
     }),
   component: RulesetDetailPage,
