@@ -373,7 +373,13 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     completedCommandId: id.optional(),
   }),
   z.object({ type: z.literal('rejected'), requestId: id, message: z.string() }),
-  z.object({ type: z.literal('history'), step: count, lastStep: count, snapshot: gameSnapshotSchema }),
+  z.object({
+    type: z.literal('history'),
+    step: count,
+    lastStep: count,
+    recordedAt: count.optional(),
+    snapshot: gameSnapshotSchema,
+  }),
   z.object({
     type: z.literal('metrics'),
     revision: count,

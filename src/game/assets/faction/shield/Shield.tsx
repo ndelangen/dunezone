@@ -1,10 +1,10 @@
 import type { FactionRender } from '@shared/factions/schema';
 import { resolveAsset } from '@shared/media/resolveAsset';
+import { useId } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { shield as size } from '../../../data/sizes';
-import { useCountId } from '../../utils/useCountId';
 import { LeaderToken } from '../leader/Leader';
 import { Token } from '../token/Token';
 import styles from './Shield.module.css';
@@ -12,7 +12,7 @@ import styles from './Shield.module.css';
 type ShieldProps = z.infer<typeof FactionRender.shield>;
 
 export const Shield: FC<ShieldProps> = (props) => {
-  const prefix = useCountId();
+  const prefix = useId();
 
   const textMask = `_${prefix}text-mask`;
   const textShadeMask = `_${prefix}text-shade-mask`;

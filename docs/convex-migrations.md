@@ -69,6 +69,14 @@ Rules:
 
 ## Automated production flow
 
+The `play_game_names_narrow` checkpoint follows the approved disposable-game cleanup instead of a
+backfill. A read-only production check found zero game records before contraction, and every
+deployed creation path, including the retained `createGame` mutation, supplies both `name` and
+`slug`. Its prerequisite list is empty because no migration was needed. Convex validates any
+records present at deployment before activating the required schema, then rejects writes that
+omit either field. The release records the before-and-after invariant checks on
+[the contraction ticket](https://github.com/ndelangen/dunezone/issues/1941).
+
 1. Before changing the deployed schema, the deploy workflow runs
    `bun run migrations:narrow-check` against the currently deployed migration entrypoints.
 2. Deploy widen- or narrow-compatible Convex code: `bun run convex:deploy`.

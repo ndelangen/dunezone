@@ -4,7 +4,6 @@ import type { Infer } from 'convex/values';
 
 import { assetCaptureStatusSchema } from '../../src/shared/asset-publishing/captureStatus';
 import schema from '../schema';
-import { authMethodValidator } from './accountMethods';
 import { catalogueFactionDataValidator, factionDataValidator } from './factionData';
 import { rulebookListEntryValidator } from './rulebookList';
 
@@ -104,15 +103,6 @@ const rosterMemberValidator = v.object({
   isGroupOwner: v.boolean(),
 });
 
-/** Deprecated with `groups.detailBySlug`: a roster member with the viewer's moderation capabilities. Remove with it. */
-const rosterEntryValidator = rosterMemberValidator.omit('isGroupOwner').extend({
-  capabilities: v.object({
-    approve: v.boolean(),
-    reject: v.boolean(),
-    remove: v.boolean(),
-  }),
-});
-
 /** One capability surface for every Group-associated asset kind (see CONTEXT.md): factions, rulesets, and community Assets. */
 function groupAssociatedViewerAccessValidator<Kind extends 'faction' | 'ruleset' | 'asset'>(kind: Kind) {
   return v.object({
@@ -149,16 +139,6 @@ export const factionDetailPageValidator = v.object({
   rulesets: v.array(rulesetSummaryValidator),
 });
 
-/** Deprecated: the per-viewer faction page `factions.getBySlug` still serves to older bundles. Remove with it. */
-export const legacyFactionDetailPageValidator = v.object({
-  faction: factionValidator,
-  owner: v.union(profileValidator, v.null()),
-  assetPublishing: assetPublishingValidator,
-  viewerAccess: factionViewerAccessValidator,
-  assignableGroups: v.array(assignedGroupSummaryValidator),
-  rulesets: v.array(rulesetSummaryValidator),
-});
-
 /**
  * A catalogue-shaped faction row: what '/factions', a ruleset's faction rail and a profile's faction list put on the wire.
  * Deliberately not a whole faction.
@@ -178,9 +158,6 @@ export const rulesetPageValidator = v.object({
   ruleset: rulesetValidator,
   factions: v.array(catalogueFactionValidator),
 });
-
-/** Deprecated with `rulesets.getBySlug`: the ruleset bundle with the viewer's access. Remove with it. */
-export const rulesetPublicBundleValidator = rulesetPageValidator.extend({ viewerAccess: rulesetViewerAccessValidator });
 
 const faqAnswerValidator = docValidator('faq_answers');
 
@@ -217,11 +194,6 @@ export const profilePageValidator = v.object({
   groupSummaries: v.array(assignedGroupSummaryValidator),
 });
 
-/** Deprecated with `profiles.getBySlug`: the profile page with the viewer's own account block. Remove with it. */
-export const profileDetailPageValidator = profilePageValidator.extend({
-  account: v.union(v.null(), v.object({ methods: v.array(authMethodValidator), merging: v.boolean() })),
-});
-
 /** One slotted asset: enough to name it and link to it, and deliberately not enough to draw it. A slot list is not a catalogue. */
 export const rulesetAssetSlotValidator = v.object({
   slot: v.string(),
@@ -249,18 +221,6 @@ export const rulesetPublicDetailPageValidator = v.union(
   v.null()
 );
 
-/** Deprecated with `rulesets.detailPageBySlug`: the detail page with the viewer's access. Remove with it. */
-export const rulesetDetailPageValidator = v.union(
-  rulesetPublicBundleValidator.extend({
-    faqItems: v.array(faqListItemValidator),
-    owner: v.union(profileSummaryValidator, v.null()),
-    assignableGroups: v.array(assignedGroupSummaryValidator),
-    assetSlots: v.array(rulesetAssetSlotValidator),
-    rulebooks: v.array(rulebookListEntryValidator),
-  }),
-  v.null()
-);
-
 /**
  * The Group page, the same for every viewer.
  * The browser combines `group.created_by` and each member's `isGroupOwner` with the viewer to decide what they may do.
@@ -271,12 +231,6 @@ export const groupPageValidator = v.object({
   rulesets: v.array(rulesetValidator),
   owner: v.union(profileSummaryValidator, v.null()),
   roster: v.array(rosterMemberValidator),
-});
-
-/** Deprecated with `groups.detailBySlug`: the Group page with the viewer's access and roster capabilities. Remove with it. */
-export const groupDetailPageValidator = groupPageValidator.omit('roster').extend({
-  viewerAccess: groupViewerAccessValidator,
-  roster: v.array(rosterEntryValidator),
 });
 
 export {
@@ -291,6 +245,5 @@ export {
   profileValidator,
   profileSummaryValidator,
   publicViewerValidator,
-  rosterEntryValidator,
   rulesetValidator,
 };

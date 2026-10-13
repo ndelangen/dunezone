@@ -1,4 +1,5 @@
 import { Button, Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
+import { idleBidding } from '@shared/play/bidding';
 import type { PublicControls } from '@shared/play/inventory';
 import { seatLabel, seatSubject } from '@shared/play/participation';
 import type { SeatAction } from '@shared/play/participation';
@@ -407,6 +408,21 @@ export function GameMenu({
         <TableLightingSlider />
         <TablePanSpeedSlider />
         <TableLabelItems />
+        {table.snapshot.stage === 'play' && (
+          <Menu.CheckboxItem
+            checked={table.snapshot.bidding?.timed ?? idleBidding().timed}
+            disabled={!table.canInteract || !table.snapshot.bank}
+            closeMenuOnClick={false}
+            rightSection={
+              <Text size="xs" c="dimmed">
+                20s + 5s
+              </Text>
+            }
+            onChange={(enabled) => client.command({ kind: 'bid-timing', enabled })}
+          >
+            Timed bidding
+          </Menu.CheckboxItem>
+        )}
         <Menu.Divider />
         <Menu.Item component={Link} to="/play">
           Back to the lobby

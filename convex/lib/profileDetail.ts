@@ -1,8 +1,7 @@
 import { ConvexError } from 'convex/values';
 
 import type { QueryCtx } from '../types';
-import { isActiveProfile, optionalActiveUserId } from './accountLifecycle';
-import { accountMethods } from './accountMethods';
+import { isPublicProfile } from './accountLifecycle';
 import { liveGroupOrNull } from './collaborativeAccess';
 import { loadFactionCatalogue } from './factionCatalogue';
 import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './faqProfileActivity';
@@ -24,7 +23,7 @@ export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string) {
   for (let depth = 0; profile?.merged_into_profile_id && depth < 16; depth += 1) {
     profile = await ctx.db.get(profile.merged_into_profile_id);
   }
-  if (!profile || !isActiveProfile(profile) || profile.merged_into_profile_id) {
+  if (!profile || !isPublicProfile(profile)) {
     throw new ConvexError({ code: 'NOT_FOUND', message: `Profile with slug ${slug} not found` });
   }
 
@@ -55,21 +54,6 @@ export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string) {
   });
 
   return { profile, faqAsked, faqAnswers, factions, groupSummaries };
-}
-
-/** Deprecated with `api.profiles.getBySlug`: the public page plus the viewer's own account block on their own profile. Remove with it. */
-export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
-  const page = await loadProfilePageBySlug(ctx, slug);
-  const viewerId = await optionalActiveUserId(ctx);
-  const userId = page.profile.user_id;
-  if (viewerId !== userId) {
-    return { ...page, account: null };
-  }
-  const user = await ctx.db.get(userId);
-  return {
-    ...page,
-    account: { methods: await accountMethods(ctx, userId), merging: !!user?.account_merge_operation_id },
-  };
 }
 
 export type ProfileDetailProjection = Awaited<ReturnType<typeof loadProfilePageBySlug>>;

@@ -12,9 +12,9 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { icons, X, Images, Info, ArrowRight } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
-import { pageHead } from '../../pageTitle';
 import { catalogueEntries as mediaEntries } from './mediaCatalogue';
 import type { MediaEntry } from './mediaCatalogue';
+import { mediaHead } from './mediaHead';
 import { indexGalleries } from './mediaIndex';
 import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavigation';
 import { filterCatalogue } from './mediaSearch';
@@ -26,8 +26,9 @@ import type { MediaTile } from './mediaTiles';
 import styles from './route.module.css';
 
 export const Route = createFileRoute('/_app/media')({
+  ssr: true,
   codeSplitGroupings: [['component']],
-  head: () => pageHead('Media catalogue'),
+  head: ({ params, match }) => mediaHead(params, match),
   validateSearch: validateMediaQuery,
   component: MediaPage,
 });
@@ -56,7 +57,7 @@ function MediaPage() {
   return (
     <PageLayout>
       <PageLayout.Header size={overview ? 'compact' : 'default'}>
-        <MediaShowcase overview={overview} compact={overview} />
+        <MediaShowcase overview={overview} compact={overview} gallery={galleryLabel(search)} />
       </PageLayout.Header>
       {!overview && (
         <PageLayout.Toolbar>
@@ -74,6 +75,11 @@ function MediaPage() {
       </PageLayout.Content>
     </PageLayout>
   );
+}
+
+/** A game gallery names the page, so its heading matches the document title. */
+function galleryLabel(search: MediaSearch) {
+  return search.source === 'media' ? mediaKinds.find((kind) => kind.value === search.kind)?.label : undefined;
 }
 
 function focusedMedia(search: MediaSearch) {
@@ -284,6 +290,7 @@ function MediaCard({ tile, search }: Readonly<{ tile: MediaTile; search: MediaSe
         <Anchor
           renderRoot={(props) => <Link {...props} {...mediaLocation({ ...search, item: entry.value })} />}
           aria-label={`Open ${entry.label}`}
+          rel="nofollow"
           className={styles.previewLink}
         >
           <Stack gap="xs" align="center">

@@ -2,9 +2,10 @@ import { expect, test } from 'vitest';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
 import { PHASE_CHANGE_COOLDOWN_MS, STANDARD_PHASES } from '../../src/shared/play/phases';
-import { biddingAfterTable } from './bidding';
+import { biddingAfterTable, biddingDeadline, expireBidding } from './bidding';
 import { hostedFixturePlan } from './fixture';
 import { Room } from './room';
+import { storedSnapshotSchema } from './state';
 
 type Identity = Parameters<Room['command']>[0];
 
@@ -42,4 +43,25 @@ test('leaving the Bidding phase keeps the round count rising, so an old raise ne
   const before = room.snapshot;
   const after = biddingAfterTable(before, { ...before, phase: BIDDING + 1 }, LATER);
   expect(after.bidding).toMatchObject({ stage: 'idle', round: before.bidding!.round });
+});
+
+test('a stored auction from before optional timing loads untimed and cannot expire', () => {
+  const snapshot = storedSnapshotSchema.parse({
+    ...initialSnapshot(),
+    phase: BIDDING,
+    roster: hostedFixturePlan.roster,
+    bidding: {
+      seconds: 15,
+      stage: 'open',
+      round: 1,
+      opener: 'atreides',
+      turn: 'atreides',
+      bid: null,
+      passed: [],
+      deadline: 1,
+    },
+  });
+  expect(snapshot.bidding).toMatchObject({ timed: false, started: false });
+  expect(biddingDeadline(snapshot)).toBe(0);
+  expect(expireBidding(snapshot, LATER)).toBeUndefined();
 });

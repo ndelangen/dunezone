@@ -9,6 +9,7 @@ import type { CloudDevDeployment, SelfHostedDeployment } from './provision';
 import {
   cloudDevEnvironment,
   exportProductionSnapshot,
+  insertLocalSeedDocuments,
   loadSnapshotData,
   localApplicationEnvironment,
   parseConvexRunResult,
@@ -18,6 +19,42 @@ import {
   selfHostedEnvironment,
 } from './provision';
 import { writtenSnapshot } from './snapshot-anonymise.test.fixture';
+
+describe('local seed insertion', () => {
+  const deployment: SelfHostedDeployment = { kind: 'self-hosted', url: 'http://127.0.0.1:3210', adminKey: 'test' };
+
+  test('recovers when the local backend refuses the current write window', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ code: 'TooManyWrites', message: 'Write window exhausted' }), { status: 429 })
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'success', value: { inserted: 0 }, logLines: [] })));
+    vi.stubGlobal('fetch', fetch);
+    vi.useFakeTimers();
+    try {
+      await Promise.all([
+        expect(insertLocalSeedDocuments(deployment, [])).resolves.toEqual({ inserted: 0 }),
+        vi.advanceTimersByTimeAsync(3000),
+      ]);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test('does not retry a mutation failure whose outcome could be uncertain', async () => {
+    const fetch = vi.fn().mockRejectedValue(new Error('Connection closed before its response'));
+    vi.stubGlobal('fetch', fetch);
+    try {
+      await expect(insertLocalSeedDocuments(deployment, [])).rejects.toThrow('Connection closed before its response');
+      expect(fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
 
 /*
  * Every command the pipeline starts, in order.

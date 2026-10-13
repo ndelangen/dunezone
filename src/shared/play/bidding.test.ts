@@ -12,12 +12,12 @@ const at = (factionId: string | null, eligible: readonly string[] = order, now =
 });
 
 function opened(eligible: readonly string[] = order, factionId = eligible[0]!): BiddingState {
-  return applyBidding(idleBidding(10), { kind: 'bid-start', factionId }, at('c', eligible, 1000));
+  return applyBidding(idleBidding(10, true), { kind: 'bid-start', factionId }, at('c', eligible, 1000));
 }
 
 describe('the bidder', () => {
-  test('starts a round on the faction the players pick, with its time running', () => {
-    expect(opened()).toMatchObject({ stage: 'open', round: 1, opener: 'a', turn: 'a', bid: null, deadline: 11_000 });
+  test('starts a round on the faction the players pick, with time for deals before the first bid or pass', () => {
+    expect(opened()).toMatchObject({ stage: 'open', round: 1, opener: 'a', turn: 'a', bid: null, deadline: null });
     expect(opened(order, 'c')).toMatchObject({ opener: 'c', turn: 'c' });
   });
 
@@ -34,13 +34,13 @@ describe('the bidder', () => {
 
   test('a reset puts the bidder away and keeps its time and round count', () => {
     const reset = applyBidding(opened(), { kind: 'bid-reset' }, at('b'));
-    expect(reset).toEqual({ ...idleBidding(10), round: 1 });
+    expect(reset).toEqual({ ...idleBidding(10, true), round: 1 });
   });
 
   test('raising keeps the bidder on the raiser, a pass moves it on, and the round is won once it comes back round', () => {
     let state = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a', order, 2000));
     state = applyBidding(state, { kind: 'bid-raise', round: 1 }, at('a', order, 3000));
-    expect(state).toMatchObject({ turn: 'a', bid: { factionId: 'a', amount: 2 }, deadline: 13_000 });
+    expect(state).toMatchObject({ turn: 'a', bid: { factionId: 'a', amount: 2 }, deadline: 28_000 });
     state = applyBidding(state, { kind: 'bid-pass', round: 1 }, at('a'));
     expect(state.turn).toBe('b');
     state = applyBidding(state, { kind: 'bid-raise', round: 1 }, at('b'));
@@ -71,9 +71,9 @@ describe('the bidder', () => {
   });
 
   test('passes for a faction whose time ran out, and not before', () => {
-    const state = opened();
-    expect(expireBid(state, { order, eligible: order, now: 10_999 })).toBeUndefined();
-    expect(expireBid(state, { order, eligible: order, now: 11_000 })).toMatchObject({ turn: 'b', deadline: 21_000 });
+    const state = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a', order, 1000));
+    expect(expireBid(state, { order, eligible: order, now: 25_999 })).toBeUndefined();
+    expect(expireBid(state, { order, eligible: order, now: 26_000 })).toMatchObject({ turn: 'b', deadline: 51_000 });
   });
 });
 
@@ -99,7 +99,7 @@ describe('the bidder when a token flips mid-round', () => {
 
   test('skips a faction that turns its token face down while the bidder waits on it, without counting a pass', () => {
     const state = reconcileBidding(opened(), { order, eligible: ['b', 'c', 'd'], now: 5000 });
-    expect(state).toMatchObject({ stage: 'open', turn: 'b', passed: [], deadline: 15_000 });
+    expect(state).toMatchObject({ stage: 'open', turn: 'b', passed: [], deadline: null });
   });
 
   test('ends the round once nobody is left to outbid the high bid', () => {
@@ -123,5 +123,42 @@ describe('the bidder when a token flips mid-round', () => {
     expect(state).toMatchObject({ stage: 'open', turn: 'd' });
     state = pass(state, 'd', withoutB);
     expect(state).toMatchObject({ stage: 'won', turn: 'a' });
+  });
+});
+
+describe('optional timed bidding', () => {
+  test('untimed bidding has no expiry, even after a bid or pass', () => {
+    let state = applyBidding(idleBidding(), { kind: 'bid-start', factionId: 'a' }, at('a'));
+    state = applyBidding(state, { kind: 'bid-raise', round: 1 }, at('a', order, 1000));
+    state = applyBidding(state, { kind: 'bid-pass', round: 1 }, at('a', order, 2000));
+    expect(state).toMatchObject({ timed: false, turn: 'b', deadline: null });
+    expect(expireBid(state, { order, eligible: order, now: 1_000_000 })).toBeUndefined();
+  });
+
+  test('a first pass starts the next player clock; a new auction waits again', () => {
+    expect(expireBid(opened(), { order, eligible: order, now: 1_000_000 })).toBeUndefined();
+    const passed = applyBidding(opened(), { kind: 'bid-pass', round: 1 }, at('a', order, 2000));
+    expect(passed).toMatchObject({ started: true, turn: 'b', deadline: 27_000 });
+    const next = applyBidding(passed, { kind: 'bid-start', factionId: 'b' }, at('a', order, 3000));
+    expect(next).toMatchObject({ timed: true, started: false, deadline: null });
+  });
+
+  test('disabling cancels the flashing grace period and enabling gives the active player fresh time', () => {
+    const started = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a', order, 1000));
+    const off = applyBidding(started, { kind: 'bid-timing', enabled: false }, at('c', order, 22_000));
+    expect(off.deadline).toBeNull();
+    expect(expireBid(off, { order, eligible: order, now: 50_000 })).toBeUndefined();
+    const on = applyBidding(off, { kind: 'bid-timing', enabled: true }, at('c', order, 50_000));
+    expect(on).toMatchObject({ timed: true, started: true, turn: 'a', bid: started.bid, deadline: 75_000 });
+    expect(applyBidding(on, { kind: 'bid-timing', enabled: true }, at('b', order, 51_000))).toBe(on);
+  });
+
+  test('enabling during an untouched auction keeps time for deals until the first bid or pass', () => {
+    const state = applyBidding(idleBidding(), { kind: 'bid-start', factionId: 'a' }, at('a'));
+    expect(applyBidding(state, { kind: 'bid-timing', enabled: true }, at('b', order, 1000))).toMatchObject({
+      timed: true,
+      started: false,
+      deadline: null,
+    });
   });
 });

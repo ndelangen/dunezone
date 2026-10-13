@@ -10,12 +10,7 @@ import {
   requireRulesetSoftDelete,
   requireRulesetUpdate,
 } from './lib/collaborativeAccess';
-import {
-  rulesetDetailPageValidator,
-  rulesetPageValidator,
-  rulesetPublicBundleValidator,
-  rulesetPublicDetailPageValidator,
-} from './lib/collaborativeAccessValidators';
+import { rulesetPageValidator, rulesetPublicDetailPageValidator } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import {
   buildOwnedForGroupAssignRows,
@@ -23,12 +18,7 @@ import {
   ownedForGroupAssignRowValidator,
 } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
-import {
-  loadRulesetDetailPageBySlug,
-  loadRulesetPageBySlug,
-  loadRulesetPublicBundleBySlug,
-  loadRulesetPublicDetailPageBySlug,
-} from './lib/rulesetDetailPage';
+import { loadRulesetPageBySlug, loadRulesetPublicDetailPageBySlug } from './lib/rulesetDetailPage';
 import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -117,20 +107,6 @@ export const detailPage = publicQuery({
   args: { slug: v.string() },
   returns: rulesetPublicDetailPageValidator,
   handler: async (ctx, args) => await loadRulesetPublicDetailPageBySlug(ctx, args.slug),
-});
-
-/** Deprecated by `page`: kept unchanged for bundles deployed before it, then deleted (see AGENTS.md). */
-export const getBySlug = viewerQuery({
-  args: { slug: v.string() },
-  returns: rulesetPublicBundleValidator,
-  handler: async (ctx, args) => await loadRulesetPublicBundleBySlug(ctx, args.slug),
-});
-
-/** Deprecated by `detailPage`: kept unchanged for bundles deployed before it, then deleted (see AGENTS.md). */
-export const detailPageBySlug = viewerQuery({
-  args: { slug: v.string() },
-  returns: rulesetDetailPageValidator,
-  handler: async (ctx, args) => await loadRulesetDetailPageBySlug(ctx, args.slug),
 });
 
 /**

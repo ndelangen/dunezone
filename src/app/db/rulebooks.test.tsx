@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ save: vi.fn(), rehost: vi.fn() }));
 vi.mock('@db/core', () => ({ db: { query: vi.fn() } }));
 vi.mock('convex/react', () => ({
+  useConvex: () => undefined,
   useQuery: vi.fn(),
   useMutation: () => mocks.save,
   useAction: () => mocks.rehost,

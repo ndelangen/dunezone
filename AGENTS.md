@@ -16,7 +16,8 @@ Convex agent skills for common tasks can be installed by running
 
 - Start with [`docs/README.md`](docs/README.md) for architecture and workflow links.
 - Stack: TanStack Router, Start and Form, Convex, Vite, and Storybook. Reads go through Convex's own
-  `useQuery` inside `src/app/db`, so there is no TanStack Query and no client cache to manage; see
+  `useQuery` (page hooks wrap it in `useLiveQuery`, which keeps a closed page's subscription open
+  briefly) inside `src/app/db`, so there is no TanStack Query and no client cache to manage; see
   [`docs/state-management.md`](docs/state-management.md) for what Convex holds instead.
 - Non-obvious workflow: `bun run generate` refreshes generated game data outputs.
 - `bun run app:dev` connects to the configured online Convex deployment. Treat that deployment as a

@@ -1052,6 +1052,31 @@ describe('hosted table interaction', () => {
     expect(table(client).playback).toEqual({ step: 2, lastStep: 3 });
   });
 
+  test('playback freezes the table clock at the recorded step and resumes the live clock', async () => {
+    const client = await connected();
+    const recordedAt = Date.now() - 60_000;
+    client.requestHistory(1);
+    socket().deliver({ type: 'history', step: 1, lastStep: 2, recordedAt, snapshot: initialSnapshot() });
+    const clock = table(client).serverNow;
+    expect(clock()).toBe(recordedAt);
+    vi.advanceTimersByTime(5000);
+    expect(table(client).serverNow).toBe(clock);
+    expect(clock()).toBe(recordedAt);
+    client.requestHistory(2);
+    socket().deliver({
+      type: 'history',
+      step: 2,
+      lastStep: 2,
+      recordedAt: recordedAt + 2000,
+      snapshot: initialSnapshot(),
+    });
+    expect(table(client).serverNow()).toBe(recordedAt + 2000);
+    client.resumeLive();
+    const live = table(client).serverNow();
+    vi.advanceTimersByTime(1000);
+    expect(table(client).serverNow()).toBe(live + 1000);
+  });
+
   test('playback takes the live checkpoint total from updates, and an update without one keeps it', async () => {
     const client = await connected();
     socket().deliver(view({ sequence: 1 }));

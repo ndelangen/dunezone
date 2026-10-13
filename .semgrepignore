@@ -1,0 +1,12 @@
+**/*.generated.ts
+**/*.gen.ts
+**/worker-configuration.d.ts
+convex/_generated/
+workers/publisher/runtime-generated/
+node_modules/
+dist/
+coverage/
+test-results/
+.stryker-tmp/
+media/
+public/

@@ -24,6 +24,8 @@ Quick reference for understanding and working with the codebase.
 
 **Something behaving impossibly?** [`technical/operational-traps.md`](./technical/operational-traps.md) collects the tooling behaviours that read as success while being wrong: a Storybook port that answers from another worktree, a typecheck that passes a projection the runtime validator rejects, a MERGED badge on work that never reached `main`.
 
+**Code-health reports?** [`technical/code-health.md`](./technical/code-health.md) explains the automatic source, mutation, repository-security and dependency checks, where their findings appear, and the free configuration.
+
 ## Key commands
 
 ```bash

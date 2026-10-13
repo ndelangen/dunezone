@@ -61,7 +61,15 @@
       "/profiles/*",
       "/groups/*",
       "/assets",
-      "/assets/*"
+      "/assets/*",
+      "/glossary",
+      "/glossary/*",
+      "/future-plans",
+      "/future-plans/*",
+      "/privacy",
+      "/privacy/*",
+      "/media",
+      "/media/*"
     ]
   },
   "browser": { "binding": "BROWSER" },

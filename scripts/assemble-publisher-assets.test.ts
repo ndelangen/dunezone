@@ -88,6 +88,17 @@ describe('publisher Static Assets assembly', () => {
     expect(readFileSync(path.join(publisher, 'index.html'), 'utf8')).toBe(expected);
   });
 
+  test.each([
+    '<link rel="canonical" href="https://dune.zone/"/>',
+    '<meta property="og:url" content="https://dune.zone/"/>',
+    '<meta name="description" content="Homepage"/>',
+  ])('rejects a shell that names one page: %s', (tag) => {
+    const { app, publisher, headers } = fixture();
+    writeFileSync(path.join(app, '_shell.html'), `<html><head>${tag}</head></html>`);
+
+    expect(() => assemblePublisherAssets(app, publisher, headers)).toThrow('must not carry a page identity');
+  });
+
   test('removes stale assembled assets while preserving the fresh capture build', () => {
     const { app, publisher, headers } = fixture();
     mkdirSync(path.join(publisher, '__storybook'));

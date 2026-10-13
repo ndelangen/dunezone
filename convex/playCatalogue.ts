@@ -14,7 +14,7 @@ import { assetSupplySchema, factionDefinitionWireSchema, rulesetSupplySchema } f
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
 import type { Doc } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
-import { publicationStatusFor } from './assetPublishingStatus';
+import { publicationHrefFor } from './assetPublishingStatus';
 import { CONTAINER_KINDS, liveAsset, membersOf, referencedCardbackDeck, tokenBackFor } from './assets';
 import { publicQuery } from './functions';
 import { resolveBackHref, TOKEN_ASSET_TYPES } from './lib/assetBacks';
@@ -190,9 +190,7 @@ async function suppliedAsset(ctx: QueryCtx, row: Doc<'assets'>, presets: Cardbac
   const back = await resolveBackHref(ctx, row, presets);
   return {
     asset: supplyEntry(row),
-    front: isPublicationAssetType(row.type)
-      ? (await publicationStatusFor(ctx, row.type, row._id)).publicationHref
-      : null,
+    front: isPublicationAssetType(row.type) ? await publicationHrefFor(ctx, row.type, row._id) : null,
     back: back?.href ?? null,
     backMode: back?.mode ?? null,
     backToken: backToken && supplyEntry(backToken),

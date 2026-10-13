@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@db/core', () => ({ db: { query: mocks.dbQuery } }));
 vi.mock('convex/react', () => ({
+  useConvex: () => undefined,
   useQuery: mocks.useQuery,
   useMutation: mocks.useMutation,
 }));

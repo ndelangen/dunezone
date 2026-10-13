@@ -1,5 +1,5 @@
 /* oxlint-disable jsx-a11y/alt-text -- Decorative game-card layers. */
-import { useLayoutEffect, useRef } from 'react';
+import { useId, useLayoutEffect, useRef } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -7,7 +7,6 @@ import type { CardBack as CardBackType } from '../../data/objects';
 import { card } from '../../data/sizes';
 import { useAssetResolver } from '../assetRenderMode';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
-import { useCountId } from '../utils/useCountId';
 import styles from './Back.module.css';
 
 export const CardBack: FC<z.infer<typeof CardBackType>> = ({
@@ -18,7 +17,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
   imageScale,
   emblemBackground,
 }) => {
-  const prefix = useCountId();
+  const prefix = useId();
   const resolveAsset = useAssetResolver();
   const label = useRef<SVGSVGElement>(null);
   useLayoutEffect(() => {

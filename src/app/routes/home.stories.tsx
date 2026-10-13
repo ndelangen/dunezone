@@ -22,6 +22,19 @@ export const Default = meta.story({
   },
 });
 
+export const SneakPeekLink = meta.story({
+  beforeEach: () => {
+    window.location.hash = '#play-preview';
+    return () => {
+      window.location.hash = '';
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Try moving one of the pieces!')).resolves.toBeInTheDocument();
+  },
+});
+
 export const QuietMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
   beforeEach: () => {

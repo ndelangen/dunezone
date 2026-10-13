@@ -507,8 +507,8 @@ export const getGameByAddress = viewerQuery({
     return {
       ...access,
       gameId: game._id,
-      name: game.name ?? ('name' in access ? access.name : 'Game'),
-      slug: game.slug ?? null,
+      name: game.name,
+      slug: game.slug,
     };
   },
 });

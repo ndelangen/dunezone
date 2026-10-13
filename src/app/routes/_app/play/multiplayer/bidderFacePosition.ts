@@ -2,7 +2,7 @@ import { Vector3 } from 'three';
 import type { Camera, Object3D } from 'three';
 
 /* Room for the bidder's face during a round, the disc and its timer chip, between its centre and the canvas edge. */
-const ROUND_HALF_WIDTH_PX = 72;
+const ROUND_HALF_WIDTH_PX = 120;
 /* The face between rounds stacks the result, its label and the faction row, so it is taller than the round's. */
 const FACE_HALF_HEIGHT_PX = 96;
 /* The start-at row: a 36px button per faction 4px apart, under a label about 230px wide, wrapping after six buttons (`Bidder.module.css`). */

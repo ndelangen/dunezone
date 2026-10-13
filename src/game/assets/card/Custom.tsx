@@ -1,9 +1,9 @@
 import type { CustomCardLayer, CustomCardTokens } from '@shared/assets/schema';
+import { useId } from 'react';
 import type { z } from 'zod';
 
 import type { CustomCard as CustomCardSchema } from '../../data/objects';
 import { card } from '../../data/sizes';
-import { useCountId } from '../utils/useCountId';
 import { CardHeadBackground, CardHeadContents } from './CardHead';
 import { CardText } from './CardText';
 import { CardToken } from './CardToken';
@@ -27,7 +27,7 @@ export function CustomCard({
 }: z.infer<typeof CustomCardSchema> & {
   tokens?: z.infer<typeof CustomCardTokens>;
 }) {
-  const prefix = useCountId();
+  const prefix = useId();
   const shiftedWindow = format === 'decal-window' && windowOffsetY !== 0;
   return (
     <div className={styles.card}>
@@ -102,7 +102,7 @@ function CardLayer({
   layer: z.infer<typeof CustomCardLayer>;
   tokens: z.infer<typeof CustomCardTokens>;
 }) {
-  const prefix = useCountId();
+  const prefix = useId();
   if (layer.kind === 'decal') {
     return (
       <svg className={styles.decal} viewBox={`0 0 ${card.width} ${card.height}`} style={{ opacity: layer.opacity }}>

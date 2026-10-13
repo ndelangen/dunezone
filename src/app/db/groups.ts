@@ -1,7 +1,6 @@
 import { groupRosterCapabilities } from '@shared/access/collaborativeAccess';
 import type { GroupViewerAccess } from '@shared/access/collaborativeAccess';
 import { groupInputSchema } from '@shared/groups/validation';
-import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
@@ -9,7 +8,7 @@ import { factionRowsToEntries } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
 import { rulesetRowsToEntries } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
-import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
 import { useGroupAccess } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
@@ -83,7 +82,7 @@ function normalizeGroupDetailFromConvex(raw: GroupDetailPageRaw): GroupPublicPag
 
 /** The live public page, taking a loader's result as `initialData`. */
 function useGroupPublicPage(slug: string, initialData: GroupPublicPage | undefined) {
-  const liveData = useQuery(api.groups.detailPage, { slug });
+  const liveData = useLiveQuery(api.groups.detailPage, { slug });
   const normalizedLive = liveData ? normalizeGroupDetailFromConvex(liveData) : undefined;
   return toLiveQueryResult<GroupPublicPage | undefined>(normalizedLive, () => initialData);
 }
@@ -113,7 +112,7 @@ export function useGroupDetailBySlug(slug: string, options?: { initialData?: Gro
 
 /** The edit route's live data. Subscribes to the same public page as the group page and combines its group with the viewer. */
 export function useGroupEditBySlug(slug: string, options?: { initialData?: GroupEditPublicPage }) {
-  const liveData = useQuery(api.groups.detailPage, { slug });
+  const liveData = useLiveQuery(api.groups.detailPage, { slug });
   const liveGroup: GroupEntry | undefined = liveData ? toGroupEntry(liveData.group) : undefined;
   const result = toLiveQueryResult(liveGroup, () => options?.initialData?.group);
   const group = result.data;

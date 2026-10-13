@@ -37,6 +37,8 @@ docs/research/
 
 # test coverage output
 coverage/
+.stryker-tmp/
+stryker.log
 # generated OBJ pieces (built from media/vector by scripts/generate-objs.ts; CI is canonical)
 /public/obj/
 

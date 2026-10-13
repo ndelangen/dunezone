@@ -4,7 +4,7 @@ import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
-import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
 import { useAssetAccess, useViewerAssignableGroups, useViewerIsAdmin, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
@@ -20,7 +20,7 @@ export async function loadAssetCataloguePage(): Promise<AssetCataloguePageData> 
 
 /** The asset landing page, live, taking `loadAssetCataloguePage`'s result as `initialData`. */
 export function useAssetCataloguePage(options?: { initialData?: AssetCataloguePageData }) {
-  const liveData = useQuery(api.assets.cataloguePage, {});
+  const liveData = useLiveQuery(api.assets.cataloguePage, {});
   return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
@@ -45,7 +45,7 @@ export async function loadAssetBrowsePage(type: string): Promise<AssetBrowsePage
 
 /** The browse route's one page query. Search and sort are URL state applied to what this returns, so neither re-fetches. */
 export function useAssetBrowsePage(type: string, options?: { initialData?: AssetBrowsePageData }) {
-  const liveData = useQuery(api.assets.browsePage, { type });
+  const liveData = useLiveQuery(api.assets.browsePage, { type });
   return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
@@ -90,7 +90,7 @@ export function useAssetPage(
   slug: string,
   options: { initialData: AssetPublicPage; embeddedTokenIds?: string[] }
 ): { data: AssetPageData; isPending: boolean } {
-  const liveData = useQuery(api.assets.page, {
+  const liveData = useLiveQuery(api.assets.page, {
     type,
     slug,
     ...(options.embeddedTokenIds ? { embeddedTokenIds: options.embeddedTokenIds as AssetListEntry['id'][] } : {}),

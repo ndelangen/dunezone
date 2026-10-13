@@ -276,12 +276,7 @@ http.route({
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
     const authorization = request.headers.get('Authorization') ?? '';
-    const rawJobId = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-    const jobId = rawJobId
-      ? await ctx.runQuery(internal.publicationJobs.normalizeJobId, {
-          jobId: rawJobId,
-        })
-      : null;
+    const jobId = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
     const job = jobId ? await ctx.runQuery(internal.publicationJobs.readJobForRender, { jobId }) : null;
     return job
       ? publicationJson(

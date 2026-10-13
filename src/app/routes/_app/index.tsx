@@ -1,5 +1,7 @@
 import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
+import { publishedPath } from '@shared/asset-publishing/publicationTargets';
 import { resolveAsset } from '@shared/media/resolveAsset';
+import { PUBLIC_SITE_ORIGIN } from '@shared/publicDiscovery';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -8,7 +10,17 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ArrowRight, Hand } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import type { CSSProperties, RefObject } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
@@ -27,26 +39,30 @@ import styles from './index.module.css';
 const ConnectedHomepageTable = lazy(() => import('./homepage/ConnectedTable').catch(() => ({ default: () => null })));
 
 export const Route = createFileRoute('/_app/')({
-  /* Share metadata runs on the server; the game artwork keeps its browser-owned SVG IDs. */
-  ssr: 'data-only',
-  head: () =>
-    publicPageHead({
-      name: '',
-      pathname: '/',
-      description: 'Dune Play is coming soon. Read Rulebooks, create factions and assets, and build with your allies.',
-      image: '/web/homepage-social-play-large.jpg',
-      imageDetails: {
-        alt: 'Dune Play is coming soon, with a preview of the board, Rulebook pages and homebrew leader portraits.',
-        type: 'image/jpeg',
-        width: 1200,
-        height: 630,
-      },
-    }),
+  ssr: true,
+  /*
+   * The SPA shell every browser-only path is served from is prerendered at `/`, and it runs every matched head but no
+   * loader below the root. So the homepage's identity comes from its loader, like every other public page's: the shell
+   * then carries none, rather than telling crawlers that /glossary, /privacy and every unknown path are the homepage.
+   */
+  loader: () => ({
+    name: '',
+    pathname: '/',
+    description: 'Dune Play is coming soon. Read Rulebooks, create factions and assets, and build with your allies.',
+    image: '/web/homepage-social-play-large.jpg',
+    imageDetails: {
+      alt: 'Dune Play is coming soon, with a preview of the board, Rulebook pages and homebrew leader portraits.',
+      type: 'image/jpeg',
+      width: 1200,
+      height: 630,
+    },
+  }),
+  head: ({ loaderData }) => (loaderData ? publicPageHead(loaderData) : {}),
   component: IndexPage,
 });
 
 function IndexPage() {
-  const [invitation, setInvitation] = useState(false);
+  const invitation = useSyncExternalStore(subscribeToHash, sneakPeekRequested, () => false);
   const viewer = useSessionViewer();
   const root = useRef<HTMLDivElement>(null);
   const motionAllowed = useMotionAllowed();
@@ -80,7 +96,7 @@ function IndexPage() {
             subtitle="Soon, your next game of Dune will be right here."
           />
           <Group justify="center">
-            <Button component="a" href="#play-preview" onClick={() => setInvitation(true)}>
+            <Button component="a" href="#play-preview">
               Take a sneak peek
             </Button>
             <Button variant="subtle" component="a" href="#make">
@@ -96,6 +112,20 @@ function IndexPage() {
       </PageLayout.Content>
     </PageLayout>
   );
+}
+
+/*
+ * The sneak peek link is a plain hash link, so a click before hydration still lands on the preview. The invitation
+ * follows the browser's hash rather than the click or the router, which never sees a hash changed before hydration.
+ * The server and the hydrating render both read no hash, so they agree.
+ */
+function subscribeToHash(change: () => void) {
+  window.addEventListener('hashchange', change);
+  return () => window.removeEventListener('hashchange', change);
+}
+
+function sneakPeekRequested() {
+  return window.location.hash === '#play-preview';
 }
 
 function fanStyle(x: string, y: string, turn: string, delay: string): CSSProperties {
@@ -141,11 +171,31 @@ const troopBackgrounds = [
   backgroundPresets.guild,
   backgroundPresets.beneTleilaxu,
 ];
-const showcaseCards = [
-  { name: 'Supplies!', slug: 'supplies', id: 'ns78nmym3qpth6sm9wsfj3ka9s8cw350', credit: 'Central' },
-  { name: 'Trishula!', slug: 'trishula', id: 'ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq', credit: 'Central' },
-  { name: 'Arrakeen', slug: 'arrakeen', id: 'ns74r72v6mdmnn8ahdmj27c8gs8cz5t6', credit: 'IHasPinecone' },
-];
+const showcaseCards = (
+  [
+    {
+      name: 'Supplies!',
+      type: 'card-treachery',
+      slug: 'supplies',
+      id: 'ns78nmym3qpth6sm9wsfj3ka9s8cw350',
+      credit: 'Central',
+    },
+    {
+      name: 'Trishula!',
+      type: 'card-treachery',
+      slug: 'trishula',
+      id: 'ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq',
+      credit: 'Central',
+    },
+    {
+      name: 'Arrakeen',
+      type: 'card-custom',
+      slug: 'arrakeen',
+      id: 'ns74r72v6mdmnn8ahdmj27c8gs8cz5t6',
+      credit: 'IHasPinecone',
+    },
+  ] as const
+).map((card) => ({ ...card, imageHref: `${PUBLIC_SITE_ORIGIN}${publishedPath(card.type, card.id)}` }));
 
 function AssetInvitation() {
   return (
@@ -227,7 +277,10 @@ function OnlineRulebooks() {
   );
 }
 
-/* Native image laziness can start downloads far below the viewport and compete with the opening scene. */
+/*
+ * Native image laziness can start downloads far below the viewport and compete with the opening scene.
+ * The artwork also starts hidden on the server, so the server render and the first browser render agree.
+ */
 function useNearbyArtwork() {
   const region = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -386,14 +439,7 @@ function QualityCards() {
               `${index * 150}ms`
             )}
           >
-            {visible && (
-              <AssetFace
-                href={`https://dune.zone/published/cards/${card.id}/card.jpg`}
-                type="card-treachery"
-                data={null}
-                name={card.name}
-              />
-            )}
+            {visible && <AssetFace href={card.imageHref} type={card.type} data={null} name={card.name} />}
           </div>
         ))}
       </div>
@@ -402,7 +448,7 @@ function QualityCards() {
           <div key={card.id} className={styles.cardCredit}>
             <Anchor
               renderRoot={(props) => (
-                <Link {...props} to="/assets/$type/$slug" params={{ type: 'card-treachery', slug: card.slug }} />
+                <Link {...props} to="/assets/$type/$slug" params={{ type: card.type, slug: card.slug }} />
               )}
               fw={700}
             >

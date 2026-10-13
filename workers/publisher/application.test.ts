@@ -26,6 +26,18 @@ describe('anonymous application dispatch', () => {
     '/assets/create',
     '/assets/unknown-type/missing/extra',
     '/factions/missing/extra',
+    '/glossary',
+    '/future-plans',
+    '/privacy',
+    '/privacy/',
+    '/glossary/missing',
+    '/media',
+    '/media/',
+    '/media/game/leaders',
+    '/media/game/missing',
+    '/media/game',
+    '/media/missing',
+    '/media/game/leaders/extra',
   ])('renders %s without visitor credentials', async (pathname) => {
     const render = vi.fn(async (request: Request) => {
       expect([...request.headers]).toEqual([['accept', 'text/html']]);
@@ -72,6 +84,9 @@ describe('anonymous application dispatch', () => {
     '/profiles/central/delete',
     '/rulesets/dreamrules/faq/%63reate',
     '/play',
+    '/media/topics',
+    '/media/lucide',
+    '/media/topics/extra',
     '/auth/login',
     '/preview/sheet/test',
     '/publisher-capture.html',

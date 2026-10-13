@@ -13,6 +13,7 @@ import { internal } from '../convex/_generated/api';
 import schema from '../convex/schema';
 import { db as storybookDatabase } from '../src/app/db/storybook/database';
 import type { SeedDocument } from '../src/app/db/storybook/protocol';
+import { retryTransient, TransientError } from './retry-transient';
 import { verifySnapshotFile } from './snapshot-anonymise';
 
 /**
@@ -538,7 +539,37 @@ export async function insertLocalSeedDocuments(deployment: SelfHostedDeployment,
     FunctionArgs<typeof internal.provisioning.insertSeedDocuments>,
     FunctionReturnType<typeof internal.provisioning.insertSeedDocuments>
   >(getFunctionName(internal.provisioning.insertSeedDocuments));
-  return await client.mutation(reference, { documents: JSON.stringify(documents) });
+  /*
+   * Deploying functions can consume the disposable backend's current write window.
+   * Retry only its explicit refusal, since a transport failure could hide a committed seed.
+   */
+  return await retryTransient(
+    async () => {
+      try {
+        return await client.mutation(reference, { documents: JSON.stringify(documents) });
+      } catch (error) {
+        if (!(error instanceof Error)) {
+          throw error;
+        }
+        let refusal: unknown;
+        try {
+          refusal = JSON.parse(error.message);
+        } catch {
+          throw error;
+        }
+        if (
+          typeof refusal !== 'object' ||
+          refusal === null ||
+          !('code' in refusal) ||
+          refusal.code !== 'TooManyWrites'
+        ) {
+          throw error;
+        }
+        throw new TransientError('The local backend refused the current write window', { cause: error });
+      }
+    },
+    { subject: 'Local fixture seed', delaysMs: [1000, 1000, 1000] }
+  );
 }
 
 type SeedBaselineResult = { seeded: true } | { seeded: false; reason: string };

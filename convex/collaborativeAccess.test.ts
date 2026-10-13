@@ -441,46 +441,6 @@ describe('collaborative access public projections', () => {
     }
   });
 
-  test('the deprecated per-viewer Group page still answers older bundles with their capabilities', async () => {
-    const { t, ids } = await groupAccessFixture();
-    for (const userId of [ids.ownerId, ids.activeId, ids.pendingId, null]) {
-      const viewer = userId ? t.withIdentity({ subject: userId }) : t;
-      const current = await groupPageAs(viewer, 'dune-designers');
-      const legacy = await viewer.query(api.groups.detailBySlug, { slug: 'dune-designers' });
-      const roster = current.roster.map(({ isGroupOwner: _isGroupOwner, ...entry }) => entry);
-      expect(legacy).toEqual({ ...current, roster });
-    }
-    const owner = await t
-      .withIdentity({ subject: ids.ownerId })
-      .query(api.groups.detailBySlug, { slug: 'dune-designers' });
-    expect(owner.viewerAccess.capabilities.rename).toBe(true);
-    expect(owner.roster.some((entry) => entry.capabilities.remove)).toBe(true);
-  });
-
-  test('the deprecated per-viewer ruleset pages still answer older bundles with their capabilities', async () => {
-    const { t, ids } = await groupAccessFixture();
-    const viewer = t.withIdentity({ subject: ids.assetOwnerId });
-    const current = (await rulesetDetailPageAs(viewer, 'collaborative-ruleset'))!;
-    const bundle = await viewer.query(api.rulesets.getBySlug, { slug: 'collaborative-ruleset' });
-    const detail = await viewer.query(api.rulesets.detailPageBySlug, { slug: 'collaborative-ruleset' });
-    expect(bundle.viewerAccess).toEqual(current.viewerAccess);
-    expect(detail?.viewerAccess).toEqual(current.viewerAccess);
-    expect(detail?.assignableGroups).toEqual(current.assignableGroups);
-    const { assignedGroup: _assignedGroup, viewerAccess: _viewerAccess, ...facts } = current;
-    expect(detail).toMatchObject(facts);
-    expect(current.viewerAccess.capabilities.edit).toBe(true);
-  });
-
-  test('the deprecated per-viewer faction page still answers older bundles with their capabilities', async () => {
-    const { t, ids } = await groupAccessFixture();
-    const legacy = await t
-      .withIdentity({ subject: ids.assetOwnerId })
-      .query(api.factions.getBySlug, { slug: 'collaborative-faction' });
-    const current = await factionPageAs(t.withIdentity({ subject: ids.assetOwnerId }), 'collaborative-faction');
-    expect(legacy.viewerAccess).toEqual(current.viewerAccess);
-    expect(legacy.viewerAccess.capabilities.edit).toBe(true);
-  });
-
   test('profile detail exposes canonical Group summaries without raw membership transport', async () => {
     const { t, ids } = await groupAccessFixture();
 

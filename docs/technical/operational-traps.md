@@ -131,7 +131,7 @@ the validator lives in a different file from the projection.
 **What it looks like when it bites:** every gate green, and the page does not render:
 
 ```
-Error: Return value validation failed for query "profiles:getBySlug":
+Error: Return value validation failed for query "profiles:pageBySlug":
 Validator error: Unexpected field `image_cover` in object
 ```
 

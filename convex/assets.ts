@@ -28,8 +28,7 @@ import { parseAssetDataForWrite, parseNexusCardInput } from '../src/shared/asset
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { publicationStatusFor } from './assetPublishingStatus';
-import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
-import { optionalActiveUserId } from './lib/accountLifecycle';
+import { internalMutation, mutation, publicQuery } from './functions';
 import {
   assertReferenceableDeckCardback,
   assertReferenceableTokenBack,
@@ -46,16 +45,11 @@ import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import { listCardFrontPresets } from './lib/cardFrontPresets';
 import {
   assignedGroupSummary,
-  loadAssetAccessBundle,
   requireAssetSoftDelete,
   requireAssetUpdate,
   requireGroupReassignment,
 } from './lib/collaborativeAccess';
-import {
-  assetPublishingValidator,
-  assetViewerAccessValidator,
-  assignedGroupSummaryValidator,
-} from './lib/collaborativeAccessValidators';
+import { assetPublishingValidator, assignedGroupSummaryValidator } from './lib/collaborativeAccessValidators';
 import {
   CUSTOM_CARD_TOKEN_RELATION,
   customCardTokenIds,
@@ -380,45 +374,6 @@ export const page = publicQuery({
   },
 });
 
-/**
- * Deprecated: the asset page with the viewer's capabilities computed on the server, as bundles from before `page` read it.
- * Kept unchanged so a page or editor already open in an older bundle keeps working across the deploy;
- * remove in a later release, once no deployed bundle asks for it (see AGENTS.md).
- */
-export const getPage = viewerQuery({
-  args: { type: v.string(), slug: v.string(), embeddedTokenIds: v.optional(v.array(v.id('assets'))) },
-  returns: v.union(
-    v.null(),
-    assetPageValidator.omit('ownerId', 'assignedGroup', 'convertibleToCustom', 'cardFrontPresets').extend({
-      canConvertToCustom: v.boolean(),
-
-      viewerAccess: assetViewerAccessValidator,
-      assignableGroups: v.array(assignedGroupSummaryValidator),
-    })
-  ),
-  handler: async (ctx, args) => {
-    const row = await liveAsset(ctx, args.type, args.slug);
-    if (!row) {
-      return null;
-    }
-    const access = await loadAssetAccessBundle(ctx, { kind: 'asset', row });
-    const {
-      ownerId: _ownerId,
-      assignedGroup: _assignedGroup,
-      convertibleToCustom: _convertible,
-      cardFrontPresets: _frontPresets,
-      ...page
-    } = await loadAssetPageFor(ctx, row, args);
-    return {
-      ...page,
-      canConvertToCustom: await canConvertTreachery(ctx, row.type),
-
-      viewerAccess: access.viewerAccess,
-      assignableGroups: access.assignableGroups,
-    };
-  },
-});
-
 /** The live asset at one address; a soft-deleted asset keeps its slug reserved and reads as absent. */
 export async function liveAsset(ctx: QueryCtx, type: string, slug: string) {
   const holders = await ctx.db
@@ -659,15 +614,6 @@ export const update = mutation({
     return { id: args.id, slug };
   },
 });
-
-/** Only an active administrator can change a treachery card's asset type. */
-async function canConvertTreachery(ctx: QueryCtx, type: string): Promise<boolean> {
-  if (type !== 'card-treachery') {
-    return false;
-  }
-  const viewerId = await optionalActiveUserId(ctx);
-  return viewerId ? (await ctx.db.get('users', viewerId))?.isAdmin === true : false;
-}
 
 /** Converts one card in place; ownership, deck references and completed publications retain their identity. */
 export const convertTreacheryToCustom = mutation({

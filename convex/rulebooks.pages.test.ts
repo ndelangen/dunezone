@@ -18,7 +18,7 @@ describe('Rulebook lifecycle page queries', () => {
       await ctx.db.patch('rulebook_drafts', created.draft._id, { updated_at: '2026-08-31T12:30:00.000Z' });
       await ctx.db.patch('rulebook_editions', created.edition._id, { created_at: '2026-08-01T12:00:00.000Z' });
     });
-    const listing = await t.query(api.rulesets.detailPageBySlug, { slug: 'rulebook-test-rules' });
+    const listing = await t.query(api.rulesets.detailPage, { slug: 'rulebook-test-rules' });
     expect(listing?.rulebooks[0].edition_published_at).toBe('2026-08-01T12:00:00.000Z');
     const args = { ruleset_slug: 'rulebook-test-rules', rulebook_slug: created.rulebook.slug };
     expect(await owner.query(api.rulebooks.editorPage, args)).toMatchObject({ kind: 'editable', canRename: true });
@@ -57,7 +57,7 @@ describe('Rulebook lifecycle page queries', () => {
       ruleset_id: ids.rulesetId,
       rulebook_ids: [second.rulebook._id, first.rulebook._id],
     });
-    const listing = await owner.query(api.rulesets.detailPageBySlug, { slug: 'rulebook-test-rules' });
+    const listing = await owner.query(api.rulesets.detailPage, { slug: 'rulebook-test-rules' });
     const creation = await owner.query(api.rulebooks.creationPage, { ruleset_slug: 'rulebook-test-rules' });
     expect(listing?.rulebooks.map((book) => book.name)).toEqual(['Second', 'First']);
     expect(creation?.rulebooks).toEqual(listing?.rulebooks);
@@ -88,9 +88,7 @@ describe('Rulebook lifecycle page queries', () => {
         viewerAccess: { capabilities: { edit: false } },
         rulebooks: [],
       });
-      expect((await reader.query(api.rulesets.detailPageBySlug, { slug: args.ruleset_slug }))?.rulebooks).toHaveLength(
-        1
-      );
+      expect((await reader.query(api.rulesets.detailPage, { slug: args.ruleset_slug }))?.rulebooks).toHaveLength(1);
     }
     await t.run(async (ctx) => {
       const membership = await ctx.db
