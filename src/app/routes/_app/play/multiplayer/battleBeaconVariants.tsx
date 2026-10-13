@@ -15,9 +15,9 @@ export type BeaconPose = {
   height: number;
   carried: boolean;
 };
-export type BeaconVariantProps = { pose: RefObject<BeaconPose> };
+type BeaconVariantProps = { pose: RefObject<BeaconPose> };
 
-export const BEACON_GLOW = '#e8261a';
+const BEACON_GLOW = '#e8261a';
 const BEACON_HOT = '#ffb199';
 const BEACON_BODY = '#3b4048';
 
@@ -167,7 +167,7 @@ function Beam({
  * A tall dark spike with two glowing rings orbiting it, a beam to the ground and a rotating crosshair reticle.
  * Landing folds the spike into a flat diamond and lays the rings down around it.
  */
-export function LanceBeacon({ pose }: BeaconVariantProps) {
+function LanceBeacon({ pose }: BeaconVariantProps) {
   const body = useRef<Group>(null);
   const ringA = useRef<Group>(null);
   const ringB = useRef<Group>(null);
@@ -235,7 +235,7 @@ export function LanceBeacon({ pose }: BeaconVariantProps) {
  * A dark inverted pyramid with a hot core, a laser down to the ground, and lock-on brackets that keep tightening.
  * Landing presses the pyramid into a flat triangle with the brackets locked tight around it.
  */
-export function DesignatorBeacon({ pose }: BeaconVariantProps) {
+function DesignatorBeacon({ pose }: BeaconVariantProps) {
   const body = useRef<Group>(null);
   const brackets = useRef<Group>(null);
   const dot = useRef<Group>(null);
@@ -295,7 +295,7 @@ const RIPPLES = 3;
  * A hovering hex puck projects a hexagonal column of light, with scan lines climbing it and sonar ripples on the ground.
  * Landing collapses the column into the puck, which settles flat while the ripples keep spreading, smaller.
  */
-export function PylonBeacon({ pose }: BeaconVariantProps) {
+function PylonBeacon({ pose }: BeaconVariantProps) {
   const puck = useRef<Group>(null);
   const column = useRef<Mesh>(null);
   const columnMaterial = useRef<MeshBasicMaterial>(null);
@@ -384,7 +384,7 @@ export function PylonBeacon({ pose }: BeaconVariantProps) {
  * A compact saucer with three fins throws a cone of light onto the ground, where it draws a target with a crosshair.
  * Landing folds the fins in and sets the saucer down flat in the middle of its own target.
  */
-export function DroneBeacon({ pose }: BeaconVariantProps) {
+function DroneBeacon({ pose }: BeaconVariantProps) {
   const body = useRef<Group>(null);
   const fins = useRef<(Group | null)[]>([]);
   const cone = useRef<Mesh>(null);
