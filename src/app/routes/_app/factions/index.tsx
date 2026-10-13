@@ -23,13 +23,9 @@ import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { publicPageHead } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-import {
-  complexityRangeSearchValue,
-  parseComplexityRange,
-  parseFactionCatalogueSearch,
-  useFactionCatalogueSession,
-} from './catalogue';
-import type { FactionCatalogueSearch, FactionComplexityRange } from './catalogue';
+import { useFactionCatalogueSession } from './catalogue';
+import { complexityRangeSearchValue, parseComplexityRange, parseFactionCatalogueSearch } from './catalogueSearch';
+import type { FactionCatalogueSearch, FactionComplexityRange } from './catalogueSearch';
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/factions/')({

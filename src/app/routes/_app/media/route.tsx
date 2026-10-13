@@ -13,11 +13,13 @@ import { icons, X, Images, Info, ArrowRight } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import { pageHead } from '../../pageTitle';
-import { catalogueEntries as mediaEntries, mediaKinds } from './mediaCatalogue';
-import type { MediaEntry, MediaSearch } from './mediaCatalogue';
+import { catalogueEntries as mediaEntries } from './mediaCatalogue';
+import type { MediaEntry } from './mediaCatalogue';
 import { indexGalleries } from './mediaIndex';
 import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavigation';
 import { filterCatalogue } from './mediaSearch';
+import { mediaKinds } from './mediaSearchParams';
+import type { MediaSearch } from './mediaSearchParams';
 import { MediaShowcase } from './MediaShowcase';
 import { mediaTiles, variantLabel } from './mediaTiles';
 import type { MediaTile } from './mediaTiles';

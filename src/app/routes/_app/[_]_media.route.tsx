@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
-import { validateMediaSearch } from './media/mediaCatalogue';
 import { mediaLocation } from './media/mediaNavigation';
+import { validateMediaSearch } from './media/mediaSearchParams';
 
 export const Route = createFileRoute('/_app/__media')({
   validateSearch: validateMediaSearch,

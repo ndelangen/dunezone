@@ -13,30 +13,8 @@ import {
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 
 import metadata from './media-index.json';
-import { mediaSubjects } from './mediaSubjects';
-
-const indexedMediaKinds = [
-  { value: 'decal', slug: 'decals', label: 'Decals' },
-  { value: 'generic', slug: 'symbols', label: 'General symbols' },
-  { value: 'logo', slug: 'emblems', label: 'Emblems' },
-  { value: 'icon', slug: 'icons', label: 'Game icons' },
-  { value: 'troop', slug: 'troops', label: 'Troops' },
-  { value: 'troop_modifier', slug: 'troop-modifiers', label: 'Troop modifiers' },
-  { value: 'background', slug: 'patterns', label: 'Patterns' },
-  { value: 'leader', slug: 'leaders', label: 'Leader portraits' },
-  { value: 'planet', slug: 'planets', label: 'Planets' },
-  { value: 'texture', slug: 'textures', label: 'Textures' },
-  { value: 'cover', slug: 'covers', label: 'Rulebook covers' },
-  { value: 'card', slug: 'cards', label: 'Card layers' },
-  { value: 'shield', slug: 'shields', label: 'Shield layers' },
-  { value: 'web', slug: 'website', label: 'Website artwork' },
-] as const;
-
-type MediaKind = (typeof indexedMediaKinds)[number]['value'];
-
-export const mediaKinds = indexedMediaKinds.filter(
-  ({ value }) => !['troop_modifier', 'background', 'texture', 'card', 'shield', 'web'].includes(value)
-);
+import { indexedMediaKinds, mediaKinds } from './mediaSearchParams';
+import type { MediaKind } from './mediaSearchParams';
 
 export interface MediaEntry {
   value: string;
@@ -80,47 +58,3 @@ export const mediaEntries: MediaEntry[] = indexedMediaKinds.flatMap(({ value: ki
 );
 
 export const catalogueEntries = mediaEntries.filter((entry) => mediaKinds.some((kind) => kind.value === entry.kind));
-
-const entriesByValue = new Map(mediaEntries.map((entry) => [entry.value, entry]));
-
-export interface MediaSearch {
-  source: 'media' | 'topics' | 'lucide';
-  kind: MediaKind | 'all';
-  group: string;
-  q: string;
-  item?: string;
-  subject?: string;
-  browse?: 'collection';
-}
-
-function searchRecord(input: unknown): Record<string, unknown> {
-  return input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
-}
-
-function searchText(value: unknown): string {
-  return typeof value === 'string' ? value : '';
-}
-
-export function validateMediaSearch(input: unknown): MediaSearch {
-  const search = searchRecord(input);
-  const source = search.source === 'topics' || search.source === 'lucide' ? search.source : 'media';
-  const kind = mediaKinds.find(({ value }) => value === search.kind)?.value ?? 'all';
-  const item = selectedMedia(search.item, source);
-  return {
-    source,
-    kind,
-    group: searchText(search.group).trim().slice(0, 200),
-    q: searchText(search.q).slice(0, 300),
-    ...(mediaSubjects.some(({ value }) => value === search.subject) ? { subject: String(search.subject) } : {}),
-    ...(search.browse === 'collection' ? { browse: 'collection' as const } : {}),
-    ...(item ? { item } : {}),
-  };
-}
-
-function selectedMedia(value: unknown, source: MediaSearch['source']) {
-  if (source !== 'media') {
-    return undefined;
-  }
-  const item = searchText(value);
-  return entriesByValue.has(item) ? item : undefined;
-}
