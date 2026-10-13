@@ -1,5 +1,4 @@
 import { groupInputSchema } from '@shared/groups/validation';
-import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
@@ -7,7 +6,7 @@ import { factionRowsToEntries } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
 import { rulesetRowsToEntries } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
-import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
@@ -69,7 +68,7 @@ function normalizeGroupDetailFromConvex(raw: GroupDetailPageRaw): GroupDetailPag
 
 /** The group page's live query, taking `loadGroupDetailBySlug`'s result as `initialData`. */
 export function useGroupDetailBySlug(slug: string, options?: { initialData?: GroupDetailPageData }) {
-  const liveData = useQuery(api.groups.detailBySlug, { slug });
+  const liveData = useLiveQuery(api.groups.detailBySlug, { slug });
   const normalizedLive = liveData ? normalizeGroupDetailFromConvex(liveData) : undefined;
   const result = toLiveQueryResult<GroupDetailPageData | undefined>(normalizedLive, () => options?.initialData);
   return result;
@@ -77,7 +76,7 @@ export function useGroupDetailBySlug(slug: string, options?: { initialData?: Gro
 
 /** The edit route's live query. Subscribes to the same detail query as the page and narrows the result. */
 export function useGroupEditBySlug(slug: string, options?: { initialData?: GroupEditPageData }) {
-  const liveData = useQuery(api.groups.detailBySlug, { slug });
+  const liveData = useLiveQuery(api.groups.detailBySlug, { slug });
   const normalizedLive = liveData ? normalizeGroupDetailFromConvex(liveData) : undefined;
   const editData = normalizedLive
     ? { group: normalizedLive.group, viewerAccess: normalizedLive.viewerAccess }

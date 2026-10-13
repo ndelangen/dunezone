@@ -2,6 +2,8 @@ import { ConvexHttpClient } from 'convex/browser';
 import { ConvexReactClient } from 'convex/react';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 
+import { keepWarm, LOADER_HOLD_MS } from './warm';
+
 const convexUrl = import.meta.env.VITE_CONVEX_URL!;
 export const convex = new ConvexReactClient(convexUrl);
 
@@ -32,7 +34,11 @@ export const db = {
       setResponseHeader('X-Public-Metadata-Queries', String(queries + 1));
     }
     const backend = convexBackendForDb();
-    return await backend.query(fn, args as never);
+    const result = await backend.query(fn, args as never);
+    if (!import.meta.env.SSR) {
+      keepWarm(convex, fn, args, LOADER_HOLD_MS);
+    }
+    return result;
   },
   mutation: async <Mutation extends FunctionReference<'mutation'>>(
     fn: Mutation,

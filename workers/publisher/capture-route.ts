@@ -65,6 +65,34 @@ function snapshotDeadline(request: Request): number {
 
 type PublicationJobValidation = { status: 'valid'; body: unknown } | { status: 'invalid' } | { status: 'unavailable' };
 
+/*
+ * Job ids this isolate validated a moment ago, so a capture page's hashed bundle files do not each ask Convex again.
+ * Only the bundle reuses it: the document and the snapshot still validate on every request.
+ */
+const RECENT_VALIDATION_MS = 15_000;
+const RECENT_VALIDATION_LIMIT = 256;
+const recentlyValid = new Map<string, number>();
+
+function rememberValid(jobId: string) {
+  const now = Date.now();
+  for (const [id, until] of recentlyValid) {
+    if (until <= now || recentlyValid.size >= RECENT_VALIDATION_LIMIT) {
+      recentlyValid.delete(id);
+    }
+  }
+  recentlyValid.set(jobId, now + RECENT_VALIDATION_MS);
+}
+
+/** Tests start each case with an isolate that has validated nothing. */
+export function forgetRecentCaptureValidations() {
+  recentlyValid.clear();
+}
+
+function validatedRecently(request: Request) {
+  const jobId = publicationJobId(request);
+  return jobId !== undefined && (recentlyValid.get(jobId) ?? 0) > Date.now();
+}
+
 async function validatePublicationJob(request: Request, env: CaptureEnv): Promise<PublicationJobValidation> {
   const jobId = publicationJobId(request);
   if (!jobId) {
@@ -84,6 +112,7 @@ async function validatePublicationJob(request: Request, env: CaptureEnv): Promis
       if (typeof body !== 'object' || body === null || !('ok' in body) || body.ok !== true) {
         return { status: 'invalid' as const };
       }
+      rememberValid(jobId);
       return { status: 'valid' as const, body };
     });
   } catch (error) {
@@ -140,7 +169,10 @@ async function captureDocument(request: Request, env: CaptureEnv): Promise<Respo
 }
 
 async function gatedCaptureAsset(request: Request, env: CaptureEnv): Promise<Response> {
-  if (request.method !== 'GET' || (await validateCaptureAccess(request, env)).status !== 'valid') {
+  if (
+    request.method !== 'GET' ||
+    (!validatedRecently(request) && (await validateCaptureAccess(request, env)).status !== 'valid')
+  ) {
     return noStoreJson({ error: 'Not found' }, 404);
   }
   const asset = await env.ASSETS.fetch(request);

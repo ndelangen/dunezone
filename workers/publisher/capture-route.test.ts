@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
-import { handleCaptureRoute } from './capture-route';
+import { forgetRecentCaptureValidations, handleCaptureRoute } from './capture-route';
 import type { CaptureEnv } from './capture-route';
 
 const jobId = 'publication-job-000000000000001';
@@ -19,7 +19,10 @@ function env(assetFetch = vi.fn(async (_request: Request) => new Response('<html
   };
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  forgetRecentCaptureValidations();
+});
 
 function stubValidJob() {
   const upstream = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -89,6 +92,20 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(response?.headers.get('Cache-Control')).toBe('no-store');
     expect(response?.headers.get('Referrer-Policy')).toBe('no-referrer');
     expect(assetFetch).toHaveBeenCalledOnce();
+    expect(upstream).toHaveBeenCalledOnce();
+  });
+
+  test("the rest of a capture page's bundle reuses the job validation of a moment ago", async () => {
+    const upstream = stubValidJob();
+    for (const pathname of ['/publisher-capture/entry-hash.js', '/publisher-capture/style-hash.css']) {
+      const response = await handleCaptureRoute(
+        new Request(`https://publisher.example.com${pathname}`, {
+          headers: { Cookie: `__Host-publication_job=${jobId}` },
+        }),
+        env(vi.fn(async () => new Response('bundle')))
+      );
+      expect(response?.status, pathname).toBe(200);
+    }
     expect(upstream).toHaveBeenCalledOnce();
   });
 

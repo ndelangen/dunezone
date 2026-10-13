@@ -16,7 +16,7 @@ import { useCallback, useMemo } from 'react';
 
 import { db } from '@db/core';
 import { parseClientBoundary } from '@app/db/core/clientBoundary';
-import { toLiveQueryResult, useLiveOperation, useMappedLiveMutation } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveOperation, useLiveQuery, useMappedLiveMutation } from '@app/db/core/live';
 import { useAssetAccess, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
@@ -113,7 +113,7 @@ export function useRulebookReader({
   initialData?: RulebookReaderPageData | null;
   renderContents?: boolean;
 }) {
-  const raw = useQuery(api.rulebooks.readerDelivery, readerArgs(locator));
+  const raw = useLiveQuery(api.rulebooks.readerDelivery, readerArgs(locator));
   const normalized = raw === undefined ? undefined : raw === null ? null : normalizeReaderPage(raw);
   const live = toLiveQueryResult(normalized, () => initialData);
   const page = live.data;
@@ -151,7 +151,7 @@ export function useRulebookEditionHistory({
   initialData,
 }: RulebookLocator & { initialData?: RulebookEditionHistoryData | null }) {
   return toLiveQueryResult(
-    useQuery(api.rulebooks.editionHistory, { ruleset_slug: rulesetSlug, rulebook_slug: rulebookSlug }),
+    useLiveQuery(api.rulebooks.editionHistory, { ruleset_slug: rulesetSlug, rulebook_slug: rulebookSlug }),
     () => initialData
   );
 }
@@ -163,7 +163,7 @@ export async function loadRulebookCreationPage(rulesetSlug: string) {
 }
 
 export function useRulebookCreationPage(rulesetSlug: string, initialData?: RulebookCreationPageData | null) {
-  return toLiveQueryResult(useQuery(api.rulebooks.creationPage, { ruleset_slug: rulesetSlug }), () => initialData);
+  return toLiveQueryResult(useLiveQuery(api.rulebooks.creationPage, { ruleset_slug: rulesetSlug }), () => initialData);
 }
 
 function useIdentityRulebookMutation<TVariables, TRawVariables, TResult>(

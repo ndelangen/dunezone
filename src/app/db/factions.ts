@@ -18,7 +18,7 @@ export { isPublicPageNotFound as isFactionNotFound } from '@db/core/publicPage';
 import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
 
 import { parseClientBoundary } from '@app/db/core/clientBoundary';
-import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
 import { useAssetAccess } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
@@ -197,7 +197,7 @@ export function useFaction(
     initialData?: FactionDetailPageData;
   }
 ) {
-  const liveData = useQuery(api.factions.pageBySlug, { slug });
+  const liveData = useLiveQuery(api.factions.pageBySlug, { slug });
   const normalized = liveData ? toFactionDetailPageData(liveData) : undefined;
   const result = toLiveQueryResult(normalized, () => options?.initialData ?? undefined);
   return result;
@@ -214,12 +214,12 @@ export function useFactionAccess(page: FactionDetailPageData) {
 
 /** A Play seat's faction page address by its id; undefined while loading, null when the faction is gone. */
 export function useFactionPageSlug(id: string) {
-  return useQuery(api.factions.pageSlug, { id });
+  return useLiveQuery(api.factions.pageSlug, { id });
 }
 
 /** The live catalogue, taking `loadFactionCataloguePage`'s result as `initialData`. */
 export function useFactionCataloguePage(options?: { initialData?: FactionCataloguePageData }) {
-  const liveData = useQuery(api.factions.cataloguePage, {});
+  const liveData = useLiveQuery(api.factions.cataloguePage, {});
   const normalized = liveData ? toFactionCataloguePageData(liveData) : undefined;
   return toLiveQueryResult(normalized, () => options?.initialData);
 }

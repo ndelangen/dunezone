@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('convex/react', () => ({
+  useConvex: () => undefined,
   useQuery: (_query: unknown, args: Record<string, unknown>) =>
     'groupId' in args ? mocks.memberships.get(args.groupId as string | null) : mocks.session,
 }));

@@ -1,12 +1,12 @@
 import type { ProfileUserEditInput } from '@shared/profiles/validation';
 import { profileUserEditFormSchema } from '@shared/profiles/validation';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 import { useEffect, useRef } from 'react';
 
 import { db } from '@db/core';
 import { factionCatalogueRowsToEntries } from '@db/factions';
-import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
@@ -63,7 +63,7 @@ export function useProfileBySlug(
     initialData?: ProfilePageData;
   }
 ) {
-  const liveData = useQuery(api.profiles.getBySlug, { slug });
+  const liveData = useLiveQuery(api.profiles.getBySlug, { slug });
   const normalized = liveData ? normalizeProfilePage(liveData) : undefined;
   const result = toLiveQueryResult(normalized, () => options?.initialData);
   return result;
@@ -71,7 +71,7 @@ export function useProfileBySlug(
 
 /** Every profile, live, taking `loadProfilesAll`'s result as `initialData`. */
 export function useProfilesAll(options?: { initialData?: ProfileListEntry[] }) {
-  const liveData = useQuery(api.profiles.list, {});
+  const liveData = useLiveQuery(api.profiles.list, {});
   const result = toLiveQueryResult(liveData, () => options?.initialData ?? undefined);
   return {
     ...result,
@@ -85,7 +85,7 @@ export function useProfilesAll(options?: { initialData?: ProfileListEntry[] }) {
  * reach for `useSessionViewer` rather than testing them by hand.
  */
 export function useCurrentProfile() {
-  const session = useQuery(api.profiles.session, {});
+  const session = useLiveQuery(api.profiles.session, {});
   const bootstrap = useMutation(api.profiles.bootstrapCurrent);
   const bootstrapAttemptedRef = useRef(false);
 
@@ -148,7 +148,7 @@ export type ProfileSettingsData = FunctionReturnType<typeof api.profiles.setting
 
 /** Settings data stays with the edit page rather than the shell or public profile. */
 export function useProfileSettings() {
-  const liveData = useQuery(api.profiles.settings, {});
+  const liveData = useLiveQuery(api.profiles.settings, {});
   return toLiveQueryResult(liveData);
 }
 

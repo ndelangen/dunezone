@@ -3,6 +3,8 @@ import type { AccessViewer, AssetSubjectFacts } from '@shared/access/collaborati
 import { useQuery } from 'convex/react';
 import { useState } from 'react';
 
+import { useLiveQuery } from '@app/db/core/live';
+
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import type { AssignedGroupSummary } from '../../../convex/lib/collaborativeAccess';
@@ -23,12 +25,12 @@ export const UNAVAILABLE_SUBJECT = { owner_id: '', is_deleted: true };
  * the mutations re-check every write regardless.
  */
 function useAccessViewer(groupId: Id<'groups'> | null): AccessViewer | undefined {
-  const session = useQuery(api.profiles.session, {});
+  const session = useLiveQuery(api.profiles.session, {});
   /*
    * Until the session says who this is, ask about no Group: the answer is "none" without a read,
    * so an anonymous visitor's subscription costs nothing and never invalidates.
    */
-  const membership = useQuery(api.groups.viewerMembership, { groupId: session?.userId ? groupId : null });
+  const membership = useLiveQuery(api.groups.viewerMembership, { groupId: session?.userId ? groupId : null });
   const [held, setHeld] = useState<{ userId: Id<'users'>; membership: NonNullable<typeof membership> } | null>(null);
   if (session === undefined) {
     return undefined;
@@ -70,5 +72,5 @@ export function useViewerAssignableGroups(): AssignedGroupSummary[] {
 
 /** Whether the viewer is an administrator, for the few page actions only admins see. False while the session is on its way. */
 export function useViewerIsAdmin(): boolean {
-  return useQuery(api.profiles.session, {})?.isAdmin === true;
+  return useLiveQuery(api.profiles.session, {})?.isAdmin === true;
 }
