@@ -20,6 +20,13 @@ export type BeaconPose = {
   motion: boolean;
 };
 
+/*
+ * Frame order within the update phase, where higher runs first: the camera moves at the default priority,
+ * then the beacon works out its pose under that camera, then the strike mark draws that pose, all in the same frame.
+ */
+export const BEACON_FRAME = { priority: -1 };
+const MARK_FRAME = { priority: -2 };
+
 const MARK = '#3fe0ff';
 const MARK_HOT = '#d8fbff';
 /* A dark wash under the mark keeps the cyan lines readable on pale sand. */
@@ -150,7 +157,7 @@ function Footprint({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) {
     const { flat } = pose.current;
     dashes.current!.rotation.y = time * 0.4;
     footprint.current!.scale.setScalar(lerp(1 + 0.04 * pulseAt(time), 1, flat));
-  });
+  }, MARK_FRAME);
   const dash = (Math.PI * 2) / DASHES;
   return (
     <group ref={footprint} position={[0, 0.003, 0]}>
@@ -197,7 +204,7 @@ function Projection({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) {
     scan.current!.position.y = length * (1 - travel);
     scan.current!.scale.setScalar(lerp(STRIKE_DISC_RADIUS * 0.85, FOOTPRINT, travel) / FOOTPRINT);
     scanMaterial.current!.opacity = pose.current.fade * fade * 0.55 * Math.sin(travel * Math.PI);
-  });
+  }, MARK_FRAME);
   return (
     <group>
       <mesh ref={cone} raycast={ignoreRaycast}>
@@ -225,7 +232,7 @@ function AcrylicDisc({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) {
     disc.current!.position.y = lerp(height + bob, DISC_THICKNESS / 2 + 0.006, flat);
     disc.current!.rotation.y = time * 0.25 * (1 - flat);
     emitter.current!.opacity = pose.current.fade * (1 - flat) * (0.6 + 0.4 * pulseAt(time, 1.4));
-  });
+  }, MARK_FRAME);
   const top = DISC_THICKNESS / 2 + 0.001;
   return (
     <group ref={disc}>
@@ -281,7 +288,7 @@ export function StrikeMark({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) 
         material.opacity = base * fade;
       }
     });
-  });
+  }, MARK_FRAME);
   return (
     <group ref={root}>
       <Footprint pose={pose} />

@@ -138,3 +138,12 @@ test('a carried beacon sits exactly where a release would drop it', () => {
   stepBeacon(state, { mode: 'carry', target: carry, delta: 1 / 60 });
   expect(state).toMatchObject({ x: 1, z: -1 });
 });
+
+test('with motion turned off a new mode draws one more frame after it settles, then rests', () => {
+  const state = initialMotion(HOME);
+  stepBeacon(state, { mode: 'home', target: HOME, delta: 1 / 60, motion: false });
+  expect(stepBeacon(state, { mode: 'home', target: HOME, delta: 1 / 60, motion: false }).animating).toBe(false);
+  const pending = beaconTarget('pending', HOME, { pending: [1, 0.18, 1] });
+  expect(stepBeacon(state, { mode: 'pending', target: pending, delta: 1 / 60, motion: false }).animating).toBe(true);
+  expect(stepBeacon(state, { mode: 'pending', target: pending, delta: 1 / 60, motion: false }).animating).toBe(false);
+});

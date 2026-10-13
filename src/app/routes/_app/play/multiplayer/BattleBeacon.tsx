@@ -6,16 +6,18 @@ import type { Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { TRACKER_DISC_CONTENT_Y, trackerArcSlots } from '@shared/play/tableTrackers';
 import type { RefObject } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Group } from 'three';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import { useMotionAllowed } from '../../../../styles/motion';
+import type { PointerSession } from '../../../../widgets/tabletop/PointerSession';
+import { PointerSessionContext } from '../../../../widgets/tabletop/PointerSessionContext';
 import styles from './BattleBeacon.module.css';
 import type { BeaconMode, BeaconMotion, BeaconSpot } from './beaconMotion';
 import { beaconMode, beaconRisen, beaconTarget, HOME_HEIGHT, initialMotion, stepBeacon } from './beaconMotion';
 import type { BeaconPose } from './StrikeMark';
-import { StrikeMark } from './StrikeMark';
+import { BEACON_FRAME, StrikeMark } from './StrikeMark';
 import { useBeaconCarry } from './useBeaconCarry';
 
 /* The game refuses a mark it cannot place; the beacon waits this long for the battle before it returns to the tracker. */
@@ -134,9 +136,13 @@ function useBeaconFrame({
     if (frame.animating) {
       invalidate();
     }
-  });
+  }, BEACON_FRAME);
   return { pose, risen };
 }
+
+/* A primary press on an enabled handle picks the beacon up, unless a piece already in hand holds the pointer. */
+const mayPickUp = (event: PointerEvent, enabled: boolean, pointerSession: PointerSession | null) =>
+  enabled && event.button === 0 && !pointerSession?.busy;
 
 /** An invisible button over the disc: what players grab, and what assistive tech and tests find. */
 function BeaconHandle({
@@ -148,6 +154,7 @@ function BeaconHandle({
   enabled: boolean;
   pickUp(event: PointerEvent): void;
 }) {
+  const pointerSession = useContext(PointerSessionContext);
   return (
     <group ref={handle} position={[0, HOME_HEIGHT, 0]}>
       <Html center zIndexRange={[1, 0]}>
@@ -160,7 +167,7 @@ function BeaconHandle({
           onPointerDown={(event) => {
             /* The press is the beacon's alone: a piece under the handle must not start a carry of its own. */
             event.stopPropagation();
-            if (enabled && event.button === 0) {
+            if (mayPickUp(event.nativeEvent, enabled, pointerSession)) {
               pickUp(event.nativeEvent);
             }
           }}
