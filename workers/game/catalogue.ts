@@ -232,10 +232,14 @@ export class GameCatalogue {
     if (!supply) {
       throw new GameRejection('This ruleset is not available.');
     }
+    if (!supply.board) {
+      throw new GameRejection('This ruleset has no usable board.');
+    }
     const problems: CaptureProblem[] = [];
     const single = (captures: SlotCapture[]) => captures[0] ?? null;
     return rulesetCaptureSchema.parse({
       ruleset: supply.ruleset,
+      board: supply.board,
       capturedAt: now,
       decks: {
         treachery: single(await this.captureSlots('treachery', supply, problems)),

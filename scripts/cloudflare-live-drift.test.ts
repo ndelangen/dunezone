@@ -70,6 +70,11 @@ function liveBindings() {
       text: 'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor',
     },
     {
+      name: 'CONVEX_AUTH_BASE_URL',
+      type: 'plain_text',
+      text: 'https://exuberant-finch-263.eu-west-1.convex.site',
+    },
+    {
       name: 'CONVEX_RENDER_URL',
       type: 'plain_text',
       text: 'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/render',
@@ -255,7 +260,7 @@ describe('Cloudflare live drift check', () => {
     ).resolves.toEqual({
       worker: WORKER,
       domainCount: 1,
-      bindingCount: 23,
+      bindingCount: 24,
       secretCount: 4,
       retiredSecrets: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET'],
       cronCount: 1,

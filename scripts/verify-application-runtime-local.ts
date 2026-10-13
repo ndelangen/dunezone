@@ -18,6 +18,7 @@ import {
   commandEnvironment,
   composeDown,
   configureLocalAuth,
+  insertLocalSeedDocuments,
   localApplicationEnvironment,
   pushCode,
   selfHostedEnvironment,
@@ -102,18 +103,7 @@ try {
     administrativeEnvironment,
     true
   );
-  run(
-    [
-      'x',
-      'convex',
-      'run',
-      'provisioning:insertSeedDocuments',
-      JSON.stringify({ documents: JSON.stringify(documents) }),
-      ...target,
-    ],
-    administrativeEnvironment,
-    true
-  );
+  await insertLocalSeedDocuments(deployment, documents);
   const rulebooks = JSON.parse(
     run(
       ['x', 'convex', 'data', 'rulebooks', '--format', 'json', '--limit', '10', ...target],

@@ -339,9 +339,10 @@ export const removeFaction = mutation({
 
 /**
  * The slot vocabulary as Convex sees it.
- * `ruleset_asset_slots` declares the same five literals and cannot import the shared table without ceasing to be a schema, so a drift test holds the two together.
+ * `ruleset_asset_slots` declares the same slot literals and cannot import the shared table without ceasing to be a schema, so a drift test holds the two together.
  */
 const assetSlotValidator = v.union(
+  v.literal('board'),
   v.literal('treachery'),
   v.literal('spice'),
   v.literal('custom'),

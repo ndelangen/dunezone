@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { toStoredHeroKey } from '../../src/shared/factions/schema';
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import {
   bundlePage,
   cardPage,
@@ -50,6 +51,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     const custom = deckPage('custom-deck', [two], 1);
     seed(one, two, token, treachery, spice, tech, custom);
     peer.rulesets.set('ruleset-one', {
+      board: arrakisBoardCapture,
       ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
       slots: [slot('treachery', treachery), slot('spice', spice), slot('techToken', tech), slot('custom', custom)],
     });
@@ -61,6 +63,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     /* Capture only reads: no publication job, no mutation, nothing but the two reads reaches the catalogue. */
     expect(peerFunctions(before)).toEqual(new Set(['playCatalogue:rulesetSupply', 'playCatalogue:assetSupply']));
     const record = first.record;
+    expect(record.board).toEqual(arrakisBoardCapture);
     expect(record.ruleset).toEqual({ id: 'ruleset-one', slug: 'classic', name: 'Classic' });
     expect(record.readiness).toEqual({ ready: true, problems: [] });
     expect(record.decks.treachery.contents.members).toEqual([
@@ -98,6 +101,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     const spice = deckPage('spice-deck', cards.slice(0, 3));
     seed(...cards, treachery, spice);
     peer.rulesets.set('ruleset-one', {
+      board: arrakisBoardCapture,
       ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
       slots: [slot('treachery', treachery), slot('spice', spice)],
     });
@@ -120,6 +124,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     const referencing = referencingDeckPage('referencing-deck', [card], authored);
     seed(card, authored, traitor, referencing);
     peer.rulesets.set('ruleset-one', {
+      board: arrakisBoardCapture,
       ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
       slots: [
         slot('treachery', authored),
@@ -147,6 +152,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     const bundle = bundlePage('backless-bundle', [backless]);
     seed(present, treachery, empty, backless, bundle);
     peer.rulesets.set('ruleset-one', {
+      board: arrakisBoardCapture,
       ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
       slots: [slot('treachery', treachery), slot('custom', empty), slot('customTokens', bundle)],
     });
@@ -176,6 +182,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     const spice = deckPage('spice-deck', [card]);
     seed(card, treachery, spice);
     peer.rulesets.set('ruleset-one', {
+      board: arrakisBoardCapture,
       ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
       slots: [slot('treachery', treachery), slot('spice', spice)],
     });
@@ -198,6 +205,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     const spice = deckPage('spice-deck', [unpublished]);
     seed(unpublished, older, treachery, spice);
     peer.rulesets.set('ruleset-one', {
+      board: arrakisBoardCapture,
       ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
       slots: [slot('treachery', treachery), slot('spice', spice)],
     });
@@ -217,6 +225,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     const spice = deckPage('spice-deck', [arsunt, brokenLand], 3);
     seed(treacheryCard, arsunt, brokenLand, treachery, spice);
     peer.rulesets.set('ruleset-one', {
+      board: arrakisBoardCapture,
       ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
       slots: [slot('treachery', treachery), slot('spice', spice)],
     });
@@ -254,6 +263,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     const missing = deckPage('spice-deck', [published, unpublished]);
     seed(treacheryCard, published, unpublished, treachery, missing);
     peer.rulesets.set('ruleset-one', {
+      board: arrakisBoardCapture,
       ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
       slots: [slot('treachery', treachery), slot('spice', missing)],
     });

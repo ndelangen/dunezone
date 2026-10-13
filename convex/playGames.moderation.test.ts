@@ -292,6 +292,7 @@ describe('server-owned game-name moderation', () => {
   );
 
   test('a missing key or exhausted global checking capacity permits a valid custom name without HTTP', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
     vi.stubEnv('TYPESAFE_API_KEY', '');
     const { t, viewer, request } = await world();
     const fetchMock = vi.fn();

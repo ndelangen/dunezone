@@ -7,10 +7,11 @@
  * `holds` is the Asset type a slot accepts.
  * Which kind that is stays a rule of the link mutation rather than a column on the row: a `kind` column would be a second source of truth able to disagree with `slot`, which is why «Ruleset slot table generalises to assets» refused one.
  *
- * The literal union on `ruleset_asset_slots` in `convex/schema.ts` must list exactly these five.
+ * The literal union on `ruleset_asset_slots` in `convex/schema.ts` must list the same slots.
  * A drift test asserts it, since the schema cannot import this and stay a schema.
  */
 export const RULESET_ASSET_SLOTS = {
+  board: { holds: 'board', single: true, label: 'Board', noun: 'a board' },
   treachery: { holds: 'deck', single: true, label: 'Treachery deck', noun: 'a deck' },
   spice: { holds: 'deck', single: true, label: 'Spice deck', noun: 'a deck' },
   custom: { holds: 'deck', single: false, label: 'Custom decks', noun: 'decks' },
@@ -22,6 +23,7 @@ export type RulesetAssetSlot = keyof typeof RULESET_ASSET_SLOTS;
 
 /** Presentation order. Single-asset slots first, since they are the ones a ruleset is expected to fill. */
 export const RULESET_ASSET_SLOT_ORDER = [
+  'board',
   'treachery',
   'spice',
   'techToken',

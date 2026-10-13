@@ -284,6 +284,7 @@ export class GameSubscription {
       this.retryReason = null;
       const admit: ClientMessage = {
         type: 'admit',
+        supportsBoard: true,
         ticket,
         ...(this.connectionId ? { replaces: this.connectionId } : {}),
       };
@@ -444,6 +445,10 @@ export class GameSubscription {
 
   /* The Worker admits every socket as suspended until its authorization is confirmed, so on a first connect the pause is the connection still opening and reads as such. */
   private receiveAdmission(message: Extract<ServerMessage, { type: 'admission' }>) {
+    if (message.status === 'refresh') {
+      this.changeStatus('denied', 'This table needs a newer version of the page. Refresh to continue.');
+      return;
+    }
     /* A pause cancels a pending resync, so the wait for its view must not close the socket; the Worker sends a view when the pause lifts. */
     if (this.sawView) {
       clearTimeout(this.admissionTimer);

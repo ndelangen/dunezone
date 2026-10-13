@@ -1,7 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.mjs';
-import { admitPlayer, createPeer, createRuntime, provision, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import {
+  admitPlayer,
+  openGame,
+  createPeer,
+  createRuntime,
+  provision,
+  sendCommand,
+  syncView,
+  eventually,
+} from './native-runtime.fixture.mjs';
 
 const CREATOR = { userId: 'user-a', displayName: 'Synthetic A' };
 
@@ -22,7 +32,11 @@ describe('A real game provisions from its ruleset', () => {
     for (const page of pages) {
       peer.catalogue.set(`${page.asset.type}/${page.asset.slug}`, page);
     }
-    peer.rulesets.set('ruleset-one', { ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' }, slots });
+    peer.rulesets.set('ruleset-one', {
+      board: arrakisBoardCapture,
+      ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
+      slots,
+    });
   }
   const reads = (name) => peer.requests.filter((request) => request.function === name).length;
 
@@ -43,6 +57,49 @@ describe('A real game provisions from its ruleset', () => {
     });
     expect(await runtime.exec('SELECT * FROM metadata')).toEqual([]);
     expect((await runtime.captures()).ruleset).toBeNull();
+  });
+
+  it('asks old clients to refresh before entering a retained-board game', async () => {
+    seedRuleset([], []);
+    peer.provisional = true;
+    expect((await provision(runtime)).status).toBe(200);
+    const old = await openGame(runtime);
+    old.send({ type: 'admit', ticket: 'c'.repeat(64) });
+    expect((await old.message('admission', (message) => message.status === 'refresh')).status).toBe('refresh');
+    expect(old.messages.some((message) => message.type === 'view')).toBe(false);
+    const current = await admitPlayer(peer, runtime, 'current');
+    expect((await syncView(current)).snapshot.board).toEqual(arrakisBoardCapture);
+  });
+
+  it('requires a usable board even for provisional creation', async () => {
+    seedRuleset([], []);
+    peer.rulesets.get('ruleset-one').board = null;
+    peer.provisional = true;
+    expect((await provision(runtime)).status).not.toBe(200);
+    expect((await runtime.captures()).ruleset).toBeNull();
+  });
+
+  it('keeps the captured board through source changes, history and restart without copying it into history storage', async () => {
+    const card = cardPage('card-one');
+    const treachery = deckPage('treachery', [card]),
+      spice = deckPage('spice', [card]);
+    seedRuleset([card, treachery, spice], [slot('treachery', treachery), slot('spice', spice)]);
+    const captured = structuredClone(arrakisBoardCapture);
+    captured.asset.name = 'The original board';
+    peer.rulesets.get('ruleset-one').board = captured;
+    expect((await provision(runtime)).status).toBe(200);
+    const creator = await admitPlayer(peer, runtime, 'a');
+    expect((await syncView(creator)).snapshot.board).toEqual(captured);
+    peer.rulesets.delete('ruleset-one');
+    creator.send({ type: 'history', step: 0 });
+    const history = await eventually(
+      () => creator.messages.find((m) => m.type === 'history'),
+      'retained board in history'
+    );
+    expect(history.snapshot.board).toEqual(captured);
+    expect(JSON.parse((await runtime.exec('SELECT data FROM current_state WHERE id=1'))[0].data).board).toBeUndefined();
+    await runtime.restart();
+    expect((await syncView(await admitPlayer(peer, runtime, 'a'))).snapshot.board).toEqual(captured);
   });
 
   it('opens with the last turn its creator chose', async () => {

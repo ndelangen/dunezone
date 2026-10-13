@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { createPeer, createRuntime, eventually, provision } from './native-runtime.fixture.mjs';
 
 const CREDENTIALS = { gameId: 'fixture-game', secret: 'a'.repeat(64) };
@@ -88,7 +89,11 @@ describe('The hosted fixture room retires on request', () => {
       minimumPlayers: 4,
       creator: { userId: 'user-a', displayName: 'Synthetic A' },
     };
-    peer.rulesets.set('ruleset-one', { ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' }, slots: [] });
+    peer.rulesets.set('ruleset-one', {
+      board: arrakisBoardCapture,
+      ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
+      slots: [],
+    });
     runtime = await createRuntime(peer, 'game');
     expect((await provision(runtime)).status).toBe(200);
     expect((await post('retire', CREDENTIALS)).status).toBe(403);

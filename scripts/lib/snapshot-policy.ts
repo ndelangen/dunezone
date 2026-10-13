@@ -97,6 +97,7 @@ const readerEditionContents: Projection = {
 };
 
 export const snapshotPolicy = {
+  board_readiness: { fields: { asset_id: { parent: 'assets' }, usable: 'keep' }, rows: 'all' },
   authAccounts: { drop: 'sign-in accounts' },
   authSessions: { drop: 'sign-in sessions' },
   authRefreshTokens: { drop: 'sign-in tokens' },

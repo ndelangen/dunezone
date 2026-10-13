@@ -25,6 +25,10 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": [
       "/",
+      "/auth/signin",
+      "/auth/signin/*",
+      "/auth/callback",
+      "/auth/callback/*",
       "/__asset-publisher",
       "/__asset-publisher/*",
       "/social",
@@ -112,6 +116,7 @@
     "USER_IMAGE_PUBLIC_BASE_URL": "https://dune.zone",
     "CAPTURE_BASE_URL": "https://faction-sheet-asset-publisher.ndelangen.workers.dev",
     "CONVEX_EXECUTOR_BASE_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor",
+    "CONVEX_AUTH_BASE_URL": "https://exuberant-finch-263.eu-west-1.convex.site",
     "CONVEX_RENDER_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/render",
     "CONVEX_CLOUD_BASE_URL": "https://exuberant-finch-263.eu-west-1.convex.cloud",
     "GIT_SHA": "development",

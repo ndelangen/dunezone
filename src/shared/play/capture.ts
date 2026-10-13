@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { HistoricalBoardDefinition } from '../boards/schema';
 import { phaseDeclarationSchema } from '../factions/extraPhases';
 import type { PhaseDeclaration } from '../factions/extraPhases';
 import {
@@ -26,9 +27,16 @@ const identitySchema = z.string().min(1).max(160);
 const sourceSchema = z.object({ id: identitySchema, slug: z.string().max(160), name: z.string().max(160) });
 const slotAssetSchema = sourceSchema.extend({ type: z.string().max(160) });
 
+export const boardCaptureSchema = z.object({
+  asset: sourceSchema,
+  definition: HistoricalBoardDefinition,
+});
+export type BoardCapture = z.infer<typeof boardCaptureSchema>;
+
 /** What the catalogue answers when a game captures a ruleset: its identity and its slotted assets. */
 export const rulesetSupplySchema = z.object({
   ruleset: sourceSchema,
+  board: boardCaptureSchema.nullish(),
   slots: z.array(z.object({ slot: z.enum(RULESET_ASSET_SLOT_ORDER), asset: slotAssetSchema })),
 });
 export type RulesetSupply = z.infer<typeof rulesetSupplySchema>;
@@ -131,6 +139,8 @@ export type SlotCapture = z.infer<typeof slotCaptureSchema>;
 
 export const rulesetCaptureSchema = z.object({
   ruleset: sourceSchema,
+  /* Absent only in games retained before ruleset boards. */
+  board: boardCaptureSchema.optional(),
   capturedAt: tableCountSchema,
   decks: z.object({
     treachery: slotCaptureSchema.nullable(),

@@ -121,7 +121,7 @@ async function open(gameId, ticket) {
     socket.once('error', reject);
   });
   if (ticket) {
-    peer.send({ type: 'admit', ticket });
+    peer.send({ type: 'admit', supportsBoard: true, ticket });
   }
   return peer;
 }
