@@ -105,7 +105,7 @@ describe('public faction-sheet delivery', () => {
         cache: cacheState.value,
       });
       expect(response?.status, query).toBe(200);
-      expect(response?.headers.get('Cache-Control')).toBe('no-cache');
+      expect(response?.headers.get('Cache-Control')).toBe('public, max-age=3600');
       expect(response?.headers.has('Location')).toBe(false);
       expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD);
       await drained(ctx);
@@ -143,7 +143,7 @@ describe('public faction-sheet delivery', () => {
     });
 
     expect(response?.status).toBe(200);
-    expect(response?.headers.get('Cache-Control')).toBe('no-cache');
+    expect(response?.headers.get('Cache-Control')).toBe('public, max-age=3600');
   });
 
   test('serves an object with legacy token metadata through an unsigned URL', async () => {
@@ -158,7 +158,7 @@ describe('public faction-sheet delivery', () => {
     });
 
     expect(response?.status).toBe(200);
-    expect(response?.headers.get('Cache-Control')).toBe('no-cache');
+    expect(response?.headers.get('Cache-Control')).toBe('public, max-age=3600');
   });
 });
 
@@ -200,7 +200,7 @@ describe('public asset delivery boundary', () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get('Content-Type')).toBe('application/pdf');
     expect(response?.headers.get('Content-Disposition')).toBe('inline; filename="faction-sheet.pdf"');
-    expect(response?.headers.get('Cache-Control')).toBe('no-cache');
+    expect(response?.headers.get('Cache-Control')).toBe('public, max-age=3600');
     expect(response?.headers.get('Accept-Ranges')).toBe('bytes');
     expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD);
     expect(bucket.head).toHaveBeenCalledTimes(1);
@@ -223,7 +223,7 @@ describe('public asset delivery boundary', () => {
     expect(bucket.get).toHaveBeenCalledTimes(1);
     expect(second?.headers.get('Content-Type')).toBe(first?.headers.get('Content-Type'));
     expect(second?.headers.get('ETag')).toBe(first?.headers.get('ETag'));
-    expect(second?.headers.get('Cache-Control')).toBe('no-cache');
+    expect(second?.headers.get('Cache-Control')).toBe('public, max-age=3600');
   });
 
   test('HEAD returns the GET metadata without a body and without an R2 object read', async () => {
@@ -251,14 +251,14 @@ describe('public asset delivery boundary', () => {
     const changed = await run({ headers: { 'If-None-Match': '"etag-one"' } });
     expect(changed?.status).toBe(200);
     expect(changed?.headers.get('ETag')).toBe('"etag-two"');
-    expect(changed?.headers.get('Cache-Control')).toBe('no-cache');
+    expect(changed?.headers.get('Cache-Control')).toBe('public, max-age=3600');
     expect(new Uint8Array(await changed!.arrayBuffer())).toEqual(replacement);
     await drained(ctx);
 
     const unchanged = await run({ headers: { 'If-None-Match': '"etag-two"' } });
     expect(unchanged?.status).toBe(304);
     expect(unchanged?.body).toBeNull();
-    expect(unchanged?.headers.get('Cache-Control')).toBe('no-cache');
+    expect(unchanged?.headers.get('Cache-Control')).toBe('public, max-age=3600');
     expect(unchanged?.headers.get('ETag')).toBe('"etag-two"');
     expect(bucket.get).toHaveBeenCalledTimes(2);
     expect(cacheState.entries.size).toBe(1);
