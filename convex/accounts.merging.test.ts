@@ -352,7 +352,7 @@ test('two retained answers to one question remain readable and do not allow a th
   const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
   await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
   await t.finishAllScheduledFunctions(() => vi.runAllTimers());
-  const page = await admin.query(api.faq.questionPage, { rulesetSlug: 'rules', questionSlug: '1' });
+  const page = await admin.query(api.faq.question, { rulesetSlug: 'rules', questionSlug: '1' });
   expect(page).not.toBeNull();
   await expect(
     admin.mutation(api.faq.createAnswer, {

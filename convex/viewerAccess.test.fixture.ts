@@ -9,6 +9,7 @@ import {
   groupSubjectFacts,
 } from '../src/shared/access/collaborativeAccess';
 import type { AccessViewer } from '../src/shared/access/collaborativeAccess';
+import { faqQuestionPageForViewer } from '../src/shared/faq/questionPageAccess';
 import { api } from './_generated/api';
 import type { DataModel, Id } from './_generated/dataModel';
 
@@ -110,4 +111,14 @@ export async function groupPageAs(client: QueryClient, slug: string) {
     viewerAccess,
     roster: page.roster.map((member) => ({ ...member, capabilities: groupRosterCapabilities(viewerAccess, member) })),
   };
+}
+
+/** A FAQ question page as a given viewer sees it: who may edit, delete, accept and answer, combined as `useFaqQuestionPage` does. */
+export async function faqQuestionPageAs(client: QueryClient, locator: FunctionArgs<typeof api.faq.question>) {
+  const [page, session] = await Promise.all([
+    client.query(api.faq.question, locator),
+    client.query(api.profiles.session, {}),
+  ]);
+  const answered = await client.query(api.faq.viewerAnswered, { questionId: page.question.id });
+  return faqQuestionPageForViewer(page, session.userId, answered);
 }

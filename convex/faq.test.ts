@@ -7,6 +7,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { api } from './_generated/api';
 import schema from './schema';
+import { faqQuestionPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -54,7 +55,7 @@ describe('FAQ lifecycle', () => {
       question: '  What happens without an initial answer?  ',
       tags: ['rules'],
     });
-    const withoutAnswerPage = await owner.query(api.faq.questionPage, {
+    const withoutAnswerPage = await faqQuestionPageAs(owner, {
       rulesetSlug: ruleset.slug,
       questionSlug: withoutAnswer.questionSlug,
     });
@@ -69,7 +70,7 @@ describe('FAQ lifecycle', () => {
       initialAnswer: '  Yes, in the same mutation.  ',
       tags: ['errata'],
     });
-    const withAnswerPage = await owner.query(api.faq.questionPage, {
+    const withAnswerPage = await faqQuestionPageAs(owner, {
       rulesetSlug: ruleset.slug,
       questionSlug: withAnswer.questionSlug,
     });
@@ -99,7 +100,7 @@ describe('FAQ lifecycle', () => {
       accepted_answer_id: accepted._id,
     });
 
-    const ownerPage = await owner.query(api.faq.questionPage, {
+    const ownerPage = await faqQuestionPageAs(owner, {
       rulesetSlug: ruleset.slug,
       questionSlug: question.questionSlug,
     });
@@ -114,7 +115,7 @@ describe('FAQ lifecycle', () => {
       unacceptAnswer: true,
     });
 
-    const answererPage = await answerer.query(api.faq.questionPage, {
+    const answererPage = await faqQuestionPageAs(answerer, {
       rulesetSlug: ruleset.slug,
       questionSlug: question.questionSlug,
     });
@@ -200,7 +201,7 @@ describe('FAQ lifecycle', () => {
       });
     });
 
-    const page = await answerer.query(api.faq.questionPage, {
+    const page = await faqQuestionPageAs(answerer, {
       rulesetSlug: ruleset.slug,
       questionSlug: question.questionSlug,
     });
@@ -339,7 +340,7 @@ describe('FAQ lifecycle', () => {
       accepted_answer_id: answer._id,
     });
     expect(
-      await owner.query(api.faq.questionPage, {
+      await faqQuestionPageAs(owner, {
         rulesetSlug: ruleset.slug,
         questionSlug: question.questionSlug,
       })
@@ -350,7 +351,7 @@ describe('FAQ lifecycle', () => {
       accepted_answer_id: null,
     });
     expect(
-      await owner.query(api.faq.questionPage, {
+      await faqQuestionPageAs(owner, {
         rulesetSlug: ruleset.slug,
         questionSlug: question.questionSlug,
       })
@@ -375,7 +376,7 @@ describe('FAQ lifecycle', () => {
 
     await answerer.mutation(api.faq.deleteAnswer, { id: answer._id });
 
-    const page = await owner.query(api.faq.questionPage, {
+    const page = await faqQuestionPageAs(owner, {
       rulesetSlug: ruleset.slug,
       questionSlug: question.questionSlug,
     });

@@ -15,6 +15,7 @@ const VIEWER_QUERIES: Record<string, string> = {
   'accounts:connection': "Resolves a connection intent against the viewer's session.",
   'factions:listForLoadPicker': "The viewer's own and their Groups' factions.",
   'factions:listOwnedForGroupAssign': "The viewer's own factions.",
+  'faq:viewerAnswered': "Whether the viewer answered one question: the viewer half of the question page's answer form.",
   'groups:viewerAssignableGroups': 'The Groups the viewer can move a subject into.',
   'groups:viewerMembership': "The viewer's membership of one Group: the viewer half of a page's capabilities.",
   'playDirectory:listGames': 'Marks the games the viewer is seated in.',
@@ -37,7 +38,6 @@ const VIEWER_QUERIES: Record<string, string> = {
  * This list only shrinks.
  */
 const PENDING_VIEWER_SPLIT: Record<string, string> = {
-  'faq:questionPage': 'edit, delete, accept and answer capabilities',
   'migrations:adminDashboard': 'reports access state; becomes adminQuery once the page gates on session.isAdmin',
   'publicationAdmin:page': 'reports access state; becomes adminQuery once the page gates on session.isAdmin',
 };
@@ -50,6 +50,7 @@ const PENDING_VIEWER_SPLIT: Record<string, string> = {
 const DEPRECATED_VIEWER_QUERIES: Record<string, string> = {
   'assets:getPage': 'replaced by assets:page',
   'factions:getBySlug': 'replaced by factions:pageBySlug',
+  'faq:questionPage': 'replaced by faq:question',
   'groups:detailBySlug': 'replaced by groups:detailPage',
   'profiles:getBySlug': 'replaced by profiles:pageBySlug',
   'rulebooks:readerDeliveryPage': 'replaced by rulebooks:readerDelivery',
@@ -120,8 +121,8 @@ describe('query audience', () => {
      */
     const pending = Object.keys(PENDING_VIEWER_SPLIT).length;
     const deprecated = Object.keys(DEPRECATED_VIEWER_QUERIES).length;
-    expect(pending).toBeLessThanOrEqual(3);
-    expect(deprecated).toBeLessThanOrEqual(7);
+    expect(pending).toBeLessThanOrEqual(2);
+    expect(deprecated).toBeLessThanOrEqual(8);
     expect(pending + deprecated).toBeLessThanOrEqual(10);
   });
 
