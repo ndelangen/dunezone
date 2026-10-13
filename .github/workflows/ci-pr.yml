@@ -2,6 +2,8 @@ name: PR CI
 
 on:
   pull_request:
+    # ready_for_review starts the full run on a pull request that was a draft (#1921).
+    types: [opened, synchronize, reopened, ready_for_review]
   # Kept for a merge queue, which this repository cannot have today (GitHub offers none to a personal
   # account's repository); a change outside the hosted closure meets the shards in
   # hosted-play-daily.yml instead (#1598).
@@ -22,12 +24,19 @@ jobs:
     permissions:
       contents: read
       actions: read
+    # A draft runs only lint, test and game_release: agents iterate on drafts, and each push to a full
+    # run costs about 80 of the account's runner minutes (#1921).
+    with:
+      draft: ${{ github.event.pull_request.draft == true }}
     # Fork PRs and merge-group code get no secrets; Codecov falls back to tokenless uploads.
     secrets:
       CODECOV_TOKEN: ${{ github.event_name == 'pull_request' && secrets.CODECOV_TOKEN || '' }}
 
   # Single required check owning the definition of "green"; if: always() so a skipped verify can't pass (#290).
   ci_ok:
+    # A draft's run reports as ci_draft, so it never satisfies the required ci_ok check: marking the pull
+    # request ready starts the full run, and a merge waits for that run's ci_ok.
+    name: ${{ github.event.pull_request.draft == true && 'ci_draft' || 'ci_ok' }}
     if: always()
     needs: verify
     runs-on: ubuntu-latest
