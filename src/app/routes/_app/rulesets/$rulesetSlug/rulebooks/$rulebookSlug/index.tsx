@@ -79,9 +79,10 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
     const editionNumber = match.loaderDeps.editionNumber;
     /* The current Edition asked for by number is the bare page, so it shares the bare page's canonical. */
     const historical = editionNumber !== undefined && editionNumber !== loaderData?.rulebook.current_edition_number;
+    const editionSearch = historical ? '?edition=' + editionNumber : '';
     return publicPageHead({
       name: loaderData?.rulebook.name ?? 'Rulebook',
-      pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}/rulebooks/${encodeURIComponent(loaderData?.rulebook.slug ?? params.rulebookSlug)}${historical ? `?edition=${editionNumber}` : ''}`,
+      pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}/rulebooks/${encodeURIComponent(loaderData?.rulebook.slug ?? params.rulebookSlug)}${editionSearch}`,
       description: loaderData
         ? `${loaderData.ruleset.name}. Edition ${loaderData.edition.edition_number}. Read the published Rulebook on Dune Zone.`
         : '',
