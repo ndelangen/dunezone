@@ -1,9 +1,11 @@
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { CustomCardTokenResolution } from '@shared/assets/schema';
 import { compareCodeUnits } from '@shared/compareText';
 import { useReducer, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import { useStormCardAuthoring } from '@db/cardFrontPresets';
 import { useCustomCardTokens } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -51,6 +53,17 @@ function DraftTokenRead({
   return render(tokens ?? { tokens: {}, error: null });
 }
 
+function StormDraftRead({
+  ids,
+  render,
+}: {
+  ids: string[];
+  render: (tokens: z.infer<typeof CustomCardTokenResolution> & { style?: CardFrontStyle }) => ReactNode;
+}) {
+  const data = useStormCardAuthoring(ids);
+  return render(data ?? { tokens: {}, error: null });
+}
+
 export function LayeredCreatePage<Draft extends LayeredCardDraft>({ config }: { config: LayeredCardEditing<Draft> }) {
   const Editor = config.Editor;
   const saving = useCardCreate(config.type);
@@ -81,8 +94,9 @@ export function LayeredCreatePage<Draft extends LayeredCardDraft>({ config }: { 
   const tokenIds = [
     ...new Set(state.data.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : []))),
   ].sort(compareCodeUnits);
-  const editor = ({ tokens, error }: z.infer<typeof CustomCardTokenResolution>) => (
+  const editor = ({ tokens, error, style }: z.infer<typeof CustomCardTokenResolution> & { style?: CardFrontStyle }) => (
     <Editor
+      frontStyle={style}
       tokens={tokens}
       tokensError={error}
       tokenPicker={layeredCardTokenPicker}
@@ -113,7 +127,13 @@ export function LayeredCreatePage<Draft extends LayeredCardDraft>({ config }: { 
       }}
       saveError={saving.error}
     >
-      {tokenIds.length ? <DraftTokenRead ids={tokenIds} render={editor} /> : editor({ tokens: {}, error: null })}
+      {config.type === 'card-storm' ? (
+        <StormDraftRead ids={tokenIds} render={editor} />
+      ) : tokenIds.length ? (
+        <DraftTokenRead ids={tokenIds} render={editor} />
+      ) : (
+        editor({ tokens: {}, error: null })
+      )}
     </CardCreateFrame>
   );
 }

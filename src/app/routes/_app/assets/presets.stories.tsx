@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
+import { CARD_FRONT_PUBLICATION_REVISIONS } from '@shared/assets/cardFrontPresets';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { db, storybookViewer } from '@db/storybook';
@@ -10,7 +11,7 @@ import { pageStoryMeta } from '../../storybookConfig';
 
 const meta = preview.meta({
   ...pageStoryMeta,
-  title: 'Assets/Card-back presets',
+  title: 'Assets/Card presets',
   args: { path: '/assets/__presets' },
 });
 
@@ -25,12 +26,12 @@ const administratorDatabase = db((baseline) => {
   }));
   const settings = baseline.admin_settings[0];
   if (settings) {
-    settings.renderer_revisions['cardback-preset'] = 1;
+    Object.assign(settings.renderer_revisions, CARD_FRONT_PUBLICATION_REVISIONS, { 'cardback-preset': 1 });
   } else {
     baseline.admin_settings.push({
       key: 'publication',
       publication_pickup_enabled: false,
-      renderer_revisions: { 'cardback-preset': 1 },
+      renderer_revisions: { ...CARD_FRONT_PUBLICATION_REVISIONS, 'cardback-preset': 1 },
       updated_at: 0,
     });
   }
@@ -65,12 +66,40 @@ export const Administrator = meta.story({
     ).resolves.toBeVisible();
   },
 });
+/* The shared front keeps its draft when changing face, then saves through the real mutation. */
+export const FrontAdministrator = meta.story({
+  parameters: { database: administratorDatabase },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('radio', { name: 'Front' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Icon background' }));
+    const influence = await waitForFrame(() =>
+      within(page.getByLabelText('Pattern influence with perceptual response from whisper to dominant')).getByRole(
+        'slider'
+      )
+    );
+    await userEvent.click(influence);
+    await userEvent.keyboard('{Home}');
+    await expect(influence).toHaveAttribute('aria-valuenow', '0');
+    await userEvent.click(page.getByRole('radio', { name: 'Back' }));
+    await expect(page.getByRole('textbox', { name: 'Label' })).toBeVisible();
+    await userEvent.click(page.getByRole('radio', { name: 'Front' }));
+    await expect(
+      within(page.getByLabelText('Pattern influence with perceptual response from whisper to dominant')).getByRole(
+        'slider'
+      )
+    ).toHaveAttribute('aria-valuenow', '0');
+    await userEvent.click(page.getByRole('button', { name: 'Save and publish' }));
+    await expect(page.findByText('Preset saved. Cards update when publication finishes.')).resolves.toBeVisible();
+  },
+});
+
 export const SignedOut = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(
-      page.findByText('to edit card-back presets.', { exact: false }, { timeout: 30_000 })
+      page.findByText('to edit card presets.', { exact: false }, { timeout: 30_000 })
     ).resolves.toBeVisible();
   },
 });

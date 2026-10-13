@@ -1,4 +1,5 @@
 import { Stack } from '@mantine/core';
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { CanvasScale } from '@ui/layout/CanvasScale';
@@ -42,7 +43,7 @@ const DECAL_OFFSET_RANGE = [450, 630] as const;
 
 /* The rail proof. */
 
-function FillCard({ draft }: { draft: TreacheryDraft }) {
+function FillCard({ draft, frontStyle }: { draft: TreacheryDraft; frontStyle?: CardFrontStyle }) {
   return (
     <CanvasScale
       rounded
@@ -50,7 +51,7 @@ function FillCard({ draft }: { draft: TreacheryDraft }) {
       canvasHeight={CARD_SIZE.height}
       frameClassName={styles.proofFrame}
     >
-      <TreacheryCard {...draft} />
+      <TreacheryCard {...draft} frontStyle={frontStyle} />
     </CanvasScale>
   );
 }
@@ -112,6 +113,7 @@ const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
  * Pages own the draft, its persistence, and the surrounding authoring chrome.
  */
 export function TreacheryCardEditor({
+  frontStyle,
   nameField,
   draft,
   patch,
@@ -119,6 +121,7 @@ export function TreacheryCardEditor({
   onChapterChange,
   onSettle,
 }: {
+  frontStyle?: CardFrontStyle;
   draft: TreacheryDraft;
   /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
   nameField: ReactNode;
@@ -163,7 +166,7 @@ export function TreacheryCardEditor({
         </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
-        <FillCard draft={draft} />
+        <FillCard draft={draft} frontStyle={frontStyle} />
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>
   );

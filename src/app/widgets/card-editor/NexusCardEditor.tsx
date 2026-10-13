@@ -1,5 +1,6 @@
 import { Button, Stack, TextInput } from '@mantine/core';
 import { GENERIC, LOGO } from '@shared/assetIds';
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { NexusCardAsset } from '@shared/assets/schema';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -115,6 +116,7 @@ function FactionFields({
 /** Pages own the draft and persistence; this workbench edits the constrained Nexus face and shows its proof. */
 export function NexusCardEditor({
   nameField,
+  frontStyle,
   draft,
   patch,
   chapter,
@@ -122,6 +124,7 @@ export function NexusCardEditor({
   onSettle,
 }: Readonly<{
   nameField: ReactNode;
+  frontStyle?: CardFrontStyle;
   draft: NexusDraft;
   patch: (update: Partial<NexusDraft>) => void;
   memory: NexusMemory;
@@ -192,7 +195,7 @@ export function NexusCardEditor({
           canvasHeight={CARD_SIZE.height}
           frameClassName={styles.proofFrame}
         >
-          <NexusCard {...draft} />
+          <NexusCard {...draft} frontStyle={frontStyle} />
         </CanvasScale>
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>

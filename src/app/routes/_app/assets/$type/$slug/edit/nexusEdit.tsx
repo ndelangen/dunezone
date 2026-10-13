@@ -1,3 +1,4 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
 import type { AssetPublicPage } from '@app/db/assets';
@@ -29,7 +30,7 @@ function renderEditSession(props: Readonly<CardEditSessionProps<NexusDraft>>) {
   return <CardEditSession {...props} />;
 }
 
-function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessionProps<NexusDraft>>) {
+function CardEditSession({ frontPresets, asset, initialDraft, access }: Readonly<CardEditSessionProps<NexusDraft>>) {
   const saving = useCardSave('card-nexus', asset);
   const [chapter, setChapter] = useState<NexusChapter>('head');
   const [state, dispatch] = useReducer(reduceNexusDraft, undefined, () =>
@@ -65,6 +66,7 @@ function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessi
       saveError={saving.error}
     >
       <NexusCardEditor
+        frontStyle={cardFrontStyleFor('card-nexus', state.data, frontPresets)}
         nameField={nameField}
         draft={state.data}
         patch={patch}

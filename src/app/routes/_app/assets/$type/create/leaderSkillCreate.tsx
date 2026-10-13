@@ -1,5 +1,7 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
+import { useCardFrontPresets } from '@db/cardFrontPresets';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   INITIAL_LEADER_SKILL_DRAFT,
@@ -19,6 +21,7 @@ import { CardCreateFrame, useCardCreate } from './cardCreatePage';
 
 /** The leader skill card create page, mounted by the generic asset create route. */
 export function LeaderSkillCreatePage() {
+  const frontPresets = useCardFrontPresets();
   const saving = useCardCreate('card-leaderability');
   const [state, dispatch] = useReducer(reduceLeaderSkill, undefined, () =>
     openingLeaderSkillState(INITIAL_LEADER_SKILL_DRAFT, INITIAL_LEADER_SKILL_DRAFT)
@@ -65,6 +68,7 @@ export function LeaderSkillCreatePage() {
       saveError={saving.error}
     >
       <LeaderSkillCardEditor
+        frontStyle={cardFrontStyleFor('card-leaderability', state.data, frontPresets ?? [])}
         nameField={nameField}
         draft={state.data}
         patch={patch}

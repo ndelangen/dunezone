@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 
 import type { Background } from '../factions/schema';
+import type { CardFrontStyle } from './cardFrontPresets';
 import type { CustomCard, StrongholdCard } from './schema';
 
 /** The stronghold template keeps its Head, symbol, frame and layer positions fixed. */
@@ -12,25 +13,27 @@ export const STRONGHOLD_BACKGROUND: z.infer<typeof Background> = {
   definition: 1,
 };
 
+export const STRONGHOLD_ICON_BACKGROUND: z.infer<typeof Background> = {
+  image: '/image/texture/082.jpg',
+  colors: ['#B83A30', '#61231C'],
+  influence: 1,
+  invert: false,
+  definition: 1,
+};
+
 /** Builds the constrained face with the same composition renderer used by custom cards. */
-export function strongholdCardComposition(value: z.infer<typeof StrongholdCard>): z.infer<typeof CustomCard> {
+export function strongholdCardComposition(
+  value: z.infer<typeof StrongholdCard>,
+  frontStyle?: CardFrontStyle
+): z.infer<typeof CustomCard> {
   const { name, decals, text } = value;
   const ordered = [...decals.filter((decal) => decal.muted), ...decals.filter((decal) => !decal.muted)];
   const identity = (index: number) => `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`;
   return {
     name,
     subName: 'Stronghold',
-    head: STRONGHOLD_BACKGROUND,
-    icon: [
-      {
-        image: '/image/texture/082.jpg',
-        colors: ['#C33D38', '#A22528'],
-        influence: 0.5,
-        invert: false,
-        definition: 1,
-      },
-      '/vector/icon/stronghold.svg',
-    ],
+    head: frontStyle?.head ?? STRONGHOLD_BACKGROUND,
+    icon: [frontStyle?.iconBackground ?? STRONGHOLD_ICON_BACKGROUND, '/vector/icon/stronghold.svg'],
     iconScale: 1,
     format: 'decal-window',
     layers: [

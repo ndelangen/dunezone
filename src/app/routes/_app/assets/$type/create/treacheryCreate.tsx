@@ -1,5 +1,7 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
+import { useCardFrontPresets } from '@db/cardFrontPresets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
@@ -48,6 +50,7 @@ function reduce(state: TreacheryState, event: TreacheryEvent): TreacheryState {
 
 /** The treachery card create page. Mounted by the generic `$type/create` route when the type is `card-treachery`. */
 export function TreacheryCreatePage() {
+  const frontPresets = useCardFrontPresets();
   const saving = useCardCreate('card-treachery');
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
   const [state, dispatch] = useReducer(reduce, undefined, () =>
@@ -91,6 +94,7 @@ export function TreacheryCreatePage() {
       saveError={saving.error}
     >
       <TreacheryCardEditor
+        frontStyle={cardFrontStyleFor('card-treachery', state.data, frontPresets ?? [])}
         nameField={nameField}
         draft={state.data}
         patch={patch}

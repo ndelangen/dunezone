@@ -5,6 +5,7 @@ import { v } from 'convex/values';
 
 import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
 import { cardbackPresetKeySchema } from '../src/shared/assets/cardbackPresetKeys';
+import { cardFrontPresetKeySchema, cardFrontStyleSchema } from '../src/shared/assets/cardFrontPresets';
 import { CardBack } from '../src/shared/assets/schema';
 import { playProvisionFailureReasonSchema, playStageSchema } from '../src/shared/play/admission';
 import { playDirectorySummarySchema } from '../src/shared/play/directory';
@@ -32,6 +33,12 @@ export default defineSchema({
     ...authTables.authSessions.validator.fields,
     expiry_job_id: v.optional(v.id('_scheduled_functions')),
   }).index('userId', ['userId']),
+  card_front_presets: defineTable({
+    key: zodToConvex(cardFrontPresetKeySchema),
+    style: zodToConvex(cardFrontStyleSchema),
+    revision: v.number(),
+    updated_at: v.number(),
+  }).index('by_key', ['key']),
   cardback_presets: defineTable({
     key: zodToConvex(cardbackPresetKeySchema),
     cardback: zodToConvex(CardBack),
