@@ -15,6 +15,7 @@ const queue: string[] = [];
 let loading = 0;
 /* The faces each open table asked for. */
 const tables = new Map<object, readonly string[]>();
+let dropPending = false;
 
 function loadNext() {
   while (loading < PARALLEL_LOADS && queue.length > 0) {
@@ -45,8 +46,20 @@ function preloadCardFaces(hrefs: readonly string[]) {
   loadNext();
 }
 
-/** Lets go of every face no open table asked for. */
+/*
+ * Lets go of every face no open table asked for, once the effects of this commit have run.
+ * React runs every cleanup of a commit before any setup, so a table whose faces are only being replaced is not yet
+ * listed while an earlier table's setup runs.
+ */
+function dropUnwantedFacesSoon() {
+  if (!dropPending) {
+    dropPending = true;
+    queueMicrotask(dropUnwantedFaces);
+  }
+}
+
 function dropUnwantedFaces() {
+  dropPending = false;
   const wanted = new Set([...tables.values()].flat());
   for (const href of requested.keys()) {
     if (!wanted.has(href)) {
@@ -68,8 +81,8 @@ export function usePreloadedCardFaces(hrefs: readonly string[] | undefined) {
     }
     const table = {};
     tables.set(table, hrefs);
-    dropUnwantedFaces();
     preloadCardFaces(hrefs);
+    dropUnwantedFacesSoon();
     return () => {
       tables.delete(table);
     };

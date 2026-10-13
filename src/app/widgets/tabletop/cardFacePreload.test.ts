@@ -29,28 +29,55 @@ test('a face already held by an open table is not fetched again', () => {
   first.unmount();
 });
 
-test('a game left keeps its faces until a table asks for others', () => {
+/* Lets the release queued by a commit's effects run. */
+const settle = () => Promise.resolve();
+
+/* Opens a table on the faces, lets its effects settle, and closes it. */
+async function visit(faces: string[]) {
+  const table = renderHook(() => usePreloadedCardFaces(faces));
+  await settle();
+  table.unmount();
+}
+
+test('a game left keeps its faces until a table asks for others', async () => {
   const started = trackImages();
   const left = ['https://dune.zone/c.jpg'];
   const other = ['https://dune.zone/d.jpg'];
-  renderHook(() => usePreloadedCardFaces(left)).unmount();
+  await visit(left);
   /* Going back to the game just left finds its faces. */
-  renderHook(() => usePreloadedCardFaces(left)).unmount();
+  await visit(left);
   expect(started).toEqual(left);
   /* Another game's table lets them go, so going back asks for them again. */
-  renderHook(() => usePreloadedCardFaces(other)).unmount();
-  renderHook(() => usePreloadedCardFaces(left)).unmount();
+  await visit(other);
+  await visit(left);
   expect(started).toEqual([...left, ...other, ...left]);
 });
 
-test('two open tables keep the faces of both', () => {
+test('two open tables keep the faces of both', async () => {
   const started = trackImages();
   const first = ['https://dune.zone/e.jpg'];
   const second = ['https://dune.zone/f.jpg'];
   const one = renderHook(() => usePreloadedCardFaces(first));
   const two = renderHook(() => usePreloadedCardFaces(second));
-  renderHook(() => usePreloadedCardFaces(first)).unmount();
+  await settle();
+  await visit(first);
   expect(started).toEqual([...first, ...second]);
   one.unmount();
   two.unmount();
+});
+
+test('tables handed the same faces again in one commit keep them', async () => {
+  const started = trackImages();
+  const first = 'https://dune.zone/g.jpg';
+  const second = 'https://dune.zone/h.jpg';
+  /* Each render hands both tables fresh arrays, so React replaces both effects in the same commit. */
+  const tables = renderHook(() => {
+    usePreloadedCardFaces([first]);
+    usePreloadedCardFaces([second]);
+  });
+  await settle();
+  tables.rerender();
+  await settle();
+  expect(started).toEqual([first, second]);
+  tables.unmount();
 });

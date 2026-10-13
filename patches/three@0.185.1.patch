@@ -2,7 +2,7 @@ diff --git a/node_modules/three/.bun-tag-cfe6290c95bb4ce1 b/.bun-tag-cfe6290c95b
 new file mode 100644
 index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/build/three.webgpu.js b/build/three.webgpu.js
-index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..0e032e1a9cdedb7c0b3b9ad878b1399ecf1e888e 100644
+index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..079fcfc4e30f9803f95d7d9b6a9a2149380bf59e 100644
 --- a/build/three.webgpu.js
 +++ b/build/three.webgpu.js
 @@ -30110,6 +30110,9 @@ class RenderObject {
@@ -111,33 +111,94 @@ index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..0e032e1a9cdedb7c0b3b9ad878b1399e
  			this.pipelines.delete( renderObject );
  			this.bindings.deleteForRender( renderObject );
  			this.nodes.delete( renderObject );
-@@ -31205,6 +31262,8 @@ class Geometries extends DataMap {
+@@ -31110,6 +31167,19 @@ function getWireframeIndex( geometry ) {
+ 
+ }
+ 
++/**
++ * The buffer an attribute's data lives in: interleaved attributes share theirs.
++ *
++ * @private
++ * @param {BufferAttribute} attribute - The attribute.
++ * @return {BufferAttribute|InterleavedBuffer} The buffer.
++ */
++function drawnBuffer( attribute ) {
++
++	return attribute.isInterleavedBufferAttribute ? attribute.data : attribute;
++
++}
++
+ /**
+  * This renderer module manages geometries.
+  *
+@@ -31165,6 +31235,16 @@ class Geometries extends DataMap {
+ 		 */
+ 		this._geometryDisposeListeners = new Map();
+ 
++		/**
++		 * How many live geometries drew each buffer: an attribute, or the shared
++		 * buffer of interleaved ones. A geometry's dispose frees a buffer only
++		 * once no other live geometry draws it.
++		 *
++		 * @private
++		 * @type {WeakMap<BufferAttribute|InterleavedBuffer,number>}
++		 */
++		this._bufferDrawers = new WeakMap();
++
+ 	}
+ 
+ 	/**
+@@ -31205,6 +31285,9 @@ class Geometries extends DataMap {
  		const geometryData = this.get( geometry );
  
  		geometryData.initialized = true;
 +		geometryData.attributeLists = new WeakSet();
 +		geometryData.drawnAttributes = new Set();
++		geometryData.drawnBuffers = new Set();
  
  		this.info.memory.geometries ++;
  
-@@ -31227,6 +31286,16 @@ class Geometries extends DataMap {
+@@ -31213,7 +31296,6 @@ class Geometries extends DataMap {
+ 			this.info.memory.geometries --;
+ 
+ 			const index = geometry.index;
+-			const geometryAttributes = renderObject.getAttributes();
+ 
+ 			if ( index !== null ) {
+ 
+@@ -31221,12 +31303,29 @@ class Geometries extends DataMap {
  
  			}
  
-+			// the render object that first drew the geometry lists only the attributes its material read; a later
-+			// material may have uploaded others (a textured face's uv), which would otherwise keep their buffers.
-+			// Only attributes drawn through this geometry go: another geometry may share one this one never used
+-			for ( const geometryAttribute of geometryAttributes ) {
++			// every attribute any material drew through this geometry, not just the first render object's (a later
++			// textured face's uv would otherwise keep its buffer); a buffer another live geometry still draws stays
 +
-+			for ( const drawnAttribute of geometryData.drawnAttributes ) {
++			for ( const buffer of geometryData.drawnBuffers ) {
 +
-+				this.attributes.delete( drawnAttribute );
++				this._bufferDrawers.set( buffer, this._bufferDrawers.get( buffer ) - 1 );
 +
 +			}
++
++			for ( const drawnAttribute of geometryData.drawnAttributes ) {
+ 
+-				this.attributes.delete( geometryAttribute );
++				if ( this._bufferDrawers.get( drawnBuffer( drawnAttribute ) ) === 0 ) {
++
++					this.attributes.delete( drawnAttribute );
++
++				}
+ 
+ 			}
+ 
++			geometryData.attributeLists = new WeakSet();
++			geometryData.drawnAttributes = new Set();
++			geometryData.drawnBuffers = new Set();
 +
  			const wireframeAttribute = this.wireframes.get( geometry );
  
  			if ( wireframeAttribute !== undefined ) {
-@@ -31259,6 +31328,15 @@ class Geometries extends DataMap {
+@@ -31259,6 +31358,28 @@ class Geometries extends DataMap {
  		// attributes
  
  		const attributes = renderObject.getAttributes();
@@ -147,13 +208,26 @@ index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..0e032e1a9cdedb7c0b3b9ad878b1399e
 +
 +			geometryData.attributeLists.add( attributes );
 +
-+			for ( const attribute of attributes ) geometryData.drawnAttributes.add( attribute );
++			for ( const attribute of attributes ) {
++
++				geometryData.drawnAttributes.add( attribute );
++
++				const buffer = drawnBuffer( attribute );
++
++				if ( geometryData.drawnBuffers.has( buffer ) === false ) {
++
++					geometryData.drawnBuffers.add( buffer );
++					this._bufferDrawers.set( buffer, ( this._bufferDrawers.get( buffer ) || 0 ) + 1 );
++
++				}
++
++			}
 +
 +		}
  
  		for ( const attribute of attributes ) {
  
-@@ -32897,6 +32975,12 @@ class Bindings extends DataMap {
+@@ -32897,6 +33018,12 @@ class Bindings extends DataMap {
  
  							this.backend.destroySampler( binding );
  
@@ -166,7 +240,7 @@ index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..0e032e1a9cdedb7c0b3b9ad878b1399e
  						}
  
  						binding.release();
-@@ -34021,6 +34105,71 @@ class Textures extends DataMap {
+@@ -34021,6 +34148,71 @@ class Textures extends DataMap {
  		 */
  		this._htmlTextures = new Set();
  
@@ -238,7 +312,7 @@ index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..0e032e1a9cdedb7c0b3b9ad878b1399e
  	}
  
  	/**
-@@ -34153,7 +34302,7 @@ class Textures extends DataMap {
+@@ -34153,7 +34345,7 @@ class Textures extends DataMap {
  
  			};
  
@@ -247,7 +321,7 @@ index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..0e032e1a9cdedb7c0b3b9ad878b1399e
  
  		}
  
-@@ -34373,7 +34522,7 @@ class Textures extends DataMap {
+@@ -34373,7 +34565,7 @@ class Textures extends DataMap {
  
  			};
  
@@ -256,7 +330,7 @@ index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..0e032e1a9cdedb7c0b3b9ad878b1399e
  
  		}
  
-@@ -34524,7 +34673,7 @@ class Textures extends DataMap {
+@@ -34524,7 +34716,7 @@ class Textures extends DataMap {
  
  			//
  
@@ -265,7 +339,7 @@ index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..0e032e1a9cdedb7c0b3b9ad878b1399e
  
  			//
  
-@@ -34563,7 +34712,7 @@ class Textures extends DataMap {
+@@ -34563,7 +34755,7 @@ class Textures extends DataMap {
  
  			//
  
@@ -274,7 +348,7 @@ index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..0e032e1a9cdedb7c0b3b9ad878b1399e
  
  			// if a texture is not ready for use, it falls back to a default texture so it's possible
  			// to use it for rendering. If a texture in this state is disposed, it's important to
-@@ -67143,6 +67292,25 @@ class WebGLAttributeUtils {
+@@ -67143,6 +67335,25 @@ class WebGLAttributeUtils {
  
  		const attributeData = backend.get( attribute );
  
@@ -301,7 +375,7 @@ index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..0e032e1a9cdedb7c0b3b9ad878b1399e
  
  		backend.delete( attribute );
 diff --git a/build/three.webgpu.nodes.js b/build/three.webgpu.nodes.js
-index f707acc24f5711fdae065ce920b08435b0869c1b..79a9f2e9b1174dce63e4aa9649d81edc2a05950b 100644
+index f707acc24f5711fdae065ce920b08435b0869c1b..edf8a899a8f33bb9e9f95335950a605b8d6e5dec 100644
 --- a/build/three.webgpu.nodes.js
 +++ b/build/three.webgpu.nodes.js
 @@ -30110,6 +30110,9 @@ class RenderObject {
@@ -410,33 +484,94 @@ index f707acc24f5711fdae065ce920b08435b0869c1b..79a9f2e9b1174dce63e4aa9649d81edc
  			this.pipelines.delete( renderObject );
  			this.bindings.deleteForRender( renderObject );
  			this.nodes.delete( renderObject );
-@@ -31205,6 +31262,8 @@ class Geometries extends DataMap {
+@@ -31110,6 +31167,19 @@ function getWireframeIndex( geometry ) {
+ 
+ }
+ 
++/**
++ * The buffer an attribute's data lives in: interleaved attributes share theirs.
++ *
++ * @private
++ * @param {BufferAttribute} attribute - The attribute.
++ * @return {BufferAttribute|InterleavedBuffer} The buffer.
++ */
++function drawnBuffer( attribute ) {
++
++	return attribute.isInterleavedBufferAttribute ? attribute.data : attribute;
++
++}
++
+ /**
+  * This renderer module manages geometries.
+  *
+@@ -31165,6 +31235,16 @@ class Geometries extends DataMap {
+ 		 */
+ 		this._geometryDisposeListeners = new Map();
+ 
++		/**
++		 * How many live geometries drew each buffer: an attribute, or the shared
++		 * buffer of interleaved ones. A geometry's dispose frees a buffer only
++		 * once no other live geometry draws it.
++		 *
++		 * @private
++		 * @type {WeakMap<BufferAttribute|InterleavedBuffer,number>}
++		 */
++		this._bufferDrawers = new WeakMap();
++
+ 	}
+ 
+ 	/**
+@@ -31205,6 +31285,9 @@ class Geometries extends DataMap {
  		const geometryData = this.get( geometry );
  
  		geometryData.initialized = true;
 +		geometryData.attributeLists = new WeakSet();
 +		geometryData.drawnAttributes = new Set();
++		geometryData.drawnBuffers = new Set();
  
  		this.info.memory.geometries ++;
  
-@@ -31227,6 +31286,16 @@ class Geometries extends DataMap {
+@@ -31213,7 +31296,6 @@ class Geometries extends DataMap {
+ 			this.info.memory.geometries --;
+ 
+ 			const index = geometry.index;
+-			const geometryAttributes = renderObject.getAttributes();
+ 
+ 			if ( index !== null ) {
+ 
+@@ -31221,12 +31303,29 @@ class Geometries extends DataMap {
  
  			}
  
-+			// the render object that first drew the geometry lists only the attributes its material read; a later
-+			// material may have uploaded others (a textured face's uv), which would otherwise keep their buffers.
-+			// Only attributes drawn through this geometry go: another geometry may share one this one never used
+-			for ( const geometryAttribute of geometryAttributes ) {
++			// every attribute any material drew through this geometry, not just the first render object's (a later
++			// textured face's uv would otherwise keep its buffer); a buffer another live geometry still draws stays
 +
-+			for ( const drawnAttribute of geometryData.drawnAttributes ) {
++			for ( const buffer of geometryData.drawnBuffers ) {
 +
-+				this.attributes.delete( drawnAttribute );
++				this._bufferDrawers.set( buffer, this._bufferDrawers.get( buffer ) - 1 );
 +
 +			}
++
++			for ( const drawnAttribute of geometryData.drawnAttributes ) {
+ 
+-				this.attributes.delete( geometryAttribute );
++				if ( this._bufferDrawers.get( drawnBuffer( drawnAttribute ) ) === 0 ) {
++
++					this.attributes.delete( drawnAttribute );
++
++				}
+ 
+ 			}
+ 
++			geometryData.attributeLists = new WeakSet();
++			geometryData.drawnAttributes = new Set();
++			geometryData.drawnBuffers = new Set();
 +
  			const wireframeAttribute = this.wireframes.get( geometry );
  
  			if ( wireframeAttribute !== undefined ) {
-@@ -31259,6 +31328,15 @@ class Geometries extends DataMap {
+@@ -31259,6 +31358,28 @@ class Geometries extends DataMap {
  		// attributes
  
  		const attributes = renderObject.getAttributes();
@@ -446,13 +581,26 @@ index f707acc24f5711fdae065ce920b08435b0869c1b..79a9f2e9b1174dce63e4aa9649d81edc
 +
 +			geometryData.attributeLists.add( attributes );
 +
-+			for ( const attribute of attributes ) geometryData.drawnAttributes.add( attribute );
++			for ( const attribute of attributes ) {
++
++				geometryData.drawnAttributes.add( attribute );
++
++				const buffer = drawnBuffer( attribute );
++
++				if ( geometryData.drawnBuffers.has( buffer ) === false ) {
++
++					geometryData.drawnBuffers.add( buffer );
++					this._bufferDrawers.set( buffer, ( this._bufferDrawers.get( buffer ) || 0 ) + 1 );
++
++				}
++
++			}
 +
 +		}
  
  		for ( const attribute of attributes ) {
  
-@@ -32897,6 +32975,12 @@ class Bindings extends DataMap {
+@@ -32897,6 +33018,12 @@ class Bindings extends DataMap {
  
  							this.backend.destroySampler( binding );
  
@@ -465,7 +613,7 @@ index f707acc24f5711fdae065ce920b08435b0869c1b..79a9f2e9b1174dce63e4aa9649d81edc
  						}
  
  						binding.release();
-@@ -34021,6 +34105,71 @@ class Textures extends DataMap {
+@@ -34021,6 +34148,71 @@ class Textures extends DataMap {
  		 */
  		this._htmlTextures = new Set();
  
@@ -537,7 +685,7 @@ index f707acc24f5711fdae065ce920b08435b0869c1b..79a9f2e9b1174dce63e4aa9649d81edc
  	}
  
  	/**
-@@ -34153,7 +34302,7 @@ class Textures extends DataMap {
+@@ -34153,7 +34345,7 @@ class Textures extends DataMap {
  
  			};
  
@@ -546,7 +694,7 @@ index f707acc24f5711fdae065ce920b08435b0869c1b..79a9f2e9b1174dce63e4aa9649d81edc
  
  		}
  
-@@ -34373,7 +34522,7 @@ class Textures extends DataMap {
+@@ -34373,7 +34565,7 @@ class Textures extends DataMap {
  
  			};
  
@@ -555,7 +703,7 @@ index f707acc24f5711fdae065ce920b08435b0869c1b..79a9f2e9b1174dce63e4aa9649d81edc
  
  		}
  
-@@ -34524,7 +34673,7 @@ class Textures extends DataMap {
+@@ -34524,7 +34716,7 @@ class Textures extends DataMap {
  
  			//
  
@@ -564,7 +712,7 @@ index f707acc24f5711fdae065ce920b08435b0869c1b..79a9f2e9b1174dce63e4aa9649d81edc
  
  			//
  
-@@ -34563,7 +34712,7 @@ class Textures extends DataMap {
+@@ -34563,7 +34755,7 @@ class Textures extends DataMap {
  
  			//
  
@@ -573,7 +721,7 @@ index f707acc24f5711fdae065ce920b08435b0869c1b..79a9f2e9b1174dce63e4aa9649d81edc
  
  			// if a texture is not ready for use, it falls back to a default texture so it's possible
  			// to use it for rendering. If a texture in this state is disposed, it's important to
-@@ -67143,6 +67292,25 @@ class WebGLAttributeUtils {
+@@ -67143,6 +67335,25 @@ class WebGLAttributeUtils {
  
  		const attributeData = backend.get( attribute );
  
@@ -664,36 +812,97 @@ index 5f3d213a016b37db3b2e5d022da3dd0234d86f6d..38bf42c23ddf69bffaf802774ae98319
  
  						binding.release();
 diff --git a/src/renderers/common/Geometries.js b/src/renderers/common/Geometries.js
-index eb332c415882927e2fc1ac9b0cc0ed903f70432c..7e789b62440402d5d372aa6dcb3da190a7a5361f 100644
+index eb332c415882927e2fc1ac9b0cc0ed903f70432c..ac1e10000a998cadcaae250bf398a1410e1fe1a4 100644
 --- a/src/renderers/common/Geometries.js
 +++ b/src/renderers/common/Geometries.js
-@@ -179,6 +179,8 @@ class Geometries extends DataMap {
+@@ -84,6 +84,19 @@ function getWireframeIndex( geometry ) {
+ 
+ }
+ 
++/**
++ * The buffer an attribute's data lives in: interleaved attributes share theirs.
++ *
++ * @private
++ * @param {BufferAttribute} attribute - The attribute.
++ * @return {BufferAttribute|InterleavedBuffer} The buffer.
++ */
++function drawnBuffer( attribute ) {
++
++	return attribute.isInterleavedBufferAttribute ? attribute.data : attribute;
++
++}
++
+ /**
+  * This renderer module manages geometries.
+  *
+@@ -139,6 +152,16 @@ class Geometries extends DataMap {
+ 		 */
+ 		this._geometryDisposeListeners = new Map();
+ 
++		/**
++		 * How many live geometries drew each buffer: an attribute, or the shared
++		 * buffer of interleaved ones. A geometry's dispose frees a buffer only
++		 * once no other live geometry draws it.
++		 *
++		 * @private
++		 * @type {WeakMap<BufferAttribute|InterleavedBuffer,number>}
++		 */
++		this._bufferDrawers = new WeakMap();
++
+ 	}
+ 
+ 	/**
+@@ -179,6 +202,9 @@ class Geometries extends DataMap {
  		const geometryData = this.get( geometry );
  
  		geometryData.initialized = true;
 +		geometryData.attributeLists = new WeakSet();
 +		geometryData.drawnAttributes = new Set();
++		geometryData.drawnBuffers = new Set();
  
  		this.info.memory.geometries ++;
  
-@@ -201,6 +203,16 @@ class Geometries extends DataMap {
+@@ -187,7 +213,6 @@ class Geometries extends DataMap {
+ 			this.info.memory.geometries --;
+ 
+ 			const index = geometry.index;
+-			const geometryAttributes = renderObject.getAttributes();
+ 
+ 			if ( index !== null ) {
+ 
+@@ -195,12 +220,29 @@ class Geometries extends DataMap {
  
  			}
  
-+			// the render object that first drew the geometry lists only the attributes its material read; a later
-+			// material may have uploaded others (a textured face's uv), which would otherwise keep their buffers.
-+			// Only attributes drawn through this geometry go: another geometry may share one this one never used
+-			for ( const geometryAttribute of geometryAttributes ) {
++			// every attribute any material drew through this geometry, not just the first render object's (a later
++			// textured face's uv would otherwise keep its buffer); a buffer another live geometry still draws stays
+ 
+-				this.attributes.delete( geometryAttribute );
++			for ( const buffer of geometryData.drawnBuffers ) {
 +
++				this._bufferDrawers.set( buffer, this._bufferDrawers.get( buffer ) - 1 );
+ 
+ 			}
+ 
 +			for ( const drawnAttribute of geometryData.drawnAttributes ) {
 +
-+				this.attributes.delete( drawnAttribute );
++				if ( this._bufferDrawers.get( drawnBuffer( drawnAttribute ) ) === 0 ) {
++
++					this.attributes.delete( drawnAttribute );
++
++				}
 +
 +			}
++
++			geometryData.attributeLists = new WeakSet();
++			geometryData.drawnAttributes = new Set();
++			geometryData.drawnBuffers = new Set();
 +
  			const wireframeAttribute = this.wireframes.get( geometry );
  
  			if ( wireframeAttribute !== undefined ) {
-@@ -233,6 +245,15 @@ class Geometries extends DataMap {
+@@ -233,6 +275,28 @@ class Geometries extends DataMap {
  		// attributes
  
  		const attributes = renderObject.getAttributes();
@@ -703,7 +912,20 @@ index eb332c415882927e2fc1ac9b0cc0ed903f70432c..7e789b62440402d5d372aa6dcb3da190
 +
 +			geometryData.attributeLists.add( attributes );
 +
-+			for ( const attribute of attributes ) geometryData.drawnAttributes.add( attribute );
++			for ( const attribute of attributes ) {
++
++				geometryData.drawnAttributes.add( attribute );
++
++				const buffer = drawnBuffer( attribute );
++
++				if ( geometryData.drawnBuffers.has( buffer ) === false ) {
++
++					geometryData.drawnBuffers.add( buffer );
++					this._bufferDrawers.set( buffer, ( this._bufferDrawers.get( buffer ) || 0 ) + 1 );
++
++				}
++
++			}
 +
 +		}
  
