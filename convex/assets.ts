@@ -10,6 +10,7 @@ import {
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
+import { cardFrontPresetSchema, cardFrontAssetTypeSchema } from '../src/shared/assets/cardFrontPresets';
 import { GF9_LEADER_SKILLS, GF9_LEADER_SKILL_DECK } from '../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
@@ -42,6 +43,7 @@ import {
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
 import { listCardbackPresets, presetFromKey, storeCardbackPreset } from './lib/cardbackPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
+import { listCardFrontPresets } from './lib/cardFrontPresets';
 import {
   assignedGroupSummary,
   loadAssetAccessBundle,
@@ -278,6 +280,7 @@ const assetPageValidator = v.object({
   cardTokensError: v.optional(v.union(v.string(), v.null())),
   /** Whether this type converts to a custom card; whether the viewer may is `session.isAdmin`. */
   convertibleToCustom: v.boolean(),
+  cardFrontPresets: v.array(zodToConvex(cardFrontPresetSchema)),
   cardbackPresets: v.array(zodToConvex(cardbackPresetSchema)),
   /** The owner's user id and the asset's live Group, or null: the facts the browser combines with the viewer. */
   ownerId: v.id('users'),
@@ -341,6 +344,7 @@ async function loadAssetPageFor(ctx: QueryCtx, row: Doc<'assets'>, args: { embed
     asset: await toListEntry(ctx, row, { presets }),
     convertibleToCustom: row.type === 'card-treachery',
     ...(resolvedTokens ? { cardTokens: resolvedTokens.tokens, cardTokensError: resolvedTokens.error } : {}),
+    cardFrontPresets: cardFrontAssetTypeSchema.safeParse(row.type).success ? await listCardFrontPresets(ctx) : [],
     cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx, presets) : [],
     ownerId: row.owner_id,
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
@@ -385,8 +389,9 @@ export const getPage = viewerQuery({
   args: { type: v.string(), slug: v.string(), embeddedTokenIds: v.optional(v.array(v.id('assets'))) },
   returns: v.union(
     v.null(),
-    assetPageValidator.omit('ownerId', 'assignedGroup', 'convertibleToCustom').extend({
+    assetPageValidator.omit('ownerId', 'assignedGroup', 'convertibleToCustom', 'cardFrontPresets').extend({
       canConvertToCustom: v.boolean(),
+
       viewerAccess: assetViewerAccessValidator,
       assignableGroups: v.array(assignedGroupSummaryValidator),
     })
@@ -401,11 +406,13 @@ export const getPage = viewerQuery({
       ownerId: _ownerId,
       assignedGroup: _assignedGroup,
       convertibleToCustom: _convertible,
+      cardFrontPresets: _frontPresets,
       ...page
     } = await loadAssetPageFor(ctx, row, args);
     return {
       ...page,
       canConvertToCustom: await canConvertTreachery(ctx, row.type),
+
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,
     };

@@ -12,6 +12,7 @@ import {
   RULEBOOK_FIRST_PAGE_ASSET_TYPE,
 } from '../src/shared/asset-publishing/publication';
 import { isPublicationAssetType, PUBLICATION_ASSET_TYPES } from '../src/shared/asset-publishing/publicationTargets';
+import { cardFrontAssetTypeSchema } from '../src/shared/assets/cardFrontPresets';
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
@@ -136,8 +137,12 @@ export const takeWork = internalMutation({
         await ctx.db.delete(job._id);
         continue;
       }
-      /* A roster face renders one capture at a time, so an older capture can never land after a newer one. */
-      if (job.asset_type === 'faction-leader' || isFactionFaceAssetType(job.asset_type)) {
+      /* A shared front or roster face renders one capture at a time, so an older capture can never land after a newer one. */
+      if (
+        job.asset_type === 'faction-leader' ||
+        isFactionFaceAssetType(job.asset_type) ||
+        cardFrontAssetTypeSchema.safeParse(job.asset_type).success
+      ) {
         const targetJobs = await publicationJobsForAsset(ctx, job.asset_type, job.asset_id);
         if (targetJobs.some((candidate) => candidate.status === 'in_progress')) {
           continue;

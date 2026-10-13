@@ -131,6 +131,10 @@ export const snapshotPolicy = {
   admin_settings: { drop: 'operational settings, not content' },
   counters: { drop: 'slug counters, which the allocators rebuild' },
   migration_runs: { drop: 'migration status, which the local migration guard writes again' },
+  card_front_presets: {
+    fields: { key: 'keep', style: 'keep', revision: 'keep', updated_at: 'keep' },
+    rows: 'all',
+  },
   cardback_presets: {
     fields: { key: 'keep', cardback: 'keep', revision: 'keep', updated_at: 'keep' },
     rows: 'all',

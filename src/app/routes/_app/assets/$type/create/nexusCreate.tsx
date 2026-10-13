@@ -1,5 +1,7 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
+import { useCardFrontPresets } from '@db/cardFrontPresets';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { INITIAL_NEXUS_DRAFT, NexusCardEditor, nexusDraftWarnings } from '@app/widgets/card-editor/NexusCardEditor';
 import type { NexusChapter, NexusDraft } from '@app/widgets/card-editor/NexusCardEditor';
@@ -11,6 +13,7 @@ import { CardCreateFrame, useCardCreate } from './cardCreatePage';
 
 /** The nexus card create page. Mounted by the generic `$type/create` route when the type is `card-nexus`. */
 export function NexusCreatePage() {
+  const frontPresets = useCardFrontPresets();
   const saving = useCardCreate('card-nexus');
   const [chapter, setChapter] = useState<NexusChapter>('head');
   const [state, dispatch] = useReducer(reduceNexusDraft, undefined, () =>
@@ -52,6 +55,7 @@ export function NexusCreatePage() {
       saveError={saving.error}
     >
       <NexusCardEditor
+        frontStyle={cardFrontStyleFor('card-nexus', state.data, frontPresets ?? [])}
         nameField={nameField}
         draft={state.data}
         patch={patch}

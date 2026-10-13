@@ -1,3 +1,4 @@
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { LEADER_SKILL_HEAD, LEADER_SKILL_SYMBOL } from '@shared/assets/gf9LeaderSkills';
 import type { LeaderSkillCard as LeaderSkillSchema } from '@shared/assets/schema';
 import { VECTOR_CROPS } from '@shared/media/vectorCrops.generated';
@@ -14,13 +15,14 @@ const vectorCrops: Partial<Record<string, readonly [number, number, number, numb
 
 /** The title stays fixed; general rules, clipped artwork and battle rules fill the body in order. */
 export function LeaderSkillCard({
+  frontStyle,
   generalText,
   battleText,
   decals,
   textSize: _savedTextSize,
   onOverflow,
   ...head
-}: z.infer<typeof LeaderSkillSchema> & { onOverflow?: (overflow: boolean) => void }) {
+}: z.infer<typeof LeaderSkillSchema> & { frontStyle?: CardFrontStyle; onOverflow?: (overflow: boolean) => void }) {
   const textSize = 36;
   const prefix = useCountId();
   const body = useRef<HTMLDivElement>(null);
@@ -50,12 +52,12 @@ export function LeaderSkillCard({
   }, [generalText, battleText, textSize, onOverflow]);
   return (
     <div className={styles.card}>
-      <CardHeadBackground head={LEADER_SKILL_HEAD} />
+      <CardHeadBackground head={frontStyle?.head ?? LEADER_SKILL_HEAD} />
       <div className={styles.frame} />
       <CardHeadContents
         {...head}
         subName="Leader skill"
-        icon={LEADER_SKILL_SYMBOL}
+        icon={[frontStyle?.iconBackground ?? LEADER_SKILL_SYMBOL[0], LEADER_SKILL_SYMBOL[1]]}
         iconScale={1}
         iconOffset={[0, 0]}
         iconInvert={false}

@@ -1,3 +1,4 @@
+import { CARD_FRONT_PUBLICATION_REVISIONS } from '../assets/cardFrontPresets';
 import {
   CUSTOM_CARD_ASSET_TYPE,
   LEADER_SKILL_ASSET_TYPE,
@@ -29,21 +30,21 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   'faction-alliance': 1,
   // 9: formatted text replaces Markdown while setup and revival stay inline (wayfinder #669).
   [FACTION_SHEET_ASSET_TYPE]: 9,
-  /* Revision 5 uses standard category backgrounds and symbol placement. */
+  /* Revision 6 captures the shared front preset for each Treachery category. */
   // 1: cards join the pipeline (wayfinder #516). Activating this is also the backfill for cards that predate it.
-  [TREACHERY_CARD_ASSET_TYPE]: 5,
+  [TREACHERY_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[TREACHERY_CARD_ASSET_TYPE],
   // 1: spice cards join the pipeline with their editor (#1229).
   [SPICE_CARD_ASSET_TYPE]: 1,
   /* Revision 2 supports a movable decal window without changing existing layouts. */
   [CUSTOM_CARD_ASSET_TYPE]: 2,
-  /* Revision 3 fixes the leader skill head, symbol, type and text size. */
-  [LEADER_SKILL_ASSET_TYPE]: 3,
-  /* Revision 3 restores the standard Nexus header while retaining its linked faction symbol. */
-  [NEXUS_CARD_ASSET_TYPE]: 3,
-  /* Revision 3 restores the standard Stronghold header and text size. */
-  [STRONGHOLD_CARD_ASSET_TYPE]: 3,
-  /* Revision 3 fixes the standard Storm design and restores the shared header. */
-  [STORM_CARD_ASSET_TYPE]: 3,
+  /* Revision 4 captures the shared Leader Skill front preset. */
+  [LEADER_SKILL_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[LEADER_SKILL_ASSET_TYPE],
+  /* Revision 4 captures the shared Nexus front preset while retaining its faction symbol. */
+  [NEXUS_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[NEXUS_CARD_ASSET_TYPE],
+  /* Revision 4 captures the shared Stronghold front preset and restores icon texture contrast. */
+  [STRONGHOLD_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[STRONGHOLD_CARD_ASSET_TYPE],
+  /* Revision 4 captures the shared Storm front preset. */
+  [STORM_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[STORM_CARD_ASSET_TYPE],
   /* Revision 4 clips back emblems inside the gold disc beneath the frame. */
   [DECK_ASSET_TYPE]: 4,
   /* Revision 6 clips back emblems inside the gold disc beneath the frame; saved designs are kept. */

@@ -1,3 +1,4 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
 import type { AssetPublicPage } from '@app/db/assets';
@@ -61,7 +62,7 @@ function reduce(state: TreacheryState, event: TreacheryEvent): TreacheryState {
   }
 }
 
-function CardEditSession({ asset, initialDraft, access }: CardEditSessionProps<TreacheryDraft>) {
+function CardEditSession({ frontPresets, asset, initialDraft, access }: CardEditSessionProps<TreacheryDraft>) {
   const saving = useCardSave('card-treachery', asset);
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
   const [state, dispatch] = useReducer(reduce, undefined, () => openingState(initialDraft, initialDraft));
@@ -97,6 +98,7 @@ function CardEditSession({ asset, initialDraft, access }: CardEditSessionProps<T
       saveError={saving.error}
     >
       <TreacheryCardEditor
+        frontStyle={cardFrontStyleFor('card-treachery', state.data, frontPresets)}
         nameField={nameField}
         draft={state.data}
         patch={patch}

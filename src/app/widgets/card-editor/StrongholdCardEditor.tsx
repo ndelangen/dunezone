@@ -1,4 +1,5 @@
 import { Group, Stack, Text } from '@mantine/core';
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { StrongholdCardAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -35,6 +36,7 @@ export function strongholdDraftWarnings(draft: StrongholdDraft): {
 
 /** Callers own the draft and persistence; this owns the stronghold fields and their live card proof. */
 export function StrongholdCardEditor({
+  frontStyle,
   draft,
   patch,
   nameField,
@@ -42,6 +44,7 @@ export function StrongholdCardEditor({
   onChapterChange,
   onSettle,
 }: Readonly<{
+  frontStyle?: CardFrontStyle;
   draft: StrongholdDraft;
   patch: (update: Partial<StrongholdDraft>) => void;
   nameField: ReactNode;
@@ -86,7 +89,7 @@ export function StrongholdCardEditor({
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         <CardFrame>
-          <StrongholdCard {...draft} />
+          <StrongholdCard {...draft} frontStyle={frontStyle} />
         </CardFrame>
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>

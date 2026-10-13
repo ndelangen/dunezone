@@ -1,3 +1,4 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
 import type { AssetPublicPage } from '@app/db/assets';
@@ -45,7 +46,12 @@ function reduce(state: StrongholdEditingState, event: StrongholdEditingEvent): S
   }
 }
 
-function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessionProps<StrongholdDraft>>) {
+function CardEditSession({
+  frontPresets,
+  asset,
+  initialDraft,
+  access,
+}: Readonly<CardEditSessionProps<StrongholdDraft>>) {
   const saving = useCardSave('card-stronghold', asset);
   const [chapter, setChapter] = useState<StrongholdChapter>('head');
   const [state, dispatch] = useReducer(reduce, undefined, () => ({ data: initialDraft, baseline: initialDraft }));
@@ -80,6 +86,7 @@ function CardEditSession({ asset, initialDraft, access }: Readonly<CardEditSessi
       saveError={saving.error}
     >
       <StrongholdCardEditor
+        frontStyle={cardFrontStyleFor('card-stronghold', state.data, frontPresets)}
         nameField={nameField}
         draft={state.data}
         patch={patch}

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { cardFrontSnapshotSchema } from '../assets/cardFrontPresets';
 import {
   CustomCardAsset,
   LeaderSkillAsset,
@@ -93,24 +94,28 @@ export const treacheryCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: TreacheryAsset,
+  frontPreset: cardFrontSnapshotSchema.optional(),
 });
 
 export const leaderSkillAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: LeaderSkillAsset,
+  frontPreset: cardFrontSnapshotSchema.optional(),
 });
 
 export const nexusCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: NexusCardAsset,
+  frontPreset: cardFrontSnapshotSchema.optional(),
 });
 
 export const strongholdCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: StrongholdCardAsset,
+  frontPreset: cardFrontSnapshotSchema.optional(),
 });
 
 export const customCardAssetDataSchema = z.strictObject({
@@ -120,7 +125,10 @@ export const customCardAssetDataSchema = z.strictObject({
   tokens: CustomCardTokens.optional(),
 });
 
-export const stormCardAssetDataSchema = customCardAssetDataSchema.extend({ card: StormCardAsset });
+export const stormCardAssetDataSchema = customCardAssetDataSchema.extend({
+  card: StormCardAsset,
+  frontPreset: cardFrontSnapshotSchema.optional(),
+});
 
 /** The same envelope for a spice card, whose stored shape is the renderer's props plus its About. */
 export const spiceCardAssetDataSchema = z.strictObject({

@@ -1,5 +1,7 @@
+import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
+import { useCardFrontPresets } from '@db/cardFrontPresets';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   INITIAL_STRONGHOLD_DRAFT,
@@ -31,6 +33,7 @@ function reduce(state: StrongholdEditingState, event: StrongholdEditingEvent): S
 }
 
 export function StrongholdCreatePage() {
+  const frontPresets = useCardFrontPresets();
   const saving = useCardCreate('card-stronghold');
   const [chapter, setChapter] = useState<StrongholdChapter>('head');
   const [state, dispatch] = useReducer(reduce, undefined, () => ({
@@ -71,6 +74,7 @@ export function StrongholdCreatePage() {
       saveError={saving.error}
     >
       <StrongholdCardEditor
+        frontStyle={cardFrontStyleFor('card-stronghold', state.data, frontPresets ?? [])}
         nameField={nameField}
         draft={state.data}
         patch={patch}
