@@ -154,7 +154,7 @@ describe('complete component delivery', () => {
     });
     expect(response.status).toBe(304);
     expect(response.headers.get('ETag')).toBe(`"${revisionA}"`);
-    expect(response.headers.get('Cache-Control')).toBe('no-cache');
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600');
     bucket.objects.delete(componentEnvelopeKey(assetId, revisionA));
     expect(
       (

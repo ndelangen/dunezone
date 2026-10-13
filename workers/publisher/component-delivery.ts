@@ -49,7 +49,8 @@ export async function handleComponentRequest(
     const etag = `"${envelope.revision}"`;
     const headers = new Headers({
       'Content-Type': envelope.image.contentType,
-      'Cache-Control': 'no-cache',
+      /* Like published assets: kept for an hour, then revalidated against the revision ETag. */
+      'Cache-Control': 'public, max-age=3600',
       ETag: etag,
       'Last-Modified': new Date(resolution.publishedAt).toUTCString(),
       'X-Content-Type-Options': 'nosniff',

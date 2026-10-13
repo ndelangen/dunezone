@@ -5,7 +5,6 @@ import {
   cardBaySlotPositions,
   CARD_SLOT_OUTER_SIZE,
   SHARED_ITEM_PLACEMENT_ANCHORS,
-  SHARED_ITEM_LABEL_POSITION,
   TABLE_TANKS_LABEL,
   TABLE_TANKS_LABEL_POSITION,
 } from '@shared/play/tableFurnitureLayout';
@@ -109,7 +108,6 @@ export function TableFurniture({ trackerSlots }: { trackerSlots: readonly Tracke
       {SHARED_ITEM_PLACEMENT_ANCHORS.map((anchor) => (
         <CardWell key={anchor.id} position={anchor.position} />
       ))}
-      <TableLabel position={SHARED_ITEM_LABEL_POSITION}>SHARED ITEMS</TableLabel>
       <TableLabel position={TABLE_TANKS_LABEL_POSITION}>{TABLE_TANKS_LABEL}</TableLabel>
     </group>
   );
