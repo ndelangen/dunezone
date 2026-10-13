@@ -6,8 +6,8 @@ export type CardBaySide = 'left' | 'right';
 export const FURNITURE_SURFACE_Y = TABLE_SURFACE_Y;
 export const SIDE_SHELF_SIZE: Vector3Tuple = [2.2, 0.12, 4.1];
 export const SIDE_SHELF_CENTER_X = 6.22;
-export const BOTTOM_SHELF_SIZE: Vector3Tuple = [4.8, 0.12, 5];
-export const BOTTOM_SHELF_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y - BOTTOM_SHELF_SIZE[1] / 2, 7.95];
+export const BOTTOM_SHELF_SIZE: Vector3Tuple = [4.8, 0.12, 6.2];
+export const BOTTOM_SHELF_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y - BOTTOM_SHELF_SIZE[1] / 2, 8.55];
 const CARD_SLOT_RIM = 0.06;
 export const CARD_SLOT_GAP = 0.14;
 export const TABLE_TANKS_LABEL = 'BENE TLEILAXU TANKS';
@@ -65,14 +65,13 @@ export const SHARED_ITEM_PLACEMENT_ANCHORS: readonly PlacementAnchor[] = Array.f
   position: [
     ((index % 4) - 1.5) * (CARD_WIDTH + CARD_SLOT_GAP),
     FURNITURE_SURFACE_Y,
-    7.7 + Math.floor(index / 4) * (CARD_DEPTH + CARD_SLOT_GAP),
+    8.9 + Math.floor(index / 4) * (CARD_DEPTH + CARD_SLOT_GAP),
   ],
   orientation: 0,
   acceptedKinds: ['card', 'force', 'marker'],
   captureSize: CARD_SLOT_OUTER_SIZE,
 }));
 
-export const SHARED_ITEM_LABEL_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y + 0.012, 10];
 const TABLE_PLACEMENT_ANCHORS: readonly PlacementAnchor[] = [
   ...CARD_BAY_PLACEMENT_ANCHORS,
   ...SHARED_ITEM_PLACEMENT_ANCHORS,
