@@ -113,6 +113,20 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(upstream).toHaveBeenCalledOnce();
   });
 
+  test('an expired rulebook PDF capture cannot ride a publication job validated a moment ago', async () => {
+    stubValidJob();
+    await expectServedInTurn(['/publisher-capture/entry-hash.js']);
+    const response = await handleCaptureRoute(
+      new Request('https://publisher.example.com/publisher-capture/style-hash.css', {
+        headers: {
+          Cookie: `__Host-publication_job=${jobId}; ${CAPTURE_PROTOCOL.credentials.rulebookPdfCookie}=${'a'.repeat(64)}`,
+        },
+      }),
+      env(vi.fn(async () => new Response('bundle')))
+    );
+    expect(response?.status).toBe(404);
+  });
+
   test('the capture HTML validates afresh even right after the bundle was validated', async () => {
     const upstream = stubValidJob();
     await expectServedInTurn(['/publisher-capture/entry-hash.js', '/publisher-capture.html']);
