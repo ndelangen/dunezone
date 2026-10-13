@@ -129,7 +129,12 @@ export async function handlePublicDiscovery(
           document(
             'urlset',
             [
+              '/',
               '/factions',
+              '/rulesets',
+              '/profiles',
+              '/glossary',
+              '/future-plans',
               '/assets',
               ...SITEMAP_COLLECTIONS.filter((name) => name !== 'factions').map((type) => `/assets/${type}`),
             ]
