@@ -86,7 +86,9 @@ export function BattleBeacon({ table, battle, onDrop }: Props) {
   const homeZ = slot?.position[2];
   const home = useMemo(
     () =>
-      homeX === undefined || homeZ === undefined ? null : { x: homeX, z: homeZ, ground: TRACKER_DISC_CONTENT_Y + 0.004 },
+      homeX === undefined || homeZ === undefined
+        ? null
+        : { x: homeX, z: homeZ, ground: TRACKER_DISC_CONTENT_Y + 0.004 },
     [homeX, homeZ]
   );
   const { camera, gl, invalidate } = useThree();

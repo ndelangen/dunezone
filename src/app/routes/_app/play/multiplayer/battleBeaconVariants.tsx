@@ -104,11 +104,7 @@ function Crosshair({
           key={index}
           raycast={ignoreRaycast}
           rotation={[-Math.PI / 2, 0, (index * Math.PI) / 2]}
-          position={[
-            Math.cos((index * Math.PI) / 2) * middle,
-            0,
-            -Math.sin((index * Math.PI) / 2) * middle,
-          ]}
+          position={[Math.cos((index * Math.PI) / 2) * middle, 0, -Math.sin((index * Math.PI) / 2) * middle]}
         >
           <planeGeometry args={[length, width]} />
           <Glow opacity={opacity} />
@@ -140,11 +136,7 @@ function FlatRing({
 }
 
 /** A thin vertical beam of light from the body down to the ground, fading as the beacon lands. */
-function Beam({
-  pose,
-  radius,
-  opacity,
-}: Readonly<{ pose: RefObject<BeaconPose>; radius: number; opacity: number }>) {
+function Beam({ pose, radius, opacity }: Readonly<{ pose: RefObject<BeaconPose>; radius: number; opacity: number }>) {
   const mesh = useRef<Mesh>(null);
   const material = useRef<MeshBasicMaterial>(null);
   useFrame(() => {
@@ -366,12 +358,7 @@ function PylonBeacon({ pose }: BeaconVariantProps) {
               ripples.current[index] = group;
             }}
           >
-            <FlatRing
-              inner={0.27}
-              outer={0.29}
-              segments={6}
-              materialRef={rippleMaterials.current[index]}
-            />
+            <FlatRing inner={0.27} outer={0.29} segments={6} materialRef={rippleMaterials.current[index]} />
           </group>
         ))}
       </group>

@@ -35,8 +35,8 @@ import type { TableSession, TableProjection } from '../../../../db/tabletop/Tabl
 import { PointerSessionContext, usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
-import styles from './BattleControls.module.css';
 import { BattleBeacon } from './BattleBeacon';
+import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
 import { PieceImage, pieceName } from './HandPiece';
 import { HandPieceMenu, handMenuAnchor } from './HiddenZone';
