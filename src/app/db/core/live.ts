@@ -61,15 +61,50 @@ export function useLiveQuery<Query extends FunctionReference<'query'>>(
   query: Query,
   args: FunctionArgs<Query>
 ): FunctionReturnType<Query> | undefined {
+  useWarmHold(query, args);
+  return useQuery(query, args);
+}
+
+/**
+ * A page query, held warm like `useLiveQuery`, whose answer stays in place through a failed re-run.
+ *
+ * A failure before the first answer still throws to the route's catch boundary.
+ * Once the page has an answer for these arguments, a re-run that fails (a function timeout on a busy deployment) keeps that answer until the next re-run, so what the page mounted on it, such as a live game table and its socket, is not torn down by one failed execution.
+ * The server's next answer, success or refusal, replaces it.
+ */
+export function useHeldLiveQuery<Query extends FunctionReference<'query'>>(
+  query: Query,
+  args: FunctionArgs<Query>
+): FunctionReturnType<Query> | undefined {
+  const key = useWarmHold(query, args);
+  const [held, setHeld] = useState<{ key: string; data: FunctionReturnType<Query> } | null>(null);
+  let result: FunctionReturnType<Query> | undefined;
+  try {
+    /* `useQuery` throws a failed run only after its own hooks have run, so catching it here keeps the hook order. */
+    result = useQuery(query, args);
+  } catch (error) {
+    if (held?.key === key) {
+      return held.data;
+    }
+    throw error;
+  }
+  if (result !== undefined && (held?.key !== key || held.data !== result)) {
+    setHeld({ key, data: result });
+  }
+  return result;
+}
+
+/** Holds a page query warm after its page lets go of it, and returns the key naming the query and its arguments. */
+function useWarmHold<Query extends FunctionReference<'query'>>(query: Query, args: FunctionArgs<Query>) {
   const client = useConvex();
   const key = JSON.stringify([getFunctionName(query), convexToJson(args)]);
-  /* This effect must stay above `useQuery`: its cleanup takes the hold before the subscription below lets go, so the query is never dropped and re-added. */
+  /* This effect must stay above the subscription: its cleanup takes the hold before the subscription lets go, so the query is never dropped and re-added. */
   useEffect(() => {
     keepWarm(client, query, args, PAGE_HOLD_MS);
     return () => keepWarm(client, query, args, PAGE_HOLD_MS);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` already covers the query and its arguments, which arrive as new objects each render.
   }, [key]);
-  return useQuery(query, args);
+  return key;
 }
 
 export function useLiveMutation<TVariables, TResult>(
