@@ -26,6 +26,12 @@
       "dependencyDashboardApproval": true
     },
     {
+      "matchPackageNames": ["oxlint", "satori"],
+      "groupName": null,
+      "groupSlug": null,
+      "dependencyDashboardApproval": true
+    },
+    {
       "matchPackageNames": ["three", "@react-three/fiber", "@storybook/tanstack-react", "@convex-dev/auth"],
       "groupName": null,
       "dependencyDashboardApproval": true
