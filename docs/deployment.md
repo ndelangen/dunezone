@@ -88,6 +88,11 @@ Renderer manifest drift.
 The publisher bundles `dist/server/server.js` alongside its existing capture runtime. The
 `application-ssr-runtime` alias points to that build output, so Worker source does not import the
 browser application. The application build still emits `_shell.html` for browser-only pages.
+TanStack prerenders that shell at `/`, and in doing so runs the head of every route matched there
+but no loader below the root. A head that names a page, with a canonical URL, `og:url` or
+description, must therefore build it from loader data, or the shell would hand that identity to
+every browser-only path and every unknown URL. The homepage follows this rule, and the asset
+assembly fails if the shell carries any of the three.
 `src/app/routes/start.ts` makes server rendering opt-in. The document root renders on the server;
 the shared layout, faction catalogue and detail, asset catalogue, type listings and detail pages
 also render on the server. Their anonymous page result supplies visible content and metadata.

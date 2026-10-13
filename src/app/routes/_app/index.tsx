@@ -30,27 +30,23 @@ export const Route = createFileRoute('/_app/')({
   /* Share metadata runs on the server; the game artwork keeps its browser-owned SVG IDs. */
   ssr: 'data-only',
   /*
-   * The SPA shell every browser-only path is served from is prerendered at `/` and runs no loaders below the root.
-   * Without loader data this is that shell, so it must not claim the homepage's canonical URL and description:
-   * Google would then fold /glossary, /privacy and every unknown path into the homepage.
+   * The SPA shell every browser-only path is served from is prerendered at `/`, and it runs every matched head but no
+   * loader below the root. So the homepage's identity comes from its loader, like every other public page's: the shell
+   * then carries none, rather than telling crawlers that /glossary, /privacy and every unknown path are the homepage.
    */
-  loader: () => ({ homepage: true }),
-  head: ({ loaderData }) =>
-    loaderData
-      ? publicPageHead({
-          name: '',
-          pathname: '/',
-          description:
-            'Dune Play is coming soon. Read Rulebooks, create factions and assets, and build with your allies.',
-          image: '/web/homepage-social-play-large.jpg',
-          imageDetails: {
-            alt: 'Dune Play is coming soon, with a preview of the board, Rulebook pages and homebrew leader portraits.',
-            type: 'image/jpeg',
-            width: 1200,
-            height: 630,
-          },
-        })
-      : {},
+  loader: () => ({
+    name: '',
+    pathname: '/',
+    description: 'Dune Play is coming soon. Read Rulebooks, create factions and assets, and build with your allies.',
+    image: '/web/homepage-social-play-large.jpg',
+    imageDetails: {
+      alt: 'Dune Play is coming soon, with a preview of the board, Rulebook pages and homebrew leader portraits.',
+      type: 'image/jpeg',
+      width: 1200,
+      height: 630,
+    },
+  }),
+  head: ({ loaderData }) => (loaderData ? publicPageHead(loaderData) : {}),
   component: IndexPage,
 });
 

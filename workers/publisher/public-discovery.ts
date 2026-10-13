@@ -133,8 +133,6 @@ export async function handlePublicDiscovery(
               '/factions',
               '/rulesets',
               '/profiles',
-              '/glossary',
-              '/future-plans',
               '/assets',
               ...SITEMAP_COLLECTIONS.filter((name) => name !== 'factions').map((type) => `/assets/${type}`),
             ]
