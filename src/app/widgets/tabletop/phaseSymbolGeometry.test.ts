@@ -257,6 +257,26 @@ describe('phase symbol loading lifetime', () => {
     }
   );
 
+  test('fetches a symbol again when its shape is too small to build', async () => {
+    const tiny = new SVGLoader().parse(
+      '<svg xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="2e-8" height="2e-8"/></svg>'
+    );
+    const load = vi
+      .spyOn(SVGLoader.prototype, 'loadAsync')
+      .mockResolvedValueOnce(tiny)
+      .mockResolvedValueOnce(triangle());
+    const first = vi.fn();
+    const releaseFirst = loadPhaseSymbolGeometry('/vector/icon/tiny.svg', PHASE_TRACKER_RADIUS, first);
+    await vi.waitFor(() => expect(first).toHaveBeenCalledWith(null));
+
+    const second = vi.fn();
+    const releaseSecond = loadPhaseSymbolGeometry('/vector/icon/tiny.svg', PHASE_TRACKER_RADIUS, second);
+    await vi.waitFor(() => expect(second).toHaveBeenCalledWith(expect.anything()));
+    expect(load).toHaveBeenCalledTimes(2);
+    releaseFirst();
+    releaseSecond();
+  });
+
   /* The browser verification waits for every artwork load to settle before it acts on a new table (#1592). */
   test('a symbol load settles once its request answers or fails, or once its owner releases it', async () => {
     const answered = Promise.withResolvers<SVGResult>();

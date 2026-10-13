@@ -44,15 +44,22 @@ function drawsSomething(svg: SVGResult) {
   return filledShapes(svg).some((shape) => Math.abs(ShapeUtils.area(shape.getPoints())) > 0);
 }
 
+/* Drops a request only while it is still the cached one, so a later request for the symbol is kept. */
+function forgetSymbol(symbol: string, request: Promise<SVGResult>) {
+  if (parsedSymbols.get(symbol) === request) {
+    parsedSymbols.delete(symbol);
+  }
+}
+
 function parsedSymbol(symbol: string): Promise<SVGResult> {
   let parsed = parsedSymbols.get(symbol);
   if (!parsed) {
-    parsed = new SVGLoader().loadAsync(symbol);
+    const request = new SVGLoader().loadAsync(symbol);
     /* A failed fetch, or a body with nothing to draw such as a page served for a missing file, is fetched again by the next mount. */
-    const request = parsed;
-    const forget = () => parsedSymbols.get(symbol) === request && parsedSymbols.delete(symbol);
-    parsed.then((svg) => drawsSomething(svg) || forget(), forget);
-    parsedSymbols.set(symbol, parsed);
+    const forget = () => forgetSymbol(symbol, request);
+    request.then((svg) => drawsSomething(svg) || forget(), forget);
+    parsedSymbols.set(symbol, request);
+    parsed = request;
   }
   return parsed;
 }
@@ -65,12 +72,17 @@ export function loadPhaseSymbolGeometry(
   let cancelled = false;
   let ownedGeometry: ExtrudeGeometry | null = null;
   const settle = startArtworkLoad();
-  void parsedSymbol(symbol)
+  const request = parsedSymbol(symbol);
+  void request
     .then((svg) => {
       if (cancelled) {
         return;
       }
       ownedGeometry = createPhaseSymbolGeometry(svg, radius);
+      if (!ownedGeometry) {
+        /* The area check can pass a shape too small to build, such as one that collapses in single precision. */
+        forgetSymbol(symbol, request);
+      }
       onLoaded(ownedGeometry);
     })
     .catch(() => {
