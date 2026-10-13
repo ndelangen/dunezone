@@ -77,7 +77,10 @@ These counts describe the initial index and grow with the source tree.
 
 Libraries and media types have shareable paths, such as `/media/game/leaders`, `/media/game/decals`,
 `/media/game/covers`, `/media/topics` and `/media/lucide`. Search, subject, collection and focused
-artwork stay in the query string. Old `__media` and `__icons` links redirect. The footer links to the
+artwork stay in the query string. Old `__media` and `__icons` links redirect.
+The overview and the game galleries render on the server and are listed in the landing sitemap.
+Each gallery is its own canonical page, so a search, filter or focused item points Google at the gallery.
+The Topic and Lucide libraries stay browser-only, because they show third-party icon sets. The footer links to the
 catalogue with a teal Images glyph.
 
 The toolbar uses SearchRefine, as the faction catalogue does. Its refinement drawer contains the

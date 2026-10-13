@@ -12,9 +12,9 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { icons, X, Images, Info, ArrowRight } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
-import { pageHead } from '../../pageTitle';
 import { catalogueEntries as mediaEntries } from './mediaCatalogue';
 import type { MediaEntry } from './mediaCatalogue';
+import { mediaHead } from './mediaHead';
 import { indexGalleries } from './mediaIndex';
 import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavigation';
 import { filterCatalogue } from './mediaSearch';
@@ -26,8 +26,9 @@ import type { MediaTile } from './mediaTiles';
 import styles from './route.module.css';
 
 export const Route = createFileRoute('/_app/media')({
+  ssr: true,
   codeSplitGroupings: [['component']],
-  head: () => pageHead('Media catalogue'),
+  head: ({ params, match }) => mediaHead(params, match),
   validateSearch: validateMediaQuery,
   component: MediaPage,
 });
