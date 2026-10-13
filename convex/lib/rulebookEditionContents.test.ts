@@ -95,6 +95,35 @@ function comparisonPairs(): Array<[string, unknown, unknown]> {
 }
 
 describe('Rulebook Contents hashes', () => {
+  /* A frozen literal, not a product fixture, so only a change to the hashing inputs can move this value; see RULEBOOK_CONTENTS_HASH_VERSION. */
+  test('stay pinned for a frozen document until the hash version changes', () => {
+    const frozen = {
+      schemaVersion: 1,
+      pageOrder: ['CVER'],
+      pagesById: {
+        CVER: {
+          id: 'CVER',
+          anchor: 'cover',
+          title: 'Pinned',
+          layoutId: 'cover',
+          showHeading: true,
+          controlValues: {
+            cover: {
+              subtitle: 'Subtitle',
+              supportingText: '',
+              footer: { enabled: true, title: 'Footer', label: 'Label' },
+            },
+          },
+          blocksById: {},
+          blockOrderByRegion: {},
+        },
+      },
+    };
+    const pinned = 'v1:6bcb33a59e01e61f55066ab6eae3d30bf1024a9dc445f4d3c376b41745155cef';
+    expect(rulebookDraftContentsHash(frozen)).toBe(pinned);
+    expect(rulebookEditionContentsHash(frozen)).toBe(pinned);
+  });
+
   test('carry the current version prefix and a SHA-256 hex digest', () => {
     expect(rulebookContentsHash({ schemaVersion: 1 })).toMatch(
       new RegExp(`^${RULEBOOK_CONTENTS_HASH_VERSION}[0-9a-f]{64}$`)

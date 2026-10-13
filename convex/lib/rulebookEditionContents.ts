@@ -39,8 +39,11 @@ export function rulebookContentsMatch(left: unknown, right: unknown) {
 
 /**
  * The version every stored Contents hash starts with.
- * Change it whenever the comparison below changes what it normalizes or ignores, so a hash written under the old rules is never compared with one written under the new.
+ * A stored hash depends on everything between the stored value and the canonical JSON: the draft and Edition schemas in `src/shared/rulebooks/contents.ts` (their defaults, stripped keys and transforms), `canonicalRulebookCoverControlValues`, and `canonicalJson` here.
+ * Change the version whenever any of those changes what it outputs for a stored document, so a hash written under the old rules is never compared with one written under the new.
  * A hash with any other prefix makes the editor fall back to comparing the documents themselves.
+ * Production does not rerun a finished migration, so a new version ships with new `rulebook_contents_hash_*` migration ids that rewrite every row.
+ * The pinned hash in `rulebookEditionContents.test.ts` fails when one of those inputs changes, which is the prompt to make that decision.
  */
 export const RULEBOOK_CONTENTS_HASH_VERSION = 'v1:';
 

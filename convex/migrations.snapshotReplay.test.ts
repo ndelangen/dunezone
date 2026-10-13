@@ -184,5 +184,21 @@ describe('a snapshot load', () => {
     expect(editor.draft).toMatchObject({ revision: 1, updated_by: ownerId });
     expect(editor.draft.contents).toEqual(reader?.edition.contents);
     expect(JSON.stringify(editor.draft)).not.toContain('private-cover-secret');
+
+    /*
+     * The load then replays every widen migration, which writes the Edition hashes the snapshot leaves out.
+     * The editor's answer must not move once it reads hashes instead of comparing Contents.
+     * This Edition still holds the signed source, so the reader-projected draft differs from it either way.
+     */
+    vi.useFakeTimers();
+    await t.mutation(internal.migrations.runRequired, { ids: required });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const hashes = await t.run(async (ctx) => ({
+      drafts: (await ctx.db.query('rulebook_drafts').collect()).map((row) => row.contents_hash),
+      editions: (await ctx.db.query('rulebook_editions').collect()).map((row) => row.contents_hash),
+    }));
+    expect([...hashes.drafts, ...hashes.editions]).toEqual(Array(3).fill(expect.stringMatching(/^v1:/)));
+    const replayed = await t.withIdentity({ subject: ownerId }).query(api.rulebooks.editorPage, locator);
+    expect(replayed).toMatchObject({ kind: 'editable', hasUnpublishedChanges: editor.hasUnpublishedChanges });
   });
 });
