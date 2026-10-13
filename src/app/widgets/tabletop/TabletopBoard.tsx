@@ -174,6 +174,39 @@ function BoardRimShadow() {
   );
 }
 
+function TrackerFace({
+  slot,
+  progress,
+  color,
+  highlighted,
+  interactive,
+}: {
+  slot: TrackerArcSlot;
+  progress: TableProgress;
+  color: string;
+  highlighted: boolean;
+  interactive: boolean;
+}) {
+  switch (slot.kind) {
+    case 'phase': {
+      const symbol = slot.phaseIndex === null ? undefined : progress.phases[slot.phaseIndex]?.symbol;
+      return <PhaseSymbol symbol={symbol} radius={slot.radius} faceColor={color} highlighted={highlighted} />;
+    }
+    case 'turn':
+      return <TurnTracker radius={slot.radius} turn={progress.turn} lastTurn={progress.lastTurn} />;
+    case 'spice': {
+      const symbol = <PhaseSymbol symbol="/vector/icon/spice.svg" radius={slot.radius} faceColor={color} />;
+      return interactive ? (
+        <Suspense fallback={symbol}>
+          <SpiceBank radius={slot.radius} />
+        </Suspense>
+      ) : (
+        symbol
+      );
+    }
+  }
+}
+
 function TableTrackers({
   progress,
   slots,
@@ -189,7 +222,6 @@ function TableTrackers({
   return (
     <group>
       {slots.map((slot) => {
-        const symbol = slot.phaseIndex === null ? undefined : progress.phases[slot.phaseIndex]?.symbol;
         const highlighted = slot.kind === 'phase' && slot.phaseIndex === currentPhaseIndex;
         const color = trackerDiscColor(slot, currentPhaseIndex);
         return (
@@ -214,23 +246,13 @@ function TableTrackers({
               />
             </mesh>
             <group position={[0, TRACKER_DISC_HEIGHT, 0]}>
-              {slot.kind === 'phase' ? (
-                <PhaseSymbol symbol={symbol} radius={slot.radius} faceColor={color} highlighted={highlighted} />
-              ) : null}
-              {slot.kind === 'turn' ? (
-                <TurnTracker radius={slot.radius} turn={progress.turn} lastTurn={progress.lastTurn} />
-              ) : null}
-              {slot.kind === 'spice' ? (
-                interactive ? (
-                  <Suspense
-                    fallback={<PhaseSymbol symbol="/vector/icon/spice.svg" radius={slot.radius} faceColor={color} />}
-                  >
-                    <SpiceBank radius={slot.radius} />
-                  </Suspense>
-                ) : (
-                  <PhaseSymbol symbol="/vector/icon/spice.svg" radius={slot.radius} faceColor={color} />
-                )
-              ) : null}
+              <TrackerFace
+                slot={slot}
+                progress={progress}
+                color={color}
+                highlighted={highlighted}
+                interactive={interactive}
+              />
             </group>
           </group>
         );

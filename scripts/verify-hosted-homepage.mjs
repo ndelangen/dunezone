@@ -97,19 +97,21 @@ export async function verifyHomepage({
     await route.continue();
   });
   let releaseSnapshot;
+  let snapshotReleased = false;
+  let disconnectGuestSocket;
   await guest.context.routeWebSocket('**/__play/homepage/socket', (socket) => {
     const server = socket.connectToServer();
     const waiting = [];
-    let released = false;
+    disconnectGuestSocket = () => socket.close({ code: 1012, reason: 'Verify preview reconnect' });
     server.onMessage((message) => {
-      if (released) {
+      if (snapshotReleased) {
         socket.send(message);
       } else {
         waiting.push(message);
       }
     });
     releaseSnapshot = () => {
-      released = true;
+      snapshotReleased = true;
       for (const message of waiting) {
         socket.send(message);
       }
@@ -123,7 +125,6 @@ export async function verifyHomepage({
     await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
     if (who === member) {
       await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
-      await new Promise((resolve) => setTimeout(resolve, 12_000));
       await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
       await who.page.locator('[data-table-connected="true"]').waitFor();
       assert.equal(await who.page.locator('#play-preview img[src*="homepage/board"]').count(), 0);
@@ -150,10 +151,21 @@ export async function verifyHomepage({
     );
     if (who === member) {
       await capture(member, 'homepage-member-ready-after-slow-artwork');
+    } else {
+      const connectionId = guest.view().viewer.connectionId;
+      await disconnectGuestSocket();
+      await until(() => {
+        const view = guest.view();
+        return view && view.viewer.connectionId !== connectionId;
+      }, 'The unsigned visitor did not receive a fresh snapshot after reconnecting.');
+      assert.equal(
+        await initialCanvas.evaluate((canvas) => canvas === document.querySelector('#play-preview canvas')),
+        true
+      );
     }
   }
   passed(
-    'The homepage draws one canvas without an image handoff and shows its board before delayed artwork, which finishes in place'
+    'The homepage shows its board before delayed artwork, which finishes in place, and keeps one canvas through a reconnect'
   );
   await recordRenderer(member, '#play-preview canvas');
   await until(() => member.view().viewer.viewerSeat !== spectator, 'Signing in did not grant table handling.');

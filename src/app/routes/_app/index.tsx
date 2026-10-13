@@ -327,7 +327,6 @@ function ArtworkCloud({ vectors = false }: { vectors?: boolean }) {
                   alt={`${name}, homebrew portrait`}
                   width={640}
                   height={640}
-                  loading="lazy"
                 />
               ))}
           </div>
