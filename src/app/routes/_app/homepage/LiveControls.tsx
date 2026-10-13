@@ -36,9 +36,9 @@ export default function LiveControls({
   onReady,
   scene,
 }: {
-  session: TableSession;
-  onReady(): void;
-  scene: Omit<ComponentProps<typeof TabletopPreviewContents>, 'demo'>;
+  readonly session: TableSession;
+  readonly onReady: () => void;
+  readonly scene: Omit<ComponentProps<typeof TabletopPreviewContents>, 'demo'>;
 }) {
   const [pointer] = useState(() => new PointerSession());
   const [keyboard] = useState(() => new TableKeyboard());

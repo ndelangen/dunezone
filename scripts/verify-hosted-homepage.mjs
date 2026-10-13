@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 
+import { CARRIED_BASE_Y } from '../src/shared/play/tableGeometry.ts';
+
 const thumbnails = new Map([
   ['ns78nmym3qpth6sm9wsfj3ka9s8cw350', 'supplies'],
   ['ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq', 'trishula'],
@@ -25,7 +27,10 @@ async function loadedAvatarBelowHand(who, kind, expectedUrl, until) {
   /* The remote hand eases toward its pointer, so both bounds must come from the same browser frame. */
   const bounds = await hand.evaluate((element) => {
     const avatar = element.querySelector('img')?.getBoundingClientRect();
-    const glyph = element.querySelector(':scope > svg')?.getBoundingClientRect();
+    const glyph =
+      element.dataset.tableHand === 'local'
+        ? element.getBoundingClientRect()
+        : element.querySelector(':scope > svg')?.getBoundingClientRect();
     return avatar && glyph ? { avatar: avatar.toJSON(), glyph: glyph.toJSON() } : null;
   });
   assert.ok(bounds, `${who.label}'s ${kind} hand and avatar need visible bounds.`);
@@ -35,8 +40,13 @@ async function loadedAvatarBelowHand(who, kind, expectedUrl, until) {
 }
 
 async function assertLocalHandAtPointer(who, position, until) {
-  const hand = who.page.locator('[data-table-hand="local"] > svg');
+  const hand = who.page.locator('[data-table-hand="local"]');
   await hand.waitFor();
+  assert.match(
+    await who.page.locator('#play-preview canvas').evaluate((canvas) => getComputedStyle(canvas).cursor),
+    /data:image\/svg\+xml/,
+    'The viewer needs a native browser cursor, independent of scene frames.'
+  );
   let bounds;
   try {
     await until(async () => {
@@ -62,7 +72,75 @@ async function scrollUnderPointer(who, position, until) {
     () => who.page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName !== 'CANVAS', position),
     'The board did not scroll out from beneath the pointer.'
   );
-  await who.page.locator('[data-table-hand="local"] > svg').waitFor({ state: 'detached' });
+  await who.page.locator('[data-table-hand="local"]').waitFor({ state: 'hidden' });
+}
+
+async function verifyReservePickup(member, guest, point, until, passed) {
+  const reserves = member
+    .view()
+    .snapshot.table.pieces.filter((piece) => piece.id.startsWith('reserve-') && piece.items.length > 1);
+  let source;
+  let start;
+  for (const reserve of reserves) {
+    const position = await point(member, reserve.position);
+    const visible = await member.page.evaluate(
+      ({ x, y }) => y > 100 && y < innerHeight - 100 && document.elementFromPoint(x, y)?.tagName === 'CANVAS',
+      position
+    );
+    if (visible) {
+      source = reserve;
+      start = position;
+      break;
+    }
+  }
+  assert.ok(source && start, 'A reserve stack needs to be available in the homepage viewport.');
+  const target = await point(member, [source.position[0] * 0.8, CARRIED_BASE_Y, source.position[2] * 0.8]);
+  const destination = [source.position[0] * 0.8, source.position[2] * 0.8];
+  const revision = member.view().snapshot.revision;
+  for (const wholeStack of [false, false, true]) {
+    await member.page.mouse.move(start.x, start.y);
+    await member.page.mouse.down();
+    if (wholeStack) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+    await member.page.mouse.move(target.x, target.y, { steps: 2 });
+    try {
+      await until(
+        () =>
+          member.page.evaluate(
+            ([x, z, expectedCount]) => {
+              const held = window.__duneTable.pieces().find((piece) => piece.localCarried);
+              return (
+                held && held.count === expectedCount && Math.hypot(held.position[0] - x, held.position[2] - z) < 0.02
+              );
+            },
+            [...destination, wholeStack ? source.items.length : 1]
+          ),
+        `The ${wholeStack ? 'whole-stack' : 'quick'} reserve drag did not carry the expected troops to the pointer.`
+      );
+    } catch (cause) {
+      const shown = await member.page.evaluate(() =>
+        window.__duneTable.pieces().filter((piece) => piece.selected || piece.localCarried)
+      );
+      const actions = member.sent.filter((message) => message.type === 'act').map((message) => message.message);
+      throw new Error(JSON.stringify({ wholeStack, source: source.id, shown, actions: actions.slice(-8) }), { cause });
+    }
+    await member.page.keyboard.press('Escape');
+    await member.page.mouse.up();
+    await until(
+      () => member.page.evaluate(() => window.__duneTable.pieces().every((piece) => !piece.localCarried)),
+      'Cancelling the reserve drag left a carried troop in the scene.'
+    );
+    assert.equal(member.view().snapshot.revision, revision);
+    assert.equal(guest.view().snapshot.revision, revision);
+    assert.deepEqual(
+      member.view().snapshot.table.pieces.find((piece) => piece.id === source.id),
+      source
+    );
+  }
+  passed(
+    'Repeated quick pickups and a whole-stack pickup follow the pointer and cancel without changing the shared table'
+  );
 }
 
 /** Keeps the homepage's published marketing thumbnails local without opening the runner to external traffic. */
@@ -249,6 +327,24 @@ export async function verifyHomepage({
     return shown && Math.hypot(shown.position[0] - moved.position[0], shown.position[2] - moved.position[2]) < 0.02;
   }, 'The unsigned visitor did not render the dropped troop at its shared position.');
   passed('A signed-in visitor moves a troop and the unsigned visitor sees its final position');
+  const repick = await point(member, moved.position);
+  await member.page.mouse.move(repick.x, repick.y);
+  await member.page.mouse.down();
+  await member.page.mouse.move(repick.x + 35, repick.y + 20, { steps: 2 });
+  await until(
+    () => member.page.evaluate(() => window.__duneTable.pieces().some((piece) => piece.localCarried)),
+    'The dropped troop could not be picked up again.'
+  );
+  await member.page.keyboard.press('Escape');
+  await member.page.mouse.up();
+  await until(
+    () => member.page.evaluate(() => window.__duneTable.pieces().every((piece) => !piece.localCarried)),
+    'Cancelling the second pickup left a troop held.'
+  );
+  assert.equal(member.view().snapshot.revision, revision);
+  passed('A dropped troop can be picked up again immediately and cancelled');
+
+  await verifyReservePickup(member, guest, point, until, passed);
 
   const guestStart = await point(guest, moved.position);
   const sentBefore = guest.sent.length;

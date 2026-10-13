@@ -55,7 +55,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import type { ReactNode } from 'react';
-import type { Group, Texture } from 'three';
+import type { Texture } from 'three';
 import {
   DoubleSide,
   Mesh,
@@ -72,6 +72,7 @@ import { useMotionAllowed } from '@app/styles/motion';
 import { ignoreRaycast } from './ignoreRaycast';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
+import { PieceArrival } from './PieceArrival';
 import { topFaceHref } from './pieceFaceHref';
 import { pieceHasMenu } from './pieceMenu';
 import type { CameraViewCommand } from './playView';
@@ -480,7 +481,7 @@ function SpiceFace() {
  * What a piece shows besides itself, worked out by the scene so each piece receives plain values.
  * A piece renders again only when one of them or the piece changes, not on every update to the table.
  */
-type PieceSceneState = {
+export type PieceSceneState = {
   selected: boolean;
   stackTargeted: boolean;
   drafted: boolean;
@@ -809,7 +810,7 @@ function SelectionRingWarmup() {
   return null;
 }
 
-export function TabletopPieceLayers({ piece }: { piece: TablePiece }) {
+export function TabletopPieceLayers({ piece }: { readonly piece: TablePiece }) {
   if (piece.kind === 'marker') {
     return <MarkerLayers piece={piece} />;
   }
@@ -858,68 +859,6 @@ const PIECE_BADGE_CLASS_NAMES = {
   pieceCount: styles.pieceCount,
   pieceCountSelected: styles.pieceCountSelected,
 };
-
-function PieceArrival({ delay, interrupted, children }: { delay?: number; interrupted: boolean; children: ReactNode }) {
-  return delay === undefined ? (
-    children
-  ) : (
-    <AnimatedPieceArrival delay={delay} interrupted={interrupted}>
-      {children}
-    </AnimatedPieceArrival>
-  );
-}
-
-function AnimatedPieceArrival({
-  delay,
-  interrupted,
-  children,
-}: {
-  delay: number;
-  interrupted: boolean;
-  children: ReactNode;
-}) {
-  const group = useRef<Group>(null);
-  const started = useRef<number | null>(null);
-  const finished = useRef(false);
-  const motion = useMotionAllowed();
-  const invalidate = useThree((state) => state.invalidate);
-  useLayoutEffect(() => {
-    const target = group.current;
-    if (!target) {
-      return;
-    }
-    if (!motion || interrupted) {
-      finished.current = true;
-      target.visible = true;
-      target.position.y = 0;
-      target.scale.setScalar(1);
-    } else if (!finished.current && started.current === null) {
-      started.current = performance.now() + delay;
-      target.visible = false;
-      target.position.y = 0.18;
-      target.scale.setScalar(0.97);
-    }
-    invalidate();
-  }, [delay, interrupted, invalidate, motion]);
-  useFrame(() => {
-    const target = group.current;
-    if (!target || finished.current || started.current === null) {
-      return;
-    }
-    const progress = Math.min(1, Math.max(0, (performance.now() - started.current) / 780));
-    const eased = 1 - (1 - progress) ** 3;
-    target.visible = progress > 0;
-    target.position.y = 0.18 * (1 - eased);
-    target.scale.setScalar(0.97 + 0.03 * eased);
-    finished.current = progress === 1;
-    invalidate();
-  });
-  return (
-    <group ref={group} userData={{ dunePreviewPiece: true }}>
-      {children}
-    </group>
-  );
-}
 
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
   const meshes = useSharedMeshes();
@@ -990,7 +929,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
               drafted={drafted}
             />
           ) : null}
-          <PieceArrival delay={props.arrivalDelay} interrupted={selected || carried || reserved || drafted}>
+          <PieceArrival delay={props.arrivalDelay} interaction={props}>
             <group ref={pivotRef} position={[0, flipPivotY, 0]}>
               <group position={[0, -flipPivotY, 0]}>
                 <group ref={shuffleRef}>

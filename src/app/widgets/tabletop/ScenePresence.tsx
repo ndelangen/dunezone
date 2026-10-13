@@ -55,9 +55,10 @@ function HandLabel({
   local,
   demo,
 }: Pick<PublicPointer, 'color' | 'displayName' | 'avatarUrl'> & { local: boolean; demo: boolean }) {
+  const kind = local ? 'local' : 'remote';
   return (
     <div
-      data-table-hand={demo ? 'demo' : local ? 'local' : 'remote'}
+      data-table-hand={demo ? 'demo' : kind}
       className={demo ? styles.demoHand : undefined}
       aria-hidden={displayName ? undefined : true}
       style={{

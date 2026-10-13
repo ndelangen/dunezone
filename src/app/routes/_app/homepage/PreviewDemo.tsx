@@ -12,12 +12,14 @@ import {
 import { isTroopStack } from '@shared/play/troop';
 import board from '@shared/rulebooks/boards/arrakis.json';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
+import type { Camera, Object3D } from 'three';
 import { Group, Vector3 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 import { TableHand } from '@app/widgets/tabletop/ScenePresence';
 import { SoftShadow } from '@app/widgets/tabletop/SoftShadow';
 import { useTabletopReader } from '@app/widgets/tabletop/TabletopContext';
+import type { TabletopContextValue } from '@app/widgets/tabletop/TabletopContext';
 import { TabletopPieceLayers } from '@app/widgets/tabletop/TabletopScene';
 
 const AVATAR = '/homepage-table/bob.jpg';
@@ -34,6 +36,150 @@ type Demonstration = {
   target: Vector3;
   started: number;
 };
+
+type DemoTable = Pick<
+  TabletopContextValue,
+  'renderedPieces' | 'state' | 'selectedPiece' | 'reservedPieceIds' | 'remoteCarriedIds'
+>;
+
+function availableReserve(piece: TablePiece, table: DemoTable) {
+  if (!isTroopStack(piece) || !piece.id.startsWith('reserve-')) {
+    return false;
+  }
+  const hasStock = piece.items.length > 3 && !piece.locked;
+  const onBoard = Math.hypot(piece.position[0], piece.position[2]) <= BOARD_RIM_RADIUS;
+  if (!hasStock || onBoard) {
+    return false;
+  }
+  return !table.reservedPieceIds.has(piece.id) && !table.remoteCarriedIds.has(piece.id);
+}
+
+function visibleReserve(piece: TablePiece, camera: Camera, canvas: HTMLCanvasElement) {
+  const bounds = canvas.getBoundingClientRect();
+  const point = new Vector3(...piece.position).project(camera);
+  const x = bounds.left + ((point.x + 1) * bounds.width) / 2;
+  const y = bounds.top + ((1 - point.y) * bounds.height) / 2;
+  const horizontal = x > 45 && x < innerWidth - 100;
+  const vertical = y > 100 && y < innerHeight * 0.6;
+  if (!horizontal || !vertical) {
+    return false;
+  }
+  return document.elementFromPoint(x, y) === canvas;
+}
+
+function reserveVisual(scene: Object3D, id: string) {
+  let visual: Group | undefined;
+  scene.traverse((object) => {
+    if (object.userData.duneTablePiece?.id === id) {
+      object.traverse((child) => {
+        if (child.userData.dunePreviewPiece && child instanceof Group) {
+          visual = child;
+        }
+      });
+    }
+  });
+  return visual;
+}
+
+function createVisit(
+  table: DemoTable,
+  camera: Camera,
+  canvas: HTMLCanvasElement,
+  scene: Object3D
+): Demonstration | null {
+  if (document.hidden) {
+    return null;
+  }
+  if (table.state.draftMove || table.selectedPiece) {
+    return null;
+  }
+  const eligible = table.renderedPieces.filter(
+    (piece) => availableReserve(piece, table) && visibleReserve(piece, camera, canvas)
+  );
+  const choice = crypto.getRandomValues(new Uint32Array(1))[0];
+  const piece = eligible[choice % eligible.length];
+  if (!piece) {
+    return null;
+  }
+  const visual = reserveVisual(scene, piece.id);
+  if (!visual) {
+    return null;
+  }
+  return {
+    source: piece,
+    visual,
+    origin: new Vector3(...piece.position),
+    target: new Vector3(
+      (CARTHAG.x + CARTHAG.width / 2 - 0.5) * BOARD_RADIUS * 2,
+      CARRIED_BASE_Y + 0.3,
+      (CARTHAG.y + CARTHAG.height / 2 - 0.5) * BOARD_RADIUS * 2
+    ),
+    started: performance.now(),
+  };
+}
+
+function sourcePoseUnchanged(current: Demonstration, piece: TablePiece) {
+  const distance =
+    (piece.position[0] - current.origin.x) ** 2 +
+    (piece.position[1] - current.origin.y) ** 2 +
+    (piece.position[2] - current.origin.z) ** 2;
+  return (
+    piece.orientation === current.source.orientation &&
+    piece.flipRevision === current.source.flipRevision &&
+    distance <= 0.0001
+  );
+}
+
+function sourceItemsUnchanged(source: TablePiece, piece: TablePiece) {
+  return (
+    piece.items.length === source.items.length &&
+    piece.items.every((item, index) => item.id === source.items[index]?.id)
+  );
+}
+
+function visitUnchanged(current: Demonstration, table: DemoTable) {
+  const piece = table.renderedPieces.find((item) => item.id === current.source.id);
+  if (!piece) {
+    return false;
+  }
+  if (table.state.draftMove || table.selectedPiece) {
+    return false;
+  }
+  if (table.remoteCarriedIds.has(piece.id) || table.reservedPieceIds.has(piece.id)) {
+    return false;
+  }
+  return sourcePoseUnchanged(current, piece) && sourceItemsUnchanged(current.source, piece);
+}
+
+function animateVisit(current: Demonstration, models: Group, carried: Group, shadow: Group, hand: Group, t: number) {
+  const approach = smooth((t - 0.15) / 0.85);
+  const lift = smooth((t - 1.2) / 0.5) * (1 - smooth((t - 7.8) / 0.5));
+  const outbound = smooth((t - 1.7) / 2.1);
+  const returning = smooth((t - 5.7) / 2.1);
+  const progress = outbound * (1 - returning);
+  const holding = t >= 1.2 && t < 8.3;
+  models.visible = holding;
+  current.visual.visible = !holding;
+  carried.position.copy(current.origin).lerp(current.target, progress);
+  carried.position.y =
+    current.origin.y + stackTopHeight(current.source) * 0.4 + lift * (current.target.y - current.origin.y);
+  carried.position.x += Math.sin(progress * Math.PI) * (returning > 0 ? -0.2 : 0.35);
+  if (t > 3.8 && t < 5.7) {
+    carried.position.y += Math.sin((t - 3.8) * 3) * 0.012;
+  }
+  shadow.position.set(
+    carried.position.x,
+    contactShadowHeightAt(carried.position.toArray(), current.source),
+    carried.position.z
+  );
+  hand.position.copy(holding ? carried.position : current.origin);
+  hand.position.y += holding ? 0.16 : stackTopHeight(current.source) + 0.06;
+  hand.position.x -= (1 - approach) * 0.8;
+  hand.position.z += (1 - approach) * 0.4;
+  const leave = smooth((t - 8.3) / 0.9);
+  hand.position.x += leave * 0.5;
+  hand.position.z += leave * 0.35;
+}
 
 /* Bob rehearses with local copies; the session's pieces and the shared table never change. */
 export default function PreviewDemo() {
@@ -78,64 +224,11 @@ export default function PreviewDemo() {
       if (stopped.current) {
         return;
       }
-      const table = read();
-      if (document.hidden || table.state.draftMove || table.selectedPiece) {
+      const demonstration = createVisit(read(), camera, renderer.domElement, scene);
+      if (!demonstration) {
         timer = setTimeout(start, 1500);
         return;
       }
-      const bounds = renderer.domElement.getBoundingClientRect();
-      const eligible = table.renderedPieces.filter((piece) => {
-        if (
-          !isTroopStack(piece) ||
-          !piece.id.startsWith('reserve-') ||
-          piece.items.length <= 3 ||
-          piece.locked ||
-          Math.hypot(piece.position[0], piece.position[2]) <= BOARD_RIM_RADIUS ||
-          table.reservedPieceIds.has(piece.id) ||
-          table.remoteCarriedIds.has(piece.id)
-        ) {
-          return false;
-        }
-        const point = new Vector3(...piece.position).project(camera);
-        const x = bounds.left + ((point.x + 1) * bounds.width) / 2;
-        const y = bounds.top + ((1 - point.y) * bounds.height) / 2;
-        return (
-          x > 45 &&
-          x < innerWidth - 100 &&
-          y > 100 &&
-          y < innerHeight * 0.6 &&
-          document.elementFromPoint(x, y) === renderer.domElement
-        );
-      });
-      const piece = eligible[Math.floor(Math.random() * eligible.length)];
-      let visual: Group | undefined;
-      if (piece) {
-        scene.traverse((object) => {
-          if (object.userData.duneTablePiece?.id === piece.id) {
-            object.traverse((child) => {
-              if (child.userData.dunePreviewPiece && child instanceof Group) {
-                visual = child;
-              }
-            });
-          }
-        });
-      }
-      if (!piece || !visual) {
-        timer = setTimeout(start, 1500);
-        return;
-      }
-      const target = new Vector3(
-        (CARTHAG.x + CARTHAG.width / 2 - 0.5) * BOARD_RADIUS * 2,
-        CARRIED_BASE_Y + 0.3,
-        (CARTHAG.y + CARTHAG.height / 2 - 0.5) * BOARD_RADIUS * 2
-      );
-      const demonstration = {
-        source: piece,
-        visual,
-        origin: new Vector3(...piece.position),
-        target,
-        started: performance.now(),
-      };
       demo.current = demonstration;
       setVisit(demonstration);
       invalidate();
@@ -160,58 +253,21 @@ export default function PreviewDemo() {
 
   useFrame(() => {
     const current = demo.current;
-    if (!current || !hand.current || !carried.current || !models.current || !shadow.current) {
+    if (!current) {
       return;
     }
-    const table = read();
-    const piece = table.renderedPieces.find((item) => item.id === current.source.id);
-    if (
-      !piece ||
-      table.state.draftMove ||
-      table.selectedPiece ||
-      table.remoteCarriedIds.has(current.source.id) ||
-      table.reservedPieceIds.has(current.source.id) ||
-      piece.orientation !== current.source.orientation ||
-      piece.flipRevision !== current.source.flipRevision ||
-      piece.items.length !== current.source.items.length ||
-      piece.items.some((item, index) => item.id !== current.source.items[index]?.id) ||
-      current.origin.distanceToSquared(new Vector3(...piece.position)) > 0.0001
-    ) {
-      clearVisit();
+    if (!hand.current || !carried.current) {
+      return;
+    }
+    if (!models.current || !shadow.current) {
       return;
     }
     const t = (performance.now() - current.started) / 1000;
-    if (t >= 9.2) {
+    if (t >= 9.2 || !visitUnchanged(current, read())) {
       clearVisit();
       return;
     }
-    const approach = smooth((t - 0.15) / 0.85);
-    const lift = smooth((t - 1.2) / 0.5) * (1 - smooth((t - 7.8) / 0.5));
-    const outbound = smooth((t - 1.7) / 2.1);
-    const returning = smooth((t - 5.7) / 2.1);
-    const progress = outbound * (1 - returning);
-    const holding = t >= 1.2 && t < 8.3;
-    models.current.visible = holding;
-    current.visual.visible = !holding;
-    carried.current.position.copy(current.origin).lerp(current.target, progress);
-    carried.current.position.y =
-      current.origin.y + stackTopHeight(current.source) * 0.4 + lift * (current.target.y - current.origin.y);
-    carried.current.position.x += Math.sin(progress * Math.PI) * (returning > 0 ? -0.2 : 0.35);
-    if (t > 3.8 && t < 5.7) {
-      carried.current.position.y += Math.sin((t - 3.8) * 3) * 0.012;
-    }
-    shadow.current.position.set(
-      carried.current.position.x,
-      contactShadowHeightAt(carried.current.position.toArray(), current.source),
-      carried.current.position.z
-    );
-    hand.current.position.copy(holding ? carried.current.position : current.origin);
-    hand.current.position.y += holding ? 0.16 : stackTopHeight(current.source) + 0.06;
-    hand.current.position.x -= (1 - approach) * 0.8;
-    hand.current.position.z += (1 - approach) * 0.4;
-    const leave = smooth((t - 8.3) / 0.9);
-    hand.current.position.x += leave * 0.5;
-    hand.current.position.z += leave * 0.35;
+    animateVisit(current, models.current, carried.current, shadow.current, hand.current, t);
     invalidate();
   });
 
