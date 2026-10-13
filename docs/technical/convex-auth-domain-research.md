@@ -73,7 +73,11 @@ Changing `SITE_URL` alone would not change the auth endpoints. Changing the syst
 transition. There is no need to proxy `/.well-known/*` for this proposal.
 [Convex default domain settings](https://docs.convex.dev/production/custom-domains#changing-your-default-domain).
 
-## Proposed implementation
+## Initial implementation proposal, superseded
+
+This section records the original proposal using the library's default `/api/auth` path.
+The approved implementation reserves `/api` and uses `/auth` instead. Follow the
+[current authentication contract](../authentication.md#convex-auth) for deployment.
 
 Add selective Worker-first routing for `/api/auth` and `/api/auth/*`, then handle
 only the intended sign-in and callback routes before the website's SSR and asset
@@ -100,7 +104,13 @@ The OAuth cookies have no `Domain` attribute. They use `Secure`, `HttpOnly`,
 full provider round trip in Chrome, Firefox and Safari, including private browsing.
 [Cookie options](https://github.com/get-convex/convex-auth/blob/7eab86015b09cf91ac36a359beaaa4036aa24cc1/src/server/cookies.ts#L3-L9).
 
-## Provider configuration and rollout
+## Initial rollout proposal, superseded
+
+These steps record the original research and are not deployment instructions.
+The approved callbacks are `https://dune.zone/auth/callback/google` and
+`https://dune.zone/auth/callback/discord`. The
+[current authentication contract](../authentication.md#convex-auth) includes the path
+override, routing gate and atomic environment switch that supersede these steps.
 
 1. Build and verify the proxy in an isolated environment. Use test OAuth clients
    and an HTTPS staging origin to verify the external provider round trip. Local
