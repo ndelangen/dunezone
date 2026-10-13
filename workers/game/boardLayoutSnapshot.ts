@@ -1,5 +1,5 @@
 import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';
-import { SHARED_ITEM_PLACEMENT_ANCHORS } from '../../src/shared/play/tableFurnitureLayout';
+import { SHARED_ITEM_PLACEMENT_ANCHORS, placementAnchorForPose } from '../../src/shared/play/tableFurnitureLayout';
 import { BOARD_RADIUS, TABLE_VISIBLE_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { isCollisionFreePosition, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { PLAYER_RING_RADIUS } from '../../src/shared/play/tableSettings';
@@ -91,13 +91,34 @@ function moveFormerSharedWell(snapshot: StoredSnapshot): StoredSnapshot {
   return { ...snapshot, table: { ...snapshot.table, pieces } };
 }
 
+/* Move occupied wells from the bottom row first, leaving player-arranged pieces and blocked destinations alone. */
+function moveSharedWells(snapshot: StoredSnapshot): StoredSnapshot {
+  const pieces = [...snapshot.table.pieces];
+  const parked = pieces
+    .map((piece, index) => ({ piece, index }))
+    .filter(({ piece }) => !piece.inventory)
+    .sort((left, right) => right.piece.position[2] - left.piece.position[2]);
+  for (const { piece, index } of parked) {
+    const destination: Vector3Tuple = [piece.position[0], piece.position[1], piece.position[2] + 1.2];
+    const anchor = placementAnchorForPose(piece, destination);
+    if (!anchor?.id.startsWith('shared-item-')) {
+      continue;
+    }
+    const others = pieces.filter((other) => other.id !== piece.id && !other.inventory) as TablePiece[];
+    if (isCollisionFreePosition(piece as TablePiece, anchor.position, others)) {
+      pieces[index] = { ...piece, position: restingPositionAt(anchor.position, piece) };
+    }
+  }
+  return { ...snapshot, table: { ...snapshot.table, pieces } };
+}
+
 /** A stored snapshot read on the current board and shelf layout. */
 export function onCurrentBoard(stored: unknown): unknown {
   const layout = storedLayout(stored);
   if (layout === BOARD_LAYOUT) {
     return stored;
   }
-  if (layout !== undefined && layout !== 2) {
+  if (layout !== undefined && layout !== 2 && layout !== 3) {
     return stored;
   }
   const parsed = storedSnapshotSchema.safeParse(
@@ -105,6 +126,9 @@ export function onCurrentBoard(stored: unknown): unknown {
   );
   if (!parsed.success) {
     return stored;
+  }
+  if (layout === 3) {
+    return moveSharedWells(parsed.data);
   }
   return moveFormerSharedWell(layout === undefined ? moveOntoCurrentBoard(parsed.data) : parsed.data);
 }

@@ -87,7 +87,7 @@ test('a piece moved off the old board edge rests on what lies under its new plac
   expect(moved.position).toEqual(restingPositionAt(moved.position, moved));
 });
 
-test.each([undefined, 2])('layout %s moves once with playback history matching the current board', (layout) => {
+test.each([undefined, 2, 3])('layout %s moves once with playback history matching the current board', (layout) => {
   const storage = memoryStorage();
   const identity = { publicSnapshot: (snapshot: StoredSnapshot) => snapshot } as unknown as ActorDirectory;
   const ledger = { project: (snapshot: StoredSnapshot) => snapshot } as unknown as SpiceLedger;
@@ -100,7 +100,10 @@ test.each([undefined, 2])('layout %s moves once with playback history matching t
         ...(layout === undefined ? {} : { boardLayout: layout }),
         table: {
           ...snapshot.table,
-          pieces: [...snapshot.table.pieces, { ...sharedCard, position: [0, 0.005, 7.5], orientation: 0 }],
+          pieces: [
+            ...snapshot.table.pieces,
+            { ...sharedCard, position: layout === 3 ? [-1.5, 0.005, 7.7] : [0, 0.005, 7.5], orientation: 0 },
+          ],
         },
       }) as StoredSnapshot
   );
@@ -146,7 +149,7 @@ test.each([undefined, 2])('layout %s moves once with playback history matching t
   expect(where(stored)[sharedCard.id]).toEqual(
     restingPositionAt(SHARED_ITEM_PLACEMENT_ANCHORS[0]!.position, sharedCard)
   );
-  if (layout === 2) {
+  if (layout !== undefined) {
     expect(where(stored)['on-territory']).toEqual(where(steps[2]!)['on-territory']);
   }
 
@@ -154,6 +157,45 @@ test.each([undefined, 2])('layout %s moves once with playback history matching t
   moveStoredGameOntoCurrentBoard(storage);
   expect(current()).toBe(once);
   expect(history.restore(2)).toEqual(converted(steps[2]!));
+});
+
+test('occupied shared wells follow the deeper shelf while loose pieces and private inventory stay put', () => {
+  const snapshot = storedSnapshotSchema.parse(initialSnapshot());
+  const card = snapshot.table.pieces.find((entry) => entry.kind === 'card')!;
+  const parked = SHARED_ITEM_PLACEMENT_ANCHORS.map((anchor, index) => ({
+    ...card,
+    id: `parked-${index}`,
+    stackKey: `parked-${index}`,
+    orientation: 0,
+    position: [anchor.position[0], 0.005, anchor.position[2] - 1.2] as Vector3Tuple,
+  }));
+  const loose = { ...card, id: 'loose', position: [0, 0.005, 6.2] as Vector3Tuple };
+  const privateCard = { ...parked[0]!, id: 'private', inventory: 'shared' as const };
+  const stored = {
+    ...snapshot,
+    boardLayout: 3,
+    table: { ...snapshot.table, pieces: [...parked, loose, privateCard] },
+  };
+  const moved = storedSnapshotSchema.parse(onCurrentBoard(stored));
+  parked.forEach((entry, index) => {
+    expect(moved.table.pieces[index]).toEqual({
+      ...entry,
+      position: restingPositionAt(SHARED_ITEM_PLACEMENT_ANCHORS[index]!.position, entry),
+    });
+  });
+  expect(moved.table.pieces.slice(8)).toEqual([loose, privateCard]);
+  expect(moved.factionInventories).toEqual(snapshot.factionInventories);
+  expect(onCurrentBoard(moved)).toBe(moved);
+});
+
+test('a shared well item stays put when a player-arranged piece blocks its new destination', () => {
+  const snapshot = storedSnapshotSchema.parse(initialSnapshot());
+  const card = snapshot.table.pieces.find((entry) => entry.kind === 'card')!;
+  const parked = { ...card, position: [-1.5, 0.005, 7.7] as Vector3Tuple, orientation: 0 };
+  const blocker = piece('blocker', SHARED_ITEM_PLACEMENT_ANCHORS[0]!.position);
+  const pieces = [parked, blocker];
+  const stored = { ...snapshot, boardLayout: 3, table: { ...snapshot.table, pieces } };
+  expect(storedSnapshotSchema.parse(onCurrentBoard(stored)).table.pieces).toEqual(pieces);
 });
 
 test.each([0, 1, 8])('the former shared card takes a clear slot with %s slots occupied', (occupied) => {
