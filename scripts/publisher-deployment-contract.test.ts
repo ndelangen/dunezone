@@ -22,17 +22,35 @@ import {
 } from './publisher-deployment-contract';
 
 test('requires both public auth handlers before switching authentication URLs', async () => {
-  const fetcher = vi.fn(
-    async () =>
-      new Response('Missing sign-in verifier', {
-        status: 400,
-        headers: { 'Cache-Control': 'no-store' },
-      })
+  const fetcher = vi.fn(async (_url: string, init: RequestInit) =>
+    init.method === 'POST'
+      ? new Response(null, { status: 405, headers: { Allow: 'GET', 'Cache-Control': 'no-store' } })
+      : new Response(null, {
+          status: 302,
+          headers: { Location: APPLICATION_ORIGIN, 'Cache-Control': 'no-store' },
+        })
   );
   await verifyPublicAuthRouting(fetcher);
-  expect(fetcher.mock.calls).toHaveLength(2);
+  expect(fetcher.mock.calls.map(([url, init]) => [url, init.method])).toEqual([
+    [`${APPLICATION_ORIGIN}/auth/signin/google`, 'POST'],
+    [`${APPLICATION_ORIGIN}/auth/callback/google?error=access_denied`, 'GET'],
+    [`${APPLICATION_ORIGIN}/auth/signin/discord`, 'POST'],
+    [`${APPLICATION_ORIGIN}/auth/callback/discord?error=access_denied`, 'GET'],
+  ]);
   const staleEdge = vi.fn(async () => new Response('<html>old application</html>', { status: 200 }));
   await expect(verifyPublicAuthRouting(staleEdge)).rejects.toThrow('HTTP 200');
+});
+
+test.each([
+  { status: 500, location: APPLICATION_ORIGIN, cache: 'no-store', error: 'HTTP 500' },
+  { status: 302, location: 'https://wrong.example/', cache: 'no-store', error: 'must return home' },
+  { status: 302, location: APPLICATION_ORIGIN, cache: 'public, max-age=60', error: 'must not be cached' },
+])('refuses an invalid callback probe: $error', async ({ status, location, cache, error }) => {
+  const fetcher = async (_url: string, init: RequestInit) =>
+    init.method === 'POST'
+      ? new Response(null, { status: 405, headers: { Allow: 'GET', 'Cache-Control': 'no-store' } })
+      : new Response(null, { status, headers: { Location: location, 'Cache-Control': cache } });
+  await expect(verifyPublicAuthRouting(fetcher)).rejects.toThrow(error);
 });
 
 function ciEnvironment(): NodeJS.ProcessEnv {
