@@ -39,13 +39,20 @@ export function createPhaseRingGeometry(wellRadius: number): ExtrudeGeometry {
  */
 const parsedSymbols = new Map<string, Promise<SVGResult>>();
 
+/* Whether a parsed symbol extrudes to any solid at all; checked once, when it is first parsed. */
+function drawsSomething(svg: SVGResult) {
+  const geometry = createPhaseSymbolGeometry(svg, 1);
+  geometry?.dispose();
+  return geometry !== null;
+}
+
 function parsedSymbol(symbol: string): Promise<SVGResult> {
   let parsed = parsedSymbols.get(symbol);
   if (!parsed) {
     parsed = new SVGLoader().loadAsync(symbol);
     /* A failed fetch, or a body with nothing to draw such as a page served for a missing file, is fetched again by the next mount. */
     parsed.then(
-      (svg) => filledShapes(svg).length > 0 || parsedSymbols.delete(symbol),
+      (svg) => drawsSomething(svg) || parsedSymbols.delete(symbol),
       () => parsedSymbols.delete(symbol)
     );
     parsedSymbols.set(symbol, parsed);

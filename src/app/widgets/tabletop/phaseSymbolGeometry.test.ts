@@ -229,23 +229,33 @@ describe('phase symbol loading lifetime', () => {
     releaseSecond();
   });
 
-  test('fetches a symbol again when its answer had nothing to draw, even if no mount was waiting for it', async () => {
-    const empty = Promise.withResolvers<SVGResult>();
-    const load = vi
-      .spyOn(SVGLoader.prototype, 'loadAsync')
-      .mockReturnValueOnce(empty.promise)
-      .mockResolvedValueOnce(triangle());
-    loadPhaseSymbolGeometry('/vector/icon/recovering.svg', PHASE_TRACKER_RADIUS, vi.fn())();
-    empty.resolve(new SVGLoader().parse('<svg xmlns="http://www.w3.org/2000/svg"></svg>'));
-    await empty.promise;
-    await Promise.resolve();
+  test.each([
+    ['no shapes', '<svg xmlns="http://www.w3.org/2000/svg"></svg>'],
+    ['only flat shapes', '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10"/></svg>'],
+  ])(
+    'fetches a symbol again when its answer had nothing to draw (%s), even if no mount was waiting for it',
+    async (_, body) => {
+      const empty = Promise.withResolvers<SVGResult>();
+      const load = vi
+        .spyOn(SVGLoader.prototype, 'loadAsync')
+        .mockReturnValueOnce(empty.promise)
+        .mockResolvedValueOnce(triangle());
+      loadPhaseSymbolGeometry(`/vector/icon/recovering-${body.length}.svg`, PHASE_TRACKER_RADIUS, vi.fn())();
+      empty.resolve(new SVGLoader().parse(body));
+      await empty.promise;
+      await Promise.resolve();
 
-    const receive = vi.fn();
-    const release = loadPhaseSymbolGeometry('/vector/icon/recovering.svg', PHASE_TRACKER_RADIUS, receive);
-    await vi.waitFor(() => expect(receive).toHaveBeenCalledWith(expect.anything()));
-    expect(load).toHaveBeenCalledTimes(2);
-    release();
-  });
+      const receive = vi.fn();
+      const release = loadPhaseSymbolGeometry(
+        `/vector/icon/recovering-${body.length}.svg`,
+        PHASE_TRACKER_RADIUS,
+        receive
+      );
+      await vi.waitFor(() => expect(receive).toHaveBeenCalledWith(expect.anything()));
+      expect(load).toHaveBeenCalledTimes(2);
+      release();
+    }
+  );
 
   /* The browser verification waits for every artwork load to settle before it acts on a new table (#1592). */
   test('a symbol load settles once its request answers or fails, or once its owner releases it', async () => {
