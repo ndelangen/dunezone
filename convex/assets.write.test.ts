@@ -195,7 +195,7 @@ describe('asset group assignment', () => {
     expect(cleared?.viewerAccess.assignedGroup).toBeNull();
   });
 
-  test('the asset page is the same answer for every viewer, and the deprecated page still answers older bundles', async () => {
+  test('the asset page is the same answer for every viewer', async () => {
     const t = convexTest(schema, modules);
     const { ownerId, outsiderId } = await seedCard(t);
     const address = { type: 'card-treachery', slug: 'lasgun' };
@@ -203,19 +203,6 @@ describe('asset group assignment', () => {
     for (const userId of [ownerId, outsiderId]) {
       expect(await t.withIdentity({ subject: userId }).query(api.assets.page, address)).toEqual(anonymous);
     }
-    const owner = t.withIdentity({ subject: ownerId });
-    const current = await assetPageAs(owner, address);
-    const legacy = await owner.query(api.assets.getPage, address);
-    const {
-      ownerId: _ownerId,
-      assignedGroup: _assignedGroup,
-      convertibleToCustom: _convertible,
-      cardFrontPresets: _cardFrontPresets,
-      ...facts
-    } = current!;
-    expect(legacy).toEqual(facts);
-    expect(legacy).not.toHaveProperty('cardFrontPresets');
-    expect(legacy?.viewerAccess.capabilities.edit).toBe(true);
   });
 
   test('a group the viewer cannot add members to is not a valid target', async () => {

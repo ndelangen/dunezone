@@ -42,22 +42,6 @@ const PENDING_VIEWER_SPLIT: Record<string, string> = {
   'publicationAdmin:page': 'reports access state; becomes adminQuery once the page gates on session.isAdmin',
 };
 
-/**
- * Per-viewer pages already replaced by a `publicQuery`, kept unchanged only so bundles deployed before the replacement keep working.
- * Production deploys functions before the browser bundle, so these are deleted in a later release (see AGENTS.md).
- * It grows only by what leaves the pending split, so the two lists together only shrink.
- */
-const DEPRECATED_VIEWER_QUERIES: Record<string, string> = {
-  'assets:getPage': 'replaced by assets:page',
-  'factions:getBySlug': 'replaced by factions:pageBySlug',
-  'faq:questionPage': 'replaced by faq:question',
-  'groups:detailBySlug': 'replaced by groups:detailPage',
-  'profiles:getBySlug': 'replaced by profiles:pageBySlug',
-  'rulebooks:readerDeliveryPage': 'replaced by rulebooks:readerDelivery',
-  'rulesets:detailPageBySlug': 'replaced by rulesets:detailPage',
-  'rulesets:getBySlug': 'replaced by rulesets:page',
-};
-
 /** Queries a library registers for us, so they cannot carry a builder mark. They read the viewer by design. */
 const LIBRARY_QUERIES: Record<string, string> = {
   'auth:isAuthenticated': 'Exported by @convex-dev/auth from convexAuth().',
@@ -114,33 +98,13 @@ describe('query audience', () => {
     expect(unmarked).toEqual([]);
   });
 
-  test('the pending split and deprecated lists only shrink', () => {
-    /*
-     * Lower the pending cap as pages move to publicQuery, and the deprecated cap as releases delete the old names.
-     * The deprecated cap rises only by what the pending cap gave up; the combined cap never rises.
-     */
-    const pending = Object.keys(PENDING_VIEWER_SPLIT).length;
-    const deprecated = Object.keys(DEPRECATED_VIEWER_QUERIES).length;
-    expect(pending).toBeLessThanOrEqual(2);
-    expect(deprecated).toBeLessThanOrEqual(8);
-    expect(pending + deprecated).toBeLessThanOrEqual(10);
-  });
-
-  test('every deprecated viewer query names a public replacement that exists', () => {
-    for (const reason of Object.values(DEPRECATED_VIEWER_QUERIES)) {
-      const replacement = reason.replace(/^replaced by /, '');
-      expect(queries.get(replacement), replacement).toBe('public');
-    }
+  test('the pending split only shrinks', () => {
+    /* Lower the cap as pages move to publicQuery or adminQuery; it never rises. */
+    expect(Object.keys(PENDING_VIEWER_SPLIT).length).toBeLessThanOrEqual(2);
   });
 
   test('viewer queries are exactly the reviewed list', () => {
     const viewer = [...queries].filter(([, audience]) => audience === 'viewer').map(([name]) => name);
-    expect(viewer.sort()).toEqual(
-      [
-        ...Object.keys(VIEWER_QUERIES),
-        ...Object.keys(PENDING_VIEWER_SPLIT),
-        ...Object.keys(DEPRECATED_VIEWER_QUERIES),
-      ].sort()
-    );
+    expect(viewer.sort()).toEqual([...Object.keys(VIEWER_QUERIES), ...Object.keys(PENDING_VIEWER_SPLIT)].sort());
   });
 });

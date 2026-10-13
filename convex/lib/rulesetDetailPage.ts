@@ -1,6 +1,6 @@
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
-import { assignedGroupSummary, loadAssetAccessBundle, loadRulesetAccessForLoadedSubject } from './collaborativeAccess';
+import { assignedGroupSummary } from './collaborativeAccess';
 import { toCatalogueFaction } from './factionCatalogue';
 import { loadFaqItemsForRuleset } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
@@ -44,7 +44,7 @@ async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'
   });
 }
 
-/** The ruleset and its factions, the same for every viewer: behind `api.rulesets.page`. Throws for an unknown slug, as `getBySlug` does. */
+/** The ruleset and its factions, the same for every viewer: behind `api.rulesets.page`. Throws for an unknown slug. */
 export async function loadRulesetPageBySlug(ctx: QueryCtx, slug: string) {
   const row = await loadPublicRulesetBySlug(ctx, slug);
   if (!row) {
@@ -68,22 +68,4 @@ export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: str
     assetSlots: await listRulesetAssetSlots(ctx, row._id),
     rulebooks: await listRulesetRulebooks(ctx, row._id),
   };
-}
-
-/** Deprecated with `api.rulesets.getBySlug`: the public page plus the viewer's access. Remove with it. */
-export async function loadRulesetPublicBundleBySlug(ctx: QueryCtx, slug: string) {
-  const page = await loadRulesetPageBySlug(ctx, slug);
-  const access = await loadRulesetAccessForLoadedSubject(ctx, page.ruleset);
-  return { ...page, viewerAccess: access.viewerAccess };
-}
-
-/** Deprecated with `api.rulesets.detailPageBySlug`: the public detail page with the viewer's access in place of `assignedGroup`. Remove with it. */
-export async function loadRulesetDetailPageBySlug(ctx: QueryCtx, slug: string) {
-  const page = await loadRulesetPublicDetailPageBySlug(ctx, slug);
-  if (!page) {
-    return null;
-  }
-  const { assignedGroup: _assignedGroup, ...rest } = page;
-  const access = await loadAssetAccessBundle(ctx, { kind: 'ruleset', row: page.ruleset });
-  return { ...rest, viewerAccess: access.viewerAccess, assignableGroups: access.assignableGroups };
 }

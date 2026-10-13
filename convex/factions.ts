@@ -9,14 +9,12 @@ import { mutation, publicQuery, viewerQuery } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
 import {
   assignedGroupSummary,
-  loadAssetAccessBundle,
   requireFactionSoftDelete,
   requireFactionUpdate,
   requireGroupReassignment,
 } from './lib/collaborativeAccess';
 import {
   factionDetailPageValidator,
-  legacyFactionDetailPageValidator,
   factionValidator,
   catalogueFactionValidator,
   rulesetSummaryValidator,
@@ -161,21 +159,6 @@ export const pageBySlug = publicQuery({
   args: { slug: v.string() },
   returns: factionDetailPageValidator,
   handler: async (ctx, args) => loadFactionDetailPage(ctx, await liveFactionBySlug(ctx, args.slug)),
-});
-
-/**
- * Deprecated: the faction page with the viewer's capabilities computed on the server, as bundles from before `pageBySlug` read it.
- * Kept unchanged so a page or editor already open in an older bundle keeps working across the deploy;
- * remove in a later release, once no deployed bundle asks for it (see AGENTS.md).
- */
-export const getBySlug = viewerQuery({
-  args: { slug: v.string() },
-  returns: legacyFactionDetailPageValidator,
-  handler: async (ctx, args) => {
-    const access = await loadAssetAccessBundle(ctx, { kind: 'faction', row: await liveFactionBySlug(ctx, args.slug) });
-    const { assignedGroup: _assignedGroup, ...page } = await loadFactionDetailPage(ctx, access.subject);
-    return { ...page, viewerAccess: access.viewerAccess, assignableGroups: access.assignableGroups };
-  },
 });
 
 /**

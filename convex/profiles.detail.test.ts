@@ -438,19 +438,4 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
     }
     expect(anonymous).not.toHaveProperty('account');
   });
-
-  test('the deprecated per-viewer page still answers older bundles with the owner account block', async () => {
-    const t = convexTest(schema, modules);
-    const seed = await seedProfileDetail(t);
-    const owner = t.withIdentity({ subject: seed.userId });
-
-    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
-    expect(await t.query(api.profiles.getBySlug, { slug: 'central' })).toEqual({ ...page, account: null });
-    const settings = await owner.query(api.profiles.settings, {});
-    expect(settings.account).not.toBeNull();
-    expect(await owner.query(api.profiles.getBySlug, { slug: 'central' })).toEqual({
-      ...page,
-      account: settings.account,
-    });
-  });
 });
