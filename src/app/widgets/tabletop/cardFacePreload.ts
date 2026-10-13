@@ -60,6 +60,10 @@ function dropUnwantedFacesSoon() {
 
 function dropUnwantedFaces() {
   dropPending = false;
+  /* With no table open, the last game left keeps its faces until a table asks for others. */
+  if (tables.size === 0) {
+    return;
+  }
   const wanted = new Set([...tables.values()].flat());
   for (const href of requested.keys()) {
     if (!wanted.has(href)) {

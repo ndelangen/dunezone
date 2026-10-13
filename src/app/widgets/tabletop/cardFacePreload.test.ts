@@ -81,3 +81,12 @@ test('tables handed the same faces again in one commit keep them', async () => {
   expect(started).toEqual([first, second]);
   tables.unmount();
 });
+
+test('a table closed before its release runs still leaves its faces for the next visit', async () => {
+  const started = trackImages();
+  const faces = ['https://dune.zone/i.jpg'];
+  renderHook(() => usePreloadedCardFaces(faces)).unmount();
+  await settle();
+  await visit(faces);
+  expect(started).toEqual(faces);
+});
