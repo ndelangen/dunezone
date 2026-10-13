@@ -402,6 +402,17 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
     expect(accepted?.ruleset).toMatchObject({ slug: 'advanced', name: 'Advanced' });
   });
 
+  test('questions and answers under a soft-deleted ruleset leave the profile with it', async () => {
+    const t = convexTest(schema, modules);
+    const seed = await seedProfileDetail(t);
+    await t.run(async (ctx) => await ctx.db.patch(seed.advancedRulesetId, { is_deleted: true }));
+
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+
+    expect(page.faqAsked).toEqual([]);
+    expect(page.faqAnswers).toEqual([]);
+  });
+
   test('a missing asker profile yields a null summary without corrupting other activity', async () => {
     const t = convexTest(schema, modules);
     const seed = await seedProfileDetail(t);
