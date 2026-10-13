@@ -325,23 +325,6 @@ describe('Rulebook HTML reader delivery', () => {
     expect(await rulebookReaderAs(fixture.member, fixture.locator)).toMatchObject({ canEdit: true, canDelete: false });
   });
 
-  test('the deprecated per-viewer delivery still answers older bundles with their links', async () => {
-    const fixture = await readerFixture();
-    await readyHtml(fixture);
-    expect(await fixture.t.query(api.rulebooks.readerDeliveryPage, fixture.locator)).toMatchObject({
-      canEdit: false,
-      canDelete: false,
-    });
-    expect(await fixture.owner.query(api.rulebooks.readerDeliveryPage, fixture.locator)).toMatchObject({
-      canEdit: true,
-      canDelete: true,
-    });
-    expect(await fixture.member.query(api.rulebooks.readerDeliveryPage, fixture.locator)).toMatchObject({
-      canEdit: true,
-      canDelete: false,
-    });
-  });
-
   test('unfinished current HTML renders that Edition, while historical ready HTML stays selectable', async () => {
     const fixture = await readerFixture();
     await readyHtml(fixture);

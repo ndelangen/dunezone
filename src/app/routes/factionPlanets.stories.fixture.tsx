@@ -2,7 +2,7 @@ import type { FactionInput } from '@shared/factions/schema';
 
 /*
  * Public Space Orks faction copied from https://dune.zone/factions/space-orks on 2026-10-01.
- * Source: factions:getBySlug on exuberant-finch-263, queried without authentication.
+ * Source: the faction page query, now factions:pageBySlug, on exuberant-finch-263, queried without authentication.
  * Artwork keys resolve to the checked-in media sources; BigDave's public avatar already lives in the isolated Play fixtures.
  */
 export const spaceOrks = {

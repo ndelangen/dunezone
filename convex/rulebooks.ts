@@ -742,7 +742,7 @@ const readerDeliveryValidator = v.object({
   ),
 });
 
-/** The reader's page for one Edition, with the loaded ruleset so the deprecated per-viewer query can add the viewer's links. */
+/** The reader's page for one Edition, with the loaded ruleset so `readerDelivery` can add its access facts. */
 async function loadReaderDelivery(ctx: QueryCtx, args: ObjectType<typeof readerDeliveryArgs>) {
   const found = await selectedReaderEdition(ctx, args);
   if (!found) {
@@ -790,23 +790,6 @@ export const readerDelivery = publicQuery({
   handler: async (ctx, args) => {
     const found = await loadReaderDelivery(ctx, args);
     return found && { ...found.page, access: await readerAccess(ctx, found.ruleset) };
-  },
-});
-
-/** Deprecated by `readerDelivery`: kept unchanged on the wire for bundles deployed before it, then deleted (see AGENTS.md). */
-export const readerDeliveryPage = viewerQuery({
-  args: readerDeliveryArgs,
-  returns: v.union(
-    v.null(),
-    readerDeliveryValidator.omit('access').extend({ canEdit: v.boolean(), canDelete: v.boolean() })
-  ),
-  handler: async (ctx, args) => {
-    const found = await loadReaderDelivery(ctx, args);
-    if (!found) {
-      return null;
-    }
-    const { viewerId, viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, found.ruleset);
-    return { ...found.page, canEdit: viewerAccess.capabilities.edit, canDelete: viewerId === found.ruleset.owner_id };
   },
 });
 

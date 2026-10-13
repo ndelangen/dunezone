@@ -213,21 +213,6 @@ describe('FAQ question page projection (api.faq.question)', () => {
     }
   });
 
-  test('the deprecated per-viewer page still answers older bundles with their capabilities', async () => {
-    const t = convexTest(schema, modules);
-    const seed = await seedQuestionPage(t);
-
-    for (const viewer of [t, t.withIdentity({ subject: seed.askerId }), t.withIdentity({ subject: seed.answererId })]) {
-      const { question, answers, ...current } = await faqQuestionPageAs(viewer, locator);
-      const { askedBy: _askedBy, ...legacyQuestion } = question;
-      expect(await viewer.query(api.faq.questionPage, locator)).toEqual({
-        ...current,
-        question: legacyQuestion,
-        answers: answers.map(({ answeredBy: _answeredBy, ...answer }) => answer),
-      });
-    }
-  });
-
   test('unknown locators throw', async () => {
     const t = convexTest(schema, modules);
     await seedQuestionPage(t);
