@@ -8,7 +8,17 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ArrowRight, Hand } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import type { CSSProperties, RefObject } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
@@ -50,24 +60,10 @@ export const Route = createFileRoute('/_app/')({
 });
 
 function IndexPage() {
-  const [invitation, setInvitation] = useState(false);
+  const invitation = useSyncExternalStore(subscribeToHash, sneakPeekRequested, () => false);
   const viewer = useSessionViewer();
   const root = useRef<HTMLDivElement>(null);
   const motionAllowed = useMotionAllowed();
-  /*
-   * The sneak peek link is a plain hash link, so a click before hydration still lands on the preview; the invitation
-   * follows the hash rather than the click, and appears as soon as the page hydrates.
-   */
-  useEffect(() => {
-    const sync = () => {
-      if (window.location.hash === '#play-preview') {
-        setInvitation(true);
-      }
-    };
-    sync();
-    window.addEventListener('hashchange', sync);
-    return () => window.removeEventListener('hashchange', sync);
-  }, []);
   useEffect(() => {
     if (!motionAllowed || typeof IntersectionObserver === 'undefined') {
       return;
@@ -114,6 +110,20 @@ function IndexPage() {
       </PageLayout.Content>
     </PageLayout>
   );
+}
+
+/*
+ * The sneak peek link is a plain hash link, so a click before hydration still lands on the preview. The invitation
+ * follows the browser's hash rather than the click or the router, which never sees a hash changed before hydration.
+ * The server and the hydrating render both read no hash, so they agree.
+ */
+function subscribeToHash(change: () => void) {
+  window.addEventListener('hashchange', change);
+  return () => window.removeEventListener('hashchange', change);
+}
+
+function sneakPeekRequested() {
+  return window.location.hash === '#play-preview';
 }
 
 function fanStyle(x: string, y: string, turn: string, delay: string): CSSProperties {
