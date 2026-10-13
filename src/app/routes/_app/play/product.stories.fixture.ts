@@ -44,7 +44,7 @@ export const parameters = (
   state: 'pending' | 'ready' | 'expired',
   reason?: string,
   minimumPlayers: TableSeatCount = 6,
-  name?: string
+  name = ruleset.name
 ) => ({
   identity: { ...storybookViewer, sessionKey: 'game-session' },
   database: db((baseline) => {
@@ -57,7 +57,8 @@ export const parameters = (
     baseline.authRefreshTokens.push({ sessionId: ref('game-session'), expirationTime: 4_102_444_800_000 });
     baseline.play_games.push({
       $key: GAME_KEY,
-      ...(name ? { name, slug: normalizePlayGameSlug(name) } : {}),
+      name,
+      slug: normalizePlayGameSlug(name),
       state,
       ruleset_id: ref(RULESET_KEY),
       minimum_players: minimumPlayers,
