@@ -321,7 +321,7 @@ const peers = [];
 async function peer(label, context) {
   if (!context) {
     let owner = browser;
-    if (flow.separateBrowsers && label === 'player-b') {
+    if (label === flow.separateBrowserPeer) {
       owner = await chromium.launch({ headless: true, executablePath: values.browser, args: chromiumArgs });
       otherBrowsers.push(owner);
     }
