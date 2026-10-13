@@ -6,17 +6,13 @@ import type { Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
 import { TRACKER_DISC_CONTENT_Y, trackerArcSlots } from '@shared/play/tableTrackers';
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Camera, Group, Mesh } from 'three';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
-import type { BeaconPose, BeaconVariant } from './battleBeaconVariants';
-import { BEACON_VARIANTS } from './battleBeaconVariants';
-
-export type { BeaconVariant } from './battleBeaconVariants';
-/** Which beacon design the table draws; the stories set it while the variants are compared. */
-export const BattleBeaconVariantContext = createContext<BeaconVariant>('lance');
+import type { BeaconPose } from './StrikeMark';
+import { STRIKE_DISC_RADIUS, StrikeMark } from './StrikeMark';
 
 /* How far under the table the beacon waits before it rises, and where it sinks back to. */
 const SUNK_DEPTH = 1.4;
@@ -76,8 +72,6 @@ type Props = {
  * when the phase ends it sinks back into the table.
  */
 export function BattleBeacon({ table, battle, onDrop }: Props) {
-  const variant = useContext(BattleBeaconVariantContext);
-  const Variant = BEACON_VARIANTS[variant];
   const phases = table.snapshot.phases ?? STANDARD_PHASES;
   const inBattle = phaseAt(table.snapshot.phase, phases).id === 'battle';
   const battleIndex = phases.findIndex((entry) => entry.id === 'battle');
@@ -236,7 +230,7 @@ export function BattleBeacon({ table, battle, onDrop }: Props) {
   }
   return (
     <group ref={group} visible={false}>
-      <Variant key={variant} pose={pose} />
+      <StrikeMark pose={pose} />
       {canPickUp ? (
         <mesh
           ref={hit}
@@ -249,7 +243,7 @@ export function BattleBeacon({ table, battle, onDrop }: Props) {
             gl.domElement.style.cursor = '';
           }}
         >
-          <cylinderGeometry args={[0.32, 0.32, 0.7, 12]} />
+          <cylinderGeometry args={[STRIKE_DISC_RADIUS * 1.3, STRIKE_DISC_RADIUS * 1.3, 0.14, 16]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
         </mesh>
       ) : null}
