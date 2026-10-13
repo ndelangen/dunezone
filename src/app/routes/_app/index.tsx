@@ -27,8 +27,7 @@ import styles from './index.module.css';
 const ConnectedHomepageTable = lazy(() => import('./homepage/ConnectedTable').catch(() => ({ default: () => null })));
 
 export const Route = createFileRoute('/_app/')({
-  /* Share metadata runs on the server; the game artwork keeps its browser-owned SVG IDs. */
-  ssr: 'data-only',
+  ssr: true,
   /*
    * The SPA shell every browser-only path is served from is prerendered at `/`, and it runs every matched head but no
    * loader below the root. So the homepage's identity comes from its loader, like every other public page's: the shell

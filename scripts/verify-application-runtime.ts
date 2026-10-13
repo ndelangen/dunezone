@@ -175,14 +175,14 @@ try {
         }
       }
     }
-    if (pathname !== '/') {
-      assert.match(html, /<h1[\s>]/, `${pathname} has no rendered heading`);
-    }
+    assert.match(html, /<h1[\s>]/, `${pathname} has no rendered heading`);
     assert.match(html, /rel="canonical"/, `${pathname} has no canonical URL`);
     assert.match(html, /property="og:title"/, `${pathname} has no social metadata`);
     assert.ok(html.endsWith('</html>'), `${pathname} returned a truncated document`);
     if (pathname === '/') {
       assert.match(html, /Dune Play is coming soon/i);
+      assert.match(html, /Your rules\. Always within reach\./, 'The homepage chapters are not rendered on the server');
+      assert.match(html, /<a[^>]+href="\/rulesets"/, 'The homepage has no rendered link to the Rulesets');
       const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1];
       assert.ok(image, 'The homepage has no social image');
       assert.equal(new URL(image).origin, 'https://dune.zone');
