@@ -16,6 +16,8 @@ export type BeaconPose = {
   /* 1 while the beacon shows, falling to 0 as it fades out over the battle it marks. */
   fade: number;
   carried: boolean;
+  /* False when the player's motion preference asks for stillness: the mark then holds a resting pose. */
+  motion: boolean;
 };
 
 const MARK = '#3fe0ff';
@@ -31,6 +33,8 @@ const FOOTPRINT = 0.27;
 const DASHES = 12;
 
 const lerp = (from: number, to: number, amount: number) => from + (to - from) * amount;
+/* The clock the mark animates by, stopped at zero for players who ask for less motion. */
+const beaconTime = (pose: BeaconPose) => (pose.motion ? performance.now() / 1000 : 0);
 const pulseAt = (time: number, rate = 1.1) => 0.5 + 0.5 * Math.sin(time * Math.PI * 2 * rate);
 
 /* Light in the air adds to what is behind it; marks on the ground are painted, so they stay cyan on bright sand. */
@@ -142,7 +146,7 @@ function Footprint({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) {
   const dashes = useRef<Group>(null);
   const footprint = useRef<Group>(null);
   useFrame(() => {
-    const time = performance.now() / 1000;
+    const time = beaconTime(pose.current);
     const { flat } = pose.current;
     dashes.current!.rotation.y = time * 0.4;
     footprint.current!.scale.setScalar(lerp(1 + 0.04 * pulseAt(time), 1, flat));
@@ -182,7 +186,7 @@ function Projection({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) {
   const scan = useRef<Group>(null);
   const scanMaterial = useRef<MeshBasicMaterial>(null);
   useFrame(() => {
-    const time = performance.now() / 1000;
+    const time = beaconTime(pose.current);
     const { flat, height } = pose.current;
     const length = Math.max(0.001, height * (1 - flat));
     const fade = 1 - flat;
@@ -215,7 +219,7 @@ function AcrylicDisc({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) {
   const disc = useRef<Group>(null);
   const emitter = useRef<MeshBasicMaterial>(null);
   useFrame(() => {
-    const time = performance.now() / 1000;
+    const time = beaconTime(pose.current);
     const { flat, height, carried } = pose.current;
     const bob = carried ? 0 : 0.015 * Math.sin(time * 1.6);
     disc.current!.position.y = lerp(height + bob, DISC_THICKNESS / 2 + 0.006, flat);

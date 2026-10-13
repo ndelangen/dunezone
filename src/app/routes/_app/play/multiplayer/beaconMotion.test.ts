@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 
-import { beaconMode, beaconTarget, restingMotion, stepBeacon } from './beaconMotion';
+import { beaconMode, beaconRisen, beaconTarget, initialMotion, stepBeacon } from './beaconMotion';
 import type { BeaconMode, BeaconMotion, BeaconSpot } from './beaconMotion';
 
 const HOME: BeaconSpot = { x: 4, z: -2, ground: 0.2 };
@@ -29,7 +29,7 @@ test('the beacon heads for the point it is carried to, and home when nothing hol
 });
 
 test('it rises through the table at the tracker and then stops asking for frames only while hidden', () => {
-  const state = restingMotion(HOME);
+  const state = initialMotion(HOME);
   const rising = stepBeacon(state, 'home', HOME, 1 / 60);
   expect(rising.y).toBeLessThan(HOME.ground);
   expect(rising.animating).toBe(true);
@@ -39,7 +39,7 @@ test('it rises through the table at the tracker and then stops asking for frames
 });
 
 test('landed on its battle, it lies flat, shrinks and fades out, then stops drawing', () => {
-  const state = restingMotion(HOME);
+  const state = initialMotion(HOME);
   run(state, 'home', 3);
   const landed = run(state, 'anchor', 4);
   expect(state.flat).toBeGreaterThan(0.95);
@@ -50,7 +50,7 @@ test('landed on its battle, it lies flat, shrinks and fades out, then stops draw
 });
 
 test('a finished battle brings the beacon back up at the tracker, unfaded', () => {
-  const state = restingMotion(HOME);
+  const state = initialMotion(HOME);
   run(state, 'home', 3);
   run(state, 'anchor', 4);
   expect(stepBeacon(state, 'home', HOME, 1 / 60).animating).toBe(true);
@@ -60,9 +60,62 @@ test('a finished battle brings the beacon back up at the tracker, unfaded', () =
 });
 
 test('leaving the Battle phase sinks the beacon back into the table', () => {
-  const state = restingMotion(HOME);
+  const state = initialMotion(HOME);
   run(state, 'home', 3);
   const gone = run(state, 'gone', 3);
   expect(gone.visible).toBe(false);
   expect(gone.animating).toBe(false);
+});
+
+/* The table draws on demand: these runs step only while the beacon asks for another frame. */
+function runOnDemand(state: BeaconMotion, mode: BeaconMode, motion: boolean, limit = 1000) {
+  let frames = 0;
+  let frame = stepBeacon(state, mode, beaconTarget(mode, HOME, { anchor: ANCHOR }), 1 / 60, motion);
+  while (frame.animating && frames < limit) {
+    frame = stepBeacon(state, mode, beaconTarget(mode, HOME, { anchor: ANCHOR }), 1 / 60, motion);
+    frames += 1;
+  }
+  return { frame, frames };
+}
+
+test('after a faded battle ends, frames keep coming until the beacon has risen again at the tracker', () => {
+  const state = initialMotion(HOME);
+  run(state, 'home', 3);
+  run(state, 'anchor', 4);
+  const { frame } = runOnDemand(state, 'home', false);
+  expect(state).toMatchObject({ x: HOME.x, z: HOME.z, respawn: false });
+  expect(state.presence).toBe(1);
+  expect(frame.visible).toBe(true);
+});
+
+test('with motion turned off a resting beacon stops asking for frames; with motion on it keeps pulsing', () => {
+  const still = initialMotion(HOME);
+  expect(runOnDemand(still, 'home', false).frames).toBeLessThan(1000);
+  const pulsing = initialMotion(HOME);
+  expect(runOnDemand(pulsing, 'home', true).frames).toBe(1000);
+});
+
+test('a table opened during a battle shows the beacon already landed and faded, not rising from the tracker', () => {
+  const target = beaconTarget('anchor', HOME, { anchor: ANCHOR });
+  const state = initialMotion(HOME, 'anchor', target);
+  const frame = stepBeacon(state, 'anchor', target, 1 / 60, false);
+  expect(state).toMatchObject({ x: 1, z: 1 });
+  expect(frame.visible).toBe(false);
+  expect(frame.animating).toBe(false);
+});
+
+test('the beacon can be picked up only once it has risen at the tracker', () => {
+  const state = initialMotion(HOME);
+  run(state, 'home', 0.5);
+  expect(beaconRisen(state)).toBe(false);
+  run(state, 'home', 2);
+  expect(beaconRisen(state)).toBe(true);
+  run(state, 'anchor', 4);
+  stepBeacon(state, 'home', HOME, 1 / 60);
+  expect(beaconRisen(state)).toBe(false);
+});
+
+test('a first frame with no elapsed time still asks for the next one, so the rise always starts', () => {
+  const state = initialMotion(HOME);
+  expect(stepBeacon(state, 'home', HOME, 0, false).animating).toBe(true);
 });

@@ -5,13 +5,15 @@ import type { PublicBattle } from '@shared/play/battle';
 import type { Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { TRACKER_DISC_CONTENT_Y, trackerArcSlots } from '@shared/play/tableTrackers';
+import type { RefObject } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Group } from 'three';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import { useMotionAllowed } from '../../../../styles/motion';
 import styles from './BattleBeacon.module.css';
-import type { BeaconMotion } from './beaconMotion';
-import { beaconMode, beaconTarget, HOME_HEIGHT, restingMotion, stepBeacon } from './beaconMotion';
+import type { BeaconMode, BeaconMotion, BeaconSpot } from './beaconMotion';
+import { beaconMode, beaconRisen, beaconTarget, HOME_HEIGHT, initialMotion, stepBeacon } from './beaconMotion';
 import type { BeaconPose } from './StrikeMark';
 import { StrikeMark } from './StrikeMark';
 import { useBeaconCarry } from './useBeaconCarry';
@@ -54,6 +56,90 @@ function usePendingDrop(battle: PublicBattle | null | undefined, inBattle: boole
   return [pending, setPending] as const;
 }
 
+/** Moves the beacon every frame from its motion state, and hands the strike mark the pose it draws. */
+function useBeaconFrame({
+  home,
+  mode,
+  anchor,
+  pending,
+  carryAt,
+  motion,
+  group,
+  handle,
+}: {
+  home: BeaconSpot | null;
+  mode: BeaconMode;
+  anchor: Vector3Tuple | undefined;
+  pending: Vector3Tuple | null;
+  /* Read every frame, since a carry moves the point without rendering. */
+  carryAt(): Vector3Tuple | null;
+  motion: boolean;
+  group: RefObject<Group | null>;
+  handle: RefObject<Group | null>;
+}) {
+  const invalidate = useThree((state) => state.invalidate);
+  const pose = useRef<BeaconPose>({ flat: 0, height: HOME_HEIGHT, fade: 1, carried: false, motion });
+  const moving = useRef<BeaconMotion | null>(null);
+  /* The handle appears only once the beacon is up, so nobody grabs a beacon still rising or sinking out of sight. */
+  const [risen, setRisen] = useState(false);
+  const risenShown = useRef(false);
+  useEffect(() => invalidate(), [mode, invalidate]);
+  useFrame((_state, delta) => {
+    if (!home || !group.current) {
+      return;
+    }
+    const target = beaconTarget(mode, home, { anchor, pending, carry: mode === 'carry' ? carryAt() : null });
+    moving.current ??= initialMotion(home, mode, target);
+    const state = moving.current;
+    const frame = stepBeacon(state, mode, target, delta, motion);
+    if (beaconRisen(state) !== risenShown.current) {
+      risenShown.current = beaconRisen(state);
+      setRisen(risenShown.current);
+    }
+    group.current.position.set(state.x, frame.y, state.z);
+    group.current.visible = frame.visible;
+    group.current.scale.setScalar(frame.scale);
+    Object.assign(pose.current, {
+      flat: state.flat,
+      height: state.height,
+      fade: state.fade,
+      motion,
+      carried: mode === 'carry',
+    });
+    handle.current?.position.setY(state.height);
+    if (frame.animating) {
+      invalidate();
+    }
+  });
+  return { pose, risen };
+}
+
+/** An invisible button over the disc: what players grab, and what assistive tech and tests find. */
+function BeaconHandle({
+  handle,
+  enabled,
+  pickUp,
+}: {
+  handle: RefObject<Group | null>;
+  enabled: boolean;
+  pickUp(event: PointerEvent): void;
+}) {
+  return (
+    <group ref={handle} position={[0, HOME_HEIGHT, 0]}>
+      <Html center zIndexRange={[1, 0]}>
+        <button
+          type="button"
+          className={styles.handle}
+          aria-label="Drag battle marker onto territory"
+          data-local-carry
+          disabled={!enabled}
+          onPointerDown={(event) => event.button === 0 && pickUp(event.nativeEvent)}
+        />
+      </Html>
+    </group>
+  );
+}
+
 type Props = {
   table: TableProjection;
   battle: PublicBattle | null | undefined;
@@ -69,10 +155,11 @@ type Props = {
  */
 export function BattleBeacon({ table, battle, onDrop }: Props) {
   const { inBattle, home } = useBeaconHome(table);
-  const { camera, gl, invalidate } = useThree();
+  const { camera, renderer, invalidate } = useThree();
   const [pending, setPending] = usePendingDrop(battle, inBattle);
-  const { carrying, carryPoint, pickUp, putDown } = useBeaconCarry({
-    canvas: gl.domElement,
+  const motion = useMotionAllowed();
+  const { carrying, carryAt, pickUp, putDown } = useBeaconCarry({
+    canvas: renderer.domElement,
     camera,
     invalidate,
     onDrop(point) {
@@ -82,41 +169,21 @@ export function BattleBeacon({ table, battle, onDrop }: Props) {
   });
   const group = useRef<Group>(null);
   const handle = useRef<Group>(null);
-  const pose = useRef<BeaconPose>({ flat: 0, height: HOME_HEIGHT, fade: 1, carried: false });
-  const motion = useRef<BeaconMotion | null>(null);
-  if (!motion.current && home) {
-    motion.current = restingMotion(home);
-  }
-
   const mode = beaconMode({ inBattle, battle: Boolean(battle), pending: Boolean(pending), carrying });
-  const canPickUp = mode === 'home' && table.canHandleTable;
   useEffect(() => {
     if (!inBattle) {
       putDown();
     }
   }, [inBattle, putDown]);
-  useEffect(() => invalidate(), [mode, invalidate]);
-
-  useFrame((_state, delta) => {
-    const state = motion.current;
-    if (!state || !home || !group.current) {
-      return;
-    }
-    const target = beaconTarget(mode, home, { anchor: battle?.anchor, pending, carry: carryPoint.current });
-    const frame = stepBeacon(state, mode, target, delta);
-    group.current.position.set(state.x, frame.y, state.z);
-    group.current.visible = frame.visible;
-    group.current.scale.setScalar(frame.scale);
-    Object.assign(pose.current, {
-      flat: state.flat,
-      height: state.height,
-      fade: state.fade,
-      carried: mode === 'carry',
-    });
-    handle.current?.position.setY(state.height);
-    if (frame.animating) {
-      invalidate();
-    }
+  const { pose, risen } = useBeaconFrame({
+    home,
+    mode,
+    anchor: battle?.anchor,
+    pending,
+    carryAt,
+    motion,
+    group,
+    handle,
   });
 
   if (!home) {
@@ -125,19 +192,8 @@ export function BattleBeacon({ table, battle, onDrop }: Props) {
   return (
     <group ref={group} visible={false}>
       <StrikeMark pose={pose} />
-      {inBattle && !battle && !pending ? (
-        <group ref={handle} position={[0, HOME_HEIGHT, 0]}>
-          <Html center zIndexRange={[1, 0]}>
-            <button
-              type="button"
-              className={styles.handle}
-              aria-label="Drag battle marker onto territory"
-              data-local-carry
-              disabled={!canPickUp}
-              onPointerDown={(event) => event.button === 0 && pickUp(event.nativeEvent)}
-            />
-          </Html>
-        </group>
+      {(mode === 'home' && risen) || mode === 'carry' ? (
+        <BeaconHandle handle={handle} enabled={mode === 'home' && table.canHandleTable} pickUp={pickUp} />
       ) : null}
     </group>
   );

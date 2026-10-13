@@ -282,3 +282,6 @@ export const HiddenZone = meta.story({
     );
   },
 });
+
+/** The battle beacon at the Battle phase: pick the acrylic disc up over the tracker's Battle disc and drop it on a territory; it lies flat and fades as the battle shows. */
+export const BattleBeacon = meta.story({ args: { step: chapter('Battle') } });

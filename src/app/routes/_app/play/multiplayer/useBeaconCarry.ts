@@ -1,13 +1,12 @@
 import type { Vector3Tuple } from '@shared/play/model';
-import { BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
-import { useCallback, useRef, useState } from 'react';
+import { BOARD_RADIUS, BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Camera } from 'three';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 
-/* A drop counts on the board, as the marker's drop always has. */
-const BOARD_DROP_RADIUS = 5.5;
+type ScreenPoint = { clientX: number; clientY: number };
 
-function boardPoint(event: PointerEvent, canvas: HTMLCanvasElement, camera: Camera): Vector3Tuple | null {
+function boardPoint(event: ScreenPoint, canvas: HTMLCanvasElement, camera: Camera): Vector3Tuple | null {
   const bounds = canvas.getBoundingClientRect();
   const ray = new Raycaster();
   ray.setFromCamera(
@@ -21,6 +20,12 @@ function boardPoint(event: PointerEvent, canvas: HTMLCanvasElement, camera: Came
   return point && [point.x, 0.18, point.z];
 }
 
+/* A release over the panels or header lands on them, not on the board hidden underneath. */
+function overTable(event: ScreenPoint, canvas: HTMLCanvasElement) {
+  const under = canvas.ownerDocument.elementFromPoint(event.clientX, event.clientY);
+  return under === canvas || Boolean(under?.closest('[data-local-carry]'));
+}
+
 type Options = {
   canvas: HTMLCanvasElement;
   camera: Camera;
@@ -31,51 +36,74 @@ type Options = {
 
 /**
  * Carrying the beacon: a press on it captures the pointer and follows it over the board until it lifts.
- * Escape or a lost pointer puts it back.
+ * Escape, a lost pointer or a window that loses focus puts it back, as does `putDown` or the beacon going away.
+ * The carried point is read through the current camera every time, so a pan or zoom mid-carry drops where the beacon shows.
  */
 export function useBeaconCarry({ canvas, camera, invalidate, onDrop }: Options) {
   const [carrying, setCarrying] = useState(false);
-  const carryPoint = useRef<Vector3Tuple | null>(null);
+  const screen = useRef<ScreenPoint | null>(null);
+  const cancelCarry = useRef<(() => void) | null>(null);
 
   const pickUp = (event: PointerEvent) => {
     event.preventDefault();
+    cancelCarry.current?.();
     const pointerId = event.pointerId;
     try {
       canvas.setPointerCapture(pointerId);
     } catch {
       /* A pointer the browser no longer tracks still carries until it lifts. */
     }
-    carryPoint.current = boardPoint(event, canvas, camera);
+    screen.current = { clientX: event.clientX, clientY: event.clientY };
     setCarrying(true);
     canvas.style.cursor = 'grabbing';
     const move = (moved: PointerEvent) => {
-      if (moved.pointerId !== pointerId) {
-        return;
+      if (moved.pointerId === pointerId) {
+        screen.current = { clientX: moved.clientX, clientY: moved.clientY };
+        invalidate();
       }
-      carryPoint.current = boardPoint(moved, canvas, camera) ?? carryPoint.current;
-      invalidate();
     };
     const finish = (lifted: PointerEvent | null) => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', cancel);
       window.removeEventListener('keydown', escape);
+      window.removeEventListener('blur', drop);
+      canvas.removeEventListener('lostpointercapture', lost);
+      try {
+        canvas.releasePointerCapture(pointerId);
+      } catch {
+        /* Already released. */
+      }
+      cancelCarry.current = null;
+      screen.current = null;
       canvas.style.cursor = '';
-      const point = lifted ? boardPoint(lifted, canvas, camera) : null;
-      if (point && Math.hypot(point[0], point[2]) <= BOARD_DROP_RADIUS) {
+      setCarrying(false);
+      const point = lifted && overTable(lifted, canvas) ? boardPoint(lifted, canvas, camera) : null;
+      /* The game places battles on the board only, so a drop past its edge is no drop at all. */
+      if (point && Math.hypot(point[0], point[2]) <= BOARD_RADIUS) {
         onDrop(point);
       }
-      setCarrying(false);
     };
+    const drop = () => finish(null);
     const up = (lifted: PointerEvent) => lifted.pointerId === pointerId && finish(lifted);
-    const cancel = (lifted: PointerEvent) => lifted.pointerId === pointerId && finish(null);
-    const escape = (pressed: KeyboardEvent) => pressed.key === 'Escape' && finish(null);
+    const cancel = (lifted: PointerEvent) => lifted.pointerId === pointerId && drop();
+    const lost = (lifted: PointerEvent) => lifted.pointerId === pointerId && drop();
+    const escape = (pressed: KeyboardEvent) => pressed.key === 'Escape' && drop();
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', cancel);
     window.addEventListener('keydown', escape);
+    window.addEventListener('blur', drop);
+    canvas.addEventListener('lostpointercapture', lost);
+    cancelCarry.current = drop;
   };
 
-  const putDown = useCallback(() => setCarrying(false), []);
-  return { carrying, carryPoint, pickUp, putDown };
+  const putDown = useCallback(() => cancelCarry.current?.(), []);
+  useEffect(() => () => cancelCarry.current?.(), []);
+  /** Where the beacon is held over the board right now, through the camera as it stands. */
+  const carryAt = useCallback(
+    () => (screen.current ? boardPoint(screen.current, canvas, camera) : null),
+    [canvas, camera]
+  );
+  return { carrying, carryAt, pickUp, putDown };
 }
