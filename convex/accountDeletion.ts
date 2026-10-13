@@ -8,6 +8,8 @@ import type { ActionCtx, MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, mutation, viewerQuery } from './functions';
 import { accountStateOf, authenticatedLifecycleUser, lifecycleUserId } from './lib/accountLifecycle';
 import { requireUnlockedAccount } from './lib/accountMethods';
+import { TOKEN_ASSET_TYPES } from './lib/assetBacks';
+import { CUSTOM_CARD_TOKEN_RELATION } from './lib/customCardTokens';
 import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
@@ -30,8 +32,13 @@ const replacementProfileValidator = v.object({
   avatarUrl: v.union(v.string(), v.null()),
 });
 
-type OwnedEntityId = Id<'groups'> | Id<'factions'> | Id<'rulesets'>;
+type OwnedEntityId = Id<'groups'> | Id<'factions'> | Id<'rulesets'> | Id<'assets'>;
 type AnyCtx = QueryCtx | MutationCtx;
+
+/** The directly owned kinds keyed by `owner_id`, each read through its `by_owner_deleted` index; Groups use `created_by`. */
+const OWNER_ID_TABLES = { faction: 'factions', ruleset: 'rulesets', asset: 'assets' } as const;
+type OwnerIdKind = keyof typeof OWNER_ID_TABLES;
+type OwnerIdTable = (typeof OWNER_ID_TABLES)[OwnerIdKind];
 
 async function profileForUser(ctx: AnyCtx, userId: Id<'users'>) {
   return await ctx.db
@@ -94,26 +101,14 @@ async function ownedPresence(ctx: QueryCtx, userId: Id<'users'>, kind: DirectOwn
     ]);
     return { kind, hasActive: active.length > 0, hasDeleted: deleted.length > 0 };
   }
-  if (kind === 'faction') {
-    const [active, deleted] = await Promise.all([
-      ctx.db
-        .query('factions')
-        .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', false))
-        .take(1),
-      ctx.db
-        .query('factions')
-        .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', true))
-        .take(1),
-    ]);
-    return { kind, hasActive: active.length > 0, hasDeleted: deleted.length > 0 };
-  }
+  const table = OWNER_ID_TABLES[kind];
   const [active, deleted] = await Promise.all([
     ctx.db
-      .query('rulesets')
+      .query(table)
       .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', false))
       .take(1),
     ctx.db
-      .query('rulesets')
+      .query(table)
       .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', true))
       .take(1),
   ]);
@@ -264,22 +259,20 @@ export const confirm = mutation({
   },
 });
 
-async function snapshotPage(ctx: MutationCtx, operation: Doc<'account_deletion_operations'>) {
+async function snapshotPage(
+  ctx: MutationCtx,
+  operation: Doc<'account_deletion_operations'>,
+  kind: DirectOwnershipKind
+) {
   const pagination = { cursor: operation.snapshot_cursor, numItems: SNAPSHOT_BATCH_SIZE };
-  if (operation.snapshot_kind === 'group') {
+  if (kind === 'group') {
     return await ctx.db
       .query('groups')
       .withIndex('by_created_by_deleted', (q) => q.eq('created_by', operation.source_user_id))
       .paginate(pagination);
   }
-  if (operation.snapshot_kind === 'faction') {
-    return await ctx.db
-      .query('factions')
-      .withIndex('by_owner_deleted', (q) => q.eq('owner_id', operation.source_user_id))
-      .paginate(pagination);
-  }
   return await ctx.db
-    .query('rulesets')
+    .query(OWNER_ID_TABLES[kind])
     .withIndex('by_owner_deleted', (q) => q.eq('owner_id', operation.source_user_id))
     .paginate(pagination);
 }
@@ -318,7 +311,7 @@ export const snapshotBatch = internalMutation({
     if (!operation || operation.state !== 'running' || operation.phase !== 'snapshotting' || !operation.snapshot_kind) {
       return { next: 'done' as const };
     }
-    const result = await snapshotPage(ctx, operation);
+    const result = await snapshotPage(ctx, operation, operation.snapshot_kind);
     let inserted = 0;
     for (const row of result.page) {
       if (await captureItem(ctx, operation._id, operation.snapshot_kind, row._id, row.is_deleted)) {
@@ -390,38 +383,87 @@ async function ensureReplacementOwnerMembership(
   });
 }
 
+/** A token's deletion or return changes the cards that embed it, as `assets.softDelete` does. */
+async function refreshTokenEmbeddings(ctx: MutationCtx, asset: Doc<'assets'>) {
+  if (TOKEN_ASSET_TYPES.has(asset.type)) {
+    await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: asset._id, cursor: null });
+  }
+}
+
+/** A returning card missed every token change while it was deleted; one refresh republishes it with their current state. */
+async function refreshReturningCard(ctx: MutationCtx, card: Doc<'assets'>) {
+  if (card.type !== 'card-custom' && card.type !== 'card-storm') {
+    return;
+  }
+  const embed = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', card._id).eq('kind', CUSTOM_CARD_TOKEN_RELATION))
+    .first();
+  if (embed) {
+    await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCard, {
+      tokenId: embed.to_asset_id,
+      cardId: card._id,
+    });
+  }
+}
+
+async function applyGroup(ctx: MutationCtx, operation: Doc<'account_deletion_operations'>, groupId: Id<'groups'>) {
+  const group = await ctx.db.get('groups', groupId);
+  if (group?.created_by !== operation.source_user_id) {
+    return;
+  }
+  const replacement = operation.replacement_user_id;
+  if (replacement) {
+    await ensureReplacementOwnerMembership(ctx, group._id, replacement);
+    await ctx.db.patch(group._id, { created_by: replacement });
+  } else if (!group.is_deleted) {
+    await ctx.db.patch(group._id, { is_deleted: true });
+  }
+}
+
+/** The owner_id record behind an item, or null once the source no longer owns it. */
+async function sourceOwnedRecord(
+  ctx: MutationCtx,
+  operation: Doc<'account_deletion_operations'>,
+  kind: OwnerIdKind,
+  entityId: OwnedEntityId
+) {
+  const record = await ctx.db.get(OWNER_ID_TABLES[kind], entityId as Id<OwnerIdTable>);
+  return record?.owner_id === operation.source_user_id ? record : null;
+}
+
+async function applyOwnedRecord(
+  ctx: MutationCtx,
+  operation: Doc<'account_deletion_operations'>,
+  kind: OwnerIdKind,
+  entityId: OwnedEntityId
+) {
+  const record = await sourceOwnedRecord(ctx, operation, kind, entityId);
+  if (!record) {
+    return;
+  }
+  if (operation.replacement_user_id) {
+    await ctx.db.patch(record._id, { owner_id: operation.replacement_user_id });
+    return;
+  }
+  if (record.is_deleted) {
+    return;
+  }
+  await ctx.db.patch(record._id, { is_deleted: true, updated_at: nowIso() });
+  if (kind === 'asset') {
+    await refreshTokenEmbeddings(ctx, record as Doc<'assets'>);
+  }
+}
+
 async function applyItem(
   ctx: MutationCtx,
   operation: Doc<'account_deletion_operations'>,
   item: Doc<'account_deletion_items'>
 ) {
-  const replacement = operation.replacement_user_id;
   if (item.kind === 'group') {
-    const group = await ctx.db.get('groups', item.entity_id as Id<'groups'>);
-    if (group?.created_by === operation.source_user_id) {
-      if (replacement) {
-        await ensureReplacementOwnerMembership(ctx, group._id, replacement);
-        await ctx.db.patch(group._id, { created_by: replacement });
-      } else if (!group.is_deleted) {
-        await ctx.db.patch(group._id, { is_deleted: true });
-      }
-    }
-  } else if (item.kind === 'faction') {
-    const faction = await ctx.db.get('factions', item.entity_id as Id<'factions'>);
-    if (faction?.owner_id === operation.source_user_id) {
-      await ctx.db.patch(
-        faction._id,
-        replacement ? { owner_id: replacement } : { is_deleted: true, updated_at: nowIso() }
-      );
-    }
+    await applyGroup(ctx, operation, item.entity_id as Id<'groups'>);
   } else {
-    const ruleset = await ctx.db.get('rulesets', item.entity_id as Id<'rulesets'>);
-    if (ruleset?.owner_id === operation.source_user_id) {
-      await ctx.db.patch(
-        ruleset._id,
-        replacement ? { owner_id: replacement } : { is_deleted: true, updated_at: nowIso() }
-      );
-    }
+    await applyOwnedRecord(ctx, operation, item.kind, item.entity_id);
   }
   await ctx.db.patch(item._id, { state: 'applied', updated_at: nowIso() });
 }
@@ -435,30 +477,78 @@ function hasApplyHeadroom(metrics: Awaited<ReturnType<MutationCtx['meta']['getTr
   );
 }
 
-async function hasRemainingOwnership(ctx: MutationCtx, sourceUserId: Id<'users'>, replacement: Id<'users'> | null) {
+/** The first record the source still owns that the operation should have disposed of, or null. */
+async function remainingOwnership(
+  ctx: MutationCtx,
+  sourceUserId: Id<'users'>,
+  replacement: Id<'users'> | null
+): Promise<{ kind: DirectOwnershipKind; entityId: OwnedEntityId } | null> {
   const requireDeleted = replacement ? undefined : false;
-  const group = await ctx.db
+  const [group] = await ctx.db
     .query('groups')
     .withIndex('by_created_by_deleted', (q) => {
       const owner = q.eq('created_by', sourceUserId);
       return requireDeleted === undefined ? owner : owner.eq('is_deleted', requireDeleted);
     })
     .take(1);
-  const faction = await ctx.db
-    .query('factions')
-    .withIndex('by_owner_deleted', (q) => {
-      const owner = q.eq('owner_id', sourceUserId);
-      return requireDeleted === undefined ? owner : owner.eq('is_deleted', requireDeleted);
-    })
-    .take(1);
-  const ruleset = await ctx.db
-    .query('rulesets')
-    .withIndex('by_owner_deleted', (q) => {
-      const owner = q.eq('owner_id', sourceUserId);
-      return requireDeleted === undefined ? owner : owner.eq('is_deleted', requireDeleted);
-    })
-    .take(1);
-  return group.length > 0 || faction.length > 0 || ruleset.length > 0;
+  if (group) {
+    return { kind: 'group', entityId: group._id };
+  }
+  for (const [kind, table] of Object.entries(OWNER_ID_TABLES) as [keyof typeof OWNER_ID_TABLES, OwnerIdTable][]) {
+    const [owned] = await ctx.db
+      .query(table)
+      .withIndex('by_owner_deleted', (q) => {
+        const owner = q.eq('owner_id', sourceUserId);
+        return requireDeleted === undefined ? owner : owner.eq('is_deleted', requireDeleted);
+      })
+      .take(1);
+    if (owned) {
+      return { kind, entityId: owned._id };
+    }
+  }
+  return null;
+}
+
+/** A record the snapshot never saw, such as a kind added after it ran, sends the operation back to snapshot; one it saw and failed to dispose of is an error. */
+async function needsResnapshot(ctx: MutationCtx, operation: Doc<'account_deletion_operations'>) {
+  const remaining = await remainingOwnership(ctx, operation.source_user_id, operation.replacement_user_id);
+  if (!remaining) {
+    return false;
+  }
+  const captured = await ctx.db
+    .query('account_deletion_items')
+    .withIndex('by_operation_kind_entity', (q) =>
+      q.eq('operation_id', operation._id).eq('kind', remaining.kind).eq('entity_id', remaining.entityId)
+    )
+    .unique();
+  if (captured) {
+    throw new Error('Account deletion verification found ownership that was not disposed');
+  }
+  await ctx.db.patch(operation._id, {
+    phase: 'snapshotting',
+    snapshot_kind: DIRECT_OWNERSHIP_KINDS[0].kind,
+    snapshot_cursor: null,
+    retry_count: 0,
+    updated_at: nowIso(),
+  });
+  return true;
+}
+
+async function completeOperation(ctx: MutationCtx, operation: Doc<'account_deletion_operations'>) {
+  const now = nowIso();
+  await ctx.db.patch(operation._id, {
+    state: 'completed',
+    phase: 'complete',
+    error: null,
+    updated_at: now,
+    completed_at: now,
+  });
+  await ctx.db.patch(operation.source_user_id, { account_state: 'deleted', deleted_at: now });
+  await ctx.db.patch(operation.source_profile_id, {
+    account_state: 'deleted',
+    deleted_at: now,
+    updated_at: now,
+  });
 }
 
 export const applyBatch = internalMutation({
@@ -494,23 +584,10 @@ export const applyBatch = internalMutation({
       return { next: 'apply' as const };
     }
     await ctx.db.patch(operation._id, { phase: 'verifying', updated_at: nowIso() });
-    if (await hasRemainingOwnership(ctx, operation.source_user_id, operation.replacement_user_id)) {
-      throw new Error('Account deletion verification found ownership that was not disposed');
+    if (await needsResnapshot(ctx, operation)) {
+      return { next: 'snapshot' as const };
     }
-    const now = nowIso();
-    await ctx.db.patch(operation._id, {
-      state: 'completed',
-      phase: 'complete',
-      error: null,
-      updated_at: now,
-      completed_at: now,
-    });
-    await ctx.db.patch(operation.source_user_id, { account_state: 'deleted', deleted_at: now });
-    await ctx.db.patch(operation.source_profile_id, {
-      account_state: 'deleted',
-      deleted_at: now,
-      updated_at: now,
-    });
+    await completeOperation(ctx, operation);
     return { next: 'done' as const };
   },
 });
@@ -596,28 +673,37 @@ async function reactivateSource(ctx: MutationCtx, operation: Doc<'account_deleti
   await ctx.db.patch(operation._id, { state: 'completed', phase: 'complete', error: null, updated_at: now });
 }
 
+/** Brings back a record the deletion soft-deleted, if the source still owns it. */
+async function restoreRecord(
+  ctx: MutationCtx,
+  operation: Doc<'account_deletion_operations'>,
+  item: Doc<'account_deletion_items'>
+) {
+  if (item.kind === 'group') {
+    const group = await ctx.db.get('groups', item.entity_id as Id<'groups'>);
+    if (group?.created_by === operation.source_user_id && group.is_deleted) {
+      await ctx.db.patch(group._id, { is_deleted: false });
+    }
+    return;
+  }
+  const record = await sourceOwnedRecord(ctx, operation, item.kind, item.entity_id);
+  if (!record?.is_deleted) {
+    return;
+  }
+  await ctx.db.patch(record._id, { is_deleted: false, updated_at: nowIso() });
+  if (item.kind === 'asset') {
+    await refreshTokenEmbeddings(ctx, record as Doc<'assets'>);
+    await refreshReturningCard(ctx, record as Doc<'assets'>);
+  }
+}
+
 async function restoreItem(
   ctx: MutationCtx,
   operation: Doc<'account_deletion_operations'>,
   item: Doc<'account_deletion_items'>
 ) {
   if (!item.was_deleted) {
-    if (item.kind === 'group') {
-      const group = await ctx.db.get('groups', item.entity_id as Id<'groups'>);
-      if (group?.created_by === operation.source_user_id && group.is_deleted) {
-        await ctx.db.patch(group._id, { is_deleted: false });
-      }
-    } else if (item.kind === 'faction') {
-      const faction = await ctx.db.get('factions', item.entity_id as Id<'factions'>);
-      if (faction?.owner_id === operation.source_user_id && faction.is_deleted) {
-        await ctx.db.patch(faction._id, { is_deleted: false, updated_at: nowIso() });
-      }
-    } else {
-      const ruleset = await ctx.db.get('rulesets', item.entity_id as Id<'rulesets'>);
-      if (ruleset?.owner_id === operation.source_user_id && ruleset.is_deleted) {
-        await ctx.db.patch(ruleset._id, { is_deleted: false, updated_at: nowIso() });
-      }
-    }
+    await restoreRecord(ctx, operation, item);
   }
   await ctx.db.patch(item._id, { state: 'restored', updated_at: nowIso() });
 }

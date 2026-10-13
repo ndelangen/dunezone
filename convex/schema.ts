@@ -507,7 +507,7 @@ export default defineSchema({
   account_deletion_items: defineTable({
     operation_id: v.id('account_deletion_operations'),
     kind: directOwnershipKindValidator,
-    entity_id: v.union(v.id('groups'), v.id('factions'), v.id('rulesets')),
+    entity_id: v.union(v.id('groups'), v.id('factions'), v.id('rulesets'), v.id('assets')),
     was_deleted: v.boolean(),
     state: v.union(v.literal('captured'), v.literal('applied'), v.literal('restored')),
     updated_at: v.string(),
