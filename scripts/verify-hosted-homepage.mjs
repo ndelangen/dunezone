@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 
+import sharp from 'sharp';
+
 import { CARRIED_BASE_Y } from '../src/shared/play/tableGeometry.ts';
 
 const thumbnails = new Map([
@@ -8,6 +10,47 @@ const thumbnails = new Map([
   ['ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq', 'trishula'],
   ['ns74r72v6mdmnn8ahdmj27c8gs8cz5t6', 'arrakeen'],
 ]);
+
+async function artworkPixels(who, clip) {
+  const image = await who.page.screenshot({
+    clip,
+    style: '#play-preview * { animation: none !important; }',
+  });
+  return sharp(image).removeAlpha().raw().toBuffer();
+}
+
+function changedArtworkRatio(before, after) {
+  assert.equal(after.length, before.length);
+  let changed = 0;
+  for (let offset = 0; offset < before.length; offset += 3) {
+    const difference = Math.max(
+      Math.abs(before[offset] - after[offset]),
+      Math.abs(before[offset + 1] - after[offset + 1]),
+      Math.abs(before[offset + 2] - after[offset + 2])
+    );
+    changed += Number(difference > 20);
+  }
+  return changed / (before.length / 3);
+}
+
+async function verifyArtworkMotionPreference(who, center) {
+  const clip = { x: Math.round(center.x) - 32, y: Math.round(center.y) - 32, width: 64, height: 64 };
+  try {
+    await who.page.emulateMedia({ reducedMotion: 'reduce' });
+    await who.page.waitForFunction(() => document.querySelector('[data-homepage-motion="off"]'));
+    const before = await artworkPixels(who, clip);
+    await who.page.emulateMedia({ reducedMotion: 'no-preference' });
+    await who.page.waitForFunction(() => document.querySelector('[data-homepage-motion="on"]'));
+    const after = await artworkPixels(who, clip);
+    const changed = changedArtworkRatio(before, after);
+    assert.ok(
+      changed < 0.01,
+      `Changing motion preferences changed ${(changed * 100).toFixed(1)}% of settled troop artwork.`
+    );
+  } finally {
+    await who.page.emulateMedia({ reducedMotion: null });
+  }
+}
 
 /** An already-published local image, stored on the synthetic profile before authentication. */
 export function homepageAvatar(origin) {
@@ -313,6 +356,10 @@ export async function verifyHomepage({
   await member.page.mouse.click(emptyBoard.x, emptyBoard.y, { button: 'right' });
   assert.equal(await member.page.evaluate(() => window.__homepageContextMenuPrevented), true);
   passed('Empty board clicks clear selection and the preview keeps its context-menu handling');
+  const polarTroop = member.view().snapshot.table.pieces.find((piece) => piece.id === 'starting-5-polar');
+  assert.ok(polarTroop, 'The prepared Polar Sink troop is missing.');
+  await verifyArtworkMotionPreference(member, await point(member, polarTroop.position));
+  passed('Settled troop artwork stays visible when reduced motion is turned off');
   await member.page.mouse.move(start.x, start.y);
   await until(
     () => guest.view().pointers.some((pointer) => pointer.connectionId === member.view().viewer.connectionId),
