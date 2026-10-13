@@ -8,9 +8,5 @@ export function TableSettings({ client, table }: Props) {
   if (table.snapshot.stage !== 'play') {
     return null;
   }
-  return (
-    <>
-      <LastTurnSettings client={client} table={table} />
-    </>
-  );
+  return <LastTurnSettings client={client} table={table} />;
 }

@@ -1152,6 +1152,7 @@ export class GameSession {
       type: 'history',
       step,
       lastStep: this.history.steps,
+      recordedAt: this.history.recordedAt(step),
       snapshot: this.forViewer(past, viewer),
     };
   }

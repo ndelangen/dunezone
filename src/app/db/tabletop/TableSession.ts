@@ -108,7 +108,7 @@ export type TableProjection = {
   viewer: Viewer;
   snapshot: GameSnapshot;
   liveRevision: number;
-  playback: { step: number; lastStep: number } | null;
+  playback: { step: number; lastStep: number; recordedAt?: number } | null;
   historyPending: boolean;
   canInteract: boolean;
   /* Whether the viewer may handle the table's pieces: acting, at a stage whose table can change. A finished game, or one still drafting or trading, keeps its table as it is. */
@@ -224,6 +224,7 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     previous.liveRevision === next.liveRevision &&
     previous.playback?.step === next.playback?.step &&
     previous.playback?.lastStep === next.playback?.lastStep &&
+    previous.playback?.recordedAt === next.playback?.recordedAt &&
     previous.historyPending === next.historyPending &&
     previous.canInteract === next.canInteract &&
     previous.canHandleTable === next.canHandleTable &&
@@ -354,6 +355,7 @@ export class TableSession {
   private pointerTimer: ReturnType<typeof setTimeout> | undefined;
   private error: string | null = null;
   private history: Extract<ServerMessage, { type: 'history' }> | null = null;
+  private historyClock: (() => number) | null = null;
   private pendingHistory: number | null = null;
   /* The live room's newest history step, which grows while a viewer sits in playback. */
   private liveHistorySteps = 0;
@@ -724,7 +726,11 @@ export class TableSession {
       snapshot: displayed,
       liveRevision: this.snapshot.revision,
       playback: this.history
-        ? { step: this.history.step, lastStep: Math.max(this.history.lastStep, this.liveHistorySteps) }
+        ? {
+            step: this.history.step,
+            lastStep: Math.max(this.history.lastStep, this.liveHistorySteps),
+            recordedAt: this.history.recordedAt,
+          }
         : null,
       historyPending: this.pendingHistory !== null,
       canInteract,
@@ -776,7 +782,7 @@ export class TableSession {
       gestureActivePieceId: local.gestureActivePieceId,
       hoveredPieceId: this.hoveredId,
       flippingPieceIds: local.flippingPieceIds,
-      serverNow: this.subscription.serverNow,
+      serverNow: this.history ? this.historyClock! : this.subscription.serverNow,
     };
   }
   private deleteControls(canHandleTable: boolean): TableProjection['deleteControls'] {
@@ -1106,6 +1112,8 @@ export class TableSession {
       return;
     }
     this.history = message;
+    const recordedAt = message.recordedAt ?? this.subscription.serverNow();
+    this.historyClock = () => recordedAt;
     this.pendingHistory = null;
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {

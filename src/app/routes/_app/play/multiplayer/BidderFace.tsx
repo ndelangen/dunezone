@@ -160,10 +160,11 @@ export function OpenRound({
   const mine = table.canInteract && turn !== null && table.snapshot.bank?.factionId === turn;
   const turnName = factionName(table, turn);
   const label = turnLabel(mine, bid, turnName);
+  const showClock = bidding.timed && (!table.playback || table.playback.recordedAt !== undefined);
   return (
     <Stack gap={2} align="center" className={styles.face}>
-      <div className={bidding.timed ? styles.clockWrap : undefined}>
-        {bidding.timed && <ClockRing deadline={bidding.deadline} table={table} />}
+      <div className={showClock ? styles.clockWrap : undefined}>
+        {showClock && <ClockRing deadline={bidding.deadline} table={table} />}
         <UnstyledButton
           className={styles.disc}
           data-bidder-turn={turn ?? undefined}
@@ -183,7 +184,7 @@ export function OpenRound({
           {bid ? <HighBid bid={bid} table={table} /> : <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>}
         </UnstyledButton>
       </div>
-      {!bidding.timed ? null : (
+      {!showClock ? null : (
         <Text component="output" role="timer" size="xs" fw={700} className={styles.timer}>
           {remaining === null
             ? 'Bid or pass starts clock'
