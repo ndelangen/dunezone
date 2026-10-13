@@ -9,7 +9,8 @@ import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeom
 import { isOverlapFreePosition } from '../../src/shared/play/tablePhysics';
 import { PLAYER_RING_RADIUS } from '../../src/shared/play/tableSettings';
 import type { ActorDirectory } from './actors';
-import { moveOntoCurrentBoard, moveStoredGameOntoCurrentBoard, onCurrentBoard } from './boardLayout';
+import { moveStoredGameOntoCurrentBoard } from './boardLayout';
+import { moveOntoCurrentBoard, onCurrentBoard } from './boardLayoutSnapshot';
 import { diff } from './history';
 import { SessionHistory } from './sessionHistory';
 import type { SpiceLedger } from './spiceLedger';

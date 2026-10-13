@@ -13,6 +13,7 @@ import { UPDATE_STORY_ARGS } from 'storybook/internal/core-events';
 import { addons } from 'storybook/preview-api';
 
 import { expireBattle } from '../../../../../workers/game/battle';
+import { onCurrentBoard } from '../../../../../workers/game/boardLayoutSnapshot';
 import { Room } from '../../../../../workers/game/room';
 import {
   internalAction,
@@ -108,7 +109,7 @@ export class SandboxTable {
   constructor({ start, seat }: SandboxStart) {
     this.start = clampStart(start);
     this.step = journeySteps()[this.start]!;
-    const stored = variedTreachery(storedSnapshotSchema.parse(this.step.stored));
+    const stored = variedTreachery(storedSnapshotSchema.parse(onCurrentBoard(this.step.stored)));
     /* Every viewer the recording connected, each with a connection of its own so carries keep their owners apart. */
     const last = journeySteps().at(-1)!.views;
     this.viewers = Object.fromEntries(
