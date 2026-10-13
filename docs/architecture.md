@@ -70,11 +70,13 @@ Which category a component belongs to is decided by the taxonomy in
 
 ## How things come together
 
-### Example: Loading the home page
+### Example: Loading a faction page
 
-1. Route [`src/app/routes/_app/index.tsx`](../src/app/routes/_app/index.tsx): `loader: loadHomepage`
-   fetches through `db.query()` before first render.
-2. Domain hook [`src/app/db/homepage.ts`](../src/app/db/homepage.ts): `useHomepage({ initialData:
+1. Route [`src/app/routes/_app/factions/$factionId/index.tsx`](../src/app/routes/_app/factions/$factionId/index.tsx):
+   `ssr: true` renders it on the server, and its `loader` calls `loadPublicFaction` through
+   `db.query()` before first render, throwing `notFound()` for an unknown slug. `head` builds the
+   title, description and canonical URL from that same loader data.
+2. Domain hook [`src/app/db/factions.ts`](../src/app/db/factions.ts): `useFaction(slug, { initialData:
    loaderData })` subscribes via Convex `useQuery` and keeps the screen live.
 3. Database: a Convex document database with function-level authorization checks.
 
