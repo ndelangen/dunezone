@@ -8,7 +8,17 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ArrowRight, Hand } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import type { CSSProperties, RefObject } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
@@ -27,8 +37,7 @@ import styles from './index.module.css';
 const ConnectedHomepageTable = lazy(() => import('./homepage/ConnectedTable').catch(() => ({ default: () => null })));
 
 export const Route = createFileRoute('/_app/')({
-  /* Share metadata runs on the server; the game artwork keeps its browser-owned SVG IDs. */
-  ssr: 'data-only',
+  ssr: true,
   /*
    * The SPA shell every browser-only path is served from is prerendered at `/`, and it runs every matched head but no
    * loader below the root. So the homepage's identity comes from its loader, like every other public page's: the shell
@@ -51,7 +60,7 @@ export const Route = createFileRoute('/_app/')({
 });
 
 function IndexPage() {
-  const [invitation, setInvitation] = useState(false);
+  const invitation = useSyncExternalStore(subscribeToHash, sneakPeekRequested, () => false);
   const viewer = useSessionViewer();
   const root = useRef<HTMLDivElement>(null);
   const motionAllowed = useMotionAllowed();
@@ -85,7 +94,7 @@ function IndexPage() {
             subtitle="Soon, your next game of Dune will be right here."
           />
           <Group justify="center">
-            <Button component="a" href="#play-preview" onClick={() => setInvitation(true)}>
+            <Button component="a" href="#play-preview">
               Take a sneak peek
             </Button>
             <Button variant="subtle" component="a" href="#make">
@@ -101,6 +110,20 @@ function IndexPage() {
       </PageLayout.Content>
     </PageLayout>
   );
+}
+
+/*
+ * The sneak peek link is a plain hash link, so a click before hydration still lands on the preview. The invitation
+ * follows the browser's hash rather than the click or the router, which never sees a hash changed before hydration.
+ * The server and the hydrating render both read no hash, so they agree.
+ */
+function subscribeToHash(change: () => void) {
+  window.addEventListener('hashchange', change);
+  return () => window.removeEventListener('hashchange', change);
+}
+
+function sneakPeekRequested() {
+  return window.location.hash === '#play-preview';
 }
 
 function fanStyle(x: string, y: string, turn: string, delay: string): CSSProperties {
@@ -232,7 +255,10 @@ function OnlineRulebooks() {
   );
 }
 
-/* Native image laziness can start downloads far below the viewport and compete with the opening scene. */
+/*
+ * Native image laziness can start downloads far below the viewport and compete with the opening scene.
+ * The artwork also starts hidden on the server, so the server render and the first browser render agree.
+ */
 function useNearbyArtwork() {
   const region = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
