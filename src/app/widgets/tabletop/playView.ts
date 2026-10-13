@@ -440,6 +440,18 @@ export function cameraZoomAfterWheelAt(
   return next;
 }
 
+/* How quickly a close look follows the wheel: the share of the way left after a second's glide is e^(-1/τ). */
+const CAMERA_GLIDE_TIME_CONSTANT_S = 0.07;
+
+/**
+ * The share of the way left that a close look's glide covers in a frame lasting `seconds`.
+ * It follows the time the frame really covers, so a device that draws few frames arrives when a fast one does, not after a fixed count of frames;
+ * the decay never overshoots however long the frame, and the scheduler already measures a woken loop's first frame as one ordinary frame.
+ */
+export function cameraGlideShare(seconds: number): number {
+  return 1 - Math.exp(-Math.max(seconds, 0) / CAMERA_GLIDE_TIME_CONSTANT_S);
+}
+
 /** A close look's slide under the pan keys: its velocity on the table, in table units per second, and how long a key has been held. */
 export type CameraPanMotion = Readonly<{ velocity: readonly [number, number]; heldSeconds: number }>;
 
