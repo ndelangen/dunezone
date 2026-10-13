@@ -42,7 +42,9 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
     expect((await syncView(a)).snapshot.bidding).toMatchObject({ timed: false, deadline: null });
     const denied = await sendCommand(observer, { kind: 'bid-timing', enabled: true });
     expect(denied.reply.type).toBe('rejected');
-    await accepted(a, { kind: 'bid-timing', enabled: true });
+    const enabled = await accepted(a, { kind: 'bid-timing', enabled: true });
+    expect(enabled.snapshot.bidding).toMatchObject({ timed: true, started: false, deadline: null });
+    expect((await runtime.alarm()).scheduledAt).toBeNull();
     const waiting = await accepted(a, { kind: 'bid-start', factionId: faction });
     expect(waiting.snapshot.bidding).toMatchObject({ timed: true, started: false, deadline: null });
     const round = waiting.snapshot.bidding.round;
