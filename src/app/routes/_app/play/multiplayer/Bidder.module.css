@@ -112,3 +112,39 @@
   color: #f4e6c4;
   white-space: nowrap;
 }
+
+/* The 72px ring clears the original 56px disc and its focus glow. */
+.clockWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+}
+
+.clockRing {
+  position: absolute;
+  inset: 0;
+  width: 72px;
+  height: 72px;
+  overflow: visible;
+  pointer-events: none;
+  transform: rotate(-90deg);
+  fill: none;
+  stroke-width: 3;
+}
+
+.clockTrack {
+  stroke: rgb(244 230 196 / 20%);
+}
+
+.clockArc {
+  stroke: #ffe39a;
+  stroke-dasharray: 100;
+}
+
+.clockWarning {
+  stroke: #ffe39a;
+  stroke-width: 4;
+  opacity: 0;
+}

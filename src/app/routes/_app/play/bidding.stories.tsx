@@ -1,9 +1,10 @@
 import preview from '@sb/preview';
-import { idleBidding } from '@shared/play/bidding';
+import { applyBidding, biddingFactions, expireBid, idleBidding, isBiddingAction } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
 import { STANDARD_PHASES } from '@shared/play/phases';
 import { rosterFactionIds } from '@shared/play/protocol';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { stormOrder } from '@shared/play/stormSector';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
@@ -129,4 +130,75 @@ export const HandCounts = meta.story({
     snapshot.handCounts = Object.fromEntries(factions.map((id, index) => [id, [0, 1, 2, 4, 3, 8][index % 6]!]));
     return productTransport('seat-2', snapshot);
   }),
+});
+
+/* The real bidder and command reducer, with an isolated story clock in place of the room alarm. */
+function clockSetup(timed: boolean) {
+  return install(() => {
+    const snapshot = playingSnapshot('seat-2');
+    snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === 'bidding');
+    snapshot.bidding = {
+      ...idleBidding(20, timed),
+      stage: 'open',
+      round: 1,
+      opener: 'house-harkonnen',
+      turn: 'house-harkonnen',
+    };
+    const anchor = performance.now();
+    const now = () => STORYBOOK_NOW + Math.floor(performance.now() - anchor);
+    const context = () => ({
+      factionId: 'house-harkonnen',
+      order: stormOrder(snapshot.table.stormSectorIndex, snapshot.roster),
+      eligible: biddingFactions(snapshot.table.stormSectorIndex, snapshot.roster, snapshot.table.pieces),
+      now: now(),
+    });
+    const transport = productTransport('seat-2', snapshot, {
+      admitView: () => ({ ...transport.view(snapshot), serverNow: now() }),
+      answerCommand: (message) => {
+        if (isBiddingAction(message.action)) {
+          snapshot.bidding = applyBidding(snapshot.bidding!, message.action, context());
+          snapshot.revision += 1;
+        }
+        return { ...transport.view(snapshot, message.commandId), serverNow: now() };
+      },
+    });
+    const timer = setInterval(() => {
+      const next = expireBid(snapshot.bidding!, context());
+      if (next && transport.connected()) {
+        snapshot.bidding = next;
+        snapshot.revision += 1;
+        const frame = { ...transport.view(snapshot), serverNow: now() };
+        transport.deliver(frame);
+      }
+    }, 100);
+    const dispose = transport.dispose;
+    return {
+      ...transport,
+      dispose() {
+        clearInterval(timer);
+        dispose();
+      },
+    };
+  });
+}
+
+export const TimedBidding = meta.story({ beforeEach: clockSetup(true) });
+export const UntimedBidding = meta.story({
+  beforeEach: clockSetup(false),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const button = await page.findByRole('button', { name: 'Bid 1. Right click to pass.' }, { timeout: 30_000 });
+    await userEvent.click(button);
+    await expect(page.queryByRole('timer')).not.toBeInTheDocument();
+    await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
+    const toggle = page.getByRole('menuitemcheckbox', { name: /Timed bidding/ });
+    await expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await userEvent.click(toggle);
+    await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent(/(?:20|19)s/));
+    await userEvent.click(toggle);
+    await waitFor(() => expect(page.queryByRole('timer')).not.toBeInTheDocument());
+    await userEvent.click(toggle);
+    await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent(/(?:20|19)s/));
+    await expect(page.getByRole('button', { name: 'Raise the bid to 2. Right click to pass.' })).toBeEnabled();
+  },
 });

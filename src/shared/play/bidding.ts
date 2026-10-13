@@ -7,8 +7,10 @@ import type { TableRoster } from './schema';
 import { tableCountSchema as count, tableIdSchema as id } from './schema';
 import { stormOrder } from './stormSector';
 
-/** How long the bidder waits on a faction before it passes for them, unless the table sets another time. */
-const DEFAULT_BID_SECONDS = 15;
+/** The countdown drains for twenty seconds, then flashes once per second before passing. */
+export const BID_COUNTDOWN_MS = 20_000;
+export const BID_WARNING_MS = 5000;
+const DEFAULT_BID_SECONDS = BID_COUNTDOWN_MS / 1000;
 export const MIN_BID_SECONDS = 3;
 export const MAX_BID_SECONDS = 120;
 const bidSecondsSchema = z.number().int().min(MIN_BID_SECONDS).max(MAX_BID_SECONDS);
@@ -20,7 +22,10 @@ const bidSecondsSchema = z.number().int().min(MIN_BID_SECONDS).max(MAX_BID_SECON
  * the bidder knows nothing of cards.
  */
 export const biddingStateSchema = z.object({
+  /* Kept for snapshots and clients that still send the old duration setting. */
   seconds: bidSecondsSchema,
+  timed: z.boolean().default(false),
+  started: z.boolean().default(false),
   stage: z.enum(['idle', 'open', 'won', 'unclaimed']),
   /* The bidding round this phase, from 1; 0 before the first. */
   round: count,
@@ -39,12 +44,24 @@ export const biddingActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('bid-raise'), round: count }),
   z.strictObject({ kind: z.literal('bid-pass'), round: count }),
   z.strictObject({ kind: z.literal('bid-seconds'), seconds: bidSecondsSchema }),
+  z.strictObject({ kind: z.literal('bid-timing'), enabled: z.boolean() }),
 ]);
 export type BiddingAction = z.infer<typeof biddingActionSchema>;
 export const isBiddingAction = actionKindGuard(biddingActionSchema);
 
-export function idleBidding(seconds = DEFAULT_BID_SECONDS): BiddingState {
-  return { seconds, stage: 'idle', round: 0, opener: null, turn: null, bid: null, passed: [], deadline: null };
+export function idleBidding(seconds = DEFAULT_BID_SECONDS, timed = false): BiddingState {
+  return {
+    seconds,
+    timed,
+    started: false,
+    stage: 'idle',
+    round: 0,
+    opener: null,
+    turn: null,
+    bid: null,
+    passed: [],
+    deadline: null,
+  };
 }
 
 /**
@@ -90,7 +107,7 @@ function refuse(message: string): never {
  * Starts a round on the faction the players pick, any time in the phase: a round still open is dropped, so the same choice also corrects a bidder that went wrong (#1007).
  * The round number still counts up, so a raise or pass sent for the dropped round is refused.
  */
-function start(state: BiddingState, factionId: string, { eligible, now }: BiddingContext): BiddingState {
+function start(state: BiddingState, factionId: string, { eligible }: BiddingContext): BiddingState {
   if (!eligible.includes(factionId)) {
     return refuse('That faction token is face down, so it is not bidding.');
   }
@@ -102,7 +119,8 @@ function start(state: BiddingState, factionId: string, { eligible, now }: Biddin
     turn: factionId,
     bid: null,
     passed: [],
-    deadline: now + state.seconds * 1000,
+    started: false,
+    deadline: null,
   };
 }
 
@@ -117,6 +135,10 @@ function roundEnds(state: BiddingState, next: string | null, passed: readonly st
   return eligible.every((factionId) => factionId === state.bid?.factionId || passed.includes(factionId));
 }
 
+function turnDeadline(state: BiddingState, now: number): number | null {
+  return state.timed && state.started ? now + BID_COUNTDOWN_MS + BID_WARNING_MS : null;
+}
+
 /** Points the bidder at `next` with fresh time, or settles the round once it is over. */
 function settle(
   state: BiddingState,
@@ -125,7 +147,7 @@ function settle(
   { eligible, now }: Omit<BiddingContext, 'factionId'>
 ) {
   if (!roundEnds(state, next, passed, eligible)) {
-    return { ...state, turn: next, passed, deadline: now + state.seconds * 1000 };
+    return { ...state, turn: next, passed, deadline: turnDeadline(state, now) };
   }
   return state.bid
     ? { ...state, stage: 'won' as const, turn: state.bid.factionId, passed, deadline: null }
@@ -167,7 +189,8 @@ function turnAction(
   if (factionId === null || factionId !== state.turn) {
     return refuse('Wait until the bidder points at your faction.');
   }
-  return action.kind === 'bid-pass' ? passBid(state, context) : raiseBid(state, factionId, context);
+  const started = { ...state, started: true };
+  return action.kind === 'bid-pass' ? passBid(started, context) : raiseBid(started, factionId, context);
 }
 
 /** One more spice on the current bid, from a faction whose token is face up; every pass so far is forgotten. */
@@ -179,7 +202,7 @@ function raiseBid(state: BiddingState, factionId: string, context: BiddingContex
     ...state,
     bid: { factionId, amount: (state.bid?.amount ?? 0) + 1 },
     passed: [],
-    deadline: context.now + state.seconds * 1000,
+    deadline: turnDeadline(state, context.now),
   };
 }
 
@@ -188,10 +211,20 @@ export function applyBidding(state: BiddingState, action: BiddingAction, context
   switch (action.kind) {
     case 'bid-seconds':
       return { ...state, seconds: action.seconds };
+    case 'bid-timing': {
+      if (state.timed === action.enabled) {
+        return state;
+      }
+      const next = { ...state, timed: action.enabled };
+      if (action.enabled && state.stage === 'open') {
+        next.started = true;
+      }
+      return { ...next, deadline: next.stage === 'open' ? turnDeadline(next, context.now) : null };
+    }
     case 'bid-start':
       return start(state, action.factionId, context);
     case 'bid-reset':
-      return { ...idleBidding(state.seconds), round: state.round };
+      return { ...idleBidding(state.seconds, state.timed), round: state.round };
     default:
       return turnAction(state, action, context);
   }
@@ -199,7 +232,7 @@ export function applyBidding(state: BiddingState, action: BiddingAction, context
 
 /** The pass the bidder makes for a faction that let its time run out, or nothing while time remains. */
 export function expireBid(state: BiddingState, context: Omit<BiddingContext, 'factionId'>): BiddingState | undefined {
-  if (state.stage !== 'open' || state.deadline === null) {
+  if (!state.timed || !state.started || state.stage !== 'open' || state.deadline === null) {
     return;
   }
   return context.now < state.deadline ? undefined : passBid(state, context);

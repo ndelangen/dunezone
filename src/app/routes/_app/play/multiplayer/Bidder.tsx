@@ -1,6 +1,6 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
 import { Html } from '@react-three/drei/webgpu';
-import { biddingFactions, idleBidding } from '@shared/play/bidding';
+import { BID_WARNING_MS, biddingFactions, idleBidding } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { stormOrder } from '@shared/play/stormSector';
@@ -82,8 +82,8 @@ function Bidder({ client, table, faded = false }: Props) {
   const reading = useMemo(() => (bidding.deadline === null ? 0 : serverClock()), [serverClock, bidding.deadline]);
   const now = Math.max(tick, reading);
   const remaining =
-    bidding.stage === 'open' && bidding.deadline !== null
-      ? Math.max(0, Math.ceil((bidding.deadline - now) / 1000))
+    bidding.timed && bidding.stage === 'open' && bidding.deadline !== null
+      ? Math.max(0, Math.ceil((bidding.deadline - BID_WARNING_MS - now) / 1000))
       : null;
   return (
     <group position={[0, BIDDER_HOVER_Y, 0]}>
@@ -104,7 +104,17 @@ function Bidder({ client, table, faded = false }: Props) {
         <DarkSchemeIsland>
           <div className={faded ? styles.faded : undefined}>
             {bidding.stage === 'open' ? (
-              <OpenRound client={client} table={table} bidding={bidding} remaining={remaining} />
+              <OpenRound
+                client={client}
+                table={table}
+                bidding={bidding}
+                remaining={remaining}
+                warningRemaining={
+                  remaining === 0 && bidding.deadline !== null
+                    ? Math.max(0, Math.ceil((bidding.deadline - now) / 1000))
+                    : null
+                }
+              />
             ) : (
               <RoundResult client={client} table={table} bidding={bidding} order={order} eligible={eligible} />
             )}

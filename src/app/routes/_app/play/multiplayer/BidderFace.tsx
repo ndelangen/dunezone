@@ -1,5 +1,7 @@
 import { Group, Stack, Text, UnstyledButton } from '@mantine/core';
+import { BID_COUNTDOWN_MS, BID_WARNING_MS } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
+import { useEffect, useRef } from 'react';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
@@ -97,35 +99,98 @@ function turnLabel(mine: boolean, bid: BiddingState['bid'], turnName: string) {
   return `${bid ? `Raise the bid to ${bid.amount + 1}` : 'Bid 1'}. Right click to pass.`;
 }
 
+/** The table supplies the deadline; these animations only draw its elapsed time. */
+function ClockRing({ deadline, table }: { deadline: number | null; table: TableProjection }) {
+  const arc = useRef<SVGCircleElement>(null);
+  const warning = useRef<SVGCircleElement>(null);
+  const serverNow = table.serverNow;
+  const playback = Boolean(table.playback);
+  useEffect(() => {
+    if (deadline === null || !arc.current || !warning.current) {
+      return;
+    }
+    const countdown = arc.current.animate([{ strokeDashoffset: '0' }, { strokeDashoffset: '100' }], {
+      duration: BID_COUNTDOWN_MS,
+      easing: 'linear',
+      fill: 'both',
+    });
+    const flashes = warning.current.animate(
+      [{ opacity: 0 }, { opacity: 1, offset: 0.25 }, { opacity: 0, offset: 0.75 }, { opacity: 0 }],
+      { duration: BID_WARNING_MS / 5, iterations: 5, delay: BID_COUNTDOWN_MS, fill: 'both' }
+    );
+    function synchronize() {
+      const elapsed = Math.max(0, serverNow() - (deadline! - BID_COUNTDOWN_MS - BID_WARNING_MS));
+      countdown.currentTime = elapsed;
+      flashes.currentTime = elapsed;
+      if (playback) {
+        countdown.pause();
+        flashes.pause();
+      }
+    }
+    synchronize();
+    /* A background tab returns to the shared deadline, never a fresh animation. */
+    document.addEventListener('visibilitychange', synchronize);
+    return () => {
+      countdown.cancel();
+      flashes.cancel();
+      document.removeEventListener('visibilitychange', synchronize);
+    };
+  }, [deadline, serverNow, playback]);
+  return (
+    <svg className={styles.clockRing} viewBox="0 0 72 72" aria-hidden="true">
+      <circle className={styles.clockTrack} cx="36" cy="36" r="33" />
+      <circle ref={arc} className={styles.clockArc} cx="36" cy="36" r="33" pathLength="100" />
+      <circle ref={warning} className={styles.clockWarning} cx="36" cy="36" r="33" />
+    </svg>
+  );
+}
+
 /** A round in progress: the faction the bidder points at raises with a click and passes with a right click. */
-export function OpenRound({ bidding, table, client, remaining }: FaceProps & { remaining: number | null }) {
+export function OpenRound({
+  bidding,
+  table,
+  client,
+  remaining,
+  warningRemaining,
+}: FaceProps & {
+  remaining: number | null;
+  warningRemaining: number | null;
+}) {
   const { bid, round, turn } = bidding;
   const mine = table.canInteract && turn !== null && table.snapshot.bank?.factionId === turn;
   const turnName = factionName(table, turn);
   const label = turnLabel(mine, bid, turnName);
   return (
     <Stack gap={2} align="center" className={styles.face}>
-      <UnstyledButton
-        className={styles.disc}
-        data-bidder-turn={turn ?? undefined}
-        data-mine={mine || undefined}
-        aria-label={label}
-        title={label}
-        disabled={!mine}
-        onClick={() => client.command({ kind: 'bid-raise', round })}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          if (mine) {
-            void client.command({ kind: 'bid-pass', round });
-          }
-        }}
-      >
-        {bid ? <HighBid bid={bid} table={table} /> : <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>}
-      </UnstyledButton>
-      {remaining === null ? null : (
+      <div className={bidding.timed ? styles.clockWrap : undefined}>
+        {bidding.timed && <ClockRing deadline={bidding.deadline} table={table} />}
+        <UnstyledButton
+          className={styles.disc}
+          data-bidder-turn={turn ?? undefined}
+          data-mine={mine || undefined}
+          aria-label={label}
+          title={label}
+          disabled={!mine}
+          onClick={() => client.command({ kind: 'bid-raise', round })}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (mine) {
+              void client.command({ kind: 'bid-pass', round });
+            }
+          }}
+        >
+          {bid ? <HighBid bid={bid} table={table} /> : <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>}
+        </UnstyledButton>
+      </div>
+      {!bidding.timed ? null : (
         <Text component="output" role="timer" size="xs" fw={700} className={styles.timer}>
-          {remaining}s · {turnName}
+          {remaining === null
+            ? 'Bid or pass starts clock'
+            : warningRemaining === null
+              ? `${remaining}s`
+              : `Passing in ${warningRemaining}s`}{' '}
+          · {turnName}
         </Text>
       )}
     </Stack>

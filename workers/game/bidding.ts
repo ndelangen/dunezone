@@ -33,7 +33,11 @@ export function biddingCommand(
   action: BiddingAction,
   now: number
 ): StoredSnapshot {
-  if (action.kind !== 'bid-seconds' && phaseAt(snapshot.phase, snapshot.phases).id !== 'bidding') {
+  if (
+    action.kind !== 'bid-seconds' &&
+    action.kind !== 'bid-timing' &&
+    phaseAt(snapshot.phase, snapshot.phases).id !== 'bidding'
+  ) {
     throw new GameRejection('The bidder works only during the Bidding phase.');
   }
   try {
@@ -49,7 +53,7 @@ export function biddingCommand(
 /** When the bidder next passes for a faction whose time runs out, or 0: never once the game is finished or the phase has moved on. */
 export function biddingDeadline(snapshot: StoredSnapshot): number {
   const { bidding } = snapshot;
-  if (bidding?.stage !== 'open' || snapshot.stage === 'finished') {
+  if (!bidding?.timed || !bidding.started || bidding.stage !== 'open' || snapshot.stage === 'finished') {
     return 0;
   }
   return phaseAt(snapshot.phase, snapshot.phases).id === 'bidding' ? (bidding.deadline ?? 0) : 0;
@@ -78,7 +82,9 @@ export function biddingAfterTable(
   }
   if (next.phase !== snapshot.phase) {
     /* The round count keeps rising, so a raise or pass sent in an earlier Bidding phase never lands in a later one. */
-    return { bidding: { ...idleBidding(snapshot.bidding.seconds), round: snapshot.bidding.round } };
+    return {
+      bidding: { ...idleBidding(snapshot.bidding.seconds, snapshot.bidding.timed), round: snapshot.bidding.round },
+    };
   }
   return { bidding: reconcileBidding(snapshot.bidding, context(next, now)) };
 }
