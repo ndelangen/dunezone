@@ -67,7 +67,9 @@
       "/future-plans",
       "/future-plans/*",
       "/privacy",
-      "/privacy/*"
+      "/privacy/*",
+      "/media",
+      "/media/*"
     ]
   },
   "browser": { "binding": "BROWSER" },

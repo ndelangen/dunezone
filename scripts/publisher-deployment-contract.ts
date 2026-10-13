@@ -181,6 +181,8 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/future-plans/*',
         '/privacy',
         '/privacy/*',
+        '/media',
+        '/media/*',
       ],
     },
     'Static Assets routing'

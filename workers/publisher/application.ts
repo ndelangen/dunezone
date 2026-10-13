@@ -25,6 +25,10 @@ function isPublicPage(pathname: string): boolean {
   if (RECORDLESS_PUBLIC_PAGES.includes(`/${root}`)) {
     return true;
   }
+  /* The Topic and Lucide icon libraries stay in the browser-only shell; every other media path renders a page or the 404. */
+  if (root === 'media') {
+    return type !== 'topics' && type !== 'lucide';
+  }
   if (root === 'factions') {
     return !((segments.length === 2 && type === 'create') || (segments.length === 3 && slug === 'edit'));
   }
