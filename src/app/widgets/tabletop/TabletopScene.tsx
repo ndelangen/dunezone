@@ -5,7 +5,6 @@ import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { peekersOf } from '@shared/play/peeking';
-import { tableProgressFor } from '@shared/play/phases';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
@@ -73,6 +72,7 @@ import { useMotionAllowed } from '@app/styles/motion';
 import { ignoreRaycast } from './ignoreRaycast';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
+import { PieceArrival } from './PieceArrival';
 import { topFaceHref } from './pieceFaceHref';
 import { pieceHasMenu } from './pieceMenu';
 import type { CameraViewCommand } from './playView';
@@ -183,15 +183,27 @@ function ArrivingFaceMaterial({ texture }: { texture: Texture }) {
   const motion = useMotionAllowed();
   const invalidate = useThree((state) => state.invalidate);
   const elapsed = useRef(0);
+  useLayoutEffect(() => {
+    if (!material.current) {
+      return;
+    }
+    if (!motion) {
+      elapsed.current = 0.6;
+    }
+    const progress = Math.min(1, elapsed.current / 0.6);
+    material.current.opacity = progress * progress * (3 - 2 * progress);
+    invalidate();
+  }, [invalidate, motion]);
   useFrame((_state, delta) => {
-    if (!material.current || elapsed.current >= 0.35) {
+    if (!material.current || elapsed.current >= 0.6) {
       return;
     }
     elapsed.current += Math.min(delta, 0.05);
-    material.current.opacity = motion ? Math.min(1, elapsed.current / 0.35) : 1;
+    const progress = Math.min(1, elapsed.current / 0.6);
+    material.current.opacity = progress * progress * (3 - 2 * progress);
     invalidate();
   });
-  return <meshBasicMaterial ref={material} map={texture} transparent opacity={motion ? 0 : 1} />;
+  return <meshBasicMaterial ref={material} map={texture} transparent />;
 }
 
 function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
@@ -480,7 +492,7 @@ function SpiceFace() {
  * What a piece shows besides itself, worked out by the scene so each piece receives plain values.
  * A piece renders again only when one of them or the piece changes, not on every update to the table.
  */
-type PieceSceneState = {
+export type PieceSceneState = {
   selected: boolean;
   stackTargeted: boolean;
   drafted: boolean;
@@ -496,7 +508,7 @@ type PieceSceneState = {
   peeked: string | undefined;
 };
 
-type TablePieceMeshProps = { piece: TablePiece; showLabels?: boolean } & PieceSceneState;
+type TablePieceMeshProps = { piece: TablePiece; showLabels?: boolean; arrivalDelay?: number } & PieceSceneState;
 
 function pieceSceneState(
   piece: TablePiece,
@@ -809,7 +821,7 @@ function SelectionRingWarmup() {
   return null;
 }
 
-function PieceLayers({ piece }: { piece: TablePiece }) {
+export function TabletopPieceLayers({ piece }: { readonly piece: TablePiece }) {
   if (piece.kind === 'marker') {
     return <MarkerLayers piece={piece} />;
   }
@@ -928,27 +940,29 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
               drafted={drafted}
             />
           ) : null}
-          <group ref={pivotRef} position={[0, flipPivotY, 0]}>
-            <group position={[0, -flipPivotY, 0]}>
-              <group ref={shuffleRef}>
-                <PieceLayers piece={drawnPiece} />
+          <PieceArrival delay={props.arrivalDelay} interaction={props}>
+            <group ref={pivotRef} position={[0, flipPivotY, 0]}>
+              <group position={[0, -flipPivotY, 0]}>
+                <group ref={shuffleRef}>
+                  <TabletopPieceLayers piece={drawnPiece} />
+                </group>
               </group>
             </group>
-          </group>
-          <PieceLock piece={piece} />
-          {props.showLabels !== false && (
-            <Suspense fallback={null}>
-              <PieceBadge
-                classNames={PIECE_BADGE_CLASS_NAMES}
-                piece={piece}
-                owner={owner}
-                peeked={peeked}
-                selected={selected}
-                labelRef={labelRef}
-                badgeRef={badgeRef}
-              />
-            </Suspense>
-          )}
+            <PieceLock piece={piece} />
+            {props.showLabels !== false && (
+              <Suspense fallback={null}>
+                <PieceBadge
+                  classNames={PIECE_BADGE_CLASS_NAMES}
+                  piece={piece}
+                  owner={owner}
+                  peeked={peeked}
+                  selected={selected}
+                  labelRef={labelRef}
+                  badgeRef={badgeRef}
+                />
+              </Suspense>
+            )}
+          </PieceArrival>
         </>
       ) : null}
     </group>
@@ -1037,9 +1051,10 @@ function SceneContents({
         {renderedPieces
           /* Troop reserves arrive with the board: setup keeps them off the table until the map shows. */
           .filter((piece) => !piece.battleOverlay && (stage !== 'setup' || mapVisible || !isTroopStack(piece)))
-          .map((piece) => (
+          .map((piece, index) => (
             <TablePieceMesh
               showLabels={presentation !== 'preview'}
+              arrivalDelay={presentation === 'preview' ? Math.min(index * 32, 320) : undefined}
               key={piece.id}
               piece={piece}
               {...pieceSceneState(piece, table)}
@@ -1047,9 +1062,9 @@ function SceneContents({
           ))}
       </group>
       {presentation === 'preview' ? (
-        <MapPreviewCamera />
+        <MapPreviewCamera mapFramingPoints={mapFramingPoints} />
       ) : (
-        <Suspense fallback={<MapPreviewCamera />}>
+        <Suspense fallback={<MapPreviewCamera mapFramingPoints={mapFramingPoints} />}>
           <PlayCamera enabled={controlsEnabled} command={cameraView} mapFramingPoints={mapFramingPoints} />
         </Suspense>
       )}
@@ -1140,12 +1155,20 @@ export function TabletopScene({
 }
 
 /** Adds live pieces and pointer presence to an already-painted preview canvas. */
-export function TabletopPreviewContents() {
-  const { tableProgress, trackerSlots, mapFramingPoints } = useTableFraming(
-    'play',
-    tableProgressFor(0),
-    DEFAULT_TABLE_SEAT_COUNT
-  );
+export function TabletopPreviewContents({
+  demo,
+  stage,
+  seatCount,
+  mapVisible,
+  tableProgress,
+  trackerSlots,
+  mapFramingPoints,
+}: Pick<TabletopSceneProps, 'stage' | 'mapVisible' | 'tableProgress'> & {
+  demo?: ReactNode;
+  seatCount: TableSeatCount;
+  trackerSlots: readonly TrackerArcSlot[];
+  mapFramingPoints: readonly Vector3Tuple[];
+}) {
   return (
     <FaceArrivalContext value={true}>
       {trackerSlots
@@ -1160,14 +1183,16 @@ export function TabletopPreviewContents() {
       <SceneContents
         drawBoard={false}
         presentation="preview"
-        stage="play"
-        seatCount={DEFAULT_TABLE_SEAT_COUNT}
+        stage={stage}
+        seatCount={seatCount}
+        mapVisible={mapVisible}
         tableProgress={tableProgress}
         trackerSlots={trackerSlots}
         mapFramingPoints={mapFramingPoints}
       />
       <Suspense fallback={null}>
-        <ScenePresence showNames={false} showLocal />
+        <ScenePresence showNames={false} showLocal trackerSlots={trackerSlots} />
+        {demo}
       </Suspense>
     </FaceArrivalContext>
   );
