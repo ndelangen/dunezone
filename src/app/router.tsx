@@ -3,6 +3,7 @@ import { ErrorComponent, createRouter as createTanStackRouter } from '@tanstack/
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 
 import { routeTree } from './routeTree.gen';
+import { restoresScroll } from './scrollRestoration';
 
 export function AppErrorComponent({ error }: { error: Error }) {
   if (isStaleClientData(error)) {
@@ -22,7 +23,7 @@ export function AppErrorComponent({ error }: { error: Error }) {
 export function getRouter() {
   const router = createTanStackRouter({
     routeTree,
-    scrollRestoration: true,
+    scrollRestoration: restoresScroll,
     defaultPreload: 'intent',
     /* Hovering the same link again within 30 seconds reuses its preloaded result instead of running the loader again. */
     defaultPreloadStaleTime: 30_000,
