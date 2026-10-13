@@ -29,17 +29,28 @@ test('a face already held by an open table is not fetched again', () => {
   first.unmount();
 });
 
-test('the faces are let go once the last table closes', () => {
+test('a game left keeps its faces until a table asks for others', () => {
   const started = trackImages();
-  const faces = ['https://dune.zone/c.jpg'];
-  const first = renderHook(() => usePreloadedCardFaces(faces));
-  const second = renderHook(() => usePreloadedCardFaces(faces));
-  first.unmount();
-  /* Another table still holds the face. */
-  renderHook(() => usePreloadedCardFaces(faces)).unmount();
-  expect(started).toEqual(faces);
-  second.unmount();
-  /* No table is open any more, so the next one asks for it again. */
-  renderHook(() => usePreloadedCardFaces(faces)).unmount();
-  expect(started).toEqual([...faces, ...faces]);
+  const left = ['https://dune.zone/c.jpg'];
+  const other = ['https://dune.zone/d.jpg'];
+  renderHook(() => usePreloadedCardFaces(left)).unmount();
+  /* Going back to the game just left finds its faces. */
+  renderHook(() => usePreloadedCardFaces(left)).unmount();
+  expect(started).toEqual(left);
+  /* Another game's table lets them go, so going back asks for them again. */
+  renderHook(() => usePreloadedCardFaces(other)).unmount();
+  renderHook(() => usePreloadedCardFaces(left)).unmount();
+  expect(started).toEqual([...left, ...other, ...left]);
+});
+
+test('two open tables keep the faces of both', () => {
+  const started = trackImages();
+  const first = ['https://dune.zone/e.jpg'];
+  const second = ['https://dune.zone/f.jpg'];
+  const one = renderHook(() => usePreloadedCardFaces(first));
+  const two = renderHook(() => usePreloadedCardFaces(second));
+  renderHook(() => usePreloadedCardFaces(first)).unmount();
+  expect(started).toEqual([...first, ...second]);
+  one.unmount();
+  two.unmount();
 });

@@ -4,15 +4,17 @@ import { useEffect } from 'react';
 const PARALLEL_LOADS = 4;
 
 /*
- * Every card face an open table asked for, kept while any table is open.
+ * Every card face an open table asked for.
  * Holding the image keeps it in the browser's memory cache, so a face shown later is drawn from there instead of fetched again.
  * Published images are served `no-cache`, so the memory cache is what spares a reveal its round trip.
- * Once the last table closes they are let go, so the faces of games already left do not add up for the page's life.
+ * A table that asks for its faces lets go of those no open table wants, so the faces of games already left do not add up
+ * for the page's life, while going back to the game just left still finds its faces.
  */
 const requested = new Map<string, HTMLImageElement>();
 const queue: string[] = [];
 let loading = 0;
-let openTables = 0;
+/* The faces each open table asked for. */
+const tables = new Map<object, readonly string[]>();
 
 function loadNext() {
   while (loading < PARALLEL_LOADS && queue.length > 0) {
@@ -43,16 +45,16 @@ function preloadCardFaces(hrefs: readonly string[]) {
   loadNext();
 }
 
-/** Counts an open table; the returned release lets every face go once no table is open. */
-function holdFaces() {
-  openTables++;
-  return () => {
-    openTables--;
-    if (openTables === 0) {
-      queue.length = 0;
-      requested.clear();
+/** Lets go of every face no open table asked for. */
+function dropUnwantedFaces() {
+  const wanted = new Set([...tables.values()].flat());
+  for (const href of requested.keys()) {
+    if (!wanted.has(href)) {
+      requested.delete(href);
     }
-  };
+  }
+  const stillWanted = queue.filter((href) => wanted.has(href));
+  queue.splice(0, queue.length, ...stillWanted);
 }
 
 /**
@@ -60,10 +62,16 @@ function holdFaces() {
  * The room sends the whole set sorted, so loading it tells nobody which card lies where.
  */
 export function usePreloadedCardFaces(hrefs: readonly string[] | undefined) {
-  useEffect(holdFaces, []);
   useEffect(() => {
-    if (hrefs?.length) {
-      preloadCardFaces(hrefs);
+    if (!hrefs?.length) {
+      return;
     }
+    const table = {};
+    tables.set(table, hrefs);
+    dropUnwantedFaces();
+    preloadCardFaces(hrefs);
+    return () => {
+      tables.delete(table);
+    };
   }, [hrefs]);
 }
