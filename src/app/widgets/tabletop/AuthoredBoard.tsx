@@ -1,8 +1,9 @@
 /* @jsxImportSource ./three-jsx */
-import { Button } from '@mantine/core';
+import { Button, MantineProvider } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useThree } from '@react-three/fiber/webgpu';
 import type { Board } from '@shared/boards/schema';
+import { appContentTheme } from '@ui/theme';
 import { useEffect, useMemo, useReducer } from 'react';
 import type { Texture } from 'three';
 
@@ -65,7 +66,14 @@ export default function AuthoredBoard({ board }: { board: Board }) {
       </mesh>
       {state.error && (
         <Html center>
-          <Button onClick={() => dispatch({ type: 'retry' })}>Board artwork failed to load. Retry</Button>
+          <MantineProvider
+            theme={appContentTheme}
+            forceColorScheme="dark"
+            getRootElement={() => undefined}
+            withCssVariables={false}
+          >
+            <Button onClick={() => dispatch({ type: 'retry' })}>Board artwork failed to load. Retry</Button>
+          </MantineProvider>
         </Html>
       )}
     </>

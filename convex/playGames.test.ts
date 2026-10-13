@@ -233,6 +233,7 @@ describe('real games are created and entered by any signed-in player, Administra
     }
     expect(listing.preview?.rulesetId).toBe(rulesets.ready);
     expect(listing.preview?.packed.map(({ slot, name, count }) => [slot, name, count])).toEqual([
+      ['board', 'Arrakis', 1],
       ['treachery', 'treachery', 2],
       ['spice', 'spice', 2],
     ]);

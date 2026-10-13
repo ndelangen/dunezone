@@ -244,6 +244,11 @@ export default defineSchema({
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])
     .index('by_group_deleted', ['group_id', 'is_deleted'])
     .index('by_group_id', ['group_id']),
+  /* Small eligibility rows let Play list rulesets without loading every board definition. */
+  board_readiness: defineTable({
+    asset_id: v.id('assets'),
+    usable: v.boolean(),
+  }).index('by_asset', ['asset_id']),
   leader_skill_stock_sets: defineTable({
     key: v.literal('gf9-leader-skills'),
     owner_id: v.id('users'),

@@ -2,6 +2,7 @@ import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishin
 import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
 import type { Disclosure } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
@@ -372,7 +373,7 @@ describe('hosted table admission', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(socket().gameId).toBe('fixture-one');
     socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
     client.moveStormBy(1);
     client.beginGesture('harkonnen-force-stack', 'whole');
     client.publishPointer([0, 0, 0]);
@@ -440,7 +441,7 @@ describe('hosted table admission', () => {
     client.publishPointer([0, 0.38, 0]);
     await vi.advanceTimersByTimeAsync(1000);
     expect(client.getSnapshot().table?.state.viewerSeat).toBe('neutral');
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
   });
 
   test('a clock 60 s fast still sends a ticket with 30 s left', async () => {
@@ -449,7 +450,7 @@ describe('hosted table admission', () => {
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
   });
 
   test('a clock 60 s slow reconnects instead of sending a ticket that expired while the socket was opening', async () => {
@@ -467,7 +468,7 @@ describe('hosted table admission', () => {
     await vi.advanceTimersByTimeAsync(1000);
     expect(issue).toHaveBeenCalledTimes(2);
     socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
   });
 
   test('counts the ticket lifetime from the request, not from the response', async () => {
@@ -568,7 +569,9 @@ describe('hosted table admission', () => {
     old.deliver(view({ epoch: 'old' }));
     expectLocked(client);
     expect(issue).toHaveBeenCalledTimes(2);
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: '2'.repeat(64), replaces: 'connection-one' }]);
+    expect(socket().sent).toEqual([
+      { type: 'admit', supportsBoard: true, ticket: '2'.repeat(64), replaces: 'connection-one' },
+    ]);
     authorize(initialSnapshot(), { ...viewer, connectionId: 'connection-two' });
     expect(table(client).viewer.connectionId).toBe('connection-two');
   });
@@ -997,6 +1000,29 @@ describe('hosted table interaction', () => {
     expect(table(client).flippingPieceIds).toEqual(flips);
   });
 
+  test('the captured board keeps its render identity across history and replacement full views', async () => {
+    const client = await connected();
+    authorize({ ...initialSnapshot(), revision: 1, board: structuredClone(arrakisBoardCapture) });
+    const board = table(client).snapshot.board;
+    expect(board).toEqual(arrakisBoardCapture);
+    client.requestHistory(0);
+    socket().deliver({
+      type: 'history',
+      step: 0,
+      lastStep: 1,
+      snapshot: { ...initialSnapshot(), board: structuredClone(arrakisBoardCapture) },
+    });
+    expect(table(client).snapshot.board).toBe(board);
+    client.resumeLive();
+    socket().deliver(
+      view({
+        epoch: 'after-reconnect',
+        snapshot: { ...initialSnapshot(), revision: 2, board: structuredClone(arrakisBoardCapture) },
+      })
+    );
+    expect(table(client).snapshot.board).toBe(board);
+  });
+
   test('playback is read-only, ignores a superseded response and returns to the newest live state', async () => {
     const client = await connected();
     client.requestHistory(0);
@@ -1313,7 +1339,7 @@ test('compact update gaps pause commands until a full resync restores the table'
   const snapshot = initialSnapshot();
   socket().deliver(view({ sequence: 1, snapshot }));
   /* A view asks for nothing, so the admission is the only message before the gap. */
-  expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+  expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
   deliverGap();
   expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
   expect(table(client).canInteract).toBe(false);
@@ -1665,7 +1691,9 @@ describe('fresh reconnect recovery', () => {
       expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(
         committed ? position : source.position
       );
-      expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), replaces: 'connection-one' }]);
+      expect(socket().sent).toEqual([
+        { type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64), replaces: 'connection-one' },
+      ]);
       expect(client.getSnapshot().error).toBe('The connection dropped as you placed a piece. Check where it landed.');
     }
   );

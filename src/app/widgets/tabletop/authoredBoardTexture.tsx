@@ -23,7 +23,12 @@ export async function authoredBoardTexture(board: Board, signal: AbortSignal): P
       if (!response.ok) {
         throw new Error('The board artwork could not be loaded');
       }
-      artwork[path] = await response.text();
+      const source = await response.text();
+      const parsed = new DOMParser().parseFromString(source, 'image/svg+xml');
+      if (parsed.documentElement.localName !== 'svg' || parsed.querySelector('parsererror')) {
+        throw new Error('The board artwork is not a usable SVG');
+      }
+      artwork[path] = source;
     })
   );
   signal.throwIfAborted();

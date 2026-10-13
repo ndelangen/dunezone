@@ -4,6 +4,7 @@ import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.mjs';
 import {
   admitPlayer,
+  openGame,
   createPeer,
   createRuntime,
   provision,
@@ -56,6 +57,18 @@ describe('A real game provisions from its ruleset', () => {
     });
     expect(await runtime.exec('SELECT * FROM metadata')).toEqual([]);
     expect((await runtime.captures()).ruleset).toBeNull();
+  });
+
+  it('asks old clients to refresh before entering a retained-board game', async () => {
+    seedRuleset([], []);
+    peer.provisional = true;
+    expect((await provision(runtime)).status).toBe(200);
+    const old = await openGame(runtime);
+    old.send({ type: 'admit', ticket: 'c'.repeat(64) });
+    expect((await old.message('admission', (message) => message.status === 'refresh')).status).toBe('refresh');
+    expect(old.messages.some((message) => message.type === 'view')).toBe(false);
+    const current = await admitPlayer(peer, runtime, 'current');
+    expect((await syncView(current)).snapshot.board).toEqual(arrakisBoardCapture);
   });
 
   it('requires a usable board even for provisional creation', async () => {

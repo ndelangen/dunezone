@@ -3,9 +3,10 @@
 import { convexTest } from 'convex-test';
 import { expect, test } from 'vitest';
 
+import { blankBoard } from '../src/shared/boards/geometry';
 import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import { api, internal } from './_generated/api';
-import { rulesetBoard } from './lib/rulesetBoard';
+import { playTest, playPerson, playRuleset } from './play.test.fixture';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -55,7 +56,7 @@ test('backfill previews, fills absent slots once, and preserves selected boards 
     skipped: 1,
     done: true,
   });
-  expect(await t.run((ctx) => rulesetBoard(ctx, missing))).toBeNull();
+  expect((await t.query(api.playCatalogue.rulesetSupply, { rulesetId: missing }))?.board).toBeNull();
   const result = await t.mutation(internal.rulesetBoards.fillMissing, { ...args, dryRun: false });
   expect(result.linked).toEqual([missing]);
   expect(result.links).toHaveLength(1);
@@ -72,16 +73,48 @@ test('capture supplies a validated board separately from legacy slots and refuse
   const supply = await t.query(api.playCatalogue.rulesetSupply, { rulesetId: chosen });
   expect(supply?.board?.definition).toEqual(arrakisBoardCapture.definition);
   expect(supply?.slots).toEqual([]);
-  expect(await t.run((ctx) => rulesetBoard(ctx, missing))).toBeNull();
+  expect((await t.query(api.playCatalogue.rulesetSupply, { rulesetId: missing }))?.board).toBeNull();
   await t.run((ctx) => ctx.db.patch(board, { is_deleted: true }));
-  expect(await t.run((ctx) => rulesetBoard(ctx, chosen))).toBeNull();
+  expect((await t.query(api.playCatalogue.rulesetSupply, { rulesetId: chosen }))?.board).toBeNull();
   await t.run((ctx) =>
     ctx.db.patch(board, {
       is_deleted: false,
       data: { name: 'Broken', about: '', board: { ...arrakisBoardCapture.definition, properties: {} } },
     })
   );
-  expect(await t.run((ctx) => rulesetBoard(ctx, chosen))).toBeNull();
+  expect((await t.query(api.playCatalogue.rulesetSupply, { rulesetId: chosen }))?.board).toBeNull();
   await t.run((ctx) => ctx.db.patch(board, { type: 'deck' }));
-  expect(await t.run((ctx) => rulesetBoard(ctx, chosen))).toBeNull();
+  expect((await t.query(api.playCatalogue.rulesetSupply, { rulesetId: chosen }))?.board).toBeNull();
+});
+
+test('asset writes keep ruleset eligibility current and creation refuses a deleted selection', async () => {
+  const t = playTest();
+  const seeded = await t.run(async (ctx) => {
+    const person = await playPerson(ctx, 'Owner');
+    return { ...person, rulesetId: await playRuleset(ctx, person.userId) };
+  });
+  const owner = t.withIdentity({ subject: seeded.subject });
+  const board = await owner.mutation(api.assets.create, {
+    type: 'board',
+    data: { name: 'Custom board', about: '', board: blankBoard() },
+  });
+  await owner.mutation(api.rulesets.setAssetSlot, { ruleset_id: seeded.rulesetId, asset_id: board.id, slot: 'board' });
+  const selectable = async () => {
+    const result = await owner.query(api.playGames.creatable, {});
+    return result.access === 'allowed' && result.rulesets.find((row) => row.id === seeded.rulesetId)?.selectable;
+  };
+  expect(await selectable()).toBe(true);
+  await owner.mutation(api.assets.update, {
+    id: board.id,
+    data: { name: 'Edited board', about: '', board: arrakisBoardCapture.definition },
+  });
+  expect(await selectable()).toBe(true);
+  expect((await t.query(api.playCatalogue.rulesetSupply, { rulesetId: seeded.rulesetId }))?.board?.asset.name).toBe(
+    'Edited board'
+  );
+  await owner.mutation(api.assets.softDelete, { id: board.id });
+  expect(await selectable()).toBe(false);
+  expect(
+    await owner.mutation(api.playGames.createGame, { rulesetId: seeded.rulesetId, minimumPlayers: 2 })
+  ).toMatchObject({ ok: false, reason: 'unavailable' });
 });

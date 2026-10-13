@@ -930,9 +930,22 @@ export class GameRoom extends DurableObject<GameEnv> {
     });
   }
 
-  private async admit(socket: WebSocket, connection: Connection, ticket: string, replaces?: string) {
+  private async admit(
+    socket: WebSocket,
+    connection: Connection,
+    ticket: string,
+    replaces?: string,
+    supportsBoard?: true
+  ) {
     if (connection.admitting || connection.viewer) {
       this.refuseAdmission(socket, 'duplicate');
+      return;
+    }
+    if (this.session.hasRetainedBoard && !supportsBoard) {
+      /* Older clients reject the new status and already show their refresh message. No game view or commands pass this gate. */
+      this.sendAdmission(socket, 'refresh');
+      this.disconnect(socket);
+      socket.close(ADMISSION_REFUSED_CLOSE_CODE, 'Refresh to load this board.');
       return;
     }
     connection.admitting = true;
@@ -1197,7 +1210,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     if (message.type === 'admit') {
-      await this.admit(socket, connection, message.ticket, message.replaces);
+      await this.admit(socket, connection, message.ticket, message.replaces, message.supportsBoard);
       return;
     }
     if (message.type === 'pointer' || message.type === 'pose') {
@@ -2100,7 +2113,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private sendAdmission(socket: WebSocket, status: 'suspended' | 'denied') {
+  private sendAdmission(socket: WebSocket, status: 'suspended' | 'denied' | 'refresh') {
     if (socket.readyState === WebSocket.OPEN) {
       try {
         socket.send(JSON.stringify({ type: 'admission', status } satisfies ServerMessage));

@@ -975,6 +975,10 @@ export class GameSession {
   get info(): Readonly<Metadata> | undefined {
     return this.metadata;
   }
+  get hasRetainedBoard() {
+    return Boolean(this.captures.ruleset()?.board);
+  }
+
   get ready() {
     return this.room !== undefined;
   }

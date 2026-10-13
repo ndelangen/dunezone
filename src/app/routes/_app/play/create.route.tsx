@@ -401,7 +401,7 @@ function RulesetField({
       data={rulesets.map((ruleset) => ({
         value: ruleset.id,
         label: ruleset.name,
-        disabled: ruleset.objection === 'No usable board is linked.',
+        disabled: !ruleset.selectable,
       }))}
       renderOption={({ option }) => {
         const objection = objections.get(option.value);

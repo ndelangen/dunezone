@@ -32,3 +32,19 @@ export async function rulesetBoard(
   cache.set(asset._id, result);
   return result;
 }
+
+/** During the widen migration, unindexed legacy boards still use the authoritative read. */
+export async function rulesetHasBoard(ctx: QueryCtx, rulesetId: Id<'rulesets'>, cache: BoardReadCache) {
+  const slot = await ctx.db
+    .query('ruleset_asset_slots')
+    .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', 'board'))
+    .first();
+  if (!slot) {
+    return false;
+  }
+  const readiness = await ctx.db
+    .query('board_readiness')
+    .withIndex('by_asset', (q) => q.eq('asset_id', slot.asset_id))
+    .unique();
+  return readiness ? readiness.usable : Boolean(await rulesetBoard(ctx, rulesetId, cache));
+}

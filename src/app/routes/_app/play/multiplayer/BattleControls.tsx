@@ -2,9 +2,7 @@ import { Button, Checkbox, Group, Menu, NumberInput, Radio, Select, Stack, Text,
 import type { ButtonProps, NumberInputProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
-import { CENTER, RADIUS } from '@shared/boards/geometry';
 import type { Board } from '@shared/boards/schema';
-import { boardTerritoryAt } from '@shared/boards/territories';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
 import { isBattleLeader } from '@shared/play/battle';
 import type {
@@ -654,8 +652,9 @@ const BOARD_GROUPS = new Set(['strongholds', 'rock', 'sand', 'sectors']);
  * The disc maps onto the board's unit square by the board radius, and each territory's outline is tested in that square.
  * A point outside every territory keeps the generic name.
  */
-function territoryAt(position: Vector3Tuple, board?: Board) {
+async function territoryAt(position: Vector3Tuple, board?: Board) {
   if (board) {
+    const { boardTerritoryAt, CENTER, RADIUS } = await import('@shared/boards/territories');
     return (
       boardTerritoryAt(board, [
         CENTER[0] + (position[0] * RADIUS) / BOARD_RADIUS,
@@ -678,16 +677,17 @@ function territoryAt(position: Vector3Tuple, board?: Board) {
   );
   return territory?.label ?? 'Marked territory';
 }
-function sendDrop(client: TableSession, event: DragEvent, position: Vector3Tuple) {
+async function sendDrop(client: TableSession, event: DragEvent, position: Vector3Tuple) {
   const pieceId = event.dataTransfer?.getData('application/dune-hand');
   if (pieceId && onTablePlate(position)) {
     client.command({ kind: 'hand-play', pieceId, position });
   } else if (event.dataTransfer?.getData('application/dune-battle') && Math.hypot(position[0], position[2]) <= 5.5) {
-    client.command({
-      kind: 'battle-start',
-      anchor: position,
-      territory: territoryAt(position, client.getTable()?.snapshot.board?.definition),
-    });
+    const before = client.getTable();
+    const territory = await territoryAt(position, before?.snapshot.board?.definition);
+    const current = client.getTable();
+    if (current?.canHandleTable && before?.snapshot.revision === current.snapshot.revision) {
+      client.command({ kind: 'battle-start', anchor: position, territory });
+    }
   }
 }
 function useInventoryDrop({ client, table }: Props) {
@@ -702,7 +702,9 @@ function useInventoryDrop({ client, table }: Props) {
       }
       const position = dropPosition(event, canvas, camera);
       if (position) {
-        sendDrop(client, event, position);
+        void sendDrop(client, event, position).catch(() => {
+          /* A failed geometry load leaves the marker available for another drop. */
+        });
       }
     };
     canvas.addEventListener('dragover', over);

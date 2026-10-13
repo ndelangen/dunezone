@@ -31,7 +31,7 @@ import { createPendingGame } from './lib/playProvisioningSchedule';
 import { playCreateQuota, playNameCheckCapacity, playRateLimiter } from './lib/playRateLimits';
 import { atPlaySeatLimit } from './lib/playSeats';
 import type { BoardReadCache } from './lib/rulesetBoard';
-import { rulesetBoard } from './lib/rulesetBoard';
+import { rulesetBoard, rulesetHasBoard } from './lib/rulesetBoard';
 
 /*
  * Real games: any active signed-in player may create and enter one. The lobby is unlisted rather
@@ -56,8 +56,8 @@ async function deckHasMembers(ctx: QueryCtx, assetId: Id<'assets'>) {
  * Null when nothing here objects;
  * the Worker's capture still decides completeness.
  */
-async function rulesetObjection(ctx: QueryCtx, rulesetId: Id<'rulesets'>, boards?: BoardReadCache) {
-  if (!(await rulesetBoard(ctx, rulesetId, boards))) {
+async function rulesetObjection(ctx: QueryCtx, rulesetId: Id<'rulesets'>, boardAvailable?: boolean) {
+  if (!(boardAvailable ?? (await rulesetBoard(ctx, rulesetId)))) {
     return 'No usable board is linked.';
   }
   for (const [slot, label] of [
@@ -208,6 +208,7 @@ export const creatable = viewerQuery({
           slug: v.string(),
           name: v.string(),
           objection: v.union(v.string(), v.null()),
+          selectable: v.boolean(),
         })
       ),
       preview: v.union(rulesetPreviewValidator, v.null()),
@@ -224,11 +225,13 @@ export const creatable = viewerQuery({
     const rulesets = [];
     const boards: BoardReadCache = new Map();
     for (const row of rows) {
+      const selectable = await rulesetHasBoard(ctx, row._id, boards);
       rulesets.push({
         id: row._id,
         slug: row.slug,
         name: row.name,
-        objection: await rulesetObjection(ctx, row._id, boards),
+        objection: await rulesetObjection(ctx, row._id, selectable),
+        selectable,
       });
     }
     const chosen = rulesetId === undefined ? undefined : rows.find((row) => row._id === rulesetId);

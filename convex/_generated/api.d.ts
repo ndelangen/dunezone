@@ -35,6 +35,7 @@ import type * as lib_applicationTriggers from "../lib/applicationTriggers.js";
 import type * as lib_assetBacks from "../lib/assetBacks.js";
 import type * as lib_assetInput from "../lib/assetInput.js";
 import type * as lib_authSessionLifecycle from "../lib/authSessionLifecycle.js";
+import type * as lib_boardReadiness from "../lib/boardReadiness.js";
 import type * as lib_cardFrontPresets from "../lib/cardFrontPresets.js";
 import type * as lib_cardbackPresets from "../lib/cardbackPresets.js";
 import type * as lib_collaborativeAccess from "../lib/collaborativeAccess.js";
@@ -158,6 +159,7 @@ declare const fullApi: ApiFromModules<{
   "lib/assetBacks": typeof lib_assetBacks;
   "lib/assetInput": typeof lib_assetInput;
   "lib/authSessionLifecycle": typeof lib_authSessionLifecycle;
+  "lib/boardReadiness": typeof lib_boardReadiness;
   "lib/cardFrontPresets": typeof lib_cardFrontPresets;
   "lib/cardbackPresets": typeof lib_cardbackPresets;
   "lib/collaborativeAccess": typeof lib_collaborativeAccess;

@@ -240,7 +240,9 @@ export const MissingBoard = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('combobox', { name: 'Ruleset' }));
     const option = await page.findByRole('option', { name: /^Dreamrules/ });
-    expect(option).toHaveAttribute('aria-disabled', 'true');
+    expect(option).toHaveAttribute('data-combobox-disabled', 'true');
+    await userEvent.click(option);
+    expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveValue('');
     expect(option).toHaveTextContent('No usable board is linked.');
     expect(page.getByRole('button', { name: 'Create game' })).toBeDisabled();
   },
