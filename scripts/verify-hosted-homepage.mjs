@@ -287,7 +287,9 @@ export async function verifyHomepage({
   passed,
 }) {
   const member = await account('player-a');
-  const guest = await peer('unsigned');
+  const guest = await peer('homepage-observer');
+  /* Picking must work after the animated entrance as well as with reduced motion. */
+  await member.page.emulateMedia({ reducedMotion: 'no-preference' });
   let artworkRequested = false;
   const releaseArtwork = Promise.withResolvers();
   /* Hold a scene image until the driver has checked the still-loading preview. */
