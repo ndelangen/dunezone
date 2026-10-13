@@ -100,9 +100,10 @@ function turnLabel(mine: boolean, bid: BiddingState['bid'], turnName: string) {
 }
 
 /** The table supplies the deadline; these animations only draw its elapsed time. */
-function ClockRing({ deadline, table }: { deadline: number | null; table: TableProjection }) {
+function ClockRing({ deadline, table, now }: { deadline: number | null; table: TableProjection; now: number }) {
   const arc = useRef<SVGCircleElement>(null);
   const warning = useRef<SVGCircleElement>(null);
+  const resynchronize = useRef<(() => void) | null>(null);
   const serverNow = table.serverNow;
   const playback = Boolean(table.playback);
   useEffect(() => {
@@ -127,15 +128,20 @@ function ClockRing({ deadline, table }: { deadline: number | null; table: TableP
         flashes.pause();
       }
     }
+    resynchronize.current = synchronize;
     synchronize();
     /* A background tab returns to the shared deadline, never a fresh animation. */
     document.addEventListener('visibilitychange', synchronize);
     return () => {
+      resynchronize.current = null;
       countdown.cancel();
       flashes.cancel();
       document.removeEventListener('visibilitychange', synchronize);
     };
   }, [deadline, serverNow, playback]);
+  useEffect(() => {
+    resynchronize.current?.();
+  }, [now]);
   return (
     <svg className={styles.clockRing} viewBox="0 0 72 72" aria-hidden="true">
       <circle className={styles.clockTrack} cx="36" cy="36" r="33" />
@@ -152,9 +158,11 @@ export function OpenRound({
   client,
   remaining,
   warningRemaining,
+  now,
 }: FaceProps & {
   remaining: number | null;
   warningRemaining: number | null;
+  now: number;
 }) {
   const { bid, round, turn } = bidding;
   const mine = table.canInteract && turn !== null && table.snapshot.bank?.factionId === turn;
@@ -164,7 +172,7 @@ export function OpenRound({
   return (
     <Stack gap={2} align="center" className={styles.face}>
       <div className={showClock ? styles.clockWrap : undefined}>
-        {showClock && <ClockRing deadline={bidding.deadline} table={table} />}
+        {showClock && <ClockRing deadline={bidding.deadline} table={table} now={now} />}
         <UnstyledButton
           className={styles.disc}
           data-bidder-turn={turn ?? undefined}

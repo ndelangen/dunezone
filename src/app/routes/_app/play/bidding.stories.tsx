@@ -220,8 +220,20 @@ export const UntimedBidding = meta.story({
       await expect(toggle).toHaveAttribute('aria-checked', 'false');
       await userEvent.click(toggle);
       await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent('20s'));
-      clock.advance(13_000);
-      await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent('7s'));
+      const arc = canvasElement.ownerDocument.querySelector('circle[pathLength="100"]')!;
+      await waitFor(() => expect(arc.getAnimations()[0]).toBeDefined());
+      const animation = arc.getAnimations()[0]!;
+      animation.pause();
+      try {
+        clock.advance(13_000);
+        await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent('7s'));
+        await waitFor(() => {
+          const offset = Number.parseFloat(getComputedStyle(arc).strokeDashoffset);
+          expect(offset).toBeCloseTo(65, 1);
+        });
+      } finally {
+        animation.play();
+      }
       await userEvent.click(toggle);
       await waitFor(() => expect(page.queryByRole('timer')).not.toBeInTheDocument());
       await userEvent.click(toggle);

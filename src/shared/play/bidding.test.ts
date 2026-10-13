@@ -153,12 +153,12 @@ describe('optional timed bidding', () => {
     expect(applyBidding(on, { kind: 'bid-timing', enabled: true }, at('b', order, 51_000))).toBe(on);
   });
 
-  test('enabling during an open auction starts fresh even before its first bid', () => {
+  test('enabling during an untouched auction keeps time for deals until the first bid or pass', () => {
     const state = applyBidding(idleBidding(), { kind: 'bid-start', factionId: 'a' }, at('a'));
     expect(applyBidding(state, { kind: 'bid-timing', enabled: true }, at('b', order, 1000))).toMatchObject({
       timed: true,
-      started: true,
-      deadline: 26_000,
+      started: false,
+      deadline: null,
     });
   });
 });
