@@ -1,7 +1,7 @@
 # Public page discovery
 
 `/robots.txt` advertises `https://dune.zone/sitemap.xml`. The sitemap index points to a static
-landing-page sitemap, one sitemap each for factions, rulesets, Rulebooks, FAQ questions, profiles
+landing-page sitemap (the catalogues, Glossary, Future plans and Privacy), one sitemap each for factions, rulesets, Rulebooks, FAQ questions, profiles
 and Groups, and one sitemap per live Asset type. Each uses absolute production URLs. Planned
 types, editors and login-required pages are absent.
 

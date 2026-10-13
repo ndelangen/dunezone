@@ -1,4 +1,5 @@
 /* oxlint-disable jsx-a11y/alt-text -- Static decorative game-card layers, not content images. */
+import { useId } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -7,7 +8,6 @@ import type { Spice } from '../../data/objects';
 import { useAssetResolver } from '../assetRenderMode';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { FormattedText } from '../utils/FormattedText';
-import { useCountId } from '../utils/useCountId';
 import styles from './Card.module.css';
 import unique from './Spice.module.css';
 
@@ -17,7 +17,7 @@ const highLightColor = '#9E5F00';
 
 export const SpiceCard: FC<z.infer<typeof Spice>> = ({ name, subName, icon, text, amount, highlights, overlays }) => {
   const resolveOverlay = useAssetResolver();
-  const prefix = useCountId();
+  const prefix = useId();
   const decalsFilter = `${prefix}decals-filter`;
 
   return (
