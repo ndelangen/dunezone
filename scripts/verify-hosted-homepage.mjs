@@ -331,8 +331,9 @@ export async function verifyHomepage({
     await who.page.getByRole('link', { name: 'Take a sneak peek', exact: true }).click();
     await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
     if (who === member) {
-      await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
+      /* The scene requests its artwork once the board is ready, so the artwork probe waits for readiness first. */
       await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
+      await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
       await who.page.locator('[data-table-connected="true"]').waitFor();
       assert.equal(await who.page.locator('#play-preview img').count(), 0);
       initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
