@@ -183,16 +183,27 @@ function ArrivingFaceMaterial({ texture }: { texture: Texture }) {
   const motion = useMotionAllowed();
   const invalidate = useThree((state) => state.invalidate);
   const elapsed = useRef(0);
+  useLayoutEffect(() => {
+    if (!material.current) {
+      return;
+    }
+    if (!motion) {
+      elapsed.current = 0.6;
+    }
+    const progress = Math.min(1, elapsed.current / 0.6);
+    material.current.opacity = progress * progress * (3 - 2 * progress);
+    invalidate();
+  }, [invalidate, motion]);
   useFrame((_state, delta) => {
     if (!material.current || elapsed.current >= 0.6) {
       return;
     }
     elapsed.current += Math.min(delta, 0.05);
     const progress = Math.min(1, elapsed.current / 0.6);
-    material.current.opacity = motion ? progress * progress * (3 - 2 * progress) : 1;
+    material.current.opacity = progress * progress * (3 - 2 * progress);
     invalidate();
   });
-  return <meshBasicMaterial ref={material} map={texture} transparent opacity={motion ? 0 : 1} />;
+  return <meshBasicMaterial ref={material} map={texture} transparent />;
 }
 
 function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
