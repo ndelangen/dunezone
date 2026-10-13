@@ -1,8 +1,5 @@
 import { Alert, Badge, Center, Code, Group, Pagination, Select, Stack, Switch, Table, Text } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -10,10 +7,11 @@ import { Surface } from '@ui/surface';
 import { BriefcaseBusiness } from 'lucide-react';
 import { useReducer } from 'react';
 
+import { useSessionViewer } from '@db/profiles';
 import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@db/publications';
 import type { PublicationJobStatus } from '@db/publications';
 import { pageHead } from '@app/routes/pageTitle';
-import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { AdminGate, AdminPageLoading } from '@app/widgets/page-message/AdminGate';
 
 const PAGE_SIZE = 25;
 
@@ -24,6 +22,32 @@ export const Route = createFileRoute('/_app/_admin/jobs')({
 });
 
 function PublicationJobsPage() {
+  const viewer = useSessionViewer();
+  return (
+    <AdminGate
+      viewer={viewer}
+      size="compact"
+      title="Publication jobs"
+      action="inspect publication jobs"
+      loading={<PublicationJobsLoading />}
+      deniedTitle="You cannot view publication jobs"
+      deniedMessage="Your account does not have permission to view publication jobs."
+    >
+      <PublicationJobsDashboard />
+    </AdminGate>
+  );
+}
+
+function PublicationJobsLoading() {
+  return (
+    <AdminPageLoading size="compact" title="Publication jobs">
+      The durable work queue is still loading.
+    </AdminPageLoading>
+  );
+}
+
+/** Mounted only for an administrator, so the admin-only query is never asked by anyone else. */
+function PublicationJobsDashboard() {
   /* One listing query, one reducer: a filter change resets the page in the same event, so a third
      filter cannot forget the reset (the one-event-two-setters shape, #608). */
   const [listing, dispatch] = useReducer(
@@ -44,34 +68,12 @@ function PublicationJobsPage() {
   });
   const pickupMutation = useSetPublicationPickupEnabled();
 
-  /* Early returns rather than a ternary chain inside the content: each of the first three is the
-     whole page rather than one region of it, and rendering them under this page's own header meant
-     a reader who may not see the queue at all still got its briefcase and its description. The
-     header is a statement about a dashboard they are not being shown. */
-  if (result === undefined) {
-    return (
-      <PageMessage size="compact" title="Publication jobs">
-        <LoadPending title="Loading publication jobs">The durable work queue is still loading.</LoadPending>
-      </PageMessage>
-    );
-  }
-
-  if (result.access === 'unauthenticated') {
-    return (
-      <PageMessage size="compact" title="Publication jobs">
-        <LoginGate action="inspect publication jobs" />
-      </PageMessage>
-    );
-  }
-
-  if (result.access === 'not_authorized') {
-    return (
-      <PageMessage size="compact" title="Publication jobs">
-        <NotAvailable title="You cannot view publication jobs">
-          Your account does not have permission to view publication jobs.
-        </NotAvailable>
-      </PageMessage>
-    );
+  /*
+   * The session gate already turned away everyone but admins, so a refusal cannot reach here.
+   * Matching the refusals rather than `access: 'admin'` lets this bundle read the next release's answer, which drops `access`.
+   */
+  if (result === undefined || result.access === 'unauthenticated' || result.access === 'not_authorized') {
+    return <PublicationJobsLoading />;
   }
 
   return (

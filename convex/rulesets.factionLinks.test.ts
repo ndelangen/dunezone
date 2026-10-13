@@ -79,7 +79,7 @@ async function linkFixture() {
 }
 
 const linkedSlugs = async (t: Awaited<ReturnType<typeof linkFixture>>['t'], slug: string) => {
-  const page = await t.query(api.rulesets.detailPageBySlug, { slug });
+  const page = await t.query(api.rulesets.detailPage, { slug });
   return (page?.factions ?? []).map((faction) => faction.slug);
 };
 

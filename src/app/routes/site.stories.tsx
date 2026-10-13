@@ -3,6 +3,7 @@ import { expect, userEvent, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
 
+import { expectRefused, withoutAdmins } from './adminPages.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -27,7 +28,14 @@ export const NotFound = meta.story({
   },
 });
 export const Icons = meta.story({ args: { path: '/__icons' } });
-export const PublicationJobs = meta.story({ args: { path: '/_admin/jobs' } });
+/** The job queue for an administrator: the session says so, and only then does the page ask for the admin-only listing. */
+export const PublicationJobs = meta.story({
+  args: { path: '/_admin/jobs' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('combobox', { name: 'Status' }, { timeout: 30_000 })).resolves.toBeVisible();
+  },
+});
 
 /** The job queue reached by a reader the server does not recognise, which is a login gate rather than an alert inside a dashboard header. */
 export const PublicationJobsSignedOut = meta.story({
@@ -42,6 +50,14 @@ export const PublicationJobsSignedOut = meta.story({
         'Inspect the durable work queue and control whether the next scheduled run may pick up pending work.'
       )
     ).toBeNull();
+  },
+});
+/** The job queue reached by a signed-in reader without the administrative role. */
+export const PublicationJobsNotAuthorized = meta.story({
+  args: { path: '/_admin/jobs' },
+  parameters: withoutAdmins,
+  play: async ({ canvasElement }) => {
+    await expectRefused(canvasElement, 'You cannot view publication jobs', { role: 'combobox', name: 'Status' });
   },
 });
 export const FuturePlans = meta.story({ args: { path: '/future-plans' } });

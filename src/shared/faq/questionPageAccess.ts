@@ -1,6 +1,6 @@
 /**
  * Who may do what on a FAQ question page: facts in, capabilities out.
- * Shared by the deprecated per-viewer query and the browser, which combines the public page with the viewer's user id;
+ * The browser runs it, combining the public page with the viewer's user id;
  * the FAQ mutations enforce the same rules on every write.
  */
 

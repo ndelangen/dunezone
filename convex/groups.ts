@@ -10,11 +10,9 @@ import {
   loadViewerAssignableGroups,
   loadViewerMembership,
   requireGroupCapability,
-  withGroupViewerAccess,
 } from './lib/collaborativeAccess';
 import {
   assignedGroupSummaryValidator,
-  groupDetailPageValidator,
   groupPageValidator,
   viewerMembershipStateValidator,
 } from './lib/collaborativeAccessValidators';
@@ -103,16 +101,6 @@ export const detailPage = publicQuery({
   args: { slug: v.string() },
   returns: groupPageValidator,
   handler: async (ctx, args) => await loadGroupPageBySlug(ctx, args.slug),
-});
-
-/** Deprecated by `detailPage`: kept unchanged for bundles deployed before it, then deleted (see AGENTS.md). */
-export const detailBySlug = viewerQuery({
-  args: { slug: v.string() },
-  returns: groupDetailPageValidator,
-  handler: async (ctx, args) => {
-    const page = await loadGroupPageBySlug(ctx, args.slug);
-    return { ...page, ...(await withGroupViewerAccess(ctx, page.group, page.roster)) };
-  },
 });
 
 export const list = publicQuery({

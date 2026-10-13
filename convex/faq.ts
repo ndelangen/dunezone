@@ -5,13 +5,7 @@ import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
-import {
-  faqQuestionPageValidator,
-  faqQuestionPublicPageValidator,
-  loadFaqQuestionPage,
-  loadFaqQuestionPublicPage,
-  loadViewerAnswered,
-} from './lib/faqQuestionPage';
+import { faqQuestionPublicPageValidator, loadFaqQuestionPublicPage, loadViewerAnswered } from './lib/faqQuestionPage';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
 import { nowIso } from './lib/utils';
@@ -113,13 +107,6 @@ export const viewerAnswered = viewerQuery({
   args: { questionId: v.union(v.id('faq_items'), v.null()) },
   returns: v.boolean(),
   handler: async (ctx, args) => await loadViewerAnswered(ctx, args.questionId),
-});
-
-/** Deprecated by `question`: kept unchanged for bundles deployed before it, then deleted (see AGENTS.md). */
-export const questionPage = viewerQuery({
-  args: { rulesetSlug: v.string(), questionSlug: v.string() },
-  returns: faqQuestionPageValidator,
-  handler: async (ctx, args) => await loadFaqQuestionPage(ctx, args),
 });
 
 async function createQuestionHandler(

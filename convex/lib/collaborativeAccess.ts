@@ -1,6 +1,6 @@
 import type { Infer } from 'convex/values';
 
-import { evaluateCollaborativeAccess, groupRosterCapabilities } from '../../src/shared/access/collaborativeAccess';
+import { evaluateCollaborativeAccess } from '../../src/shared/access/collaborativeAccess';
 import type {
   CollaborativeAccessFacts,
   MembershipState,
@@ -544,82 +544,6 @@ export async function requireRulesetMaintenance(ctx: MutationCtx, rulesetId: Id<
   return access;
 }
 
-type LoadedFactionAccessBundle = LoadedFactionAccess & {
-  assignableGroups: AssignedGroupSummary[];
-};
-
-type LoadedRulesetAccessBundle = LoadedRulesetAccess & {
-  assignableGroups: AssignedGroupSummary[];
-};
-
-type LoadedAssetAccessBundle = LoadedAssetAccess & {
-  assignableGroups: AssignedGroupSummary[];
-};
-
-/**
- * A subject's access plus every Group the viewer could move it into, in one pass.
- * Overloaded per subject kind, and it takes a row the caller already read rather than an id.
- * The detail pages use it so the toolbar's Group picker costs no query of its own, which is the one-query-per-route discipline holding on the server side.
- */
-export function loadAssetAccessBundle(
-  ctx: QueryCtx,
-  subject: { kind: 'faction'; row: Doc<'factions'> }
-): Promise<LoadedFactionAccessBundle>;
-export function loadAssetAccessBundle(
-  ctx: QueryCtx,
-  subject: { kind: 'ruleset'; row: Doc<'rulesets'> }
-): Promise<LoadedRulesetAccessBundle>;
-export function loadAssetAccessBundle(
-  ctx: QueryCtx,
-  subject: { kind: 'asset'; row: Doc<'assets'> }
-): Promise<LoadedAssetAccessBundle>;
-export async function loadAssetAccessBundle(
-  ctx: QueryCtx,
-  subject:
-    | { kind: 'faction'; row: Doc<'factions'> }
-    | { kind: 'ruleset'; row: Doc<'rulesets'> }
-    | { kind: 'asset'; row: Doc<'assets'> }
-): Promise<LoadedFactionAccessBundle | LoadedRulesetAccessBundle | LoadedAssetAccessBundle> {
-  const viewerId = await optionalActiveUserId(ctx);
-  const memberships = viewerId
-    ? await ctx.db
-        .query('group_members')
-        .withIndex('by_user_status', (q) => q.eq('user_id', viewerId).eq('status', 'active'))
-        .take(200)
-    : [];
-  const groupIds = new Set<Id<'groups'>>();
-  if (subject.row.group_id) {
-    groupIds.add(subject.row.group_id);
-  }
-  for (const membership of memberships) {
-    groupIds.add(membership.group_id);
-  }
-
-  const groupById = new Map<Id<'groups'>, Doc<'groups'>>();
-  const groups = await Promise.all([...groupIds].map((groupId) => ctx.db.get('groups', groupId)));
-  for (const group of groups) {
-    const live = liveGroupOrNull(group);
-    if (live) {
-      groupById.set(live._id, live);
-    }
-  }
-  const assignedGroup = subject.row.group_id ? (groupById.get(subject.row.group_id) ?? null) : null;
-  const viewerMembership = await membershipFor(ctx, subject.row.group_id, viewerId);
-  const assignableGroups = memberships.flatMap((membership) => {
-    const group = groupById.get(membership.group_id);
-    return group ? [{ id: group._id, name: group.name, slug: group.slug }] : [];
-  });
-
-  switch (subject.kind) {
-    case 'faction':
-      return { ...factionAccessFromLoaded(subject.row, assignedGroup, viewerId, viewerMembership), assignableGroups };
-    case 'ruleset':
-      return { ...rulesetAccessFromLoaded(subject.row, assignedGroup, viewerId, viewerMembership), assignableGroups };
-    case 'asset':
-      return { ...assetAccessFromLoaded(subject.row, assignedGroup, viewerId, viewerMembership), assignableGroups };
-  }
-}
-
 /**
  * The viewer's membership of one Group, through the same unique lookup the mutation gates use.
  * A browser deciding what to show asks this per subject, so its answer cannot depend on how many other Groups the viewer is in.
@@ -674,11 +598,6 @@ export type GroupRosterMember = {
   requestedAt: string;
   /** The browser combines this with the viewer's Group access to decide who may be removed (`groupRosterCapabilities`). */
   isGroupOwner: boolean;
-};
-
-/** Deprecated with `groups.detailBySlug`: a roster member with what the viewer may do to it decided on the server. Remove with it. */
-export type GroupRosterEntry = Omit<GroupRosterMember, 'isGroupOwner'> & {
-  capabilities: { approve: boolean; reject: boolean; remove: boolean };
 };
 
 /**
@@ -751,17 +670,4 @@ export async function loadGroupRoster(ctx: QueryCtx, group: Doc<'groups'>) {
       : null;
 
   return { owner, roster };
-}
-
-/** Deprecated with `groups.detailBySlug`: the viewer's Group access and the roster's moderation capabilities, decided on the server. Remove with it. */
-export async function withGroupViewerAccess(ctx: QueryCtx, group: Doc<'groups'>, roster: GroupRosterMember[]) {
-  const viewerId = await optionalActiveUserId(ctx);
-  const { viewerAccess } = groupAccessFromLoaded(group, viewerId, await membershipFor(ctx, group._id, viewerId));
-  return {
-    viewerAccess,
-    roster: roster.map(({ isGroupOwner, ...member }): GroupRosterEntry => ({
-      ...member,
-      capabilities: groupRosterCapabilities(viewerAccess, { status: member.status, isGroupOwner }),
-    })),
-  };
 }
