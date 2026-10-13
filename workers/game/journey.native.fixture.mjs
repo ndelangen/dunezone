@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { BOARD_RADIUS } from '../../src/shared/play/tableGeometry';
 import board from '../../src/shared/rulebooks/boards/arrakis.json';
@@ -105,6 +106,7 @@ async function journeyRuntime() {
     peer.catalogue.set(`${page.asset.type}/${page.asset.slug}`, page);
   }
   peer.rulesets.set('dreamrules', {
+    board: arrakisBoardCapture,
     ruleset: { id: 'dreamrules', slug: 'dreamrules', name: 'Dreamrules' },
     slots: [slot('treachery', treachery), slot('spice', spice)],
   });

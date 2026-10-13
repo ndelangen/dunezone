@@ -100,3 +100,16 @@ it('reports missing curve controls through safeParse without throwing', () => {
     expect(BoardAsset.safeParse({ name: 'Board', about: '', board }).success).toBe(false);
   }
 });
+
+it('reads retained territory identities and retired artwork without reinterpreting current authoring rules', async () => {
+  const { HistoricalBoardDefinition } = await import('./schema');
+  const saved = BoardAsset.parse({ name: 'Arrakis', about: '', board: arrakisBoard() }).board;
+  const territory = Object.values(saved.properties)[0];
+  territory.id = 'retained_identity';
+  territory.name = 'A renamed label';
+  territory.decals = [
+    { id: 'kept', artwork: '/vector/retired-art.svg', x: 200, y: 200, scale: 10, rotation: 0, outline: false },
+  ];
+  expect(BoardAsset.safeParse({ name: 'Arrakis', about: '', board: saved }).success).toBe(false);
+  expect(HistoricalBoardDefinition.parse(saved)).toEqual(saved);
+});

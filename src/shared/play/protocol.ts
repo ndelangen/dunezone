@@ -11,7 +11,7 @@ import {
   battleFaceSchema,
 } from './battle';
 import { biddingActionSchema, biddingStateSchema } from './bidding';
-import { publicFactionSchema } from './capture';
+import { boardCaptureSchema, publicFactionSchema } from './capture';
 import {
   conversationMessageSchema,
   conversationPeerSchema,
@@ -65,6 +65,8 @@ const phaseEntrySchema = z.object({
 const direction = z.union([z.literal(-1), z.literal(1)]);
 
 export const gameSnapshotSchema = z.object({
+  /* Immutable retained content, omitted only for legacy games and fixtures. */
+  board: boardCaptureSchema.optional(),
   revision: count,
   table: tableSchema,
   versions: z.record(z.string(), count),

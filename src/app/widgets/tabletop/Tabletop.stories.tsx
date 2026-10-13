@@ -1,5 +1,7 @@
 import preview from '@sb/preview';
 import { homepageSnapshot } from '@shared/homepage/setup';
+import type { BoardCapture } from '@shared/play/capture';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import { tableProgressFor } from '@shared/play/phases';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import type { RoomView } from '@shared/play/updates';
@@ -14,14 +16,14 @@ import { TableKeyboardContext } from './TableKeyboardContext';
 import { TabletopSessionProvider } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
 
-function PreparedTable({ presentation }: { presentation: 'play' | 'preview' }) {
+function PreparedTable({ presentation, board }: { presentation: 'play' | 'preview'; board?: BoardCapture }) {
   const [session] = useState(() => {
     const view: RoomView = {
       type: 'view',
       epoch: 'story',
       sequence: 1,
       viewer: { connectionId: 'story', userId: 'story', viewerSeat: SPECTATOR_SEAT, displayName: '', color: '#d7b65c' },
-      snapshot: homepageSnapshot(location.origin),
+      snapshot: { ...homepageSnapshot(location.origin), board },
       carries: [],
       pointers: [],
     };
@@ -77,3 +79,5 @@ function PreparedTable({ presentation }: { presentation: 'play' | 'preview' }) {
 const meta = preview.meta({ component: PreparedTable, parameters: { layout: 'fullscreen' } });
 export const Play = meta.story({ args: { presentation: 'play' } });
 export const Homepage = meta.story({ args: { presentation: 'preview' } });
+
+export const AuthoredArrakis = meta.story({ args: { presentation: 'play', board: arrakisBoardCapture } });

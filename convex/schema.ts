@@ -446,6 +446,7 @@ export default defineSchema({
     ruleset_id: v.id('rulesets'),
     asset_id: v.id('assets'),
     slot: v.union(
+      v.literal('board'),
       v.literal('treachery'),
       v.literal('spice'),
       v.literal('custom'),

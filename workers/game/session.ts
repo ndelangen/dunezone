@@ -666,6 +666,10 @@ export class GameSession {
    * request is theirs. Nobody's id travels.
    */
   private forViewer(projected: GameSnapshot, viewer: Viewer): GameSnapshot {
+    const board = this.captures.ruleset()?.board;
+    if (board) {
+      projected = { ...projected, board };
+    }
     if (!projected.controls) {
       return projected;
     }
