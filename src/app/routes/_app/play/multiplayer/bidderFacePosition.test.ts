@@ -19,7 +19,9 @@ describe("the bidder's face", () => {
   test("stays on the canvas in the Bidding phase's side view on a narrow window", () => {
     const size = { width: 900, height: 1200 };
     const [x, y] = faceOnCanvas(faceHalfWidth(null))(centre, tableCamera(cameraPoseFor('left', 0.75), 0.75), size);
-    expect(x).toBe(900 - 72);
+    /* The ring and its deal-time label occupy 240px, so both edges stay reachable. */
+    expect(x + 120).toBeLessThanOrEqual(size.width);
+    expect(x - 120).toBeGreaterThanOrEqual(0);
     expect(y).toBeGreaterThanOrEqual(96);
     expect(y).toBeLessThanOrEqual(1200 - 96);
   });

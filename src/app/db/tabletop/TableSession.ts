@@ -108,7 +108,7 @@ export type TableProjection = {
   viewer: Viewer;
   snapshot: GameSnapshot;
   liveRevision: number;
-  playback: { step: number; lastStep: number } | null;
+  playback: { step: number; lastStep: number; recordedAt?: number } | null;
   historyPending: boolean;
   canInteract: boolean;
   /* Whether the viewer may handle the table's pieces: acting, at a stage whose table can change. A finished game, or one still drafting or trading, keeps its table as it is. */
@@ -212,6 +212,13 @@ function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: Readonly
 /* The controls a panel offers only while present, so only their presence counts for a panel's render. */
 const PANEL_CONTROLS = ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls', 'closePeek'] as const;
 
+function samePlayback(previous: TableProjection['playback'], next: TableProjection['playback']) {
+  if (!previous || !next) {
+    return previous === next;
+  }
+  return previous.step === next.step && previous.lastStep === next.lastStep && previous.recordedAt === next.recordedAt;
+}
+
 /*
  * Whether the panels would show `next` as they show `previous`: everything they read is the same, and only where held pieces are on their way differs.
  * A carry moves many times a second, and only the scene follows it, so the panels keep the table they have until something they show changes.
@@ -222,8 +229,7 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     previous.viewer === next.viewer &&
     previous.snapshot === next.snapshot &&
     previous.liveRevision === next.liveRevision &&
-    previous.playback?.step === next.playback?.step &&
-    previous.playback?.lastStep === next.playback?.lastStep &&
+    samePlayback(previous.playback, next.playback) &&
     previous.historyPending === next.historyPending &&
     previous.canInteract === next.canInteract &&
     previous.canHandleTable === next.canHandleTable &&
@@ -354,6 +360,7 @@ export class TableSession {
   private pointerTimer: ReturnType<typeof setTimeout> | undefined;
   private error: string | null = null;
   private history: Extract<ServerMessage, { type: 'history' }> | null = null;
+  private historyClock: (() => number) | null = null;
   private pendingHistory: number | null = null;
   /* The live room's newest history step, which grows while a viewer sits in playback. */
   private liveHistorySteps = 0;
@@ -724,7 +731,11 @@ export class TableSession {
       snapshot: displayed,
       liveRevision: this.snapshot.revision,
       playback: this.history
-        ? { step: this.history.step, lastStep: Math.max(this.history.lastStep, this.liveHistorySteps) }
+        ? {
+            step: this.history.step,
+            lastStep: Math.max(this.history.lastStep, this.liveHistorySteps),
+            recordedAt: this.history.recordedAt,
+          }
         : null,
       historyPending: this.pendingHistory !== null,
       canInteract,
@@ -776,8 +787,11 @@ export class TableSession {
       gestureActivePieceId: local.gestureActivePieceId,
       hoveredPieceId: this.hoveredId,
       flippingPieceIds: local.flippingPieceIds,
-      serverNow: this.subscription.serverNow,
+      serverNow: this.clockForView(),
     };
+  }
+  private clockForView() {
+    return this.history ? this.historyClock! : this.subscription.serverNow;
   }
   private deleteControls(canHandleTable: boolean): TableProjection['deleteControls'] {
     return canHandleTable && this.subscription.supportsCommand('delete')
@@ -1106,6 +1120,8 @@ export class TableSession {
       return;
     }
     this.history = message;
+    const recordedAt = message.recordedAt ?? this.subscription.serverNow();
+    this.historyClock = () => recordedAt;
     this.pendingHistory = null;
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {

@@ -217,6 +217,23 @@ describe('Replay history through the native game boundary', { timeout: 30_000 },
         `history step ${step}`
       );
       expect(reply.step).toBe(step);
+      const [clock] = await runtime.exec('SELECT recorded_at FROM history_clocks WHERE step=?', [step]);
+      expect(reply.recordedAt).toBe(clock.recorded_at);
     }
+  });
+
+  it('keeps older steps without a clock readable and records new steps after a restart', async () => {
+    await runtime.exec('DROP TABLE history_clocks');
+    await runtime.restart();
+    const observer = await admitPlayer(peer, runtime, 'observer');
+    observer.send({ type: 'history', step: 0 });
+    const past = await observer.message('history');
+    expect(past.recordedAt).toBeUndefined();
+    const rejoined = await admitPlayer(peer, runtime, 'a');
+    const next = await accepted(rejoined, { kind: 'phase', direction: 1 });
+    rejoined.send({ type: 'history', step: 1 });
+    const current = await rejoined.message('history');
+    expect(current.recordedAt).toBeLessThanOrEqual(next.serverNow);
+    expect(current.recordedAt).toBeGreaterThan(next.serverNow - 1000);
   });
 });

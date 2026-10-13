@@ -1,8 +1,7 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
-import { db } from '@db/storybook';
-
+import { expectRefused, withoutAdmins } from './adminPages.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -38,18 +37,11 @@ export const MigrationsSignedOut = meta.story({
 /** The dashboard reached by a signed-in reader without the administrative role. */
 export const MigrationsNotAuthorized = meta.story({
   args: { path: '/admin/migrations' },
-  parameters: {
-    database: db((baseline) => {
-      for (const user of baseline.users) {
-        user.isAdmin = false;
-      }
-    }),
-  },
+  parameters: withoutAdmins,
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByRole('heading', { name: 'You cannot view migration activity' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Sync migration status' })).toBeNull();
+    await expectRefused(canvasElement, 'You cannot view migration activity', {
+      role: 'button',
+      name: 'Sync migration status',
+    });
   },
 });

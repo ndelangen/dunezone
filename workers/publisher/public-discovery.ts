@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { PUBLIC_SITE_ORIGIN, SITEMAP_COLLECTIONS, sitemapPageSchema } from '../../src/shared/publicDiscovery';
+import {
+  PUBLIC_SITE_ORIGIN,
+  SITEMAP_ASSET_COLLECTIONS,
+  SITEMAP_COLLECTIONS,
+  sitemapPageSchema,
+} from '../../src/shared/publicDiscovery';
 import type { SitemapArgs, SitemapPage } from '../../src/shared/publicDiscovery';
 import { readBoundedJson, runWithDeadline } from './http';
 import { publicCachedResponse, PUBLIC_CACHE_SECONDS } from './public-cache';
@@ -129,9 +134,12 @@ export async function handlePublicDiscovery(
           document(
             'urlset',
             [
+              '/',
               '/factions',
+              '/rulesets',
+              '/profiles',
               '/assets',
-              ...SITEMAP_COLLECTIONS.filter((name) => name !== 'factions').map((type) => `/assets/${type}`),
+              ...SITEMAP_ASSET_COLLECTIONS.map((type) => `/assets/${type}`),
             ]
               .map((path) => `<url>${location(path)}</url>`)
               .join('')

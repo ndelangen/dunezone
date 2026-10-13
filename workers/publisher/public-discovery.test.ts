@@ -35,8 +35,16 @@ test('the index and landing sitemap enumerate supported canonical paths without 
   expect(body).toContain('<loc>https://dune.zone/sitemap-factions.xml</loc>');
   expect(body).toContain('<loc>https://dune.zone/sitemap-token-disc.xml</loc>');
   expect(body).toContain('<loc>https://dune.zone/sitemap-board.xml</loc>');
+  for (const name of ['rulesets', 'rulebooks', 'faq', 'profiles', 'groups']) {
+    expect(body).toContain(`<loc>https://dune.zone/sitemap-${name}.xml</loc>`);
+  }
   const pages = await handlePublicDiscovery(request('/sitemap-pages.xml'), env, undefined, load);
-  expect(await pages!.text()).toContain('<loc>https://dune.zone/assets/token-disc</loc>');
+  const landing = await pages!.text();
+  expect(landing).toContain('<loc>https://dune.zone/</loc>');
+  expect(landing).toContain('<loc>https://dune.zone/rulesets</loc>');
+  expect(landing).toContain('<loc>https://dune.zone/profiles</loc>');
+  expect(landing).toContain('<loc>https://dune.zone/assets/token-disc</loc>');
+  expect(landing).not.toContain('/assets/rulesets');
   expect(load).not.toHaveBeenCalled();
 });
 
