@@ -44,7 +44,7 @@ function RuntimeProof() {
           expect(scheduled.after.rulesets).toBe(1);
           expect(
             await client.query(convexStorybookReferences.migrationsAdminDashboard, { ids: [] }, storybookViewer)
-          ).toMatchObject({ access: 'admin', snapshots: [] });
+          ).toMatchObject({ snapshots: [] });
           expect(
             await client.mutation(convexStorybookReferences.migrationsSyncRuns, { ids: [] }, storybookViewer)
           ).toEqual({ synced: 0 });

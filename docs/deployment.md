@@ -555,8 +555,10 @@ off therefore:
 - does not prevent expired jobs from being reset to pending.
 
 The same page shows stored Renderer revisions and paged job status. It requires
-`users.isAdmin === true`; authenticated non-admin users see the "You cannot view publication
-jobs" refusal, and unauthenticated visitors receive no job data.
+`users.isAdmin === true`, and the page reads that from the session before it asks for any job data:
+signed-out visitors see the sign-in prompt, and authenticated non-admin users see the "You cannot
+view publication jobs" refusal. `publicationAdmin:page` is an `adminQuery`, so it refuses anyone
+else who calls it directly.
 
 ## Pull-request Cloudflare drift guard
 

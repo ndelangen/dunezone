@@ -3,8 +3,7 @@ import { v } from 'convex/values';
 import { rendererRevisionsSchema } from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
 import { internalQuery } from './_generated/server';
-import { internalMutation, mutation, viewerQuery } from './functions';
-import { optionalActiveUserId } from './lib/accountLifecycle';
+import { adminQuery, internalMutation, mutation } from './functions';
 import { requireAdminUserId } from './lib/policy';
 import { publicationSettings } from './lib/publication';
 
@@ -104,52 +103,38 @@ export const activateRevisions = internalMutation({
   },
 });
 
-export const page = viewerQuery({
+export const page = adminQuery({
   args: {
     status: v.optional(publicationStatus),
     assetType: v.optional(v.string()),
     page: v.number(),
     pageSize: v.number(),
   },
-  returns: v.union(
-    v.object({ access: v.literal('unauthenticated') }),
-    v.object({ access: v.literal('not_authorized') }),
-    v.object({
-      access: v.literal('admin'),
-      settings: v.union(settingsResult, v.null()),
-      counts: v.object({
-        pending: v.number(),
-        inProgress: v.number(),
-        error: v.number(),
-      }),
-      jobs: v.array(
-        v.object({
-          id: v.id('publication_jobs'),
-          assetType: v.string(),
-          assetId: v.string(),
-          status: publicationStatus,
-          attemptCounter: v.number(),
-          expiresAt: v.union(v.number(), v.null()),
-          error: v.union(v.string(), v.null()),
-          createdAt: v.number(),
-          updatedAt: v.number(),
-        })
-      ),
-      total: v.number(),
-      page: v.number(),
-      pageSize: v.number(),
-    })
-  ),
+  returns: v.object({
+    settings: v.union(settingsResult, v.null()),
+    counts: v.object({
+      pending: v.number(),
+      inProgress: v.number(),
+      error: v.number(),
+    }),
+    jobs: v.array(
+      v.object({
+        id: v.id('publication_jobs'),
+        assetType: v.string(),
+        assetId: v.string(),
+        status: publicationStatus,
+        attemptCounter: v.number(),
+        expiresAt: v.union(v.number(), v.null()),
+        error: v.union(v.string(), v.null()),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+      })
+    ),
+    total: v.number(),
+    page: v.number(),
+    pageSize: v.number(),
+  }),
   handler: async (ctx, args) => {
-    const userId = await optionalActiveUserId(ctx);
-    if (!userId) {
-      return { access: 'unauthenticated' as const };
-    }
-    const user = await ctx.db.get('users', userId);
-    if (!user?.isAdmin) {
-      return { access: 'not_authorized' as const };
-    }
-
     const [pending, inProgress, errors, settings] = await Promise.all([
       ctx.db
         .query('publication_jobs')
@@ -173,7 +158,6 @@ export const page = viewerQuery({
     const offset = (page - 1) * pageSize;
 
     return {
-      access: 'admin' as const,
       settings: settings
         ? {
             publicationPickupEnabled: settings.publication_pickup_enabled,

@@ -68,11 +68,7 @@ function PublicationJobsDashboard() {
   });
   const pickupMutation = useSetPublicationPickupEnabled();
 
-  /*
-   * The session gate already turned away everyone but admins, so a refusal cannot reach here.
-   * Matching the refusals rather than `access: 'admin'` lets this bundle read the next release's answer, which drops `access`.
-   */
-  if (result === undefined || result.access === 'unauthenticated' || result.access === 'not_authorized') {
+  if (result === undefined) {
     return <PublicationJobsLoading />;
   }
 
