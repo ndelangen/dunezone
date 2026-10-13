@@ -7,6 +7,7 @@ import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publis
 import { assetSupplySchema } from '../../src/shared/play/capture';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { spiceBankSlot } from '../../src/shared/play/spiceBank';
+import { SHARED_ITEM_PLACEMENT_ANCHORS } from '../../src/shared/play/tableFurnitureLayout';
 import {
   admitPlayer,
   createPeer,
@@ -280,13 +281,22 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       type: 'drop',
       commandId: 'drop-once',
       carryId: 'inventory-drag',
-      position: [0, 0.38, 0],
-      orientation: 0,
+      position: [
+        SHARED_ITEM_PLACEMENT_ANCHORS[7].position[0] + 0.1,
+        0.38,
+        SHARED_ITEM_PLACEMENT_ANCHORS[7].position[2] - 0.1,
+      ],
+      orientation: Math.PI / 4,
     };
     a.send(drop);
     state = (await a.message('view', (message) => message.completedCommandId === drop.commandId)).snapshot;
     const dropped = state.table.pieces.find((candidate) => candidate.id === piece.id);
     expect(dropped.inventory).toBeUndefined();
+    expect([dropped.position[0], dropped.position[2]]).toEqual([
+      SHARED_ITEM_PLACEMENT_ANCHORS[7].position[0],
+      SHARED_ITEM_PLACEMENT_ANCHORS[7].position[2],
+    ]);
+    expect(dropped.orientation).toBe(0);
     expect(dropped.items.every((item) => !item.faceUp)).toBe(true);
     state = await act(a, { kind: 'flip', pieceId: piece.id });
     expect(state.table.pieces.find((candidate) => candidate.id === piece.id).items[0].faceUp).toBe(true);
@@ -397,7 +407,13 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       message.carries.some((carry) => carry.id === 'inventory-top')
     );
     hidden(carried.carries.find((carry) => carry.id === 'inventory-top').held);
-    b.send({ type: 'drop', commandId: 'drop-top', carryId: 'inventory-top', position: [0, 0.38, 0], orientation: 0 });
+    b.send({
+      type: 'drop',
+      commandId: 'drop-top',
+      carryId: 'inventory-top',
+      position: SHARED_ITEM_PLACEMENT_ANCHORS[6].position,
+      orientation: Math.PI / 4,
+    });
     state = (await b.message('view', (message) => message.completedCommandId === 'drop-top')).snapshot;
     expect(state.table.pieces.find((piece) => piece.id === stack.id).items).toHaveLength(3);
     expect(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top')).toMatchObject({
@@ -405,6 +421,10 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     });
     expect(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top').inventory).toBeUndefined();
     hidden(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top'));
+    expect(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top').position).toEqual(
+      SHARED_ITEM_PLACEMENT_ANCHORS[6].position
+    );
+    expect(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top').orientation).toBe(0);
     await act(b, { kind: 'phase' });
     observer.send({ type: 'history', step: 1 });
     hidden(

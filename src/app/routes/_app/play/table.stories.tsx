@@ -2,7 +2,8 @@ import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { spiceBankSlot } from '@shared/play/spiceBank';
-import { BOARD_RADIUS, BOARD_SURFACE_Y, stackTopHeight } from '@shared/play/tableGeometry';
+import { SHARED_ITEM_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
+import { BOARD_RADIUS, BOARD_SURFACE_Y, restingPositionAt, stackTopHeight } from '@shared/play/tableGeometry';
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -777,5 +778,26 @@ export const ReleasesItsRendererOnRemount = meta.story({
     session.transport.deliver({ type: 'admission', status: 'denied' });
     await waitFor(() => expect(first.canvas.isConnected).toBe(false), { timeout: 30_000 });
     await waitFor(() => expect(first.context.isContextLost()).toBe(true), { timeout: 5000 });
+  },
+});
+
+/* Eight shared slots holding the published traitor deck, a treachery deck, a card and five tokens. */
+export const SharedItemSlots = meta.story({
+  beforeEach: install(() => {
+    const snapshot = playingSnapshot();
+    const cards = snapshot.table.pieces.filter((piece) => piece.kind === 'card');
+    const troops = snapshot.table.pieces.filter((piece) => piece.kind === 'force' && !piece.inventory).slice(0, 5);
+    [...cards, ...troops].forEach((piece, index) => {
+      piece.orientation = 0;
+      piece.position = restingPositionAt(SHARED_ITEM_PLACEMENT_ANCHORS[index]!.position, piece);
+      piece.zoneId = null;
+    });
+    return productTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const { page, shell, document } = await tablePage(canvasElement);
+    await userEvent.click(page.getByRole('button', { name: /^Focus on bottom/ }));
+    await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'bottom'));
+    await waitForPlayCamera(document);
   },
 });
