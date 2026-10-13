@@ -1,6 +1,11 @@
 {
   "entries": [
     {
+      "id": "play_game_names_narrow",
+      "phase": "narrow",
+      "requires": []
+    },
+    {
       "id": "faction_member_ids_v1",
       "phase": "widen",
       "requires": []
