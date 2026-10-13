@@ -8,8 +8,8 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ArrowRight, Hand } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
+import type { CSSProperties, RefObject } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import type { SessionViewer } from '@db/profiles';
@@ -180,8 +180,11 @@ function PreviewCopy({ invitation, viewer }: { invitation: boolean; viewer: Sess
       <Text size="sm" c="dimmed">
         A development preview of the new table. Play is not available yet.
       </Text>
+      <Text size="sm" fw={700} className={styles.narrowOnly}>
+        Open this page on a larger screen to try the live preview.
+      </Text>
       {invitation && (
-        <div role="status">
+        <div role="status" className={styles.wideOnly}>
           <Surface padding="md">
             <Group justify="center" gap="sm">
               <Hand size={20} aria-hidden />
@@ -593,6 +596,9 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
     },
     { active: false, readyFor: null, failed: false }
   );
+  const still = useRef<HTMLDivElement>(null);
+  const room = useRoomForLiveBoard(still);
+  const roomy = room === 'wide';
   const ready = useCallback(() => dispatch({ type: 'ready', identity }), [identity]);
   const unavailable = useCallback(() => dispatch({ type: 'failed' }), []);
   useEffect(() => {
@@ -601,7 +607,8 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
       return;
     }
     let inView = false;
-    const sync = () => dispatch({ type: inView && !document.hidden ? 'enter' : 'leave' });
+    /* Leaving also clears readiness, so a table that returns after the page widens again waits for its own first frames. */
+    const sync = () => dispatch({ type: roomy && inView && !document.hidden ? 'enter' : 'leave' });
     const observer = new IntersectionObserver(
       (entries) => {
         inView = entries.some((entry) => entry.isIntersecting);
@@ -615,13 +622,22 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
       observer.disconnect();
       document.removeEventListener('visibilitychange', sync);
     };
-  }, []);
+  }, [roomy]);
   return (
     <div
       ref={region}
       className={styles.wideBoard}
       data-live-ready={state.readyFor === identity && state.active ? 'true' : undefined}
     >
+      <div ref={still} className={styles.boardStill}>
+        {room === 'narrow' && (
+          <PublishedImage
+            src={resolveAsset('/web/homepage/board.png', 'large')}
+            name="The Dune Play board with faction tokens and troops on the table"
+            aspect={1420 / 3000}
+          />
+        )}
+      </div>
       {state.active && !state.failed && (
         <Suspense fallback={null}>
           <ConnectedHomepageTable
@@ -636,4 +652,29 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
       )}
     </div>
   );
+}
+
+/**
+ * Whether the page has room for the live table, read from the still's own stylesheet rule before the first paint.
+ * The still shows only where the page frame is too narrow for the table, so one container query decides both, and a window query would disagree with it by the shell's gutters.
+ * Until it is read neither the still nor the table renders, so a phone never downloads the table's renderer and a computer never fetches the still.
+ * Showing or hiding the still changes its size, which the observer on the still itself reports.
+ */
+function useRoomForLiveBoard(still: RefObject<HTMLElement | null>) {
+  const [room, setRoom] = useState<'unknown' | 'narrow' | 'wide'>('unknown');
+  useLayoutEffect(() => {
+    const element = still.current;
+    if (!element) {
+      return;
+    }
+    const sync = () => setRoom(getComputedStyle(element).display === 'none' ? 'wide' : 'narrow');
+    sync();
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(sync);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [still]);
+  return room;
 }

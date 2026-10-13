@@ -26,18 +26,37 @@ const REQUIRED_SECRETS = ['ASSET_PUBLISHER_EXECUTOR_SECRET', 'MEDIA_PUBLISH_TOKE
 export async function verifyPublicAuthRouting(
   fetcher: (url: string, init: RequestInit) => Promise<Response> = fetch
 ): Promise<void> {
-  for (const provider of ['google', 'discord']) {
-    const response = await fetcher(`${APPLICATION_ORIGIN}/auth/signin/${provider}`, {
+  const request = (url: string, method: string) =>
+    fetcher(url, {
+      method,
       redirect: 'manual',
       cache: 'no-store',
       signal: AbortSignal.timeout(5000),
     });
+  for (const provider of ['google', 'discord']) {
+    const signIn = await request(`${APPLICATION_ORIGIN}/auth/signin/${provider}`, 'POST');
+    try {
+      invariant(signIn.status === 405, `The ${provider} sign-in route returned HTTP ${signIn.status} instead of 405`);
+      invariant(signIn.headers.get('Allow') === 'GET', `The ${provider} sign-in route must allow GET only`);
+      invariant(signIn.headers.get('Cache-Control') === 'no-store', `The ${provider} sign-in route must not be cached`);
+    } finally {
+      await signIn.body?.cancel();
+    }
+
+    /* A provider cancellation exercises the upstream callback without a verifier, credentials or an account. */
+    const response = await request(`${APPLICATION_ORIGIN}/auth/callback/${provider}?error=access_denied`, 'GET');
     try {
       invariant(
-        response.status === 400,
-        `The ${provider} auth route returned HTTP ${response.status} instead of Convex Auth's missing-verifier response`
+        response.status === 302,
+        `The ${provider} callback returned HTTP ${response.status} instead of the cancellation redirect`
       );
-      invariant(response.headers.get('Cache-Control') === 'no-store', `The ${provider} auth route must not be cached`);
+      const destination = response.headers.get('Location');
+      invariant(destination !== null, `The ${provider} cancellation must return a destination`);
+      invariant(
+        new URL(destination).href === `${APPLICATION_ORIGIN}/`,
+        `The ${provider} cancellation must return home`
+      );
+      invariant(response.headers.get('Cache-Control') === 'no-store', `The ${provider} callback must not be cached`);
     } finally {
       await response.body?.cancel();
     }
