@@ -7,12 +7,13 @@ import {
   Grid,
   Group,
   NumberInput,
-  SegmentedControl,
+  Radio,
   Select,
   SimpleGrid,
   Stack,
   Text,
   Tooltip,
+  VisuallyHidden,
 } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -131,15 +132,20 @@ function TroopCard({
       </Group>
 
       {hasBack ? (
-        <SegmentedControl
+        <Radio.Group
           value={activeSide}
           onChange={(value) => onActiveSideChange(value === 'back' ? 'back' : 'front')}
-          data={[
-            { value: 'front', label: 'Front side' },
-            { value: 'back', label: 'Back side' },
-          ]}
-          aria-label={`Side to edit for troop ${index + 1}`}
-        />
+          label={<VisuallyHidden>{`Side to edit for troop ${index + 1}`}</VisuallyHidden>}
+        >
+          <Group gap="lg" wrap="wrap">
+            {[
+              { value: 'front', label: 'Front side' },
+              { value: 'back', label: 'Back side' },
+            ].map(({ value, label }) => (
+              <Radio key={value} value={value} label={label} />
+            ))}
+          </Group>
+        </Radio.Group>
       ) : null}
 
       <Grid gap="xl" align="start">

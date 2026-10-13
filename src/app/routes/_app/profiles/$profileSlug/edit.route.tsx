@@ -1,5 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Box, Center, Group, Image, SegmentedControl, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Center, Group, Image, Radio, Select, Stack, Text, TextInput, VisuallyHidden } from '@mantine/core';
 import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/profiles/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -149,7 +149,7 @@ function AvatarPreview({ avatarUrl, username }: { avatarUrl: string; username: s
   );
 }
 
-function PreferenceSegments<Value extends string>({
+function PreferenceChoices<Value extends string>({
   label,
   note,
   options,
@@ -167,13 +167,17 @@ function PreferenceSegments<Value extends string>({
       title={label}
       description={note}
       input={
-        <SegmentedControl
-          aria-label={label}
-          data={[...options]}
+        <Radio.Group
+          label={<VisuallyHidden>{label}</VisuallyHidden>}
           value={value}
           onChange={(next) => onChange(next as Value)}
-          fullWidth
-        />
+        >
+          <Group gap="lg" wrap="wrap">
+            {options.map(({ value, label }) => (
+              <Radio key={value} value={value} label={label} />
+            ))}
+          </Group>
+        </Radio.Group>
       }
     />
   );
@@ -427,7 +431,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
       panel: (
         <Stack gap="xl">
           {panelError}
-          <PreferenceSegments<MotionPreference>
+          <PreferenceChoices<MotionPreference>
             label="Ambient motion"
             note="The masthead video and the turning dice"
             options={[
@@ -438,7 +442,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
             value={motion}
             onChange={(next) => setMotionOverride(next === 'system' ? null : next)}
           />
-          <PreferenceSegments<SchemePreference>
+          <PreferenceChoices<SchemePreference>
             label="Color scheme"
             note="Follow the system, or pin light or dark"
             options={[

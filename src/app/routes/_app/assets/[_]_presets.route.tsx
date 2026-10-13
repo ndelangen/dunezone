@@ -1,4 +1,4 @@
-import { Anchor, SegmentedControl, Select, Stack, Switch, Text } from '@mantine/core';
+import { Anchor, Select, Stack, Switch, Text } from '@mantine/core';
 import type { CardbackPresetKey } from '@shared/assets/cardbackPresetKeys';
 import type { CardbackPreset } from '@shared/assets/cardbackPresets';
 import { cardFrontStyleSchema, INITIAL_CARD_FRONT_PRESETS } from '@shared/assets/cardFrontPresets';
@@ -14,9 +14,8 @@ import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
-import { Surface } from '@ui/surface';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Circle, Palette } from 'lucide-react';
+import { PanelBottom, PanelTop } from 'lucide-react';
 import { useReducer, useRef } from 'react';
 
 import { useSaveCardbackPreset } from '@db/cardbackPresets';
@@ -234,16 +233,6 @@ function PresetEditor({ fronts, backs }: { fronts: CardFrontPreset[]; backs: Car
             </Text>
           ) : null}
           <Stack gap="md">
-            <SegmentedControl
-              aria-label="Card face"
-              value={state.face}
-              disabled={save.isPending}
-              data={[
-                { value: 'front', label: 'Front' },
-                { value: 'back', label: 'Back' },
-              ]}
-              onChange={header.releasing((face) => select({ face: face as State['face'] }))}
-            />
             <Select
               label="Preset"
               value={frontFace ? state.front : state.back}
@@ -265,83 +254,98 @@ function PresetEditor({ fronts, backs }: { fronts: CardFrontPreset[]; backs: Car
                 disabled={save.isPending}
                 style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
               >
-                {frontFace ? (
-                  <ConnectedTabs
-                    value={state.chapter}
-                    onValueChange={(chapter) => {
-                      select({ chapter });
-                      header.settle();
-                    }}
-                    ariaLabel="Front preset sections"
-                    items={[
-                      {
-                        value: 'head',
-                        label: 'Header',
-                        icon: <Palette size={21} aria-hidden />,
-                        panel: (
-                          <BackgroundComposer
-                            value={frontDraft.style.head}
-                            onChange={(head) => updateFront({ style: { ...frontDraft.style, head } })}
-                            modeMemory={frontDraft.headMemory}
-                            onModeMemoryChange={(headMemory) => updateFront({ headMemory })}
-                            usedOn={`${front.label} card headers`}
+                <ConnectedTabs
+                  value={state.face}
+                  onValueChange={header.releasing((face) => select({ face }))}
+                  ariaLabel="Card face"
+                  items={[
+                    {
+                      value: 'front',
+                      label: 'Front',
+                      disabled: save.isPending,
+                      icon: <PanelTop size={21} aria-hidden />,
+                      panel: (
+                        <Stack gap="md">
+                          <Select
+                            label="Front section"
+                            disabled={save.isPending}
+                            value={state.chapter}
+                            allowDeselect={false}
+                            data={[
+                              { value: 'head', label: 'Header' },
+                              { value: 'icon', label: 'Icon background' },
+                            ]}
+                            onChange={(chapter) => {
+                              if (chapter === 'head' || chapter === 'icon') {
+                                select({ chapter });
+                                header.settle();
+                              }
+                            }}
                           />
-                        ),
-                      },
-                      {
-                        value: 'icon',
-                        label: 'Icon background',
-                        icon: <Circle size={21} aria-hidden />,
-                        panel: (
-                          <Stack gap="md">
-                            {front.key === 'nexus' ? (
-                              <Switch
-                                label="Use each card's faction background"
-                                checked={frontDraft.style.iconBackground === null}
-                                onChange={(event) => {
-                                  const useFaction = event.currentTarget.checked;
-                                  updateFront({
-                                    rememberedIcon: frontDraft.style.iconBackground ?? frontDraft.rememberedIcon,
-                                    style: {
-                                      ...frontDraft.style,
-                                      iconBackground: useFaction
-                                        ? null
-                                        : (frontDraft.rememberedIcon ?? frontDraft.style.head),
-                                    },
-                                  });
-                                }}
-                              />
-                            ) : null}
-                            {frontDraft.style.iconBackground ? (
-                              <BackgroundComposer
-                                value={frontDraft.style.iconBackground}
-                                onChange={(iconBackground) =>
-                                  updateFront({ style: { ...frontDraft.style, iconBackground } })
-                                }
-                                modeMemory={frontDraft.iconMemory}
-                                onModeMemoryChange={(iconMemory) => updateFront({ iconMemory })}
-                                usedOn={`${front.label} card icons`}
-                              />
-                            ) : (
-                              <Text size="sm">Each Nexus card keeps its faction background and symbol.</Text>
-                            )}
-                          </Stack>
-                        ),
-                      },
-                    ]}
-                  />
-                ) : (
-                  <Surface padding="lg">
-                    <CardbackFields
-                      cardback={backDraft.cardback}
-                      onChange={(cardback) => updateBack({ cardback })}
-                      declaredCustom={backDraft.custom}
-                      onDeclaredCustomChange={(custom) => updateBack({ custom })}
-                      modeMemory={backDraft.memory}
-                      onModeMemoryChange={(memory) => updateBack({ memory })}
-                    />
-                  </Surface>
-                )}
+                          {state.chapter === 'head' ? (
+                            <BackgroundComposer
+                              value={frontDraft.style.head}
+                              onChange={(head) => updateFront({ style: { ...frontDraft.style, head } })}
+                              modeMemory={frontDraft.headMemory}
+                              onModeMemoryChange={(headMemory) => updateFront({ headMemory })}
+                              usedOn={`${front.label} card headers`}
+                            />
+                          ) : (
+                            <Stack gap="md">
+                              {front.key === 'nexus' ? (
+                                <Switch
+                                  label="Use each card's faction background"
+                                  checked={frontDraft.style.iconBackground === null}
+                                  onChange={(event) => {
+                                    const useFaction = event.currentTarget.checked;
+                                    updateFront({
+                                      rememberedIcon: frontDraft.style.iconBackground ?? frontDraft.rememberedIcon,
+                                      style: {
+                                        ...frontDraft.style,
+                                        iconBackground: useFaction
+                                          ? null
+                                          : (frontDraft.rememberedIcon ?? frontDraft.style.head),
+                                      },
+                                    });
+                                  }}
+                                />
+                              ) : null}
+                              {frontDraft.style.iconBackground ? (
+                                <BackgroundComposer
+                                  value={frontDraft.style.iconBackground}
+                                  onChange={(iconBackground) =>
+                                    updateFront({ style: { ...frontDraft.style, iconBackground } })
+                                  }
+                                  modeMemory={frontDraft.iconMemory}
+                                  onModeMemoryChange={(iconMemory) => updateFront({ iconMemory })}
+                                  usedOn={`${front.label} card icons`}
+                                />
+                              ) : (
+                                <Text size="sm">Each Nexus card keeps its faction background and symbol.</Text>
+                              )}
+                            </Stack>
+                          )}
+                        </Stack>
+                      ),
+                    },
+                    {
+                      value: 'back',
+                      label: 'Back',
+                      disabled: save.isPending,
+                      icon: <PanelBottom size={21} aria-hidden />,
+                      panel: (
+                        <CardbackFields
+                          cardback={backDraft.cardback}
+                          onChange={(cardback) => updateBack({ cardback })}
+                          declaredCustom={backDraft.custom}
+                          onDeclaredCustomChange={(custom) => updateBack({ custom })}
+                          modeMemory={backDraft.memory}
+                          onModeMemoryChange={(memory) => updateBack({ memory })}
+                        />
+                      ),
+                    },
+                  ]}
+                />
               </fieldset>
             </WorkbenchLayout.Chapters>
             <WorkbenchLayout.Rail>

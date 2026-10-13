@@ -1,4 +1,4 @@
-import { SegmentedControl, Stack, Switch, Textarea, TextInput } from '@mantine/core';
+import { Group, Radio, Stack, Switch, TextInput, Textarea, VisuallyHidden } from '@mantine/core';
 import type { RulebookCoverFooter, rulebookLayoutCatalogue, RulebookPageDraft } from '@shared/rulebooks/contents';
 import { rulebookCoverPresetCatalogue, rulebookCoverPresetIdSchema } from '@shared/rulebooks/coverPresets';
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
@@ -20,13 +20,9 @@ export function CoverEdit({
       <ControlBlock
         title="Cover image"
         input={
-          <SegmentedControl
-            aria-label="Cover image source"
+          <Radio.Group
+            label={<VisuallyHidden>Cover image source</VisuallyHidden>}
             value={presetId ? 'preset' : 'url'}
-            data={[
-              { value: 'preset', label: 'Preset' },
-              { value: 'url', label: 'Image URL' },
-            ]}
             onChange={(kind) =>
               onChange({
                 ...value,
@@ -35,7 +31,16 @@ export function CoverEdit({
                 backgroundImage: undefined,
               })
             }
-          />
+          >
+            <Group gap="lg" wrap="wrap">
+              {[
+                { value: 'preset', label: 'Preset' },
+                { value: 'url', label: 'Image URL' },
+              ].map(({ value, label }) => (
+                <Radio key={value} value={value} label={label} />
+              ))}
+            </Group>
+          </Radio.Group>
         }
       />
       {presetId ? (

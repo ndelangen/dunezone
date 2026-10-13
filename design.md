@@ -60,6 +60,9 @@ A button's intent is said with a variant word rather than a colour family; see t
 
 ## Controls
 
+`SegmentedControl` is retired across the app. Use tabs for editor sections, and labeled `Radio`
+choices or `Select` for values. Small radio groups wrap when the available width narrows.
+
 Controls come from `src/app/ui/control` (`@ui/control`) and from Mantine under `appContentTheme`;
 the home-grown `components/form` layer they replaced is gone. `ControlBlock` carries label, hint,
 and error semantics; `IconAction` carries an icon-only action and its accessible name;

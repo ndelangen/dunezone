@@ -71,8 +71,9 @@ export const FrontAdministrator = meta.story({
   parameters: { database: administratorDatabase },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('radio', { name: 'Front' }, { timeout: 30_000 }));
-    await userEvent.click(await page.findByRole('tab', { name: 'Icon background' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Front' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('combobox', { name: 'Front section' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Icon background' }));
     const influence = await waitForFrame(() =>
       within(page.getByLabelText('Pattern influence with perceptual response from whisper to dominant')).getByRole(
         'slider'
@@ -81,9 +82,9 @@ export const FrontAdministrator = meta.story({
     await userEvent.click(influence);
     await userEvent.keyboard('{Home}');
     await expect(influence).toHaveAttribute('aria-valuenow', '0');
-    await userEvent.click(page.getByRole('radio', { name: 'Back' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Back' }));
     await expect(page.getByRole('textbox', { name: 'Label' })).toBeVisible();
-    await userEvent.click(page.getByRole('radio', { name: 'Front' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Front' }));
     await expect(
       within(page.getByLabelText('Pattern influence with perceptual response from whisper to dominant')).getByRole(
         'slider'
@@ -147,4 +148,24 @@ export const ToolbarAt1440 = meta.story({
   globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
+});
+
+/* The phone editor keeps face navigation and the remembered front section beside its card proof. */
+export const FrontAt360 = meta.story({
+  parameters: { database: administratorDatabase },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Next section' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('combobox', { name: 'Front section' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Icon background' }));
+    await userEvent.click(page.getByRole('button', { name: 'Previous section' }));
+    await expect(page.getByRole('textbox', { name: 'Label' })).toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Next section' }));
+    await expect(page.getByRole('combobox', { name: 'Front section' })).toHaveValue('Icon background');
+    const builder = page.getByRole('region', { name: 'Background builder' });
+    await expect(builder).toBeVisible();
+    const document = canvasElement.ownerDocument;
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.defaultView!.innerWidth);
+  },
 });

@@ -1,4 +1,4 @@
-import { Button, Group, MultiSelect, SegmentedControl, Select, Stack } from '@mantine/core';
+import { Button, Group, MultiSelect, Radio, Select, Stack, VisuallyHidden } from '@mantine/core';
 import { phaseAt } from '@shared/play/phases';
 import { describeResult, resultFactionCountFits } from '@shared/play/result';
 import type { GameResult, GameResultKind } from '@shared/play/result';
@@ -99,13 +99,18 @@ function DeclareBar({ client, table, declare: { choice, change } }: Props & Read
       context={`Every player sees that you are determining the winner, and anyone holding a prediction is reminded to reveal it. ${byCard ? 'To reveal yours, place its card on the table before declaring. ' : ''}Declaring finishes the game.`}
       readiness={
         <Stack gap="sm">
-          <SegmentedControl
-            aria-label="Result"
-            data={KINDS}
+          <Radio.Group
+            label={<VisuallyHidden>Result</VisuallyHidden>}
             value={choice.kind}
             onChange={(kind) => change({ kind: kind as GameResultKind })}
             disabled={!table.canInteract}
-          />
+          >
+            <Group gap="lg" wrap="wrap">
+              {KINDS.map(({ value, label }) => (
+                <Radio key={value} value={value} label={label} />
+              ))}
+            </Group>
+          </Radio.Group>
           {choice.kind === 'faction' && (
             <Select
               label="Winning faction"
