@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, assert, expect, test, vi } from 'vitest';
 
 import { handleAuthRequest } from './auth';
 
@@ -28,16 +28,18 @@ test('keeps the provider redirect and each OAuth cookie on the browser response'
     env
   );
   const forwarded = upstream.mock.calls[0]?.[0];
-  expect(forwarded?.url).toBe(
+  assert(forwarded);
+  assert(response);
+  expect(forwarded.url).toBe(
     'https://exuberant-finch-263.eu-west-1.convex.site/api/auth/signin/google?code=verifier&redirectTo=%2F'
   );
-  expect(forwarded?.redirect).toBe('manual');
-  expect(forwarded?.cache).toBe('no-store');
-  expect(response?.status).toBe(302);
-  expect(response?.headers.get('Location')).toBe('https://accounts.google.com/o/oauth2/v2/auth');
-  expect(response?.headers.getSetCookie()).toEqual(upstreamHeaders.getSetCookie());
-  expect(response?.headers.get('Cache-Control')).toBe('no-store');
-  expect(response?.headers.get('Referrer-Policy')).toBe('no-referrer');
+  expect(forwarded.redirect).toBe('manual');
+  expect(forwarded.cache).toBe('no-store');
+  expect(response.status).toBe(302);
+  expect(response.headers.get('Location')).toBe('https://accounts.google.com/o/oauth2/v2/auth');
+  expect(response.headers.getSetCookie()).toEqual(upstreamHeaders.getSetCookie());
+  expect(response.headers.get('Cache-Control')).toBe('no-store');
+  expect(response.headers.get('Referrer-Policy')).toBe('no-referrer');
 });
 
 test("forwards a callback body and only that provider's OAuth cookies", async () => {
