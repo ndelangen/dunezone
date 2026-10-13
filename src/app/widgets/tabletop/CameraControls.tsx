@@ -10,6 +10,7 @@ import {
   CAMERA_CLOSEST_DISTANCE,
   CAMERA_TOP_DOWN_POLAR_ANGLE,
   cameraFogRange,
+  cameraGlideShare,
   cameraPoseFor,
   cameraTiltAfterWheel,
   cameraViewTransitionProgress,
@@ -30,8 +31,6 @@ import { readTablePanSpeed } from './tablePanSpeed';
 import { watchTwoFingerTilt } from './twoFingerTilt';
 
 const CAMERA_POSE_EPSILON_SQUARED = 0.000001;
-/* How quickly a close look follows the wheel: the share of the way left after a second's glide is e^(-1/τ). */
-const CAMERA_GLIDE_TIME_CONSTANT_S = 0.07;
 /* The table's surface, where the pointer's anchor for a close look lies. */
 const ZOOM_ANCHOR_HEIGHT = 0.132;
 
@@ -132,7 +131,7 @@ function advanceCameraGlide(
   if (!controls || !glide) {
     return;
   }
-  const share = 1 - Math.exp(-Math.min(delta, 0.1) / CAMERA_GLIDE_TIME_CONSTANT_S);
+  const share = cameraGlideShare(delta);
   camera.position.lerp(glide.toPosition, share);
   controls.target.lerp(glide.toTarget, share);
   controls.update();
