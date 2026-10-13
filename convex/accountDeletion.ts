@@ -8,6 +8,7 @@ import type { ActionCtx, MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, mutation, viewerQuery } from './functions';
 import { accountStateOf, authenticatedLifecycleUser, lifecycleUserId } from './lib/accountLifecycle';
 import { requireUnlockedAccount } from './lib/accountMethods';
+import { TOKEN_ASSET_TYPES } from './lib/assetBacks';
 import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
@@ -30,7 +31,7 @@ const replacementProfileValidator = v.object({
   avatarUrl: v.union(v.string(), v.null()),
 });
 
-type OwnedEntityId = Id<'groups'> | Id<'factions'> | Id<'rulesets'>;
+type OwnedEntityId = Id<'groups'> | Id<'factions'> | Id<'rulesets'> | Id<'assets'>;
 type AnyCtx = QueryCtx | MutationCtx;
 
 async function profileForUser(ctx: AnyCtx, userId: Id<'users'>) {
@@ -102,6 +103,19 @@ async function ownedPresence(ctx: QueryCtx, userId: Id<'users'>, kind: DirectOwn
         .take(1),
       ctx.db
         .query('factions')
+        .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', true))
+        .take(1),
+    ]);
+    return { kind, hasActive: active.length > 0, hasDeleted: deleted.length > 0 };
+  }
+  if (kind === 'asset') {
+    const [active, deleted] = await Promise.all([
+      ctx.db
+        .query('assets')
+        .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', false))
+        .take(1),
+      ctx.db
+        .query('assets')
         .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', true))
         .take(1),
     ]);
@@ -278,6 +292,12 @@ async function snapshotPage(ctx: MutationCtx, operation: Doc<'account_deletion_o
       .withIndex('by_owner_deleted', (q) => q.eq('owner_id', operation.source_user_id))
       .paginate(pagination);
   }
+  if (operation.snapshot_kind === 'asset') {
+    return await ctx.db
+      .query('assets')
+      .withIndex('by_owner_deleted', (q) => q.eq('owner_id', operation.source_user_id))
+      .paginate(pagination);
+  }
   return await ctx.db
     .query('rulesets')
     .withIndex('by_owner_deleted', (q) => q.eq('owner_id', operation.source_user_id))
@@ -390,6 +410,13 @@ async function ensureReplacementOwnerMembership(
   });
 }
 
+/** A token's deletion or return changes the cards that embed it, as `assets.softDelete` does. */
+async function refreshTokenEmbeddings(ctx: MutationCtx, asset: Doc<'assets'>) {
+  if (TOKEN_ASSET_TYPES.has(asset.type)) {
+    await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: asset._id, cursor: null });
+  }
+}
+
 async function applyItem(
   ctx: MutationCtx,
   operation: Doc<'account_deletion_operations'>,
@@ -413,6 +440,16 @@ async function applyItem(
         faction._id,
         replacement ? { owner_id: replacement } : { is_deleted: true, updated_at: nowIso() }
       );
+    }
+  } else if (item.kind === 'asset') {
+    const asset = await ctx.db.get('assets', item.entity_id as Id<'assets'>);
+    if (asset?.owner_id === operation.source_user_id) {
+      if (replacement) {
+        await ctx.db.patch(asset._id, { owner_id: replacement });
+      } else if (!asset.is_deleted) {
+        await ctx.db.patch(asset._id, { is_deleted: true, updated_at: nowIso() });
+        await refreshTokenEmbeddings(ctx, asset);
+      }
     }
   } else {
     const ruleset = await ctx.db.get('rulesets', item.entity_id as Id<'rulesets'>);
@@ -458,7 +495,14 @@ async function hasRemainingOwnership(ctx: MutationCtx, sourceUserId: Id<'users'>
       return requireDeleted === undefined ? owner : owner.eq('is_deleted', requireDeleted);
     })
     .take(1);
-  return group.length > 0 || faction.length > 0 || ruleset.length > 0;
+  const asset = await ctx.db
+    .query('assets')
+    .withIndex('by_owner_deleted', (q) => {
+      const owner = q.eq('owner_id', sourceUserId);
+      return requireDeleted === undefined ? owner : owner.eq('is_deleted', requireDeleted);
+    })
+    .take(1);
+  return group.length > 0 || faction.length > 0 || ruleset.length > 0 || asset.length > 0;
 }
 
 export const applyBatch = internalMutation({
@@ -611,6 +655,12 @@ async function restoreItem(
       const faction = await ctx.db.get('factions', item.entity_id as Id<'factions'>);
       if (faction?.owner_id === operation.source_user_id && faction.is_deleted) {
         await ctx.db.patch(faction._id, { is_deleted: false, updated_at: nowIso() });
+      }
+    } else if (item.kind === 'asset') {
+      const asset = await ctx.db.get('assets', item.entity_id as Id<'assets'>);
+      if (asset?.owner_id === operation.source_user_id && asset.is_deleted) {
+        await ctx.db.patch(asset._id, { is_deleted: false, updated_at: nowIso() });
+        await refreshTokenEmbeddings(ctx, asset);
       }
     } else {
       const ruleset = await ctx.db.get('rulesets', item.entity_id as Id<'rulesets'>);

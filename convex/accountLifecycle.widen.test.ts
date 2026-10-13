@@ -108,7 +108,7 @@ describe('account lifecycle widen rollout', () => {
         .unique();
       expect(profile?.account_state).toBe('active');
     });
-    expect(DIRECT_OWNERSHIP_KINDS.map((entry) => entry.kind)).toEqual(['group', 'faction', 'ruleset']);
+    expect(DIRECT_OWNERSHIP_KINDS.map((entry) => entry.kind)).toEqual(['group', 'faction', 'ruleset', 'asset']);
   });
 
   test('activated lifecycle indexes cover profile selection and every ownership kind', async () => {

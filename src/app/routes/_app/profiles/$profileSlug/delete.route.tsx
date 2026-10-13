@@ -19,7 +19,7 @@ import { ProfilePicker } from '@app/pickers/ProfilePicker';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-const kindLabels = { group: 'Groups', faction: 'Factions', ruleset: 'Rulesets' } as const;
+const kindLabels = { group: 'Groups', faction: 'Factions', ruleset: 'Rulesets', asset: 'Assets' } as const;
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/delete')({
   head: () => pageHead('Delete account'),
@@ -143,7 +143,7 @@ function AccountDeletionPage() {
                   ))}
                 </List>
               ) : (
-                <Text c="dimmed">This account directly owns no Groups, factions, or rulesets.</Text>
+                <Text c="dimmed">This account directly owns no Groups, factions, rulesets, or assets.</Text>
               )}
             </Stack>
 
@@ -152,8 +152,8 @@ function AccountDeletionPage() {
                 Choose the outcome
               </Title>
               <Text>
-                Select one active profile to receive every directly owned Group, faction, and ruleset. If you leave the
-                replacement empty, those records will be soft-deleted instead.
+                Select one active profile to receive every directly owned Group, faction, ruleset, and asset. If you
+                leave the replacement empty, those records will be soft-deleted instead.
               </Text>
               <Popover
                 opened={pickerOpen}

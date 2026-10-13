@@ -104,7 +104,27 @@ async function seedOwnedRows(t: ReturnType<typeof setup>, ownerId: Id<'users'>, 
       updated_at: now,
       accepted_answer_id: null,
     });
-    return { groupId, factionId, deletedFactionId, rulesetId, linkId, questionId };
+    const assetId = await ctx.db.insert('assets', {
+      owner_id: ownerId,
+      type: 'token-disc',
+      data: { name: `${prefix} Token` },
+      slug: `${prefix}-token`,
+      created_at: now,
+      updated_at: now,
+      is_deleted: false,
+      group_id: groupId,
+    });
+    const deletedAssetId = await ctx.db.insert('assets', {
+      owner_id: ownerId,
+      type: 'card-custom',
+      data: { name: `${prefix} Old Card` },
+      slug: `${prefix}-old-card`,
+      created_at: now,
+      updated_at: now,
+      is_deleted: true,
+      group_id: null,
+    });
+    return { groupId, factionId, deletedFactionId, rulesetId, linkId, questionId, assetId, deletedAssetId };
   });
 }
 
@@ -126,6 +146,7 @@ describe('account deletion', () => {
         { kind: 'group', hasActive: true, hasDeleted: false },
         { kind: 'faction', hasActive: true, hasDeleted: true },
         { kind: 'ruleset', hasActive: true, hasDeleted: false },
+        { kind: 'asset', hasActive: true, hasDeleted: true },
       ],
     });
     const picker = await asSource.query(api.accountDeletion.listReplacementProfiles, {
@@ -169,6 +190,14 @@ describe('account deletion', () => {
       expect((await ctx.db.get('factions', rows.deletedFactionId))?.owner_id).toBe(replacement.userId);
       expect((await ctx.db.get('factions', rows.deletedFactionId))?.is_deleted).toBe(true);
       expect((await ctx.db.get('rulesets', rows.rulesetId))?.owner_id).toBe(replacement.userId);
+      expect(await ctx.db.get('assets', rows.assetId)).toMatchObject({
+        owner_id: replacement.userId,
+        is_deleted: false,
+      });
+      expect(await ctx.db.get('assets', rows.deletedAssetId)).toMatchObject({
+        owner_id: replacement.userId,
+        is_deleted: true,
+      });
       expect(await ctx.db.get('ruleset_factions', rows.linkId)).not.toBeNull();
       expect(await ctx.db.get('faq_items', rows.questionId)).not.toBeNull();
       const targetMembership = await ctx.db
@@ -212,6 +241,7 @@ describe('account deletion', () => {
         .take(1);
       expect(lateActive).toEqual([]);
       expect((await ctx.db.get('factions', rows.deletedFactionId))?.is_deleted).toBe(true);
+      expect((await ctx.db.get('assets', rows.assetId))?.is_deleted).toBe(true);
     });
 
     await t.withIdentity({ subject: admin.subject }).mutation(api.accountDeletion.restore, { operationId });
@@ -222,6 +252,8 @@ describe('account deletion', () => {
       expect((await ctx.db.get('factions', rows.factionId))?.is_deleted).toBe(false);
       expect((await ctx.db.get('rulesets', rows.rulesetId))?.is_deleted).toBe(false);
       expect((await ctx.db.get('factions', rows.deletedFactionId))?.is_deleted).toBe(true);
+      expect((await ctx.db.get('assets', rows.assetId))?.is_deleted).toBe(false);
+      expect((await ctx.db.get('assets', rows.deletedAssetId))?.is_deleted).toBe(true);
     });
   });
 
