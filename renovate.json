@@ -10,19 +10,16 @@
   "dependencyDashboard": true,
   "vulnerabilityAlerts": {
     "groupName": "Security fixes",
+    "groupSlug": "security-fixes",
     "prConcurrentLimit": 1
   },
   "enabledManagers": ["bun", "npm", "bun-version", "github-actions", "dockerfile", "docker-compose"],
   "packageRules": [
     {
-      "matchManagers": ["github-actions"],
-      "groupName": "GitHub Actions"
-    },
-    {
-      "matchManagers": ["bun", "npm"],
-      "matchDepTypes": ["devDependencies"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "Development dependencies"
+      "matchPackageNames": ["*"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "Routine dependencies",
+      "groupSlug": "routine-dependencies"
     },
     {
       "matchUpdateTypes": ["major"],
@@ -36,11 +33,28 @@
     {
       "matchPackageNames": ["storybook", "@storybook/**"],
       "groupName": "Storybook",
+      "groupSlug": "storybook",
       "dependencyDashboardApproval": true
     },
     {
-      "matchPackageNames": ["ghcr.io/get-convex/convex-backend", "ghcr.io/get-convex/convex-dashboard"],
-      "groupName": "Local Convex images"
+      "matchPackageNames": ["three", "@react-three/fiber", "@react-three/drei", "@types/three", "three-mesh-bvh"],
+      "groupName": "Tabletop rendering",
+      "groupSlug": "tabletop-rendering",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchPackageNames": [
+        "convex",
+        "convex-test",
+        "convex-helpers",
+        "@convex-dev/aggregate",
+        "@convex-dev/migrations",
+        "@convex-dev/rate-limiter",
+        "ghcr.io/get-convex/convex-backend",
+        "ghcr.io/get-convex/convex-dashboard"
+      ],
+      "groupName": "Convex runtime",
+      "groupSlug": "convex-runtime"
     }
   ]
 }
