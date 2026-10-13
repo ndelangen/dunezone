@@ -6,7 +6,8 @@ import type { PublicPointer } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { CARRIED_BASE_Y, pointOnRayAtHeight } from '@shared/play/tableGeometry';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';
+import { createRoot } from 'react-dom/client';
 import { Raycaster, Vector2, Vector3 } from 'three';
 
 import { unsettledArtworkLoads } from './artworkLoads';
@@ -16,6 +17,8 @@ import { isCursorTablePoint } from './tablePointerPoint';
 import { useTabletopActions, useTabletopCommands, useTabletopSelector } from './TabletopContext';
 import { useTablePose } from './useTablePose';
 
+const HAND_PATH =
+  'M6 18V4a2 2 0 0 1 4 0v10V11a2 2 0 0 1 4 0v4v-2a2 2 0 0 1 4 0v3v-1a2 2 0 0 1 4 0v8c0 3-2 6-5 7H9l-7-9c-2-3 1-5 3-3l3 3';
 const HAND_HTML_STYLE = { pointerEvents: 'none' } as const;
 const HAND_Z_RANGE = [6, 0];
 
@@ -23,17 +26,18 @@ const HAND_Z_RANGE = [6, 0];
  * A pointer moves many times a second while its label never changes, so the hand follows the position in the scene
  * and keeps one label element: drei's `Html` renders its own React root again whenever its children change.
  */
-const Hand = memo(function Hand({
+export const TableHand = memo(function TableHand({
   position,
   color,
   displayName,
   avatarUrl,
   local = false,
-}: Pick<PublicPointer, 'position' | 'color' | 'displayName' | 'avatarUrl'> & { local?: boolean }) {
+  demo = false,
+}: Pick<PublicPointer, 'position' | 'color' | 'displayName' | 'avatarUrl'> & { local?: boolean; demo?: boolean }) {
   const group = useTablePose(position, 0, !local);
   const label = useMemo(
-    () => <HandLabel color={color} displayName={displayName} avatarUrl={avatarUrl} local={local} />,
-    [color, displayName, avatarUrl, local]
+    () => <HandLabel color={color} displayName={displayName} avatarUrl={avatarUrl} local={local} demo={demo} />,
+    [color, displayName, avatarUrl, local, demo]
   );
   return (
     <group ref={group}>
@@ -49,10 +53,12 @@ function HandLabel({
   displayName,
   avatarUrl,
   local,
-}: Pick<PublicPointer, 'color' | 'displayName' | 'avatarUrl'> & { local: boolean }) {
+  demo,
+}: Pick<PublicPointer, 'color' | 'displayName' | 'avatarUrl'> & { local: boolean; demo: boolean }) {
   return (
     <div
-      data-table-hand={local ? 'local' : 'remote'}
+      data-table-hand={demo ? 'demo' : local ? 'local' : 'remote'}
+      className={demo ? styles.demoHand : undefined}
       aria-hidden={displayName ? undefined : true}
       style={{
         position: 'relative',
@@ -72,33 +78,9 @@ function HandLabel({
         aria-hidden="true"
         style={{ overflow: 'visible', filter: 'drop-shadow(0 2px 2px #0008)', flexShrink: 0 }}
       >
-        <path
-          d="M6 18V4a2 2 0 0 1 4 0v10V11a2 2 0 0 1 4 0v4v-2a2 2 0 0 1 4 0v3v-1a2 2 0 0 1 4 0v8c0 3-2 6-5 7H9l-7-9c-2-3 1-5 3-3l3 3"
-          fill={color}
-          stroke="#2a2018"
-          strokeWidth="1.4"
-          strokeLinejoin="round"
-        />
+        <path d={HAND_PATH} fill={color} stroke="#2a2018" strokeWidth="1.4" strokeLinejoin="round" />
       </svg>
-      {avatarUrl !== undefined && (
-        <span className={styles.avatar} style={{ borderColor: color }}>
-          <svg viewBox="0 0 32 32" aria-hidden="true">
-            <circle cx="16" cy="11" r="6" fill={color} />
-            <path d="M4 32v-5a12 12 0 0 1 24 0v5" fill={color} />
-          </svg>
-          {avatarUrl && (
-            <img
-              key={avatarUrl}
-              src={avatarUrl}
-              alt=""
-              referrerPolicy="no-referrer"
-              onError={(event) => {
-                event.currentTarget.hidden = true;
-              }}
-            />
-          )}
-        </span>
-      )}
+      <HandAvatar color={color} avatarUrl={avatarUrl} />
       {displayName && (
         <span
           style={{
@@ -117,6 +99,28 @@ function HandLabel({
       )}
     </div>
   );
+}
+
+function HandAvatar({ color, avatarUrl }: Pick<PublicPointer, 'color' | 'avatarUrl'>) {
+  return avatarUrl !== undefined ? (
+    <span className={styles.avatar} style={{ borderColor: color }}>
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="11" r="6" fill={color} />
+        <path d="M4 32v-5a12 12 0 0 1 24 0v5" fill={color} />
+      </svg>
+      {avatarUrl && (
+        <img
+          key={avatarUrl}
+          src={avatarUrl}
+          alt=""
+          referrerPolicy="no-referrer"
+          onError={(event) => {
+            event.currentTarget.hidden = true;
+          }}
+        />
+      )}
+    </span>
+  ) : null;
 }
 
 type PieceDiagnostic = {
@@ -160,7 +164,6 @@ export function ScenePresence({
 }) {
   const plateOutline = useMemo(() => tablePlateOutline(trackerSlots), [trackerSlots]);
   const viewer = useTabletopSelector((table) => table.viewer);
-  const [localPosition, setLocalPosition] = useState<Vector3Tuple | null>(null);
   const canInteract = useTabletopSelector((table) => table.canInteract);
   const { publishPointer } = useTabletopCommands();
   const { subscribePointers, getPointers } = useTabletopActions();
@@ -168,6 +171,41 @@ export function ScenePresence({
   const camera = useThree((state) => state.camera);
   const renderer = useThree((state) => state.renderer);
   const scene = useThree((state) => state.scene);
+  const updateLocalCursor = useRef<(point: { x: number; y: number; touch: boolean } | null) => void>(() => {});
+  useLayoutEffect(() => {
+    if (!showLocal) {
+      return;
+    }
+    /* The browser owns the local cursor; only its avatar follows input in the DOM, independently of scene frames. */
+    const canvas = renderer.domElement;
+    const color = viewer.color.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="32" viewBox="0 0 26 32"><path d="${HAND_PATH}" fill="${color}" stroke="#2a2018" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+    const cursor = `url("data:image/svg+xml,${encodeURIComponent(svg)}") 8 2, pointer`;
+    canvas.style.setProperty('--table-hand-cursor', cursor);
+    const label = document.createElement('div');
+    label.dataset.tableHand = 'local';
+    label.className = styles.localHand;
+    label.hidden = true;
+    label.setAttribute('aria-hidden', 'true');
+    document.body.append(label);
+    const root = createRoot(label);
+    root.render(<HandAvatar color={viewer.color} avatarUrl={viewer.avatarUrl} />);
+    updateLocalCursor.current = (point) => {
+      const visible = point !== null && !point.touch;
+      label.hidden = !visible;
+      canvas.classList.toggle(styles.localCursor, visible);
+      if (visible) {
+        label.style.transform = `translate3d(${point.x - 8}px, ${point.y - 2}px, 0)`;
+      }
+    };
+    return () => {
+      updateLocalCursor.current = () => {};
+      canvas.classList.remove(styles.localCursor);
+      canvas.style.removeProperty('--table-hand-cursor');
+      label.remove();
+      queueMicrotask(() => root.unmount());
+    };
+  }, [renderer.domElement, showLocal, viewer.color, viewer.avatarUrl]);
   const raycaster = useMemo(() => new Raycaster(), []);
   const normalized = useMemo(() => new Vector2(), []);
   const lastScreenPoint = useRef<{ x: number; y: number; touch: boolean } | null>(null);
@@ -183,21 +221,22 @@ export function ScenePresence({
       const point = lastScreenPoint.current;
       const unavailable = (!canInteract && !showLocal) || document.hidden || !point;
       if (unavailable) {
-        setLocalPosition(null);
+        updateLocalCursor.current(null);
         publishPointer(null);
         return;
       }
       if (!isCursorTablePoint(canvas, point.x, point.y)) {
-        setLocalPosition(null);
+        updateLocalCursor.current(null);
         publishPointer(null);
         return;
       }
       const hit = document.elementFromPoint(point.x, point.y);
       if (hit && hit !== canvas) {
-        setLocalPosition(null);
+        updateLocalCursor.current(null);
         publishPointer(null);
         return;
       }
+      updateLocalCursor.current(showLocal ? point : null);
       const bounds = canvas.getBoundingClientRect();
       normalized.set(
         ((point.x - bounds.left) / bounds.width) * 2 - 1,
@@ -207,7 +246,6 @@ export function ScenePresence({
       const origin = raycaster.ray.origin.toArray() as Vector3Tuple;
       const direction = raycaster.ray.direction.toArray() as Vector3Tuple;
       const position = pointOnRayAtHeight(origin, direction, CARRIED_BASE_Y);
-      setLocalPosition(showLocal && !point.touch ? position : null);
       publishPointer(canInteract ? position : null, tableSurfacePointOnRay(origin, direction, plateOutline));
     };
   }, [camera, canInteract, normalized, plateOutline, publishPointer, raycaster, renderer.domElement, showLocal]);
@@ -218,7 +256,7 @@ export function ScenePresence({
     };
     const clear = () => {
       lastScreenPoint.current = null;
-      setLocalPosition(null);
+      updateLocalCursor.current(null);
       publishPointer(null);
     };
     const leave = (event: PointerEvent) => {
@@ -248,12 +286,6 @@ export function ScenePresence({
       clear();
     };
   }, [publishPointer]);
-  const hasLocalHand = showLocal && localPosition !== null;
-  useEffect(() => {
-    const canvas = renderer.domElement;
-    canvas.classList.toggle(styles.localCursor, hasLocalHand);
-    return () => canvas.classList.remove(styles.localCursor);
-  }, [hasLocalHand, renderer.domElement]);
   useEffect(() => {
     if (!canInteract) {
       publishPointer(null);
@@ -325,13 +357,10 @@ export function ScenePresence({
   }, [camera, renderer.domElement, scene]);
   return (
     <>
-      {showLocal && localPosition && (
-        <Hand position={localPosition} color={viewer.color} displayName="" avatarUrl={viewer.avatarUrl} local />
-      )}
       {pointers
         .filter((pointer) => pointer.viewerSeat !== SPECTATOR_SEAT)
         .map((pointer) => (
-          <Hand
+          <TableHand
             key={pointer.connectionId}
             position={pointer.position}
             color={pointer.color}

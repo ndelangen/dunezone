@@ -1,5 +1,7 @@
 import { HOMEPAGE_SOCKET_PATH } from '@shared/homepage/protocol';
+import { lastTurnOf } from '@shared/play/lastTurn';
 import { tableProgressFor } from '@shared/play/phases';
+import { setupMapVisible } from '@shared/play/setup';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { lazy, Suspense, useCallback, useEffect, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
@@ -77,20 +79,23 @@ export default function ConnectedTable({
     onReady();
   }, [onReady]);
   const interactive = useCallback(() => dispatch('interactive'), []);
-  const hasTable = useSyncExternalStore(
+  const snapshot = useSyncExternalStore(
     session.subscribeTable,
-    () => session.getTable() !== null,
-    () => false
+    () => session.getTable()?.snapshot ?? null,
+    () => null
   );
   const stormSectorIndex = useSyncExternalStore(
     session.subscribeTable,
     () => session.getTable()?.state.stormSectorIndex,
     () => undefined
   );
-  const { camera, tableProgress, trackerSlots } = useTableFraming(
-    'play',
-    tableProgressFor(0),
-    DEFAULT_TABLE_SEAT_COUNT
+  const stage = snapshot?.stage;
+  const seatCount = snapshot?.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT;
+  const mapVisible = setupMapVisible(snapshot?.setup);
+  const { camera, tableProgress, trackerSlots, mapFramingPoints } = useTableFraming(
+    stage,
+    { ...tableProgressFor(snapshot?.phase ?? 0, snapshot?.phases), lastTurn: lastTurnOf(snapshot ?? {}) },
+    seatCount
   );
   useEffect(() => session.connect(), [session]);
   return (
@@ -111,18 +116,24 @@ export default function ConnectedTable({
           onSceneReady={painted}
           onSceneUnavailable={onUnavailable}
         >
-          <MapPreviewCamera />
+          <MapPreviewCamera mapFramingPoints={mapFramingPoints} />
           <TabletopBoard
-            stage="play"
-            seatCount={DEFAULT_TABLE_SEAT_COUNT}
+            board={snapshot?.board}
+            stage={stage}
+            mapVisible={mapVisible}
+            seatCount={seatCount}
             tableProgress={tableProgress}
             trackerSlots={trackerSlots}
             stormSectorIndex={stormSectorIndex}
             onClick={arrival.interactive ? () => session.selectPiece(null) : undefined}
           />
-          {arrival.painted && hasTable && (
+          {arrival.painted && snapshot && (
             <Suspense fallback={null}>
-              <LiveControls session={session} onReady={interactive} />
+              <LiveControls
+                session={session}
+                onReady={interactive}
+                scene={{ stage, mapVisible, seatCount, tableProgress, trackerSlots, mapFramingPoints }}
+              />
             </Suspense>
           )}
         </TabletopCanvas>

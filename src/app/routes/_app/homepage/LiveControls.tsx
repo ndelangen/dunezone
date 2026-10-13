@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState } from 'react';
+import type { ComponentProps } from 'react';
 
 import type { TableSession } from '@db/tabletop/TableSession';
 import { PointerSession } from '@app/widgets/tabletop/PointerSession';
@@ -7,6 +8,8 @@ import { TableKeyboard } from '@app/widgets/tabletop/TableKeyboard';
 import { TableKeyboardContext } from '@app/widgets/tabletop/TableKeyboardContext';
 import { TabletopSessionProvider, useTabletopReader } from '@app/widgets/tabletop/TabletopContext';
 import { TabletopPreviewContents } from '@app/widgets/tabletop/TabletopScene';
+
+import PreviewDemo from './PreviewDemo';
 
 function KeyboardBinding({ keyboard }: { keyboard: TableKeyboard }) {
   const read = useTabletopReader();
@@ -28,7 +31,15 @@ function KeyboardBinding({ keyboard }: { keyboard: TableKeyboard }) {
   return null;
 }
 
-export default function LiveControls({ session, onReady }: { session: TableSession; onReady(): void }) {
+export default function LiveControls({
+  session,
+  onReady,
+  scene,
+}: {
+  session: TableSession;
+  onReady(): void;
+  scene: Omit<ComponentProps<typeof TabletopPreviewContents>, 'demo'>;
+}) {
   const [pointer] = useState(() => new PointerSession());
   const [keyboard] = useState(() => new TableKeyboard());
   useLayoutEffect(onReady, [onReady]);
@@ -37,7 +48,7 @@ export default function LiveControls({ session, onReady }: { session: TableSessi
       <TableKeyboardContext value={keyboard}>
         <TabletopSessionProvider session={session}>
           <KeyboardBinding keyboard={keyboard} />
-          <TabletopPreviewContents />
+          <TabletopPreviewContents {...scene} demo={<PreviewDemo />} />
         </TabletopSessionProvider>
       </TableKeyboardContext>
     </PointerSessionContext>

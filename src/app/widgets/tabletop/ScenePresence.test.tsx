@@ -6,6 +6,7 @@ import { Group, PerspectiveCamera, Scene } from 'three';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { ScenePresence } from './ScenePresence';
+import styles from './ScenePresence.module.css';
 import { isCursorTablePoint, isPublicTablePoint } from './tablePointerPoint';
 import { useTablePose } from './useTablePose';
 
@@ -35,7 +36,7 @@ vi.mock('@react-three/fiber/webgpu', async () => {
 vi.mock('@react-three/drei/webgpu', () => ({ Html: () => null }));
 
 vi.mock('./TabletopContext', () => {
-  const table = { canInteract: true };
+  const table = { canInteract: true, viewer: { color: '#abcdef', avatarUrl: '' } };
   const commands = { publishPointer: () => {} };
   const pointers: never[] = [];
   const actions = { subscribePointers: () => () => {}, getPointers: () => pointers };
@@ -51,6 +52,7 @@ afterEach(() => {
   scheduler.frames.clear();
   scheduler.three = {};
   vi.unstubAllEnvs();
+  Reflect.deleteProperty(document, 'elementFromPoint');
 });
 
 function renderRemotePose(position: Vector3Tuple) {
@@ -107,17 +109,43 @@ describe('remote pose smoothing', () => {
 });
 
 /** Renders the scene's presence layer on an 800 by 400 canvas at (100, 50), seen by a camera that looks at the origin. */
-function renderPresence() {
+function renderPresence(showLocal = false) {
   const camera = new PerspectiveCamera(50, 2, 0.1, 100);
   camera.position.set(0, 0, 10);
   camera.lookAt(0, 0, 0);
   camera.updateMatrixWorld();
   const canvas = document.createElement('canvas');
-  canvas.getBoundingClientRect = () => ({ left: 100, top: 50, width: 800, height: 400 }) as DOMRect;
+  canvas.getBoundingClientRect = () => new DOMRect(100, 50, 800, 400);
   scheduler.three = { camera, renderer: { domElement: canvas }, scene: new Scene() };
-  render(<ScenePresence />);
+  Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => canvas });
+  render(<ScenePresence showLocal={showLocal} />);
   return camera;
 }
+
+describe('the viewer cursor', () => {
+  test('uses a native cursor and moves the avatar during input without a scene frame', () => {
+    renderPresence(true);
+    const canvas = (scheduler.three.renderer as { domElement: HTMLCanvasElement }).domElement;
+    for (const [x, y] of [
+      [500, 250],
+      [640, 300],
+      [400, 250],
+    ]) {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: x, clientY: y }));
+      expect(canvas.style.getPropertyValue('--table-hand-cursor')).toContain('url(');
+      expect(canvas.classList.contains(styles.localCursor)).toBe(true);
+      const avatar = document.querySelector<HTMLElement>('[data-table-hand=local]');
+      expect(avatar?.style.transform).toBe(`translate3d(${x - 8}px, ${y - 2}px, 0)`);
+      expect(avatar?.hidden).toBe(false);
+    }
+    window.dispatchEvent(new Event('blur'));
+    expect(canvas.classList.contains(styles.localCursor)).toBe(false);
+    expect(document.querySelector<HTMLElement>('[data-table-hand=local]')?.hidden).toBe(true);
+    cleanup();
+    expect(canvas.style.getPropertyValue('--table-hand-cursor')).toBe('');
+    expect(document.querySelector('[data-table-hand=local]')).toBeNull();
+  });
+});
 
 describe('the table diagnostic that browser verification projects through', () => {
   test.each([
