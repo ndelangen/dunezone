@@ -74,7 +74,7 @@ describe('faction reads across the Faction leader key rename', () => {
   test('the group page, detail page, list, catalogue and load picker answer with `factionLeader`', async () => {
     const { viewer } = await seed();
 
-    const group = await viewer.query(api.groups.detailBySlug, { slug: 'leaders-group' });
+    const group = await viewer.query(api.groups.detailPage, { slug: 'leaders-group' });
     expect(group.factions).toHaveLength(2);
     group.factions.forEach((row) => expectLeaderKey(row.slug, row.data));
 

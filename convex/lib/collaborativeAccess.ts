@@ -1,6 +1,6 @@
 import type { Infer } from 'convex/values';
 
-import { evaluateCollaborativeAccess } from '../../src/shared/access/collaborativeAccess';
+import { evaluateCollaborativeAccess, groupRosterCapabilities } from '../../src/shared/access/collaborativeAccess';
 import type {
   CollaborativeAccessFacts,
   MembershipState,
@@ -661,8 +661,8 @@ export async function assignedGroupSummary(ctx: QueryCtx, groupId: Id<'groups'> 
   return group ? { id: group._id, name: group.name, slug: group.slug } : null;
 }
 
-/** One member as the Group page lists them: the membership, the person, and what the viewer may do to that membership. */
-export type GroupRosterEntry = {
+/** One member as the Group page lists them, the same for every viewer: the membership, the person, and whether it is the Group creator's own. */
+export type GroupRosterMember = {
   membershipId: Id<'group_members'>;
   user: {
     id: Id<'profiles'>;
@@ -672,24 +672,27 @@ export type GroupRosterEntry = {
   };
   status: 'pending' | 'active';
   requestedAt: string;
+  /** The browser combines this with the viewer's Group access to decide who may be removed (`groupRosterCapabilities`). */
+  isGroupOwner: boolean;
+};
+
+/** Deprecated with `groups.detailBySlug`: a roster member with what the viewer may do to it decided on the server. Remove with it. */
+export type GroupRosterEntry = Omit<GroupRosterMember, 'isGroupOwner'> & {
   capabilities: { approve: boolean; reject: boolean; remove: boolean };
 };
 
 /**
- * Everything the Group page needs behind one call: the viewer's access, the owner, and the roster with each member's moderation capabilities already decided.
+ * The Group page's owner and roster, the same for every viewer.
  * Members are read to a bounded 500, and soft-deleted or inactive profiles never reach the roster;
  * a dangling membership cannot become a visible member (ADR-0003).
  */
-export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>) {
-  const viewerId = await optionalActiveUserId(ctx);
+export async function loadGroupRoster(ctx: QueryCtx, group: Doc<'groups'>) {
   const members = await ctx.db
     .query('group_members')
     .withIndex('by_group', (q) => q.eq('group_id', group._id))
     .take(500);
-  const viewerMembership = await membershipFor(ctx, group._id, viewerId);
-  const access = groupAccessFromLoaded(group, viewerId, viewerMembership);
   const profileByUserId = new Map<Id<'users'>, Doc<'profiles'>>();
-  const userIds = new Set<Id<'users'>>([access.subject.created_by]);
+  const userIds = new Set<Id<'users'>>([group.created_by]);
   for (const membership of members) {
     userIds.add(membership.user_id);
   }
@@ -709,12 +712,7 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
     profileByUserId.set(profile.user_id, profile);
   }
 
-  const actorIsActive =
-    !group.is_deleted &&
-    access.viewerAccess.viewer.kind === 'authenticated' &&
-    access.viewerAccess.viewer.membership === 'active';
-  const actorIsOwner = access.viewerAccess.capabilities.rename;
-  const roster: GroupRosterEntry[] = members.flatMap((membership) => {
+  const roster: GroupRosterMember[] = members.flatMap((membership) => {
     if (membership.status === 'removed') {
       return [];
     }
@@ -725,7 +723,6 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
     if (!isActiveProfile(profile)) {
       return [];
     }
-    const pending = membership.status === 'pending';
     return [
       {
         membershipId: membership._id,
@@ -737,16 +734,12 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
         },
         status: membership.status,
         requestedAt: membership.requested_at,
-        capabilities: {
-          approve: actorIsActive && pending,
-          reject: actorIsActive && pending,
-          remove: actorIsOwner && !pending && membership.user_id !== access.subject.created_by,
-        },
+        isGroupOwner: membership.user_id === group.created_by,
       },
     ];
   });
 
-  const ownerProfile = profileByUserId.get(access.subject.created_by);
+  const ownerProfile = profileByUserId.get(group.created_by);
   const owner =
     ownerProfile && isActiveProfile(ownerProfile)
       ? {
@@ -757,5 +750,18 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
         }
       : null;
 
-  return { ...access, owner, roster };
+  return { owner, roster };
+}
+
+/** Deprecated with `groups.detailBySlug`: the viewer's Group access and the roster's moderation capabilities, decided on the server. Remove with it. */
+export async function withGroupViewerAccess(ctx: QueryCtx, group: Doc<'groups'>, roster: GroupRosterMember[]) {
+  const viewerId = await optionalActiveUserId(ctx);
+  const { viewerAccess } = groupAccessFromLoaded(group, viewerId, await membershipFor(ctx, group._id, viewerId));
+  return {
+    viewerAccess,
+    roster: roster.map(({ isGroupOwner, ...member }): GroupRosterEntry => ({
+      ...member,
+      capabilities: groupRosterCapabilities(viewerAccess, { status: member.status, isGroupOwner }),
+    })),
+  };
 }

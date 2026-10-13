@@ -1,10 +1,13 @@
+import { faqQuestionPageForViewer } from '@shared/faq/questionPageAccess';
 import type { FaqTag } from '@shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '@shared/faq/validation';
 import type { FunctionReturnType } from 'convex/server';
+import { useMemo } from 'react';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
 import type { LiveMutationResult } from '@app/db/core/live';
+import { useViewerUserId } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
@@ -26,7 +29,8 @@ export type FaqQuestionLocator = {
   questionSlug: string;
 };
 
-export type FaqQuestionPage = FunctionReturnType<typeof api.faq.questionPage>;
+/** What `api.faq.question` gives the question page, the same for every viewer. */
+export type FaqQuestionPublicPage = FunctionReturnType<typeof api.faq.question>;
 
 type CommandState = {
   isPending: boolean;
@@ -82,18 +86,40 @@ function voidCommand<TVariables, TResult>(
 }
 
 /** The question route's loader, paired with `useFaqQuestionPage`. */
-export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<FaqQuestionPage> {
-  return await db.query(api.faq.questionPage, locator);
+export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<FaqQuestionPublicPage> {
+  return await db.query(api.faq.question, locator);
 }
 
 /**
  * The question page, live, with the commands that act on it.
  * The loader's result goes in as `initialPage`, not `initialData`: this hook returns commands beside the query, so its options do not match the plain read hooks elsewhere in this layer.
  */
-export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { initialPage?: FaqQuestionPage }) {
-  const livePage = useLiveQuery(api.faq.questionPage, locator);
-  const query = toLiveQueryResult(livePage, () => options?.initialPage);
-  const questionId = query.data?.question.id;
+export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { initialPage?: FaqQuestionPublicPage }) {
+  const livePage = useLiveQuery(api.faq.question, locator);
+  const initialPage = options?.initialPage;
+  const query = toLiveQueryResult(livePage, () => initialPage);
+  /* The same page `query.data` holds, read from its sources so the memo below depends on the page alone, not on the result object around it. */
+  const publicPage = livePage === undefined ? initialPage : livePage;
+  const questionId = publicPage?.question.id;
+  /*
+   * The page is one cached answer for everyone; who may edit, delete, accept or answer is decided here from the viewer's user id
+   * and whether they have answered. Until both settle the viewer counts as signed out, so no control appears before it may.
+   * A signed-out viewer asks about no question, which answers without a read.
+   */
+  const viewerId = useViewerUserId();
+  const viewerAnswered = useLiveQuery(api.faq.viewerAnswered, { questionId: viewerId ? (questionId ?? null) : null });
+  const viewerResolved = viewerId !== undefined && viewerAnswered !== undefined;
+  const resolvedViewerId = viewerResolved ? viewerId : null;
+  const answered = viewerAnswered ?? false;
+  /*
+   * Memoized on its real inputs: the question route scrolls to an answer's hash whenever the question or answers change identity,
+   * so a fresh object on every render would scroll the page back on each keystroke while editing.
+   */
+  const page = useMemo(
+    () =>
+      publicPage ? { ...faqQuestionPageForViewer(publicPage, resolvedViewerId, answered), viewerResolved } : undefined,
+    [publicPage, resolvedViewerId, answered, viewerResolved]
+  );
 
   const editQuestionMutation = useLiveMutation<
     { questionId: string; input: { question: string; tags: FaqTag[] } },
@@ -119,7 +145,7 @@ export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { init
 
   return {
     ...query,
-    page: query.data,
+    page,
     editQuestion: command(editQuestionMutation, (input: { question: string; tags: FaqTag[] }) => ({
       questionId: requireQuestionId(),
       input: {

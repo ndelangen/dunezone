@@ -1,4 +1,4 @@
-import { Button, Checkbox, Group, Menu, NumberInput, SegmentedControl, Select, Stack, Text } from '@mantine/core';
+import { Button, Checkbox, Group, Menu, NumberInput, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
 import type { ButtonProps, NumberInputProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
@@ -380,17 +380,22 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
         <WorkbenchLayout.Chapters>
           <Stack gap="md">
             <div className={styles.editorFields}>
-              <SegmentedControl
+              <Radio.Group
                 className={styles.supportMode}
-                aria-label="Support mode"
+                label={<VisuallyHidden>Support mode</VisuallyHidden>}
                 disabled={dialLocked}
                 value={plan.mode}
-                data={[
-                  { value: 'max', label: 'Max' },
-                  { value: 'custom', label: 'Custom' },
-                ]}
                 onChange={(mode) => update({ mode: mode as BattlePlan['mode'] })}
-              />
+              >
+                <Group gap="lg" wrap="wrap">
+                  {[
+                    { value: 'max', label: 'Max' },
+                    { value: 'custom', label: 'Custom' },
+                  ].map(({ value, label }) => (
+                    <Radio key={value} value={value} label={label} />
+                  ))}
+                </Group>
+              </Radio.Group>
               <TroopFields plan={plan} locked={dialLocked} update={update} spiceLimit={availableSpice} />
               {plan.mode === 'max' ? (
                 <BattleNumberInput

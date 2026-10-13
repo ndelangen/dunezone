@@ -4,8 +4,14 @@ import type { FAQ_TAG_VALUES } from '../src/shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared/faq/validation';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { internalMutation, mutation, viewerQuery } from './functions';
-import { faqQuestionPageValidator, loadFaqQuestionPage } from './lib/faqQuestionPage';
+import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
+import {
+  faqQuestionPageValidator,
+  faqQuestionPublicPageValidator,
+  loadFaqQuestionPage,
+  loadFaqQuestionPublicPage,
+  loadViewerAnswered,
+} from './lib/faqQuestionPage';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
 import { nowIso } from './lib/utils';
@@ -95,6 +101,21 @@ async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets
   }
 }
 
+/** The FAQ question page, one cached answer for every viewer. The browser combines its authorship facts with the viewer. */
+export const question = publicQuery({
+  args: { rulesetSlug: v.string(), questionSlug: v.string() },
+  returns: faqQuestionPublicPageValidator,
+  handler: async (ctx, args) => await loadFaqQuestionPublicPage(ctx, args),
+});
+
+/** Whether the viewer has answered one FAQ question: the viewer half of the question page's answer form. Null asks about no question. */
+export const viewerAnswered = viewerQuery({
+  args: { questionId: v.union(v.id('faq_items'), v.null()) },
+  returns: v.boolean(),
+  handler: async (ctx, args) => await loadViewerAnswered(ctx, args.questionId),
+});
+
+/** Deprecated by `question`: kept unchanged for bundles deployed before it, then deleted (see AGENTS.md). */
 export const questionPage = viewerQuery({
   args: { rulesetSlug: v.string(), questionSlug: v.string() },
   returns: faqQuestionPageValidator,

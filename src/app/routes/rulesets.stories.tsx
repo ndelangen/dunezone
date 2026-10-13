@@ -44,8 +44,10 @@ export const Question = meta.story({
     ).resolves.toBeVisible();
     const navigation = within(page.getByRole('group', { name: 'Navigation' }));
     await expect(navigation.getByRole('link', { name: 'Back to ruleset' })).toBeVisible();
-    /* Public loader data renders first; editing waits for the live viewer's capabilities. */
-    await expect(navigation.findByRole('button', { name: 'Edit question' })).resolves.toBeVisible();
+    /* The shared page renders first; editing follows the viewer, which the browser resolves after it. */
+    await expect(
+      navigation.findByRole('button', { name: 'Edit question' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
     await expect(
       within(page.getByRole('group', { name: 'Question actions' })).getByRole('button', { name: 'Delete question' })
     ).toBeVisible();

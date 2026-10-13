@@ -20,10 +20,15 @@ vi.mock('convex/react', () => ({
 import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
 import { renderHook } from '@testing-library/react';
 
-import { useAssetAccess } from './viewerAccess';
+import { useAssetAccess, useGroupAccess } from './viewerAccess';
 
 const groupA = { id: 'group-a', name: 'Sietch Tabr', slug: 'sietch-tabr' };
 const groupB = { id: 'group-b', name: 'Fremen Council', slug: 'fremen-council' };
+
+function groupRow(id: string, createdBy = 'user-9') {
+  // oxlint-disable-next-line typescript/no-explicit-any -- the hook only reads ids, which are strings in the browser
+  return { _id: id as any, created_by: createdBy, is_deleted: false };
+}
 
 function subjectIn(group: typeof groupA | null, ownerId = 'user-1') {
   // oxlint-disable-next-line typescript/no-explicit-any -- the hook only reads ids, which are strings in the browser
@@ -73,5 +78,49 @@ describe('useAssetAccess', () => {
     rerender();
     expect(result.current.resolved).toBe(false);
     expect(result.current.viewerAccess.capabilities.edit).toBe(false);
+  });
+});
+
+describe('useGroupAccess', () => {
+  test('is resolved on the first membership answer', () => {
+    const { result } = renderHook(() => useGroupAccess(groupRow('group-a')));
+    expect(result.current.resolved).toBe(true);
+    expect(result.current.viewerAccess.viewer).toEqual({ kind: 'authenticated', membership: 'active' });
+    expect(result.current.viewerAccess.capabilities.addMember).toBe(true);
+  });
+
+  test("never shows one Group's membership on another while the second Group's membership loads", () => {
+    const { result, rerender } = renderHook(({ group }) => useGroupAccess(group), {
+      initialProps: { group: groupRow('group-a') },
+    });
+    expect(result.current.resolved).toBe(true);
+    expect(result.current.viewerAccess.capabilities.addMember).toBe(true);
+
+    /* The viewer navigates to Group B without a remount; its membership has not been asked for yet. */
+    rerender({ group: groupRow('group-b') });
+    expect(result.current.resolved).toBe(false);
+    expect(result.current.viewerAccess.capabilities).toEqual({
+      requestMembership: false,
+      rename: false,
+      delete: false,
+      addMember: false,
+    });
+
+    mocks.memberships.set('group-b', 'none');
+    rerender({ group: groupRow('group-b') });
+    expect(result.current.resolved).toBe(true);
+    expect(result.current.viewerAccess.capabilities.requestMembership).toBe(true);
+    expect(result.current.viewerAccess.capabilities.addMember).toBe(false);
+  });
+
+  test('never carries one user over to another', () => {
+    const { result, rerender } = renderHook(() => useGroupAccess(groupRow('group-a')));
+    expect(result.current.resolved).toBe(true);
+
+    mocks.session = { userId: 'user-3', profile: null, isAdmin: false };
+    mocks.memberships.delete('group-a');
+    rerender();
+    expect(result.current.resolved).toBe(false);
+    expect(result.current.viewerAccess.capabilities.addMember).toBe(false);
   });
 });

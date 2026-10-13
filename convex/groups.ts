@@ -2,18 +2,20 @@ import { ConvexError, v } from 'convex/values';
 
 import { groupInputSchema } from '../src/shared/groups/validation';
 import type { Doc } from './_generated/dataModel';
-import type { MutationCtx } from './_generated/server';
+import type { MutationCtx, QueryCtx } from './_generated/server';
 import { mutation, publicQuery, viewerQuery } from './functions';
 import {
   liveGroupOrNull,
-  loadGroupAccessBundle,
+  loadGroupRoster,
   loadViewerAssignableGroups,
   loadViewerMembership,
   requireGroupCapability,
+  withGroupViewerAccess,
 } from './lib/collaborativeAccess';
 import {
   assignedGroupSummaryValidator,
   groupDetailPageValidator,
+  groupPageValidator,
   viewerMembershipStateValidator,
 } from './lib/collaborativeAccessValidators';
 import { factionRowForClient } from './lib/factionInput';
@@ -66,41 +68,50 @@ export const getById = publicQuery({
   },
 });
 
-/** Group detail page with canonical access, owner, roster, and associated assets. */
+/** The Group page, the same for every viewer: the Group, its owner and roster, and what is assigned to it. Throws NOT_FOUND for an unknown or deleted slug. */
+async function loadGroupPageBySlug(ctx: QueryCtx, slug: string) {
+  const group = liveGroupOrNull(
+    await ctx.db
+      .query('groups')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique()
+  );
+  if (!group) {
+    throw new ConvexError({ code: 'NOT_FOUND', message: `Group with slug ${slug} not found` });
+  }
+
+  const [{ owner, roster }, factions, rulesets] = await Promise.all([
+    loadGroupRoster(ctx, group),
+    ctx.db
+      .query('factions')
+      .withIndex('by_group_deleted', (q) => q.eq('group_id', group._id).eq('is_deleted', false))
+      .take(500),
+    ctx.db
+      .query('rulesets')
+      .withIndex('by_group_deleted', (q) => q.eq('group_id', group._id).eq('is_deleted', false))
+      .take(500),
+  ]);
+
+  return { group, factions: factions.map(factionRowForClient), rulesets, owner, roster };
+}
+
+/**
+ * The Group page, one cached answer for every viewer.
+ * The browser combines `group.created_by`, the roster's `isGroupOwner` and the viewer's membership to decide what they may do.
+ */
+export const detailPage = publicQuery({
+  args: { slug: v.string() },
+  returns: groupPageValidator,
+  handler: async (ctx, args) => await loadGroupPageBySlug(ctx, args.slug),
+});
+
+/** Deprecated by `detailPage`: kept unchanged for bundles deployed before it, then deleted (see AGENTS.md). */
 export const detailBySlug = viewerQuery({
   args: { slug: v.string() },
   returns: groupDetailPageValidator,
   handler: async (ctx, args) => {
-    const group = liveGroupOrNull(
-      await ctx.db
-        .query('groups')
-        .withIndex('by_slug', (q) => q.eq('slug', args.slug))
-        .unique()
-    );
-    if (!group) {
-      throw new ConvexError({ code: 'NOT_FOUND', message: `Group with slug ${args.slug} not found` });
-    }
-
-    const accessBundle = await loadGroupAccessBundle(ctx, group);
-
-    const factions = await ctx.db
-      .query('factions')
-      .withIndex('by_group_deleted', (q) => q.eq('group_id', group._id).eq('is_deleted', false))
-      .take(500);
-
-    const rulesets = await ctx.db
-      .query('rulesets')
-      .withIndex('by_group_deleted', (q) => q.eq('group_id', group._id).eq('is_deleted', false))
-      .take(500);
-
-    return {
-      group: accessBundle.subject,
-      factions: factions.map(factionRowForClient),
-      rulesets,
-      owner: accessBundle.owner,
-      viewerAccess: accessBundle.viewerAccess,
-      roster: accessBundle.roster,
-    };
+    const page = await loadGroupPageBySlug(ctx, args.slug);
+    return { ...page, ...(await withGroupViewerAccess(ctx, page.group, page.roster)) };
   },
 });
 

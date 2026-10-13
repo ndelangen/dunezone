@@ -1,3 +1,5 @@
+import { groupRosterCapabilities } from '@shared/access/collaborativeAccess';
+import type { GroupViewerAccess } from '@shared/access/collaborativeAccess';
 import { groupInputSchema } from '@shared/groups/validation';
 import type { FunctionReturnType } from 'convex/server';
 
@@ -7,15 +9,11 @@ import type { FactionEntry } from '@db/factions';
 import { rulesetRowsToEntries } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
 import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
+import { useGroupAccess } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
-import type {
-  AssignedGroupSummary,
-  CollaborativeAccess,
-  GroupRosterEntry,
-  MembershipState,
-} from '../../../convex/lib/collaborativeAccess';
+import type { AssignedGroupSummary, GroupRosterMember, MembershipState } from '../../../convex/lib/collaborativeAccess';
 import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
 /**
@@ -28,61 +26,98 @@ export type { AssignedGroupSummary, MembershipState };
 export type GroupRow = Doc<'groups'>;
 /** A group row carrying `id` beside `_id`, so a caller spells it the way every other entry in this layer does. */
 export type GroupEntry = GroupRow & { id: GroupRow['_id'] };
-/** What `api.groups.detailBySlug` gives the group page: the group, everything assigned to it, the roster, and the viewer's access. */
-export type GroupDetailPageData = {
+/** What `api.groups.detailPage` gives the group pages, the same for every viewer: the group, everything assigned to it, and the roster. */
+export type GroupPublicPage = {
   group: GroupEntry;
   factions: FactionEntry[];
   rulesets: RulesetEntry[];
   owner: ProfileSummary | null;
-  viewerAccess: Extract<CollaborativeAccess, { kind: 'group' }>;
-  roster: GroupRosterEntry[];
+  roster: GroupRosterMember[];
 };
 
-/** The two fields the edit route needs. It still costs a full detail query, because that query is the only source. */
-export type GroupEditPageData = Pick<GroupDetailPageData, 'group' | 'viewerAccess'>;
+/** One roster member as the page draws it: the public member plus what this viewer may do to that membership. */
+type GroupRosterRow = GroupRosterMember & { capabilities: ReturnType<typeof groupRosterCapabilities> };
 
-type GroupDetailPageRaw = FunctionReturnType<typeof api.groups.detailBySlug>;
+/**
+ * The group page as the route draws it: the public page combined with what this viewer may do.
+ * `viewerResolved` is false while the viewer is on its way;
+ * until then the capabilities are the anonymous ones.
+ */
+export type GroupDetailPageData = Omit<GroupPublicPage, 'roster'> & {
+  viewerResolved: boolean;
+  viewerAccess: GroupViewerAccess;
+  roster: GroupRosterRow[];
+};
+
+/** The one field the edit route's loader needs, from the same public page the group page reads. */
+type GroupEditPublicPage = Pick<GroupPublicPage, 'group'>;
+
+type GroupDetailPageRaw = FunctionReturnType<typeof api.groups.detailPage>;
 
 /** The group page's loader, paired with `useGroupDetailBySlug`. */
-export async function loadGroupDetailBySlug(slug: string): Promise<GroupDetailPageData> {
-  const result = await db.query(api.groups.detailBySlug, { slug });
+export async function loadGroupDetailBySlug(slug: string): Promise<GroupPublicPage> {
+  const result = await db.query(api.groups.detailPage, { slug });
   return normalizeGroupDetailFromConvex(result);
 }
 
-/** The edit route's loader. Runs the detail query and keeps two fields of it, so it is not the cheaper call its narrower return suggests. */
-export async function loadGroupEditBySlug(slug: string): Promise<GroupEditPageData> {
+/** The edit route's loader. Runs the detail query and keeps the group, so it is not the cheaper call its narrower return suggests. */
+export async function loadGroupEditBySlug(slug: string): Promise<GroupEditPublicPage> {
   const result = await loadGroupDetailBySlug(slug);
-  return { group: result.group, viewerAccess: result.viewerAccess };
+  return { group: result.group };
 }
 
-function normalizeGroupDetailFromConvex(raw: GroupDetailPageRaw): GroupDetailPageData {
+function toGroupEntry(row: GroupRow): GroupEntry {
+  return { ...row, id: row._id };
+}
+
+function normalizeGroupDetailFromConvex(raw: GroupDetailPageRaw): GroupPublicPage {
   return {
-    group: { ...raw.group, id: raw.group._id },
+    group: toGroupEntry(raw.group),
     factions: factionRowsToEntries(raw.factions),
     rulesets: rulesetRowsToEntries(raw.rulesets),
     owner: raw.owner,
-    viewerAccess: raw.viewerAccess,
     roster: raw.roster,
   };
 }
 
-/** The group page's live query, taking `loadGroupDetailBySlug`'s result as `initialData`. */
-export function useGroupDetailBySlug(slug: string, options?: { initialData?: GroupDetailPageData }) {
-  const liveData = useLiveQuery(api.groups.detailBySlug, { slug });
+/** The live public page, taking a loader's result as `initialData`. */
+function useGroupPublicPage(slug: string, initialData: GroupPublicPage | undefined) {
+  const liveData = useLiveQuery(api.groups.detailPage, { slug });
   const normalizedLive = liveData ? normalizeGroupDetailFromConvex(liveData) : undefined;
-  const result = toLiveQueryResult<GroupDetailPageData | undefined>(normalizedLive, () => options?.initialData);
-  return result;
+  return toLiveQueryResult<GroupPublicPage | undefined>(normalizedLive, () => initialData);
 }
 
-/** The edit route's live query. Subscribes to the same detail query as the page and narrows the result. */
-export function useGroupEditBySlug(slug: string, options?: { initialData?: GroupEditPageData }) {
-  const liveData = useLiveQuery(api.groups.detailBySlug, { slug });
-  const normalizedLive = liveData ? normalizeGroupDetailFromConvex(liveData) : undefined;
-  const editData = normalizedLive
-    ? { group: normalizedLive.group, viewerAccess: normalizedLive.viewerAccess }
+/**
+ * The group page's live data, taking `loadGroupDetailBySlug`'s result as `initialData`, combined with the viewer.
+ * The page query is one cached answer for everyone;
+ * the viewer half is the session and the viewer's membership of this Group.
+ */
+export function useGroupDetailBySlug(slug: string, options?: { initialData?: GroupPublicPage }) {
+  const result = useGroupPublicPage(slug, options?.initialData);
+  const page = result.data;
+  const { resolved, viewerAccess } = useGroupAccess(page?.group ?? null);
+  const data: GroupDetailPageData | undefined = page
+    ? {
+        ...page,
+        viewerResolved: resolved,
+        viewerAccess,
+        roster: page.roster.map((member) => ({
+          ...member,
+          capabilities: groupRosterCapabilities(viewerAccess, member),
+        })),
+      }
     : undefined;
-  const result = toLiveQueryResult<GroupEditPageData | undefined>(editData, () => options?.initialData);
-  return result;
+  return { ...result, data };
+}
+
+/** The edit route's live data. Subscribes to the same public page as the group page and combines its group with the viewer. */
+export function useGroupEditBySlug(slug: string, options?: { initialData?: GroupEditPublicPage }) {
+  const liveData = useLiveQuery(api.groups.detailPage, { slug });
+  const liveGroup: GroupEntry | undefined = liveData ? toGroupEntry(liveData.group) : undefined;
+  const result = toLiveQueryResult(liveGroup, () => options?.initialData?.group);
+  const group = result.data;
+  const { resolved, viewerAccess } = useGroupAccess(group ?? null);
+  return { ...result, data: group ? { group, viewerResolved: resolved, viewerAccess } : undefined };
 }
 
 /** Creates a group from a name. The name is parsed before it is sent, so a caller passes what the field holds. */

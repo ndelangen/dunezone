@@ -40,13 +40,13 @@ test('a BGG link is normalized, public, preserved by older saves and removed by 
     ...profileInput,
     bgg_profile_url: ' https://www.boardgamegeek.com/user/Example%20Player/?ref=share#profile ',
   });
-  expect((await t.query(api.profiles.getBySlug, { slug: 'exampleplayer' })).profile.bgg_profile_url).toBe(
+  expect((await t.query(api.profiles.pageBySlug, { slug: 'exampleplayer' })).profile.bgg_profile_url).toBe(
     'https://boardgamegeek.com/user/Example%20Player'
   );
   const olderSave = await owner.mutation(api.profiles.updateCurrent, profileInput);
   expect(olderSave.profile.bgg_profile_url).toBe('https://boardgamegeek.com/user/Example%20Player');
   await owner.mutation(api.profiles.updateCurrent, { ...profileInput, bgg_profile_url: '   ' });
-  expect((await t.query(api.profiles.getBySlug, { slug: 'exampleplayer' })).profile.bgg_profile_url).toBeUndefined();
+  expect((await t.query(api.profiles.pageBySlug, { slug: 'exampleplayer' })).profile.bgg_profile_url).toBeUndefined();
   /* Each save schedules the avatar rehost; letting it finish here keeps its log inside this test rather than after the worker closes. */
   await t.finishInProgressScheduledFunctions();
 });

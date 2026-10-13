@@ -265,12 +265,12 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
   });
 }
 
-describe('profile detail projection (api.profiles.getBySlug)', () => {
+describe('profile detail projection (api.profiles.pageBySlug)', () => {
   test('resolves the profile by public slug', async () => {
     const t = convexTest(schema, modules);
     const seed = await seedProfileDetail(t);
 
-    const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
     expect(page.profile._id).toBe(seed.profileId);
     expect(page.profile.slug).toBe('central');
@@ -280,7 +280,7 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
     const t = convexTest(schema, modules);
     await seedProfileDetail(t);
 
-    await expect(t.query(api.profiles.getBySlug, { slug: 'missing' })).rejects.toMatchObject({
+    await expect(t.query(api.profiles.pageBySlug, { slug: 'missing' })).rejects.toMatchObject({
       data: { code: 'NOT_FOUND' },
     });
   });
@@ -289,7 +289,7 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
     const t = convexTest(schema, modules);
     const seed = await seedProfileDetail(t);
 
-    const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
     expect(page.groupSummaries).toEqual([
       { id: seed.activeGroupId, name: 'Sietch Tabr', slug: 'sietch-tabr' },
@@ -301,7 +301,7 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
     const t = convexTest(schema, modules);
     const seed = await seedProfileDetail(t);
 
-    const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
     expect(page.groupSummaries.map((group) => group.id)).toEqual([seed.activeGroupId, seed.laterGroupId]);
   });
@@ -310,7 +310,7 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
     const t = convexTest(schema, modules);
     await seedProfileDetail(t);
 
-    const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
     expect(page.groupSummaries.map((group) => group.name)).not.toContain('Ghost Sietch');
     expect(page.groupSummaries).toHaveLength(2);
@@ -320,7 +320,7 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
     const t = convexTest(schema, modules);
     const seed = await seedProfileDetail(t);
 
-    const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
     expect(page.factions.map((faction) => faction._id)).toEqual([seed.activeFactionId]);
     expect(page.factions[0]?.data.name).toBe('Atreides');
@@ -330,7 +330,7 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
     const t = convexTest(schema, modules);
     const seed = await seedProfileDetail(t);
 
-    const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
     expect(page.factions[0]?.rulesets.map((ruleset) => ruleset.name)).toEqual(['Advanced', 'Basic']);
     expect(page.factions[0]?.rulesets.map((ruleset) => ruleset.id)).toEqual([
@@ -363,14 +363,14 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
       });
     });
 
-    await expect(t.query(api.profiles.getBySlug, { slug: 'malformed' })).rejects.toThrow();
+    await expect(t.query(api.profiles.pageBySlug, { slug: 'malformed' })).rejects.toThrow();
   });
 
   test('questions asked are newest-first and carry their ruleset link data', async () => {
     const t = convexTest(schema, modules);
     const seed = await seedProfileDetail(t);
 
-    const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
     expect(page.faqAsked.map((item) => item._id)).toEqual([seed.lateQuestionId, seed.earlyQuestionId]);
     expect(page.faqAsked[0]?.ruleset).toEqual({
@@ -385,7 +385,7 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
     const t = convexTest(schema, modules);
     const seed = await seedProfileDetail(t);
 
-    const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
     expect(page.faqAnswers.map((answer) => answer._id)).toEqual([seed.otherAnswerId, seed.acceptedAnswerId]);
     const accepted = page.faqAnswers.find((answer) => answer._id === seed.acceptedAnswerId);
@@ -406,11 +406,40 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
     const t = convexTest(schema, modules);
     const seed = await seedProfileDetail(t);
 
-    const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
     const orphan = page.faqAnswers.find((answer) => answer._id === seed.otherAnswerId);
     expect(orphan?.asker_profile).toBeNull();
     expect(orphan?.faq_item.accepted_answer_id).toBeNull();
     expect(page.faqAnswers).toHaveLength(2);
+  });
+
+  test('is the same answer for every viewer, the profile owner included', async () => {
+    const t = convexTest(schema, modules);
+    const seed = await seedProfileDetail(t);
+    const strangerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Stranger' }));
+
+    const anonymous = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+    for (const userId of [seed.userId, strangerId]) {
+      expect(await t.withIdentity({ subject: userId }).query(api.profiles.pageBySlug, { slug: 'central' })).toEqual(
+        anonymous
+      );
+    }
+    expect(anonymous).not.toHaveProperty('account');
+  });
+
+  test('the deprecated per-viewer page still answers older bundles with the owner account block', async () => {
+    const t = convexTest(schema, modules);
+    const seed = await seedProfileDetail(t);
+    const owner = t.withIdentity({ subject: seed.userId });
+
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+    expect(await t.query(api.profiles.getBySlug, { slug: 'central' })).toEqual({ ...page, account: null });
+    const settings = await owner.query(api.profiles.settings, {});
+    expect(settings.account).not.toBeNull();
+    expect(await owner.query(api.profiles.getBySlug, { slug: 'central' })).toEqual({
+      ...page,
+      account: settings.account,
+    });
   });
 });

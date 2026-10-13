@@ -8,7 +8,7 @@ import { describe, expect, test } from 'vitest';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import schema from './schema';
-import { factionPageAs, rulesetDetailPageAs } from './viewerAccess.test.fixture';
+import { factionPageAs, groupPageAs, rulesetDetailPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-05T00:00:00.000Z';
@@ -140,8 +140,8 @@ describe('collaborative access public projections', () => {
 
     const queryAs = async (userId?: typeof outsiderId) =>
       userId
-        ? await t.withIdentity({ subject: userId }).query(api.groups.detailBySlug, { slug: 'dune-designers' })
-        : await t.query(api.groups.detailBySlug, { slug: 'dune-designers' });
+        ? await groupPageAs(t.withIdentity({ subject: userId }), 'dune-designers')
+        : await groupPageAs(t, 'dune-designers');
 
     expect((await queryAs()).viewerAccess.viewer).toEqual({ kind: 'anonymous' });
     expect((await queryAs(outsiderId)).viewerAccess.viewer).toEqual({
@@ -166,7 +166,7 @@ describe('collaborative access public projections', () => {
     const { t, ids } = await groupAccessFixture();
     const owner = t.withIdentity({ subject: ids.ownerId });
 
-    const page = await owner.query(api.groups.detailBySlug, { slug: 'dune-designers' });
+    const page = await groupPageAs(owner, 'dune-designers');
 
     expect(page.viewerAccess).toEqual({
       kind: 'group',
@@ -432,6 +432,31 @@ describe('collaborative access public projections', () => {
     }
   });
 
+  test('the Group page is the same answer for every viewer', async () => {
+    const { t, ids } = await groupAccessFixture();
+    const anonymous = await t.query(api.groups.detailPage, { slug: 'dune-designers' });
+    for (const userId of [ids.ownerId, ids.activeId, ids.pendingId, ids.removedId, ids.assetOwnerId]) {
+      const page = await t.withIdentity({ subject: userId }).query(api.groups.detailPage, { slug: 'dune-designers' });
+      expect(page).toEqual(anonymous);
+    }
+  });
+
+  test('the deprecated per-viewer Group page still answers older bundles with their capabilities', async () => {
+    const { t, ids } = await groupAccessFixture();
+    for (const userId of [ids.ownerId, ids.activeId, ids.pendingId, null]) {
+      const viewer = userId ? t.withIdentity({ subject: userId }) : t;
+      const current = await groupPageAs(viewer, 'dune-designers');
+      const legacy = await viewer.query(api.groups.detailBySlug, { slug: 'dune-designers' });
+      const roster = current.roster.map(({ isGroupOwner: _isGroupOwner, ...entry }) => entry);
+      expect(legacy).toEqual({ ...current, roster });
+    }
+    const owner = await t
+      .withIdentity({ subject: ids.ownerId })
+      .query(api.groups.detailBySlug, { slug: 'dune-designers' });
+    expect(owner.viewerAccess.capabilities.rename).toBe(true);
+    expect(owner.roster.some((entry) => entry.capabilities.remove)).toBe(true);
+  });
+
   test('the deprecated per-viewer ruleset pages still answer older bundles with their capabilities', async () => {
     const { t, ids } = await groupAccessFixture();
     const viewer = t.withIdentity({ subject: ids.assetOwnerId });
@@ -459,7 +484,7 @@ describe('collaborative access public projections', () => {
   test('profile detail exposes canonical Group summaries without raw membership transport', async () => {
     const { t, ids } = await groupAccessFixture();
 
-    const profilePage = await t.query(api.profiles.getBySlug, { slug: 'active-member' });
+    const profilePage = await t.query(api.profiles.pageBySlug, { slug: 'active-member' });
 
     expect(profilePage.groupSummaries).toEqual([{ id: ids.groupId, name: 'Dune Designers', slug: 'dune-designers' }]);
   });
@@ -468,7 +493,7 @@ describe('collaborative access public projections', () => {
     const { t, ids } = await groupAccessFixture();
     await t.run((ctx) => ctx.db.delete(ids.groupId));
 
-    const profilePage = await t.query(api.profiles.getBySlug, { slug: 'active-member' });
+    const profilePage = await t.query(api.profiles.pageBySlug, { slug: 'active-member' });
 
     expect(profilePage.groupSummaries).toEqual([]);
   });
@@ -479,9 +504,7 @@ describe('collaborative access public projections', () => {
       await ctx.db.delete(ids.membershipIds.owner);
     });
 
-    const page = await t.withIdentity({ subject: ids.ownerId }).query(api.groups.detailBySlug, {
-      slug: 'dune-designers',
-    });
+    const page = await groupPageAs(t.withIdentity({ subject: ids.ownerId }), 'dune-designers');
     expect(page.viewerAccess).toMatchObject({
       viewer: { kind: 'authenticated', membership: 'none' },
       capabilities: { rename: true, delete: true, addMember: false },
@@ -532,7 +555,7 @@ describe('collaborative access public projections', () => {
 
     const active = t.withIdentity({ subject: ids.activeId });
     await expect(factionPageAs(active, 'collaborative-faction')).rejects.toThrow();
-    await expect(active.query(api.groups.detailBySlug, { slug: 'dune-designers' })).rejects.toThrow();
+    await expect(groupPageAs(active, 'dune-designers')).rejects.toThrow();
   });
 
   test('trusted membership authority is independent of capped presentation collections', async () => {
@@ -610,7 +633,7 @@ describe('collaborative access public projections', () => {
     const viewer = t.withIdentity({ subject: capped.viewerId });
     const faction = await factionPageAs(viewer, 'collaborative-faction');
     const ruleset = (await rulesetDetailPageAs(viewer, 'collaborative-ruleset'))!;
-    const group = await viewer.query(api.groups.detailBySlug, { slug: 'dune-designers' });
+    const group = await groupPageAs(viewer, 'dune-designers');
 
     expect(faction.viewerAccess).toMatchObject({
       viewer: { kind: 'authenticated', membership: 'active' },
@@ -675,9 +698,7 @@ describe('collaborative access moderation commands', () => {
       membershipId: ids.membershipIds.pending,
     });
     expect(approved).toEqual({ membershipId: ids.membershipIds.pending, status: 'active' });
-    const pageAfterApproval = await owner.query(api.groups.detailBySlug, {
-      slug: 'dune-designers',
-    });
+    const pageAfterApproval = await groupPageAs(owner, 'dune-designers');
     expect(pageAfterApproval.roster.find((entry) => entry.membershipId === ids.membershipIds.pending)).toMatchObject({
       status: 'active',
       capabilities: { remove: true },
@@ -711,18 +732,14 @@ describe('collaborative access moderation commands', () => {
       membershipId: rejectedId,
     });
     expect(rejected).toEqual({ membershipId: rejectedId, status: 'removed' });
-    const pageAfterRejection = await owner.query(api.groups.detailBySlug, {
-      slug: 'dune-designers',
-    });
+    const pageAfterRejection = await groupPageAs(owner, 'dune-designers');
     expect(pageAfterRejection.roster.some((entry) => entry.membershipId === rejectedId)).toBe(false);
 
     const removed = await owner.mutation(api.members.removeMember, {
       membershipId: ids.membershipIds.active,
     });
     expect(removed).toEqual({ membershipId: ids.membershipIds.active, status: 'removed' });
-    const pageAfterRemoval = await owner.query(api.groups.detailBySlug, {
-      slug: 'dune-designers',
-    });
+    const pageAfterRemoval = await groupPageAs(owner, 'dune-designers');
     expect(pageAfterRemoval.roster.some((entry) => entry.membershipId === ids.membershipIds.active)).toBe(false);
 
     await expect(

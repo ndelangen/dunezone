@@ -26,8 +26,8 @@ export type CurrentProfileEntry = NonNullable<FunctionReturnType<typeof api.prof
 export type ProfileUpdateResult = FunctionReturnType<typeof api.profiles.updateCurrent>;
 export type ProfileListEntry = FunctionReturnType<typeof api.profiles.list>[number];
 
-/** Server-owned profile detail contract; the read model lives in `convex/lib/profileDetail.ts`. */
-export type ProfileDetailResult = FunctionReturnType<typeof api.profiles.getBySlug>;
+/** Server-owned profile page contract, the same for every viewer; the read model lives in `convex/lib/profileDetail.ts`. */
+export type ProfileDetailResult = FunctionReturnType<typeof api.profiles.pageBySlug>;
 
 /** The profile page's model: the server's detail result with its FAQ activity, factions and Groups normalized for rendering. */
 export type ProfilePageData = ReturnType<typeof normalizeProfilePage>;
@@ -46,7 +46,7 @@ function normalizeProfilePage(result: ProfileDetailResult) {
 
 /** The profile page's loader, paired with `useProfileBySlug`. */
 export async function loadProfileBySlug(slug: string): Promise<ProfilePageData> {
-  const result = await db.query(api.profiles.getBySlug, { slug });
+  const result = await db.query(api.profiles.pageBySlug, { slug });
   return normalizeProfilePage(result);
 }
 
@@ -63,7 +63,7 @@ export function useProfileBySlug(
     initialData?: ProfilePageData;
   }
 ) {
-  const liveData = useLiveQuery(api.profiles.getBySlug, { slug });
+  const liveData = useLiveQuery(api.profiles.pageBySlug, { slug });
   const normalized = liveData ? normalizeProfilePage(liveData) : undefined;
   const result = toLiveQueryResult(normalized, () => options?.initialData);
   return result;

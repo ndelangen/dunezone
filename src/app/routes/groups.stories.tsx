@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
 
@@ -47,7 +47,8 @@ export const Detail = meta.story({
     const line = ownedBy.parentElement;
     /* By href rather than accessible name: the avatar placeholder puts its initials into the name. */
     expect(line?.querySelector('a[href="/profiles/storybook-viewer"]')).not.toBeNull();
-    expect(line?.textContent).toContain('Owner');
+    /* The standing follows the viewer, which the browser resolves after the shared page. */
+    await waitFor(() => expect(line?.textContent).toContain('Owner'), { timeout: 30_000 });
     /* The member count is the band's too, so the roster card no longer repeats it in its title. */
     expect(page.getByRole('heading', { name: 'Members' })).toBeVisible();
     expect(page.queryByRole('heading', { name: 'Stewardship' })).toBeNull();
