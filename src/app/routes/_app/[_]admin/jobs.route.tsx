@@ -83,7 +83,8 @@ function PublicationJobsDashboard() {
   });
   const pickupMutation = useSetPublicationPickupEnabled();
 
-  if (result === undefined) {
+  /* The session gate already turned away everyone but admins, so a non-admin answer cannot reach here. */
+  if (result === undefined || result.access !== 'admin') {
     return <PublicationJobsLoading />;
   }
 

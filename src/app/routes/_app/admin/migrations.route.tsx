@@ -65,7 +65,8 @@ function MigrationDashboard() {
   const dashboard = useAdminMigrationDashboard();
   const syncRuns = useSyncMigrationRuns();
 
-  if (dashboard === undefined) {
+  /* The session gate already turned away everyone but admins, so a non-admin answer cannot reach here. */
+  if (dashboard === undefined || dashboard.access !== 'admin') {
     return <MigrationsLoading />;
   }
 

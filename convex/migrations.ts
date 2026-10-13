@@ -23,8 +23,8 @@ import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
-import { adminQuery, internalMutation, mutation } from './functions';
-import { accountStateOf } from './lib/accountLifecycle';
+import { internalMutation, mutation, viewerQuery } from './functions';
+import { accountStateOf, optionalActiveUserId } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { syncBoardReadiness } from './lib/boardReadiness';
@@ -1016,18 +1016,26 @@ export const listRunSnapshots = internalQuery({
 });
 
 /** Single subscription for admin UI: live statuses + recorded snapshots. */
-export const adminDashboard = adminQuery({
+export const adminDashboard = viewerQuery({
   args: {
     ids: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    const userId = await optionalActiveUserId(ctx);
+    if (!userId) {
+      return { access: 'unauthenticated' as const };
+    }
+    const user = await ctx.db.get('users', userId);
+    if (!user?.isAdmin) {
+      return { access: 'not_authorized' as const };
+    }
     const refs = args.ids ? migrationRefsFor(args.ids) : undefined;
     const statuses = await migrations.getStatus(ctx, {
       migrations: refs,
       limit: 100,
     });
     const snapshots = await ctx.db.query('migration_runs').order('desc').take(100);
-    return { statuses, snapshots };
+    return { access: 'admin' as const, statuses, snapshots };
   },
 });
 

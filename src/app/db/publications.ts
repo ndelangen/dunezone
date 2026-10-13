@@ -6,7 +6,7 @@ import { api } from '../../../convex/_generated/api';
 
 export type PublicationJobStatus = 'pending' | 'in_progress' | 'error';
 
-/** Admin only: the query refuses anyone else, so mount this only once the session says the viewer is an admin. */
+/** Admin only: mount this behind the session gate, so only an administrator ever asks for it. */
 export function usePublicationJobsPage(args: {
   status?: PublicationJobStatus;
   assetType?: string;

@@ -8,7 +8,7 @@ import type { QueryAudience } from './functions';
  * `publicQuery` is the default: the same answer for every caller, so Convex caches one result for all of them.
  * `adminQuery` serves admin-only pages, and its builder refuses everyone else.
  * A query lands here only when its answer genuinely depends on who asks, and the reason says why.
- * Adding a line to this list is a reviewed decision, never a way to make a failing test pass.
+ * Adding a line to either list is a reviewed decision, never a way to make a failing test pass.
  */
 const VIEWER_QUERIES: Record<string, string> = {
   'accountDeletion:page': "The viewer's own account deletion state.",
@@ -31,6 +31,16 @@ const VIEWER_QUERIES: Record<string, string> = {
   'rulebooks:editorBySlugs': 'Drafts are visible to editors only.',
   'rulebooks:editorPage': 'Drafts are visible to editors only.',
   'rulesets:listOwnedForGroupAssign': "The viewer's own rulesets.",
+};
+
+/**
+ * Admin pages that still report access state, kept unchanged only so bundles deployed before their pages gated on the session keep working.
+ * Production deploys functions before the browser bundle, so each becomes `adminQuery` in a later release (see AGENTS.md).
+ * This list only shrinks.
+ */
+const PENDING_VIEWER_SPLIT: Record<string, string> = {
+  'migrations:adminDashboard': 'pages gate on the session; becomes adminQuery in the next release',
+  'publicationAdmin:page': 'pages gate on the session; becomes adminQuery in the next release',
 };
 
 /** Queries a library registers for us, so they cannot carry a builder mark. They read the viewer by design. */
@@ -89,8 +99,12 @@ describe('query audience', () => {
     expect(unmarked).toEqual([]);
   });
 
+  test('the pending split only shrinks', () => {
+    expect(Object.keys(PENDING_VIEWER_SPLIT).length).toBeLessThanOrEqual(2);
+  });
+
   test('viewer queries are exactly the reviewed list', () => {
     const viewer = [...queries].filter(([, audience]) => audience === 'viewer').map(([name]) => name);
-    expect(viewer.sort()).toEqual(Object.keys(VIEWER_QUERIES).sort());
+    expect(viewer.sort()).toEqual([...Object.keys(VIEWER_QUERIES), ...Object.keys(PENDING_VIEWER_SPLIT)].sort());
   });
 });

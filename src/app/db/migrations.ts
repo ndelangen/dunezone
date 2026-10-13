@@ -6,7 +6,7 @@ import { useLiveMutation } from '@app/db/core/live';
 import { api } from '../../../convex/_generated/api';
 
 type AdminMigrationDashboardData = FunctionReturnType<typeof api.migrations.adminDashboard>;
-/** Admin only: the query refuses anyone else, so mount this only once the session says the viewer is an admin. */
+/** Admin only: mount this behind the session gate, so only an administrator ever asks for it. */
 export function useAdminMigrationDashboard(ids?: string[]) {
   const args = ids ? { ids } : {};
   return useQuery(api.migrations.adminDashboard, args) as AdminMigrationDashboardData | undefined;
