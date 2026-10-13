@@ -58,8 +58,8 @@ export default defineSchema({
    */
   play_games: defineTable({
     fixture_key: v.optional(v.string()),
-    name: v.optional(v.string()),
-    slug: v.optional(v.string()),
+    name: v.string(),
+    slug: v.string(),
     ruleset_id: v.optional(v.id('rulesets')),
     minimum_players: v.optional(zodToConvex(tableSeatCountSchema)),
     /* The last turn the creator chose; absent on games created before the create page offered it. */
