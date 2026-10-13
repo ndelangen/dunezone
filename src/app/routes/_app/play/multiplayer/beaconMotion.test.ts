@@ -147,3 +147,13 @@ test('with motion turned off a new mode draws one more frame after it settles, t
   expect(stepBeacon(state, { mode: 'pending', target: pending, delta: 1 / 60, motion: false }).animating).toBe(true);
   expect(stepBeacon(state, { mode: 'pending', target: pending, delta: 1 / 60, motion: false }).animating).toBe(false);
 });
+
+test('with motion turned off a carried beacon that moves draws one more frame, then rests', () => {
+  const state = initialMotion(HOME);
+  stepBeacon(state, { mode: 'home', target: HOME, delta: 1 / 60, motion: false });
+  const at = (x: number) => beaconTarget('carry', HOME, { carry: [x, 0.18, 0] });
+  stepBeacon(state, { mode: 'carry', target: at(0), delta: 1 / 60, motion: false });
+  expect(stepBeacon(state, { mode: 'carry', target: at(0), delta: 1 / 60, motion: false }).animating).toBe(false);
+  expect(stepBeacon(state, { mode: 'carry', target: at(1), delta: 1 / 60, motion: false }).animating).toBe(true);
+  expect(stepBeacon(state, { mode: 'carry', target: at(1), delta: 1 / 60, motion: false }).animating).toBe(false);
+});
