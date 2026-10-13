@@ -1,4 +1,5 @@
 import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
+import { publishedPath } from '@shared/asset-publishing/publicationTargets';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -170,10 +171,28 @@ const troopBackgrounds = [
   backgroundPresets.beneTleilaxu,
 ];
 const showcaseCards = [
-  { name: 'Supplies!', slug: 'supplies', id: 'ns78nmym3qpth6sm9wsfj3ka9s8cw350', credit: 'Central' },
-  { name: 'Trishula!', slug: 'trishula', id: 'ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq', credit: 'Central' },
-  { name: 'Arrakeen', slug: 'arrakeen', id: 'ns74r72v6mdmnn8ahdmj27c8gs8cz5t6', credit: 'IHasPinecone' },
-];
+  {
+    name: 'Supplies!',
+    type: 'card-treachery',
+    slug: 'supplies',
+    id: 'ns78nmym3qpth6sm9wsfj3ka9s8cw350',
+    credit: 'Central',
+  },
+  {
+    name: 'Trishula!',
+    type: 'card-treachery',
+    slug: 'trishula',
+    id: 'ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq',
+    credit: 'Central',
+  },
+  {
+    name: 'Arrakeen',
+    type: 'card-custom',
+    slug: 'arrakeen',
+    id: 'ns74r72v6mdmnn8ahdmj27c8gs8cz5t6',
+    credit: 'IHasPinecone',
+  },
+] as const;
 
 function AssetInvitation() {
   return (
@@ -419,8 +438,8 @@ function QualityCards() {
           >
             {visible && (
               <AssetFace
-                href={`https://dune.zone/published/cards/${card.id}/card.jpg`}
-                type="card-treachery"
+                href={`https://dune.zone${publishedPath(card.type, card.id)}`}
+                type={card.type}
                 data={null}
                 name={card.name}
               />
@@ -433,7 +452,7 @@ function QualityCards() {
           <div key={card.id} className={styles.cardCredit}>
             <Anchor
               renderRoot={(props) => (
-                <Link {...props} to="/assets/$type/$slug" params={{ type: 'card-treachery', slug: card.slug }} />
+                <Link {...props} to="/assets/$type/$slug" params={{ type: card.type, slug: card.slug }} />
               )}
               fw={700}
             >
