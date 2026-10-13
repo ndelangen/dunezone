@@ -146,6 +146,23 @@ function BeaconHandle({
   );
 }
 
+/* The handle shows on a risen beacon at its tracker, and stays under the pointer through a carry. */
+const handleShown = (mode: BeaconMode, risen: boolean) => (mode === 'home' && risen) || mode === 'carry';
+
+/**
+ * Whether this player may pick the beacon up: in the Battle phase, with no battle running, while handling the table.
+ * A carry ends when that stops: the phase ends, someone else starts a battle, or the player may no longer handle the table.
+ */
+function useCarryAllowed(table: TableProjection, inBattle: boolean, battle: boolean, putDown: () => void) {
+  const allowed = inBattle && !battle && table.canHandleTable;
+  useEffect(() => {
+    if (!allowed) {
+      putDown();
+    }
+  }, [allowed, putDown]);
+  return allowed;
+}
+
 type Props = {
   table: TableProjection;
   battle: PublicBattle | null | undefined;
@@ -176,13 +193,7 @@ export function BattleBeacon({ table, battle, onDrop }: Props) {
   const group = useRef<Group>(null);
   const handle = useRef<Group>(null);
   const mode = beaconMode({ inBattle, battle: Boolean(battle), pending: Boolean(pending), carrying });
-  const carryAllowed = inBattle && !battle && table.canHandleTable;
-  useEffect(() => {
-    /* A carry ends when the phase does, when someone else starts a battle, or when this player may no longer handle the table. */
-    if (!carryAllowed) {
-      putDown();
-    }
-  }, [carryAllowed, putDown]);
+  const carryAllowed = useCarryAllowed(table, inBattle, Boolean(battle), putDown);
   const { pose, risen } = useBeaconFrame({
     home,
     mode,
@@ -200,7 +211,7 @@ export function BattleBeacon({ table, battle, onDrop }: Props) {
   return (
     <group ref={group} visible={false}>
       <StrikeMark pose={pose} />
-      {(mode === 'home' && risen) || mode === 'carry' ? (
+      {handleShown(mode, risen) ? (
         <BeaconHandle handle={handle} enabled={mode === 'home' && carryAllowed} pickUp={pickUp} />
       ) : null}
     </group>

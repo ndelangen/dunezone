@@ -72,6 +72,12 @@ function followPointer(
   return drop;
 }
 
+/* Where a release drops the beacon: the board point under it, or nothing over the panels or past the board's edge, where the game places no battle. */
+function dropPoint(lifted: PointerEvent | null, canvas: HTMLCanvasElement, camera: Camera) {
+  const point = lifted && overTable(lifted, canvas) ? boardPoint(lifted, canvas, camera) : null;
+  return point && Math.hypot(point[0], point[2]) <= BOARD_RADIUS ? point : null;
+}
+
 type Options = {
   canvas: HTMLCanvasElement;
   camera: Camera;
@@ -104,9 +110,8 @@ export function useBeaconCarry({ canvas, camera, invalidate, onDrop }: Options) 
         cancelCarry.current = null;
         screen.current = null;
         setCarrying(false);
-        const point = lifted && overTable(lifted, canvas) ? boardPoint(lifted, canvas, camera) : null;
-        /* The game places battles on the board only, so a drop past its edge is no drop at all. */
-        if (point && Math.hypot(point[0], point[2]) <= BOARD_RADIUS) {
+        const point = dropPoint(lifted, canvas, camera);
+        if (point) {
           onDrop(point);
         }
       },
