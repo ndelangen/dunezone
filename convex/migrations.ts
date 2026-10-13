@@ -21,7 +21,7 @@ import {
 import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { adminQuery, internalMutation, mutation } from './functions';
 import { accountStateOf } from './lib/accountLifecycle';
@@ -888,37 +888,38 @@ export const rulebook_edition_contents_verify_v1 = migrations.define({
   },
 });
 
-/**
- * Writes each saved draft's Contents hash, so the editor can stop reading the current Edition's Contents.
- * Replaying it recomputes the same hash and writes nothing.
- * A draft whose Contents no longer parse keeps no hash and stays on the full comparison.
- */
-export const rulebook_contents_hash_drafts_v1 = migrations.define({
-  table: 'rulebook_drafts',
-  batchSize: 2,
-  migrateOne: async (ctx, draft) => {
-    const contentsHash = rulebookDraftContentsHash(draft.contents);
-    if (draft.contents_hash !== contentsHash) {
-      await ctx.db.patch('rulebook_drafts', draft._id, { contents_hash: contentsHash });
-    }
-  },
-});
+type ContentsHashTable = 'rulebook_drafts' | 'rulebook_editions';
 
 /**
- * Writes each Edition's Contents hash onto its metadata row, reading the Contents row once.
+ * Defines one backfill that writes `contents_hash` on each row of a table from its stored Contents.
  * Replaying it recomputes the same hash and writes nothing.
- * Contents that no longer parse leave no hash and stay on the full comparison.
+ * Contents that no longer parse leave no hash, so the row stays on the full comparison.
  */
-export const rulebook_contents_hash_editions_v1 = migrations.define({
-  table: 'rulebook_editions',
-  batchSize: 2,
-  migrateOne: async (ctx, edition) => {
-    const contentsHash = rulebookEditionContentsHash(await contentsForRulebookEdition(ctx, edition));
-    if (edition.contents_hash !== contentsHash) {
-      await ctx.db.patch('rulebook_editions', edition._id, { contents_hash: contentsHash });
-    }
-  },
-});
+function contentsHashBackfill(
+  table: ContentsHashTable,
+  hashFor: (ctx: MutationCtx, row: Doc<ContentsHashTable>) => Promise<string | undefined>
+) {
+  return migrations.define({
+    table,
+    batchSize: 2,
+    migrateOne: async (ctx, row) => {
+      const contentsHash = await hashFor(ctx, row);
+      if (row.contents_hash !== contentsHash) {
+        await ctx.db.patch(row._id, { contents_hash: contentsHash });
+      }
+    },
+  });
+}
+
+/** Writes each saved draft's Contents hash, so the editor can stop reading the current Edition's Contents. */
+export const rulebook_contents_hash_drafts_v1 = contentsHashBackfill('rulebook_drafts', async (_ctx, draft) =>
+  rulebookDraftContentsHash(draft.contents)
+);
+
+/** Writes each Edition's Contents hash onto its metadata row, reading the Contents row once. */
+export const rulebook_contents_hash_editions_v1 = contentsHashBackfill('rulebook_editions', async (ctx, edition) =>
+  rulebookEditionContentsHash(await contentsForRulebookEdition(ctx, edition as Doc<'rulebook_editions'>))
+);
 
 const AUDIT_SCAN_LIMIT = 4096;
 const AUDIT_ID_SAMPLE_LIMIT = 50;
