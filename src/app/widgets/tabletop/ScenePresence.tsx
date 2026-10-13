@@ -153,6 +153,15 @@ declare global {
 
 const NO_TRACKERS: readonly TrackerArcSlot[] = [];
 
+/* Classic scrollbars can move the origin of fixed elements away from client coordinate zero. */
+function fixedLabelOrigin(label: HTMLElement, translation: { x: number; y: number }) {
+  const hidden = label.hidden;
+  label.hidden = false;
+  const bounds = label.getBoundingClientRect();
+  label.hidden = hidden;
+  return { x: bounds.left - translation.x, y: bounds.top - translation.y };
+}
+
 export function ScenePresence({
   showNames = true,
   showLocal = false,
@@ -189,6 +198,12 @@ export function ScenePresence({
     label.hidden = true;
     label.setAttribute('aria-hidden', 'true');
     document.body.append(label);
+    const translation = { x: 0, y: 0 };
+    let origin = fixedLabelOrigin(label, translation);
+    const resize = () => {
+      origin = fixedLabelOrigin(label, translation);
+    };
+    window.addEventListener('resize', resize);
     const root = createRoot(label);
     root.render(<HandAvatar color={viewer.color} avatarUrl={viewer.avatarUrl} />);
     updateLocalCursor.current = (point) => {
@@ -196,13 +211,16 @@ export function ScenePresence({
       label.hidden = !visible;
       canvas.classList.toggle(styles.localCursor, visible);
       if (visible) {
-        label.style.transform = `translate3d(${point.x - 8}px, ${point.y - 2}px, 0)`;
+        translation.x = point.x - 8 - origin.x;
+        translation.y = point.y - 2 - origin.y;
+        label.style.transform = `translate3d(${translation.x}px, ${translation.y}px, 0)`;
       }
     };
     return () => {
       updateLocalCursor.current = () => {};
       canvas.classList.remove(styles.localCursor);
       canvas.style.removeProperty('--table-hand-cursor');
+      window.removeEventListener('resize', resize);
       label.remove();
       queueMicrotask(() => root.unmount());
     };

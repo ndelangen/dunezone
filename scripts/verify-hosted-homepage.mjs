@@ -54,8 +54,13 @@ async function assertLocalHandAtPointer(who, position, until) {
       return bounds && Math.hypot(bounds.x + 8 - position.x, bounds.y + 2 - position.y) < 3;
     }, 'The local hand did not reach the stationary pointer.');
   } catch (cause) {
-    const scrollY = await who.page.evaluate(() => window.scrollY);
-    throw new Error(`Local hand position: ${JSON.stringify({ pointer: position, bounds, scrollY })}`, { cause });
+    const viewport = await who.page.evaluate(() => ({
+      scrollY: window.scrollY,
+      clientLeft: document.documentElement.clientLeft,
+      clientTop: document.documentElement.clientTop,
+      gutter: getComputedStyle(document.documentElement).scrollbarGutter,
+    }));
+    throw new Error(`Local hand position: ${JSON.stringify({ pointer: position, bounds, viewport })}`, { cause });
   }
 }
 
@@ -73,6 +78,60 @@ async function scrollUnderPointer(who, position, until) {
     'The board did not scroll out from beneath the pointer.'
   );
   await who.page.locator('[data-table-hand="local"]').waitFor({ state: 'hidden' });
+}
+
+async function verifyReserveGesture({
+  member,
+  guest,
+  source,
+  start,
+  target,
+  destination,
+  revision,
+  wholeStack,
+  until,
+}) {
+  await member.page.mouse.move(start.x, start.y);
+  await member.page.mouse.down();
+  if (wholeStack) {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  await member.page.mouse.move(target.x, target.y, { steps: 2 });
+  try {
+    await until(
+      () =>
+        member.page.evaluate(
+          ([x, z, expectedCount]) => {
+            const held = window.__duneTable.pieces().find((piece) => piece.localCarried);
+            return (
+              held &&
+              (expectedCount === null || held.count === expectedCount) &&
+              Math.hypot(held.position[0] - x, held.position[2] - z) < 0.02
+            );
+          },
+          [...destination, wholeStack ? source.items.length : null]
+        ),
+      `The ${wholeStack ? 'whole-stack' : 'quick'} reserve drag did not carry the expected troops to the pointer.`
+    );
+  } catch (cause) {
+    const shown = await member.page.evaluate(() =>
+      window.__duneTable.pieces().filter((piece) => piece.selected || piece.localCarried)
+    );
+    const actions = member.sent.filter((message) => message.type === 'act').map((message) => message.message);
+    throw new Error(JSON.stringify({ wholeStack, source: source.id, shown, actions: actions.slice(-8) }), { cause });
+  }
+  await member.page.keyboard.press('Escape');
+  await member.page.mouse.up();
+  await until(
+    () => member.page.evaluate(() => window.__duneTable.pieces().every((piece) => !piece.localCarried)),
+    'Cancelling the reserve drag left a carried troop in the scene.'
+  );
+  assert.equal(member.view().snapshot.revision, revision);
+  assert.equal(guest.view().snapshot.revision, revision);
+  assert.deepEqual(
+    member.view().snapshot.table.pieces.find((piece) => piece.id === source.id),
+    source
+  );
 }
 
 async function verifyReservePickup(member, guest, point, until, passed) {
@@ -98,45 +157,7 @@ async function verifyReservePickup(member, guest, point, until, passed) {
   const destination = [source.position[0] * 0.8, source.position[2] * 0.8];
   const revision = member.view().snapshot.revision;
   for (const wholeStack of [false, false, true]) {
-    await member.page.mouse.move(start.x, start.y);
-    await member.page.mouse.down();
-    if (wholeStack) {
-      await new Promise((resolve) => setTimeout(resolve, 400));
-    }
-    await member.page.mouse.move(target.x, target.y, { steps: 2 });
-    try {
-      await until(
-        () =>
-          member.page.evaluate(
-            ([x, z, expectedCount]) => {
-              const held = window.__duneTable.pieces().find((piece) => piece.localCarried);
-              return (
-                held && held.count === expectedCount && Math.hypot(held.position[0] - x, held.position[2] - z) < 0.02
-              );
-            },
-            [...destination, wholeStack ? source.items.length : 1]
-          ),
-        `The ${wholeStack ? 'whole-stack' : 'quick'} reserve drag did not carry the expected troops to the pointer.`
-      );
-    } catch (cause) {
-      const shown = await member.page.evaluate(() =>
-        window.__duneTable.pieces().filter((piece) => piece.selected || piece.localCarried)
-      );
-      const actions = member.sent.filter((message) => message.type === 'act').map((message) => message.message);
-      throw new Error(JSON.stringify({ wholeStack, source: source.id, shown, actions: actions.slice(-8) }), { cause });
-    }
-    await member.page.keyboard.press('Escape');
-    await member.page.mouse.up();
-    await until(
-      () => member.page.evaluate(() => window.__duneTable.pieces().every((piece) => !piece.localCarried)),
-      'Cancelling the reserve drag left a carried troop in the scene.'
-    );
-    assert.equal(member.view().snapshot.revision, revision);
-    assert.equal(guest.view().snapshot.revision, revision);
-    assert.deepEqual(
-      member.view().snapshot.table.pieces.find((piece) => piece.id === source.id),
-      source
-    );
+    await verifyReserveGesture({ member, guest, source, start, target, destination, revision, wholeStack, until });
   }
   passed(
     'Repeated quick pickups and a whole-stack pickup follow the pointer and cancel without changing the shared table'

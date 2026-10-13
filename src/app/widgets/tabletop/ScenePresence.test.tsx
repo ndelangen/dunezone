@@ -52,6 +52,7 @@ afterEach(() => {
   scheduler.frames.clear();
   scheduler.three = {};
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
   Reflect.deleteProperty(document, 'elementFromPoint');
 });
 
@@ -123,6 +124,27 @@ function renderPresence(showLocal = false) {
 }
 
 describe('the viewer cursor', () => {
+  test.each([0, 15])('positions the avatar at the pointer with a %s px fixed-position origin', (gutter) => {
+    let fixedOrigin = gutter;
+    const originalBounds = HTMLElement.prototype.getBoundingClientRect;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (this.dataset.tableHand !== 'local') {
+        return originalBounds.call(this);
+      }
+      const translation = this.style.transform.match(/translate3d\(([-\d.]+)px, ([-\d.]+)px, 0\)/);
+      return new DOMRect(fixedOrigin + Number(translation?.[1] ?? 0), Number(translation?.[2] ?? 0), 26, 32);
+    });
+    renderPresence(true);
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 500, clientY: 250 }));
+    const avatar = document.querySelector<HTMLElement>('[data-table-hand=local]');
+    expect(avatar?.getBoundingClientRect().x).toBe(492);
+    expect(avatar?.getBoundingClientRect().y).toBe(248);
+    fixedOrigin = gutter === 0 ? 15 : 0;
+    window.dispatchEvent(new Event('resize'));
+    expect(avatar?.getBoundingClientRect().x).toBe(492);
+    expect(avatar?.getBoundingClientRect().y).toBe(248);
+  });
+
   test('uses a native cursor and moves the avatar during input without a scene frame', () => {
     renderPresence(true);
     const canvas = (scheduler.three.renderer as { domElement: HTMLCanvasElement }).domElement;

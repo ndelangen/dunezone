@@ -12,6 +12,7 @@ import {
 import { isTroopStack } from '@shared/play/troop';
 import board from '@shared/rulebooks/boards/arrakis.json';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
+import type { RefObject } from 'react';
 import type { Camera, Object3D } from 'three';
 import { Group, Vector3 } from 'three';
 
@@ -42,29 +43,42 @@ type DemoTable = Pick<
   'renderedPieces' | 'state' | 'selectedPiece' | 'reservedPieceIds' | 'remoteCarriedIds'
 >;
 
+function isReserveStack(piece: TablePiece) {
+  return isTroopStack(piece) && piece.id.startsWith('reserve-');
+}
+
+function reserveHasStock(piece: TablePiece) {
+  return piece.items.length > 3 && !piece.locked;
+}
+
 function availableReserve(piece: TablePiece, table: DemoTable) {
-  if (!isTroopStack(piece) || !piece.id.startsWith('reserve-')) {
+  if (!isReserveStack(piece) || !reserveHasStock(piece)) {
     return false;
   }
-  const hasStock = piece.items.length > 3 && !piece.locked;
-  const onBoard = Math.hypot(piece.position[0], piece.position[2]) <= BOARD_RIM_RADIUS;
-  if (!hasStock || onBoard) {
+  if (Math.hypot(piece.position[0], piece.position[2]) <= BOARD_RIM_RADIUS) {
     return false;
   }
-  return !table.reservedPieceIds.has(piece.id) && !table.remoteCarriedIds.has(piece.id);
+  return pieceUnused(piece, table);
+}
+
+function reserveScreenPoint(piece: TablePiece, camera: Camera, canvas: HTMLCanvasElement) {
+  const bounds = canvas.getBoundingClientRect();
+  const point = new Vector3(...piece.position).project(camera);
+  return {
+    x: bounds.left + ((point.x + 1) * bounds.width) / 2,
+    y: bounds.top + ((1 - point.y) * bounds.height) / 2,
+  };
+}
+
+function insideDemoViewport({ x, y }: { x: number; y: number }) {
+  const horizontal = x > 45 && x < innerWidth - 100;
+  const vertical = y > 100 && y < innerHeight * 0.6;
+  return horizontal && vertical;
 }
 
 function visibleReserve(piece: TablePiece, camera: Camera, canvas: HTMLCanvasElement) {
-  const bounds = canvas.getBoundingClientRect();
-  const point = new Vector3(...piece.position).project(camera);
-  const x = bounds.left + ((point.x + 1) * bounds.width) / 2;
-  const y = bounds.top + ((1 - point.y) * bounds.height) / 2;
-  const horizontal = x > 45 && x < innerWidth - 100;
-  const vertical = y > 100 && y < innerHeight * 0.6;
-  if (!horizontal || !vertical) {
-    return false;
-  }
-  return document.elementFromPoint(x, y) === canvas;
+  const point = reserveScreenPoint(piece, camera, canvas);
+  return insideDemoViewport(point) && document.elementFromPoint(point.x, point.y) === canvas;
 }
 
 function reserveVisual(scene: Object3D, id: string) {
@@ -81,6 +95,28 @@ function reserveVisual(scene: Object3D, id: string) {
   return visual;
 }
 
+/* Discard the incomplete final range so every reserve has the same chance. */
+function randomIndex(count: number) {
+  const range = 2 ** 32;
+  const limit = range - (range % count);
+  const sample = new Uint32Array(1);
+  while (true) {
+    const value = crypto.getRandomValues(sample)[0];
+    if (value >= limit) {
+      continue;
+    }
+    return value % count;
+  }
+}
+
+function visitorHandling(table: DemoTable) {
+  return Boolean(table.state.draftMove || table.selectedPiece);
+}
+
+function pieceUnused(piece: TablePiece, table: DemoTable) {
+  return !table.reservedPieceIds.has(piece.id) && !table.remoteCarriedIds.has(piece.id);
+}
+
 function createVisit(
   table: DemoTable,
   camera: Camera,
@@ -90,14 +126,16 @@ function createVisit(
   if (document.hidden) {
     return null;
   }
-  if (table.state.draftMove || table.selectedPiece) {
+  if (visitorHandling(table)) {
     return null;
   }
   const eligible = table.renderedPieces.filter(
     (piece) => availableReserve(piece, table) && visibleReserve(piece, camera, canvas)
   );
-  const choice = crypto.getRandomValues(new Uint32Array(1))[0];
-  const piece = eligible[choice % eligible.length];
+  if (!eligible.length) {
+    return null;
+  }
+  const piece = eligible[randomIndex(eligible.length)];
   if (!piece) {
     return null;
   }
@@ -142,16 +180,20 @@ function visitUnchanged(current: Demonstration, table: DemoTable) {
   if (!piece) {
     return false;
   }
-  if (table.state.draftMove || table.selectedPiece) {
+  if (visitorHandling(table)) {
     return false;
   }
-  if (table.remoteCarriedIds.has(piece.id) || table.reservedPieceIds.has(piece.id)) {
+  if (!pieceUnused(piece, table)) {
     return false;
   }
   return sourcePoseUnchanged(current, piece) && sourceItemsUnchanged(current.source, piece);
 }
 
-function animateVisit(current: Demonstration, models: Group, carried: Group, shadow: Group, hand: Group, t: number) {
+type DemoMeshes = { models: Group; carried: Group; shadow: Group; hand: Group };
+type DemoMeshRefs = { [Key in keyof DemoMeshes]: RefObject<DemoMeshes[Key] | null> };
+
+function animateVisit(current: Demonstration, meshes: DemoMeshes, t: number) {
+  const { models, carried, shadow, hand } = meshes;
   const approach = smooth((t - 0.15) / 0.85);
   const lift = smooth((t - 1.2) / 0.5) * (1 - smooth((t - 7.8) / 0.5));
   const outbound = smooth((t - 1.7) / 2.1);
@@ -181,34 +223,31 @@ function animateVisit(current: Demonstration, models: Group, carried: Group, sha
   hand.position.z += leave * 0.35;
 }
 
-/* Bob rehearses with local copies; the session's pieces and the shared table never change. */
-export default function PreviewDemo() {
-  const read = useTabletopReader();
-  const motion = useMotionAllowed();
-  const scene = useThree((state) => state.scene);
-  const camera = useThree((state) => state.camera);
-  const renderer = useThree((state) => state.renderer);
-  const invalidate = useThree((state) => state.invalidate);
-  const hand = useRef<Group>(null);
-  const models = useRef<Group>(null);
-  const carried = useRef<Group>(null);
-  const shadow = useRef<Group>(null);
-  const demo = useRef<Demonstration | null>(null);
-  const stopped = useRef(false);
-  const [visit, setVisit] = useReducer((_: Demonstration | null, next: Demonstration | null) => next, null);
+type VisitSchedule = {
+  motion: boolean;
+  read: () => TabletopContextValue;
+  camera: Camera;
+  renderer: { domElement: HTMLCanvasElement };
+  scene: Object3D;
+  demo: RefObject<Demonstration | null>;
+  stopped: RefObject<boolean>;
+  setVisit: (visit: Demonstration | null) => void;
+  clearVisit: () => void;
+  invalidate: () => void;
+};
 
-  const clearVisit = useCallback(() => {
-    if (demo.current) {
-      demo.current.visual.visible = true;
-    }
-    if (models.current) {
-      models.current.visible = false;
-    }
-    demo.current = null;
-    setVisit(null);
-    invalidate();
-  }, [invalidate]);
-
+function useVisitSchedule({
+  motion,
+  read,
+  camera,
+  renderer,
+  scene,
+  demo,
+  stopped,
+  setVisit,
+  clearVisit,
+  invalidate,
+}: VisitSchedule) {
   useEffect(() => {
     if (!motion) {
       return;
@@ -249,17 +288,26 @@ export default function PreviewDemo() {
       canvas.removeEventListener('pointerdown', stop, true);
       document.removeEventListener('visibilitychange', visibility);
     };
-  }, [camera, clearVisit, invalidate, motion, read, renderer, scene]);
+  }, [camera, clearVisit, demo, invalidate, motion, read, renderer, scene, setVisit, stopped]);
+}
+
+function useVisitFrame(
+  refs: DemoMeshRefs,
+  demo: RefObject<Demonstration | null>,
+  read: () => TabletopContextValue,
+  clearVisit: () => void
+) {
+  const invalidate = useThree((state) => state.invalidate);
 
   useFrame(() => {
     const current = demo.current;
     if (!current) {
       return;
     }
-    if (!hand.current || !carried.current) {
+    if (!refs.hand.current || !refs.carried.current) {
       return;
     }
-    if (!models.current || !shadow.current) {
+    if (!refs.models.current || !refs.shadow.current) {
       return;
     }
     const t = (performance.now() - current.started) / 1000;
@@ -267,9 +315,50 @@ export default function PreviewDemo() {
       clearVisit();
       return;
     }
-    animateVisit(current, models.current, carried.current, shadow.current, hand.current, t);
+    animateVisit(
+      current,
+      {
+        models: refs.models.current,
+        carried: refs.carried.current,
+        shadow: refs.shadow.current,
+        hand: refs.hand.current,
+      },
+      t
+    );
     invalidate();
   });
+}
+
+/* Bob rehearses with local copies; the session's pieces and the shared table never change. */
+export default function PreviewDemo() {
+  const read = useTabletopReader();
+  const motion = useMotionAllowed();
+  const scene = useThree((state) => state.scene);
+  const camera = useThree((state) => state.camera);
+  const renderer = useThree((state) => state.renderer);
+  const invalidate = useThree((state) => state.invalidate);
+  const hand = useRef<Group>(null);
+  const models = useRef<Group>(null);
+  const carried = useRef<Group>(null);
+  const shadow = useRef<Group>(null);
+  const demo = useRef<Demonstration | null>(null);
+  const stopped = useRef(false);
+  const [visit, setVisit] = useReducer((_: Demonstration | null, next: Demonstration | null) => next, null);
+
+  const clearVisit = useCallback(() => {
+    if (demo.current) {
+      demo.current.visual.visible = true;
+    }
+    if (models.current) {
+      models.current.visible = false;
+    }
+    demo.current = null;
+    setVisit(null);
+    invalidate();
+  }, [invalidate]);
+
+  useVisitSchedule({ motion, read, camera, renderer, scene, demo, stopped, setVisit, clearVisit, invalidate });
+  useVisitFrame({ hand, carried, models, shadow }, demo, read, clearVisit);
 
   if (!visit) {
     return null;
