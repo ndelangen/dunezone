@@ -212,7 +212,11 @@ try {
       assert.equal(head.status, 200);
       assert.equal(head.headers.get('X-Public-Cache'), 'hit');
       assert.equal(await head.text(), '');
-    } else if (pathname !== '/factions' && pathname !== '/assets' && pathname !== '/assets/token-disc') {
+    } else if (
+      !['/factions', '/assets', '/assets/token-disc'].includes(pathname) &&
+      /* The galleries share one card template, so one render covers them and the rest stay under the social render rate limit. */
+      !(pathname.startsWith('/media/game/') && pathname !== MEDIA_PUBLIC_PAGES[1])
+    ) {
       const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&');
       assert.ok(image, `${pathname} has no social image URL`);
       const imageUrl = new URL(image);
