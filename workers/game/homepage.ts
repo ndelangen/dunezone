@@ -34,7 +34,7 @@ type Connection = {
   controlTokens: number;
   controlUpdatedAt: number;
 };
-type Saved = { resetAt: number; snapshot: StoredSnapshot };
+type Saved = { resetAt: number; snapshot: StoredSnapshot; epoch?: string };
 type Admission = ReturnType<typeof homepageAdmissionSchema.parse>;
 type Settlement = Extract<HomepageAction, { type: 'drop' | 'command' }>;
 type Gesture = Exclude<HomepageAction, Settlement>;
@@ -45,6 +45,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   private room!: Room;
   private readonly diagnostics: GameDiagnostics;
   private resetAt = 0;
+  private epoch: string = crypto.randomUUID();
   private scheduledAlarm = 0;
   private delivery = new RoomDelivery();
   private activityTimer?: ReturnType<typeof setTimeout>;
@@ -65,7 +66,15 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         const saved = await ctx.storage.get<Saved>('table');
         const parsed = saved && storedSnapshotSchema.safeParse(onCurrentBoard(saved.snapshot));
         this.resetAt = saved?.resetAt ?? 0;
-        this.room = new Room(parsed?.success ? parsed.data : homepageSnapshot(env.APPLICATION_ORIGIN), () => []);
+        const snapshot = parsed?.success
+          ? parsed.data
+          : storedSnapshotSchema.parse(homepageSnapshot(env.APPLICATION_ORIGIN));
+        if (saved?.epoch) {
+          this.epoch = saved.epoch;
+        } else if (saved && this.resetAt > Date.now()) {
+          await ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot, epoch: this.epoch });
+        }
+        this.room = new Room(snapshot, () => []);
         for (const socket of ctx.getWebSockets()) {
           const connection: Connection = socket.deserializeAttachment();
           connection.authenticating = false;
@@ -74,7 +83,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
           this.connections.set(socket, connection);
         }
         await this.diagnostics.run('refresh', () => this.refresh());
-        /* Hibernation keeps settled pieces. A new epoch tells clients to forget old gestures and patch baselines. */
+        /* Hibernation keeps the table's generation; the full frame retires activity lost while idle. */
         this.broadcast();
       })
     );
@@ -126,7 +135,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
 
   private frame() {
     return {
-      epoch: this.room.epoch,
+      epoch: this.epoch,
       snapshot: gameSnapshotSchema.parse(this.room.snapshot),
       carries: this.room.publicCarries(),
       pointers: [...this.room.pointers.values()],
@@ -185,8 +194,10 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     if (this.resetAt <= now) {
       const snapshot = storedSnapshotSchema.parse(homepageSnapshot(this.env.APPLICATION_ORIGIN));
       const resetAt = (Math.floor(now / HOMEPAGE_RESET_MS) + 1) * HOMEPAGE_RESET_MS;
-      await this.ctx.storage.put<Saved>('table', { resetAt, snapshot });
+      const epoch = crypto.randomUUID();
+      await this.ctx.storage.put<Saved>('table', { resetAt, snapshot, epoch });
       this.resetAt = resetAt;
+      this.epoch = epoch;
       this.room = new Room(snapshot, () => []);
       this.delivery = new RoomDelivery();
       this.broadcast();
@@ -369,7 +380,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
 
   private async authorizedAction(socket: WebSocket, connection: Connection, epoch: string, action: HomepageAction) {
     try {
-      if (epoch !== this.room.epoch) {
+      if (epoch !== this.epoch) {
         throw new GameRejection('The table reset. Pick the piece up again.');
       }
       if (connection.leaseUntil <= Date.now()) {
@@ -406,7 +417,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       message.type === 'drop'
         ? this.room.drop(viewer, message.carryId, message)
         : this.room.command(viewer, message.action, message.expectedRevision);
-    await this.ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot: next });
+    await this.ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot: next, epoch: this.epoch });
     this.room.accept(next, message.type === 'drop' ? message.carryId : undefined);
     this.broadcast({ socket, commandId: message.commandId });
   }
