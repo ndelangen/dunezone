@@ -48,6 +48,11 @@ path when absent. Both compiled JavaScript and TypeScript source carry the patch
 remove it when upstream supports a public path override. Backend HTTP routes keep
 their existing paths.
 
+The routing gate checks that sign-in accepts GET only and that both providers'
+cancellation callbacks redirect home without caching. These probes need no credentials
+and create no accounts. A sign-in request with no verifier is unsuitable as a probe:
+the pinned library reports it as a server error.
+
 The token issuer, signing keys, auth tables and Convex client URL remain unchanged.
 Existing sessions can refresh through the same backend. Keep each provider's old
 callback registration for rollback. Removing the two `CUSTOM_AUTH_*` variables
@@ -66,6 +71,9 @@ is [`public/dune-zone-favicon.svg`](../public/dune-zone-favicon.svg). Google's
 published display name and logo depend on its brand-verification status.
 
 Discord also lists the support address and links to the privacy page.
+Both providers use `https://dune.zone/privacy` for their privacy and Terms of Service
+links; that page includes the conduct, copyright and service terms. Google's private
+developer-contact notices also use the support address.
 `support@dune.zone` is the public contact for support and privacy questions. Cloudflare
 Email Routing forwards it to the existing verified owner inbox. The old
 `requests@dune.zone` address remains a compatibility alias through the existing Email
