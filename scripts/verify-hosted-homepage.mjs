@@ -321,19 +321,13 @@ export async function verifyHomepage({
     };
   });
   let initialCanvas;
-  /*
-   * The guest's preview starts before the member opens the homepage.
-   * The member's preview demo redraws continuously once motion is welcome, which keeps the shared SwiftShader GPU process busy.
-   * A renderer starting meanwhile waited seconds on each synchronous WebGL call and stopped after two or three frames, so its sneak peek never became ready.
-   */
-  for (const who of [guest, member]) {
+  for (const who of [member, guest]) {
     await who.page.goto(origin, { waitUntil: 'domcontentloaded' });
     await who.page.getByRole('link', { name: 'Take a sneak peek', exact: true }).click();
     await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
     if (who === member) {
-      /* The scene requests its artwork once the board is ready, so the artwork probe waits for readiness first. */
-      await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
       await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
+      await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
       await who.page.locator('[data-table-connected="true"]').waitFor();
       /* Hand portraits are HTML overlays; the board itself must stay on the canvas. */
       assert.equal(await who.page.locator('#play-preview img:not([data-table-hand] img)').count(), 0);
