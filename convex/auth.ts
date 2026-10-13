@@ -84,12 +84,6 @@ if (localE2eAuthEnabled) {
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers,
   jwt: {
-    /*
-     * Every refresh is an action and a few mutations, and swaps the token under every subscription in the tab. Access does
-     * not ride on the token's lifetime: each function re-reads the user, the stored session and its unused refresh token,
-     * so sign-out, revocation, an invalidated refresh branch and session expiry all take effect at once.
-     */
-    durationMs: 12 * 60 * 60 * 1000,
     async customClaims(ctx, { userId, sessionId }) {
       const [user, session] = await Promise.all([ctx.db.get(userId), ctx.db.get(sessionId)]);
       if (

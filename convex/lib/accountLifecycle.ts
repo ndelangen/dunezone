@@ -2,7 +2,7 @@ import { getAuthUserId, getAuthSessionId } from '@convex-dev/auth/server';
 
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
-import { newestUnusedRefresh, sessionDeadline } from './authSessionLifecycle';
+import { sessionDeadline } from './authSessionLifecycle';
 
 export const ACCOUNT_STATES = ['active', 'merge_pending', 'deletion_pending', 'deleted'] as const;
 
@@ -32,10 +32,6 @@ export async function authenticatedLifecycleUser(ctx: AnyCtx): Promise<Doc<'user
   }
   const [user, session] = await Promise.all([ctx.db.get(userId), ctx.db.get(sessionId)]);
   if (!user || session?.userId !== userId || session._creationTime <= (user.auth_sessions_revoked_through ?? -1)) {
-    return null;
-  }
-  /* A session whose refresh branch was invalidated, such as by refresh-token reuse, is dead even while its JWT is unexpired. */
-  if (!(await newestUnusedRefresh(ctx, session._id))) {
     return null;
   }
   /* Mutations enforce the clock; queries observe the scheduled session removal. */
