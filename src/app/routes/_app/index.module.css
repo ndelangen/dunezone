@@ -228,7 +228,7 @@
 @keyframes board-arrival {
   from {
     opacity: 0;
-    transform: translateY(-1rem);
+    transform: translateY(-1rem) scale(1.025);
   }
   to {
     opacity: 1;
