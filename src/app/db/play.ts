@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import type { z } from 'zod';
 
 import { db } from '@db/core';
-import { toLiveQueryResult, useLiveOperation, useLiveQuery } from '@app/db/core/live';
+import { toLiveQueryResult, useHeldLiveQuery, useLiveOperation, useLiveQuery } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
@@ -16,9 +16,12 @@ export type CreatableRuleset = Extract<
   { access: 'allowed' }
 >['rulesets'][number];
 
-/** What a game page learns before it opens a socket: whether the viewer may enter and whether the table is ready. */
+/**
+ * What a game page learns before it opens a socket: whether the viewer may enter and whether the table is ready.
+ * Every directory summary the game Worker publishes re-runs it, so one failed re-run keeps the last answer instead of throwing the open table, and its socket, off the page.
+ */
 export function useGameAccess(address: string) {
-  return toLiveQueryResult(useLiveQuery(api.playGames.getGameByAddress, { address }));
+  return toLiveQueryResult(useHeldLiveQuery(api.playGames.getGameByAddress, { address }));
 }
 
 /** The lobby's ongoing and past games, as the directory may show them to this viewer. */

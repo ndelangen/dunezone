@@ -253,8 +253,15 @@ export const WheelTakesACloseLook = meta.story({
       canvas.dispatchEvent(event);
       return event.defaultPrevented;
     };
-    const approved = deckPlacement();
-    expect(approved).toBeTruthy();
+    /* The tag is placed on a frame, so on a runner whose frames run seconds late the view's pose is read once a frame passes without moving it. */
+    let previous = deckPlacement();
+    const approved = await waitForFrame(() => {
+      const placement = deckPlacement();
+      const settled = placement === previous;
+      previous = placement;
+      expect(settled && placement && !placement.includes('-9999px')).toBe(true);
+      return placement!;
+    });
 
     expect(turnWheel(300, true)).toBe(false);
     expect(turnWheel(300)).toBe(true);
