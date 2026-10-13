@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import sharp from 'sharp';
 
-import { CARRIED_BASE_Y } from '../src/shared/play/tableGeometry.ts';
+import { CARRIED_BASE_Y, stackPreviewPositionFor } from '../src/shared/play/tableGeometry.ts';
 
 const thumbnails = new Map([
   ['ns78nmym3qpth6sm9wsfj3ka9s8cw350', 'supplies'],
@@ -123,6 +123,44 @@ async function scrollUnderPointer(who, position, until) {
   await who.page.locator('[data-table-hand="local"]').waitFor({ state: 'hidden' });
 }
 
+function gestureActions(who, sentBefore) {
+  return who.sent
+    .slice(sentBefore)
+    .filter((message) => message.type === 'act')
+    .map((message) => message.message)
+    .filter((action) => action.type !== 'pointer' && action.type !== 'renew')
+    .slice(-8);
+}
+
+async function dragTroop({ member, source, start, finish, carrySteps, point, until }) {
+  const sentBeforeDrag = member.sent.length;
+  await member.page.mouse.down();
+  await member.page.mouse.move(finish.x, finish.y, { steps: carrySteps });
+  await member.page.mouse.up();
+  try {
+    await until(
+      () =>
+        member.view().snapshot.table.pieces.find((piece) => piece.id === source.id)?.items.length ===
+        source.items.length - 1,
+      'Dragging a troop did not remove it from its source stack.'
+    );
+  } catch (cause) {
+    throw new Error(
+      JSON.stringify({
+        source: source.id,
+        start,
+        finish,
+        current: await point(member, stackPreviewPositionFor(source)),
+        shown: await member.page.evaluate(() =>
+          window.__duneTable.pieces().filter((piece) => piece.selected || piece.localCarried)
+        ),
+        actions: gestureActions(member, sentBeforeDrag),
+      }),
+      { cause }
+    );
+  }
+}
+
 async function verifyReserveGesture({
   member,
   guest,
@@ -134,6 +172,7 @@ async function verifyReserveGesture({
   wholeStack,
   until,
 }) {
+  const sentBefore = member.sent.length;
   await member.page.mouse.move(start.x, start.y);
   await member.page.mouse.down();
   if (wholeStack) {
@@ -144,15 +183,20 @@ async function verifyReserveGesture({
     await until(
       () =>
         member.page.evaluate(
-          ([x, z, expectedCount]) => {
+          ({ destination: [x, z], expectedCount, sourceItems }) => {
             const held = window.__duneTable.pieces().find((piece) => piece.localCarried);
             return (
               held &&
+              held.itemIds.every((id) => sourceItems.includes(id)) &&
               (expectedCount === null || held.count === expectedCount) &&
               Math.hypot(held.position[0] - x, held.position[2] - z) < 0.02
             );
           },
-          [...destination, wholeStack ? source.items.length : null]
+          {
+            destination,
+            expectedCount: wholeStack ? source.items.length : null,
+            sourceItems: source.items.map((item) => item.id),
+          }
         ),
       `The ${wholeStack ? 'whole-stack' : 'quick'} reserve drag did not carry the expected troops to the pointer.`
     );
@@ -160,8 +204,17 @@ async function verifyReserveGesture({
     const shown = await member.page.evaluate(() =>
       window.__duneTable.pieces().filter((piece) => piece.selected || piece.localCarried)
     );
-    const actions = member.sent.filter((message) => message.type === 'act').map((message) => message.message);
-    throw new Error(JSON.stringify({ wholeStack, source: source.id, shown, actions: actions.slice(-8) }), { cause });
+    throw new Error(
+      JSON.stringify({
+        wholeStack,
+        source: source.id,
+        start,
+        target,
+        shown,
+        actions: gestureActions(member, sentBefore),
+      }),
+      { cause }
+    );
   }
   await member.page.keyboard.press('Escape');
   await member.page.mouse.up();
@@ -184,7 +237,7 @@ async function verifyReservePickup(member, guest, point, until, passed) {
   let source;
   let start;
   for (const reserve of reserves) {
-    const position = await point(member, reserve.position);
+    const position = await point(member, stackPreviewPositionFor(reserve));
     const visible = await member.page.evaluate(
       ({ x, y }) => y > 100 && y < innerHeight - 100 && document.elementFromPoint(x, y)?.tagName === 'CANVAS',
       position
@@ -329,7 +382,7 @@ export async function verifyHomepage({
   const source = member.view().snapshot.table.pieces.find((piece) => piece.id === sourceId);
   assert.ok(source, 'The prepared Carthag troops are missing.');
   const target = [source.position[0] + 0.6, source.position[1], source.position[2] + 0.6];
-  const start = await point(member, source.position);
+  const start = await point(member, stackPreviewPositionFor(source));
   const finish = await point(member, target);
   await member.page.mouse.click(start.x, start.y);
   await until(
@@ -370,15 +423,7 @@ export async function verifyHomepage({
   await loadedAvatarBelowHand(member, 'local', homepageAvatar(origin).url, until);
   await loadedAvatarBelowHand(guest, 'remote', homepageAvatar(origin).url, until);
   passed('Authenticated avatars load below the local and remote hands');
-  await member.page.mouse.down();
-  await member.page.mouse.move(finish.x, finish.y, { steps: carrySteps });
-  await member.page.mouse.up();
-  await until(
-    () =>
-      member.view().snapshot.table.pieces.find((piece) => piece.id === sourceId)?.items.length ===
-      source.items.length - 1,
-    'Dragging a troop did not remove it from its source stack.'
-  );
+  await dragTroop({ member, source, start, finish, carrySteps, point, until });
   const revision = member.view().snapshot.revision;
   await until(() => guest.view().snapshot.revision === revision, 'The unsigned visitor did not receive the drop.');
   const moved = member
@@ -395,7 +440,7 @@ export async function verifyHomepage({
     return shown && Math.hypot(shown.position[0] - moved.position[0], shown.position[2] - moved.position[2]) < 0.02;
   }, 'The unsigned visitor did not render the dropped troop at its shared position.');
   passed('A signed-in visitor moves a troop and the unsigned visitor sees its final position');
-  const repick = await point(member, moved.position);
+  const repick = await point(member, stackPreviewPositionFor(moved));
   await member.page.mouse.move(repick.x, repick.y);
   await member.page.mouse.down();
   await member.page.mouse.move(repick.x + 35, repick.y + 20, { steps: 2 });
