@@ -86,6 +86,18 @@ test('the synthetic Auth guard accepts only its fixed roster during the matching
   expect(() => hostedLoadIdentity(target, environment, params)).toThrow('inactive');
 });
 
+test('the hosted run starts at its start time and stops at its expiry time', () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(run.startsAt - 1);
+  expect(() => requireHostedRun(target, environment)).toThrow('inactive');
+  vi.setSystemTime(run.startsAt);
+  expect(requireHostedRun(target, environment)).toMatchObject(run);
+  vi.setSystemTime(run.expiresAt - 1);
+  expect(requireHostedRun(target, environment)).toMatchObject(run);
+  vi.setSystemTime(run.expiresAt);
+  expect(() => requireHostedRun(target, environment)).toThrow('inactive');
+});
+
 const ceilings = { messages: 100_000, incomingBytes: 16 * 1024 * 1024, requests: 1000, connections: 44 };
 const cell = { profile: 'stacked', case: 'steady', repetition: 2, compression: 'on' } as const;
 
@@ -97,6 +109,7 @@ test('activation refuses malformed or unbounded configuration while retaining ex
     JSON.stringify({ gameId: 'game', run, cell }),
     JSON.stringify({ gameId: 'game', run, ceilings }),
     JSON.stringify({ gameId: '../other', run, ceilings, cell }),
+    JSON.stringify({ gameId: 'game', run: { ...run, expiresAt: run.startsAt }, ceilings, cell }),
     JSON.stringify({ gameId: 'game', run: { ...run, expiresAt: run.startsAt + 1_200_001 }, ceilings, cell }),
     JSON.stringify({ gameId: 'game', run, ceilings: { ...ceilings, connections: 100 }, cell }),
     JSON.stringify({ gameId: 'game', run, ceilings: { ...ceilings, messages: 120_001 }, cell }),
@@ -109,6 +122,8 @@ test('activation refuses malformed or unbounded configuration while retaining ex
   }
   const activation = { gameId: 'game', run, ceilings, cell };
   expect(hostedActivation(JSON.stringify(activation))).toEqual(activation);
+  const maximumDuration = { ...activation, run: { ...run, expiresAt: run.startsAt + 1_200_000 } };
+  expect(hostedActivation(JSON.stringify(maximumDuration))).toMatchObject(maximumDuration);
 });
 
 test('an approved cell names its profile, case, bounds and approval, and browser cells keep compression', () => {
