@@ -609,7 +609,7 @@ export async function openGame(runtime, path = `/__play/games/${gameId}/socket`)
 export async function admitPlayer(peer, runtime, suffix) {
   peer.registrationId = `registration-${suffix}`;
   const connection = await openGame(runtime);
-  connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
+  connection.send({ type: 'admit', supportsBoard: true, ticket: 'c'.repeat(64) });
   await connection.message('view');
   return connection;
 }

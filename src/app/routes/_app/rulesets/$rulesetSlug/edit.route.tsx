@@ -491,11 +491,11 @@ function RulesetAssetSlots({
     <Stack gap="lg">
       <Stack gap={2}>
         <Title order={2} size="h4">
-          Decks and bundles
+          Board, decks and bundles
         </Title>
         <Text size="sm" c="dimmed">
-          What this ruleset ships. Slot names are labels rather than rules, so any deck may fill any deck slot, and an
-          empty slot is fine.
+          What this ruleset puts on the table. Choose a board to make it available for Play. Any deck may fill any deck
+          slot.
         </Text>
       </Stack>
       {setSlot.error ? <FormError title="Slot could not be filled">{setSlot.error.message}</FormError> : null}

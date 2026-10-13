@@ -1,11 +1,18 @@
+import assert from 'node:assert/strict';
 import type { SpawnSyncOptionsWithStringEncoding } from 'node:child_process';
 import { spawnSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import { accessSync, constants as fsConstants, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { ConvexHttpClient } from 'convex/browser';
+import { getFunctionName, makeFunctionReference } from 'convex/server';
+import type { FunctionArgs, FunctionReturnType } from 'convex/server';
+
+import { internal } from '../convex/_generated/api';
 import schema from '../convex/schema';
 import { db as storybookDatabase } from '../src/app/db/storybook/database';
+import type { SeedDocument } from '../src/app/db/storybook/protocol';
 import { verifySnapshotFile } from './snapshot-anonymise';
 
 /**
@@ -510,6 +517,30 @@ function seedSnapshotRulebookDrafts(deployment: TargetDeployment, env: NodeJS.Pr
   console.log(`Seeded ${seeded} Rulebook ${seeded === 1 ? 'draft' : 'drafts'}.`);
 }
 
+/** Seed data travels in the request body because board definitions exceed Linux's per-argument limit. */
+export async function insertLocalSeedDocuments(deployment: SelfHostedDeployment, documents: SeedDocument[]) {
+  assert.equal(new URL(deployment.url).hostname, '127.0.0.1');
+  const client = new ConvexHttpClient(deployment.url, {
+    logger: false,
+    fetch: Object.assign(
+      (input: Parameters<typeof fetch>[0], init: Parameters<typeof fetch>[1]) => {
+        assert.equal(new URL(input instanceof Request ? input.url : input).origin, deployment.url);
+        const headers = new Headers(init?.headers);
+        headers.set('Authorization', `Convex ${deployment.adminKey}`);
+        return fetch(input, { ...init, headers });
+      },
+      { preconnect: fetch.preconnect }
+    ),
+  });
+  /* Admin authorization permits the internal mutation through this disposable backend's HTTP transport. */
+  const reference = makeFunctionReference<
+    'mutation',
+    FunctionArgs<typeof internal.provisioning.insertSeedDocuments>,
+    FunctionReturnType<typeof internal.provisioning.insertSeedDocuments>
+  >(getFunctionName(internal.provisioning.insertSeedDocuments));
+  return await client.mutation(reference, { documents: JSON.stringify(documents) });
+}
+
 type SeedBaselineResult = { seeded: true } | { seeded: false; reason: string };
 
 /**
@@ -517,14 +548,16 @@ type SeedBaselineResult = { seeded: true } | { seeded: false; reason: string };
  * The e2e baseline clears every application table before it seeds, so it runs first.
  * It reports a missing owner instead of throwing, so its result is checked here.
  */
-export function seedLocalFixtureData(deployment: SelfHostedDeployment, env: NodeJS.ProcessEnv, ownerEmail: string) {
+export async function seedLocalFixtureData(
+  deployment: SelfHostedDeployment,
+  env: NodeJS.ProcessEnv,
+  ownerEmail: string
+) {
   const baseline = runProvisioningMutation<SeedBaselineResult>(deployment, env, 'e2e:seedBaseline', { ownerEmail });
   if (!baseline.seeded) {
     throw new Error(`The e2e baseline was not seeded: ${baseline.reason}`);
   }
-  runProvisioningMutation(deployment, env, 'provisioning:insertSeedDocuments', {
-    documents: JSON.stringify(storybookDatabase(() => undefined).create()),
-  });
+  await insertLocalSeedDocuments(deployment, storybookDatabase(() => undefined).create());
   runProvisioningMutation(deployment, env, 'playTesting:seedRealGameCatalogue', {});
   runProvisioningMutation(deployment, env, 'playTesting:seedPublicCatalogue', {});
 }

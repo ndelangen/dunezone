@@ -93,7 +93,7 @@ describe('isolated Play test controls', () => {
         slugs: rulesets.map((r) => r?.slug),
       };
     });
-    expect(seeded.slots).toEqual(['spice', 'treachery']);
+    expect(seeded.slots).toEqual(['board', 'spice', 'treachery']);
     expect(seeded.factions).toBe(2);
     expect(new Set(seeded.slugs).size).toBe(2);
   });

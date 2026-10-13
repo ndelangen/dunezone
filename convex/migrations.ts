@@ -27,6 +27,7 @@ import { internalMutation, mutation, viewerQuery } from './functions';
 import { accountStateOf, optionalActiveUserId } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
+import { syncBoardReadiness } from './lib/boardReadiness';
 import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
@@ -53,6 +54,7 @@ import type { MutationCtx, QueryCtx } from './types';
 type MigrationRef = FunctionReference<'mutation', 'internal'>;
 
 const MIGRATION_IDS: Record<string, MigrationRef> = {
+  board_readiness_v1: internal.migrations.board_readiness_v1,
   faction_member_ids_v1: internal.migrations.faction_member_ids_v1,
   faction_member_ids_verify_v1: internal.migrations.faction_member_ids_verify_v1,
   groups_slug_v1: internal.migrations.groups_slug_v1,
@@ -1338,5 +1340,16 @@ export const auth_session_expiry_jobs_v1 = migrations.define({
   batchSize: 50,
   migrateOne: async (ctx, session) => {
     await scheduleSessionExpiry(ctx, session);
+  },
+});
+
+/** Existing boards receive the same small eligibility row as new asset writes. */
+export const board_readiness_v1 = migrations.define({
+  table: 'assets',
+  batchSize: 10,
+  migrateOne: async (ctx, asset) => {
+    if (asset.type === 'board') {
+      await syncBoardReadiness(ctx, asset._id, asset);
+    }
   },
 });

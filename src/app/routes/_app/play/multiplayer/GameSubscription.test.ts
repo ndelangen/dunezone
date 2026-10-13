@@ -138,7 +138,7 @@ test('disconnect forgets the old baseline, rejects its late messages and accepts
 
 test('applies a saved movement patch that the admission never asked for', async () => {
   const { subscription, socket, view } = await subscribed();
-  expect(socket.sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+  expect(socket.sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
   const next = structuredClone(view);
   next.snapshot.revision++;
   next.snapshot.table.pieces[0].position = [2, 0, 2];
@@ -206,7 +206,7 @@ test('an expired ticket reconnects with a new one, waiting longer each time unti
   await expire(opened(), 2000);
   await expire(opened(), 4000);
   const admitted = opened();
-  expect(admitted.sent).toEqual([{ type: 'admit', ticket: '4'.repeat(64) }]);
+  expect(admitted.sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: '4'.repeat(64) }]);
   admitted.deliver(initial());
   expect(subscription.status).toBe('authorized');
   await expire(admitted, 1000);
@@ -323,7 +323,7 @@ test('a ticket answered after the request timeout is taken by the next attempt i
   expect(requestTicket).toHaveBeenCalledTimes(1);
   const socket = Socket.instances.at(-1)!;
   socket.open();
-  expect(socket.sent).toEqual([{ type: 'admit', ticket: '1'.repeat(64) }]);
+  expect(socket.sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: '1'.repeat(64) }]);
   socket.deliver(initial());
   expect(subscription.status).toBe('authorized');
 });
@@ -532,10 +532,10 @@ test('a refusal that arrives only as the close code still says why', async () =>
 
 test('a reconnect names the connection that last showed the table, so the Worker can retire it', async () => {
   const { socket } = await subscribed();
-  expect(socket.sent[0]).toEqual({ type: 'admit', ticket: 'a'.repeat(64) });
+  expect(socket.sent[0]).toEqual({ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) });
   socket.close(1006);
   await vi.advanceTimersByTimeAsync(1000);
   const next = Socket.instances.at(-1)!;
   next.open();
-  expect(next.sent[0]).toEqual({ type: 'admit', ticket: 'a'.repeat(64), replaces: 'one' });
+  expect(next.sent[0]).toEqual({ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64), replaces: 'one' });
 });

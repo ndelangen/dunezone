@@ -1000,6 +1000,7 @@ function SceneContents({
   mapFramingPoints: readonly Vector3Tuple[];
 }) {
   const table = useTabletop();
+  const board = useTabletopSelector((value) => value.snapshot.board);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
@@ -1023,6 +1024,7 @@ function SceneContents({
       <group onClick={() => selectPiece(null)}>
         {drawBoard && (
           <TabletopBoard
+            board={board}
             seatCount={seatCount}
             interactive
             stormSectorIndex={state.stormSectorIndex}
