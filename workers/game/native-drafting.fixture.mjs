@@ -1,4 +1,5 @@
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.mjs';
 import {
   accepted,
@@ -134,6 +135,7 @@ export async function draftingRuntime(
     peer.catalogue.set(`${page.asset.type}/${page.asset.slug}`, page);
   }
   peer.rulesets.set('ruleset-one', {
+    board: arrakisBoardCapture,
     ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
     slots: [slot('treachery', treachery), slot('spice', spice)],
   });

@@ -22,9 +22,14 @@ async function loadedAvatarBelowHand(who, kind, expectedUrl, until) {
     `${who.label}'s ${kind} avatar did not load.`
   );
   assert.equal(await image.getAttribute('src'), expectedUrl);
-  const avatar = await image.boundingBox();
-  const glyph = await hand.locator(':scope > svg').boundingBox();
-  assert.ok(avatar && glyph, `${who.label}'s ${kind} hand and avatar need visible bounds.`);
+  /* The remote hand eases toward its pointer, so both bounds must come from the same browser frame. */
+  const bounds = await hand.evaluate((element) => {
+    const avatar = element.querySelector('img')?.getBoundingClientRect();
+    const glyph = element.querySelector(':scope > svg')?.getBoundingClientRect();
+    return avatar && glyph ? { avatar: avatar.toJSON(), glyph: glyph.toJSON() } : null;
+  });
+  assert.ok(bounds, `${who.label}'s ${kind} hand and avatar need visible bounds.`);
+  const { avatar, glyph } = bounds;
   assert.ok(avatar.y >= glyph.y + glyph.height, `${who.label}'s ${kind} avatar overlaps the hand.`);
   assert.ok(Math.abs(avatar.x + avatar.width / 2 - glyph.x - glyph.width / 2) < 3);
 }

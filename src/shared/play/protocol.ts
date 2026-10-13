@@ -11,7 +11,7 @@ import {
   battleFaceSchema,
 } from './battle';
 import { biddingActionSchema, biddingStateSchema } from './bidding';
-import { publicFactionSchema } from './capture';
+import { boardCaptureSchema, publicFactionSchema } from './capture';
 import {
   conversationMessageSchema,
   conversationPeerSchema,
@@ -65,6 +65,8 @@ const phaseEntrySchema = z.object({
 const direction = z.union([z.literal(-1), z.literal(1)]);
 
 export const gameSnapshotSchema = z.object({
+  /* Immutable retained content, omitted only for legacy games and fixtures. */
+  board: boardCaptureSchema.optional(),
   revision: count,
   table: tableSchema,
   versions: z.record(z.string(), count),
@@ -211,6 +213,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({
     type: z.literal('admit'),
+    supportsBoard: z.literal(true).optional(),
     ticket: z.string().regex(/^[a-f0-9]{64}$/),
     /* The connection this page held before it reconnected, which the Worker retires once this one is admitted. */
     replaces: id.optional(),
@@ -339,7 +342,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     contents: spawnContentsSchema.nullable().optional(),
     error: z.string().optional(),
   }),
-  z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied']) }),
+  z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied', 'refresh']) }),
   /* `held` is the carried piece as the carrier now sees it, sent after a flip so a face turned up in hand shows at once. */
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema, held: pieceSchema.optional() }),
   z.object({ type: z.literal('ping'), ping: pingSchema }),

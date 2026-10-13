@@ -322,7 +322,7 @@ async function runLocalDevelopment(requested: LocalData) {
 
     if (data.kind === 'fixture') {
       console.log('Seeding the e2e baseline, the Storybook baseline and the Play catalogues...');
-      seedLocalFixtureData(deployment, localEnv, ownerEmail);
+      await seedLocalFixtureData(deployment, localEnv, ownerEmail);
     }
     console.log('Handing factions and groups to the local reviewer accounts...');
     remapOwnershipToLocalUsers(deployment, localEnv, ownerEmail, collaboratorEmail);

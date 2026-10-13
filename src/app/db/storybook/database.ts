@@ -14,6 +14,7 @@ import { parseAssetDataForWrite } from '../../../shared/assets/validation';
 import { assetPublishingFaction } from '../../../shared/factions/fixtures/assetPublishingFaction';
 import { FactionInputSchema, FactionRowSlugSchema } from '../../../shared/factions/schema';
 import type { FactionInput } from '../../../shared/factions/schema';
+import { arrakisBoardCapture } from '../../../shared/play/fixtures/board';
 import { rulesetInputSchema } from '../../../shared/rulesets/validation';
 import { slugify } from '../../../shared/slugify';
 import { SEED_REF_TOKEN } from './protocol';
@@ -180,7 +181,11 @@ function baselineDatabase(): StorybookDatabase {
     { from_asset_id: ref(bundle.$key!), to_asset_id: ref(disc.$key!), kind: 'bundle-token', count: 1 },
     { from_asset_id: ref(bundle.$key!), to_asset_id: ref(enhance.$key!), kind: 'bundle-token', count: 1 }
   );
+  baseline.assets.push(
+    asset({ type: 'board', data: { name: 'Arrakis Official', about: '', board: arrakisBoardCapture.definition } })
+  );
   baseline.ruleset_asset_slots.push(
+    { ruleset_id: ref(RULESET_KEY), asset_id: ref('asset:board:arrakis-official'), slot: 'board' },
     { ruleset_id: ref(RULESET_KEY), asset_id: ref(deck.$key!), slot: 'treachery' },
     { ruleset_id: ref(RULESET_KEY), asset_id: ref(bundle.$key!), slot: 'customTokens' }
   );

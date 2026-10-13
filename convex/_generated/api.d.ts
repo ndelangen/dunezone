@@ -35,6 +35,7 @@ import type * as lib_applicationTriggers from "../lib/applicationTriggers.js";
 import type * as lib_assetBacks from "../lib/assetBacks.js";
 import type * as lib_assetInput from "../lib/assetInput.js";
 import type * as lib_authSessionLifecycle from "../lib/authSessionLifecycle.js";
+import type * as lib_boardReadiness from "../lib/boardReadiness.js";
 import type * as lib_cardFrontPresets from "../lib/cardFrontPresets.js";
 import type * as lib_cardbackPresets from "../lib/cardbackPresets.js";
 import type * as lib_collaborativeAccess from "../lib/collaborativeAccess.js";
@@ -82,6 +83,7 @@ import type * as lib_rulebookPublication from "../lib/rulebookPublication.js";
 import type * as lib_rulebookReferences from "../lib/rulebookReferences.js";
 import type * as lib_rulebookSettings from "../lib/rulebookSettings.js";
 import type * as lib_rulebookTroopSources from "../lib/rulebookTroopSources.js";
+import type * as lib_rulesetBoard from "../lib/rulesetBoard.js";
 import type * as lib_rulesetCover from "../lib/rulesetCover.js";
 import type * as lib_rulesetDetailPage from "../lib/rulesetDetailPage.js";
 import type * as lib_rulesetSlots from "../lib/rulesetSlots.js";
@@ -116,6 +118,7 @@ import type * as rulebookEditionArtifactWork from "../rulebookEditionArtifactWor
 import type * as rulebookEditionArtifacts from "../rulebookEditionArtifacts.js";
 import type * as rulebookSources from "../rulebookSources.js";
 import type * as rulebooks from "../rulebooks.js";
+import type * as rulesetBoards from "../rulesetBoards.js";
 import type * as rulesetCovers from "../rulesetCovers.js";
 import type * as rulesets from "../rulesets.js";
 import type * as slugAllocationTesting from "../slugAllocationTesting.js";
@@ -156,6 +159,7 @@ declare const fullApi: ApiFromModules<{
   "lib/assetBacks": typeof lib_assetBacks;
   "lib/assetInput": typeof lib_assetInput;
   "lib/authSessionLifecycle": typeof lib_authSessionLifecycle;
+  "lib/boardReadiness": typeof lib_boardReadiness;
   "lib/cardFrontPresets": typeof lib_cardFrontPresets;
   "lib/cardbackPresets": typeof lib_cardbackPresets;
   "lib/collaborativeAccess": typeof lib_collaborativeAccess;
@@ -203,6 +207,7 @@ declare const fullApi: ApiFromModules<{
   "lib/rulebookReferences": typeof lib_rulebookReferences;
   "lib/rulebookSettings": typeof lib_rulebookSettings;
   "lib/rulebookTroopSources": typeof lib_rulebookTroopSources;
+  "lib/rulesetBoard": typeof lib_rulesetBoard;
   "lib/rulesetCover": typeof lib_rulesetCover;
   "lib/rulesetDetailPage": typeof lib_rulesetDetailPage;
   "lib/rulesetSlots": typeof lib_rulesetSlots;
@@ -237,6 +242,7 @@ declare const fullApi: ApiFromModules<{
   rulebookEditionArtifacts: typeof rulebookEditionArtifacts;
   rulebookSources: typeof rulebookSources;
   rulebooks: typeof rulebooks;
+  rulesetBoards: typeof rulesetBoards;
   rulesetCovers: typeof rulesetCovers;
   rulesets: typeof rulesets;
   slugAllocationTesting: typeof slugAllocationTesting;
