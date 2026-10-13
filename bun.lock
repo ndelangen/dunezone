@@ -153,6 +153,7 @@
     "three@0.185.1": "patches/three@0.185.1.patch",
     "@storybook/tanstack-react@10.6.0": "patches/@storybook%2Ftanstack-react@10.6.0.patch",
     "@react-three/fiber@10.0.0-alpha.4": "patches/@react-three%2Ffiber@10.0.0-alpha.4.patch",
+    "@convex-dev/auth@0.0.96": "patches/@convex-dev%2Fauth@0.0.96.patch",
   },
   "overrides": {
     "@babel/core": "7.29.7",

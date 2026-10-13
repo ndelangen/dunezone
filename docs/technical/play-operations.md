@@ -114,7 +114,9 @@ Play is healthy for release when all of these hold:
 
 ## 3. Alert routing
 
-Privacy requests to `requests@dune.zone` are routed to the `dunezone-game` Email Worker.
+Support and privacy requests use `support@dune.zone`, forwarded by Cloudflare Email Routing
+to the existing verified owner inbox. The old `requests@dune.zone` address remains a
+compatibility alias routed to the `dunezone-game` Email Worker.
 Its email handler forwards them to the same `ALERT_EMAIL_TO` secret used by the alert relay.
 The handler does not read, store or log message contents, and rejects other recipients or a missing destination.
 Cloudflare Email Routing must have an enabled literal `to:requests@dune.zone` rule with a Worker action targeting
