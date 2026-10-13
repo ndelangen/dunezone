@@ -212,6 +212,13 @@ function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: Readonly
 /* The controls a panel offers only while present, so only their presence counts for a panel's render. */
 const PANEL_CONTROLS = ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls', 'closePeek'] as const;
 
+function samePlayback(previous: TableProjection['playback'], next: TableProjection['playback']) {
+  if (!previous || !next) {
+    return previous === next;
+  }
+  return previous.step === next.step && previous.lastStep === next.lastStep && previous.recordedAt === next.recordedAt;
+}
+
 /*
  * Whether the panels would show `next` as they show `previous`: everything they read is the same, and only where held pieces are on their way differs.
  * A carry moves many times a second, and only the scene follows it, so the panels keep the table they have until something they show changes.
@@ -222,9 +229,7 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     previous.viewer === next.viewer &&
     previous.snapshot === next.snapshot &&
     previous.liveRevision === next.liveRevision &&
-    previous.playback?.step === next.playback?.step &&
-    previous.playback?.lastStep === next.playback?.lastStep &&
-    previous.playback?.recordedAt === next.playback?.recordedAt &&
+    samePlayback(previous.playback, next.playback) &&
     previous.historyPending === next.historyPending &&
     previous.canInteract === next.canInteract &&
     previous.canHandleTable === next.canHandleTable &&
@@ -782,8 +787,11 @@ export class TableSession {
       gestureActivePieceId: local.gestureActivePieceId,
       hoveredPieceId: this.hoveredId,
       flippingPieceIds: local.flippingPieceIds,
-      serverNow: this.history ? this.historyClock! : this.subscription.serverNow,
+      serverNow: this.clockForView(),
     };
+  }
+  private clockForView() {
+    return this.history ? this.historyClock! : this.subscription.serverNow;
   }
   private deleteControls(canHandleTable: boolean): TableProjection['deleteControls'] {
     return canHandleTable && this.subscription.supportsCommand('delete')

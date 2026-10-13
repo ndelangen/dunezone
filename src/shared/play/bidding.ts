@@ -11,8 +11,8 @@ import { stormOrder } from './stormSector';
 export const BID_COUNTDOWN_MS = 20_000;
 export const BID_WARNING_MS = 5000;
 const DEFAULT_BID_SECONDS = BID_COUNTDOWN_MS / 1000;
-export const MIN_BID_SECONDS = 3;
-export const MAX_BID_SECONDS = 120;
+const MIN_BID_SECONDS = 3;
+const MAX_BID_SECONDS = 120;
 const bidSecondsSchema = z.number().int().min(MIN_BID_SECONDS).max(MAX_BID_SECONDS);
 
 /**
