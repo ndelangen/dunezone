@@ -12,6 +12,7 @@ import {
 } from './lib/collaborativeAccess';
 import { rulesetPageValidator, rulesetPublicDetailPageValidator } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
+import { recordFormerSlug } from './lib/formerSlugs';
 import {
   buildOwnedForGroupAssignRows,
   OWNED_FOR_GROUP_ASSIGN_LIMIT,
@@ -208,11 +209,15 @@ export const update = mutation({
      */
     const imageCoverIntent =
       typeof args.image_cover === 'string' && args.image_cover === ruleset.cover?.url ? undefined : args.image_cover;
+    const slug = await resolveUniqueRulesetSlug(ctx, normalizedName, ruleset);
+    if (slug !== ruleset.slug) {
+      await recordFormerSlug(ctx, { kind: 'ruleset', scope: '', slug: ruleset.slug, record_id: ruleset._id });
+    }
     await ctx.db.patch(
       ruleset._id,
       rulesetUpdatePatch({
         name: normalizedName,
-        slug: await resolveUniqueRulesetSlug(ctx, normalizedName, ruleset),
+        slug,
         about: input.about,
         image_cover: imageCoverIntent,
       })

@@ -53,9 +53,12 @@ no invented modification time. Dates describe edits to the record, not changes t
 - Search, filter and sort variants retain their working browser URLs but point to the unfiltered
   catalogue as canonical. They are not listed separately in sitemaps. No robots rule prevents a
   crawler from reading their canonical tag.
-- A rename moves the public address without preserving a redirect. Old slugs, deleted records and
-  unknown public descendants return 404. Five-minute HTML and sitemap caches may briefly retain
-  the old response, as already accepted for public delivery.
+- A rename moves the public address, and the old address answers with a 301 to the current one.
+  This covers factions, assets (including a type conversion), Groups, Rulesets, Rulebooks, and the
+  Rulebook and FAQ pages below a renamed Ruleset; see
+  [former addresses](slug-allocation.md#former-addresses). Deleted records and unknown public
+  descendants return 404. Five-minute HTML and sitemap caches may briefly retain the old response,
+  as already accepted for public delivery.
 - Successful public HTML carries no `noindex`. Social PNGs and publisher health diagnostics carry
   `X-Robots-Tag: noindex`. Social URLs still return PNG bytes, including for social-platform fetches.
 - Sitemap responses carry XML content types and `X-Robots-Tag: noindex`. Unknown sitemap names

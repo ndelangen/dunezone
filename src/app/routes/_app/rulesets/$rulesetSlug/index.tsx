@@ -58,6 +58,7 @@ import {
 } from '@db/rulesets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -355,9 +356,10 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
       ...(isRouteNoticeCode(notice) ? { notice } : {}),
     };
   },
-  loader: async ({ params }) => {
+  loader: async ({ params, location }) => {
     const detailPage = await loadRulesetDetailPage(params.rulesetSlug);
     if (!detailPage) {
+      await redirectFromFormerAddress({ kind: 'ruleset', slug: params.rulesetSlug }, location);
       throw notFound();
     }
     return detailPage;

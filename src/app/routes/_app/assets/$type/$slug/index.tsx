@@ -51,6 +51,7 @@ import type { ReactNode } from 'react';
 import { loadAssetPage, useAssetPage, useConvertTreacheryToCustom } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -69,12 +70,13 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
    * only the collapsed state reaches the URL, the browse page's absence-is-default rule. */
   validateSearch: (input: Record<string, unknown>): { copies?: 'once' } =>
     input.copies === 'once' ? { copies: 'once' } : {},
-  loader: async ({ params }) => {
+  loader: async ({ params, location }) => {
     if (!isAssetType(params.type)) {
       throw notFound();
     }
     const page = await loadAssetPage(params.type, params.slug);
     if (!page) {
+      await redirectFromFormerAddress({ kind: 'asset', type: params.type, slug: params.slug }, location);
       throw notFound();
     }
     return page;

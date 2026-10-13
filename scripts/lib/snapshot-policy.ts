@@ -131,6 +131,7 @@ export const snapshotPolicy = {
   publication_assets: { drop: 'publication records, which must never be acted on outside production' },
   admin_settings: { drop: 'operational settings, not content' },
   counters: { drop: 'slug counters, which the allocators rebuild' },
+  former_slugs: { drop: 'addresses renames left behind, which only old production links need' },
   migration_runs: { drop: 'migration status, which the local migration guard writes again' },
   card_front_presets: {
     fields: { key: 'keep', style: 'keep', revision: 'keep', updated_at: 'keep' },

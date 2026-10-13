@@ -24,6 +24,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, publicDescription, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -34,9 +35,13 @@ import { questionTitle } from './questionTitle';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionSlug')({
   ssr: true,
-  loader: async ({ params }) => {
+  loader: async ({ params, location }) => {
     const page = await loadPublicPage(loadFaqQuestionPage(params));
     if (!page) {
+      await redirectFromFormerAddress(
+        { kind: 'faq', ruleset_slug: params.rulesetSlug, question_slug: params.questionSlug },
+        location
+      );
       throw notFound();
     }
     return { page };

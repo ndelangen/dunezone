@@ -58,6 +58,7 @@ import {
   validateCustomCardTokens,
 } from './lib/customCardTokens';
 import { parseStoredFactionForRead } from './lib/factionInput';
+import { recordFormerSlug } from './lib/formerSlugs';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { enqueueAssetPublication, supersedePendingPublication } from './lib/publication';
@@ -603,6 +604,9 @@ export const update = mutation({
     }
     const slug =
       parsed.name === nameOf(row) ? row.slug : await allocateAssetSlug(ctx, row.type, slugify(parsed.name), row);
+    if (slug !== row.slug) {
+      await recordFormerSlug(ctx, { kind: 'asset', scope: row.type, slug: row.slug, record_id: row._id });
+    }
     await ctx.db.patch(args.id, { data: parsed.data, slug, updated_at: nowIso() });
     if (row.type === 'card-custom' || row.type === 'card-storm') {
       await syncCustomCardTokenRelations(ctx, args.id, parsed.data);
@@ -634,6 +638,8 @@ export const convertTreacheryToCustom = mutation({
       );
     }
     const slug = await allocateAssetSlug(ctx, 'card-custom', row.slug);
+    /* The type is part of the address, so conversion always leaves the treachery address behind. */
+    await recordFormerSlug(ctx, { kind: 'asset', scope: row.type, slug: row.slug, record_id: row._id });
     await ctx.db.patch(row._id, { type: 'card-custom', data, slug, updated_at: nowIso() });
     await supersedePendingPublication(ctx, 'card-treachery', row._id);
     await enqueueAssetPublication(ctx, { ...row, type: 'card-custom', data, slug });
@@ -1451,6 +1457,9 @@ async function publishPolishedStronghold(ctx: MutationCtx, card: Doc<'assets'>, 
     return 0;
   }
   const slug = next.name === data.name ? card.slug : await allocateAssetSlug(ctx, card.type, slugify(next.name), card);
+  if (slug !== card.slug) {
+    await recordFormerSlug(ctx, { kind: 'asset', scope: card.type, slug: card.slug, record_id: card._id });
+  }
   await ctx.db.patch(card._id, {
     data: next,
     slug,
