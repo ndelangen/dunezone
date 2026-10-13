@@ -44,7 +44,9 @@ for future application APIs.
 Worker deploys and passes its smoke checks. `CUSTOM_AUTH_SITE_URL` is Convex Auth's
 documented origin override. The pinned `@convex-dev/auth` patch adds
 `CUSTOM_AUTH_PATH` to its two URL builders, defaulting to the library's `/api/auth`
-path when absent. Both compiled JavaScript and TypeScript source carry the patch;
+path when absent. It also makes a sign-in request without a verifier a 400 instead
+of a 500; the deploy smoke uses that answer to prove dune.zone reaches Convex Auth.
+Both compiled JavaScript and TypeScript source carry the patch;
 remove it when upstream supports a public path override. Backend HTTP routes keep
 their existing paths.
 

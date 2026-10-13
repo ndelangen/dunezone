@@ -57,3 +57,12 @@ test.each([
     expect(destination.searchParams.get('scope')?.split(' ').sort()).toEqual(['openid', 'profile']);
   }
 );
+
+/* The deploy smoke probes dune.zone/auth/signin/<provider> without a verifier and expects this 400. */
+test.each(['google', 'discord'])('%s sign-in without a verifier is a client error', async (provider) => {
+  vi.stubEnv('CONVEX_SITE_URL', 'https://backend.convex.site');
+  vi.stubEnv('SITE_URL', 'https://dune.zone');
+  const t = convexTest(schema, modules);
+  const response = await t.fetch(`/api/auth/signin/${provider}`);
+  expect(response.status).toBe(400);
+});

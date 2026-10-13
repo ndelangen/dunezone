@@ -1,3 +1,16 @@
+diff --git a/dist/server/implementation/index.js b/dist/server/implementation/index.js
+index 107e1b01a99216af4d422d9776e597430aa5ba66..f190372e487c483abd71bdf6d1fb67e3d0147f3d 100644
+--- a/dist/server/implementation/index.js
++++ b/dist/server/implementation/index.js
+@@ -154,7 +154,7 @@ export function convexAuth(config_) {
+                         }
+                         const verifier = url.searchParams.get("code");
+                         if (verifier === null) {
+-                            throw new Error("Missing sign-in verifier");
++                            throw new ConvexError("Missing sign-in verifier");
+                         }
+                         const provider = getProviderOrThrow(providerId);
+                         const { redirect, cookies, signature } = await getAuthorizationUrl({
 diff --git a/dist/server/implementation/signIn.js b/dist/server/implementation/signIn.js
 index 9b763107d094b5cf585c13fb4d8678d91657f04e..f37122925a8f0a9c3658585d78f1cf7281b910e7 100644
 --- a/dist/server/implementation/signIn.js
@@ -24,6 +37,19 @@ index ca12cc5df229391c96164162d442befb3a7baddd..30b7c1a585dfb815a1fbb8edc53f564b
  }
  // ConvexAuth: This is a ConvexAuth specific function that produces a string that the
  // Convex functions will validate
+diff --git a/src/server/implementation/index.ts b/src/server/implementation/index.ts
+index 3cb4bfcb4b6b7c02ced3159e53975df35a001ef6..e0b4ff1a7506c6243aaed536084816c122aaeffb 100644
+--- a/src/server/implementation/index.ts
++++ b/src/server/implementation/index.ts
+@@ -246,7 +246,7 @@ export function convexAuth(config_: ConvexAuthConfig) {
+               }
+               const verifier = url.searchParams.get("code");
+               if (verifier === null) {
+-                throw new Error("Missing sign-in verifier");
++                throw new ConvexError("Missing sign-in verifier");
+               }
+               const provider = getProviderOrThrow(
+                 providerId,
 diff --git a/src/server/implementation/signIn.ts b/src/server/implementation/signIn.ts
 index ea0b45ce79c6deaf3b9f8479744cbed1858d6ec2..f37a05d1021ec6a1a1657639a07eff1e88622643 100644
 --- a/src/server/implementation/signIn.ts
