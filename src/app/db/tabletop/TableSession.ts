@@ -184,6 +184,19 @@ function sameRequests(a: readonly unknown[], b: readonly unknown[]) {
   return a.length === b.length && a.every((request, index) => request === b[index]);
 }
 
+function stampedLiveSince(saved: { live: boolean; at: number }, now: number) {
+  return saved.live && now - saved.at < LIVE_RESTAMP_INTERVAL_MS;
+}
+
+/* The same table and the same waiting messages as a save that already went out. */
+function sameSave(
+  saved: Pick<StoredTable, 'viewer' | 'snapshot'> & { pending: readonly unknown[] },
+  table: Pick<StoredTable, 'viewer' | 'snapshot'>,
+  pending: readonly unknown[]
+) {
+  return saved.viewer === table.viewer && saved.snapshot === table.snapshot && sameRequests(saved.pending, pending);
+}
+
 function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: ReadonlySet<T> | ReadonlyMap<T, unknown>) {
   if (a.size !== b.size) {
     return false;
@@ -488,17 +501,16 @@ export class TableSession {
     now: number
   ) {
     const saved = this.lastSaved;
-    const table = live ?? this.kept;
-    if (!saved || !table || saved.live !== (live !== null)) {
+    if (!saved) {
       return false;
     }
-    const fresh = !live || now - saved.at < LIVE_RESTAMP_INTERVAL_MS;
-    return (
-      fresh &&
-      saved.viewer === table.viewer &&
-      saved.snapshot === table.snapshot &&
-      sameRequests(saved.pending, pending)
-    );
+    const table = live ?? this.kept;
+    if (!table) {
+      return false;
+    }
+    /* A table that went live or offline since is saved again, and a live one is stamped again once the interval passes. */
+    const sameState = live ? stampedLiveSince(saved, now) : !saved.live;
+    return sameState && sameSave(saved, table, pending);
   }
   readonly conversations: ConversationSession;
   private get status() {
