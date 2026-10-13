@@ -115,7 +115,7 @@ try {
     assert.equal(response.headers.get('X-Robots-Tag'), null, pathname);
     const historicalFallback = Boolean(fixture && pathname.endsWith('/runtime-manual?edition=1'));
     const html = await response.text();
-    assert.doesNotMatch(html, /<meta[^>]+name="robots"[^>]+noindex/, pathname);
+    assert.doesNotMatch(html, /<meta\b[^>]*\bname=["']robots["']/i, pathname);
     assertPublicMetadataQueries(
       Number(response.headers.get('X-Public-Metadata-Queries') ?? 0),
       pathname,
