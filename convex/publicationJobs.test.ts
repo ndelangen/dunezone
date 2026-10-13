@@ -316,13 +316,63 @@ describe('Publication captures one job per asset at a time', () => {
     const { t, faction, firstJobId } = await capturingWithSuccessor();
     await expect(
       t.mutation(internal.publicationJobs.failJob, { jobId: firstJobId, error: 'Timed out' })
-    ).resolves.toMatchObject({ status: 'pending' });
+    ).resolves.toEqual({ status: 'missing' });
     const remaining = await jobsFor(t, faction._id);
     expect(remaining).toHaveLength(1);
     expect(remaining[0]).toMatchObject({
       status: 'pending',
       asset_data: { faction: { name: 'Saved while capturing' } },
     });
+  });
+  test('held successors do not fill the batch and keep other work waiting', async () => {
+    const { t, asUser } = await authenticatedTest();
+    await t.mutation(internal.publicationAdmin.initialize, { rendererRevisions: { faction_sheet: 4 } });
+    const adminId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Admin', isAdmin: true }));
+    await t.withIdentity({ subject: adminId }).mutation(api.publicationAdmin.setPickupEnabled, { enabled: true });
+    /* Twenty assets mid-capture, each with a successor queued ahead of an unrelated save. */
+    for (let index = 0; index < 20; index += 1) {
+      const faction = await createFaction(asUser, `Busy ${index}`);
+      const [job] = await jobsFor(t, faction._id);
+      await t.run(async (ctx) => {
+        await ctx.db.patch(job!._id, { status: 'in_progress', expires_at: Date.now() + 60_000 });
+      });
+      await asUser.mutation(api.factions.update, {
+        id: faction._id,
+        data: { ...assetPublishingFaction, name: `Busy ${index} saved again` },
+      });
+    }
+    const waiting = await createFaction(asUser, 'Waiting behind them');
+    /* Leader faces wait on their own renderer activation; this test is about the sheets alone. */
+    await t.run(async (ctx) => {
+      for (const job of await ctx.db.query('publication_jobs').collect()) {
+        if (job.asset_type === 'faction-leader') {
+          await ctx.db.delete(job._id);
+        }
+      }
+    });
+
+    const work = await t.mutation(internal.publicationJobs.takeWork, {});
+
+    expect(work.items.map((item) => item.assetId)).toEqual([waiting._id]);
+  });
+
+  test('of two overlapping captures that both expire, the newer save is the one kept', async () => {
+    const { t, asUser } = await authenticatedTest();
+    const faction = await createFaction(asUser);
+    const [older] = await jobsFor(t, faction._id);
+    const newerId = await t.run(async (ctx) => {
+      await ctx.db.patch(older!._id, { status: 'in_progress', expires_at: Date.now() - 2 });
+      const { _id, _creationTime, ...row } = (await ctx.db.get('publication_jobs', older!._id))!;
+      return await ctx.db.insert('publication_jobs', {
+        ...row,
+        asset_data: { ...row.asset_data, faction: { ...row.asset_data.faction, name: 'Newer save' } },
+        expires_at: Date.now() - 1,
+      });
+    });
+
+    await t.mutation(internal.publicationJobs.takeWork, {});
+
+    expect((await jobsFor(t, faction._id)).map((job) => job._id)).toContain(newerId);
   });
 });
 

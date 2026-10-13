@@ -4,12 +4,11 @@ import { profileSummary } from './profileSummary';
 
 /** FAQ list projection used by ruleset views. */
 export async function loadFaqItemsForRuleset(ctx: QueryCtx | MutationCtx, rulesetId: Id<'rulesets'>) {
-  const items = await ctx.db
+  const sorted = await ctx.db
     .query('faq_items')
     .withIndex('by_ruleset_created', (q) => q.eq('ruleset_id', rulesetId))
     .order('desc')
     .take(200);
-  const sorted = [...items].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
   if (sorted.length === 0) {
     return [];
   }

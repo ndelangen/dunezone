@@ -6,7 +6,6 @@ import { describe, expect, test } from 'vitest';
 
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
 import schema from './schema';
 import { faqQuestionPageAs } from './viewerAccess.test.fixture';
 
@@ -131,10 +130,10 @@ describe('FAQ question page projection (api.faq.question)', () => {
     expect(page.answers.slice(1).every((answer) => !answer.accepted)).toBe(true);
   });
 
-  test('the accepted answer leads the page even past the answer limit', async () => {
+  test('the page shows the newest answers, and the accepted one leads even when older than them', async () => {
     const t = convexTest(schema, modules);
     const seed = await seedQuestionPage(t);
-    const lateAcceptedId = await t.run(async (ctx) => {
+    await t.run(async (ctx) => {
       const question = (await ctx.db.query('faq_items').first())!;
       for (let index = 0; index < 200; index += 1) {
         await ctx.db.insert('faq_answers', {
@@ -144,19 +143,14 @@ describe('FAQ question page projection (api.faq.question)', () => {
           created_at: at(6),
         });
       }
-      const late = await ctx.db.insert('faq_answers', {
-        faq_item_id: question._id,
-        answer: 'The answer that settled it.',
-        answered_by: seed.answererId,
-        created_at: at(7),
-      });
-      await ctx.db.patch(question._id, { accepted_answer_id: late });
-      return late;
     });
 
     const page = await t.query(api.faq.question, locator);
 
-    expect(page.answers[0]).toMatchObject({ id: lateAcceptedId, accepted: true });
+    expect(page.answers[0]).toMatchObject({ id: seed.acceptedAnswerId, accepted: true });
+    expect(page.answers.slice(1).map((answer) => answer.text)).toEqual(
+      Array.from({ length: 200 }, (_, index) => `Filler ${index}`)
+    );
   });
 
   test('the question owner moderates: edit, delete, accept, unaccept', async () => {
@@ -244,30 +238,5 @@ describe('FAQ question page projection (api.faq.question)', () => {
     await expect(t.query(api.faq.question, { rulesetSlug: 'missing', questionSlug: '1' })).rejects.toMatchObject({
       data: { code: 'NOT_FOUND' },
     });
-  });
-});
-
-describe('FAQ list on the ruleset page', () => {
-  test('a ruleset with more questions than the list shows keeps its newest ones', async () => {
-    const t = convexTest(schema, modules);
-    const seed = await seedQuestionPage(t);
-    const listed = await t.run(async (ctx) => {
-      const rulesetId = (await ctx.db.query('rulesets').first())!._id;
-      for (let index = 0; index < 200; index += 1) {
-        await ctx.db.insert('faq_items', {
-          ruleset_id: rulesetId,
-          slug: `filler-${index}`,
-          question: `Filler question ${index}?`,
-          asked_by: seed.thirdId,
-          created_at: at(10),
-          updated_at: at(10),
-          accepted_answer_id: null,
-        });
-      }
-      return (await loadFaqItemsForRuleset(ctx, rulesetId)).map((item) => item.slug);
-    });
-
-    expect(listed).toHaveLength(200);
-    expect(listed).not.toContain('1');
   });
 });

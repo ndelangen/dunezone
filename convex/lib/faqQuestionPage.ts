@@ -116,10 +116,14 @@ export async function loadFaqQuestionPublicPage(ctx: QueryCtx, args: { rulesetSl
       message: `FAQ item with slug ${args.questionSlug} not found in ruleset ${args.rulesetSlug}`,
     });
   }
-  const answers = await ctx.db
-    .query('faq_answers')
-    .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
-    .take(QUESTION_PAGE_ANSWER_LIMIT);
+  /* The newest answers, shown oldest first, so a new answer always appears even on a long thread. */
+  const answers = (
+    await ctx.db
+      .query('faq_answers')
+      .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
+      .order('desc')
+      .take(QUESTION_PAGE_ANSWER_LIMIT)
+  ).reverse();
   /* The accepted answer leads the page even when it is older than the limit's window. */
   if (item.accepted_answer_id && !answers.some((answer) => answer._id === item.accepted_answer_id)) {
     const accepted = await ctx.db.get(item.accepted_answer_id);

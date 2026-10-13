@@ -28,7 +28,10 @@ export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'user
       if (!ruleset) {
         throw new Error(`Ruleset ${item.ruleset_id} missing for FAQ item ${item._id}`);
       }
-      /* A soft-deleted ruleset's questions are gone everywhere else, and their links would 404. */
+      /*
+       * A soft-deleted ruleset's questions are gone everywhere else, and their links would 404.
+       * Dropped after the window, so a profile whose newest activity sat in deleted rulesets shows fewer rows; the profile list's counts still include them.
+       */
       if (ruleset.is_deleted) {
         return null;
       }
