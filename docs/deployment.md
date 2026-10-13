@@ -275,9 +275,14 @@ reads, as
 uploads a `ci-pass-*` record named by that hash, holding its coverage report. On a pull request, a
 job whose hash matches a record from a run of this repository's own branches restores the record,
 skips its checks, and uploads the restored report under its usual flag. Codecov therefore receives
-every flag on every run, and coverage never depends on carryforward from `main`, which uploads none.
+every flag on every full run, and coverage never depends on carryforward from `main`, which uploads none.
 The unit test of that file holds each job's list to the import graph of its suites and entry
 points. A file a job reads without importing it must be listed by hand.
+On a draft pull request only `lint`, `test` and `game_release` run, and the closing job reports
+as `ci_draft` instead of `ci_ok`, so a draft's run never satisfies the required check. Codecov
+then receives only the `unit` and `game` flags. Marking the pull request ready for review starts
+the full run, and every later push runs in full
+([#1921](https://github.com/ndelangen/dunezone/issues/1921)).
 Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
 its shard, and each shard runs `--shard <name>`: `regular` runs the regular flow, `catalogue`
 public-controls and battles, and `protocol` private-spice-reserves, decks and results. The `regular` and

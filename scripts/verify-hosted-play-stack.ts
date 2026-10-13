@@ -165,10 +165,18 @@ function start(invocation: Invocation & { logPath: string }): ChildProcess {
 /** Runs one verifier within its timeout, prints its log and reports whether it passed. */
 async function verify(invocation: Invocation & { logPath: string }, timeoutMs: number): Promise<boolean> {
   const verification = start(invocation);
-  const timeout = setTimeout(() => verification.kill('SIGTERM'), timeoutMs);
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    verification.kill('SIGTERM');
+  }, timeoutMs);
   await childExits.get(verification);
   clearTimeout(timeout);
   console.log(readFileSync(invocation.logPath, 'utf8'));
+  /* Stopping the verifier closes its browsers, so its own last error reads as a closed page rather than the time limit. */
+  if (timedOut) {
+    console.log(`${path.basename(invocation.logPath, '.log')} was stopped at its ${timeoutMs / 1000} s limit.`);
+  }
   return verification.exitCode === 0;
 }
 

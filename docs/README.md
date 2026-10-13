@@ -79,7 +79,7 @@ clears when the texture is disposed. The WebGL2 fallback deletes the cached vert
 buffer when it destroys that buffer. The patch covers `build/three.webgpu.js`,
 `build/three.webgpu.nodes.js` and the matching `src/` files.
 
-The `miniflare` entry in `package.json` `overrides` moves only miniflare's own `undici` to 7.29.1,
+The `miniflare` entry in `package.json` `overrides` moves only miniflare's own `undici` to 7.30.0,
 for [GHSA-3wwx-pv8p-q78v](https://github.com/advisories/GHSA-3wwx-pv8p-q78v). miniflare pins
 `undici` to exactly 7.29.0, which no range can reach, and an override of `undici` everywhere would
 move jsdom's 8.x copy and the Codecov analyzer's 6.x copies across majors. An override scoped to one
