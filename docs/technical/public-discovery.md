@@ -39,7 +39,8 @@ limits, not silent result caps. Growth beyond them requires subdividing that col
 There is no background job, saved snapshot or new storage product.
 
 The scan is live rather than a database snapshot. Concurrent changes can appear on a later cache
-refresh. This follows the map's accepted lag tolerance. Last-modified values use the record's
+refresh. Rulesets and profiles scan in name order, so a rename during a scan can repeat or skip that
+one URL until the next refresh. This follows the map's accepted lag tolerance. Last-modified values use the record's
 `updated_at`, never the sitemap generation time. Invalid dates are omitted, and landing pages have
 no invented modification time. Dates describe edits to the record, not changes to linked artwork.
 

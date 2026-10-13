@@ -4,6 +4,8 @@
 import { convexTest } from 'convex-test';
 import { expect, test } from 'vitest';
 
+import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
+import { SITEMAP_RECORD_COLLECTIONS } from '../src/shared/publicDiscovery';
 import { api } from './_generated/api';
 import schema from './schema';
 
@@ -66,36 +68,27 @@ test('rulesets, rulebooks, FAQ questions, profiles and Groups list only what the
     const live = await ctx.db.insert('rulesets', { ...ruleset, name: 'Dream', slug: 'dream', is_deleted: false });
     const gone = await ctx.db.insert('rulesets', { ...ruleset, name: 'Gone', slug: 'gone', is_deleted: true });
     const rulebook = { ...stamp, sort_order: 0, current_edition_number: 1, created_by: owner, deleted_at: null };
-    await ctx.db.insert('rulebooks', {
-      ...rulebook,
-      ruleset_id: live,
-      name: 'Core',
-      name_key: 'core',
-      slug: 'core',
-      is_deleted: false,
-    });
-    await ctx.db.insert('rulebooks', {
-      ...rulebook,
-      ruleset_id: live,
-      name: 'Old',
-      name_key: 'old',
-      slug: 'old',
-      is_deleted: true,
-    });
-    await ctx.db.insert('rulebooks', {
-      ...rulebook,
-      ruleset_id: gone,
-      name: 'Orphan',
-      name_key: 'orphan',
-      slug: 'orphan',
-      is_deleted: false,
-    });
+    const rulebooks = [
+      [live, 'core', false],
+      [live, 'old', true],
+      [live, 'create', false],
+      [gone, 'orphan', false],
+    ] as const;
+    for (const [ruleset_id, slug, is_deleted] of rulebooks) {
+      await ctx.db.insert('rulebooks', { ...rulebook, ruleset_id, name: slug, name_key: slug, slug, is_deleted });
+    }
     const faq = { ...stamp, question: 'Q?', asked_by: owner, accepted_answer_id: null };
     await ctx.db.insert('faq_items', { ...faq, ruleset_id: live, slug: 'storm-order' });
     await ctx.db.insert('faq_items', { ...faq, ruleset_id: gone, slug: 'hidden' });
     const profile = { ...stamp, user_id: owner, avatar_url: null };
-    await ctx.db.insert('profiles', { ...profile, username: 'ana', slug: 'ana', account_state: 'active' });
-    await ctx.db.insert('profiles', { ...profile, username: 'bo', slug: 'bo', account_state: 'deleted' });
+    const states = [
+      ['ana', 'active'],
+      ['bo', 'deleted'],
+      ['dee', 'merge_pending'],
+    ] as const;
+    for (const [slug, account_state] of states) {
+      await ctx.db.insert('profiles', { ...profile, username: slug, slug, account_state });
+    }
     const merged = await ctx.db.insert('profiles', { ...profile, username: 'cy', slug: 'cy', account_state: 'active' });
     await ctx.db.patch(merged, { merged_into_profile_id: merged });
     const group = { created_at: stamp.created_at, created_by: owner };
@@ -116,4 +109,8 @@ test('rulesets, rulebooks, FAQ questions, profiles and Groups list only what the
   await expect(t.query(api.publicSitemap.page, { collection: 'groups', cursor: null })).resolves.toMatchObject({
     entries: [{ lastmod: null }],
   });
+});
+
+test('record sitemap names stay clear of Asset type names', () => {
+  expect(SITEMAP_RECORD_COLLECTIONS.filter((name) => (ASSET_TYPE_KEYS as string[]).includes(name))).toEqual([]);
 });
