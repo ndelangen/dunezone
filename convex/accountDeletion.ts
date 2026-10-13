@@ -1,6 +1,7 @@
 import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import { v } from 'convex/values';
 
+import { CUSTOM_CARD_MAX_LAYERS } from '../src/shared/assets/schema';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalAction } from './_generated/server';
@@ -9,6 +10,7 @@ import { internalMutation, mutation, viewerQuery } from './functions';
 import { accountStateOf, authenticatedLifecycleUser, lifecycleUserId } from './lib/accountLifecycle';
 import { requireUnlockedAccount } from './lib/accountMethods';
 import { TOKEN_ASSET_TYPES } from './lib/assetBacks';
+import { CUSTOM_CARD_TOKEN_RELATION } from './lib/customCardTokens';
 import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
@@ -36,6 +38,7 @@ type AnyCtx = QueryCtx | MutationCtx;
 
 /** The directly owned kinds keyed by `owner_id`, each read through its `by_owner_deleted` index; Groups use `created_by`. */
 const OWNER_ID_TABLES = { faction: 'factions', ruleset: 'rulesets', asset: 'assets' } as const;
+type OwnerIdTable = (typeof OWNER_ID_TABLES)[keyof typeof OWNER_ID_TABLES];
 
 async function profileForUser(ctx: AnyCtx, userId: Id<'users'>) {
   return await ctx.db
@@ -387,6 +390,20 @@ async function refreshTokenEmbeddings(ctx: MutationCtx, asset: Doc<'assets'>) {
   }
 }
 
+/** A returning card missed every token change while it was deleted, so each token it embeds refreshes it again. */
+async function refreshReturningCard(ctx: MutationCtx, card: Doc<'assets'>) {
+  const embeds = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', card._id).eq('kind', CUSTOM_CARD_TOKEN_RELATION))
+    .take(CUSTOM_CARD_MAX_LAYERS);
+  for (const embed of embeds) {
+    await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCard, {
+      tokenId: embed.to_asset_id,
+      cardId: card._id,
+    });
+  }
+}
+
 async function applyItem(
   ctx: MutationCtx,
   operation: Doc<'account_deletion_operations'>,
@@ -442,28 +459,36 @@ function hasApplyHeadroom(metrics: Awaited<ReturnType<MutationCtx['meta']['getTr
   );
 }
 
-async function hasRemainingOwnership(ctx: MutationCtx, sourceUserId: Id<'users'>, replacement: Id<'users'> | null) {
+/** The first record the source still owns that the operation should have disposed of, or null. */
+async function remainingOwnership(
+  ctx: MutationCtx,
+  sourceUserId: Id<'users'>,
+  replacement: Id<'users'> | null
+): Promise<{ kind: DirectOwnershipKind; entityId: OwnedEntityId } | null> {
   const requireDeleted = replacement ? undefined : false;
-  const group = await ctx.db
+  const [group] = await ctx.db
     .query('groups')
     .withIndex('by_created_by_deleted', (q) => {
       const owner = q.eq('created_by', sourceUserId);
       return requireDeleted === undefined ? owner : owner.eq('is_deleted', requireDeleted);
     })
     .take(1);
-  for (const table of Object.values(OWNER_ID_TABLES)) {
-    const owned = await ctx.db
+  if (group) {
+    return { kind: 'group', entityId: group._id };
+  }
+  for (const [kind, table] of Object.entries(OWNER_ID_TABLES) as [keyof typeof OWNER_ID_TABLES, OwnerIdTable][]) {
+    const [owned] = await ctx.db
       .query(table)
       .withIndex('by_owner_deleted', (q) => {
         const owner = q.eq('owner_id', sourceUserId);
         return requireDeleted === undefined ? owner : owner.eq('is_deleted', requireDeleted);
       })
       .take(1);
-    if (owned.length > 0) {
-      return true;
+    if (owned) {
+      return { kind, entityId: owned._id };
     }
   }
-  return group.length > 0;
+  return null;
 }
 
 export const applyBatch = internalMutation({
@@ -499,7 +524,25 @@ export const applyBatch = internalMutation({
       return { next: 'apply' as const };
     }
     await ctx.db.patch(operation._id, { phase: 'verifying', updated_at: nowIso() });
-    if (await hasRemainingOwnership(ctx, operation.source_user_id, operation.replacement_user_id)) {
+    const remaining = await remainingOwnership(ctx, operation.source_user_id, operation.replacement_user_id);
+    if (remaining) {
+      const captured = await ctx.db
+        .query('account_deletion_items')
+        .withIndex('by_operation_kind_entity', (q) =>
+          q.eq('operation_id', operation._id).eq('kind', remaining.kind).eq('entity_id', remaining.entityId)
+        )
+        .unique();
+      /* A record the snapshot never saw, such as a kind added after this operation snapshotted, sends it back to snapshot once more; one it saw and failed to dispose of is an error. */
+      if (!captured) {
+        await ctx.db.patch(operation._id, {
+          phase: 'snapshotting',
+          snapshot_kind: DIRECT_OWNERSHIP_KINDS[0].kind,
+          snapshot_cursor: null,
+          retry_count: 0,
+          updated_at: nowIso(),
+        });
+        return { next: 'snapshot' as const };
+      }
       throw new Error('Account deletion verification found ownership that was not disposed');
     }
     const now = nowIso();
@@ -622,6 +665,7 @@ async function restoreItem(
       if (asset?.owner_id === operation.source_user_id && asset.is_deleted) {
         await ctx.db.patch(asset._id, { is_deleted: false, updated_at: nowIso() });
         await refreshTokenEmbeddings(ctx, asset);
+        await refreshReturningCard(ctx, asset);
       }
     } else {
       const ruleset = await ctx.db.get('rulesets', item.entity_id as Id<'rulesets'>);

@@ -7,7 +7,7 @@ import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTriggers } from './lib/applicationTriggers';
 import schema from './schema';
@@ -254,6 +254,56 @@ describe('account deletion', () => {
       expect((await ctx.db.get('factions', rows.deletedFactionId))?.is_deleted).toBe(true);
       expect((await ctx.db.get('assets', rows.assetId))?.is_deleted).toBe(false);
       expect((await ctx.db.get('assets', rows.deletedAssetId))?.is_deleted).toBe(true);
+    });
+  });
+
+  test('an operation that snapshotted before assets were a kind captures them before it completes', async () => {
+    const t = setup();
+    const source = await seedAccount(t, 'inflight-source');
+    const replacement = await seedAccount(t, 'inflight-target');
+    const rows = await seedOwnedRows(t, source.userId, 'inflight');
+    /* Applying, with every older kind already handed over and no journal entry for the asset. */
+    const operationId = await t.run(async (ctx) => {
+      await ctx.db.patch(rows.groupId, { created_by: replacement.userId });
+      for (const id of [rows.factionId, rows.deletedFactionId]) {
+        await ctx.db.patch(id, { owner_id: replacement.userId });
+      }
+      await ctx.db.patch(rows.rulesetId, { owner_id: replacement.userId });
+      const operationId = await ctx.db.insert('account_deletion_operations', {
+        source_user_id: source.userId,
+        source_profile_id: source.profileId,
+        replacement_user_id: replacement.userId,
+        state: 'running',
+        phase: 'applying',
+        snapshot_kind: null,
+        snapshot_cursor: null,
+        retry_count: 0,
+        error: null,
+        created_at: now,
+        updated_at: now,
+        completed_at: null,
+      });
+      await ctx.db.patch(source.userId, {
+        account_state: 'deletion_pending',
+        account_deletion_operation_id: operationId,
+      });
+      await ctx.db.patch(source.profileId, {
+        account_state: 'deletion_pending',
+        account_deletion_operation_id: operationId,
+      });
+      return operationId;
+    });
+
+    await expect(t.mutation(internal.accountDeletion.applyBatch, { operationId })).resolves.toEqual({
+      next: 'snapshot',
+    });
+    await t.action(internal.accountDeletion.snapshotWorker, { operationId });
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get('account_deletion_operations', operationId)).toMatchObject({ state: 'completed' });
+      expect((await ctx.db.get('assets', rows.assetId))?.owner_id).toBe(replacement.userId);
+      expect((await ctx.db.get('assets', rows.deletedAssetId))?.owner_id).toBe(replacement.userId);
     });
   });
 
