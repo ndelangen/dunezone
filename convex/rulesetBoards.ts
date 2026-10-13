@@ -1,7 +1,18 @@
 import { v } from 'convex/values';
 
 import { parseBoardData } from '../src/shared/assets/validation';
+import type { Doc } from './_generated/dataModel';
 import { internalMutation } from './functions';
+
+function requireUsableBoard(board: Doc<'assets'> | null) {
+  if (board?.type !== 'board') {
+    throw new Error('Choose an available board');
+  }
+  if (board.is_deleted) {
+    throw new Error('Choose an available board');
+  }
+  parseBoardData(board.data);
+}
 
 /** An explicitly authorized backfill fills only absent board slots, never replacing an authored selection. */
 export const fillMissing = internalMutation({
@@ -14,14 +25,7 @@ export const fillMissing = internalMutation({
     skipped: v.number(),
   }),
   handler: async (ctx, args) => {
-    const board = await ctx.db.get('assets', args.boardId);
-    if (board?.type !== 'board') {
-      throw new Error('Choose an available board');
-    }
-    if (board.is_deleted) {
-      throw new Error('Choose an available board');
-    }
-    parseBoardData(board.data);
+    requireUsableBoard(await ctx.db.get('assets', args.boardId));
     const page = await ctx.db
       .query('rulesets')
       .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
