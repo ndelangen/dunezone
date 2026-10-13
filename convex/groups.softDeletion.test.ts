@@ -273,7 +273,7 @@ describe('Group soft deletion lifecycle', () => {
     const byCreator = await t.query(api.groups.listByCreator, { created_by: ids.ownerId });
     expect(byCreator).toEqual([]);
 
-    const profilePage = await t.query(api.profiles.getBySlug, { slug: 'active-member' });
+    const profilePage = await t.query(api.profiles.pageBySlug, { slug: 'active-member' });
     expect(profilePage.groupSummaries).toEqual([]);
   });
 });

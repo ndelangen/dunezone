@@ -208,13 +208,18 @@ const profileFaqAnswerValidator = faqAnswerValidator.extend({
   ruleset: rulesetCitationValidator,
 });
 
-export const profileDetailPageValidator = v.object({
-  account: v.union(v.null(), v.object({ methods: v.array(authMethodValidator), merging: v.boolean() })),
+/** A profile page, the same for every viewer. */
+export const profilePageValidator = v.object({
   profile: profileValidator,
   faqAsked: v.array(profileFaqQuestionValidator),
   faqAnswers: v.array(profileFaqAnswerValidator),
   factions: v.array(catalogueFactionValidator),
   groupSummaries: v.array(assignedGroupSummaryValidator),
+});
+
+/** Deprecated with `profiles.getBySlug`: the profile page with the viewer's own account block. Remove with it. */
+export const profileDetailPageValidator = profilePageValidator.extend({
+  account: v.union(v.null(), v.object({ methods: v.array(authMethodValidator), merging: v.boolean() })),
 });
 
 /** One slotted asset: enough to name it and link to it, and deliberately not enough to draw it. A slot list is not a catalogue. */

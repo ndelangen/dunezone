@@ -90,7 +90,7 @@ describe('account lifecycle widen rollout', () => {
       isAdmin: false,
     });
     await expect(pending.mutation(api.profiles.bootstrapCurrent, {})).rejects.toThrow(/Not authenticated/);
-    await expect(t.query(api.profiles.getBySlug, { slug: 'pending-user' })).rejects.toThrow(/not found/);
+    await expect(t.query(api.profiles.pageBySlug, { slug: 'pending-user' })).rejects.toThrow(/not found/);
     await expect(t.query(api.profiles.newestDiscoverable, {})).resolves.toEqual([]);
   });
 

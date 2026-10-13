@@ -484,7 +484,7 @@ describe('collaborative access public projections', () => {
   test('profile detail exposes canonical Group summaries without raw membership transport', async () => {
     const { t, ids } = await groupAccessFixture();
 
-    const profilePage = await t.query(api.profiles.getBySlug, { slug: 'active-member' });
+    const profilePage = await t.query(api.profiles.pageBySlug, { slug: 'active-member' });
 
     expect(profilePage.groupSummaries).toEqual([{ id: ids.groupId, name: 'Dune Designers', slug: 'dune-designers' }]);
   });
@@ -493,7 +493,7 @@ describe('collaborative access public projections', () => {
     const { t, ids } = await groupAccessFixture();
     await t.run((ctx) => ctx.db.delete(ids.groupId));
 
-    const profilePage = await t.query(api.profiles.getBySlug, { slug: 'active-member' });
+    const profilePage = await t.query(api.profiles.pageBySlug, { slug: 'active-member' });
 
     expect(profilePage.groupSummaries).toEqual([]);
   });

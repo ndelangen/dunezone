@@ -70,7 +70,7 @@ test('admin merges drain multiple batches, preserve overlapping memberships, cre
       ).toBe('active');
     }
   });
-  expect((await t.query(api.profiles.getBySlug, { slug: 'other' })).profile._id).toBe(target.profileId);
+  expect((await t.query(api.profiles.pageBySlug, { slug: 'other' })).profile._id).toBe(target.profileId);
   expect(
     (await t.withIdentity({ subject: `${source.userId}|${source.sessionId}` }).query(api.profiles.session, {})).userId
   ).toBeNull();

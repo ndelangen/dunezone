@@ -39,7 +39,6 @@ const VIEWER_QUERIES: Record<string, string> = {
 const PENDING_VIEWER_SPLIT: Record<string, string> = {
   'faq:questionPage': 'edit, delete, accept and answer capabilities',
   'migrations:adminDashboard': 'reports access state; becomes adminQuery once the page gates on session.isAdmin',
-  'profiles:getBySlug': 'the self-only account block, already served by profiles:settings',
   'publicationAdmin:page': 'reports access state; becomes adminQuery once the page gates on session.isAdmin',
 };
 
@@ -52,6 +51,7 @@ const DEPRECATED_VIEWER_QUERIES: Record<string, string> = {
   'assets:getPage': 'replaced by assets:page',
   'factions:getBySlug': 'replaced by factions:pageBySlug',
   'groups:detailBySlug': 'replaced by groups:detailPage',
+  'profiles:getBySlug': 'replaced by profiles:pageBySlug',
   'rulebooks:readerDeliveryPage': 'replaced by rulebooks:readerDelivery',
   'rulesets:detailPageBySlug': 'replaced by rulesets:detailPage',
   'rulesets:getBySlug': 'replaced by rulesets:page',
@@ -120,8 +120,8 @@ describe('query audience', () => {
      */
     const pending = Object.keys(PENDING_VIEWER_SPLIT).length;
     const deprecated = Object.keys(DEPRECATED_VIEWER_QUERIES).length;
-    expect(pending).toBeLessThanOrEqual(4);
-    expect(deprecated).toBeLessThanOrEqual(6);
+    expect(pending).toBeLessThanOrEqual(3);
+    expect(deprecated).toBeLessThanOrEqual(7);
     expect(pending + deprecated).toBeLessThanOrEqual(10);
   });
 
