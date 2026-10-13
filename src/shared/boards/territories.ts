@@ -8,12 +8,14 @@ export function boardTerritories(board: Board) {
   let result = cache.get(board);
   if (!result) {
     result = derive(board);
-    if (
-      !result.faces.length ||
-      result.unrecoveredSegments ||
-      result.faces.some((face) => !board.properties[face.key])
-    ) {
-      throw new Error('The saved board has unusable territory geometry');
+    if (!result.faces.length) {
+      throw new Error('The saved board has no territories');
+    }
+    if (result.unrecoveredSegments) {
+      throw new Error('The saved board has incomplete territory boundaries');
+    }
+    if (result.faces.some((face) => !board.properties[face.key])) {
+      throw new Error('The saved board has territories without properties');
     }
     cache.set(board, result);
   }

@@ -458,8 +458,29 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
 
 const AuthoredBoard = lazy(() => import('./AuthoredBoard'));
 
-function BoardMap({ animate = false }: { animate?: boolean }) {
+function LegacyBoardPaint() {
+  const geometry = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS), []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return (
+    <mesh receiveShadow geometry={geometry} renderOrder={BOARD_MAP_RENDER_ORDER} raycast={ignoreRaycast}>
+      <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
+    </mesh>
+  );
+}
+
+function BoardPaint() {
   const board = useTabletopSelector((table) => table.snapshot.board);
+  if (!board) {
+    return <LegacyBoardPaint />;
+  }
+  return (
+    <Suspense fallback={null}>
+      <AuthoredBoard key={board.asset.id} board={board.definition} />
+    </Suspense>
+  );
+}
+
+function BoardMap({ animate = false }: { animate?: boolean }) {
   const invalidate = useThree((state) => state.invalidate);
   const group = useRef<Group>(null);
   const motion = useMotionAllowed();
@@ -474,8 +495,6 @@ function BoardMap({ animate = false }: { animate?: boolean }) {
       }
     }
   });
-  const mapGeometry = useMemo(() => (board ? null : boardMapGeometry(arrakisMapSvg, BOARD_RADIUS)), [board]);
-  useEffect(() => () => mapGeometry?.dispose(), [mapGeometry]);
   return (
     <group ref={group} scale={animate && motion ? 0 : 1}>
       <mesh receiveShadow position={[0, BOARD_SURFACE_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast}>
@@ -486,23 +505,9 @@ function BoardMap({ animate = false }: { animate?: boolean }) {
         The map's shapes paint over one another in the source's order, so they write no depth; the disc below holds the board's depth.
         It draws first among the see-through things, so the storm's sector and every other overlay land on it.
       */}
-      {board ? (
-        <group position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}>
-          <Suspense fallback={null}>
-            <AuthoredBoard key={board.asset.id} board={board.definition} />
-          </Suspense>
-        </group>
-      ) : (
-        <mesh
-          receiveShadow
-          geometry={mapGeometry!}
-          renderOrder={BOARD_MAP_RENDER_ORDER}
-          position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}
-          raycast={ignoreRaycast}
-        >
-          <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
-        </mesh>
-      )}
+      <group position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}>
+        <BoardPaint />
+      </group>
     </group>
   );
 }

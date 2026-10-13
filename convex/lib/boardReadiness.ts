@@ -16,21 +16,26 @@ export async function syncBoardReadiness(ctx: MutationCtx, id: Id<'assets'>, ass
     }
     return;
   }
-  let usable = false;
-  if (!asset.is_deleted) {
-    try {
-      parseBoardData(asset.data);
-      usable = true;
-    } catch {
-      /* Invalid legacy definitions remain unavailable until the author repairs them. */
-    }
-  }
-  if (previous) {
-    if (previous.usable !== usable) {
-      await ctx.db.patch(previous._id, { usable });
-    }
-  } else {
+  const usable = boardIsUsable(asset);
+  if (!previous) {
     await ctx.db.insert('board_readiness', { asset_id: id, usable });
+    return;
+  }
+  if (previous.usable !== usable) {
+    await ctx.db.patch(previous._id, { usable });
+  }
+}
+
+function boardIsUsable(asset: Doc<'assets'>) {
+  if (asset.is_deleted) {
+    return false;
+  }
+  try {
+    parseBoardData(asset.data);
+    return true;
+  } catch {
+    /* Invalid legacy definitions remain unavailable until the author repairs them. */
+    return false;
   }
 }
 

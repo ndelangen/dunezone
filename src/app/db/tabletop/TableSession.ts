@@ -695,13 +695,17 @@ export class TableSession {
       serverNow,
     };
   }
-  private liveTable(): TableProjection {
-    const viewer = this.viewer!;
+  private presentedSnapshot() {
     const received = this.history?.snapshot ?? this.snapshot;
     /* The board is captured once per game; history and reconnect messages decode fresh copies of that same definition. */
     this.retainedBoard ??= received.board;
     const authoritative = received.board === this.retainedBoard ? received : { ...received, board: this.retainedBoard };
-    const displayed = this.withUnsettledDisclosures(this.withPendingPlan(authoritative));
+    return this.withUnsettledDisclosures(this.withPendingPlan(authoritative));
+  }
+
+  private liveTable(): TableProjection {
+    const viewer = this.viewer!;
+    const displayed = this.presentedSnapshot();
     const state = {
       ...tableForViewer(displayed, viewer.viewerSeat),
       factionTieBreaks: snapshotFactionTieBreaks(displayed),

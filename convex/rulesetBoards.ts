@@ -15,7 +15,10 @@ export const fillMissing = internalMutation({
   }),
   handler: async (ctx, args) => {
     const board = await ctx.db.get('assets', args.boardId);
-    if (!board || board.is_deleted || board.type !== 'board') {
+    if (board?.type !== 'board') {
+      throw new Error('Choose an available board');
+    }
+    if (board.is_deleted) {
       throw new Error('Choose an available board');
     }
     parseBoardData(board.data);
