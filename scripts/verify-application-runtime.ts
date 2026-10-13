@@ -241,6 +241,7 @@ try {
   assert.ok(groupPage, 'No profile has a Group link');
   assert.ok(faqPage, 'No profile has a FAQ question link');
   const browserOnlyPages = [
+    '/media/topics',
     '/groups/create',
     '/groups/dreamers/edit',
     '/profiles/central/edit',
@@ -270,6 +271,8 @@ try {
     '/assets/unknown-type/missing/extra',
     '/glossary/missing',
     '/media/game/missing',
+    '/media/game',
+    '/media/missing',
   ]) {
     const missing = await worker.fetch(pathname);
     assert.equal(missing.status, 404, pathname);

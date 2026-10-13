@@ -176,8 +176,7 @@ describe('scheduled production deployment shape', () => {
       '/privacy',
       '/privacy/*',
       '/media',
-      '/media/',
-      '/media/game/*',
+      '/media/*',
     ]);
   });
 });
