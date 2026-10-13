@@ -1,32 +1,17 @@
 /* @jsxImportSource ./three-jsx */
-import { useTexture } from '@react-three/drei/webgpu';
-import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
+import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { peekersOf } from '@shared/play/peeking';
+import { tableProgressFor } from '@shared/play/phases';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
-import {
-  nearestStormRotation,
-  STORM_MARKER_INNER_X,
-  STORM_MARKER_OUTER_X,
-  STORM_MARKER_TANGENTIAL_WIDTH,
-  STORM_SECTOR_ANGLE,
-  STORM_SECTOR_FILL_OPACITY,
-  STORM_SECTOR_OUTLINE_OPACITY,
-  stormRotationForSector,
-  stormTransitionProgress,
-} from '@shared/play/stormSector';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import {
-  BOARD_RADIUS,
-  BOARD_RIM_RADIUS,
-  BOARD_RIM_SURFACE_Y,
-  BOARD_SURFACE_Y,
   CARD_DEPTH,
   CARD_LAYER_HEIGHT,
   CARD_LAYER_PITCH,
@@ -38,7 +23,6 @@ import {
   TROOP_BOTTOM_RADIUS,
   TROOP_FACE_RADIUS,
   tokenBoxRatio,
-  TABLE_SURFACE_Y,
   TROOP_LAYER_HEIGHT,
   TROOP_LAYER_PITCH,
   TROOP_TOP_RADIUS,
@@ -52,15 +36,10 @@ import {
   stackTopHeight,
   visibleLayerCount,
 } from '@shared/play/tableGeometry';
-import {
-  DEFAULT_TABLE_SEAT_COUNT,
-  PLAYER_RING_RADIUS,
-  tableSeatAngles,
-  TABLE_SECTOR_COUNT,
-} from '@shared/play/tableSettings';
+import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
-import { trackerArcSlots, TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import { isTroopStack } from '@shared/play/troop';
 import {
   createContext,
@@ -77,15 +56,11 @@ import {
   useSyncExternalStore,
 } from 'react';
 import type { ReactNode } from 'react';
-import type { ExtrudeGeometry, Group, Texture } from 'three';
+import type { Texture } from 'three';
 import {
-  BufferGeometry,
   DoubleSide,
-  EdgesGeometry,
-  Float32BufferAttribute,
   Mesh,
   MeshBasicMaterial,
-  NeutralToneMapping,
   Raycaster,
   RingGeometry,
   SRGBColorSpace,
@@ -95,54 +70,31 @@ import {
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { subscribeArtworkLoads, unsettledArtworkLoads } from './artworkLoads';
-import { ArtworkPending } from './ArtworkPending';
-import arrakisMapSvg from './assets/arrakis-map.svg?raw';
-import stormMarkerUrl from './assets/storm-marker.webp?url';
-import { boardFurnitureFor } from './boardFurniture';
-import { boardMapGeometry } from './boardMapGeometry';
-import {
-  BOARD_RIM_COLOR,
-  BOARD_RIM_DEPTH,
-  BOARD_RIM_METALNESS,
-  BOARD_RIM_ROUGHNESS,
-  createBoardRimShape,
-} from './boardRimGeometry';
 import { ignoreRaycast } from './ignoreRaycast';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
-import { PhaseSymbol } from './PhaseSymbol';
 import { topFaceHref } from './pieceFaceHref';
 import { pieceHasMenu } from './pieceMenu';
-import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { sharedPublishedFaces } from './publishedFaceRetry';
-import { releaseSharedMeshes, useSharedMeshes } from './sharedMeshes';
+import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
-import { SoftShadow } from './SoftShadow';
-import { SpiceBank } from './SpiceBank';
+import { SpiceBankInteraction } from './SpiceBank';
 import { SpiceStackIcon } from './SpiceStackIcon';
-import { TableFurniture } from './TableFurniture';
-import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
-import { useTableLighting } from './tableLighting';
-import { mapViewFramingPoints } from './tablePlateGeometry';
+import { useTableFraming } from './tableFraming';
 import { isPublicTablePoint } from './tablePointerPoint';
+import { TabletopBoard } from './TabletopBoard';
+import { TabletopCanvas } from './TabletopCanvas';
 import { useTabletop, useTabletopActions, useTabletopCommands, useTabletopSelector } from './TabletopContext';
 import type { TabletopContextValue } from './TabletopContext';
 import styles from './TabletopScene.module.css';
 import type { PieceMenuAnchor } from './TabletopTools';
-import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
 import { useTurnedDownFaces } from './turnedDownFaces';
-import { TurnTracker } from './TurnTracker';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
-import { useTableGraphics } from './useTableGraphics';
 import { useTablePose } from './useTablePose';
-
-/* The storm marker starts with the bundle, alongside the connection. */
-useTexture.preload(stormMarkerUrl);
 
 type TabletopSceneProps = {
   children?: ReactNode;
@@ -169,405 +121,8 @@ const PredictionOverlay = lazy(() =>
 const TabletopTools = lazy(() => import('./TabletopTools').then((module) => ({ default: module.TabletopTools })));
 const PlayCamera = lazy(() => import('./PlayCamera').then((module) => ({ default: module.PlayCamera })));
 
-/* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */
-const BOARD_MAP_BASE_COLOR = '#000000';
-const BOARD_MAP_LIFT = 0.001;
-const BOARD_RIM_DIVIDER_COLOR = '#050505';
-const BOARD_RIM_SHADOW_SPREAD = 0.2;
-const BOARD_RIM_DIVIDER_OVERLAP = 0.002;
-const BOARD_RIM_DIVIDER_WIDTH = 0.035;
-const BOARD_RIM_EXTRUDE_OPTIONS = {
-  bevelEnabled: false,
-  curveSegments: 64,
-  depth: BOARD_RIM_DEPTH,
-  steps: 1,
-} as const;
 const DEFAULT_CAMERA_VIEW: CameraViewCommand = { view: 'map', revision: 0 };
-
-type StormTransition = {
-  startedAt: number;
-  fromRotation: number;
-  toRotation: number;
-};
-
-const STORM_MARKER_HOVER_Y = BOARD_SURFACE_Y + CONTACT_SHADOW_EPSILON;
-const BOARD_MAP_RENDER_ORDER = -3;
-const STORM_MARKER_RENDER_ORDER = 1;
 const PHYSICAL_OBJECT_RENDER_ORDER = 2;
-
-function createStormMarkerGeometry(): BufferGeometry {
-  const halfWidth = STORM_MARKER_TANGENTIAL_WIDTH / 2;
-  const geometry = new BufferGeometry();
-  geometry.setAttribute(
-    'position',
-    new Float32BufferAttribute(
-      [
-        STORM_MARKER_INNER_X,
-        STORM_MARKER_HOVER_Y,
-        -halfWidth,
-        STORM_MARKER_INNER_X,
-        STORM_MARKER_HOVER_Y,
-        halfWidth,
-        STORM_MARKER_OUTER_X,
-        STORM_MARKER_HOVER_Y,
-        halfWidth,
-        STORM_MARKER_OUTER_X,
-        STORM_MARKER_HOVER_Y,
-        -halfWidth,
-      ],
-      3
-    )
-  );
-  geometry.setAttribute('uv', new Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2));
-  geometry.setIndex([0, 1, 2, 0, 2, 3]);
-  geometry.computeVertexNormals();
-  return geometry;
-}
-
-function PlayerStations({ seatCount }: { seatCount: TableSeatCount }) {
-  const seatAngles = tableSeatAngles(seatCount);
-
-  return (
-    <group>
-      {seatAngles.map((angle, index) => {
-        const position: Vector3Tuple = [
-          Math.cos(angle) * PLAYER_RING_RADIUS,
-          BOARD_RIM_SURFACE_Y,
-          Math.sin(angle) * PLAYER_RING_RADIUS,
-        ];
-
-        return (
-          <group key={index} position={position} userData={{ duneTableStation: index }}>
-            <mesh
-              position={[0, 0.001, 0]}
-              renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-              rotation={[-Math.PI / 2, 0, 0]}
-              raycast={ignoreRaycast}
-            >
-              <circleGeometry args={[0.19, 48]} />
-              <meshBasicMaterial color="#fff0bd" />
-            </mesh>
-          </group>
-        );
-      })}
-    </group>
-  );
-}
-
-function BoardRim({ seatCount }: { seatCount: TableSeatCount }) {
-  /* Replace the mesh with its geometry so WebGPU cannot reuse disposed buffers. */
-  const shape = useMemo(() => createBoardRimShape(seatCount), [seatCount]);
-  const geometryArgs = useMemo(
-    () => [shape, BOARD_RIM_EXTRUDE_OPTIONS] as ConstructorParameters<typeof ExtrudeGeometry>,
-    [shape]
-  );
-
-  return (
-    <mesh
-      key={shape.uuid}
-      receiveShadow
-      position={[0, BOARD_RIM_SURFACE_Y, 0]}
-      raycast={ignoreRaycast}
-      rotation={[Math.PI / 2, 0, 0]}
-    >
-      <extrudeGeometry args={geometryArgs} />
-      <meshStandardMaterial color={BOARD_RIM_COLOR} roughness={BOARD_RIM_ROUGHNESS} metalness={BOARD_RIM_METALNESS} />
-    </mesh>
-  );
-}
-
-/* The board's rim stands above the table, so it casts a soft ring of shadow onto it. */
-function BoardRimShadow() {
-  return (
-    <SoftShadow
-      radius={BOARD_RIM_RADIUS}
-      spread={BOARD_RIM_SHADOW_SPREAD}
-      y={TABLE_SURFACE_Y + 0.001}
-      opacity={0.4}
-      size={1024}
-    />
-  );
-}
-
-function TableTrackers({ progress, slots }: { progress: TableProgress; slots: readonly TrackerArcSlot[] }) {
-  const meshes = useSharedMeshes();
-  const currentPhaseIndex = activePhaseIndex(progress);
-
-  return (
-    <group>
-      {slots.map((slot) => {
-        const symbol = slot.phaseIndex === null ? undefined : progress.phases[slot.phaseIndex]?.symbol;
-        const highlighted = slot.kind === 'phase' && slot.phaseIndex === currentPhaseIndex;
-        const color = trackerDiscColor(slot, currentPhaseIndex);
-        return (
-          <group
-            key={slot.kind === 'phase' ? progress.phases[slot.phaseIndex ?? 0]?.id : slot.kind}
-            position={slot.position}
-          >
-            <mesh
-              key={slot.radius}
-              receiveShadow
-              position={[0, TRACKER_DISC_HEIGHT / 2, 0]}
-              raycast={ignoreRaycast}
-              geometry={meshes.cylinder(slot.radius, slot.radius, TRACKER_DISC_HEIGHT, 96)}
-            >
-              <meshStandardMaterial
-                color={color}
-                emissive={color}
-                emissiveIntensity={highlighted ? 0.6 : 0}
-                fog={false}
-                roughness={1}
-                metalness={0}
-              />
-            </mesh>
-            <group position={[0, TRACKER_DISC_HEIGHT, 0]}>
-              {slot.kind === 'phase' ? (
-                <PhaseSymbol symbol={symbol} radius={slot.radius} faceColor={color} highlighted={highlighted} />
-              ) : null}
-              {slot.kind === 'turn' ? (
-                <TurnTracker radius={slot.radius} turn={progress.turn} lastTurn={progress.lastTurn} />
-              ) : null}
-              {slot.kind === 'spice' ? <SpiceBank radius={slot.radius} /> : null}
-            </group>
-          </group>
-        );
-      })}
-    </group>
-  );
-}
-
-function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
-  const loadedMarkerTexture = useTexture(stormMarkerUrl);
-  const markerTexture = useMemo(() => {
-    loadedMarkerTexture.colorSpace = SRGBColorSpace;
-    loadedMarkerTexture.anisotropy = 8;
-    loadedMarkerTexture.needsUpdate = true;
-    return loadedMarkerTexture;
-  }, [loadedMarkerTexture]);
-  const markerGeometry = useMemo(createStormMarkerGeometry, []);
-  const outlineGeometry = useMemo(() => {
-    const sectorGeometry = new RingGeometry(0.72, BOARD_RADIUS, 96, 1, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE);
-    const outline = new EdgesGeometry(sectorGeometry, 15);
-    sectorGeometry.dispose();
-    return outline;
-  }, []);
-  const groupRef = useRef<Group>(null);
-  const renderedSectorIndex = useRef<number | null>(null);
-  const transition = useRef<StormTransition | null>(null);
-  const invalidate = useThree((state) => state.invalidate);
-
-  useFrame(() => {
-    const group = groupRef.current;
-    const activeTransition = transition.current;
-    if (!group || !activeTransition) {
-      return;
-    }
-    const progress = stormTransitionProgress(performance.now() - activeTransition.startedAt);
-    group.rotation.y =
-      activeTransition.fromRotation + (activeTransition.toRotation - activeTransition.fromRotation) * progress;
-    if (progress >= 1) {
-      group.rotation.y = activeTransition.toRotation;
-      transition.current = null;
-      return;
-    }
-    invalidate();
-  });
-
-  useLayoutEffect(() => {
-    const group = groupRef.current;
-    if (!group || renderedSectorIndex.current === sectorIndex) {
-      return;
-    }
-    if (renderedSectorIndex.current === null) {
-      group.rotation.y = stormRotationForSector(sectorIndex);
-      renderedSectorIndex.current = sectorIndex;
-      return;
-    }
-    transition.current = {
-      startedAt: performance.now(),
-      fromRotation: group.rotation.y,
-      toRotation: nearestStormRotation(group.rotation.y, sectorIndex),
-    };
-    renderedSectorIndex.current = sectorIndex;
-    invalidate();
-  }, [invalidate, sectorIndex]);
-
-  useEffect(
-    () => () => {
-      markerGeometry.dispose();
-      outlineGeometry.dispose();
-    },
-    [markerGeometry, outlineGeometry]
-  );
-
-  return (
-    <group ref={groupRef}>
-      <mesh
-        position={[0, BOARD_SURFACE_Y + 0.002, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        renderOrder={-2}
-        raycast={ignoreRaycast}
-      >
-        <ringGeometry args={[0.72, BOARD_RADIUS, 96, 1, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE]} />
-        <meshBasicMaterial
-          color="#e13632"
-          transparent
-          opacity={STORM_SECTOR_FILL_OPACITY}
-          depthTest
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-      <lineSegments
-        key={outlineGeometry.uuid}
-        geometry={outlineGeometry}
-        position={[0, BOARD_SURFACE_Y + 0.003, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        renderOrder={1}
-        raycast={ignoreRaycast}
-      >
-        <lineBasicMaterial
-          color="#ef5a50"
-          depthTest
-          depthWrite={false}
-          opacity={STORM_SECTOR_OUTLINE_OPACITY}
-          toneMapped={false}
-          transparent
-        />
-      </lineSegments>
-      <mesh
-        key={markerGeometry.uuid}
-        geometry={markerGeometry}
-        renderOrder={STORM_MARKER_RENDER_ORDER}
-        raycast={ignoreRaycast}
-      >
-        {/* See-through, so it draws after the map, which writes no depth either. */}
-        <meshBasicMaterial
-          alphaTest={0.1}
-          alphaToCoverage
-          depthTest
-          depthWrite={false}
-          map={markerTexture}
-          toneMapped={false}
-          transparent
-        />
-      </mesh>
-    </group>
-  );
-}
-
-const AuthoredBoard = lazy(() => import('./AuthoredBoard'));
-
-function LegacyBoardPaint() {
-  const geometry = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS), []);
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  return (
-    <mesh receiveShadow geometry={geometry} renderOrder={BOARD_MAP_RENDER_ORDER} raycast={ignoreRaycast}>
-      <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
-    </mesh>
-  );
-}
-
-function BoardPaint() {
-  const board = useTabletopSelector((table) => table.snapshot.board);
-  if (!board) {
-    return <LegacyBoardPaint />;
-  }
-  return (
-    <Suspense fallback={null}>
-      <AuthoredBoard key={board.asset.id} board={board.definition} />
-    </Suspense>
-  );
-}
-
-function BoardMap({ animate = false }: { animate?: boolean }) {
-  const invalidate = useThree((state) => state.invalidate);
-  const group = useRef<Group>(null);
-  const motion = useMotionAllowed();
-  const elapsed = useRef(0);
-  useFrame((_, delta) => {
-    elapsed.current += delta;
-    if (group.current) {
-      const progress = animate && motion ? Math.min(1, elapsed.current / 0.65) : 1;
-      group.current.scale.setScalar(1 - (1 - progress) ** 3);
-      if (progress < 1) {
-        invalidate();
-      }
-    }
-  });
-  return (
-    <group ref={group} scale={animate && motion ? 0 : 1}>
-      <mesh receiveShadow position={[0, BOARD_SURFACE_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast}>
-        <circleGeometry args={[BOARD_RADIUS, 128]} />
-        <meshStandardMaterial color={BOARD_MAP_BASE_COLOR} roughness={0.88} metalness={0} />
-      </mesh>
-      {/*
-        The map's shapes paint over one another in the source's order, so they write no depth; the disc below holds the board's depth.
-        It draws first among the see-through things, so the storm's sector and every other overlay land on it.
-      */}
-      <group position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}>
-        <BoardPaint />
-      </group>
-    </group>
-  );
-}
-
-function BoardSurface({
-  seatCount,
-  stormSectorIndex,
-  stage,
-  mapVisible,
-  tableProgress,
-  trackerSlots,
-}: {
-  seatCount: TableSeatCount;
-  stormSectorIndex: number;
-  stage: TabletopSceneProps['stage'];
-  mapVisible?: boolean;
-  tableProgress?: TableProgress;
-  trackerSlots: readonly TrackerArcSlot[];
-}) {
-  const meshes = useSharedMeshes();
-  return (
-    <group>
-      <TableFurniture trackerSlots={trackerSlots} />
-      <BoardRim seatCount={seatCount} />
-      <BoardRimShadow />
-      {/* The textured parts suspend while their image loads; the boundary keeps that inside the scene, so the
-          rim, the furniture and the pieces stay on screen and the map fills in, instead of the route's
-          placeholder replacing a table the visitor has already seen. While it waits it counts as unsettled artwork. */}
-      {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} />}
-      <Suspense fallback={<ArtworkPending />}>
-        {boardFurnitureFor(stage).storm && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
-      </Suspense>
-      <mesh position={[0, BOARD_SURFACE_Y + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[BOARD_RADIUS, 128]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
-      {Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => {
-        const angle = (index / TABLE_SECTOR_COUNT) * Math.PI * 2;
-        const radius = BOARD_RADIUS + (BOARD_RIM_RADIUS - BOARD_RADIUS) / 2;
-        return (
-          <mesh
-            key={index}
-            position={[Math.cos(angle) * radius, BOARD_RIM_SURFACE_Y - BOARD_RIM_DEPTH / 2, Math.sin(angle) * radius]}
-            rotation={[0, Math.PI / 2 - angle, 0]}
-            raycast={ignoreRaycast}
-            geometry={meshes.box(
-              BOARD_RIM_DIVIDER_WIDTH,
-              BOARD_RIM_DEPTH + BOARD_RIM_DIVIDER_OVERLAP,
-              BOARD_RIM_RADIUS - BOARD_RADIUS + 0.01
-            )}
-          >
-            <meshStandardMaterial color={BOARD_RIM_DIVIDER_COLOR} roughness={0.88} metalness={0} />
-          </mesh>
-        );
-      })}
-      <PlayerStations seatCount={seatCount} />
-      {tableProgress ? <TableTrackers progress={tableProgress} slots={trackerSlots} /> : null}
-    </group>
-  );
-}
 
 /* The item a stack layer shows, counted from the bottom of the layers drawn. */
 function layerItemIndex(piece: TablePiece, index: number, shownLayers: number) {
@@ -621,10 +176,30 @@ function tokenFaceGeometry(meshes: SharedMeshes, ratio: number | null | undefine
     : meshes.circle(TROOP_FACE_RADIUS, 48);
 }
 
+const FaceArrivalContext = createContext(false);
+
+function ArrivingFaceMaterial({ texture }: { texture: Texture }) {
+  const material = useRef<MeshBasicMaterial>(null);
+  const motion = useMotionAllowed();
+  const invalidate = useThree((state) => state.invalidate);
+  const elapsed = useRef(0);
+  useFrame((_state, delta) => {
+    if (!material.current || elapsed.current >= 0.35) {
+      return;
+    }
+    elapsed.current += Math.min(delta, 0.05);
+    material.current.opacity = motion ? Math.min(1, elapsed.current / 0.35) : 1;
+    invalidate();
+  });
+  return <meshBasicMaterial ref={material} map={texture} transparent opacity={motion ? 0 : 1} />;
+}
+
 function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
   const meshes = useSharedMeshes();
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
   const texture = usePublishedFace(href) ?? null;
+  const arrive = useContext(FaceArrivalContext);
+  const cached = useRef(texture !== null);
   return (
     <mesh
       position={[0, 0, 0.002]}
@@ -633,7 +208,11 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
     >
       {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
       {texture ? (
-        <meshBasicMaterial key={href} map={texture} transparent />
+        arrive && !cached.current ? (
+          <ArrivingFaceMaterial key={href} texture={texture} />
+        ) : (
+          <meshBasicMaterial key={href} map={texture} transparent />
+        )
       ) : (
         <meshStandardMaterial key="placeholder" color="#d5ba8c" transparent roughness={0.68} metalness={0} />
       )}
@@ -1313,6 +892,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
           localCarried: locallyCarried,
           remoteCarried,
           reserved,
+          selected,
         },
       }}
       {...pointerEvents}
@@ -1400,37 +980,6 @@ function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onI
   };
 }
 
-/**
- * Frees the renderer, and with it the canvas's WebGL context or GPU device, once the table's canvas has left the page.
- * R3F does this on unmount only for its legacy WebGLRenderer, so every remount of the table (a reconnect, a reload of the view) otherwise left a live context behind until the browser ran out of them.
- * A canvas still on the page is a remount of this component alone, as R3F's own teardown assumes, and keeps its renderer.
- */
-function ReleaseRendererOnUnmount() {
-  const renderer = useThree((state) => state.renderer);
-  useEffect(
-    () => () => {
-      if (!renderer.domElement.isConnected) {
-        releaseSharedMeshes(renderer);
-        renderer.dispose();
-      }
-    },
-    [renderer]
-  );
-  return null;
-}
-
-/* The table's lights, scaled by this viewer's lighting choice; only they re-render while the slider moves. */
-function TableLights() {
-  const lighting = useTableLighting();
-  return (
-    <>
-      <ambientLight intensity={1.25 * lighting} />
-      <directionalLight position={[-4, 9, 5]} intensity={3.1 * lighting} color="#ffe2ae" />
-      <pointLight position={[5, 4, -4]} intensity={14 * lighting} distance={16} color="#d67b44" />
-    </>
-  );
-}
-
 function SceneContents({
   cameraView = DEFAULT_CAMERA_VIEW,
   onInteractionActiveChange,
@@ -1441,14 +990,17 @@ function SceneContents({
   stage,
   mapVisible,
   presentation,
+  drawBoard = true,
 }: Pick<
   TabletopSceneProps,
   'cameraView' | 'onInteractionActiveChange' | 'seatCount' | 'tableProgress' | 'stage' | 'mapVisible' | 'presentation'
 > & {
+  drawBoard?: boolean;
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
 }) {
   const table = useTabletop();
+  const board = useTabletopSelector((value) => value.snapshot.board);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
@@ -1469,16 +1021,19 @@ function SceneContents({
           <ScenePings />
         </Suspense>
       )}
-      <TableLights />
       <group onClick={() => selectPiece(null)}>
-        <BoardSurface
-          seatCount={seatCount}
-          stormSectorIndex={state.stormSectorIndex}
-          stage={stage}
-          mapVisible={mapVisible}
-          tableProgress={tableProgress}
-          trackerSlots={trackerSlots}
-        />
+        {drawBoard && (
+          <TabletopBoard
+            board={board}
+            seatCount={seatCount}
+            interactive
+            stormSectorIndex={state.stormSectorIndex}
+            stage={stage}
+            mapVisible={mapVisible}
+            tableProgress={tableProgress}
+            trackerSlots={trackerSlots}
+          />
+        )}
         {renderedPieces
           /* Troop reserves arrive with the board: setup keeps them off the table until the map shows. */
           .filter((piece) => !piece.battleOverlay && (stage !== 'setup' || mapVisible || !isTroopStack(piece)))
@@ -1501,32 +1056,6 @@ function SceneContents({
       <SelectionRingWarmup />
     </>
   );
-}
-
-/* The trackers the stage shows, and the map view and opening camera that frame the board with them. */
-function useTableFraming(
-  stage: TabletopSceneProps['stage'],
-  providedProgress: TabletopSceneProps['tableProgress'],
-  seatCount: TableSeatCount
-) {
-  const { trackers } = boardFurnitureFor(stage);
-  const tableProgress = trackers === 'none' ? undefined : providedProgress;
-  const phaseCount = tableProgress?.phases.length ?? null;
-  const trackerSlots = useMemo(() => {
-    const slots = phaseCount === null ? [] : trackerArcSlots(phaseCount);
-    return trackers === 'spice' ? slots.filter((slot) => slot.kind === 'spice') : slots;
-  }, [phaseCount, trackers]);
-  const mapFramingPoints = useMemo(() => mapViewFramingPoints(trackerSlots, seatCount), [seatCount, trackerSlots]);
-  const camera = useMemo(
-    () => ({
-      position: cameraPoseFor('map', 1, mapFramingPoints).position,
-      fov: TABLE_CAMERA_FIELD_OF_VIEW,
-      near: TABLE_CAMERA_NEAR,
-      far: TABLE_CAMERA_FAR,
-    }),
-    [mapFramingPoints]
-  );
-  return { tableProgress, trackerSlots, mapFramingPoints, camera };
 }
 
 export function TabletopScene({
@@ -1562,9 +1091,6 @@ export function TabletopScene({
     []
   );
   const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(stage, providedProgress, seatCount);
-  const graphics = useTableGraphics();
-  /* Where the table cannot be drawn, its notice still opens the shell. */
-  const onGraphicsUnavailable = onSceneUnavailable ?? onSceneReady;
   const areaRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -1589,107 +1115,60 @@ export function TabletopScene({
         </Suspense>
       )}
       <PieceMenuContext.Provider value={presentation === 'play' && menuAvailable ? openPieceMenu : null}>
-        {graphics === 'unavailable' && (
-          <TableGraphicsUnavailable silent={presentation === 'preview'} onShown={onGraphicsUnavailable} />
-        )}
-        {graphics === 'ready' && (
-          <TableGraphicsBoundary silent={presentation === 'preview'} onShown={onGraphicsUnavailable}>
-            <Canvas
-              camera={camera}
-              dpr={[1, 2]}
-              frameloop="demand"
-              renderer={{
-                antialias: true,
-                alpha: presentation === 'preview',
-                powerPreference: 'high-performance',
-                toneMapping: NeutralToneMapping,
-              }}
-              /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
-              onCreated={presentation === 'play' ? onSceneReady : undefined}
-            >
-              <ReleaseRendererOnUnmount />
-              {presentation === 'preview' && <PreviewArrival onReady={onSceneReady} />}
-              {children}
-              <SceneContents
-                presentation={presentation}
-                stage={stage}
-                mapVisible={mapVisible}
-                cameraView={cameraView}
-                onInteractionActiveChange={onInteractionActiveChange}
-                seatCount={seatCount}
-                tableProgress={tableProgress}
-                trackerSlots={trackerSlots}
-                mapFramingPoints={mapFramingPoints}
-              />
-            </Canvas>
-          </TableGraphicsBoundary>
-        )}
+        <TabletopCanvas
+          camera={camera}
+          presentation={presentation}
+          onSceneReady={onSceneReady}
+          onSceneUnavailable={onSceneUnavailable}
+        >
+          {children}
+          <SceneContents
+            presentation={presentation}
+            stage={stage}
+            mapVisible={mapVisible}
+            cameraView={cameraView}
+            onInteractionActiveChange={onInteractionActiveChange}
+            seatCount={seatCount}
+            tableProgress={tableProgress}
+            trackerSlots={trackerSlots}
+            mapFramingPoints={mapFramingPoints}
+          />
+        </TabletopCanvas>
       </PieceMenuContext.Provider>
     </div>
   );
 }
 
-/* The preview waits for its piece faces and painted frames before opening. */
-function RenderedTable({ onReady }: { onReady?: () => void }) {
-  const invalidate = useThree((state) => state.invalidate);
-  const pieces = useTabletopSelector((table) => table.renderedPieces);
-  const frames = useRef(0);
-  const complete = useRef(false);
-  const pendingFrame = useRef<number | null>(null);
-  useEffect(
-    () =>
-      subscribeArtworkLoads(() => {
-        if (!complete.current) {
-          invalidate();
-        }
-      }),
-    [invalidate]
+/** Adds live pieces and pointer presence to an already-painted preview canvas. */
+export function TabletopPreviewContents() {
+  const { tableProgress, trackerSlots, mapFramingPoints } = useTableFraming(
+    'play',
+    tableProgressFor(0),
+    DEFAULT_TABLE_SEAT_COUNT
   );
-  useEffect(
-    () => () => {
-      if (pendingFrame.current !== null) {
-        cancelAnimationFrame(pendingFrame.current);
-      }
-    },
-    []
-  );
-  useFrame(() => {
-    if (complete.current) {
-      return;
-    }
-    const artworkReady = pieces.every((piece) => {
-      const href = topFaceHref(piece);
-      return !href || subscribePublishedFace.peek(href) !== undefined;
-    });
-    if (!artworkReady || unsettledArtworkLoads() > 0) {
-      frames.current = 0;
-      return;
-    }
-    if (++frames.current > 3) {
-      complete.current = true;
-      pendingFrame.current = requestAnimationFrame(() => onReady?.());
-    } else {
-      invalidate();
-    }
-  });
-  return null;
-}
-
-/* Open onto the completed scene once, then load the shared cursors without replacing its canvas. */
-function PreviewArrival({ onReady }: { onReady?: () => void }) {
-  const [ready, setReady] = useState(false);
-  const finish = useCallback(() => {
-    setReady(true);
-    onReady?.();
-  }, [onReady]);
   return (
-    <>
-      <RenderedTable onReady={finish} />
-      {ready && (
-        <Suspense fallback={null}>
-          <ScenePresence showNames={false} showLocal />
-        </Suspense>
-      )}
-    </>
+    <FaceArrivalContext value={true}>
+      {trackerSlots
+        .filter((slot) => slot.kind === 'spice')
+        .map((slot) => (
+          <group key={slot.kind} position={slot.position}>
+            <group position={[0, TRACKER_DISC_HEIGHT, 0]}>
+              <SpiceBankInteraction radius={slot.radius} />
+            </group>
+          </group>
+        ))}
+      <SceneContents
+        drawBoard={false}
+        presentation="preview"
+        stage="play"
+        seatCount={DEFAULT_TABLE_SEAT_COUNT}
+        tableProgress={tableProgress}
+        trackerSlots={trackerSlots}
+        mapFramingPoints={mapFramingPoints}
+      />
+      <Suspense fallback={null}>
+        <ScenePresence showNames={false} showLocal />
+      </Suspense>
+    </FaceArrivalContext>
   );
 }

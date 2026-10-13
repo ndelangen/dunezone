@@ -128,6 +128,7 @@ type PieceDiagnostic = {
   localCarried: boolean;
   remoteCarried: boolean;
   reserved: boolean;
+  selected: boolean;
 };
 type TableDiagnostic = {
   worldToScreen(position: Vector3Tuple): { x: number; y: number };

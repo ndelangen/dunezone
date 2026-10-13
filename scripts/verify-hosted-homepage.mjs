@@ -22,9 +22,14 @@ async function loadedAvatarBelowHand(who, kind, expectedUrl, until) {
     `${who.label}'s ${kind} avatar did not load.`
   );
   assert.equal(await image.getAttribute('src'), expectedUrl);
-  const avatar = await image.boundingBox();
-  const glyph = await hand.locator(':scope > svg').boundingBox();
-  assert.ok(avatar && glyph, `${who.label}'s ${kind} hand and avatar need visible bounds.`);
+  /* The remote hand eases toward its pointer, so both bounds must come from the same browser frame. */
+  const bounds = await hand.evaluate((element) => {
+    const avatar = element.querySelector('img')?.getBoundingClientRect();
+    const glyph = element.querySelector(':scope > svg')?.getBoundingClientRect();
+    return avatar && glyph ? { avatar: avatar.toJSON(), glyph: glyph.toJSON() } : null;
+  });
+  assert.ok(bounds, `${who.label}'s ${kind} hand and avatar need visible bounds.`);
+  const { avatar, glyph } = bounds;
   assert.ok(avatar.y >= glyph.y + glyph.height, `${who.label}'s ${kind} avatar overlaps the hand.`);
   assert.ok(Math.abs(avatar.x + avatar.width / 2 - glyph.x - glyph.width / 2) < 3);
 }
@@ -96,6 +101,28 @@ export async function verifyHomepage({
     await releaseArtwork.promise;
     await route.continue();
   });
+  let releaseSnapshot;
+  let snapshotReleased = false;
+  let disconnectGuestSocket;
+  await guest.context.routeWebSocket('**/__play/homepage/socket', (socket) => {
+    const server = socket.connectToServer();
+    const waiting = [];
+    disconnectGuestSocket = () => socket.close({ code: 1012, reason: 'Verify preview reconnect' });
+    server.onMessage((message) => {
+      if (snapshotReleased) {
+        socket.send(message);
+      } else {
+        waiting.push(message);
+      }
+    });
+    releaseSnapshot = () => {
+      snapshotReleased = true;
+      for (const message of waiting) {
+        socket.send(message);
+      }
+      waiting.length = 0;
+    };
+  });
   let initialCanvas;
   for (const who of [member, guest]) {
     await who.page.goto(origin, { waitUntil: 'domcontentloaded' });
@@ -103,26 +130,48 @@ export async function verifyHomepage({
     await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
     if (who === member) {
       await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
-      await new Promise((resolve) => setTimeout(resolve, 12_000));
-      assert.equal(await who.page.locator('[data-live-ready="true"]').count(), 0);
+      await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
+      await who.page.locator('[data-table-connected="true"]').waitFor();
       assert.equal(await who.page.locator('#play-preview img[src*="homepage/board"]').count(), 0);
       initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
       assert.ok(initialCanvas);
-      await capture(member, 'homepage-waits-for-scene-artwork');
+      await capture(member, 'homepage-board-before-slow-artwork');
       releaseArtwork.resolve();
+    } else {
+      await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
+      assert.equal(await who.page.locator('[data-table-connected="true"]').count(), 0);
+      initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
+      assert.ok(initialCanvas);
+      assert.ok(releaseSnapshot);
+      await capture(guest, 'homepage-board-before-live-snapshot');
+      releaseSnapshot();
+      await who.page.locator('[data-table-connected="true"]').waitFor();
     }
     await who.page.locator('[data-live-ready="true"]').waitFor();
     await tableLoaded(who);
     await until(() => who.view(), `${who.label} received no homepage table.`);
+    assert.equal(
+      await initialCanvas.evaluate((canvas) => canvas === document.querySelector('#play-preview canvas')),
+      true
+    );
     if (who === member) {
+      await capture(member, 'homepage-member-ready-after-slow-artwork');
+    } else {
+      const connectionId = guest.view().viewer.connectionId;
+      await disconnectGuestSocket();
+      await until(() => {
+        const view = guest.view();
+        return view && view.viewer.connectionId !== connectionId;
+      }, 'The unsigned visitor did not receive a fresh snapshot after reconnecting.');
       assert.equal(
         await initialCanvas.evaluate((canvas) => canvas === document.querySelector('#play-preview canvas')),
         true
       );
-      await capture(member, 'homepage-member-ready-after-slow-artwork');
     }
   }
-  passed('The homepage draws one canvas without an image handoff and finishes its delayed artwork in place');
+  passed(
+    'The homepage shows its board before delayed artwork, which finishes in place, and keeps one canvas through a reconnect'
+  );
   await recordRenderer(member, '#play-preview canvas');
   await until(() => member.view().viewer.viewerSeat !== spectator, 'Signing in did not grant table handling.');
   assert.equal(guest.view().viewer.viewerSeat, spectator);
@@ -140,6 +189,31 @@ export async function verifyHomepage({
   const target = [source.position[0] + 0.6, source.position[1], source.position[2] + 0.6];
   const start = await point(member, source.position);
   const finish = await point(member, target);
+  await member.page.mouse.click(start.x, start.y);
+  await until(
+    () =>
+      member.page.evaluate((id) => window.__duneTable.pieces().find((piece) => piece.id === id)?.selected, sourceId),
+    'Clicking a troop did not select it.'
+  );
+  const emptyBoard = await point(member, [1.7, 0.132, -0.5]);
+  await member.page.mouse.click(emptyBoard.x, emptyBoard.y);
+  await until(
+    () =>
+      member.page.evaluate((id) => !window.__duneTable.pieces().find((piece) => piece.id === id)?.selected, sourceId),
+    'Clicking empty board space did not clear the troop selection.'
+  );
+  await member.page.evaluate(() => {
+    document.addEventListener(
+      'contextmenu',
+      (event) => {
+        window.__homepageContextMenuPrevented = event.defaultPrevented;
+      },
+      { once: true }
+    );
+  });
+  await member.page.mouse.click(emptyBoard.x, emptyBoard.y, { button: 'right' });
+  assert.equal(await member.page.evaluate(() => window.__homepageContextMenuPrevented), true);
+  passed('Empty board clicks clear selection and the preview keeps its context-menu handling');
   await member.page.mouse.move(start.x, start.y);
   await until(
     () => guest.view().pointers.some((pointer) => pointer.connectionId === member.view().viewer.connectionId),

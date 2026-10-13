@@ -1,16 +1,16 @@
 import { HOMEPAGE_SOCKET_PATH } from '@shared/homepage/protocol';
 import { tableProgressFor } from '@shared/play/phases';
-import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from 'react';
+import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
+import { lazy, Suspense, useCallback, useEffect, useReducer, useState, useSyncExternalStore } from 'react';
+import type { ReactNode } from 'react';
 
 import { requestHomepageTicket } from '@db/homepage';
 import type { GameRuntime } from '@db/tabletop/runtime';
 import { TableSession } from '@db/tabletop/TableSession';
-import { PointerSession } from '@app/widgets/tabletop/PointerSession';
-import { PointerSessionContext } from '@app/widgets/tabletop/PointerSessionContext';
-import { TableKeyboard } from '@app/widgets/tabletop/TableKeyboard';
-import { TableKeyboardContext } from '@app/widgets/tabletop/TableKeyboardContext';
-import { TabletopSessionProvider, useTabletopReader } from '@app/widgets/tabletop/TabletopContext';
-import { TabletopScene } from '@app/widgets/tabletop/TabletopScene';
+import { MapPreviewCamera } from '@app/widgets/tabletop/MapPreviewCamera';
+import { useTableFraming } from '@app/widgets/tabletop/tableFraming';
+import { TabletopBoard } from '@app/widgets/tabletop/TabletopBoard';
+import { TabletopCanvas } from '@app/widgets/tabletop/TabletopCanvas';
 
 import { HomepageSubscription } from './HomepageSubscription';
 
@@ -45,25 +45,7 @@ const runtime: GameRuntime = {
   },
 };
 
-function KeyboardBinding({ keyboard }: { keyboard: TableKeyboard }) {
-  const read = useTabletopReader();
-  useLayoutEffect(
-    () =>
-      keyboard.bind({
-        events: window,
-        read: () => {
-          const table = read();
-          return {
-            ...table,
-            canHandleTable:
-              table.canHandleTable && (table.hoveredPieceId !== null || table.gestureActivePieceId !== null),
-          };
-        },
-      }),
-    [keyboard, read]
-  );
-  return null;
-}
+const LiveControls = lazy(() => import('./LiveControls'));
 
 export default function ConnectedTable({
   member,
@@ -77,39 +59,74 @@ export default function ConnectedTable({
   sceneClassName: string;
   onReady(): void;
   onUnavailable(): void;
-}) {
+}): ReactNode {
   const [session] = useState(
     () =>
       new TableSession('homepage', new HomepageSubscription(runtime, member ? requestHomepageTicket : null), runtime)
   );
-  const [pointer] = useState(() => new PointerSession());
-  const [keyboard] = useState(() => new TableKeyboard());
+
+  const [arrival, dispatch] = useReducer(
+    (state: { painted: boolean; interactive: boolean }, event: 'painted' | 'interactive') => ({
+      ...state,
+      [event]: true,
+    }),
+    { painted: false, interactive: false }
+  );
+  const painted = useCallback(() => {
+    dispatch('painted');
+    onReady();
+  }, [onReady]);
+  const interactive = useCallback(() => dispatch('interactive'), []);
   const hasTable = useSyncExternalStore(
     session.subscribeTable,
     () => session.getTable() !== null,
     () => false
   );
+  const stormSectorIndex = useSyncExternalStore(
+    session.subscribeTable,
+    () => session.getTable()?.state.stormSectorIndex,
+    () => undefined
+  );
+  const { camera, tableProgress, trackerSlots } = useTableFraming(
+    'play',
+    tableProgressFor(0),
+    DEFAULT_TABLE_SEAT_COUNT
+  );
   useEffect(() => session.connect(), [session]);
-  if (!hasTable) {
-    return null;
-  }
   return (
-    <div className={className}>
-      <PointerSessionContext value={pointer}>
-        <TableKeyboardContext value={keyboard}>
-          <TabletopSessionProvider session={session}>
-            <KeyboardBinding keyboard={keyboard} />
-            <TabletopScene
-              className={sceneClassName}
-              presentation="preview"
-              stage="play"
-              tableProgress={tableProgressFor(0)}
-              onSceneReady={onReady}
-              onSceneUnavailable={onUnavailable}
-            />
-          </TabletopSessionProvider>
-        </TableKeyboardContext>
-      </PointerSessionContext>
+    <div
+      className={className}
+      data-table-connected={arrival.interactive ? 'true' : undefined}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        if (session.getTable()?.state.draftMove) {
+          session.takeAdditionalFromTarget();
+        }
+      }}
+    >
+      <div className={sceneClassName}>
+        <TabletopCanvas
+          camera={camera}
+          presentation="preview"
+          onSceneReady={painted}
+          onSceneUnavailable={onUnavailable}
+        >
+          <MapPreviewCamera />
+          <TabletopBoard
+            stage="play"
+            seatCount={DEFAULT_TABLE_SEAT_COUNT}
+            tableProgress={tableProgress}
+            trackerSlots={trackerSlots}
+            stormSectorIndex={stormSectorIndex}
+            onClick={arrival.interactive ? () => session.selectPiece(null) : undefined}
+          />
+          {arrival.painted && hasTable && (
+            <Suspense fallback={null}>
+              <LiveControls session={session} onReady={interactive} />
+            </Suspense>
+          )}
+        </TabletopCanvas>
+      </div>
     </div>
   );
 }
