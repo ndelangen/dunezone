@@ -194,7 +194,7 @@
     },
     "immutable": "5.1.9",
     "js-yaml": "4.3.2",
-    "launch-editor": "2.14.1",
+    "launch-editor": "2.14.2",
     "miniflare": {
       "undici": "7.29.1"
     },
