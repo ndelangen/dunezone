@@ -1,6 +1,6 @@
 import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -10,7 +10,6 @@ import styles from '../card/Card.module.css';
 import { CardHeadBackground, CardHeadContents } from '../card/CardHead';
 import { CardText } from '../card/CardText';
 import { FrontDecals } from '../card/Decals';
-import { useCountId } from '../utils/useCountId';
 import unique from './Treachery.module.css';
 import { treacheryStyle } from './treacheryStyle';
 
@@ -24,7 +23,7 @@ export const TreacheryCard: FC<z.infer<typeof Treachery> & { frontStyle?: CardFr
   subName,
 }) => {
   const style = treacheryStyle({ head, subName });
-  const cid = useCountId();
+  const cid = useId();
   const prefix = useMemo(() => `${cid}_`, [cid]);
 
   return (

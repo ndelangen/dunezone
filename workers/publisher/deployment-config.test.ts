@@ -150,6 +150,9 @@ describe('scheduled production deployment shape', () => {
       '/groups/*',
       '/assets',
       '/assets/*',
+      '/glossary',
+      '/future-plans',
+      '/privacy',
     ]);
   });
 });

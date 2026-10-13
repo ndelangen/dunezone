@@ -140,6 +140,9 @@ export async function handlePublicDiscovery(
               '/profiles',
               '/assets',
               ...SITEMAP_ASSET_COLLECTIONS.map((type) => `/assets/${type}`),
+              '/glossary',
+              '/future-plans',
+              '/privacy',
             ]
               .map((path) => `<url>${location(path)}</url>`)
               .join('')

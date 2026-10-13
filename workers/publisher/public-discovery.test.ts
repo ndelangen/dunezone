@@ -44,6 +44,7 @@ test('the index and landing sitemap enumerate supported canonical paths without 
   expect(landing).toContain('<loc>https://dune.zone/rulesets</loc>');
   expect(landing).toContain('<loc>https://dune.zone/profiles</loc>');
   expect(landing).toContain('<loc>https://dune.zone/assets/token-disc</loc>');
+  expect(landing).toContain('<loc>https://dune.zone/glossary</loc>');
   expect(landing).not.toContain('/assets/rulesets');
   expect(load).not.toHaveBeenCalled();
 });

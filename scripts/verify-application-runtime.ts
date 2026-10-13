@@ -28,12 +28,15 @@ function isEmptyArtifactStoreReader(pathname: string, html: string) {
   );
 }
 
+/* Pages with no record behind them render without a metadata query. */
+const RECORDLESS_PAGES = ['/', '/glossary', '/future-plans', '/privacy'];
+
 function assertPublicMetadataQueries(count: number, pathname: string, html: string, historicalFallback: boolean) {
   if (isEmptyArtifactStoreReader(pathname, html)) {
     assert.ok([1, 2].includes(count), `${pathname} has unexpected renderer query count ${count}`);
     return;
   }
-  assert.equal(count, pathname === '/' ? 0 : historicalFallback ? 2 : 1, pathname);
+  assert.equal(count, RECORDLESS_PAGES.includes(pathname) ? 0 : historicalFallback ? 2 : 1, pathname);
 }
 
 if (fixture) {
@@ -82,7 +85,17 @@ try {
   assert.match(sitemap.headers.get('Content-Type') ?? '', /application\/xml/);
   assert.ok((await sitemap.text()).includes('https://dune.zone/sitemap-factions.xml'));
   assert.equal((await worker.fetch('/sitemap-missing.xml')).status, 404);
-  const pages = ['/', '/factions', '/assets', '/assets/token-disc', '/rulesets', '/profiles'];
+  const pages = [
+    '/',
+    '/factions',
+    '/assets',
+    '/assets/token-disc',
+    '/rulesets',
+    '/profiles',
+    '/glossary',
+    '/future-plans',
+    '/privacy',
+  ];
   let rulebookPage: string | undefined;
   let groupPage: string | undefined;
   let faqPage: string | undefined;

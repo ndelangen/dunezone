@@ -24,12 +24,20 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead } from '@app/routes/publicPage';
 
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/future-plans/')({
-  head: () => pageHead('Future plans'),
+  ssr: true,
+  head: () =>
+    publicPageHead({
+      name: 'Future plans',
+      pathname: '/future-plans',
+      description:
+        'What Dune Zone could become: Rulebooks made for the web, a Rulebook creator, game results and faction table tools.',
+      social: { kind: 'Future plans', shape: 'portrait' },
+    }),
   component: FuturePlansPage,
 });
 

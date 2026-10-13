@@ -6,6 +6,9 @@ export function applicationReleaseIdentity(env: Pick<Env, 'CF_VERSION_METADATA' 
   return env.CF_VERSION_METADATA?.id ?? env.GIT_SHA;
 }
 
+/** Pages with no record behind them, rendered on the server like every other public page. */
+const STATIC_PAGES = ['glossary', 'future-plans', 'privacy'];
+
 function isPublicPage(pathname: string): boolean {
   if (pathname === '/') {
     return true;
@@ -20,6 +23,9 @@ function isPublicPage(pathname: string): boolean {
     return false;
   }
   const [root, type, slug] = segments;
+  if (STATIC_PAGES.includes(root)) {
+    return segments.length === 1;
+  }
   if (root === 'factions') {
     return !((segments.length === 2 && type === 'create') || (segments.length === 3 && slug === 'edit'));
   }

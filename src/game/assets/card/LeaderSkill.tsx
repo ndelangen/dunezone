@@ -2,10 +2,9 @@ import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { LEADER_SKILL_HEAD, LEADER_SKILL_SYMBOL } from '@shared/assets/gf9LeaderSkills';
 import type { LeaderSkillCard as LeaderSkillSchema } from '@shared/assets/schema';
 import { VECTOR_CROPS } from '@shared/media/vectorCrops.generated';
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import type { z } from 'zod';
 
-import { useCountId } from '../utils/useCountId';
 import { CardHeadBackground, CardHeadContents } from './CardHead';
 import { CardText } from './CardText';
 import { FrontDecals } from './Decals';
@@ -24,7 +23,7 @@ export function LeaderSkillCard({
   ...head
 }: z.infer<typeof LeaderSkillSchema> & { frontStyle?: CardFrontStyle; onOverflow?: (overflow: boolean) => void }) {
   const textSize = 36;
-  const prefix = useCountId();
+  const prefix = useId();
   const body = useRef<HTMLDivElement>(null);
   const artworkDecals = [...decals.filter((decal) => decal.muted), ...decals.filter((decal) => !decal.muted)];
   useEffect(() => {

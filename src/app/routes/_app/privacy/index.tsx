@@ -5,10 +5,17 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead } from '@app/routes/publicPage';
 
 export const Route = createFileRoute('/_app/privacy/')({
-  head: () => pageHead('Privacy'),
+  ssr: true,
+  head: () =>
+    publicPageHead({
+      name: 'Privacy',
+      pathname: '/privacy',
+      description: 'What Dune Zone keeps private, what everyone can see, your data rights, and the code of conduct.',
+      social: { kind: 'Privacy', shape: 'portrait' },
+    }),
   component: PrivacyPage,
 });
 
