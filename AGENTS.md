@@ -490,10 +490,14 @@ landed while the previous run was still going, one per review bot as each one re
 ([#1921](https://github.com/ndelangen/dunezone/issues/1921)). So:
 
 - Commit locally as often as you like. Only pushes cost CI.
+- Open every pull request as a draft.
+- Mark it ready for review only when the change is finished. A draft's run is lint, test and
+  game_release alone, about 9 runner minutes, and reports as `ci_draft`. Marking it ready starts the
+  full run, and only that run's `ci_ok` lets it merge. Every push after that runs in full again.
 - Before the first push, find what CI and the review bots would find: run `bun run check`,
   `bun run typecheck`, and the unit tests and story files your change touches, and review your own
   diff.
-- After a push, wait until `ci_ok` has reported and the review bots have commented on that commit,
+- After a push, wait until `ci_draft` (on a draft) or `ci_ok` has reported and the review bots have commented on that commit,
   then fix everything they found in local commits and push once. Push sooner only when a job has
   already failed and nothing else is still pending.
 

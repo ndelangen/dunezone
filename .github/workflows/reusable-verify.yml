@@ -8,6 +8,11 @@ on:
         type: boolean
         default: false
         required: false
+      draft:
+        description: The pull request is a draft, so only lint, test and game_release run; the full set runs once it is marked ready for review (#1921).
+        type: boolean
+        default: false
+        required: false
     secrets:
       CODECOV_TOKEN:
         description: Codecov upload token; omitted on fork PRs (tokenless fallback)
@@ -29,6 +34,7 @@ jobs:
     # verifier, then 480 s for each of private-spice-reserves, decks and results.
     # With a 46 s boot and about 35 s of setup that comes near 28.5 minutes.
     timeout-minutes: 32
+    if: ${{ !inputs.draft }}
     strategy:
       fail-fast: false
       # Each shard boots one stack and runs its flows on it, each on a fresh game (#1322). Each flow
@@ -123,6 +129,7 @@ jobs:
     # Setup took about 45 s and the build and boot about 70 s, which comes near seventeen minutes.
     # A passing job took 249 to 276 s when this was measured (#1322).
     timeout-minutes: 18
+    if: ${{ !inputs.draft }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -182,7 +189,7 @@ jobs:
     name: storybook (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !inputs.hosted_only }}
+    if: ${{ !inputs.hosted_only && !inputs.draft }}
     strategy:
       fail-fast: false
       # Four shards balanced by measured file time, because the story suite ran 564 to 779 s on one
@@ -410,7 +417,7 @@ jobs:
   generate_and_build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !inputs.hosted_only }}
+    if: ${{ !inputs.hosted_only && !inputs.draft }}
     env:
       # Job-level so the bundle-upload step's `if` can test it. The secrets
       # context is not available in step-level `if` conditions.
@@ -484,7 +491,7 @@ jobs:
   publisher_release:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !inputs.hosted_only }}
+    if: ${{ !inputs.hosted_only && !inputs.draft }}
     permissions:
       contents: read
       # The publisher prior-pass step lists and downloads the records of earlier passes.
@@ -644,7 +651,7 @@ jobs:
   browser_checks:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !inputs.hosted_only }}
+    if: ${{ !inputs.hosted_only && !inputs.draft }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -684,7 +691,7 @@ jobs:
   e2e_docker:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    if: ${{ !inputs.hosted_only }}
+    if: ${{ !inputs.hosted_only && !inputs.draft }}
     strategy:
       fail-fast: false
       # Three shards, each a machine of its own with one Playwright worker: three files at once

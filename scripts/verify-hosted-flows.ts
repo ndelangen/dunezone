@@ -4,8 +4,11 @@
  */
 export const browserFlows = {
   homepage: {
-    /* The expanded flow reached 115 seconds before its final scroll check under full Chromium on CI (#2127). */
-    timeoutMs: 180_000,
+    /*
+     * Passing runs took 162 s on CI on 13 Oct 2026 once the member loads with motion on (#2166), and one run reached its final scroll check at 179 s.
+     * The budget only bounds a stuck run, so the wider one costs a passing run nothing.
+     */
+    timeoutMs: 300_000,
     /* The guest uses its own Chromium graphics process, avoiding the member's software WebGL startup contention (#1868). */
     separateBrowserPeer: 'homepage-observer',
     keepsFrames: false,
