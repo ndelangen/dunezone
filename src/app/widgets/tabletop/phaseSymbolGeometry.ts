@@ -1,4 +1,4 @@
-import { ExtrudeGeometry, Path, Shape, Vector3 } from 'three';
+import { ExtrudeGeometry, Path, Shape, ShapeUtils, Vector3 } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import type { SVGResult } from 'three/examples/jsm/loaders/SVGLoader.js';
 
@@ -39,11 +39,9 @@ export function createPhaseRingGeometry(wellRadius: number): ExtrudeGeometry {
  */
 const parsedSymbols = new Map<string, Promise<SVGResult>>();
 
-/* Whether a parsed symbol extrudes to any solid at all; checked once, when it is first parsed. */
+/* Whether a parsed symbol has any filled area to extrude; a zero-area outline, like a rect without a height, has none. */
 function drawsSomething(svg: SVGResult) {
-  const geometry = createPhaseSymbolGeometry(svg, 1);
-  geometry?.dispose();
-  return geometry !== null;
+  return filledShapes(svg).some((shape) => Math.abs(ShapeUtils.area(shape.getPoints())) > 0);
 }
 
 function parsedSymbol(symbol: string): Promise<SVGResult> {
@@ -51,10 +49,9 @@ function parsedSymbol(symbol: string): Promise<SVGResult> {
   if (!parsed) {
     parsed = new SVGLoader().loadAsync(symbol);
     /* A failed fetch, or a body with nothing to draw such as a page served for a missing file, is fetched again by the next mount. */
-    parsed.then(
-      (svg) => drawsSomething(svg) || parsedSymbols.delete(symbol),
-      () => parsedSymbols.delete(symbol)
-    );
+    const request = parsed;
+    const forget = () => parsedSymbols.get(symbol) === request && parsedSymbols.delete(symbol);
+    parsed.then((svg) => drawsSomething(svg) || forget(), forget);
     parsedSymbols.set(symbol, parsed);
   }
   return parsed;

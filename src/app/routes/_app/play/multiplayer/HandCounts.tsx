@@ -51,16 +51,20 @@ const KEPT_LOGOS = 32;
 function loadImage(href: string): Promise<HTMLImageElement | null> {
   let loading = logoLoads.get(href);
   if (!loading) {
-    loading = new Promise<HTMLImageElement | null>((resolve) => {
+    const request: Promise<HTMLImageElement | null> = new Promise((resolve) => {
       const image = new Image();
       image.crossOrigin = 'anonymous';
       image.onload = () => resolve(image);
       image.onerror = () => {
-        logoLoads.delete(href);
+        /* Only this request's own entry: an evicted request must not drop the one that replaced it. */
+        if (logoLoads.get(href) === request) {
+          logoLoads.delete(href);
+        }
         resolve(null);
       };
       image.src = href;
     });
+    loading = request;
     logoLoads.set(href, loading);
     if (logoLoads.size > KEPT_LOGOS) {
       logoLoads.delete(logoLoads.keys().next().value!);
