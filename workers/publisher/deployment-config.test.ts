@@ -115,9 +115,11 @@ describe('scheduled production deployment shape', () => {
 
   test('sends the media overview and its game galleries to the Worker', () => {
     const routes = (config.assets as { run_worker_first?: string[] }).run_worker_first;
-    expect(routes).toEqual(expect.arrayContaining(['/media', '/media/game/*']));
     for (const page of MEDIA_PUBLIC_PAGES) {
-      expect(page === '/media' || page.startsWith('/media/game/')).toBe(true);
+      const covered = routes?.some(
+        (route) => route === page || (route.endsWith('/*') && page.startsWith(route.slice(0, -1)))
+      );
+      expect(covered, page).toBe(true);
     }
   });
 
@@ -174,6 +176,7 @@ describe('scheduled production deployment shape', () => {
       '/privacy',
       '/privacy/*',
       '/media',
+      '/media/',
       '/media/game/*',
     ]);
   });

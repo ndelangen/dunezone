@@ -32,6 +32,7 @@ describe('anonymous application dispatch', () => {
     '/privacy/',
     '/glossary/missing',
     '/media',
+    '/media/',
     '/media/game/leaders',
     '/media/game/missing',
   ])('renders %s without visitor credentials', async (pathname) => {

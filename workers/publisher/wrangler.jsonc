@@ -69,6 +69,7 @@
       "/privacy",
       "/privacy/*",
       "/media",
+      "/media/",
       "/media/game/*"
     ]
   },

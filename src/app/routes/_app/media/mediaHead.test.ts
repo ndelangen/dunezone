@@ -37,6 +37,8 @@ describe('media page heads', () => {
 
   test('an unknown gallery and a not-found match leave the title to the not-found page', () => {
     expect(mediaHead({ source: 'game', kind: 'missing' })).toEqual({});
+    expect(mediaHead({ source: 'game' })).toEqual({});
+    expect(mediaHead({ source: 'missing', kind: 'leaders' })).toEqual({});
     expect(mediaHead({}, { status: 'notFound' })).toEqual({});
     expect(mediaHead({ source: 'game', kind: 'leaders' }, { status: 'notFound' })).toEqual({});
   });

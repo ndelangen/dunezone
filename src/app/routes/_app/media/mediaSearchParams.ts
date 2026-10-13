@@ -25,8 +25,11 @@ export const indexedMediaKinds = [
 
 export type MediaKind = (typeof indexedMediaKinds)[number]['value'];
 
+const unbrowsedKinds = ['troop_modifier', 'background', 'texture', 'card', 'shield', 'web'] as const;
+type BrowsedKind = Exclude<(typeof indexedMediaKinds)[number], { value: (typeof unbrowsedKinds)[number] }>;
+
 export const mediaKinds = indexedMediaKinds.filter(
-  ({ value }) => !['troop_modifier', 'background', 'texture', 'card', 'shield', 'web'].includes(value)
+  (kind): kind is BrowsedKind => !(unbrowsedKinds as readonly string[]).includes(kind.value)
 );
 
 export interface MediaSearch {

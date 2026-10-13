@@ -182,6 +182,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/privacy',
         '/privacy/*',
         '/media',
+        '/media/',
         '/media/game/*',
       ],
     },

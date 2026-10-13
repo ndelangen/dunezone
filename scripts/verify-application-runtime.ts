@@ -180,6 +180,13 @@ try {
     assert.match(html, /rel="canonical"/, `${pathname} has no canonical URL`);
     assert.match(html, /property="og:title"/, `${pathname} has no social metadata`);
     assert.ok(html.endsWith('</html>'), `${pathname} returned a truncated document`);
+    if (MEDIA_PUBLIC_PAGES.includes(pathname)) {
+      /* The media layout builds each gallery's head from its child route's params, so check the canonical is the gallery's own. */
+      assert.ok(
+        html.includes(`rel="canonical" href="https://dune.zone${pathname}"`),
+        `${pathname} has the wrong canonical URL`
+      );
+    }
     if (pathname === '/') {
       assert.match(html, /Dune Play is coming soon/i);
       assert.match(html, /Your rules\. Always within reach\./, 'The homepage chapters are not rendered on the server');
