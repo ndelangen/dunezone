@@ -1,4 +1,4 @@
-import { MultiSelect, NumberInput, SegmentedControl, Stack, TextInput } from '@mantine/core';
+import { Group, MultiSelect, NumberInput, Radio, Stack, TextInput, VisuallyHidden } from '@mantine/core';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -116,12 +116,17 @@ function HeadFields({ draft, patch, nameField }: { draft: SpiceDraft; patch: Pat
         title="Icon"
         description="The vector in the top-right disc."
         input={
-          <SegmentedControl
-            aria-label="Icon"
-            data={ICON_OPTIONS}
+          <Radio.Group
+            label={<VisuallyHidden>Icon</VisuallyHidden>}
             value={draft.icon}
             onChange={(value) => patch({ icon: value as SpiceIcon })}
-          />
+          >
+            <Group gap="lg" wrap="wrap">
+              {ICON_OPTIONS.map(({ value, label }) => (
+                <Radio key={value} value={value} label={label} />
+              ))}
+            </Group>
+          </Radio.Group>
         }
       />
     </Stack>
