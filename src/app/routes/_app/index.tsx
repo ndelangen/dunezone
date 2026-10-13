@@ -54,6 +54,20 @@ function IndexPage() {
   const viewer = useSessionViewer();
   const root = useRef<HTMLDivElement>(null);
   const motionAllowed = useMotionAllowed();
+  /*
+   * The sneak peek link is a plain hash link, so a click before hydration still lands on the preview; the invitation
+   * follows the hash rather than the click, and appears as soon as the page hydrates.
+   */
+  useEffect(() => {
+    const sync = () => {
+      if (window.location.hash === '#play-preview') {
+        setInvitation(true);
+      }
+    };
+    sync();
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, []);
   useEffect(() => {
     if (!motionAllowed || typeof IntersectionObserver === 'undefined') {
       return;
@@ -84,7 +98,7 @@ function IndexPage() {
             subtitle="Soon, your next game of Dune will be right here."
           />
           <Group justify="center">
-            <Button component="a" href="#play-preview" onClick={() => setInvitation(true)}>
+            <Button component="a" href="#play-preview">
               Take a sneak peek
             </Button>
             <Button variant="subtle" component="a" href="#make">
