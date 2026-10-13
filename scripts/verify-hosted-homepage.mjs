@@ -288,6 +288,8 @@ export async function verifyHomepage({
 }) {
   const member = await account('player-a');
   const guest = await peer('homepage-observer');
+  /* Picking must work after the animated entrance as well as with reduced motion. */
+  await member.page.emulateMedia({ reducedMotion: 'no-preference' });
   let artworkRequested = false;
   const releaseArtwork = Promise.withResolvers();
   /* Hold a scene image until the driver has checked the still-loading preview. */
@@ -319,7 +321,12 @@ export async function verifyHomepage({
     };
   });
   let initialCanvas;
-  for (const who of [member, guest]) {
+  /*
+   * The guest's preview starts before the member opens the homepage.
+   * The member's preview demo redraws continuously once motion is welcome, which keeps the shared SwiftShader GPU process busy.
+   * A renderer starting meanwhile waited seconds on each synchronous WebGL call and stopped after two or three frames, so its sneak peek never became ready.
+   */
+  for (const who of [guest, member]) {
     await who.page.goto(origin, { waitUntil: 'domcontentloaded' });
     await who.page.getByRole('link', { name: 'Take a sneak peek', exact: true }).click();
     await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
@@ -367,12 +374,6 @@ export async function verifyHomepage({
   passed(
     'The homepage shows its board before delayed artwork, which finishes in place, and keeps one canvas through a reconnect'
   );
-  /*
-   * Picking must work after the animated entrance as well as with reduced motion.
-   * Motion is welcomed only once both previews are ready: the member's preview demo then redraws its canvas continuously, which keeps the shared SwiftShader GPU process busy.
-   * While it was on from the start, the guest's renderer waited seconds on each synchronous WebGL call during startup and stopped after two or three frames, so its sneak peek never became ready.
-   */
-  await member.page.emulateMedia({ reducedMotion: 'no-preference' });
   await recordRenderer(member, '#play-preview canvas');
   await until(() => member.view().viewer.viewerSeat !== spectator, 'Signing in did not grant table handling.');
   assert.equal(guest.view().viewer.viewerSeat, spectator);
