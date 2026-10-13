@@ -1,8 +1,5 @@
 import { Alert, Button, Group, Select, Stack, Table, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -13,7 +10,7 @@ import { authProviderNames } from '@db/accounts';
 import { useAccountManagementPage, useMergeAccounts, useResumeAccountMerge } from '@db/accounts';
 import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
-import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { AdminGate, AdminPageLoading } from '@app/widgets/page-message/AdminGate';
 
 export const Route = createFileRoute('/_app/_admin/accounts')({
   head: () => pageHead('Accounts'),
@@ -22,28 +19,22 @@ export const Route = createFileRoute('/_app/_admin/accounts')({
 
 function AccountsPage() {
   const viewer = useSessionViewer();
-  if (viewer.kind === 'pending') {
-    return (
-      <PageMessage title="Accounts">
-        <LoadPending title="Loading accounts">The account list is loading.</LoadPending>
-      </PageMessage>
-    );
-  }
-  if (viewer.kind === 'signed-out') {
-    return (
-      <PageMessage title="Accounts">
-        <LoginGate action="manage accounts" />
-      </PageMessage>
-    );
-  }
-  if (!viewer.isAdmin) {
-    return (
-      <PageMessage title="Accounts">
-        <NotAvailable title="Admin access required">Only administrators can manage accounts.</NotAvailable>
-      </PageMessage>
-    );
-  }
-  return <AccountManagement />;
+  return (
+    <AdminGate
+      viewer={viewer}
+      title="Accounts"
+      action="manage accounts"
+      loading={<AccountsLoading />}
+      deniedTitle="Admin access required"
+      deniedMessage="Only administrators can manage accounts."
+    >
+      <AccountManagement />
+    </AdminGate>
+  );
+}
+
+function AccountsLoading() {
+  return <AdminPageLoading title="Accounts">The account list is loading.</AdminPageLoading>;
 }
 
 type AccountPage = NonNullable<ReturnType<typeof useAccountManagementPage>>;
@@ -71,11 +62,7 @@ function AccountManagement() {
   const merge = useMergeAccounts();
   const resume = useResumeAccountMerge();
   if (!page) {
-    return (
-      <PageMessage title="Accounts">
-        <LoadPending title="Loading accounts">The account list is loading.</LoadPending>
-      </PageMessage>
-    );
+    return <AccountsLoading />;
   }
   const profiles = [
     ...new Map([...page.profiles.page, ...page.selected].map((profile) => [profile.userId, profile])).values(),

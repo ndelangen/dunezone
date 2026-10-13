@@ -1,8 +1,5 @@
 import { Alert, Badge, Center, Code, Group, Pagination, Select, Stack, Switch, Table, Text } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -14,7 +11,7 @@ import { useSessionViewer } from '@db/profiles';
 import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@db/publications';
 import type { PublicationJobStatus } from '@db/publications';
 import { pageHead } from '@app/routes/pageTitle';
-import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { AdminGate, AdminPageLoading } from '@app/widgets/page-message/AdminGate';
 
 const PAGE_SIZE = 25;
 
@@ -24,40 +21,28 @@ export const Route = createFileRoute('/_app/_admin/jobs')({
   component: PublicationJobsPage,
 });
 
-/*
- * Early returns rather than a ternary chain inside the content: each gate is the whole page rather than one region of it,
- * and rendering them under this page's own header meant a reader who may not see the queue at all still got its briefcase and its description.
- * The header is a statement about a dashboard they are not being shown.
- */
 function PublicationJobsPage() {
   const viewer = useSessionViewer();
-  if (viewer.kind === 'pending') {
-    return <PublicationJobsLoading />;
-  }
-  if (viewer.kind === 'signed-out') {
-    return (
-      <PageMessage size="compact" title="Publication jobs">
-        <LoginGate action="inspect publication jobs" />
-      </PageMessage>
-    );
-  }
-  if (!viewer.isAdmin) {
-    return (
-      <PageMessage size="compact" title="Publication jobs">
-        <NotAvailable title="You cannot view publication jobs">
-          Your account does not have permission to view publication jobs.
-        </NotAvailable>
-      </PageMessage>
-    );
-  }
-  return <PublicationJobsDashboard />;
+  return (
+    <AdminGate
+      viewer={viewer}
+      size="compact"
+      title="Publication jobs"
+      action="inspect publication jobs"
+      loading={<PublicationJobsLoading />}
+      deniedTitle="You cannot view publication jobs"
+      deniedMessage="Your account does not have permission to view publication jobs."
+    >
+      <PublicationJobsDashboard />
+    </AdminGate>
+  );
 }
 
 function PublicationJobsLoading() {
   return (
-    <PageMessage size="compact" title="Publication jobs">
-      <LoadPending title="Loading publication jobs">The durable work queue is still loading.</LoadPending>
-    </PageMessage>
+    <AdminPageLoading size="compact" title="Publication jobs">
+      The durable work queue is still loading.
+    </AdminPageLoading>
   );
 }
 

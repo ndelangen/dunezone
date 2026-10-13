@@ -1,8 +1,5 @@
 import { Group, Stack } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -12,7 +9,7 @@ import { RefreshCw } from 'lucide-react';
 import { useAdminMigrationDashboard, useSyncMigrationRuns } from '@db/migrations';
 import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
-import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { AdminGate, AdminPageLoading } from '@app/widgets/page-message/AdminGate';
 
 export const Route = createFileRoute('/_app/admin/migrations')({
   head: () => pageHead('Migration activity'),
@@ -30,34 +27,22 @@ const migrationsHeader = <PageTitle title="Migration activity" />;
 
 function AdminMigrationsPage() {
   const viewer = useSessionViewer();
-  if (viewer.kind === 'pending') {
-    return <MigrationsLoading />;
-  }
-  if (viewer.kind === 'signed-out') {
-    return (
-      <PageMessage title="Migration activity">
-        <LoginGate action="view migration activity" />
-      </PageMessage>
-    );
-  }
-  if (!viewer.isAdmin) {
-    return (
-      <PageMessage title="Migration activity">
-        <NotAvailable title="You cannot view migration activity">
-          Your account does not have permission to view migration activity.
-        </NotAvailable>
-      </PageMessage>
-    );
-  }
-  return <MigrationDashboard />;
+  return (
+    <AdminGate
+      viewer={viewer}
+      title="Migration activity"
+      action="view migration activity"
+      loading={<MigrationsLoading />}
+      deniedTitle="You cannot view migration activity"
+      deniedMessage="Your account does not have permission to view migration activity."
+    >
+      <MigrationDashboard />
+    </AdminGate>
+  );
 }
 
 function MigrationsLoading() {
-  return (
-    <PageMessage title="Migration activity">
-      <LoadPending title="Loading migration activity">The migration dashboard is still loading.</LoadPending>
-    </PageMessage>
-  );
+  return <AdminPageLoading title="Migration activity">The migration dashboard is still loading.</AdminPageLoading>;
 }
 
 /** Mounted only for an administrator, so the admin-only query is never asked by anyone else. */
