@@ -262,6 +262,15 @@
   }
 }
 
+/* The approved still framing: the board's middle, a little below the header. */
+.boardStill {
+  display: none;
+  position: absolute;
+  width: max(200cqi, 125vw);
+  left: 50%;
+  translate: -50% -5%;
+  top: 0;
+}
 .liveBoard {
   position: absolute;
   width: max(212cqi, 132.5vw);
@@ -278,4 +287,18 @@
 }
 [data-live-ready="true"] > .liveBoard {
   opacity: 1;
+}
+/* A narrow page shows the board as a still and says where the live table runs. */
+@container page-frame (width < 48rem) {
+  .boardStill {
+    display: block;
+  }
+  .wideOnly {
+    display: none;
+  }
+}
+@container page-frame (width >= 48rem) {
+  .narrowOnly {
+    display: none;
+  }
 }
