@@ -4,6 +4,22 @@
 /public/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Fonts, vector icons, site art and the header video keep their names across builds, so they cannot be immutable.
+# Without a rule they take the Workers assets default (max-age=0, must-revalidate), and every reload asks again for
+# each font before text can draw. An hour fresh, then served from cache while it revalidates, keeps them warm; a
+# replaced file reaches a returning visitor within the hour.
+/font/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=604800
+
+/vector/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=604800
+
+/web/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=604800
+
+/video/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=604800
+
 # Play is an unlisted beta (#1094). The play pages set a robots meta only once JavaScript runs, so the
 # header also covers crawlers that never run it. Rules match the request path, so they reach the SPA
 # document these routes are served from without making the Worker run first.

@@ -33,6 +33,22 @@ export function createPhaseRingGeometry(wellRadius: number): ExtrudeGeometry {
   );
 }
 
+/*
+ * Every table mount builds its phase wells again, and the spice icon is shared by the bank and the stacks, so each symbol is
+ * fetched and parsed once for the page. The parsed paths are only read; each caller extrudes and owns its own geometry.
+ */
+const parsedSymbols = new Map<string, Promise<SVGResult>>();
+
+function parsedSymbol(symbol: string): Promise<SVGResult> {
+  let parsed = parsedSymbols.get(symbol);
+  if (!parsed) {
+    parsed = new SVGLoader().loadAsync(symbol);
+    parsed.catch(() => parsedSymbols.delete(symbol));
+    parsedSymbols.set(symbol, parsed);
+  }
+  return parsed;
+}
+
 export function loadPhaseSymbolGeometry(
   symbol: string,
   radius: number,
@@ -41,8 +57,7 @@ export function loadPhaseSymbolGeometry(
   let cancelled = false;
   let ownedGeometry: ExtrudeGeometry | null = null;
   const settle = startArtworkLoad();
-  void new SVGLoader()
-    .loadAsync(symbol)
+  void parsedSymbol(symbol)
     .then((svg) => {
       if (cancelled) {
         return;
