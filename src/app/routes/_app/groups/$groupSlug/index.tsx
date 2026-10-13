@@ -52,11 +52,13 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/')({
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData?.groupDetail.group.name ?? 'Group',
+      kind: 'Group',
       pathname: `/groups/${encodeURIComponent(params.groupSlug)}`,
       description: loaderData
         ? `Members: ${loaderData.groupDetail.roster.filter((member) => member.status === 'active').length}. Factions: ${loaderData.groupDetail.factions.length}. Rulesets: ${loaderData.groupDetail.rulesets.length}. Explore this Group on Dune Zone.`
         : '',
       social: { kind: 'Group', shape: 'round' },
+      trail: [],
       match,
     }),
   component: GroupDetailPage,
@@ -101,7 +103,7 @@ function GroupDetailPage() {
      the skeleton grid was the only one of its kind and announced nothing to a reader who cannot
      see it. */
   const page = groupData.data;
-  useLivePageTitle(page?.group.name);
+  useLivePageTitle(page?.group.name, 'Group');
   if (!page) {
     return (
       <PageMessage size="compact" title="Group" back={backToProfiles}>

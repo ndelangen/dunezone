@@ -45,6 +45,7 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionS
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData ? questionTitle(loaderData.page.question.text) : 'FAQ question',
+      kind: 'FAQ',
       pathname: `/rulesets/${encodeURIComponent(params.rulesetSlug)}/faq/${encodeURIComponent(params.questionSlug)}`,
       description: loaderData
         ? publicDescription(
@@ -52,6 +53,17 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionS
           )
         : '',
       social: { kind: 'FAQ question', shape: 'portrait' },
+      trail: [
+        { name: 'Rulesets', pathname: '/rulesets' },
+        ...(loaderData
+          ? [
+              {
+                name: loaderData.page.ruleset.name,
+                pathname: `/rulesets/${encodeURIComponent(loaderData.page.ruleset.slug)}`,
+              },
+            ]
+          : []),
+      ],
       match,
     }),
   component: FaqDetailPage,
@@ -147,7 +159,7 @@ function FaqDetailPage() {
     }
   );
 
-  useLivePageTitle(faq.page ? questionTitle(faq.page.question.text) : undefined);
+  useLivePageTitle(faq.page ? questionTitle(faq.page.question.text) : undefined, 'FAQ');
 
   const [editing, setEditing] = useState(INITIAL_FAQ_EDITING_STATE);
   const editingSessionRef = useRef<FaqEditingSession>(undefined);

@@ -58,7 +58,7 @@ import {
 } from '@db/rulesets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
-import { publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -367,12 +367,15 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData?.ruleset.name ?? 'Ruleset',
+      kind: 'Ruleset',
       pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}`,
       description:
         publicDescription(loaderData?.ruleset.about) ||
         `Explore ${loaderData?.ruleset.name ?? 'this ruleset'} and its published Rulebooks.`,
       image: loaderData?.ruleset.coverThumbUrl,
       social: { kind: 'Ruleset', shape: 'portrait' },
+      trail: [{ name: 'Rulesets', pathname: '/rulesets' }],
+      author: profileLink(loaderData?.owner),
       match,
     }),
   component: RulesetDetailPage,
@@ -412,7 +415,7 @@ function RulesetDetailPage() {
   const removeFaction = useRemoveRulesetFaction();
   const routeNotice = resolveRouteNotice(search.notice);
 
-  useLivePageTitle(page?.ruleset.name);
+  useLivePageTitle(page?.ruleset.name, 'Ruleset');
 
   if (!page) {
     return (

@@ -9,9 +9,20 @@ visitor credentials before invoking TanStack Start, and the data doorway creates
 HTTP client for server reads.
 
 Each route calls its existing page query once. That result supplies the visible content, title,
-canonical URL, description and social metadata. The faction excerpt comes from its first advantage;
-an asset uses About. Formatting marks become readable text, and empty excerpts remain empty.
-Descriptions stop at 200 Unicode code points. Detail metadata points to [the social PNG endpoint](social-images.md).
+canonical URL, description, social metadata and structured data. The faction excerpt comes from its
+first advantage; an asset uses About. Formatting marks become readable text. When that text is empty,
+the description names the work's kind and creator instead, and a profile counts what its member has
+shared, so no public page leaves its search snippet blank or shares one with every other page of its kind.
+Descriptions stop at 200 Unicode code points.
+
+Titles name what the page is between its name and the site, as in "Atreides · Custom faction · Dune Zone".
+The live title keeps the same kind after hydration. Catalogue pages keep their own names, which already
+say it.
+
+Detail pages also carry one schema.org graph: a breadcrumb trail from the homepage through the
+catalogue, and either the work with its creator's profile or, on a profile, the person. The homepage
+names the site. Every value repeats something the page shows; catalogues and pages without a named
+creator leave out what they cannot back. Detail metadata points to [the social PNG endpoint](social-images.md).
 Its URL carries bounded words and the existing published artwork path. Catalogues retain the site
 poster. Image generation adds no metadata query.
 

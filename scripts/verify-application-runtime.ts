@@ -191,6 +191,14 @@ try {
       );
     }
     if (pathname === '/') {
+      if (!fixture) {
+        /* The homepage names showcase records by hand, so a rename or deletion behind one of its links fails the release. */
+        const editorial = publicLinks.filter((href) =>
+          /^\/(?:(?:factions|groups|rulesets)|assets\/[^/?]+)\/(?!create(?:\/|$))[^/?]+\/?$/.test(href)
+        );
+        assert.ok(editorial.length, 'The homepage links to no showcase records');
+        pages.push(...new Set(editorial.filter((href) => !pages.includes(href))));
+      }
       assert.match(html, /Dune Play is coming soon/i);
       assert.match(html, /Your rules\. Always within reach\./, 'The homepage chapters are not rendered on the server');
       assert.match(

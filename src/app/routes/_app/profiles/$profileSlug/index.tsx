@@ -39,10 +39,23 @@ import { forgetStoredPlayTables } from '@db/playTables';
 import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlug } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { countOf, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
+
+/** What a member has shared, counted, so each profile's search snippet is its own rather than one sentence for everyone. */
+function profileDescription({ profile, factions, groupSummaries, faqAsked, faqAnswers }: NonNullable<ProfilePageData>) {
+  const name = profile.username ?? 'This member';
+  const shared = [
+    factions.length ? countOf(factions.length, 'faction') : '',
+    groupSummaries.length ? countOf(groupSummaries.length, 'Group') : '',
+    faqAsked.length + faqAnswers.length ? countOf(faqAsked.length + faqAnswers.length, 'FAQ contribution') : '',
+  ].filter(Boolean);
+  return shared.length
+    ? `${name} on Dune Zone: ${shared.length > 1 ? `${shared.slice(0, -1).join(', ')} and ${shared.at(-1)}` : shared[0]}.`
+    : `${name} is a member of Dune Zone, the community workshop for Dune factions, cards and Rulesets.`;
+}
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   ssr: true,
@@ -64,10 +77,13 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData?.profilePage.profile.username ?? 'Profile',
+      kind: 'Profile',
       pathname: `/profiles/${encodeURIComponent(params.profileSlug)}`,
-      description: "Explore this Dune Zone member's factions, Groups and FAQ contributions.",
+      description: loaderData ? profileDescription(loaderData.profilePage) : '',
       image: loaderData?.profilePage.profile.avatar?.url,
       social: { kind: 'Profile', shape: 'round' },
+      trail: [{ name: 'Profiles', pathname: '/profiles' }],
+      profile: true,
       match,
     }),
   component: ProfileDetailPage,
@@ -215,7 +231,7 @@ function ProfileDetailPage() {
   const loaderData = Route.useLoaderData();
   const profileQuery = useProfileBySlug(profileSlug, { initialData: loaderData.profilePage });
   const page = profileQuery.data;
-  useLivePageTitle(page?.profile.username ?? undefined);
+  useLivePageTitle(page?.profile.username ?? undefined, 'Profile');
   const currentProfile = useCurrentProfile();
   const { signOut } = useAuthActions();
   const navigate = useNavigate();

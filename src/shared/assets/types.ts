@@ -63,3 +63,8 @@ export function holdsDeckMembership(type: string): boolean {
 export function isAssetType(value: string): value is AssetType {
   return Object.hasOwn(ASSET_TYPES, value);
 }
+
+/** One Asset of this type, as in "Treachery card": every registry label is its plural with a final "s". */
+export function assetTypeNoun(type: AssetType): string {
+  return ASSET_TYPES[type].label.replace(/s$/, '');
+}
