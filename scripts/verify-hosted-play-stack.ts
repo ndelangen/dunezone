@@ -36,6 +36,7 @@ const { values } = parseArgs({
     flow: { type: 'string', multiple: true },
     shard: { type: 'string' },
     'browser-only': { type: 'boolean', default: false },
+    'stop-on-failure': { type: 'boolean', default: false },
     browser: { type: 'string' },
     'expect-renderer': { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
@@ -625,6 +626,10 @@ try {
       );
       if (!passed) {
         failed.push(flow);
+        if (values['stop-on-failure']) {
+          console.log(`Stopping the browser flow batch after ${flow} failed.`);
+          break;
+        }
       }
     }
     console.log(`Browser reports and captures remain in ${reportDirectory}.`);
