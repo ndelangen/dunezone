@@ -1,7 +1,7 @@
 import { ConvexError } from 'convex/values';
 
 import type { QueryCtx } from '../types';
-import { isActiveProfile } from './accountLifecycle';
+import { isPublicProfile } from './accountLifecycle';
 import { liveGroupOrNull } from './collaborativeAccess';
 import { loadFactionCatalogue } from './factionCatalogue';
 import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './faqProfileActivity';
@@ -23,7 +23,7 @@ export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string) {
   for (let depth = 0; profile?.merged_into_profile_id && depth < 16; depth += 1) {
     profile = await ctx.db.get(profile.merged_into_profile_id);
   }
-  if (!profile || !isActiveProfile(profile) || profile.merged_into_profile_id) {
+  if (!profile || !isPublicProfile(profile)) {
     throw new ConvexError({ code: 'NOT_FOUND', message: `Profile with slug ${slug} not found` });
   }
 

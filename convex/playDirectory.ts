@@ -113,8 +113,8 @@ async function lobbyEntry(ctx: QueryCtx, game: Doc<'play_games'>, viewerId: Id<'
   ).filter((player) => player !== null);
   return {
     gameId: game._id,
-    name: game.name ?? ruleset?.name ?? 'Game',
-    slug: game.slug ?? null,
+    name: game.name,
+    slug: game.slug,
     rulesetName: ruleset?.name ?? null,
     stage: summary.stage,
     seatsFilled: seated.length,

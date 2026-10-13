@@ -18,6 +18,11 @@ export function isActiveProfile(profile: Pick<Doc<'profiles'>, 'account_state'>)
   return accountStateOf(profile) === 'active';
 }
 
+/** A profile with its own public page: active, and not folded into another by a merge. */
+export function isPublicProfile(profile: Pick<Doc<'profiles'>, 'account_state' | 'merged_into_profile_id'>): boolean {
+  return isActiveProfile(profile) && !profile.merged_into_profile_id;
+}
+
 /** Raw identity is reserved for lifecycle diagnostics that pending/deleted sessions must still observe. */
 export async function lifecycleUserId(ctx: AnyCtx): Promise<Id<'users'> | null> {
   return await getAuthUserId(ctx);
