@@ -9,6 +9,8 @@ export const SITEMAP_PAGE_SIZE = 200;
 export const SITEMAP_ASSET_COLLECTIONS: AssetType[] = ASSET_TYPE_KEYS.filter(
   (type) => ASSET_TYPES[type].status === 'live'
 );
+/** Public pages with no record behind them: served by the Worker, rendered on the server, listed in the landing sitemap. */
+export const RECORDLESS_PUBLIC_PAGES = ['/glossary', '/future-plans', '/privacy'];
 /** Record kinds with their own sitemap. Their names must never collide with an Asset type's. */
 export const SITEMAP_RECORD_COLLECTIONS = ['factions', 'rulesets', 'rulebooks', 'faq', 'profiles', 'groups'];
 export const SITEMAP_COLLECTIONS: string[] = [...SITEMAP_RECORD_COLLECTIONS, ...SITEMAP_ASSET_COLLECTIONS];

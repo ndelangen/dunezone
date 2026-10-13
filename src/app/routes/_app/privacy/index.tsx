@@ -14,7 +14,7 @@ export const Route = createFileRoute('/_app/privacy/')({
       name: 'Privacy',
       pathname: '/privacy',
       description: 'What Dune Zone keeps private, what everyone can see, your data rights, and the code of conduct.',
-      social: { kind: 'Privacy', shape: 'portrait' },
+      social: { kind: 'Dune Zone', shape: 'portrait' },
     }),
   component: PrivacyPage,
 });

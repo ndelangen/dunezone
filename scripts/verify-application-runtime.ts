@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { getPlatformProxy, unstable_dev } from 'wrangler';
 
+import { RECORDLESS_PUBLIC_PAGES } from '../src/shared/publicDiscovery.ts';
 import { jpegProfile, pngDimensions } from '../workers/publisher/image-inspection.ts';
 
 /* Exercise the assembled Worker, including Static Assets precedence and the real TanStack entry. */
@@ -29,7 +30,7 @@ function isEmptyArtifactStoreReader(pathname: string, html: string) {
 }
 
 /* Pages with no record behind them render without a metadata query. */
-const RECORDLESS_PAGES = ['/', '/glossary', '/future-plans', '/privacy'];
+const RECORDLESS_PAGES = ['/', ...RECORDLESS_PUBLIC_PAGES];
 
 function assertPublicMetadataQueries(count: number, pathname: string, html: string, historicalFallback: boolean) {
   if (isEmptyArtifactStoreReader(pathname, html)) {
@@ -92,9 +93,7 @@ try {
     '/assets/token-disc',
     '/rulesets',
     '/profiles',
-    '/glossary',
-    '/future-plans',
-    '/privacy',
+    ...RECORDLESS_PUBLIC_PAGES,
   ];
   let rulebookPage: string | undefined;
   let groupPage: string | undefined;
@@ -257,6 +256,7 @@ try {
     '/rulesets/__ssr_missing_ruleset__/rulebooks/__ssr_missing_rulebook__',
     '/factions/missing/extra',
     '/assets/unknown-type/missing/extra',
+    '/glossary/missing',
   ]) {
     const missing = await worker.fetch(pathname);
     assert.equal(missing.status, 404, pathname);

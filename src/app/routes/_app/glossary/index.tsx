@@ -27,7 +27,7 @@ export const Route = createFileRoute('/_app/glossary/')({
       pathname: '/glossary',
       description:
         'Every Dune game idea has one name on Dune Zone. The glossary follows the 2019 rulebook and lists the other words each term replaces.',
-      social: { kind: 'Glossary', shape: 'portrait' },
+      social: { kind: 'Dune Zone', shape: 'portrait' },
     }),
   component: GlossaryPage,
 });

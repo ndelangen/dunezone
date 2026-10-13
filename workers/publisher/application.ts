@@ -1,3 +1,4 @@
+import { RECORDLESS_PUBLIC_PAGES } from '../../src/shared/publicDiscovery';
 import { PUBLIC_CACHE_SECONDS, publicCachedResponse } from './public-cache';
 import type { PublicCache } from './public-cache';
 
@@ -5,9 +6,6 @@ import type { PublicCache } from './public-cache';
 export function applicationReleaseIdentity(env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA'>): string {
   return env.CF_VERSION_METADATA?.id ?? env.GIT_SHA;
 }
-
-/** Pages with no record behind them, rendered on the server like every other public page. */
-const STATIC_PAGES = ['glossary', 'future-plans', 'privacy'];
 
 function isPublicPage(pathname: string): boolean {
   if (pathname === '/') {
@@ -23,8 +21,9 @@ function isPublicPage(pathname: string): boolean {
     return false;
   }
   const [root, type, slug] = segments;
-  if (STATIC_PAGES.includes(root)) {
-    return segments.length === 1;
+  /* Unknown descendants reach the router's 404, as under every other public root. */
+  if (RECORDLESS_PUBLIC_PAGES.includes(`/${root}`)) {
+    return true;
   }
   if (root === 'factions') {
     return !((segments.length === 2 && type === 'create') || (segments.length === 3 && slug === 'edit'));

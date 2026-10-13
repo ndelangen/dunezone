@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import {
   PUBLIC_SITE_ORIGIN,
+  RECORDLESS_PUBLIC_PAGES,
   SITEMAP_ASSET_COLLECTIONS,
   SITEMAP_COLLECTIONS,
   sitemapPageSchema,
@@ -140,9 +141,7 @@ export async function handlePublicDiscovery(
               '/profiles',
               '/assets',
               ...SITEMAP_ASSET_COLLECTIONS.map((type) => `/assets/${type}`),
-              '/glossary',
-              '/future-plans',
-              '/privacy',
+              ...RECORDLESS_PUBLIC_PAGES,
             ]
               .map((path) => `<url>${location(path)}</url>`)
               .join('')

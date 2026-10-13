@@ -36,7 +36,7 @@ export const Route = createFileRoute('/_app/future-plans/')({
       pathname: '/future-plans',
       description:
         'What Dune Zone could become: Rulebooks made for the web, a Rulebook creator, game results and faction table tools.',
-      social: { kind: 'Future plans', shape: 'portrait' },
+      social: { kind: 'Dune Zone', shape: 'portrait' },
     }),
   component: FuturePlansPage,
 });

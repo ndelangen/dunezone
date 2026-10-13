@@ -63,8 +63,11 @@
       "/assets",
       "/assets/*",
       "/glossary",
+      "/glossary/*",
       "/future-plans",
-      "/privacy"
+      "/future-plans/*",
+      "/privacy",
+      "/privacy/*"
     ]
   },
   "browser": { "binding": "BROWSER" },
