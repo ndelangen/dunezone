@@ -33,6 +33,7 @@ import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusPro
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { useAsset } from '@game/assets/assetRenderMode';
@@ -48,9 +49,10 @@ const FACTION_KIND = 'Custom faction';
 export const Route = createFileRoute('/_app/factions/$factionId/')({
   ssr: true,
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
-  loader: async ({ params }) => {
+  loader: async ({ params, location }) => {
     const page = await loadPublicFaction(params.factionId);
     if (!page) {
+      await redirectFromFormerAddress({ kind: 'faction', slug: params.factionId }, location);
       throw notFound();
     }
     return page;

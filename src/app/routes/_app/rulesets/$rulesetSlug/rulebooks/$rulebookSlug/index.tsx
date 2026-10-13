@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 
 import { useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
@@ -66,10 +67,14 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
   codeSplitGroupings: [['loader'], ['component'], ['pendingComponent', 'errorComponent']],
   validateSearch: parseReaderSearch,
   loaderDeps: ({ search }) => ({ editionNumber: search.edition }),
-  loader: async ({ params, deps }) => {
+  loader: async ({ params, deps, location }) => {
     const view = await loadReaderView({ ...params, editionNumber: deps.editionNumber });
     const page = view.page;
     if (!page) {
+      await redirectFromFormerAddress(
+        { kind: 'rulebook', ruleset_slug: params.rulesetSlug, rulebook_slug: params.rulebookSlug },
+        location
+      );
       throw notFound();
     }
     return view;

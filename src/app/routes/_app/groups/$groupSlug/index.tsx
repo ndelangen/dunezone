@@ -32,6 +32,7 @@ import type { RulesetEntry } from '@db/rulesets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { OwnedFactionAssignPicker, OwnedRulesetAssignPicker } from '@app/pickers/GroupAssignPicker';
 import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -41,9 +42,10 @@ type RosterEntry = GroupDetailPageData['roster'][number];
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/')({
   ssr: true,
-  loader: async ({ params }) => {
+  loader: async ({ params, location }) => {
     const groupDetail = await loadPublicPage(loadGroupDetailBySlug(params.groupSlug));
     if (!groupDetail) {
+      await redirectFromFormerAddress({ kind: 'group', slug: params.groupSlug }, location);
       throw notFound();
     }
     return { groupDetail };

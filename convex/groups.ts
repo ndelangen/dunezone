@@ -17,6 +17,7 @@ import {
   viewerMembershipStateValidator,
 } from './lib/collaborativeAccessValidators';
 import { factionRowForClient } from './lib/factionInput';
+import { recordFormerSlug } from './lib/formerSlugs';
 import { requireAuthUserId } from './lib/policy';
 import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
@@ -191,6 +192,9 @@ export const update = mutation({
     }
 
     const slug = await resolveUniqueGroupSlug(ctx, normalizedName, group);
+    if (slug !== group.slug) {
+      await recordFormerSlug(ctx, { kind: 'group', scope: '', slug: group.slug, record_id: group._id });
+    }
     await ctx.db.patch(group._id, { name: normalizedName, slug });
     const updated = await ctx.db.get(group._id);
     if (!updated) {
