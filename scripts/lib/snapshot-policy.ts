@@ -224,7 +224,6 @@ export const snapshotPolicy = {
       rulebook_id: { parent: 'rulebooks' },
       settings: 'keep',
       edition_number: 'keep',
-      contents: readerEditionContents,
       created_by: 'owner',
       created_at: 'keep',
     },
