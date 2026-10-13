@@ -9,7 +9,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ArrowRight, Hand } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, RefObject } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import type { SessionViewer } from '@db/profiles';
@@ -180,8 +180,11 @@ function PreviewCopy({ invitation, viewer }: { invitation: boolean; viewer: Sess
       <Text size="sm" c="dimmed">
         A development preview of the new table. Play is not available yet.
       </Text>
+      <Text size="sm" fw={700} className={styles.narrowOnly}>
+        Open this page on a tablet or computer to try the live preview.
+      </Text>
       {invitation && (
-        <div role="status">
+        <div role="status" className={styles.wideOnly}>
           <Surface padding="md">
             <Group justify="center" gap="sm">
               <Hand size={20} aria-hidden />
@@ -593,6 +596,8 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
     },
     { active: false, readyFor: null, failed: false }
   );
+  const still = useRef<HTMLDivElement>(null);
+  const roomy = useRoomForLiveBoard(still);
   const ready = useCallback(() => dispatch({ type: 'ready', identity }), [identity]);
   const unavailable = useCallback(() => dispatch({ type: 'failed' }), []);
   useEffect(() => {
@@ -622,7 +627,16 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
       className={styles.wideBoard}
       data-live-ready={state.readyFor === identity && state.active ? 'true' : undefined}
     >
-      {state.active && !state.failed && (
+      <div ref={still} className={styles.boardStill}>
+        {!roomy && (
+          <PublishedImage
+            src={resolveAsset('/web/homepage/board.png', 'large')}
+            name="The Dune Play board with faction tokens and troops on the table"
+            aspect={1420 / 3000}
+          />
+        )}
+      </div>
+      {roomy && state.active && !state.failed && (
         <Suspense fallback={null}>
           <ConnectedHomepageTable
             key={identity}
@@ -636,4 +650,25 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
       )}
     </div>
   );
+}
+
+/**
+ * Whether the page has room for the live table, read from the still's own stylesheet rule.
+ * The still shows only where the page frame is too narrow for the table, so one container query decides both.
+ * A phone never downloads the table's renderer or opens its connection.
+ */
+function useRoomForLiveBoard(still: RefObject<HTMLElement | null>) {
+  const [roomy, setRoomy] = useState(false);
+  useEffect(() => {
+    const element = still.current;
+    if (!element) {
+      return;
+    }
+    const sync = () => setRoomy(getComputedStyle(element).display === 'none');
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(element.parentElement ?? element);
+    return () => observer.disconnect();
+  }, [still]);
+  return roomy;
 }

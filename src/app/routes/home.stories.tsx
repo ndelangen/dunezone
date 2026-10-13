@@ -36,5 +36,6 @@ export const QuietMobile = meta.story({
     expect(preview?.closest('[data-homepage-motion]')).toHaveAttribute('data-homepage-motion', 'off');
     expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
     await expect(page.getByText('A development preview of the new table. Play is not available yet.')).toBeVisible();
+    await expect(page.getByText('Open this page on a tablet or computer to try the live preview.')).toBeVisible();
   },
 });
