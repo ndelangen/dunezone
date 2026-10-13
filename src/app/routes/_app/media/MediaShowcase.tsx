@@ -77,7 +77,11 @@ function useShowcaseRotation() {
   return { state, dispatch, reducedMotion };
 }
 
-export function MediaShowcase({ overview, compact = false }: Readonly<{ overview: boolean; compact?: boolean }>) {
+export function MediaShowcase({
+  overview,
+  compact = false,
+  gallery,
+}: Readonly<{ overview: boolean; compact?: boolean; gallery?: string }>) {
   const { state, dispatch, reducedMotion } = useShowcaseRotation();
 
   const decal = decals[state.decal]!;
@@ -85,7 +89,11 @@ export function MediaShowcase({ overview, compact = false }: Readonly<{ overview
   return (
     <div className={styles.header}>
       <Stack gap="sm">
-        <PageTitle eyebrow={compact ? undefined : 'Artwork for your creations'} title="Media catalogue" />
+        {gallery ? (
+          <PageTitle eyebrow="Media catalogue" title={gallery} />
+        ) : (
+          <PageTitle eyebrow={compact ? undefined : 'Artwork for your creations'} title="Media catalogue" />
+        )}
         {!compact &&
           (overview ? (
             <Text>Choose a gallery to explore its artwork.</Text>
@@ -104,6 +112,7 @@ export function MediaShowcase({ overview, compact = false }: Readonly<{ overview
           <Anchor
             className={styles.cardLink}
             aria-label={`Explore decal ${decal.label}`}
+            rel="nofollow"
             renderRoot={(props) => (
               <Link
                 {...props}
@@ -125,6 +134,7 @@ export function MediaShowcase({ overview, compact = false }: Readonly<{ overview
           <Anchor
             className={styles.leaderLink}
             aria-label={`Explore portrait ${leader.label}`}
+            rel="nofollow"
             renderRoot={(props) => (
               <Link
                 {...props}

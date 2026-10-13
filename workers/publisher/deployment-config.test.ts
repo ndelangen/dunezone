@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
-import { RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
+import { MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
 
 const config = JSON.parse(
   readFileSync(path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc'), 'utf8')
@@ -113,6 +113,16 @@ describe('scheduled production deployment shape', () => {
     }
   });
 
+  test('sends the media overview and its game galleries to the Worker', () => {
+    const routes = (config.assets as { run_worker_first?: string[] }).run_worker_first;
+    for (const page of MEDIA_PUBLIC_PAGES) {
+      const covered = routes?.some(
+        (route) => route === page || (route.endsWith('/*') && page.startsWith(route.slice(0, -1)))
+      );
+      expect(covered, page).toBe(true);
+    }
+  });
+
   test('keeps assets first except for the reviewed Worker-owned entry paths', () => {
     expect(config.assets).toMatchObject({
       directory: './dist',
@@ -165,6 +175,8 @@ describe('scheduled production deployment shape', () => {
       '/future-plans/*',
       '/privacy',
       '/privacy/*',
+      '/media',
+      '/media/*',
     ]);
   });
 });
