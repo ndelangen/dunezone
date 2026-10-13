@@ -29,19 +29,24 @@ const ConnectedHomepageTable = lazy(() => import('./homepage/ConnectedTable').ca
 export const Route = createFileRoute('/_app/')({
   /* Share metadata runs on the server; the game artwork keeps its browser-owned SVG IDs. */
   ssr: 'data-only',
-  head: () =>
-    publicPageHead({
-      name: '',
-      pathname: '/',
-      description: 'Dune Play is coming soon. Read Rulebooks, create factions and assets, and build with your allies.',
-      image: '/web/homepage-social-play-large.jpg',
-      imageDetails: {
-        alt: 'Dune Play is coming soon, with a preview of the board, Rulebook pages and homebrew leader portraits.',
-        type: 'image/jpeg',
-        width: 1200,
-        height: 630,
-      },
-    }),
+  /*
+   * The SPA shell every browser-only path is served from is prerendered at `/`, and it runs every matched head but no
+   * loader below the root. So the homepage's identity comes from its loader, like every other public page's: the shell
+   * then carries none, rather than telling crawlers that /glossary, /privacy and every unknown path are the homepage.
+   */
+  loader: () => ({
+    name: '',
+    pathname: '/',
+    description: 'Dune Play is coming soon. Read Rulebooks, create factions and assets, and build with your allies.',
+    image: '/web/homepage-social-play-large.jpg',
+    imageDetails: {
+      alt: 'Dune Play is coming soon, with a preview of the board, Rulebook pages and homebrew leader portraits.',
+      type: 'image/jpeg',
+      width: 1200,
+      height: 630,
+    },
+  }),
+  head: ({ loaderData }) => (loaderData ? publicPageHead(loaderData) : {}),
   component: IndexPage,
 });
 

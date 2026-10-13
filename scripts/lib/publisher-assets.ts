@@ -29,6 +29,14 @@ function normalizePublisherShell(shell: string): string {
   );
 }
 
+/** Every browser-only path is served this one document, so a page identity in it would claim them all. */
+function assertAnonymousShell(shell: string): void {
+  const identity = /<link[^>]+rel="canonical"|<meta[^>]+(?:property="og:url"|name="description")/.exec(shell);
+  if (identity) {
+    throw new Error(`The SPA shell must not carry a page identity, found: ${identity[0]}`);
+  }
+}
+
 function assertDirectory(directory: string, label: string) {
   if (!existsSync(directory) || !statSync(directory).isDirectory()) {
     throw new Error(`${label} directory is missing: ${directory}`);
@@ -131,6 +139,7 @@ export function assemblePublisherAssets(
     throw new Error('Application build is missing the TanStack SPA shell');
   }
   const normalizedShell = normalizePublisherShell(readFileSync(shell, 'utf8'));
+  assertAnonymousShell(normalizedShell);
   writeFileSync(shell, normalizedShell);
   copyFileSync(shell, path.join(publisherDirectory, 'index.html'));
   return inspectPublisherAssets(publisherDirectory);

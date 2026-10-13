@@ -37,6 +37,9 @@ no invented modification time. Dates describe edits to the record, not changes t
 ## Canonical and indexing rules
 
 - Public detail pages name their current slug URL as canonical. Asset URLs include their type.
+- The browser-only shell names no page: no canonical, `og:url` or description. Pages served from it
+  take only their title, once JavaScript runs, and stay out of the sitemap until they are
+  server-rendered.
 - Search, filter and sort variants retain their working browser URLs but point to the unfiltered
   catalogue as canonical. They are not listed separately in sitemaps. No robots rule prevents a
   crawler from reading their canonical tag.
