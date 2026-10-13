@@ -40,34 +40,30 @@ function TableLights() {
   );
 }
 
-/**
- * Reports the preview ready a few browser frames after its first rendered frame.
- * The count runs on the browser's own animation frames rather than on further rendered frames: in hosted CI an unsigned visitor's demand-mode canvas rendered three frames and no fourth, so its sneak peek never became ready or showed pieces.
- * Leaving the page through Suspense cancels the count, and returning starts it again.
- */
 function PaintedFrames({ onReady }: { onReady?: () => void }) {
   const invalidate = useThree((state) => state.invalidate);
-  const painted = useRef(false);
+  const frames = useRef(0);
   const complete = useRef(false);
+  const pending = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (pending.current !== null) {
+        cancelAnimationFrame(pending.current);
+      }
+    },
+    []
+  );
   useFrame(() => {
-    painted.current = true;
-  });
-  useEffect(() => {
     if (complete.current) {
       return;
     }
-    let frames = 0;
-    let pending = requestAnimationFrame(function step() {
-      if (painted.current && ++frames > 3) {
-        complete.current = true;
-        onReady?.();
-        return;
-      }
+    if (++frames.current > 3) {
+      complete.current = true;
+      pending.current = requestAnimationFrame(() => onReady?.());
+    } else {
       invalidate();
-      pending = requestAnimationFrame(step);
-    });
-    return () => cancelAnimationFrame(pending);
-  }, [invalidate, onReady]);
+    }
+  });
   return null;
 }
 
