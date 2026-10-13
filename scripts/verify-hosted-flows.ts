@@ -6,7 +6,8 @@ export const browserFlows = {
   homepage: {
     /* The expanded flow reached 115 seconds before its final scroll check under full Chromium on CI (#2127). */
     timeoutMs: 180_000,
-    separateBrowsers: false,
+    /* The guest uses its own Chromium graphics process, avoiding the member's software WebGL startup contention (#1868). */
+    separateBrowserPeer: 'homepage-observer',
     keepsFrames: false,
     needsCatalogue: false,
     checksPhaseCooldown: false,
@@ -16,7 +17,7 @@ export const browserFlows = {
   /* The regular flow steps through every phase and readies both players at each Mentat pause, so it has the longest budget. Passing runs took 460 to 590 s on 12 Oct 2026, so ten minutes no longer left room (#1045). */
   regular: {
     timeoutMs: 900_000,
-    separateBrowsers: false,
+    separateBrowserPeer: null,
     keepsFrames: false,
     needsCatalogue: false,
     checksPhaseCooldown: false,
@@ -26,7 +27,7 @@ export const browserFlows = {
   /* Every other flow tests play itself, so its games arrive at Turn 1 already provisioned through drafting and setup. */
   'public-controls': {
     timeoutMs: 480_000,
-    separateBrowsers: false,
+    separateBrowserPeer: null,
     keepsFrames: false,
     needsCatalogue: true,
     checksPhaseCooldown: true,
@@ -35,7 +36,7 @@ export const browserFlows = {
   },
   'private-spice-reserves': {
     timeoutMs: 480_000,
-    separateBrowsers: true,
+    separateBrowserPeer: 'player-b',
     keepsFrames: true,
     needsCatalogue: false,
     checksPhaseCooldown: false,
@@ -44,7 +45,7 @@ export const browserFlows = {
   },
   battles: {
     timeoutMs: 480_000,
-    separateBrowsers: true,
+    separateBrowserPeer: 'player-b',
     keepsFrames: true,
     needsCatalogue: true,
     checksPhaseCooldown: false,
@@ -53,7 +54,7 @@ export const browserFlows = {
   },
   decks: {
     timeoutMs: 480_000,
-    separateBrowsers: true,
+    separateBrowserPeer: 'player-b',
     keepsFrames: true,
     needsCatalogue: false,
     checksPhaseCooldown: false,
@@ -63,7 +64,7 @@ export const browserFlows = {
   /* Steps to Mentat pause, then declares, reloads and continues. */
   results: {
     timeoutMs: 480_000,
-    separateBrowsers: false,
+    separateBrowserPeer: null,
     keepsFrames: false,
     needsCatalogue: false,
     checksPhaseCooldown: false,
@@ -74,8 +75,8 @@ export const browserFlows = {
   string,
   {
     timeoutMs: number;
-    /** Player B runs in its own Chromium process, so private state cannot cross a shared browser. */
-    separateBrowsers: boolean;
+    /** The peer with its own Chromium process, for private audience isolation or independent software graphics. */
+    separateBrowserPeer: 'player-b' | 'homepage-observer' | null;
     /** Received game frames are retained as `${flow}-frames.json` for audience inspection. */
     keepsFrames: boolean;
     /** The flow selects the seeded public catalogue's token by exact name, so the stack seeds it once. */
