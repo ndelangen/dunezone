@@ -50,8 +50,11 @@ function MigrationDashboard() {
   const dashboard = useAdminMigrationDashboard();
   const syncRuns = useSyncMigrationRuns();
 
-  /* The session gate already turned away everyone but admins, so a non-admin answer cannot reach here. */
-  if (dashboard === undefined || dashboard.access !== 'admin') {
+  /*
+   * The session gate already turned away everyone but admins, so a refusal cannot reach here.
+   * Matching the refusals rather than `access: 'admin'` lets this bundle read the next release's answer, which drops `access`.
+   */
+  if (dashboard === undefined || dashboard.access === 'unauthenticated' || dashboard.access === 'not_authorized') {
     return <MigrationsLoading />;
   }
 
