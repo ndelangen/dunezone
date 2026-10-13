@@ -128,7 +128,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-icons": "^5.7.0",
-    "satori": "0.35.1",
+    "satori": "0.26.0",
     "three": "0.185.1",
     "unicode-segmenter": "0.17.3",
     "zod": "^4.4.3"
@@ -171,7 +171,7 @@
     "miniflare": "5.20260923.0-alpha",
     "monocart-coverage-reports": "^2.12.12",
     "oxfmt": "0.72.0",
-    "oxlint": "1.87.0",
+    "oxlint": "1.77.0",
     "playwright": "^1.62.1",
     "recursive-readdir-files": "^2.3.2",
     "sharp": "0.35.5",
