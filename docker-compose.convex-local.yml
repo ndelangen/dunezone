@@ -1,7 +1,7 @@
 services:
   backend:
     # Keep this digest compatible with the Convex packages in package.json.
-    image: ghcr.io/get-convex/convex-backend:latest@sha256:467964cc6af57ba3e757e3e6cb1fa09a1c577803a19f03f0f42c9c4b134b070c
+    image: ghcr.io/get-convex/convex-backend:latest@sha256:d715e9ec088784407ca4ba2d3db592702cd328d02c76cdca3852c0018f2a76b4
     stop_grace_period: 10s
     stop_signal: SIGINT
     ports:
