@@ -62,17 +62,22 @@ export function storedLayout(stored: unknown): unknown {
   return stored && typeof stored === 'object' && 'boardLayout' in stored ? stored.boardLayout : undefined;
 }
 
+function isFormerSharedWellCard(piece: StoredSnapshot['table']['pieces'][number]): boolean {
+  if (piece.kind !== 'card' || piece.inventory) {
+    return false;
+  }
+  const epsilon = 1e-6;
+  if (Math.abs(piece.position[0]) > epsilon || Math.abs(piece.position[2] - 7.5) > epsilon) {
+    return false;
+  }
+  return Math.abs(Math.atan2(Math.sin(piece.orientation), Math.cos(piece.orientation))) <= epsilon;
+}
+
 /* Only a card parked in the former shared well moves; player-arranged pieces keep their places. */
 function moveFormerSharedWell(snapshot: StoredSnapshot): StoredSnapshot {
   const pieces = [...snapshot.table.pieces];
   for (const [index, piece] of pieces.entries()) {
-    if (
-      piece.kind !== 'card' ||
-      piece.inventory ||
-      Math.abs(piece.position[0]) > 1e-6 ||
-      Math.abs(piece.position[2] - 7.5) > 1e-6 ||
-      Math.abs(Math.atan2(Math.sin(piece.orientation), Math.cos(piece.orientation))) > 1e-6
-    ) {
+    if (!isFormerSharedWellCard(piece)) {
       continue;
     }
     const others = pieces.filter((other) => other.id !== piece.id && !other.inventory) as TablePiece[];
@@ -92,10 +97,13 @@ export function onCurrentBoard(stored: unknown): unknown {
   if (layout === BOARD_LAYOUT) {
     return stored;
   }
+  if (layout !== undefined && layout !== 2) {
+    return stored;
+  }
   const parsed = storedSnapshotSchema.safeParse(
     stored && typeof stored === 'object' ? { ...stored, boardLayout: BOARD_LAYOUT } : stored
   );
-  if (!parsed.success || (layout !== undefined && layout !== 2)) {
+  if (!parsed.success) {
     return stored;
   }
   return moveFormerSharedWell(layout === undefined ? moveOntoCurrentBoard(parsed.data) : parsed.data);
