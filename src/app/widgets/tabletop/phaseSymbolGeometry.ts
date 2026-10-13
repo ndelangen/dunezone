@@ -63,6 +63,10 @@ export function loadPhaseSymbolGeometry(
         return;
       }
       ownedGeometry = createPhaseSymbolGeometry(svg, radius);
+      if (!ownedGeometry) {
+        /* A body with nothing to draw, such as a page served for a missing file, is fetched again by the next mount. */
+        parsedSymbols.delete(symbol);
+      }
       onLoaded(ownedGeometry);
     })
     .catch(() => {
