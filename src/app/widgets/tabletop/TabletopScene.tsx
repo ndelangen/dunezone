@@ -39,6 +39,7 @@ import {
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import { isTroopStack } from '@shared/play/troop';
 import {
   createContext,
@@ -891,6 +892,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
           localCarried: locallyCarried,
           remoteCarried,
           reserved,
+          selected,
         },
       }}
       {...pointerEvents}
@@ -1148,7 +1150,9 @@ export function TabletopPreviewContents() {
         .filter((slot) => slot.kind === 'spice')
         .map((slot) => (
           <group key={slot.kind} position={slot.position}>
-            <SpiceBankInteraction radius={slot.radius} />
+            <group position={[0, TRACKER_DISC_HEIGHT, 0]}>
+              <SpiceBankInteraction radius={slot.radius} />
+            </group>
           </group>
         ))}
       <SceneContents

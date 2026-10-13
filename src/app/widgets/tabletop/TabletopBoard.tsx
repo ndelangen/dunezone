@@ -407,6 +407,7 @@ export function TabletopBoard({
   tableProgress,
   trackerSlots,
   interactive = false,
+  onClick,
 }: {
   seatCount: TableSeatCount;
   stormSectorIndex?: number;
@@ -415,16 +416,15 @@ export function TabletopBoard({
   tableProgress?: TableProgress;
   trackerSlots: readonly TrackerArcSlot[];
   interactive?: boolean;
+  onClick?(): void;
 }) {
   const meshes = useSharedMeshes();
   return (
-    <group>
+    <group onClick={onClick}>
       <TableFurniture trackerSlots={trackerSlots} />
       <BoardRim seatCount={seatCount} />
       <BoardRimShadow />
-      {/* The textured parts suspend while their image loads; the boundary keeps that inside the scene, so the
-          rim, the furniture and the pieces stay on screen and the map fills in, instead of the route's
-          placeholder replacing a table the visitor has already seen. While it waits it counts as unsettled artwork. */}
+      {/* The storm's texture must suspend inside its boundary so it cannot hide an already-painted board. */}
       {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} />}
       <Suspense fallback={<ArtworkPending />}>
         {boardFurnitureFor(stage).storm && stormSectorIndex !== undefined && (

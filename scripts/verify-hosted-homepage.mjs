@@ -172,6 +172,31 @@ export async function verifyHomepage({
   const target = [source.position[0] + 0.6, source.position[1], source.position[2] + 0.6];
   const start = await point(member, source.position);
   const finish = await point(member, target);
+  await member.page.mouse.click(start.x, start.y);
+  await until(
+    () =>
+      member.page.evaluate((id) => window.__duneTable.pieces().find((piece) => piece.id === id)?.selected, sourceId),
+    'Clicking a troop did not select it.'
+  );
+  const emptyBoard = await point(member, [1.7, 0.132, -0.5]);
+  await member.page.mouse.click(emptyBoard.x, emptyBoard.y);
+  await until(
+    () =>
+      member.page.evaluate((id) => !window.__duneTable.pieces().find((piece) => piece.id === id)?.selected, sourceId),
+    'Clicking empty board space did not clear the troop selection.'
+  );
+  await member.page.evaluate(() => {
+    document.addEventListener(
+      'contextmenu',
+      (event) => {
+        window.__homepageContextMenuPrevented = event.defaultPrevented;
+      },
+      { once: true }
+    );
+  });
+  await member.page.mouse.click(emptyBoard.x, emptyBoard.y, { button: 'right' });
+  assert.equal(await member.page.evaluate(() => window.__homepageContextMenuPrevented), true);
+  passed('Empty board clicks clear selection and the preview keeps its context-menu handling');
   await member.page.mouse.move(start.x, start.y);
   await until(
     () => guest.view().pointers.some((pointer) => pointer.connectionId === member.view().viewer.connectionId),

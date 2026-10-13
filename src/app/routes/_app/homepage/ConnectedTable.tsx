@@ -94,7 +94,16 @@ export default function ConnectedTable({
   );
   useEffect(() => session.connect(), [session]);
   return (
-    <div className={className} data-table-connected={arrival.interactive ? 'true' : undefined}>
+    <div
+      className={className}
+      data-table-connected={arrival.interactive ? 'true' : undefined}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        if (session.getTable()?.state.draftMove) {
+          session.takeAdditionalFromTarget();
+        }
+      }}
+    >
       <div className={sceneClassName}>
         <TabletopCanvas
           camera={camera}
@@ -109,6 +118,7 @@ export default function ConnectedTable({
             tableProgress={tableProgress}
             trackerSlots={trackerSlots}
             stormSectorIndex={stormSectorIndex}
+            onClick={arrival.interactive ? () => session.selectPiece(null) : undefined}
           />
           {arrival.painted && hasTable && (
             <Suspense fallback={null}>
