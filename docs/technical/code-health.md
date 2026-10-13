@@ -47,8 +47,9 @@ behaviour on PRs. Install it only on `ndelangen/dunezone` and keep the free plan
 scan quota live in [Socket](https://socket.dev/dashboard).
 
 The Renovate GitHub app reads [`renovate.json`](../../renovate.json). Routine updates run on Monday
-before 07:00 in Amsterdam, after a seven-day release delay. At most two update PRs stay open, with
-at most one created per hour. Development dependencies and GitHub Actions updates are grouped;
+before 07:00 in Amsterdam, after a seven-day release delay. One routine update PR stays open, with
+at most one created per hour. Security fixes have a separate one-PR budget and form one group.
+Development dependencies and GitHub Actions updates are grouped;
 major upgrades and packages with checked-in patches need approval in its Dependency Dashboard.
 Automatic merging is off. Security updates can bypass the routine schedule under Renovate's
 security-update behaviour.
