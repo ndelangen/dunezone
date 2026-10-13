@@ -1,0 +1,14 @@
+.switcher {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  padding: var(--space-xs);
+  background: var(--panel-bg);
+  border: var(--border-strong) solid var(--panel-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--panel-shadow);
+}

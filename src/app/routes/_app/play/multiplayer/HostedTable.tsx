@@ -24,6 +24,8 @@ import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
+import { useBiddingClockPrototype } from '../biddingClockPrototype';
+import type { BiddingClockPrototypeState } from '../biddingClockPrototype';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
@@ -944,7 +946,12 @@ function usePlayerSelection(table: TableProjection) {
 }
 
 /* The pieces the stage stands on the board: the trade and setup scenes before play, then the battle, bidder, hands and coins. */
-function stageScene({ client, table, bidderFaded }: TableControlProps & Readonly<{ bidderFaded: boolean }>) {
+function stageScene({
+  client,
+  table,
+  bidderFaded,
+  prototypeClock,
+}: TableControlProps & Readonly<{ bidderFaded: boolean; prototypeClock?: BiddingClockPrototypeState | null }>) {
   const stage = table.snapshot.stage;
   if (stage === 'swapping' || stage === 'setup') {
     return (
@@ -957,7 +964,9 @@ function stageScene({ client, table, bidderFaded }: TableControlProps & Readonly
   return (
     <>
       <BattleScene client={client} table={table} />
-      {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
+      {stage !== 'finished' && (
+        <BidderScene client={client} table={table} faded={bidderFaded} prototypeClock={prototypeClock} />
+      )}
       {stageInPlay(stage) && <HandCountsScene table={table} />}
       <AllianceCoinsScene table={table} />
     </>
@@ -1030,6 +1039,7 @@ function ConnectedTable({
   const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
+  const prototypeClock = useBiddingClockPrototype();
   const player = usePlayerSelection(table);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
@@ -1063,7 +1073,7 @@ function ConnectedTable({
             showStormControls={stageInPlay(stage) && progress.activePhaseId === 'storm'}
             sceneContent={
               <>
-                {stageScene({ client, table, bidderFaded })}
+                {stageScene({ client, table, bidderFaded, prototypeClock })}
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
               </>
             }

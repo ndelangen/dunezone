@@ -25,6 +25,7 @@ import {
   TABLE_PAN_SPEED_MIN,
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
+import { useBiddingClockPrototype } from '../biddingClockPrototype';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 import { publicControlsOf } from './publicControls';
 import { isSpectator } from './tableFactions';
@@ -388,6 +389,7 @@ export function GameMenu({
   onClearConfetti,
   sharing,
 }: Readonly<{ client: TableSession; table: TableProjection; onClearConfetti?: () => void; sharing: ReactNode }>) {
+  const clock = useBiddingClockPrototype();
   /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
   const seated = !isSpectator(table) && table.snapshot.stage !== undefined && table.snapshot.stage !== 'discarded';
   return (
@@ -404,6 +406,16 @@ export function GameMenu({
       <Menu.Dropdown>
         {sharing}
         <Menu.Divider />
+        {clock && (
+          <Menu.CheckboxItem
+            checked={clock.enabled}
+            onChange={clock.toggle}
+            closeMenuOnClick={false}
+            rightSection={<Text size="xs">20s</Text>}
+          >
+            Timed bidding
+          </Menu.CheckboxItem>
+        )}
         <TableLightingSlider />
         <TablePanSpeedSlider />
         <TableLabelItems />

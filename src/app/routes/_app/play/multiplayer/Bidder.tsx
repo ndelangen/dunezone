@@ -10,6 +10,7 @@ import { useContext, useEffect, useMemo } from 'react';
 import { ExtrudeGeometry, Shape } from 'three';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import type { BiddingClockPrototypeState } from '../biddingClockPrototype';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import styles from './Bidder.module.css';
 import { OpenRound, RoundResult } from './BidderFace';
@@ -17,7 +18,12 @@ import { faceHalfHeight, faceHalfWidth, faceOnCanvas } from './bidderFacePositio
 import { useBidderRotation } from './bidderRotation';
 import { ServerClockContext, useServerNow } from './useServerNow';
 
-type Props = { client: TableSession; table: TableProjection; faded?: boolean };
+type Props = {
+  client: TableSession;
+  table: TableProjection;
+  faded?: boolean;
+  prototypeClock?: BiddingClockPrototypeState | null;
+};
 
 /* How much of the bidder a player who faded it still sees. */
 const FADED_OPACITY = 0.1;
@@ -57,7 +63,7 @@ function pointedFaction(bidding: BiddingState, eligible: readonly string[]) {
   return bidding.opener ?? eligible[0] ?? null;
 }
 
-function Bidder({ client, table, faded = false }: Props) {
+function Bidder({ client, table, faded = false, prototypeClock }: Props) {
   const roster = table.snapshot.roster;
   const bidding = table.snapshot.bidding ?? idleBidding();
   const order = useMemo(() => stormOrder(table.state.stormSectorIndex, roster), [table.state.stormSectorIndex, roster]);
@@ -104,7 +110,13 @@ function Bidder({ client, table, faded = false }: Props) {
         <DarkSchemeIsland>
           <div className={faded ? styles.faded : undefined}>
             {bidding.stage === 'open' ? (
-              <OpenRound client={client} table={table} bidding={bidding} remaining={remaining} />
+              <OpenRound
+                client={client}
+                table={table}
+                bidding={bidding}
+                remaining={remaining}
+                prototypeClock={prototypeClock}
+              />
             ) : (
               <RoundResult client={client} table={table} bidding={bidding} order={order} eligible={eligible} />
             )}

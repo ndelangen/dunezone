@@ -4,9 +4,10 @@ import type { BiddingState } from '@shared/play/bidding';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import type { BiddingClockPrototypeState } from '../biddingClockPrototype';
 import styles from './Bidder.module.css';
 
-type Props = { client: TableSession; table: TableProjection };
+type Props = { client: TableSession; table: TableProjection; prototypeClock?: BiddingClockPrototypeState | null };
 type FaceProps = Props & { bidding: BiddingState };
 
 /** The high bid: the bidder's faction symbol under the amount. */
@@ -98,34 +99,95 @@ function turnLabel(mine: boolean, bid: BiddingState['bid'], turnName: string) {
 }
 
 /** A round in progress: the faction the bidder points at raises with a click and passes with a right click. */
-export function OpenRound({ bidding, table, client, remaining }: FaceProps & { remaining: number | null }) {
+export function OpenRound({
+  bidding,
+  table,
+  client,
+  remaining,
+  prototypeClock: clock,
+}: FaceProps & { remaining: number | null }) {
+  const seconds = clock ? (clock.enabled ? clock.remaining : null) : remaining;
   const { bid, round, turn } = bidding;
   const mine = table.canInteract && turn !== null && table.snapshot.bank?.factionId === turn;
   const turnName = factionName(table, turn);
   const label = turnLabel(mine, bid, turnName);
   return (
     <Stack gap={2} align="center" className={styles.face}>
-      <UnstyledButton
-        className={styles.disc}
-        data-bidder-turn={turn ?? undefined}
-        data-mine={mine || undefined}
-        aria-label={label}
-        title={label}
-        disabled={!mine}
-        onClick={() => client.command({ kind: 'bid-raise', round })}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          if (mine) {
-            void client.command({ kind: 'bid-pass', round });
+      <div className={clock ? styles.clockWrap : undefined}>
+        {clock?.enabled && clock.variant === 'ring' && (
+          <svg
+            className={styles.clockRing}
+            viewBox="0 0 72 72"
+            aria-hidden="true"
+            data-urgent={(seconds !== null && seconds <= 5) || undefined}
+          >
+            <circle className={styles.clockTrack} cx="36" cy="36" r="33" />
+            <circle
+              className={styles.clockProgress}
+              cx="36"
+              cy="36"
+              r="33"
+              pathLength="100"
+              strokeDasharray="100"
+              strokeDashoffset={100 - (seconds ?? 0) * 5}
+            />
+          </svg>
+        )}
+        <UnstyledButton
+          className={styles.disc}
+          data-bidder-turn={turn ?? undefined}
+          data-mine={mine || undefined}
+          aria-label={label}
+          title={label}
+          disabled={!mine}
+          onClick={() => client.command({ kind: 'bid-raise', round })}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (mine) {
+              void client.command({ kind: 'bid-pass', round });
+            }
+          }}
+        >
+          {bid ? <HighBid bid={bid} table={table} /> : <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>}
+        </UnstyledButton>
+      </div>
+      {clock?.enabled && clock.variant === 'bar' && (
+        <div className={styles.clockBar} aria-hidden="true">
+          <span style={{ width: `${(seconds ?? 0) * 5}%` }} />
+        </div>
+      )}
+      {seconds === null ? null : (
+        <Text
+          component="output"
+          role="timer"
+          size="xs"
+          fw={700}
+          className={styles.timer}
+          data-clock-pill={clock?.variant === 'pill' || undefined}
+          style={
+            clock?.variant === 'pill'
+              ? {
+                  background: `linear-gradient(to right, #795923 ${(seconds ?? 0) * 5}%, #140f0a ${(seconds ?? 0) * 5}%)`,
+                }
+              : undefined
           }
-        }}
-      >
-        {bid ? <HighBid bid={bid} table={table} /> : <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>}
-      </UnstyledButton>
-      {remaining === null ? null : (
-        <Text component="output" role="timer" size="xs" fw={700} className={styles.timer}>
-          {remaining}s · {turnName}
+        >
+          {clock?.variant === 'dial' && (
+            <svg className={styles.clockDial} viewBox="0 0 20 20" aria-hidden="true">
+              <circle className={styles.clockTrack} cx="10" cy="10" r="8" />
+              <circle
+                className={styles.clockProgress}
+                cx="10"
+                cy="10"
+                r="8"
+                pathLength="100"
+                strokeDasharray="100"
+                strokeDashoffset={100 - (seconds ?? 0) * 5}
+              />
+            </svg>
+          )}
+          {seconds}s · {turnName}
         </Text>
       )}
     </Stack>
