@@ -118,7 +118,8 @@ import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAME
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { sharedPublishedFaces } from './publishedFaceRetry';
-import { contactShadowTexture, sharedGeometry } from './sharedMeshes';
+import { releaseSharedMeshes, useSharedMeshes } from './sharedMeshes';
+import type { SharedMeshes } from './sharedMeshes';
 import { SoftShadow } from './SoftShadow';
 import { SpiceBank } from './SpiceBank';
 import { SpiceStackIcon } from './SpiceStackIcon';
@@ -289,6 +290,7 @@ function BoardRimShadow() {
 }
 
 function TableTrackers({ progress, slots }: { progress: TableProgress; slots: readonly TrackerArcSlot[] }) {
+  const meshes = useSharedMeshes();
   const currentPhaseIndex = activePhaseIndex(progress);
 
   return (
@@ -307,7 +309,7 @@ function TableTrackers({ progress, slots }: { progress: TableProgress; slots: re
               receiveShadow
               position={[0, TRACKER_DISC_HEIGHT / 2, 0]}
               raycast={ignoreRaycast}
-              geometry={sharedGeometry.cylinder(slot.radius, slot.radius, TRACKER_DISC_HEIGHT, 96)}
+              geometry={meshes.cylinder(slot.radius, slot.radius, TRACKER_DISC_HEIGHT, 96)}
             >
               <meshStandardMaterial
                 color={color}
@@ -509,6 +511,7 @@ function BoardSurface({
   tableProgress?: TableProgress;
   trackerSlots: readonly TrackerArcSlot[];
 }) {
+  const meshes = useSharedMeshes();
   return (
     <group>
       <TableFurniture trackerSlots={trackerSlots} />
@@ -534,7 +537,7 @@ function BoardSurface({
             position={[Math.cos(angle) * radius, BOARD_RIM_SURFACE_Y - BOARD_RIM_DEPTH / 2, Math.sin(angle) * radius]}
             rotation={[0, Math.PI / 2 - angle, 0]}
             raycast={ignoreRaycast}
-            geometry={sharedGeometry.box(
+            geometry={meshes.box(
               BOARD_RIM_DIVIDER_WIDTH,
               BOARD_RIM_DEPTH + BOARD_RIM_DIVIDER_OVERLAP,
               BOARD_RIM_RADIUS - BOARD_RADIUS + 0.01
@@ -596,20 +599,21 @@ function usePublishedFace(href: string | undefined): Texture | undefined {
 }
 
 /* A token's face: a box token's rectangle at its ratio, or a disc. */
-function tokenFaceGeometry(ratio: number | null | undefined) {
+function tokenFaceGeometry(meshes: SharedMeshes, ratio: number | null | undefined) {
   return ratio != null
-    ? sharedGeometry.plane(TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * ratio)
-    : sharedGeometry.circle(TROOP_FACE_RADIUS, 48);
+    ? meshes.plane(TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * ratio)
+    : meshes.circle(TROOP_FACE_RADIUS, 48);
 }
 
 function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
+  const meshes = useSharedMeshes();
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
   const texture = usePublishedFace(href) ?? null;
   return (
     <mesh
       position={[0, 0, 0.002]}
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-      geometry={card ? sharedGeometry.plane(CARD_WIDTH, CARD_DEPTH) : tokenFaceGeometry(ratio)}
+      geometry={card ? meshes.plane(CARD_WIDTH, CARD_DEPTH) : tokenFaceGeometry(meshes, ratio)}
     >
       {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
       {texture ? (
@@ -639,18 +643,16 @@ const SITTING_OUT_INNER = TROOP_FACE_RADIUS * 0.66;
 const SITTING_OUT_STROKE = SITTING_OUT_OUTER - SITTING_OUT_INNER;
 
 function SittingOutSign() {
+  const meshes = useSharedMeshes();
   return (
     <group position={[0, 0, 0.003]}>
-      <mesh
-        renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-        geometry={sharedGeometry.ring(SITTING_OUT_INNER, SITTING_OUT_OUTER, 64)}
-      >
+      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={meshes.ring(SITTING_OUT_INNER, SITTING_OUT_OUTER, 64)}>
         <meshBasicMaterial color="#000000" />
       </mesh>
       <mesh
         rotation={[0, 0, Math.PI / 4]}
         renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-        geometry={sharedGeometry.plane(SITTING_OUT_INNER * 2, SITTING_OUT_STROKE)}
+        geometry={meshes.plane(SITTING_OUT_INNER * 2, SITTING_OUT_STROKE)}
       >
         <meshBasicMaterial color="#000000" />
       </mesh>
@@ -669,6 +671,7 @@ function TokenFace({
   underside?: boolean;
   itemIndex: number;
 }) {
+  const meshes = useSharedMeshes();
   /* A faction token has no back of its own: face down, it shows its front under a black prohibition sign. */
   const blocked = !faceUp && isFactionToken(piece);
   const href = piece.items[itemIndex]?.artwork?.[faceUp || blocked ? 'front' : 'back'];
@@ -677,14 +680,14 @@ function TokenFace({
     <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
       {href && <PublishedFace href={href} card={false} ratio={ratio} />}
       {blocked && <SittingOutSign />}
-      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={tokenFaceGeometry(ratio)}>
+      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={tokenFaceGeometry(meshes, ratio)}>
         <meshStandardMaterial color={faceUp ? piece.accent : '#261c18'} roughness={0.5} metalness={0.08} />
       </mesh>
       {!faceUp && !piece.items[itemIndex]?.artwork ? (
         <mesh
           position={[0, 0, 0.001]}
           renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-          geometry={sharedGeometry.ring(TROOP_FACE_RADIUS * 0.64, TROOP_FACE_RADIUS * 0.78, 48)}
+          geometry={meshes.ring(TROOP_FACE_RADIUS * 0.64, TROOP_FACE_RADIUS * 0.78, 48)}
         >
           <meshStandardMaterial color={piece.accent} roughness={0.5} metalness={0.08} />
         </mesh>
@@ -698,6 +701,7 @@ function TokenFace({
  * A stack draws only its top face and its underside, which shows when the whole stack turns over.
  */
 function TroopStackLayers({ piece }: { piece: TablePiece }) {
+  const meshes = useSharedMeshes();
   const shownLayers = visibleLayerCount(piece);
   const scale = troopScale(piece);
   const ratio = tokenBoxRatio(piece);
@@ -714,8 +718,8 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
               rotation={[0, 0, faceUp ? 0 : Math.PI]}
               geometry={
                 ratio != null
-                  ? sharedGeometry.box(TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * ratio)
-                  : sharedGeometry.cylinder(TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48)
+                  ? meshes.box(TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * ratio)
+                  : meshes.cylinder(TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48)
               }
             >
               <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
@@ -743,6 +747,7 @@ function CardFace({
   covered?: boolean;
   itemIndex: number;
 }) {
+  const meshes = useSharedMeshes();
   const artwork = piece.items[itemIndex]?.artwork;
   const href = artwork?.[faceUp ? 'front' : 'back'];
   return (
@@ -753,15 +758,11 @@ function CardFace({
           <PredictionOverlay prediction={artwork.prediction} />
         </Suspense>
       )}
-      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={sharedGeometry.plane(CARD_WIDTH, CARD_DEPTH)}>
+      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={meshes.plane(CARD_WIDTH, CARD_DEPTH)}>
         <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
       </mesh>
       {covered ? null : (
-        <mesh
-          position={[0, 0, 0.001]}
-          renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-          geometry={sharedGeometry.plane(0.58, 0.82)}
-        >
+        <mesh position={[0, 0, 0.001]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={meshes.plane(0.58, 0.82)}>
           <meshBasicMaterial color={piece.accent} transparent depthWrite={false} opacity={faceUp ? 0.74 : 0.38} />
         </mesh>
       )}
@@ -774,6 +775,7 @@ function CardFace({
  * Only the centre panel of a covered face is always hidden, so a covered card skips it.
  */
 function CardStackLayers({ piece }: { piece: TablePiece }) {
+  const meshes = useSharedMeshes();
   const shownLayers = visibleLayerCount(piece);
   return (
     <group>
@@ -788,7 +790,7 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
             <mesh
               position={[0, CARD_LAYER_HEIGHT / 2, 0]}
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-              geometry={sharedGeometry.box(CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH)}
+              geometry={meshes.box(CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH)}
             >
               <meshStandardMaterial color="#ead9bb" roughness={0.68} metalness={0.03} />
             </mesh>
@@ -802,6 +804,7 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
 }
 
 function MarkerLayers({ piece }: { piece: TablePiece }) {
+  const meshes = useSharedMeshes();
   if (isSpicePiece(piece)) {
     return <SpiceLayers piece={piece} />;
   }
@@ -810,7 +813,7 @@ function MarkerLayers({ piece }: { piece: TablePiece }) {
       <mesh
         position={[0, MARKER_BASE_HEIGHT / 2, 0]}
         renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-        geometry={sharedGeometry.cylinder(MARKER_TOP_RADIUS, MARKER_BOTTOM_RADIUS, MARKER_BASE_HEIGHT, 8)}
+        geometry={meshes.cylinder(MARKER_TOP_RADIUS, MARKER_BOTTOM_RADIUS, MARKER_BASE_HEIGHT, 8)}
       >
         <meshStandardMaterial color={piece.color} roughness={0.48} metalness={0.28} />
       </mesh>
@@ -818,7 +821,7 @@ function MarkerLayers({ piece }: { piece: TablePiece }) {
         position={[0, MARKER_CONE_CENTER_Y, 0]}
         renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
         rotation={[0, 0.2, 0]}
-        geometry={sharedGeometry.cone(MARKER_CONE_RADIUS, MARKER_CONE_HEIGHT, 8)}
+        geometry={meshes.cone(MARKER_CONE_RADIUS, MARKER_CONE_HEIGHT, 8)}
       >
         <meshStandardMaterial color={piece.accent} roughness={0.45} metalness={0.2} />
       </mesh>
@@ -827,6 +830,7 @@ function MarkerLayers({ piece }: { piece: TablePiece }) {
 }
 
 function SpiceLayers({ piece }: { piece: TablePiece }) {
+  const meshes = useSharedMeshes();
   return (
     <group>
       {Array.from({ length: visibleLayerCount(piece) }, (_, index) => (
@@ -834,7 +838,7 @@ function SpiceLayers({ piece }: { piece: TablePiece }) {
           <mesh
             position={[0, SPICE_LAYER_HEIGHT / 2, 0]}
             renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-            geometry={sharedGeometry.cylinder(SPICE_TOKEN_RADIUS, SPICE_TOKEN_RADIUS, SPICE_LAYER_HEIGHT, 48)}
+            geometry={meshes.cylinder(SPICE_TOKEN_RADIUS, SPICE_TOKEN_RADIUS, SPICE_LAYER_HEIGHT, 48)}
           >
             <meshStandardMaterial color="#b8842f" roughness={0.8} metalness={0} />
           </mesh>
@@ -847,6 +851,7 @@ function SpiceLayers({ piece }: { piece: TablePiece }) {
 
 /* Each layer wears the published spice token; until it loads, or where it is unavailable, a plain face with the spice icon stands in. */
 function SpiceFace() {
+  const meshes = useSharedMeshes();
   const texture = usePublishedFace(SPICE_TOKEN_HREF);
   if (texture) {
     return (
@@ -854,7 +859,7 @@ function SpiceFace() {
         position={[0, SPICE_LAYER_HEIGHT + 0.001, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
         renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-        geometry={sharedGeometry.circle(SPICE_TOKEN_RADIUS, 48)}
+        geometry={meshes.circle(SPICE_TOKEN_RADIUS, 48)}
       >
         {/* Printed art is drawn unlit, like every other piece face (#1756). */}
         <meshBasicMaterial map={texture} />
@@ -867,7 +872,7 @@ function SpiceFace() {
         position={[0, SPICE_LAYER_HEIGHT + 0.001, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
         renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-        geometry={sharedGeometry.circle(SPICE_TOKEN_RADIUS * 0.79, 48)}
+        geometry={meshes.circle(SPICE_TOKEN_RADIUS * 0.79, 48)}
       >
         <meshStandardMaterial color="#f6d77f" roughness={1} metalness={0} />
       </mesh>
@@ -1171,12 +1176,13 @@ function PieceSelectionRing({
   stackTargeted: boolean;
   drafted: boolean;
 }) {
+  const meshes = useSharedMeshes();
   return (
     <mesh
       position={[0, shadowLocalY + CONTACT_SHADOW_EPSILON, 0]}
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       rotation={[-Math.PI / 2, 0, 0]}
-      geometry={sharedGeometry.ring(...(isSpicePiece(piece) ? SPICE_SELECTION_RADII : selectionRadii(piece)))}
+      geometry={meshes.ring(...(isSpicePiece(piece) ? SPICE_SELECTION_RADII : selectionRadii(piece)))}
     >
       <meshBasicMaterial
         color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
@@ -1216,6 +1222,7 @@ function PieceLayers({ piece }: { piece: TablePiece }) {
 }
 
 function PieceLock({ piece }: { piece: TablePiece }) {
+  const meshes = useSharedMeshes();
   if (!piece.locked) {
     return null;
   }
@@ -1223,7 +1230,7 @@ function PieceLock({ piece }: { piece: TablePiece }) {
     <mesh
       position={[0.3, 0.42, 0.2]}
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-      geometry={sharedGeometry.box(0.16, 0.19, 0.09)}
+      geometry={meshes.box(0.16, 0.19, 0.09)}
     >
       <meshStandardMaterial color="#251912" roughness={0.6} metalness={0.3} />
     </mesh>
@@ -1258,6 +1265,7 @@ const PIECE_BADGE_CLASS_NAMES = {
 };
 
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
+  const meshes = useSharedMeshes();
   const { piece, drafted, remoteCarried, locallyCarried, reserved, selected, stackTargeted, owner, peeked } = props;
   const { finishPieceFlip } = useTabletopActions();
   const pointerEvents = usePiecePointerEvents(props);
@@ -1302,7 +1310,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
               renderOrder={1}
               scale={contactShadowScale(piece, carried)}
               raycast={ignoreRaycast}
-              geometry={sharedGeometry.plane()}
+              geometry={meshes.plane()}
             >
               <meshBasicMaterial
                 transparent
@@ -1312,7 +1320,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
                 side={DoubleSide}
               >
                 {/* Attached as drei attached its own: a `map` property would have Fiber mark the texture sRGB and darken the shadow. */}
-                <primitive object={contactShadowTexture('#100906', 0.18)} attach="map" />
+                <primitive object={meshes.contactShadow('#100906', 0.18)} attach="map" />
               </meshBasicMaterial>
             </mesh>
           </group>
@@ -1386,6 +1394,7 @@ function ReleaseRendererOnUnmount() {
   useEffect(
     () => () => {
       if (!renderer.domElement.isConnected) {
+        releaseSharedMeshes(renderer);
         renderer.dispose();
       }
     },
