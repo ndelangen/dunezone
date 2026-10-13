@@ -1,5 +1,31 @@
 .localCursor {
-  cursor: none !important;
+  --table-hand-cursor: pointer;
+  cursor: var(--table-hand-cursor) !important;
+}
+.localHand {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 32px;
+  z-index: 6;
+  pointer-events: none;
+  user-select: none;
+}
+.demoHand {
+  animation: demo-visit 9200ms ease both;
+  scale: 1.15;
+  transform-origin: 8px 2px;
+}
+@keyframes demo-visit {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  8%,
+  85% {
+    opacity: 1;
+  }
 }
 .avatar {
   position: absolute;

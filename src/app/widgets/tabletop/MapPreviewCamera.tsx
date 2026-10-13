@@ -1,12 +1,18 @@
 import { useThree } from '@react-three/fiber/webgpu';
-import { useLayoutEffect } from 'react';
+import type { Vector3Tuple } from '@shared/play/model';
+import { useLayoutEffect, useMemo } from 'react';
 
-/* The preview holds the original map camera without loading Play's orbit and keyboard controls. */
-export function MapPreviewCamera() {
+import { cameraPoseFor } from './playView';
+
+/* The preview shares Play's map target without loading its orbit and keyboard controls. */
+export function MapPreviewCamera({ mapFramingPoints }: { mapFramingPoints?: readonly Vector3Tuple[] }) {
   const camera = useThree((state) => state.camera);
+  const invalidate = useThree((state) => state.invalidate);
+  const target = useMemo(() => cameraPoseFor('map', 1, mapFramingPoints).target, [mapFramingPoints]);
   useLayoutEffect(() => {
-    camera.lookAt(0, 0, 0);
+    camera.lookAt(...target);
     camera.updateMatrixWorld();
-  }, [camera]);
+    invalidate();
+  }, [camera, invalidate, target]);
   return null;
 }
