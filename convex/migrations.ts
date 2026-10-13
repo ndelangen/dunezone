@@ -38,7 +38,12 @@ import {
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { reconcileProfileDiscovery } from './lib/profileDiscovery';
 import { ensureRulebookEditionArtifacts } from './lib/rulebookEditionArtifacts';
-import { contentsForRulebookEdition, rulebookContentsMatch } from './lib/rulebookEditionContents';
+import {
+  contentsForRulebookEdition,
+  rulebookContentsMatch,
+  rulebookDraftContentsHash,
+  rulebookEditionContentsHash,
+} from './lib/rulebookEditionContents';
 import {
   reconcileAnswerStatistics,
   reconcileFactionStatistics,
@@ -99,6 +104,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   rulebook_edition_artifacts_v1: internal.migrations.rulebook_edition_artifacts_v1,
   rulebook_edition_contents_v1: internal.migrations.rulebook_edition_contents_v1,
   rulebook_edition_contents_verify_v1: internal.migrations.rulebook_edition_contents_verify_v1,
+  rulebook_contents_hash_drafts_v1: internal.migrations.rulebook_contents_hash_drafts_v1,
+  rulebook_contents_hash_editions_v1: internal.migrations.rulebook_contents_hash_editions_v1,
   faction_extras_references_v1: internal.migrations.faction_extras_references_v1,
   faction_extras_references_verify_v1: internal.migrations.faction_extras_references_verify_v1,
   faction_troop_ids_v1: internal.migrations.faction_troop_ids_v1,
@@ -878,6 +885,38 @@ export const rulebook_edition_contents_verify_v1 = migrations.define({
       throw new Error(`Rulebook Edition ${edition._id} still carries inline Contents`);
     }
     await contentsForRulebookEdition(ctx, edition);
+  },
+});
+
+/**
+ * Writes each saved draft's Contents hash, so the editor can stop reading the current Edition's Contents.
+ * Replaying it recomputes the same hash and writes nothing.
+ * A draft whose Contents no longer parse keeps no hash and stays on the full comparison.
+ */
+export const rulebook_contents_hash_drafts_v1 = migrations.define({
+  table: 'rulebook_drafts',
+  batchSize: 2,
+  migrateOne: async (ctx, draft) => {
+    const contentsHash = rulebookDraftContentsHash(draft.contents);
+    if (draft.contents_hash !== contentsHash) {
+      await ctx.db.patch('rulebook_drafts', draft._id, { contents_hash: contentsHash });
+    }
+  },
+});
+
+/**
+ * Writes each Edition's Contents hash onto its metadata row, reading the Contents row once.
+ * Replaying it recomputes the same hash and writes nothing.
+ * Contents that no longer parse leave no hash and stay on the full comparison.
+ */
+export const rulebook_contents_hash_editions_v1 = migrations.define({
+  table: 'rulebook_editions',
+  batchSize: 2,
+  migrateOne: async (ctx, edition) => {
+    const contentsHash = rulebookEditionContentsHash(await contentsForRulebookEdition(ctx, edition));
+    if (edition.contents_hash !== contentsHash) {
+      await ctx.db.patch('rulebook_editions', edition._id, { contents_hash: contentsHash });
+    }
   },
 });
 

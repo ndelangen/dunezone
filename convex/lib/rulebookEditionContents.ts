@@ -1,3 +1,11 @@
+import SHA256 from 'crypto-js/sha256';
+
+import {
+  canonicalRulebookCoverControlValues,
+  rulebookContentsV1Schema,
+  rulebookEditionContentsV1Schema,
+} from '../../src/shared/rulebooks/contents';
+import type { RulebookContentsV1 } from '../../src/shared/rulebooks/contents';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 
@@ -9,6 +17,7 @@ type EditionWithLegacyContents = Pick<Doc<'rulebook_editions'>, '_id' | 'content
  *
  * Keys sort by code unit rather than by `localeCompare`, which is collation: it answers with the host's ICU data and may call two distinct strings equal, and a comparator that returns 0 for distinct keys leaves their relative order to whichever one was inserted first.
  * That would let one document out-sort its own twin.
+ * A key whose value is `undefined` is left out, because Convex cannot store one, so the stored copy of a document never carries it.
  */
 function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) {
@@ -16,6 +25,7 @@ function canonicalJson(value: unknown): string {
   }
   if (value && typeof value === 'object') {
     return `{${Object.entries(value)
+      .filter(([, child]) => child !== undefined)
       .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
       .map(([key, child]) => `${JSON.stringify(key)}:${canonicalJson(child)}`)
       .join(',')}}`;
@@ -25,6 +35,67 @@ function canonicalJson(value: unknown): string {
 
 export function rulebookContentsMatch(left: unknown, right: unknown) {
   return canonicalJson(left) === canonicalJson(right);
+}
+
+/**
+ * The version every stored Contents hash starts with.
+ * Change it whenever the comparison below changes what it normalizes or ignores, so a hash written under the old rules is never compared with one written under the new.
+ * A hash with any other prefix makes the editor fall back to comparing the documents themselves.
+ */
+export const RULEBOOK_CONTENTS_HASH_VERSION = 'v1:';
+
+/** A digest of the canonical rendering, so two values hash equal exactly when `rulebookContentsMatch` calls them equal. */
+export function rulebookContentsHash(value: unknown) {
+  return `${RULEBOOK_CONTENTS_HASH_VERSION}${SHA256(canonicalJson(value)).toString()}`;
+}
+
+/** Contents as the editor compares them: a Cover's footer is compared as its own region, wherever an earlier editor stored it. */
+function comparableContents(contents: RulebookContentsV1): RulebookContentsV1 {
+  return {
+    ...contents,
+    pagesById: Object.fromEntries(
+      Object.entries(contents.pagesById).map(([id, page]) => [
+        id,
+        page.layoutId === 'cover'
+          ? { ...page, controlValues: canonicalRulebookCoverControlValues(page.controlValues) }
+          : page,
+      ])
+    ),
+  };
+}
+
+/** Whether a saved draft and an Edition hold the same Rulebook, after each has been parsed by its own schema. */
+export function comparableRulebookContentsMatch(left: RulebookContentsV1, right: RulebookContentsV1) {
+  return rulebookContentsMatch(comparableContents(left), comparableContents(right));
+}
+
+/**
+ * The hash of a stored draft's Contents, taken over exactly what `comparableRulebookContentsMatch` compares after the draft schema parses it.
+ * Returns undefined when the value does not parse, which leaves the row to the full comparison.
+ */
+export function rulebookDraftContentsHash(stored: unknown) {
+  const parsed = rulebookContentsV1Schema.safeParse(stored);
+  return parsed.success ? rulebookContentsHash(comparableContents(parsed.data)) : undefined;
+}
+
+/**
+ * The hash of an Edition's stored Contents, taken over exactly what `comparableRulebookContentsMatch` compares after the Edition schema parses it.
+ * Returns undefined when the value does not parse, which leaves the row to the full comparison.
+ */
+export function rulebookEditionContentsHash(stored: unknown) {
+  const parsed = rulebookEditionContentsV1Schema.safeParse(stored);
+  return parsed.success ? rulebookContentsHash(comparableContents(parsed.data)) : undefined;
+}
+
+/**
+ * Compares two stored hashes, or returns undefined when either is missing or was written under another version.
+ * Undefined means the caller has to compare the documents themselves.
+ */
+export function rulebookContentsHashesMatch(left: string | undefined, right: string | undefined) {
+  if (!left?.startsWith(RULEBOOK_CONTENTS_HASH_VERSION) || !right?.startsWith(RULEBOOK_CONTENTS_HASH_VERSION)) {
+    return undefined;
+  }
+  return left === right;
 }
 
 /** Reads one Edition's Contents without making metadata callers join every Contents document. */
