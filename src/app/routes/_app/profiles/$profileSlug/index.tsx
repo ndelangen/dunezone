@@ -39,23 +39,11 @@ import { forgetStoredPlayTables } from '@db/playTables';
 import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlug } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { countOf, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
-
-/** What a member has shared, counted, so each profile's search snippet is its own rather than one sentence for everyone. */
-function profileDescription({ profile, factions, groupSummaries, faqAsked, faqAnswers }: NonNullable<ProfilePageData>) {
-  const name = profile.username ?? 'This member';
-  const shared = [
-    factions.length ? countOf(factions.length, 'faction') : '',
-    groupSummaries.length ? countOf(groupSummaries.length, 'Group') : '',
-    faqAsked.length + faqAnswers.length ? countOf(faqAsked.length + faqAnswers.length, 'FAQ contribution') : '',
-  ].filter(Boolean);
-  return shared.length
-    ? `${name} on Dune Zone: ${shared.length > 1 ? `${shared.slice(0, -1).join(', ')} and ${shared.at(-1)}` : shared[0]}.`
-    : `${name} is a member of Dune Zone, the community workshop for Dune factions, cards and Rulesets.`;
-}
+import { profileDescription } from './profileDescription';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   ssr: true,
@@ -80,7 +68,14 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
       name: loaderData?.profilePage.profile.username ?? 'Profile',
       kind: loaderData ? 'Profile' : undefined,
       pathname: `/profiles/${encodeURIComponent(params.profileSlug)}`,
-      description: loaderData ? profileDescription(loaderData.profilePage) : '',
+      description: loaderData
+        ? profileDescription({
+            username: loaderData.profilePage.profile.username,
+            factions: loaderData.profilePage.factions.length,
+            groups: loaderData.profilePage.groupSummaries.length,
+            faqContributions: loaderData.profilePage.faqAsked.length + loaderData.profilePage.faqAnswers.length,
+          })
+        : '',
       image: loaderData?.profilePage.profile.avatar?.url,
       social: { shape: 'round' },
       trail: [{ name: 'Profiles', pathname: '/profiles' }],

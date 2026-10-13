@@ -77,73 +77,94 @@ async function rulebookAt(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slug: string
   return await liveAt(holder, () => formerRecord(ctx, 'rulebooks', 'rulebook', rulesetId, slug));
 }
 
-async function currentPathname(ctx: QueryCtx, address: Address): Promise<string | null> {
-  switch (address.kind) {
-    case 'faction': {
-      const holder = await ctx.db
-        .query('factions')
-        .withIndex('by_slug', (q) => q.eq('slug', address.slug))
-        .first();
-      const faction = await liveAt(holder, () => formerRecord(ctx, 'factions', 'faction', '', address.slug));
-      return faction && pathname('factions', faction.slug);
-    }
-    case 'asset': {
-      const holder = await ctx.db
-        .query('assets')
-        .withIndex('by_type_and_slug', (q) => q.eq('type', address.type).eq('slug', address.slug))
-        .first();
-      const asset = await liveAt(holder, () => formerRecord(ctx, 'assets', 'asset', address.type, address.slug));
-      return asset && pathname('assets', asset.type, asset.slug);
-    }
-    case 'group': {
-      const holder = await ctx.db
-        .query('groups')
-        .withIndex('by_slug', (q) => q.eq('slug', address.slug))
-        .first();
-      const group = await liveAt(holder, () => formerRecord(ctx, 'groups', 'group', '', address.slug));
-      return group && pathname('groups', group.slug);
-    }
-    case 'ruleset': {
-      const ruleset = await rulesetAt(ctx, address.slug);
-      return ruleset && pathname('rulesets', ruleset.slug);
-    }
-    case 'rulebook': {
-      const ruleset = await rulesetAt(ctx, address.ruleset_slug);
-      const rulebook = ruleset && (await rulebookAt(ctx, ruleset._id, address.rulebook_slug));
-      /* A Rulebook never changes Ruleset, so this only guards a row that names one from elsewhere. */
-      return rulebook && rulebook.ruleset_id === ruleset._id
-        ? pathname('rulesets', ruleset.slug, 'rulebooks', rulebook.slug)
-        : null;
-    }
-    case 'faq': {
-      const ruleset = await rulesetAt(ctx, address.ruleset_slug);
-      const question =
-        ruleset &&
-        (await ctx.db
-          .query('faq_items')
-          .withIndex('by_ruleset_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', address.question_slug))
-          .first());
-      return question ? pathname('rulesets', ruleset.slug, 'faq', question.slug) : null;
-    }
-  }
+async function factionAt(ctx: QueryCtx, slug: string) {
+  const holder = await ctx.db
+    .query('factions')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .first();
+  return await liveAt(holder, () => formerRecord(ctx, 'factions', 'faction', '', slug));
 }
 
-function requestedPathname(address: Address) {
-  switch (address.kind) {
-    case 'faction':
-      return pathname('factions', address.slug);
-    case 'asset':
-      return pathname('assets', address.type, address.slug);
-    case 'group':
-      return pathname('groups', address.slug);
-    case 'ruleset':
-      return pathname('rulesets', address.slug);
-    case 'rulebook':
-      return pathname('rulesets', address.ruleset_slug, 'rulebooks', address.rulebook_slug);
-    case 'faq':
-      return pathname('rulesets', address.ruleset_slug, 'faq', address.question_slug);
-  }
+async function assetAt(ctx: QueryCtx, type: string, slug: string) {
+  const holder = await ctx.db
+    .query('assets')
+    .withIndex('by_type_and_slug', (q) => q.eq('type', type).eq('slug', slug))
+    .first();
+  return await liveAt(holder, () => formerRecord(ctx, 'assets', 'asset', type, slug));
 }
+
+async function groupAt(ctx: QueryCtx, slug: string) {
+  const holder = await ctx.db
+    .query('groups')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .first();
+  return await liveAt(holder, () => formerRecord(ctx, 'groups', 'group', '', slug));
+}
+
+async function faqQuestionIn(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slug: string) {
+  return await ctx.db
+    .query('faq_items')
+    .withIndex('by_ruleset_slug', (q) => q.eq('ruleset_id', rulesetId).eq('slug', slug))
+    .first();
+}
+
+type AddressOf<Kind extends Address['kind']> = Extract<Address, { kind: Kind }>;
+
+/** Each address kind's lookup: where its record lives now, and the address it was asked for. */
+const ADDRESSES: {
+  [Kind in Address['kind']]: {
+    current: (ctx: QueryCtx, address: AddressOf<Kind>) => Promise<string | null>;
+    requested: (address: AddressOf<Kind>) => string;
+  };
+} = {
+  faction: {
+    current: async (ctx, { slug }) => {
+      const faction = await factionAt(ctx, slug);
+      return faction && pathname('factions', faction.slug);
+    },
+    requested: ({ slug }) => pathname('factions', slug),
+  },
+  asset: {
+    current: async (ctx, { type, slug }) => {
+      const asset = await assetAt(ctx, type, slug);
+      return asset && pathname('assets', asset.type, asset.slug);
+    },
+    requested: ({ type, slug }) => pathname('assets', type, slug),
+  },
+  group: {
+    current: async (ctx, { slug }) => {
+      const group = await groupAt(ctx, slug);
+      return group && pathname('groups', group.slug);
+    },
+    requested: ({ slug }) => pathname('groups', slug),
+  },
+  ruleset: {
+    current: async (ctx, { slug }) => {
+      const ruleset = await rulesetAt(ctx, slug);
+      return ruleset && pathname('rulesets', ruleset.slug);
+    },
+    requested: ({ slug }) => pathname('rulesets', slug),
+  },
+  rulebook: {
+    current: async (ctx, { ruleset_slug, rulebook_slug }) => {
+      const ruleset = await rulesetAt(ctx, ruleset_slug);
+      const rulebook = ruleset && (await rulebookAt(ctx, ruleset._id, rulebook_slug));
+      /* A Rulebook never changes Ruleset, so this only guards a row that names one from elsewhere. */
+      return ruleset && rulebook?.ruleset_id === ruleset._id
+        ? pathname('rulesets', ruleset.slug, 'rulebooks', rulebook.slug)
+        : null;
+    },
+    requested: ({ ruleset_slug, rulebook_slug }) => pathname('rulesets', ruleset_slug, 'rulebooks', rulebook_slug),
+  },
+  faq: {
+    current: async (ctx, { ruleset_slug, question_slug }) => {
+      const ruleset = await rulesetAt(ctx, ruleset_slug);
+      const question = ruleset && (await faqQuestionIn(ctx, ruleset._id, question_slug));
+      return question && ruleset ? pathname('rulesets', ruleset.slug, 'faq', question.slug) : null;
+    },
+    requested: ({ ruleset_slug, question_slug }) => pathname('rulesets', ruleset_slug, 'faq', question_slug),
+  },
+};
 
 /**
  * Where a record that used to live at an address lives now, for a public page whose own query found nothing there.
@@ -153,8 +174,13 @@ function requestedPathname(address: Address) {
 export const resolve = publicQuery({
   args: { address: addressValidator },
   returns: v.union(v.null(), v.string()),
-  handler: async (ctx, args) => {
-    const current = await currentPathname(ctx, args.address);
-    return current === requestedPathname(args.address) ? null : current;
+  handler: async (ctx, { address }) => {
+    /* The table pairs each kind with its own address shape, which an indexed read cannot express. */
+    const lookup = ADDRESSES[address.kind] as {
+      current: (ctx: QueryCtx, address: Address) => Promise<string | null>;
+      requested: (address: Address) => string;
+    };
+    const current = await lookup.current(ctx, address);
+    return current === lookup.requested(address) ? null : current;
   },
 });
