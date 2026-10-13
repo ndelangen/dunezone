@@ -6,6 +6,7 @@ import type { TABLE_VIEW_OPTIONS } from './playView';
 import {
   CAMERA_CLOSEST_DISTANCE,
   CAMERA_PAN_AT_REST,
+  cameraGlideShare,
   cameraPanMotionAfter,
   cameraPoseFor as cameraPoseForCloseLook,
   cameraZoomAfterPanMotion,
@@ -482,5 +483,27 @@ describe('close look', () => {
         Math.abs(corner[2]) <= 2 + 1e-6 ||
         Math.abs(corner[0]) <= 2.4 + 1e-6
     ).toBe(true);
+  });
+});
+
+describe('cameraGlideShare', () => {
+  const leftAfter = (frames: readonly number[]) =>
+    frames.reduce((left, seconds) => left * (1 - cameraGlideShare(seconds)), 1);
+
+  test('a glide covers the same ground in the same time however few frames draw it', () => {
+    const smooth = leftAfter(Array.from({ length: 30 }, () => 1 / 60));
+    expect(leftAfter([0.25, 0.25])).toBeCloseTo(smooth, 12);
+    expect(leftAfter([0.5])).toBeCloseTo(smooth, 12);
+  });
+
+  test('one frame that runs seconds late lands the glide on its pose', () => {
+    /* Inside the camera's settle distance of 0.001 even for a glide that started 1,000 table units out. */
+    expect(leftAfter([2])).toBeLessThan(1e-6);
+    expect(cameraGlideShare(7.4)).toBeLessThanOrEqual(1);
+  });
+
+  test('a frame with no time in it leaves the camera where it is', () => {
+    expect(cameraGlideShare(0)).toBe(0);
+    expect(cameraGlideShare(-0.01)).toBe(0);
   });
 });
