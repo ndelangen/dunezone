@@ -1,17 +1,44 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
+import { makeFunctionReference } from 'convex/server';
+import { ConvexError, v } from 'convex/values';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { PLAY_SEAT_LIMIT } from '../src/shared/play/seatLimit';
 import { api, internal } from './_generated/api';
+import { internalMutation } from './functions';
 import { PLAY_NAME_CHECK_MODEL } from './lib/playGameNameProvider';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import { playRateLimiter } from './lib/playRateLimits';
 import { playPerson, playRuleset, playTest } from './play.test.fixture';
 
-async function world() {
-  const t = playTest();
+async function world(failure?: Error, failures = Infinity) {
+  const original = () => import('./playGames');
+  const t = playTest(
+    failure
+      ? {
+          './playGamesOriginal.ts': original,
+          './playGames.ts': async () => ({
+            ...(await original()),
+            createNamedGame: internalMutation({
+              args: v.any(),
+              returns: v.any(),
+              handler: async (ctx, args) => {
+                const result = await ctx.runMutation(
+                  makeFunctionReference<'mutation'>('playGamesOriginal:createNamedGame'),
+                  args
+                );
+                if (failures-- > 0) {
+                  throw failure;
+                }
+                return result;
+              },
+            }),
+          }),
+        }
+      : {}
+  );
   const person = await t.run(async (ctx) => await playPerson(ctx, 'Name-check player'));
   const rulesetId = await t.run(async (ctx) => await playRuleset(ctx, person.userId));
   const viewer = t.withIdentity({ subject: person.subject });
@@ -48,6 +75,56 @@ afterEach(() => {
 });
 
 describe('server-owned game-name moderation', () => {
+  test('persistent transaction conflicts stop without spending creation quota or repeating moderation', async () => {
+    vi.stubEnv('TYPESAFE_API_KEY', 'private-test-key');
+    const conflict = new Error(
+      'Documents read from or written to the "play_game_slug_cursors" table changed while this mutation was being run and on every subsequent retry.'
+    );
+    const { t, viewer, person, request } = await world(conflict);
+    const provider = vi.fn(async () => answer(0.24));
+    vi.stubGlobal('fetch', provider);
+    await expect(viewer.action(api.playGames.createGameWithName, request)).rejects.toThrow(conflict.message);
+    expect(provider).toHaveBeenCalledOnce();
+    expect(await writes(t)).toEqual({ games: [], reservations: [], schedules: [] });
+    expect((await creationCapacity(t, person.userId)).ok).toBe(true);
+  });
+
+  test('a rolled-back conflict spends one creation token and checks the provider once', async () => {
+    vi.stubEnv('TYPESAFE_API_KEY', 'private-test-key');
+    const { t, viewer, request } = await world(
+      new Error(
+        'Documents read from or written to the "play_game_slug_cursors" table changed while this mutation was being run and on every subsequent retry.'
+      ),
+      1
+    );
+    const provider = vi.fn(async () => answer(0.24));
+    vi.stubGlobal('fetch', provider);
+    expect(await viewer.action(api.playGames.createGameWithName, request)).toMatchObject({ ok: true });
+    expect(provider).toHaveBeenCalledOnce();
+    expect((await writes(t)).games).toHaveLength(1);
+    expect((await writes(t)).reservations).toHaveLength(1);
+    const settings = { rulesetId: request.rulesetId, minimumPlayers: request.minimumPlayers };
+    for (let remaining = 0; remaining < 2; remaining += 1) {
+      expect(await viewer.action(api.playGames.createGeneratedGame, settings)).toMatchObject({ ok: true });
+    }
+    expect(await viewer.action(api.playGames.createGeneratedGame, settings)).toEqual({
+      ok: false,
+      reason: 'rate_limited',
+    });
+  });
+
+  test.each([
+    new Error('The response was lost after the request was sent'),
+    new ConvexError(
+      'Documents read from or written to the "play_game_slug_cursors" table changed while this mutation was being run and on every subsequent retry.'
+    ),
+  ])('an unknown or application failure is never replayed', async (failure) => {
+    const { t, viewer, request } = await world(failure, 1);
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    await expect(viewer.action(api.playGames.createGameWithName, request)).rejects.toThrow(failure.message);
+    expect(await writes(t)).toEqual({ games: [], reservations: [], schedules: [] });
+  });
+
   test('a valid uncertain answer keeps the normalized display name and spends one creation token', async () => {
     vi.stubEnv('TYPESAFE_API_KEY', 'private-test-key');
     const { t, viewer, person, request } = await world();
