@@ -95,11 +95,17 @@ const factionViewerAccessValidator = groupAssociatedViewerAccessValidator('facti
 const rulesetViewerAccessValidator = groupAssociatedViewerAccessValidator('ruleset');
 const assetViewerAccessValidator = groupAssociatedViewerAccessValidator('asset');
 
-const rosterEntryValidator = v.object({
+/** One member as the Group page lists them, the same for every viewer. */
+const rosterMemberValidator = v.object({
   membershipId: v.id('group_members'),
   user: profileSummaryValidator,
   status: v.union(v.literal('pending'), v.literal('active')),
   requestedAt: v.string(),
+  isGroupOwner: v.boolean(),
+});
+
+/** Deprecated with `groups.detailBySlug`: a roster member with the viewer's moderation capabilities. Remove with it. */
+const rosterEntryValidator = rosterMemberValidator.omit('isGroupOwner').extend({
   capabilities: v.object({
     approve: v.boolean(),
     reject: v.boolean(),
@@ -250,11 +256,20 @@ export const rulesetDetailPageValidator = v.union(
   v.null()
 );
 
-export const groupDetailPageValidator = v.object({
+/**
+ * The Group page, the same for every viewer.
+ * The browser combines `group.created_by` and each member's `isGroupOwner` with the viewer to decide what they may do.
+ */
+export const groupPageValidator = v.object({
   group: groupValidator,
   factions: v.array(factionValidator),
   rulesets: v.array(rulesetValidator),
   owner: v.union(profileSummaryValidator, v.null()),
+  roster: v.array(rosterMemberValidator),
+});
+
+/** Deprecated with `groups.detailBySlug`: the Group page with the viewer's access and roster capabilities. Remove with it. */
+export const groupDetailPageValidator = groupPageValidator.omit('roster').extend({
   viewerAccess: groupViewerAccessValidator,
   roster: v.array(rosterEntryValidator),
 });

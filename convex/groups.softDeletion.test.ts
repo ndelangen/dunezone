@@ -254,9 +254,7 @@ describe('Group soft deletion lifecycle', () => {
     });
 
     await expect(
-      t.withIdentity({ subject: ids.ownerId }).query(api.groups.detailBySlug, {
-        slug: 'dunedesigners',
-      })
+      t.withIdentity({ subject: ids.ownerId }).query(api.groups.detailPage, { slug: 'dunedesigners' })
     ).rejects.toMatchObject({ data: { code: 'NOT_FOUND' } });
     await expect(
       t.withIdentity({ subject: ids.ownerId }).query(api.groups.getById, { id: ids.groupId })
