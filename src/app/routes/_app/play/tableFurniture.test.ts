@@ -5,7 +5,6 @@ import {
   CARD_BAY_PLACEMENT_ANCHORS,
   SHARED_ITEM_PLACEMENT_ANCHORS,
   TABLE_TANKS_LABEL_POSITION,
-  SHARED_ITEM_LABEL_POSITION,
   cardBaySlotPositions,
   CARD_SLOT_GAP,
   CARD_SLOT_OUTER_SIZE,
@@ -252,7 +251,7 @@ describe('table furniture', () => {
     }
   });
 
-  test('supports eight equally spaced generic wells with room for the Tanks and the label', () => {
+  test('supports eight equally spaced generic wells below the deeper Tanks area', () => {
     const anchors = SHARED_ITEM_PLACEMENT_ANCHORS;
     const rows = [...new Set(anchors.map((anchor) => anchor.position[2]))].sort((a, b) => a - b);
     expect(anchors).toHaveLength(8);
@@ -267,8 +266,7 @@ describe('table furniture', () => {
       }
     }
     expect(rows[1] - rows[0] - CARD_DEPTH).toBeCloseTo(CARD_SLOT_GAP);
-    expect(rows[0] - CARD_SLOT_OUTER_SIZE.depth / 2 - TABLE_TANKS_LABEL_POSITION[2]).toBeGreaterThan(0.8);
-    expect(SHARED_ITEM_LABEL_POSITION[2] - rows[1] - CARD_SLOT_OUTER_SIZE.depth / 2).toBeGreaterThan(0.3);
+    expect(rows[0] - CARD_SLOT_OUTER_SIZE.depth / 2 - TABLE_TANKS_LABEL_POSITION[2]).toBeGreaterThan(2);
     for (const anchor of anchors) {
       expect(Math.abs(anchor.position[0]) + CARD_SLOT_OUTER_SIZE.width / 2).toBeLessThan(BOTTOM_SHELF_SIZE[0] / 2);
       expect(anchor.position[2] + CARD_SLOT_OUTER_SIZE.depth / 2).toBeLessThan(TABLE_PLATE_BOUNDS.maxZ);

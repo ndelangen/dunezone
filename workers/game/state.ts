@@ -28,7 +28,7 @@ import {
 import { predictionSchema, predictionChoiceSchema } from '../../src/shared/play/setup';
 
 /** The board layout a stored game's positions are laid out for; see boardLayout.ts. */
-export const BOARD_LAYOUT = 3;
+export const BOARD_LAYOUT = 4;
 
 const storedBattleSchema = publicBattleSchema.omit({ revealed: true, disclosed: true }).extend({
   plans: z.tuple([storedBattlePlanSchema.nullable(), storedBattlePlanSchema.nullable()]),
