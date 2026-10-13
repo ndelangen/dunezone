@@ -55,10 +55,15 @@ function GamePage() {
   const authorized = data && 'gameId' in data ? data : null;
   const current = useKnownGame(address, authorized);
   const unreachable = useServerUnreachable(data === undefined);
-  /* Finding the kept table parses it from storage, so it is read once per address rather than on every render. */
+  /* Finding the kept table parses it from storage, so it is read once per address, misses included, rather than on every render. */
   const readStored = useMemo(() => {
     let found: string | null | undefined;
-    return () => (found ??= runtime.tables?.findGame(address) ?? null);
+    return () => {
+      if (found === undefined) {
+        found = runtime.tables?.findGame(address) ?? null;
+      }
+      return found;
+    };
   }, [runtime, address]);
   const stored = useSyncExternalStore(noSubscription, readStored, () => null);
   const refused = data !== undefined && data.status !== 'ready' && data.status !== 'preparing';
