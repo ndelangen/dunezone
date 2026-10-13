@@ -10,6 +10,7 @@ import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 
 import { useAdminMigrationDashboard, useSyncMigrationRuns } from '@db/migrations';
+import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -28,26 +29,18 @@ function formatDate(timestamp?: number) {
 const migrationsHeader = <PageTitle title="Migration activity" />;
 
 function AdminMigrationsPage() {
-  const dashboard = useAdminMigrationDashboard();
-  const syncRuns = useSyncMigrationRuns();
-
-  if (dashboard === undefined) {
-    return (
-      <PageMessage title="Migration activity">
-        <LoadPending title="Loading migration activity">The migration dashboard is still loading.</LoadPending>
-      </PageMessage>
-    );
+  const viewer = useSessionViewer();
+  if (viewer.kind === 'pending') {
+    return <MigrationsLoading />;
   }
-
-  if (dashboard.access === 'unauthenticated') {
+  if (viewer.kind === 'signed-out') {
     return (
       <PageMessage title="Migration activity">
         <LoginGate action="view migration activity" />
       </PageMessage>
     );
   }
-
-  if (dashboard.access === 'not_authorized') {
+  if (!viewer.isAdmin) {
     return (
       <PageMessage title="Migration activity">
         <NotAvailable title="You cannot view migration activity">
@@ -55,6 +48,25 @@ function AdminMigrationsPage() {
         </NotAvailable>
       </PageMessage>
     );
+  }
+  return <MigrationDashboard />;
+}
+
+function MigrationsLoading() {
+  return (
+    <PageMessage title="Migration activity">
+      <LoadPending title="Loading migration activity">The migration dashboard is still loading.</LoadPending>
+    </PageMessage>
+  );
+}
+
+/** Mounted only for an administrator, so the admin-only query is never asked by anyone else. */
+function MigrationDashboard() {
+  const dashboard = useAdminMigrationDashboard();
+  const syncRuns = useSyncMigrationRuns();
+
+  if (dashboard === undefined) {
+    return <MigrationsLoading />;
   }
 
   return (
@@ -90,7 +102,7 @@ function AdminMigrationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(dashboard?.statuses ?? []).map((row) => (
+                  {dashboard.statuses.map((row) => (
                     <tr key={row.name}>
                       <td>{row.name}</td>
                       <td>{row.state}</td>
@@ -121,7 +133,7 @@ function AdminMigrationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(dashboard?.snapshots ?? []).map((row) => (
+                  {dashboard.snapshots.map((row) => (
                     <tr key={row._id}>
                       <td>{row.migration_id}</td>
                       <td>{row.state}</td>

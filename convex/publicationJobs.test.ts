@@ -490,18 +490,14 @@ describe('Publication regeneration and administration', () => {
     ).rejects.toThrow(/behind the stored revision/);
   });
 
-  test('the jobs page returns no data without admin access and admins control pickup', async () => {
+  test('the jobs page refuses everyone but admins, and admins control pickup', async () => {
     const { t, asUser } = await authenticatedTest();
     await t.mutation(internal.publicationAdmin.initialize, {
       rendererRevisions: { faction_sheet: 4 },
     });
 
-    await expect(t.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })).resolves.toEqual({
-      access: 'unauthenticated',
-    });
-    await expect(asUser.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })).resolves.toEqual({
-      access: 'not_authorized',
-    });
+    await expect(t.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })).rejects.toThrow(/Not authenticated/);
+    await expect(asUser.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })).rejects.toThrow(/Not authorized/);
     await expect(asUser.mutation(api.publicationAdmin.setPickupEnabled, { enabled: true })).rejects.toThrow(
       /Not authorized/
     );
@@ -512,7 +508,6 @@ describe('Publication regeneration and administration', () => {
       publicationPickupEnabled: true,
     });
     await expect(asAdmin.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })).resolves.toMatchObject({
-      access: 'admin',
       settings: {
         publicationPickupEnabled: true,
         rendererRevisions: { faction_sheet: 4 },

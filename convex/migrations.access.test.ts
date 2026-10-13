@@ -26,17 +26,12 @@ async function migrationAccessTest() {
 }
 
 describe('migration control access', () => {
-  test('the dashboard discloses migration data to admins', async () => {
+  test('the dashboard discloses migration data to admins only', async () => {
     const { t, member, admin } = await migrationAccessTest();
 
-    await expect(t.query(api.migrations.adminDashboard, { ids: [] })).resolves.toEqual({
-      access: 'unauthenticated',
-    });
-    await expect(member.query(api.migrations.adminDashboard, { ids: [] })).resolves.toEqual({
-      access: 'not_authorized',
-    });
+    await expect(t.query(api.migrations.adminDashboard, { ids: [] })).rejects.toThrow('Not authenticated');
+    await expect(member.query(api.migrations.adminDashboard, { ids: [] })).rejects.toThrow('Not authorized');
     await expect(admin.query(api.migrations.adminDashboard, { ids: [] })).resolves.toMatchObject({
-      access: 'admin',
       snapshots: [],
       statuses: [],
     });

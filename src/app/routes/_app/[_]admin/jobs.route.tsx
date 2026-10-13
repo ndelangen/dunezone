@@ -10,6 +10,7 @@ import { Surface } from '@ui/surface';
 import { BriefcaseBusiness } from 'lucide-react';
 import { useReducer } from 'react';
 
+import { useSessionViewer } from '@db/profiles';
 import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@db/publications';
 import type { PublicationJobStatus } from '@db/publications';
 import { pageHead } from '@app/routes/pageTitle';
@@ -23,7 +24,45 @@ export const Route = createFileRoute('/_app/_admin/jobs')({
   component: PublicationJobsPage,
 });
 
+/*
+ * Early returns rather than a ternary chain inside the content: each gate is the whole page rather than one region of it,
+ * and rendering them under this page's own header meant a reader who may not see the queue at all still got its briefcase and its description.
+ * The header is a statement about a dashboard they are not being shown.
+ */
 function PublicationJobsPage() {
+  const viewer = useSessionViewer();
+  if (viewer.kind === 'pending') {
+    return <PublicationJobsLoading />;
+  }
+  if (viewer.kind === 'signed-out') {
+    return (
+      <PageMessage size="compact" title="Publication jobs">
+        <LoginGate action="inspect publication jobs" />
+      </PageMessage>
+    );
+  }
+  if (!viewer.isAdmin) {
+    return (
+      <PageMessage size="compact" title="Publication jobs">
+        <NotAvailable title="You cannot view publication jobs">
+          Your account does not have permission to view publication jobs.
+        </NotAvailable>
+      </PageMessage>
+    );
+  }
+  return <PublicationJobsDashboard />;
+}
+
+function PublicationJobsLoading() {
+  return (
+    <PageMessage size="compact" title="Publication jobs">
+      <LoadPending title="Loading publication jobs">The durable work queue is still loading.</LoadPending>
+    </PageMessage>
+  );
+}
+
+/** Mounted only for an administrator, so the admin-only query is never asked by anyone else. */
+function PublicationJobsDashboard() {
   /* One listing query, one reducer: a filter change resets the page in the same event, so a third
      filter cannot forget the reset (the one-event-two-setters shape, #608). */
   const [listing, dispatch] = useReducer(
@@ -44,34 +83,8 @@ function PublicationJobsPage() {
   });
   const pickupMutation = useSetPublicationPickupEnabled();
 
-  /* Early returns rather than a ternary chain inside the content: each of the first three is the
-     whole page rather than one region of it, and rendering them under this page's own header meant
-     a reader who may not see the queue at all still got its briefcase and its description. The
-     header is a statement about a dashboard they are not being shown. */
   if (result === undefined) {
-    return (
-      <PageMessage size="compact" title="Publication jobs">
-        <LoadPending title="Loading publication jobs">The durable work queue is still loading.</LoadPending>
-      </PageMessage>
-    );
-  }
-
-  if (result.access === 'unauthenticated') {
-    return (
-      <PageMessage size="compact" title="Publication jobs">
-        <LoginGate action="inspect publication jobs" />
-      </PageMessage>
-    );
-  }
-
-  if (result.access === 'not_authorized') {
-    return (
-      <PageMessage size="compact" title="Publication jobs">
-        <NotAvailable title="You cannot view publication jobs">
-          Your account does not have permission to view publication jobs.
-        </NotAvailable>
-      </PageMessage>
-    );
+    return <PublicationJobsLoading />;
   }
 
   return (

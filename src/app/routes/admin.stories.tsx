@@ -10,7 +10,16 @@ const meta = preview.meta({
   ...pageStoryMeta,
 });
 
-export const Migrations = meta.story({ args: { path: '/admin/migrations' } });
+/** The dashboard for an administrator: the session says so, and only then does the page ask for the admin-only dashboard. */
+export const Migrations = meta.story({
+  args: { path: '/admin/migrations' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('button', { name: 'Sync migration status' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+  },
+});
 
 /**
  * The dashboard reached by a reader who is not signed in: the gate frame, not the dashboard.
