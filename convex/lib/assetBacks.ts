@@ -3,7 +3,7 @@ import { ConvexError } from 'convex/values';
 import { NO_DECK_BACK_HREF } from '../../src/shared/asset-publishing/fallbacks';
 import { isPublicationAssetType, publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
 import type { Doc, Id } from '../_generated/dataModel';
-import { publicationStatusFor } from '../assetPublishingStatus';
+import { publicationHrefFor } from '../assetPublishingStatus';
 import type { MutationCtx, QueryCtx } from '../types';
 import { presetFromKey } from './cardbackPresets';
 import type { CardbackPresetMemo } from './cardbackPresets';
@@ -151,8 +151,7 @@ export async function resolveBackHref(
     }
     const back = tokenBackOf(row.data);
     if (back?.mode === 'custom') {
-      const status = await publicationStatusFor(ctx, row.type, publicationFaceId(row._id, 'back'));
-      return { mode: 'custom', href: status?.publicationHref ?? null };
+      return { mode: 'custom', href: await publicationHrefFor(ctx, row.type, publicationFaceId(row._id, 'back')) };
     }
     if (back?.mode === 'same' || back?.mode === 'reference') {
       /* The legacy fallthrough matches the save path's, so a pre-migration reference resolves to its target rather than reading as dangling during the deploy window. */
@@ -170,12 +169,16 @@ export async function resolveBackHref(
         target.type === row.type &&
         hasAuthoredBack(target)
       ) {
-        const status = await publicationStatusFor(ctx, row.type, publicationFaceId(target._id, 'back'));
-        return { mode: 'reference', href: status?.publicationHref ?? null };
+        return {
+          mode: 'reference',
+          href: await publicationHrefFor(ctx, row.type, publicationFaceId(target._id, 'back')),
+        };
       }
       /* `same`, and every way a reference can dangle, resolve to the token's own front. */
-      const status = await publicationStatusFor(ctx, row.type, row._id);
-      return { mode: back.mode === 'same' ? 'same' : 'dangling', href: status?.publicationHref ?? null };
+      return {
+        mode: back.mode === 'same' ? 'same' : 'dangling',
+        href: await publicationHrefFor(ctx, row.type, row._id),
+      };
     }
     return null;
   }
@@ -189,14 +192,12 @@ export async function resolveBackHref(
       return preset ? { mode: 'preset', href: preset.href } : { mode: 'dangling', href: NO_DECK_BACK_HREF };
     }
     if (cardbackComposition(cardback)) {
-      const status = await publicationStatusFor(ctx, 'deck', row._id);
-      return { mode: 'authored-cardback', href: status?.publicationHref ?? null };
+      return { mode: 'authored-cardback', href: await publicationHrefFor(ctx, 'deck', row._id) };
     }
     const targetId = typeof cardback.asset_id === 'string' ? (cardback.asset_id as Id<'assets'>) : null;
     const target = targetId ? await ctx.db.get('assets', targetId) : null;
     if (target && authoredDeckCardback(target)) {
-      const status = await publicationStatusFor(ctx, 'deck', target._id);
-      return { mode: 'reference', href: status?.publicationHref ?? null };
+      return { mode: 'reference', href: await publicationHrefFor(ctx, 'deck', target._id) };
     }
     return { mode: 'dangling', href: NO_DECK_BACK_HREF };
   }

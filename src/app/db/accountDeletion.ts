@@ -1,14 +1,14 @@
-import { usePaginatedQuery, useQuery } from 'convex/react';
+import { usePaginatedQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 
-import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 
 export type ReplacementProfile = FunctionReturnType<typeof api.accountDeletion.listReplacementProfiles>['page'][number];
 
 export function useAccountDeletionPage(profileSlug: string) {
-  return toLiveQueryResult(useQuery(api.accountDeletion.page, { profileSlug }));
+  return toLiveQueryResult(useLiveQuery(api.accountDeletion.page, { profileSlug }));
 }
 
 export function useReplacementProfiles(search: string) {

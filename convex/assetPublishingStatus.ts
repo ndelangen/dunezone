@@ -72,6 +72,25 @@ export async function publicationStatusFor(
   };
 }
 
+/**
+ * Only the public link, for readers that never show capture state.
+ * It skips `publication_jobs`, whose rows carry a full copy of the asset and change at every step of a capture, so the reading query neither pays for those copies nor re-runs while a capture moves along.
+ */
+export async function publicationHrefFor(
+  ctx: Pick<QueryCtx, 'db'>,
+  assetType: PublicationAssetType,
+  assetId: string
+): Promise<string | null> {
+  const assets = await ctx.db
+    .query('publication_assets')
+    .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
+    .take(2);
+  if (assets.length > 1) {
+    throw new Error(`Publication invariant violated: duplicate ${assetType} assets`);
+  }
+  return projectPublicAssetPublishingStatus(assetType, assets[0] ?? null).publicationHref;
+}
+
 /** Live work outranks a failure, because a running or waiting capture may still replace the publication the failed one could not. */
 function captureStatusOf(jobs: Pick<Doc<'publication_jobs'>, 'status'>[]): PublicAssetCaptureStatus | null {
   const has = (status: Doc<'publication_jobs'>['status']) => jobs.some((job) => job.status === status);

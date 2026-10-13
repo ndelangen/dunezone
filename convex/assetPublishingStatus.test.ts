@@ -7,6 +7,7 @@ import { describe, expect, test } from 'vitest';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import { publicationHrefFor, publicationStatusFor } from './assetPublishingStatus';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -127,5 +128,30 @@ describe('public asset publishing status projection', () => {
     });
 
     expect((await publicStatus(t, factionId)).captureStatus).toBe(captureStatus);
+  });
+
+  test.each([
+    ['no publication', false, null],
+    ['only capture work', false, 'pending'],
+    ['a publication with replacement work', true, 'in_progress'],
+    ['a publication after a failed capture', true, 'error'],
+  ] as const)('the link-only read matches the full status link for %s', async (_case, published, jobStatus) => {
+    const t = convexTest(schema, modules);
+    const factionId = await seedFaction(t);
+    const [href, status] = await t.run(async (ctx) => {
+      if (published) {
+        await ctx.db.insert('publication_assets', currentSheet(factionId, 'link-token'));
+      }
+      if (jobStatus) {
+        await ctx.db.insert('publication_jobs', publicationJob(factionId, jobStatus, 1));
+      }
+      return await Promise.all([
+        publicationHrefFor(ctx, 'faction_sheet', factionId),
+        publicationStatusFor(ctx, 'faction_sheet', factionId),
+      ]);
+    });
+
+    expect(href).toBe(status.publicationHref);
+    expect(href === null).toBe(!published);
   });
 });

@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import type { AuthProvider } from '../../../convex/lib/accountMethods';
+import { useLiveQuery } from './core/live';
 
 export const authProviderNames = { google: 'Google', discord: 'Discord' } satisfies Record<AuthProvider, string>;
 
 export function useSignInProviders() {
-  return useQuery(api.accounts.providers, {});
+  return useLiveQuery(api.accounts.providers, {});
 }
 
 export type { AuthProvider } from '../../../convex/lib/accountMethods';
