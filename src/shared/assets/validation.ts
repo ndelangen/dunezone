@@ -22,20 +22,26 @@ export function parseNexusCardInput(data: unknown) {
   return result.data;
 }
 
+/** A board must have usable geometry as well as valid saved fields. */
+export function parseBoardData(data: unknown) {
+  const parsed = BoardAsset.parse(data);
+  const geometry = derive(parsed.board);
+  if (!geometry.faces.length || geometry.unrecoveredSegments) {
+    throw new Error('The board needs closed, renderable territory boundaries');
+  }
+  if (geometry.faces.some((face) => !parsed.board.properties[face.key])) {
+    throw new Error('Every territory needs a name');
+  }
+  return parsed;
+}
+
 /**
  * Validates writable Asset data against the renderer-owned shape shared by the browser and server.
  */
 export function parseAssetDataForWrite(type: string, data: unknown): { data: unknown; name: string } {
   switch (type) {
     case 'board': {
-      const parsed = BoardAsset.parse(data);
-      const geometry = derive(parsed.board);
-      if (!geometry.faces.length || geometry.unrecoveredSegments) {
-        throw new Error('The board needs closed, renderable territory boundaries');
-      }
-      if (geometry.faces.some((face) => !parsed.board.properties[face.key])) {
-        throw new Error('Every territory needs a name');
-      }
+      const parsed = parseBoardData(data);
       return { data: parsed, name: parsed.name };
     }
     case 'card-treachery': {

@@ -20,6 +20,7 @@ import { publicQuery } from './functions';
 import { resolveBackHref, TOKEN_ASSET_TYPES } from './lib/assetBacks';
 import { assetDisplayName } from './lib/assetInput';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
+import { rulesetBoard } from './lib/rulesetBoard';
 import { listRulesetAssetSlots } from './lib/rulesetSlots';
 
 /*
@@ -64,7 +65,9 @@ export const rulesetSupply = publicQuery({
     }
     return {
       ruleset: { id: row._id, slug: row.slug, name: row.name },
-      slots: await listRulesetAssetSlots(ctx, row._id),
+      /* Older Workers accept only deck and bundle slots during the additive rollout. */
+      slots: (await listRulesetAssetSlots(ctx, row._id)).filter((entry) => entry.slot !== 'board'),
+      board: await rulesetBoard(ctx, row._id),
     };
   },
 });

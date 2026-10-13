@@ -22,6 +22,13 @@ export const DIRECT_OWNERSHIP_KINDS = [
     deletedField: 'is_deleted',
     ownerDeletedIndex: 'by_owner_deleted',
   },
+  {
+    kind: 'asset',
+    table: 'assets',
+    ownerField: 'owner_id',
+    deletedField: 'is_deleted',
+    ownerDeletedIndex: 'by_owner_deleted',
+  },
 ] as const;
 
 export type DirectOwnershipKind = (typeof DIRECT_OWNERSHIP_KINDS)[number]['kind'];
@@ -29,5 +36,6 @@ export type DirectOwnershipKind = (typeof DIRECT_OWNERSHIP_KINDS)[number]['kind'
 export const directOwnershipKindValidator = v.union(
   v.literal(DIRECT_OWNERSHIP_KINDS[0].kind),
   v.literal(DIRECT_OWNERSHIP_KINDS[1].kind),
-  v.literal(DIRECT_OWNERSHIP_KINDS[2].kind)
+  v.literal(DIRECT_OWNERSHIP_KINDS[2].kind),
+  v.literal(DIRECT_OWNERSHIP_KINDS[3].kind)
 );

@@ -423,6 +423,7 @@ export class TableSession {
   private spiceHistoryBefore?: number;
   private logHistory: Partial<Record<LogTab, LogPage>> = {};
   /* A capture never changes once a game holds it, so each answer is kept across reconnects. */
+  private retainedBoard: GameSnapshot['board'];
   private factions: Readonly<Partial<Record<string, PublicFaction | null>>> = {};
   /* Reads sent and not yet answered; a dropped connection or a refusal forgets them, so the panel can ask again. */
   private factionRequests = new Set<string>();
@@ -459,6 +460,7 @@ export class TableSession {
     if (!stored) {
       return;
     }
+    this.retainedBoard = stored.snapshot.board;
     this.conversations.resume(stored.snapshot, stored.viewer, stored.pending);
     this.kept = {
       viewer: stored.viewer,
@@ -693,10 +695,17 @@ export class TableSession {
       serverNow,
     };
   }
+  private presentedSnapshot() {
+    const received = this.history?.snapshot ?? this.snapshot;
+    /* The board is captured once per game; history and reconnect messages decode fresh copies of that same definition. */
+    this.retainedBoard ??= received.board;
+    const authoritative = received.board === this.retainedBoard ? received : { ...received, board: this.retainedBoard };
+    return this.withUnsettledDisclosures(this.withPendingPlan(authoritative));
+  }
+
   private liveTable(): TableProjection {
     const viewer = this.viewer!;
-    const authoritative = this.history?.snapshot ?? this.snapshot;
-    const displayed = this.withUnsettledDisclosures(this.withPendingPlan(authoritative));
+    const displayed = this.presentedSnapshot();
     const state = {
       ...tableForViewer(displayed, viewer.viewerSeat),
       factionTieBreaks: snapshotFactionTieBreaks(displayed),

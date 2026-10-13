@@ -14,7 +14,7 @@ test('a disposable account reviews ownership and completes deletion', async ({ p
   await page.getByRole('link', { name: 'Delete account' }).click();
 
   await expect(page.getByRole('heading', { name: 'Delete account', level: 1 })).toBeVisible();
-  await expect(page.getByText('This account directly owns no Groups, factions, or rulesets.')).toBeVisible();
+  await expect(page.getByText('This account directly owns no Groups, factions, rulesets, or assets.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Choose a replacement owner' }).click();
   await expect(page.getByRole('searchbox', { name: 'Search profiles' })).toBeVisible();

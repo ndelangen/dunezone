@@ -53,6 +53,7 @@ type PeekGrant = z.infer<typeof peekGrantSchema>;
 
 export const storedSnapshotSchema = gameSnapshotSchema
   .omit({
+    board: true,
     bank: true,
     battle: true,
     battlePlan: true,

@@ -15,6 +15,7 @@ import styles from './create.module.css';
 
 /* One line per slot, in the words a player reads on the pass rather than the editor's slot names. */
 const SLOT_LABELS: Record<RulesetAssetSlot, string> = {
+  board: 'Board',
   treachery: 'Treachery deck',
   spice: 'Spice deck',
   techToken: 'Tech tokens',
@@ -113,7 +114,10 @@ function PackedLine({ item }: Readonly<{ item: Packed }>) {
           {item.name}
         </Text>
       </span>
-      <span className={styles.packedCount} aria-label={`${count} ${deck ? 'cards' : 'tokens'}`}>
+      <span
+        className={styles.packedCount}
+        aria-label={`${count} ${item.faceType === 'board' ? 'board' : deck ? 'cards' : 'tokens'}`}
+      >
         {count}
       </span>
     </li>

@@ -6,6 +6,7 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test, vi } from 'vitest';
 
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/gameNames';
 import { playGameNameVocabulary } from '../src/shared/play/generatedGameNames';
 import { api, internal } from './_generated/api';
@@ -44,6 +45,17 @@ async function world() {
       created_at: stamp,
       updated_at: stamp,
     });
+    const boardId = await ctx.db.insert('assets', {
+      owner_id: userId,
+      type: 'board',
+      data: { name: 'Arrakis', about: '', board: arrakisBoardCapture.definition },
+      slug: 'arrakis',
+      group_id: null,
+      is_deleted: false,
+      created_at: stamp,
+      updated_at: stamp,
+    });
+    await ctx.db.insert('ruleset_asset_slots', { ruleset_id: rulesetId, asset_id: boardId, slot: 'board' });
     for (const slot of ['treachery', 'spice'] as const) {
       const deck = await ctx.db.insert('assets', {
         owner_id: userId,

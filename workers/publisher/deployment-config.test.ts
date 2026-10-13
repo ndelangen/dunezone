@@ -113,6 +113,10 @@ describe('scheduled production deployment shape', () => {
     });
     expect((config.assets as { run_worker_first?: string[] }).run_worker_first).toEqual([
       '/',
+      '/auth/signin',
+      '/auth/signin/*',
+      '/auth/callback',
+      '/auth/callback/*',
       '/__asset-publisher',
       '/__asset-publisher/*',
       '/social',

@@ -59,7 +59,7 @@ export function useCreateGame() {
       if ('name' in request) {
         return await db.action(api.playGames.createGameWithName, request);
       }
-      const result = await db.mutation(api.playGames.createGame, request);
+      const result = await db.action(api.playGames.createGeneratedGame, request);
       return result.ok ? { ...result, slug: null } : result;
     },
     []

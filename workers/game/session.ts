@@ -666,6 +666,10 @@ export class GameSession {
    * request is theirs. Nobody's id travels.
    */
   private forViewer(projected: GameSnapshot, viewer: Viewer): GameSnapshot {
+    const board = this.captures.ruleset()?.board;
+    if (board) {
+      projected = { ...projected, board };
+    }
     if (!projected.controls) {
       return projected;
     }
@@ -971,6 +975,10 @@ export class GameSession {
   get info(): Readonly<Metadata> | undefined {
     return this.metadata;
   }
+  get hasRetainedBoard() {
+    return Boolean(this.captures.ruleset()?.board);
+  }
+
   get ready() {
     return this.room !== undefined;
   }

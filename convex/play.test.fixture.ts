@@ -6,6 +6,7 @@ import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
 
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import schema from './schema';
@@ -13,8 +14,8 @@ import schema from './schema';
 const modules = import.meta.glob('./**/*.ts');
 
 /** A fresh test world with the components Play's functions reach. */
-export function playTest() {
-  const t = convexTest(schema, modules);
+export function playTest(moduleOverrides: typeof modules = {}) {
+  const t = convexTest(schema, { ...modules, ...moduleOverrides });
   rateLimiterTest.register(t);
   aggregateTest.register(t, 'statistics');
   aggregateTest.register(t, 'profileActivity');
@@ -82,5 +83,16 @@ export async function playRuleset(ctx: MutationCtx, owner: Id<'users'>) {
     await ctx.db.insert('asset_relations', { from_asset_id: deckId, to_asset_id: card, kind: 'deck-card', count: 2 });
     await ctx.db.insert('ruleset_asset_slots', { ruleset_id: rulesetId, asset_id: deckId, slot });
   }
+  const boardId = await ctx.db.insert('assets', {
+    owner_id: owner,
+    type: 'board',
+    slug: 'arrakis-official',
+    group_id: null,
+    is_deleted: false,
+    created_at: stamp,
+    updated_at: stamp,
+    data: { name: 'Arrakis Official', about: '', board: arrakisBoardCapture.definition },
+  });
+  await ctx.db.insert('ruleset_asset_slots', { ruleset_id: rulesetId, asset_id: boardId, slot: 'board' });
   return rulesetId;
 }

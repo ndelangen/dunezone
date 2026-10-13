@@ -23,6 +23,46 @@ const PUBLISHER_CONVEX_SITE_ORIGIN = 'https://exuberant-finch-263.eu-west-1.conv
 const PUBLISHER_CRON = '*/5 * * * *';
 const REQUIRED_SECRETS = ['ASSET_PUBLISHER_EXECUTOR_SECRET', 'MEDIA_PUBLISH_TOKEN', 'MEDIA_UPLOAD_TOKEN'];
 
+export async function verifyPublicAuthRouting(
+  fetcher: (url: string, init: RequestInit) => Promise<Response> = fetch
+): Promise<void> {
+  const request = (url: string, method: string) =>
+    fetcher(url, {
+      method,
+      redirect: 'manual',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5000),
+    });
+  for (const provider of ['google', 'discord']) {
+    const signIn = await request(`${APPLICATION_ORIGIN}/auth/signin/${provider}`, 'POST');
+    try {
+      invariant(signIn.status === 405, `The ${provider} sign-in route returned HTTP ${signIn.status} instead of 405`);
+      invariant(signIn.headers.get('Allow') === 'GET', `The ${provider} sign-in route must allow GET only`);
+      invariant(signIn.headers.get('Cache-Control') === 'no-store', `The ${provider} sign-in route must not be cached`);
+    } finally {
+      await signIn.body?.cancel();
+    }
+
+    /* A provider cancellation exercises the upstream callback without a verifier, credentials or an account. */
+    const response = await request(`${APPLICATION_ORIGIN}/auth/callback/${provider}?error=access_denied`, 'GET');
+    try {
+      invariant(
+        response.status === 302,
+        `The ${provider} callback returned HTTP ${response.status} instead of the cancellation redirect`
+      );
+      const destination = response.headers.get('Location');
+      invariant(destination !== null, `The ${provider} cancellation must return a destination`);
+      invariant(
+        new URL(destination).href === `${APPLICATION_ORIGIN}/`,
+        `The ${provider} cancellation must return home`
+      );
+      invariant(response.headers.get('Cache-Control') === 'no-store', `The ${provider} callback must not be cached`);
+    } finally {
+      await response.body?.cancel();
+    }
+  }
+}
+
 type JsonObject = Record<string, unknown>;
 
 function invariant(condition: unknown, message: string): asserts condition {
@@ -98,6 +138,10 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
       not_found_handling: 'single-page-application',
       run_worker_first: [
         '/',
+        '/auth/signin',
+        '/auth/signin/*',
+        '/auth/callback',
+        '/auth/callback/*',
         '/__asset-publisher',
         '/__asset-publisher/*',
         '/social',
@@ -144,6 +188,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
       USER_IMAGE_PUBLIC_BASE_URL: APPLICATION_ORIGIN,
       CAPTURE_BASE_URL: PUBLISHER_ORIGIN,
       CONVEX_EXECUTOR_BASE_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/executor`,
+      CONVEX_AUTH_BASE_URL: PUBLISHER_CONVEX_SITE_ORIGIN,
       CONVEX_RENDER_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/render`,
       CONVEX_CLOUD_BASE_URL: PUBLISHER_PRODUCTION_CONVEX_URL,
       GIT_SHA: 'development',
@@ -328,6 +373,25 @@ async function run(): Promise<void> {
           });
         }
       }
+    }
+    let authFailure: unknown;
+    for (let attempt = 1; attempt <= 12; attempt += 1) {
+      try {
+        await verifyPublicAuthRouting();
+        console.log('Public auth routing smoke passed before switching authentication URLs.');
+        authFailure = undefined;
+        break;
+      } catch (error) {
+        authFailure = error;
+        if (attempt < 12) {
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
+      }
+    }
+    if (authFailure) {
+      throw new Error('Public auth routing did not become ready; authentication URLs remain unchanged', {
+        cause: authFailure,
+      });
     }
     return;
   }

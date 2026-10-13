@@ -1,5 +1,5 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import type { Infer } from 'convex/values';
 import type { z } from 'zod';
 
@@ -16,12 +16,13 @@ import { isGeneratedPlayGameName } from '../src/shared/play/generatedGameNames';
 import { lastTurnSchema } from '../src/shared/play/lastTurn';
 import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
 import { RULESET_ASSET_SLOT_ORDER } from '../src/shared/rulesets/assetSlots';
-import { internal } from './_generated/api';
+import { api, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { action } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { containerSummary } from './assets';
 import { internalMutation, mutation, viewerQuery } from './functions';
+import { assetDisplayName } from './lib/assetInput';
 import { admitsPlayers, currentPlaySession, isRealGame, livePlaySession } from './lib/playAuthorization';
 import { playGameAddressAvailable } from './lib/playGameAddresses';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
@@ -29,6 +30,8 @@ import { checkPlayGameName, PLAY_NAME_CHECK_MODEL, playNameCheckSchema } from '.
 import { createPendingGame } from './lib/playProvisioningSchedule';
 import { playCreateQuota, playNameCheckCapacity, playRateLimiter } from './lib/playRateLimits';
 import { atPlaySeatLimit } from './lib/playSeats';
+import type { BoardReadCache } from './lib/rulesetBoard';
+import { rulesetBoard, rulesetHasBoard } from './lib/rulesetBoard';
 
 /*
  * Real games: any active signed-in player may create and enter one. The lobby is unlisted rather
@@ -53,7 +56,10 @@ async function deckHasMembers(ctx: QueryCtx, assetId: Id<'assets'>) {
  * Null when nothing here objects;
  * the Worker's capture still decides completeness.
  */
-async function rulesetObjection(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+async function rulesetObjection(ctx: QueryCtx, rulesetId: Id<'rulesets'>, boardAvailable?: boolean) {
+  if (!(boardAvailable ?? (await rulesetBoard(ctx, rulesetId)))) {
+    return 'No usable board is linked.';
+  }
   for (const [slot, label] of [
     ['treachery', 'treachery deck'],
     ['spice', 'spice deck'],
@@ -119,6 +125,21 @@ async function packedFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
       .take(PREVIEW_CONTAINER_LIMIT - packed.length);
     for (const row of rows) {
       const asset = await ctx.db.get(row.asset_id);
+      if (slot === 'board' && asset && !asset.is_deleted) {
+        const publication = await ctx.db
+          .query('publication_assets')
+          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', asset._id))
+          .unique();
+        packed.push({
+          slot,
+          name: assetDisplayName(asset),
+          count: 1,
+          truncated: false,
+          face: publication ? publishedHref('board', asset._id, publication.cache_token) : null,
+          faceType: 'board',
+        });
+        continue;
+      }
       const summary = asset && !asset.is_deleted ? await containerSummary(ctx, asset) : null;
       if (summary) {
         packed.push({ slot, ...summary });
@@ -187,6 +208,7 @@ export const creatable = viewerQuery({
           slug: v.string(),
           name: v.string(),
           objection: v.union(v.string(), v.null()),
+          selectable: v.boolean(),
         })
       ),
       preview: v.union(rulesetPreviewValidator, v.null()),
@@ -201,8 +223,16 @@ export const creatable = viewerQuery({
       .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
       .take(RULESET_CHOICE_LIMIT);
     const rulesets = [];
+    const boards: BoardReadCache = new Map();
     for (const row of rows) {
-      rulesets.push({ id: row._id, slug: row.slug, name: row.name, objection: await rulesetObjection(ctx, row._id) });
+      const selectable = await rulesetHasBoard(ctx, row._id, boards);
+      rulesets.push({
+        id: row._id,
+        slug: row.slug,
+        name: row.name,
+        objection: await rulesetObjection(ctx, row._id, selectable),
+        selectable,
+      });
     }
     const chosen = rulesetId === undefined ? undefined : rows.find((row) => row._id === rulesetId);
     return { access: 'allowed' as const, rulesets, preview: chosen ? await rulesetPreview(ctx, chosen._id) : null };
@@ -241,6 +271,14 @@ export const createGame = mutation({
       settings,
       generatedName !== undefined && isGeneratedPlayGameName(generatedName) ? generatedName : undefined
     ),
+});
+
+/** The current page creates generated games through the same bounded conflict recovery as custom games. */
+export const createGeneratedGame = action({
+  args: zodToConvex(playGeneratedGameRequestSchema),
+  returns: zodToConvex(playCreateGameOutcomeSchema),
+  handler: async (ctx, args): Promise<z.infer<typeof playCreateGameOutcomeSchema>> =>
+    await recoverCreationConflict(() => ctx.runMutation(api.playGames.createGame, args)),
 });
 
 type NamedGameContract = z.infer<typeof playNamedGameOutcomeSchema>;
@@ -287,23 +325,54 @@ export const createGameWithName = action({
   args: zodToConvex(playNamedGameRequestSchema),
   returns: zodToConvex(playNamedGameOutcomeSchema),
   handler: async (ctx, args): Promise<NamedGameOutcome> => {
-    const prepared: PreparedName = await ctx.runMutation(internal.playGames.prepareNamedGame, args);
+    const prepared: PreparedName = await recoverCreationConflict(() =>
+      ctx.runMutation(internal.playGames.prepareNamedGame, args)
+    );
     if (!prepared.ok) {
       return prepared;
     }
     const check = prepared.checkProvider
       ? await checkPlayGameName(prepared.name, prepared.base)
       : { outcome: 'check_unavailable' as const, reason: 'rate_limit' as const };
-    return await ctx.runMutation(internal.playGames.createNamedGame, {
-      rulesetId: args.rulesetId,
-      minimumPlayers: args.minimumPlayers,
-      lastTurn: args.lastTurn,
-      name: prepared.name,
-      base: prepared.base,
-      check,
-    });
+    return await recoverCreationConflict(() =>
+      ctx.runMutation(internal.playGames.createNamedGame, {
+        rulesetId: args.rulesetId,
+        minimumPlayers: args.minimumPlayers,
+        lastTurn: args.lastTurn,
+        name: prepared.name,
+        base: prepared.base,
+        check,
+      })
+    );
   },
 });
+
+/**
+ * OCC rejects an uncommitted transaction, so only its complete platform conflict sentence permits another attempt.
+ * The action syscall strips the platform error code.
+ * Application ConvexErrors are excluded.
+ * Unknown failures, including a lost response after commit, are never replayed.
+ * Provider calls stay outside this recovery and each attempt rechecks authorization, seats and quota.
+ * Three total attempts bound recovery when conflicts persist.
+ */
+async function recoverCreationConflict<Result>(commit: () => Promise<Result>, attempt = 0): Promise<Result> {
+  try {
+    return await commit();
+  } catch (error) {
+    const conflict =
+      error instanceof Error &&
+      !(error instanceof ConvexError) &&
+      /^Documents read from or written to the "[A-Za-z]\w*" table changed while this mutation was being run and on every subsequent retry\./.test(
+        error.message
+      );
+    if (!conflict || attempt >= 2) {
+      throw error;
+    }
+    const jitter = (crypto.getRandomValues(new Uint8Array(1))[0]! / 256) * 200;
+    await new Promise((resolve) => setTimeout(resolve, (attempt + 1) * 200 + jitter));
+    return await recoverCreationConflict(commit, attempt + 1);
+  }
+}
 
 /** Only the server action supplies the exact checked wording and its derived outcome. */
 export const createNamedGame = internalMutation({
