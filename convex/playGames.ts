@@ -1,5 +1,5 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import type { Infer } from 'convex/values';
 import type { z } from 'zod';
 
@@ -16,7 +16,7 @@ import { isGeneratedPlayGameName } from '../src/shared/play/generatedGameNames';
 import { lastTurnSchema } from '../src/shared/play/lastTurn';
 import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
 import { RULESET_ASSET_SLOT_ORDER } from '../src/shared/rulesets/assetSlots';
-import { internal } from './_generated/api';
+import { api, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { action } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
@@ -243,6 +243,14 @@ export const createGame = mutation({
     ),
 });
 
+/** The current page creates generated games through the same bounded conflict recovery as custom games. */
+export const createGeneratedGame = action({
+  args: zodToConvex(playGeneratedGameRequestSchema),
+  returns: zodToConvex(playCreateGameOutcomeSchema),
+  handler: async (ctx, args): Promise<z.infer<typeof playCreateGameOutcomeSchema>> =>
+    await recoverCreationConflict(() => ctx.runMutation(api.playGames.createGame, args)),
+});
+
 type NamedGameContract = z.infer<typeof playNamedGameOutcomeSchema>;
 type NamedGameOutcome =
   | Extract<NamedGameContract, { ok: false }>
@@ -287,23 +295,54 @@ export const createGameWithName = action({
   args: zodToConvex(playNamedGameRequestSchema),
   returns: zodToConvex(playNamedGameOutcomeSchema),
   handler: async (ctx, args): Promise<NamedGameOutcome> => {
-    const prepared: PreparedName = await ctx.runMutation(internal.playGames.prepareNamedGame, args);
+    const prepared: PreparedName = await recoverCreationConflict(() =>
+      ctx.runMutation(internal.playGames.prepareNamedGame, args)
+    );
     if (!prepared.ok) {
       return prepared;
     }
     const check = prepared.checkProvider
       ? await checkPlayGameName(prepared.name, prepared.base)
       : { outcome: 'check_unavailable' as const, reason: 'rate_limit' as const };
-    return await ctx.runMutation(internal.playGames.createNamedGame, {
-      rulesetId: args.rulesetId,
-      minimumPlayers: args.minimumPlayers,
-      lastTurn: args.lastTurn,
-      name: prepared.name,
-      base: prepared.base,
-      check,
-    });
+    return await recoverCreationConflict(() =>
+      ctx.runMutation(internal.playGames.createNamedGame, {
+        rulesetId: args.rulesetId,
+        minimumPlayers: args.minimumPlayers,
+        lastTurn: args.lastTurn,
+        name: prepared.name,
+        base: prepared.base,
+        check,
+      })
+    );
   },
 });
+
+/**
+ * OCC rejects an uncommitted transaction, so only its complete platform conflict sentence permits another attempt.
+ * The action syscall strips the platform error code.
+ * Application ConvexErrors are excluded.
+ * Unknown failures, including a lost response after commit, are never replayed.
+ * Provider calls stay outside this recovery and each attempt rechecks authorization, seats and quota.
+ * Three total attempts bound recovery when conflicts persist.
+ */
+async function recoverCreationConflict<Result>(commit: () => Promise<Result>, attempt = 0): Promise<Result> {
+  try {
+    return await commit();
+  } catch (error) {
+    const conflict =
+      error instanceof Error &&
+      !(error instanceof ConvexError) &&
+      /^Documents read from or written to the "[A-Za-z]\w*" table changed while this mutation was being run and on every subsequent retry\./.test(
+        error.message
+      );
+    if (!conflict || attempt >= 2) {
+      throw error;
+    }
+    const jitter = (crypto.getRandomValues(new Uint8Array(1))[0]! / 256) * 200;
+    await new Promise((resolve) => setTimeout(resolve, (attempt + 1) * 200 + jitter));
+    return await recoverCreationConflict(commit, attempt + 1);
+  }
+}
 
 /** Only the server action supplies the exact checked wording and its derived outcome. */
 export const createNamedGame = internalMutation({
