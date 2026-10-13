@@ -148,6 +148,11 @@ function unsettled(state: BeaconMotion, mode: BeaconMode, target: BeaconSpot, pr
   return !hidden && distanceToRest(state, mode, target, present) > 1e-3;
 }
 
+/* A new mode or a move draws one more frame after it settles, so overlays placed from this frame's pose catch up too. */
+function changedSince(before: { mode: BeaconMode; x: number; z: number }, state: BeaconMotion, mode: BeaconMode) {
+  return before.mode !== mode || Math.hypot(state.x - before.x, state.z - before.z) > 1e-3;
+}
+
 type Step = { mode: BeaconMode; target: BeaconSpot; delta: number; motion?: boolean };
 
 /**
@@ -158,10 +163,9 @@ export function stepBeacon(state: BeaconMotion, { mode, target, delta: rawDelta,
   /* With motion turned off every transition lands in one frame; only the carry still moves with the pointer. */
   /* A slow machine draws few frames, so a long frame still counts for most of its time and the beacon keeps its pace. */
   const delta = motion ? Math.min(rawDelta, 0.5) : SETTLE_AT_ONCE;
-  /* A new mode or a move draws one more frame after it settles, so overlays placed from this frame's pose catch up too. */
   const before = { mode: state.last, x: state.x, z: state.z };
   advance(state, mode, target, delta);
-  const changed = before.mode !== mode || Math.hypot(state.x - before.x, state.z - before.z) > 1e-3;
+  const changed = changedSince(before, state, mode);
   const present = mode !== 'gone' && !state.respawn;
   state.presence = clamp01(state.presence + (present ? 1 : -1) * (delta / RISE_SECONDS));
   return frameOf(state, changed || unsettled(state, mode, target, present), motion);
