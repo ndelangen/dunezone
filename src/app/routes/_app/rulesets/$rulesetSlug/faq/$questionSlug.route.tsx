@@ -200,8 +200,9 @@ function FaqDetailPage() {
     );
   }
 
-  const showAddAnswerForm = !faq.isPending && page.viewer.answerQuestion;
-  const hasUserAnswered = !showAddAnswerForm && answers.some((a) => !faq.isPending && a.capabilities.editAnswer);
+  /* The page is the same for everyone; its controls follow the viewer, whose capabilities are the signed-out ones until the session settles. */
+  const showAddAnswerForm = page.viewer.answerQuestion;
+  const hasUserAnswered = !showAddAnswerForm && answers.some((a) => a.capabilities.editAnswer);
 
   const handleDeleteQuestion = () => {
     void faq.deleteQuestion
@@ -273,7 +274,7 @@ function FaqDetailPage() {
               )}
               icon={<ArrowLeft size={17} aria-hidden />}
             />
-            {!faq.isPending && item.capabilities.editQuestion ? (
+            {item.capabilities.editQuestion ? (
               <IconAction
                 label="Edit question"
                 emphasis="standard"
@@ -287,7 +288,7 @@ function FaqDetailPage() {
           </Toolbar.Left>
           <Toolbar.Right label="Question actions">
             <Toolbar.Cluster kind="discard">
-              {!faq.isPending && item.capabilities.deleteQuestion ? (
+              {item.capabilities.deleteQuestion ? (
                 <ConfirmDeleteAction
                   label="Delete question"
                   pending={faq.deleteQuestion.isPending}
@@ -352,7 +353,7 @@ function FaqDetailPage() {
               <ul className={styles.answerList}>
                 {answers.map((a) => {
                   const isEditing = editing.editingAnswerId === a.id;
-                  const isUserAnswer = !faq.isPending && a.capabilities.editAnswer;
+                  const isUserAnswer = a.capabilities.editAnswer;
                   const isAccepted = a.accepted;
                   return (
                     <li
@@ -407,7 +408,7 @@ function FaqDetailPage() {
                             <FormattedTextSource source={a.text} />
                           </div>
                           <Group gap="xs" wrap="nowrap">
-                            {!faq.isPending && a.capabilities.acceptAnswer && (
+                            {a.capabilities.acceptAnswer && (
                               <IconAction
                                 label="Mark as accepted answer"
                                 emphasis="strong"
@@ -420,7 +421,7 @@ function FaqDetailPage() {
                                 icon={<Check size={16} aria-hidden />}
                               />
                             )}
-                            {!faq.isPending && a.capabilities.unacceptAnswer && (
+                            {a.capabilities.unacceptAnswer && (
                               <IconAction
                                 label="Unmark accepted answer"
                                 emphasis="standard"
@@ -433,7 +434,7 @@ function FaqDetailPage() {
                                 icon={<X size={16} aria-hidden />}
                               />
                             )}
-                            {!faq.isPending && a.capabilities.editAnswer && (
+                            {a.capabilities.editAnswer && (
                               <IconAction
                                 label="Edit your answer"
                                 emphasis="strong"
@@ -443,7 +444,7 @@ function FaqDetailPage() {
                                 icon={<Pencil size={16} aria-hidden />}
                               />
                             )}
-                            {!faq.isPending && a.capabilities.deleteAnswer && (
+                            {a.capabilities.deleteAnswer && (
                               <ConfirmDeleteAction
                                 label="Delete answer"
                                 pending={faq.deleteAnswer.isPending}

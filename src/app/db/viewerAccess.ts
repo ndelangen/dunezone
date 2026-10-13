@@ -78,6 +78,12 @@ export function useViewerAssignableGroups(): AssignedGroupSummary[] {
   return useQuery(api.groups.viewerAssignableGroups, {}) ?? [];
 }
 
+/** The viewer's user id: null when signed out, undefined while the session is on its way. */
+export function useViewerUserId(): Id<'users'> | null | undefined {
+  const session = useQuery(api.profiles.session, {});
+  return session === undefined ? undefined : session.userId;
+}
+
 /** Whether the viewer is an administrator, for the few page actions only admins see. False while the session is on its way. */
 export function useViewerIsAdmin(): boolean {
   return useQuery(api.profiles.session, {})?.isAdmin === true;

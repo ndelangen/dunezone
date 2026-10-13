@@ -1,3 +1,4 @@
+import { faqQuestionPageForViewer } from '@shared/faq/questionPageAccess';
 import type { FaqTag } from '@shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '@shared/faq/validation';
 import { useQuery } from 'convex/react';
@@ -6,6 +7,7 @@ import type { FunctionReturnType } from 'convex/server';
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import type { LiveMutationResult } from '@app/db/core/live';
+import { useViewerUserId } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
@@ -27,7 +29,8 @@ export type FaqQuestionLocator = {
   questionSlug: string;
 };
 
-export type FaqQuestionPage = FunctionReturnType<typeof api.faq.questionPage>;
+/** What `api.faq.question` gives the question page, the same for every viewer. */
+export type FaqQuestionPublicPage = FunctionReturnType<typeof api.faq.question>;
 
 type CommandState = {
   isPending: boolean;
@@ -83,18 +86,32 @@ function voidCommand<TVariables, TResult>(
 }
 
 /** The question route's loader, paired with `useFaqQuestionPage`. */
-export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<FaqQuestionPage> {
-  return await db.query(api.faq.questionPage, locator);
+export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<FaqQuestionPublicPage> {
+  return await db.query(api.faq.question, locator);
 }
 
 /**
  * The question page, live, with the commands that act on it.
  * The loader's result goes in as `initialPage`, not `initialData`: this hook returns commands beside the query, so its options do not match the plain read hooks elsewhere in this layer.
  */
-export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { initialPage?: FaqQuestionPage }) {
-  const livePage = useQuery(api.faq.questionPage, locator);
+export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { initialPage?: FaqQuestionPublicPage }) {
+  const livePage = useQuery(api.faq.question, locator);
   const query = toLiveQueryResult(livePage, () => options?.initialPage);
   const questionId = query.data?.question.id;
+  /*
+   * The page is one cached answer for everyone; who may edit, delete, accept or answer is decided here from the viewer's user id
+   * and whether they have answered. Until both settle the viewer counts as signed out, so no control appears before it may.
+   * A signed-out viewer asks about no question, which answers without a read.
+   */
+  const viewerId = useViewerUserId();
+  const viewerAnswered = useQuery(api.faq.viewerAnswered, { questionId: viewerId ? (questionId ?? null) : null });
+  const viewerResolved = viewerId !== undefined && viewerAnswered !== undefined;
+  const page = query.data
+    ? {
+        ...faqQuestionPageForViewer(query.data, viewerResolved ? viewerId : null, viewerAnswered ?? false),
+        viewerResolved,
+      }
+    : undefined;
 
   const editQuestionMutation = useLiveMutation<
     { questionId: string; input: { question: string; tags: FaqTag[] } },
@@ -120,7 +137,7 @@ export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { init
 
   return {
     ...query,
-    page: query.data,
+    page,
     editQuestion: command(editQuestionMutation, (input: { question: string; tags: FaqTag[] }) => ({
       questionId: requireQuestionId(),
       input: {
