@@ -55,11 +55,17 @@ export default function AuthoredBoard({ board }: { board: Board }) {
   }, [board, state.attempt, invalidate]);
   return (
     <>
-      <mesh geometry={geometry} receiveShadow raycast={() => {}}>
+      {/* The disc owns depth; its paint draws before the storm and stays above the disc at distant camera angles. */}
+      <mesh geometry={geometry} receiveShadow renderOrder={-3} raycast={() => {}}>
         <meshStandardMaterial
           key={state.texture ? 'artwork' : 'territories'}
           map={state.texture}
           vertexColors={!state.texture}
+          transparent
+          depthWrite={false}
+          polygonOffset
+          polygonOffsetFactor={-1}
+          polygonOffsetUnits={-1}
           roughness={0.88}
           metalness={0}
         />
