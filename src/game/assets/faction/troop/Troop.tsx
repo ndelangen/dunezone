@@ -1,11 +1,10 @@
 import type { FactionRender } from '@shared/factions/schema';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
 import { StrokedUse } from '../../utils/StrokedUse';
-import { useCountId } from '../../utils/useCountId';
 import styles from './Troop.module.css';
 
 const foreGroundColor = '#e3dbb3';
@@ -28,7 +27,7 @@ function starHue(star: string, hue: string | undefined): string {
 }
 
 export const TroopToken: FC<TroopTokenProps> = ({ background, image, star, hue, striped }) => {
-  const cid = useCountId();
+  const cid = useId();
   const prefix = useMemo(() => `${cid}_`, [cid]);
 
   const stripedMask = `${prefix}striped-mask`;

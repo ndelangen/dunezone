@@ -26,6 +26,11 @@ describe('anonymous application dispatch', () => {
     '/assets/create',
     '/assets/unknown-type/missing/extra',
     '/factions/missing/extra',
+    '/glossary',
+    '/future-plans',
+    '/privacy',
+    '/privacy/',
+    '/glossary/missing',
   ])('renders %s without visitor credentials', async (pathname) => {
     const render = vi.fn(async (request: Request) => {
       expect([...request.headers]).toEqual([['accept', 'text/html']]);

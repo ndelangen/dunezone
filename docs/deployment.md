@@ -95,7 +95,8 @@ every browser-only path and every unknown URL. The homepage follows this rule, a
 assembly fails if the shell carries any of the three.
 `src/app/routes/start.ts` makes server rendering opt-in. The document root renders on the server;
 the shared layout, faction catalogue and detail, asset catalogue, type listings and detail pages
-also render on the server. Their anonymous page result supplies visible content and metadata.
+also render on the server, as do the Glossary, Future plans and Privacy pages, which have no record
+behind them. Their anonymous page result supplies visible content and metadata.
 The browser hydrates that result, then its existing Convex subscription supplies live content and
 permissions. Management controls wait for that live result. Login-required pages stay browser-only.
 Missing records return 404; backend failures remain errors. Unknown public descendants reach the
@@ -555,8 +556,10 @@ off therefore:
 - does not prevent expired jobs from being reset to pending.
 
 The same page shows stored Renderer revisions and paged job status. It requires
-`users.isAdmin === true`; authenticated non-admin users see the "You cannot view publication
-jobs" refusal, and unauthenticated visitors receive no job data.
+`users.isAdmin === true`, and the page reads that from the session before it asks for any job data:
+signed-out visitors see the sign-in prompt, and authenticated non-admin users see the "You cannot
+view publication jobs" refusal. `publicationAdmin:page` is an `adminQuery`, so it refuses anyone
+else who calls it directly.
 
 ## Pull-request Cloudflare drift guard
 

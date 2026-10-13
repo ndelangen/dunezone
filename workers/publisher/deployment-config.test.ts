@@ -3,6 +3,8 @@ import path from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
+import { RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
+
 const config = JSON.parse(
   readFileSync(path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc'), 'utf8')
 ) as Record<string, unknown>;
@@ -104,6 +106,13 @@ describe('scheduled production deployment shape', () => {
     expect(JSON.stringify(config.vars)).not.toMatch(/R2_(?:STORAGE|ESTIMATED|INVENTORY|UNACCOUNTED)/);
   });
 
+  test('sends every record-less public page and its descendants to the Worker', () => {
+    const routes = (config.assets as { run_worker_first?: string[] }).run_worker_first;
+    for (const page of RECORDLESS_PUBLIC_PAGES) {
+      expect(routes).toEqual(expect.arrayContaining([page, `${page}/*`]));
+    }
+  });
+
   test('keeps assets first except for the reviewed Worker-owned entry paths', () => {
     expect(config.assets).toMatchObject({
       directory: './dist',
@@ -150,6 +159,12 @@ describe('scheduled production deployment shape', () => {
       '/groups/*',
       '/assets',
       '/assets/*',
+      '/glossary',
+      '/glossary/*',
+      '/future-plans',
+      '/future-plans/*',
+      '/privacy',
+      '/privacy/*',
     ]);
   });
 });

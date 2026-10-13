@@ -14,13 +14,21 @@ import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { useState } from 'react';
 
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead } from '@app/routes/publicPage';
 
 import styles from './index.module.css';
 import { TopicVisual } from './TopicVisual';
 
 export const Route = createFileRoute('/_app/glossary/')({
-  head: () => pageHead('Glossary'),
+  ssr: true,
+  head: () =>
+    publicPageHead({
+      name: 'Glossary',
+      pathname: '/glossary',
+      description:
+        'Every Dune game idea has one name on Dune Zone. The glossary follows the 2019 rulebook and lists the other words each term replaces.',
+      social: { kind: 'Dune Zone', shape: 'portrait' },
+    }),
   component: GlossaryPage,
 });
 
