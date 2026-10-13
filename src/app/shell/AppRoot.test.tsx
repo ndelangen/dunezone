@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
+import { RECORDLESS_PUBLIC_PAGES } from '@shared/recordlessPublicPages';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { appContentTheme } from '@ui/theme';
 import { act } from 'react';
@@ -163,6 +164,9 @@ describe('AppRoot page header', () => {
         label: 'Dune forums on BoardGameGeek',
       },
     ]);
+    /* Every page the sitemap lists without a record also needs a footer link, or nothing on the site leads to it. */
+    const footerHrefs = [...container.querySelectorAll('footer nav a')].map((link) => link.getAttribute('href'));
+    expect(footerHrefs).toEqual(expect.arrayContaining(RECORDLESS_PUBLIC_PAGES));
     const componentLibrary = container.querySelector('footer a[aria-label="Component library"]');
     expect(componentLibrary?.getAttribute('target')).toBe('_blank');
     expect(componentLibrary?.getAttribute('rel')).toBe('noopener noreferrer');
