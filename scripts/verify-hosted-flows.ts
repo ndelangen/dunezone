@@ -5,9 +5,8 @@
 export const browserFlows = {
   homepage: {
     /*
-     * Delayed sign-in and visibility checks expand this flow's startup coverage.
-     * On Linux it passed whole-stack cancellation at 177.5 s before the former 180 s launcher deadline closed Chromium (#2180).
-     * The total budget leaves room for every check; readiness and interaction deadlines stay unchanged.
+     * Passing runs took 162 s on CI on 13 Oct 2026 once the member loads with motion on (#2166), and one run reached its final scroll check at 179 s.
+     * The budget only bounds a stuck run, so the wider one costs a passing run nothing.
      */
     timeoutMs: 300_000,
     /* The guest uses its own Chromium graphics process, avoiding the member's software WebGL startup contention (#1868). */
