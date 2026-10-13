@@ -9,9 +9,11 @@ The four sources in `media/web/homepage/` came from the approved homepage E prot
 - `board.png`: a 3000 by 1420 capture of the development board, with six faction tokens on the table and no controls. Its alpha channel lets the page show through.
 - `cover.jpg`, `map.jpg`, `factions.jpg`: pages from the demonstration Arrakis field guide Rulebook created during the homepage design work. The page identifies them as demonstration pages, without implying a published community Rulebook.
 
-`bun run generate:images` produces the web variants. The `web/homepage` image rule preserves transparency and the board's 3000-pixel detail. The board capture remains a source for the social preview. The homepage's board is a real Play canvas, loaded as its section approaches the viewport. It appears once its artwork and first frames are ready. Shared cursors then load into that canvas. Play-only menus, close-ups, piece labels, predictions and camera controls load separately.
+`bun run generate:images` produces the web variants. The `web/homepage` image rule preserves transparency and the board's 3000-pixel detail. The board capture is a source for the social preview and is the homepage's board on narrow pages. Where the page frame is at least 48rem wide, the homepage's board is a real Play canvas, loaded as its section approaches the viewport. It appears once its artwork and first frames are ready. Shared cursors then load into that canvas. Play-only menus, close-ups, piece labels, predictions and camera controls load separately.
 
 The preview keeps one canvas throughout startup. Leaving the section or hiding the document unmounts the table and closes its subscription. There is no captured board image to replace, including when graphics are unavailable.
+
+Below 48rem of page frame, which covers phones, the board is the `board.png` still at the framing of the original homepage design. The table's renderer and its subscription are never loaded there, and the preview copy says the live preview needs a larger screen. A single container query decides this: the route reads whether the still is shown before it renders either board, so the stylesheet and the script cannot disagree. A phone turned to landscape can be 48rem wide and then gets the live table.
 
 The three published cards credit their creators beside the images. The Space Orks examples credit BigDave and describe the faction as a work in progress. The Group alliance card is an illustration made for the invitation, not a saved community Asset.
 

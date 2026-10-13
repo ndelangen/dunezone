@@ -127,7 +127,7 @@ export async function verifyHomepage({
       await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
       await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
       await who.page.locator('[data-table-connected="true"]').waitFor();
-      assert.equal(await who.page.locator('#play-preview img[src*="homepage/board"]').count(), 0);
+      assert.equal(await who.page.locator('#play-preview img').count(), 0);
       initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
       assert.ok(initialCanvas);
       await capture(member, 'homepage-board-before-slow-artwork');
