@@ -25,6 +25,7 @@ import { applyRoomUpdate } from '../src/shared/play/updates.ts';
 import { loopbackOrigin } from './lib/isolated-stack.ts';
 import { provisionAccounts, signIn as signInThroughForm } from './lib/synthetic-accounts.ts';
 import { privateInputFile } from './play-load/hosted-paths.ts';
+import { observeAnimationFrameProgress } from './verify-hosted-animation-frames.ts';
 import { verifyBattles } from './verify-hosted-battles.mjs';
 import { cursorBounds, remoteCursor } from './verify-hosted-cursor.mjs';
 import { verifyDecks } from './verify-hosted-decks.mjs';
@@ -332,6 +333,9 @@ async function peer(label, context) {
       serviceWorkers: 'block',
     });
     await context.addInitScript(observeRenderers);
+    if (values.flow === 'homepage') {
+      await context.addInitScript(observeAnimationFrameProgress);
+    }
     await context.addInitScript(observeConnectionStatus);
     await context.route(
       (url) => !allowedOrigins.has(url.origin),
@@ -2004,6 +2008,7 @@ try {
               visibility: document.visibilityState,
               ready: document.querySelector('#play-preview [data-live-ready]')?.getAttribute('data-live-ready') ?? null,
               connected: !!document.querySelector('#play-preview [data-table-connected="true"]'),
+              animationFrames: window.hostedPlayAnimationFrames?.() ?? null,
               canvas: canvas?.getBoundingClientRect().toJSON() ?? null,
               renderer: renderer
                 ? {
