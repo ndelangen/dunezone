@@ -23,6 +23,25 @@ const PUBLISHER_CONVEX_SITE_ORIGIN = 'https://exuberant-finch-263.eu-west-1.conv
 const PUBLISHER_CRON = '*/5 * * * *';
 const REQUIRED_SECRETS = ['ASSET_PUBLISHER_EXECUTOR_SECRET', 'MEDIA_PUBLISH_TOKEN', 'MEDIA_UPLOAD_TOKEN'];
 
+export async function verifyPublicAuthRouting(fetcher: typeof fetch = fetch): Promise<void> {
+  for (const provider of ['google', 'discord']) {
+    const response = await fetcher(`${APPLICATION_ORIGIN}/auth/signin/${provider}`, {
+      redirect: 'manual',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5000),
+    });
+    try {
+      invariant(
+        response.status === 400,
+        `The ${provider} auth route returned HTTP ${response.status} instead of Convex Auth's missing-verifier response`
+      );
+      invariant(response.headers.get('Cache-Control') === 'no-store', `The ${provider} auth route must not be cached`);
+    } finally {
+      await response.body?.cancel();
+    }
+  }
+}
+
 type JsonObject = Record<string, unknown>;
 
 function invariant(condition: unknown, message: string): asserts condition {
@@ -333,6 +352,25 @@ async function run(): Promise<void> {
           });
         }
       }
+    }
+    let authFailure: unknown;
+    for (let attempt = 1; attempt <= 12; attempt += 1) {
+      try {
+        await verifyPublicAuthRouting();
+        console.log('Public auth routing smoke passed before switching authentication URLs.');
+        authFailure = undefined;
+        break;
+      } catch (error) {
+        authFailure = error;
+        if (attempt < 12) {
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
+      }
+    }
+    if (authFailure) {
+      throw new Error('Public auth routing did not become ready; authentication URLs remain unchanged', {
+        cause: authFailure,
+      });
     }
     return;
   }
