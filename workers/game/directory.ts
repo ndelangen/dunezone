@@ -25,7 +25,7 @@ export class DirectoryOutbox {
    * Stages a summary when it differs from the last staged one, as the next sequence. Call inside
    * the transaction that made the change. A staged row is never rewritten in place: a delivery
    * in flight carries the summary it read, and a time staged meanwhile must not vanish under its
-   * acknowledgment. Activity alone earns a new sequence once a minute, so a busy table does not
+   * acknowledgment. Activity alone earns a new sequence once every `PLAY_DIRECTORY_ACTIVITY_MS`, so a busy table does not
    * turn every drop into a delivery.
    */
   stage(summary: PlayDirectorySummary, now: number): boolean {

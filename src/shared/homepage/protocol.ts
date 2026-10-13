@@ -5,8 +5,15 @@ import type { ClientMessage, PieceAction } from '../play/protocol';
 
 export const HOMEPAGE_SOCKET_PATH = '/__play/homepage/socket';
 export const HOMEPAGE_RESET_MS = 60 * 60 * 1000;
-export const HOMEPAGE_LEASE_MS = 30_000;
-export const HOMEPAGE_RENEW_MS = 20_000;
+/*
+ * Every renewal is a ticket issued and redeemed in Convex, so the lease is minutes rather than seconds. Renewals come at
+ * under half the lease, so one failed renewal is covered by the next before the lease runs out. Sign-out elsewhere reaches
+ * a member's open table at the latest when the lease runs out. The ticket itself stays short-lived: it only has to survive
+ * the hop from the browser to the table.
+ */
+export const HOMEPAGE_LEASE_MS = 5 * 60_000;
+export const HOMEPAGE_RENEW_MS = 2 * 60_000;
+export const HOMEPAGE_TICKET_TTL_MS = 30_000;
 export const HOMEPAGE_CONNECTION_LIMIT = 128;
 export const HOMEPAGE_EDITOR_LIMIT = 24;
 export const HOMEPAGE_FRAME_LIMIT = 2048;

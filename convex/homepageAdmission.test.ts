@@ -3,7 +3,7 @@
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { HOMEPAGE_LEASE_MS } from '../src/shared/homepage/protocol';
+import { HOMEPAGE_LEASE_MS, HOMEPAGE_TICKET_TTL_MS } from '../src/shared/homepage/protocol';
 import { api } from './_generated/api';
 import { playPerson, playTest } from './play.test.fixture';
 
@@ -42,7 +42,7 @@ test('logout between issue and redemption cancels the editing grant', async () =
 test('expired tickets cannot grant a fresh lease', async () => {
   const { t, member } = await visitor();
   const issued = await member.mutation(api.homepageAdmission.issueTicket, {});
-  vi.advanceTimersByTime(HOMEPAGE_LEASE_MS + 1);
+  vi.advanceTimersByTime(HOMEPAGE_TICKET_TTL_MS + 1);
   expect(await t.mutation(api.homepageAdmission.redeemTicket, issued!)).toEqual({ allowed: false });
 });
 

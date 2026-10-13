@@ -304,7 +304,7 @@ function that takes over 1 s fails where the local stack's 2 s limit passed it
 How it works: each deletion queues one `play_account_deletions` row per game, `pending` until the
 room acknowledges it after its SQLite change (`convex/playDeletion.ts:15-38`,
 `convex/playAdmission.ts:282-303`). Each claim backs off from 1 s up to 300 s
-(`convex/playDeletion.ts:86`), and a one-minute Cron reschedules up to 32 due rows
+(`convex/playDeletion.ts:86`), and a fifteen-minute Cron reschedules up to 32 due rows
 (`convex/crons.ts:6`, `convex/playDeletion.ts:122-135`). A game not in state `ready` waits out the
 same backoff.
 

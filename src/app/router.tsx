@@ -24,7 +24,8 @@ export function getRouter() {
     routeTree,
     scrollRestoration: true,
     defaultPreload: 'intent',
-    defaultPreloadStaleTime: 0,
+    /* Hovering the same link again within 30 seconds reuses its preloaded result instead of running the loader again. */
+    defaultPreloadStaleTime: 30_000,
     defaultErrorComponent: AppErrorComponent,
   });
 

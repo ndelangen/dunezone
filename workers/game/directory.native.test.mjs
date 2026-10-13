@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { PLAY_DIRECTORY_RETRY_MS } from '../../src/shared/play/directory';
+import { PLAY_DIRECTORY_ACTIVITY_MS, PLAY_DIRECTORY_RETRY_MS } from '../../src/shared/play/directory';
 import { TABLE_PHASES } from '../../src/shared/play/phases';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.mjs';
 import {
@@ -146,7 +146,7 @@ describe('A real game keeps the directory current', () => {
     expect(peer.summaries.at(-1)).toMatchObject({ sequence: 2, summary: { seats: [] } });
   });
 
-  it('publishes an accepted command as activity once a minute, and never a pointer', async () => {
+  it('publishes an accepted command as activity once per activity interval, and never a pointer', async () => {
     expect((await provision(runtime)).status).toBe(200);
     await eventually(() => summaries().length === 1, 'opening summary');
     /* Play at the Mentat pause, where readiness is accepted: a stage no delivered path reaches yet. */
@@ -155,7 +155,6 @@ describe('A real game keeps the directory current', () => {
       mentat,
     ]);
     await runtime.restart();
-    /* The clock jumps a minute below; the authorization lease must outlive it. */
     peer.expiresAt = () => Date.now() + 600_000;
     const creator = await admitPlayer(peer, runtime, 'a');
     expect((await syncView(creator)).snapshot.stage).toBe('play');
@@ -166,20 +165,25 @@ describe('A real game keeps the directory current', () => {
     expect(peer.summaries[1].summary).toMatchObject({ stage: 'play', phase: mentat });
     const at = peer.summaries[1].summary.lastActivityAt;
 
-    /* A pointer is transient; readiness inside the minute is activity alone and stays unsent. */
+    /* A pointer is transient; readiness inside the interval is activity alone and stays unsent. */
     creator.send({ type: 'pointer', seq: 1, position: [1, 0.38, 1] });
     const unready = await sendCommand(creator, { kind: 'ready', ready: false });
     expect(unready.reply.type).not.toBe('rejected');
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(summaries()).toEqual([1, 2]);
 
-    /* The same table a minute later: activity alone earns one more sequence, carrying the newer time. */
-    await runtime.clock(61_000);
+    /*
+     * The same table an interval later: activity alone earns one more sequence, carrying the newer time.
+     * The interval outlasts the room's authorization lease, so the staged summary ages instead of the clock jumping.
+     */
+    await runtime.exec(
+      "UPDATE directory_outbox SET summary=json_set(summary, '$.lastActivityAt', json_extract(summary, '$.lastActivityAt') - ?) WHERE id=1",
+      [PLAY_DIRECTORY_ACTIVITY_MS + 1]
+    );
     const again = await sendCommand(creator, { kind: 'ready', ready: true });
     expect(again.reply.type).not.toBe('rejected');
-    await eventually(() => summaries().length === 3, 'activity after a minute');
+    await eventually(() => summaries().length === 3, 'activity after an interval');
     expect(peer.summaries[2].summary).toMatchObject({ stage: 'play', phase: mentat });
-    expect(peer.summaries[2].summary.lastActivityAt).toBeGreaterThanOrEqual(at + 61_000);
-    await runtime.clock(0);
+    expect(peer.summaries[2].summary.lastActivityAt).toBeGreaterThanOrEqual(at);
   }, 20_000);
 });
