@@ -22,14 +22,18 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function discordCallback(issuer: string) {
+async function discordCallback(
+  issuer: string,
+  expectedCallback = 'https://backend.convex.site/api/auth/callback/discord'
+) {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
-  const providerFetch = vi.fn(async (input: RequestInfo | URL) => {
+  const providerFetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     if (url === 'https://discord.com/api/oauth2/token') {
+      expect(new URLSearchParams(String(init?.body)).get('redirect_uri')).toBe(expectedCallback);
       return Response.json({ access_token: 'test-access-token', token_type: 'Bearer', expires_in: 3600 });
     }
     if (url === 'https://discord.com/api/users/@me') {
@@ -44,7 +48,7 @@ async function discordCallback(issuer: string) {
     throw new Error('Discord sign-in did not start authorization');
   }
   const signInUrl = new URL(signIn.redirect);
-  const authorization = await t.fetch(signInUrl.pathname + signInUrl.search);
+  const authorization = await t.fetch(signInUrl.pathname.replace(/^\/auth\//, '/api/auth/') + signInUrl.search);
   const cookies = authorization.headers
     .getSetCookie()
     .map((cookie) => cookie.split(';')[0])
@@ -73,6 +77,17 @@ describe('Discord authorization callback', () => {
     const destination = new URL(response.headers.get('Location')!);
     expect(destination.origin).toBe('https://dune.zone');
     expect(destination.searchParams.get('code')).toEqual(expect.any(String));
+    expect(account?.provider).toBe('discord');
+  });
+
+  test('exchanges the provider code with the dune.zone callback after the public URL switch', async () => {
+    vi.stubEnv('CUSTOM_AUTH_SITE_URL', 'https://dune.zone');
+    vi.stubEnv('CUSTOM_AUTH_PATH', '/auth');
+    const { response, account } = await discordCallback(
+      'https://discord.com',
+      'https://dune.zone/auth/callback/discord'
+    );
+    expect(response.status).toBe(302);
     expect(account?.provider).toBe('discord');
   });
 

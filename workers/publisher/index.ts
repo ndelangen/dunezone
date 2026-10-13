@@ -3,6 +3,7 @@ import { playGamePathPattern } from '../../src/shared/play/callbacks';
 import { matchRulebookHtmlPath } from '../../src/shared/rulebooks/editionArtifacts';
 import type { RulebookReaderRequestContext } from '../../src/shared/rulebooks/readerDelivery';
 import { applicationReleaseIdentity, handleApplicationRequest } from './application';
+import { handleAuthRequest } from './auth';
 import { openPublisherBrowser } from './browser';
 import { handleCaptureRoute } from './capture-route';
 import { EXECUTOR_REQUEST_MARGIN_MS, MAX_ASSIGNED_ITEMS, parsePublisherConfig } from './config';
@@ -105,6 +106,10 @@ async function handleGameIngress(request: Request, url: URL, env: Env): Promise<
 const publisherWorker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    const auth = await handleAuthRequest(request, env);
+    if (auth) {
+      return auth;
+    }
     const game = await handleGameIngress(request, url, env);
     if (game) {
       return game;

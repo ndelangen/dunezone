@@ -8,6 +8,56 @@ import { account, setup, stubAuthEnvironment, restoreAuthEnvironment } from './a
 beforeEach(stubAuthEnvironment);
 afterEach(restoreAuthEnvironment);
 
+test('an existing session refreshes with the same issuer after changing public auth URLs', async () => {
+  const t = setup();
+  const user = await account(t, 'domain-switch', 'google');
+  const keyPair = await crypto.subtle.generateKey(
+    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    true,
+    ['sign', 'verify']
+  );
+  const privateBytes = new Uint8Array(await crypto.subtle.exportKey('pkcs8', keyPair.privateKey));
+  vi.stubEnv(
+    'JWT_PRIVATE_KEY',
+    `-----BEGIN PRIVATE KEY-----\n${btoa(String.fromCharCode(...privateBytes))}\n-----END PRIVATE KEY-----`
+  );
+  vi.stubEnv('CONVEX_SITE_URL', 'https://test.convex.site');
+  const refresh = await t.run((ctx) =>
+    ctx.db
+      .query('authRefreshTokens')
+      .withIndex('sessionId', (q) => q.eq('sessionId', user.sessionId))
+      .unique()
+  );
+  const before = await t.action(api.auth.signIn, { refreshToken: `${refresh!._id}|${user.sessionId}` });
+  expect(before.tokens).not.toBeNull();
+  vi.stubEnv('CUSTOM_AUTH_SITE_URL', 'https://dune.zone');
+  vi.stubEnv('CUSTOM_AUTH_PATH', '/auth');
+  const after = await t.action(api.auth.signIn, { refreshToken: before.tokens!.refreshToken });
+  expect(after.tokens).not.toBeNull();
+  for (const token of [before.tokens!.token, after.tokens!.token]) {
+    const [header, payload, signature] = token.split('.');
+    const decode = (value: string) => atob(value.replaceAll('-', '+').replaceAll('_', '/'));
+    const claims = JSON.parse(decode(payload!));
+    expect(claims.iss).toBe('https://test.convex.site');
+    expect(claims.sub).toBe(`${user.userId}|${user.sessionId}`);
+    expect(
+      await crypto.subtle.verify(
+        'RSASSA-PKCS1-v1_5',
+        keyPair.publicKey,
+        Uint8Array.from(decode(signature!), (char) => char.charCodeAt(0)),
+        new TextEncoder().encode(`${header}.${payload}`)
+      )
+    ).toBe(true);
+  }
+  const caller = t.withIdentity({ subject: `${user.userId}|${user.sessionId}` });
+  expect((await caller.query(api.profiles.settings, {})).account).not.toBeNull();
+  await caller.mutation(api.profiles.updateCurrent, {
+    username: 'StillSignedIn',
+    avatar_url: 'https://example.com/avatar.png',
+  });
+  expect((await t.run((ctx) => ctx.db.get(user.profileId)))?.username).toBe('StillSignedIn');
+});
+
 test('sign-out revokes the session for account deletion as well as ordinary writes', async () => {
   const t = setup();
   const user = await account(t, 'signed-out', 'google');

@@ -56,6 +56,30 @@ afterEach(() => {
 });
 
 describe('publisher Worker Publication flow', () => {
+  test('routes provider callbacks to Convex Auth before the application and static assets', async () => {
+    const currentEnv = publisherEnv();
+    currentEnv.CONVEX_AUTH_BASE_URL = 'https://exuberant-finch-263.eu-west-1.convex.site';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(null, {
+            status: 302,
+            headers: { Location: 'https://dune.zone/' },
+          })
+      )
+    );
+    const response = await publisherWorker.fetch(
+      new Request('https://dune.zone/auth/callback/google?error=access_denied'),
+      currentEnv,
+      {
+        waitUntil: vi.fn(),
+      } as unknown as ExecutionContext
+    );
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe('https://dune.zone/');
+    expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
+  });
   test('forwards the canonical game namespace to its bound Worker instead of the SPA', async () => {
     const currentEnv = publisherEnv();
     const response = await publisherWorker.fetch(new Request('https://dune.zone/__play/health'), currentEnv, {

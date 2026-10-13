@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 import packageJson from '../package.json';
 import { rendererManifest } from '../workers/publisher/renderer-manifest.generated';
@@ -18,7 +18,22 @@ import {
   readPublisherConfig,
   validatePublisherDeployContract,
   validatePublisherHealth,
+  verifyPublicAuthRouting,
 } from './publisher-deployment-contract';
+
+test('requires both public auth handlers before switching authentication URLs', async () => {
+  const fetcher = vi.fn(
+    async () =>
+      new Response('Missing sign-in verifier', {
+        status: 400,
+        headers: { 'Cache-Control': 'no-store' },
+      })
+  );
+  await verifyPublicAuthRouting(fetcher);
+  expect(fetcher.mock.calls).toHaveLength(2);
+  const staleEdge = vi.fn(async () => new Response('<html>old application</html>', { status: 200 }));
+  await expect(verifyPublicAuthRouting(staleEdge)).rejects.toThrow('HTTP 200');
+});
 
 function ciEnvironment(): NodeJS.ProcessEnv {
   return {
