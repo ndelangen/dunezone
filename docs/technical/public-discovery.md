@@ -1,14 +1,23 @@
 # Public page discovery
 
 `/robots.txt` advertises `https://dune.zone/sitemap.xml`. The sitemap index points to a static
-landing-page sitemap, a faction sitemap and one sitemap per live Asset type. Each uses absolute
-production URLs. Planned types, editors and login-required pages are absent.
+landing-page sitemap, one sitemap each for factions, rulesets, Rulebooks, FAQ questions, profiles
+and Groups, and one sitemap per live Asset type. Each uses absolute production URLs. Planned
+types, editors and login-required pages are absent.
 
 Each collection sitemap reads the existing non-deleted index in batches of at most 200 records,
 with a two-megabyte database read target per batch. The query returns only the current slug and
 last-modified date. Factions and supported assets are public in the current model; ownership and
 Group membership do not hide their detail pages. Missing artwork does not make a page unavailable.
 A new visibility rule must also narrow this query before private content is introduced.
+
+The other collections list exactly what their public pages serve. Rulesets and Rulebooks list
+when not deleted; a Rulebook or FAQ question also needs its Ruleset live, and takes its slug for
+the path. Every Rulebook has an Edition from creation, so existing is published. FAQ questions
+have no deleted state and Groups have no index on theirs, so both scan their table in creation
+order and skip what the page would not serve. Every active, unmerged profile and every live Group
+is listed, empty or not: a product decision, so the sitemap matches the public directory. Groups
+carry no modification date. Test and unfinished records are listed like any other.
 
 Discovery does not use the catalogue's capped listing and does not change its search, navigation
 or projection. Existing server-rendered catalogue links let crawlers discover visible entries;

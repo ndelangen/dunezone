@@ -4,9 +4,18 @@ import { ASSET_TYPES, ASSET_TYPE_KEYS } from './assets/types';
 
 export const PUBLIC_SITE_ORIGIN = 'https://dune.zone';
 export const SITEMAP_PAGE_SIZE = 200;
+/** Asset types with a public catalogue, each listed at `/assets/<type>` and in its own sitemap. */
+export const SITEMAP_ASSET_COLLECTIONS: string[] = ASSET_TYPE_KEYS.filter(
+  (type) => ASSET_TYPES[type].status === 'live'
+);
 export const SITEMAP_COLLECTIONS = [
   'factions',
-  ...ASSET_TYPE_KEYS.filter((type) => ASSET_TYPES[type].status === 'live'),
+  'rulesets',
+  'rulebooks',
+  'faq',
+  'profiles',
+  'groups',
+  ...SITEMAP_ASSET_COLLECTIONS,
 ];
 
 export const sitemapArgsSchema = z.object({
