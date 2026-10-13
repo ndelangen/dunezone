@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '../styles/motion';
@@ -28,16 +28,20 @@ export interface AppHeaderProps {
  *
  * The artwork itself is a three-layer stack: an inlined blurred frame that costs no request, the sharp poster photograph over it, and the looping video fading in on top once it actually plays.
  * The video only mounts client-side after `prefers-reduced-motion` says motion is welcome, so reduced-motion visitors get the poster and never download the loop.
+ * It also waits for the band to take up space: a fullscreen page hides the band, and a hidden autoplay video still downloads its whole megabyte.
  * The `motion` cookie, `AppFooter`'s switch, overrides that OS hint for this site alone, live in both directions.
  */
 export function AppHeader({ children }: AppHeaderProps) {
+  const bandRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoReady, setVideoReady] = useState(false);
   const motionOk = useMotionAllowed();
+  const bandShown = useShown(bandRef);
+  const playVideo = motionOk && bandShown;
 
   // The video may already be playing (or fully buffered) before this render attaches `onPlaying`.
   useEffect(() => {
-    if (!motionOk) {
+    if (!playVideo) {
       setVideoReady(false);
       return;
     }
@@ -45,15 +49,15 @@ export function AppHeader({ children }: AppHeaderProps) {
     if (video && !video.paused && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
       setVideoReady(true);
     }
-  }, [motionOk]);
+  }, [playVideo]);
 
   return (
     <div className={styles.frame}>
       {/* Artwork and site navigation, not the banner: the page's own header is that landmark (see PageLayout). */}
-      <div className={styles.band} data-app-band>
+      <div ref={bandRef} className={styles.band} data-app-band>
         <img alt="" aria-hidden className={styles.bandPlaceholder} src={bandPlaceholder} />
         <img alt="" aria-hidden className={styles.bandPoster} src="/video/band-poster.jpg" />
-        {motionOk && (
+        {playVideo && (
           <video
             ref={videoRef}
             className={styles.bandVideo}
@@ -73,4 +77,25 @@ export function AppHeader({ children }: AppHeaderProps) {
       {children}
     </div>
   );
+}
+
+/* Whether the element has a box: `display: none` reports an empty one, and showing it again reports its size. */
+function useShown(ref: RefObject<HTMLElement | null>): boolean {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+    if (typeof ResizeObserver === 'undefined') {
+      setShown(true);
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      setShown(entry.contentRect.width > 0 && entry.contentRect.height > 0);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
+  return shown;
 }

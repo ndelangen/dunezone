@@ -252,6 +252,8 @@ async function playFullscreenHeight({ canvasElement }: { canvasElement: HTMLElem
     expect(view.getComputedStyle(header).clipPath).toBe('inset(50%)');
     expect(view.getComputedStyle(root).backgroundImage).toBe('none');
     expect(view.getComputedStyle(root, '::after').display).toBe('none');
+    /* The band is hidden, so its video never mounts and never downloads. */
+    expect(canvasElement.querySelector('video')).toBeNull();
   });
 
   const exit = canvas.getByRole('button', { name: 'Exit fullscreen' });

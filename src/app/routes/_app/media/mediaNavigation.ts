@@ -1,5 +1,5 @@
-import { mediaKinds, validateMediaSearch } from './mediaCatalogue';
-import type { MediaSearch } from './mediaCatalogue';
+import { mediaKinds, validateMediaSearch } from './mediaSearchParams';
+import type { MediaSearch } from './mediaSearchParams';
 
 export function mediaLocation(search: MediaSearch) {
   const { source, kind, group, q, ...rest } = search;

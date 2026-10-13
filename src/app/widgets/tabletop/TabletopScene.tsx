@@ -97,7 +97,7 @@ import { useMotionAllowed } from '@app/styles/motion';
 import { subscribeArtworkLoads, unsettledArtworkLoads } from './artworkLoads';
 import { ArtworkPending } from './ArtworkPending';
 import arrakisMapSvg from './assets/arrakis-map.svg?raw';
-import stormMarkerUrl from './assets/storm-marker.png?url';
+import stormMarkerUrl from './assets/storm-marker.webp?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
 import {
