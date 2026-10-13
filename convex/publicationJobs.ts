@@ -137,8 +137,12 @@ export const takeWork = internalMutation({
       if (items.length >= PUBLICATION_MAX_PICKUP) {
         break;
       }
-      /* The new Worker deploys before activation makes this type eligible for pickup. */
+      /*
+       * The new Worker deploys before activation makes this type eligible for pickup.
+       * Until then its jobs are dropped rather than held, where they would fill the scan and keep other work waiting; activation rescans every faction.
+       */
       if (job.asset_type === 'faction-leader' && !settings?.renderer_revisions['faction-leader']) {
+        await ctx.db.delete(job._id);
         continue;
       }
       /* A plain faction face whose revision was rolled back is dropped rather than held, like the blocked token face below; reactivation rescans. */

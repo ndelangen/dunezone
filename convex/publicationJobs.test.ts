@@ -342,18 +342,16 @@ describe('Publication captures one job per asset at a time', () => {
       });
     }
     const waiting = await createFaction(asUser, 'Waiting behind them');
-    /* Leader faces wait on their own renderer activation; this test is about the sheets alone. */
-    await t.run(async (ctx) => {
-      for (const job of await ctx.db.query('publication_jobs').collect()) {
-        if (job.asset_type === 'faction-leader') {
-          await ctx.db.delete(job._id);
-        }
-      }
-    });
-
+    /* The first pickup clears the leader faces queued before their renderer was activated; none are held. */
+    await t.mutation(internal.publicationJobs.takeWork, {});
     const work = await t.mutation(internal.publicationJobs.takeWork, {});
 
     expect(work.items.map((item) => item.assetId)).toEqual([waiting._id]);
+    expect(
+      (await t.run(async (ctx) => await ctx.db.query('publication_jobs').collect())).filter(
+        (job) => job.asset_type === 'faction-leader'
+      )
+    ).toEqual([]);
   });
 
   test('of two overlapping captures that both expire, the newer save is the one kept', async () => {
