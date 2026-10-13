@@ -128,9 +128,13 @@ test('renders bounded PNGs from local publications with zero outbound requests',
       expect(pixel[1]).toBeLessThan(15);
     }
     const original = await render(socialCardHref(input));
-    /* PNG dimensions alone miss font initialization failures that drop the first heading glyphs. */
-    const brand = await sharp(original).extract({ left: 60, top: 48, width: 65, height: 28 }).stats();
-    expect(brand.channels[0]!.max).toBeGreaterThan(200);
+    /* PNG dimensions alone do not prove the first heading glyphs are visible. */
+    const brand = await sharp(original)
+      .extract({ left: 60, top: 48, width: 65, height: 28 })
+      .removeAlpha()
+      .raw()
+      .toBuffer();
+    expect(brand.some((red, index) => index % 3 === 0 && red > 200)).toBe(true);
     const cachedFetch = (href: string) =>
       mf.dispatchFetch('https://dune.zone' + href, { headers: { 'X-Test-Cache': '1' } });
     const cold = await cachedFetch(socialCardHref(input));
