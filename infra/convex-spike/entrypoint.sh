@@ -5,8 +5,9 @@
 #    A named generation must restore; an empty or unreadable replica stops the start rather than serving an empty database.
 # 3. Run the backend under Litestream, replicating to this start's own generation.
 # 4. Mark the container ready only after Litestream's first upload to R2; give up after READY_TIMEOUT_SECONDS.
-# 5. Watch replication: if the WAL keeps changing while Litestream's txid does not move for STALL_SECONDS,
-#    stop gracefully so the Durable Object starts a new generation from what was replicated.
+# 5. Watch replication: Litestream attempts a sync every second, so a sync count that stops moving for STALL_SECONDS
+#    means its loop is stuck; stop gracefully so the Durable Object starts a new generation from what was replicated.
+#    Comparing the WAL's mtime with the txid instead restarted an idle container every few minutes, because checkpoints touch the WAL.
 # Lifecycle events go to R2 under events/gen-N/ so overlapping containers can be compared afterwards.
 set -euo pipefail
 # A rollout signals every process, not just PID 1. If tee died with it, Litestream's next log line would hit a
@@ -87,7 +88,7 @@ litestream replicate -config /etc/litestream/litestream-replicate.yml -exec "con
   --s3-storage --disable-beacon ${DB}" &
 child=$!
 
-txid() { curl -fsS --max-time 2 http://127.0.0.1:9090/metrics 2>/dev/null | sed -n 's/^litestream_txid{[^}]*} //p'; }
+sync_count() { curl -fsS --max-time 2 http://127.0.0.1:9090/metrics 2>/dev/null | sed -n 's/^litestream_sync_count{[^}]*} //p'; }
 
 # Readiness gate, then the replication watchdog.
 (
@@ -108,19 +109,18 @@ txid() { curl -fsS --max-time 2 http://127.0.0.1:9090/metrics 2>/dev/null | sed 
   log "ready after ${ready_ms} ms (first replica upload done)"
   event ready "ms=${ready_ms}"
 
-  last_txid=$(txid)
+  last_count=$(sync_count)
   last_move=$(date +%s)
   while sleep 5; do
-    current=$(txid)
-    if [ -n "$current" ] && [ "$current" != "$last_txid" ]; then
-      last_txid=$current
+    current=$(sync_count)
+    if [ -n "$current" ] && [ "$current" != "$last_count" ]; then
+      last_count=$current
       last_move=$(date +%s)
       continue
     fi
-    wal_changed=$(stat -c %Y "$DB-wal" 2>/dev/null || echo 0)
-    if [ "$wal_changed" -gt "$last_move" ] && [ $(( $(date +%s) - last_move )) -ge "$STALL_SECONDS" ]; then
-      log "replication stalled: WAL changed at ${wal_changed}, txid ${last_txid} unchanged since ${last_move}; stopping"
-      event stalled "txid=${last_txid}"
+    if [ $(( $(date +%s) - last_move )) -ge "$STALL_SECONDS" ]; then
+      log "replication stalled: sync count ${last_count} unchanged since ${last_move}; stopping"
+      event stalled "sync_count=${last_count}"
       rm -f "$READY_FILE"
       kill -TERM 1
       exit 1
