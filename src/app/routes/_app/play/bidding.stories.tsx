@@ -132,6 +132,8 @@ export const HandCounts = meta.story({
   }),
 });
 
+let storyClock: { hold(): void; advance(milliseconds: number): void; resume(): void } | null = null;
+
 /* The real bidder and command reducer, with an isolated story clock in place of the room alarm. */
 function clockSetup(timed: boolean) {
   return install(() => {
@@ -145,7 +147,23 @@ function clockSetup(timed: boolean) {
       turn: 'house-harkonnen',
     };
     const anchor = performance.now();
-    const now = () => STORYBOOK_NOW + Math.floor(performance.now() - anchor);
+    let held: number | null = null;
+    let paused = 0;
+    const monotonicNow = () => held ?? performance.now() - anchor - paused;
+    const clock = {
+      hold() {
+        held = monotonicNow();
+      },
+      advance(milliseconds: number) {
+        held = monotonicNow() + milliseconds;
+      },
+      resume() {
+        paused = performance.now() - anchor - monotonicNow();
+        held = null;
+      },
+    };
+    storyClock = clock;
+    const now = () => STORYBOOK_NOW + Math.floor(monotonicNow());
     const context = () => ({
       factionId: 'house-harkonnen',
       order: stormOrder(snapshot.table.stormSectorIndex, snapshot.roster),
@@ -174,8 +192,12 @@ function clockSetup(timed: boolean) {
     const dispose = transport.dispose;
     return {
       ...transport,
+      runtime: { ...transport.runtime, monotonicNow },
       dispose() {
         clearInterval(timer);
+        if (storyClock === clock) {
+          storyClock = null;
+        }
         dispose();
       },
     };
@@ -186,19 +208,27 @@ export const TimedBidding = meta.story({ beforeEach: clockSetup(true) });
 export const UntimedBidding = meta.story({
   beforeEach: clockSetup(false),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const button = await page.findByRole('button', { name: 'Bid 1. Right click to pass.' }, { timeout: 30_000 });
-    await userEvent.click(button);
-    await expect(page.queryByRole('timer')).not.toBeInTheDocument();
-    await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-    const toggle = page.getByRole('menuitemcheckbox', { name: /Timed bidding/ });
-    await expect(toggle).toHaveAttribute('aria-checked', 'false');
-    await userEvent.click(toggle);
-    await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent(/(?:20|19)s/));
-    await userEvent.click(toggle);
-    await waitFor(() => expect(page.queryByRole('timer')).not.toBeInTheDocument());
-    await userEvent.click(toggle);
-    await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent(/(?:20|19)s/));
-    await expect(page.getByRole('button', { name: 'Raise the bid to 2. Right click to pass.' })).toBeEnabled();
+    const clock = storyClock!;
+    clock.hold();
+    try {
+      const page = within(canvasElement.ownerDocument.body);
+      const button = await page.findByRole('button', { name: 'Bid 1. Right click to pass.' }, { timeout: 30_000 });
+      await userEvent.click(button);
+      await expect(page.queryByRole('timer')).not.toBeInTheDocument();
+      await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
+      const toggle = page.getByRole('menuitemcheckbox', { name: /Timed bidding/ });
+      await expect(toggle).toHaveAttribute('aria-checked', 'false');
+      await userEvent.click(toggle);
+      await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent('20s'));
+      clock.advance(13_000);
+      await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent('7s'));
+      await userEvent.click(toggle);
+      await waitFor(() => expect(page.queryByRole('timer')).not.toBeInTheDocument());
+      await userEvent.click(toggle);
+      await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent('20s'));
+      await expect(page.getByRole('button', { name: 'Raise the bid to 2. Right click to pass.' })).toBeEnabled();
+    } finally {
+      clock.resume();
+    }
   },
 });
