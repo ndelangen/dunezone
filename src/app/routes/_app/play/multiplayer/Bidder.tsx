@@ -108,6 +108,7 @@ function Bidder({ client, table, faded = false }: Props) {
                 client={client}
                 table={table}
                 bidding={bidding}
+                now={now}
                 remaining={remaining}
                 warningRemaining={
                   remaining === 0 && bidding.deadline !== null

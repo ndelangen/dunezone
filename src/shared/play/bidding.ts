@@ -216,9 +216,6 @@ export function applyBidding(state: BiddingState, action: BiddingAction, context
         return state;
       }
       const next = { ...state, timed: action.enabled };
-      if (action.enabled && state.stage === 'open') {
-        next.started = true;
-      }
       return { ...next, deadline: next.stage === 'open' ? turnDeadline(next, context.now) : null };
     }
     case 'bid-start':
