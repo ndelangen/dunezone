@@ -2,12 +2,12 @@ import { z } from 'zod';
 
 import {
   PUBLIC_SITE_ORIGIN,
-  RECORDLESS_PUBLIC_PAGES,
   SITEMAP_ASSET_COLLECTIONS,
   SITEMAP_COLLECTIONS,
   sitemapPageSchema,
 } from '../../src/shared/publicDiscovery';
 import type { SitemapArgs, SitemapPage } from '../../src/shared/publicDiscovery';
+import { RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
 import { readBoundedJson, runWithDeadline } from './http';
 import { publicCachedResponse, PUBLIC_CACHE_SECONDS } from './public-cache';
 import type { PublicCache } from './public-cache';

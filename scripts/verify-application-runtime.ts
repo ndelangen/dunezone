@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { getPlatformProxy, unstable_dev } from 'wrangler';
 
-import { RECORDLESS_PUBLIC_PAGES } from '../src/shared/publicDiscovery.ts';
+import { RECORDLESS_PUBLIC_PAGES } from '../src/shared/recordlessPublicPages.ts';
 import { jpegProfile, pngDimensions } from '../workers/publisher/image-inspection.ts';
 
 /* Exercise the assembled Worker, including Static Assets precedence and the real TanStack entry. */

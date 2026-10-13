@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
-import { RECORDLESS_PUBLIC_PAGES } from '../../src/shared/publicDiscovery';
+import { RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
 
 const config = JSON.parse(
   readFileSync(path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc'), 'utf8')

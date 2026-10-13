@@ -1,4 +1,4 @@
-import { RECORDLESS_PUBLIC_PAGES } from '../../src/shared/publicDiscovery';
+import { RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
 import { PUBLIC_CACHE_SECONDS, publicCachedResponse } from './public-cache';
 import type { PublicCache } from './public-cache';
 
