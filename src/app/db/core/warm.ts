@@ -14,7 +14,7 @@ export const PAGE_HOLD_MS = 2 * 60_000;
 export const LOADER_HOLD_MS = 30_000;
 /* Sweeping the pointer over a long list preloads every link; past this many holds the oldest is released. */
 const HOLD_LIMIT = 32;
-const warm = new Map<string, { unsubscribe: () => void; timer: ReturnType<typeof setTimeout> }>();
+const warm = new Map<string, { unsubscribe: () => void; timer: ReturnType<typeof setTimeout>; until: number }>();
 
 function release(key: string) {
   const held = warm.get(key);
@@ -25,7 +25,7 @@ function release(key: string) {
   }
 }
 
-/** Holds a query's subscription open for `holdMs` from now, extending a hold that is already open. */
+/** Holds a query's subscription open for at least `holdMs` from now, extending a hold that is already open but never shortening it. */
 export function keepWarm<Query extends FunctionReference<'query'>>(
   client: Pick<ConvexReactClient, 'watchQuery'> | undefined,
   fn: Query,
@@ -36,16 +36,20 @@ export function keepWarm<Query extends FunctionReference<'query'>>(
     return;
   }
   const key = JSON.stringify([getFunctionName(fn), convexToJson(args)]);
+  const until = Date.now() + holdMs;
   const held = warm.get(key);
   if (held) {
-    clearTimeout(held.timer);
     warm.delete(key);
-    held.timer = setTimeout(() => release(key), holdMs);
+    if (until > held.until) {
+      clearTimeout(held.timer);
+      held.timer = setTimeout(() => release(key), holdMs);
+      held.until = until;
+    }
     warm.set(key, held);
     return;
   }
   const unsubscribe = client.watchQuery(fn, args as never).onUpdate(() => undefined);
-  warm.set(key, { unsubscribe, timer: setTimeout(() => release(key), holdMs) });
+  warm.set(key, { unsubscribe, timer: setTimeout(() => release(key), holdMs), until });
   for (const oldest of warm.keys()) {
     if (warm.size <= HOLD_LIMIT) {
       break;
