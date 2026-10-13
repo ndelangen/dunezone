@@ -62,6 +62,8 @@ function parseReaderSearch(input: Record<string, unknown>): RulebookReaderSearch
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/')({
   ssr: true,
+  /* The loader parses published HTML with linkedom; split, it stays out of the entry chunk every page loads. */
+  codeSplitGroupings: [['loader'], ['component'], ['pendingComponent', 'errorComponent']],
   validateSearch: parseReaderSearch,
   loaderDeps: ({ search }) => ({ editionNumber: search.edition }),
   loader: async ({ params, deps }) => {

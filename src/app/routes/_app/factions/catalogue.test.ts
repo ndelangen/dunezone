@@ -4,7 +4,8 @@ import { describe, expect, test } from 'vitest';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 
-import { complexityRangeSearchValue, parseComplexityRange, projectFactionCatalogue } from './catalogue';
+import { projectFactionCatalogue } from './catalogue';
+import { complexityRangeSearchValue, parseComplexityRange } from './catalogueSearch';
 
 function faction(
   id: string,

@@ -1,7 +1,9 @@
 import Fuse from 'fuse.js';
 
-import { catalogueEntries as mediaEntries, mediaKinds } from './mediaCatalogue';
-import type { MediaEntry, MediaSearch } from './mediaCatalogue';
+import { catalogueEntries as mediaEntries } from './mediaCatalogue';
+import type { MediaEntry } from './mediaCatalogue';
+import { mediaKinds } from './mediaSearchParams';
+import type { MediaSearch } from './mediaSearchParams';
 import { mediaSubjects, subjectLabel } from './mediaSubjects';
 
 const synonyms: Record<string, string> = {};

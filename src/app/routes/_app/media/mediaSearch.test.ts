@@ -6,9 +6,10 @@ import { describe, expect, test } from 'vitest';
 
 import rasterLock from '../../../../../media/raster.lock.json';
 import metadata from './media-index.json';
-import { mediaEntries, catalogueEntries, validateMediaSearch } from './mediaCatalogue';
+import { mediaEntries, catalogueEntries } from './mediaCatalogue';
 import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavigation';
 import { filterCatalogue, searchMedia } from './mediaSearch';
+import { validateMediaSearch } from './mediaSearchParams';
 import { mediaSubjects } from './mediaSubjects';
 
 const paths = (query: string) => searchMedia(query).map((entry) => entry.value);

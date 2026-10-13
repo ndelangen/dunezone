@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from '@tanstack/react-router';
 
-import { mediaKinds } from '../mediaCatalogue';
+import { mediaKinds } from '../mediaSearchParams';
 
 export const Route = createFileRoute('/_app/media/$source/$kind')({
   beforeLoad: ({ params }) => {
