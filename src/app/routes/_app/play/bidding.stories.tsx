@@ -216,7 +216,7 @@ export const UntimedBidding = meta.story({
       await userEvent.click(button);
       await expect(page.queryByRole('timer')).not.toBeInTheDocument();
       await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-      const toggle = page.getByRole('menuitemcheckbox', { name: /Timed bidding/ });
+      const toggle = await page.findByRole('menuitemcheckbox', { name: /Timed bidding/ });
       await expect(toggle).toHaveAttribute('aria-checked', 'false');
       await userEvent.click(toggle);
       await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent('20s'));
