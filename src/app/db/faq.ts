@@ -1,12 +1,11 @@
 import { faqQuestionPageForViewer } from '@shared/faq/questionPageAccess';
 import type { FaqTag } from '@shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '@shared/faq/validation';
-import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 import { useMemo } from 'react';
 
 import { db } from '@db/core';
-import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
 import type { LiveMutationResult } from '@app/db/core/live';
 import { useViewerUserId } from '@app/db/viewerAccess';
 
@@ -96,7 +95,7 @@ export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<
  * The loader's result goes in as `initialPage`, not `initialData`: this hook returns commands beside the query, so its options do not match the plain read hooks elsewhere in this layer.
  */
 export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { initialPage?: FaqQuestionPublicPage }) {
-  const livePage = useQuery(api.faq.question, locator);
+  const livePage = useLiveQuery(api.faq.question, locator);
   const initialPage = options?.initialPage;
   const query = toLiveQueryResult(livePage, () => initialPage);
   /* The same page `query.data` holds, read from its sources so the memo below depends on the page alone, not on the result object around it. */
@@ -108,7 +107,7 @@ export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { init
    * A signed-out viewer asks about no question, which answers without a read.
    */
   const viewerId = useViewerUserId();
-  const viewerAnswered = useQuery(api.faq.viewerAnswered, { questionId: viewerId ? (questionId ?? null) : null });
+  const viewerAnswered = useLiveQuery(api.faq.viewerAnswered, { questionId: viewerId ? (questionId ?? null) : null });
   const viewerResolved = viewerId !== undefined && viewerAnswered !== undefined;
   const resolvedViewerId = viewerResolved ? viewerId : null;
   const answered = viewerAnswered ?? false;

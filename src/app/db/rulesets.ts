@@ -12,7 +12,7 @@ import { db } from '@db/core';
 import { factionCatalogueRowsToEntries } from '@db/factions';
 import type { FactionCatalogueEntry } from '@db/factions';
 import type { FaqAnswerEntry, FaqItemWithDetails } from '@db/faq';
-import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
 import { useAssetAccess, useViewerAssignableGroups, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
@@ -141,14 +141,14 @@ export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetail
 
 /** Every ruleset, live. Hand `loadRulesetsAll`'s result as `initialData` so the first paint is not empty. */
 export function useRulesetsAll(options?: { initialData?: RulesetEntry[] }) {
-  const liveData = useQuery(api.rulesets.list, {});
+  const liveData = useLiveQuery(api.rulesets.list, {});
   const normalized = liveData?.map(toRulesetEntry);
   return toLiveQueryResult(normalized, () => options?.initialData);
 }
 
 /** One ruleset with its factions, live, taking `loadRulesetBySlug`'s result as `initialData`. */
 export function useRulesetBySlug(slug: string, options?: { initialData?: RulesetPageData }) {
-  const liveData = useQuery(api.rulesets.page, { slug });
+  const liveData = useLiveQuery(api.rulesets.page, { slug });
   const normalized = liveData ? toRulesetPageData(liveData) : undefined;
   const result = toLiveQueryResult(normalized, () => options?.initialData);
   return result;
@@ -160,7 +160,7 @@ export function useRulesetBySlug(slug: string, options?: { initialData?: Ruleset
  * the viewer half is the session, the viewer's membership of the ruleset's Group and the Groups they could move it into.
  */
 export function useRulesetDetailPage(slug: string, options?: { initialData?: RulesetDetailPublicPage }) {
-  const liveData = useQuery(api.rulesets.detailPage, { slug });
+  const liveData = useLiveQuery(api.rulesets.detailPage, { slug });
   const normalized: RulesetDetailPublicPage | null | undefined =
     liveData === undefined ? undefined : liveData === null ? null : normalizeRulesetDetailPage(liveData);
   const result = toLiveQueryResult(normalized, () => options?.initialData);

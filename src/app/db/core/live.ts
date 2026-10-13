@@ -1,6 +1,10 @@
-import { useMutation as useConvexMutation } from 'convex/react';
-import type { FunctionReference } from 'convex/server';
-import { useCallback, useState } from 'react';
+import { useConvex, useMutation as useConvexMutation, useQuery } from 'convex/react';
+import { getFunctionName } from 'convex/server';
+import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
+import { convexToJson } from 'convex/values';
+import { useCallback, useEffect, useState } from 'react';
+
+import { keepWarm, PAGE_HOLD_MS } from './warm';
 
 type MutationOptions<TResult, TVariables> = {
   onSuccess?: (data: TResult, variables: TVariables) => void;
@@ -46,6 +50,26 @@ export function toLiveQueryResult<TData>(
     isPending: liveData === undefined,
     isLoading: liveData === undefined,
   };
+}
+
+/**
+ * A page query's live subscription that stays warm for a while after the page lets go of it, so going back to the page, or a loader for it, answers from the browser instead of the server.
+ * Use plain `useQuery` for probes whose arguments change as someone types;
+ * each value would otherwise stay subscribed.
+ */
+export function useLiveQuery<Query extends FunctionReference<'query'>>(
+  query: Query,
+  args: FunctionArgs<Query>
+): FunctionReturnType<Query> | undefined {
+  const client = useConvex();
+  const key = JSON.stringify([getFunctionName(query), convexToJson(args)]);
+  /* This effect must stay above `useQuery`: its cleanup takes the hold before the subscription below lets go, so the query is never dropped and re-added. */
+  useEffect(() => {
+    keepWarm(client, query, args, PAGE_HOLD_MS);
+    return () => keepWarm(client, query, args, PAGE_HOLD_MS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` already covers the query and its arguments, which arrive as new objects each render.
+  }, [key]);
+  return useQuery(query, args);
 }
 
 export function useLiveMutation<TVariables, TResult>(
