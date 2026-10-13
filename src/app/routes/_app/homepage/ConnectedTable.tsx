@@ -3,7 +3,16 @@ import { lastTurnOf } from '@shared/play/lastTurn';
 import { tableProgressFor } from '@shared/play/phases';
 import { setupMapVisible } from '@shared/play/setup';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
-import { lazy, Suspense, useCallback, useEffect, useReducer, useState, useSyncExternalStore } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import type { ReactNode } from 'react';
 
 import { requestHomepageTicket } from '@db/homepage';
@@ -50,22 +59,23 @@ const runtime: GameRuntime = {
 const LiveControls = lazy(() => import('./LiveControls'));
 
 export default function ConnectedTable({
-  member,
+  identity,
   className,
   sceneClassName,
   onReady,
   onUnavailable,
 }: {
-  member: boolean;
+  identity: string | null;
   className: string;
   sceneClassName: string;
   onReady(): void;
   onUnavailable(): void;
 }): ReactNode {
-  const [session] = useState(
-    () =>
-      new TableSession('homepage', new HomepageSubscription(runtime, member ? requestHomepageTicket : null), runtime)
-  );
+  const [subscription] = useState(() => new HomepageSubscription(runtime, null));
+  const [session] = useState(() => new TableSession('homepage', subscription, runtime));
+  useLayoutEffect(() => {
+    subscription.setViewer(identity, identity ? requestHomepageTicket : null);
+  }, [identity, subscription]);
 
   const [arrival, dispatch] = useReducer(
     (state: { painted: boolean; interactive: boolean }, event: 'painted' | 'interactive') => ({

@@ -274,6 +274,7 @@ export async function installHomepageArtwork(context) {
 
 /** A real signed-in visitor moves the public table while a separate unsigned visitor watches. */
 export async function verifyHomepage({
+  backendSocketOrigin,
   account,
   peer,
   origin,
@@ -290,6 +291,30 @@ export async function verifyHomepage({
   const guest = await peer('homepage-observer');
   /* Picking must work after the animated entrance as well as with reduced motion. */
   await member.page.emulateMedia({ reducedMotion: 'no-preference' });
+  let sessionReleased = false;
+  let releaseSession;
+  /* Let the board paint while the saved sign-in is still resolving. */
+  await member.context.routeWebSocket(
+    (url) => url.origin === backendSocketOrigin,
+    (socket) => {
+      const server = socket.connectToServer();
+      const waiting = [];
+      server.onMessage((message) => {
+        if (sessionReleased) {
+          socket.send(message);
+        } else {
+          waiting.push(message);
+        }
+      });
+      releaseSession = () => {
+        sessionReleased = true;
+        for (const message of waiting) {
+          socket.send(message);
+        }
+        waiting.length = 0;
+      };
+    }
+  );
   let artworkRequested = false;
   const releaseArtwork = Promise.withResolvers();
   /* Hold a scene image until the driver has checked the still-loading preview. */
@@ -332,6 +357,34 @@ export async function verifyHomepage({
       assert.equal(await who.page.locator('#play-preview img').count(), 0);
       initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
       assert.ok(initialCanvas);
+      assert.ok(releaseSession);
+      const continuity = await who.page.locator('#play-preview [data-live-ready="true"]').evaluateHandle((region) => {
+        let lostReady = false;
+        const observer = new MutationObserver(() => {
+          lostReady ||= region.getAttribute('data-live-ready') !== 'true';
+        });
+        observer.observe(region, { attributes: true, attributeFilter: ['data-live-ready'] });
+        return {
+          finish() {
+            observer.disconnect();
+            return lostReady;
+          },
+        };
+      });
+      await capture(member, 'homepage-before-saved-signin-resolves');
+      releaseSession();
+      await until(() => {
+        const view = who.view();
+        return view && view.viewer.viewerSeat !== spectator;
+      }, 'Saved sign-in did not grant handling.');
+      assert.equal(
+        await initialCanvas.evaluate((canvas) => canvas === document.querySelector('#play-preview canvas')),
+        true,
+        'Resolving the saved sign-in replaced the visible canvas.'
+      );
+      assert.equal(await continuity.evaluate((probe) => probe.finish()), false, 'Saved sign-in hid the painted board.');
+      await continuity.dispose();
+      passed('Saved sign-in resolves after the board appears without replacing its canvas');
       await capture(member, 'homepage-board-before-slow-artwork');
       releaseArtwork.resolve();
     } else {

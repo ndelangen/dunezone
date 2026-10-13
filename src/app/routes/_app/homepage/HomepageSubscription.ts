@@ -23,7 +23,8 @@ export class HomepageSubscription implements TableSubscription {
   private generation = 0;
   private offset = 0;
   private resyncing = false;
-  private authPending = false;
+  private authPending: number | null = null;
+  private identity: string | null = null;
   supportsCommand = homepageCommandAllowed;
   private connectionDeadline?: ReturnType<typeof setTimeout>;
   private reconnect?: ReturnType<typeof setTimeout>;
@@ -34,7 +35,7 @@ export class HomepageSubscription implements TableSubscription {
 
   constructor(
     private readonly runtime: GameRuntime,
-    private readonly requestTicket: typeof requestHomepageTicket | null
+    private requestTicket: typeof requestHomepageTicket | null
   ) {}
 
   get status() {
@@ -45,6 +46,20 @@ export class HomepageSubscription implements TableSubscription {
   }
   getSnapshot = () => this.current;
   serverNow = () => this.runtime.monotonicNow() + this.offset;
+
+  /* A viewer change replaces admission, while the session keeps its settled public table and canvas. */
+  setViewer(identity: string | null, requestTicket: typeof requestHomepageTicket | null) {
+    if (this.identity === identity && this.requestTicket === requestTicket) {
+      return;
+    }
+    this.identity = identity;
+    this.requestTicket = requestTicket;
+    if (this.socket) {
+      this.closed(this.socket);
+    }
+    clearTimeout(this.reconnect);
+    this.open();
+  }
 
   subscribe(listener: (event: TableSubscriptionEvent) => void) {
     this.listener = listener;
@@ -177,10 +192,10 @@ export class HomepageSubscription implements TableSubscription {
   }
 
   private async authenticate(socket: GameSocket, generation: number) {
-    if (!this.requestTicket || this.authPending) {
+    if (!this.requestTicket || this.authPending === generation) {
       return;
     }
-    this.authPending = true;
+    this.authPending = generation;
     try {
       const result = await this.requestTicket();
       if (!result) {
@@ -192,7 +207,9 @@ export class HomepageSubscription implements TableSubscription {
     } catch {
       /* Observation survives a failed renewal. The server expires handling permission independently. */
     } finally {
-      this.authPending = false;
+      if (this.authPending === generation) {
+        this.authPending = null;
+      }
     }
   }
 

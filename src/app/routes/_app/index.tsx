@@ -626,26 +626,26 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
   const region = useRef<HTMLDivElement>(null);
   const [state, dispatch] = useReducer(
     (
-      state: { active: boolean; readyFor: string | null; failed: boolean },
-      event: { type: 'enter' | 'leave' | 'failed' } | { type: 'ready'; identity: string }
+      state: { active: boolean; ready: boolean; failed: boolean },
+      event: { type: 'enter' | 'leave' | 'failed' | 'ready' }
     ) => {
       switch (event.type) {
         case 'enter':
           return { ...state, active: true };
         case 'leave':
-          return { ...state, active: false, readyFor: null };
+          return { ...state, active: false, ready: false };
         case 'ready':
-          return { ...state, readyFor: event.identity };
+          return { ...state, ready: true };
         case 'failed':
-          return { active: false, readyFor: null, failed: true };
+          return { active: false, ready: false, failed: true };
       }
     },
-    { active: false, readyFor: null, failed: false }
+    { active: false, ready: false, failed: false }
   );
   const still = useRef<HTMLDivElement>(null);
   const room = useRoomForLiveBoard(still);
   const roomy = room === 'wide';
-  const ready = useCallback(() => dispatch({ type: 'ready', identity }), [identity]);
+  const ready = useCallback(() => dispatch({ type: 'ready' }), []);
   const unavailable = useCallback(() => dispatch({ type: 'failed' }), []);
   useEffect(() => {
     const element = region.current;
@@ -670,11 +670,7 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
     };
   }, [roomy]);
   return (
-    <div
-      ref={region}
-      className={styles.wideBoard}
-      data-live-ready={state.readyFor === identity && state.active ? 'true' : undefined}
-    >
+    <div ref={region} className={styles.wideBoard} data-live-ready={state.ready && state.active ? 'true' : undefined}>
       <div ref={still} className={styles.boardStill}>
         {room === 'narrow' && (
           <PublishedImage
@@ -687,8 +683,7 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
       {state.active && !state.failed && (
         <Suspense fallback={null}>
           <ConnectedHomepageTable
-            key={identity}
-            member={member}
+            identity={member ? identity : null}
             className={styles.liveBoard}
             sceneClassName={styles.liveScene}
             onReady={ready}
