@@ -22,11 +22,15 @@ export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'user
     .withIndex('by_asked_by_created', (q) => q.eq('asked_by', profileId))
     .order('desc')
     .take(200);
-  return await Promise.all(
+  const listed = await Promise.all(
     rows.map(async (item) => {
       const ruleset = await ctx.db.get(item.ruleset_id);
       if (!ruleset) {
         throw new Error(`Ruleset ${item.ruleset_id} missing for FAQ item ${item._id}`);
+      }
+      /* A soft-deleted ruleset's questions are gone everywhere else, and their links would 404. */
+      if (ruleset.is_deleted) {
+        return null;
       }
       return {
         ...item,
@@ -34,6 +38,7 @@ export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'user
       };
     })
   );
+  return listed.filter((item) => item !== null);
 }
 
 export async function loadFaqAnswersGivenBy(ctx: QueryCtx, profileId: Id<'users'>) {
@@ -42,7 +47,7 @@ export async function loadFaqAnswersGivenBy(ctx: QueryCtx, profileId: Id<'users'
     .withIndex('by_answered_by_created', (q) => q.eq('answered_by', profileId))
     .order('desc')
     .take(200);
-  return await Promise.all(
+  const listed = await Promise.all(
     answers.map(async (answer) => {
       const item = await ctx.db.get(answer.faq_item_id);
       if (!item) {
@@ -51,6 +56,9 @@ export async function loadFaqAnswersGivenBy(ctx: QueryCtx, profileId: Id<'users'
       const ruleset = await ctx.db.get(item.ruleset_id);
       if (!ruleset) {
         throw new Error(`Ruleset ${item.ruleset_id} missing for FAQ item ${item._id}`);
+      }
+      if (ruleset.is_deleted) {
+        return null;
       }
       return {
         ...answer,
@@ -67,4 +75,5 @@ export async function loadFaqAnswersGivenBy(ctx: QueryCtx, profileId: Id<'users'
       };
     })
   );
+  return listed.filter((answer) => answer !== null);
 }

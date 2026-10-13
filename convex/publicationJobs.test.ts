@@ -283,6 +283,49 @@ describe('Publication pickup, recovery, and failure', () => {
   });
 });
 
+describe('Publication captures one job per asset at a time', () => {
+  async function capturingWithSuccessor() {
+    const { t, asUser } = await authenticatedTest();
+    await t.mutation(internal.publicationAdmin.initialize, {
+      rendererRevisions: { faction_sheet: 4 },
+    });
+    const adminId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Admin', isAdmin: true }));
+    await t.withIdentity({ subject: adminId }).mutation(api.publicationAdmin.setPickupEnabled, { enabled: true });
+    const faction = await createFaction(asUser);
+    const first = await t.mutation(internal.publicationJobs.takeWork, {});
+    if (first.status !== 'assigned') {
+      throw new Error('Expected assigned work');
+    }
+    await asUser.mutation(api.factions.update, {
+      id: faction._id,
+      data: { ...assetPublishingFaction, name: 'Saved while capturing' },
+    });
+    return { t, faction, firstJobId: first.items[0].jobId };
+  }
+
+  test('a successor is not handed out while its predecessor is still capturing', async () => {
+    const { t, faction, firstJobId } = await capturingWithSuccessor();
+    await expect(t.mutation(internal.publicationJobs.takeWork, {})).resolves.toMatchObject({ items: [] });
+    await t.mutation(internal.publicationJobs.completeJob, { jobId: firstJobId, cacheToken: CACHE_TOKEN });
+    const next = await t.mutation(internal.publicationJobs.takeWork, {});
+    expect(next.items).toHaveLength(1);
+    expect((await jobsFor(t, faction._id)).map((job) => job.status)).toEqual(['in_progress']);
+  });
+
+  test('a failed capture with a newer save queued is dropped instead of retried', async () => {
+    const { t, faction, firstJobId } = await capturingWithSuccessor();
+    await expect(
+      t.mutation(internal.publicationJobs.failJob, { jobId: firstJobId, error: 'Timed out' })
+    ).resolves.toMatchObject({ status: 'pending' });
+    const remaining = await jobsFor(t, faction._id);
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]).toMatchObject({
+      status: 'pending',
+      asset_data: { faction: { name: 'Saved while capturing' } },
+    });
+  });
+});
+
 describe('Publication regeneration and administration', () => {
   test('soft delete does not cancel queued work and regeneration excludes deleted factions', async () => {
     const { t, asUser } = await authenticatedTest();

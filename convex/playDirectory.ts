@@ -136,6 +136,8 @@ async function gamesInStage(ctx: QueryCtx, stage: PlayDirectorySummary['stage'])
   return await ctx.db
     .query('play_games')
     .withIndex('by_directory_stage', (q) => q.eq('directory_stage', stage))
+    /* Newest first, so a stage past the limit drops its oldest games rather than every new one. */
+    .order('desc')
     .take(LOBBY_LIMIT);
 }
 

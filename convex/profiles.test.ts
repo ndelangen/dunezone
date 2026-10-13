@@ -158,3 +158,32 @@ test('profile detail returns the newest bounded FAQ activity', async () => {
   expect(profile.faqAnswers[0].answer).toBe('Answer 200');
   expect(profile.faqAnswers[199].answer).toBe('Answer 1');
 });
+
+test('the profile list and lookup by id skip deleted profiles, however many there are', async () => {
+  const t = convexTest(schema, modules);
+  aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileDiscovery');
+  aggregateTest.register(t, 'profileActivity');
+  const { liveId, deletedId } = await t.run(async (rawCtx) => {
+    const ctx = applicationTriggers.wrapDB(rawCtx);
+    const profile = async (index: number, accountState: 'active' | 'deleted') =>
+      await ctx.db.insert('profiles', {
+        user_id: await ctx.db.insert('users', {}),
+        username: `Profile ${index}`,
+        avatar_url: null,
+        account_state: accountState,
+        slug: `profile-${index}`,
+        created_at: '2026-07-19T00:00:00.000Z',
+        updated_at: '2026-07-19T00:00:00.000Z',
+      });
+    let deletedId = null;
+    for (let index = 0; index < 500; index += 1) {
+      deletedId = await profile(index, 'deleted');
+    }
+    return { liveId: await profile(500, 'active'), deletedId: deletedId! };
+  });
+
+  expect((await t.query(api.profiles.list, {})).map((entry) => entry._id)).toEqual([liveId]);
+  await expect(t.query(api.profiles.getById, { id: deletedId })).rejects.toThrow('not found');
+  await expect(t.query(api.profiles.getById, { id: liveId })).resolves.toMatchObject({ _id: liveId });
+});

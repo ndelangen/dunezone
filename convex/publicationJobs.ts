@@ -12,7 +12,6 @@ import {
   RULEBOOK_FIRST_PAGE_ASSET_TYPE,
 } from '../src/shared/asset-publishing/publication';
 import { isPublicationAssetType, PUBLICATION_ASSET_TYPES } from '../src/shared/asset-publishing/publicationTargets';
-import { cardFrontAssetTypeSchema } from '../src/shared/assets/cardFrontPresets';
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
@@ -68,10 +67,16 @@ const takeWorkResult = v.union(
 
 async function recordFailure(
   ctx: MutationCtx,
-  job: Pick<Doc<'publication_jobs'>, '_id' | 'attempt_counter'>,
+  job: Pick<Doc<'publication_jobs'>, '_id' | 'attempt_counter' | 'asset_type' | 'asset_id'>,
   error: string,
   now: number
 ): Promise<'pending' | 'error'> {
+  /* A save during the capture queued a successor with newer data; retrying this one would publish older data after it. */
+  const siblings = await publicationJobsForAsset(ctx, job.asset_type, job.asset_id);
+  if (siblings.some((sibling) => sibling._id !== job._id && sibling.status === 'pending')) {
+    await ctx.db.delete(job._id);
+    return 'pending';
+  }
   const attemptCounter = job.attempt_counter + 1;
   const status = attemptCounter >= PUBLICATION_MAX_ATTEMPTS ? 'error' : 'pending';
   await ctx.db.patch(job._id, {
@@ -137,16 +142,10 @@ export const takeWork = internalMutation({
         await ctx.db.delete(job._id);
         continue;
       }
-      /* A shared front or roster face renders one capture at a time, so an older capture can never land after a newer one. */
-      if (
-        job.asset_type === 'faction-leader' ||
-        isFactionFaceAssetType(job.asset_type) ||
-        cardFrontAssetTypeSchema.safeParse(job.asset_type).success
-      ) {
-        const targetJobs = await publicationJobsForAsset(ctx, job.asset_type, job.asset_id);
-        if (targetJobs.some((candidate) => candidate.status === 'in_progress')) {
-          continue;
-        }
+      /* Each publication renders one capture at a time, so an older capture can never land after a newer one. */
+      const targetJobs = await publicationJobsForAsset(ctx, job.asset_type, job.asset_id);
+      if (targetJobs.some((candidate) => candidate.status === 'in_progress')) {
+        continue;
       }
       if ((await currentFactionComponentData(ctx, job.asset_type, job.asset_id)) === null) {
         await ctx.db.delete(job._id);

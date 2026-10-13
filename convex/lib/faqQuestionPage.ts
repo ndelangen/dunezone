@@ -120,6 +120,13 @@ export async function loadFaqQuestionPublicPage(ctx: QueryCtx, args: { rulesetSl
     .query('faq_answers')
     .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
     .take(QUESTION_PAGE_ANSWER_LIMIT);
+  /* The accepted answer leads the page even when it is older than the limit's window. */
+  if (item.accepted_answer_id && !answers.some((answer) => answer._id === item.accepted_answer_id)) {
+    const accepted = await ctx.db.get(item.accepted_answer_id);
+    if (accepted) {
+      answers.push(accepted);
+    }
+  }
 
   const asker = await profileSummary(ctx, item.asked_by);
   const answerers = await Promise.all(answers.map((answer) => profileSummary(ctx, answer.answered_by)));

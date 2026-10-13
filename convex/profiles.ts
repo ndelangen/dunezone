@@ -151,7 +151,8 @@ export const getById = publicQuery({
   args: { id: v.id('profiles') },
   handler: async (ctx, args) => {
     const profile = await ctx.db.get(args.id);
-    if (!profile) {
+    /* A deleted or merged-away profile is gone from every other page, so it is not served by id either. */
+    if (!profile || !isActiveProfile(profile)) {
       throw new Error(`Profile with id ${args.id} not found`);
     }
     return profile;
@@ -185,7 +186,11 @@ export const list = publicQuery({
   args: {},
   returns: v.array(profileListEntryValidator),
   handler: async (ctx) => {
-    const profiles = (await ctx.db.query('profiles').take(500)).filter(isActiveProfile);
+    /* Read through the active range, so deleted and merged rows cannot use up the window and hide live profiles. */
+    const profiles = await ctx.db
+      .query('profiles')
+      .withIndex('by_account_state_username', (q) => q.eq('account_state', 'active'))
+      .take(500);
     const activity = await loadProfileActivityCounts(
       ctx,
       profiles.map((profile) => profile.user_id)
