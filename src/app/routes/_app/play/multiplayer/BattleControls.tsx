@@ -16,12 +16,9 @@ import type {
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
-import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
-import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { Section } from '@ui/block/Section';
-import { TopicIcon } from '@ui/content/TopicIcon';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
 import clsx from 'clsx';
@@ -39,6 +36,7 @@ import { PointerSessionContext, usePointerSession } from '../../../../widgets/ta
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import styles from './BattleControls.module.css';
+import { BattleBeacon } from './BattleBeacon';
 import { battleCapsuleY, headerInset } from './battlePlacement';
 import { PieceImage, pieceName } from './HandPiece';
 import { HandPieceMenu, handMenuAnchor } from './HiddenZone';
@@ -681,13 +679,15 @@ async function sendDrop(client: TableSession, event: DragEvent, position: Vector
   const pieceId = event.dataTransfer?.getData('application/dune-hand');
   if (pieceId && onTablePlate(position)) {
     client.command({ kind: 'hand-play', pieceId, position });
-  } else if (event.dataTransfer?.getData('application/dune-battle') && Math.hypot(position[0], position[2]) <= 5.5) {
-    const before = client.getTable();
-    const territory = await territoryAt(position, before?.snapshot.board?.definition);
-    const current = client.getTable();
-    if (current?.canHandleTable && before?.snapshot.revision === current.snapshot.revision) {
-      client.command({ kind: 'battle-start', anchor: position, territory });
-    }
+  }
+}
+/** Marks a battle at a table point, named for the territory under it, unless the table moved on while the name loaded. */
+async function markBattle(client: TableSession, position: Vector3Tuple) {
+  const before = client.getTable();
+  const territory = await territoryAt(position, before?.snapshot.board?.definition);
+  const current = client.getTable();
+  if (current?.canHandleTable && before?.snapshot.revision === current.snapshot.revision) {
+    client.command({ kind: 'battle-start', anchor: position, territory });
   }
 }
 function useInventoryDrop({ client, table }: Props) {
@@ -714,28 +714,6 @@ function useInventoryDrop({ client, table }: Props) {
       canvas.removeEventListener('drop', drop);
     };
   }, [camera, renderer, client, table.canHandleTable]);
-}
-function BattleMarker({ table }: Props) {
-  const phases = table.snapshot.phases ?? STANDARD_PHASES;
-  if (phaseAt(table.snapshot.phase, phases).id !== 'battle') {
-    return null;
-  }
-  const battleIndex = phases.findIndex((entry) => entry.id === 'battle');
-  const slot = trackerArcSlots(phases.length).find((entry) => entry.phaseIndex === battleIndex)!;
-  return (
-    <Html position={[slot.position[0], slot.position[1] + 0.1, slot.position[2] + 0.55]} center>
-      <DarkSchemeIsland>
-        <Button
-          aria-label="Drag battle marker onto territory"
-          draggable={table.canHandleTable}
-          disabled={!table.canHandleTable}
-          onDragStart={(event) => event.dataTransfer.setData('application/dune-battle', 'marker')}
-        >
-          <TopicIcon topic="battle" />
-        </Button>
-      </DarkSchemeIsland>
-    </Html>
-  );
 }
 type ActiveProps = Props & { battle: PublicBattle; own: number };
 function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { outcome: Outcome }) {
@@ -1008,5 +986,18 @@ export function BattleScene(props: Props) {
   const battle = props.table.snapshot.battle;
   const placement = useBattlePlacement(battle);
   useInventoryDrop(props);
-  return battle ? <BattleCallout {...props} battle={battle} placement={placement} /> : <BattleMarker {...props} />;
+  return (
+    <>
+      <BattleBeacon
+        table={props.table}
+        battle={battle}
+        onDrop={(position) => {
+          void markBattle(props.client, position).catch(() => {
+            /* A failed geometry load leaves the beacon at the tracker for another drop. */
+          });
+        }}
+      />
+      {battle ? <BattleCallout {...props} battle={battle} placement={placement} /> : null}
+    </>
+  );
 }
