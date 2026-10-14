@@ -1,7 +1,9 @@
-import { Text } from '@mantine/core';
+import { Text, UnstyledButton } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { Surface } from '@ui/surface';
+import { Play } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import styles from './postContent.module.css';
@@ -63,6 +65,51 @@ export function LiveEmbed({
         <div style={{ width }}>{children}</div>
       </div>
       <figcaption className={styles.caption}>{caption}</figcaption>
+    </figure>
+  );
+}
+
+/**
+ * A YouTube video that loads nothing from YouTube until the reader asks for it.
+ * Until then it shows a still frame from `media/`, so the page stays fast and no third party sees the visit;
+ * pressing it swaps in the privacy-enhanced player, already playing.
+ */
+export function YouTube({
+  id,
+  title,
+  posterKey,
+  caption,
+}: {
+  /** The video's id, as in `youtube.com/watch?v=<id>`. */
+  id: string;
+  /** The video's own title, which names the player and the play button. */
+  title: string;
+  /** A 16:9 still frame from `media/`, shown before the reader presses play. */
+  posterKey: string;
+  caption?: ReactNode;
+}) {
+  const [playing, setPlaying] = useState(false);
+  return (
+    <figure className={styles.figure}>
+      <div className={styles.video}>
+        {playing ? (
+          <iframe
+            className={styles.player}
+            src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1`}
+            title={title}
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+          />
+        ) : (
+          <UnstyledButton className={styles.poster} onClick={() => setPlaying(true)} aria-label={`Play ${title}`}>
+            <PublishedImage src={resolveAsset(posterKey, 'large')} name={title} aspect={9 / 16} />
+            <span className={styles.play} aria-hidden>
+              <Play size={28} fill="currentColor" />
+            </span>
+          </UnstyledButton>
+        )}
+      </div>
+      {caption ? <figcaption className={styles.caption}>{caption}</figcaption> : null}
     </figure>
   );
 }

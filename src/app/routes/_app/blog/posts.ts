@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 
 import * as aBlogForDuneZone from './posts/a-blog-for-dune-zone';
+import * as whyDune from './posts/why-dune';
 
 /** What the post list, the page head and the sitemap know about a post without rendering it. */
 export type BlogPostMeta = {
@@ -22,7 +23,7 @@ type BlogPost = { meta: BlogPostMeta; default: ComponentType };
  * Every published post, newest first.
  * Publishing a post is writing its file under `posts/`, adding it here, and adding its slug to `BLOG_POST_SLUGS`.
  */
-export const BLOG_POSTS: readonly BlogPost[] = [aBlogForDuneZone];
+export const BLOG_POSTS: readonly BlogPost[] = [whyDune, aBlogForDuneZone];
 
 export function findBlogPost(slug: string): BlogPost | undefined {
   return BLOG_POSTS.find((post) => post.meta.slug === slug);

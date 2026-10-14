@@ -91,6 +91,27 @@ export const BlogPostPhone = meta.story({
   globals: { viewport: { value: 'appMobile' } },
 });
 
+/** The "Why Dune?" post: photographs, a video that loads only when played, and a live Dreamrules faction card. */
+export const BlogPostWhyDune = meta.story({
+  args: { path: '/blog/why-dune' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { level: 1, name: 'Why Dune?' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Play MCDM Plays Dune - Round 1' })).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: /House Atreides/ })).resolves.toHaveAttribute(
+      'href',
+      '/factions/house-atreides'
+    );
+  },
+});
+
+export const BlogPostWhyDunePhone = meta.story({
+  args: { path: '/blog/why-dune' },
+  globals: { viewport: { value: 'appMobile' } },
+});
+
 /** The hard-coded glossary: one Section per topic with a picture, every term reachable by its anchor and found by the word it replaces. */
 export const Glossary = meta.story({
   args: { path: '/glossary' },
