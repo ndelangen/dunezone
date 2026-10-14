@@ -1,13 +1,13 @@
-import { Anchor, Text } from '@mantine/core';
+import { Anchor, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowLeft } from 'lucide-react';
 
 import { publicPageHead } from '@app/routes/publicPage';
+import { BlogByline } from '@app/widgets/blog-byline/BlogByline';
 
 import { BLOG_POST_BODIES } from '../postBodies';
-import { blogPostByline } from '../posts';
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/blog/$postSlug/')({
@@ -16,12 +16,12 @@ export const Route = createFileRoute('/_app/blog/$postSlug/')({
    * The loader and head ship with the route tree to every page, so the registry and the media map it resolves the cover through load only here, on demand.
    */
   loader: async ({ params }) => {
-    const { blogPostImage, findBlogPost } = await import('../posts');
+    const { blogPostImage, findBlogPost, blogPostAuthor } = await import('../posts');
     const post = findBlogPost(params.postSlug);
     if (!post) {
       throw notFound();
     }
-    return { meta: post, image: blogPostImage(post) };
+    return { meta: post, image: blogPostImage(post), author: blogPostAuthor(post) };
   },
   head: ({ loaderData, match }) =>
     loaderData
@@ -33,7 +33,16 @@ export const Route = createFileRoute('/_app/blog/$postSlug/')({
           image: loaderData.image,
           social: { kind: 'Blog', shape: 'portrait' },
           trail: [{ name: 'Building Dune Zone', pathname: '/blog' }],
-          entity: { type: 'article', author: loaderData.meta.author, published: loaderData.meta.date },
+          entity: {
+            type: 'article',
+            author: {
+              name: loaderData.author.name,
+              pathname: loaderData.author.profileSlug
+                ? `/profiles/${encodeURIComponent(loaderData.author.profileSlug)}`
+                : undefined,
+            },
+            published: loaderData.meta.date,
+          },
           match,
         })
       : {},
@@ -41,13 +50,16 @@ export const Route = createFileRoute('/_app/blog/$postSlug/')({
 });
 
 function BlogPostPage() {
-  const { meta } = Route.useLoaderData();
+  const { meta, author } = Route.useLoaderData();
   const Body = BLOG_POST_BODIES[meta.slug];
 
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <PageTitle eyebrow={blogPostByline(meta)} title={meta.title} />
+        <Stack gap="xs" align="center">
+          <BlogByline date={meta.date} author={author} tone="inverse" />
+          <PageTitle title={meta.title} />
+        </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
         <article className={styles.article}>
