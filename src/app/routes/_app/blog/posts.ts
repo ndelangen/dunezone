@@ -43,6 +43,19 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
       aspect: 1062 / 2048,
     },
   },
+  'tabletop-simulator': {
+    slug: 'tabletop-simulator',
+    title: 'Building Dune on Tabletop Simulator',
+    date: '2026-10-14',
+    author: 'Central419',
+    summary:
+      "Before dune.zone there was Tabletop Simulator: the scripts and models I added to the community's Dune mod, the mods I built on my own, and how the tedium of making assets by hand led me to the fundamentals.",
+    cover: {
+      key: '/web/blog/tabletop-simulator/faction-tables.jpg',
+      alt: 'Tabletop Simulator tables for many Dune factions, floating among the stars',
+      aspect: 819 / 1080,
+    },
+  },
   'why-dune': {
     slug: 'why-dune',
     title: 'Why Dune?',

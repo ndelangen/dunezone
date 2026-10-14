@@ -5,6 +5,7 @@ import { socialCardHref, SOCIAL_CARD_HEIGHT, SOCIAL_CARD_WIDTH } from '@shared/s
 import type { SocialCardInput } from '@shared/socialCard';
 import { useEffect } from 'react';
 
+import bandPoster from '../../../public/video/band-poster.jpg?url';
 import { APP_TITLE, pageHead, pageTitle } from './pageTitle';
 
 function inlineText(nodes: readonly FormattedTextInlineNode[]): string {
@@ -170,7 +171,7 @@ export function publicPageHead({
   const title = pageTitle(name, kind);
   const imagePath = social
     ? socialCardHref({ name, description, image, kind: social.kind ?? kind ?? '', shape: social.shape })
-    : image || '/video/band-poster.jpg';
+    : image || bandPoster;
   const imageUrl = absoluteUrl(imagePath);
   const details = social
     ? { alt: name, type: 'image/png', width: SOCIAL_CARD_WIDTH, height: SOCIAL_CARD_HEIGHT }

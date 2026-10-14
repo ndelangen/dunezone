@@ -6,6 +6,7 @@ import { createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
 import { convex } from '@db/core';
 import { pageTitle } from '@app/routes/pageTitle';
 
+import bandPoster from '../../../public/video/band-poster.jpg?url';
 import '@fontsource/caladea/latin-400.css';
 import '@fontsource/caladea/latin-400-italic.css';
 import '@fontsource/caladea/latin-700.css';
@@ -42,7 +43,7 @@ export const Route = createRootRoute({
       { rel: 'icon', type: 'image/svg+xml', href: '/dune-zone-favicon.svg' },
       // Train 1b (#255): the two LCP images and the primary text faces.
       { rel: 'preload', as: 'image', href: '/web/page-large.jpg', fetchPriority: 'high' },
-      { rel: 'preload', as: 'image', href: '/video/band-poster.jpg', fetchPriority: 'high' },
+      { rel: 'preload', as: 'image', href: bandPoster, fetchPriority: 'high' },
       {
         rel: 'preload',
         as: 'font',

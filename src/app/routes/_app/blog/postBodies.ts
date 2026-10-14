@@ -2,6 +2,7 @@ import type { BlogPostSlug } from '@shared/recordlessPublicPages';
 import type { ComponentType } from 'react';
 
 import BeforeDuneZone from './posts/before-dune-zone';
+import TabletopSimulator from './posts/tabletop-simulator';
 import WhyDune from './posts/why-dune';
 
 /**
@@ -10,5 +11,6 @@ import WhyDune from './posts/why-dune';
  */
 export const BLOG_POST_BODIES: Record<BlogPostSlug, ComponentType> = {
   'before-dune-zone': BeforeDuneZone,
+  'tabletop-simulator': TabletopSimulator,
   'why-dune': WhyDune,
 };
