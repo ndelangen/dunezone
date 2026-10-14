@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import type { TablePiece } from '../../src/shared/play/model';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import { readSnapshot } from './native-runtime.fixture.ts';
 import { readHistoricalSnapshot } from './native-runtime.fixture.ts';
@@ -155,53 +156,57 @@ describe('Private deck commands through native delivery', () => {
       'rejected'
     );
   });
+  async function seedMatchingBacksWithBattleReveals(stackKey: TablePiece['stackKey']) {
+    const state = readHistoricalSnapshot(
+      (await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1'))[0].data
+    );
+    const source = state.table.pieces.find((piece) => piece.id === 'treachery-deck');
+    const loose = state.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
+    required(loose).stackKey = stackKey;
+    required(loose).position = [4.15, 0.3, -0.5];
+    required(loose).items[0].artwork = { ...required(required(source).items[0].artwork) };
+    const plan = {
+      mode: 'max' as const,
+      troops: [],
+      spice: 0,
+      adjustment: 0,
+      leaderId: null,
+      cardIds: ['old-reveal'],
+      strength: 0,
+      faces: [],
+      pieces: [{ ...required(source), id: 'old-reveal', items: [required(source).items[0]] }],
+    };
+    state.battleState = {
+      id: 'active-battle',
+      anchor: [0, 0, 0],
+      territory: 'Arrakeen',
+      stage: 'revealed',
+      deadline: null,
+      sides: [
+        { factionId: 'harkonnen', ready: true, choice: null },
+        { factionId: 'atreides', ready: true, choice: null },
+      ],
+      plans: [plan, { ...plan, cardIds: [], pieces: [] }],
+    };
+    state.battleResults = [
+      {
+        id: 'past-battle',
+        anchor: [0, 0, 0],
+        territory: 'Arrakeen',
+        factions: ['harkonnen', 'atreides'],
+        plans: [plan, { ...plan, cardIds: [], pieces: [] }],
+        outcome: 'none',
+        revision: 0,
+      },
+    ];
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(state)]);
+    await runtime.restart();
+  }
+
   it.each(['another-faction-traitors', null])(
     'keeps battle reveals separate and combines matching backs with stack key %s',
     async (stackKey) => {
-      const state = readHistoricalSnapshot(
-        (await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1'))[0].data
-      );
-      const source = state.table.pieces.find((piece) => piece.id === 'treachery-deck');
-      const loose = state.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
-      required(loose).stackKey = stackKey;
-      required(loose).position = [4.15, 0.3, -0.5];
-      required(loose).items[0].artwork = { ...required(required(source).items[0].artwork) };
-      const plan = {
-        mode: 'max' as const,
-        troops: [],
-        spice: 0,
-        adjustment: 0,
-        leaderId: null,
-        cardIds: ['old-reveal'],
-        strength: 0,
-        faces: [],
-        pieces: [{ ...required(source), id: 'old-reveal', items: [required(source).items[0]] }],
-      };
-      state.battleState = {
-        id: 'active-battle',
-        anchor: [0, 0, 0],
-        territory: 'Arrakeen',
-        stage: 'revealed',
-        deadline: null,
-        sides: [
-          { factionId: 'harkonnen', ready: true, choice: null },
-          { factionId: 'atreides', ready: true, choice: null },
-        ],
-        plans: [plan, { ...plan, cardIds: [], pieces: [] }],
-      };
-      state.battleResults = [
-        {
-          id: 'past-battle',
-          anchor: [0, 0, 0],
-          territory: 'Arrakeen',
-          factions: ['harkonnen', 'atreides'],
-          plans: [plan, { ...plan, cardIds: [], pieces: [] }],
-          outcome: 'none',
-          revision: 0,
-        },
-      ];
-      await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(state)]);
-      await runtime.restart();
+      await seedMatchingBacksWithBattleReveals(stackKey);
       const a = await admit('a');
       const before = await syncView(a);
       const revealed = required(before.snapshot.battleResults)[0].plans[0].pieces[0].items[0];

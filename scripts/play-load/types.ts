@@ -4,11 +4,11 @@ import type { ConvexHttpClient } from 'convex/browser';
 import type { Page } from 'playwright';
 import type WebSocket from 'ws';
 
-import type { ClientMessage, PublicCarry, PublicPointer, ServerMessage } from '../../src/shared/play/protocol.ts';
+import type { PublicCarry, PublicPointer, ServerMessage } from '../../src/shared/play/protocol.ts';
 import type { BrowserReport } from './browsers.ts';
 
 export type ViewMessage = Extract<ServerMessage, { type: 'view' }>;
-export type ActivityMessage = Pick<ViewMessage, 'epoch' | 'carries' | 'pointers'> & { type: 'activity' };
+type ActivityMessage = Pick<ViewMessage, 'epoch' | 'carries' | 'pointers'> & { type: 'activity' };
 export type UpdateMessage = Extract<ServerMessage, { type: 'update' }>;
 export type MetricsMessage = Extract<ServerMessage, { type: 'metrics' }>;
 export type Phase = 'preparation' | 'warmup' | 'measured';
@@ -64,5 +64,4 @@ export type Peer = Recipient & {
   browserCapture?: Promise<void>;
   browserReport?: BrowserReport;
 };
-export type Send = (peer: Peer, message: ClientMessage) => boolean;
 export type InteractionSlot = { phase?: Phase; scheduledAt?: number; dispatchedAt?: number };

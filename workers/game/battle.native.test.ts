@@ -297,7 +297,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     );
   });
 
-  it('reveals single parts of a plan early to everyone, keeps them fixed while shown', async () => {
+  async function disclosePlanParts() {
     await accepted(a, { kind: 'hand-take' as const, pieceId: 'treachery-card-loose' });
     await accepted(a, { kind: 'hand-take' as const, pieceId: 'fixture-leader' });
     const battleId = await start();
@@ -340,6 +340,11 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(required(required(all).leader).id).toBe('fixture-leader');
     expect(required(all).dial).toEqual({ strength: 4.75 });
     expect(required(required((await syncView(b)).snapshot.battle).disclosed)[1]).toEqual({ cards: [] });
+    return { battleId, cardId };
+  }
+
+  it('reveals single parts of a plan early to everyone, keeps them fixed while shown', async () => {
+    const { battleId, cardId } = await disclosePlanParts();
 
     for (const disclosure of [
       { element: 'leader' as const },

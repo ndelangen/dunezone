@@ -46,8 +46,7 @@ import {
 import type { ServerMessage, ClientMessage, PieceAction, ServerClock } from '../../src/shared/play/protocol.ts';
 import type { RoomView } from '../../src/shared/play/updates.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
-import type { StoredSnapshot } from './state';
-import { storedSnapshotSchema } from './state';
+import type { StoredSnapshot, storedSnapshotSchema } from './state';
 
 type WatchArgs = z.infer<typeof playWatchAuthorizationsRequestSchema>;
 type WatchResult = Extract<z.infer<typeof playWatchAuthorizationsResultSchema>, { ok: true }>;
@@ -983,12 +982,6 @@ export function provision(runtime: NativeRuntime) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ gameId, secret, attemptId }),
   });
-}
-
-/** Parses a valid saved snapshot with the production storage contract. */
-export async function storedSnapshot(runtime: NativeRuntime) {
-  const [row] = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
-  return storedSnapshotSchema.parse(JSON.parse(row.data));
 }
 
 /** Requires the expected message before a test reads that message's fields. */
