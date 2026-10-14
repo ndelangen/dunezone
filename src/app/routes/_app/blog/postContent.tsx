@@ -1,7 +1,6 @@
-import { Text, UnstyledButton } from '@mantine/core';
+import { UnstyledButton } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { PublishedImage } from '@ui/content/PublishedImage';
-import { Surface } from '@ui/surface';
 import { Play } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -111,15 +110,5 @@ export function YouTube({
       </div>
       {caption ? <figcaption className={styles.caption}>{caption}</figcaption> : null}
     </figure>
-  );
-}
-
-/** An aside the reader should not miss, on its own pane. */
-export function Callout({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <Surface padding="md" as="aside" className={styles.callout}>
-      <Text fw={700}>{label}</Text>
-      <Text>{children}</Text>
-    </Surface>
   );
 }
