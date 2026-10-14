@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { act, renderHook } from '@testing-library/react';
-import { describe, expect, test } from 'vitest';
+import { act, fireEvent, renderHook } from '@testing-library/react';
+import { describe, expect, test, vi } from 'vitest';
 
 import { useValidationHeader } from './useValidationHeader';
 
@@ -36,6 +36,49 @@ describe('the hold the header exists for', () => {
     expect(result.current.open).toBe(true);
     rerender({ warnings: 1 });
     expect(result.current.open).toBe(true);
+  });
+
+  test('a pointer blur keeps the band still until the target receives its click', () => {
+    const { result, rerender } = headerWith(1);
+    rerender({ warnings: 0 });
+    fireEvent(window, new MouseEvent('pointerdown', { button: 0 }));
+    act(() => result.current.settle());
+    expect(result.current.open).toBe(true);
+    const target = document.body.appendChild(document.createElement('button'));
+    let openWhenClicked: boolean | undefined;
+    target.onclick = () => {
+      openWhenClicked = result.current.open;
+    };
+    fireEvent.click(target);
+    target.remove();
+    expect(openWhenClicked).toBe(true);
+    expect(result.current.open).toBe(false);
+  });
+
+  test('a cancelled pointer releases a held settle without needing a click', () => {
+    const { result, rerender } = headerWith(1);
+    rerender({ warnings: 0 });
+    fireEvent(window, new MouseEvent('pointerdown', { button: 0 }));
+    act(() => result.current.settle());
+    expect(result.current.open).toBe(true);
+    fireEvent(window, new Event('pointercancel'));
+    expect(result.current.open).toBe(false);
+  });
+
+  test('pointer-up releases a held settle after a click that stops bubbling', () => {
+    vi.useFakeTimers();
+    try {
+      const { result, rerender } = headerWith(1);
+      rerender({ warnings: 0 });
+      fireEvent(window, new MouseEvent('pointerdown', { button: 0 }));
+      act(() => result.current.settle());
+      fireEvent(window, new MouseEvent('pointerup', { button: 0 }));
+      expect(result.current.open).toBe(true);
+      act(() => vi.runAllTimers());
+      expect(result.current.open).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, spyOn, userEvent, within } from 'storybook/test';
+import { expect, spyOn, userEvent, waitFor, within } from 'storybook/test';
 
 import { convexNeverAnswers, db, ref, ruleset, storybookViewer } from '@db/storybook';
 
@@ -216,9 +216,14 @@ export const GeneratedNameCreated = meta.story({
     await chooseRuleset(page);
     const name = shownName(page);
     await userEvent.click(page.getByRole('button', { name: 'Create game' }));
-    /* The created game's page offers its link to copy. */
-    await expect(page.findByRole('button', { name: 'Copy game link' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.getByRole('heading', { level: 1 })).toHaveTextContent(name);
+    /* Query the committed page each time, because a route update can replace the first share button. */
+    await waitFor(
+      () => {
+        expect(page.getByRole('button', { name: 'Copy game link' })).toBeVisible();
+        expect(page.getByRole('heading', { level: 1 })).toHaveTextContent(name);
+      },
+      { timeout: 30_000 }
+    );
   },
 });
 

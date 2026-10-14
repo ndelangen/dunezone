@@ -1,4 +1,4 @@
-import { useCallback, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 
 /**
  * The masthead's replacement, open only while validation warnings exist.
@@ -50,7 +50,53 @@ export function useValidationHeader(count: number): ValidationHeaderState {
   if (state.count !== count || state.observedTick !== state.tick) {
     dispatch({ kind: 'observe', count });
   }
-  const settle = useCallback(() => dispatch({ kind: 'settle' }), []);
+  const pointer = useRef({ active: false, pendingSettle: false });
+  useEffect(() => {
+    const gesture = pointer.current;
+    let endTask: ReturnType<typeof setTimeout> | undefined;
+    const finish = () => {
+      clearTimeout(endTask);
+      gesture.active = false;
+      if (gesture.pendingSettle) {
+        gesture.pendingSettle = false;
+        dispatch({ kind: 'settle' });
+      }
+    };
+    const start = (event: PointerEvent) => {
+      if (event.button === 0 && event.isPrimary !== false) {
+        gesture.active = true;
+      }
+    };
+    /* A stopped click still settles after its pointer-up task, once the browser has dispatched the click. */
+    const released = (event: PointerEvent) => {
+      if (event.button !== 0 || event.isPrimary === false) {
+        return;
+      }
+      clearTimeout(endTask);
+      endTask = setTimeout(finish, 0);
+    };
+    window.addEventListener('pointerdown', start, true);
+    window.addEventListener('pointerup', released, true);
+    window.addEventListener('click', finish);
+    window.addEventListener('pointercancel', finish, true);
+    window.addEventListener('blur', finish);
+    return () => {
+      clearTimeout(endTask);
+      window.removeEventListener('pointerdown', start, true);
+      window.removeEventListener('pointerup', released, true);
+      window.removeEventListener('click', finish);
+      window.removeEventListener('pointercancel', finish, true);
+      window.removeEventListener('blur', finish);
+    };
+  }, []);
+  const settle = useCallback(() => {
+    /* Closing the band on pointer-down blur moves the clicked control before pointer-up. */
+    if (pointer.current.active) {
+      pointer.current.pendingSettle = true;
+      return;
+    }
+    dispatch({ kind: 'settle' });
+  }, []);
   const releasing = useCallback(
     <Arguments extends unknown[]>(action: (...args: Arguments) => void) =>
       (...args: Arguments) => {
