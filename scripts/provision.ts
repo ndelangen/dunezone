@@ -7,9 +7,9 @@ import path from 'node:path';
 
 import { ConvexHttpClient } from 'convex/browser';
 import { getFunctionName, makeFunctionReference } from 'convex/server';
-import type { FunctionArgs, FunctionReturnType } from 'convex/server';
+import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 
-import { internal } from '../convex/_generated/api';
+import { api, internal } from '../convex/_generated/api';
 import schema from '../convex/schema';
 import { db as storybookDatabase } from '../src/app/db/storybook/database';
 import type { SeedDocument } from '../src/app/db/storybook/protocol';
@@ -348,8 +348,8 @@ export function pushCode(deployment: TargetDeployment, env: NodeJS.ProcessEnv) {
 }
 
 /** Data stage, fixtures flavor: reset the application tables, which the users stage then seeds. */
-export function loadFixtureData(deployment: SelfHostedDeployment, env: NodeJS.ProcessEnv) {
-  targetConvex(deployment, ['run', 'e2e:clearAll', '{}'], env);
+export async function loadFixtureData(deployment: SelfHostedDeployment) {
+  return await localFixtureMutation(deployment, api.e2e.clearAll, {}, 'Local fixture reset');
 }
 
 /**
@@ -520,6 +520,26 @@ function seedSnapshotRulebookDrafts(deployment: TargetDeployment, env: NodeJS.Pr
 
 /** Seed data travels in the request body because board definitions exceed Linux's per-argument limit. */
 export async function insertLocalSeedDocuments(deployment: SelfHostedDeployment, documents: SeedDocument[]) {
+  /* Admin authorization permits the internal mutation through this disposable backend's HTTP transport. */
+  const reference = makeFunctionReference<
+    'mutation',
+    FunctionArgs<typeof internal.provisioning.insertSeedDocuments>,
+    FunctionReturnType<typeof internal.provisioning.insertSeedDocuments>
+  >(getFunctionName(internal.provisioning.insertSeedDocuments));
+  return await localFixtureMutation(
+    deployment,
+    reference,
+    { documents: JSON.stringify(documents) },
+    'Local fixture seed'
+  );
+}
+
+async function localFixtureMutation<Mutation extends FunctionReference<'mutation', 'public'>>(
+  deployment: SelfHostedDeployment,
+  reference: Mutation,
+  args: FunctionArgs<Mutation>,
+  subject: string
+) {
   assert.equal(new URL(deployment.url).hostname, '127.0.0.1');
   const client = new ConvexHttpClient(deployment.url, {
     logger: false,
@@ -533,20 +553,14 @@ export async function insertLocalSeedDocuments(deployment: SelfHostedDeployment,
       { preconnect: fetch.preconnect }
     ),
   });
-  /* Admin authorization permits the internal mutation through this disposable backend's HTTP transport. */
-  const reference = makeFunctionReference<
-    'mutation',
-    FunctionArgs<typeof internal.provisioning.insertSeedDocuments>,
-    FunctionReturnType<typeof internal.provisioning.insertSeedDocuments>
-  >(getFunctionName(internal.provisioning.insertSeedDocuments));
   /*
    * Deploying functions can consume the disposable backend's current write window.
-   * Retry only its explicit refusal, since a transport failure could hide a committed seed.
+   * Retry only its explicit refusal, since a transport failure could hide a committed mutation.
    */
   return await retryTransient(
     async () => {
       try {
-        return await client.mutation(reference, { documents: JSON.stringify(documents) });
+        return await client.mutation(reference, args);
       } catch (error) {
         if (!(error instanceof Error)) {
           throw error;
@@ -568,7 +582,7 @@ export async function insertLocalSeedDocuments(deployment: SelfHostedDeployment,
         throw new TransientError('The local backend refused the current write window', { cause: error });
       }
     },
-    { subject: 'Local fixture seed', delaysMs: [1000, 1000, 1000] }
+    { subject, delaysMs: [1000, 1000, 1000] }
   );
 }
 
@@ -757,7 +771,7 @@ async function provisionSelfHosted(stages: ProvisionStage[], env: NodeJS.Process
   if (stages.includes('data')) {
     /* The local target's snapshot load belongs to `app:dev --local` alone. */
     console.log('Resetting fixture data...');
-    loadFixtureData(deployment, env);
+    await loadFixtureData(deployment);
   }
 }
 

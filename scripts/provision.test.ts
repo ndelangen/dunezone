@@ -10,6 +10,7 @@ import {
   cloudDevEnvironment,
   exportProductionSnapshot,
   insertLocalSeedDocuments,
+  loadFixtureData,
   loadSnapshotData,
   localApplicationEnvironment,
   parseConvexRunResult,
@@ -56,6 +57,54 @@ describe('local seed insertion', () => {
   });
 });
 
+describe('local fixture reset', () => {
+  const deployment: SelfHostedDeployment = { kind: 'self-hosted', url: 'http://127.0.0.1:3210', adminKey: 'test' };
+
+  test('waits for a new write window when reset is explicitly refused', async () => {
+    resetRefusal.enabled = true;
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ code: 'TooManyWrites', message: 'Write window exhausted' }), { status: 429 })
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'success', value: { ok: true }, logLines: [] })));
+    vi.stubGlobal('fetch', fetch);
+    vi.useFakeTimers();
+    try {
+      await Promise.all([
+        expect(Promise.resolve().then(() => loadFixtureData(deployment))).resolves.toEqual({ ok: true }),
+        vi.advanceTimersByTimeAsync(3000),
+      ]);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    } finally {
+      resetRefusal.enabled = false;
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test('fails when every reset attempt is refused', async () => {
+    const fetch = vi
+      .fn()
+      .mockImplementation(
+        async () =>
+          new Response(JSON.stringify({ code: 'TooManyWrites', message: 'Write window exhausted' }), { status: 429 })
+      );
+    vi.stubGlobal('fetch', fetch);
+    vi.useFakeTimers();
+    try {
+      await Promise.all([
+        expect(loadFixtureData(deployment)).rejects.toThrow('Local fixture reset unreachable after 4 attempts'),
+        vi.advanceTimersByTimeAsync(3000),
+      ]);
+      expect(fetch).toHaveBeenCalledTimes(4);
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 /*
  * Every command the pipeline starts, in order.
  * The zip tools run for real, because they write and read the tests' own files.
@@ -63,10 +112,21 @@ describe('local seed insertion', () => {
  * The draft seed's batches answer as one finished batch, because the load reads their results.
  */
 const started = vi.hoisted((): string[][] => []);
+const resetRefusal = vi.hoisted(() => ({ enabled: false }));
 vi.mock('node:child_process', async (importOriginal) => {
   const actual = await importOriginal<typeof ChildProcess>();
   const spawnSync = (command: string, args: readonly string[], options?: ChildProcess.SpawnSyncOptions) => {
     started.push([command, ...args]);
+    if (resetRefusal.enabled && args.includes('e2e:clearAll')) {
+      return {
+        pid: 0,
+        output: [],
+        stdout: '',
+        stderr: 'Error: {"code":"TooManyWrites","message":"Write window exhausted"}',
+        status: 1,
+        signal: null,
+      };
+    }
     const stdout = args.includes('provisioning:seedSnapshotRulebookDraftsBatch')
       ? JSON.stringify({ isDone: true, continueCursor: '', seeded: 1 })
       : '';
