@@ -1,0 +1,23 @@
+.list {
+  container-type: inline-size;
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+/* The cover sits beside the summary, and above it once the column is too narrow for both. */
+.entry {
+  display: grid;
+  grid-template-columns: 10rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-md);
+}
+
+@container (width < 30rem) {
+  .entry {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cover {
+  width: 100%;
+}

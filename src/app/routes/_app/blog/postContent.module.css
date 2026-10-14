@@ -1,0 +1,41 @@
+.lead {
+  margin: 0;
+  font-size: var(--mantine-font-size-xl);
+  line-height: 1.55;
+}
+
+.paragraph {
+  margin: 0;
+  font-size: var(--mantine-font-size-lg);
+  line-height: 1.7;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+/* The stage is its own container, so embedded artwork sizes from the column rather than the window. */
+.stage {
+  container-type: inline-size;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-lg) 0;
+}
+
+.caption {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+  text-align: center;
+}
+
+/* Placement only; the pane's appearance is Surface's. */
+.callout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}

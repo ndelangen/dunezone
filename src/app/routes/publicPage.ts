@@ -55,10 +55,14 @@ export function profileLink(
 const absoluteUrl = (pathname: string) => new URL(pathname, PUBLIC_SITE_ORIGIN).href;
 
 /**
- * What a page shows, for its structured data: the site itself on the homepage, a member's work with its creator, or the member.
+ * What a page shows, for its structured data: the site itself on the homepage, a member's work with its creator, the member, or a blog post with its author and date.
  * Catalogues and other pages name no entity.
  */
-export type PublicPageEntity = { type: 'site' } | { type: 'work'; author: PublicPageLink | null } | { type: 'person' };
+export type PublicPageEntity =
+  | { type: 'site' }
+  | { type: 'work'; author: PublicPageLink | null }
+  | { type: 'person' }
+  | { type: 'article'; author: string; published: string };
 
 /**
  * The schema.org graph search engines read beside the visible page: the trail back to the homepage and what the page shows.
@@ -112,6 +116,17 @@ function structuredData({
         ...(entity.author
           ? { author: { '@type': 'Person', name: entity.author.name, url: absoluteUrl(entity.author.pathname) } }
           : {}),
+      });
+      break;
+    case 'article':
+      graph.push({
+        '@type': 'BlogPosting',
+        headline: name,
+        url,
+        ...imageField,
+        ...(description ? { description } : {}),
+        datePublished: entity.published,
+        author: { '@type': 'Person', name: entity.author },
       });
       break;
   }

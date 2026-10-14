@@ -63,6 +63,34 @@ export const PublicationJobsNotAuthorized = meta.story({
 export const FuturePlans = meta.story({ args: { path: '/future-plans' } });
 export const Privacy = meta.story({ args: { path: '/privacy' } });
 
+/** The blog's list of posts, newest first, each card opening its post. */
+export const Blog = meta.story({
+  args: { path: '/blog' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('link', { name: /A blog for Dune Zone/ }, { timeout: 30_000 })
+    ).resolves.toHaveAttribute('href', '/blog/a-blog-for-dune-zone');
+  },
+});
+
+/** One post: its title and byline in the band, the body in a reading column, and live artwork among the prose. */
+export const BlogPost = meta.story({
+  args: { path: '/blog/a-blog-for-dune-zone' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { level: 1, name: 'A blog for Dune Zone' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.findByRole('heading', { name: 'Drawn by the site itself' })).resolves.toBeVisible();
+  },
+});
+
+export const BlogPostPhone = meta.story({
+  args: { path: '/blog/a-blog-for-dune-zone' },
+  globals: { viewport: { value: 'appMobile' } },
+});
+
 /** The hard-coded glossary: one Section per topic with a picture, every term reachable by its anchor and found by the word it replaces. */
 export const Glossary = meta.story({
   args: { path: '/glossary' },

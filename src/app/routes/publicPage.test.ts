@@ -101,6 +101,27 @@ describe('public page heads', () => {
     expect(work).not.toHaveProperty('image');
   });
 
+  test('a blog post names itself as a posting with its author and publication date', () => {
+    const post = publicPageHead({
+      name: 'A blog for Dune Zone',
+      kind: 'Blog',
+      pathname: '/blog/a-blog-for-dune-zone',
+      description: 'Why there is a blog.',
+      image: '/m/board.webp',
+      trail: [{ name: 'Blog', pathname: '/blog' }],
+      entity: { type: 'article', author: 'Norbert de Langen', published: '2026-10-14' },
+    });
+    expect(graphOf(post)?.[1]).toEqual({
+      '@type': 'BlogPosting',
+      headline: 'A blog for Dune Zone',
+      url: 'https://dune.zone/blog/a-blog-for-dune-zone',
+      image: 'https://dune.zone/m/board.webp',
+      description: 'Why there is a blog.',
+      datePublished: '2026-10-14',
+      author: { '@type': 'Person', name: 'Norbert de Langen' },
+    });
+  });
+
   test('a page that threw notFound has no head at all', () => {
     expect(publicPageHead({ ...faction, match: { status: 'notFound' } })).toEqual({});
   });

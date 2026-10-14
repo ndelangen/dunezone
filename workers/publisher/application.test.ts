@@ -31,6 +31,8 @@ describe('anonymous application dispatch', () => {
     '/privacy',
     '/privacy/',
     '/glossary/missing',
+    '/blog',
+    '/blog/a-blog-for-dune-zone',
     '/media',
     '/media/',
     '/media/game/leaders',

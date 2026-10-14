@@ -153,6 +153,7 @@ describe('AppRoot page header', () => {
       { href: 'https://github.com/ndelangen/dunezone', label: 'Source code' },
       { href: '/glossary', label: 'Glossary' },
       { href: '/future-plans', label: 'Future plans' },
+      { href: '/blog', label: 'Blog' },
       { href: '/privacy', label: 'Privacy policy' },
       {
         href: 'https://discord.com/invite/dune-tabletop-624609341886169117',
