@@ -17,6 +17,22 @@
   margin: 0;
 }
 
+.figureRow {
+  --figure-columns: minmax(0, 1fr);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-self: center;
+  width: min(56rem, calc(100vw - 2 * var(--app-shell-inline-gutter, 20px)));
+}
+
+@container (width >= 30rem) {
+  .figureRow {
+    grid-template-columns: var(--figure-columns);
+  }
+}
+
 /* The stage is its own container, so embedded artwork sizes from the column rather than the window. */
 .stage {
   container-type: inline-size;
