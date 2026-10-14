@@ -68,31 +68,15 @@ export const Blog = meta.story({
   args: { path: '/blog' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByRole('link', { name: 'A blog for Dune Zone' }, { timeout: 30_000 })
-    ).resolves.toHaveAttribute('href', '/blog/a-blog-for-dune-zone');
+    await expect(page.findByRole('link', { name: 'Why Dune?' }, { timeout: 30_000 })).resolves.toHaveAttribute(
+      'href',
+      '/blog/why-dune'
+    );
   },
 });
 
-/** One post: its title and byline in the band, the body in a reading column, and live artwork among the prose. */
+/** One post, "Why Dune?": its title and byline in the band, then photographs, a video that loads only when played, and a live Dreamrules faction card. */
 export const BlogPost = meta.story({
-  args: { path: '/blog/a-blog-for-dune-zone' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByRole('heading', { level: 1, name: 'A blog for Dune Zone' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    await expect(page.findByRole('heading', { name: 'Drawn by the site itself' })).resolves.toBeVisible();
-  },
-});
-
-export const BlogPostPhone = meta.story({
-  args: { path: '/blog/a-blog-for-dune-zone' },
-  globals: { viewport: { value: 'appMobile' } },
-});
-
-/** The "Why Dune?" post: photographs, a video that loads only when played, and a live Dreamrules faction card. */
-export const BlogPostWhyDune = meta.story({
   args: { path: '/blog/why-dune' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -107,7 +91,7 @@ export const BlogPostWhyDune = meta.story({
   },
 });
 
-export const BlogPostWhyDunePhone = meta.story({
+export const BlogPostPhone = meta.story({
   args: { path: '/blog/why-dune' },
   globals: { viewport: { value: 'appMobile' } },
 });

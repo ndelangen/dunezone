@@ -9,7 +9,7 @@ export const RECORDLESS_PUBLIC_PAGES = ['/glossary', '/future-plans', '/privacy'
  * The posts themselves are code in `src/app/routes/_app/blog/posts`;
  * this list repeats their slugs so the sitemap can name them without loading the app, and a test keeps the two equal.
  */
-export const BLOG_POST_SLUGS = ['why-dune', 'a-blog-for-dune-zone'];
+export const BLOG_POST_SLUGS = ['why-dune'];
 
 /** Each blog post's page, served under the blog's record-less root and listed in the landing sitemap. */
 export const BLOG_POST_PAGES = BLOG_POST_SLUGS.map((slug) => `/blog/${slug}`);

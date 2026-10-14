@@ -13,7 +13,7 @@ export const meta: BlogPostMeta = {
   date: '2026-10-14',
   author: 'Central419',
   summary:
-    'How a YouTube recommendation, a Discord server and a lot of lockdown evenings turned a Euro-game player into someone rewriting the rules of Dune, and why that led to dune.zone.',
+    'How a YouTube recommendation, a Discord server and a lot of lockdown evenings drew me into Dune, and how a group of players writing their own rules led to dune.zone.',
   cover: {
     key: '/web/blog/why-dune/tts-central419.jpg',
     alt: 'A Dune table in Tabletop Simulator, floating among the stars',
@@ -160,8 +160,13 @@ export default function Post() {
           .
         </Paragraph>
         <Paragraph>
-          To make Dreamrules work the way we wanted, we had to change more than words. We needed different game assets:
-          new faction sheets, new cards, new pieces for the table.
+          Dreamrules was a group effort, and I played a small part in writing it. Where I couldn&rsquo;t let go was how
+          the game looked. Changing the rules meant changing the pieces, and for a while that meant tokens and cards
+          scribbled over in MS Paint.
+        </Paragraph>
+        <Paragraph>
+          I didn&rsquo;t want to play with that. I wanted the board, the cards, the tokens and the rulebook to look like
+          they belonged together, as if Dreamrules had come out of the same box as everything else.
         </Paragraph>
         <LiveEmbed caption="House Atreides as Dreamrules plays it, drawn live by the site." width="min(19rem, 100cqi)">
           <FactionCard faction={dreamrulesAtreides} selectedRulesetSlug="dreamrules" livePreview />

@@ -103,22 +103,22 @@ describe('public page heads', () => {
 
   test('a blog post names itself as a posting with its author and publication date', () => {
     const post = publicPageHead({
-      name: 'A blog for Dune Zone',
+      name: 'Why Dune?',
       kind: 'Blog',
-      pathname: '/blog/a-blog-for-dune-zone',
-      description: 'Why there is a blog.',
+      pathname: '/blog/why-dune',
+      description: 'How a group of players came to Dune.',
       image: '/m/board.webp',
       trail: [{ name: 'Blog', pathname: '/blog' }],
-      entity: { type: 'article', author: 'Norbert de Langen', published: '2026-10-14' },
+      entity: { type: 'article', author: 'Central419', published: '2026-10-14' },
     });
     expect(graphOf(post)?.[1]).toEqual({
       '@type': 'BlogPosting',
-      headline: 'A blog for Dune Zone',
-      url: 'https://dune.zone/blog/a-blog-for-dune-zone',
+      headline: 'Why Dune?',
+      url: 'https://dune.zone/blog/why-dune',
       image: 'https://dune.zone/m/board.webp',
-      description: 'Why there is a blog.',
+      description: 'How a group of players came to Dune.',
       datePublished: '2026-10-14',
-      author: { '@type': 'Person', name: 'Norbert de Langen' },
+      author: { '@type': 'Person', name: 'Central419' },
     });
     expect(metaOf(post)).toContainEqual({ property: 'og:type', content: 'article' });
     expect(metaOf(publicPageHead(faction))).toContainEqual({ property: 'og:type', content: 'website' });
