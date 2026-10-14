@@ -134,12 +134,6 @@ function StackBlitzSection() {
         code file. From those files it draws full faction sheets with advantages, alliance and fate abilities, Karama
         effects and a Q&amp;A, plus faction, leader and force tokens, and the start of a paged rulebook laid out for A4.
       </Paragraph>
-      <Figure
-        imageKey={`${IMAGES}/stackblitz-leader-tokens.jpg`}
-        alt="Five Atreides leader tokens, from Dr Yueh at 1 to Lady Jessica at 5, below the Atreides force token"
-        aspect={614 / 2048}
-        caption="Atreides leader tokens, drawn from a code file."
-      />
       <Paragraph>
         Some of the Q&amp;A sections still say &ldquo;LALALA?&rdquo;. It was a prototype, after all.
       </Paragraph>
