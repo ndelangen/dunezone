@@ -100,10 +100,15 @@ try {
   let groupPage: string | undefined;
   let faqPage: string | undefined;
   let verifiedPages = 0;
+  /* Catalogues, profiles and the homepage can each link the same record; the first visit checks it, and a second would hit the cache. */
+  const visited = new Set<string>();
+  /* The homepage names showcase records by hand, so each must still answer at the address it links. */
+  const editorialPages = new Set<string>();
   for (const pathname of pages) {
-    if (pathname.startsWith('/profiles/') && groupPage && faqPage) {
+    if (visited.has(pathname) || (pathname.startsWith('/profiles/') && groupPage && faqPage)) {
       continue;
     }
+    visited.add(pathname);
     verifiedPages += 1;
     const response = await worker.fetch(pathname, { headers: { Cookie: 'private=must-not-reach-ssr' } });
     assert.equal(response.status, 200, pathname);
@@ -179,6 +184,9 @@ try {
         }
       }
     }
+    if (editorialPages.has(pathname)) {
+      assert.equal(response.redirected, false, `The homepage links to ${pathname}, which has moved`);
+    }
     assert.match(html, /<h1[\s>]/, `${pathname} has no rendered heading`);
     assert.match(html, /rel="canonical"/, `${pathname} has no canonical URL`);
     assert.match(html, /property="og:title"/, `${pathname} has no social metadata`);
@@ -191,6 +199,17 @@ try {
       );
     }
     if (pathname === '/') {
+      if (!fixture) {
+        /* A deleted showcase record fails as a 404, and a renamed one as a redirect, so the homepage never links through either. */
+        const editorial = publicLinks.filter((href) =>
+          /^\/(?:(?:factions|groups|rulesets)|assets\/[^/?]+)\/(?!create(?:\/|$))[^/?]+\/?$/.test(href)
+        );
+        assert.ok(editorial.length, 'The homepage links to no showcase records');
+        for (const href of editorial) {
+          editorialPages.add(href);
+        }
+        pages.push(...editorial);
+      }
       assert.match(html, /Dune Play is coming soon/i);
       assert.match(html, /Your rules\. Always within reach\./, 'The homepage chapters are not rendered on the server');
       assert.match(

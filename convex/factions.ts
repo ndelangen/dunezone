@@ -28,6 +28,7 @@ import {
   parseFactionInput,
   parseStoredFactionForRead,
 } from './lib/factionInput';
+import { recordFormerSlug } from './lib/formerSlugs';
 import {
   buildOwnedForGroupAssignRows,
   OWNED_FOR_GROUP_ASSIGN_LIMIT,
@@ -404,6 +405,14 @@ export const update = mutation({
     const identifiedData = factionInputForWrite(data, access.subject.data);
     await assertAddedFactionExtrasExist(ctx, data.extras, savedFactionExtras(access.subject.data));
     const slug = await resolveFactionSlug(ctx, data.name, access.subject);
+    if (slug !== access.subject.slug) {
+      await recordFormerSlug(ctx, {
+        kind: 'faction',
+        scope: '',
+        slug: access.subject.slug,
+        record_id: access.subject._id,
+      });
+    }
 
     await ctx.db.patch(access.subject._id, {
       data: identifiedData,

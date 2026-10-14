@@ -43,6 +43,7 @@ import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
+import { profileDescription } from './profileDescription';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   ssr: true,
@@ -56,6 +57,7 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
         to: '/profiles/$profileSlug',
         params: { profileSlug: profilePage.profile.slug },
         replace: true,
+        statusCode: 301,
       });
     }
     return { profilePage };
@@ -64,10 +66,20 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData?.profilePage.profile.username ?? 'Profile',
+      kind: loaderData ? 'Profile' : undefined,
       pathname: `/profiles/${encodeURIComponent(params.profileSlug)}`,
-      description: "Explore this Dune Zone member's factions, Groups and FAQ contributions.",
+      description: loaderData
+        ? profileDescription({
+            username: loaderData.profilePage.profile.username,
+            factions: loaderData.profilePage.factions.length,
+            groups: loaderData.profilePage.groupSummaries.length,
+            faqContributions: loaderData.profilePage.faqAsked.length + loaderData.profilePage.faqAnswers.length,
+          })
+        : '',
       image: loaderData?.profilePage.profile.avatar?.url,
-      social: { kind: 'Profile', shape: 'round' },
+      social: { shape: 'round' },
+      trail: [{ name: 'Profiles', pathname: '/profiles' }],
+      entity: { type: 'person' },
       match,
     }),
   component: ProfileDetailPage,
@@ -215,7 +227,7 @@ function ProfileDetailPage() {
   const loaderData = Route.useLoaderData();
   const profileQuery = useProfileBySlug(profileSlug, { initialData: loaderData.profilePage });
   const page = profileQuery.data;
-  useLivePageTitle(page?.profile.username ?? undefined);
+  useLivePageTitle(page?.profile.username ?? undefined, 'Profile');
   const currentProfile = useCurrentProfile();
   const { signOut } = useAuthActions();
   const navigate = useNavigate();

@@ -9,9 +9,22 @@ visitor credentials before invoking TanStack Start, and the data doorway creates
 HTTP client for server reads.
 
 Each route calls its existing page query once. That result supplies the visible content, title,
-canonical URL, description and social metadata. The faction excerpt comes from its first advantage;
-an asset uses About. Formatting marks become readable text, and empty excerpts remain empty.
-Descriptions stop at 200 Unicode code points. Detail metadata points to [the social PNG endpoint](social-images.md).
+canonical URL, description, social metadata and structured data. The faction excerpt comes from its
+first advantage; an asset uses About. Formatting marks become readable text. When that text is empty,
+the description names the work's kind and creator instead, and a profile counts what its member has
+shared, so no public page leaves its search snippet blank or shares one with every other page of its kind.
+Descriptions stop at 200 Unicode code points.
+
+Titles name what the page is between its name and the site, as in "Atreides · Custom faction · Dune Zone".
+The live title keeps the same kind after hydration. Catalogue pages keep their own names, which already
+say it.
+
+Detail pages also carry one schema.org graph: a breadcrumb trail from the homepage through the
+catalogue, and either the work with its creator's profile or, on a profile, the person. The homepage
+names the site. Every value repeats something the page shows; catalogues and pages without a named
+creator leave out what they cannot back. Its images are the record's own artwork or avatar, because
+social PNGs are kept out of search. A social card names the same kind as the title unless the
+route gives it its own wording. Detail metadata points to [the social PNG endpoint](social-images.md).
 Its URL carries bounded words and the existing published artwork path. Catalogues retain the site
 poster. Image generation adds no metadata query.
 
@@ -25,7 +38,12 @@ The [public discovery contract](public-discovery.md) covers robots.txt, sitemaps
 
 Missing records and unknown public descendants return 404. A faction query reports structured
 `NOT_FOUND` so a connection failure cannot masquerade as absence. A faction that disappears from
-an open page uses the same absence presentation. Old slugs remain absent after a rename.
+an open page uses the same absence presentation. A loader whose query found nothing asks
+`formerAddresses.resolve` whether a rename moved the record, and throws a 301 to its current
+address when one did. A page that exists makes no extra query. A backend deployed before the
+query leaves the page at its 404; any other failed lookup stays an error, like a failed page query.
+A profile page finds a renamed member through the same rows inside its own query, then redirects
+with the existing current-slug check. Redirects are not 200, so the HTML cache never stores them.
 
 Cloudflare caches successful anonymous HTML for five minutes, keyed by Worker version and normalized
 URL. Credential-bearing and anonymous visits share the same anonymous rendering. Credentials are
