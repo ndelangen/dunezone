@@ -3,7 +3,7 @@ import { resolveAsset } from '@shared/media/resolveAsset';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { Play } from 'lucide-react';
 import { useState } from 'react';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import styles from './postContent.module.css';
 
@@ -26,22 +26,34 @@ export function Paragraph({ children }: { children: ReactNode }) {
   return <p className={styles.paragraph}>{children}</p>;
 }
 
-/**
- * An image from `media/`, served through the media pipeline, with an optional caption under it.
- * Blog images live under `web/`, whose small tier is 1080px wide, enough for the reading column on a high-density screen.
- */
-export function Figure({
-  imageKey,
-  alt,
-  aspect,
-  caption,
-}: {
+type FigureProps = Readonly<{
   imageKey: string;
   alt: string;
   /** Height over width, held while the image loads. */
   aspect: number;
-  caption?: string;
-}) {
+  caption?: ReactNode;
+}>;
+
+/** A wide row whose column widths preserve each image's proportions at a shared height. */
+export function FigureRow({ figures }: Readonly<{ figures: readonly FigureProps[] }>) {
+  const columns = {
+    '--figure-columns': figures.map(({ aspect }) => `minmax(0, ${1 / aspect}fr)`).join(' '),
+  } as CSSProperties;
+
+  return (
+    <div className={styles.figureRow} style={columns}>
+      {figures.map((figure) => (
+        <Figure key={figure.imageKey} {...figure} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * An image from `media/`, served through the media pipeline, with an optional caption under it.
+ * Blog images live under `web/`, whose small tier is 1080px wide, enough for the reading column on a high-density screen.
+ */
+export function Figure({ imageKey, alt, aspect, caption }: FigureProps) {
   const src = resolveAsset(imageKey, 'small');
   return (
     <figure className={styles.figure}>
@@ -51,27 +63,6 @@ export function Figure({
         <img src={src} alt={alt} className={styles.fallback} />
       </noscript>
       {caption ? <figcaption className={styles.caption}>{caption}</figcaption> : null}
-    </figure>
-  );
-}
-
-/** Live site artwork or components shown inside a post, centred, with a caption saying what it is. */
-export function LiveEmbed({
-  caption,
-  width = '100%',
-  children,
-}: {
-  caption: string;
-  /** How wide the embed may grow, as a CSS width; `cqi` units measure the post's column. */
-  width?: string;
-  children: ReactNode;
-}) {
-  return (
-    <figure className={styles.figure}>
-      <div className={styles.stage}>
-        <div style={{ width }}>{children}</div>
-      </div>
-      <figcaption className={styles.caption}>{caption}</figcaption>
     </figure>
   );
 }
