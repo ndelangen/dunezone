@@ -6,7 +6,6 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
 import { rulebookEditionArtifactPath } from '../src/shared/rulebooks/editionArtifacts';
-import { createRulebookEditorialStarterContents } from '../src/shared/rulebooks/fixtures';
 import { internal } from './_generated/api';
 import schema from './schema';
 
@@ -45,7 +44,6 @@ describe('the Rulebook Edition artifact migration', () => {
       const editionId = await ctx.db.insert('rulebook_editions', {
         rulebook_id: rulebookId,
         edition_number: 1,
-        contents: createRulebookEditorialStarterContents(),
         created_by: ownerId,
         created_at: '2026-09-01T00:00:00.000Z',
       });

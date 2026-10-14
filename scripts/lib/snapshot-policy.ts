@@ -224,7 +224,6 @@ export const snapshotPolicy = {
       rulebook_id: { parent: 'rulebooks' },
       settings: 'keep',
       edition_number: 'keep',
-      contents: readerEditionContents,
       /* The snapshot projects Contents for the public reader, so a hash of the stored Contents would not match; the load's backfill rewrites it. */
       contents_hash: 'drop',
       created_by: 'owner',

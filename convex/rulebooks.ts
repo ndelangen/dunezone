@@ -477,7 +477,6 @@ async function insertRulebookBundle(
     _id: editionId,
     rulebook_id: rulebookId,
     edition_number: 1,
-    contents: input.contents,
     settings: input.settings,
   });
   const [rulebook, draft, edition] = await Promise.all([

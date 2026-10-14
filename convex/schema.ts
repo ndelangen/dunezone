@@ -371,17 +371,12 @@ export default defineSchema({
   })
     .index('by_rulebook', ['rulebook_id'])
     .index('by_updated_by', ['updated_by']),
-  /** Immutable Edition metadata. Creation writes Edition 1 beside the matching saved draft. */
+  /** Immutable Edition metadata. Creation writes Edition 1 beside the matching saved draft; its Contents live in `rulebook_edition_contents`. */
   rulebook_editions: defineTable({
     rulebook_id: v.id('rulebooks'),
     /* Each new Edition captures the Rulebook settings beside its immutable Contents. */
     settings: v.optional(rulebookSettingsValidator),
     edition_number: v.number(),
-    /**
-     * Legacy inline Contents, optional while `rulebook_edition_contents_v1` moves existing documents out of metadata rows.
-     * New Editions write only to `rulebook_edition_contents`.
-     */
-    contents: v.optional(v.any()),
     /**
      * `rulebookEditionContentsHash` of this Edition's Contents, kept on the metadata row so the editor compares a draft with it without reading `rulebook_edition_contents`.
      * Optional until `rulebook_contents_hash_editions_v1` has backfilled older rows.

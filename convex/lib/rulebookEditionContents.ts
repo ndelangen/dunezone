@@ -10,7 +10,7 @@ import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
-type EditionWithLegacyContents = Pick<Doc<'rulebook_editions'>, '_id' | 'contents'>;
+type EditionIdentity = Pick<Doc<'rulebook_editions'>, '_id'>;
 
 /**
  * Renders Contents so that two equal documents render identically, whatever order their keys were written in.
@@ -102,16 +102,13 @@ export function rulebookContentsHashesMatch(left: string | undefined, right: str
 }
 
 /** Reads one Edition's Contents without making metadata callers join every Contents document. */
-export async function contentsForRulebookEdition(ctx: ReadCtx, edition: EditionWithLegacyContents) {
+export async function contentsForRulebookEdition(ctx: ReadCtx, edition: EditionIdentity) {
   const stored = await ctx.db
     .query('rulebook_edition_contents')
     .withIndex('by_edition_id', (q) => q.eq('edition_id', edition._id))
     .unique();
   if (stored) {
     return stored.contents;
-  }
-  if (edition.contents !== undefined) {
-    return edition.contents;
   }
   throw new Error(`Rulebook Edition ${edition._id} Contents not found`);
 }

@@ -106,9 +106,11 @@ shapes it accepts from the current schema. A list written into the verify goes s
 schema gains a member, which is how the preset cardback stopped the dev rebuild after #1573, and
 with it every later migration in the series, the aggregate rebuilds among them. Once production
 has run a backfill whose second pass would change a row, such as one that multiplies a stored
-value, its body becomes a no-op and its id stays. `convex/migrations.snapshotReplay.test.ts`
-replays the manifest over rows in their migrated shape, with a row for every deck cardback mode
-and every token back mode. Those rows are keyed by mode, so a mode added to either union fails
+value, its body becomes a no-op and its id stays. The same holds once a narrow removes the legacy
+field a move read from, as `rulebook_edition_contents_v1` shows, while its verifier keeps the
+check that still means something. `convex/migrations.snapshotReplay.test.ts` replays the manifest
+over rows in their migrated shape, with a row for every deck cardback mode and every token back
+mode. Those rows are keyed by mode, so a mode added to either union fails
 typecheck until the test has a row that wears it.
 
 - `bun run convex:dev` runs `bun run migrations:dev-strict` before starting the configured Convex
