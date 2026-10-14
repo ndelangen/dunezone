@@ -1,9 +1,11 @@
 import { homepageSnapshot } from '@shared/homepage/setup';
+import { KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { requestHomepageTicket } from '@db/homepage';
 import type { GameRuntime, GameSocket } from '@db/tabletop/runtime';
+import { TableSession } from '@db/tabletop/TableSession';
 
 import { HomepageSubscription } from './HomepageSubscription';
 
@@ -23,7 +25,7 @@ class Socket {
     this.readyState = 3;
     this.onclose?.();
   }
-  view() {
+  view(viewerSeat: string = SPECTATOR_SEAT) {
     this.onmessage?.({
       data: JSON.stringify({
         type: 'view',
@@ -33,7 +35,7 @@ class Socket {
         viewer: {
           connectionId: 'visitor',
           userId: 'visitor',
-          viewerSeat: SPECTATOR_SEAT,
+          viewerSeat,
           displayName: '',
           color: '#888888',
         },
@@ -73,7 +75,90 @@ function connect(request: typeof requestHomepageTicket | null = null) {
   return subscription;
 }
 
+function handlingConnection(request: typeof requestHomepageTicket, admit = (socket: Socket) => socket.view('visitor')) {
+  const subscription = new HomepageSubscription(runtime, request);
+  const session = new TableSession('homepage', subscription, runtime);
+  stop = session.connect();
+  const socket = sockets[0]!;
+  socket.send.mockImplementation((data) => {
+    if (data === KEEPALIVE_PING) {
+      socket.onmessage?.({ data: KEEPALIVE_PONG });
+    } else if (JSON.parse(data).type === 'authenticate') {
+      admit(socket);
+    }
+  });
+  socket.open();
+  socket.view();
+  return { subscription, session, socket };
+}
+
 describe('the homepage table connection', () => {
+  it.each(['refused', 'failed'] as const)(
+    'restores handling after an initially %s ticket while the board stays available',
+    async (failure) => {
+      const request = vi.fn<typeof requestHomepageTicket>().mockResolvedValue({ ticket: 'a'.repeat(64) });
+      if (failure === 'refused') {
+        request.mockResolvedValueOnce(null);
+      } else {
+        request.mockRejectedValueOnce(new Error('Admission temporarily unavailable'));
+      }
+      const { session, socket } = handlingConnection(request);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(session.getTable()?.snapshot.table.pieces).toHaveLength(23);
+      expect(session.getTable()?.canHandleTable).toBe(false);
+      /* Other visitors' table frames must not postpone the member's admission retry. */
+      for (let update = 0; update < 8; update += 1) {
+        await vi.advanceTimersByTimeAsync(500);
+        socket.view();
+      }
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(sockets).toHaveLength(1);
+      expect(session.getTable()?.snapshot.table.pieces).toHaveLength(23);
+      expect(session.getTable()?.canHandleTable).toBe(true);
+    }
+  );
+
+  it('recovers when a ticket reaches the socket but the server has not granted handling', async () => {
+    const request = vi.fn<typeof requestHomepageTicket>().mockResolvedValue({ ticket: 'a'.repeat(64) });
+    let attempts = 0;
+    const { session } = handlingConnection(request, (socket) => {
+      attempts += 1;
+      socket.view(attempts === 1 ? SPECTATOR_SEAT : 'visitor');
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(session.getTable()?.canHandleTable).toBe(false);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(session.getTable()?.canHandleTable).toBe(true);
+    expect(attempts).toBe(2);
+  });
+
+  it('keeps admitted members on the normal renewal interval', async () => {
+    const request = vi.fn<typeof requestHomepageTicket>().mockResolvedValue({ ticket: 'a'.repeat(64) });
+    const { session } = handlingConnection(request);
+    await vi.advanceTimersByTimeAsync(119_999);
+    expect(session.getTable()?.canHandleTable).toBe(true);
+    expect(request).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(sockets).toHaveLength(1);
+  });
+
+  it('backs off repeated refusals and retires recovery when the viewer signs out', async () => {
+    const request = vi.fn<typeof requestHomepageTicket>().mockResolvedValue(null);
+    const { subscription, session } = handlingConnection(request);
+    await vi.advanceTimersByTimeAsync(64_999);
+    expect(request).toHaveBeenCalledTimes(4);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(request).toHaveBeenCalledTimes(5);
+    expect(session.getTable()?.canHandleTable).toBe(false);
+    subscription.setViewer(null, null);
+    sockets[1]!.open();
+    sockets[1]!.view();
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(request).toHaveBeenCalledTimes(5);
+    expect(session.getTable()?.canHandleTable).toBe(false);
+  });
+
   it('retries a connection that never supplies its first table', async () => {
     const subscription = connect();
     sockets[0]!.open();

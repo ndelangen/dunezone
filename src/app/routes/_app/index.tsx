@@ -222,7 +222,15 @@ function AssetInvitation() {
   );
 }
 
-function PreviewCopy({ invitation, viewer }: { invitation: boolean; viewer: SessionViewer }) {
+function PreviewCopy({
+  invitation,
+  viewer,
+  handling,
+}: {
+  invitation: boolean;
+  viewer: SessionViewer;
+  handling: boolean;
+}) {
   return (
     <Section alignment="center" eyebrow="A sneak peek · Coming soon" title="Your next game is taking shape.">
       <Text size="lg">
@@ -239,7 +247,9 @@ function PreviewCopy({ invitation, viewer }: { invitation: boolean; viewer: Sess
           <Surface padding="md">
             <Group justify="center" gap="sm">
               <Hand size={20} aria-hidden />
-              <Text fw={700}>Try moving one of the pieces!</Text>
+              <Text fw={700}>
+                {viewer.kind === 'profile' && !handling ? 'Connecting the pieces…' : 'Try moving one of the pieces!'}
+              </Text>
               {viewer.kind === 'signed-out' && (
                 <Anchor renderRoot={(props) => <Link {...props} to="/auth/login" />}>Sign in to join in.</Anchor>
               )}
@@ -580,12 +590,13 @@ function CommunityCopy() {
 }
 
 function HomepageChapters({ invitation, viewer }: { invitation: boolean; viewer: SessionViewer }) {
+  const [handling, setHandling] = useState(false);
   return (
     <div className={styles.cinemaFlow}>
       <section id="play-preview" className={styles.cinemaOpening} data-marketing-arrival>
-        <LiveBoardPreview viewer={viewer} />
+        <LiveBoardPreview viewer={viewer} onHandlingChange={setHandling} />
         <div className={styles.previewCopy}>
-          <PreviewCopy invitation={invitation} viewer={viewer} />
+          <PreviewCopy invitation={invitation} viewer={viewer} handling={handling} />
         </div>
       </section>
       <section id="make" className={styles.cinemaFeature} data-marketing-arrival>
@@ -625,7 +636,13 @@ function HomepageChapters({ invitation, viewer }: { invitation: boolean; viewer:
   );
 }
 
-function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
+function LiveBoardPreview({
+  viewer,
+  onHandlingChange,
+}: {
+  viewer: SessionViewer;
+  onHandlingChange(handling: boolean): void;
+}) {
   const member = viewer.kind === 'profile';
   const identity = member ? viewer.profile._id : 'observer';
   const region = useRef<HTMLDivElement>(null);
@@ -686,6 +703,7 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
             className={styles.liveBoard}
             sceneClassName={styles.liveScene}
             onUnavailable={unavailable}
+            onHandlingChange={onHandlingChange}
           />
         </Suspense>
       )}

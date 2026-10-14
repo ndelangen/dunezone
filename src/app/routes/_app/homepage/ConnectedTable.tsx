@@ -63,11 +63,13 @@ export default function ConnectedTable({
   className,
   sceneClassName,
   onUnavailable,
+  onHandlingChange,
 }: {
   identity: string | null;
   className: string;
   sceneClassName: string;
   onUnavailable(): void;
+  onHandlingChange(handling: boolean): void;
 }): ReactNode {
   const [subscription] = useState(() => new HomepageSubscription(runtime, null));
   const [session] = useState(() => new TableSession('homepage', subscription, runtime));
@@ -84,6 +86,14 @@ export default function ConnectedTable({
   );
   const painted = useCallback(() => dispatch('painted'), []);
   const interactive = useCallback(() => dispatch('interactive'), []);
+  const admitted = useSyncExternalStore(
+    session.subscribeTable,
+    () => session.getTable()?.canHandleTable ?? false,
+    () => false
+  );
+  const handling = admitted && arrival.interactive;
+  useLayoutEffect(() => onHandlingChange(handling), [handling, onHandlingChange]);
+  useLayoutEffect(() => () => onHandlingChange(false), [onHandlingChange]);
   const snapshot = useSyncExternalStore(
     session.subscribeTable,
     () => session.getTable()?.snapshot ?? null,
@@ -108,6 +118,7 @@ export default function ConnectedTable({
       className={className}
       data-live-ready={arrival.painted ? 'true' : undefined}
       data-table-connected={arrival.interactive ? 'true' : undefined}
+      data-table-handling={handling ? 'true' : 'false'}
       onContextMenu={(event) => {
         event.preventDefault();
         if (session.getTable()?.state.draftMove) {
