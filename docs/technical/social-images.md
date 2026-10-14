@@ -6,9 +6,14 @@ from the existing publication bucket, lays out the selected A card as SVG, and r
 630 PNG. It makes no Convex call, follows no external image URL, and launches no browser.
 
 [Satori's standalone entry](https://github.com/vercel/satori#using-webassembly) handles layout with
-bundled Yoga WASM. resvg WASM encodes the PNG. Satori 0.26.0 and resvg 2.6.2 are pinned after testing
-in workerd. The newer Satori tested in the spike failed in that runtime; upgrades must pass the real
-Worker test. Candara and Copperplate ship as font modules. Latin letters, accents and punctuation
+bundled Yoga WASM. resvg WASM encodes the PNG. Satori 0.35.1 and resvg 2.6.2 are pinned after testing
+in workerd. HarfBuzz 0.10.0 has a checked-in Bun patch that selects a `workerd` entry with bundled,
+precompiled WASM. Its initialization skips filesystem and browser-location discovery when given an
+instantiation hook, and its font-blob destructor uses the exported WASM `free` function directly.
+This avoids runtime WASM compilation while preserving HarfBuzz shaping and memory reclamation.
+The default Node and browser entry remains available. Remove the patch when Satori's font engine
+supports this initialization in Workers and the native runtime test passes without it.
+Candara and Copperplate ship as font modules. Latin letters, accents and punctuation
 use those fonts; there is no network font or emoji lookup. Unsupported characters use the fonts'
 missing-glyph behavior. Text is passed as text nodes, never raw SVG markup.
 
