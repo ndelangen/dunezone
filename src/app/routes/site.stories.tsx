@@ -91,7 +91,7 @@ export const BlogPost = meta.story({
   },
 });
 
-/** The third post, about the early projects: its title in the band, and links to the old sites and the Atreides page. */
+/** The third post, about the early projects: its title in the band, and links to the dune-assets repository and the Atreides page. */
 export const BlogPostRunningFromDatabases = meta.story({
   args: { path: '/blog/running-from-databases' },
   play: async ({ canvasElement }) => {

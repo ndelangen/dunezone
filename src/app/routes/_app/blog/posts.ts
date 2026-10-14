@@ -37,7 +37,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
     date: '2026-10-14',
     author: 'Central419',
     summary:
-      'Before dune.zone I built a stats dashboard, a card creator, a database-free prototype and a repository that drew its own images. Each was a different answer to one question: where does the data live?',
+      'Before dune.zone I built a stats dashboard, a card creator, a database-free prototype and a repository that drew its own images. Each was a different answer to the same two questions: where does the data live, and who turns it into images?',
     cover: {
       key: '/web/blog/running-from-databases/dune-assets.jpg',
       alt: 'Generated Dune cards and tokens: a Duncan Idaho traitor card, Crysknife, an Atreides alliance card, a spice card and faction tokens',
