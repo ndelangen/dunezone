@@ -50,6 +50,7 @@ export const Route = createFileRoute('/_app/')({
     pathname: '/',
     description: 'Dune Play is coming soon. Read Rulebooks, create factions and assets, and build with your allies.',
     image: '/web/homepage-social-play-large.jpg',
+    entity: { type: 'site' } as const,
     imageDetails: {
       alt: 'Dune Play is coming soon, with a preview of the board, Rulebook pages and homebrew leader portraits.',
       type: 'image/jpeg',

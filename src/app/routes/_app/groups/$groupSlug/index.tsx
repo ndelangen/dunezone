@@ -32,6 +32,7 @@ import type { RulesetEntry } from '@db/rulesets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { OwnedFactionAssignPicker, OwnedRulesetAssignPicker } from '@app/pickers/GroupAssignPicker';
 import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -41,9 +42,10 @@ type RosterEntry = GroupDetailPageData['roster'][number];
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/')({
   ssr: true,
-  loader: async ({ params }) => {
+  loader: async ({ params, location }) => {
     const groupDetail = await loadPublicPage(loadGroupDetailBySlug(params.groupSlug));
     if (!groupDetail) {
+      await redirectFromFormerAddress({ kind: 'group', slug: params.groupSlug }, location);
       throw notFound();
     }
     return { groupDetail };
@@ -52,11 +54,13 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/')({
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData?.groupDetail.group.name ?? 'Group',
+      kind: loaderData ? 'Group' : undefined,
       pathname: `/groups/${encodeURIComponent(params.groupSlug)}`,
       description: loaderData
         ? `Members: ${loaderData.groupDetail.roster.filter((member) => member.status === 'active').length}. Factions: ${loaderData.groupDetail.factions.length}. Rulesets: ${loaderData.groupDetail.rulesets.length}. Explore this Group on Dune Zone.`
         : '',
-      social: { kind: 'Group', shape: 'round' },
+      social: { shape: 'round' },
+      trail: [],
       match,
     }),
   component: GroupDetailPage,
@@ -101,7 +105,7 @@ function GroupDetailPage() {
      the skeleton grid was the only one of its kind and announced nothing to a reader who cannot
      see it. */
   const page = groupData.data;
-  useLivePageTitle(page?.group.name);
+  useLivePageTitle(page?.group.name, 'Group');
   if (!page) {
     return (
       <PageMessage size="compact" title="Group" back={backToProfiles}>

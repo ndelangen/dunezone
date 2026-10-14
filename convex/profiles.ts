@@ -12,6 +12,7 @@ import {
   profileValidator,
 } from './lib/collaborativeAccessValidators';
 import { canSetDefaultGroup, loadDefaultGroupPreferenceProjection } from './lib/defaultGroupPreference';
+import { recordFormerSlug } from './lib/formerSlugs';
 import { requireAuthUserId } from './lib/policy';
 import { loadProfileActivityCounts } from './lib/profileActivity';
 import { scheduleAvatarRehostIfPending } from './lib/profileAvatar';
@@ -250,6 +251,9 @@ export const updateCurrent = mutation({
       throw new Error('Failed to generate slug from display name');
     }
     const nextSlug = await allocateProfileSlug(ctx, nextSlugBase, profile);
+    if (nextSlug !== profile.slug) {
+      await recordFormerSlug(ctx, { kind: 'profile', scope: '', slug: profile.slug, record_id: profile._id });
+    }
 
     await ctx.db.patch(profile._id, {
       username: normalizedUsername,

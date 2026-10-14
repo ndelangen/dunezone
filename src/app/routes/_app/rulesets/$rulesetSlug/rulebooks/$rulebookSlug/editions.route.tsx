@@ -16,11 +16,22 @@ import { ArrowLeft, BookOpen, History } from 'lucide-react';
 
 import { loadRulebookEditionHistory, useRulebookEditionHistory } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions')({
-  loader: ({ params }) => loadRulebookEditionHistory(params),
+  loader: async ({ params, location }) => {
+    const history = await loadRulebookEditionHistory(params);
+    if (!history) {
+      await redirectFromFormerAddress(
+        { kind: 'rulebook', ruleset_slug: params.rulesetSlug, rulebook_slug: params.rulebookSlug },
+        location,
+        '/editions'
+      );
+    }
+    return history;
+  },
   head: ({ loaderData }) => pageHead(loaderData ? `Editions of ${loaderData.rulebook.name}` : 'Editions'),
   errorComponent: RulebookEditionHistoryError,
   pendingComponent: () => (

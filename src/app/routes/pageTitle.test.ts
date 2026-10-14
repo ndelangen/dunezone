@@ -12,6 +12,11 @@ describe('pageTitle', () => {
     expect(pageTitle(null)).toBe('Dune Zone');
   });
 
+  it('names the kind of page between the name and the app', () => {
+    expect(pageTitle('Atreides', 'Custom faction')).toBe('Atreides · Custom faction · Dune Zone');
+    expect(pageTitle('   ', 'Custom faction')).toBe('Dune Zone');
+  });
+
   it('treats a blank name as no name and trims the rest', () => {
     expect(pageTitle('   ')).toBe('Dune Zone');
     expect(pageTitle('  Rulesets ')).toBe('Rulesets · Dune Zone');
@@ -21,6 +26,10 @@ describe('pageTitle', () => {
 describe('pageHead', () => {
   it('carries the title as the only meta tag by default', () => {
     expect(pageHead('Factions')).toEqual({ meta: [{ title: 'Factions · Dune Zone' }] });
+  });
+
+  it('carries the kind into the title', () => {
+    expect(pageHead('Dreamers', { kind: 'Group' })).toEqual({ meta: [{ title: 'Dreamers · Group · Dune Zone' }] });
   });
 
   it('adds the robots tag for noindex pages', () => {

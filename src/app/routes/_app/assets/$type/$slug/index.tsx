@@ -10,7 +10,7 @@
  * That is deliberately not a claim that nothing was ever here, and nothing of the deleted row reaches the client to leak.
  */
 import { Alert, Stack, Text } from '@mantine/core';
-import { ASSET_TYPES, holdsDeckMembership, isAssetType } from '@shared/assets/types';
+import { ASSET_TYPES, assetTypeNoun, holdsDeckMembership, isAssetType } from '@shared/assets/types';
 import { RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -51,7 +51,8 @@ import type { ReactNode } from 'react';
 import { loadAssetPage, useAssetPage, useConvertTreacheryToCustom } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
+import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -69,30 +70,43 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
    * only the collapsed state reaches the URL, the browse page's absence-is-default rule. */
   validateSearch: (input: Record<string, unknown>): { copies?: 'once' } =>
     input.copies === 'once' ? { copies: 'once' } : {},
-  loader: async ({ params }) => {
+  loader: async ({ params, location }) => {
     if (!isAssetType(params.type)) {
       throw notFound();
     }
     const page = await loadAssetPage(params.type, params.slug);
     if (!page) {
+      await redirectFromFormerAddress({ kind: 'asset', type: params.type, slug: params.slug }, location);
       throw notFound();
     }
     return page;
   },
   pendingComponent: AssetDetailPending,
   errorComponent: AssetDetailError,
-  head: ({ match, loaderData, params }) =>
-    publicPageHead({
+  head: ({ match, loaderData, params }) => {
+    const noun = loaderData && isAssetType(params.type) ? assetTypeNoun(params.type) : undefined;
+    return publicPageHead({
       name: loaderData?.asset.name ?? 'Asset',
+      kind: noun,
       pathname: `/assets/${encodeURIComponent(params.type)}/${encodeURIComponent(loaderData?.asset.slug ?? params.slug)}`,
-      description: publicDescription(loaderData?.asset.data.about),
+      description: loaderData
+        ? publicDescription(loaderData.asset.data.about) ||
+          `${loaderData.asset.name} is ${/^[aeiou]/i.test(noun ?? 'asset') ? 'an' : 'a'} ${(noun ?? 'asset').toLowerCase()} for Dune${loaderData.asset.owner?.username ? ` by ${loaderData.asset.owner.username}` : ''}.`
+        : '',
       image: loaderData?.asset.previewHref,
       social: {
-        kind: isAssetType(params.type) ? ASSET_TYPES[params.type].label : 'Asset',
         shape: params.type === 'token-disc' ? 'round' : params.type === 'token-enhance' ? 'landscape' : 'portrait',
       },
+      trail: [
+        { name: 'Assets', pathname: '/assets' },
+        ...(isAssetType(params.type)
+          ? [{ name: ASSET_TYPES[params.type].label, pathname: `/assets/${encodeURIComponent(params.type)}` }]
+          : []),
+      ],
+      entity: { type: 'work', author: profileLink(loaderData?.asset.owner) },
       match,
-    }),
+    });
+  },
   component: AssetDetailPage,
 });
 
@@ -471,7 +485,10 @@ function AssetDetailPage() {
   const loaderData = Route.useLoaderData();
   const live = useAssetPage(type, slug, { initialData: loaderData });
   const page = live.data;
-  useLivePageTitle(page?.asset.name ?? (page === null ? 'Asset not found' : undefined));
+  useLivePageTitle(
+    page?.asset.name ?? (page === null ? 'Asset not found' : undefined),
+    page && isAssetType(type) ? assetTypeNoun(type) : undefined
+  );
 
   if (!page) {
     return (

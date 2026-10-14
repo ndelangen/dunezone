@@ -109,6 +109,6 @@ describe('route heads during hydration of a notFound page', () => {
         status: 'success',
         loaderData: { asset: { name: 'Karama', slug: 'karama', data: { ...publishingTreacheryCard, name: 'Karama' } } },
       })
-    ).resolves.toBe('Karama · Dune Zone');
+    ).resolves.toBe('Karama · Treachery card · Dune Zone');
   });
 });

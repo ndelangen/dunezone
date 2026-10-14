@@ -24,6 +24,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, publicDescription, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -34,9 +35,13 @@ import { questionTitle } from './questionTitle';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionSlug')({
   ssr: true,
-  loader: async ({ params }) => {
+  loader: async ({ params, location }) => {
     const page = await loadPublicPage(loadFaqQuestionPage(params));
     if (!page) {
+      await redirectFromFormerAddress(
+        { kind: 'faq', ruleset_slug: params.rulesetSlug, question_slug: params.questionSlug },
+        location
+      );
       throw notFound();
     }
     return { page };
@@ -45,6 +50,7 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionS
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData ? questionTitle(loaderData.page.question.text) : 'FAQ question',
+      kind: loaderData ? 'FAQ' : undefined,
       pathname: `/rulesets/${encodeURIComponent(params.rulesetSlug)}/faq/${encodeURIComponent(params.questionSlug)}`,
       description: loaderData
         ? publicDescription(
@@ -52,6 +58,17 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionS
           )
         : '',
       social: { kind: 'FAQ question', shape: 'portrait' },
+      trail: [
+        { name: 'Rulesets', pathname: '/rulesets' },
+        ...(loaderData
+          ? [
+              {
+                name: loaderData.page.ruleset.name,
+                pathname: `/rulesets/${encodeURIComponent(loaderData.page.ruleset.slug)}`,
+              },
+            ]
+          : []),
+      ],
       match,
     }),
   component: FaqDetailPage,
@@ -147,7 +164,7 @@ function FaqDetailPage() {
     }
   );
 
-  useLivePageTitle(faq.page ? questionTitle(faq.page.question.text) : undefined);
+  useLivePageTitle(faq.page ? questionTitle(faq.page.question.text) : undefined, 'FAQ');
 
   const [editing, setEditing] = useState(INITIAL_FAQ_EDITING_STATE);
   const editingSessionRef = useRef<FaqEditingSession>(undefined);
