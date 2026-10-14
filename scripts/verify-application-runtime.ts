@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 
 import { getPlatformProxy, unstable_dev } from 'wrangler';
 
@@ -100,7 +101,7 @@ try {
   let groupPage: string | undefined;
   let faqPage: string | undefined;
   let verifiedPages = 0;
-  let socialCases = 0;
+  let nextSocialProbeAt = 0;
   /* Catalogues, profiles and the homepage can each link the same record; the first visit checks it, and a second would hit the cache. */
   const visited = new Set<string>();
   /* The homepage names showcase records by hand, so each must still answer at the address it links. */
@@ -244,13 +245,16 @@ try {
       assert.ok(image, `${pathname} has no social image URL`);
       const imageUrl = new URL(image);
       assert.equal(imageUrl.pathname, '/social/image.png');
-      /* Independent page cases represent different clients; each repeated request keeps its client's cache contract. */
-      const socialClient = { 'CF-Connecting-IP': `2001:db8::${(++socialCases).toString(16)}` };
-      const png = await worker.fetch(imageUrl.pathname + imageUrl.search, { headers: socialClient });
+      /* Cold renders share the global 20-per-10-second budget.
+       * Pace them at one per second; repeated cache reads need no delay.
+       */
+      await delay(Math.max(0, nextSocialProbeAt - performance.now()));
+      nextSocialProbeAt = performance.now() + 1000;
+      const png = await worker.fetch(imageUrl.pathname + imageUrl.search);
       assert.equal(png.status, 200, pathname);
       assert.equal(png.headers.get('Content-Type'), 'image/png');
       assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
-      const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search, { headers: socialClient });
+      const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search);
       assert.equal(imageHit.headers.get('X-Public-Cache'), 'hit');
       assert.equal(imageHit.headers.get('X-Public-Renders'), '0');
       assert.equal(imageHit.headers.get('X-Public-Artwork-Reads'), '0');
