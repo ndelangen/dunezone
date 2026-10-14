@@ -796,27 +796,14 @@ export const SharedInventoryNarrow = meta.story({
       expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
       expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
     });
-    /* The short tooltip's timing is the kit's TabGuidance story; a slow frame here can outlast it, so the description is read from the tab. */
+    /* The kit's TabGuidance story owns timed tooltip display; this page checks that each tab receives its description and help. */
     await expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAccessibleDescription(
-      expect.stringContaining('Pieces every player can take.')
+      'Pieces every player can take. Drag an item onto the table. It lands face down.'
     );
-    await userEvent.hover(page.getByRole('tab', { name: 'Shared inventory' }));
-    await waitForFrame(() =>
-      expect(
-        finishTransitions(within(page.getByRole('tooltip')).getByText(/^Drag an item onto the table/))
-      ).toBeVisible()
-    );
-    await userEvent.unhover(page.getByRole('tab', { name: 'Shared inventory' }));
     await openTab(page, 'Phase');
-    await userEvent.hover(page.getByRole('tab', { name: 'Phase' }));
-    await waitForFrame(
-      () =>
-        expect(
-          finishTransitions(within(page.getByRole('tooltip')).getByText(/^Move the storm using the storm controls/))
-        ).toBeVisible(),
-      { timeout: 30_000 }
+    await expect(page.getByRole('tab', { name: 'Phase' })).toHaveAccessibleDescription(
+      'Storm, instructions and actions. Move the storm using the storm controls. Previous changes the tracker only. Pieces and storm position stay as they are.'
     );
-    await userEvent.unhover(page.getByRole('tab', { name: 'Phase' }));
   },
 });
 

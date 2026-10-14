@@ -5,8 +5,9 @@ import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
-import { battleStory, expectBattleCalloutPlacement, mapViewPoint, openTab, settled } from './playing.stories.fixture';
+import { battleStory, expectBattleCalloutPlacement, openTab, settled } from './playing.stories.fixture';
 import { productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
@@ -103,24 +104,18 @@ export const BattleMarkerNamesItsTerritory = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
-    const page = within(document.body);
-    await settled(() => expect(page.getByRole('button', { name: 'Drag battle marker onto territory' })).toBeEnabled());
     const carthag = resolveRulebookBoardDefinition('arrakis')!.geometry.parts.find((part) => part.key === 'carthag')!;
-    const [clientX, clientY] = mapViewPoint(document, [
-      (carthag.x + carthag.width / 2 - 0.5) * BOARD_RADIUS * 2,
-      0.18,
-      (carthag.y + carthag.height / 2 - 0.5) * BOARD_RADIUS * 2,
-    ]);
-    const view = document.defaultView!;
-    /* The camera can still be settling on a cold worker, so the carry repeats until it lands; a missed drop rebuilds the marker. */
-    await settled(() => {
-      const marker = page.getByRole('button', { name: 'Drag battle marker onto territory' });
-      const pointer = { bubbles: true, cancelable: true, pointerId: 7, button: 0, clientX, clientY };
-      marker.dispatchEvent(new PointerEvent('pointerdown', pointer));
-      view.dispatchEvent(new PointerEvent('pointermove', pointer));
-      view.dispatchEvent(new PointerEvent('pointerup', pointer));
-      expect(lastCommand()?.action).toMatchObject({ kind: 'battle-start', territory: 'Carthag' });
-    });
+    await dragBattleMarker(
+      document,
+      [
+        (carthag.x + carthag.width / 2 - 0.5) * BOARD_RADIUS * 2,
+        0.18,
+        (carthag.y + carthag.height / 2 - 0.5) * BOARD_RADIUS * 2,
+      ],
+      () => {
+        expect(lastCommand()?.action).toMatchObject({ kind: 'battle-start', territory: 'Carthag' });
+      }
+    );
   },
 });
 
