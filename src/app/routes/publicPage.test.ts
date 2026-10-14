@@ -122,7 +122,7 @@ describe('public page heads', () => {
     });
     expect(metaOf(post)).toContainEqual({ property: 'og:type', content: 'article' });
     expect(metaOf(post)).toContainEqual({ property: 'article:published_time', content: '2026-10-14' });
-    expect(metaOf(post)).toContainEqual({ property: 'article:author', content: 'Central419' });
+    expect(metaOf(post).some((meta) => meta.property === 'article:author')).toBe(false);
     expect(metaOf(publicPageHead(faction))).toContainEqual({ property: 'og:type', content: 'website' });
   });
 

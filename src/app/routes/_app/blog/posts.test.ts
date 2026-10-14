@@ -5,11 +5,15 @@ import { BLOG_POSTS } from './posts';
 
 /* The sitemap lists posts by the shared slugs, so a post missing from either list would be unreachable or unlisted. */
 test('the sitemap lists exactly the published posts, newest first', () => {
-  expect(BLOG_POSTS.map((post) => post.meta.slug)).toEqual(BLOG_POST_SLUGS);
-  const dates = BLOG_POSTS.map((post) => post.meta.date);
+  const slugs = BLOG_POSTS.map((post) => post.slug);
+  expect(slugs).toEqual(BLOG_POST_SLUGS);
+  expect(new Set(slugs).size).toBe(slugs.length);
+  const dates = BLOG_POSTS.map((post) => post.date);
   expect(dates).toEqual([...dates].sort().reverse());
-  for (const { meta } of BLOG_POSTS) {
-    expect(meta.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(meta.slug).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+  for (const { date, slug } of BLOG_POSTS) {
+    expect(date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    /* A date the calendar does not have would show as "recently" and break the structured data. */
+    expect(new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10)).toBe(date);
+    expect(slug).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
   }
 });

@@ -4,22 +4,10 @@ import { FactionCard } from '@ui/block/FactionCard';
 import { Section } from '@ui/block/Section';
 
 import { Figure, Lead, LiveEmbed, Paragraph, YouTube } from '../postContent';
-import type { BlogPostMeta } from '../posts';
+import { BLOG_POST_META } from '../posts';
 import { dreamrulesAtreides } from './why-dune.atreides';
 
-export const meta: BlogPostMeta = {
-  slug: 'why-dune',
-  title: 'Why Dune?',
-  date: '2026-10-14',
-  author: 'Central419',
-  summary:
-    'How a YouTube recommendation, a Discord server and a lot of lockdown evenings drew me into Dune, and how a group of players writing their own rules led to dune.zone.',
-  cover: {
-    key: '/web/blog/why-dune/tts-central419.jpg',
-    alt: 'A Dune table in Tabletop Simulator, floating among the stars',
-    aspect: 1416 / 2048,
-  },
-};
+const meta = BLOG_POST_META['why-dune'];
 
 export default function Post() {
   return (

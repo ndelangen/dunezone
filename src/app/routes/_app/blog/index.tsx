@@ -41,7 +41,7 @@ function BlogPage() {
       </PageLayout.Header>
       <PageLayout.Content>
         <Stack gap={0} className={styles.list}>
-          {BLOG_POSTS.map(({ meta }, index) => (
+          {BLOG_POSTS.map((meta, index) => (
             <PostEntry meta={meta} number={BLOG_POSTS.length - index} key={meta.slug} />
           ))}
         </Stack>
