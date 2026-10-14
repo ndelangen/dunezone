@@ -1,3 +1,4 @@
+import { resolveAsset } from '@shared/media/resolveAsset';
 import { BLOG_POST_SLUGS } from '@shared/recordlessPublicPages';
 import type { BlogPostSlug } from '@shared/recordlessPublicPages';
 import { formatStableDate } from '@ui/content/dates';
@@ -51,4 +52,9 @@ export function findBlogPost(slug: string): BlogPostMeta | undefined {
 /** The date and author line the post list and the post page both show above a title. */
 export function blogPostByline(meta: BlogPostMeta): string {
   return `${formatStableDate(meta.date)} · ${meta.author}`;
+}
+
+/** The cover at its large tier, for the post's structured data. */
+export function blogPostImage(meta: BlogPostMeta): string {
+  return resolveAsset(meta.cover.key, 'large');
 }
