@@ -21,7 +21,7 @@ import {
 import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { adminQuery, internalMutation, mutation } from './functions';
 import { accountStateOf } from './lib/accountLifecycle';
@@ -38,7 +38,11 @@ import {
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { reconcileProfileDiscovery } from './lib/profileDiscovery';
 import { ensureRulebookEditionArtifacts } from './lib/rulebookEditionArtifacts';
-import { contentsForRulebookEdition } from './lib/rulebookEditionContents';
+import {
+  contentsForRulebookEdition,
+  rulebookDraftContentsHash,
+  rulebookEditionContentsHash,
+} from './lib/rulebookEditionContents';
 import {
   reconcileAnswerStatistics,
   reconcileFactionStatistics,
@@ -99,6 +103,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   rulebook_edition_artifacts_v1: internal.migrations.rulebook_edition_artifacts_v1,
   rulebook_edition_contents_v1: internal.migrations.rulebook_edition_contents_v1,
   rulebook_edition_contents_verify_v1: internal.migrations.rulebook_edition_contents_verify_v1,
+  rulebook_contents_hash_drafts_v1: internal.migrations.rulebook_contents_hash_drafts_v1,
+  rulebook_contents_hash_editions_v1: internal.migrations.rulebook_contents_hash_editions_v1,
   faction_extras_references_v1: internal.migrations.faction_extras_references_v1,
   faction_extras_references_verify_v1: internal.migrations.faction_extras_references_verify_v1,
   faction_troop_ids_v1: internal.migrations.faction_troop_ids_v1,
@@ -862,6 +868,39 @@ export const rulebook_edition_contents_verify_v1 = migrations.define({
     await contentsForRulebookEdition(ctx, edition);
   },
 });
+
+type ContentsHashTable = 'rulebook_drafts' | 'rulebook_editions';
+
+/**
+ * Defines one backfill that writes `contents_hash` on each row of a table from its stored Contents.
+ * Replaying it recomputes the same hash and writes nothing.
+ * Contents that no longer parse leave no hash, so the row stays on the full comparison.
+ */
+function contentsHashBackfill(
+  table: ContentsHashTable,
+  hashFor: (ctx: MutationCtx, row: Doc<ContentsHashTable>) => Promise<string | undefined>
+) {
+  return migrations.define({
+    table,
+    batchSize: 2,
+    migrateOne: async (ctx, row) => {
+      const contentsHash = await hashFor(ctx, row);
+      if (row.contents_hash !== contentsHash) {
+        await ctx.db.patch(row._id, { contents_hash: contentsHash });
+      }
+    },
+  });
+}
+
+/** Writes each saved draft's Contents hash, so the editor can stop reading the current Edition's Contents. */
+export const rulebook_contents_hash_drafts_v1 = contentsHashBackfill('rulebook_drafts', async (_ctx, draft) =>
+  rulebookDraftContentsHash((draft as Doc<'rulebook_drafts'>).contents)
+);
+
+/** Writes each Edition's Contents hash onto its metadata row, reading the Contents row once. */
+export const rulebook_contents_hash_editions_v1 = contentsHashBackfill('rulebook_editions', async (ctx, edition) =>
+  rulebookEditionContentsHash(await contentsForRulebookEdition(ctx, edition as Doc<'rulebook_editions'>))
+);
 
 const AUDIT_SCAN_LIMIT = 4096;
 const AUDIT_ID_SAMPLE_LIMIT = 50;

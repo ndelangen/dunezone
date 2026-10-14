@@ -360,6 +360,16 @@
       "id": "board_readiness_v1",
       "phase": "widen",
       "requires": []
+    },
+    {
+      "id": "rulebook_contents_hash_drafts_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "rulebook_contents_hash_editions_v1",
+      "phase": "widen",
+      "requires": []
     }
   ]
 }

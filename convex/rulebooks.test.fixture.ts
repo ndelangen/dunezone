@@ -11,6 +11,7 @@ import { rulebookDesignCatalogue, rulebookSizeCatalogue } from '../src/shared/ru
 import type { RulebookSettings } from '../src/shared/rulebooks/settings';
 import type { Id } from './_generated/dataModel';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { rulebookDraftContentsHash, rulebookEditionContentsHash } from './lib/rulebookEditionContents';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -137,7 +138,10 @@ export async function seedRulebookStarterContents(
 ) {
   const contents = createRulebookStarterContents();
   await t.run(async (ctx) => {
-    await ctx.db.patch('rulebook_drafts', bundle.draft._id, { contents });
+    await ctx.db.patch('rulebook_drafts', bundle.draft._id, {
+      contents,
+      contents_hash: rulebookDraftContentsHash(contents),
+    });
     const stored = await ctx.db
       .query('rulebook_edition_contents')
       .withIndex('by_edition_id', (q) => q.eq('edition_id', bundle.edition._id))
@@ -146,6 +150,9 @@ export async function seedRulebookStarterContents(
       throw new Error('Missing legacy Edition Contents');
     }
     await ctx.db.patch('rulebook_edition_contents', stored._id, { contents });
+    await ctx.db.patch('rulebook_editions', bundle.edition._id, {
+      contents_hash: rulebookEditionContentsHash(contents),
+    });
   });
   return contents;
 }
