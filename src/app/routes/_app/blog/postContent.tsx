@@ -67,27 +67,6 @@ export function Figure({ imageKey, alt, aspect, caption }: FigureProps) {
   );
 }
 
-/** Live site artwork or components shown inside a post, centred, with a caption saying what it is. */
-export function LiveEmbed({
-  caption,
-  width = '100%',
-  children,
-}: {
-  caption: string;
-  /** How wide the embed may grow, as a CSS width; `cqi` units measure the post's column. */
-  width?: string;
-  children: ReactNode;
-}) {
-  return (
-    <figure className={styles.figure}>
-      <div className={styles.stage}>
-        <div style={{ width }}>{children}</div>
-      </div>
-      <figcaption className={styles.caption}>{caption}</figcaption>
-    </figure>
-  );
-}
-
 /**
  * A YouTube video that loads nothing from YouTube until the reader asks for it.
  * Until then it shows a still frame from `media/`, so the page stays fast and no third party sees the visit;

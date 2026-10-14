@@ -27,20 +27,10 @@
   width: min(56rem, calc(100vw - 2 * var(--app-shell-inline-gutter, 20px)));
 }
 
-@container (width >= 30rem) {
+@container blog-article (width >= 30rem) {
   .figureRow {
     grid-template-columns: var(--figure-columns);
   }
-}
-
-/* The stage is its own container, so embedded artwork sizes from the column rather than the window. */
-.stage {
-  container-type: inline-size;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-lg) 0;
 }
 
 /* Shown only without scripts, in place of the image `PublishedImage` would draw. */

@@ -1,8 +1,7 @@
 import { Anchor } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
-
-import { Surface } from '@app/ui/surface';
+import { Surface } from '@ui/surface';
 
 import { Figure, FigureRow, Lead, Paragraph, YouTube } from '../postContent';
 import { BLOG_POST_META } from '../posts';
