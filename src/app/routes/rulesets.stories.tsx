@@ -55,8 +55,8 @@ export const Question = meta.story({
     const question = await page.findByRole('textbox', { name: 'Edit question' });
     await userEvent.clear(question);
     await userEvent.type(question, 'When does the storm move in round two?');
-    await userEvent.click(page.getByRole('checkbox', { name: 'Strategy', exact: true }));
-    expect(page.getByRole('checkbox', { name: 'Rules', exact: true })).toBeChecked();
+    await userEvent.click(page.getByRole('checkbox', { name: 'Strategy' }));
+    expect(page.getByRole('checkbox', { name: 'Rules' })).toBeChecked();
     expect(question).toHaveValue('When does the storm move in round two?');
     await userEvent.click(page.getByRole('button', { name: 'Save question' }));
     await waitFor(() =>
