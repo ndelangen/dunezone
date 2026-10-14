@@ -140,7 +140,7 @@ export const userImageSourceUrlSchema = makeUserImageSourceUrlSchema('Cover imag
 export const userAvatarSourceUrlSchema = makeUserImageSourceUrlSchema('Avatar image');
 
 /**
- * Outbound image requests refuse literal addresses and local names at every hop.
+ * Outbound image requests refuse literal addresses, local names and non-default ports at every hop.
  * Workers network isolation governs DNS resolution;
  * this check only classifies the URL hostname.
  * Stored source metadata keeps the syntax policy above because its bytes have already been rehosted.
@@ -162,6 +162,8 @@ export const userImageFetchUrlSchema = userImageSourceUrlSchema.superRefine((val
     )
   ) {
     ctx.addIssue({ code: 'custom', message: 'Image must use a public HTTPS hostname' });
+  } else if (url.port !== '') {
+    ctx.addIssue({ code: 'custom', message: 'Image must use the standard HTTPS port' });
   }
 });
 
