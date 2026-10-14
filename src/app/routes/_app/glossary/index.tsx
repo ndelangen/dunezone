@@ -23,10 +23,10 @@ export const Route = createFileRoute('/_app/glossary/')({
   ssr: true,
   head: () =>
     publicPageHead({
-      name: 'Glossary',
+      name: 'Dune board game glossary',
       pathname: '/glossary',
       description:
-        'Every Dune game idea has one name on Dune Zone. The glossary follows the 2019 rulebook and lists the other words each term replaces.',
+        "Explore Dune board game terms, based on the 2019 rulebook, with definitions and explanations of Dune Zone's preferred wording.",
       social: { kind: 'Dune Zone', shape: 'portrait' },
     }),
   component: GlossaryPage,
