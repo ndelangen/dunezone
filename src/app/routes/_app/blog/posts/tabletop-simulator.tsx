@@ -190,6 +190,7 @@ function FundamentalsSection() {
         Then I wanted the rulebook to reference the same data. It kept growing bigger and bigger, with more work every
         time I touched something. I wasn&rsquo;t working on the TTS mod anymore; I was working on the fundamentals.
       </Paragraph>
+      <Paragraph>Those fundamentals are what dune.zone is built on.</Paragraph>
       <FigureRow
         figures={[
           {
@@ -221,7 +222,6 @@ function FundamentalsSection() {
           },
         ]}
       />
-      <Paragraph>Those fundamentals are what dune.zone is built on.</Paragraph>
     </Section>
   );
 }
