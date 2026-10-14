@@ -1,23 +1,47 @@
+.hero {
+  width: 100%;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  color: white;
+  text-shadow: 0 2px 16px rgb(0 0 0 / 65%);
+}
+
+.hero h1 {
+  max-width: 800px;
+}
+
 .list {
   container-type: inline-size;
-  max-width: 48rem;
+  max-width: 62rem;
   margin-inline: auto;
+  padding-top: var(--space-xl);
 }
 
-/* The cover sits beside the summary, and above it once the column is too narrow for both. */
 .entry {
-  display: grid;
-  grid-template-columns: 10rem minmax(0, 1fr);
-  align-items: start;
-  gap: var(--space-md);
+  padding-bottom: clamp(3rem, 7vw, 5.5rem);
 }
 
-@container (width < 30rem) {
-  .entry {
-    grid-template-columns: minmax(0, 1fr);
+.number {
+  color: var(--mantine-color-dune-7);
+  font-size: 4rem;
+  font-weight: 900;
+  line-height: 0.9;
+  opacity: 0.25;
+}
+
+.entry h2 {
+  max-width: 760px;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.05;
+}
+
+.summary {
+  max-width: 690px;
+  font-size: var(--mantine-font-size-lg);
+  line-height: 1.6;
+}
+
+@container (width < 48rem) {
+  .number {
+    font-size: 3rem;
   }
-}
-
-.cover {
-  width: 100%;
 }

@@ -45,7 +45,7 @@ function BlogPostPage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header>
+      <PageLayout.Header size="compact">
         <PageTitle eyebrow={`${formatStableDate(meta.date)} · ${meta.author}`} title={meta.title} />
       </PageLayout.Header>
       <PageLayout.Content>

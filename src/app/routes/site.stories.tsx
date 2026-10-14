@@ -63,13 +63,13 @@ export const PublicationJobsNotAuthorized = meta.story({
 export const FuturePlans = meta.story({ args: { path: '/future-plans' } });
 export const Privacy = meta.story({ args: { path: '/privacy' } });
 
-/** The blog's list of posts, newest first, each card opening its post. */
+/** The blog's numbered list of posts, newest first, each title opening its post. */
 export const Blog = meta.story({
   args: { path: '/blog' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(
-      page.findByRole('link', { name: /A blog for Dune Zone/ }, { timeout: 30_000 })
+      page.findByRole('link', { name: 'A blog for Dune Zone' }, { timeout: 30_000 })
     ).resolves.toHaveAttribute('href', '/blog/a-blog-for-dune-zone');
   },
 });
