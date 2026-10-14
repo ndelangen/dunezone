@@ -11,7 +11,7 @@ Worker's own table to play on live from that step.
 bun run play:record
 ```
 
-The recorder is `workers/game/journey.record.native.test.mjs`. It provisions a real game on the same isolated
+The recorder is `workers/game/journey.record.native.test.ts`. It provisions a real game on the same isolated
 Miniflare runtime every native suite uses, seats six synthetic accounts and a spectator, and plays drafting,
 trading, Traitor selection, starting troops and one full turn with a spice blow, two Treachery purchases, a
 shipment and a battle, then declares a winner. After each step it keeps the full view each seat and the

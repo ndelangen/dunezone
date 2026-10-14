@@ -13,7 +13,7 @@ import { capturedFactions } from './product.stories.fixture';
 import { storyTransport } from './storyTransport';
 
 /*
- * The Play journey: one real six-seat game the game Worker played in `workers/game/journey.record.native.test.mjs`,
+ * The Play journey: one real six-seat game the game Worker played in `workers/game/journey.record.native.test.ts`,
  * replayed step by step. Each step holds the full view every seat and a spectator received, so the page renders engine
  * output. `bun run play:record` records it again after a rules change.
  */

@@ -260,7 +260,7 @@ phase_serve() {
 
   echo "Starting app server for Playwright..."
   E2E_APP_PORT="$E2E_APP_PORT" \
-    node "$ROOT_DIR/scripts/e2e-serve-dist.mjs" >"$ROOT_DIR/.playwright/app.log" 2>&1 &
+    node "$ROOT_DIR/scripts/e2e-serve-dist.ts" >"$ROOT_DIR/.playwright/app.log" 2>&1 &
   APP_PID=$!
   printf '%s' "$APP_PID" >"$APP_PID_FILE"
 

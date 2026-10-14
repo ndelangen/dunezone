@@ -473,12 +473,12 @@ says what the code now does, so a log reads as a description of the system rathe
 categories.
 
 **Block comments are the house style**, enforced by the local oxlint plugin
-[`scripts/oxlint-local-plugin.mjs`](scripts/oxlint-local-plugin.mjs)
+[`scripts/oxlint-local-plugin.ts`](scripts/oxlint-local-plugin.ts)
 (`local/prefer-block-comments`, generated files exempt). The rule also normalises the shape, one
 sentence per line, so a comment diff shows the sentence that changed.
 
 **Package scripts follow a taxonomy.** `check:*` are static tree guards backed by
-`scripts/assert-*.mjs`; `verify:*` verify generated artifacts against their sources; `generate:*`
+`scripts/assert-*.ts`; `verify:*` verify generated artifacts against their sources; `generate:*`
 produce them. The prefix tells you whether a failure means "the code is wrong" or "the artifacts are
 stale".
 
@@ -503,10 +503,10 @@ landed while the previous run was still going, one per review bot as each one re
 
 **Developer-facing prose has no AI tells**, and two gates hold that: em dashes, curly quotes, filler
 words, hedging openers, emoji and decorative divider bands. `local/no-ai-tells` in
-[`scripts/oxlint-local-plugin.mjs`](scripts/oxlint-local-plugin.mjs) reads comment tokens off the
+[`scripts/oxlint-local-plugin.ts`](scripts/oxlint-local-plugin.ts) reads comment tokens off the
 parsed syntax tree, so it sees comments and never string literals; product copy is out of its reach
 by construction rather than by exclusion. `bun run check:prose`
-([`scripts/assert-no-ai-tells.mjs`](scripts/assert-no-ai-tells.mjs)) covers what oxlint cannot see:
+([`scripts/assert-no-ai-tells.ts`](scripts/assert-no-ai-tells.ts)) covers what oxlint cannot see:
 markdown, CSS, YAML and shell comments, and `.oxlintrc.json`, whose messages are prose too. It also
 holds markdown headings to sentence case; a proper noun it flags belongs in that file's
 `PROPER_NOUNS`. Both run in the `lint` job. Product copy is out of scope, and so is

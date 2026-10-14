@@ -37,7 +37,7 @@ const ENTRY_POINTS = [
   'workers/game/load-entry.ts',
   'workers/publisher/index.ts',
   'scripts/play-local.ts',
-  'scripts/play-load/run.mjs',
+  'scripts/play-load/run.ts',
   'vite.config.ts',
   'workers/publisher/vite.config.ts',
   'workers/publisher/rulebook-html-renderer.vite.config.ts',
@@ -45,7 +45,7 @@ const ENTRY_POINTS = [
   'src/app/print/rulebookHtmlRuntime.ts',
   'scripts/assemble-publisher-assets.ts',
   'scripts/verify-rulebook-html-runtime.ts',
-  'scripts/workerd-exit-record.mjs',
+  'scripts/workerd-exit-record.ts',
   ...scriptsNamed(/^(?:generate|verify-hosted-)/u),
 ];
 describe('the hosted play closure', () => {
@@ -71,7 +71,7 @@ describe('the hosted play closure', () => {
     ['convex/playAdmission.ts', true],
     ['src/shared/assetIds.ts', true],
     ['src/app/ui/control/Button.tsx', true],
-    ['scripts/verify-hosted-results.mjs', true],
+    ['scripts/verify-hosted-results.ts', true],
     ['.github/workflows/reusable-verify.yml', true],
     ['.github/workflows/deploy-main.yml', false],
     ['.github/actions/hosted-play-summary/action.yml', true],
@@ -82,7 +82,7 @@ describe('the hosted play closure', () => {
     ['convex/_generated/ai/guidelines.md', false],
     ['scripts/generate-images.ts', true],
     ['scripts/assemble-publisher-assets.ts', true],
-    ['scripts/workerd-exit-record.mjs', true],
+    ['scripts/workerd-exit-record.ts', true],
     ['src/app/print/rulebookHtmlRuntime.ts', true],
     ['publisher-capture.html', true],
     ['src/app/routes/_app/play/$gameId.route.tsx', true],
@@ -115,7 +115,7 @@ describe('the hosted play closure', () => {
 
   test('globs match whole paths, with ** across directories and * within one', () => {
     expect(globToRegExp('convex/**').test('convex/lib/playSynthetic.ts')).toBe(true);
-    expect(globToRegExp('scripts/verify-hosted-*').test('scripts/verify-hosted-decks.mjs')).toBe(true);
+    expect(globToRegExp('scripts/verify-hosted-*').test('scripts/verify-hosted-decks.ts')).toBe(true);
     expect(globToRegExp('scripts/verify-hosted-*').test('scripts/verify-hosted/decks.mjs')).toBe(false);
     expect(globToRegExp('**/*.test.*').test('workers/game/session.test.ts')).toBe(true);
     expect(globToRegExp('package.json').test('workers/game/package.json')).toBe(false);

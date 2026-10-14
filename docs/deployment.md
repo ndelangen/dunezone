@@ -323,7 +323,7 @@ bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all
 
 The launcher builds the app and starts the stack once. Without `--browser-only` it runs the protocol
 verifier first. It then runs each selected browser flow in turn through
-`scripts/verify-hosted-play-browser.mjs`. Before the flows it seeds a synthetic ruleset
+`scripts/verify-hosted-play-browser.ts`. Before the flows it seeds a synthetic ruleset
 (`playTesting:seedRealGameCatalogue`) and installs its publication bytes; each flow signs in fresh
 accounts, none of them Administrators, and creates its own real game. `--flow` repeats, `all` selects every flow in
 [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), `--shard <name>` selects the
@@ -346,7 +346,7 @@ Worker output in `test-results/hosted-play/worker.log`, and Wrangler's own log f
 `test-results/hosted-play/wrangler.log` instead of Wrangler's global log directory. The Worker output
 marks each workerd process's start and exit with `[workerd <pid>]` lines: the exit code or signal,
 whether Wrangler stopped it, and the end of its stderr when it stopped on its own
-([`scripts/workerd-exit-record.mjs`](../scripts/workerd-exit-record.mjs)). When the Worker exits
+([`scripts/workerd-exit-record.ts`](../scripts/workerd-exit-record.ts)). When the Worker exits
 before the launcher stops it, the launcher prints those lines in its own output. Local account
 credentials and the backend environment file stay inside the private temporary runtime and are
 removed with its database and keys on exit. This mode uses only the new local backend, with no

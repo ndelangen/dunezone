@@ -40,7 +40,7 @@ does not: ownership rules that sit around it.
   component's TSX owner is the only importer of its stylesheet. No CSS `composes`.
 - Every class a module defines must be used, and every class a component reaches for must exist:
   `bun run check:css-orphans` enforces both across `src/app` (which contains the kit)
-  ([`scripts/assert-no-orphan-css-classes.mjs`](../../scripts/assert-no-orphan-css-classes.mjs)).
+  ([`scripts/assert-no-orphan-css-classes.ts`](../../scripts/assert-no-orphan-css-classes.ts)).
   `src/game` is out of scope there, by design.
 - Placement (`className`) may be passed into kit components; appearance may not.
 - Layouts may not restyle child content through descendant selectors or appearance variables. This

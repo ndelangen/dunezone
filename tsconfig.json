@@ -23,7 +23,7 @@
       "@shared/*": ["./src/shared/*"],
       "@game/*": ["./src/game/*"]
     },
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["vite/client"],
 
     /* Bundler mode */

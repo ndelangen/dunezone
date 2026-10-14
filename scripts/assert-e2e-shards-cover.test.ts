@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 import { describe, expect, test } from 'vitest';
 
 const run = promisify(execFile);
-const script = join(import.meta.dirname, 'assert-e2e-shards-cover.mjs');
+const script = join(import.meta.dirname, 'assert-e2e-shards-cover.ts');
 /* A cold node spawn on a loaded runner is the shape that timed out the oxlint gate test (#1048); the budgets follow that file. */
 const SPAWN_BUDGET_MS = 20_000;
 const TEST_BUDGET_MS = 30_000;
