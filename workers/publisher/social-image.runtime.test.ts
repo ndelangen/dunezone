@@ -32,6 +32,8 @@ test('renders bounded PNGs from local publications with zero outbound requests',
     bundle: true,
     format: 'esm',
     platform: 'browser',
+    /* Match Wrangler's package conditions, including the font engine's precompiled Worker entry. */
+    conditions: ['workerd', 'worker', 'browser'],
     target: 'es2022',
     write: false,
     outdir: directory,
@@ -126,6 +128,13 @@ test('renders bounded PNGs from local publications with zero outbound requests',
       expect(pixel[1]).toBeLessThan(15);
     }
     const original = await render(socialCardHref(input));
+    /* PNG dimensions alone do not prove the first heading glyphs are visible. */
+    const brand = await sharp(original)
+      .extract({ left: 60, top: 48, width: 65, height: 28 })
+      .removeAlpha()
+      .raw()
+      .toBuffer();
+    expect(brand.some((red, index) => index % 3 === 0 && red > 200)).toBe(true);
     const cachedFetch = (href: string) =>
       mf.dispatchFetch('https://dune.zone' + href, { headers: { 'X-Test-Cache': '1' } });
     const cold = await cachedFetch(socialCardHref(input));
