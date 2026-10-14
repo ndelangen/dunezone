@@ -16,6 +16,24 @@ export default function Post() {
         from <Anchor href="https://www.youtube.com/@helloMCDM">MCDM</Anchor>, a group playing the Dune board game, and
         the thumbnail looked strange enough that I clicked.
       </Lead>
+      <YouTube
+        id="Js_WINTqtjo"
+        title="MCDM Plays Dune - Round 1"
+        posterKey="/web/blog/why-dune/mcdm-plays-dune.jpg"
+        caption={
+          <>
+            MCDM Plays Dune, Round 1. The story continues in{' '}
+            <Anchor href="https://www.youtube.com/watch?v=aNbODmHvyQc" inherit>
+              Round 2
+            </Anchor>{' '}
+            and{' '}
+            <Anchor href="https://www.youtube.com/watch?v=aJIC4z6z4bQ" inherit>
+              Round 3
+            </Anchor>
+            .
+          </>
+        }
+      />
       <Paragraph>
         I wasn&rsquo;t new to board games. I had been part of an in-person board game group for years, and I was already
         playing on{' '}
@@ -70,24 +88,6 @@ function UnbalancedSection() {
         changed it. It sparked an interest in the Dune universe, in the board game, and honestly in board games in
         general.
       </Paragraph>
-      <YouTube
-        id="Js_WINTqtjo"
-        title="MCDM Plays Dune - Round 1"
-        posterKey="/web/blog/why-dune/mcdm-plays-dune.jpg"
-        caption={
-          <>
-            MCDM Plays Dune, Round 1. The story continues in{' '}
-            <Anchor href="https://www.youtube.com/watch?v=aNbODmHvyQc" inherit>
-              Round 2
-            </Anchor>{' '}
-            and{' '}
-            <Anchor href="https://www.youtube.com/watch?v=aJIC4z6z4bQ" inherit>
-              Round 3
-            </Anchor>
-            .
-          </>
-        }
-      />
       <Paragraph>
         I watched two or three of their Dune let&rsquo;s-plays back to back. Then I went looking for people to play
         with.
