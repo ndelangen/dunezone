@@ -68,8 +68,12 @@ export function initialMotion(home: BeaconSpot, mode: BeaconMode = 'gone', targe
   return { ...home, presence: 0, flat: 0, height: HOME_HEIGHT, fade: 1, respawn: false, last: 'gone' };
 }
 
-/** Up at its tracker and ready to be picked up: risen all the way and not on its way back from a battle. */
-export const beaconRisen = (state: BeaconMotion) => state.presence >= 1 && !state.respawn;
+/*
+ * Up at its tracker and ready to be picked up: risen all the way, at home or in hand, and not on its way back from a battle.
+ * A beacon over a battle never counts, so the handle cannot show in the moment between a battle ending and the beacon sinking.
+ */
+export const beaconRisen = (state: BeaconMotion) =>
+  state.presence >= 1 && !state.respawn && (state.last === 'home' || state.last === 'carry');
 
 const damp = (from: number, to: number, rate: number, delta: number) =>
   from + (to - from) * (1 - Math.exp(-rate * delta));

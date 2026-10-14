@@ -157,3 +157,10 @@ test('with motion turned off a carried beacon that moves draws one more frame, t
   expect(stepBeacon(state, { mode: 'carry', target: at(1), delta: 1 / 60, motion: false }).animating).toBe(true);
   expect(stepBeacon(state, { mode: 'carry', target: at(1), delta: 1 / 60, motion: false }).animating).toBe(false);
 });
+
+test('a beacon over a battle is never ready to pick up, so its handle cannot flash as the battle ends', () => {
+  const target = beaconTarget('anchor', HOME, { anchor: ANCHOR });
+  const state = initialMotion(HOME, 'anchor', target);
+  stepBeacon(state, { mode: 'anchor', target, delta: 1 / 60 });
+  expect(beaconRisen(state)).toBe(false);
+});
