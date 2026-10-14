@@ -31,7 +31,8 @@ export const Preparing = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const status = await page.findByText('Preparing the table', {}, { timeout: 30_000 });
     await waitFor(() => expect(finishTransitions(status)).toBeVisible());
-    expect(page.getByRole('button', { name: 'Copy game link' })).toBeVisible();
+    /* The status precedes the ClientOnly share control's first committed render. */
+    await expect(page.findByRole('button', { name: 'Copy game link' })).resolves.toBeVisible();
     expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
     expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
   },
