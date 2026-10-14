@@ -240,7 +240,7 @@ function FundamentalsSection() {
           {
             imageKey: '/web/blog/tabletop-simulator/iduali-dune-zone.jpg',
             alt: 'The Iduali faction page on dune.zone, with leader discs, troops and advantages',
-            aspect: 1690 / 1400,
+            aspect: 1341 / 1080,
             caption: (
               <>
                 The{' '}
