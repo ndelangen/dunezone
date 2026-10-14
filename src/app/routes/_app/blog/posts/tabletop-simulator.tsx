@@ -144,6 +144,12 @@ function ToolsSection() {
         automating every tedious bit where mistakes, delays and frustration build up. Unfortunately, I got incredibly
         side-tracked.
       </Paragraph>
+      <Figure
+        imageKey="/web/blog/tabletop-simulator/faction-pieces.jpg"
+        alt="A Tabletop Simulator table with every faction's leaders, tokens and reveal discs laid out in rows"
+        aspect={577 / 1080}
+        caption="Every faction's pieces laid out for my own mod, June 2021."
+      />
       <Paragraph>
         It started with the assets. Our group played a custom rule set that we kept playtesting and improving; new metas
         developed and new strategies were found, so the changes never stopped. Every time a faction ability changed, its
