@@ -302,6 +302,11 @@
       "requires": ["rulebook_edition_contents_v1"]
     },
     {
+      "id": "rulebook_edition_contents_narrow",
+      "phase": "narrow",
+      "requires": ["rulebook_edition_contents_v1", "rulebook_edition_contents_verify_v1"]
+    },
+    {
       "id": "faction_extras_references_v1",
       "phase": "widen",
       "requires": []

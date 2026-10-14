@@ -232,10 +232,12 @@ function rulebookWorld() {
       created_at: timestamps.created_at,
       ...fields,
     });
-  const legacy = edition({ edition_number: 1, contents: signedCoverContents() });
+  const first = edition({ edition_number: 1 });
   const current = edition({ edition_number: 2 });
-  world.add('rulebook_edition_contents', { edition_id: current, contents: signedCoverContents() });
-  return { ...authored, rulebook, legacy, current };
+  for (const editionId of [first, current]) {
+    world.add('rulebook_edition_contents', { edition_id: editionId, contents: signedCoverContents() });
+  }
+  return { ...authored, rulebook, first, current };
 }
 
 function rowsOf(entries: ReadonlyMap<string, string>, table: string): Row[] {
@@ -357,7 +359,7 @@ describe('anonymiseExport', () => {
 
 describe('anonymiseExport on Rulebook Editions', () => {
   test('shows Edition Contents the way the public reader does, so a signed cover source stays in production', () => {
-    const { world, legacy, current } = rulebookWorld();
+    const { world, first, current } = rulebookWorld();
     const { entries } = anonymiseExport(world.entries());
     const publicCover = {
       backgroundImageUrl: COVER_URL,
@@ -365,12 +367,9 @@ describe('anonymiseExport on Rulebook Editions', () => {
     };
 
     expect([...entries.values()].join('\n')).not.toContain('private-cover-secret');
-    const [legacyEdition, currentEdition] = rowsOf(entries, 'rulebook_editions');
-    const [stored] = rowsOf(entries, 'rulebook_edition_contents');
-    expect(legacyEdition).toMatchObject({ _id: legacy });
-    expect(currentEdition).not.toHaveProperty('contents');
-    expect(stored).toMatchObject({ edition_id: current });
-    for (const contents of [legacyEdition!.contents, stored!.contents]) {
+    const stored = rowsOf(entries, 'rulebook_edition_contents');
+    expect(stored.map((row) => row.edition_id)).toEqual([first, current]);
+    for (const { contents } of stored) {
       expect(contents).toMatchObject({ pagesById: { CVER: { controlValues: { cover: publicCover } } } });
     }
   });
@@ -393,7 +392,7 @@ describe('anonymiseExport on Rulebook Editions', () => {
     const { entries } = anonymiseExport(world.entries());
 
     expect(rowsOf(entries, 'ruleset_factions').map((row) => row.faction_id)).toEqual([published]);
-    expect(rowsOf(entries, 'rulebook_edition_contents')).toHaveLength(1);
+    expect(rowsOf(entries, 'rulebook_edition_contents')).toHaveLength(2);
     expect([...entries.values()].join('\n')).not.toContain('spice silo');
   });
 

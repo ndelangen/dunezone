@@ -219,7 +219,6 @@ describe('Rulebook first-page publication', () => {
         _id: editionId,
         rulebook_id: created.rulebook._id,
         edition_number: 2,
-        contents: secondContents,
       });
       return editionId;
     });
@@ -312,7 +311,6 @@ describe('Rulebook first-page publication', () => {
           _id: created.edition._id,
           rulebook_id: created.rulebook._id,
           edition_number: 1,
-          contents: undefined,
         })
       )
     ).resolves.toEqual({ enqueued: false, skipped: 'no-first-page' });

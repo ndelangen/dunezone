@@ -38,7 +38,7 @@ import {
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { reconcileProfileDiscovery } from './lib/profileDiscovery';
 import { ensureRulebookEditionArtifacts } from './lib/rulebookEditionArtifacts';
-import { contentsForRulebookEdition, rulebookContentsMatch } from './lib/rulebookEditionContents';
+import { contentsForRulebookEdition } from './lib/rulebookEditionContents';
 import {
   reconcileAnswerStatistics,
   reconcileFactionStatistics,
@@ -843,40 +843,22 @@ export const rulebook_edition_artifacts_v1 = migrations.define({
   },
 });
 
-/** Moves historical inline Contents into the one-to-one Contents table and clears the metadata row. */
+/**
+ * Moved historical inline Contents into the one-to-one Contents table and cleared the metadata row.
+ * Production has run it, and the schema no longer has an inline field to move, so its body is a no-op.
+ * Its id stays so the narrow guard can require it and every snapshot load can replay it.
+ */
 export const rulebook_edition_contents_v1 = migrations.define({
   table: 'rulebook_editions',
-  batchSize: 2,
-  migrateOne: async (ctx, edition) => {
-    const stored = await ctx.db
-      .query('rulebook_edition_contents')
-      .withIndex('by_edition_id', (q) => q.eq('edition_id', edition._id))
-      .unique();
-    if (!stored) {
-      if (edition.contents === undefined) {
-        throw new Error(`Rulebook Edition ${edition._id} has no Contents to migrate`);
-      }
-      await ctx.db.insert('rulebook_edition_contents', {
-        edition_id: edition._id,
-        contents: edition.contents,
-      });
-    } else if (edition.contents !== undefined && !rulebookContentsMatch(stored.contents, edition.contents)) {
-      throw new Error(`Rulebook Edition ${edition._id} has conflicting Contents`);
-    }
-    if (edition.contents !== undefined) {
-      await ctx.db.patch('rulebook_editions', edition._id, { contents: undefined });
-    }
-  },
+  batchSize: 50,
+  migrateOne: async () => {},
 });
 
-/** Proves every Edition has one Contents row and no remaining inline Contents. */
+/** Proves every Edition has its one Contents row; the schema itself now rules out inline Contents. */
 export const rulebook_edition_contents_verify_v1 = migrations.define({
   table: 'rulebook_editions',
   batchSize: 4,
   migrateOne: async (ctx, edition) => {
-    if (edition.contents !== undefined) {
-      throw new Error(`Rulebook Edition ${edition._id} still carries inline Contents`);
-    }
     await contentsForRulebookEdition(ctx, edition);
   },
 });

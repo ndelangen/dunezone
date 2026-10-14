@@ -16,10 +16,7 @@ import { contentsForRulebookEdition } from './rulebookEditionContents';
 import { resolveRulebookReferences } from './rulebookReferences';
 
 type RulebookPublicationReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
-type EditionIdentity = Pick<
-  Doc<'rulebook_editions'>,
-  '_id' | 'rulebook_id' | 'edition_number' | 'contents' | 'settings'
->;
+type EditionIdentity = Pick<Doc<'rulebook_editions'>, '_id' | 'rulebook_id' | 'edition_number' | 'settings'>;
 async function resolvedAssetsForEdition(ctx: RulebookPublicationReadCtx, contents: unknown) {
   const parsed = rulebookEditionContentsV1Schema.safeParse(contents);
   if (!parsed.success) {
