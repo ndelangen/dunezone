@@ -28,6 +28,9 @@ Quick reference for understanding and working with the codebase.
 
 ## Key commands
 
+Node is pinned in [`.nvmrc`](../.nvmrc).
+Run `nvm use` before installing dependencies; CI reads the same pin.
+
 ```bash
 # Development
 bun run app:dev           # Port 3000, using the configured online Convex deployment

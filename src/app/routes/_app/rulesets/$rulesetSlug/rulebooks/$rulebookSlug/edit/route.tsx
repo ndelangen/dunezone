@@ -69,6 +69,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
+import { errorMessage } from '@ui/content/errorMessage';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ConfirmPublishAction } from '@ui/control/ConfirmPublishAction';
@@ -3035,7 +3036,7 @@ function RulebookEditorError({ error }: ErrorComponentProps) {
   return (
     <PageMessage title="Edit Rulebook" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
       <LoadError title="This Rulebook could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );

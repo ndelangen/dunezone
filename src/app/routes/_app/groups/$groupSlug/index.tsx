@@ -7,6 +7,7 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
+import { errorMessage } from '@ui/content/errorMessage';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
@@ -83,7 +84,7 @@ function GroupDetailError({ error }: ErrorComponentProps) {
   return (
     <PageMessage size="compact" title="Group" back={backToProfiles}>
       <LoadError title="Group could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );

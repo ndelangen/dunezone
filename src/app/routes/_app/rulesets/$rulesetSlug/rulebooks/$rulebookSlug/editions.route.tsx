@@ -7,6 +7,7 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
+import { errorMessage } from '@ui/content/errorMessage';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -54,7 +55,7 @@ function RulebookEditionHistoryError({ error }: ErrorComponentProps) {
       }
     >
       <LoadError title="Editions could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );

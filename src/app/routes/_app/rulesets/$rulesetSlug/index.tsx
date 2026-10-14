@@ -13,6 +13,7 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { formatStableDate } from '@ui/content/dates';
+import { errorMessage } from '@ui/content/errorMessage';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
@@ -397,7 +398,7 @@ function RulesetDetailError({ error }: ErrorComponentProps) {
   return (
     <PageMessage size="compact" title="Ruleset" back={backToRulesets}>
       <LoadError title="Ruleset could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );

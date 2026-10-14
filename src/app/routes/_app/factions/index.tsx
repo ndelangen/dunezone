@@ -7,6 +7,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { formatStableDate } from '@ui/content/dates';
+import { errorMessage } from '@ui/content/errorMessage';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
@@ -116,7 +117,7 @@ function FactionCatalogueError({ error }: ErrorComponentProps) {
   return (
     <PageMessage title="Faction catalogue">
       <LoadError title="Faction catalogue could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );

@@ -7,6 +7,7 @@ import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { errorMessage } from '@ui/content/errorMessage';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -57,7 +58,7 @@ function FactionEditError({ error }: ErrorComponentProps) {
       back={<PageMessage.Back to="/factions">Back to factions</PageMessage.Back>}
     >
       <LoadError title="Faction could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );

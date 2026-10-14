@@ -12,6 +12,7 @@ import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
+import { errorMessage } from '@ui/content/errorMessage';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
@@ -284,7 +285,7 @@ function FactionDetailError({ error }: ErrorComponentProps) {
   return (
     <PageMessage size="compact" title="Faction" back={backToFactions}>
       <LoadError title="Faction could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );

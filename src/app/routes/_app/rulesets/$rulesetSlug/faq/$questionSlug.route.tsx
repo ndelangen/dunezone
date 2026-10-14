@@ -7,6 +7,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
+import { errorMessage } from '@ui/content/errorMessage';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -101,7 +102,7 @@ function FaqDetailError({ error }: ErrorComponentProps) {
       }
     >
       <LoadError title="This question could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );
