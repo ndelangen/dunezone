@@ -327,13 +327,38 @@ export async function verifyHomepage({
   await member.page.emulateMedia({ reducedMotion: 'no-preference' });
   let sessionReleased = false;
   let releaseSession;
+  let refusedHandling = false;
+  let releaseHandling;
   /* Let the board paint while the saved sign-in is still resolving. */
   await member.context.routeWebSocket(
     (url) => url.origin === backendSocketOrigin,
     (socket) => {
       const server = socket.connectToServer();
       const waiting = [];
+      const ticketRequests = new Set();
+      socket.onMessage((message) => {
+        const request = JSON.parse(String(message));
+        if (request.type === 'Mutation' && request.udfPath === 'homepageAdmission:issueTicket') {
+          ticketRequests.add(request.requestId);
+        }
+        server.send(message);
+      });
       server.onMessage((message) => {
+        const reply = JSON.parse(String(message));
+        if (
+          reply.type === 'MutationResponse' &&
+          ticketRequests.delete(reply.requestId) &&
+          reply.success &&
+          reply.result
+        ) {
+          if (!refusedHandling) {
+            refusedHandling = true;
+            message = JSON.stringify({ ...reply, result: null });
+          } else if (!releaseHandling) {
+            releaseHandling = () => socket.send(message);
+            return;
+          }
+        }
         if (sessionReleased) {
           socket.send(message);
         } else {
@@ -383,7 +408,7 @@ export async function verifyHomepage({
   for (const who of [member, guest]) {
     await who.page.goto(origin, { waitUntil: 'domcontentloaded' });
     await who.page.getByRole('link', { name: 'Take a sneak peek', exact: true }).click();
-    await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
+    await who.page.getByText(/^(Try moving one of the pieces!|Connecting the pieces…)$/).waitFor();
     if (who === member) {
       await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
       await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
@@ -408,10 +433,28 @@ export async function verifyHomepage({
       });
       await capture(member, 'homepage-before-saved-signin-resolves');
       releaseSession();
+      await until(() => refusedHandling, 'The first handling request was not refused.');
+      await who.page.getByText('Connecting the pieces…', { exact: true }).waitFor();
+      await who.page.locator('[data-table-handling="false"]').waitFor();
+      assert.equal(
+        await initialCanvas.evaluate((canvas) => {
+          const rect = canvas.getBoundingClientRect();
+          return (
+            document.elementFromPoint(innerWidth / 2, Math.min(innerHeight - 1, rect.top + rect.height / 2)) === canvas
+          );
+        }),
+        true,
+        'An overlay intercepted the visible board while handling was unavailable.'
+      );
+      await capture(member, 'homepage-visible-before-handling-recovers');
+      await until(() => releaseHandling, 'The refused handling request did not recover.');
+      releaseHandling();
       await until(() => {
         const view = who.view();
         return view && view.viewer.viewerSeat !== spectator;
       }, 'Saved sign-in did not grant handling.');
+      await who.page.locator('[data-table-handling="true"]').waitFor();
+      await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
       assert.equal(
         await initialCanvas.evaluate((canvas) => canvas === document.querySelector('#play-preview canvas')),
         true,
@@ -420,6 +463,7 @@ export async function verifyHomepage({
       assert.equal(await continuity.evaluate((probe) => probe.finish()), false, 'Saved sign-in hid the painted board.');
       await continuity.dispose();
       passed('Saved sign-in resolves after the board appears without replacing its canvas');
+      passed('A refused handling request recovers on the visible canvas without an overlay or remount');
       await capture(member, 'homepage-board-before-slow-artwork');
       releaseArtwork.resolve();
     } else {

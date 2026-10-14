@@ -7,6 +7,7 @@ import {
   serverMessageSchema,
 } from '@shared/play/protocol';
 import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { applyRoomUpdate } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 
@@ -29,6 +30,8 @@ export class HomepageSubscription implements TableSubscription {
   private connectionDeadline?: ReturnType<typeof setTimeout>;
   private reconnect?: ReturnType<typeof setTimeout>;
   private admission?: ReturnType<typeof setInterval>;
+  private admissionRecovery?: ReturnType<typeof setTimeout>;
+  private admissionBackoff = 5000;
   private keepalive?: ReturnType<typeof setInterval>;
   private silentTicks = 0;
   private backoff = 1000;
@@ -76,6 +79,8 @@ export class HomepageSubscription implements TableSubscription {
       clearTimeout(this.reconnect);
       clearTimeout(this.connectionDeadline);
       clearInterval(this.admission);
+      clearTimeout(this.admissionRecovery);
+      this.admissionRecovery = undefined;
       clearInterval(this.keepalive);
       this.socket?.close();
       this.socket = null;
@@ -181,6 +186,13 @@ export class HomepageSubscription implements TableSubscription {
       previous,
       snapshotChanged: message.type === 'view' || Boolean(message.snapshot || message.completedCommandId),
     });
+    if (view.viewer.viewerSeat !== SPECTATOR_SEAT) {
+      clearTimeout(this.admissionRecovery);
+      this.admissionRecovery = undefined;
+      this.admissionBackoff = 5000;
+    } else {
+      this.recoverAdmission();
+    }
   }
 
   private requestResync(socket: GameSocket, completedCommandId?: string) {
@@ -196,6 +208,8 @@ export class HomepageSubscription implements TableSubscription {
       return;
     }
     this.authPending = generation;
+    clearTimeout(this.admissionRecovery);
+    this.admissionRecovery = undefined;
     try {
       const result = await this.requestTicket();
       if (!result) {
@@ -210,7 +224,33 @@ export class HomepageSubscription implements TableSubscription {
       if (this.authPending === generation) {
         this.authPending = null;
       }
+      if (this.isCurrent(socket, generation)) {
+        this.recoverAdmission();
+      }
     }
+  }
+
+  /* A public view keeps the board available but does not acknowledge a member's handling permission. */
+  private recoverAdmission() {
+    const socket = this.socket;
+    const generation = this.generation;
+    if (
+      !socket ||
+      !this.requestTicket ||
+      this.admissionRecovery ||
+      this.authPending === generation ||
+      (this.current && this.current.viewer.viewerSeat !== SPECTATOR_SEAT)
+    ) {
+      return;
+    }
+    const delay = this.admissionBackoff;
+    this.admissionBackoff = Math.min(30_000, delay * 2);
+    this.admissionRecovery = setTimeout(() => {
+      this.admissionRecovery = undefined;
+      if (this.isCurrent(socket, generation)) {
+        void this.authenticate(socket, generation);
+      }
+    }, delay);
   }
 
   private closed(socket: GameSocket) {
@@ -221,6 +261,9 @@ export class HomepageSubscription implements TableSubscription {
     ++this.generation;
     clearTimeout(this.connectionDeadline);
     clearInterval(this.admission);
+    clearTimeout(this.admissionRecovery);
+    this.admissionRecovery = undefined;
+    this.admissionBackoff = 5000;
     clearInterval(this.keepalive);
     socket.close();
     this.current = null;
