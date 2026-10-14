@@ -15,9 +15,10 @@ export const Route = createFileRoute('/_app/rulesets/')({
   loader: async () => ({ rulesets: await loadRulesetsAll() }),
   head: () =>
     publicPageHead({
-      name: 'Rulesets',
+      name: 'Dune board game rulesets and rulebooks',
       pathname: '/rulesets',
-      description: 'Explore Dune rulesets and their published Rulebooks.',
+      description:
+        'Read community rulesets and published Rulebooks for the Dune board game, including Dreamrules. Build a ruleset for your own table.',
       social: { kind: 'Rulesets', shape: 'portrait' },
     }),
   component: RulesetsPage,

@@ -38,9 +38,10 @@ export const Route = createFileRoute('/_app/factions/')({
   errorComponent: FactionCatalogueError,
   head: () =>
     publicPageHead({
-      name: 'Factions',
+      name: 'Custom Dune board game factions',
       pathname: '/factions',
-      description: 'Browse community factions for Dune, with rules, leaders, troops and printable sheets.',
+      description:
+        'Browse community factions for the Dune board game, read their abilities, and download printable sheets. Create and share your own faction.',
     }),
   component: FactionsPage,
 });

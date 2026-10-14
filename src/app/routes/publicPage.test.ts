@@ -109,7 +109,11 @@ describe('public page heads', () => {
       description: 'How a group of players came to Dune.',
       image: '/m/board.webp',
       trail: [{ name: 'Blog', pathname: '/blog' }],
-      entity: { type: 'article', author: 'Central419', published: '2026-10-14' },
+      entity: {
+        type: 'article',
+        author: { name: 'Central419', pathname: '/profiles/central' },
+        published: '2026-10-14',
+      },
     });
     expect(graphOf(post)?.[1]).toEqual({
       '@type': 'BlogPosting',
@@ -118,12 +122,27 @@ describe('public page heads', () => {
       image: 'https://dune.zone/m/board.webp',
       description: 'How a group of players came to Dune.',
       datePublished: '2026-10-14',
-      author: { '@type': 'Person', name: 'Central419' },
+      author: { '@type': 'Person', name: 'Central419', url: 'https://dune.zone/profiles/central' },
     });
     expect(metaOf(post)).toContainEqual({ property: 'og:type', content: 'article' });
     expect(metaOf(post)).toContainEqual({ property: 'article:published_time', content: '2026-10-14' });
-    expect(metaOf(post).some((meta) => meta.property === 'article:author')).toBe(false);
+    expect(metaOf(post)).toContainEqual({
+      property: 'article:author',
+      content: 'https://dune.zone/profiles/central',
+    });
     expect(metaOf(publicPageHead(faction))).toContainEqual({ property: 'og:type', content: 'website' });
+  });
+
+  test('an author without a verified profile is named without inventing a profile URL', () => {
+    const post = publicPageHead({
+      name: 'A new post',
+      pathname: '/blog/new-post',
+      description: 'A development note.',
+      entity: { type: 'article', author: { name: 'Guest author' }, published: '2026-10-14' },
+    });
+    expect(graphOf(post)?.[0]).toMatchObject({ author: { '@type': 'Person', name: 'Guest author' } });
+    expect(graphOf(post)?.[0].author).not.toHaveProperty('url');
+    expect(metaOf(post).some((meta) => meta.property === 'article:author')).toBe(false);
   });
 
   test('a page that threw notFound has no head at all', () => {

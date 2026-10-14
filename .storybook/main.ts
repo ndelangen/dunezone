@@ -107,6 +107,10 @@ export default defineMain({
       titlePrefix: 'Widgets/Page Message',
     },
     {
+      directory: '../src/app/widgets/blog-byline',
+      titlePrefix: 'Widgets/Blog Byline',
+    },
+    {
       directory: '../src/app/ui/block',
       titlePrefix: 'Blocks',
     },

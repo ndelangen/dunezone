@@ -1,7 +1,6 @@
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { BLOG_POST_SLUGS } from '@shared/recordlessPublicPages';
 import type { BlogPostSlug } from '@shared/recordlessPublicPages';
-import { formatStableDate } from '@ui/content/dates';
 
 /*
  * What the post list, the page head and the sitemap know about each post, without its body.
@@ -66,9 +65,11 @@ export function findBlogPost(slug: string): BlogPostMeta | undefined {
   return BLOG_POSTS.find((post) => post.slug === slug);
 }
 
-/** The date and author line the post list and the post page both show above a title. */
-export function blogPostByline(meta: BlogPostMeta): string {
-  return `${formatStableDate(meta.date)} · ${meta.author}`;
+/** Only verified author profiles become links; another author keeps their written byline. */
+const AUTHOR_PROFILES = new Map([['Central419', 'central']]);
+
+export function blogPostAuthor(meta: BlogPostMeta): { name: string; profileSlug?: string } {
+  return { name: meta.author, profileSlug: AUTHOR_PROFILES.get(meta.author) };
 }
 
 /**
