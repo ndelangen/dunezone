@@ -464,9 +464,13 @@ function observeAdmission(state, socket) {
       state.admission.tickets.find((entry) => entry.requestId === message.requestId && entry.answeredAt === null);
     if (ticket) {
       ticket.answeredAt = Date.now();
-      /* A refusal is a successful mutation with an ok:false result; the result's ticket itself is never kept. */
+      /* Homepage refusal returns null; real-game admission reports ok and a reason. */
       ticket.outcome =
-        message.success !== true ? 'failed' : message.result?.ok ? 'issued' : (message.result?.reason ?? 'refused');
+        message.success !== true
+          ? 'failed'
+          : message.result?.ok || typeof message.result?.ticket === 'string'
+            ? 'issued'
+            : (message.result?.reason ?? 'refused');
     }
   });
 }

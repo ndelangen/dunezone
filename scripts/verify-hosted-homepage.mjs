@@ -329,12 +329,14 @@ export async function verifyHomepage({
   let releaseSession;
   let refusedHandling = false;
   let releaseHandling;
+  let handlingReleased = false;
   /* Let the board paint while the saved sign-in is still resolving. */
   await member.context.routeWebSocket(
     (url) => url.origin === backendSocketOrigin,
     (socket) => {
       const server = socket.connectToServer();
       const waiting = [];
+      const handlingWaiting = [];
       const ticketRequests = new Set();
       socket.onMessage((message) => {
         const request = JSON.parse(String(message));
@@ -344,6 +346,10 @@ export async function verifyHomepage({
         server.send(message);
       });
       server.onMessage((message) => {
+        if (releaseHandling && !handlingReleased) {
+          handlingWaiting.push(message);
+          return;
+        }
         const reply = JSON.parse(String(message));
         if (
           reply.type === 'MutationResponse' &&
@@ -355,7 +361,15 @@ export async function verifyHomepage({
             refusedHandling = true;
             message = JSON.stringify({ ...reply, result: null });
           } else if (!releaseHandling) {
-            releaseHandling = () => socket.send(message);
+            /* Keep Convex's mutation reply ahead of the transitions that acknowledge its writes. */
+            handlingWaiting.push(message);
+            releaseHandling = () => {
+              handlingReleased = true;
+              for (const held of handlingWaiting) {
+                socket.send(held);
+              }
+              handlingWaiting.length = 0;
+            };
             return;
           }
         }
