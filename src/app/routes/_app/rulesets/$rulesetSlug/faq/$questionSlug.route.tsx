@@ -19,7 +19,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Check, MessageCircleReply, MessageSquarePlus, Pencil, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
@@ -30,7 +30,6 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './$questionSlug.module.css';
 import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession } from './faqEditingSession';
-import type { FaqEditingSession } from './faqEditingSession';
 import { questionTitle } from './questionTitle';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionSlug')({
@@ -167,15 +166,15 @@ function FaqDetailPage() {
   useLivePageTitle(faq.page ? questionTitle(faq.page.question.text) : undefined, 'FAQ');
 
   const [editing, setEditing] = useState(INITIAL_FAQ_EDITING_STATE);
-  const editingSessionRef = useRef<FaqEditingSession>(undefined);
-  const commandsRef = useRef({ faq });
-  commandsRef.current = { faq };
-  editingSessionRef.current ??= createFaqEditingSession({
-    editQuestion: (input) => commandsRef.current.faq.editQuestion.run(input),
-    editAnswer: (input) => commandsRef.current.faq.editAnswer.run(input),
-    onState: setEditing,
-  });
-  const editingSession = editingSessionRef.current;
+  const editingSession = useMemo(
+    () =>
+      createFaqEditingSession({
+        editQuestion: faq.editQuestion.run,
+        editAnswer: faq.editAnswer.run,
+        onState: setEditing,
+      }),
+    [faq.editQuestion.run, faq.editAnswer.run]
+  );
 
   const page = faq.page;
   const item = page?.question;

@@ -2,7 +2,7 @@ import { ensureFactionComponentIds } from '@shared/factions/componentIdentity';
 import { FactionNameSchema } from '@shared/factions/schema';
 import { useForm, useStore } from '@tanstack/react-form';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import type { Faction, FactionEntry } from '@db/factions';
 import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
@@ -40,8 +40,9 @@ export function useFactionAuthoring({
   onSaved: (entry: FactionEntry) => void;
 }) {
   const sessionKeyRef = useRef(sessionKey);
-  const initialBaselineRef = useRef<Faction>(undefined);
-  initialBaselineRef.current ??= ensureFactionComponentIds(structuredClone(initialData));
+  const [initialBaseline, setInitialBaseline] = useState<Faction>(() =>
+    ensureFactionComponentIds(structuredClone(initialData))
+  );
   const [errors, setErrors] = useState<string[]>([]);
   /*
    * The background composer's colour-mode memory. It belongs to the draft, and the composer cannot see
@@ -57,10 +58,12 @@ export function useFactionAuthoring({
    */
   const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
 
-  const sessionRef = useRef<ReturnType<typeof createFactionAuthoringSession>>(undefined);
   const latestRef = useRef({ persistence, onSaved });
-  latestRef.current = { persistence, onSaved };
+  useLayoutEffect(() => {
+    latestRef.current = { persistence, onSaved };
+  }, [persistence, onSaved]);
 
+  const sessionRef = useRef<ReturnType<typeof createFactionAuthoringSession> | null>(null);
   const form = useForm<
     Faction,
     undefined,
@@ -75,44 +78,51 @@ export function useFactionAuthoring({
     undefined,
     undefined
   >({
-    defaultValues: initialBaselineRef.current,
+    defaultValues: initialBaseline,
     onSubmit: async ({ value }) => await sessionRef.current?.persistDraft(value),
   });
 
-  sessionRef.current ??= createFactionAuthoringSession({
-    initialData: initialBaselineRef.current,
-    form: {
-      reset: (values, options) => {
-        if (!options?.keepDefaultValues) {
-          /*
-           * form.reset(values) adopts `values` as the form's defaultValues, but useForm
-           * re-applies the hook's defaultValues on every render and overwrites an
-           * untouched form whenever the two disagree. Keep the hook's copy in step.
-           */
-          initialBaselineRef.current = structuredClone(values);
-        }
-        setBackgroundModeMemory(emptyBackgroundModeMemory());
-        setRetainedManualComplexity(null);
-        form.reset(values, options);
+  const saveDraft = useCallback((draft: Faction) => latestRef.current.persistence.save(draft), []);
+  const resetPersistence = useCallback(() => latestRef.current.persistence.reset(), []);
+  const saved = useCallback((entry: FactionEntry) => latestRef.current.onSaved(entry), []);
+  useLayoutEffect(() => {
+    if (sessionRef.current) {
+      return;
+    }
+    sessionRef.current = createFactionAuthoringSession({
+      initialData: initialBaseline,
+      form: {
+        reset: (values, options) => {
+          if (!options?.keepDefaultValues) {
+            /*
+             * form.reset(values) adopts `values` as the form's defaultValues, but useForm
+             * re-applies the hook's defaultValues on every render and overwrites an
+             * untouched form whenever the two disagree. Keep the hook's copy in step.
+             */
+            setInitialBaseline(structuredClone(values));
+          }
+          setBackgroundModeMemory(emptyBackgroundModeMemory());
+          setRetainedManualComplexity(null);
+          form.reset(values, options);
+        },
+        markLoadedDraftDirty: () => form.setFieldMeta('name', (meta) => ({ ...meta, isDirty: true, isTouched: true })),
       },
-      markLoadedDraftDirty: () => form.setFieldMeta('name', (meta) => ({ ...meta, isDirty: true, isTouched: true })),
-    },
-    persistence: {
-      save: (draft) => latestRef.current.persistence.save(draft),
-      reset: () => latestRef.current.persistence.reset(),
-    },
-    onSaved: (entry) => latestRef.current.onSaved(entry),
-    onErrors: setErrors,
-  });
-  const session = sessionRef.current;
+      persistence: {
+        save: saveDraft,
+        reset: resetPersistence,
+      },
+      onSaved: saved,
+      onErrors: setErrors,
+    });
+  }, [initialBaseline, form, saveDraft, resetPersistence, saved]);
 
   useEffect(() => {
     if (sessionKeyRef.current === sessionKey) {
       return;
     }
     sessionKeyRef.current = sessionKey;
-    session.switchSource(initialData);
-  }, [initialData, session, sessionKey]);
+    sessionRef.current?.switchSource(initialData);
+  }, [initialData, sessionKey]);
 
   const editing = useStore(form.store, (state) => {
     const isNameBlank = state.values.name.trim().length === 0;
@@ -128,8 +138,8 @@ export function useFactionAuthoring({
     };
   });
 
-  const loadDraft = useCallback((draft: Faction) => session.loadDraft(draft), [session]);
-  const reset = useCallback(() => session.reset(), [session]);
+  const loadDraft = useCallback((draft: Faction) => sessionRef.current?.loadDraft(draft), []);
+  const reset = useCallback(() => sessionRef.current?.reset(), []);
   const submit = useCallback(async () => await form.handleSubmit(), [form]);
 
   const saveState: AuthoringSaveState = persistence.isPending

@@ -208,37 +208,48 @@ export function useConvexStorybookQuery<Query extends FunctionReference<'query'>
   const name = getFunctionName(query);
   const stableQuery = useMemo(() => makeFunctionReference(name) as Query, [name]);
   const stableArgs = useStableConvexValue(args);
-  const [value, setValue] = useState<FunctionReturnType<Query>>();
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    setValue(undefined);
-  }, [client, identity, stableArgs, stableQuery]);
+  const input = useMemo(
+    () => ({ client, identity, stableArgs, stableQuery }),
+    [client, identity, stableArgs, stableQuery]
+  );
+  const [result, setResult] = useState<{
+    input: typeof input;
+    revision: number;
+    value?: FunctionReturnType<Query>;
+    error?: Error;
+  }>();
 
   useEffect(() => {
     let active = true;
-    setError(null);
     void client
       .query(stableQuery, stableArgs, identity)
-      .then((result) => {
+      .then((value) => {
         if (active) {
-          setValue(result);
+          setResult({ input, revision, value });
         }
       })
       .catch((queryError: unknown) => {
         if (active) {
-          setError(queryError instanceof Error ? queryError : new Error(String(queryError)));
+          setResult({
+            input,
+            revision,
+            error: queryError instanceof Error ? queryError : new Error(String(queryError)),
+          });
         }
       });
     return () => {
       active = false;
     };
-  }, [client, identity, revision, stableArgs, stableQuery]);
+  }, [client, identity, input, revision, stableArgs, stableQuery]);
 
-  if (error) {
-    throw error;
+  /* A changed argument clears immediately; a revision keeps the last value until its replacement arrives. */
+  if (result?.input !== input) {
+    return undefined;
   }
-  return value;
+  if (result.error && result.revision === revision) {
+    throw result.error;
+  }
+  return result.value;
 }
 
 export function useConvexStorybookMutation<
@@ -263,65 +274,91 @@ export function useConvexStorybookPaginatedQuery<Query extends PaginatedQueryRef
   const name = getFunctionName(query);
   const stableQuery = useMemo(() => makeFunctionReference(name) as Query, [name]);
   const stableArgs = useStableConvexValue(args);
-  const [requests, setRequests] = useState<PageRequest[]>([{ cursor: null, numItems: options.initialNumItems }]);
-  const [pages, setPages] = useState<Array<PaginationResult<PaginatedQueryItem<Query>>>>([]);
-  const [status, setStatus] = useState<PaginationStatus>('LoadingFirstPage');
-  const [error, setError] = useState<Error | null>(null);
+  const initialNumItems = options.initialNumItems;
+  const input = useMemo(
+    () => ({ client, identity, stableArgs, stableQuery, initialNumItems }),
+    [client, identity, stableArgs, stableQuery, initialNumItems]
+  );
+  type Pages = {
+    input: typeof input;
+    requests: PageRequest[];
+    pages: Array<PaginationResult<PaginatedQueryItem<Query>>>;
+    status: PaginationStatus;
+    error?: { revision: number; cause: Error };
+  };
+  const initialPages = (): Pages => ({
+    input,
+    requests: stableArgs === 'skip' ? [] : [{ cursor: null, numItems: initialNumItems }],
+    pages: [],
+    status: stableArgs === 'skip' ? 'Exhausted' : 'LoadingFirstPage',
+  });
+  const [state, setState] = useState(initialPages);
+  if (state.input !== input) {
+    setState(initialPages());
+  }
+  const requests = state.requests;
 
   useEffect(() => {
-    setRequests(stableArgs === 'skip' ? [] : [{ cursor: null, numItems: options.initialNumItems }]);
-    setPages([]);
-    setStatus(stableArgs === 'skip' ? 'Exhausted' : 'LoadingFirstPage');
-  }, [client, identity, options.initialNumItems, stableArgs, stableQuery]);
-
-  useEffect(() => {
-    if (stableArgs === 'skip' || requests.length === 0) {
+    if (stableArgs === 'skip' || requests.length === 0 || state.input !== input) {
       return;
     }
     const queryArgsBase = stableArgs as Record<string, ConvexValue>;
     let active = true;
-    setError(null);
     void Promise.all(
       requests.map(async (request) => {
         const queryArgs = { ...queryArgsBase, paginationOpts: request } as FunctionArgs<Query>;
         return (await client.query(stableQuery, queryArgs, identity)) as PaginationResult<PaginatedQueryItem<Query>>;
       })
     )
-      .then((nextPages) => {
+      .then((pages) => {
         if (active) {
-          setPages(nextPages);
-          setStatus(nextPages.at(-1)?.isDone === false ? 'CanLoadMore' : 'Exhausted');
+          setState((current) =>
+            current.input === input
+              ? {
+                  ...current,
+                  pages,
+                  status: pages.at(-1)?.isDone === false ? 'CanLoadMore' : 'Exhausted',
+                  error: undefined,
+                }
+              : current
+          );
         }
       })
       .catch((queryError: unknown) => {
         if (active) {
-          setError(queryError instanceof Error ? queryError : new Error(String(queryError)));
+          const cause = queryError instanceof Error ? queryError : new Error(String(queryError));
+          setState((current) => (current.input === input ? { ...current, error: { revision, cause } } : current));
         }
       });
     return () => {
       active = false;
     };
-  }, [client, identity, requests, revision, stableArgs, stableQuery]);
+  }, [client, identity, input, requests, revision, stableArgs, stableQuery, state.input]);
 
   const loadMore = useCallback(
     (numItems: number) => {
-      const lastPage = pages.at(-1);
-      if (status !== 'CanLoadMore' || !lastPage) {
-        return;
-      }
-      setStatus('LoadingMore');
-      setRequests((current) => [...current, { cursor: lastPage.continueCursor, numItems }]);
+      setState((current) => {
+        const lastPage = current.pages.at(-1);
+        if (current.input !== input || current.status !== 'CanLoadMore' || !lastPage) {
+          return current;
+        }
+        return {
+          ...current,
+          status: 'LoadingMore',
+          requests: [...current.requests, { cursor: lastPage.continueCursor, numItems }],
+        };
+      });
     },
-    [pages, status]
+    [input]
   );
 
-  if (error) {
-    throw error;
+  if (state.input === input && state.error?.revision === revision) {
+    throw state.error.cause;
   }
   return {
-    results: pages.flatMap((page) => page.page),
-    status,
-    isLoading: status === 'LoadingFirstPage' || status === 'LoadingMore',
+    results: state.pages.flatMap((page) => page.page),
+    status: state.status,
+    isLoading: state.status === 'LoadingFirstPage' || state.status === 'LoadingMore',
     loadMore,
   } as UsePaginatedQueryReturnType<Query>;
 }

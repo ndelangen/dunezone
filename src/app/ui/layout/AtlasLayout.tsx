@@ -7,13 +7,9 @@ import { warnDroppedChild } from './warnDroppedChild';
 
 const ATLAS_SLOTS = ['AtlasLayout.Sidebar', 'AtlasLayout.Content'] as const;
 
-function Sidebar(_: PropsWithChildren): null {
-  return null;
-}
+const Sidebar: (props: PropsWithChildren) => null = () => null;
 
-function Content(_: PropsWithChildren): null {
-  return null;
-}
+const Content: (props: PropsWithChildren) => null = () => null;
 
 /** A fixed sidebar beside flowing content, responsive by container query. */
 function AtlasLayoutBase({ className, children }: PropsWithChildren<{ className?: string }>) {

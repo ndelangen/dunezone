@@ -285,13 +285,17 @@ function OnlineRulebooks() {
 function useNearbyArtwork() {
   const region = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+  const noObserver = useSyncExternalStore(
+    noArtworkSubscription,
+    () => typeof IntersectionObserver === 'undefined',
+    () => false
+  );
   useEffect(() => {
     const element = region.current;
     if (!element) {
       return;
     }
     if (typeof IntersectionObserver === 'undefined') {
-      setVisible(true);
       return;
     }
     const observer = new IntersectionObserver(
@@ -306,7 +310,7 @@ function useNearbyArtwork() {
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  return { region, visible };
+  return { region, visible: visible || noObserver };
 }
 
 function BookCloud() {
@@ -713,3 +717,5 @@ function useRoomForLiveBoard(still: RefObject<HTMLElement | null>) {
   }, [still]);
   return room;
 }
+
+const noArtworkSubscription = () => () => undefined;

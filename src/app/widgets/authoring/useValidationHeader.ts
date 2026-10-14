@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useReducer } from 'react';
 
 /**
  * The masthead's replacement, open only while validation warnings exist.
@@ -23,54 +23,42 @@ export type ValidationHeaderState = {
    never jumps above the sticky toolbar while typing. The open state gates the
    PageLayout.Header slot itself; the shell's band already animates its height change. */
 export function useValidationHeader(count: number): ValidationHeaderState {
-  const [open, setOpen] = useState(count > 0);
-  const countRef = useRef(count);
-  const [settleTick, setSettleTick] = useState(0);
-  /* A release that arrived while warnings still stood, waiting for the count it was about to reach zero.
-     Discrete draft replacements are the asynchronous case: a membership mutation releases now and the warning it clears
-     only disappears once the server's next result lands, which is one or more renders later («Reset leaves the validation header open»).
-     The residual, known and accepted: a release that clears nothing stays armed, so the next time the count reaches zero
-     the band closes without waiting for a settle, one render earlier than the hold would otherwise allow.
-     Reset onto a baseline that carries its own warnings is the way in, which stored rows can do while read tolerance stands,
-     and the trigger is whatever clears the last of those warnings afterwards, typing included.
-     It costs one early close, it is cosmetic, and it is self-limiting because the close spends the arm. */
-  const releasedRef = useRef(false);
-
-  /* The ref syncs inside the committed effect; a render-phase write could survive from a
-     discarded render and let a later settle close the header while warnings still show.
-     Declared before the settle effect so a commit changing both runs the sync first. */
-  useEffect(() => {
-    countRef.current = count;
-    if (count > 0) {
-      setOpen(true);
-      return;
-    }
-    if (releasedRef.current) {
-      releasedRef.current = false;
-      setOpen(false);
-    }
-  }, [count]);
-
-  useEffect(() => {
-    if (countRef.current === 0) {
-      releasedRef.current = false;
-      setOpen(false);
-    }
-  }, [settleTick]);
-
-  const settle = useCallback(() => setSettleTick((tick) => tick + 1), []);
-
+  const [state, dispatch] = useReducer(
+    (
+      current: { count: number; open: boolean; released: boolean; tick: number; observedTick: number },
+      event: { kind: 'observe'; count: number } | { kind: 'settle' } | { kind: 'release' }
+    ) => {
+      if (event.kind === 'settle') {
+        return { ...current, tick: current.tick + 1 };
+      }
+      if (event.kind === 'release') {
+        return { ...current, released: true, tick: current.tick + 1 };
+      }
+      const close = event.count === 0 && (current.released || current.tick !== current.observedTick);
+      return {
+        ...current,
+        count: event.count,
+        observedTick: current.tick,
+        open: event.count > 0 ? true : close ? false : current.open,
+        released: close ? false : current.released,
+      };
+    },
+    count,
+    (initialCount) => ({ count: initialCount, open: initialCount > 0, released: false, tick: 0, observedTick: 0 })
+  );
+  /* Prop changes and settle signals reconcile before commit, so a discarded render cannot release the band. */
+  if (state.count !== count || state.observedTick !== state.tick) {
+    dispatch({ kind: 'observe', count });
+  }
+  const settle = useCallback(() => dispatch({ kind: 'settle' }), []);
   const releasing = useCallback(
     <Arguments extends unknown[]>(action: (...args: Arguments) => void) =>
       (...args: Arguments) => {
-        /* Armed before the action runs, so a replacement that clears the warnings in this very commit
-           is already covered when the count effect observes the empty list. */
-        releasedRef.current = true;
+        /* The release waits for an asynchronous replacement to clear its final warning. */
+        dispatch({ kind: 'release' });
         action(...args);
-        setSettleTick((tick) => tick + 1);
       },
     []
   );
-
-  return { open, settle, releasing };
+  return { open: state.open, settle, releasing };
 }

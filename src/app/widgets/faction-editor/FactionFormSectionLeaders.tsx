@@ -6,7 +6,7 @@ import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 import type { Faction } from '@db/factions';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -186,21 +186,22 @@ export function FactionFormSectionLeaders({
   const [internalSelectedIndex, setInternalSelectedIndex] = useState(0);
   const currentSelectedIndex = selectedIndex ?? internalSelectedIndex;
   const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
-  const [pendingLeaderFocusId, setPendingLeaderFocusId] = useState<string | null>(null);
+  const pendingLeaderFocus = useRef<string | null>(null);
 
   useLayoutEffect(() => {
+    const pendingLeaderFocusId = pendingLeaderFocus.current;
     if (pendingLeaderFocusId == null) {
       return;
     }
     if (typeof document !== 'undefined') {
       const target = document.getElementById(pendingLeaderFocusId);
       if (target instanceof HTMLInputElement) {
+        pendingLeaderFocus.current = null;
         target.focus();
         target.select();
       }
     }
-    setPendingLeaderFocusId(null);
-  }, [pendingLeaderFocusId]);
+  });
 
   return (
     <Stack component="section" gap="md" aria-label="Supporting leaders">
@@ -237,8 +238,8 @@ export function FactionFormSectionLeaders({
                     }
                     const newIndex = count;
                     field.pushValue(nextLeaderFromLast(field.state.value[newIndex - 1]));
+                    pendingLeaderFocus.current = `leader-${newIndex}-name`;
                     selectIndex(newIndex);
-                    setPendingLeaderFocusId(`leader-${newIndex}-name`);
                   }}
                 />
               </Group>

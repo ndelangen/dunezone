@@ -4,6 +4,7 @@ import { MantineProvider } from '@mantine/core';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { appContentTheme } from '@ui/theme';
+import { useLayoutEffect } from 'react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { useEditPageHeader } from './useEditPageHeader';
@@ -27,7 +28,9 @@ let settle: () => void = () => undefined;
 
 function Page({ warnings }: { warnings: ValidationHeaderWarning[] }) {
   const header = useEditPageHeader({ warnings, onFocusWarning: () => undefined });
-  settle = header.settle;
+  useLayoutEffect(() => {
+    settle = header.settle;
+  }, [header.settle]);
   return (
     <PageLayout>
       {header.slot}

@@ -227,7 +227,7 @@ function OverflowMenu({ runs }: { runs: ClusterRun[] }) {
  * Measured rather than guessed from breakpoints, because what fits depends on how many actions this page has and how wide its centre is.
  * A width change or a change in the actions unfolds everything, and the layout effect folds again, one run per pass, until the row fits; all of it happens before paint, so the reader never sees a second row.
  */
-function useFolding(root: RefObject<HTMLDivElement | null>, foldable: number, contentKey: string) {
+function useFolding(rootRef: RefObject<HTMLDivElement | null>, foldable: number, contentKey: string) {
   const [fold, setFold] = useState({ key: contentKey, width: 0, count: 0 });
   /* Reset during render when the actions change, the search box's pattern. */
   if (fold.key !== contentKey) {
@@ -235,18 +235,19 @@ function useFolding(root: RefObject<HTMLDivElement | null>, foldable: number, co
   }
   const count = fold.key === contentKey ? fold.count : 0;
   useLayoutEffect(() => {
-    const node = root.current;
+    const node = rootRef.current;
     /* The centre shrinks without limit, so a crowded row can also show as the centre's content spilling out of it over its neighbours. */
     const center = node?.querySelector<HTMLElement>(`:scope > .${styles.center}`);
     const overflowing =
       node != null &&
       (node.scrollWidth > node.clientWidth + 1 || (center != null && center.scrollWidth > center.clientWidth + 1));
-    if (node && count < foldable && overflowing) {
-      setFold((current) => ({ ...current, count: current.count + 1 }));
+    const nextCount = node && count < foldable && overflowing ? count + 1 : count;
+    if (nextCount !== count) {
+      setFold({ key: contentKey, width: node!.clientWidth, count: nextCount });
     }
-  }, [root, count, foldable, contentKey, fold.width]);
+  }, [rootRef, count, foldable, contentKey, fold.width]);
   useEffect(() => {
-    const node = root.current;
+    const node = rootRef.current;
     if (!node || typeof ResizeObserver === 'undefined') {
       return;
     }
@@ -267,7 +268,7 @@ function useFolding(root: RefObject<HTMLDivElement | null>, foldable: number, co
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [root]);
+  }, [rootRef]);
   return Math.min(count, foldable);
 }
 

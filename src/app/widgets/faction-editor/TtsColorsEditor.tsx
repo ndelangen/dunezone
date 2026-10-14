@@ -86,9 +86,13 @@ function TtsColorRow({
   options: TtsColor[];
   onChange: (color: TtsColor) => void;
 }) {
-  const sortable = useFactionSortableItem(itemId);
+  const {
+    setNodeRef,
+    style,
+    handle: { setActivatorNodeRef, attributes, listeners },
+  } = useFactionSortableItem(itemId);
   return (
-    <Box ref={sortable.setNodeRef} style={sortable.style} className={styles.unifiedRow}>
+    <Box ref={setNodeRef} style={style} className={styles.unifiedRow}>
       <Select
         className={styles.unifiedSelect}
         aria-label={`TTS color ${index + 1}`}
@@ -108,9 +112,9 @@ function TtsColorRow({
       <IconAction
         label={`Drag to reorder TTS color ${index + 1}`}
         tooltip={`Reorder TTS color ${index + 1}`}
-        ref={sortable.handle.ref}
-        {...sortable.handle.attributes}
-        {...sortable.handle.listeners}
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
         className={styles.dragHandle}
         emphasis="silent"
         intent="neutral"

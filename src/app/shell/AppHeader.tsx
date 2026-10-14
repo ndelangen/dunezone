@@ -1,5 +1,5 @@
 import type { ReactNode, RefObject } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { useMotionAllowed } from '../styles/motion';
 import styles from './AppHeader.module.css';
@@ -39,15 +39,18 @@ export function AppHeader({ children }: AppHeaderProps) {
   const bandShown = useShown(bandRef);
   const playVideo = motionOk && bandShown;
 
+  if (!playVideo && videoReady) {
+    setVideoReady(false);
+  }
+
   // The video may already be playing (or fully buffered) before this render attaches `onPlaying`.
   useEffect(() => {
     if (!playVideo) {
-      setVideoReady(false);
       return;
     }
     const video = videoRef.current;
-    if (video && !video.paused && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-      setVideoReady(true);
+    if (video) {
+      setVideoReady(!video.paused && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA);
     }
   }, [playVideo]);
 
@@ -82,13 +85,17 @@ export function AppHeader({ children }: AppHeaderProps) {
 /* Whether the element has a box: `display: none` reports an empty one, and showing it again reports its size. */
 function useShown(ref: RefObject<HTMLElement | null>): boolean {
   const [shown, setShown] = useState(false);
+  const noObserver = useSyncExternalStore(
+    noSubscription,
+    () => typeof ResizeObserver === 'undefined',
+    () => false
+  );
   useEffect(() => {
     const element = ref.current;
     if (!element) {
       return;
     }
     if (typeof ResizeObserver === 'undefined') {
-      setShown(true);
       return;
     }
     const observer = new ResizeObserver(([entry]) => {
@@ -97,5 +104,7 @@ function useShown(ref: RefObject<HTMLElement | null>): boolean {
     observer.observe(element);
     return () => observer.disconnect();
   }, [ref]);
-  return shown;
+  return shown || noObserver;
 }
+
+const noSubscription = () => () => undefined;

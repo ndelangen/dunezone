@@ -295,7 +295,11 @@ function JourneyFrame({
   const argSeat = args.seat ?? 'seat-1';
   /* The panel moves at once; the arguments follow, so the address names the step, and a change from Controls moves the panel. */
   const [{ step, seat }, setShown] = useState({ step: argStep, seat: argSeat });
-  useEffect(() => setShown({ step: argStep, seat: argSeat }), [argStep, argSeat]);
+  const [previousArgs, setPreviousArgs] = useState({ position: argStep, seat: argSeat });
+  if (previousArgs.position !== argStep || previousArgs.seat !== argSeat) {
+    setPreviousArgs({ position: argStep, seat: argSeat });
+    setShown({ step: argStep, seat: argSeat });
+  }
   const change = (next: { step?: number; seat?: string }) => {
     setShown((current) => ({ ...current, ...next }));
     addons.getChannel().emit(UPDATE_STORY_ARGS, {

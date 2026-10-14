@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FocusEvent, KeyboardEvent, MouseEvent, PointerEvent } from 'react';
 
 /** Space or Enter: the two keys that press a button, and so the two that hold one. */
@@ -75,7 +75,9 @@ export function useHoldToConfirm({
   const secondsLeft = useRef(0);
   /* The interval closes over the render where the hold began; the ref keeps the fired callback current if the caller re-rendered mid-countdown. */
   const onConfirmRef = useRef(onConfirm);
-  onConfirmRef.current = onConfirm;
+  useLayoutEffect(() => {
+    onConfirmRef.current = onConfirm;
+  }, [onConfirm]);
   const startHold = () => {
     /* An unavailable action, a busy caller, a submitted hold or an existing countdown cannot start another hold. */
     const cannotStart = blocked || pending || submitted || timer.current !== null;

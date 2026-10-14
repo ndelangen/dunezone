@@ -76,9 +76,13 @@ export function StorybookDatabaseProvider({
 
   useEffect(() => {
     mounted.current = true;
-    void reset().catch((error: unknown) => {
-      setState({ status: 'error', message: error instanceof Error ? error.message : String(error) });
-    });
+    void (async () => {
+      try {
+        await reset();
+      } catch (error: unknown) {
+        setState({ status: 'error', message: error instanceof Error ? error.message : String(error) });
+      }
+    })();
     return () => {
       mounted.current = false;
       activeClient.current?.terminate();

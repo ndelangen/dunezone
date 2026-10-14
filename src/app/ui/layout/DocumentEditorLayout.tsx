@@ -21,17 +21,11 @@ export interface DocumentEditorLayoutProps extends PropsWithChildren {
   sidebarSize?: 'standard' | 'compact';
 }
 
-function Sidebar(_: PropsWithChildren): null {
-  return null;
-}
+const Sidebar: (props: PropsWithChildren) => null = () => null;
 
-function Preview(_: PropsWithChildren): null {
-  return null;
-}
+const Preview: (props: PropsWithChildren) => null = () => null;
 
-function PreviewTools(_: PropsWithChildren): null {
-  return null;
-}
+const PreviewTools: (props: PropsWithChildren) => null = () => null;
 
 type StickyPane = 'preview' | 'sidebar' | null;
 

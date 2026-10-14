@@ -21,19 +21,19 @@ export function SpiceBankInteraction({ radius }: Readonly<{ radius: number }>) {
   const enabled = useTabletopSelector((table) => table.canHandleTable && !table.state.draftMove);
   const { setHoveredPiece } = useTabletopCommands();
   const keyboard = useTableKeyboard();
-  const { renderer } = useThree();
+  const get = useThree((state) => state.get);
   const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     if (!hovered || !enabled) {
       return;
     }
-    const canvas = renderer.domElement;
+    const canvas = get().renderer.domElement;
     canvas.style.cursor = 'pointer';
     return () => {
       canvas.style.cursor = 'default';
     };
-  }, [enabled, hovered, renderer]);
+  }, [enabled, hovered, get]);
 
   /* A disc that unmounts under the pointer hears no leave, so it lets go of the hover itself. */
   useEffect(() => () => keyboard.hoverSpiceBank(false), [keyboard]);

@@ -7,13 +7,14 @@ import type { CameraViewCommand } from './playView';
 
 /* Marks the canvas once the seated camera has replaced the preview camera, which loads in its own chunk, so a check of the table's framing can wait for it (#1987). */
 function PlayCameraMark() {
-  const canvas = useThree((state) => state.renderer.domElement);
+  const get = useThree((state) => state.get);
   useLayoutEffect(() => {
+    const canvas = get().renderer.domElement;
     canvas.dataset.playCamera = 'ready';
     return () => {
       delete canvas.dataset.playCamera;
     };
-  }, [canvas]);
+  }, [get]);
   return null;
 }
 
