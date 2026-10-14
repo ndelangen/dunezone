@@ -219,6 +219,29 @@ function ImprovingSection() {
           mod, in which all those assets could be used together seamlessly, which I'll talk about in a future post.
         </Paragraph>
       </Surface>
+      <Figure
+        imageKey="/web/blog/why-dune/dream-rulebook.jpg"
+        alt="The cover of the Dream Rulebook: a sandworm rising beneath a rainbow sky and two moons"
+        aspect={1784 / 1792}
+        caption={
+          <>
+            The{' '}
+            <Anchor
+              renderRoot={(props) => (
+                <Link
+                  {...props}
+                  to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug"
+                  params={{ rulesetSlug: 'dreamrules', rulebookSlug: 'dream-rulebook' }}
+                />
+              )}
+              inherit
+            >
+              Dream Rulebook
+            </Anchor>{' '}
+            on dune.zone today.
+          </>
+        }
+      />
     </Section>
   );
 }
