@@ -91,6 +91,25 @@ export const BlogPost = meta.story({
   },
 });
 
+/** The third post, about the early projects: its title in the band, and links to the old sites and the Atreides page. */
+export const BlogPostRunningFromDatabases = meta.story({
+  args: { path: '/blog/running-from-databases' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { level: 1, name: 'Running from databases' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'dune-assets' })).resolves.toHaveAttribute(
+      'href',
+      'https://github.com/ndelangen/dune-assets'
+    );
+    await expect(page.findByRole('link', { name: 'dune.zone' })).resolves.toHaveAttribute(
+      'href',
+      '/factions/house-atreides'
+    );
+  },
+});
+
 export const BlogPostPhone = meta.story({
   args: { path: '/blog/why-dune' },
   globals: { viewport: { value: 'appMobile' } },
