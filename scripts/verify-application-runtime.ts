@@ -100,6 +100,7 @@ try {
   let groupPage: string | undefined;
   let faqPage: string | undefined;
   let verifiedPages = 0;
+  let socialCases = 0;
   /* Catalogues, profiles and the homepage can each link the same record; the first visit checks it, and a second would hit the cache. */
   const visited = new Set<string>();
   /* The homepage names showcase records by hand, so each must still answer at the address it links. */
@@ -236,18 +237,20 @@ try {
       assert.equal(await head.text(), '');
     } else if (
       !['/factions', '/assets', '/assets/token-disc'].includes(pathname) &&
-      /* The galleries share one card template, so one render covers them and the rest stay under the social render rate limit. */
+      /* The galleries share one card template, so one render covers them. */
       !(pathname.startsWith('/media/game/') && pathname !== MEDIA_PUBLIC_PAGES[1])
     ) {
       const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&');
       assert.ok(image, `${pathname} has no social image URL`);
       const imageUrl = new URL(image);
       assert.equal(imageUrl.pathname, '/social/image.png');
-      const png = await worker.fetch(imageUrl.pathname + imageUrl.search);
-      assert.equal(png.status, 200);
+      /* Independent page cases represent different clients; each repeated request keeps its client's cache contract. */
+      const socialClient = { 'CF-Connecting-IP': `2001:db8::${(++socialCases).toString(16)}` };
+      const png = await worker.fetch(imageUrl.pathname + imageUrl.search, { headers: socialClient });
+      assert.equal(png.status, 200, pathname);
       assert.equal(png.headers.get('Content-Type'), 'image/png');
       assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
-      const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search);
+      const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search, { headers: socialClient });
       assert.equal(imageHit.headers.get('X-Public-Cache'), 'hit');
       assert.equal(imageHit.headers.get('X-Public-Renders'), '0');
       assert.equal(imageHit.headers.get('X-Public-Artwork-Reads'), '0');
