@@ -74,11 +74,6 @@ describe('Storybook database authoring', () => {
         $key: 'later-edition',
         rulebook_id: ref('forward-reference-rulebook'),
         edition_number: 1,
-        contents: {
-          schemaVersion: 1,
-          pageOrder: [],
-          pagesById: {},
-        },
         created_by: ref('storybook-viewer'),
         created_at: '2026-01-01T12:00:00.000Z',
       });

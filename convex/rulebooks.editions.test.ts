@@ -151,6 +151,36 @@ describe('Rulebook Editions', () => {
     await expect(t.run(async (ctx) => await ctx.db.query('rulebook_editions').collect())).resolves.toHaveLength(2);
   });
 
+  test('a draft saved with its keys in another order is still the current Edition', async () => {
+    const { owner, created, locator } = await editionFixture();
+    const reorder = (value: unknown): unknown =>
+      Array.isArray(value)
+        ? value.map(reorder)
+        : value && typeof value === 'object'
+          ? Object.fromEntries(
+              Object.entries(value)
+                .reverse()
+                .map(([key, child]) => [key, reorder(child)])
+            )
+          : value;
+    await owner.mutation(api.rulebooks.save, {
+      rulebook_id: created.rulebook._id,
+      expected_revision: 1,
+      contents: reorder(created.draft.contents),
+    });
+
+    await expect(owner.query(api.rulebooks.editorPage, locator)).resolves.toMatchObject({
+      hasUnpublishedChanges: false,
+    });
+    await expect(
+      owner.mutation(api.rulebooks.publish, {
+        rulebook_id: created.rulebook._id,
+        expected_revision: 2,
+        confirmed: true,
+      })
+    ).resolves.toMatchObject({ kind: 'unchanged' });
+  });
+
   test('an Edition already occupying the next number stops publication instead of overwriting it', async () => {
     const { t, owner, created } = await editionFixture();
     const contents = withFirstPageTitle(created.draft.contents as RulebookContentsV1, 'Contested change');
