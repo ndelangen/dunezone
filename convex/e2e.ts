@@ -7,6 +7,7 @@ import type { MutationCtx } from './_generated/server';
 import { mutation, publicQuery } from './functions';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { isIsolatedLoopbackBackend } from './lib/isolatedBackend';
+import { rulebookDraftContentsHash, rulebookEditionContentsHash } from './lib/rulebookEditionContents';
 import { nowIso, slugify } from './lib/utils';
 
 function assertTestMode() {
@@ -290,12 +291,14 @@ export const seedRulebookEditor = mutation({
       rulebook_id: rulebookId,
       revision: 1,
       contents,
+      contents_hash: rulebookDraftContentsHash(contents),
       updated_by: owner._id,
       updated_at: now,
     });
     const editionId = await ctx.db.insert('rulebook_editions', {
       rulebook_id: rulebookId,
       edition_number: 1,
+      contents_hash: rulebookEditionContentsHash(contents),
       created_by: owner._id,
       created_at: now,
     });

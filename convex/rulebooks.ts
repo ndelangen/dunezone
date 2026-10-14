@@ -3,7 +3,6 @@ import { ConvexError, v } from 'convex/values';
 import type { ObjectType } from 'convex/values';
 
 import {
-  canonicalRulebookCoverControlValues,
   createRulebookLocalId,
   isRulebookLayoutSupported,
   RULEBOOK_CATALOGUE_VERSION,
@@ -37,9 +36,12 @@ import {
   rulebookEditionSummaryValidator,
 } from './lib/rulebookEditionArtifacts';
 import {
+  comparableRulebookContentsMatch as contentsMatch,
   contentsForRulebookEdition,
   insertRulebookEditionContents,
-  rulebookContentsMatch,
+  rulebookContentsHashesMatch,
+  rulebookDraftContentsHash,
+  rulebookEditionContentsHash,
 } from './lib/rulebookEditionContents';
 import {
   listRulesetRulebooks,
@@ -65,6 +67,7 @@ const savedDraftValidator = v.object({
   rulebook_id: v.id('rulebooks'),
   revision: v.number(),
   contents: v.any(),
+  contents_hash: v.optional(v.string()),
   updated_by: v.id('users'),
   updated_at: v.string(),
 });
@@ -76,6 +79,7 @@ const editionValidator = v.object({
   rulebook_id: v.id('rulebooks'),
   edition_number: v.number(),
   contents: v.any(),
+  contents_hash: v.optional(v.string()),
   created_by: v.id('users'),
   created_at: v.string(),
 });
@@ -133,24 +137,6 @@ function parseEditionContents(contents: unknown) {
   return parsed.data;
 }
 
-function comparableContents(contents: RulebookContentsV1): RulebookContentsV1 {
-  return {
-    ...contents,
-    pagesById: Object.fromEntries(
-      Object.entries(contents.pagesById).map(([id, page]) => [
-        id,
-        page.layoutId === 'cover'
-          ? { ...page, controlValues: canonicalRulebookCoverControlValues(page.controlValues) }
-          : page,
-      ])
-    ),
-  };
-}
-
-function contentsMatch(left: RulebookContentsV1, right: RulebookContentsV1) {
-  return rulebookContentsMatch(comparableContents(left), comparableContents(right));
-}
-
 async function rulebookById(ctx: AnyCtx, rulebookId: Id<'rulebooks'>) {
   const rulebook = await ctx.db.get('rulebooks', rulebookId);
   if (!rulebook || rulebook.is_deleted) {
@@ -175,7 +161,8 @@ async function draftFor(ctx: AnyCtx, rulebookId: Id<'rulebooks'>) {
   return { ...draft, contents: parseContents(draft.contents) };
 }
 
-async function editionFor(ctx: AnyCtx, rulebookId: Id<'rulebooks'>, editionNumber: number) {
+/** One Edition's metadata row, without its Contents. */
+async function editionMetadataFor(ctx: AnyCtx, rulebookId: Id<'rulebooks'>, editionNumber: number) {
   const edition = await ctx.db
     .query('rulebook_editions')
     .withIndex('by_rulebook_and_edition_number', (q) =>
@@ -185,6 +172,11 @@ async function editionFor(ctx: AnyCtx, rulebookId: Id<'rulebooks'>, editionNumbe
   if (!edition) {
     throw new Error('Rulebook edition not found');
   }
+  return edition;
+}
+
+async function editionFor(ctx: AnyCtx, rulebookId: Id<'rulebooks'>, editionNumber: number) {
+  const edition = await editionMetadataFor(ctx, rulebookId, editionNumber);
   return {
     ...edition,
     settings: edition.settings ?? DEFAULT_RULEBOOK_SETTINGS,
@@ -403,6 +395,7 @@ async function insertRulebookDraft(
     rulebook_id: input.rulebookId,
     revision: 1,
     contents: input.contents,
+    contents_hash: rulebookDraftContentsHash(input.contents),
     updated_by: input.updatedBy,
     updated_at: input.now,
   });
@@ -470,6 +463,7 @@ async function insertRulebookBundle(
     rulebook_id: rulebookId,
     settings: input.settings,
     edition_number: 1,
+    contents_hash: rulebookEditionContentsHash(input.contents),
     created_by: input.viewerId,
     created_at: now,
   });
@@ -834,14 +828,20 @@ export const editorPage = viewerQuery({
       };
     }
     const draft = await draftFor(ctx, rulebook._id);
-    const edition = await editionFor(ctx, rulebook._id, rulebook.current_edition_number);
+    const edition = await editionMetadataFor(ctx, rulebook._id, rulebook.current_edition_number);
+    /* Matching hashes settle the question from the two metadata rows; the Edition's Contents are read only when either hash is missing or stale. */
+    const hashesMatch = rulebookContentsHashesMatch(draft.contents_hash, edition.contents_hash);
+    const hasUnpublishedChanges =
+      hashesMatch === undefined
+        ? !contentsMatch(draft.contents, parseEditionContents(await contentsForRulebookEdition(ctx, edition)))
+        : !hashesMatch;
     return {
       kind: 'editable' as const,
       canRename: viewerAccess.capabilities.rename,
       rulebook: metadata,
       draft,
       currentEdition: await rulebookEditionSummary(ctx, edition),
-      hasUnpublishedChanges: !contentsMatch(draft.contents, edition.contents),
+      hasUnpublishedChanges,
       ...(await resolveRulebookReferences(ctx, draft.contents, {
         assetIds: args.reference_asset_ids,
         factionIds: args.reference_faction_ids,
@@ -950,21 +950,17 @@ export const save = mutation({
       }
     }
     const now = nowIso();
-    await ctx.db.patch('rulebook_drafts', current._id, {
+    const saved = {
       revision: current.revision + 1,
       contents,
+      contents_hash: rulebookDraftContentsHash(contents),
       updated_by: viewerId,
       updated_at: now,
-    });
+    };
+    await ctx.db.patch('rulebook_drafts', current._id, saved);
     return {
       kind: 'saved' as const,
-      draft: {
-        ...current,
-        revision: current.revision + 1,
-        contents,
-        updated_by: viewerId,
-        updated_at: now,
-      },
+      draft: { ...current, ...saved },
     };
   },
 });
@@ -1009,10 +1005,12 @@ export const publish = mutation({
     }
     const now = nowIso();
     const settings = rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS;
+    const contentsHash = rulebookEditionContentsHash(draft.contents);
     const editionId = await ctx.db.insert('rulebook_editions', {
       rulebook_id: rulebook._id,
       settings,
       edition_number: editionNumber,
+      contents_hash: contentsHash,
       created_by: viewerId,
       created_at: now,
     });
@@ -1023,6 +1021,7 @@ export const publish = mutation({
       settings,
       edition_number: editionNumber,
       contents: draft.contents,
+      contents_hash: contentsHash,
       created_by: viewerId,
       created_at: now,
     };

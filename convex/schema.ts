@@ -366,6 +366,12 @@ export default defineSchema({
     rulebook_id: v.id('rulebooks'),
     revision: v.number(),
     contents: v.any(),
+    /**
+     * `rulebookDraftContentsHash` of `contents`, written with every change to them, so the editor can tell whether the draft differs from the current Edition without reading the Edition's Contents.
+     * Optional until `rulebook_contents_hash_drafts_v1` has backfilled older rows.
+     * A missing hash means a full comparison.
+     */
+    contents_hash: v.optional(v.string()),
     updated_by: v.id('users'),
     updated_at: v.string(),
   })
@@ -377,6 +383,12 @@ export default defineSchema({
     /* Each new Edition captures the Rulebook settings beside its immutable Contents. */
     settings: v.optional(rulebookSettingsValidator),
     edition_number: v.number(),
+    /**
+     * `rulebookEditionContentsHash` of this Edition's Contents, kept on the metadata row so the editor compares a draft with it without reading `rulebook_edition_contents`.
+     * Optional until `rulebook_contents_hash_editions_v1` has backfilled older rows.
+     * A missing hash means a full comparison.
+     */
+    contents_hash: v.optional(v.string()),
     created_by: v.id('users'),
     created_at: v.string(),
   })
