@@ -34,16 +34,18 @@ export async function verifyBattles(toolkit) {
     /* The card fan leaves the upper edge exposed above its wheel. */
     await who.page.mouse.move(box.x + box.width / 2, box.y + Math.min(12, box.height / 2));
     const nativeDrag = (await locator.getAttribute('draggable')) === 'true';
+    /* The battle marker carries in this browser only, so no piece carry frame reaches the room. */
+    const localCarry = (await locator.getAttribute('data-local-carry')) !== null;
     const frameIndex = who.rawMessages.length;
     await who.page.mouse.down();
-    if (!nativeDrag) {
+    if (!nativeDrag && !localCarry) {
       await until(
         () => who.rawMessages.slice(frameIndex).some((frame) => frame.type === 'carry'),
         'Piece carry did not start.'
       );
     }
     /* A native HTML drag keeps 25 steps; the two-step move was measured on pointer carries only. */
-    await who.page.mouse.move(end.x, end.y, { steps: nativeDrag ? 25 : carrySteps });
+    await who.page.mouse.move(end.x, end.y, { steps: nativeDrag || localCarry ? 25 : carrySteps });
     await who.page.mouse.up();
   }
   await drag(a, button(a, 'Drag Recovery token onto the table'), [-1.5, 0.38, 1.5]);
