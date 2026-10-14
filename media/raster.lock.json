@@ -7649,6 +7649,51 @@
     "isOpaque": true,
     "color": "#080808"
   },
+  "/web/blog/why-dune/avalon-hill-set.jpg": {
+    "sha256": "f34aeff4a07bbcb65dde18304f112572b21fa2d613daf9f713aaecd0c982dd22",
+    "bytes": 146291,
+    "width": 798,
+    "height": 562,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#482818"
+  },
+  "/web/blog/why-dune/gf9-board.jpg": {
+    "sha256": "45ba1560102ad4d509761c41efaacd0ac16ebd20e6628ba421f2facf6969928c",
+    "bytes": 53099,
+    "width": 512,
+    "height": 341,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/blog/why-dune/mcdm-plays-dune.jpg": {
+    "sha256": "2b57c62d3aa85638cb4367e3ce19d5a248a36a53909719780cd7ef750535d525",
+    "bytes": 182558,
+    "width": 1280,
+    "height": 720,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#e8d8c8"
+  },
+  "/web/blog/why-dune/tts-central419.jpg": {
+    "sha256": "efda3b20bc25196a8b9b1a8fb03e2c4656812df2a889a26c5232197a6fbc3097",
+    "bytes": 277395,
+    "width": 2048,
+    "height": 1416,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/blog/why-dune/tts-table.jpg": {
+    "sha256": "9fed016ad4bce2224b6f4757436971b26ca9660d1ebb2a8f33a9b38ffe57b1f2",
+    "bytes": 158695,
+    "width": 1072,
+    "height": 603,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#382818"
+  },
   "/web/head.png": {
     "sha256": "e1f3a4e2b506f47beceb67fe9979ebe600c525f91ffad835d5fb4c02bb3455a5",
     "bytes": 2618886,

@@ -27,6 +27,7 @@ import { Route as AppAssets_presetsRouteRouteImport } from './routes/_app/assets
 import { Route as AppAuthIndexRouteImport } from './routes/_app/auth/index'
 import { Route as AppAuthErrorRouteRouteImport } from './routes/_app/auth/error.route'
 import { Route as AppAuthLoginRouteRouteImport } from './routes/_app/auth/login.route'
+import { Route as AppBlogIndexRouteImport } from './routes/_app/blog/index'
 import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/index'
 import { Route as AppFactionsCreateRouteRouteImport } from './routes/_app/factions/create.route'
 import { Route as AppFuturePlansIndexRouteImport } from './routes/_app/future-plans/index'
@@ -42,6 +43,7 @@ import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/ind
 import { Route as AppRulesetsCreateRouteRouteImport } from './routes/_app/rulesets/create.route'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
 import { Route as AppAssetsTypeIndexRouteImport } from './routes/_app/assets/$type/index'
+import { Route as AppBlogPostSlugIndexRouteImport } from './routes/_app/blog/$postSlug/index'
 import { Route as AppFactionsFactionIdIndexRouteImport } from './routes/_app/factions/$factionId/index'
 import { Route as AppFactionsFactionIdEditRouteRouteImport } from './routes/_app/factions/$factionId/edit.route'
 import { Route as AppGroupsGroupSlugIndexRouteImport } from './routes/_app/groups/$groupSlug/index'
@@ -152,6 +154,11 @@ const AppAuthLoginRouteRoute = AppAuthLoginRouteRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppBlogIndexRoute = AppBlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppFactionsIndexRoute = AppFactionsIndexRouteImport.update({
   id: '/factions/',
   path: '/factions/',
@@ -226,6 +233,11 @@ const PreviewSheetFactionSlugRouteRoute =
 const AppAssetsTypeIndexRoute = AppAssetsTypeIndexRouteImport.update({
   id: '/assets/$type/',
   path: '/assets/$type/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppBlogPostSlugIndexRoute = AppBlogPostSlugIndexRouteImport.update({
+  id: '/blog/$postSlug/',
+  path: '/blog/$postSlug/',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppFactionsFactionIdIndexRoute =
@@ -371,6 +383,7 @@ export interface FileRoutesByFullPath {
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/assets/': typeof AppAssetsIndexRoute
   '/auth/': typeof AppAuthIndexRoute
+  '/blog/': typeof AppBlogIndexRoute
   '/factions/': typeof AppFactionsIndexRoute
   '/future-plans/': typeof AppFuturePlansIndexRoute
   '/glossary/': typeof AppGlossaryIndexRoute
@@ -386,6 +399,7 @@ export interface FileRoutesByFullPath {
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
   '/assets/$type/': typeof AppAssetsTypeIndexRoute
+  '/blog/$postSlug/': typeof AppBlogPostSlugIndexRoute
   '/factions/$factionId/': typeof AppFactionsFactionIdIndexRoute
   '/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
@@ -424,6 +438,7 @@ export interface FileRoutesByTo {
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/assets': typeof AppAssetsIndexRoute
   '/auth': typeof AppAuthIndexRoute
+  '/blog': typeof AppBlogIndexRoute
   '/factions': typeof AppFactionsIndexRoute
   '/future-plans': typeof AppFuturePlansIndexRoute
   '/glossary': typeof AppGlossaryIndexRoute
@@ -439,6 +454,7 @@ export interface FileRoutesByTo {
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
   '/assets/$type': typeof AppAssetsTypeIndexRoute
+  '/blog/$postSlug': typeof AppBlogPostSlugIndexRoute
   '/factions/$factionId': typeof AppFactionsFactionIdIndexRoute
   '/groups/$groupSlug': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug': typeof AppProfilesProfileSlugIndexRoute
@@ -480,6 +496,7 @@ export interface FileRoutesById {
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/_app/assets/': typeof AppAssetsIndexRoute
   '/_app/auth/': typeof AppAuthIndexRoute
+  '/_app/blog/': typeof AppBlogIndexRoute
   '/_app/factions/': typeof AppFactionsIndexRoute
   '/_app/future-plans/': typeof AppFuturePlansIndexRoute
   '/_app/glossary/': typeof AppGlossaryIndexRoute
@@ -495,6 +512,7 @@ export interface FileRoutesById {
   '/_app/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/_app/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
   '/_app/assets/$type/': typeof AppAssetsTypeIndexRoute
+  '/_app/blog/$postSlug/': typeof AppBlogPostSlugIndexRoute
   '/_app/factions/$factionId/': typeof AppFactionsFactionIdIndexRoute
   '/_app/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/_app/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
@@ -536,6 +554,7 @@ export interface FileRouteTypes {
     | '/preview/sheet/$factionSlug'
     | '/assets/'
     | '/auth/'
+    | '/blog/'
     | '/factions/'
     | '/future-plans/'
     | '/glossary/'
@@ -551,6 +570,7 @@ export interface FileRouteTypes {
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
     | '/assets/$type/'
+    | '/blog/$postSlug/'
     | '/factions/$factionId/'
     | '/groups/$groupSlug/'
     | '/profiles/$profileSlug/'
@@ -589,6 +609,7 @@ export interface FileRouteTypes {
     | '/preview/sheet/$factionSlug'
     | '/assets'
     | '/auth'
+    | '/blog'
     | '/factions'
     | '/future-plans'
     | '/glossary'
@@ -604,6 +625,7 @@ export interface FileRouteTypes {
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
     | '/assets/$type'
+    | '/blog/$postSlug'
     | '/factions/$factionId'
     | '/groups/$groupSlug'
     | '/profiles/$profileSlug'
@@ -644,6 +666,7 @@ export interface FileRouteTypes {
     | '/preview/sheet/$factionSlug'
     | '/_app/assets/'
     | '/_app/auth/'
+    | '/_app/blog/'
     | '/_app/factions/'
     | '/_app/future-plans/'
     | '/_app/glossary/'
@@ -659,6 +682,7 @@ export interface FileRouteTypes {
     | '/_app/profiles/$profileSlug/edit'
     | '/_app/rulesets/$rulesetSlug/edit'
     | '/_app/assets/$type/'
+    | '/_app/blog/$postSlug/'
     | '/_app/factions/$factionId/'
     | '/_app/groups/$groupSlug/'
     | '/_app/profiles/$profileSlug/'
@@ -808,6 +832,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthLoginRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/blog/': {
+      id: '/_app/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof AppBlogIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/factions/': {
       id: '/_app/factions/'
       path: '/factions'
@@ -911,6 +942,13 @@ declare module '@tanstack/react-router' {
       path: '/assets/$type'
       fullPath: '/assets/$type/'
       preLoaderRoute: typeof AppAssetsTypeIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/blog/$postSlug/': {
+      id: '/_app/blog/$postSlug/'
+      path: '/blog/$postSlug'
+      fullPath: '/blog/$postSlug/'
+      preLoaderRoute: typeof AppBlogPostSlugIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/factions/$factionId/': {
@@ -1115,6 +1153,7 @@ interface AppRouteRouteChildren {
   AppRulesetsCreateRouteRoute: typeof AppRulesetsCreateRouteRoute
   AppAssetsIndexRoute: typeof AppAssetsIndexRoute
   AppAuthIndexRoute: typeof AppAuthIndexRoute
+  AppBlogIndexRoute: typeof AppBlogIndexRoute
   AppFactionsIndexRoute: typeof AppFactionsIndexRoute
   AppFuturePlansIndexRoute: typeof AppFuturePlansIndexRoute
   AppGlossaryIndexRoute: typeof AppGlossaryIndexRoute
@@ -1128,6 +1167,7 @@ interface AppRouteRouteChildren {
   AppProfilesProfileSlugEditRouteRoute: typeof AppProfilesProfileSlugEditRouteRoute
   AppRulesetsRulesetSlugEditRouteRoute: typeof AppRulesetsRulesetSlugEditRouteRoute
   AppAssetsTypeIndexRoute: typeof AppAssetsTypeIndexRoute
+  AppBlogPostSlugIndexRoute: typeof AppBlogPostSlugIndexRoute
   AppFactionsFactionIdIndexRoute: typeof AppFactionsFactionIdIndexRoute
   AppGroupsGroupSlugIndexRoute: typeof AppGroupsGroupSlugIndexRoute
   AppProfilesProfileSlugIndexRoute: typeof AppProfilesProfileSlugIndexRoute
@@ -1163,6 +1203,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppRulesetsCreateRouteRoute: AppRulesetsCreateRouteRoute,
   AppAssetsIndexRoute: AppAssetsIndexRoute,
   AppAuthIndexRoute: AppAuthIndexRoute,
+  AppBlogIndexRoute: AppBlogIndexRoute,
   AppFactionsIndexRoute: AppFactionsIndexRoute,
   AppFuturePlansIndexRoute: AppFuturePlansIndexRoute,
   AppGlossaryIndexRoute: AppGlossaryIndexRoute,
@@ -1178,6 +1219,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppProfilesProfileSlugEditRouteRoute: AppProfilesProfileSlugEditRouteRoute,
   AppRulesetsRulesetSlugEditRouteRoute: AppRulesetsRulesetSlugEditRouteRoute,
   AppAssetsTypeIndexRoute: AppAssetsTypeIndexRoute,
+  AppBlogPostSlugIndexRoute: AppBlogPostSlugIndexRoute,
   AppFactionsFactionIdIndexRoute: AppFactionsFactionIdIndexRoute,
   AppGroupsGroupSlugIndexRoute: AppGroupsGroupSlugIndexRoute,
   AppProfilesProfileSlugIndexRoute: AppProfilesProfileSlugIndexRoute,

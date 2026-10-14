@@ -55,10 +55,14 @@ export function profileLink(
 const absoluteUrl = (pathname: string) => new URL(pathname, PUBLIC_SITE_ORIGIN).href;
 
 /**
- * What a page shows, for its structured data: the site itself on the homepage, a member's work with its creator, or the member.
+ * What a page shows, for its structured data: the site itself on the homepage, a member's work with its creator, the member, or a blog post with its author and date.
  * Catalogues and other pages name no entity.
  */
-export type PublicPageEntity = { type: 'site' } | { type: 'work'; author: PublicPageLink | null } | { type: 'person' };
+export type PublicPageEntity =
+  | { type: 'site' }
+  | { type: 'work'; author: PublicPageLink | null }
+  | { type: 'person' }
+  | { type: 'article'; author: string; published: string };
 
 /**
  * The schema.org graph search engines read beside the visible page: the trail back to the homepage and what the page shows.
@@ -114,6 +118,17 @@ function structuredData({
           : {}),
       });
       break;
+    case 'article':
+      graph.push({
+        '@type': 'BlogPosting',
+        headline: name,
+        url,
+        ...imageField,
+        ...(description ? { description } : {}),
+        datePublished: entity.published,
+        author: { '@type': 'Person', name: entity.author },
+      });
+      break;
   }
   return graph.length ? { '@context': 'https://schema.org', '@graph': graph } : null;
 }
@@ -162,11 +177,13 @@ export function publicPageHead({
     meta: [
       ...pageHead(name, { kind }).meta!,
       { name: 'description', content: description },
-      { property: 'og:type', content: 'website' },
+      { property: 'og:type', content: entity?.type === 'article' ? 'article' : 'website' },
       { property: 'og:site_name', content: 'Dune Zone' },
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:url', content: url },
+      /* Open Graph wants a profile URL for `article:author`, which the authors do not have; the structured data names them. */
+      ...(entity?.type === 'article' ? [{ property: 'article:published_time', content: entity.published }] : []),
       { property: 'og:image', content: imageUrl },
       { property: 'og:image:alt', content: details?.alt ?? name },
       ...(details

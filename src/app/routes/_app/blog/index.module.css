@@ -1,0 +1,56 @@
+.hero {
+  width: 100%;
+  padding: clamp(1rem, 3vw, 2.5rem);
+}
+
+/* The title sits straight on the hero artwork, so it carries its own contrast; the intro pane beside it has its own. */
+.title {
+  color: white;
+  text-shadow: 0 2px 16px rgb(0 0 0 / 65%);
+}
+
+.title h1 {
+  max-width: 800px;
+}
+
+/* Placement only; the pane's appearance is Surface's. */
+.intro {
+  align-self: center;
+}
+
+.list {
+  container-type: inline-size;
+  max-width: 62rem;
+  margin-inline: auto;
+  padding-top: var(--space-xl);
+}
+
+.entry {
+  padding-bottom: clamp(3rem, 7vw, 5.5rem);
+}
+
+.number {
+  color: var(--mantine-color-dune-7);
+  font-size: 4rem;
+  font-weight: 900;
+  line-height: 0.9;
+  opacity: 0.25;
+}
+
+.entry h2 {
+  max-width: 760px;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.05;
+}
+
+.summary {
+  max-width: 690px;
+  font-size: var(--mantine-font-size-lg);
+  line-height: 1.6;
+}
+
+@container (width < 48rem) {
+  .number {
+    font-size: 3rem;
+  }
+}

@@ -63,6 +63,39 @@ export const PublicationJobsNotAuthorized = meta.story({
 export const FuturePlans = meta.story({ args: { path: '/future-plans' } });
 export const Privacy = meta.story({ args: { path: '/privacy' } });
 
+/** The blog's numbered list of posts, newest first, each title opening its post. */
+export const Blog = meta.story({
+  args: { path: '/blog' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Why Dune?' }, { timeout: 30_000 })).resolves.toHaveAttribute(
+      'href',
+      '/blog/why-dune'
+    );
+  },
+});
+
+/** One post, "Why Dune?": its title and byline in the band, then photographs, a video that loads only when played, and a link to the Dreamrules Workshop mod. */
+export const BlogPost = meta.story({
+  args: { path: '/blog/why-dune' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { level: 1, name: 'Why Dune?' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Play MCDM Plays Dune - Round 1' })).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'Dreamrules TTS mod' })).resolves.toHaveAttribute(
+      'href',
+      'https://steamcommunity.com/sharedfiles/filedetails/?id=2859509846'
+    );
+  },
+});
+
+export const BlogPostPhone = meta.story({
+  args: { path: '/blog/why-dune' },
+  globals: { viewport: { value: 'appMobile' } },
+});
+
 /** The hard-coded glossary: one Section per topic with a picture, every term reachable by its anchor and found by the word it replaces. */
 export const Glossary = meta.story({
   args: { path: '/glossary' },

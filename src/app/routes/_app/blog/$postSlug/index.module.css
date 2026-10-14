@@ -1,0 +1,17 @@
+/* A readable measure for prose; embeds and figures size from the same column. */
+.article {
+  container-name: blog-article;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  max-width: 44rem;
+  margin-inline: auto;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--space-xs);
+}
