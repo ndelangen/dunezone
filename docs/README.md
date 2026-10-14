@@ -73,8 +73,8 @@ The colocated typecheck fixture checks valid and invalid Three props, Mantine at
 and the DOM namespace together. No files are excluded from typechecking.
 Replace the patch and local runtime together when Fiber provides an upstream scoped JSX entry.
 
-The Bun patch for `three@0.186.1` fixes renderer cleanup that grew with every rebuilt piece on the
-Play table. The patch keeps renderer-owned disposal listeners from retaining old renderers, follows geometry
+The Bun patch for `three@0.186.1` releases renderer resources when the Play table rebuilds pieces.
+The patch keeps renderer-owned disposal listeners from retaining old renderers, follows geometry
 replacement, and releases cached vertex arrays when the WebGL2 fallback destroys their buffer.
 It also removes OrbitControls keyboard listeners from the document that originally received them.
 Three 0.186 now removes destroyed bind groups itself, so that part of the old patch is gone.
