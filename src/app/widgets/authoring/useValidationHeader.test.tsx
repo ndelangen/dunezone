@@ -65,6 +65,19 @@ describe('the hold the header exists for', () => {
     expect(result.current.open).toBe(false);
   });
 
+  test('a secondary pointer cancellation leaves the primary click target still', () => {
+    const { result, rerender } = headerWith(1);
+    rerender({ warnings: 0 });
+    fireEvent(window, new MouseEvent('pointerdown', { button: 0 }));
+    act(() => result.current.settle());
+    const cancellation = new Event('pointercancel');
+    Object.defineProperty(cancellation, 'isPrimary', { value: false });
+    fireEvent(window, cancellation);
+    expect(result.current.open).toBe(true);
+    fireEvent.click(window);
+    expect(result.current.open).toBe(false);
+  });
+
   test('pointer-up releases a held settle after a click that stops bubbling', () => {
     vi.useFakeTimers();
     try {

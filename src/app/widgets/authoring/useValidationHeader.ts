@@ -75,17 +75,22 @@ export function useValidationHeader(count: number): ValidationHeaderState {
       clearTimeout(endTask);
       endTask = setTimeout(finish, 0);
     };
+    const cancelled = (event: PointerEvent) => {
+      if (event.isPrimary !== false) {
+        finish();
+      }
+    };
     window.addEventListener('pointerdown', start, true);
     window.addEventListener('pointerup', released, true);
     window.addEventListener('click', finish);
-    window.addEventListener('pointercancel', finish, true);
+    window.addEventListener('pointercancel', cancelled, true);
     window.addEventListener('blur', finish);
     return () => {
       clearTimeout(endTask);
       window.removeEventListener('pointerdown', start, true);
       window.removeEventListener('pointerup', released, true);
       window.removeEventListener('click', finish);
-      window.removeEventListener('pointercancel', finish, true);
+      window.removeEventListener('pointercancel', cancelled, true);
       window.removeEventListener('blur', finish);
     };
   }, []);
