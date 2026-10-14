@@ -24,9 +24,10 @@ export const Route = createFileRoute('/_app/profiles/')({
   loader: async () => ({ profiles: await loadProfilesAll() }),
   head: () =>
     publicPageHead({
-      name: 'Profiles',
+      name: 'Dune board game creators',
       pathname: '/profiles',
-      description: 'Meet the people creating factions, maintaining Rulesets and answering questions on Dune Zone.',
+      description:
+        "Meet the Dune board game community on Dune Zone. Explore creators' factions, rulesets and Groups, and their contributions to rules questions.",
       social: { kind: 'Community', shape: 'round' },
     }),
   component: ProfilesPage,
