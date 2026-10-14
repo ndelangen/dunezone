@@ -36,6 +36,8 @@ describe('social image URL contract', () => {
     '&art=/user-images/not-a-hash.jpg',
     '&art=/user-images/' + 'a'.repeat(64) + '.jpg/extra',
     '&art=/published/rulebooks/abcdefghijklmnop/edition.pdf',
+    '&art=/m/0123456789abcdef0123.0123456789.webp',
+    '&art=/m/0123456789abcdef0123.0123456789.jpg/extra',
     '&text=' + 'a'.repeat(181),
     '&revision=' + 'a'.repeat(65),
     '&shape=arbitrary',
@@ -72,10 +74,11 @@ describe('social image URL contract', () => {
   });
 });
 
-test.each(['/published/rulebooks/abcdefghijklmnop/first-page.jpg', '/user-images/' + 'a'.repeat(64) + '.jpg'])(
-  'accepts published cover artwork: %s',
-  (image) => {
-    const parsed = parse(socialCardHref({ name: 'Dreamrules', kind: 'Ruleset', description: '', image }));
-    expect(parsed?.art).toBe(image);
-  }
-);
+test.each([
+  '/published/rulebooks/abcdefghijklmnop/first-page.jpg',
+  '/user-images/' + 'a'.repeat(64) + '.jpg',
+  '/m/0123456789abcdef0123.0123456789.jpg',
+])('accepts published cover artwork: %s', (image) => {
+  const parsed = parse(socialCardHref({ name: 'Dreamrules', kind: 'Ruleset', description: '', image }));
+  expect(parsed?.art).toBe(image);
+});

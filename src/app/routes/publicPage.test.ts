@@ -52,6 +52,14 @@ describe('public page heads', () => {
     ]).toContain('FAQ question');
   });
 
+  test('a social card can show different art from the structured data', () => {
+    const art = '/m/0123456789abcdef0123.0123456789.jpg';
+    const head = publicPageHead({ ...faction, image: '/m/large.jpg', social: { shape: 'landscape', art } });
+    const card = new URL(String(metaOf(head).find((meta) => meta.property === 'og:image')?.content));
+    expect(card.searchParams.get('art')).toBe(art);
+    expect(graphOf(head)?.[1]).toMatchObject({ image: 'https://dune.zone/m/large.jpg' });
+  });
+
   test('a detail page carries its breadcrumb trail and its work with the artwork and creator', () => {
     expect(graphOf(publicPageHead(faction))).toEqual([
       {

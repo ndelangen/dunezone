@@ -19,7 +19,7 @@ export type BlogPostMeta = {
   summary: string;
   /**
    * A raster key from `media/`, resolved through the media pipeline, with its height over width.
-   * It is the image in the post's structured data, and the post shows it with `Figure`.
+   * It is the image in the post's structured data and on its social card, and the post shows it with `Figure`.
    */
   cover: { key: string; alt: string; aspect: number };
 };
@@ -61,4 +61,9 @@ export function blogPostByline(meta: BlogPostMeta): string {
 /** The cover at its large tier, for the post's structured data. */
 export function blogPostImage(meta: BlogPostMeta): string {
   return resolveAsset(meta.cover.key, 'large');
+}
+
+/** The cover at its small tier, for the post's social card, whose renderer takes JPEGs of at most two million pixels. */
+export function blogPostSocialArt(meta: BlogPostMeta): string {
+  return resolveAsset(meta.cover.key, 'small');
 }

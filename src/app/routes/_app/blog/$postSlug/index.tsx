@@ -16,12 +16,12 @@ export const Route = createFileRoute('/_app/blog/$postSlug/')({
    * The loader and head ship with the route tree to every page, so the registry and the media map it resolves the cover through load only here, on demand.
    */
   loader: async ({ params }) => {
-    const { blogPostImage, findBlogPost } = await import('../posts');
+    const { blogPostImage, blogPostSocialArt, findBlogPost } = await import('../posts');
     const post = findBlogPost(params.postSlug);
     if (!post) {
       throw notFound();
     }
-    return { meta: post, image: blogPostImage(post) };
+    return { meta: post, image: blogPostImage(post), socialArt: blogPostSocialArt(post) };
   },
   head: ({ loaderData, match }) =>
     loaderData
@@ -31,7 +31,7 @@ export const Route = createFileRoute('/_app/blog/$postSlug/')({
           pathname: `/blog/${encodeURIComponent(loaderData.meta.slug)}`,
           description: loaderData.meta.summary,
           image: loaderData.image,
-          social: { kind: 'Blog', shape: 'portrait' },
+          social: { kind: 'Blog', shape: 'landscape', art: loaderData.socialArt },
           trail: [{ name: 'Building Dune Zone', pathname: '/blog' }],
           entity: { type: 'article', author: loaderData.meta.author, published: loaderData.meta.date },
           match,

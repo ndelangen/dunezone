@@ -153,7 +153,8 @@ export function publicPageHead({
   description: string;
   image?: string | null;
   imageDetails?: { alt: string; type: string; width: number; height: number };
-  social?: { kind?: string; shape: SocialCardInput['shape'] };
+  /** The generated social card; `art` replaces `image` on the card, as a blog post's cover at a size the card renderer accepts. */
+  social?: { kind?: string; shape: SocialCardInput['shape']; art?: string };
   /** The catalogue pages between the homepage and this one, for the breadcrumb trail. */
   trail?: readonly PublicPageLink[];
   entity?: PublicPageEntity;
@@ -165,7 +166,13 @@ export function publicPageHead({
   const url = absoluteUrl(pathname);
   const title = pageTitle(name, kind);
   const imagePath = social
-    ? socialCardHref({ name, description, image, kind: social.kind ?? kind ?? '', shape: social.shape })
+    ? socialCardHref({
+        name,
+        description,
+        image: social.art ?? image,
+        kind: social.kind ?? kind ?? '',
+        shape: social.shape,
+      })
     : image || '/video/band-poster.jpg';
   const imageUrl = absoluteUrl(imagePath);
   const details = social

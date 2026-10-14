@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 
 import { socialCardHref } from '../../src/shared/socialCard';
+import { mediaVariantKey } from './media';
 import { handleSocialImageRequest } from './social-image';
 import { fakeR2Object, jpegBytes, pngBytes } from './test-helpers';
 
@@ -88,24 +89,31 @@ test.each([
   {
     image: '/published/rulebooks/abcdefghijklmnop/first-page.jpg',
     key: 'rulebooks/abcdefghijklmnop/first-page.jpg',
-    userImage: false,
+    bucket: 'ASSET_BUCKET',
   },
-  { image: '/user-images/' + 'a'.repeat(64) + '.jpg', key: 'a'.repeat(64) + '.jpg', userImage: true },
-])('reads the cover from its own bucket: $image', async ({ image, key, userImage }) => {
+  { image: '/user-images/' + 'a'.repeat(64) + '.jpg', key: 'a'.repeat(64) + '.jpg', bucket: 'USER_IMAGE_BUCKET' },
+  {
+    image: '/m/0123456789abcdef0123.0123456789.jpg',
+    key: mediaVariantKey('0123456789abcdef0123.0123456789.jpg'),
+    bucket: 'MEDIA_BUCKET',
+  },
+] as const)('reads the cover from its own bucket: $image', async ({ image, key, bucket }) => {
   const bytes = jpegBytes({ widthPx: 840, heightPx: 1188, progressive: true });
-  const publishedGet = vi.fn<R2Bucket['get']>().mockResolvedValue(object(bytes));
-  const userGet = vi.fn<R2Bucket['get']>().mockResolvedValue(object(bytes));
+  const env = {
+    ASSET_BUCKET: { get: vi.fn<R2Bucket['get']>().mockResolvedValue(object(bytes)) },
+    USER_IMAGE_BUCKET: { get: vi.fn<R2Bucket['get']>().mockResolvedValue(object(bytes)) },
+    MEDIA_BUCKET: { get: vi.fn<R2Bucket['get']>().mockResolvedValue(object(bytes)) },
+  };
   const render = vi.fn().mockResolvedValue(pngBytes(1200, 630));
   const href = socialCardHref({ name: 'Dreamrules', kind: 'Rulebook', description: 'Edition 2', image });
-  const response = await handleSocialImageRequest(
-    request(href),
-    { ASSET_BUCKET: { get: publishedGet }, USER_IMAGE_BUCKET: { get: userGet } },
-    render
-  );
+  const response = await handleSocialImageRequest(request(href), env, render);
   expect(response?.headers.get('X-Public-Fallback')).toBe('false');
-  expect(userImage ? userGet : publishedGet).toHaveBeenCalledExactlyOnceWith(key, {
-    range: { offset: 0, length: 2_000_001 },
-  });
-  expect(userImage ? publishedGet : userGet).not.toHaveBeenCalled();
+  for (const [name, { get }] of Object.entries(env)) {
+    if (name === bucket) {
+      expect(get).toHaveBeenCalledExactlyOnceWith(key, { range: { offset: 0, length: 2_000_001 } });
+    } else {
+      expect(get).not.toHaveBeenCalled();
+    }
+  }
   expect(render).toHaveBeenCalledWith(expect.objectContaining({ name: 'Dreamrules' }), bytes.buffer);
 });

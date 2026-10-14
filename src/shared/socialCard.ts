@@ -25,11 +25,19 @@ const artworkTypes = new Set([
   'rulebook-first-page',
 ]);
 
-/** Only public JPEG publications and content-addressed user images may supply artwork. */
+/** A JPEG media variant, `/m/<src20>.<recipe10>.jpg`, such as a blog post's cover. */
+const MEDIA_VARIANT_JPEG = /^\/m\/([0-9a-f]{20}\.[0-9a-f]{10}\.jpg)$/;
+
+/** Only public JPEG publications, JPEG media variants and content-addressed user images may supply artwork. */
 export function socialArtwork(path: string) {
   const userImageKey = matchUserImagePath(path);
   if (userImageKey) {
     return { bucket: 'USER_IMAGE_BUCKET' as const, key: userImageKey };
+  }
+  const variant = MEDIA_VARIANT_JPEG.exec(path);
+  if (variant) {
+    /* The media Worker's `mediaVariantKey`; a publisher test keeps the two equal. */
+    return { bucket: 'MEDIA_BUCKET' as const, key: `v/${variant[1]}` };
   }
   const target = matchPublishedPath(path);
   return target && artworkTypes.has(target.assetType)
