@@ -52,7 +52,7 @@ test.each([
   const verifier = spawn(
     process.execPath,
     [
-      path.resolve('scripts/verify-hosted-play.mjs'),
+      path.resolve('scripts/verify-hosted-play.ts'),
       '--env-file',
       envFile,
       '--origin',

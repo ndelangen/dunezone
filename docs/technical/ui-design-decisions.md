@@ -220,7 +220,7 @@ query shows is displayed. A `matchMedia` copy of the threshold disagrees with th
 shell's gutters. The homepage's live board is the example.
 
 *Media queries enforced by `check:breakpoints`
-([`assert-breakpoints.mjs`](../../scripts/assert-breakpoints.mjs)): a width query outside the window
+([`assert-breakpoints.ts`](../../scripts/assert-breakpoints.ts)): a width query outside the window
 chrome, off the ladder, or in a form other than `width < step` or `width >= step`, fails. Media
 conditions written in TypeScript and container queries are checked in review. Canonical here.*
 
@@ -491,7 +491,7 @@ from stops being greppable and two files quietly co-own one class. Ownership you
 Exactly one TSX component imports each `.module.css`; share through the component, not the stylesheet.
 
 *`check:css-orphans`
-([`assert-no-orphan-css-classes.mjs`](../../scripts/assert-no-orphan-css-classes.mjs)) catches
+([`assert-no-orphan-css-classes.ts`](../../scripts/assert-no-orphan-css-classes.ts)) catches
 orphaned or unimported stylesheets, modules and the plain stylesheet a route imports alike, not
 `composes` itself; the one-owner rule is convention.
 Canonical in [`ui-component-hierarchy.md`](./ui-component-hierarchy.md) (Styling).*
@@ -611,5 +611,5 @@ it pairs with, the default worth knowing. The test stays the same; from outside 
 the reader cannot see is all of it.
 
 *Convention, with no automated guard. (`local/no-ai-tells` in
-[`oxlint-local-plugin.mjs`](../../scripts/oxlint-local-plugin.mjs) and `check:prose` police how a
+[`oxlint-local-plugin.ts`](../../scripts/oxlint-local-plugin.ts) and `check:prose` police how a
 comment reads, never whether it earned its place.) Stated here.*

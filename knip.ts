@@ -34,9 +34,9 @@ const config: KnipConfig = {
            not scripts/lib/**, where helpers must be imported to count as used. */
         'scripts/*.{ts,mjs}',
         /* esbuild bundles the load runner by filename before the isolated stack launches it. */
-        'scripts/play-load/run.mjs',
+        'scripts/play-load/run.ts',
         /* A service worker, registered by its URL from .storybook/storyImages.ts. */
-        '.storybook/static/story-images.sw.js',
+        'workers/storybook/story-images.sw.ts',
       ],
       /**
        * Non-default vite config locations (custom `config` overrides the plugin default, so the root config must be listed too).
