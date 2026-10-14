@@ -16,6 +16,24 @@ export default function Post() {
         from <Anchor href="https://www.youtube.com/@helloMCDM">MCDM</Anchor>, a group playing the Dune board game, and
         the thumbnail looked strange enough that I clicked.
       </Lead>
+      <YouTube
+        id="Js_WINTqtjo"
+        title="MCDM Plays Dune - Round 1"
+        posterKey="/web/blog/why-dune/mcdm-plays-dune.jpg"
+        caption={
+          <>
+            MCDM Plays Dune, Round 1. The story continues in{' '}
+            <Anchor href="https://www.youtube.com/watch?v=aNbODmHvyQc" inherit>
+              Round 2
+            </Anchor>{' '}
+            and{' '}
+            <Anchor href="https://www.youtube.com/watch?v=aJIC4z6z4bQ" inherit>
+              Round 3
+            </Anchor>
+            .
+          </>
+        }
+      />
       <Paragraph>
         I wasn&rsquo;t new to board games. I had been part of an in-person board game group for years, and I was already
         playing on{' '}
@@ -70,24 +88,6 @@ function UnbalancedSection() {
         changed it. It sparked an interest in the Dune universe, in the board game, and honestly in board games in
         general.
       </Paragraph>
-      <YouTube
-        id="Js_WINTqtjo"
-        title="MCDM Plays Dune - Round 1"
-        posterKey="/web/blog/why-dune/mcdm-plays-dune.jpg"
-        caption={
-          <>
-            MCDM Plays Dune, Round 1. The story continues in{' '}
-            <Anchor href="https://www.youtube.com/watch?v=aNbODmHvyQc" inherit>
-              Round 2
-            </Anchor>{' '}
-            and{' '}
-            <Anchor href="https://www.youtube.com/watch?v=aJIC4z6z4bQ" inherit>
-              Round 3
-            </Anchor>
-            .
-          </>
-        }
-      />
       <Paragraph>
         I watched two or three of their Dune let&rsquo;s-plays back to back. Then I went looking for people to play
         with.
@@ -219,6 +219,29 @@ function ImprovingSection() {
           mod, in which all those assets could be used together seamlessly, which I'll talk about in a future post.
         </Paragraph>
       </Surface>
+      <Figure
+        imageKey="/web/blog/why-dune/dream-rulebook.jpg"
+        alt="The cover of the Dream Rulebook: a sandworm rising beneath a rainbow sky and two moons"
+        aspect={1784 / 1792}
+        caption={
+          <>
+            The{' '}
+            <Anchor
+              renderRoot={(props) => (
+                <Link
+                  {...props}
+                  to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug"
+                  params={{ rulesetSlug: 'dreamrules', rulebookSlug: 'dream-rulebook' }}
+                />
+              )}
+              inherit
+            >
+              Dream Rulebook
+            </Anchor>{' '}
+            on dune.zone today.
+          </>
+        }
+      />
     </Section>
   );
 }
