@@ -75,7 +75,7 @@ export const Blog = meta.story({
   },
 });
 
-/** One post, "Why Dune?": its title and byline in the band, then photographs, a video that loads only when played, and a live Dreamrules faction card. */
+/** One post, "Why Dune?": its title and byline in the band, then photographs, a video that loads only when played, and a link to the Dreamrules Workshop mod. */
 export const BlogPost = meta.story({
   args: { path: '/blog/why-dune' },
   play: async ({ canvasElement }) => {
@@ -84,9 +84,9 @@ export const BlogPost = meta.story({
       page.findByRole('heading', { level: 1, name: 'Why Dune?' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await expect(page.findByRole('button', { name: 'Play MCDM Plays Dune - Round 1' })).resolves.toBeVisible();
-    await expect(page.findByRole('link', { name: /House Atreides/ })).resolves.toHaveAttribute(
+    await expect(page.findByRole('link', { name: 'Dreamrules TTS mod' })).resolves.toHaveAttribute(
       'href',
-      '/factions/house-atreides'
+      'https://steamcommunity.com/sharedfiles/filedetails/?id=2859509846'
     );
   },
 });

@@ -138,7 +138,7 @@ function CracksSection() {
       </Paragraph>
       <Paragraph>
         There were already several rule sets around: the{' '}
-        <Anchor href="https://www.boardgamers.org/yearbook22/dun.html" inherit>
+        <Anchor href="https://www.boardgamers.org/wbc22/previews/dun.html" inherit>
           World Boardgaming Championships (WBC) rules
         </Anchor>
         , the original Avalon Hill rules, and the GF9 rules. The GF9 rule set left a lot of questions open. Working out

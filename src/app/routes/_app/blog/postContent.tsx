@@ -26,16 +26,16 @@ export function Paragraph({ children }: { children: ReactNode }) {
   return <p className={styles.paragraph}>{children}</p>;
 }
 
-type FigureProps = {
+type FigureProps = Readonly<{
   imageKey: string;
   alt: string;
   /** Height over width, held while the image loads. */
   aspect: number;
   caption?: ReactNode;
-};
+}>;
 
 /** A wide row whose column widths preserve each image's proportions at a shared height. */
-export function FigureRow({ figures }: { figures: readonly FigureProps[] }) {
+export function FigureRow({ figures }: Readonly<{ figures: readonly FigureProps[] }>) {
   const columns = {
     '--figure-columns': figures.map(({ aspect }) => `minmax(0, ${1 / aspect}fr)`).join(' '),
   } as CSSProperties;
