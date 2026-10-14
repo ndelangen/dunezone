@@ -517,6 +517,13 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
       }
       instance = new Miniflare(options);
     },
+    /** Evicts the homepage's in-memory room while keeping its native WebSockets connected. */
+    async hibernateHomepage() {
+      await instance.unsafeEvictDurableObject('', 'HomepageRoom', {
+        name: 'public-homepage',
+        webSockets: 'hibernate',
+      });
+    },
     /** Fetches a path from the room object with any name, as a Worker version routing another game would. */
     async object(name, path) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');

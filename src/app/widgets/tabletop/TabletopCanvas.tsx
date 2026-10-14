@@ -1,7 +1,7 @@
 /* @jsxImportSource ./three-jsx */
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ComponentProps, ReactNode } from 'react';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NeutralToneMapping } from 'three';
 
 import { releaseSharedMeshes } from './sharedMeshes';
@@ -41,7 +41,6 @@ function TableLights() {
 }
 
 function PaintedFrames({ onReady }: { onReady?: () => void }) {
-  const invalidate = useThree((state) => state.invalidate);
   const frames = useRef(0);
   const complete = useRef(false);
   const pending = useRef<number | null>(null);
@@ -60,8 +59,6 @@ function PaintedFrames({ onReady }: { onReady?: () => void }) {
     if (++frames.current > 3) {
       complete.current = true;
       pending.current = requestAnimationFrame(() => onReady?.());
-    } else {
-      invalidate();
     }
   });
   return null;
@@ -82,6 +79,11 @@ export function TabletopCanvas({
   children: ReactNode;
 }) {
   const graphics = useTableGraphics();
+  const [painted, setPainted] = useState(false);
+  const ready = useCallback(() => {
+    setPainted(true);
+    onSceneReady?.();
+  }, [onSceneReady]);
   const onUnavailable = onSceneUnavailable ?? onSceneReady;
   return (
     <>
@@ -93,7 +95,8 @@ export function TabletopCanvas({
           <Canvas
             camera={camera}
             dpr={[1, 2]}
-            frameloop="demand"
+            /* Startup owns its first painted frames; later draws follow interaction and artwork changes. */
+            frameloop={presentation === 'preview' && !painted ? 'always' : 'demand'}
             renderer={{
               antialias: true,
               alpha: presentation === 'preview',
@@ -104,7 +107,7 @@ export function TabletopCanvas({
           >
             <ReleaseRendererOnUnmount />
             <TableLights />
-            {presentation === 'preview' && <PaintedFrames onReady={onSceneReady} />}
+            {presentation === 'preview' && <PaintedFrames onReady={ready} />}
             {children}
           </Canvas>
         </TableGraphicsBoundary>

@@ -36,6 +36,7 @@ const { values } = parseArgs({
     flow: { type: 'string', multiple: true },
     shard: { type: 'string' },
     'browser-only': { type: 'boolean', default: false },
+    'stop-on-failure': { type: 'boolean', default: false },
     browser: { type: 'string' },
     'expect-renderer': { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
@@ -177,7 +178,7 @@ async function verify(invocation: Invocation & { logPath: string }, timeoutMs: n
   if (timedOut) {
     console.log(`${path.basename(invocation.logPath, '.log')} was stopped at its ${timeoutMs / 1000} s limit.`);
   }
-  return verification.exitCode === 0;
+  return !timedOut && verification.exitCode === 0;
 }
 
 async function ready(url: string, child: ChildProcess, timeoutMs: number): Promise<void> {
@@ -633,6 +634,10 @@ try {
       );
       if (!passed) {
         failed.push(flow);
+        if (values['stop-on-failure']) {
+          console.log(`Stopping the browser flow batch after ${flow} failed.`);
+          break;
+        }
       }
     }
     console.log(`Browser reports and captures remain in ${reportDirectory}.`);

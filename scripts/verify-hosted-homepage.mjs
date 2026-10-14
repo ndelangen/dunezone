@@ -260,6 +260,40 @@ async function verifyReservePickup(member, guest, point, until, passed) {
   );
 }
 
+async function verifyVisibilityBurst(page) {
+  const visibility = await page.evaluate(async () => {
+    const canvas = document.querySelector('#play-preview canvas');
+    const descriptor = Object.getOwnPropertyDescriptor(document, 'hidden');
+    let hidden = false;
+    try {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+      hidden = true;
+      document.dispatchEvent(new Event('visibilitychange'));
+      hidden = false;
+      document.dispatchEvent(new Event('visibilitychange'));
+    } finally {
+      if (descriptor) {
+        Object.defineProperty(document, 'hidden', descriptor);
+      } else {
+        delete document.hidden;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return {
+      retained: canvas === document.querySelector('#play-preview canvas'),
+      ready: !!document.querySelector('#play-preview [data-live-ready="true"]'),
+    };
+  });
+  if (visibility.retained) {
+    assert.equal(visibility.ready, true, 'A retained canvas lost readiness after a visibility burst.');
+  } else {
+    await page.locator('#play-preview [data-live-ready="true"]').waitFor();
+  }
+  const canvas = await page.locator('#play-preview canvas').elementHandle();
+  assert.ok(canvas);
+  return { canvas, retained: visibility.retained };
+}
+
 /** Keeps the homepage's published marketing thumbnails local without opening the runner to external traffic. */
 export async function installHomepageArtwork(context) {
   for (const [id, name] of thumbnails) {
@@ -274,6 +308,7 @@ export async function installHomepageArtwork(context) {
 
 /** A real signed-in visitor moves the public table while a separate unsigned visitor watches. */
 export async function verifyHomepage({
+  backendSocketOrigin,
   account,
   peer,
   origin,
@@ -290,6 +325,30 @@ export async function verifyHomepage({
   const guest = await peer('homepage-observer');
   /* Picking must work after the animated entrance as well as with reduced motion. */
   await member.page.emulateMedia({ reducedMotion: 'no-preference' });
+  let sessionReleased = false;
+  let releaseSession;
+  /* Let the board paint while the saved sign-in is still resolving. */
+  await member.context.routeWebSocket(
+    (url) => url.origin === backendSocketOrigin,
+    (socket) => {
+      const server = socket.connectToServer();
+      const waiting = [];
+      server.onMessage((message) => {
+        if (sessionReleased) {
+          socket.send(message);
+        } else {
+          waiting.push(message);
+        }
+      });
+      releaseSession = () => {
+        sessionReleased = true;
+        for (const message of waiting) {
+          socket.send(message);
+        }
+        waiting.length = 0;
+      };
+    }
+  );
   let artworkRequested = false;
   const releaseArtwork = Promise.withResolvers();
   /* Hold a scene image until the driver has checked the still-loading preview. */
@@ -326,13 +385,41 @@ export async function verifyHomepage({
     await who.page.getByRole('link', { name: 'Take a sneak peek', exact: true }).click();
     await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
     if (who === member) {
-      await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
       await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
+      await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
       await who.page.locator('[data-table-connected="true"]').waitFor();
       /* Hand portraits are HTML overlays; the board itself must stay on the canvas. */
       assert.equal(await who.page.locator('#play-preview img:not([data-table-hand] img)').count(), 0);
       initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
       assert.ok(initialCanvas);
+      assert.ok(releaseSession);
+      const continuity = await who.page.locator('#play-preview [data-live-ready="true"]').evaluateHandle((region) => {
+        let lostReady = false;
+        const observer = new MutationObserver(() => {
+          lostReady ||= region.getAttribute('data-live-ready') !== 'true';
+        });
+        observer.observe(region, { attributes: true, attributeFilter: ['data-live-ready'] });
+        return {
+          finish() {
+            observer.disconnect();
+            return lostReady;
+          },
+        };
+      });
+      await capture(member, 'homepage-before-saved-signin-resolves');
+      releaseSession();
+      await until(() => {
+        const view = who.view();
+        return view && view.viewer.viewerSeat !== spectator;
+      }, 'Saved sign-in did not grant handling.');
+      assert.equal(
+        await initialCanvas.evaluate((canvas) => canvas === document.querySelector('#play-preview canvas')),
+        true,
+        'Resolving the saved sign-in replaced the visible canvas.'
+      );
+      assert.equal(await continuity.evaluate((probe) => probe.finish()), false, 'Saved sign-in hid the painted board.');
+      await continuity.dispose();
+      passed('Saved sign-in resolves after the board appears without replacing its canvas');
       await capture(member, 'homepage-board-before-slow-artwork');
       releaseArtwork.resolve();
     } else {
@@ -342,8 +429,19 @@ export async function verifyHomepage({
       assert.ok(initialCanvas);
       assert.ok(releaseSnapshot);
       await capture(guest, 'homepage-board-before-live-snapshot');
+      const visibility = await verifyVisibilityBurst(who.page);
+      initialCanvas = visibility.canvas;
       releaseSnapshot();
       await who.page.locator('[data-table-connected="true"]').waitFor();
+      assert.equal(
+        await who.page.locator('#play-preview [data-live-ready="true"]').count(),
+        1,
+        'The painted scene lost readiness after a rapid visibility change.'
+      );
+      passed('A rapid hide/show keeps the painted board visible through the live snapshot', {
+        canvasRetained: visibility.retained,
+      });
+      await capture(guest, 'homepage-observer-after-visibility');
     }
     await who.page.locator('[data-live-ready="true"]').waitFor();
     await tableLoaded(who);

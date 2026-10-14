@@ -87,11 +87,11 @@ describe('the homepage table connection', () => {
   });
 
   it('does not put a ticket from a disconnected attempt on its replacement connection', async () => {
-    let resolve!: (value: Awaited<ReturnType<typeof requestHomepageTicket>>) => void;
+    const requests: ((value: Awaited<ReturnType<typeof requestHomepageTicket>>) => void)[] = [];
     const request = vi.fn(
       () =>
         new Promise<Awaited<ReturnType<typeof requestHomepageTicket>>>((done) => {
-          resolve = done;
+          requests.push(done);
         })
     );
     connect(request);
@@ -100,10 +100,43 @@ describe('the homepage table connection', () => {
     await vi.advanceTimersByTimeAsync(1000);
     sockets[1]!.open();
     sockets[1]!.view();
-    resolve({ ticket: 'a'.repeat(64) });
+    requests[0]!({ ticket: 'a'.repeat(64) });
     await vi.advanceTimersByTimeAsync(0);
     expect(sockets[0]!.send).not.toHaveBeenCalled();
     expect(sockets[1]!.send).not.toHaveBeenCalled();
+    requests[1]!({ ticket: 'b'.repeat(64) });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(JSON.parse(sockets[1]!.send.mock.calls[0]![0])).toEqual({ type: 'authenticate', ticket: 'b'.repeat(64) });
+  });
+
+  it('replaces handling permission on a viewer change and ignores the previous viewer ticket', async () => {
+    let resolve!: (value: Awaited<ReturnType<typeof requestHomepageTicket>>) => void;
+    const request = vi.fn(
+      () =>
+        new Promise<Awaited<ReturnType<typeof requestHomepageTicket>>>((done) => {
+          resolve = done;
+        })
+    );
+    const subscription = connect();
+    sockets[0]!.open();
+    sockets[0]!.view();
+    subscription.setViewer('member', request);
+    expect(sockets[0]!.readyState).toBe(3);
+    expect(subscription.ready).toBe(false);
+    sockets[1]!.open();
+    sockets[1]!.view();
+    subscription.setViewer(null, null);
+    expect(sockets[1]!.readyState).toBe(3);
+    sockets[2]!.open();
+    sockets[2]!.view();
+    resolve({ ticket: 'a'.repeat(64) });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sockets[1]!.send).not.toHaveBeenCalled();
+    expect(sockets[2]!.send).not.toHaveBeenCalled();
+    expect(subscription.ready).toBe(true);
+    expect(subscription.getSnapshot()?.viewer.viewerSeat).toBe(SPECTATOR_SEAT);
+    subscription.setViewer(null, null);
+    expect(sockets).toHaveLength(3);
   });
 
   it('sends physical commands with the current epoch while refusing game lifecycle commands', () => {

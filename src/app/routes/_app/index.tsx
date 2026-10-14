@@ -626,27 +626,21 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
   const identity = member ? viewer.profile._id : 'observer';
   const region = useRef<HTMLDivElement>(null);
   const [state, dispatch] = useReducer(
-    (
-      state: { active: boolean; readyFor: string | null; failed: boolean },
-      event: { type: 'enter' | 'leave' | 'failed' } | { type: 'ready'; identity: string }
-    ) => {
+    (state: { active: boolean; failed: boolean }, event: { type: 'enter' | 'leave' | 'failed' }) => {
       switch (event.type) {
         case 'enter':
           return { ...state, active: true };
         case 'leave':
-          return { ...state, active: false, readyFor: null };
-        case 'ready':
-          return { ...state, readyFor: event.identity };
+          return { ...state, active: false };
         case 'failed':
-          return { active: false, readyFor: null, failed: true };
+          return { active: false, failed: true };
       }
     },
-    { active: false, readyFor: null, failed: false }
+    { active: false, failed: false }
   );
   const still = useRef<HTMLDivElement>(null);
   const room = useRoomForLiveBoard(still);
   const roomy = room === 'wide';
-  const ready = useCallback(() => dispatch({ type: 'ready', identity }), [identity]);
   const unavailable = useCallback(() => dispatch({ type: 'failed' }), []);
   useEffect(() => {
     const element = region.current;
@@ -654,7 +648,7 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
       return;
     }
     let inView = false;
-    /* Leaving also clears readiness, so a table that returns after the page widens again waits for its own first frames. */
+    /* Visibility decides whether the scene is mounted; the mounted scene owns its painted state. */
     const sync = () => dispatch({ type: roomy && inView && !document.hidden ? 'enter' : 'leave' });
     const observer = new IntersectionObserver(
       (entries) => {
@@ -671,11 +665,7 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
     };
   }, [roomy]);
   return (
-    <div
-      ref={region}
-      className={styles.wideBoard}
-      data-live-ready={state.readyFor === identity && state.active ? 'true' : undefined}
-    >
+    <div ref={region} className={styles.wideBoard}>
       <div ref={still} className={styles.boardStill}>
         {room === 'narrow' && (
           <PublishedImage
@@ -688,11 +678,9 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
       {state.active && !state.failed && (
         <Suspense fallback={null}>
           <ConnectedHomepageTable
-            key={identity}
-            member={member}
+            identity={member ? identity : null}
             className={styles.liveBoard}
             sceneClassName={styles.liveScene}
-            onReady={ready}
             onUnavailable={unavailable}
           />
         </Suspense>

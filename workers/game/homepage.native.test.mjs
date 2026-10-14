@@ -51,6 +51,95 @@ async function command(connection, action) {
 }
 
 describe('the public homepage table', () => {
+  it('replaces the generation when an invalid saved table is replaced', async () => {
+    const member = await visitor(true);
+    const before = await syncView(member);
+    await runtime.fetch('/native-test/invalid-snapshot', { method: 'POST' });
+    await runtime.restart();
+    const resumed = await visitor(true);
+    const replaced = await syncView(resumed);
+    expect(replaced.epoch).not.toBe(before.epoch);
+    await act(
+      resumed,
+      {
+        type: 'command',
+        commandId: 'previous-table',
+        expectedRevision: before.snapshot.revision,
+        action: { kind: 'rotate', pieceId: 'treachery-card-loose', direction: 1 },
+      },
+      before
+    );
+    await resumed.message('rejected', (message) => message.requestId === 'previous-table');
+    expect((await syncView(resumed)).snapshot.revision).toBe(0);
+    await runtime.restart();
+    const nextWake = await visitor();
+    expect((await syncView(nextWake)).epoch).toBe(replaced.epoch);
+  });
+
+  it('grants the first pickup after hibernation without a preliminary resync', async () => {
+    const member = await visitor(true);
+    const before = await syncView(member);
+    await runtime.hibernateHomepage();
+    const received = member.messages.length;
+    await act(
+      member,
+      {
+        type: 'begin',
+        carryId: 'after-idle',
+        sourcePieceId: 'starting-5-polar',
+        expectedVersion: before.snapshot.versions['starting-5-polar'] ?? 0,
+        pickup: 'whole',
+      },
+      before
+    );
+    const answered = await eventually(
+      () =>
+        member.messages
+          .slice(received)
+          .find(
+            (message) =>
+              (message.type === 'carry' && message.carryId === 'after-idle') ||
+              (message.type === 'rejected' && message.requestId === 'after-idle')
+          ),
+      'first pickup answered'
+    );
+    expect(answered).toMatchObject({ type: 'carry', carryId: 'after-idle' });
+    await act(member, { type: 'cancel', carryId: 'after-idle' }, before);
+    const cancelled = await syncView(member);
+    expect(cancelled.carries).toEqual([]);
+    expect(cancelled.snapshot.revision).toBe(before.snapshot.revision);
+  });
+
+  it('does not commit a stale carry after the Worker restarts', async () => {
+    const member = await visitor(true);
+    const before = await act(member, {
+      type: 'begin',
+      carryId: 'before-idle',
+      sourcePieceId: 'reserve-5-0',
+      expectedVersion: 0,
+      pickup: 'whole',
+    });
+    await member.message('carry', (message) => message.carryId === 'before-idle');
+    await runtime.restart();
+    const resumed = await visitor(true);
+    await act(
+      resumed,
+      {
+        type: 'drop',
+        carryId: 'before-idle',
+        commandId: 'lost-drop',
+        position: [0, 0.5, 0],
+        orientation: 0,
+      },
+      before
+    );
+    await resumed.message('rejected', (message) => message.requestId === 'lost-drop');
+    const restored = await syncView(resumed);
+    expect(restored.carries).toEqual([]);
+    expect(restored.snapshot.revision).toBe(before.snapshot.revision);
+    expect(restored.snapshot.table.pieces.find((piece) => piece.id === 'reserve-5-0').items).toHaveLength(18);
+  });
+
   it('lets visitors observe but refuses anonymous handling', async () => {
     const guest = await visitor();
     const view = await syncView(guest);

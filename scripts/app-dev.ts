@@ -303,7 +303,7 @@ async function runLocalDevelopment(requested: LocalData) {
     switch (data.kind) {
       case 'fixture':
         console.log('Clearing local Convex for fixture data...');
-        loadFixtureData(deployment, localEnv);
+        await loadFixtureData(deployment);
         break;
       case 'snapshot':
         console.log(`Loading the anonymised snapshot ${data.snapshot.file} into local Convex...`);

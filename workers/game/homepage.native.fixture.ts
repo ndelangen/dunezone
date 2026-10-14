@@ -9,6 +9,11 @@ Date.now = () => fixedNow ?? realNow() + offset;
 export class HomepageRoom extends ProductionHomepageRoom {
   override async fetch(request: Request) {
     const url = new URL(request.url);
+    if (url.pathname === '/native-test/invalid-snapshot' && request.method === 'POST') {
+      const saved = await this.ctx.storage.get<Record<string, unknown>>('table');
+      await this.ctx.storage.put('table', { ...saved, snapshot: {} });
+      return new Response(null, { status: 204 });
+    }
     if (url.pathname === '/native-test/clock') {
       fixedNow = url.searchParams.has('now') ? Number(url.searchParams.get('now')) : undefined;
       offset = Number(url.searchParams.get('offset'));
