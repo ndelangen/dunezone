@@ -11,7 +11,11 @@ let activeRenders = 0;
 const MAX_ACTIVE_RENDERS = 2;
 type Render = (input: SocialCardInput, artwork: ArrayBuffer | null) => Promise<Uint8Array>;
 
-type ArtworkBuckets = { ASSET_BUCKET: Pick<R2Bucket, 'get'>; USER_IMAGE_BUCKET?: Pick<R2Bucket, 'get'> };
+type ArtworkBuckets = {
+  ASSET_BUCKET: Pick<R2Bucket, 'get'>;
+  USER_IMAGE_BUCKET?: Pick<R2Bucket, 'get'>;
+  MEDIA_BUCKET?: Pick<R2Bucket, 'get'>;
+};
 
 async function artworkData(input: SocialCardInput, buckets: ArtworkBuckets): Promise<ArrayBuffer | null> {
   const target = socialArtwork(input.art);

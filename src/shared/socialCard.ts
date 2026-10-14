@@ -25,8 +25,15 @@ const artworkTypes = new Set([
   'rulebook-first-page',
 ]);
 
-/** Only public JPEG publications and content-addressed user images may supply artwork. */
+/** A content-addressed JPEG variant from the media pipeline, such as a blog post's cover, stored at `v/<name>` in the media bucket. */
+const MEDIA_JPEG_VARIANT = /^\/m\/([0-9a-f]{20}\.[0-9a-f]{10}\.jpg)$/;
+
+/** Only public JPEG publications, content-addressed user images and JPEG media variants may supply artwork. */
 export function socialArtwork(path: string) {
+  const mediaVariant = MEDIA_JPEG_VARIANT.exec(path)?.[1];
+  if (mediaVariant) {
+    return { bucket: 'MEDIA_BUCKET' as const, key: `v/${mediaVariant}` };
+  }
   const userImageKey = matchUserImagePath(path);
   if (userImageKey) {
     return { bucket: 'USER_IMAGE_BUCKET' as const, key: userImageKey };

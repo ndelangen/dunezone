@@ -58,7 +58,10 @@ export function blogPostByline(meta: BlogPostMeta): string {
   return `${formatStableDate(meta.date)} · ${meta.author}`;
 }
 
-/** The cover at its large tier, for the post's structured data. */
+/**
+ * The cover at its small tier, for the post's structured data and its social card.
+ * The card renderer refuses artwork over two megapixels, which a portrait cover's large tier can exceed.
+ */
 export function blogPostImage(meta: BlogPostMeta): string {
-  return resolveAsset(meta.cover.key, 'large');
+  return resolveAsset(meta.cover.key, 'small');
 }
