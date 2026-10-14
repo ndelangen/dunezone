@@ -951,6 +951,7 @@ export const MEDIA_MAP: Readonly<Record<string, MediaMapEntry>> = {
   '/web/blog/running-from-databases/then-and-now.jpg': ['1b48985704f1853ad66c', '#f8f8e8'],
   '/web/blog/running-from-databases/victory-turns-2021.jpg': ['e1899ec0e622e0c9b06f', '#f8f8f8'],
   '/web/blog/why-dune/avalon-hill-set.jpg': ['f34aeff4a07bbcb65dde', '#482818'],
+  '/web/blog/why-dune/dream-rulebook.jpg': ['6588f45c4ad391d46e42', '#98c868'],
   '/web/blog/why-dune/gf9-board.jpg': ['45ba1560102ad4d50976', '#080808'],
   '/web/blog/why-dune/mcdm-plays-dune.jpg': ['2b57c62d3aa85638cb43', '#e8d8c8'],
   '/web/blog/why-dune/tts-central419.jpg': ['efda3b20bc25196a8b9b', '#080808'],

@@ -10139,6 +10139,12 @@
     "subjects": ["places", "symbols", "culture"],
     "sourceHash": "f34aeff4a07bbcb65dde18304f112572b21fa2d613daf9f713aaecd0c982dd22"
   },
+  "/web/blog/why-dune/dream-rulebook.jpg": {
+    "description": "The cover of the Dream Rulebook on dune.zone: a sandworm rising from orange dunes beneath a rainbow sky and two moons, under the Dune logo.",
+    "tags": ["Dreamrules", "rulebook cover", "sandworm", "rainbow", "blog"],
+    "subjects": ["places", "space", "creatures", "people"],
+    "sourceHash": "6588f45c4ad391d46e425c5a79ef686862b3b69563f6f9df4c166de185b456da"
+  },
   "/web/blog/why-dune/gf9-board.jpg": {
     "description": "A close-up of the GF9 edition board with stacked leader discs, faction tokens and treachery cards on Arrakis.",
     "tags": ["GF9", "board game", "leader discs", "treachery cards", "blog"],
