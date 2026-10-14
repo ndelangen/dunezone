@@ -128,7 +128,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-icons": "^5.7.0",
-    "satori": "0.26.0",
+    "satori": "0.35.1",
     "three": "0.185.1",
     "unicode-segmenter": "0.17.3",
     "zod": "^4.4.3"
@@ -188,6 +188,9 @@
   },
   "overrides": {
     "@babel/core": "7.29.7",
+    "@shuding/opentype.js": {
+      "fflate": "0.7.5"
+    },
     "@stryker-mutator/instrumenter": {
       "@babel/core": "8.0.7"
     },
@@ -201,6 +204,9 @@
     "picomatch": "4.0.7",
     "postcss": "8.5.29",
     "probe-image-size": "7.4.0",
+    "satori": {
+      "fflate": "0.7.5"
+    },
     "seroval": "1.6.8",
     "sharp": "0.35.5",
     "shell-quote": "1.12.0",
@@ -215,6 +221,7 @@
     "@storybook/tanstack-react@10.6.0": "patches/@storybook%2Ftanstack-react@10.6.0.patch",
     "@react-three/fiber@10.0.0-alpha.4": "patches/@react-three%2Ffiber@10.0.0-alpha.4.patch",
     "three@0.185.1": "patches/three@0.185.1.patch",
-    "@convex-dev/auth@0.0.96": "patches/@convex-dev%2Fauth@0.0.96.patch"
+    "@convex-dev/auth@0.0.96": "patches/@convex-dev%2Fauth@0.0.96.patch",
+    "harfbuzzjs@0.10.0": "patches/harfbuzzjs@0.10.0.patch"
   }
 }
