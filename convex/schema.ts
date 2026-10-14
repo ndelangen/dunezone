@@ -15,6 +15,7 @@ import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
 import { authProviderValidator } from './lib/accountMethods';
 import { directOwnershipKindValidator } from './lib/directOwnership';
 import { faqTagValidator } from './lib/faqTags';
+import { formerSlugValidator } from './lib/formerSlugs';
 import { ingestTokenCapabilityValidator } from './lib/ingestTokens';
 import { profileAvatarValidator } from './lib/profileAvatar';
 import { rulebookSettingsValidator } from './lib/rulebookSettings';
@@ -151,6 +152,11 @@ export default defineSchema({
     key: v.string(),
     value: v.number(),
   }).index('by_key', ['key']),
+  /**
+   * Addresses that renames moved records away from, so old links redirect to where the record lives now.
+   * A record currently holding the address, live or deleted, always wins over these rows.
+   */
+  former_slugs: defineTable(formerSlugValidator).index('by_kind_and_scope_and_slug', ['kind', 'scope', 'slug']),
   profiles: defineTable({
     user_id: v.id('users'),
     merged_into_profile_id: v.optional(v.id('profiles')),

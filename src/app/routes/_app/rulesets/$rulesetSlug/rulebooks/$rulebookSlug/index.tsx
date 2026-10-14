@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 
 import { useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
@@ -66,10 +67,14 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
   codeSplitGroupings: [['loader'], ['component'], ['pendingComponent', 'errorComponent']],
   validateSearch: parseReaderSearch,
   loaderDeps: ({ search }) => ({ editionNumber: search.edition }),
-  loader: async ({ params, deps }) => {
+  loader: async ({ params, deps, location }) => {
     const view = await loadReaderView({ ...params, editionNumber: deps.editionNumber });
     const page = view.page;
     if (!page) {
+      await redirectFromFormerAddress(
+        { kind: 'rulebook', ruleset_slug: params.rulesetSlug, rulebook_slug: params.rulebookSlug },
+        location
+      );
       throw notFound();
     }
     return view;
@@ -82,12 +87,19 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
     const editionSearch = historical ? '?edition=' + editionNumber : '';
     return publicPageHead({
       name: loaderData?.rulebook.name ?? 'Rulebook',
+      kind: loaderData ? 'Rulebook' : undefined,
       pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}/rulebooks/${encodeURIComponent(loaderData?.rulebook.slug ?? params.rulebookSlug)}${editionSearch}`,
       description: loaderData
         ? `${loaderData.ruleset.name}. Edition ${loaderData.edition.edition_number}. Read the published Rulebook on Dune Zone.`
         : '',
       image: loaderData?.edition.first_page_image_url,
-      social: { kind: 'Rulebook', shape: 'portrait' },
+      social: { shape: 'portrait' },
+      trail: [
+        { name: 'Rulesets', pathname: '/rulesets' },
+        ...(loaderData
+          ? [{ name: loaderData.ruleset.name, pathname: `/rulesets/${encodeURIComponent(loaderData.ruleset.slug)}` }]
+          : []),
+      ],
       match,
     });
   },
@@ -325,7 +337,7 @@ function RulebookReaderDelivery({ initial }: { initial: Awaited<ReturnType<typeo
     data?.edition.edition_number,
     search.edition,
   ]);
-  useLivePageTitle(data?.rulebook.name);
+  useLivePageTitle(data?.rulebook.name, 'Rulebook');
   if (!data) {
     return (
       <PageMessage

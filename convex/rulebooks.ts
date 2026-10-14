@@ -26,6 +26,7 @@ import {
   requireRulesetMaintenance,
 } from './lib/collaborativeAccess';
 import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
+import { recordFormerSlug } from './lib/formerSlugs';
 import { requireAuthUserId } from './lib/policy';
 import { isRulebookCoverImageDeliveryUrl } from './lib/rulebookCoverImage';
 import {
@@ -1096,6 +1097,14 @@ export const rename = mutation({
     const name = parseName(args.name);
     const nameKey = await assertAvailableName(ctx, rulebook.ruleset_id, name, rulebook._id);
     const slug = await resolveUniqueSlug(ctx, rulebook.ruleset_id, name, rulebook);
+    if (slug !== rulebook.slug) {
+      await recordFormerSlug(ctx, {
+        kind: 'rulebook',
+        scope: rulebook.ruleset_id,
+        slug: rulebook.slug,
+        record_id: rulebook._id,
+      });
+    }
     const updatedAt = nowIso();
     await ctx.db.patch('rulebooks', rulebook._id, {
       name,

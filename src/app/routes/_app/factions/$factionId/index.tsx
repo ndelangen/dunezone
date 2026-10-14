@@ -33,7 +33,8 @@ import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusPro
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
+import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { useAsset } from '@game/assets/assetRenderMode';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -43,12 +44,15 @@ import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 
 import styles from './index.module.css';
 
+const FACTION_KIND = 'Custom faction';
+
 export const Route = createFileRoute('/_app/factions/$factionId/')({
   ssr: true,
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
-  loader: async ({ params }) => {
+  loader: async ({ params, location }) => {
     const page = await loadPublicFaction(params.factionId);
     if (!page) {
+      await redirectFromFormerAddress({ kind: 'faction', slug: params.factionId }, location);
       throw notFound();
     }
     return page;
@@ -58,10 +62,16 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
   head: ({ match, loaderData, params }) =>
     publicPageHead({
       name: loaderData?.faction.data.name ?? 'Faction',
+      kind: loaderData ? FACTION_KIND : undefined,
       pathname: `/factions/${encodeURIComponent(loaderData?.faction.slug ?? params.factionId)}`,
-      description: publicDescription(loaderData?.faction.data.rules.advantages[0]?.text),
+      description: loaderData
+        ? publicDescription(loaderData.faction.data.rules.advantages[0]?.text) ||
+          `${loaderData.faction.data.name} is a custom faction for Dune${loaderData.owner?.username ? ` by ${loaderData.owner.username}` : ''}, with its rules, leaders and troops.`
+        : '',
       image: loaderData ? publishedHref('faction-token', loaderData.faction._id, loaderData.faction.updated_at) : null,
-      social: { kind: 'Faction', shape: 'round' },
+      social: { shape: 'round' },
+      trail: [{ name: 'Factions', pathname: '/factions' }],
+      entity: { type: 'work', author: profileLink(loaderData?.owner) },
       match,
     }),
   component: FactionDetailPage,
@@ -360,7 +370,7 @@ function FactionDetailPage() {
   });
   const membershipWorkflow = useGroupMembershipWorkflow();
   const page = factionQuery.data;
-  useLivePageTitle(page?.faction.data.name);
+  useLivePageTitle(page?.faction.data.name, FACTION_KIND);
 
   if (!page) {
     return <FactionDetailPending />;
