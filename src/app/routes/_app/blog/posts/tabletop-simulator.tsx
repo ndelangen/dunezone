@@ -175,6 +175,34 @@ function ToolsSection() {
         And I always wanted my mod to support multiple rule sets, maybe infinitely many, with everything customisable.
         So the scope creep never seemed to stop, in a development environment that was rather tedious.
       </Paragraph>
+      <Paragraph>
+        Then came the rabbit holes. I vectorized all the iconography, and then the board itself: every territory, sector
+        line and stronghold redrawn as clean shapes.
+      </Paragraph>
+      <Paragraph>
+        Next I wanted the territory names on the board, in the right font. Getting text to render in the correct font
+        inside TTS was a puzzle of its own.
+      </Paragraph>
+      <Paragraph>
+        All of it was so that some day it would be possible to load different boards. That never happened in TTS, but
+        it&rsquo;s something dune.zone play will support!
+      </Paragraph>
+      <FigureRow
+        figures={[
+          {
+            imageKey: '/web/blog/tabletop-simulator/vector-board.jpg',
+            alt: 'The vectorized Dune board seen from above, with every territory named',
+            aspect: 970 / 1080,
+            caption: 'The vectorized board.',
+          },
+          {
+            imageKey: '/web/blog/tabletop-simulator/board-fonts.jpg',
+            alt: 'A low view across the vectorized board, with territory names such as Cielago Depression and Meridian',
+            aspect: 742 / 1080,
+            caption: 'Territory names in the right font, February 2023.',
+          },
+        ]}
+      />
     </Section>
   );
 }
