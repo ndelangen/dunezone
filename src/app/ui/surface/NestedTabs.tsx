@@ -22,6 +22,7 @@ import type {
   FocusEvent,
   HTMLAttributes,
   KeyboardEvent,
+  MouseEvent,
   PropsWithChildren,
   ReactElement,
   ReactNode,
@@ -365,7 +366,7 @@ function NestedTabsTooltip({
   description?: string;
   help?: string;
   isScrolling: boolean;
-  children: ReactElement<Pick<HTMLAttributes<HTMLElement>, 'onFocus' | 'onBlur'>>;
+  children: ReactElement<Pick<HTMLAttributes<HTMLElement>, 'onFocus' | 'onBlur' | 'onMouseOver' | 'onMouseOut'>>;
 }) {
   const [shown, setShown] = useState<'closed' | 'short' | 'help'>('closed');
   if (isScrolling && shown !== 'closed') {
@@ -454,6 +455,19 @@ function NestedTabsTooltip({
     children.props.onBlur?.(event);
     release('focus');
   };
+  /* A portal can disappear before its outgoing event; the next real hover still needs to open guidance. */
+  const onMouseOver = (event: MouseEvent<HTMLElement>) => {
+    children.props.onMouseOver?.(event);
+    if (!(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))) {
+      engage('pointer');
+    }
+  };
+  const onMouseOut = (event: MouseEvent<HTMLElement>) => {
+    children.props.onMouseOut?.(event);
+    if (!(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))) {
+      release('pointer');
+    }
+  };
   return (
     <Tooltip
       label={
@@ -472,10 +486,15 @@ function NestedTabsTooltip({
       maw={text ? 320 : undefined}
       opened={shown !== 'closed' && !isScrolling}
       events={{ hover: false, focus: false, touch: false }}
-      onMouseEnter={() => engage('pointer')}
-      onMouseLeave={() => release('pointer')}
     >
-      <Trigger {...children.props} key={children.key} onFocus={onFocus} onBlur={onBlur} />
+      <Trigger
+        {...children.props}
+        key={children.key}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        onMouseOver={onMouseOver}
+        onMouseOut={onMouseOut}
+      />
     </Tooltip>
   );
 }

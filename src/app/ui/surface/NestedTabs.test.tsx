@@ -151,6 +151,34 @@ describe('NestedTabs', () => {
     expect(container?.querySelectorAll('nav')).toHaveLength(2);
   });
 
+  it('opens guidance when the pointer enters from another control without an outgoing event', async () => {
+    const previous = container?.querySelector('button');
+    expect(previous).toBeInstanceOf(HTMLButtonElement);
+    await act(async () => {
+      item('Page 1').dispatchEvent(new MouseEvent('mouseover', { bubbles: true, relatedTarget: previous }));
+      await new Promise((resolve) => window.setTimeout(resolve, 500));
+    });
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 150));
+    });
+    expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Page 1');
+    const icon = item('Page 1').querySelector('span');
+    expect(icon).toBeInstanceOf(HTMLSpanElement);
+    await act(async () => {
+      item('Page 1').dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: icon }));
+      icon?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, relatedTarget: item('Page 1') }));
+      await new Promise((resolve) => window.setTimeout(resolve, 150));
+    });
+    expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Page 1');
+    await act(async () => {
+      item('Page 1').dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: previous }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 150));
+    });
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
+  });
+
   it('derives containing Group state from its active descendant', () => {
     expect(container?.querySelector('[data-contains-active-item="true"]')).not.toBeNull();
     expect(container?.querySelector('[data-contains-active-item="true"]')?.hasAttribute('aria-current')).toBe(false);
