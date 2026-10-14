@@ -121,6 +121,8 @@ describe('public page heads', () => {
       author: { '@type': 'Person', name: 'Central419' },
     });
     expect(metaOf(post)).toContainEqual({ property: 'og:type', content: 'article' });
+    expect(metaOf(post)).toContainEqual({ property: 'article:published_time', content: '2026-10-14' });
+    expect(metaOf(post)).toContainEqual({ property: 'article:author', content: 'Central419' });
     expect(metaOf(publicPageHead(faction))).toContainEqual({ property: 'og:type', content: 'website' });
   });
 

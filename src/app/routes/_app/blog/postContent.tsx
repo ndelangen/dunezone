@@ -21,7 +21,10 @@ export function Paragraph({ children }: { children: ReactNode }) {
   return <p className={styles.paragraph}>{children}</p>;
 }
 
-/** An image from `media/`, served through the media pipeline, with an optional caption under it. */
+/**
+ * An image from `media/`, served through the media pipeline, with an optional caption under it.
+ * Blog images live under `web/`, whose small tier is 1080px wide, enough for the reading column on a high-density screen.
+ */
 export function Figure({
   imageKey,
   alt,
@@ -37,7 +40,7 @@ export function Figure({
   return (
     <figure className={styles.figure}>
       <PublishedImage
-        src={resolveAsset(imageKey, 'large')}
+        src={resolveAsset(imageKey, 'small')}
         name={alt}
         aspect={aspect}
         radius="var(--mantine-radius-md)"

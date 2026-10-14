@@ -1,3 +1,4 @@
+import { formatStableDate } from '@ui/content/dates';
 import type { ComponentType } from 'react';
 
 import * as whyDune from './posts/why-dune';
@@ -12,7 +13,10 @@ export type BlogPostMeta = {
   author: string;
   /** One or two sentences for the post list, the search snippet and the social card. */
   summary: string;
-  /** A raster key from `media/`, resolved through the media pipeline, with its height over width. */
+  /**
+   * A raster key from `media/`, resolved through the media pipeline, with its height over width.
+   * It is the image in the post's structured data, and the post shows it with `Figure`.
+   */
   cover: { key: string; alt: string; aspect: number };
 };
 
@@ -26,4 +30,9 @@ export const BLOG_POSTS: readonly BlogPost[] = [whyDune];
 
 export function findBlogPost(slug: string): BlogPost | undefined {
   return BLOG_POSTS.find((post) => post.meta.slug === slug);
+}
+
+/** The date and author line the post list and the post page both show above a title. */
+export function blogPostByline(meta: BlogPostMeta): string {
+  return `${formatStableDate(meta.date)} · ${meta.author}`;
 }

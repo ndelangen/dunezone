@@ -182,6 +182,12 @@ export function publicPageHead({
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:url', content: url },
+      ...(entity?.type === 'article'
+        ? [
+            { property: 'article:published_time', content: entity.published },
+            { property: 'article:author', content: entity.author },
+          ]
+        : []),
       { property: 'og:image', content: imageUrl },
       { property: 'og:image:alt', content: details?.alt ?? name },
       ...(details

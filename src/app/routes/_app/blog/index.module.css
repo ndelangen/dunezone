@@ -1,18 +1,21 @@
 .hero {
   width: 100%;
   padding: clamp(1rem, 3vw, 2.5rem);
+}
+
+/* The title sits straight on the hero artwork, so it carries its own contrast; the intro pane beside it has its own. */
+.title {
   color: white;
   text-shadow: 0 2px 16px rgb(0 0 0 / 65%);
 }
 
-.hero h1 {
+.title h1 {
   max-width: 800px;
 }
 
 /* Placement only; the pane's appearance is Surface's. */
 .intro {
   align-self: center;
-  text-shadow: none;
 }
 
 .list {

@@ -2,13 +2,12 @@ import { Anchor, Text } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
-import { formatStableDate } from '@ui/content/dates';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowLeft } from 'lucide-react';
 
 import { publicPageHead } from '@app/routes/publicPage';
 
-import { findBlogPost } from '../posts';
+import { blogPostByline, findBlogPost } from '../posts';
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/blog/$postSlug/')({
@@ -46,7 +45,7 @@ function BlogPostPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <PageTitle eyebrow={`${formatStableDate(meta.date)} · ${meta.author}`} title={meta.title} />
+        <PageTitle eyebrow={blogPostByline(meta)} title={meta.title} />
       </PageLayout.Header>
       <PageLayout.Content>
         <article className={styles.article}>

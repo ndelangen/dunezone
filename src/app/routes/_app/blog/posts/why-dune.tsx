@@ -142,9 +142,9 @@ export default function Post() {
           people I like to play with.
         </Paragraph>
         <Figure
-          imageKey="/web/blog/why-dune/tts-central419.jpg"
-          alt="A Dune table in Tabletop Simulator, floating among the stars"
-          aspect={1416 / 2048}
+          imageKey={meta.cover.key}
+          alt={meta.cover.alt}
+          aspect={meta.cover.aspect}
           caption="My seat at the table."
         />
         <Paragraph>
