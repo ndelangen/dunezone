@@ -5,7 +5,7 @@ import { Section } from '@ui/block/Section';
 import { Figure, FigureRow, Lead, Paragraph } from '../postContent';
 import { BLOG_POST_META } from '../posts';
 
-const meta = BLOG_POST_META['running-from-databases'];
+const meta = BLOG_POST_META['before-dune-zone'];
 
 const IMAGES = '/web/blog/running-from-databases';
 
