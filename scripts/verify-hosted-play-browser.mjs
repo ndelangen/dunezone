@@ -1225,7 +1225,36 @@ async function displayedPhase(who, index, { held = false } = {}) {
   await section.waitFor({ state: 'attached' });
   if (!held) {
     await controls.getByRole('tab', { name: 'Phase', exact: true }).hover();
-    await controls.getByRole('tooltip').filter({ hasText: phase.instructions }).waitFor();
+    try {
+      await controls.getByRole('tooltip').filter({ hasText: phase.instructions }).waitFor();
+    } catch (error) {
+      /* Keep the failed hover's state before screenshots or other browser calls move it. */
+      report.phaseTooltip = await controls
+        .evaluate(() => {
+          const tab = document.querySelector('[role="tab"][aria-label="Phase"]');
+          const box = tab?.getBoundingClientRect();
+          const hit = box && document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+          return {
+            visibility: document.visibilityState,
+            focused: document.hasFocus(),
+            shell: document.querySelector('.dune-play-shell')?.dataset,
+            tab: tab && {
+              html: tab.outerHTML,
+              hovered: tab.matches(':hover'),
+              pointerEvents: getComputedStyle(tab).pointerEvents,
+            },
+            hit: hit && { tag: hit.tagName, role: hit.getAttribute('role'), label: hit.getAttribute('aria-label') },
+            scrolling: document.querySelectorAll('[data-scrolling="true"]').length,
+            tooltips: [...document.querySelectorAll('[role="tooltip"]')].map((node) => ({
+              text: node.textContent,
+              html: node.outerHTML,
+            })),
+          };
+        })
+        .catch((captureError) => ({ captureError: captureError.message }));
+      console.log(`PHASE_TOOLTIP ${JSON.stringify(report.phaseTooltip)}`);
+      throw error;
+    }
     await who.page.mouse.move(0, 0);
   }
   const header = who.page.locator('.seated-header');
