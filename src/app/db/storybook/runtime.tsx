@@ -11,7 +11,13 @@ import type {
   UsePaginatedQueryReturnType,
 } from 'convex/react';
 import { getFunctionName, makeFunctionReference } from 'convex/server';
-import type { FunctionArgs, FunctionReference, FunctionReturnType, PaginationResult } from 'convex/server';
+import type {
+  FunctionArgs,
+  FunctionReference,
+  FunctionReference_future,
+  FunctionReturnType,
+  PaginationResult,
+} from 'convex/server';
 import { convexToJson, jsonToConvex } from 'convex/values';
 import type { Value as ConvexValue } from 'convex/values';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
@@ -57,7 +63,7 @@ export class ConvexStorybookWorkerClient {
     });
   }
 
-  query = async <Query extends FunctionReference<'query'>>(
+  query = async <Query extends FunctionReference<'query'> | FunctionReference_future<'query'>>(
     fn: Query,
     args: FunctionArgs<Query>,
     identity?: WorkerIdentity
@@ -70,7 +76,7 @@ export class ConvexStorybookWorkerClient {
     })) as FunctionReturnType<Query>;
   };
 
-  mutation = async <Mutation extends FunctionReference<'mutation'>>(
+  mutation = async <Mutation extends FunctionReference<'mutation'> | FunctionReference_future<'mutation'>>(
     fn: Mutation,
     args: FunctionArgs<Mutation>,
     identity?: WorkerIdentity
@@ -85,7 +91,7 @@ export class ConvexStorybookWorkerClient {
     return result;
   };
 
-  action = async <Action extends FunctionReference<'action'>>(
+  action = async <Action extends FunctionReference<'action'> | FunctionReference_future<'action'>>(
     fn: Action,
     args: FunctionArgs<Action>,
     identity?: WorkerIdentity
@@ -193,7 +199,7 @@ function useStableConvexValue<Value>(value: Value) {
   return useMemo(() => jsonToConvex(JSON.parse(serialized)) as Value, [serialized]);
 }
 
-export function useConvexStorybookQuery<Query extends FunctionReference<'query'>>(
+export function useConvexStorybookQuery<Query extends FunctionReference<'query'> | FunctionReference_future<'query'>>(
   query: Query,
   args: FunctionArgs<Query>
 ): FunctionReturnType<Query> | undefined {
@@ -235,7 +241,9 @@ export function useConvexStorybookQuery<Query extends FunctionReference<'query'>
   return value;
 }
 
-export function useConvexStorybookMutation<Mutation extends FunctionReference<'mutation'>>(mutation: Mutation) {
+export function useConvexStorybookMutation<
+  Mutation extends FunctionReference<'mutation'> | FunctionReference_future<'mutation'>,
+>(mutation: Mutation) {
   const { client, identity } = useConvexStorybookWorkerSession();
   return useCallback(
     async (args: FunctionArgs<Mutation>) => await client.mutation(mutation, args, identity),
