@@ -101,6 +101,31 @@ describe('public page heads', () => {
     expect(work).not.toHaveProperty('image');
   });
 
+  test('a blog post names itself as a posting with its author and publication date', () => {
+    const post = publicPageHead({
+      name: 'Why Dune?',
+      kind: 'Blog',
+      pathname: '/blog/why-dune',
+      description: 'How a group of players came to Dune.',
+      image: '/m/board.webp',
+      trail: [{ name: 'Blog', pathname: '/blog' }],
+      entity: { type: 'article', author: 'Central419', published: '2026-10-14' },
+    });
+    expect(graphOf(post)?.[1]).toEqual({
+      '@type': 'BlogPosting',
+      headline: 'Why Dune?',
+      url: 'https://dune.zone/blog/why-dune',
+      image: 'https://dune.zone/m/board.webp',
+      description: 'How a group of players came to Dune.',
+      datePublished: '2026-10-14',
+      author: { '@type': 'Person', name: 'Central419' },
+    });
+    expect(metaOf(post)).toContainEqual({ property: 'og:type', content: 'article' });
+    expect(metaOf(post)).toContainEqual({ property: 'article:published_time', content: '2026-10-14' });
+    expect(metaOf(post).some((meta) => meta.property === 'article:author')).toBe(false);
+    expect(metaOf(publicPageHead(faction))).toContainEqual({ property: 'og:type', content: 'website' });
+  });
+
   test('a page that threw notFound has no head at all', () => {
     expect(publicPageHead({ ...faction, match: { status: 'notFound' } })).toEqual({});
   });

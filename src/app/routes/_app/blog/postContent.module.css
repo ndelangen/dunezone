@@ -1,0 +1,84 @@
+.lead {
+  margin: 0;
+  font-size: var(--mantine-font-size-xl);
+  line-height: 1.55;
+}
+
+.paragraph {
+  margin: 0;
+  font-size: var(--mantine-font-size-lg);
+  line-height: 1.7;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+/* The stage is its own container, so embedded artwork sizes from the column rather than the window. */
+.stage {
+  container-type: inline-size;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-lg) 0;
+}
+
+/* Shown only without scripts, in place of the image `PublishedImage` would draw. */
+.fallback {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--mantine-radius-md);
+}
+
+.caption {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+  text-align: center;
+}
+
+/* The player and its still frame share one 16:9 box, so pressing play moves nothing. */
+.video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--mantine-radius-md);
+}
+
+.player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.poster {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  color: var(--mantine-color-white);
+  background: rgb(0 0 0 / 65%);
+  transition: background 150ms ease;
+}
+
+.poster:hover .play,
+.poster:focus-visible .play {
+  background: rgb(0 0 0 / 85%);
+}

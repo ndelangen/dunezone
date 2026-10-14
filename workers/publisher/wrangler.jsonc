@@ -68,6 +68,8 @@
       "/future-plans/*",
       "/privacy",
       "/privacy/*",
+      "/blog",
+      "/blog/*",
       "/media",
       "/media/*"
     ]

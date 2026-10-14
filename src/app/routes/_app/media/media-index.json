@@ -10091,6 +10091,36 @@
     "subjects": ["patterns"],
     "sourceHash": "98aca64baa2f0745820515169fdbf5acf844b27b50e07bd53264f07a2ab68060"
   },
+  "/web/blog/why-dune/avalon-hill-set.jpg": {
+    "description": "The original Avalon Hill edition of Dune laid out on a table: the board, faction shields, leader discs, combat wheels, troops and cards.",
+    "tags": ["Avalon Hill", "board game", "faction shields", "combat wheel", "blog"],
+    "subjects": ["places", "symbols", "culture"],
+    "sourceHash": "f34aeff4a07bbcb65dde18304f112572b21fa2d613daf9f713aaecd0c982dd22"
+  },
+  "/web/blog/why-dune/gf9-board.jpg": {
+    "description": "A close-up of the GF9 edition board with stacked leader discs, faction tokens and treachery cards on Arrakis.",
+    "tags": ["GF9", "board game", "leader discs", "treachery cards", "blog"],
+    "subjects": ["places", "symbols", "people"],
+    "sourceHash": "45ba1560102ad4d509761c41efaacd0ac16ebd20e6628ba421f2facf6969928c"
+  },
+  "/web/blog/why-dune/mcdm-plays-dune.jpg": {
+    "description": "The thumbnail of the MCDM Plays Dune video: the Dune logo on an orange planet, framed by six players and their factions.",
+    "tags": ["MCDM", "YouTube", "video", "players", "blog"],
+    "subjects": ["people", "symbols"],
+    "sourceHash": "2b57c62d3aa85638cb4367e3ce19d5a248a36a53909719780cd7ef750535d525"
+  },
+  "/web/blog/why-dune/tts-central419.jpg": {
+    "description": "A Dune table in Tabletop Simulator floating among the stars, with the round board, faction tokens, the spice bank and Central419's seat.",
+    "tags": ["Tabletop Simulator", "Central419", "online play", "board", "blog"],
+    "subjects": ["space", "places", "symbols"],
+    "sourceHash": "efda3b20bc25196a8b9b1a8fb03e2c4656812df2a889a26c5232197a6fbc3097"
+  },
+  "/web/blog/why-dune/tts-table.jpg": {
+    "description": "A Dune game set up in Tabletop Simulator on a desert backdrop, with faction shields around the board and player aids at the edges.",
+    "tags": ["Tabletop Simulator", "online play", "faction shields", "board", "blog"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "9fed016ad4bce2224b6f4757436971b26ca9660d1ebb2a8f33a9b38ffe57b1f2"
+  },
   "/web/head.png": {
     "description": "Wide desert banner with a sandworm, moons and a pale empty central area.",
     "tags": ["background", "illustration"],
