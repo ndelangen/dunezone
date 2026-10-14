@@ -121,8 +121,8 @@ async function insertDocument<TableName extends TableNames>(
 }
 
 async function insertDocuments(world: World, documents: SeedDocument[], delay = 0) {
+  await new Promise((resolve) => setTimeout(resolve, delay));
   await world.test.run(async (ctx) => {
-    await new Promise((resolve) => setTimeout(resolve, delay));
     for (const document of documents) {
       const id = await insertDocument(ctx.db, document, world.references);
       if (document.key) {
