@@ -38,9 +38,9 @@ export default function Post() {
           and its Rulebooks fit together, and how the table for playing online came to be.
         </Paragraph>
         <Figure
-          imageKey="/web/homepage/board.png"
-          alt="The Dune Zone game board"
-          aspect={1420 / 3000}
+          imageKey={meta.cover.key}
+          alt={meta.cover.alt}
+          aspect={meta.cover.aspect}
           caption="The board, as Dune Zone draws it."
         />
       </Section>

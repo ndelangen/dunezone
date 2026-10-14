@@ -239,8 +239,9 @@ try {
       assert.equal(await head.text(), '');
     } else if (
       !['/factions', '/assets', '/assets/token-disc'].includes(pathname) &&
-      /* The galleries share one card template, so one render covers them. */
-      !(pathname.startsWith('/media/game/') && pathname !== MEDIA_PUBLIC_PAGES[1])
+      /* The galleries share one card template, and so do the blog posts, so one render covers each. */
+      !(pathname.startsWith('/media/game/') && pathname !== MEDIA_PUBLIC_PAGES[1]) &&
+      !(pathname.startsWith('/blog/') && pathname !== BLOG_POST_PAGES[0])
     ) {
       const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&');
       assert.ok(image, `${pathname} has no social image URL`);

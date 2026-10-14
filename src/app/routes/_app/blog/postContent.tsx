@@ -1,7 +1,8 @@
-import { Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { Surface } from '@ui/surface';
+import { useId } from 'react';
 import type { ReactNode } from 'react';
 
 import styles from './postContent.module.css';
@@ -20,7 +21,10 @@ export function Paragraph({ children }: { children: ReactNode }) {
   return <p className={styles.paragraph}>{children}</p>;
 }
 
-/** An image from `media/`, served through the media pipeline, with an optional caption under it. */
+/**
+ * An image from `media/`, served through the media pipeline, with an optional caption under it.
+ * Blog images live under `web/`, whose small tier is 1080px wide, enough for the reading column on a high-density screen.
+ */
 export function Figure({
   imageKey,
   alt,
@@ -36,7 +40,7 @@ export function Figure({
   return (
     <figure className={styles.figure}>
       <PublishedImage
-        src={resolveAsset(imageKey, 'large')}
+        src={resolveAsset(imageKey, 'small')}
         name={alt}
         aspect={aspect}
         radius="var(--mantine-radius-md)"
@@ -69,10 +73,15 @@ export function LiveEmbed({
 
 /** An aside the reader should not miss, on its own pane. */
 export function Callout({ label, children }: { label: string; children: ReactNode }) {
+  const labelId = useId();
   return (
-    <Surface padding="md" as="aside" className={styles.callout}>
-      <Text fw={700}>{label}</Text>
-      <Text>{children}</Text>
+    <Surface padding="md" as="aside" aria-labelledby={labelId}>
+      <Stack gap="xs">
+        <Text fw={700} id={labelId}>
+          {label}
+        </Text>
+        <Text>{children}</Text>
+      </Stack>
     </Surface>
   );
 }
