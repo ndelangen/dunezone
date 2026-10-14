@@ -32,7 +32,7 @@ export const Route = createFileRoute('/_app/blog/$postSlug/')({
           description: loaderData.meta.summary,
           image: loaderData.image,
           social: { kind: 'Blog', shape: 'portrait' },
-          trail: [{ name: 'Blog', pathname: '/blog' }],
+          trail: [{ name: 'Building Dune Zone', pathname: '/blog' }],
           entity: { type: 'article', author: loaderData.meta.author, published: loaderData.meta.date },
           match,
         })
