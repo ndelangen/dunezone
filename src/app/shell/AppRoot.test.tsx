@@ -153,7 +153,6 @@ describe('AppRoot page header', () => {
       { href: 'https://github.com/ndelangen/dunezone', label: 'Source code' },
       { href: '/glossary', label: 'Glossary' },
       { href: '/future-plans', label: 'Future plans' },
-      { href: '/blog', label: 'Blog' },
       { href: '/privacy', label: 'Privacy policy' },
       {
         href: 'https://discord.com/invite/dune-tabletop-624609341886169117',
@@ -165,9 +164,13 @@ describe('AppRoot page header', () => {
         label: 'Dune forums on BoardGameGeek',
       },
     ]);
-    /* Every page the sitemap lists without a record also needs a footer link, or nothing on the site leads to it. */
+    /*
+     * Every page the sitemap lists without a record also needs a footer link, or nothing on the site leads to it.
+     * The blog is the one exception: it stays unlinked until it gets its place in the page header.
+     */
     const footerHrefs = [...container.querySelectorAll('footer nav a')].map((link) => link.getAttribute('href'));
-    expect(footerHrefs).toEqual(expect.arrayContaining(RECORDLESS_PUBLIC_PAGES));
+    expect(footerHrefs).toEqual(expect.arrayContaining(RECORDLESS_PUBLIC_PAGES.filter((page) => page !== '/blog')));
+    expect(footerHrefs).not.toContain('/blog');
     const componentLibrary = container.querySelector('footer a[aria-label="Component library"]');
     expect(componentLibrary?.getAttribute('target')).toBe('_blank');
     expect(componentLibrary?.getAttribute('rel')).toBe('noopener noreferrer');

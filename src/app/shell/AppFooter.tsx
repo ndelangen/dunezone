@@ -1,6 +1,6 @@
 import { Tooltip } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
-import { BookA, Images, Mail, Newspaper, ShieldCheck, Telescope } from 'lucide-react';
+import { BookA, Images, Mail, ShieldCheck, Telescope } from 'lucide-react';
 import { useId } from 'react';
 import type { SVGProps } from 'react';
 import { FaRedditAlien } from 'react-icons/fa6';
@@ -138,13 +138,6 @@ const footerLinks = [
     size: LINE_GLYPH,
     tint: SITE_BRAND,
     label: 'Future plans',
-  },
-  {
-    to: '/blog',
-    icon: Newspaper,
-    size: LINE_GLYPH,
-    tint: SITE_BRAND,
-    label: 'Blog',
   },
   {
     to: '/privacy',
