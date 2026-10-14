@@ -230,18 +230,18 @@ function backendBinary(): string {
   const artifacts: Record<string, { filename: string; digest: string }> = {
     'linux-x64': {
       filename: 'convex-local-backend-x86_64-unknown-linux-gnu.zip',
-      digest: '25a5c7c6969b36b382a2651a8e44a30452879b5c8194e89f6e972b5857919d46',
+      digest: 'eba2eeab62632e0c153e83f9f1c5ada9e98834e2db3386e32f825a3a97f8c093',
     },
     'darwin-arm64': {
       filename: 'convex-local-backend-aarch64-apple-darwin.zip',
-      digest: '95159c96cf9348fc49d94a1fd5bdffb49fe27a5e0442f8787939b4d871ec0b5e',
+      digest: 'f89a9dc8189148b0aa67b50dbcb202ce429b541df83e36cab4438c2b7955d5c2',
     },
   };
   const artifact = artifacts[`${process.platform}-${process.arch}`];
   if (!artifact) {
     throw new Error('This platform needs an explicit --backend-binary.');
   }
-  const url = `https://github.com/get-convex/convex-backend/releases/download/precompiled-2026-08-10-c0cb7ae/${artifact.filename}`;
+  const url = `https://github.com/get-convex/convex-backend/releases/download/precompiled-2026-10-06-a3538c6/${artifact.filename}`;
   /* The verified archive is kept across runs, so only a machine's first run downloads it; that one download gets room for a slow link. */
   const archive = cachedBackendArchive({
     directory: backendCacheDirectory(),
