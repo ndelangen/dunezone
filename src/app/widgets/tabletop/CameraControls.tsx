@@ -45,9 +45,7 @@ type CameraTransition = {
 };
 
 export function CameraRelativeFog() {
-  const { camera, scene } = useThree();
-
-  useFrame(() => {
+  useFrame(({ camera, scene }) => {
     if (!(scene.fog instanceof Fog)) {
       return;
     }
@@ -234,9 +232,11 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
   const keyboard = useContext(TableKeyboardContext);
 
   /* A new view, chosen or the phase's, starts from that view's own distance. */
-  useLayoutEffect(() => {
+  const [previousViewKey, setPreviousViewKey] = useState(viewKey);
+  if (previousViewKey !== viewKey) {
+    setPreviousViewKey(viewKey);
     setView((current) => (current.zoom === NO_CAMERA_ZOOM ? current : { ...current, zoom: NO_CAMERA_ZOOM }));
-  }, [viewKey]);
+  }
 
   /*
    * Two fingers listen even while a press holds the table: the first finger usually lands on a piece,
@@ -331,15 +331,17 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
  * so the map view reframes below it without waiting for a resize or a view command.
  */
 function useSeatedHeaderHeight(canvas: HTMLCanvasElement): number {
-  const [height, setHeight] = useState(0);
+  const [measured, setMeasured] = useState({ canvas, height: 0 });
+  if (measured.canvas !== canvas) {
+    setMeasured({ canvas, height: 0 });
+  }
 
   useLayoutEffect(() => {
     const header = seatedHeaderOf(canvas);
     if (!header) {
-      setHeight(0);
       return;
     }
-    const measure = () => setHeight(header.getBoundingClientRect().height);
+    const measure = () => setMeasured({ canvas, height: header.getBoundingClientRect().height });
     measure();
     if (typeof ResizeObserver === 'undefined') {
       return;
@@ -349,7 +351,7 @@ function useSeatedHeaderHeight(canvas: HTMLCanvasElement): number {
     return () => observer.disconnect();
   }, [canvas]);
 
-  return height;
+  return measured.height;
 }
 
 type SeatedCameraProps = {

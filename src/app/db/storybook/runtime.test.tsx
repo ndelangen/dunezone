@@ -1,11 +1,12 @@
 /* @vitest-environment jsdom */
 
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { makeFunctionReference } from 'convex/server';
 import type { PropsWithChildren } from 'react';
 import { expect, test, vi } from 'vitest';
 
 import { api } from '../../../../convex/_generated/api';
-import { ConvexStorybookWorkerContext, useConvexStorybookQuery } from './runtime';
+import { ConvexStorybookWorkerContext, useConvexStorybookPaginatedQuery, useConvexStorybookQuery } from './runtime';
 import type { ConvexStorybookWorkerClient } from './runtime';
 
 function deferred<Value>() {
@@ -51,4 +52,73 @@ test('a revision refresh preserves the current query value until its replacement
   refreshedQuery.resolve(replacement);
   await waitFor(() => expect(hook.result.current).toBe(replacement));
   expect(query).toHaveBeenCalledTimes(2);
+});
+
+test('changed arguments clear the value and a retired request cannot replace the new answer', async () => {
+  const oldRequest = deferred<string[]>();
+  const newRequest = deferred<string[]>();
+  const query = vi.fn().mockReturnValueOnce(oldRequest.promise).mockReturnValueOnce(newRequest.promise);
+  const client = {
+    getRevision: () => 0,
+    query,
+    subscribe: () => () => undefined,
+  } as unknown as ConvexStorybookWorkerClient;
+  const wrapper = ({ children }: PropsWithChildren) => (
+    <ConvexStorybookWorkerContext.Provider value={{ client }}>{children}</ConvexStorybookWorkerContext.Provider>
+  );
+  const reference = makeFunctionReference<'query', { scope: string }, string[]>('test:list');
+  const hook = renderHook(({ scope }) => useConvexStorybookQuery(reference, { scope }), {
+    wrapper,
+    initialProps: { scope: 'old' },
+  });
+  hook.rerender({ scope: 'new' });
+  expect(hook.result.current).toBeUndefined();
+  newRequest.resolve(['new']);
+  await waitFor(() => expect(hook.result.current).toEqual(['new']));
+  await act(async () => oldRequest.resolve(['old']));
+  expect(hook.result.current).toEqual(['new']);
+});
+
+test('a skipped page reads nothing and a new argument starts from its own first page', async () => {
+  type Page = { page: string[]; isDone: boolean; continueCursor: string };
+  const first = deferred<Page>();
+  const more = deferred<Page>();
+  const replacement = deferred<Page>();
+  const query = vi.fn((_reference: unknown, args: { scope: string; paginationOpts: { cursor: string | null } }) =>
+    args.scope === 'new' ? replacement.promise : args.paginationOpts.cursor === null ? first.promise : more.promise
+  );
+  const client = {
+    getRevision: () => 0,
+    query,
+    subscribe: () => () => undefined,
+  } as unknown as ConvexStorybookWorkerClient;
+  const wrapper = ({ children }: PropsWithChildren) => (
+    <ConvexStorybookWorkerContext.Provider value={{ client }}>{children}</ConvexStorybookWorkerContext.Provider>
+  );
+  const reference = makeFunctionReference<
+    'query',
+    { scope: string; paginationOpts: { cursor: string | null; numItems: number } },
+    Page
+  >('test:pages');
+  const hook = renderHook(
+    ({ scope }: { scope: string | null }) =>
+      useConvexStorybookPaginatedQuery(reference, scope === null ? 'skip' : { scope }, { initialNumItems: 2 }),
+    {
+      wrapper,
+      initialProps: { scope: null as string | null },
+    }
+  );
+  expect(hook.result.current.status).toBe('Exhausted');
+  expect(query).not.toHaveBeenCalled();
+  hook.rerender({ scope: 'old' });
+  first.resolve({ page: ['old'], isDone: false, continueCursor: 'next' });
+  await waitFor(() => expect(hook.result.current.status).toBe('CanLoadMore'));
+  act(() => hook.result.current.loadMore(2));
+  hook.rerender({ scope: 'new' });
+  expect(hook.result.current.results).toEqual([]);
+  expect(hook.result.current.status).toBe('LoadingFirstPage');
+  replacement.resolve({ page: ['new'], isDone: true, continueCursor: '' });
+  await waitFor(() => expect(hook.result.current.results).toEqual(['new']));
+  await act(async () => more.resolve({ page: ['late old'], isDone: true, continueCursor: '' }));
+  expect(hook.result.current.results).toEqual(['new']);
 });

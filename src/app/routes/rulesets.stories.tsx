@@ -51,6 +51,18 @@ export const Question = meta.story({
     await expect(
       within(page.getByRole('group', { name: 'Question actions' })).getByRole('button', { name: 'Delete question' })
     ).toBeVisible();
+    await userEvent.click(navigation.getByRole('button', { name: 'Edit question' }));
+    const question = await page.findByRole('textbox', { name: 'Edit question' });
+    await userEvent.clear(question);
+    await userEvent.type(question, 'When does the storm move in round two?');
+    await userEvent.click(page.getByRole('checkbox', { name: 'Strategy' }));
+    expect(page.getByRole('checkbox', { name: 'Rules' })).toBeChecked();
+    expect(question).toHaveValue('When does the storm move in round two?');
+    await userEvent.click(page.getByRole('button', { name: 'Save question' }));
+    await waitFor(() =>
+      expect(page.getByRole('heading', { name: 'When does the storm move in round two?' })).toBeVisible()
+    );
+    expect(page.queryByRole('textbox', { name: 'Edit question' })).toBeNull();
   },
 });
 export const RulebookEditor = meta.story({

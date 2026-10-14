@@ -12,13 +12,9 @@ import { warnDroppedChild } from './warnDroppedChild';
 
 const SPLIT_PANELS_SLOTS = ['SplitPanels.First', 'SplitPanels.Second'] as const;
 
-function First(_: PropsWithChildren): null {
-  return null;
-}
+const First: (props: PropsWithChildren) => null = () => null;
 
-function Second(_: PropsWithChildren): null {
-  return null;
-}
+const Second: (props: PropsWithChildren) => null = () => null;
 
 /** The smallest and largest size of the primary panel, in percent of the room both panels share. */
 export type SplitLimits = Readonly<{

@@ -489,7 +489,11 @@ function SandboxFrame({
   const argStart = clampStart(Number(args.step ?? 1) - 1);
   const argSeat = args.seat ?? 'seat-1';
   const [{ start, seat }, setShown] = useState({ start: argStart, seat: argSeat });
-  useEffect(() => setShown({ start: argStart, seat: argSeat }), [argStart, argSeat]);
+  const [previousArgs, setPreviousArgs] = useState({ position: argStart, seat: argSeat });
+  if (previousArgs.position !== argStart || previousArgs.seat !== argSeat) {
+    setPreviousArgs({ position: argStart, seat: argSeat });
+    setShown({ start: argStart, seat: argSeat });
+  }
   const shown = useRef({ start, seat });
   useEffect(() => {
     const previous = shown.current;

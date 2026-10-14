@@ -61,9 +61,9 @@ export function NexusCard({
 }
 
 /* The effects share one type size, with natural section heights and the Secret Ally anchored at the foot. */
-function useNexusFit(region: RefObject<HTMLDivElement | null>, content: string) {
+function useNexusFit(regionRef: RefObject<HTMLDivElement | null>, content: string) {
   useLayoutEffect(() => {
-    const element = region.current;
+    const element = regionRef.current;
     if (!element) {
       return;
     }
@@ -93,5 +93,5 @@ function useNexusFit(region: RefObject<HTMLDivElement | null>, content: string) 
       active = false;
       observer.disconnect();
     };
-  }, [region, content]);
+  }, [regionRef, content]);
 }

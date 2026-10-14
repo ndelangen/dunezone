@@ -3,9 +3,8 @@ import type { Link, LinkComponentProps, RegisteredRouter } from '@tanstack/react
 import clsx from 'clsx';
 import {
   Children,
-  cloneElement,
-  createContext,
   createElement,
+  createContext,
   isValidElement,
   useContext,
   useEffect,
@@ -369,6 +368,9 @@ function NestedTabsTooltip({
   children: ReactElement<Pick<HTMLAttributes<HTMLElement>, 'onFocus' | 'onBlur'>>;
 }) {
   const [shown, setShown] = useState<'closed' | 'short' | 'help'>('closed');
+  if (isScrolling && shown !== 'closed') {
+    setShown('closed');
+  }
   const openTimer = useRef(0);
   const helpTimer = useRef(0);
   /* The pointer resting on the item, or keyboard focus on it: either keeps the tooltip coming. */
@@ -403,7 +405,6 @@ function NestedTabsTooltip({
   const settle = useEffectEvent((scrolling: boolean) => {
     if (scrolling) {
       clearTimers();
-      setShown('closed');
     } else if (engaged.current.pointer || engaged.current.focus) {
       arm();
     }
@@ -436,6 +437,23 @@ function NestedTabsTooltip({
 
   const text = shown === 'help' ? help : description;
 
+  const Trigger = children.type;
+  const onFocus = (event: FocusEvent<HTMLElement>) => {
+    children.props.onFocus?.(event);
+    if (!event.currentTarget.matches(':focus-visible')) {
+      return;
+    }
+    /* Already hovered, the tooltip keeps its course; focus only holds it open once the pointer leaves. */
+    if (engaged.current.pointer) {
+      engaged.current.focus = true;
+    } else {
+      engage('focus');
+    }
+  };
+  const onBlur = (event: FocusEvent<HTMLElement>) => {
+    children.props.onBlur?.(event);
+    release('focus');
+  };
   return (
     <Tooltip
       label={
@@ -457,25 +475,7 @@ function NestedTabsTooltip({
       onMouseEnter={() => engage('pointer')}
       onMouseLeave={() => release('pointer')}
     >
-      {cloneElement(children, {
-        /* Keyboard focus shows the tooltip too; the focus a click brings does not, so it closes with the pointer. A caller's own handlers still run. */
-        onFocus: (event: FocusEvent<HTMLElement>) => {
-          children.props.onFocus?.(event);
-          if (!event.currentTarget.matches(':focus-visible')) {
-            return;
-          }
-          /* Already hovered, the tooltip keeps its course; focus only holds it open once the pointer leaves. */
-          if (engaged.current.pointer) {
-            engaged.current.focus = true;
-          } else {
-            engage('focus');
-          }
-        },
-        onBlur: (event: FocusEvent<HTMLElement>) => {
-          children.props.onBlur?.(event);
-          release('focus');
-        },
-      })}
+      <Trigger {...children.props} key={children.key} onFocus={onFocus} onBlur={onBlur} />
     </Tooltip>
   );
 }
@@ -672,17 +672,13 @@ function Group<Root extends ElementType = 'li'>({
 
 interface NestedTabsToolsProps extends PropsWithChildren {}
 
-function Tools(_: NestedTabsToolsProps): null {
-  return null;
-}
+const Tools: (props: NestedTabsToolsProps) => null = () => null;
 
 interface NestedTabsLevelProps extends PropsWithChildren {
   label: string;
 }
 
-function Level(_: NestedTabsLevelProps): null {
-  return null;
-}
+const Level: (props: NestedTabsLevelProps) => null = () => null;
 
 interface NestedTabsContentPanelProps extends PropsWithChildren {
   'aria-label'?: string;
@@ -698,9 +694,7 @@ interface NestedTabsContentPanelProps extends PropsWithChildren {
   padding?: boolean;
 }
 
-function ContentPanel(_: NestedTabsContentPanelProps): null {
-  return null;
-}
+const ContentPanel: (props: NestedTabsContentPanelProps) => null = () => null;
 
 function splitLevelChildren(children: ReactNode) {
   const entries: ReactNode[] = [];

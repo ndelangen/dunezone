@@ -243,7 +243,7 @@ function useVisitSchedule({
   renderer,
   scene,
   demo,
-  stopped,
+  stopped: stoppedRef,
   setVisit,
   clearVisit,
   invalidate,
@@ -252,15 +252,15 @@ function useVisitSchedule({
     if (!motion) {
       return;
     }
-    stopped.current = false;
+    stoppedRef.current = false;
     let timer: ReturnType<typeof setTimeout>;
     const stop = () => {
-      stopped.current = true;
+      stoppedRef.current = true;
       clearTimeout(timer);
       clearVisit();
     };
     const start = () => {
-      if (stopped.current) {
+      if (stoppedRef.current) {
         return;
       }
       const demonstration = createVisit(read(), camera, renderer.domElement, scene);
@@ -288,7 +288,7 @@ function useVisitSchedule({
       canvas.removeEventListener('pointerdown', stop, true);
       document.removeEventListener('visibilitychange', visibility);
     };
-  }, [camera, clearVisit, demo, invalidate, motion, read, renderer, scene, setVisit, stopped]);
+  }, [camera, clearVisit, demo, invalidate, motion, read, renderer, scene, setVisit, stoppedRef]);
 }
 
 function useVisitFrame(

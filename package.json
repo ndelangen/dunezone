@@ -170,7 +170,7 @@
     "miniflare": "5.20261006.0-alpha",
     "monocart-coverage-reports": "2.13.1",
     "oxfmt": "0.72.0",
-    "oxlint": "1.77.0",
+    "oxlint": "1.87.0",
     "playwright": "1.63.0",
     "recursive-readdir-files": "^2.3.2",
     "sharp": "0.35.5",

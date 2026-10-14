@@ -349,7 +349,7 @@ function BlockSummary({
     activeData.originRegionKey !== regionKey &&
     dropEnabled &&
     (typeof KeyboardEvent === 'undefined' || !(activatorEvent instanceof KeyboardEvent));
-  const sortable = useSortable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: blockDragId(block.id),
     data: {
       kind: 'block',
@@ -359,7 +359,7 @@ function BlockSummary({
     } satisfies BlockDragData,
     disabled: { droppable: !dropEnabled },
   });
-  const beforeSlot = useDroppable({
+  const { setNodeRef: setBeforeSlotRef } = useDroppable({
     id: blockSlotId(block.id, 'before'),
     data: {
       kind: 'slot',
@@ -369,7 +369,7 @@ function BlockSummary({
     } satisfies BlockDragData,
     disabled: !insertionSlotsEnabled,
   });
-  const afterSlot = useDroppable({
+  const { setNodeRef: setAfterSlotRef } = useDroppable({
     id: blockSlotId(block.id, 'after'),
     data: {
       kind: 'slot',
@@ -380,29 +380,23 @@ function BlockSummary({
     disabled: !insertionSlotsEnabled,
   });
   const style: CSSProperties = {
-    transform:
-      !disableSortingTransform && sortable.transform ? `translate3d(0, ${sortable.transform.y}px, 0)` : undefined,
-    transition: disableSortingTransform ? undefined : sortable.transition,
+    transform: !disableSortingTransform && transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
+    transition: disableSortingTransform ? undefined : transition,
   };
   const label = rulebookBlockLabel(block);
 
   return (
-    <li
-      ref={sortable.setNodeRef}
-      className={styles.blockSummary}
-      style={style}
-      data-dragging={sortable.isDragging || undefined}
-    >
-      <span ref={beforeSlot.setNodeRef} className={styles.blockDropSlot} data-side="before" aria-hidden />
-      <span ref={afterSlot.setNodeRef} className={styles.blockDropSlot} data-side="after" aria-hidden />
+    <li ref={setNodeRef} className={styles.blockSummary} style={style} data-dragging={isDragging || undefined}>
+      <span ref={setBeforeSlotRef} className={styles.blockDropSlot} data-side="before" aria-hidden />
+      <span ref={setAfterSlotRef} className={styles.blockDropSlot} data-side="after" aria-hidden />
       <UnstyledButton
-        ref={sortable.setActivatorNodeRef}
+        ref={setActivatorNodeRef}
         className={styles.blockNavigate}
-        {...sortable.attributes}
-        {...sortable.listeners}
+        {...attributes}
+        {...listeners}
         aria-label={`Edit ${label}`}
         onClick={(event) => {
-          if (sortable.isDragging) {
+          if (isDragging) {
             event.preventDefault();
             return;
           }
@@ -462,7 +456,7 @@ function BlockRegionSummary({
 }>) {
   const dropStatus = activeBlockId ? getBlockDropStatus(activeBlockId, region.key) : null;
   const dropEnabled = dropStatus?.allowed === true;
-  const droppable = useDroppable({
+  const { setNodeRef: setDropNodeRef } = useDroppable({
     id: regionDropId(region.key),
     data: {
       kind: 'region',
@@ -478,7 +472,7 @@ function BlockRegionSummary({
 
   return (
     <section
-      ref={droppable.setNodeRef}
+      ref={setDropNodeRef}
       className={styles.region}
       aria-label={region.label}
       aria-describedby={`${contentId}-count`}

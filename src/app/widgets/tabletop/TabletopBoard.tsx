@@ -264,12 +264,13 @@ function TableTrackers({
 function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
   const loadedMarkerTexture = useTexture(stormMarkerUrl);
   const markerTexture = useMemo(() => {
-    loadedMarkerTexture.colorSpace = SRGBColorSpace;
-    loadedMarkerTexture.anisotropy = 8;
-    loadedMarkerTexture.needsUpdate = true;
-    return loadedMarkerTexture;
+    const texture = loadedMarkerTexture.clone();
+    texture.colorSpace = SRGBColorSpace;
+    texture.anisotropy = 8;
+    texture.needsUpdate = true;
+    return texture;
   }, [loadedMarkerTexture]);
-  const markerGeometry = useMemo(createStormMarkerGeometry, []);
+  const markerGeometry = useMemo(() => createStormMarkerGeometry(), []);
   const outlineGeometry = useMemo(() => {
     const sectorGeometry = new RingGeometry(0.72, BOARD_RADIUS, 96, 1, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE);
     const outline = new EdgesGeometry(sectorGeometry, 15);
@@ -319,10 +320,11 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
 
   useEffect(
     () => () => {
+      markerTexture.dispose();
       markerGeometry.dispose();
       outlineGeometry.dispose();
     },
-    [markerGeometry, outlineGeometry]
+    [markerTexture, markerGeometry, outlineGeometry]
   );
 
   return (
