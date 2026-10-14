@@ -952,7 +952,7 @@ export const MEDIA_MAP: Readonly<Record<string, MediaMapEntry>> = {
   '/web/blog/tabletop-simulator/faction-pieces.jpg': ['6238e69cde33a4a00435', '#282828'],
   '/web/blog/tabletop-simulator/faction-tables.jpg': ['0860b5f8d99204d0dd1a', '#080808'],
   '/web/blog/tabletop-simulator/game-night.jpg': ['c5021c63a3c7e76ccd4f', '#182828'],
-  '/web/blog/tabletop-simulator/iduali-dune-zone.jpg': ['086a295d32a1ceaac74e', '#f8e8d8'],
+  '/web/blog/tabletop-simulator/iduali-dune-zone.jpg': ['d5d8e1dcbc76b2c91e48', '#f8e8d8'],
   '/web/blog/tabletop-simulator/iduali-sheet.jpg': ['12754a421a2cfa075e5b', '#f8f8f8'],
   '/web/blog/tabletop-simulator/planets.jpg': ['0ee886187a197523140e', '#080828'],
   '/web/blog/tabletop-simulator/rainbow-troops.jpg': ['ccb8e91cd9c31faaaf63', '#f8f8a8'],

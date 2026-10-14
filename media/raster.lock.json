@@ -7731,10 +7731,10 @@
     "color": "#182828"
   },
   "/web/blog/tabletop-simulator/iduali-dune-zone.jpg": {
-    "sha256": "086a295d32a1ceaac74e41fa38989225f83aed87e5676eba2cecba50eb174b16",
-    "bytes": 310348,
-    "width": 1400,
-    "height": 1690,
+    "sha256": "d5d8e1dcbc76b2c91e480464ad1b99225fa45d83aa0ee6894914f52fb62f7de1",
+    "bytes": 249456,
+    "width": 1080,
+    "height": 1341,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#f8e8d8"
