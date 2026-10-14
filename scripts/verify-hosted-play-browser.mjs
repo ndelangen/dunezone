@@ -464,15 +464,19 @@ function observeAdmission(state, socket) {
       state.admission.tickets.find((entry) => entry.requestId === message.requestId && entry.answeredAt === null);
     if (ticket) {
       ticket.answeredAt = Date.now();
-      /* Homepage refusal returns null; real-game admission reports ok and a reason. */
-      ticket.outcome =
-        message.success !== true
-          ? 'failed'
-          : message.result?.ok || typeof message.result?.ticket === 'string'
-            ? 'issued'
-            : (message.result?.reason ?? 'refused');
+      ticket.outcome = ticketOutcome(message);
     }
   });
+}
+/* Homepage refusal returns null; real-game admission reports ok and a reason. */
+function ticketOutcome(message) {
+  if (message.success !== true) {
+    return 'failed';
+  }
+  if (message.result?.ok || typeof message.result?.ticket === 'string') {
+    return 'issued';
+  }
+  return message.result?.reason ?? 'refused';
 }
 function parseFrame(payload) {
   try {
