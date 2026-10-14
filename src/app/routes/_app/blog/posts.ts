@@ -27,7 +27,7 @@ export type BlogPostMeta = {
 /**
  * Every published post's metadata, by slug.
  * Publishing a post is adding its slug to `BLOG_POST_SLUGS`, its metadata here, and its body to `postBodies.ts`;
- * the types refuse a slug that is missing from either.
+ * the types refuse a slug that is missing from either, and `postBodies.test.tsx` refuses a body that does not end on a picture.
  * A body file under `posts/` is named for its slug, never `index.tsx` or `*.route.tsx`, which the router would read as a page.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {

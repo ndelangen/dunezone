@@ -7658,6 +7658,15 @@
     "isOpaque": true,
     "color": "#482818"
   },
+  "/web/blog/why-dune/dream-rulebook.jpg": {
+    "sha256": "6588f45c4ad391d46e425c5a79ef686862b3b69563f6f9df4c166de185b456da",
+    "bytes": 280329,
+    "width": 1792,
+    "height": 1784,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#98c868"
+  },
   "/web/blog/why-dune/gf9-board.jpg": {
     "sha256": "45ba1560102ad4d509761c41efaacd0ac16ebd20e6628ba421f2facf6969928c",
     "bytes": 53099,

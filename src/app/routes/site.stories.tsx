@@ -75,7 +75,7 @@ export const Blog = meta.story({
   },
 });
 
-/** One post, "Why Dune?": its title and byline in the band, then photographs, a video that loads only when played, and a link to the Dreamrules Workshop mod. */
+/** One post, "Why Dune?": its title and byline in the band, then a video that loads only when played, photographs, a link to the Dreamrules Workshop mod, and the Dream Rulebook cover to close. */
 export const BlogPost = meta.story({
   args: { path: '/blog/why-dune' },
   play: async ({ canvasElement }) => {
