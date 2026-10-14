@@ -1,5 +1,4 @@
 import { Anchor, Text } from '@mantine/core';
-import { resolveAsset } from '@shared/media/resolveAsset';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -8,17 +7,21 @@ import { ArrowLeft } from 'lucide-react';
 import { publicPageHead } from '@app/routes/publicPage';
 
 import { BLOG_POST_BODIES } from '../postBodies';
-import { blogPostByline, findBlogPost } from '../posts';
+import { blogPostByline } from '../posts';
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/blog/$postSlug/')({
   ssr: true,
-  loader: ({ params }) => {
+  /*
+   * The loader and head ship with the route tree to every page, so the registry and the media map it resolves the cover through load only here, on demand.
+   */
+  loader: async ({ params }) => {
+    const { blogPostImage, findBlogPost } = await import('../posts');
     const post = findBlogPost(params.postSlug);
     if (!post) {
       throw notFound();
     }
-    return { meta: post };
+    return { meta: post, image: blogPostImage(post) };
   },
   head: ({ loaderData, match }) =>
     loaderData
@@ -27,7 +30,7 @@ export const Route = createFileRoute('/_app/blog/$postSlug/')({
           kind: 'Blog',
           pathname: `/blog/${encodeURIComponent(loaderData.meta.slug)}`,
           description: loaderData.meta.summary,
-          image: resolveAsset(loaderData.meta.cover.key, 'large'),
+          image: loaderData.image,
           social: { kind: 'Blog', shape: 'portrait' },
           trail: [{ name: 'Blog', pathname: '/blog' }],
           entity: { type: 'article', author: loaderData.meta.author, published: loaderData.meta.date },
