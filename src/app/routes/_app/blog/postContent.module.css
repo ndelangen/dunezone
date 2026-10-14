@@ -27,6 +27,14 @@
   padding: var(--space-lg) 0;
 }
 
+/* Shown only without scripts, in place of the image `PublishedImage` would draw. */
+.fallback {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--mantine-radius-md);
+}
+
 .caption {
   color: var(--mantine-color-dimmed);
   font-size: var(--mantine-font-size-sm);

@@ -1,24 +1,17 @@
-import { Anchor } from '@mantine/core';
+import { Anchor, Text } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { CanvasScale } from '@ui/layout/CanvasScale';
+import { Card } from '@ui/surface/Card';
 
 import { Token } from '@game/assets/faction/token/Token';
 import { disc } from '@game/data/sizes';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
-import { Callout, Figure, Lead, LiveEmbed, Paragraph } from '../postContent';
-import type { BlogPostMeta } from '../posts';
+import { Figure, Lead, LiveEmbed, Paragraph } from '../postContent';
+import { BLOG_POST_META } from '../posts';
 
-export const meta: BlogPostMeta = {
-  slug: 'a-blog-for-dune-zone',
-  title: 'A blog for Dune Zone',
-  date: '2026-10-14',
-  author: 'Norbert de Langen',
-  summary:
-    'Dune Zone now has a developer blog, where we look back at the ideas, experiments and decisions behind the site.',
-  cover: { key: '/web/homepage/board.png', alt: 'The Dune Zone game board', aspect: 1420 / 3000 },
-};
+const { cover } = BLOG_POST_META['a-blog-for-dune-zone'];
 
 export default function Post() {
   return (
@@ -38,9 +31,9 @@ export default function Post() {
           and its Rulebooks fit together, and how the table for playing online came to be.
         </Paragraph>
         <Figure
-          imageKey={meta.cover.key}
-          alt={meta.cover.alt}
-          aspect={meta.cover.aspect}
+          imageKey={cover.key}
+          alt={cover.alt}
+          aspect={cover.aspect}
           caption="The board, as Dune Zone draws it."
         />
       </Section>
@@ -60,10 +53,12 @@ export default function Post() {
         </LiveEmbed>
       </Section>
 
-      <Callout label="Want to follow along?">
-        The project is open source. Read the code and its history on{' '}
-        <Anchor href="https://github.com/ndelangen/dunezone">GitHub</Anchor>.
-      </Callout>
+      <Card title="Want to follow along?" padding="md">
+        <Text>
+          The project is open source. Read the code and its history on{' '}
+          <Anchor href="https://github.com/ndelangen/dunezone">GitHub</Anchor>.
+        </Text>
+      </Card>
     </>
   );
 }

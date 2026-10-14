@@ -7,6 +7,7 @@ import { ArrowLeft } from 'lucide-react';
 
 import { publicPageHead } from '@app/routes/publicPage';
 
+import { BLOG_POST_BODIES } from '../postBodies';
 import { blogPostByline, findBlogPost } from '../posts';
 import styles from './index.module.css';
 
@@ -17,7 +18,7 @@ export const Route = createFileRoute('/_app/blog/$postSlug/')({
     if (!post) {
       throw notFound();
     }
-    return { meta: post.meta };
+    return { meta: post };
   },
   head: ({ loaderData, match }) =>
     loaderData
@@ -37,10 +38,8 @@ export const Route = createFileRoute('/_app/blog/$postSlug/')({
 });
 
 function BlogPostPage() {
-  const { postSlug } = Route.useParams();
-  /* The loader has already proved the post exists; the component reads it again because a component cannot be loader data. */
-  const post = findBlogPost(postSlug)!;
-  const { meta, default: Body } = post;
+  const { meta } = Route.useLoaderData();
+  const Body = BLOG_POST_BODIES[meta.slug];
 
   return (
     <PageLayout>

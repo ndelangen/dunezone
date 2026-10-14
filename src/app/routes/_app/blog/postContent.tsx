@@ -1,15 +1,17 @@
-import { Stack, Text } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { PublishedImage } from '@ui/content/PublishedImage';
-import { Surface } from '@ui/surface';
-import { useId } from 'react';
 import type { ReactNode } from 'react';
 
 import styles from './postContent.module.css';
 
 /*
  * The pieces a blog post is written in.
- * Headings are not among them: a post names its parts with the kit's `Section`, which owns the heading level.
+ * Headings and named panes are not among them: a post names its parts with the kit's `Section`, which owns the heading level, and puts an aside on the kit's `Card`.
+ */
+
+/*
+ * `Lead` and `Paragraph` are paragraphs, so they take inline content only;
+ * a figure or an embed goes between them, never inside.
  */
 
 /** The opening paragraph, set larger than the rest. */
@@ -37,14 +39,14 @@ export function Figure({
   aspect: number;
   caption?: string;
 }) {
+  const src = resolveAsset(imageKey, 'small');
   return (
     <figure className={styles.figure}>
-      <PublishedImage
-        src={resolveAsset(imageKey, 'small')}
-        name={alt}
-        aspect={aspect}
-        radius="var(--mantine-radius-md)"
-      />
+      <PublishedImage src={src} name={alt} aspect={aspect} radius="var(--mantine-radius-md)" />
+      {/* `PublishedImage` draws its image only once the browser runs, so readers and crawlers without scripts get it here. */}
+      <noscript>
+        <img src={src} alt={alt} className={styles.fallback} />
+      </noscript>
       {caption ? <figcaption className={styles.caption}>{caption}</figcaption> : null}
     </figure>
   );
@@ -68,20 +70,5 @@ export function LiveEmbed({
       </div>
       <figcaption className={styles.caption}>{caption}</figcaption>
     </figure>
-  );
-}
-
-/** An aside the reader should not miss, on its own pane. */
-export function Callout({ label, children }: { label: string; children: ReactNode }) {
-  const labelId = useId();
-  return (
-    <Surface padding="md" as="aside" aria-labelledby={labelId}>
-      <Stack gap="xs">
-        <Text fw={700} id={labelId}>
-          {label}
-        </Text>
-        <Text>{children}</Text>
-      </Stack>
-    </Surface>
   );
 }

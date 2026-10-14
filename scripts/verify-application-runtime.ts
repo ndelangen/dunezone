@@ -306,6 +306,7 @@ try {
     '/assets/unknown-type/missing/extra',
     '/glossary/missing',
     '/media/game/missing',
+    '/blog/__ssr_missing_post__',
     '/media/game',
     '/media/missing',
   ]) {
