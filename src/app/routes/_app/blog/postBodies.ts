@@ -1,7 +1,7 @@
 import type { BlogPostSlug } from '@shared/recordlessPublicPages';
 import type { ComponentType } from 'react';
 
-import FirstDuneBoardGameTools from './posts/first-dune-board-game-tools';
+import AllInOneDuneBoardGameWebapp from './posts/all-in-one-dune-board-game-webapp';
 import TabletopSimulator from './posts/tabletop-simulator';
 import WhyDune from './posts/why-dune';
 
@@ -10,7 +10,7 @@ import WhyDune from './posts/why-dune';
  * Only the post page's component imports this, so the bodies and the renderers they embed stay in that page's split chunk.
  */
 export const BLOG_POST_BODIES: Record<BlogPostSlug, ComponentType> = {
-  'first-dune-board-game-tools': FirstDuneBoardGameTools,
+  'all-in-one-dune-board-game-webapp': AllInOneDuneBoardGameWebapp,
   'tabletop-simulator': TabletopSimulator,
   'why-dune': WhyDune,
 };
