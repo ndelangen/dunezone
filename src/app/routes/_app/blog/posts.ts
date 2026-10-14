@@ -30,9 +30,9 @@ export type BlogPostMeta = {
  * A body file under `posts/` is named for its slug, never `index.tsx` or `*.route.tsx`, which the router would read as a page.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
-  'before-dune-zone': {
-    slug: 'before-dune-zone',
-    title: 'Before dune.zone',
+  'first-dune-board-game-tools': {
+    slug: 'first-dune-board-game-tools',
+    title: 'Building my first Dune board game tools',
     date: '2026-10-14',
     author: 'Central419',
     summary:

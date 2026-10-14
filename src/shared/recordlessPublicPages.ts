@@ -15,7 +15,7 @@ export const HEADER_PUBLIC_PAGES = ['/blog'];
  * The posts themselves are code in `src/app/routes/_app/blog/posts`;
  * this list repeats their slugs so the sitemap can name them without loading the app, and a test keeps the two equal.
  */
-export const BLOG_POST_SLUGS = ['before-dune-zone', 'tabletop-simulator', 'why-dune'] as const;
+export const BLOG_POST_SLUGS = ['first-dune-board-game-tools', 'tabletop-simulator', 'why-dune'] as const;
 
 export type BlogPostSlug = (typeof BLOG_POST_SLUGS)[number];
 

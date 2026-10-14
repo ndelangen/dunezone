@@ -92,12 +92,12 @@ export const BlogPost = meta.story({
 });
 
 /** The third post, about the early projects: its title in the band, and links to the dune-assets repository and the Atreides page. */
-export const BlogPostBeforeDuneZone = meta.story({
-  args: { path: '/blog/before-dune-zone' },
+export const BlogPostFirstDuneBoardGameTools = meta.story({
+  args: { path: '/blog/first-dune-board-game-tools' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(
-      page.findByRole('heading', { level: 1, name: 'Before dune.zone' }, { timeout: 30_000 })
+      page.findByRole('heading', { level: 1, name: 'Building my first Dune board game tools' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'dune-assets' })).resolves.toHaveAttribute(
       'href',
