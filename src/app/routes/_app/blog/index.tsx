@@ -4,6 +4,7 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { formatStableDate } from '@ui/content/dates';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { Surface } from '@ui/surface';
 import { ArrowRight } from 'lucide-react';
 
 import { publicPageHead } from '@app/routes/publicPage';
@@ -28,10 +29,12 @@ function BlogPage() {
     <PageLayout>
       <PageLayout.Header size="hero">
         <SimpleGrid className={styles.hero} cols={{ base: 1, md: 2 }} spacing="xl">
-          <PageTitle eyebrow="Developer blog" title="Notes from building Dune Zone" />
-          <Text size="lg">
-            The ideas, experiments and decisions behind the site, and what we learned along the way.
-          </Text>
+          <PageTitle eyebrow="Notes from" title="Building Dune Zone" />
+          <Surface padding="lg" className={styles.intro}>
+            <Text size="lg">
+              The ideas, experiments and decisions behind the site, and what we learned along the way.
+            </Text>
+          </Surface>
         </SimpleGrid>
       </PageLayout.Header>
       <PageLayout.Content>
