@@ -177,7 +177,7 @@ export function publicPageHead({
     meta: [
       ...pageHead(name, { kind }).meta!,
       { name: 'description', content: description },
-      { property: 'og:type', content: 'website' },
+      { property: 'og:type', content: entity?.type === 'article' ? 'article' : 'website' },
       { property: 'og:site_name', content: 'Dune Zone' },
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },

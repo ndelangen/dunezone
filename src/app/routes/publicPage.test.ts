@@ -120,6 +120,8 @@ describe('public page heads', () => {
       datePublished: '2026-10-14',
       author: { '@type': 'Person', name: 'Norbert de Langen' },
     });
+    expect(metaOf(post)).toContainEqual({ property: 'og:type', content: 'article' });
+    expect(metaOf(publicPageHead(faction))).toContainEqual({ property: 'og:type', content: 'website' });
   });
 
   test('a page that threw notFound has no head at all', () => {
