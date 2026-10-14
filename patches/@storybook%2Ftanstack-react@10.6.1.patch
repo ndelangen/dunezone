@@ -1,0 +1,16 @@
+diff --git a/dist/export-mocks/react-router.js b/dist/export-mocks/react-router.js
+index 02168c0c9f2f4ca894d4cbdcc776ed562d787676..48abf7acba68d9294acf5f297afd78e51ee30fbd 100644
+--- a/dist/export-mocks/react-router.js
++++ b/dist/export-mocks/react-router.js
+@@ -36,9 +36,10 @@ var useNavigate = fn(_useNavigate).mockName("@tanstack/react-router::useNavigate
+ }, [to, href]), null), Link = ({
+   to,
+   children,
++  ref,
+   ...props
+ }) => {
+-  let location = useLocation(), { onClick: _navigate, ...linkProps } = _useLinkProps({ to, ...props });
++  let location = useLocation(), { onClick: _navigate, ...linkProps } = _useLinkProps({ to, ...props }, ref);
+   return React.createElement(
+     "a",
+     {
