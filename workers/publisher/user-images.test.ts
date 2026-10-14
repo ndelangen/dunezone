@@ -165,6 +165,8 @@ describe('user image ingest', () => {
     'https://[::ffff:127.0.0.1]/image.png',
     'https://localhost./image.png',
     'https://host.docker.internal/image.png',
+    'https://images.example:8443/image.png',
+    'https://images.example:22/image.png',
   ])('refuses a non-public image destination before fetching %s', async (sourceUrl) => {
     const { mock } = ledgerFetch();
     vi.stubGlobal('fetch', mock);
@@ -181,6 +183,7 @@ describe('user image ingest', () => {
     'https://127.0.0.1/image.png',
     'https://user:password@images.example/image.png',
     'https://localhost/image.png',
+    'https://images.example:8443/image.png',
   ])('refuses an unsafe redirect destination without contacting it: %s', async (destination) => {
     const { mock } = ledgerFetch({
       source: () => new Response(null, { status: 302, headers: { Location: destination } }),
