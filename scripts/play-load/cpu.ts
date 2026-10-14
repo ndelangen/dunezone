@@ -7,20 +7,24 @@ import path from 'node:path';
 import WebSocket from 'ws';
 import { z } from 'zod';
 
-const profileSchema = z.object({
-  nodes: z.array(
-    z.object({ id: z.number(), callFrame: z.object({ functionName: z.string(), url: z.string() }).passthrough() })
-  ),
-  samples: z.array(z.number()),
-  timeDeltas: z.array(z.number()),
-  startTime: z.number(),
-  endTime: z.number(),
-});
+const profileSchema = z
+  .object({
+    nodes: z.array(
+      z
+        .object({ id: z.number(), callFrame: z.object({ functionName: z.string(), url: z.string() }).passthrough() })
+        .passthrough()
+    ),
+    samples: z.array(z.number()),
+    timeDeltas: z.array(z.number()),
+    startTime: z.number(),
+    endTime: z.number(),
+  })
+  .passthrough();
 type CpuProfile = z.infer<typeof profileSchema>;
 const inspectorAnswer = z.object({
   id: z.number().optional(),
   error: z.object({ message: z.string() }).optional(),
-  result: z.unknown(),
+  result: z.unknown().optional(),
 });
 
 function runtimePorts(parentPid: number) {
@@ -148,15 +152,22 @@ export async function cpuProfile(parentPid: number, directory: string) {
   return {
     async finish() {
       try {
-        const { profile } = z.object({ profile: profileSchema }).parse(await inspector.request('Profiler.stop'));
-        assert.ok(profile.nodes?.length && profile.samples?.length, 'The CPU profile contains no samples.');
-        await writeFile(path.join(directory, 'game.cpuprofile'), JSON.stringify(profile), { flag: 'wx' });
+        const result = z.object({ profile: z.unknown() }).parse(await inspector.request('Profiler.stop'));
+        const profile = await saveCpuProfile(directory, result.profile);
         return { target: target.id, elapsedMs: performance.now() - started, ...summarize(profile) };
       } finally {
         inspector.close();
       }
     },
   };
+}
+
+/** Validates the summary's fields while retaining the complete profiler data for inspection. */
+export async function saveCpuProfile(directory: string, value: unknown) {
+  const profile = profileSchema.parse(value);
+  assert.ok(profile.nodes.length && profile.samples.length, 'The CPU profile contains no samples.');
+  await writeFile(path.join(directory, 'game.cpuprofile'), JSON.stringify(profile), { flag: 'wx' });
+  return profile;
 }
 
 export function summarize(profile: CpuProfile) {
