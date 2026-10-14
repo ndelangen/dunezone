@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 
 import { getPlatformProxy, unstable_dev } from 'wrangler';
 
@@ -100,6 +101,7 @@ try {
   let groupPage: string | undefined;
   let faqPage: string | undefined;
   let verifiedPages = 0;
+  let nextSocialProbeAt = 0;
   /* Catalogues, profiles and the homepage can each link the same record; the first visit checks it, and a second would hit the cache. */
   const visited = new Set<string>();
   /* The homepage names showcase records by hand, so each must still answer at the address it links. */
@@ -236,15 +238,20 @@ try {
       assert.equal(await head.text(), '');
     } else if (
       !['/factions', '/assets', '/assets/token-disc'].includes(pathname) &&
-      /* The galleries share one card template, so one render covers them and the rest stay under the social render rate limit. */
+      /* The galleries share one card template, so one render covers them. */
       !(pathname.startsWith('/media/game/') && pathname !== MEDIA_PUBLIC_PAGES[1])
     ) {
       const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&');
       assert.ok(image, `${pathname} has no social image URL`);
       const imageUrl = new URL(image);
       assert.equal(imageUrl.pathname, '/social/image.png');
+      /* Cold renders share the global 20-per-10-second budget.
+       * Pace them at one per second; repeated cache reads need no delay.
+       */
+      await delay(Math.max(0, nextSocialProbeAt - performance.now()));
+      nextSocialProbeAt = performance.now() + 1000;
       const png = await worker.fetch(imageUrl.pathname + imageUrl.search);
-      assert.equal(png.status, 200);
+      assert.equal(png.status, 200, pathname);
       assert.equal(png.headers.get('Content-Type'), 'image/png');
       assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
       const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search);

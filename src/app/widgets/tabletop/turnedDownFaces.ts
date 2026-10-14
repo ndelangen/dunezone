@@ -1,5 +1,5 @@
 import type { TablePiece } from '@shared/play/model';
-import { useMemo, useRef } from 'react';
+import { useMemo, useReducer } from 'react';
 
 type Artwork = NonNullable<TablePiece['items'][number]['artwork']>;
 
@@ -29,16 +29,21 @@ function frontsOf(piece: TablePiece) {
  * Only fronts this page was already shown are kept, and the next flip replaces them.
  */
 export function useTurnedDownFaces(piece: TablePiece): TablePiece {
-  const memory = useRef({ revision: piece.flipRevision ?? 0, shown: piece, fronts: new Map<string, Artwork>() });
-  const current = memory.current;
-  const revision = piece.flipRevision ?? 0;
-  if (current.shown !== piece) {
-    if (revision !== current.revision) {
-      current.fronts = frontsOf(withKnownFronts(current.shown, current.fronts));
-      current.revision = revision;
-    }
-    current.shown = piece;
+  const [memory, remember] = useReducer(
+    (current: { revision: number; shown: TablePiece; fronts: Map<string, Artwork> }, shown: TablePiece) => ({
+      revision: shown.flipRevision ?? 0,
+      shown,
+      fronts:
+        (shown.flipRevision ?? 0) !== current.revision
+          ? frontsOf(withKnownFronts(current.shown, current.fronts))
+          : current.fronts,
+    }),
+    piece,
+    (shown) => ({ revision: shown.flipRevision ?? 0, shown, fronts: new Map<string, Artwork>() })
+  );
+  if (memory.shown !== piece) {
+    remember(piece);
   }
-  const fronts = current.fronts;
+  const fronts = memory.fronts;
   return useMemo(() => withKnownFronts(piece, fronts), [piece, fronts]);
 }

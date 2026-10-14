@@ -15,6 +15,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
+import { errorMessage } from '@ui/content/errorMessage';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
@@ -47,7 +48,7 @@ function CreateRulebookError({ error }: ErrorComponentProps) {
   return (
     <PageMessage title="Create Rulebook" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
       <LoadError title="Ruleset could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );

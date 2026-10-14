@@ -23,6 +23,7 @@ import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { AssetLink } from '@ui/content/AssetLink';
 import { formatStableDate } from '@ui/content/dates';
+import { errorMessage } from '@ui/content/errorMessage';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmConvertAction } from '@ui/control/ConfirmConvertAction';
@@ -145,7 +146,7 @@ function AssetDetailError({ error }: ErrorComponentProps) {
   return (
     <AssetDetailMessage>
       <LoadError title="This asset could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </AssetDetailMessage>
   );

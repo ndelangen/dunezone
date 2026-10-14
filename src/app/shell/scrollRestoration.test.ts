@@ -1,11 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.resetModules();
 });
 
 const plain = { location: { hash: '' } };
+
+function mockNavigation(type: string) {
+  /* Keep the runner's performance clock while replacing the browser navigation entry. */
+  const entry = { name: 'document', entryType: 'navigation', startTime: 0, duration: 0, type, toJSON: () => ({}) };
+  vi.spyOn(performance, 'getEntriesByType').mockReturnValue([entry]);
+}
 
 async function freshModule({
   scrollX = 0,
@@ -13,7 +20,7 @@ async function freshModule({
   navigation = 'navigate',
 }: { scrollX?: number; scrollY?: number; navigation?: string } = {}) {
   vi.stubGlobal('window', { scrollX, scrollY });
-  vi.stubGlobal('performance', { getEntriesByType: () => [{ type: navigation }] });
+  mockNavigation(navigation);
   return import('./scrollRestoration');
 }
 
@@ -56,7 +63,7 @@ describe('scroll restoration', () => {
     const { restoresScroll } = await import('./scrollRestoration');
     expect(restoresScroll(plain)).toBe(true);
     vi.stubGlobal('window', { scrollX: 0, scrollY: 640 });
-    vi.stubGlobal('performance', { getEntriesByType: () => [{ type: 'navigate' }] });
+    mockNavigation('navigate');
     expect(restoresScroll(plain)).toBe(false);
   });
 });

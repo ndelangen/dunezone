@@ -7,6 +7,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
+import { errorMessage } from '@ui/content/errorMessage';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -19,7 +20,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Check, MessageCircleReply, MessageSquarePlus, Pencil, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
@@ -101,7 +102,7 @@ function FaqDetailError({ error }: ErrorComponentProps) {
       }
     >
       <LoadError title="This question could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );
@@ -169,7 +170,9 @@ function FaqDetailPage() {
   const [editing, setEditing] = useState(INITIAL_FAQ_EDITING_STATE);
   const editingSessionRef = useRef<FaqEditingSession>(undefined);
   const commandsRef = useRef({ faq });
-  commandsRef.current = { faq };
+  useLayoutEffect(() => {
+    commandsRef.current = { faq };
+  }, [faq]);
   editingSessionRef.current ??= createFaqEditingSession({
     editQuestion: (input) => commandsRef.current.faq.editQuestion.run(input),
     editAnswer: (input) => commandsRef.current.faq.editAnswer.run(input),

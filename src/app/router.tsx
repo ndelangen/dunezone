@@ -1,11 +1,12 @@
 import { ErrorComponent, createRouter as createTanStackRouter } from '@tanstack/react-router';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { restoresScroll } from '@app/shell/scrollRestoration';
 
 import { routeTree } from './routeTree.gen';
 
-export function AppErrorComponent({ error }: { error: Error }) {
+export function AppErrorComponent({ error }: ErrorComponentProps) {
   if (isStaleClientData(error)) {
     return (
       <div role="alert" style={{ maxWidth: '28rem', margin: '4rem auto', textAlign: 'center' }}>

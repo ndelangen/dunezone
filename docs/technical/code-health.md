@@ -25,6 +25,10 @@ can resolve the native TypeScript package through Bun's shared dependency direct
 application typecheck still uses the native compiler.
 
 Stryker's instrumenter has a scoped Babel 8 override; the application build keeps Babel 7.
+A Babel 8.0.6 trial on the same source reduced React Compiler success events from 967 to 871.
+Defaulted destructured parameters hit the upstream [React Compiler issue #36868](https://github.com/react/react/issues/36868).
+Both builds completed, so a successful build alone does not establish compatibility.
+Revisit the application upgrade when the stable compiler handles those parameters without losing optimizations.
 Run `bun run test:mutation` locally with Node 24. The artifact includes `mutation.html` and
 `mutation.json`, which identify the code changes the tests missed. The mutation score is advisory;
 an initial test failure or scanner failure still fails the reporting job. Mutation coverage stays
@@ -53,12 +57,14 @@ at most one created per hour. Security fixes have a separate one-PR budget and f
 Routine minor, patch and digest upgrades form one broad group across application libraries,
 development tools and CI. Convex packages, test support and local images form a separate runtime
 group so the CLI, test seam and backend move together. Tabletop renderers and their types form an
-approval group, keeping Three, Fiber, Drei and the memory-leak and JSX patches aligned.
-Storybook has its own approval group to keep its packages aligned with the router patch.
+approval group, keeping Three, Fiber, Drei, React and the resource-cleanup and JSX patches aligned.
+React stays below 19.3 while the installed Fiber and Drei releases require that peer range.
+Storybook and Vitest share an approval group to keep the browser runner and coverage peers aligned
+with the router patch.
 These groups keep patch-dependent upgrades from holding the routine batch for approval.
 Major upgrades and packages with checked-in patches need approval in the Dependency Dashboard.
-Oxlint and Satori also need approval and stay outside the routine batch. Oxlint 1.87 reports
-81 existing-code diagnostics; Satori's font-engine upgrades require native Worker verification.
+Oxlint and Satori also need approval and stay outside the routine batch. Oxlint upgrades need review
+against the existing rules; Satori's font-engine upgrades require native Worker verification.
 Satori 0.35.1 uses a patched, precompiled HarfBuzz entry described in
 [social images](social-images.md). Their upgrades have separate compatibility work in
 [#2176](https://github.com/ndelangen/dunezone/issues/2176) and

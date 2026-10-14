@@ -27,7 +27,7 @@ export function useFactionSortableItem(id: string) {
     setNodeRef,
     style,
     handle: {
-      ref: setActivatorNodeRef,
+      setActivatorNodeRef,
       attributes,
       listeners,
     },

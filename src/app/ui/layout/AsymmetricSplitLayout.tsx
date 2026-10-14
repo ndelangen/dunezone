@@ -7,13 +7,9 @@ import { warnDroppedChild } from './warnDroppedChild';
 
 const ASYMMETRICSPLIT_SLOTS = ['AsymmetricSplitLayout.Wide', 'AsymmetricSplitLayout.Narrow'] as const;
 
-function Wide(_: PropsWithChildren): null {
-  return null;
-}
+const Wide: (props: PropsWithChildren) => null = () => null;
 
-function Narrow(_: PropsWithChildren): null {
-  return null;
-}
+const Narrow: (props: PropsWithChildren) => null = () => null;
 
 type AsymmetricSplitLayoutProps = PropsWithChildren<{
   className?: string;

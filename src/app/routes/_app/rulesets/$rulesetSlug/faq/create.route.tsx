@@ -7,6 +7,7 @@ import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
+import { errorMessage } from '@ui/content/errorMessage';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -40,7 +41,7 @@ function FaqCreateError({ error }: ErrorComponentProps) {
   return (
     <PageMessage title="Ask a question" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
       <LoadError title="This ruleset could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );

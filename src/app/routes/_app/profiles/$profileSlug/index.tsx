@@ -8,6 +8,7 @@ import { PageIdentity } from '@ui/block/PageIdentity';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { formatStableDate } from '@ui/content/dates';
+import { errorMessage } from '@ui/content/errorMessage';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -102,7 +103,7 @@ function ProfileDetailError({ error }: ErrorComponentProps) {
   return (
     <PageMessage size="compact" title="Profile" back={backToProfiles}>
       <LoadError title="Profile could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );

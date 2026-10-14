@@ -69,6 +69,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
+import { errorMessage } from '@ui/content/errorMessage';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ConfirmPublishAction } from '@ui/control/ConfirmPublishAction';
@@ -897,6 +898,11 @@ function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
   }
 }
 
+/* Hash changes remain native, so the editor's hashchange listener receives the selected destination. */
+function goToEditorHash(hash: string) {
+  window.location.hash = hash;
+}
+
 function editorHash(pageId: string, leaf: string) {
   return `#${encodeURIComponent(pageId)}/${encodeURIComponent(leaf)}`;
 }
@@ -987,26 +993,26 @@ function RailPageRoot({ dragId, pageId, style, children, ...rootProps }: RailPag
   const data: RailDragData = { kind: 'page', pageId };
   const { active } = useDndContext();
   const activeData = railDragData(active);
-  const sortable = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: dragId,
     data,
     disabled: activeData !== null && activeData.kind !== 'page',
   });
-  const { role: _role, tabIndex: _tabIndex, 'aria-pressed': _pressed, ...dragAttributes } = sortable.attributes;
+  const { role: _role, tabIndex: _tabIndex, 'aria-pressed': _pressed, ...dragAttributes } = attributes;
   return (
     <a
       {...rootProps}
       {...dragAttributes}
-      {...sortable.listeners}
-      ref={sortable.setNodeRef}
+      {...listeners}
+      ref={setNodeRef}
       style={{
         ...style,
-        transform: sortable.transform ? `translate3d(0, ${sortable.transform.y}px, 0)` : undefined,
-        transition: sortable.transition,
+        transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
+        transition,
       }}
       draggable={false}
-      data-rail-dragging={sortable.isDragging || undefined}
-      data-rail-drag-placeholder={sortable.isDragging || undefined}
+      data-rail-dragging={isDragging || undefined}
+      data-rail-drag-placeholder={isDragging || undefined}
     >
       {children}
     </a>
@@ -1049,7 +1055,7 @@ function RailBlockRoot({
     activeData.originRegionKey !== regionKey &&
     dropEnabled &&
     (typeof KeyboardEvent === 'undefined' || !(activatorEvent instanceof KeyboardEvent));
-  const sortable = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: dragId,
     data,
     disabled: {
@@ -1057,7 +1063,7 @@ function RailBlockRoot({
       droppable: (activeData !== null && activeData.kind !== 'block') || !dropEnabled,
     },
   });
-  const beforeSlot = useDroppable({
+  const { setNodeRef: setBeforeSlotRef } = useDroppable({
     id: `rail:slot:${blockId}:before`,
     data: {
       kind: 'slot',
@@ -1068,7 +1074,7 @@ function RailBlockRoot({
     } satisfies RailDragData,
     disabled: !insertionSlotsEnabled,
   });
-  const afterSlot = useDroppable({
+  const { setNodeRef: setAfterSlotRef } = useDroppable({
     id: `rail:slot:${blockId}:after`,
     data: {
       kind: 'slot',
@@ -1079,26 +1085,25 @@ function RailBlockRoot({
     } satisfies RailDragData,
     disabled: !insertionSlotsEnabled,
   });
-  const { role: _role, tabIndex: _tabIndex, 'aria-pressed': _pressed, ...dragAttributes } = sortable.attributes;
+  const { role: _role, tabIndex: _tabIndex, 'aria-pressed': _pressed, ...dragAttributes } = attributes;
   const translatedStyle: CSSProperties = {
     ...style,
-    transform:
-      !disableSortingTransform && sortable.transform ? `translate3d(0, ${sortable.transform.y}px, 0)` : undefined,
-    transition: disableSortingTransform ? undefined : sortable.transition,
+    transform: !disableSortingTransform && transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
+    transition: disableSortingTransform ? undefined : transition,
   };
   return (
     <a
       {...rootProps}
       {...dragAttributes}
-      {...sortable.listeners}
-      ref={sortable.setNodeRef}
+      {...listeners}
+      ref={setNodeRef}
       style={translatedStyle}
       draggable={false}
       data-rail-dragging={activeData?.kind === 'block' && activeData.blockId === blockId ? true : undefined}
       data-rail-drag-placeholder={activeData?.kind === 'block' && activeData.blockId === blockId ? true : undefined}
     >
-      <span ref={beforeSlot.setNodeRef} className={styles.railBlockDropSlot} data-side="before" aria-hidden />
-      <span ref={afterSlot.setNodeRef} className={styles.railBlockDropSlot} data-side="after" aria-hidden />
+      <span ref={setBeforeSlotRef} className={styles.railBlockDropSlot} data-side="before" aria-hidden />
+      <span ref={setAfterSlotRef} className={styles.railBlockDropSlot} data-side="after" aria-hidden />
       {children}
     </a>
   );
@@ -1134,7 +1139,7 @@ interface RailRegionRootProps extends ComponentPropsWithoutRef<'li'> {
 function RailRegionRoot({ pageId, regionKey, sortableIds, dropEnabled, children, ...rootProps }: RailRegionRootProps) {
   const { active } = useDndContext();
   const activeData = railDragData(active);
-  const droppable = useDroppable({
+  const { setNodeRef: setDropNodeRef, isOver } = useDroppable({
     id: `rail:region:${pageId}:${regionKey}`,
     data: {
       kind: 'region',
@@ -1146,7 +1151,7 @@ function RailRegionRoot({ pageId, regionKey, sortableIds, dropEnabled, children,
   });
   return (
     <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-      <li {...rootProps} ref={droppable.setNodeRef} data-rail-over={droppable.isOver || undefined}>
+      <li {...rootProps} ref={setDropNodeRef} data-rail-over={isOver || undefined}>
         {children}
       </li>
     </SortableContext>
@@ -1585,11 +1590,11 @@ function RulebookWorkspace({
     const index = result.draft.pageOrder.indexOf(page.id);
     const nextId = result.draft.pageOrder[index + 1] ?? result.draft.pageOrder[index - 1];
     dispatch({ kind: 'delete', root: { kind: 'page', pageId: page.id } });
-    window.location.hash = nextId ? editorHash(nextId, 'details') : '';
+    goToEditorHash(nextId ? editorHash(nextId, 'details') : '');
   };
   const deleteBlock = (blockId: string) => {
     dispatch({ kind: 'delete', root: { kind: 'block', pageId: page.id, blockId } });
-    window.location.hash = editorHash(page.id, 'details');
+    goToEditorHash(editorHash(page.id, 'details'));
   };
 
   const firstAvailableRegion = () => layout.regions.find((region) => region.kind === 'block');
@@ -3035,7 +3040,7 @@ function RulebookEditorError({ error }: ErrorComponentProps) {
   return (
     <PageMessage title="Edit Rulebook" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
       <LoadError title="This Rulebook could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
+        {errorMessage(error)}
       </LoadError>
     </PageMessage>
   );

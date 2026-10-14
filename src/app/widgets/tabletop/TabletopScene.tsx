@@ -211,7 +211,7 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
   const texture = usePublishedFace(href) ?? null;
   const arrive = useContext(FaceArrivalContext);
-  const cached = useRef(texture !== null);
+  const [cached] = useState(() => texture !== null);
   return (
     <mesh
       position={[0, 0, 0.002]}
@@ -220,7 +220,7 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
     >
       {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
       {texture ? (
-        arrive && !cached.current ? (
+        arrive && !cached ? (
           <ArrivingFaceMaterial key={href} texture={texture} />
         ) : (
           <meshBasicMaterial key={href} map={texture} transparent />
@@ -680,7 +680,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
   const { selectPiece, setHoveredPiece } = useTabletopActions();
   const openPieceMenu = useContext(PieceMenuContext);
   /* A selector, so a change elsewhere in the scene's store does not render every piece again. */
-  const renderer = useThree((state) => state.renderer);
+  const get = useThree((state) => state.get);
   const pointerSession = usePointerSession();
   const gestureBlocked = gestureBlockReason(piece);
   const hasMenu = !carrying && pieceHasMenu(piece);
@@ -745,12 +745,16 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
       if (!interactionBlocked) {
         setHoveredPiece(piece.id);
       }
-      renderer.domElement.style.cursor = pieceHoverCursor(canHandleTable, interactionBlocked, Boolean(gestureBlocked));
+      get().renderer.domElement.style.cursor = pieceHoverCursor(
+        canHandleTable,
+        interactionBlocked,
+        Boolean(gestureBlocked)
+      );
     },
     onPointerLeave: () => {
       setHoveredPiece(null);
       if (!pointerSession.isDragging(piece.id)) {
-        renderer.domElement.style.cursor = 'default';
+        get().renderer.domElement.style.cursor = 'default';
       }
     },
   };

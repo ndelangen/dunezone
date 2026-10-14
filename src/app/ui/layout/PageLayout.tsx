@@ -31,17 +31,11 @@ export function useInsidePageHeader(): boolean {
   return useContext(InsidePageHeader);
 }
 
-function Header(_: PropsWithChildren<{ size?: PageHeaderSize }>): null {
-  return null;
-}
+const Header: (props: PropsWithChildren<{ size?: PageHeaderSize }>) => null = () => null;
 
-function Toolbar(_: PropsWithChildren): null {
-  return null;
-}
+const Toolbar: (props: PropsWithChildren) => null = () => null;
 
-function Content(_: PropsWithChildren<{ width?: PageContentWidth }>): null {
-  return null;
-}
+const Content: (props: PropsWithChildren<{ width?: PageContentWidth }>) => null = () => null;
 
 /**
  * The frame every terminal route mounts: the hero band, an optional toolbar, and the content.

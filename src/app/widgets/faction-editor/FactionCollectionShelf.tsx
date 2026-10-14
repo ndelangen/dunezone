@@ -27,16 +27,20 @@ function ShelfItem({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const sortable = useFactionSortableItem(item.id);
+  const {
+    setNodeRef,
+    style,
+    handle: { setActivatorNodeRef, attributes, listeners },
+  } = useFactionSortableItem(item.id);
 
   return (
-    <Box ref={sortable.setNodeRef} className={styles.item} data-selected={selected} style={sortable.style}>
+    <Box ref={setNodeRef} className={styles.item} data-selected={selected} style={style}>
       <IconAction
         label={`Drag to reorder ${item.label}`}
         tooltip={`Reorder ${item.label}`}
-        ref={sortable.handle.ref}
-        {...sortable.handle.attributes}
-        {...sortable.handle.listeners}
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
         className={styles.handle}
         emphasis="quiet"
         intent="neutral"

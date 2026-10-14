@@ -11,17 +11,11 @@ const COLUMNSWITHRAIL_SLOTS = [
   'ColumnsWithRailLayout.Rail',
 ] as const;
 
-function Primary(_: PropsWithChildren): null {
-  return null;
-}
+const Primary: (props: PropsWithChildren) => null = () => null;
 
-function Secondary(_: PropsWithChildren): null {
-  return null;
-}
+const Secondary: (props: PropsWithChildren) => null = () => null;
 
-function Rail(_: PropsWithChildren): null {
-  return null;
-}
+const Rail: (props: PropsWithChildren) => null = () => null;
 
 /**
  * Two reading columns beside a narrow rail, top-aligned, responsive by container query.

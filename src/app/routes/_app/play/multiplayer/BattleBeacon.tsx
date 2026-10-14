@@ -43,11 +43,9 @@ function useBeaconHome(table: TableProjection) {
 /** The point the beacon was dropped on, held until the battle arrives or the game is plainly not placing one. */
 function usePendingDrop(battle: PublicBattle | null | undefined, inBattle: boolean) {
   const [pending, setPending] = useState<Vector3Tuple | null>(null);
-  useEffect(() => {
-    if (battle || !inBattle) {
-      setPending(null);
-    }
-  }, [battle, inBattle]);
+  if (pending !== null && (battle || !inBattle)) {
+    setPending(null);
+  }
   useEffect(() => {
     if (!pending) {
       return;

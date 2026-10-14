@@ -37,13 +37,23 @@
       "dependencyDashboardApproval": true
     },
     {
-      "matchPackageNames": ["storybook", "@storybook/**"],
+      "matchPackageNames": ["storybook", "@storybook/**", "vitest", "@vitest/**"],
       "groupName": "Storybook",
       "groupSlug": "storybook",
       "dependencyDashboardApproval": true
     },
     {
-      "matchPackageNames": ["three", "@react-three/fiber", "@react-three/drei", "@types/three", "three-mesh-bvh"],
+      "matchPackageNames": [
+        "three",
+        "@react-three/fiber",
+        "@react-three/drei",
+        "@types/three",
+        "three-mesh-bvh",
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ],
       "groupName": "Tabletop rendering",
       "groupSlug": "tabletop-rendering",
       "dependencyDashboardApproval": true

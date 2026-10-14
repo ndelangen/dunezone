@@ -7,17 +7,11 @@ import { warnDroppedChild } from './warnDroppedChild';
 
 const TRIPTYCH_SLOTS = ['TriptychLayout.Left', 'TriptychLayout.Center', 'TriptychLayout.Right'] as const;
 
-function Left(_: PropsWithChildren): null {
-  return null;
-}
+const Left: (props: PropsWithChildren) => null = () => null;
 
-function Center(_: PropsWithChildren<{ className?: string }>): null {
-  return null;
-}
+const Center: (props: PropsWithChildren<{ className?: string }>) => null = () => null;
 
-function Right(_: PropsWithChildren): null {
-  return null;
-}
+const Right: (props: PropsWithChildren) => null = () => null;
 
 /** Three columns (the outer two fixed, the centre flowing), responsive by container query. */
 function TriptychLayoutBase({ className, children }: PropsWithChildren<{ className?: string }>) {

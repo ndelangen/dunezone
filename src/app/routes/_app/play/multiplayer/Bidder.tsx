@@ -69,7 +69,7 @@ function Bidder({ client, table, faded = false }: Props) {
   const seat = roster?.seats.find((entry) => entry.faction?.id === pointed);
   const angle = seat && roster ? (tableSeatAngles(roster.seatCount)[seat.position] ?? null) : null;
   const groupRef = useBidderRotation(angle);
-  const geometry = useMemo(createTeardropGeometry, []);
+  const geometry = useMemo(() => createTeardropGeometry(), []);
   useEffect(() => () => geometry.dispose(), [geometry]);
   /* Between rounds the face holds a button per faction, so it needs more room from the canvas edge than a round's disc. */
   const factions = bidding.stage === 'open' ? null : order.length;

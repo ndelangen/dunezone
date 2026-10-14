@@ -13,6 +13,7 @@ import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { GameLink } from './GameLink';
+import type { GameRuntime } from './multiplayer/gameRuntime';
 import { GameRuntimeContext } from './multiplayer/gameRuntime';
 import { TableWait } from './TableWait';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
@@ -47,6 +48,16 @@ export const Route = createFileRoute('/_app/play/$gameId')({
  * directory allows: a game the viewer may not enter is not found, a pending game is preparing, an
  * expired one could not be prepared, and each of those is its own page.
  */
+function storedGameReader(tables: GameRuntime['tables'], address: string) {
+  let found: string | null | undefined;
+  return () => {
+    if (found === undefined) {
+      found = tables?.findGame(address) ?? null;
+    }
+    return found;
+  };
+}
+
 function GamePage() {
   const { gameId: address } = Route.useParams();
   const navigate = Route.useNavigate();
@@ -56,15 +67,7 @@ function GamePage() {
   const current = useKnownGame(address, authorized);
   const unreachable = useServerUnreachable(data === undefined);
   /* Finding the kept table parses it from storage, so it is read once per address, misses included, rather than on every render. */
-  const readStored = useMemo(() => {
-    let found: string | null | undefined;
-    return () => {
-      if (found === undefined) {
-        found = runtime.tables?.findGame(address) ?? null;
-      }
-      return found;
-    };
-  }, [runtime, address]);
+  const readStored = useMemo(() => storedGameReader(runtime.tables, address), [runtime, address]);
   const stored = useSyncExternalStore(noSubscription, readStored, () => null);
   const refused = data !== undefined && data.status !== 'ready' && data.status !== 'preparing';
   useEffect(() => {

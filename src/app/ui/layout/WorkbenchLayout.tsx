@@ -7,13 +7,9 @@ import styles from './WorkbenchLayout.module.css';
 
 const WORKBENCH_SLOTS = ['WorkbenchLayout.Chapters', 'WorkbenchLayout.Rail'] as const;
 
-function Chapters(_: PropsWithChildren): null {
-  return null;
-}
+const Chapters: (props: PropsWithChildren) => null = () => null;
 
-function Rail(_: PropsWithChildren): null {
-  return null;
-}
+const Rail: (props: PropsWithChildren) => null = () => null;
 
 /**
  * The two-column region of the workbench: chapters beside a sticky artifact rail.
