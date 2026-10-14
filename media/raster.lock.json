@@ -7649,6 +7649,114 @@
     "isOpaque": true,
     "color": "#080808"
   },
+  "/web/blog/tabletop-simulator/abomination.jpg": {
+    "sha256": "113a383e19f3ce97fabb03519d15fc407cbd4bded9026efd90e559eef828634d",
+    "bytes": 67388,
+    "width": 430,
+    "height": 600,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#f8f8c8"
+  },
+  "/web/blog/tabletop-simulator/battle-wheels.jpg": {
+    "sha256": "eb497652fb0991a1e78ea96e14578fcc14f3e428fe299989d5669717cb03ae73",
+    "bytes": 95709,
+    "width": 852,
+    "height": 764,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#383838"
+  },
+  "/web/blog/tabletop-simulator/bidder.jpg": {
+    "sha256": "7836975bb46ab77aaeddb4037b40f2749e868316497d1dbf3f10879bffc9468f",
+    "bytes": 70567,
+    "width": 1000,
+    "height": 500,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#282828"
+  },
+  "/web/blog/tabletop-simulator/bidding-decks.jpg": {
+    "sha256": "85e713c18980dbaa81ce399524b896d9e09719ca3a68b5ca1c4134423e213b5d",
+    "bytes": 176051,
+    "width": 1792,
+    "height": 1638,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#282828"
+  },
+  "/web/blog/tabletop-simulator/blender-models.jpg": {
+    "sha256": "435a61b57d69f6284a68512477aa39d6d8a75c354b668568a42db7dec2ff4f87",
+    "bytes": 63177,
+    "width": 2048,
+    "height": 1024,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#181828"
+  },
+  "/web/blog/tabletop-simulator/faction-tables.jpg": {
+    "sha256": "0860b5f8d99204d0dd1aa2a6b05ff451739a48acfe75d647214fcea682d98b54",
+    "bytes": 474526,
+    "width": 1925,
+    "height": 1573,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/blog/tabletop-simulator/game-night.jpg": {
+    "sha256": "c5021c63a3c7e76ccd4f2c023db0b1f8c02fa39906a9531f02400b121d68e87a",
+    "bytes": 293460,
+    "width": 1240,
+    "height": 1050,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#182828"
+  },
+  "/web/blog/tabletop-simulator/iduali-dune-zone.jpg": {
+    "sha256": "086a295d32a1ceaac74e41fa38989225f83aed87e5676eba2cecba50eb174b16",
+    "bytes": 310348,
+    "width": 1400,
+    "height": 1690,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#f8e8d8"
+  },
+  "/web/blog/tabletop-simulator/iduali-sheet.jpg": {
+    "sha256": "12754a421a2cfa075e5b69c0aa26ce1dce1f3f04e302ff1242f55d3e995157f6",
+    "bytes": 323696,
+    "width": 1200,
+    "height": 1600,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#f8f8f8"
+  },
+  "/web/blog/tabletop-simulator/planets.jpg": {
+    "sha256": "0ee886187a197523140eca8b689b42e5327d7a80d76baad425ad8f34022dd3f5",
+    "bytes": 300875,
+    "width": 2048,
+    "height": 1240,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080828"
+  },
+  "/web/blog/tabletop-simulator/rainbow-troops.jpg": {
+    "sha256": "ccb8e91cd9c31faaaf6311d29bde93922cd79b705c1c34279506e6b032a06d1a",
+    "bytes": 358954,
+    "width": 1830,
+    "height": 895,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#f8f8a8"
+  },
+  "/web/blog/tabletop-simulator/storm-cards.jpg": {
+    "sha256": "0799cdc35d71e0b91fa6a23da705c1b8d87fbb04442be7f1770070c914ddda3d",
+    "bytes": 141390,
+    "width": 1000,
+    "height": 723,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#182828"
+  },
   "/web/blog/why-dune/avalon-hill-set.jpg": {
     "sha256": "f34aeff4a07bbcb65dde18304f112572b21fa2d613daf9f713aaecd0c982dd22",
     "bytes": 146291,

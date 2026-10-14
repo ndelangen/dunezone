@@ -10121,6 +10121,78 @@
     "subjects": ["places", "symbols"],
     "sourceHash": "9fed016ad4bce2224b6f4757436971b26ca9660d1ebb2a8f33a9b38ffe57b1f2"
   },
+  "/web/blog/tabletop-simulator/abomination.jpg": {
+    "description": "A custom Abomination treachery card in the GF9 card style, with layered head silhouettes and its rules text.",
+    "tags": ["treachery card", "custom card", "homebrew", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "113a383e19f3ce97fabb03519d15fc407cbd4bded9026efd90e559eef828634d"
+  },
+  "/web/blog/tabletop-simulator/battle-wheels.jpg": {
+    "description": "Two scripted battle wheels in Tabletop Simulator with leader discs and treachery cards laid between them.",
+    "tags": ["Tabletop Simulator", "battle wheel", "leaders", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "eb497652fb0991a1e78ea96e14578fcc14f3e428fe299989d5669717cb03ae73"
+  },
+  "/web/blog/tabletop-simulator/bidder.jpg": {
+    "description": "The Tabletop Simulator bidder: a numbered wheel with faction symbols beside it on a dark table.",
+    "tags": ["Tabletop Simulator", "bidding", "online play", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "7836975bb46ab77aaeddb4037b40f2749e868316497d1dbf3f10879bffc9468f"
+  },
+  "/web/blog/tabletop-simulator/bidding-decks.jpg": {
+    "description": "Two treachery decks in Tabletop Simulator with Take and Next buttons and a card counter.",
+    "tags": ["Tabletop Simulator", "treachery card", "bidding", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "85e713c18980dbaa81ce399524b896d9e09719ca3a68b5ca1c4134423e213b5d"
+  },
+  "/web/blog/tabletop-simulator/blender-models.jpg": {
+    "description": "Two gold 3D models on a dark background: a gavel over cards for the bidding phase, and a running Emperor troop.",
+    "tags": ["3D model", "Blender", "bidding", "troop", "blog"],
+    "subjects": ["symbols", "people"],
+    "sourceHash": "435a61b57d69f6284a68512477aa39d6d8a75c354b668568a42db7dec2ff4f87"
+  },
+  "/web/blog/tabletop-simulator/faction-tables.jpg": {
+    "description": "Tabletop Simulator tables for many Dune factions floating in a starry sky, each with its shield, leaders and tokens.",
+    "tags": ["Tabletop Simulator", "faction shields", "online play", "blog"],
+    "subjects": ["space", "symbols"],
+    "sourceHash": "0860b5f8d99204d0dd1aa2a6b05ff451739a48acfe75d647214fcea682d98b54"
+  },
+  "/web/blog/tabletop-simulator/game-night.jpg": {
+    "description": "A game of Dune in Tabletop Simulator seen from above, with player areas, cards and tokens around the round board.",
+    "tags": ["Tabletop Simulator", "online play", "board", "blog"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "c5021c63a3c7e76ccd4f2c023db0b1f8c02fa39906a9531f02400b121d68e87a"
+  },
+  "/web/blog/tabletop-simulator/iduali-dune-zone.jpg": {
+    "description": "The Iduali faction page on dune.zone, with leader discs, troops and a grid of advantages.",
+    "tags": ["Iduali", "faction sheet", "dune.zone", "blog"],
+    "subjects": ["people", "symbols"],
+    "sourceHash": "086a295d32a1ceaac74e41fa38989225f83aed87e5676eba2cecba50eb174b16"
+  },
+  "/web/blog/tabletop-simulator/iduali-sheet.jpg": {
+    "description": "The Iduali homebrew faction sheet as a text document, with a scorpion emblem and lists of advantages.",
+    "tags": ["Iduali", "faction sheet", "homebrew", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "12754a421a2cfa075e5b69c0aa26ce1dce1f3f04e302ff1242f55d3e995157f6"
+  },
+  "/web/blog/tabletop-simulator/planets.jpg": {
+    "description": "Dozens of textured planets floating against a starry sky in Tabletop Simulator.",
+    "tags": ["Tabletop Simulator", "planets", "blog"],
+    "subjects": ["space"],
+    "sourceHash": "0ee886187a197523140eca8b689b42e5327d7a80d76baad425ad8f34022dd3f5"
+  },
+  "/web/blog/tabletop-simulator/rainbow-troops.jpg": {
+    "description": "Force tokens on the Imperial Basin of the Dune board in Tabletop Simulator, one stack painted in rainbow colours.",
+    "tags": ["Tabletop Simulator", "troops", "board", "blog"],
+    "subjects": ["places", "people"],
+    "sourceHash": "ccb8e91cd9c31faaaf6311d29bde93922cd79b705c1c34279506e6b032a06d1a"
+  },
+  "/web/blog/tabletop-simulator/storm-cards.jpg": {
+    "description": "Two storm cards in Tabletop Simulator, one showing its Move storm tracker button.",
+    "tags": ["Tabletop Simulator", "storm", "cards", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "0799cdc35d71e0b91fa6a23da705c1b8d87fbb04442be7f1770070c914ddda3d"
+  },
   "/web/head.png": {
     "description": "Wide desert banner with a sandworm, moons and a pale empty central area.",
     "tags": ["background", "illustration"],
