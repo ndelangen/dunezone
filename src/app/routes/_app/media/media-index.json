@@ -10193,6 +10193,24 @@
     "subjects": ["symbols"],
     "sourceHash": "0799cdc35d71e0b91fa6a23da705c1b8d87fbb04442be7f1770070c914ddda3d"
   },
+  "/web/blog/tabletop-simulator/board-fonts.jpg": {
+    "description": "A low view across the vectorized Dune board in Tabletop Simulator, with territory names such as Cielago Depression and Meridian in the board's font.",
+    "tags": ["Tabletop Simulator", "board", "territories", "blog"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "faf5578cc339343630a0a0e250a6ea107cadc861f764641bb9baa45755e05077"
+  },
+  "/web/blog/tabletop-simulator/faction-pieces.jpg": {
+    "description": "A Tabletop Simulator table with every faction's leaders, tokens and reveal discs laid out in rows.",
+    "tags": ["Tabletop Simulator", "faction tokens", "leaders", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "6238e69cde33a4a00435b213f19c8d39324d81fa5e7dccbc197ce65991d7704e"
+  },
+  "/web/blog/tabletop-simulator/vector-board.jpg": {
+    "description": "The vectorized Dune board in Tabletop Simulator seen from above, with every territory and stronghold named.",
+    "tags": ["Tabletop Simulator", "board", "territories", "blog"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "075492dd4461d9f1266b277f38454df71e1dde49f9ae9ee2e14714ae9f6ef0bd"
+  },
   "/web/head.png": {
     "description": "Wide desert banner with a sandworm, moons and a pale empty central area.",
     "tags": ["background", "illustration"],

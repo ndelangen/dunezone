@@ -7694,6 +7694,24 @@
     "isOpaque": true,
     "color": "#181828"
   },
+  "/web/blog/tabletop-simulator/board-fonts.jpg": {
+    "sha256": "faf5578cc339343630a0a0e250a6ea107cadc861f764641bb9baa45755e05077",
+    "bytes": 237916,
+    "width": 1080,
+    "height": 742,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/blog/tabletop-simulator/faction-pieces.jpg": {
+    "sha256": "6238e69cde33a4a00435b213f19c8d39324d81fa5e7dccbc197ce65991d7704e",
+    "bytes": 81924,
+    "width": 1080,
+    "height": 577,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#282828"
+  },
   "/web/blog/tabletop-simulator/faction-tables.jpg": {
     "sha256": "0860b5f8d99204d0dd1aa2a6b05ff451739a48acfe75d647214fcea682d98b54",
     "bytes": 474526,
@@ -7756,6 +7774,15 @@
     "format": "jpeg",
     "isOpaque": true,
     "color": "#182828"
+  },
+  "/web/blog/tabletop-simulator/vector-board.jpg": {
+    "sha256": "075492dd4461d9f1266b277f38454df71e1dde49f9ae9ee2e14714ae9f6ef0bd",
+    "bytes": 306930,
+    "width": 1080,
+    "height": 970,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
   },
   "/web/blog/why-dune/avalon-hill-set.jpg": {
     "sha256": "f34aeff4a07bbcb65dde18304f112572b21fa2d613daf9f713aaecd0c982dd22",
