@@ -5,7 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { getPlatformProxy, unstable_dev } from 'wrangler';
 
-import { MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../src/shared/recordlessPublicPages.ts';
+import { BLOG_POST_PAGES, MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../src/shared/recordlessPublicPages.ts';
 import { jpegProfile, pngDimensions } from '../workers/publisher/image-inspection.ts';
 
 /* Exercise the assembled Worker, including Static Assets precedence and the real TanStack entry. */
@@ -31,7 +31,7 @@ function isEmptyArtifactStoreReader(pathname: string, html: string) {
 }
 
 /* Pages with no record behind them render without a metadata query. */
-const RECORDLESS_PAGES = ['/', ...RECORDLESS_PUBLIC_PAGES, ...MEDIA_PUBLIC_PAGES];
+const RECORDLESS_PAGES = ['/', ...RECORDLESS_PUBLIC_PAGES, ...BLOG_POST_PAGES, ...MEDIA_PUBLIC_PAGES];
 
 function assertPublicMetadataQueries(count: number, pathname: string, html: string, historicalFallback: boolean) {
   if (isEmptyArtifactStoreReader(pathname, html)) {
@@ -95,6 +95,7 @@ try {
     '/rulesets',
     '/profiles',
     ...RECORDLESS_PUBLIC_PAGES,
+    ...BLOG_POST_PAGES,
     ...MEDIA_PUBLIC_PAGES,
   ];
   let rulebookPage: string | undefined;
@@ -238,8 +239,9 @@ try {
       assert.equal(await head.text(), '');
     } else if (
       !['/factions', '/assets', '/assets/token-disc'].includes(pathname) &&
-      /* The galleries share one card template, so one render covers them. */
-      !(pathname.startsWith('/media/game/') && pathname !== MEDIA_PUBLIC_PAGES[1])
+      /* The galleries share one card template, and so do the blog posts, so one render covers each. */
+      !(pathname.startsWith('/media/game/') && pathname !== MEDIA_PUBLIC_PAGES[1]) &&
+      !(pathname.startsWith('/blog/') && pathname !== BLOG_POST_PAGES[0])
     ) {
       const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&');
       assert.ok(image, `${pathname} has no social image URL`);
@@ -304,6 +306,7 @@ try {
     '/assets/unknown-type/missing/extra',
     '/glossary/missing',
     '/media/game/missing',
+    '/blog/__ssr_missing_post__',
     '/media/game',
     '/media/missing',
   ]) {
