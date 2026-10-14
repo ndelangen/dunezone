@@ -17,11 +17,12 @@ export interface NavLinkItem {
 
 /* The link set is content, not structure: the system renders whatever list it is given, at any
    count and any label length, so editing this array is the whole job of changing the navigation. */
-const PRIMARY_LINKS: readonly NavLinkItem[] = [
+export const PRIMARY_LINKS: readonly NavLinkItem[] = [
   { label: 'Factions', to: '/factions' },
   { label: 'Rulesets', to: '/rulesets' },
   { label: 'Profiles', to: '/profiles' },
   { label: 'Assets', to: '/assets' },
+  { label: 'Blog', to: '/blog' },
 ];
 
 /* Room reserved for the More control before deciding which links fit. It cannot be measured
