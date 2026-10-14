@@ -46,9 +46,10 @@ export const Route = createFileRoute('/_app/')({
    * then carries none, rather than telling crawlers that /glossary, /privacy and every unknown path are the homepage.
    */
   loader: () => ({
-    name: '',
+    name: 'Dune board game factions and rulebooks',
     pathname: '/',
-    description: 'Dune Play is coming soon. Read Rulebooks, create factions and assets, and build with your allies.',
+    description:
+      'Explore community factions and Rulebooks for the Dune board game. Create your own faction sheets, cards, tokens and boards.',
     image: '/web/homepage-social-play-large.jpg',
     entity: { type: 'site' } as const,
     imageDetails: {

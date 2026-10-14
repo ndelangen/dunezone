@@ -19,9 +19,10 @@ export const Route = createFileRoute('/_app/assets/')({
   loader: loadAssetCataloguePage,
   head: () =>
     publicPageHead({
-      name: 'Assets',
+      name: 'Dune board game cards, tokens and boards',
       pathname: '/assets',
-      description: 'Browse community cards, decks, tokens and boards for Dune.',
+      description:
+        'Browse community cards, decks, tokens and boards for the Dune board game. Find artwork for your table or create and share your own game assets.',
     }),
   component: AssetsLandingPage,
 });
