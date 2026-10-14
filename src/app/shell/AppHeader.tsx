@@ -1,6 +1,9 @@
 import type { ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
+/* File imports give the build hashed URLs while preserving the legacy /video/ paths for older bundles. */
+import bandPoster from '../../../public/video/band-poster.jpg?url';
+import bandVideo from '../../../public/video/band.mp4?url';
 import { useMotionAllowed } from '../styles/motion';
 import styles from './AppHeader.module.css';
 import { SiteNavigation } from './SiteNavigation';
@@ -59,14 +62,14 @@ export function AppHeader({ children }: AppHeaderProps) {
       {/* Artwork and site navigation, not the banner: the page's own header is that landmark (see PageLayout). */}
       <div ref={bandRef} className={styles.band} data-app-band>
         <img alt="" aria-hidden className={styles.bandPlaceholder} src={bandPlaceholder} />
-        <img alt="" aria-hidden className={styles.bandPoster} src="/video/band-poster.jpg" />
+        <img alt="" aria-hidden className={styles.bandPoster} src={bandPoster} />
         {playVideo && (
           <video
             ref={videoRef}
             className={styles.bandVideo}
             data-ready={videoReady || undefined}
             onPlaying={() => setVideoReady(true)}
-            src="/video/band.mp4"
+            src={bandVideo}
             autoPlay
             muted
             loop

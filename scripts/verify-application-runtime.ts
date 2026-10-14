@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -76,6 +76,36 @@ const worker = await unstable_dev('index.ts', {
   experimental: { disableExperimentalWarning: true, watch: false },
 });
 try {
+  const bundledAssets = readdirSync('dist/public');
+  const bandPoster = bundledAssets.find((name) => /^band_poster-[\w-]+\.jpg$/.test(name));
+  const bandVideo = bundledAssets.find((name) => /^band-[\w-]+\.mp4$/.test(name));
+  assert.ok(bandPoster, 'The header poster needs a content-hashed URL');
+  assert.ok(bandVideo, 'The header video needs a content-hashed URL');
+  for (const [name, source] of [
+    [bandPoster, 'band-poster.jpg'],
+    [bandVideo, 'band.mp4'],
+  ]) {
+    const response = await worker.fetch(`/public/${name}`);
+    assert.equal(response.status, 200, name);
+    assert.equal(response.headers.get('Cache-Control'), 'public, max-age=31536000, immutable', name);
+    const original = readFileSync(`../../public/video/${source}`);
+    assert.equal(Buffer.compare(Buffer.from(await response.arrayBuffer()), original), 0, name);
+    const legacy = await worker.fetch(`/video/${source}`);
+    assert.equal(legacy.status, 200, source);
+    assert.equal(Buffer.compare(Buffer.from(await legacy.arrayBuffer()), original), 0, source);
+  }
+  const videoRange = await worker.fetch(`/public/${bandVideo}`, { headers: { Range: 'bytes=0-1023' } });
+  /* Static Assets may answer a range request with the complete file, as the legacy video does. */
+  assert.ok([200, 206].includes(videoRange.status));
+  assert.equal(videoRange.headers.get('Cache-Control'), 'public, max-age=31536000, immutable');
+  const originalVideo = readFileSync('../../public/video/band.mp4');
+  assert.equal(
+    Buffer.compare(
+      Buffer.from(await videoRange.arrayBuffer()),
+      videoRange.status === 206 ? originalVideo.subarray(0, 1024) : originalVideo
+    ),
+    0
+  );
   const healthResponse = await worker.fetch('/__asset-publisher/health');
   assert.equal(healthResponse.status, 200);
   const health = (await healthResponse.json()) as { application: { release: string } };
@@ -123,6 +153,8 @@ try {
     assert.equal(response.headers.get('X-Robots-Tag'), null, pathname);
     const historicalFallback = Boolean(fixture && pathname.endsWith('/runtime-manual?edition=1'));
     const html = await response.text();
+    assert.ok(html.includes(`href="/public/${bandPoster}"`), `${pathname} does not preload the hashed poster`);
+    assert.ok(html.includes(`src="/public/${bandPoster}"`), `${pathname} does not display the preloaded poster`);
     assert.doesNotMatch(html, /<meta\b[^>]*\bname=["']robots["']/i, pathname);
     assertPublicMetadataQueries(
       Number(response.headers.get('X-Public-Metadata-Queries') ?? 0),
@@ -323,6 +355,7 @@ try {
       publicPages: verifiedPages,
       browserOnlyPages: browserOnlyPages.length,
       captureProtected: true,
+      headerMedia: { poster: `/public/${bandPoster}`, video: `/public/${bandVideo}`, rangeStatus: videoRange.status },
     })
   );
 } finally {
