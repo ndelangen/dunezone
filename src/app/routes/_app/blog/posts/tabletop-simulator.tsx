@@ -100,13 +100,13 @@ function OwnModsSection() {
           {
             imageKey: '/web/blog/tabletop-simulator/battle-wheels.jpg',
             alt: 'Two scripted battle wheels with leader discs and treachery cards between them',
-            aspect: 764 / 852,
+            aspect: 764 / 560,
             caption: 'Scripted battle wheels.',
           },
           {
             imageKey: '/web/blog/tabletop-simulator/bidding-decks.jpg',
             alt: 'Two treachery decks with Take and Next buttons',
-            aspect: 1638 / 1792,
+            aspect: 1180 / 1060,
             caption: 'Automated bidding decks.',
           },
         ]}
@@ -230,7 +230,7 @@ function FundamentalsSection() {
           {
             imageKey: '/web/blog/tabletop-simulator/iduali-sheet.jpg',
             alt: 'The Iduali faction sheet as a text document, listing its advantages',
-            aspect: 1600 / 1200,
+            aspect: 1314 / 1080,
             caption: (
               <>
                 The Iduali by <RidwanLink />, as a document.

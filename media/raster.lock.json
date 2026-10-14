@@ -7659,9 +7659,9 @@
     "color": "#f8f8c8"
   },
   "/web/blog/tabletop-simulator/battle-wheels.jpg": {
-    "sha256": "eb497652fb0991a1e78ea96e14578fcc14f3e428fe299989d5669717cb03ae73",
-    "bytes": 95709,
-    "width": 852,
+    "sha256": "f8cf1fe8b56433fdbe57c7e27cbf17b5b7658c3c0d39edc2cefd160720e24026",
+    "bytes": 86129,
+    "width": 560,
     "height": 764,
     "format": "jpeg",
     "isOpaque": true,
@@ -7677,10 +7677,10 @@
     "color": "#282828"
   },
   "/web/blog/tabletop-simulator/bidding-decks.jpg": {
-    "sha256": "85e713c18980dbaa81ce399524b896d9e09719ca3a68b5ca1c4134423e213b5d",
-    "bytes": 176051,
-    "width": 1792,
-    "height": 1638,
+    "sha256": "da635e66697754bbdb5eed49f6a3a1a27d3f8c11362b7c95d6e1940c68754922",
+    "bytes": 171090,
+    "width": 1060,
+    "height": 1180,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#282828"
@@ -7713,10 +7713,10 @@
     "color": "#282828"
   },
   "/web/blog/tabletop-simulator/faction-tables.jpg": {
-    "sha256": "0860b5f8d99204d0dd1aa2a6b05ff451739a48acfe75d647214fcea682d98b54",
-    "bytes": 474526,
-    "width": 1925,
-    "height": 1573,
+    "sha256": "5cae80ea6665ebcbbbdf82f8ffadf08b4cbe9bff24eaf9f308bbd42219343bea",
+    "bytes": 188962,
+    "width": 1080,
+    "height": 819,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#080808"
@@ -7740,10 +7740,10 @@
     "color": "#f8e8d8"
   },
   "/web/blog/tabletop-simulator/iduali-sheet.jpg": {
-    "sha256": "12754a421a2cfa075e5b69c0aa26ce1dce1f3f04e302ff1242f55d3e995157f6",
-    "bytes": 323696,
-    "width": 1200,
-    "height": 1600,
+    "sha256": "07716abd78b04adf3644129d369c3797d337a498261ced765e41e47d6d1e4c0e",
+    "bytes": 316175,
+    "width": 1080,
+    "height": 1314,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#f8f8f8"

@@ -10137,7 +10137,7 @@
     "description": "Two scripted battle wheels in Tabletop Simulator with leader discs and treachery cards laid between them.",
     "tags": ["Tabletop Simulator", "battle wheel", "leaders", "blog"],
     "subjects": ["symbols"],
-    "sourceHash": "eb497652fb0991a1e78ea96e14578fcc14f3e428fe299989d5669717cb03ae73"
+    "sourceHash": "f8cf1fe8b56433fdbe57c7e27cbf17b5b7658c3c0d39edc2cefd160720e24026"
   },
   "/web/blog/tabletop-simulator/bidder.jpg": {
     "description": "The Tabletop Simulator bidder: a numbered wheel with faction symbols beside it on a dark table.",
@@ -10149,7 +10149,7 @@
     "description": "Two treachery decks in Tabletop Simulator with Take and Next buttons and a card counter.",
     "tags": ["Tabletop Simulator", "treachery card", "bidding", "blog"],
     "subjects": ["symbols"],
-    "sourceHash": "85e713c18980dbaa81ce399524b896d9e09719ca3a68b5ca1c4134423e213b5d"
+    "sourceHash": "da635e66697754bbdb5eed49f6a3a1a27d3f8c11362b7c95d6e1940c68754922"
   },
   "/web/blog/tabletop-simulator/blender-models.jpg": {
     "description": "Two gold 3D models on a dark background: a gavel over cards for the bidding phase, and a running Emperor troop.",
@@ -10161,7 +10161,7 @@
     "description": "Tabletop Simulator tables for many Dune factions floating in a starry sky, each with its shield, leaders and tokens.",
     "tags": ["Tabletop Simulator", "faction shields", "online play", "blog"],
     "subjects": ["space", "symbols"],
-    "sourceHash": "0860b5f8d99204d0dd1aa2a6b05ff451739a48acfe75d647214fcea682d98b54"
+    "sourceHash": "5cae80ea6665ebcbbbdf82f8ffadf08b4cbe9bff24eaf9f308bbd42219343bea"
   },
   "/web/blog/tabletop-simulator/game-night.jpg": {
     "description": "A game of Dune in Tabletop Simulator seen from above, with player areas, cards and tokens around the round board.",
@@ -10179,7 +10179,7 @@
     "description": "The Iduali homebrew faction sheet as a text document, with a scorpion emblem and lists of advantages.",
     "tags": ["Iduali", "faction sheet", "homebrew", "blog"],
     "subjects": ["symbols"],
-    "sourceHash": "12754a421a2cfa075e5b69c0aa26ce1dce1f3f04e302ff1242f55d3e995157f6"
+    "sourceHash": "07716abd78b04adf3644129d369c3797d337a498261ced765e41e47d6d1e4c0e"
   },
   "/web/blog/tabletop-simulator/planets.jpg": {
     "description": "Dozens of textured planets floating against a starry sky in Tabletop Simulator.",

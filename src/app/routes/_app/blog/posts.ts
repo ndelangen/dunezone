@@ -40,7 +40,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
     cover: {
       key: '/web/blog/tabletop-simulator/faction-tables.jpg',
       alt: 'Tabletop Simulator tables for many Dune factions, floating among the stars',
-      aspect: 1573 / 1925,
+      aspect: 819 / 1080,
     },
   },
   'why-dune': {
