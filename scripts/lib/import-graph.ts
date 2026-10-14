@@ -20,6 +20,7 @@ const ASSET_EXTENSIONS = [
   '.woff2',
   '.ttf',
   '.mp3',
+  '.mp4',
   '.glb',
   '.hdr',
   '.wasm',
