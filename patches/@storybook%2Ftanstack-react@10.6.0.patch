@@ -1,3 +1,72 @@
+diff --git a/dist/_browser-chunks/chunk-HRV4LMK3.js b/dist/_browser-chunks/chunk-HRV4LMK3.js
+index df55fae85a0b051842ca579c29c6f91a31a76f0d..f19e01fe35dee71ed9f66bf31b020d7dccfcaee8 100644
+--- a/dist/_browser-chunks/chunk-HRV4LMK3.js
++++ b/dist/_browser-chunks/chunk-HRV4LMK3.js
+@@ -23,7 +23,6 @@ import {
+   createRoute as createRoute2,
+   createRouter,
+   defaultStringifySearch,
+-  interpolatePath as interpolatePath2,
+   RouterProvider
+ } from "@tanstack/react-router";
+ import React from "react";
+@@ -33,7 +32,6 @@ import {
+   createRoute,
+   RootRoute,
+   createRootRouteWithContext,
+-  interpolatePath,
+   joinPaths
+ } from "@tanstack/react-router";
+ var MAX_PARENT_WALK = 50;
+@@ -113,6 +111,18 @@ function originalRouteId(tree, route) {
+     if (cloned === route)
+       return id;
+ }
++/* The router owns parameter encoding and optional or splat segments.
++ * Use its public location builder instead of the former interpolation signature.
++ */
++function interpolateStoryPath(path, params) {
++  const root = createRootRoute();
++  const route = createRoute2({ path, getParentRoute: () => root });
++  const router = createRouter({
++    routeTree: root.addChildren([route]),
++    history: createMemoryHistory({ initialEntries: ["/"] })
++  });
++  return router.buildLocation({ to: path, params }).pathname;
++}
+ function resolveStoryLeaf(tree, {
+   path,
+   boundRouteId,
+@@ -122,7 +132,7 @@ function resolveStoryLeaf(tree, {
+   if (path) {
+     let bound = boundRouteId ? byId.get(boundRouteId) : void 0;
+     if (bound) {
+-      let boundCandidate = mountPathFor(bound), boundInterpolated = params ? interpolatePath({ path: boundCandidate, params }).interpolatedPath : boundCandidate;
++      let boundCandidate = mountPathFor(bound), boundInterpolated = params ? interpolateStoryPath(boundCandidate, params) : boundCandidate;
+       if (boundCandidate === path || boundInterpolated === path)
+         return bound;
+     }
+@@ -130,7 +140,7 @@ function resolveStoryLeaf(tree, {
+     for (let route of byId.values()) {
+       if (route === root)
+         continue;
+-      let candidate = mountPathFor(route), isLiteral = candidate === path, interpolated = params ? interpolatePath({ path: candidate, params }).interpolatedPath : candidate;
++      let candidate = mountPathFor(route), isLiteral = candidate === path, interpolated = params ? interpolateStoryPath(candidate, params) : candidate;
+       if (!isLiteral && interpolated !== path)
+         continue;
+       (isLiteral === bestLiteral ? candidate.length > bestMatchLength : isLiteral) && (bestMatch = route, bestLiteral = isLiteral, bestMatchLength = candidate.length);
+@@ -178,10 +188,7 @@ function createStoryRouter({
+   context,
+   routerContext
+ }) {
+-  let routerParameters = context.parameters.tanstack?.router ?? {}, { tree, leaf } = resolveTree(Story, context), routeTree = tree.root, inferredPath = routerParameters?.path || leaf.fullPath || (leaf.id ? normalizeFileRoutePath(leaf.id) : void 0) || mountPathFor(leaf), resolvedPath = interpolatePath2({
+-    path: inferredPath,
+-    params: routerParameters?.params ?? {}
+-  }).interpolatedPath, search = routerParameters?.query ? defaultStringifySearch(routerParameters.query) : "";
++  let routerParameters = context.parameters.tanstack?.router ?? {}, { tree, leaf } = resolveTree(Story, context), routeTree = tree.root, inferredPath = routerParameters?.path || leaf.fullPath || (leaf.id ? normalizeFileRoutePath(leaf.id) : void 0) || mountPathFor(leaf), resolvedPath = interpolateStoryPath(inferredPath, routerParameters?.params ?? {}), search = routerParameters?.query ? defaultStringifySearch(routerParameters.query) : "";
+   search && (resolvedPath += search);
+   let history = createMemoryHistory({
+     initialEntries: [resolvedPath]
 diff --git a/dist/export-mocks/react-router.js b/dist/export-mocks/react-router.js
 index 02168c0c9f2f4ca894d4cbdcc776ed562d787676..48abf7acba68d9294acf5f297afd78e51ee30fbd 100644
 --- a/dist/export-mocks/react-router.js

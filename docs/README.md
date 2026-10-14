@@ -316,6 +316,9 @@ The Bun patch for `@storybook/tanstack-react@10.6.0` forwards the mocked Link's 
 `useLinkProps`. Without it, tooltips on router-backed icon buttons cannot find their target. The
 Rulebooks Owner story checks the Add and utility-menu tooltips. Remove the patch when an
 upstream release passes those checks without it.
+The patch also builds story paths through the router's public location builder, because the newer
+router no longer accepts the framework's interpolation arguments. The router keeps ownership of
+parameter encoding, optional segments and splats.
 
 Use only variations that produce meaningfully different pages, including URL parameter cases when
 they change the result. A play function may exercise the page's normal mutations and navigation;
