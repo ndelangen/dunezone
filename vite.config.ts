@@ -18,6 +18,15 @@ import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scri
  */
 const codecovSafeName = (name: string) => name.replace(/[-.]/g, '_');
 
+/* Server HTML and browser hydration must name imported assets identically. */
+const publicAssetFileName = ({ names }: { names: readonly string[] }) => {
+  const original = names[0] ?? 'asset';
+  const dot = original.lastIndexOf('.');
+  const base = dot === -1 ? original : original.slice(0, dot);
+  const ext = dot === -1 ? '' : original.slice(dot);
+  return `public/${codecovSafeName(base)}-[hash]${ext}`;
+};
+
 /**
  * Under Vitest each route's component stays in its route module instead of a lazy split chunk.
  * A split chunk loads on first render, so the page's module graph would be transformed inside the first test's timeout.
@@ -66,6 +75,7 @@ const config = defineConfig({
   },
   build: {
     assetsDir: 'public', // will make your static assets appear under /public/
+    rollupOptions: { output: { assetFileNames: publicAssetFileName } },
   },
   environments: {
     /**
@@ -79,13 +89,6 @@ const config = defineConfig({
           output: {
             entryFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,
             chunkFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,
-            assetFileNames: (asset) => {
-              const original = asset.names[0] ?? 'asset';
-              const dot = original.lastIndexOf('.');
-              const base = dot === -1 ? original : original.slice(0, dot);
-              const ext = dot === -1 ? '' : original.slice(dot);
-              return `public/${codecovSafeName(base)}-[hash]${ext}`;
-            },
           },
         },
       },
