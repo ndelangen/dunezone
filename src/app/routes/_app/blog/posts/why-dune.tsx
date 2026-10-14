@@ -216,7 +216,14 @@ function ImprovingSection() {
           <Anchor href="https://www.tabletopsimulator.com/" inherit>
             Tabletop Simulator
           </Anchor>{' '}
-          mod, in which all those assets could be used together seamlessly, which I'll talk about in a future post.
+          mod, in which all those assets could be used together seamlessly, which I talk about in the{' '}
+          <Anchor
+            renderRoot={(props) => <Link {...props} to="/blog/$postSlug" params={{ postSlug: 'tabletop-simulator' }} />}
+            inherit
+          >
+            next post
+          </Anchor>
+          .
         </Paragraph>
       </Surface>
       <Figure
