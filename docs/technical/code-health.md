@@ -25,6 +25,10 @@ can resolve the native TypeScript package through Bun's shared dependency direct
 application typecheck still uses the native compiler.
 
 Stryker's instrumenter has a scoped Babel 8 override; the application build keeps Babel 7.
+A Babel 8.0.6 trial on the same source reduced React Compiler success events from 967 to 871.
+Defaulted destructured parameters hit the upstream [React Compiler issue #36868](https://github.com/react/react/issues/36868).
+Both builds completed, so a successful build alone does not establish compatibility.
+Revisit the application upgrade when the stable compiler handles those parameters without losing optimizations.
 Run `bun run test:mutation` locally with Node 24. The artifact includes `mutation.html` and
 `mutation.json`, which identify the code changes the tests missed. The mutation score is advisory;
 an initial test failure or scanner failure still fails the reporting job. Mutation coverage stays
