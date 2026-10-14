@@ -332,27 +332,23 @@ async function prepareHandlingRecovery(context, backendSocketOrigin) {
           return;
         }
         const reply = JSON.parse(String(message));
-        if (
-          reply.type === 'MutationResponse' &&
-          ticketRequests.delete(reply.requestId) &&
-          reply.success &&
-          reply.result
-        ) {
-          if (!admission.refused) {
-            admission.refused = true;
-            message = JSON.stringify({ ...reply, result: null });
-          } else if (!admission.releaseHandling) {
-            /* Keep Convex's mutation reply ahead of the transitions that acknowledge its writes. */
-            handlingWaiting.push(message);
-            admission.releaseHandling = () => {
-              handlingReleased = true;
-              for (const held of handlingWaiting) {
-                socket.send(held);
-              }
-              handlingWaiting.length = 0;
-            };
-            return;
-          }
+        const issuedTicket =
+          reply.type === 'MutationResponse' && ticketRequests.delete(reply.requestId) && reply.success && reply.result;
+        if (issuedTicket && admission.refused && !admission.releaseHandling) {
+          /* Keep Convex's mutation reply ahead of the transitions that acknowledge its writes. */
+          handlingWaiting.push(message);
+          admission.releaseHandling = () => {
+            handlingReleased = true;
+            for (const held of handlingWaiting) {
+              socket.send(held);
+            }
+            handlingWaiting.length = 0;
+          };
+          return;
+        }
+        if (issuedTicket && !admission.refused) {
+          admission.refused = true;
+          message = JSON.stringify({ ...reply, result: null });
         }
         if (sessionReleased) {
           socket.send(message);
