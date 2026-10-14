@@ -7649,6 +7649,69 @@
     "isOpaque": true,
     "color": "#080808"
   },
+  "/web/blog/running-from-databases/dune-app-creator.jpg": {
+    "sha256": "647e14f574719d3e29fcc293ecd4b889ab00028f7aac5c06b817c7614b0bd030",
+    "bytes": 531791,
+    "width": 2048,
+    "height": 2187,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#f8f8f8"
+  },
+  "/web/blog/running-from-databases/dune-app-leader-card.jpg": {
+    "sha256": "e9c600befebfa7c52e78ab8075ad013bea1667d8e6c3c998703f6f4e59a0542f",
+    "bytes": 317141,
+    "width": 2048,
+    "height": 1463,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#e8e8e8"
+  },
+  "/web/blog/running-from-databases/dune-assets.jpg": {
+    "sha256": "9087e9601c9160f238ae367656e74309b9216d9de5f9bfe2f3ae746c714168ad",
+    "bytes": 401748,
+    "width": 2048,
+    "height": 1062,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#f8e8e8"
+  },
+  "/web/blog/running-from-databases/dune-games-empty.jpg": {
+    "sha256": "6ec69ba006b376527198f31b0728ba6cb5c8d8267fabcb9e2ae0414eb8a6f5d9",
+    "bytes": 91328,
+    "width": 2048,
+    "height": 1463,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#f8f8f8"
+  },
+  "/web/blog/running-from-databases/first-leader-token.jpg": {
+    "sha256": "56561e0887ad2dfe60109b2a52216d4badb66cea417556766c0c2b332486ef1f",
+    "bytes": 77224,
+    "width": 1200,
+    "height": 1172,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/blog/running-from-databases/then-and-now.jpg": {
+    "sha256": "1b48985704f1853ad66c00c48acd7cad4cb5e8b63082d0fb33d7df2ff52d1305",
+    "bytes": 271439,
+    "width": 2048,
+    "height": 823,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#f8f8e8"
+  },
+  "/web/blog/running-from-databases/victory-turns-2021.jpg": {
+    "sha256": "e1899ec0e622e0c9b06fcc589022271e5be56e4cdaf5b974ed616fd6515d8fd4",
+    "bytes": 101231,
+    "width": 1234,
+    "height": 1190,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#f8f8f8"
+  },
   "/web/blog/why-dune/avalon-hill-set.jpg": {
     "sha256": "f34aeff4a07bbcb65dde18304f112572b21fa2d613daf9f713aaecd0c982dd22",
     "bytes": 146291,
