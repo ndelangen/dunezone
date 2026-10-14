@@ -1209,6 +1209,33 @@ async function visibleActivity(sender, recipient, name) {
   passed(`${name}: held token moves visibly before drop and cancellation restores the saved table`);
 }
 
+/* Keep the failed hover's state before screenshots or other browser calls move it. */
+async function capturePhaseTooltip(page) {
+  return page
+    .evaluate(() => {
+      const tab = document.querySelector('[role="tab"][aria-label="Phase"]');
+      const box = tab?.getBoundingClientRect();
+      const hit = box && document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+      return {
+        visibility: document.visibilityState,
+        focused: document.hasFocus(),
+        shell: document.querySelector('.dune-play-shell')?.dataset,
+        tab: tab && {
+          html: tab.outerHTML,
+          hovered: tab.matches(':hover'),
+          pointerEvents: getComputedStyle(tab).pointerEvents,
+        },
+        hit: hit && { tag: hit.tagName, role: hit.getAttribute('role'), label: hit.getAttribute('aria-label') },
+        scrolling: document.querySelectorAll('[data-scrolling="true"]').length,
+        tooltips: [...document.querySelectorAll('[role="tooltip"]')].map((node) => ({
+          text: node.textContent,
+          html: node.outerHTML,
+        })),
+      };
+    })
+    .catch((captureError) => ({ captureError: captureError.message }));
+}
+
 const displayedPhaseSymbols = new Set();
 const servedPhaseSymbols = new Set();
 async function displayedPhase(who, index, { held = false } = {}) {
@@ -1228,30 +1255,7 @@ async function displayedPhase(who, index, { held = false } = {}) {
     try {
       await controls.getByRole('tooltip').filter({ hasText: phase.instructions }).waitFor();
     } catch (error) {
-      /* Keep the failed hover's state before screenshots or other browser calls move it. */
-      report.phaseTooltip = await controls
-        .evaluate(() => {
-          const tab = document.querySelector('[role="tab"][aria-label="Phase"]');
-          const box = tab?.getBoundingClientRect();
-          const hit = box && document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
-          return {
-            visibility: document.visibilityState,
-            focused: document.hasFocus(),
-            shell: document.querySelector('.dune-play-shell')?.dataset,
-            tab: tab && {
-              html: tab.outerHTML,
-              hovered: tab.matches(':hover'),
-              pointerEvents: getComputedStyle(tab).pointerEvents,
-            },
-            hit: hit && { tag: hit.tagName, role: hit.getAttribute('role'), label: hit.getAttribute('aria-label') },
-            scrolling: document.querySelectorAll('[data-scrolling="true"]').length,
-            tooltips: [...document.querySelectorAll('[role="tooltip"]')].map((node) => ({
-              text: node.textContent,
-              html: node.outerHTML,
-            })),
-          };
-        })
-        .catch((captureError) => ({ captureError: captureError.message }));
+      report.phaseTooltip = await capturePhaseTooltip(controls);
       console.log(`PHASE_TOOLTIP ${JSON.stringify(report.phaseTooltip)}`);
       throw error;
     }
