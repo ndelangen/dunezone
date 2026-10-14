@@ -1,0 +1,290 @@
+/* eslint-disable */
+/**
+ * Generated `api` utility.
+ *
+ * THIS CODE IS AUTOMATICALLY GENERATED.
+ *
+ * To regenerate, run `npx convex dev`.
+ * @module
+ */
+
+import type * as accountDeletion from "../accountDeletion.js";
+import type * as accounts from "../accounts.js";
+import type * as assetPublishingStatus from "../assetPublishingStatus.js";
+import type * as assets from "../assets.js";
+import type * as auth from "../auth.js";
+import type * as authSessions from "../authSessions.js";
+import type * as cardFrontPresets from "../cardFrontPresets.js";
+import type * as cardbackPresets from "../cardbackPresets.js";
+import type * as componentPublication from "../componentPublication.js";
+import type * as crons from "../crons.js";
+import type * as e2e from "../e2e.js";
+import type * as factions from "../factions.js";
+import type * as faq from "../faq.js";
+import type * as formerAddresses from "../formerAddresses.js";
+import type * as functions from "../functions.js";
+import type * as groups from "../groups.js";
+import type * as homepage from "../homepage.js";
+import type * as homepageAdmission from "../homepageAdmission.js";
+import type * as http from "../http.js";
+import type * as ingestTokens from "../ingestTokens.js";
+import type * as lib_accountIdentity from "../lib/accountIdentity.js";
+import type * as lib_accountLifecycle from "../lib/accountLifecycle.js";
+import type * as lib_accountMerge from "../lib/accountMerge.js";
+import type * as lib_accountMethods from "../lib/accountMethods.js";
+import type * as lib_applicationTriggers from "../lib/applicationTriggers.js";
+import type * as lib_assetBacks from "../lib/assetBacks.js";
+import type * as lib_assetInput from "../lib/assetInput.js";
+import type * as lib_authSessionLifecycle from "../lib/authSessionLifecycle.js";
+import type * as lib_boardReadiness from "../lib/boardReadiness.js";
+import type * as lib_cardFrontPresets from "../lib/cardFrontPresets.js";
+import type * as lib_cardbackPresets from "../lib/cardbackPresets.js";
+import type * as lib_collaborativeAccess from "../lib/collaborativeAccess.js";
+import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAccessValidators.js";
+import type * as lib_customCardTokens from "../lib/customCardTokens.js";
+import type * as lib_defaultGroupPreference from "../lib/defaultGroupPreference.js";
+import type * as lib_directOwnership from "../lib/directOwnership.js";
+import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
+import type * as lib_factionData from "../lib/factionData.js";
+import type * as lib_factionInput from "../lib/factionInput.js";
+import type * as lib_faqProfileActivity from "../lib/faqProfileActivity.js";
+import type * as lib_faqQuestionPage from "../lib/faqQuestionPage.js";
+import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
+import type * as lib_faqTags from "../lib/faqTags.js";
+import type * as lib_formerSlugs from "../lib/formerSlugs.js";
+import type * as lib_groupAssignPicker from "../lib/groupAssignPicker.js";
+import type * as lib_ids from "../lib/ids.js";
+import type * as lib_ingestTokens from "../lib/ingestTokens.js";
+import type * as lib_isolatedBackend from "../lib/isolatedBackend.js";
+import type * as lib_playAuthorization from "../lib/playAuthorization.js";
+import type * as lib_playGameAddresses from "../lib/playGameAddresses.js";
+import type * as lib_playGameNameChecks from "../lib/playGameNameChecks.js";
+import type * as lib_playGameNameProvider from "../lib/playGameNameProvider.js";
+import type * as lib_playProvisioningSchedule from "../lib/playProvisioningSchedule.js";
+import type * as lib_playRateLimits from "../lib/playRateLimits.js";
+import type * as lib_playSeats from "../lib/playSeats.js";
+import type * as lib_playService from "../lib/playService.js";
+import type * as lib_playSynthetic from "../lib/playSynthetic.js";
+import type * as lib_playerSummary from "../lib/playerSummary.js";
+import type * as lib_policy from "../lib/policy.js";
+import type * as lib_profileActivity from "../lib/profileActivity.js";
+import type * as lib_profileAvatar from "../lib/profileAvatar.js";
+import type * as lib_profileBootstrap from "../lib/profileBootstrap.js";
+import type * as lib_profileDetail from "../lib/profileDetail.js";
+import type * as lib_profileDiscovery from "../lib/profileDiscovery.js";
+import type * as lib_profileSlugs from "../lib/profileSlugs.js";
+import type * as lib_profileSummary from "../lib/profileSummary.js";
+import type * as lib_provisioningContract from "../lib/provisioningContract.js";
+import type * as lib_publication from "../lib/publication.js";
+import type * as lib_publicationHttp from "../lib/publicationHttp.js";
+import type * as lib_rulebookCoverImage from "../lib/rulebookCoverImage.js";
+import type * as lib_rulebookEditionArtifacts from "../lib/rulebookEditionArtifacts.js";
+import type * as lib_rulebookEditionContents from "../lib/rulebookEditionContents.js";
+import type * as lib_rulebookList from "../lib/rulebookList.js";
+import type * as lib_rulebookPublication from "../lib/rulebookPublication.js";
+import type * as lib_rulebookReferences from "../lib/rulebookReferences.js";
+import type * as lib_rulebookSettings from "../lib/rulebookSettings.js";
+import type * as lib_rulebookTroopSources from "../lib/rulebookTroopSources.js";
+import type * as lib_rulesetBoard from "../lib/rulesetBoard.js";
+import type * as lib_rulesetCover from "../lib/rulesetCover.js";
+import type * as lib_rulesetDetailPage from "../lib/rulesetDetailPage.js";
+import type * as lib_rulesetSlots from "../lib/rulesetSlots.js";
+import type * as lib_slugAllocation from "../lib/slugAllocation.js";
+import type * as lib_slugCounters from "../lib/slugCounters.js";
+import type * as lib_statistics from "../lib/statistics.js";
+import type * as lib_syntheticPasswords from "../lib/syntheticPasswords.js";
+import type * as lib_userImageIngest from "../lib/userImageIngest.js";
+import type * as lib_utils from "../lib/utils.js";
+import type * as members from "../members.js";
+import type * as migrations from "../migrations.js";
+import type * as migrationsTemplate from "../migrationsTemplate.js";
+import type * as playAdmission from "../playAdmission.js";
+import type * as playCatalogue from "../playCatalogue.js";
+import type * as playDeletion from "../playDeletion.js";
+import type * as playDirectory from "../playDirectory.js";
+import type * as playGameNamesTesting from "../playGameNamesTesting.js";
+import type * as playGames from "../playGames.js";
+import type * as playProvisioning from "../playProvisioning.js";
+import type * as playTesting from "../playTesting.js";
+import type * as profileAvatars from "../profileAvatars.js";
+import type * as profiles from "../profiles.js";
+import type * as provisioning from "../provisioning.js";
+import type * as provisioningChecks from "../provisioningChecks.js";
+import type * as publicSitemap from "../publicSitemap.js";
+import type * as publicationAdmin from "../publicationAdmin.js";
+import type * as publicationJobs from "../publicationJobs.js";
+import type * as publicationRegeneration from "../publicationRegeneration.js";
+import type * as rulebookAnnotatedIllustration from "../rulebookAnnotatedIllustration.js";
+import type * as rulebookCoverImages from "../rulebookCoverImages.js";
+import type * as rulebookEditionArtifactWork from "../rulebookEditionArtifactWork.js";
+import type * as rulebookEditionArtifacts from "../rulebookEditionArtifacts.js";
+import type * as rulebookSources from "../rulebookSources.js";
+import type * as rulebooks from "../rulebooks.js";
+import type * as rulesetBoards from "../rulesetBoards.js";
+import type * as rulesetCovers from "../rulesetCovers.js";
+import type * as rulesets from "../rulesets.js";
+import type * as slugAllocationTesting from "../slugAllocationTesting.js";
+import type * as statistics from "../statistics.js";
+import type * as types from "../types.js";
+
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+import { anyApi, componentsGeneric } from "convex/server";
+
+const fullApi: ApiFromModules<{
+  accountDeletion: typeof accountDeletion;
+  accounts: typeof accounts;
+  assetPublishingStatus: typeof assetPublishingStatus;
+  assets: typeof assets;
+  auth: typeof auth;
+  authSessions: typeof authSessions;
+  cardFrontPresets: typeof cardFrontPresets;
+  cardbackPresets: typeof cardbackPresets;
+  componentPublication: typeof componentPublication;
+  crons: typeof crons;
+  e2e: typeof e2e;
+  factions: typeof factions;
+  faq: typeof faq;
+  formerAddresses: typeof formerAddresses;
+  functions: typeof functions;
+  groups: typeof groups;
+  homepage: typeof homepage;
+  homepageAdmission: typeof homepageAdmission;
+  http: typeof http;
+  ingestTokens: typeof ingestTokens;
+  "lib/accountIdentity": typeof lib_accountIdentity;
+  "lib/accountLifecycle": typeof lib_accountLifecycle;
+  "lib/accountMerge": typeof lib_accountMerge;
+  "lib/accountMethods": typeof lib_accountMethods;
+  "lib/applicationTriggers": typeof lib_applicationTriggers;
+  "lib/assetBacks": typeof lib_assetBacks;
+  "lib/assetInput": typeof lib_assetInput;
+  "lib/authSessionLifecycle": typeof lib_authSessionLifecycle;
+  "lib/boardReadiness": typeof lib_boardReadiness;
+  "lib/cardFrontPresets": typeof lib_cardFrontPresets;
+  "lib/cardbackPresets": typeof lib_cardbackPresets;
+  "lib/collaborativeAccess": typeof lib_collaborativeAccess;
+  "lib/collaborativeAccessValidators": typeof lib_collaborativeAccessValidators;
+  "lib/customCardTokens": typeof lib_customCardTokens;
+  "lib/defaultGroupPreference": typeof lib_defaultGroupPreference;
+  "lib/directOwnership": typeof lib_directOwnership;
+  "lib/factionCatalogue": typeof lib_factionCatalogue;
+  "lib/factionData": typeof lib_factionData;
+  "lib/factionInput": typeof lib_factionInput;
+  "lib/faqProfileActivity": typeof lib_faqProfileActivity;
+  "lib/faqQuestionPage": typeof lib_faqQuestionPage;
+  "lib/faqRulesetList": typeof lib_faqRulesetList;
+  "lib/faqTags": typeof lib_faqTags;
+  "lib/formerSlugs": typeof lib_formerSlugs;
+  "lib/groupAssignPicker": typeof lib_groupAssignPicker;
+  "lib/ids": typeof lib_ids;
+  "lib/ingestTokens": typeof lib_ingestTokens;
+  "lib/isolatedBackend": typeof lib_isolatedBackend;
+  "lib/playAuthorization": typeof lib_playAuthorization;
+  "lib/playGameAddresses": typeof lib_playGameAddresses;
+  "lib/playGameNameChecks": typeof lib_playGameNameChecks;
+  "lib/playGameNameProvider": typeof lib_playGameNameProvider;
+  "lib/playProvisioningSchedule": typeof lib_playProvisioningSchedule;
+  "lib/playRateLimits": typeof lib_playRateLimits;
+  "lib/playSeats": typeof lib_playSeats;
+  "lib/playService": typeof lib_playService;
+  "lib/playSynthetic": typeof lib_playSynthetic;
+  "lib/playerSummary": typeof lib_playerSummary;
+  "lib/policy": typeof lib_policy;
+  "lib/profileActivity": typeof lib_profileActivity;
+  "lib/profileAvatar": typeof lib_profileAvatar;
+  "lib/profileBootstrap": typeof lib_profileBootstrap;
+  "lib/profileDetail": typeof lib_profileDetail;
+  "lib/profileDiscovery": typeof lib_profileDiscovery;
+  "lib/profileSlugs": typeof lib_profileSlugs;
+  "lib/profileSummary": typeof lib_profileSummary;
+  "lib/provisioningContract": typeof lib_provisioningContract;
+  "lib/publication": typeof lib_publication;
+  "lib/publicationHttp": typeof lib_publicationHttp;
+  "lib/rulebookCoverImage": typeof lib_rulebookCoverImage;
+  "lib/rulebookEditionArtifacts": typeof lib_rulebookEditionArtifacts;
+  "lib/rulebookEditionContents": typeof lib_rulebookEditionContents;
+  "lib/rulebookList": typeof lib_rulebookList;
+  "lib/rulebookPublication": typeof lib_rulebookPublication;
+  "lib/rulebookReferences": typeof lib_rulebookReferences;
+  "lib/rulebookSettings": typeof lib_rulebookSettings;
+  "lib/rulebookTroopSources": typeof lib_rulebookTroopSources;
+  "lib/rulesetBoard": typeof lib_rulesetBoard;
+  "lib/rulesetCover": typeof lib_rulesetCover;
+  "lib/rulesetDetailPage": typeof lib_rulesetDetailPage;
+  "lib/rulesetSlots": typeof lib_rulesetSlots;
+  "lib/slugAllocation": typeof lib_slugAllocation;
+  "lib/slugCounters": typeof lib_slugCounters;
+  "lib/statistics": typeof lib_statistics;
+  "lib/syntheticPasswords": typeof lib_syntheticPasswords;
+  "lib/userImageIngest": typeof lib_userImageIngest;
+  "lib/utils": typeof lib_utils;
+  members: typeof members;
+  migrations: typeof migrations;
+  migrationsTemplate: typeof migrationsTemplate;
+  playAdmission: typeof playAdmission;
+  playCatalogue: typeof playCatalogue;
+  playDeletion: typeof playDeletion;
+  playDirectory: typeof playDirectory;
+  playGameNamesTesting: typeof playGameNamesTesting;
+  playGames: typeof playGames;
+  playProvisioning: typeof playProvisioning;
+  playTesting: typeof playTesting;
+  profileAvatars: typeof profileAvatars;
+  profiles: typeof profiles;
+  provisioning: typeof provisioning;
+  provisioningChecks: typeof provisioningChecks;
+  publicSitemap: typeof publicSitemap;
+  publicationAdmin: typeof publicationAdmin;
+  publicationJobs: typeof publicationJobs;
+  publicationRegeneration: typeof publicationRegeneration;
+  rulebookAnnotatedIllustration: typeof rulebookAnnotatedIllustration;
+  rulebookCoverImages: typeof rulebookCoverImages;
+  rulebookEditionArtifactWork: typeof rulebookEditionArtifactWork;
+  rulebookEditionArtifacts: typeof rulebookEditionArtifacts;
+  rulebookSources: typeof rulebookSources;
+  rulebooks: typeof rulebooks;
+  rulesetBoards: typeof rulesetBoards;
+  rulesetCovers: typeof rulesetCovers;
+  rulesets: typeof rulesets;
+  slugAllocationTesting: typeof slugAllocationTesting;
+  statistics: typeof statistics;
+  types: typeof types;
+}> = anyApi as unknown as typeof fullApi;
+
+/**
+ * A utility for referencing Convex functions in your app's public API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
+export const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<"query" | "mutation" | "action", "public">
+> = anyApi as unknown as typeof api;
+
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
+export const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<"query" | "mutation" | "action", "internal">
+> = anyApi as unknown as typeof internal;
+
+export const components = componentsGeneric() as unknown as {
+  migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  statistics: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"statistics">;
+  profileDiscovery: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileDiscovery">;
+  profileActivity: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileActivity">;
+};

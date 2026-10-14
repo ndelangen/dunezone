@@ -2134,7 +2134,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private clearActivityTimer() {
-    clearTimeout(this.activityTimer ?? null);
+    clearTimeout(this.activityTimer);
     this.activityTimer = undefined;
   }
 

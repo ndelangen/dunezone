@@ -1,4 +1,5 @@
 import type { GameSnapshot } from '../../src/shared/play/protocol';
+import type { StoredSnapshot } from './state';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type Patch = { path: string[]; value?: Json; remove?: true };
@@ -10,7 +11,7 @@ const object = (value: Json): value is Record<string, Json> =>
  * a changed element by its index, an added one at its new index and a shorter array by its `length`.
  * These are the same set operations `applyPatch` has always read, so a room rolled back to an older release still restores them.
  */
-export function diff(base: GameSnapshot, next: GameSnapshot): Patch[] {
+export function diff(base: GameSnapshot | StoredSnapshot, next: GameSnapshot | StoredSnapshot): Patch[] {
   return visit(base as Json, next as Json, []);
 }
 
@@ -46,7 +47,7 @@ function elements(a: Json[], b: Json[], path: string[]): Patch[] {
   return JSON.stringify(patches).length < JSON.stringify(whole).length ? patches : whole;
 }
 
-export function applyPatch(base: GameSnapshot, patches: Patch[]): GameSnapshot {
+export function applyPatch<Snapshot extends GameSnapshot | StoredSnapshot>(base: Snapshot, patches: Patch[]): Snapshot {
   let result: Json = structuredClone(base) as Json;
   for (const patch of patches) {
     if (patch.path.length === 0) {
@@ -64,5 +65,5 @@ export function applyPatch(base: GameSnapshot, patches: Patch[]): GameSnapshot {
       parent[key] = structuredClone(patch.value!);
     }
   }
-  return result as GameSnapshot;
+  return result as Snapshot;
 }
