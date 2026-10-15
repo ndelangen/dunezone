@@ -11,8 +11,9 @@ Players reach a named game at `/play/<slug>`. The ID address `/play/<gameId>` op
 and replaces itself with its friendly address, retaining query parameters and the fragment.
 `/play` is the lobby, and any signed-in player creates a real game at `/play/create`.
 Nothing in the application links to `/play`, and every play page is
-`noindex`, through a robots meta tag and through the `X-Robots-Tag` header the publisher's `_headers`
-file adds to `/play` and `/play/*` ([deployment](../deployment.md#build-process)):
+`noindex`, through the robots meta tag every browser-only shell page carries, the play pages' own
+robots meta tag, and the `X-Robots-Tag` header the publisher's `_headers` file adds to `/play` and
+`/play/*` ([deployment](../deployment.md#build-process)):
 real games are an unlisted beta, shared privately, until the public-release decision
 ([#1094](https://github.com/ndelangen/dunezone/issues/1094)). The retired `/play/hosted` and `/play/demo` pages
 ([#1296](https://github.com/ndelangen/dunezone/issues/1296)) no longer exist in the application,

@@ -36,11 +36,17 @@ function normalizePublisherShell(shell: string): string {
  */
 const SHELL_ROBOTS = '<meta name="robots" content="noindex"/>';
 
+/** Only the head counts: the same text in the body would not stop a crawler. */
+function headCarriesNoindex(shell: string): boolean {
+  const end = shell.indexOf('</head>');
+  return end !== -1 && shell.slice(0, end).includes(SHELL_ROBOTS);
+}
+
 function markShellNoindex(shell: string): string {
   if (!shell.includes('<head>')) {
     throw new Error('The SPA shell has no <head> to carry its robots noindex');
   }
-  return shell.includes(SHELL_ROBOTS) ? shell : shell.replace('<head>', `<head>${SHELL_ROBOTS}`);
+  return headCarriesNoindex(shell) ? shell : shell.replace('<head>', `<head>${SHELL_ROBOTS}`);
 }
 
 /** Every browser-only path is served this one document, so a page identity in it would claim them all. */
@@ -112,8 +118,8 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   if (!shell.equals(index)) {
     throw new Error('Worker index.html must be an exact copy of the TanStack SPA shell');
   }
-  if (!shell.includes(SHELL_ROBOTS)) {
-    throw new Error('The SPA shell must carry a robots noindex');
+  if (!headCarriesNoindex(shell.toString('utf8'))) {
+    throw new Error('The SPA shell must carry a robots noindex in its head; re-run publisher:assets');
   }
 
   /* The required-file checks above guarantee `files` is not empty. */

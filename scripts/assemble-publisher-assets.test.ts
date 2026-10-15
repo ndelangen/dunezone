@@ -101,6 +101,20 @@ describe('publisher Static Assets assembly', () => {
     expect(() => assemblePublisherAssets(app, publisher, headers)).toThrow('must not carry a page identity');
   });
 
+  test.each([
+    ['already in the head', '<html><head><meta name="robots" content="noindex"/></head>spa shell</html>', 1],
+    ['only in the body', '<html><head></head><meta name="robots" content="noindex"/></html>', 2],
+  ])('marks a shell whose robots noindex is %s once in its head', (_case, input, count) => {
+    const { app, publisher, headers } = fixture();
+    writeFileSync(path.join(app, '_shell.html'), input);
+
+    assemblePublisherAssets(app, publisher, headers);
+
+    const shell = readFileSync(path.join(publisher, '_shell.html'), 'utf8');
+    expect(shell.startsWith('<html><head><meta name="robots" content="noindex"/>')).toBe(true);
+    expect(shell.split('name="robots"').length - 1).toBe(count);
+  });
+
   test('refuses a shell with no head to carry its noindex', () => {
     const { app, publisher, headers } = fixture();
     writeFileSync(path.join(app, '_shell.html'), '<html>spa shell</html>');
