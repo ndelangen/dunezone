@@ -82,7 +82,7 @@ export function TokenCreatePage({ type }: { type: string }) {
   const warnings: (
     | ReturnType<typeof tokenDraftWarnings>[number]
     | { source: string; complaint: string; chapter: TokenChapter }
-  )[] = [...tokenDraftWarnings(state.data)];
+  )[] = [...tokenDraftWarnings(state.data, type)];
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
   const isNameBlank = !state.data.name.trim();

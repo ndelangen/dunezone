@@ -22,11 +22,11 @@ it('keeps token targets semantic and omits text and rings that no longer render'
   expect(parts(container)).toEqual(['symbol']);
 });
 
-it('keeps the same part names on a pointer face, laid out for the teardrop', () => {
+it('draws a pointer face as one symbol on a teardrop ring, never a label', () => {
   const { container } = render(
     <CustomToken {...publishingTokenFace} shape="pointer" circle top="HMS" bottom="Hunter" />
   );
-  expect(parts(container)).toEqual(['symbol', 'ring', 'top-text', 'bottom-text']);
+  expect(parts(container)).toEqual(['symbol', 'ring']);
   /* The ring follows the teardrop rather than a circle, so the pointer draws it as a path. */
   expect(container.querySelector('[data-component-part="ring"] circle')).toBeNull();
   expect(container.querySelector('[data-component-part="ring"] path')).not.toBeNull();

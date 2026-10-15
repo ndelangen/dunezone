@@ -1,7 +1,7 @@
 import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
 import { POINTER_TIP_RATIO } from '@shared/assets/tokenOutline';
 import type { TokenShape } from '@shared/assets/tokenOutline';
-import type { FC } from 'react';
+import type { CSSProperties, FC } from 'react';
 import type { z } from 'zod';
 
 import type { FactionSide } from '../../data/objects';
@@ -19,27 +19,28 @@ const BOX = 300;
  * Where a face's parts sit, per shape.
  *
  * A round face centres everything on the box and curves its labels along the rim.
- * A pointer face is a teardrop with its point at the top of the box, so its centre is the round end's, its top label runs straight across the neck between the point and the symbol, and its ring follows the teardrop rather than a circle the point would cut.
+ * A pointer face is a circle with a point: the round end fills the bottom of the box and the point reaches the top edge, so the centre is the round end's.
+ * It carries one symbol on that centre and its background is centred there too, with no labels: a point would cut an arc of text, and the plate reads as a marker rather than a badge (Norbert, 2026-10-15).
  * The published face stays the same square either way: the consumer cuts the shape, and this only decides where inside that square the parts land.
  */
 type FaceGeometry = {
   centre: { x: number; y: number };
   /** The ring just inside the edge: a disc keeps its circle, and a pointer draws the teardrop as a path. */
   ring: { kind: 'circle'; r: number } | { kind: 'path'; d: string };
-  /** The line the top label follows: an arc over a round face, a straight run across a pointer's neck. */
-  top: string;
-  /** How much of a label the top path can take before the label has to be fitted to it; unbounded on an arc, which is long enough for any label. */
-  topLength: number | null;
-  /** The two arcs under the symbol, inner first. */
-  bottom: [string, string];
+  /** The lines the labels follow, top then the two bottom arcs, or none when the shape carries no labels. */
+  labels: { top: string; bottom: [string, string] } | null;
+  /** The background's box, when it is not the renderer's own. */
+  background: CSSProperties | undefined;
 };
 
 const ROUND: FaceGeometry = {
   centre: { x: 150, y: 150 },
   ring: { kind: 'circle', r: 138 },
-  top: 'M 50 150 m 0 0 a 100 100 0 0 1 200 0',
-  topLength: null,
-  bottom: ['M 60 150 m 0 0 a 90 90 0 0 0 180 0', 'M 45 150 m 0 0 a 105 105 0 0 0 210 0'],
+  labels: {
+    top: 'M 50 150 m 0 0 a 100 100 0 0 1 200 0',
+    bottom: ['M 60 150 m 0 0 a 90 90 0 0 0 180 0', 'M 45 150 m 0 0 a 105 105 0 0 0 210 0'],
+  },
+  background: undefined,
 };
 
 const POINTER: FaceGeometry = (() => {
@@ -59,21 +60,14 @@ const POINTER: FaceGeometry = (() => {
     `A ${ringRadius} ${ringRadius} 0 1 1 ${centre.x - tangentX} ${tangentY}`,
     'Z',
   ].join(' ');
-  /* The top label sits in the neck, above the symbol and well below the point, where the teardrop is wide enough to hold a short word. */
-  const topY = centre.y * 0.53;
-  const topHalfWidth = (tangentX * (topY - ringTip)) / (tangentY - ringTip) - 6;
-  const top = `M ${centre.x - topHalfWidth} ${topY} L ${centre.x + topHalfWidth} ${topY}`;
-  /* The bottom lines curve under the symbol a little further out than a disc's take of its own radius, because the symbol's reference size is a larger share of the round end. */
-  const arc = (share: number) => {
-    const r = radius * share;
-    return `M ${centre.x - r} ${centre.y} a ${r} ${r} 0 0 0 ${2 * r} 0`;
-  };
-  return { centre, ring: { kind: 'path', d: ring }, top, topLength: topHalfWidth * 2, bottom: [arc(0.64), arc(0.75)] };
+  /*
+   * The background is a square centred on the round end's centre, as it is on a disc's.
+   * Its side is twice the centre's depth so it still reaches the point at the top; what hangs past the box's sides and bottom is clipped.
+   */
+  const side = (2 * centre.y * 100) / BOX;
+  const background: CSSProperties = { width: `${side}%`, height: `${side}%`, left: `${(100 - side) / 2}%`, top: 0 };
+  return { centre, ring: { kind: 'path', d: ring }, labels: null, background };
 })();
-
-/** Copperplate's capitals run wide: this many ems per letter is a safe estimate of a label's length before it is measured. */
-const TOP_LABEL_ADVANCE = 0.8;
-const TOP_LABEL_FONT_SIZE = 28;
 
 function geometryOf(shape: TokenShape | undefined): FaceGeometry {
   return shape === 'pointer' ? POINTER : ROUND;
@@ -100,27 +94,37 @@ export const CustomToken: FC<
     fill?: string;
     stroke?: string;
     strokeWidth?: number;
-    /** The outline the face will be cut to: a pointer lays its parts out for the teardrop, every other shape for the round face. */
+    /** The outline the face will be cut to: a pointer centres one symbol and its background on the round end and carries no labels, every other shape draws the round face. */
     shape?: TokenShape;
   }
-> = ({ background, image, circle, circleShadow, top, bottom, size, fill, stroke, strokeWidth, shape }) => {
+> = ({
+  background,
+  image,
+  circle,
+  circleShadow,
+  top: topLabel,
+  bottom: bottomLabel,
+  size,
+  fill,
+  stroke,
+  strokeWidth,
+  shape,
+}) => {
   const geometry = geometryOf(shape);
   const iconSize = { width: size?.width || 100, height: size?.width || 100 };
   const iconLocation = { x: geometry.centre.x - iconSize.width / 2, y: geometry.centre.y - iconSize.height / 2 };
-  /* A label longer than a straight top path is squeezed to the path rather than cut off at its end, which is what a text path does with the glyphs it has no room for. */
-  const topLength =
-    top && geometry.topLength !== null && top.length * TOP_LABEL_ADVANCE * TOP_LABEL_FONT_SIZE > geometry.topLength
-      ? geometry.topLength
-      : undefined;
+  /* A shape without label lines draws none, whatever the face still stores. */
+  const top = geometry.labels ? topLabel : undefined;
+  const bottom = geometry.labels ? bottomLabel : undefined;
   return (
-    <BackgroundRenderer className={styles.disc} background={background}>
+    <BackgroundRenderer className={styles.disc} background={background} overlayStyle={geometry.background}>
       <svg viewBox={`0 0 ${BOX} ${BOX}`} aria-label="Custom Token">
         <defs>
-          {top && <path id="top-text" d={geometry.top} />}
-          {bottom && (
+          {top && geometry.labels && <path id="top-text" d={geometry.labels.top} />}
+          {bottom && geometry.labels && (
             <>
-              <path id="bottom-text-1" d={geometry.bottom[0]} />
-              <path id="bottom-text-2" d={geometry.bottom[1]} />
+              <path id="bottom-text-1" d={geometry.labels.bottom[0]} />
+              <path id="bottom-text-2" d={geometry.labels.bottom[1]} />
             </>
           )}
         </defs>
@@ -167,7 +171,7 @@ export const CustomToken: FC<
             {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: top.trim() ? 'top-text' : undefined }}
             filter="drop-shadow(0 0 5px rgb(0 0 0 / 1))"
           >
-            <text className={styles.h1} textLength={topLength} lengthAdjust="spacingAndGlyphs">
+            <text className={styles.h1}>
               <textPath startOffset="50%" dominantBaseline="middle" textAnchor="middle" xlinkHref="#top-text">
                 {top}
               </textPath>

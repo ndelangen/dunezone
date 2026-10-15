@@ -88,16 +88,11 @@ function initialTokenFace(type: string): TokenFaceDraft {
 }
 
 /**
- * The words that differ by shape.
- * A pointer's top label runs straight across its neck rather than curving along a rim it does not have there, and its face is a teardrop rather than a disc.
+ * Whether a shape carries labels.
+ * A pointer is a circle with a point, carrying one symbol on the round end's centre and nothing written along a rim it only half has (Norbert, 2026-10-15).
  */
-function faceCopy(type: string): { background: string; labels: string } {
-  return tokenShapeOfType(type) === 'pointer'
-    ? {
-        background: 'The teardrop behind the symbol.',
-        labels: 'One straight line across the neck, two curved under the symbol.',
-      }
-    : { background: 'The disc behind the symbol.', labels: 'One curved line along the top, two along the bottom.' };
+function hasLabels(type: string): boolean {
+  return tokenShapeOfType(type) !== 'pointer';
 }
 
 export function initialTokenDraft(type: string): TokenDraft {
@@ -157,7 +152,9 @@ function FaceFields({
     <>
       <BackgroundPresetControl
         title="Background"
-        description={faceCopy(type).background}
+        description={
+          hasLabels(type) ? 'The disc behind the symbol.' : 'The teardrop behind the symbol, centred on its round end.'
+        }
         usedOn="this face"
         presets={FACE_PRESETS}
         value={face.background}
@@ -237,27 +234,29 @@ function FaceRim({ face, patch, type }: { face: TokenFaceDraft; patch: FacePatch
           />
         }
       />
-      <ControlBlock
-        title="Labels"
-        description={faceCopy(type).labels}
-        input={
-          <Stack gap="sm">
-            <TextInput label="Top label" value={face.top} onChange={(e) => patch({ top: e.currentTarget.value })} />
-            <Group grow>
-              <TextInput
-                label="Bottom line 1"
-                value={face.bottomFirst}
-                onChange={(e) => patch({ bottomFirst: e.currentTarget.value })}
-              />
-              <TextInput
-                label="Bottom line 2"
-                value={face.bottomSecond}
-                onChange={(e) => patch({ bottomSecond: e.currentTarget.value })}
-              />
-            </Group>
-          </Stack>
-        }
-      />
+      {hasLabels(type) ? (
+        <ControlBlock
+          title="Labels"
+          description="One curved line along the top, two along the bottom."
+          input={
+            <Stack gap="sm">
+              <TextInput label="Top label" value={face.top} onChange={(e) => patch({ top: e.currentTarget.value })} />
+              <Group grow>
+                <TextInput
+                  label="Bottom line 1"
+                  value={face.bottomFirst}
+                  onChange={(e) => patch({ bottomFirst: e.currentTarget.value })}
+                />
+                <TextInput
+                  label="Bottom line 2"
+                  value={face.bottomSecond}
+                  onChange={(e) => patch({ bottomSecond: e.currentTarget.value })}
+                />
+              </Group>
+            </Stack>
+          }
+        />
+      ) : null}
     </>
   );
 }
@@ -268,10 +267,16 @@ export type TokenWarning = { source: string; missing: string; chapter: TokenChap
  * What is incomplete rather than invalid.
  * A blank name blocks the save outright, so it is not listed here;
  * these are the fields a token can be saved without and probably should not be.
+ * The type says which fields the shape has at all: a pointer carries no labels, so it is never short of one.
  */
-export function tokenDraftWarnings(draft: TokenDraft): TokenWarning[] {
+export function tokenDraftWarnings(draft: TokenDraft, type: string): TokenWarning[] {
   const warnings: TokenWarning[] = [];
-  if (!draft.front.top.trim() && !draft.front.bottomFirst.trim() && !draft.front.bottomSecond.trim()) {
+  if (
+    hasLabels(type) &&
+    !draft.front.top.trim() &&
+    !draft.front.bottomFirst.trim() &&
+    !draft.front.bottomSecond.trim()
+  ) {
     warnings.push({ source: 'Front rim', missing: 'any label', chapter: 'front-rim' });
   }
   if (draft.back.mode === 'reference' && draft.back.asset_id === null) {

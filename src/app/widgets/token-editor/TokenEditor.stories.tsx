@@ -15,11 +15,7 @@ function discDraftWith(back: TokenDraft['back']): TokenDraft {
   return { ...draft, name: 'Spice Blow', front: { ...draft.front, top: 'SPICE', bottomFirst: 'BLOW' }, back };
 }
 
-const pointerDraft = (() => {
-  const draft = initialTokenDraft('token-pointer');
-  const front = { ...draft.front, top: 'HMS', bottomFirst: 'HUNTER', bottomSecond: 'SEEKER' };
-  return { ...draft, name: 'HMS', front, back: { mode: 'custom' as const, face: front } };
-})();
+const pointerDraft: TokenDraft = { ...initialTokenDraft('token-pointer'), name: 'HMS' };
 
 /**
  * The editor as a page installs it: inside the workbench's capped column, holding its own draft so every chapter and tile works.
@@ -113,19 +109,19 @@ export const FrontSymbols = meta.story({
 });
 
 /**
- * A pointer token, such as the HMS: a teardrop that rides the table as a plate.
- * Its symbol sits on the round end, its top label runs straight across the neck, and its ring follows the teardrop.
+ * A pointer token, such as the HMS: a circle with a point that rides the table as a plate.
+ * One symbol and the background sit on the round end's centre, the ring follows the teardrop, and there are no labels.
  */
 export const PointerToken = meta.story({
   args: { type: 'token-pointer', draft: pointerDraft },
 });
 
-/** The pointer's rim chapter: the ring and the three labels, with the copy saying where a teardrop puts them. */
+/** The pointer's rim chapter is the ring alone: a shape with no label lines offers no label fields. */
 export const PointerTokenRim = meta.story({
   args: { type: 'token-pointer', draft: pointerDraft, chapter: 'front-rim' },
   play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement).getByText('One straight line across the neck, two curved under the symbol.')
-    ).toBeVisible();
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('switch', { name: 'Edge ring' })).toBeInTheDocument();
+    await expect(canvas.queryByRole('textbox', { name: 'Top label' })).toBeNull();
   },
 });
