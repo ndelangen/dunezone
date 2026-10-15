@@ -5004,10 +5004,10 @@
     "color": "#c8b878"
   },
   "/image/leader/official/ein-calimar.png": {
-    "sha256": "e0eba598870ea6edc8e80d0f031d3a85a59ab98aa140cc6fb01873db25c1059c",
-    "bytes": 29194,
-    "width": 163,
-    "height": 164,
+    "sha256": "9e207ca32e96e161f63cc2ade11b935df23fcc817c708d61ebdff5bd46d37075",
+    "bytes": 89870,
+    "width": 298,
+    "height": 300,
     "format": "png",
     "isOpaque": true,
     "color": "#d8b868"
@@ -5031,10 +5031,10 @@
     "color": "#c8b878"
   },
   "/image/leader/official/flinto-kinnis.png": {
-    "sha256": "284fcd214b404f10ec9e4ff16c968c9af7932b27dc298ba5e341d3e405fdc651",
-    "bytes": 28910,
-    "width": 168,
-    "height": 168,
+    "sha256": "98632e5356f792bf765e06ca93d9a1723fdc31f746d141b97038d32ff2a2ed0d",
+    "bytes": 107695,
+    "width": 333,
+    "height": 333,
     "format": "png",
     "isOpaque": true,
     "color": "#d8b868"
@@ -5175,10 +5175,10 @@
     "color": "#c8b878"
   },
   "/image/leader/official/lady-helena.png": {
-    "sha256": "305747333475d3aa68f04e3c979b3ed843b395c07c7cb3b89a703eab66e495ec",
-    "bytes": 30245,
-    "width": 167,
-    "height": 168,
+    "sha256": "0f0d9e12d470c90383a158c75411a0ff85276a19b8918b42e58e2a3f5202be08",
+    "bytes": 107081,
+    "width": 332,
+    "height": 334,
     "format": "png",
     "isOpaque": true,
     "color": "#d8b868"

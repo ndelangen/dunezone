@@ -5931,13 +5931,13 @@
     "description": "Ein Calimar. Illustrated head-and-shoulders character portrait. Gold spectacles and gray hair.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "e0eba598870ea6edc8e80d0f031d3a85a59ab98aa140cc6fb01873db25c1059c"
+    "sourceHash": "9e207ca32e96e161f63cc2ade11b935df23fcc817c708d61ebdff5bd46d37075"
   },
   "/image/leader/official/flinto-kinnis.png": {
     "description": "Flinto Kinnis. Illustrated head-and-shoulders character portrait. Round spectacles and gray hair.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "284fcd214b404f10ec9e4ff16c968c9af7932b27dc298ba5e341d3e405fdc651"
+    "sourceHash": "98632e5356f792bf765e06ca93d9a1723fdc31f746d141b97038d32ff2a2ed0d"
   },
   "/image/leader/official/haloa-rund.png": {
     "description": "Haloa Rund. Illustrated head-and-shoulders character portrait.",
@@ -5949,7 +5949,7 @@
     "description": "Lady Helena. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "305747333475d3aa68f04e3c979b3ed843b395c07c7cb3b89a703eab66e495ec"
+    "sourceHash": "0f0d9e12d470c90383a158c75411a0ff85276a19b8918b42e58e2a3f5202be08"
   },
   "/image/leader/official/talis-balt.png": {
     "description": "Talis Balt. Illustrated head-and-shoulders character portrait.",
