@@ -173,7 +173,7 @@ export function CardBackLayers() {
       height={card.height}
       shape="card"
       whole={<CardBack {...TREACHERY_BACK} />}
-      caption="The back of a treachery card. The icon blends into the layers under it, so on its own it looks paler than on the card."
+      caption="The back of a treachery card. The icon blends into the layers under it, so on its own it looks paler than it does on the card."
     />
   );
 }
@@ -197,7 +197,7 @@ const FRONT_LAYERS: readonly ExplodedLayer[] = [
   { title: 'Window', description: 'The parchment behind the decal window, a 2021 GIMP layer.', content: frontLayer(1) },
   { title: 'Small decals', description: 'A row of small vector symbols, behind the frame.', content: frontLayer(2) },
   { title: 'Lasgun', description: 'The main vector decal, with an outline around it.', content: frontLayer(3) },
-  { title: 'Head', description: 'The title band: two colours and a texture.', content: frontLayer(4) },
+  { title: 'Head', description: 'The title band, two colours and a texture.', content: frontLayer(4) },
   {
     title: 'Shade',
     description: 'Shading in soft light. Alone it looks black; on the card it shapes the title band.',
@@ -211,7 +211,7 @@ const FRONT_LAYERS: readonly ExplodedLayer[] = [
   { title: 'Rules', description: 'The card text, set in Candara.', content: frontLayer(7) },
   {
     title: 'Symbol background',
-    description: 'The type symbol brings its own background into that hole: two gradients through a striped texture.',
+    description: 'The type symbol fills that hole with its own background, two gradients through a striped texture.',
     content: frontLayer(8, 'background'),
   },
   {

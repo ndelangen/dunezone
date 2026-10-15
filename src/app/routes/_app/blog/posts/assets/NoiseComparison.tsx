@@ -70,7 +70,7 @@ export function NoiseComparison() {
   const { pattern, texture } = state;
 
   return (
-    <WideFigure caption="Left, the noise filter from November 2021 with the five numbers every faction stored. Right, the renderer dune.zone uses today, set up as House Atreides.">
+    <WideFigure caption="On the left, the November 2021 noise filter with the five numbers every faction stored. On the right, the renderer dune.zone uses today, set up for House Atreides.">
       <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="xl" className={styles.grid}>
         <Stack gap="md">
           <Text fw={600}>2021: generated noise</Text>
