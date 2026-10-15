@@ -15,7 +15,7 @@
   },
   "type": "module",
   "scripts": {
-    "app:build": "vp build",
+    "app:build": "vp build .",
     "app:dev": "bash ./scripts/app-dev.sh",
     "app:preview": "vp preview",
     "build-storybook": "storybook build",
@@ -179,6 +179,7 @@
     "knip": "6.40.0",
     "miniflare": "5.20261006.0-alpha",
     "monocart-coverage-reports": "2.13.1",
+    "oxfmt": "0.72.0",
     "playwright": "1.63.0",
     "recursive-readdir-files": "^2.3.2",
     "sharp": "0.35.5",

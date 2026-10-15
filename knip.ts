@@ -43,7 +43,12 @@ const config: KnipConfig = {
        * The .storybook one is referenced by string from .storybook/main.ts (viteConfigPath).
        */
       vite: {
-        config: ['vite.config.ts', 'workers/publisher/vite.config.ts', '.storybook/vite.config.ts'],
+        config: [
+          'vite.config.ts',
+          'workers/publisher/vite.config.ts',
+          'workers/publisher/rulebook-html-renderer.vite.config.ts',
+          '.storybook/vite.config.ts',
+        ],
       },
       vitest: {
         config: ['vitest.*.config.ts'],
