@@ -77,7 +77,7 @@ export const EditDeckSignedOut = meta.story({
     /* The words here did not change, only who owns them: this route's own frame used to put the way
        back inside the pane, below the sentence, and the shared frame puts it in the band. Asserting
        the position is what makes this story discriminate rather than pass against either version. */
-    expect(back.closest('main')).toBeNull();
+    await expect(back.closest('main')).toBeNull();
   },
 });
 
@@ -94,7 +94,7 @@ export const CreateTreacheryCardSignedOut = meta.story({
     await expect(
       page.findByRole('link', { name: 'Back to treachery cards' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Save card' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Save card' })).toBeNull();
   },
 });
 
@@ -105,7 +105,7 @@ export const CreateDeckSignedOut = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'Back to decks' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Save deck' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Save deck' })).toBeNull();
   },
 });
 
@@ -116,7 +116,7 @@ export const CreateDiscTokenSignedOut = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'Back to disc tokens' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
   },
 });
 
@@ -129,7 +129,7 @@ export const CreateEnhanceTokenSignedOut = meta.story({
     await expect(
       page.findByRole('link', { name: 'Back to enhance tokens' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
   },
 });
 
@@ -140,7 +140,7 @@ export const CreateBundleSignedOut = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'Back to bundles' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Save bundle' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Save bundle' })).toBeNull();
   },
 });
 
@@ -193,7 +193,7 @@ export const CreateTreacheryCardChapterJump = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
-    expect(page.queryByRole('textbox', { name: 'Body' })).toBeNull();
+    await expect(page.queryByRole('textbox', { name: 'Body' })).toBeNull();
     const chip = await page.findByRole('button', { name: /Body/ }, { timeout: 30_000 });
     await userEvent.click(chip);
     await expect(page.findByRole('textbox', { name: 'Body' }, { timeout: 30_000 })).resolves.toBeVisible();
@@ -350,7 +350,7 @@ export const EditDeckShowsOnlyTheLatestSaveFailure = meta.story({
     await userEvent.click(page.getByRole('radio', { name: "Another deck's back" }));
     await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
     await expect(page.findByText('No deck picked', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByText('Could not save')).toBeNull();
+    await expect(page.queryByText('Could not save')).toBeNull();
   },
 });
 
@@ -467,7 +467,7 @@ export const TreacheryConversionUnavailable = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('heading', { name: 'Lasgun' }, { timeout: 30_000 });
-    expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
   },
 });
 
@@ -499,8 +499,8 @@ export const ConvertAnotherCreatorsCard = meta.story({
     }
     await expect(page.findByRole('link', { name: /^Custom cards$/ }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.getByRole('link', { name: 'House Treachery ×3' })).toBeVisible();
-    expect(page.queryByRole('link', { name: 'Edit Lasgun' })).toBeNull();
-    expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
+    await expect(page.queryByRole('link', { name: 'Edit Lasgun' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
   },
 });
 

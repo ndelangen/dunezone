@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 3000",
-    "build": "vite build",
-    "preview": "vite preview --port 3000",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "dev": "vp dev --port 3000",
+    "build": "vp build",
+    "preview": "vp preview --port 3000",
+    "test": "vp test run",
+    "test:watch": "vp test",
     "test:e2e": "playwright test",
-    "test:all": "vitest run && playwright test",
+    "test:all": "vp test run && playwright test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -52,12 +52,12 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "0.186.0",
     "@vitejs/plugin-react": "6.1.2",
-    "@vitest/coverage-v8": "5.0.3",
+    "@vitest/coverage-v8": "catalog:",
     "jsdom": "^30.0.1",
     "tailwindcss": "4.3.3",
-    "typescript": "^6.0.3",
-    "vite": "8.3.3",
-    "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "5.0.3"
+    "typescript": "^7.0.2",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

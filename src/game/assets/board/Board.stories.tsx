@@ -19,7 +19,7 @@ export const Arrakis = meta.story({
   args: { board: arrakisBoard() },
   play: async ({ canvasElement }) => {
     const artwork = within(canvasElement).getByLabelText('Board artwork');
-    expect(artwork.querySelectorAll('[data-clipped-territory]')).toHaveLength(42);
-    expect(artwork.querySelector('[data-editor-guide]')).toBeNull();
+    await expect(artwork.querySelectorAll('[data-clipped-territory]')).toHaveLength(42);
+    await expect(artwork.querySelector('[data-editor-guide]')).toBeNull();
   },
 });

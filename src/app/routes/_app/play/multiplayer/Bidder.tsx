@@ -2,7 +2,10 @@
 import { Html } from '@react-three/drei/webgpu';
 import { BID_WARNING_MS, biddingFactions, idleBidding } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
+import { factionTokenOf, factionTokenRingAngle } from '@shared/play/factionToken';
+import type { TablePiece } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
+import type { TableRoster } from '@shared/play/schema';
 import { stormOrder } from '@shared/play/stormSector';
 import { BOARD_RADIUS, BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
@@ -57,17 +60,29 @@ function pointedFaction(bidding: BiddingState, eligible: readonly string[]) {
   return bidding.opener ?? eligible[0] ?? null;
 }
 
+/* The bidder points at the faction's token where it stands on the ring, or at its seat when the table has no token. */
+function pointedAngle(roster: TableRoster | undefined, pieces: readonly TablePiece[], factionId: string | null) {
+  const token = factionId ? factionTokenOf(pieces, factionId) : undefined;
+  if (token) {
+    return factionTokenRingAngle(token.position);
+  }
+  const seat = roster?.seats.find((entry) => entry.faction?.id === factionId);
+  return seat && roster ? (tableSeatAngles(roster.seatCount)[seat.position] ?? null) : null;
+}
+
 function Bidder({ client, table, faded = false }: Props) {
   const roster = table.snapshot.roster;
   const bidding = table.snapshot.bidding ?? idleBidding();
-  const order = useMemo(() => stormOrder(table.state.stormSectorIndex, roster), [table.state.stormSectorIndex, roster]);
+  const order = useMemo(
+    () => stormOrder(table.state.stormSectorIndex, roster, table.state.pieces),
+    [table.state.stormSectorIndex, roster, table.state.pieces]
+  );
   const eligible = useMemo(
     () => biddingFactions(table.state.stormSectorIndex, roster, table.state.pieces),
     [table.state.stormSectorIndex, roster, table.state.pieces]
   );
   const pointed = pointedFaction(bidding, eligible);
-  const seat = roster?.seats.find((entry) => entry.faction?.id === pointed);
-  const angle = seat && roster ? (tableSeatAngles(roster.seatCount)[seat.position] ?? null) : null;
+  const angle = pointedAngle(roster, table.state.pieces, pointed);
   const groupRef = useBidderRotation(angle);
   const geometry = useMemo(() => createTeardropGeometry(), []);
   useEffect(() => () => geometry.dispose(), [geometry]);

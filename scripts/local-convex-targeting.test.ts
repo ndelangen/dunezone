@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 const rootDirectory = path.resolve(import.meta.dirname, '..');
 const realBun = execFileSync('which', ['bun'], { encoding: 'utf8' }).trim();

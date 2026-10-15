@@ -6,8 +6,8 @@
  */
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import viteReact from '@vitejs/plugin-react';
-import { playwright } from '@vitest/browser-playwright';
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite-plus';
+import { playwright } from 'vite-plus/test/browser-playwright';
 
 import { convexPackageMocks } from './.storybook/convexPackageMocks.ts';
 import { pageStylesheetStaysWithItsStory } from './.storybook/pageStylesheet.ts';
@@ -80,9 +80,7 @@ export default defineConfig({
     rolldownOptions: { plugins: [threeRendererStackTreeShaking()] },
   },
   resolve: {
-    /* Typings in the current Vite package lag behind docs/runtime support
-       (same cast as .storybook/vite.config.ts). */
-    ...({ tsconfigPaths: true } as Record<string, unknown>),
+    tsconfigPaths: true,
     alias: [
       ...convexPackageMocks,
       ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),

@@ -39,7 +39,7 @@ export const playGameNameSchema = z
   .refine((value) => !/\p{C}/u.test(value), 'Game names cannot contain control or invisible characters.')
   .transform((value) => value.normalize('NFC').trim().replace(/\s+/gu, ' '))
   .refine(
-    (value) => [...value].length > 0 && [...value].length <= PLAY_GAME_NAME_MAX_LENGTH,
+    (value) => Array.from(value).length > 0 && Array.from(value).length <= PLAY_GAME_NAME_MAX_LENGTH,
     `Use between 1 and ${PLAY_GAME_NAME_MAX_LENGTH} characters for the game name.`
   )
   .refine((value) => normalizePlayGameSlug(value).length > 0, 'Include a Latin letter or a number in the game name.');

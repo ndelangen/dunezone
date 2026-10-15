@@ -1,6 +1,6 @@
 import { initialSnapshot } from '@shared/play/commands';
 import type { Viewer } from '@shared/play/protocol';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import {
   readStoredTable,

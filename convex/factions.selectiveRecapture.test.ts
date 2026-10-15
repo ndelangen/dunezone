@@ -1,5 +1,5 @@
 /* @vitest-environment edge-runtime */
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { FACTION_SHEET_ASSET_TYPE } from '../src/shared/asset-publishing/publication';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';

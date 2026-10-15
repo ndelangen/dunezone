@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { readVerified, selectChecks, verifiedIdentity, writeVerified } from './media-verified';
 import type { VerifiableEntry } from './media-verified';

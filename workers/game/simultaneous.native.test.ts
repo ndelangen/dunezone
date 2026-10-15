@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vite-plus/test';
 
 import type { PieceAction } from '../../src/shared/play/protocol';
 import type { SwapAction } from '../../src/shared/play/swapping';

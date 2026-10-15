@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import {
   UNOBSERVED_IMPORTS,
@@ -128,6 +128,7 @@ describe('the hosted play closure', () => {
       reaching: ['workers/game/index.ts'],
     });
     expect(decideHostedPlay([])).toMatchObject({ run: true });
+    expect(decideHostedPlay(['.nvmrc'])).toMatchObject({ run: true, reaching: ['.nvmrc'] });
   });
 
   /* PR #2217's files: a blog post with new pictures, which no flow can see. */

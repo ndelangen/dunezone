@@ -166,7 +166,7 @@ function clockSetup(timed: boolean) {
     const now = () => STORYBOOK_NOW + Math.floor(monotonicNow());
     const context = () => ({
       factionId: 'house-harkonnen',
-      order: stormOrder(snapshot.table.stormSectorIndex, snapshot.roster),
+      order: stormOrder(snapshot.table.stormSectorIndex, snapshot.roster, snapshot.table.pieces),
       eligible: biddingFactions(snapshot.table.stormSectorIndex, snapshot.roster, snapshot.table.pieces),
       now: now(),
     });
@@ -227,9 +227,9 @@ export const UntimedBidding = meta.story({
       try {
         clock.advance(13_000);
         await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent('7s'));
-        await waitFor(() => {
+        await waitFor(async () => {
           const offset = Number.parseFloat(getComputedStyle(arc).strokeDashoffset);
-          expect(offset).toBeCloseTo(65, 1);
+          await expect(offset).toBeCloseTo(65, 1);
         });
       } finally {
         animation.play();

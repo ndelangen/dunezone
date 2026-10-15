@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 import { initialSnapshot } from '@shared/play/commands';
 import type { Vector3Tuple } from '@shared/play/model';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { LONG_PRESS_SLOP_PX } from './longPress';
 import { PointerSession } from './PointerSession';

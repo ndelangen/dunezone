@@ -139,7 +139,7 @@ function FaqCreatePage() {
                 .then((locator) => {
                   formEl.reset();
                   dispatch({ kind: 'replace', state: { question: '', answer: '' } });
-                  navigate({
+                  void navigate({
                     to: '/rulesets/$rulesetSlug/faq/$questionSlug',
                     params: locator,
                   });

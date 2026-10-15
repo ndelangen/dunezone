@@ -3,7 +3,7 @@
 
 import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { takeWorkResultSchema } from '../src/shared/asset-publishing/publication';
 import { ensureFactionComponentIds } from '../src/shared/factions/componentIdentity';
@@ -137,7 +137,10 @@ describe('Publication save coalescing', () => {
       data: { ...assetPublishingFaction, name: 'Latest save while capturing' },
     });
     const beforeComplete = await jobsFor(t, faction._id);
-    expect(beforeComplete.map((job) => job.status).sort()).toEqual(['in_progress', 'pending']);
+    expect(beforeComplete.map((job) => job.status).sort((first, second) => first.localeCompare(second))).toEqual([
+      'in_progress',
+      'pending',
+    ]);
     expect(beforeComplete.find((job) => job.status === 'pending')).toMatchObject({
       asset_data: { faction: { name: 'Latest save while capturing' } },
     });

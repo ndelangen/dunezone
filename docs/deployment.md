@@ -54,7 +54,9 @@ before the page can run. Files outside `/public/` keep their unhashed names and 
 The file lives with the Worker, not under `public/`, so Storybook's copy of the public files never
 carries it and its own `_headers` (the CSP) stays the only one in `storybook-static`.
 
-The same file serves `/play` and `/play/*` with `X-Robots-Tag: noindex`. The play pages also set a
+The same file serves `/play` and `/play/*` with `X-Robots-Tag: noindex`, on top of the robots
+noindex the assembly writes into the SPA shell for every browser-only path (see
+[public discovery](technical/public-discovery.md#canonical-and-indexing-rules)). The play pages also set a
 robots meta tag, but only once JavaScript runs, and the server HTML is the SPA shell. The rules
 match the request path, so they reach the SPA document without making the Worker run first, and
 Renderer identity does not change. Matching is case-sensitive, so a mixed-case path such as

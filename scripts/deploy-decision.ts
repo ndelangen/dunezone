@@ -43,8 +43,14 @@ export type GitHub = {
  * A first attempt whose earlier run failed after both Workers went out deploys again, which finishes that release.
  * A later attempt reaches the gate only when someone reruns it, usually with "Re-run all jobs" to finish a deploy that failed after both Workers went out, so it deploys this commit again.
  * When every Worker reports the same earlier commit, that commit is the base the dev rebuild measures its change range from.
+ * When they report different earlier commits, the one the others descend from is the base.
  */
-export async function decide(readings: readonly Reading[], attempt: number, github: GitHub): Promise<Decision> {
+export async function decide(
+  readings: readonly Reading[],
+  attempt: number,
+  github: GitHub,
+  repository = process.cwd()
+): Promise<Decision> {
   const ahead = readings.find((reading) => reading.position === 'newer');
   if (ahead) {
     return { deploy: false, base: '', reason: `${ahead.endpoint} already reports ${ahead.sha}, a later commit` };
@@ -62,6 +68,11 @@ export async function decide(readings: readonly Reading[], attempt: number, gith
   const [base] = earlier;
   if (earlier.size === 1 && base !== undefined) {
     return { deploy: true, base, reason: `production reports the earlier commit ${base}` };
+  }
+  /* A run that failed between the two Worker deploys leaves them on different earlier commits; the dev rebuild measures from the older one, so the failed run's own changes stay in range. */
+  const oldest = earlier.has(undefined) ? undefined : oldestOf([...earlier] as string[], repository);
+  if (oldest !== undefined) {
+    return { deploy: true, base: oldest, reason: `production reports earlier commits, the oldest being ${oldest}` };
   }
   return {
     deploy: true,
@@ -161,6 +172,13 @@ function isAncestor(ancestor: string, descendant: string, repository: string): b
     default:
       return undefined;
   }
+}
+
+/** The commit every other one descends from, or undefined when git cannot order them all. */
+function oldestOf(commits: readonly string[], repository: string): string | undefined {
+  return commits.find((candidate) =>
+    commits.every((other) => other === candidate || isAncestor(candidate, other, repository) === true)
+  );
 }
 
 /** Where production's commit sits against head in the history of the git checkout at repository. */

@@ -4,7 +4,7 @@
 import aggregateTest from '@convex-dev/aggregate/test';
 import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 import type { z } from 'zod';
 
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';

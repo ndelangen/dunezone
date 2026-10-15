@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { arrakisBoard, blankBoard } from '../src/shared/boards/geometry';
 import { api } from './_generated/api';

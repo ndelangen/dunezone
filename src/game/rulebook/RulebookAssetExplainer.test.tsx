@@ -8,7 +8,7 @@ import {
 } from '@shared/rulebooks/assetExplainerAnnotations';
 import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
 import { fireEvent, render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { RulebookAssetExplainer } from './RulebookAssetExplainer';
 import { incompleteExplainerFixture, leaderExplainerFixture } from './RulebookAssetExplainer.stories.fixture';

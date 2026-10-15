@@ -48,7 +48,7 @@ function CreateFactionPage() {
       reset: createFaction.reset,
     },
     onSaved: (entry) => {
-      navigate({
+      void navigate({
         to: '/factions/$factionId/edit',
         params: { factionId: entry.slug },
         search: routeNoticeRef.current ? { notice: routeNoticeRef.current } : {},

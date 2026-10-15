@@ -72,6 +72,14 @@ type FetchedSource = { ok: true; bytes: Uint8Array } | { ok: false; message: str
 /** A refusal the author can act on, as opposed to a bug, which is left to throw. */
 class IngestRefusal extends Error {}
 
+/* Convex answers with JSON, so a field typed as a string may arrive as anything; an object is shown as JSON rather than as `[object Object]`. */
+function describeUnknown(value: unknown, fallback: string): string {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  return typeof value === 'string' ? value : JSON.stringify(value);
+}
+
 function jsonError(status: number, message: string): Response {
   return Response.json({ error: message }, { status, headers: { 'Cache-Control': 'no-store' } });
 }
@@ -300,7 +308,7 @@ async function callConvex(
   }
   const envelope = payload as { status?: unknown; value?: unknown; errorMessage?: unknown };
   if (envelope.status !== 'success') {
-    throw new Error(`Convex ${path} failed: ${String(envelope.errorMessage ?? 'unknown error')}`);
+    throw new Error(`Convex ${path} failed: ${describeUnknown(envelope.errorMessage, 'unknown error')}`);
   }
   return envelope.value;
 }
@@ -340,7 +348,7 @@ async function consumeIngestToken(
     throw new Error('Convex consume answered with an unexpected shape');
   }
   const answer = value as { ok: boolean; reason?: unknown };
-  return answer.ok ? { ok: true } : { ok: false, reason: String(answer.reason ?? 'unknown') };
+  return answer.ok ? { ok: true } : { ok: false, reason: describeUnknown(answer.reason, 'unknown') };
 }
 
 /** Turns a ledger refusal into the author-facing message the waiting save reports. */

@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll } from "vitest";
+import { describe, expect, it, beforeAll } from "vite-plus/test";
 import { optimizePaths } from "../optimizePaths";
 import { ensureSvgo, getSvgo } from "../../../svg/svgoLoader";
 import { createTestContext } from "../../../../test/createTestContext";

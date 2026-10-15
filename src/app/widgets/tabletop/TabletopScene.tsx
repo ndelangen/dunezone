@@ -100,12 +100,12 @@ type TabletopSceneProps = {
   children?: ReactNode;
   className?: string;
   cameraView?: CameraViewCommand;
-  onInteractionActiveChange?(active: boolean): void;
+  onInteractionActiveChange?: (active: boolean) => void;
   seatCount?: TableSeatCount;
   tableProgress?: TableProgress;
   /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
-  onSceneReady?(): void;
-  onSceneUnavailable?(): void;
+  onSceneReady?: () => void;
+  onSceneUnavailable?: () => void;
   presentation?: 'play' | 'preview';
   /* Absent on the fixture, which has no lifecycle. */
   stage?: GameSnapshot['stage'];

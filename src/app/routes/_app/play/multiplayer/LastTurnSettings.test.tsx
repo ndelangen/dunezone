@@ -3,7 +3,7 @@
 import { MantineProvider } from '@mantine/core';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { stubMatchMedia } from './jsdom.test.fixture';

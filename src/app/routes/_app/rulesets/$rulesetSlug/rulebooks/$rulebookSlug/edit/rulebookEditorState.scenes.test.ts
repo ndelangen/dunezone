@@ -1,6 +1,6 @@
 import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 import type { RulebookContentsDraftV1 } from '@shared/rulebooks/contents';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { createRulebookEditorStateManager, rulebookFieldResolution } from './rulebookEditorState';
 import { draftBlock, replaceDraft } from './rulebookEditorState.fixtures';

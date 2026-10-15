@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { PLAY_DIRECTORY_ACTIVITY_MS, PLAY_DIRECTORY_RETRY_MS } from '../../src/shared/play/directory';
 import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';

@@ -20,8 +20,8 @@ export const UnknownGame = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('This game is not available', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.getByRole('link', { name: 'Back to lobby' })).toHaveAttribute('href', '/play');
-    expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
+    await expect(page.getByRole('link', { name: 'Back to lobby' })).toHaveAttribute('href', '/play');
+    await expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
   },
 });
 
@@ -33,8 +33,8 @@ export const Preparing = meta.story({
     await waitFor(() => expect(finishTransitions(status)).toBeVisible());
     /* The status precedes the ClientOnly share control's first committed render. */
     await expect(page.findByRole('button', { name: 'Copy game link' })).resolves.toBeVisible();
-    expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
-    expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
+    await expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+    await expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
   },
 });
 
@@ -46,9 +46,9 @@ export const CatalogueRefused = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('This game could not be prepared', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.getByText(/Publish every member and back/)).toBeVisible();
-    expect(page.queryByText('Preparing the table')).toBeNull();
-    expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
+    await expect(page.getByText(/Publish every member and back/)).toBeVisible();
+    await expect(page.queryByText('Preparing the table')).toBeNull();
+    await expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
   },
 });
 
@@ -71,7 +71,7 @@ export const GameServerUnreachable = meta.story({
     const status = await page.findByText("Can't reach the server. Retrying...", {}, { timeout: 30_000 });
     /* The status line eases in, so the wait finishes its animation rather than waiting on drawn frames. */
     await waitFor(() => expect(finishTransitions(status)).toBeVisible());
-    expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
-    expect(page.queryByText('Loading the game...')).toBeNull();
+    await expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+    await expect(page.queryByText('Loading the game...')).toBeNull();
   },
 });

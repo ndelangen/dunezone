@@ -115,7 +115,7 @@ export const PlacesAndPieceMovement = meta.story({
     await expect(canvas.getByLabelText('Exchange')).toBeVisible();
     await expect(canvas.getByLabelText('Move right')).toBeVisible();
     const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
-    expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
+    await expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
   },
 });
 
@@ -136,9 +136,9 @@ export const SavedPieceMovements = meta.story({
     await document.fonts.ready;
     await expect(canvas.getByLabelText('Exchange')).toBeVisible();
     await expect(canvas.getByText('Support paid')).toBeVisible();
-    expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(2);
+    await expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(2);
     const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
-    expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
+    await expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
   },
 });
 

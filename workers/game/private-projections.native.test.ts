@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import type { ClientMessage } from '../../src/shared/play/protocol';

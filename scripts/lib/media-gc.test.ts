@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import type { RasterLock, RasterLockEntry } from '../../src/shared/media/rasterLock';
 import { planCollection } from './media-gc';

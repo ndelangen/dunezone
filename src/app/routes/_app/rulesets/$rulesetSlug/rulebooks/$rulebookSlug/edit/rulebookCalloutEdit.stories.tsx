@@ -38,6 +38,6 @@ export const QuotationCallout = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.clear(canvas.getByRole('textbox', { name: 'Attribution' }));
-    expect(calloutChange.mock.lastCall?.[0].attribution).toBeUndefined();
+    await expect(calloutChange.mock.lastCall?.[0].attribution).toBeUndefined();
   },
 });

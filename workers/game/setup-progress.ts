@@ -57,13 +57,14 @@ const TROOPS_STEP = {
 export function initialSetup(
   captures: FactionCapture[],
   roster: TableRoster | undefined,
-  stormSectorIndex: number
+  stormSectorIndex: number,
+  pieces: Parameters<typeof stormOrder>[2]
 ): SetupState {
   const seated = new Set(rosterFactionIds(roster));
   const factions = captures
     .filter((capture) => seated.has(capture.faction.id))
     .map((capture) => ({ factionId: capture.faction.id, declarations: capturedDeclarations(capture) }));
-  const placed = composeSetup(factions, stormOrder(stormSectorIndex, roster));
+  const placed = composeSetup(factions, stormOrder(stormSectorIndex, roster, pieces));
   const step = ({ factionId, declaration }: SetupPlacement, index: number) => ({
     /* Numbered by place rather than joined from the faction and declaration ids, which may both hold the joining character and so collide. */
     id: `faction-step-${index}`,

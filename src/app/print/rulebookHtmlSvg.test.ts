@@ -1,5 +1,5 @@
 import { parseHTML } from 'linkedom';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../../shared/factions/fixtures/assetPublishingFaction';
 import { rulebookContentsV1Schema } from '../../shared/rulebooks/contents';

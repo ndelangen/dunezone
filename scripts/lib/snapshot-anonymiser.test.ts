@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { userImagePublicPath } from '../../src/shared/user-images/contract';
 import type { SnapshotManifest } from './snapshot-anonymiser';

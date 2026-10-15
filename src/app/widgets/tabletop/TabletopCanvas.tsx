@@ -20,7 +20,7 @@ function ReleaseRendererOnUnmount() {
     () => () => {
       if (!renderer.domElement.isConnected) {
         releaseSharedMeshes(renderer);
-        renderer.dispose();
+        void renderer.dispose();
       }
     },
     [renderer]

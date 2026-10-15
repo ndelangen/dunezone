@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 import { convexTest } from 'convex-test';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 import type { z } from 'zod';
 
 import { GF9_NEXUS_CARDS } from '../src/shared/assets/gf9Nexus';

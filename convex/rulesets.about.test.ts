@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import { rulesetOwner, VALID_ABOUT } from './rulesets.test.fixture';

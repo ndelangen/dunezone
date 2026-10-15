@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
 import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';

@@ -304,7 +304,7 @@ export function rulebookAnnotationShapes(projection: RulebookAnnotationProjectio
         dy: '0.35em',
         fill: entry.foreground,
         'font-family': 'sans-serif',
-        'font-size': unit * Math.min(0.046, 0.1 / Math.max(2, [...entry.label].length)),
+        'font-size': unit * Math.min(0.046, 0.1 / Math.max(2, Array.from(entry.label).length)),
         'font-weight': 700,
         'text-anchor': 'middle',
       },

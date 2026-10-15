@@ -65,11 +65,13 @@ export const RemovalVoting = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('tab', { name: 'Twaffle, removal vote in progress' }));
-    expect(page.getByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Withdraw' }));
-    expect(lastCommand()).toMatchObject({ action: { kind: 'removal-ballot', voteId: 'removal-12', choice: null } });
+    await expect(lastCommand()).toMatchObject({
+      action: { kind: 'removal-ballot', voteId: 'removal-12', choice: null },
+    });
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
-    expect(lastCommand()).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
+    await expect(lastCommand()).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
   },
 });
 
@@ -82,7 +84,7 @@ export const LogGame = meta.story({
     await openTab(page, 'Game log');
     const log = await page.findByRole('region', { name: 'Game log' });
     await expect(within(log).findByText('Bene Gesserit locked its prediction.')).resolves.toBeVisible();
-    expect(
+    await expect(
       within(log)
         .getAllByRole('listitem')
         .map((item) => item.textContent)
@@ -92,7 +94,7 @@ export const LogGame = meta.story({
       'PredictionBene Gesserit revealed its prediction: House Atreides, turn 6.Setup, Prediction',
       'PredictionBene Gesserit locked its prediction.Setup, Prediction',
     ]);
-    expect(within(log).queryByRole('button', { name: 'Earlier entries' })).toBeNull();
+    await expect(within(log).queryByRole('button', { name: 'Earlier entries' })).toBeNull();
   },
 });
 
@@ -108,8 +110,8 @@ export const LogAudit = meta.story({
     await userEvent.click(await page.findByRole('tab', { name: 'Audit' }));
     const log = await page.findByRole('region', { name: 'Audit log' });
     await expect(within(log).findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
-    expect(within(log).getByText('[deleted user] left seat 6 when the account was deleted.')).toBeVisible();
-    expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
+    await expect(within(log).getByText('[deleted user] left seat 6 when the account was deleted.')).toBeVisible();
+    await expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
   },
 });
 
@@ -139,10 +141,10 @@ export const LogPagination = meta.story({
     const updated = revealedPredictionSnapshot();
     updated.revision += 1;
     session.transport.deliver(session.transport.view(updated));
-    await waitFor(() => {
+    await waitFor(async () => {
       const later = gameLogReads(session.transport.messages.slice(messagesBeforeUpdate));
-      expect(later.length).toBeGreaterThan(0);
-      expect(later.every((message) => message.before === latest.sequence)).toBe(true);
+      await expect(later.length).toBeGreaterThan(0);
+      await expect(later.every((message) => message.before === latest.sequence)).toBe(true);
     });
     session.transport.deliver({
       type: 'log-history',
@@ -158,14 +160,14 @@ export const LogPagination = meta.story({
     delete departed.snapshot.bank;
     delete departed.snapshot.hand;
     session.transport.deliver(departed);
-    await waitFor(() => {
+    await waitFor(async () => {
       const reads = gameLogReads(session.transport.messages.slice(messagesBeforeDeparture));
-      expect(reads.length).toBeGreaterThan(0);
-      expect(reads.every((message) => message.before === latest.sequence)).toBe(true);
+      await expect(reads.length).toBeGreaterThan(0);
+      await expect(reads.every((message) => message.before === latest.sequence)).toBe(true);
     });
     await expect(page.findByText('Trading ended and setup began.')).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Latest entries' }));
-    expect(gameLogReads(session.transport.messages).at(-1)).toEqual({
+    await expect(gameLogReads(session.transport.messages).at(-1)).toEqual({
       type: 'log-history',
       tab: 'game',
       before: Number.MAX_SAFE_INTEGER,
@@ -178,7 +180,7 @@ export const LogPagination = meta.story({
       more: true,
     });
     await expect(page.findByText(latest.text)).resolves.toBeVisible();
-    expect(page.queryByText('Trading ended and setup began.')).toBeNull();
+    await expect(page.queryByText('Trading ended and setup began.')).toBeNull();
   },
 });
 
@@ -203,14 +205,14 @@ export const RemovalResolution = meta.story({
     await userEvent.click(await page.findByRole('tab', { name: 'Twaffle, removal vote in progress' }));
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
     const command = lastCommand();
-    expect(command).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
+    await expect(command).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
     const resolved = playingSnapshot();
     resolved.removalVotes = [];
     resolved.revision += 1;
     session.transport.deliver(session.transport.view(resolved, command!.commandId));
     await waitFor(() => expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull());
-    expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull();
-    expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
+    await expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull();
+    await expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
     await openTab(page, 'Game log');
     await userEvent.click(await page.findByRole('tab', { name: 'Audit' }));
     await expect(page.findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
@@ -230,7 +232,7 @@ export const RemovalRejected = meta.story({
     });
     const publicState = within(canvasElement.ownerDocument.getElementById('player-public-state')!);
     await expect(publicState.findByText('The vote changed. Try again.')).resolves.toBeVisible();
-    expect(page.getByRole('button', { name: 'Remove' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Remove' })).toHaveAttribute('aria-pressed', 'true');
   },
 });
 
@@ -257,7 +259,7 @@ export const ConversationHistory = meta.story({
       entries: [{ peerId, latest: 55, unread: 55 }],
     });
     await expect(page.findByRole('tab', { name: 'Twaffle, 55 unread' })).resolves.toBeVisible();
-    expect(session.transport.messages.some((entry) => entry.type === 'conversation-read')).toBe(false);
+    await expect(session.transport.messages.some((entry) => entry.type === 'conversation-read')).toBe(false);
     await userEvent.click(page.getByRole('tab', { name: 'Conversation' }));
     await page.findByText('Shall we keep the southern route open?');
     const loadedHistory = page.getByRole('region', { name: 'Conversation history' });
@@ -299,11 +301,11 @@ export const ConversationHistory = meta.story({
       entries: [{ peerId, latest: 56, unread: 1 }],
     });
     await expect(page.findByRole('tab', { name: 'Twaffle, 1 unread' })).resolves.toBeVisible();
-    expect(session.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 56)).toBe(
-      false
-    );
-    expect(Math.abs(history.scrollTop - readingPosition)).toBeLessThan(2);
-    expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
+    await expect(
+      session.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 56)
+    ).toBe(false);
+    await expect(Math.abs(history.scrollTop - readingPosition)).toBeLessThan(2);
+    await expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
     history.scrollTop = history.scrollHeight;
     history.dispatchEvent(new Event('scroll'));
     session.transport.deliver({
@@ -319,14 +321,14 @@ export const ConversationHistory = meta.story({
     });
     await page.findByText('Follow this new message at the bottom.');
     await waitFor(() => expect(history.scrollHeight - history.scrollTop - history.clientHeight).toBeLessThan(8));
-    expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
+    await expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
 
     await userEvent.click(page.getByRole('tab', { name: 'Info' }));
-    expect(page.queryByRole('textbox', { name: 'Message' })).toBeNull();
+    await expect(page.queryByRole('textbox', { name: 'Message' })).toBeNull();
     await userEvent.click(page.getByRole('tab', { name: 'fectumbra' }));
     await expect(page.findByRole('textbox', { name: 'Message' })).resolves.toBeVisible();
     await userEvent.click(page.getByRole('tab', { name: 'Thialfi' }));
-    expect(page.queryByRole('tab', { name: 'Conversation' })).toBeNull();
+    await expect(page.queryByRole('tab', { name: 'Conversation' })).toBeNull();
   },
 });
 
@@ -346,7 +348,9 @@ export const ConversationDelivery = meta.story({
     });
     await expect(page.findByText('Failed', { exact: true })).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: /^Retry$/ }));
-    expect([...session.transport.messages].reverse().find((entry) => entry.type === 'conversation-send')).toEqual(sent);
+    await expect([...session.transport.messages].reverse().find((entry) => entry.type === 'conversation-send')).toEqual(
+      sent
+    );
     const { factionId, peerId } = conversationPair();
     session.transport.deliver({
       type: 'conversation-message',
@@ -362,8 +366,8 @@ export const ConversationDelivery = meta.story({
       },
     });
     await expect(page.findByText('Sent', { exact: true })).resolves.toBeVisible();
-    expect(page.getAllByText('I can keep the southern route open.')).toHaveLength(1);
-    expect(page.getByText('2 minutes ago')).toBeVisible();
+    await expect(page.getAllByText('I can keep the southern route open.')).toHaveLength(1);
+    await expect(page.getByText('2 minutes ago')).toBeVisible();
   },
 });
 
@@ -380,7 +384,7 @@ export const ConversationOffline = meta.story({
     await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'Send once I reconnect.');
     await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
     await expect(page.findByText('Pending', { exact: true })).resolves.toBeVisible();
-    expect(session.transport.messages.filter((entry) => entry.type === 'conversation-send')).toHaveLength(0);
+    await expect(session.transport.messages.filter((entry) => entry.type === 'conversation-send')).toHaveLength(0);
   },
 });
 
@@ -392,9 +396,9 @@ export const Reconnecting = meta.story({
     await page.findByRole('tab', { name: 'Conversation' });
     session.transport.deliver({ type: 'admission', status: 'suspended' });
     const status = await page.findByRole('status', { name: /^Reconnecting\./ });
-    expect(status.closest('.seated-phase-status')).not.toBeNull();
-    expect(status.closest('[data-connection]')).toHaveAttribute('data-connection', 'suspended');
-    expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
+    await expect(status.closest('.seated-phase-status')).not.toBeNull();
+    await expect(status.closest('[data-connection]')).toHaveAttribute('data-connection', 'suspended');
+    await expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
   },
 });
 
@@ -432,10 +436,10 @@ export const ReloadedWhileUnreachable = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const bar = await page.findByText('Reconnecting', { exact: true }, { timeout: 30_000 });
-    expect(bar.closest('[data-connection]')).not.toHaveAttribute('data-connection', 'authorized');
+    await expect(bar.closest('[data-connection]')).not.toHaveAttribute('data-connection', 'authorized');
     await page.findByRole('tab', { name: 'Conversation' });
-    expect(page.queryByText("Can't reach the server. Retrying...")).toBeNull();
-    expect(session.transport.messages.filter((message) => message.type === 'command')).toEqual([]);
+    await expect(page.queryByText("Can't reach the server. Retrying...")).toBeNull();
+    await expect(session.transport.messages.filter((message) => message.type === 'command')).toEqual([]);
   },
 });
 
@@ -448,11 +452,11 @@ export const Connecting = meta.story({
     /* The status line eases in from transparent through a keyframe animation, so the wait finishes it and reads the settled style instead of waiting on drawn frames (https://github.com/ndelangen/dunezone/issues/1413). */
     await waitFor(() => expect(finishTransitions(status)).toBeVisible());
     const frame = status.closest('[data-connection]');
-    expect(frame).toHaveAttribute('data-connection', 'connecting');
-    expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+    await expect(frame).toHaveAttribute('data-connection', 'connecting');
+    await expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
     const view = canvasElement.ownerDocument.defaultView!;
-    expect(view.getComputedStyle(frame!, '::before').animationName).toMatch(/breathe/);
-    expect(canvasElement.ownerDocument.querySelector('.dune-play-shell')).toBeNull();
+    await expect(view.getComputedStyle(frame!, '::before').animationName).toMatch(/breathe/);
+    await expect(canvasElement.ownerDocument.querySelector('.dune-play-shell')).toBeNull();
   },
 });
 
@@ -465,8 +469,8 @@ export const ConnectingStill = meta.story({
     const status = await page.findByText('Connecting to the hosted table...', {}, { timeout: 30_000 });
     const frame = status.closest('[data-connection]')!;
     const view = canvasElement.ownerDocument.defaultView!;
-    expect(view.getComputedStyle(frame, '::before').animationName).toBe('none');
-    expect(view.getComputedStyle(status).animationName).toBe('none');
+    await expect(view.getComputedStyle(frame, '::before').animationName).toBe('none');
+    await expect(view.getComputedStyle(status).animationName).toBe('none');
   },
 });
 
@@ -477,8 +481,8 @@ export const Unreachable = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const status = await page.findByText('The table could not be reached. Reconnecting...', {}, { timeout: 30_000 });
     await waitFor(() => expect(finishTransitions(status)).toBeVisible());
-    expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
-    expect(page.queryByText('Connecting to the hosted table...')).toBeNull();
+    await expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+    await expect(page.queryByText('Connecting to the hosted table...')).toBeNull();
   },
 });
 
@@ -488,28 +492,28 @@ export const SharedPhaseControls = meta.story({
     const { page, controls, waitForPhase, expectPrevious, pressPrevious } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('tab', { name: 'Game' })).toBeVisible());
     await openTab(page, 'Phase');
-    await waitForPhase(() => {
-      expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
-      expect(page.getByRole('region', { name: 'Storm sector' })).toBeVisible();
-      expect(page.getByRole('region', { name: TABLE_PHASES[0].label })).toBeVisible();
-      expectHeaderPhase(canvasElement, 0);
+    await waitForPhase(async () => {
+      await expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
+      await expect(page.getByRole('region', { name: 'Storm sector' })).toBeVisible();
+      await expect(page.getByRole('region', { name: TABLE_PHASES[0].label })).toBeVisible();
+      await expectHeaderPhase(canvasElement, 0);
     });
     await expectPrevious(false);
 
     await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
     const command = lastCommand();
-    expect(command?.action).toMatchObject({ kind: 'phase' });
+    await expect(command?.action).toMatchObject({ kind: 'phase' });
     if (command?.action.kind === 'phase') {
-      expect(command.action.direction ?? 1).toBe(1);
+      await expect(command.action.direction ?? 1).toBe(1);
     }
     session.transport.deliver(
       session.transport.view({ ...initialSnapshot(), phase: 1, revision: 1 }, command?.commandId)
     );
-    await waitForPhase(() => {
-      expect(page.getByRole('region', { name: TABLE_PHASES[1].label })).toBeVisible();
-      expect(page.queryByRole('region', { name: 'Storm sector' })).toBeNull();
-      expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();
-      expectHeaderPhase(canvasElement, 1);
+    await waitForPhase(async () => {
+      await expect(page.getByRole('region', { name: TABLE_PHASES[1].label })).toBeVisible();
+      await expect(page.queryByRole('region', { name: 'Storm sector' })).toBeNull();
+      await expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();
+      await expectHeaderPhase(canvasElement, 1);
     });
     await expectPrevious(true);
 
@@ -519,14 +523,14 @@ export const SharedPhaseControls = meta.story({
     await waitForPhase(() => expect(page.getByText('Turn 2 of 10', { exact: true })).toBeVisible());
     await pressPrevious();
     const previous = lastCommand();
-    expect(previous?.action).toMatchObject({ kind: 'phase', direction: -1 });
+    await expect(previous?.action).toMatchObject({ kind: 'phase', direction: -1 });
     session.transport.deliver(
       session.transport.view({ ...initialSnapshot(), phase: TABLE_PHASES.length - 1, revision: 3 }, previous?.commandId)
     );
-    await waitForPhase(() => {
-      expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();
-      expect(page.getByRole('region', { name: TABLE_PHASES[TABLE_PHASES.length - 1].label })).toBeVisible();
-      expectHeaderPhase(canvasElement, TABLE_PHASES.length - 1);
+    await waitForPhase(async () => {
+      await expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();
+      await expect(page.getByRole('region', { name: TABLE_PHASES[TABLE_PHASES.length - 1].label })).toBeVisible();
+      await expectHeaderPhase(canvasElement, TABLE_PHASES.length - 1);
     });
   },
 });
@@ -537,14 +541,14 @@ export const ObserverPhaseControls = meta.story({
     const { page, controls, waitForPhase, expectPrevious } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('tab', { name: 'Game' })).toBeVisible());
     await openTab(page, 'Phase');
-    await waitForPhase(() => {
-      expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
-      expect(page.getByRole('region', { name: TABLE_PHASES[5].label })).toBeVisible();
-      expectHeaderPhase(canvasElement, 5);
+    await waitForPhase(async () => {
+      await expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
+      await expect(page.getByRole('region', { name: TABLE_PHASES[5].label })).toBeVisible();
+      await expectHeaderPhase(canvasElement, 5);
     });
     await expectPrevious(false);
     await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
-    expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
+    await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
   },
 });
 
@@ -556,20 +560,20 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
     await openTab(page, 'Replay');
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
-    expect(session.transport.messages).toContainEqual({ type: 'history', step: 0 });
+    await expect(session.transport.messages).toContainEqual({ type: 'history', step: 0 });
     session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: initialSnapshot() });
     await waitForPhase(() => expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled());
     await expectPrevious(false);
 
     await openTab(page, 'Phase');
     session.transport.deliver(session.transport.view({ ...initialSnapshot(), phase: 6, revision: 1 }));
-    expect(page.getByRole('region', { name: TABLE_PHASES[0].label })).toBeVisible();
+    await expect(page.getByRole('region', { name: TABLE_PHASES[0].label })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
-    await waitForPhase(() => {
-      expectHeaderPhase(canvasElement, 6);
-      expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
+    await waitForPhase(async () => {
+      await expectHeaderPhase(canvasElement, 6);
+      await expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
     });
-    expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
+    await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
   },
 });
 
@@ -590,13 +594,15 @@ export const MentatReadiness = meta.story({
     await waitFor(() => expect(page.getByRole('button', { name: /^Ready$/ })).toBeVisible(), { timeout: 30_000 });
     /* Readiness is a phase control: it sits in the header's phase navigation, not on a tab. */
     const navigation = page.getByRole('group', { name: 'Phase navigation' });
-    expect(within(navigation).getByRole('button', { name: /^Ready$/ })).toBeVisible();
-    expect(within(navigation).getByRole('button', { name: /^Ready$/ })).toHaveAccessibleDescription('5 of 6 ready');
-    expect(navigation.closest('header')).not.toBeNull();
-    expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
+    await expect(within(navigation).getByRole('button', { name: /^Ready$/ })).toBeVisible();
+    await expect(within(navigation).getByRole('button', { name: /^Ready$/ })).toHaveAccessibleDescription(
+      '5 of 6 ready'
+    );
+    await expect(navigation.closest('header')).not.toBeNull();
+    await expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
     await userEvent.click(page.getByRole('button', { name: /^Ready$/ }));
     const command = lastCommand();
-    expect(command?.action).toEqual({ kind: 'ready', ready: true });
+    await expect(command?.action).toEqual({ kind: 'ready', ready: true });
     session.transport.deliver(
       session.transport.view(
         {
@@ -615,11 +621,11 @@ export const MentatReadiness = meta.story({
     await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
     /* Pressed, the same toggle withdraws readiness. */
     const withdraw = page.getByRole('button', { name: /^Ready$/, pressed: true });
-    expect(withdraw).toBeEnabled();
-    expect(withdraw).toHaveAccessibleDescription('6 of 6 ready');
-    expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(1);
+    await expect(withdraw).toBeEnabled();
+    await expect(withdraw).toHaveAccessibleDescription('6 of 6 ready');
+    await expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(1);
     await userEvent.click(withdraw);
-    expect(lastCommand()?.action).toEqual({
+    await expect(lastCommand()?.action).toEqual({
       kind: 'ready',
       ready: false,
     });
@@ -675,10 +681,10 @@ export const FactionPhase = meta.story({
       expect(page.getByRole('tooltip')).toHaveTextContent('Agree any shipment deals before the auction opens.')
     );
     const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
-    expect(within(header).getByText('Guild negotiations')).toBeVisible();
-    expect(header.querySelector('use')).toHaveAttribute('href', '/vector/icon/fate.svg#root');
-    expect(page.queryByRole('button', { name: /^Ready$/ })).toBeNull();
-    expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled();
+    await expect(within(header).getByText('Guild negotiations')).toBeVisible();
+    await expect(header.querySelector('use')).toHaveAttribute('href', '/vector/icon/fate.svg#root');
+    await expect(page.queryByRole('button', { name: /^Ready$/ })).toBeNull();
+    await expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled();
   },
 });
 
@@ -688,8 +694,8 @@ export const FactionPhaseReadiness = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await waitFor(() => expect(page.getByRole('button', { name: /^Ready$/ })).toBeVisible(), { timeout: 30_000 });
     const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
-    expect(within(header).getByText('Guild negotiations')).toBeVisible();
-    expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
+    await expect(within(header).getByText('Guild negotiations')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
   },
 });
 
@@ -717,8 +723,8 @@ export const PhaseCooldown = meta.story({
     await waitFor(() => expect(previous).toBeDisabled());
     const toolbar = canvasElement.ownerDocument.querySelector('.seated-toolbar');
     /* Phase navigation keeps its place at the end of the toolbar, just before the settings gear. */
-    expect(toolbar?.lastElementChild).toHaveClass('seated-toolbar__settings');
-    expect(toolbar?.lastElementChild?.previousElementSibling).toHaveAttribute('aria-label', 'Phase navigation');
+    await expect(toolbar?.lastElementChild).toHaveClass('seated-toolbar__settings');
+    await expect(toolbar?.lastElementChild?.previousElementSibling).toHaveAttribute('aria-label', 'Phase navigation');
     session.transport.deliver({
       ...session.transport.view({
         ...initialSnapshot(),
@@ -742,15 +748,15 @@ export const SharedInventoryRequests = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Shared inventory');
     await expect(page.findByRole('button', { name: 'Approve' }, { timeout: 30_000 })).resolves.toBeEnabled();
-    expect(page.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
-    expect(page.getByRole('button', { name: 'Drag House Atreides tokens onto the table' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Drag House Atreides tokens onto the table' })).toBeEnabled();
     await userEvent.click(page.getByRole('button', { name: 'Approve' }));
-    expect(lastCommand()?.action).toEqual({
+    await expect(lastCommand()?.action).toEqual({
       kind: 'spawn-approve',
       requestId: 'pending-token',
     });
     await userEvent.click(page.getByRole('button', { name: 'Dismiss' }));
-    expect(lastCommand()?.action).toEqual({
+    await expect(lastCommand()?.action).toEqual({
       kind: 'spawn-dismiss',
       requestId: 'pending-token',
     });
@@ -781,7 +787,7 @@ export const SharedInventoryRequests = meta.story({
       })
     );
     await waitFor(() => expect(page.getByRole('button', { name: 'Approve' })).toBeDisabled());
-    expect(page.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
   },
 });
 
@@ -792,9 +798,9 @@ export const SharedInventoryNarrow = meta.story({
   play: async ({ canvasElement }) => {
     const { page, waitForPhase } = phaseControls(canvasElement);
     await openTab(page, 'Shared inventory');
-    await waitForPhase(() => {
-      expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
-      expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
+    await waitForPhase(async () => {
+      await expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
+      await expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
     });
     /* The kit's TabGuidance story owns timed tooltip display; this page checks that each tab receives its description and help. */
     await expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAccessibleDescription(
@@ -823,45 +829,45 @@ export const ControlsPanelTabs = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Shared inventory');
     const rail = () => page.getByRole('tablist', { name: 'Controls' });
-    await settled(() => {
-      expect(
+    await settled(async () => {
+      await expect(
         within(rail())
           .getAllByRole('tab')
           .map((item) => item.getAttribute('aria-label'))
       ).toEqual(['Yours', 'Game', 'Table', 'History']);
-      expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAttribute('aria-selected', 'true');
-      expect(page.getByRole('region', { name: 'Shared inventory' })).toBeVisible();
-      expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
+      await expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAttribute('aria-selected', 'true');
+      await expect(page.getByRole('region', { name: 'Shared inventory' })).toBeVisible();
+      await expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
     });
     /* Compared as plain numbers: two DOMRects have no own enumerable properties, so toEqual on the rects themselves is always true. */
     const railBox = rail().getBoundingClientRect().toJSON();
 
     await openTab(page, 'Spice');
-    await settled(() => {
-      expect(page.getByRole('region', { name: 'Spice reserve' })).toBeVisible();
-      expect(page.queryByRole('region', { name: 'Public spice transfers' })).toBeNull();
-      expect(page.queryByRole('heading', { name: 'Shared inventory' })).toBeNull();
+    await settled(async () => {
+      await expect(page.getByRole('region', { name: 'Spice reserve' })).toBeVisible();
+      await expect(page.queryByRole('region', { name: 'Public spice transfers' })).toBeNull();
+      await expect(page.queryByRole('heading', { name: 'Shared inventory' })).toBeNull();
     });
 
     await openTab(page, 'Phase');
-    await settled(() => {
-      expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();
-      expect(page.queryByRole('region', { name: 'Hosted connection' })).toBeNull();
-      expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
-      expect(rail().getBoundingClientRect().toJSON()).toEqual(railBox);
+    await settled(async () => {
+      await expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();
+      await expect(page.queryByRole('region', { name: 'Hosted connection' })).toBeNull();
+      await expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
+      await expect(rail().getBoundingClientRect().toJSON()).toEqual(railBox);
     });
     await userEvent.click(within(rail()).getByRole('tab', { name: 'Yours' }));
-    expect(page.getByRole('tab', { name: 'Spice' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: 'Spice' })).toHaveAttribute('aria-selected', 'true');
     await openTab(page, 'Spice transfers');
-    expect(page.getByRole('region', { name: 'Public spice transfers' })).toBeVisible();
-    expect(page.queryByRole('region', { name: 'Spice reserve' })).toBeNull();
+    await expect(page.getByRole('region', { name: 'Public spice transfers' })).toBeVisible();
+    await expect(page.queryByRole('region', { name: 'Spice reserve' })).toBeNull();
     await openTab(page, 'Settings');
-    expect(page.getByRole('textbox', { name: 'Last turn' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Last turn' })).toBeVisible();
     await openTab(page, 'Replay');
-    expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
     await openTab(page, 'Hand');
     /* The phase controls stay in the header, outside the tabs. */
-    expect(page.getByRole('group', { name: 'Phase navigation' }).closest('header')).not.toBeNull();
+    await expect(page.getByRole('group', { name: 'Phase navigation' }).closest('header')).not.toBeNull();
   },
 });
 
@@ -875,7 +881,7 @@ export const SettingsAndReplayRefusals = meta.story({
     await userEvent.clear(turn);
     await userEvent.type(turn, '6');
     await userEvent.tab();
-    expect(lastCommand()?.action).toEqual({ kind: 'last-turn', turn: 6 });
+    await expect(lastCommand()?.action).toEqual({ kind: 'last-turn', turn: 6 });
     session.transport.deliver({
       type: 'rejected',
       requestId: lastCommand()!.commandId,
@@ -890,7 +896,7 @@ export const SettingsAndReplayRefusals = meta.story({
       message: 'That checkpoint could not be loaded.',
     });
     await expect(page.findByText('That checkpoint could not be loaded.')).resolves.toBeVisible();
-    expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled();
   },
 });
 
@@ -914,8 +920,8 @@ export const SpiceTransfers = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Spice transfers');
     const faction = initialSnapshot().roster!.seats[1]!.faction!;
-    await settled(() => {
-      expect(
+    await settled(async () => {
+      await expect(
         within(page.getByRole('region', { name: 'Public spice transfers' }))
           .getAllByRole('listitem')
           .map((item) => item.textContent)
@@ -948,14 +954,16 @@ export const PanelSchemeIsland = meta.story({
     const paint = () => [view.getComputedStyle(balance).color, view.getComputedStyle(button).backgroundColor];
     root.setAttribute('data-mantine-color-scheme', 'light');
     const light = paint();
-    expect(light[0]).toBe(paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim()));
+    await expect(light[0]).toBe(
+      paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim())
+    );
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
     const glass = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim());
     const menu = await openPieceMenu(canvasElement.ownerDocument, deck, 'Deck actions');
     /* The ring carries its own leather, the same in either page scheme. */
-    expect(view.getComputedStyle(within(menu).getByRole('menuitem', { name: 'Draw a card' })).backgroundColor).toBe(
-      'rgba(24, 16, 10, 0.95)'
-    );
+    await expect(
+      view.getComputedStyle(within(menu).getByRole('menuitem', { name: 'Draw a card' })).backgroundColor
+    ).toBe('rgba(24, 16, 10, 0.95)');
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
     const raised = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--tip-surface').trim());
@@ -964,17 +972,17 @@ export const PanelSchemeIsland = meta.story({
     const spiceReserveTip = () =>
       page.queryAllByRole('tooltip').find((tip) => tip.textContent?.includes('Your private spice reserve')) ?? null;
     await userEvent.hover(help);
-    const tooltip = await waitForFrame(() => {
+    const tooltip = await waitForFrame(async () => {
       const tip = spiceReserveTip();
-      expect(tip).not.toBeNull();
+      await expect(tip).not.toBeNull();
       return tip!;
     });
-    expect(view.getComputedStyle(tooltip).backgroundColor).toBe(raised);
-    expect(raised).not.toBe(glass);
+    await expect(view.getComputedStyle(tooltip).backgroundColor).toBe(raised);
+    await expect(raised).not.toBe(glass);
     await userEvent.unhover(help);
     await waitForFrame(() => expect(spiceReserveTip()).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');
-    expect(paint()).toEqual(light);
+    await expect(paint()).toEqual(light);
   },
 });
 
@@ -1014,7 +1022,7 @@ async function openPieceMenu(document: Document, piece: TablePiece, name: string
   const press = { clientX, clientY, bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 2 };
   /* The menu enters the DOM only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1443). */
   return waitForFrame(
-    () => {
+    async () => {
       const scene = document.querySelector('canvas');
       if (scene && !page.queryByRole('menu')) {
         scene.dispatchEvent(new PointerEvent('pointerdown', { ...press, buttons: 2 }));
@@ -1022,8 +1030,8 @@ async function openPieceMenu(document: Document, piece: TablePiece, name: string
         scene.dispatchEvent(new PointerEvent('pointerup', { ...press, buttons: 0 }));
       }
       const menu = page.getByRole('menu');
-      expect(finishTransitions(menu)).toBeVisible();
-      expect(menu).toHaveAccessibleName(name);
+      await expect(finishTransitions(menu)).toBeVisible();
+      await expect(menu).toHaveAccessibleName(name);
       return menu;
     },
     { timeout: 30_000 }
@@ -1044,17 +1052,17 @@ export const Controls = meta.story({
     });
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByRole('region', { name: 'Spice reserve' })).toBeVisible());
-    expect(page.getByLabelText('Spice reserve balance')).toHaveTextContent('37');
-    expect(page.queryByRole('button', { name: 'Take into spice reserve' })).toBeNull();
+    await expect(page.getByLabelText('Spice reserve balance')).toHaveTextContent('37');
+    await expect(page.queryByRole('button', { name: 'Take into spice reserve' })).toBeNull();
     const amount = page.getByRole('textbox', { name: 'Spice to withdraw' });
     await userEvent.clear(amount);
     await userEvent.type(amount, '38');
-    expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     await userEvent.clear(amount);
     await userEvent.type(amount, '37');
     await userEvent.click(page.getByRole('button', { name: 'Withdraw spice' }));
     const command = lastCommand();
-    expect(command?.action).toEqual({ kind: 'bank-withdraw', amount: 37 });
+    await expect(command?.action).toEqual({ kind: 'bank-withdraw', amount: 37 });
     session.transport.deliver(
       session.transport.view(
         { ...initialSnapshot(), revision: 1, bank: { factionId: 'house-harkonnen', balance: 0 } },
@@ -1062,7 +1070,7 @@ export const Controls = meta.story({
       )
     );
     await waitFor(() => expect(page.getByLabelText('Spice reserve balance')).toHaveTextContent('0'));
-    expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     const observerSnapshot = initialSnapshot('neutral');
     delete observerSnapshot.hand;
     delete observerSnapshot.bank;
@@ -1093,8 +1101,8 @@ export const ControlsNarrow = meta.story({
       ).toBeVisible()
     );
     await userEvent.unhover(page.getByRole('tab', { name: 'Spice' }));
-    expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
-    expect(page.queryByRole('button', { name: 'Take into spice reserve' })).toBeNull();
+    await expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
+    await expect(page.queryByRole('button', { name: 'Take into spice reserve' })).toBeNull();
   },
 });
 
@@ -1125,11 +1133,11 @@ export const SharedInventoryArrival = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Shared inventory');
-    await settled(() => {
+    await settled(async () => {
       for (const label of ['Treachery deck', ...drawerFactions.map(({ data }) => `${data.name} tokens`)]) {
         const thumbnail = page.getByRole('button', { name: `Drag ${label} onto the table` });
-        expect(thumbnail).toBeEnabled();
-        expect(within(thumbnail).getByRole('img', { name: label }).closest('[data-phase]')).toHaveAttribute(
+        await expect(thumbnail).toBeEnabled();
+        await expect(within(thumbnail).getByRole('img', { name: label }).closest('[data-phase]')).toHaveAttribute(
           'data-phase',
           'shown'
         );
@@ -1173,8 +1181,8 @@ export const HiddenDeckBacks = meta.story({
         timeout: 30_000,
       }
     );
-    expect(page.getByRole('img', { name: 'Treachery deck' })).toHaveAttribute('src', cardBack());
-    expect(page.getByRole('button', { name: 'Drag Treachery deck onto the table' })).toBeEnabled();
+    await expect(page.getByRole('img', { name: 'Treachery deck' })).toHaveAttribute('src', cardBack());
+    await expect(page.getByRole('button', { name: 'Drag Treachery deck onto the table' })).toBeEnabled();
   },
 });
 
@@ -1191,6 +1199,6 @@ export const DrawnCardInHand = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('tab', { name: /^Hand$/ }));
     await expect(page.findByRole('button', { name: 'Drag Snooper from hand' })).resolves.toBeVisible();
-    expect(page.getByRole('button', { name: 'Drag Feyd Rautha from hand' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Drag Feyd Rautha from hand' })).toBeVisible();
   },
 });

@@ -15,8 +15,8 @@ export const Swapping = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const offer = await page.findByRole('button', { name: 'Offer trade to House Atreides' }, { timeout: 30_000 });
     /* The deadline is four minutes past the view's serverNow, and the countdown runs on the page's monotonic clock from there. */
-    expect(page.getByLabelText('Trading time remaining')).toHaveTextContent(/^(4:00|3:[0-5]\d) left$/);
-    expect(page.getByRole('button', { name: 'Ready' })).toBeEnabled();
+    await expect(page.getByLabelText('Trading time remaining')).toHaveTextContent(/^(4:00|3:[0-5]\d) left$/);
+    await expect(page.getByRole('button', { name: 'Ready' })).toBeEnabled();
     await userEvent.click(offer);
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({
@@ -41,9 +41,9 @@ export const TradingOffers = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('button', { name: 'Accept trade from House Atreides' }, { timeout: 30_000 });
     await userEvent.click(page.getByRole('tab', { name: 'fectumbra' }));
-    expect(page.getByRole('button', { name: 'Offer trade to Emperor' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Offer trade to Emperor' })).toBeDisabled();
     await userEvent.click(page.getByRole('tab', { name: 'Ridwan' }));
-    expect(page.getByRole('button', { name: 'Cancel offer to Fremen' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Cancel offer to Fremen' })).toBeEnabled();
     await userEvent.click(page.getByRole('tab', { name: 'Twaffle' }));
     await userEvent.click(page.getByRole('button', { name: 'Accept trade from House Atreides' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ action: { kind: 'swap-accept', offerId: 'offer-one' } }));
@@ -68,8 +68,8 @@ export const TradingEndedWithVacancy = meta.story({
         ),
       { timeout: 30_000 }
     );
-    expect(page.getByLabelText('Trading time remaining')).toBeVisible();
-    expect(page.queryByRole('button', { name: /Offer trade to/ })).toBeNull();
-    expect(page.getByRole('button', { name: 'Ready' })).toBeDisabled();
+    await expect(page.getByLabelText('Trading time remaining')).toBeVisible();
+    await expect(page.queryByRole('button', { name: /Offer trade to/ })).toBeNull();
+    await expect(page.getByRole('button', { name: 'Ready' })).toBeDisabled();
   },
 });

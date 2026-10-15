@@ -457,7 +457,7 @@ export function TabletopBoard({
   tableProgress?: TableProgress;
   trackerSlots: readonly TrackerArcSlot[];
   interactive?: boolean;
-  onClick?(): void;
+  onClick?: () => void;
 }) {
   const meshes = useSharedMeshes();
   return (

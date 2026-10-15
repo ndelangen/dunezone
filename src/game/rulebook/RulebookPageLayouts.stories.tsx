@@ -15,15 +15,15 @@ export const FixedGridMatrix = meta.story({
     await document.fonts.ready;
     for (const [index, host] of [...canvasElement.querySelectorAll<HTMLElement>('[data-geometry-case]')].entries()) {
       const item = geometryCases[index]!;
-      verifyGeometry(host, item);
+      await verifyGeometry(host, item);
       const before = regionRects(host).map(({ rect }) => ({ width: rect.width, height: rect.height }));
       host.style.width = '180px';
       await waitFor(() => expect(host.getBoundingClientRect().width).toBe(180));
-      verifyGeometry(host, item);
-      regionRects(host).forEach(({ rect }, regionIndex) => {
-        expect(rect.width / before[regionIndex]!.width).toBeCloseTo(0.6, 2);
-        expect(rect.height / before[regionIndex]!.height).toBeCloseTo(0.6, 2);
-      });
+      await verifyGeometry(host, item);
+      for (const [regionIndex, { rect }] of regionRects(host).entries()) {
+        await expect(rect.width / before[regionIndex]!.width).toBeCloseTo(0.6, 2);
+        await expect(rect.height / before[regionIndex]!.height).toBeCloseTo(0.6, 2);
+      }
       host.style.width = '300px';
     }
   },
@@ -35,16 +35,16 @@ export const EmptyRegionsAndHiddenHeading = meta.story({
       <RulebookPageRenderer page={createCataloguePage('band-columns', { empty: true, showHeading: false })} />
     </div>
   ),
-  play: ({ canvasElement }) => {
-    expect(canvasElement.querySelector('h1')).toBeNull();
-    expect(canvasElement.querySelectorAll('[data-rulebook-region]')).toHaveLength(3);
-    expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(0);
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('h1')).toBeNull();
+    await expect(canvasElement.querySelectorAll('[data-rulebook-region]')).toHaveLength(3);
+    await expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(0);
     for (const { key, rect } of regionRects(canvasElement)) {
-      expect(rect.width).toBeGreaterThan(0);
+      await expect(rect.width).toBeGreaterThan(0);
       if (key === 'band') {
-        expect(rect.height).toBe(0);
+        await expect(rect.height).toBe(0);
       } else {
-        expect(rect.height).toBeGreaterThan(0);
+        await expect(rect.height).toBeGreaterThan(0);
       }
     }
   },
@@ -60,12 +60,12 @@ export const ClippedRegion = meta.story({
       </div>
     );
   },
-  play: ({ canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const regions = [...canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-region]')];
-    expect(regions[0]!.scrollHeight).toBeGreaterThan(regions[0]!.clientHeight);
-    expect(getComputedStyle(regions[0]!).overflow).toBe('clip');
-    expect(Number.parseFloat(getComputedStyle(regions[0]!).overflowClipMargin)).toBeGreaterThan(0);
-    expect(regions[1]!.textContent).toBe('Column 2');
+    await expect(regions[0]!.scrollHeight).toBeGreaterThan(regions[0]!.clientHeight);
+    await expect(getComputedStyle(regions[0]!).overflow).toBe('clip');
+    await expect(Number.parseFloat(getComputedStyle(regions[0]!).overflowClipMargin)).toBeGreaterThan(0);
+    await expect(regions[1]!.textContent).toBe('Column 2');
   },
 });
 
@@ -81,8 +81,8 @@ export const StepByStep = meta.story({
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
     const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
-    expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
-    expect(region.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(3);
+    await expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
+    await expect(region.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(3);
   },
 });
 
@@ -90,7 +90,7 @@ export const HeadingConsistency = meta.story({
   render: () => <HeadingMatrix />,
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
-    verifyHeadingConsistency(canvasElement);
+    await verifyHeadingConsistency(canvasElement);
   },
 });
 

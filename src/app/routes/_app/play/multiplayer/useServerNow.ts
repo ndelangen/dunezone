@@ -20,7 +20,7 @@ function secondReadings(serverNow: ServerClock) {
   let reading: number | undefined;
   let timer: ReturnType<typeof setInterval> | undefined;
   return {
-    subscribe(listener: () => void) {
+    subscribe: (listener: () => void) => {
       listeners.add(listener);
       timer ??= setInterval(() => {
         reading = serverNow();

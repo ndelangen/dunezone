@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { clampHiddenZoneSpot, hiddenZoneFootprint, hiddenZonePieces, nextHiddenZoneSpot } from './hiddenZone';
 import type { TablePiece } from './model';

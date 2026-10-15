@@ -1,6 +1,6 @@
 import { PLANET } from '@shared/assetIds';
 import stockAssetCollections from '@shared/stockAssetCollections.json';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import rasterLock from '../../../media/raster.lock.json';
 import { CURATED_PLANET_IMAGES } from './planetCatalogue';

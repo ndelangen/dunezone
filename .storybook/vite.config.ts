@@ -1,6 +1,6 @@
 import viteReact from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
-import type { Plugin } from 'vite';
+import { defineConfig } from 'vite-plus';
+import type { Plugin } from 'vite-plus';
 
 import { reactCompiler } from '../scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from '../scripts/lib/threeRendererStack.ts';
@@ -81,7 +81,7 @@ export default defineConfig({
   },
   resolve: {
     // Keep Storybook path resolution aligned with the app config.
-    ...({ tsconfigPaths: true } as Record<string, unknown>),
+    tsconfigPaths: true,
     alias: [
       ...convexPackageMocks,
       ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),

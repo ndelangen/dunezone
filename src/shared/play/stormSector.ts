@@ -1,3 +1,5 @@
+import { factionTokenOf, factionTokenOnRing, sectorIndexAt } from './factionToken';
+import type { TablePiece } from './model';
 import type { TableRoster } from './schema';
 import { BOARD_RADIUS } from './tableGeometry';
 import { tableSeatSectorIndices, tableSectorCenterAngle, TABLE_SECTOR_COUNT } from './tableSettings';
@@ -48,10 +50,17 @@ export function stormTransitionProgress(elapsedMs: number): number {
  * The factions in storm order, read live from the marker (#1138);
  * nothing stores an order.
  * Each seat ranks by the sectors the storm must still travel to reach it, `(storm - seat) mod 18`, and a seat under the marker ranks last with 18, since the storm has already passed it.
- * Seats occupy distinct sectors, so the order is total.
+ * A faction's token on the ring says which sector it plays from (players move it around the ring);
+ * a faction without one there, as in a game stored before tokens kept to the ring, plays from its seat.
+ * Seats occupy distinct sectors and tokens trade places rather than share one;
+ * should two factions still share a sector, the earlier seat goes first.
  * Seats without a faction are left out.
  */
-export function stormOrder(stormSectorIndex: number, roster: TableRoster | undefined): string[] {
+export function stormOrder(
+  stormSectorIndex: number,
+  roster: TableRoster | undefined,
+  pieces: readonly Pick<TablePiece, 'stackKey' | 'position'>[]
+): string[] {
   if (!roster) {
     return [];
   }
@@ -59,13 +68,16 @@ export function stormOrder(stormSectorIndex: number, roster: TableRoster | undef
   const storm = normalizeStormSectorIndex(stormSectorIndex);
   return roster.seats
     .flatMap((seat) => {
-      const sector = sectors[seat.position];
+      const token = seat.faction && factionTokenOf(pieces, seat.faction.id);
+      const sector = token && factionTokenOnRing(token) ? sectorIndexAt(token.position) : sectors[seat.position];
       if (!seat.faction || sector === undefined) {
         return [];
       }
       const distance = (storm - sector + TABLE_SECTOR_COUNT) % TABLE_SECTOR_COUNT;
-      return [{ factionId: seat.faction.id, distance: distance === 0 ? TABLE_SECTOR_COUNT : distance }];
+      return [
+        { factionId: seat.faction.id, seat: seat.position, distance: distance === 0 ? TABLE_SECTOR_COUNT : distance },
+      ];
     })
-    .sort((left, right) => left.distance - right.distance)
+    .sort((left, right) => left.distance - right.distance || left.seat - right.seat)
     .map((entry) => entry.factionId);
 }

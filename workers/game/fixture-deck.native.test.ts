@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { cardPage, deckPage } from './native-catalogue.fixture.ts';
 import { required } from './native-runtime.fixture.ts';

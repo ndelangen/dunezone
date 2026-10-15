@@ -83,10 +83,10 @@ export const BattleCalloutArrivesInPlace = meta.story({
       await waitForFrame(() => expect(firstDraws.has(callout)).toBe(true), { timeout: 30_000 });
       const first = firstDraws.get(callout)!;
       const sceneBounds = scene.getBoundingClientRect();
-      expect(Math.abs(first.x - (sceneBounds.left + sceneBounds.width / 2))).toBeLessThanOrEqual(1);
+      await expect(Math.abs(first.x - (sceneBounds.left + sceneBounds.width / 2))).toBeLessThanOrEqual(1);
       await expectBattleCalloutPlacement(canvasElement, marked.battle!.anchor, 'below');
       const settledDraw = callout.getBoundingClientRect();
-      expect([Math.round(first.x), Math.round(first.y)]).toEqual([
+      await expect([Math.round(first.x), Math.round(first.y)]).toEqual([
         Math.round(settledDraw.x),
         Math.round(settledDraw.y),
       ]);
@@ -112,8 +112,8 @@ export const BattleMarkerNamesItsTerritory = meta.story({
         0.18,
         (carthag.y + carthag.height / 2 - 0.5) * BOARD_RADIUS * 2,
       ],
-      () => {
-        expect(lastCommand()?.action).toMatchObject({ kind: 'battle-start', territory: 'Carthag' });
+      async () => {
+        await expect(lastCommand()?.action).toMatchObject({ kind: 'battle-start', territory: 'Carthag' });
       }
     );
   },
@@ -131,10 +131,10 @@ export const BattleUnclaimed = meta.story({
     await settled(() => expect(page.getByRole('button', { name: 'Claim left side' })).toBeEnabled());
     const claim = page.getByRole('button', { name: 'Claim left side' });
     const bounds = claim.getBoundingClientRect();
-    expect(bounds.width).toBe(bounds.height);
-    expect(getComputedStyle(claim).borderRadius).toBe('50%');
+    await expect(bounds.width).toBe(bounds.height);
+    await expect(getComputedStyle(claim).borderRadius).toBe('50%');
     await userEvent.click(claim);
-    expect(lastCommand()?.action).toEqual({
+    await expect(lastCommand()?.action).toEqual({
       kind: 'battle-claim',
       battleId: 'story-battle',
       side: 0,
@@ -153,14 +153,14 @@ export const BattleOneClaimed = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByRole('button', { name: 'Cancel battle' })).toBeEnabled());
     const faction = page.getByRole('img', { name: 'House Atreides, right side, Preparing' });
-    expect(faction).toBeVisible();
-    expect(faction.textContent).toBe('');
+    await expect(faction).toBeVisible();
+    await expect(faction.textContent).toBe('');
     const cancel = page.getByRole('button', { name: 'Cancel battle' });
     const shape = getComputedStyle(cancel);
-    expect(parseFloat(shape.borderBottomLeftRadius)).toBeGreaterThan(parseFloat(shape.borderTopLeftRadius));
-    expect(shape.borderBottomLeftRadius).toBe(shape.borderBottomRightRadius);
+    await expect(parseFloat(shape.borderBottomLeftRadius)).toBeGreaterThan(parseFloat(shape.borderTopLeftRadius));
+    await expect(shape.borderBottomLeftRadius).toBe(shape.borderBottomRightRadius);
     await userEvent.click(cancel);
-    expect(lastCommand()?.action).toEqual({
+    await expect(lastCommand()?.action).toEqual({
       kind: 'battle-cancel',
       battleId: 'story-battle',
     });
@@ -188,14 +188,14 @@ export const BattleReadiness = meta.story({
     );
     const preparing = page.getByRole('img', { name: 'House Harkonnen, left side, aggressor, Preparing' });
     const ready = page.getByRole('img', { name: 'House Atreides, right side, Ready' });
-    expect(ready).toBeVisible();
+    await expect(ready).toBeVisible();
     const preparingRing = preparing.querySelector('svg[data-ready]')!;
     const readyRing = ready.querySelector('svg[data-ready]')!;
-    expect(preparingRing).toBeVisible();
-    expect(readyRing).toBeVisible();
-    expect(getComputedStyle(readyRing).stroke).not.toBe(getComputedStyle(preparingRing).stroke);
-    expect(getComputedStyle(readyRing).animationName).toBe('none');
-    expect(page.getByRole('button', { name: 'Cancel battle' })).toBeDisabled();
+    await expect(preparingRing).toBeVisible();
+    await expect(readyRing).toBeVisible();
+    await expect(getComputedStyle(readyRing).stroke).not.toBe(getComputedStyle(preparingRing).stroke);
+    await expect(getComputedStyle(readyRing).animationName).toBe('none');
+    await expect(page.getByRole('button', { name: 'Cancel battle' })).toBeDisabled();
   },
 });
 
@@ -211,8 +211,8 @@ export const BattleReadinessStill = meta.story({
       { timeout: 30_000 }
     );
     const ready = page.getByRole('img', { name: 'House Atreides, right side, Ready' });
-    expect(animatedIn([preparing, ready])).toEqual([]);
-    expect(getComputedStyle(preparing.querySelector('svg[data-ready]')!).strokeDasharray).not.toBe('none');
+    await expect(animatedIn([preparing, ready])).toEqual([]);
+    await expect(getComputedStyle(preparing.querySelector('svg[data-ready]')!).strokeDasharray).not.toBe('none');
   },
 });
 
@@ -228,10 +228,10 @@ export const BattlePlanner = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');
     await settled(() => expect(page.getByRole('button', { name: 'Ready for battle' })).toBeEnabled());
-    await settled(() => {
-      expect(page.getByRole('textbox', { name: 'Troops' })).toBeEnabled();
-      expect(page.queryByText(/harkonnen reverse/i)).toBeNull();
-      expect(page.queryByRole('region', { name: 'Battle results' })).toBeNull();
+    await settled(async () => {
+      await expect(page.getByRole('textbox', { name: 'Troops' })).toBeEnabled();
+      await expect(page.queryByText(/harkonnen reverse/i)).toBeNull();
+      await expect(page.queryByRole('region', { name: 'Battle results' })).toBeNull();
     });
 
     const wheel = await page.findByLabelText(
@@ -244,19 +244,19 @@ export const BattlePlanner = meta.story({
     while (sticky && getComputedStyle(sticky).position !== 'sticky') {
       sticky = sticky.parentElement;
     }
-    expect(sticky).not.toBeNull();
+    await expect(sticky).not.toBeNull();
 
     const card = await page.findByRole('button', { name: 'Add Snooper to battle plan' }, { timeout: 30_000 });
-    expect(card).toHaveAttribute('aria-pressed', 'false');
-    expect(within(card).getByRole('img', { name: 'Snooper' })).toBeInTheDocument();
+    await expect(card).toHaveAttribute('aria-pressed', 'false');
+    await expect(within(card).getByRole('img', { name: 'Snooper' })).toBeInTheDocument();
     await userEvent.click(card);
     const saved = lastCommand();
-    expect(saved?.action).toMatchObject({
+    await expect(saved?.action).toMatchObject({
       kind: 'battle-plan',
       plan: { cardIds: ['treachery-card-loose'] },
     });
     const currentWheel = page.getByLabelText(/^House Harkonnen plan,/);
-    expect(within(currentWheel).getByRole('img', { name: 'Snooper' })).toBeInTheDocument();
+    await expect(within(currentWheel).getByRole('img', { name: 'Snooper' })).toBeInTheDocument();
   },
 });
 
@@ -275,13 +275,13 @@ export const BattlePlanArtwork = meta.story({
     await openTab(page, 'Battle');
     const arrived = (image: HTMLElement) =>
       expect(image.closest('[data-phase]')).toHaveAttribute('data-phase', 'shown');
-    await settled(() => {
+    await settled(async () => {
       const hand = page.getByLabelText('Cards from your hand');
-      expect(within(hand).getByRole('img', { name: 'Duncan Idaho: preview unavailable' })).toBeVisible();
+      await expect(within(hand).getByRole('img', { name: 'Duncan Idaho: preview unavailable' })).toBeVisible();
       for (const name of ['Thufir Hawat', 'Gurney Halleck', 'Doctor Yueh']) {
-        arrived(within(hand).getByRole('img', { name }));
+        await arrived(within(hand).getByRole('img', { name }));
       }
-      arrived(within(page.getByLabelText(/^House Harkonnen plan,/)).getByRole('img', { name: 'Feyd Rautha' }));
+      await arrived(within(page.getByLabelText(/^House Harkonnen plan,/)).getByRole('img', { name: 'Feyd Rautha' }));
     });
   },
 });
@@ -298,7 +298,7 @@ export const BattleFocusOnce = meta.story({
     session.transport.deliver(session.transport.view(snapshot));
     await settled(() => expect(page.getByRole('tab', { name: 'Hand' })).toHaveAttribute('aria-selected', 'true'));
     await userEvent.click(within(page.getByRole('tablist', { name: 'Controls' })).getByRole('tab', { name: 'Game' }));
-    expect(page.getByRole('tab', { name: 'Battle' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: 'Battle' })).toHaveAttribute('aria-selected', 'true');
   },
 });
 
@@ -309,7 +309,7 @@ export const BattleReady = meta.story({
     await openTab(page, 'Battle');
     await settled(() => expect(page.getByRole('button', { name: 'Ready for battle' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Ready for battle' }));
-    expect(lastCommand()?.action).toEqual({
+    await expect(lastCommand()?.action).toEqual({
       kind: 'battle-ready',
       battleId: 'story-battle',
       ready: true,
@@ -329,7 +329,7 @@ async function expectPlanBound(
     await userEvent.clear(input);
     await userEvent.type(input, '9');
     await userEvent.keyboard('{Enter}');
-    expect(lastCommand()?.action).toMatchObject({ kind: 'battle-plan', plan });
+    await expect(lastCommand()?.action).toMatchObject({ kind: 'battle-plan', plan });
   });
   return page;
 }
@@ -362,8 +362,8 @@ export const BattleCountdown = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');
     await settled(() => expect(page.getByRole('button', { name: 'Undo Ready' })).toBeEnabled());
-    expect(page.getByRole('textbox', { name: 'Committed spice' })).toBeDisabled();
-    expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Committed spice' })).toBeDisabled();
+    await expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
   },
 });
 
@@ -373,8 +373,8 @@ export const BattleObserver = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');
     await settled(() => expect(page.getByRole('button', { name: 'No winner' })).toBeDisabled());
-    expect(page.queryByRole('textbox', { name: 'Committed spice' })).toBeNull();
-    expect(page.queryByRole('region', { name: 'Your hand and leaders' })).toBeNull();
+    await expect(page.queryByRole('textbox', { name: 'Committed spice' })).toBeNull();
+    await expect(page.queryByRole('region', { name: 'Your hand and leaders' })).toBeNull();
   },
 });
 
@@ -392,12 +392,12 @@ export const BattleRevealedPieces = meta.story({
   beforeEach: revealedPieces,
   play: async ({ canvasElement }) => {
     await waitFor(
-      () => {
+      async () => {
         const callout = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-battle-stage="revealed"]');
-        expect(callout).not.toBeNull();
+        await expect(callout).not.toBeNull();
         const card = within(callout!).getByRole('button', { name: 'Drag Snooper onto table' });
-        expect(finishTransitions(card)).toBeVisible();
-        expect(card).toBeEnabled();
+        await expect(finishTransitions(card)).toBeVisible();
+        await expect(card).toBeEnabled();
       },
       { timeout: 30_000 }
     );
@@ -414,9 +414,9 @@ export const BattleRevealedPiecesStill = meta.story({
     /* The viewer is a side, so the dock opens on the Battle tab with its own plan's wheel; the two on the table are the reveal. */
     const revealed = () => page.getAllByLabelText(plans).filter((plan) => !plan.closest('.seated-controls-panel'));
     await settled(() => expect(revealed()).toHaveLength(2));
-    expect(animatedIn(page.getAllByLabelText(plans))).toEqual([]);
+    await expect(animatedIn(page.getAllByLabelText(plans))).toEqual([]);
     for (const plan of revealed()) {
-      expect(within(plan).getByText('Strength')).toBeVisible();
+      await expect(within(plan).getByText('Strength')).toBeVisible();
     }
   },
 });
@@ -429,15 +429,15 @@ export const BattleNumericDraft = meta.story({
     const adjustment = page.getByRole('textbox', { name: 'Adjustment' });
     await userEvent.clear(adjustment);
     await userEvent.type(adjustment, '-0.25');
-    expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(0);
+    await expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(0);
     await userEvent.keyboard('{Enter}');
     const saved = lastCommand();
-    expect(saved?.action).toMatchObject({ kind: 'battle-plan', plan: { adjustment: -0.25 } });
+    await expect(saved?.action).toMatchObject({ kind: 'battle-plan', plan: { adjustment: -0.25 } });
     const troops = page.getByRole('textbox', { name: 'Troops' });
     await userEvent.clear(troops);
     await userEvent.type(troops, '12');
     await userEvent.keyboard('{Enter}');
-    expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(1);
+    await expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(1);
     const snapshot = battleStory('preparing');
     snapshot.revision = 1;
     snapshot.battlePlan!.adjustment = -0.25;
@@ -446,7 +446,7 @@ export const BattleNumericDraft = meta.story({
       expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(2)
     );
     const next = lastCommand();
-    expect(next?.action).toMatchObject({
+    await expect(next?.action).toMatchObject({
       kind: 'battle-plan',
       plan: { adjustment: -0.25, troops: [{ faceId: 'house-harkonnen-front', undialed: 12, dialed: 0 }] },
     });
@@ -505,16 +505,16 @@ export const BattleResolved = meta.story({
     await settled(() =>
       expect(canvasElement.ownerDocument.querySelector('[data-piece-id="treachery-card-loose"]')).not.toBeNull()
     );
-    expect(page.queryByRole('button', { name: 'No winner' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'No winner' })).toBeNull();
     const snapshot = session.transport.snapshot;
     session.transport.deliver(
       session.transport.view({ ...snapshot, phase: snapshot.phase + 1, revision: snapshot.revision + 1 })
     );
     await settled(() => expect(page.getByRole('tab', { name: 'Battles' })).toHaveAttribute('aria-selected', 'true'));
     await openTab(page, 'Phase');
-    expect(page.queryByRole('tab', { name: 'Battle' })).toBeNull();
+    await expect(page.queryByRole('tab', { name: 'Battle' })).toBeNull();
     await openTab(page, 'Battles');
-    expect(page.getByText('Arrakeen: House Harkonnen against House Atreides. Left side won.')).toBeVisible();
+    await expect(page.getByText('Arrakeen: House Harkonnen against House Atreides. Left side won.')).toBeVisible();
   },
 });
 
@@ -527,11 +527,11 @@ export const BattleResolvedInRealGame = meta.story({
     await settled(() =>
       expect(page.getByText('Arrakeen: House Harkonnen against House Atreides. Left side won.')).toBeInTheDocument()
     );
-    expect(page.getByLabelText(/^House Harkonnen plan, troop strength/)).toBeInTheDocument();
-    expect(page.getByLabelText(/^House Atreides plan, troop strength/)).toBeInTheDocument();
+    await expect(page.getByLabelText(/^House Harkonnen plan, troop strength/)).toBeInTheDocument();
+    await expect(page.getByLabelText(/^House Atreides plan, troop strength/)).toBeInTheDocument();
     for (const id of Object.values(convexIds)) {
-      expect(page.queryByText(new RegExp(id))).toBeNull();
-      expect(page.queryByLabelText(new RegExp(id))).toBeNull();
+      await expect(page.queryByText(new RegExp(id))).toBeNull();
+      await expect(page.queryByLabelText(new RegExp(id))).toBeNull();
     }
   },
 });
@@ -544,7 +544,7 @@ export const BattleReadinessInRealGame = meta.story({
     await settled(() =>
       expect(page.getByRole('img', { name: 'House Harkonnen, left side, aggressor, Preparing' })).toBeVisible()
     );
-    expect(page.getByRole('img', { name: 'House Atreides, right side, Ready' })).toBeVisible();
+    await expect(page.getByRole('img', { name: 'House Atreides, right side, Ready' })).toBeVisible();
   },
 });
 
@@ -558,11 +558,11 @@ export const BattleRevealedResolve = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByRole('button', { name: 'Resolve battle' })).toBeEnabled());
-    expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
-    expect(page.queryByText(/^Waiting for /)).toBeNull();
-    expect(page.queryByText(/ says /)).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
+    await expect(page.queryByText(/^Waiting for /)).toBeNull();
+    await expect(page.queryByText(/ says /)).toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Resolve battle' }));
-    expect(lastCommand()?.action).toEqual({ kind: 'battle-cancel', battleId: 'story-battle' });
+    await expect(lastCommand()?.action).toEqual({ kind: 'battle-cancel', battleId: 'story-battle' });
   },
 });
 
@@ -574,7 +574,7 @@ export const BattleWinnerCalled = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByText('Waiting for House Atreides to agree')).toBeVisible());
-    expect(page.getByRole('button', { name: 'Left side won' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Left side won' })).toBeVisible();
   },
 });
 

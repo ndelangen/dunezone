@@ -5,7 +5,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
+import { afterAll, beforeAll, beforeEach, expect, test } from 'vite-plus/test';
 
 /* The backend counts every request, so a refusal that comes after a network call fails the count. */
 let requests = 0;
