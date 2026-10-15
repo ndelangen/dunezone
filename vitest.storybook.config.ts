@@ -80,9 +80,7 @@ export default defineConfig({
     rolldownOptions: { plugins: [threeRendererStackTreeShaking()] },
   },
   resolve: {
-    /* Typings in the current Vite package lag behind docs/runtime support
-       (same cast as .storybook/vite.config.ts). */
-    ...({ tsconfigPaths: true } as Record<string, unknown>),
+    tsconfigPaths: true,
     alias: [
       ...convexPackageMocks,
       ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),

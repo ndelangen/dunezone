@@ -81,7 +81,7 @@ export default defineConfig({
   },
   resolve: {
     // Keep Storybook path resolution aligned with the app config.
-    ...({ tsconfigPaths: true } as Record<string, unknown>),
+    tsconfigPaths: true,
     alias: [
       ...convexPackageMocks,
       ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),
