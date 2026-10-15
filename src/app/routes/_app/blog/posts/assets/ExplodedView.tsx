@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from 'react';
 
 import { WideFigure } from '../../postContent';
 import styles from './ExplodedView.module.css';
+import { useScrollDriven } from './scrollDriven';
 
 export type ExplodedLayer = Readonly<{
   title: string;
@@ -51,16 +52,6 @@ function reduce(state: State, event: Event): State {
   }
 }
 
-/*
- * How far apart the layers are when the stage's centre is `height` of the way up the screen, 0 at the bottom edge and 1 at the top.
- * The layers start to separate as the centre passes 30% of the way up, are fully apart at 65%, and stay apart after that.
- * Between those points the motion eases in and out, so a reader scrolling at a steady pace sees it start slowly, speed up and settle.
- */
-function apartAt(height: number): number {
-  const linear = Math.min(1, Math.max(0, (height - 0.3) / 0.35));
-  return linear * linear * linear * (linear * (linear * 6 - 15) + 10);
-}
-
 /**
  * A renderer pulled apart into a stack of its layers, bottom to top in paint order.
  * The layers separate as the reader scrolls past, and the slider hands that control to the reader.
@@ -90,35 +81,17 @@ export function ExplodedView({
   const stage = useRef<HTMLDivElement>(null);
   const focused = state.hovered ?? state.picked;
 
-  /* Scroll position and stage width are read from the page, so this subscribes to both. */
+  useScrollDriven(stage, (apart) => dispatch({ type: 'scrolled', apart }));
+
+  /* The stage's width is read from the page, so this subscribes to it. */
   useEffect(() => {
     const element = stage.current!;
     const fit = () =>
       element.style.setProperty('--fit', String((element.clientWidth * FILL) / Math.max(width, height)));
-    const scrolled = () => {
-      const { top, height } = element.getBoundingClientRect();
-      dispatch({ type: 'scrolled', apart: apartAt(1 - (top + height / 2) / window.innerHeight) });
-    };
-    let frame = 0;
-    const onScroll = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(scrolled);
-    };
     const resize = new ResizeObserver(fit);
     resize.observe(element);
     fit();
-    /* A reader who asked for less motion gets the layers apart and still, without the scroll animation. */
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      dispatch({ type: 'slid', apart: 1 });
-      return () => resize.disconnect();
-    }
-    scrolled();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      cancelAnimationFrame(frame);
-      resize.disconnect();
-      window.removeEventListener('scroll', onScroll);
-    };
+    return () => resize.disconnect();
   }, [width, height]);
 
   /* The planes keep their element identity while the layers move, so scrolling repaints transforms and never re-renders a renderer. */
