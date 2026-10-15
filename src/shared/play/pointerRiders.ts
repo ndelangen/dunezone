@@ -10,15 +10,12 @@ export function pointerRiders(pieces: readonly TablePiece[], plate: TablePiece):
   if (!isPointerToken(plate) || plate.inventory) {
     return [];
   }
-  return pieces.filter(
-    (piece) =>
-      piece.id !== plate.id &&
-      !piece.inventory &&
-      !piece.battleOverlay &&
-      piece.items.length > 0 &&
-      !isPointerToken(piece) &&
-      pointerCovers(plate, piece.position)
-  );
+  return pieces.filter((piece) => piece.id !== plate.id && canRide(piece) && pointerCovers(plate, piece.position));
+}
+
+/* Only something standing on the table can ride, and a plate never rides another. */
+function canRide(piece: TablePiece): boolean {
+  return !piece.inventory && !piece.battleOverlay && piece.items.length > 0 && !isPointerToken(piece);
 }
 
 /** Where a rider ends up when its plate goes from one pose to another: it keeps its place and its angle on the plate. */
