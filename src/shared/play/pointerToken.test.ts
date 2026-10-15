@@ -4,7 +4,7 @@ import { applyPieceAction } from './commands';
 import { freshTableState } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { pieceFlipFrame, PIECE_FLIP_DURATION_MS } from './pieceFlip';
-import { pointerRiders, piecesOnPlates, riderIdsOf } from './pointerRiders';
+import { pointerRiders, piecesOnPlates, ridersOf } from './pointerRiders';
 import { POINTER_BODY_RADIUS, POINTER_HEIGHT, POINTER_TOKEN_TYPE, pointerCovers } from './pointerToken';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import { BOARD_SURFACE_Y, restingPositionAt, supportHeightAt } from './tableGeometry';
@@ -200,10 +200,20 @@ describe('a pointer token, such as the HMS,', () => {
     expect(piecesOnPlates(both, state.pieces).find((piece) => piece.id === 't')!.orientation).toBeCloseTo(1.2);
   });
 
+  test('keeps a rider on its top when a turn settles it a little lower on the board', () => {
+    const state = tableWith(plate([0, 0, 1]), troop('t', [0, 0, 1]));
+    const turned = renderedPiecesFor(state).map((piece) =>
+      piece.id === 't' ? { ...piece, orientation: 0.7, position: [0, 0.125, 1] as Vector3Tuple } : piece
+    );
+    expect(piecesOnPlates(turned, state.pieces).find((piece) => piece.id === 't')!.position[1]).toBeCloseTo(
+      at(state, 'hms').position[1] + POINTER_HEIGHT
+    );
+  });
+
   test('names its riders, so a page can move them as smoothly as the plate', () => {
     const state = tableWith(plate([0, 0, 1]), troop('t', [0, 0, 1]), troop('beside', [2, 0, 2]));
-    expect([...riderIdsOf(state.pieces, ['hms'])]).toEqual(['t']);
-    expect(riderIdsOf(state.pieces, ['beside']).size).toBe(0);
+    expect([...ridersOf(state.pieces, new Set(['hms']))]).toEqual([['t', 'hms']]);
+    expect(ridersOf(state.pieces, new Set(['beside'])).size).toBe(0);
   });
 
   test('lifts clear of the table as wide as its round end when it turns over', () => {

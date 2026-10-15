@@ -96,7 +96,7 @@ import type { TableProgress } from './tableTrackers';
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
-import { useTablePose } from './useTablePose';
+import { PlateFollowersProvider, useTablePose } from './useTablePose';
 
 type TabletopSceneProps = {
   children?: ReactNode;
@@ -499,8 +499,8 @@ export type PieceSceneState = {
   stackTargeted: boolean;
   drafted: boolean;
   remoteCarried: boolean;
-  /* Riding a plate another player is carrying, so it glides along with the plate. */
-  remoteRiding: boolean;
+  /* The plate another player is carrying that this piece rides, which it follows as the plate is shown. */
+  ridingPlateId: string | undefined;
   locallyCarried: boolean;
   reserved: boolean;
   interactionBlocked: boolean;
@@ -521,11 +521,11 @@ function pieceSceneState(
     gestureActivePieceId,
     canHandleTable,
     remoteCarriedIds,
-    remoteRidingIds,
+    remoteRiders,
     reservedPieceIds,
   }: Pick<
     TabletopContextValue,
-    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'remoteRidingIds' | 'reservedPieceIds'
+    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'remoteRiders' | 'reservedPieceIds'
   >
 ): PieceSceneState {
   const drafted = state.draftMove?.pieceId === piece.id;
@@ -537,7 +537,7 @@ function pieceSceneState(
     stackTargeted: state.draftMove?.targetPieceId === piece.id,
     drafted,
     remoteCarried,
-    remoteRiding: remoteRidingIds.has(piece.id),
+    ridingPlateId: remoteRiders.get(piece.id),
     locallyCarried: drafted && gestureActivePieceId !== null,
     reserved,
     interactionBlocked: !canHandleTable || remoteCarried || (reserved && !localSource),
@@ -897,7 +897,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
     piece,
     drafted,
     remoteCarried,
-    remoteRiding,
+    ridingPlateId,
     locallyCarried,
     reserved,
     selected,
@@ -910,7 +910,10 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   const displayedCount = pieceCount(piece);
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
-  const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried || remoteRiding, locallyCarried);
+  const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried, {
+    plateId: isPointerToken(piece) ? piece.id : undefined,
+    follows: ridingPlateId,
+  });
   const faceReady = usePublishedFaceReady(topFaceHref(piece)) && !faceStillHidden(piece);
   /* A held piece turns over in hand too, so only an emptied projection cuts a flip short. */
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
@@ -1079,18 +1082,20 @@ function SceneContents({
             trackerSlots={trackerSlots}
           />
         )}
-        {renderedPieces
-          /* Troop reserves arrive with the board: setup keeps them off the table until the map shows. */
-          .filter((piece) => !piece.battleOverlay && (stage !== 'setup' || mapVisible || !isTroopStack(piece)))
-          .map((piece, index) => (
-            <TablePieceMesh
-              showLabels={presentation !== 'preview'}
-              arrivalDelay={presentation === 'preview' ? Math.min(index * 32, 320) : undefined}
-              key={piece.id}
-              piece={piece}
-              {...pieceSceneState(piece, table)}
-            />
-          ))}
+        <PlateFollowersProvider>
+          {renderedPieces
+            /* Troop reserves arrive with the board: setup keeps them off the table until the map shows. */
+            .filter((piece) => !piece.battleOverlay && (stage !== 'setup' || mapVisible || !isTroopStack(piece)))
+            .map((piece, index) => (
+              <TablePieceMesh
+                showLabels={presentation !== 'preview'}
+                arrivalDelay={presentation === 'preview' ? Math.min(index * 32, 320) : undefined}
+                key={piece.id}
+                piece={piece}
+                {...pieceSceneState(piece, table)}
+              />
+            ))}
+        </PlateFollowersProvider>
       </group>
       {presentation === 'preview' ? (
         <MapPreviewCamera mapFramingPoints={mapFramingPoints} />

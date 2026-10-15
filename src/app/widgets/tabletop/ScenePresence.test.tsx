@@ -8,7 +8,7 @@ import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 import { ScenePresence } from './ScenePresence';
 import styles from './ScenePresence.module.css';
 import { isCursorTablePoint, isPublicTablePoint } from './tablePointerPoint';
-import { useTablePose } from './useTablePose';
+import { PlateFollowersProvider, useTablePose } from './useTablePose';
 
 const scheduler = vi.hoisted(() => ({
   frames: new Set<(state: unknown, delta: number) => void>(),
@@ -107,6 +107,46 @@ describe('remote pose smoothing', () => {
       expect(pose.group.position.x).toBeLessThanOrEqual(1);
     }
   );
+});
+
+describe('a rider on a plate another player carries', () => {
+  type Pose = { at: Vector3Tuple; turn: number };
+  const plate = new Group();
+  const rider = new Group();
+
+  function Posed({ pose, group, links }: { pose: Pose; group: Group; links: Parameters<typeof useTablePose>[4] }) {
+    const poseRef = useTablePose(pose.at, pose.turn, Boolean(links?.plateId), false, links);
+    return (
+      <span
+        ref={(element) => {
+          poseRef.current = element ? group : null;
+        }}
+      />
+    );
+  }
+
+  function Plate({ plate: platePose, rider: riderPose }: { plate: Pose; rider: Pose }) {
+    return (
+      <PlateFollowersProvider>
+        <Posed pose={platePose} group={plate} links={{ plateId: 'hms' }} />
+        <Posed pose={riderPose} group={rider} links={{ follows: 'hms' }} />
+      </PlateFollowersProvider>
+    );
+  }
+
+  test('keeps its place on the plate while the plate turns, rather than cutting across it', () => {
+    const view = render(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} />);
+    view.rerender(<Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} />);
+    act(() => {
+      for (const callback of scheduler.frames) {
+        callback({}, 1 / 60);
+      }
+    });
+    expect(plate.rotation.y).toBeGreaterThan(0);
+    expect(plate.rotation.y).toBeLessThan(Math.PI);
+    expect(Math.hypot(rider.position.x - plate.position.x, rider.position.z - plate.position.z)).toBeCloseTo(0.75);
+    expect(rider.rotation.y).toBeCloseTo(plate.rotation.y);
+  });
 });
 
 /** Renders the scene's presence layer on an 800 by 400 canvas at (100, 50), seen by a camera that looks at the origin. */

@@ -2,7 +2,7 @@ import { isFactionToken } from './factionToken';
 import { nearestZone } from './model';
 import type { TablePiece, Vector3Tuple } from './model';
 import { fromPieceFrame, POINTER_HEIGHT, pointerCovers, isPointerToken } from './pointerToken';
-import { restingPositionAt } from './tableGeometry';
+import { CARRIED_BASE_Y, restingPositionAt } from './tableGeometry';
 import { isCollisionFreePosition } from './tablePhysics';
 
 type Pose = Pick<TablePiece, 'position' | 'orientation'>;
@@ -88,13 +88,12 @@ export function placementRules(
   };
 }
 
-/** The ids of every piece riding one of `plateIds` where it rests in `rested`. */
-export function riderIdsOf(rested: readonly TablePiece[], plateIds: Iterable<string>): Set<string> {
-  const ids = new Set(plateIds);
-  return new Set(
+/** Every piece riding one of `plateIds` where it rests in `rested`, by its id, to the id of the plate it rides. */
+export function ridersOf(rested: readonly TablePiece[], plateIds: ReadonlySet<string>): Map<string, string> {
+  return new Map(
     rested
-      .filter((piece) => ids.has(piece.id))
-      .flatMap((plate) => pointerRiders(rested, plate).map((rider) => rider.id))
+      .filter((piece) => plateIds.has(piece.id))
+      .flatMap((plate) => pointerRiders(rested, plate).map((rider): [string, string] => [rider.id, plate.id]))
   );
 }
 
@@ -151,7 +150,15 @@ function ridersShownOn(plate: TablePiece, resting: TablePiece | undefined, reste
   });
 }
 
-/* Whether a piece is shown where it rests: a turn alone, such as a rider turned in place, does not take it off its plate. */
+/*
+ * Whether a piece is shown where it rests rather than in someone's hand.
+ * A turn in place keeps it on its plate, even where the turn settles it a little higher or lower on the board's rim.
+ */
 function samePlace(piece: TablePiece, rested: TablePiece | undefined): boolean {
-  return !!rested && piece.position.every((value, axis) => value === rested.position[axis]);
+  return (
+    !!rested &&
+    piece.position[0] === rested.position[0] &&
+    piece.position[2] === rested.position[2] &&
+    piece.position[1] < CARRIED_BASE_Y
+  );
 }

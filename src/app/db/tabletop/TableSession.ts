@@ -10,7 +10,7 @@ import type { Affordance, DraftMove, TablePiece, TableState, Vector3Tuple } from
 import { isSeatAction } from '@shared/play/participation';
 import { rearrangeable } from '@shared/play/peeking';
 import type { Peek } from '@shared/play/peeking';
-import { piecesOnPlates, riderIdsOf } from '@shared/play/pointerRiders';
+import { piecesOnPlates, ridersOf } from '@shared/play/pointerRiders';
 import { carryPieceId, TABLE_PING_INTERVAL_MS, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
@@ -45,10 +45,22 @@ function latestLogPages(): Record<LogTab, number> {
   return { game: Number.MAX_SAFE_INTEGER, audit: Number.MAX_SAFE_INTEGER };
 }
 
-/* The pieces other players are carrying, and those riding a plate one of them carries, which glide along with it. */
-function remoteCarryIds(carries: PublicCarry[], rested: readonly TablePiece[]) {
+/*
+ * The table as others' carries leave it on this page: what they hold shown in their hands, the pieces they keep from moving, and what rides a plate one of them carries.
+ * A piece another player holds part of stays put, as the room's own locks keep it, so it rides no plate.
+ */
+function remoteView(pieces: TablePiece[], carries: PublicCarry[], rested: TablePiece[]) {
+  const reservedPieceIds = new Set(carries.flatMap((carry) => carry.reservedIds));
+  const guarded = reservedPieceIds.size
+    ? rested.map((piece) => (reservedPieceIds.has(piece.id) ? { ...piece, locked: true } : piece))
+    : rested;
   const remoteCarriedIds = new Set(carries.map((carry) => carry.held.id));
-  return { remoteCarriedIds, remoteRidingIds: riderIdsOf(rested, remoteCarriedIds) };
+  return {
+    renderedPieces: piecesOnPlates(projectPublicCarries(pieces, carries), guarded),
+    reservedPieceIds,
+    remoteCarriedIds,
+    remoteRiders: ridersOf(guarded, remoteCarriedIds),
+  };
 }
 
 function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): TablePiece[] {
@@ -158,8 +170,8 @@ export type TableProjection = {
   /* Letting go of the peek held open; a seated viewer can, even once the game is finished and the table no longer handles. */
   closePeek?: () => void;
   remoteCarriedIds: ReadonlySet<string>;
-  /* Pieces riding a plate another player is carrying, which glide with it as the plate does. */
-  remoteRidingIds: ReadonlySet<string>;
+  /* Pieces riding a plate another player is carrying, by id, to that plate's id: they follow the plate as it is shown. */
+  remoteRiders: ReadonlyMap<string, string>;
   reservedPieceIds: ReadonlySet<string>;
   gestureActivePieceId: string | null;
   hoveredPieceId: string | null;
@@ -219,7 +231,7 @@ function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: Readonly
 }
 
 /* The controls a panel offers only while present, so only their presence counts for a panel's render. */
-const PIECE_ID_SETS = ['remoteCarriedIds', 'remoteRidingIds', 'reservedPieceIds'] as const;
+const PIECE_ID_SETS = ['remoteCarriedIds', 'remoteRiders', 'reservedPieceIds'] as const;
 const PANEL_CONTROLS = ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls', 'closePeek'] as const;
 
 function samePlayback(previous: TableProjection['playback'], next: TableProjection['playback']) {
@@ -338,7 +350,7 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
     affordances: [],
     peek: null,
     remoteCarriedIds: new Set(),
-    remoteRidingIds: new Set(),
+    remoteRiders: new Map(),
     reservedPieceIds: new Set(),
     gestureActivePieceId: null,
     hoveredPieceId: null,
@@ -705,7 +717,7 @@ export class TableSession {
       peekControls: undefined,
       closePeek: undefined,
       remoteCarriedIds: new Set(),
-      remoteRidingIds: new Set(),
+      remoteRiders: new Map(),
       reservedPieceIds: new Set(),
       gestureActivePieceId: null,
       hoveredPieceId: null,
@@ -735,8 +747,7 @@ export class TableSession {
     const local = this.localProjection(state);
     const canInteract = this.canAct();
     const canHandleTable = this.canHandle();
-    const renderedPieces = piecesOnPlates(projectPublicCarries(local.pieces, remote), state.pieces);
-    const reservedPieceIds = new Set(remote.flatMap((carry) => carry.reservedIds));
+    const { renderedPieces, reservedPieceIds, ...remoteIds } = remoteView(local.pieces, remote, state.pieces);
     return {
       viewer,
       snapshot: displayed,
@@ -793,7 +804,7 @@ export class TableSession {
             }
           : undefined,
       closePeek: canInteract && displayed.peek ? () => this.closePeek(displayed.peek!.piece.id) : undefined,
-      ...remoteCarryIds(remote, state.pieces),
+      ...remoteIds,
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
       hoveredPieceId: this.hoveredId,

@@ -3,6 +3,7 @@ import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
 import type { Disclosure } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
+import type { TablePiece } from '@shared/play/model';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
@@ -2304,5 +2305,76 @@ describe('unanswered commands', () => {
     socket().deliver({ type: 'rejected', requestId: commands()[0]!.commandId, message: 'The table changed.' });
     client.moveStormBy(1);
     expect(commands()).toHaveLength(5);
+  });
+});
+
+describe('a plate another player carries', () => {
+  const plateItem = {
+    id: 'hms-item',
+    faceUp: true,
+    artwork: {
+      front: 'https://dune.zone/hms.jpg',
+      back: 'https://dune.zone/hms.jpg',
+      name: 'HMS',
+      type: 'token-pointer',
+    },
+  };
+  const withPlate = (): GameSnapshot => {
+    const snapshot = initialSnapshot();
+    const troop = snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
+    const at = (x: number): TablePiece['position'] => [x, 0.132, 1];
+    const pieces: TablePiece[] = [
+      {
+        ...troop,
+        id: 'hms',
+        items: [plateItem],
+        stackKey: 'token:hms',
+        position: at(0),
+        orientation: 0,
+        locked: false,
+      },
+      { ...troop, id: 'free', items: [{ id: 'free-item', faceUp: true }], position: at(-0.2), locked: false },
+      {
+        ...troop,
+        id: 'held-from',
+        items: [
+          { id: 'held-a', faceUp: true },
+          { id: 'held-b', faceUp: true },
+        ],
+        position: at(0.2),
+        locked: false,
+      },
+    ];
+    return { ...snapshot, table: { ...snapshot.table, pieces } };
+  };
+  const carry = (id: string, held: TablePiece, reservedIds: string[]) => ({
+    ...viewer,
+    connectionId: id,
+    id,
+    held,
+    withdrawnCounts: {},
+    reservedIds,
+    expiresAt: Date.now() + 8000,
+  });
+
+  test('takes its riders along on this page, but not a stack someone else is taking from', async () => {
+    const client = await connected();
+    const snapshot = withPlate();
+    const plate = snapshot.table.pieces.find((piece) => piece.id === 'hms')!;
+    const heldFrom = snapshot.table.pieces.find((piece) => piece.id === 'held-from')!;
+    socket().deliver(
+      view({
+        snapshot,
+        carries: [
+          carry('alice', { ...plate, position: [-2, 0.38, -1] }, ['hms']),
+          carry('bob', { ...heldFrom, id: 'bob-held', items: heldFrom.items.slice(0, 1) }, ['held-from']),
+        ],
+      })
+    );
+    expect(renderedPiece(client, 'free')?.position).toEqual(
+      [-2.2, 0.38 + 0.05, -1].map((value) => expect.closeTo(value))
+    );
+    expect(renderedPiece(client, 'held-from')?.position).toEqual(heldFrom.position);
+    expect([...table(client).remoteRiders]).toEqual([['free', 'hms']]);
   });
 });
