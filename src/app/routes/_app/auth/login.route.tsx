@@ -1,14 +1,13 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Button, Group, Stack, Text, TextInput } from '@mantine/core';
+import { Button, Stack, Text, TextInput } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ControlBlock } from '@ui/control/ControlBlock';
-import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { ArrowRight } from 'lucide-react';
 import { useReducer } from 'react';
 import type { SVGProps } from 'react';
 import { SiDiscord } from 'react-icons/si';
@@ -17,6 +16,8 @@ import { authProviderNames, useSignInProviders } from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
+
+import styles from './login.module.css';
 
 export const Route = createFileRoute('/_app/auth/login')({
   head: () => pageHead('Sign in'),
@@ -105,8 +106,12 @@ function SignInPanel({ providers }: { providers: ReturnType<typeof useSignInProv
     }
   };
   return (
-    <Section title="Welcome" description="Sign in with your preferred account to continue.">
-      <Stack gap="md">
+    <Section
+      title="Enter Arrakis"
+      description="Sign in to build factions, write rulesets and join games."
+      alignment="center"
+    >
+      <Stack gap="sm">
         {state.error && <FormError title="Sign-in could not start">{state.error}</FormError>}
         {localAuthEnabled ? (
           <Stack component="form" gap="sm" onSubmit={(event) => void localLogin(event)}>
@@ -138,32 +143,30 @@ function SignInPanel({ providers }: { providers: ReturnType<typeof useSignInProv
         ) : providers ? (
           providers.map((method) => {
             const name = authProviderNames[method.provider];
-            const icon =
-              method.provider === 'google' ? (
-                <GoogleColoredMark width={24} height={24} />
-              ) : (
-                <SiDiscord size={24} aria-hidden />
-              );
             return (
-              <ControlBlock
+              <Button
                 key={method.provider}
-                title={name}
-                input={
-                  <Group justify="space-between">
-                    <StatusBadge tone="neutral">{method.available ? 'Available' : 'Currently unavailable'}</StatusBadge>
-                    <IconAction
-                      label={`Continue with ${name}`}
-                      icon={icon}
-                      size="xl"
-                      intent="neutral"
-                      emphasis="standard"
-                      loading={state.busy === method.provider}
-                      disabled={state.busy !== null || !method.available}
-                      onClick={() => void socialLogin(method.provider)}
-                    />
-                  </Group>
+                className={styles.provider}
+                variant="default"
+                size="lg"
+                fullWidth
+                justify="space-between"
+                leftSection={<ProviderMark provider={method.provider} />}
+                rightSection={
+                  method.available ? (
+                    <ArrowRight size={18} aria-hidden />
+                  ) : (
+                    <Text span size="xs" c="dimmed">
+                      Unavailable
+                    </Text>
+                  )
                 }
-              />
+                loading={state.busy === method.provider}
+                disabled={state.busy !== null || !method.available}
+                onClick={() => void socialLogin(method.provider)}
+              >
+                Continue with {name}
+              </Button>
             );
           })
         ) : (
@@ -171,8 +174,19 @@ function SignInPanel({ providers }: { providers: ReturnType<typeof useSignInProv
             Loading sign-in methods
           </StatusBadge>
         )}
+        <Text size="xs" c="dimmed" ta="center">
+          No password to remember. Your first sign-in creates your account.
+        </Text>
       </Stack>
     </Section>
+  );
+}
+
+function ProviderMark({ provider }: { provider: AuthProvider }) {
+  return provider === 'google' ? (
+    <GoogleColoredMark width={22} height={22} />
+  ) : (
+    <SiDiscord size={22} className={styles.discord} aria-hidden />
   );
 }
 
@@ -181,22 +195,24 @@ function LoginPage() {
   const providers = useSignInProviders();
   return (
     <PageLayout>
-      <PageLayout.Header>
+      <PageLayout.Header size="compact">
         <PageTitle title="Sign in" />
       </PageLayout.Header>
       <PageLayout.Content>
-        <Surface padding="lg">
-          {profile.data ? (
-            <Section title="You're signed in">
-              <Stack gap="sm">
-                <Text>{profile.data.username ?? 'Player'}</Text>
-                <Link to="/">Go to home</Link>
-              </Stack>
-            </Section>
-          ) : (
-            <SignInPanel providers={providers} />
-          )}
-        </Surface>
+        <div className={styles.column}>
+          <Surface padding="xl">
+            {profile.data ? (
+              <Section title="You're signed in">
+                <Stack gap="sm">
+                  <Text>{profile.data.username ?? 'Player'}</Text>
+                  <Link to="/">Go to home</Link>
+                </Stack>
+              </Section>
+            ) : (
+              <SignInPanel providers={providers} />
+            )}
+          </Surface>
+        </div>
       </PageLayout.Content>
     </PageLayout>
   );

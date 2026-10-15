@@ -1,0 +1,15 @@
+/* A sign-in card reads as one decision, so it stays narrow and centred however wide the window is. */
+.column {
+  width: 100%;
+  max-width: 28rem;
+  margin-inline: auto;
+}
+
+.provider {
+  border-width: 2px;
+}
+
+/* Discord's mark keeps its own brand colour, as Google's does. */
+.discord {
+  color: #5865f2;
+}
