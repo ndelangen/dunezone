@@ -6,11 +6,13 @@
       "tools/svg-authoring"
     ],
     "catalog": {
-      "vite": "npm:@voidzero-dev/vite-plus-core@1.1.0",
-      "vitest": "5.0.3",
-      "vite-plus": "1.1.0",
       "@vitest/browser-playwright": "5.0.3",
-      "@vitest/coverage-v8": "5.0.3"
+      "@vitest/coverage-v8": "5.0.3",
+      "oxfmt": "0.72.0",
+      "oxlint": "1.87.0",
+      "vite": "npm:@voidzero-dev/vite-plus-core@1.1.0",
+      "vite-plus": "1.1.0",
+      "vitest": "5.0.3"
     }
   },
   "type": "module",
@@ -179,7 +181,8 @@
     "knip": "6.40.0",
     "miniflare": "5.20261006.0-alpha",
     "monocart-coverage-reports": "2.13.1",
-    "oxfmt": "0.72.0",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
     "playwright": "1.63.0",
     "recursive-readdir-files": "^2.3.2",
     "sharp": "0.35.5",
