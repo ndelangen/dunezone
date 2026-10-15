@@ -1,0 +1,82 @@
+diff --git a/dist/cli.bundle.cjs b/dist/cli.bundle.cjs
+index 62bf695a798..0062c6a79aa 100644
+--- a/dist/cli.bundle.cjs
++++ b/dist/cli.bundle.cjs
+@@ -116905,2 +116905,2 @@ function apiCodegen(modulePaths, opts) {
+-  export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
+-  export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
++  export declare const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">>;
++  export declare const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">>;
+@@ -116940 +116940 @@ const fullApi: ApiFromModules<{
+-}> = anyApi as any;
++}> = anyApi as unknown as typeof fullApi;
+@@ -116950 +116950 @@ const fullApi: ApiFromModules<{
+-export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> = anyApi as any;
++export const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">> = anyApi as unknown as typeof api;
+@@ -116960 +116960 @@ export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> =
+-export const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">> = anyApi as any;
++export const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">> = anyApi as unknown as typeof internal;
+@@ -118714 +118714 @@ async function* codegenStaticApiObjectsTS(ctx, analysis) {
+-  yield "= anyApi as any;";
++  yield "= anyApi as unknown as typeof api;";
+@@ -118721 +118721 @@ async function* codegenStaticApiObjectsTS(ctx, analysis) {
+-  yield "= anyApi as any;";
++  yield "= anyApi as unknown as typeof internal;";
+@@ -118748 +118748 @@ async function* codegenDynamicApiObjects(ctx, componentDirectory) {
+-    export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
++    export declare const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">>;
+@@ -118750 +118750 @@ async function* codegenDynamicApiObjects(ctx, componentDirectory) {
+-    export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
++    export declare const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">>;
+@@ -118776 +118776 @@ async function* codegenDynamicApiObjectsTS(ctx, componentDirectory) {
+-  yield `}> = anyApi as any;`;
++  yield `}> = anyApi as unknown as typeof fullApi;`;
+@@ -118779 +118779 @@ async function* codegenDynamicApiObjectsTS(ctx, componentDirectory) {
+-    export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> = anyApi as any;
++    export const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">> = anyApi as unknown as typeof api;
+@@ -118781 +118781 @@ async function* codegenDynamicApiObjectsTS(ctx, componentDirectory) {
+-    export const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">> = anyApi as any;
++    export const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">> = anyApi as unknown as typeof internal;
+diff --git a/src/cli/codegen_templates/api.ts b/src/cli/codegen_templates/api.ts
+index ab167689024..fcc34a8f20d 100644
+--- a/src/cli/codegen_templates/api.ts
++++ b/src/cli/codegen_templates/api.ts
+@@ -113,2 +113,2 @@ export function apiCodegen(
+-  export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
+-  export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
++  export declare const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">>;
++  export declare const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">>;
+@@ -156 +156 @@ const fullApi: ApiFromModules<{
+-}> = anyApi as any;
++}> = anyApi as unknown as typeof fullApi;
+@@ -166 +166 @@ const fullApi: ApiFromModules<{
+-export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> = anyApi as any;
++export const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">> = anyApi as unknown as typeof api;
+@@ -176 +176 @@ export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> =
+-export const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">> = anyApi as any;
++export const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">> = anyApi as unknown as typeof internal;
+diff --git a/src/cli/codegen_templates/component_api.ts b/src/cli/codegen_templates/component_api.ts
+index 1734ef3c97b..fc58ffb2061 100644
+--- a/src/cli/codegen_templates/component_api.ts
++++ b/src/cli/codegen_templates/component_api.ts
+@@ -336 +336 @@ async function* codegenStaticApiObjectsTS(
+-  yield "= anyApi as any;";
++  yield "= anyApi as unknown as typeof api;";
+@@ -344 +344 @@ async function* codegenStaticApiObjectsTS(
+-  yield "= anyApi as any;";
++  yield "= anyApi as unknown as typeof internal;";
+@@ -377 +377 @@ async function* codegenDynamicApiObjects(
+-    export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
++    export declare const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">>;
+@@ -379 +379 @@ async function* codegenDynamicApiObjects(
+-    export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
++    export declare const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">>;
+@@ -411 +411 @@ async function* codegenDynamicApiObjectsTS(
+-  yield `}> = anyApi as any;`;
++  yield `}> = anyApi as unknown as typeof fullApi;`;
+@@ -414 +414 @@ async function* codegenDynamicApiObjectsTS(
+-    export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> = anyApi as any;
++    export const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">> = anyApi as unknown as typeof api;
+@@ -416 +416 @@ async function* codegenDynamicApiObjectsTS(
+-    export const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">> = anyApi as any;
++    export const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">> = anyApi as unknown as typeof internal;

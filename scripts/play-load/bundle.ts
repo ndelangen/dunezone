@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import { build } from 'esbuild';
 
-const entry = path.resolve(import.meta.dirname, 'run.mjs');
+const entry = path.resolve(import.meta.dirname, 'run.ts');
 const runnerBundle = path.resolve(import.meta.dirname, 'run.bundle.mjs');
 
 /**

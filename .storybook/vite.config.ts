@@ -4,7 +4,9 @@ import type { Plugin } from 'vite';
 
 import { reactCompiler } from '../scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from '../scripts/lib/threeRendererStack.ts';
+import { convexPackageMocks } from './convexPackageMocks.ts';
 import { pageStylesheetStaysWithItsStory } from './pageStylesheet.ts';
+import { storyImagesWorker } from './storyImagesWorker.ts';
 import {
   convexWorkerAliases,
   convexWorkerBuildPlugins,
@@ -81,11 +83,13 @@ export default defineConfig({
     // Keep Storybook path resolution aligned with the app config.
     ...({ tsconfigPaths: true } as Record<string, unknown>),
     alias: [
+      ...convexPackageMocks,
       ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),
       ...threeRendererStackAliases,
     ],
   },
   plugins: [
+    storyImagesWorker(),
     ...convexWorkerServePlugins(),
     pageStylesheetStaysWithItsStory(),
     viteReact(),

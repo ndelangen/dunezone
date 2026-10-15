@@ -341,7 +341,7 @@ finished game, the lobby's Past entry with its winner, and Continue playing back
 
 ### Real-game journeys
 
-`workers/game/journey.native.test.mjs` takes whole real games through the native workerd runtime,
+`workers/game/journey.native.test.ts` takes whole real games through the native workerd runtime,
 each on its own miniflare store with synthetic accounts and catalogue. Every other native suite
 proves one rule; these prove the rules still hold when one game passes through all of them.
 
@@ -456,7 +456,7 @@ Create a mode-0700 directory under the operating system temporary directory, rep
 directory; it must be replaced with its absolute path:
 
 ```sh
-bun --no-env-file scripts/verify-hosted-play-browser.mjs \
+bun --no-env-file scripts/verify-hosted-play-browser.ts \
   --origin http://127.0.0.1:8787 \
   --env-file /PRIVATE_TEMP/local.env \
   --credentials-file /PRIVATE_TEMP/browser-accounts.json \

@@ -57,7 +57,7 @@ export function Figure({ imageKey, alt, aspect, caption }: FigureProps) {
   const src = resolveAsset(imageKey, 'small');
   return (
     <figure className={styles.figure}>
-      <PublishedImage src={src} name={alt} aspect={aspect} radius="var(--mantine-radius-md)" />
+      <PublishedImage src={src} name={alt} aspect={aspect} radius="var(--mantine-radius-md)" raised />
       {/* `PublishedImage` draws its image only once the browser runs, so readers and crawlers without scripts get it here. */}
       <noscript>
         <img src={src} alt={alt} className={styles.fallback} />

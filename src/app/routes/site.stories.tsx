@@ -91,6 +91,22 @@ export const BlogPost = meta.story({
   },
 });
 
+/** The second post, about Tabletop Simulator: its title in the band, then screenshots, and links to the Workshop mods and the Iduali faction. */
+export const BlogPostTabletopSimulator = meta.story({
+  args: { path: '/blog/tabletop-simulator' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { level: 1, name: 'Building Dune on Tabletop Simulator' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'GF9 Dune 2019 (Discord Mod)' })).resolves.toHaveAttribute(
+      'href',
+      'https://steamcommunity.com/sharedfiles/filedetails/?id=1972622978'
+    );
+    await expect(page.findByRole('link', { name: 'Iduali' })).resolves.toHaveAttribute('href', '/factions/iduali');
+  },
+});
+
 export const BlogPostPhone = meta.story({
   args: { path: '/blog/why-dune' },
   globals: { viewport: { value: 'appMobile' } },

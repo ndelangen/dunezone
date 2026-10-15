@@ -9,7 +9,9 @@ import viteReact from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 
+import { convexPackageMocks } from './.storybook/convexPackageMocks.ts';
 import { pageStylesheetStaysWithItsStory } from './.storybook/pageStylesheet.ts';
+import { storyImagesWorker } from './.storybook/storyImagesWorker.ts';
 import {
   convexWorkerAliases,
   convexWorkerBuildPlugins,
@@ -82,11 +84,13 @@ export default defineConfig({
        (same cast as .storybook/vite.config.ts). */
     ...({ tsconfigPaths: true } as Record<string, unknown>),
     alias: [
+      ...convexPackageMocks,
       ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),
       ...threeRendererStackAliases,
     ],
   },
   plugins: [
+    storyImagesWorker(),
     ...convexWorkerServePlugins(),
     pageStylesheetStaysWithItsStory(),
     viteReact(),
