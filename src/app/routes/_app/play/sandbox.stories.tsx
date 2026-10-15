@@ -5,6 +5,7 @@ import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
 import { sandbox, sandboxDecorator, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
+import { setTableLayout } from './tableLayout';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -285,3 +286,11 @@ export const HiddenZone = meta.story({
 
 /** The battle beacon at the Battle phase: pick the acrylic disc up over the tracker's Battle disc and drop it on a territory; it lies flat and fades as the battle shows. */
 export const BattleBeacon = meta.story({ args: { step: chapter('Battle') } });
+
+/** The table between the controls and the players, the layout a viewer picks in the game menu; the separators either side of the table resize the columns. */
+export const ThreeColumns = meta.story({
+  beforeEach: () => {
+    setTableLayout('columns');
+    return () => setTableLayout('stacked');
+  },
+});

@@ -44,6 +44,8 @@ type SplitPanelsProps = PropsWithChildren<{
   label: string;
   /** Words for the primary panel's size, when a bare percentage would not say what it measures. */
   valueText?: (size: number) => string;
+  /** Hears the primary panel's size once a drag or a key settles it, so a caller can remember it. */
+  onSizeChange?: (size: number) => void;
 }>;
 
 type Orientation = SplitPanelsProps['orientation'];
@@ -151,6 +153,7 @@ function SplitPanelsBase({
   pageStep,
   label,
   valueText,
+  onSizeChange,
   children,
 }: SplitPanelsProps) {
   const primaryId = useId();
@@ -180,6 +183,16 @@ function SplitPanelsBase({
     observer.observe(layout);
     return () => observer.disconnect();
   }, [limits, orientation]);
+
+  /* Only a size the reader settled is reported: none while a drag is under way, and none for the default. */
+  const reportedSize = useRef(defaultSize);
+  const settled = state.pointerId === null;
+  useEffect(() => {
+    if (settled && state.size !== reportedSize.current) {
+      reportedSize.current = state.size;
+      onSizeChange?.(state.size);
+    }
+  }, [settled, state.size, onSizeChange]);
 
   /* A separator concealed while it holds focus gives it up: not every browser moves focus off a hidden element. */
   useEffect(() => {

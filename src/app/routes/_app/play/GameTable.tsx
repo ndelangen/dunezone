@@ -51,6 +51,16 @@ import {
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import { TableLabelsContext } from './tableLabels';
 import type { TableLabels } from './tableLabels';
+import {
+  controlsColumnLimits,
+  playersColumnLimits,
+  setControlsColumnPercent,
+  setPlayersColumnPercent,
+  useColumnsFit,
+  useControlsColumnPercent,
+  usePlayersColumnPercent,
+  useTableLayout,
+} from './tableLayout';
 import { TableWait } from './TableWait';
 
 /* How long the shell waits for the renderer before opening anyway. */
@@ -801,6 +811,9 @@ export function GameTable({
   const gestureActive = useTabletopSelector((table) => table.gestureActivePieceId !== null);
   const heldOverlays = useHeldOverlays();
   const tableLabels = usePinnedLabels();
+  const columnsFit = useColumnsFit();
+  const controlsColumnPercent = useControlsColumnPercent();
+  const playersColumnPercent = usePlayersColumnPercent();
   const frame = stageFrame(stage);
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
@@ -834,6 +847,53 @@ export function GameTable({
     return () => clearTimeout(timer);
   }, [handleSceneReady]);
 
+  const columns = useTableLayout() === 'columns' && columnsFit;
+  const scene = (
+    <>
+      <TableKeyboardContext value={tableKeyboard}>
+        <TabletopScene
+          className="scene scene--immersive"
+          cameraView={cameraView}
+          onSceneReady={handleSceneReady}
+          onInteractionActiveChange={handleInteractionActiveChange}
+          seatCount={seatCount}
+          tableProgress={tableProgress}
+          stage={stage}
+          mapVisible={mapVisible}
+        >
+          {sceneContent}
+        </TabletopScene>
+      </TableKeyboardContext>
+
+      {stageOverlay && (
+        <div className="seated-stage-overlay" inert={overlaysInert}>
+          {stageOverlay}
+        </div>
+      )}
+    </>
+  );
+  const camera = (
+    <SceneCamera
+      hidden={Boolean(stageOverlay)}
+      activeView={viewState.activeView}
+      preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
+      onSelect={(view) => dispatchView({ type: 'view.selected', view })}
+    />
+  );
+  const controls = (
+    <TableControlsPanel
+      panelTabs={panelTabs}
+      focusTab={focusTab}
+      openOn={openOn}
+      tableControls={tableControls}
+      tableGuidance={tableGuidance}
+      panelContent={panelContent}
+      word={frame.word}
+      tableTab={frame.tableTab}
+      showStormControls={showStormControls}
+    />
+  );
+
   return (
     <PointerSessionContext value={pointerSession}>
       <TableLabelsContext value={tableLabels}>
@@ -846,6 +906,7 @@ export function GameTable({
               {...darkSchemeIslandAttributes}
               data-board-gesture-active={overlaysInert}
               data-table-view={viewState.activeView}
+              data-table-layout={columns ? 'columns' : 'stacked'}
               data-show-counts={heldOverlays.counts || tableLabels.pinned.counts}
               data-show-names={heldOverlays.names || tableLabels.pinned.names}
             >
@@ -879,62 +940,71 @@ export function GameTable({
                 </div>
               </header>
 
-              <SplitPanels
-                orientation="horizontal"
-                primary="second"
-                defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
-                limits={controlsPanelLimits}
-                step={KEYBOARD_STEP_PERCENT}
-                pageStep={KEYBOARD_PAGE_STEP_PERCENT}
-                label="Resize controls panel"
-                valueText={controlsPanelValueText}
-              >
-                <SplitPanels.First>
-                  <TableKeyboardContext value={tableKeyboard}>
-                    <TabletopScene
-                      className="scene scene--immersive"
-                      cameraView={cameraView}
-                      onSceneReady={handleSceneReady}
-                      onInteractionActiveChange={handleInteractionActiveChange}
-                      seatCount={seatCount}
-                      tableProgress={tableProgress}
-                      stage={stage}
-                      mapVisible={mapVisible}
-                    >
-                      {sceneContent}
-                    </TabletopScene>
-                  </TableKeyboardContext>
-
-                  {stageOverlay && (
-                    <div className="seated-stage-overlay" inert={overlaysInert}>
-                      {stageOverlay}
+              {columns ? (
+                <SplitPanels
+                  orientation="vertical"
+                  defaultSize={controlsColumnPercent}
+                  limits={controlsColumnLimits}
+                  step={KEYBOARD_STEP_PERCENT}
+                  pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+                  label="Resize controls column"
+                  onSizeChange={setControlsColumnPercent}
+                >
+                  <SplitPanels.First>
+                    <div className="seated-controls-panel seated-controls-panel--column" inert={overlaysInert}>
+                      {controls}
                     </div>
-                  )}
-                </SplitPanels.First>
-                <SplitPanels.Second>
-                  <div ref={measureDock} className="seated-controls-panel" inert={overlaysInert}>
-                    <SceneCamera
-                      hidden={Boolean(stageOverlay)}
-                      activeView={viewState.activeView}
-                      preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
-                      onSelect={(view) => dispatchView({ type: 'view.selected', view })}
-                    />
-                    <PanelPanes secondary={playerPanel}>
-                      <TableControlsPanel
-                        panelTabs={panelTabs}
-                        focusTab={focusTab}
-                        openOn={openOn}
-                        tableControls={tableControls}
-                        tableGuidance={tableGuidance}
-                        panelContent={panelContent}
-                        word={frame.word}
-                        tableTab={frame.tableTab}
-                        showStormControls={showStormControls}
-                      />
-                    </PanelPanes>
-                  </div>
-                </SplitPanels.Second>
-              </SplitPanels>
+                  </SplitPanels.First>
+                  <SplitPanels.Second>
+                    {playerPanel ? (
+                      <SplitPanels
+                        orientation="vertical"
+                        primary="second"
+                        defaultSize={playersColumnPercent}
+                        limits={playersColumnLimits}
+                        step={KEYBOARD_STEP_PERCENT}
+                        pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+                        label="Resize players column"
+                        onSizeChange={setPlayersColumnPercent}
+                      >
+                        <SplitPanels.First>
+                          {scene}
+                          <div className="seated-column-camera">{camera}</div>
+                        </SplitPanels.First>
+                        <SplitPanels.Second>
+                          <div className="seated-controls-panel seated-controls-panel--column" inert={overlaysInert}>
+                            {playerPanel}
+                          </div>
+                        </SplitPanels.Second>
+                      </SplitPanels>
+                    ) : (
+                      <>
+                        {scene}
+                        <div className="seated-column-camera">{camera}</div>
+                      </>
+                    )}
+                  </SplitPanels.Second>
+                </SplitPanels>
+              ) : (
+                <SplitPanels
+                  orientation="horizontal"
+                  primary="second"
+                  defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
+                  limits={controlsPanelLimits}
+                  step={KEYBOARD_STEP_PERCENT}
+                  pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+                  label="Resize controls panel"
+                  valueText={controlsPanelValueText}
+                >
+                  <SplitPanels.First>{scene}</SplitPanels.First>
+                  <SplitPanels.Second>
+                    <div ref={measureDock} className="seated-controls-panel" inert={overlaysInert}>
+                      {camera}
+                      <PanelPanes secondary={playerPanel}>{controls}</PanelPanes>
+                    </div>
+                  </SplitPanels.Second>
+                </SplitPanels>
+              )}
             </div>
           </div>
         </DarkSchemeIsland>

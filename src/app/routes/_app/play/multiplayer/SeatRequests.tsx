@@ -1,4 +1,4 @@
-import { Button, Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
+import { Button, Group, Menu, Popover, Radio, Select, Slider, Stack, Text } from '@mantine/core';
 import { idleBidding } from '@shared/play/bidding';
 import type { PublicControls } from '@shared/play/inventory';
 import { seatLabel, seatSubject } from '@shared/play/participation';
@@ -27,6 +27,8 @@ import {
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
+import { setTableLayout, useColumnsFit, useTableLayout } from '../tableLayout';
+import type { TableLayout } from '../tableLayout';
 import { publicControlsOf } from './publicControls';
 import { isSpectator } from './tableFactions';
 
@@ -297,6 +299,31 @@ export function requestedSeats(table: TableProjection): ReadonlySet<string> {
   );
 }
 
+/* Where this viewer's controls and players sit around the table; it stays in this browser and never reaches the game. */
+function TableLayoutChoice() {
+  const layout = useTableLayout();
+  const fits = useColumnsFit();
+  const labelId = useId();
+  return (
+    <Stack role="group" aria-labelledby={labelId} gap={6} px="sm" py="xs" miw={200}>
+      <Text id={labelId} size="sm">
+        Table layout
+      </Text>
+      <Radio.Group value={layout} onChange={(value) => setTableLayout(value as TableLayout)}>
+        <Stack gap={6}>
+          <Radio size="xs" value="stacked" label="Board on top" />
+          <Radio size="xs" value="columns" label="Three columns" />
+        </Stack>
+      </Radio.Group>
+      {layout === 'columns' && !fits && (
+        <Text size="xs" c="dimmed">
+          Widen the window to see the columns.
+        </Text>
+      )}
+    </Stack>
+  );
+}
+
 /* This viewer's table brightness; it stays in this browser and never reaches the game. */
 function TableLightingSlider() {
   const lighting = useTableLighting();
@@ -405,6 +432,7 @@ export function GameMenu({
       <Menu.Dropdown>
         {sharing}
         <Menu.Divider />
+        <TableLayoutChoice />
         <TableLightingSlider />
         <TablePanSpeedSlider />
         <TableLabelItems />
