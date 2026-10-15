@@ -2,7 +2,7 @@ import { UnstyledButton } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { Play } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import styles from './postContent.module.css';
@@ -87,11 +87,19 @@ export function YouTube({
   caption?: ReactNode;
 }) {
   const [playing, setPlaying] = useState(false);
+  const player = useRef<HTMLIFrameElement>(null);
+  /* The play button goes away when pressed, so the player takes the focus and a keyboard reader keeps their place. */
+  useEffect(() => {
+    if (playing) {
+      player.current?.focus();
+    }
+  }, [playing]);
   return (
     <figure className={styles.figure}>
       <div className={styles.video}>
         {playing ? (
           <iframe
+            ref={player}
             className={styles.player}
             src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1`}
             title={title}

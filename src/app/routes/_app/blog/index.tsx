@@ -16,7 +16,7 @@ export const Route = createFileRoute('/_app/blog/')({
   ssr: true,
   head: () =>
     publicPageHead({
-      name: 'Developer blog',
+      name: 'Building Dune Zone',
       kind: 'Dune board game tools',
       pathname: '/blog',
       description:
