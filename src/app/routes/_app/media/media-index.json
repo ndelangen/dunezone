@@ -5607,25 +5607,25 @@
     "description": "Dryeuh. Illustrated head-and-shoulders character portrait. Forehead diamond, short beard and brown scarf.",
     "tags": ["portrait", "head", "diamond", "illustration"],
     "subjects": ["people", "symbols"],
-    "sourceHash": "d87539a0e438e6e2e2ff344499c01a7e600628c42e468830d910a0b2567e751a"
+    "sourceHash": "8d663fe6acd75ac8ede074bee4d35e8c36156f613e79c21f29a2b5586984e50a"
   },
   "/image/leader/official/duncan.png": {
     "description": "Duncan. Illustrated head-and-shoulders character portrait. Short brown hair and green uniform.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "362aa280f84ce6ecbb34e523e22c59632d2e90908411daacba497df41b17b2f8"
+    "sourceHash": "14d2d75078b3abbd7fbc5218c6b5ed3dd70320575976f61ce5c7edd73935b6c5"
   },
   "/image/leader/official/gurney.png": {
     "description": "Gurney. Illustrated head-and-shoulders character portrait. Short blond hair and green uniform.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "8cf45b4bc8bc74149fc5ca51e7e62eeb8e4e158ed99ef541ecb9e2040d5f31f3"
+    "sourceHash": "9e570a128511cf5a9f7ad02b28335160024fc1e5f9834acc2501f8bf43ac7067"
   },
   "/image/leader/official/jessica.png": {
     "description": "Jessica. Illustrated head-and-shoulders character portrait. Long brown hair and headband.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "8d3977939db0e63131087e7e42f8475bdb80ec26bad2ce5a473cf45f20b8d4a4"
+    "sourceHash": "da403ec1a1756825579a4f9b625ff3ebc892f0ee0971eb9fce691a3afdb9a4f4"
   },
   "/image/leader/official/paul.jpg": {
     "description": "Paul. Illustrated head-and-shoulders character portrait. Short dark hair and green uniform.",
@@ -5637,7 +5637,7 @@
     "description": "Thufir. Illustrated head-and-shoulders character portrait. Gray hair and mustache with a red cloak.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "75196b534e50c62d6649b4de8969db22a6d2cc1ae2f0039157a1a87cbaab74c1"
+    "sourceHash": "f297853baace49bdc4e7a25fb00c0d300b421ec0b82e23cf479b43e15783b96b"
   },
   "/image/leader/official/baron.jpg": {
     "description": "Baron. Illustrated head-and-shoulders character portrait. Broad face and orange patterned coat.",
@@ -5649,49 +5649,49 @@
     "description": "Beast. Illustrated head-and-shoulders character portrait. Bald head and black-gold coat.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "cd0f60aa4cc204b11aaf25e5aa9c0f0bf11134fb5756afdf4b7e82953404996a"
+    "sourceHash": "5e5dcad902437ea754c2fb35d22231dbf2225a7c9f080ff333bcbe083850e13f"
   },
   "/image/leader/official/feyd.png": {
     "description": "Feyd. Illustrated head-and-shoulders character portrait. Dark hair and white ruffled collar.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "731a3ad2c0155787e177b785f586710332a8f10a789d017471c5ccbb469bd83b"
+    "sourceHash": "911be8f690fc79eccab551505acae2ae85a0c6a4202c947d0cfb2e5a447c2cb6"
   },
   "/image/leader/official/nafud.png": {
     "description": "Nafud. Illustrated head-and-shoulders character portrait. Red scarf and raised black collar.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "d264a8bbd3d3e159089ad42b6280731102e7bbcad5ab97c11e2057761f70eef0"
+    "sourceHash": "bc7d4970cd440d8e4bccc5902a2bc8fd9e9deebd06fac2abb9968c953a6e345d"
   },
   "/image/leader/official/piter.png": {
     "description": "Piter. Illustrated head-and-shoulders character portrait. Red hair and gray coat.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "794828f20f1a8fea542f2f0c3a543ab3620df4a330df7f1c90f27babac887c30"
+    "sourceHash": "937b3f8679437b9f763e5977e3da75000579c99c8acb70d8ebd0b230c5fbe72b"
   },
   "/image/leader/official/uman.png": {
     "description": "Uman. Illustrated head-and-shoulders character portrait. Goggles above the forehead.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "bc51f3a0bc4358dde9eecce913be8d1fde33102318d0ed64e63fd59b09d30151"
+    "sourceHash": "493c5da41bc0ff3024e8198aa53eb07e9dcc8545debcd17baf2327e2d9f5bad7"
   },
   "/image/leader/official/alia.png": {
     "description": "Alia. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "17712bcbf65f970e32a8d4aceab94a65eb1b360c61d4c8cc2b8c32f69279cadb"
+    "sourceHash": "3743ab758252c3958c857418638dfed10be9d8714cd84081454c56016727f713"
   },
   "/image/leader/official/irulan.png": {
     "description": "Irulan. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "e7c1dec058dea2bce6674d8ed1950006681ea2fda7266bfabab71965f035b4b4"
+    "sourceHash": "8846b2bd71006d5854b624358777dfc49b0be0cba78d5b09060c38f29599def9"
   },
   "/image/leader/official/lady-fenring.png": {
     "description": "Lady Fenring. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "8bfc17518323277a8d4389c1d5b27c970cbd67c31026d5653377600d51b48155"
+    "sourceHash": "53790e0e8a24fb455bb8c08c03a64f97026732601e063c00155aa8b4f1dbc2f7"
   },
   "/image/leader/official/mohiam.jpg": {
     "description": "Mohiam. Illustrated head-and-shoulders character portrait.",
@@ -5703,43 +5703,43 @@
     "description": "Ramallo. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "30d31969f0504c9e8e75f96139081a2150cc7fb991ceabe72af727abafc7480d"
+    "sourceHash": "f6dbc79268affe32ad6cb6d253f0d9ee843532470c7afe20c234d88a48e8cc85"
   },
   "/image/leader/official/wanna.png": {
     "description": "Wanna. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "d68628c49cb6ddc7d12714f4339fd42af7418408e4250d7dac03117dd783cc98"
+    "sourceHash": "a163129c0c18d62e82702e35811d90549803ecf7e564faf3e822f6e7e15caa89"
   },
   "/image/leader/official/aramsham.png": {
     "description": "Aramsham. Illustrated head-and-shoulders character portrait. Gray beard and brown coat.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "6dba5af3de94dc2d6f9429e204f1b276ef898db12f869dcd6161f5d7c49d2ba7"
+    "sourceHash": "59a2710e0d646f3c5130acf8b31cad8577acffbde480b89b92a8d290127b3f40"
   },
   "/image/leader/official/bashar.png": {
     "description": "Bashar. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "5d665242a26df7a04be684c9e25c0e652110961a6c127e877578b72012f6a83a"
+    "sourceHash": "e6e2559ea87f2ba26b64e7a3c19fff2d670086b0a735dfcf822212977747ee69"
   },
   "/image/leader/official/burseg.png": {
     "description": "Burseg. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "43c2fae878798eaae3b3aa61d7b9c4f6e5a6fab30a122655a58f6f87edab3d64"
+    "sourceHash": "285d998eacaa3b9ce829bda4dd44f77e2438de58bbdd715fcf65946ee5529b60"
   },
   "/image/leader/official/caid.png": {
     "description": "Caid. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "6da8f2a7dde7c35260211a5a59b2de916cd97c7d008f5d6d3cc69263732430f8"
+    "sourceHash": "776b5d96b43ce0fca4d26afc7d902486fc9d420d12c2b83c6535fda14c8562bf"
   },
   "/image/leader/official/hasimir.png": {
     "description": "Hasimir. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "1903b7ab00fa539bec7ab7296469b41c25a6cba83fed8ab5a09865f07ab1cdca"
+    "sourceHash": "69b18a4de8507ae82a3ff775c85aace46871df706a01048bc285f86e1103fe54"
   },
   "/image/leader/official/shadam.jpg": {
     "description": "Shadam. Illustrated head-and-shoulders character portrait.",
@@ -5751,13 +5751,13 @@
     "description": "Chani. Illustrated head-and-shoulders character portrait. Face paint, dark hair and brown scarf.",
     "tags": ["portrait", "head", "face", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "fcd7cfe1e8eb2185942f73975c582fb8b7051f9205826aa1e17921a1971169a5"
+    "sourceHash": "6f604dee12941a56247c4589cfad23233a08b4f09a405eba65b992aa843a882c"
   },
   "/image/leader/official/jamis.png": {
     "description": "Jamis. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "1e4cb2573f556ac00d9cd96cd8c032d32e0974a518e34c3347f179f9553c8306"
+    "sourceHash": "317e3ecb576c49d047f3fa1eb8a9e5f8feb7216d6a71c139dcaa238a0605b6f6"
   },
   "/image/leader/official/liet.jpg": {
     "description": "Liet. Illustrated head-and-shoulders character portrait.",
@@ -5769,25 +5769,25 @@
     "description": "Mapes. Illustrated head-and-shoulders character portrait. Long white hair and forehead markings.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "3d75bfba3a82cab013a7a82f25f1ee19d5e5b59d3e97d2bf50477964c8307790"
+    "sourceHash": "0be0b47426bf86e472c3e2c2dc18f85dd1231fe2158e92441829d6fa146858be"
   },
   "/image/leader/official/otheym.png": {
     "description": "Otheym. Illustrated head-and-shoulders character portrait. Goggles and dark beard.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "332b41722d71d906ae19566ebf23c38823cdc543328ff2dbbf124930d773bdc5"
+    "sourceHash": "ef0479c5f8b5965fca255dc55b639fef43a1acc605b263dcfb0eed545df28490"
   },
   "/image/leader/official/stilgar.png": {
     "description": "Stilgar. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "6e7a7de6083b6834b6bfb38c5b3dc4c9feff59cfffc6fc03f317919a2d7b44ab"
+    "sourceHash": "2905b5c7047bb919d5589be3f806e193a5b4a23af3f39b076917600598ca8797"
   },
   "/image/leader/official/bewt.png": {
     "description": "Bewt. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "6d95c9c362b65d98b2a99323f9c154fc227858b124da31d9eeff5c5b99c3e5b9"
+    "sourceHash": "8b8de4f2768724727b13d6e06e69cf8394a1d11c92648c7fb9fd763364a794bd"
   },
   "/image/leader/official/edric.jpg": {
     "description": "Edric. Illustrated head-and-shoulders character portrait. Elongated ridged alien head.",
@@ -5799,25 +5799,25 @@
     "description": "Esmar. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "bfc2c0d82af540aa2461e95f65ec4b245925445ac1822a471edce3b371faf81e"
+    "sourceHash": "b2d37b3fd7c94f708186a08b8e08642979be1472ffda7115d6ed6e2d9b92f9b7"
   },
   "/image/leader/official/guildrep.png": {
     "description": "Guildrep. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "36eaac8543e704ae2ea7e40033d18ba1e82ed0489de8813b025ab8c853b01bf6"
+    "sourceHash": "7b93578a8f522960aca486b4be91c4ddf08975859ddbd0078ccab390cca78ede"
   },
   "/image/leader/official/soo-soo-sook.png": {
     "description": "Soo Soo Sook. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "dd93366186695847d982b476e09c31d32a4b75d24448028d28e088228ae8937d"
+    "sourceHash": "04e72de309669777d368e70d1ab4869a4dba8470c83d9b2171533b73d8f3c5e7"
   },
   "/image/leader/official/staban.png": {
     "description": "Staban. Illustrated head-and-shoulders character portrait. Bald head, white mustache and red scarf.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "38431d0d898a58964ecfeb98fb470d6de745858c3725a7fd60c2bddd771f6106"
+    "sourceHash": "d5999bd60fd3b8d9a8e93903f6810bb00d1df6997c7710420e60dc7caf5242c6"
   },
   "/image/leader/official/cammar.png": {
     "description": "Cammar. Illustrated head-and-shoulders character portrait.",
@@ -6123,7 +6123,7 @@
     "description": "Smuggler2. Illustrated head-and-shoulders character portrait. Dark round goggles.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "5d021b9fca7a0cfdb943648ae56ab080b87d2db7cff010064471eed663b123cc"
+    "sourceHash": "2b614a6f9b7085f2aea0fa44b6b4bd68e7d37d17980219bcbadd22dcef0add5b"
   },
   "/image/leader/brainfood/bain.png": {
     "description": "Bain. Illustrated head-and-shoulders character portrait.",
