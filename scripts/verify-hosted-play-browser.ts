@@ -1035,7 +1035,8 @@ async function tableInstalled(who: HostedPeer) {
 /**
  * In the page: the projection once three reads, each two frames apart, agree;
  * `remounted` when the table uninstalled `window.__duneTable` meanwhile;
- * `null` when the camera kept moving until `timeoutMs`.
+ * the frames drawn and the last reads, with the page's scroll, when the camera kept moving until `timeoutMs`.
+ * A failure then shows whether the camera moved, the page scrolled or too few frames were drawn.
  * The camera eases to a newly focused view over several frames, and a software renderer draws them slowly.
  */
 async function settledProjection({ value, timeoutMs }: { value: Vector3Tuple; timeoutMs: number }) {
@@ -1044,16 +1045,23 @@ async function settledProjection({ value, timeoutMs }: { value: Vector3Tuple; ti
   const agree = (a: Point, b: Point) => Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5;
   let previous = read();
   let agreeing = 0;
+  let frames = 0;
+  const recent: { x: number; y: number; scrollY: number }[] = [];
   while (previous && agreeing < 2 && performance.now() < deadline) {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    frames += 2;
     const current = read();
     agreeing = current && agree(current, previous) ? agreeing + 1 : 0;
     previous = current;
+    if (current) {
+      recent.push({ x: current.x, y: current.y, scrollY: window.scrollY });
+      recent.splice(0, recent.length - 4);
+    }
   }
   if (!previous) {
     return 'remounted';
   }
-  return agreeing === 2 ? previous : null;
+  return agreeing === 2 ? previous : { frames, recent };
 }
 /**
  * The page coordinates of a table position, projected through the camera the page renders once that camera has settled.
@@ -1063,14 +1071,15 @@ async function point(who: HostedPeer, position: Vector3Tuple) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     await tableInstalled(who);
     const settled = await who.page.evaluate(settledProjection, { value: position, timeoutMs: 10_000 });
-    if (settled === null) {
+    if (settled === 'remounted') {
+      continue;
+    }
+    if ('frames' in settled) {
       throw new Error(
-        `${who.label}'s camera did not settle within 10 s, so the table position has no stable page point.`
+        `${who.label}'s camera did not settle within 10 s, so the table position has no stable page point; ${settled.frames} frames, last reads ${JSON.stringify(settled.recent)}.`
       );
     }
-    if (settled !== 'remounted') {
-      return settled;
-    }
+    return settled;
   }
   throw new Error(`${who.label}'s table remounted during three projections in a row.`);
 }
