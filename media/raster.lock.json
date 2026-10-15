@@ -7649,6 +7649,24 @@
     "isOpaque": true,
     "color": "#080808"
   },
+  "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
+    "sha256": "ebb942756691887e5cc052071f1378942bd59c51d37bf777e206be33ea884afc",
+    "bytes": 246873,
+    "width": 2400,
+    "height": 620,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#181808"
+  },
+  "/web/blog/drawing-dune-tokens-and-cards/token-details.jpg": {
+    "sha256": "b1ecde01f526df3acfac44754e3d5ff21192010398cef556d9c9ba8f21f1b829",
+    "bytes": 382295,
+    "width": 1900,
+    "height": 1636,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#182838"
+  },
   "/web/blog/tabletop-simulator/abomination.jpg": {
     "sha256": "113a383e19f3ce97fabb03519d15fc407cbd4bded9026efd90e559eef828634d",
     "bytes": 67388,

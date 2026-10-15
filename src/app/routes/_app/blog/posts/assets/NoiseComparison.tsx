@@ -1,16 +1,24 @@
 import { ColorInput, Group, SimpleGrid, Slider, Stack, Switch, Text, UnstyledButton } from '@mantine/core';
-import { Background } from '@game/assets/utils/Background';
 import type { Background as BackgroundSchema } from '@shared/factions/schema';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { useId, useReducer } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
-import styles from './NoiseComparison.module.css';
+import { Background } from '@game/assets/utils/Background';
+
 import { THUFIR } from './figures';
+import styles from './NoiseComparison.module.css';
 
 /** The noise settings a 2021 faction stored, as the `Pattern` type in the old GraphQL schema named them. */
-type Pattern = Readonly<{ seed: number; octaves: number; surface: number; azimuth: number; elevation: number; color: string }>;
+type Pattern = Readonly<{
+  seed: number;
+  octaves: number;
+  surface: number;
+  azimuth: number;
+  elevation: number;
+  color: string;
+}>;
 
 /* `pattern1`, the preset every faction started from in November 2021, in the House Atreides colour of the time. */
 const PATTERN_1: Pattern = { seed: 201, octaves: 4, surface: 5, azimuth: 15, elevation: 55, color: '#444515' };
@@ -52,7 +60,8 @@ function reduce(state: State, event: Event): State {
 
 /**
  * The 2021 generated paper beside today's photo textures, each with the settings an author had.
- * The left side is the November 2021 filter rebuilt with its five numbers; the right side is the `Background` renderer the site draws with.
+ * The left side rebuilds the November 2021 filter with its five numbers.
+ * The right side is the `Background` renderer the site draws with.
  */
 export function NoiseComparison() {
   const [state, dispatch] = useReducer(reduce, { pattern: PATTERN_1, texture: THUFIR.background });
@@ -67,7 +76,12 @@ export function NoiseComparison() {
           <div className={styles.disc} style={{ color: pattern.color }}>
             <svg viewBox="0 0 300 300" role="img" aria-label="Noise generated in the browser, lit like paper">
               <filter id={filter} x="0" y="0" width="100%" height="100%">
-                <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves={pattern.octaves} seed={pattern.seed} />
+                <feTurbulence
+                  type="fractalNoise"
+                  baseFrequency="0.03"
+                  numOctaves={pattern.octaves}
+                  seed={pattern.seed}
+                />
                 <feDiffuseLighting lightingColor="currentColor" surfaceScale={pattern.surface}>
                   <feDistantLight azimuth={pattern.azimuth} elevation={pattern.elevation} />
                 </feDiffuseLighting>
@@ -77,21 +91,56 @@ export function NoiseComparison() {
           </div>
           <SimpleGrid cols={2} spacing="md" verticalSpacing="sm">
             <Setting label="Seed" value={pattern.seed}>
-              <Slider min={1} max={400} value={pattern.seed} onChange={(seed) => dispatch({ type: 'pattern', change: { seed } })} label={null} />
+              <Slider
+                min={1}
+                max={400}
+                value={pattern.seed}
+                onChange={(seed) => dispatch({ type: 'pattern', change: { seed } })}
+                label={null}
+              />
             </Setting>
             <Setting label="Octaves" value={pattern.octaves}>
-              <Slider min={1} max={8} value={pattern.octaves} onChange={(octaves) => dispatch({ type: 'pattern', change: { octaves } })} label={null} />
+              <Slider
+                min={1}
+                max={8}
+                value={pattern.octaves}
+                onChange={(octaves) => dispatch({ type: 'pattern', change: { octaves } })}
+                label={null}
+              />
             </Setting>
             <Setting label="Surface" value={pattern.surface}>
-              <Slider min={1} max={15} value={pattern.surface} onChange={(surface) => dispatch({ type: 'pattern', change: { surface } })} label={null} />
+              <Slider
+                min={1}
+                max={15}
+                value={pattern.surface}
+                onChange={(surface) => dispatch({ type: 'pattern', change: { surface } })}
+                label={null}
+              />
             </Setting>
             <Setting label="Light direction" value={`${pattern.azimuth}°`}>
-              <Slider min={0} max={360} value={pattern.azimuth} onChange={(azimuth) => dispatch({ type: 'pattern', change: { azimuth } })} label={null} />
+              <Slider
+                min={0}
+                max={360}
+                value={pattern.azimuth}
+                onChange={(azimuth) => dispatch({ type: 'pattern', change: { azimuth } })}
+                label={null}
+              />
             </Setting>
             <Setting label="Light height" value={`${pattern.elevation}°`}>
-              <Slider min={10} max={90} value={pattern.elevation} onChange={(elevation) => dispatch({ type: 'pattern', change: { elevation } })} label={null} />
+              <Slider
+                min={10}
+                max={90}
+                value={pattern.elevation}
+                onChange={(elevation) => dispatch({ type: 'pattern', change: { elevation } })}
+                label={null}
+              />
             </Setting>
-            <ColorInput size="xs" label="Colour" value={pattern.color} onChange={(color) => dispatch({ type: 'pattern', change: { color } })} />
+            <ColorInput
+              size="xs"
+              label="Colour"
+              value={pattern.color}
+              onChange={(color) => dispatch({ type: 'pattern', change: { color } })}
+            />
           </SimpleGrid>
         </Stack>
         <Stack gap="md">
@@ -113,19 +162,48 @@ export function NoiseComparison() {
           </Group>
           <SimpleGrid cols={2} spacing="md" verticalSpacing="sm">
             <Setting label="Definition" value={(texture.definition ?? 0).toFixed(2)}>
-              <Slider min={0} max={1} step={0.01} value={texture.definition ?? 0} onChange={(definition) => dispatch({ type: 'texture', change: { definition } })} label={null} />
+              <Slider
+                min={0}
+                max={1}
+                step={0.01}
+                value={texture.definition ?? 0}
+                onChange={(definition) => dispatch({ type: 'texture', change: { definition } })}
+                label={null}
+              />
             </Setting>
             <Setting label="Influence" value={(texture.influence ?? 0).toFixed(2)}>
-              <Slider min={0} max={1} step={0.01} value={texture.influence ?? 0} onChange={(influence) => dispatch({ type: 'texture', change: { influence } })} label={null} />
+              <Slider
+                min={0}
+                max={1}
+                step={0.01}
+                value={texture.influence ?? 0}
+                onChange={(influence) => dispatch({ type: 'texture', change: { influence } })}
+                label={null}
+              />
             </Setting>
-            <ColorInput size="xs" label="Colour one" value={String(texture.colors[0])} onChange={(value) => dispatch({ type: 'colour', index: 0, value })} />
-            <ColorInput size="xs" label="Colour two" value={String(texture.colors[1])} onChange={(value) => dispatch({ type: 'colour', index: 1, value })} />
-            <Switch label="Invert" checked={texture.invert ?? true} onChange={(event) => dispatch({ type: 'texture', change: { invert: event.currentTarget.checked } })} />
+            <ColorInput
+              size="xs"
+              label="Colour one"
+              value={String(texture.colors[0])}
+              onChange={(value) => dispatch({ type: 'colour', index: 0, value })}
+            />
+            <ColorInput
+              size="xs"
+              label="Colour two"
+              value={String(texture.colors[1])}
+              onChange={(value) => dispatch({ type: 'colour', index: 1, value })}
+            />
+            <Switch
+              label="Invert"
+              checked={texture.invert ?? true}
+              onChange={(event) => dispatch({ type: 'texture', change: { invert: event.currentTarget.checked } })}
+            />
           </SimpleGrid>
         </Stack>
       </SimpleGrid>
       <figcaption className={styles.caption}>
-        Left, the noise filter from November 2021 with the five numbers every faction stored. Right, the renderer dune.zone uses today, set up as House Atreides.
+        Left, the noise filter from November 2021 with the five numbers every faction stored. Right, the renderer
+        dune.zone uses today, set up as House Atreides.
       </figcaption>
     </figure>
   );

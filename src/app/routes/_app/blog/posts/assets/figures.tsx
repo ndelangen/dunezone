@@ -1,11 +1,12 @@
+import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
+import { treacheryToCustomCard } from '@shared/assets/treacheryToCustomCard';
+import type { ComponentProps } from 'react';
+
 import { CardBack } from '@game/assets/card/Back';
 import { CustomCard } from '@game/assets/card/Custom';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { card } from '@game/data/sizes';
 import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
-import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
-import { treacheryToCustomCard } from '@shared/assets/treacheryToCustomCard';
-import type { ComponentProps } from 'react';
 
 import { ExplodedView } from './ExplodedView';
 import type { ExplodedLayer } from './ExplodedView';
@@ -56,7 +57,8 @@ const TOKEN_LAYERS: readonly ExplodedLayer[] = [
   },
   {
     title: 'Mask',
-    description: 'A disc with room cut out around the number and the emblem. Never drawn itself, it decides where the portrait and ring show.',
+    description:
+      'A disc with room cut out around the number and the emblem. Never drawn itself, it decides where the portrait and ring show.',
     content: (
       <LeaderTokenLayer part="mask">
         <LeaderToken {...THUFIR} />
@@ -135,9 +137,21 @@ const backLayer = (index: number) => (
 const BACK_LAYERS: readonly ExplodedLayer[] = [
   { title: 'Background', description: 'Two colours and a texture, like a token’s background.', content: backLayer(1) },
   { title: 'Underlay', description: 'The gold disc, cut in GIMP in 2021.', content: backLayer(2) },
-  { title: 'Icon', description: 'A vector drawn three times in soft light, so it takes the colour of what is under it.', content: backLayer(3) },
-  { title: 'Overlay', description: 'The gold frame and ornaments, also from the 2021 GIMP files.', content: backLayer(4) },
-  { title: 'Label', description: 'A gold gradient seen through the letters, with a shade on their lower edge.', content: backLayer(5) },
+  {
+    title: 'Icon',
+    description: 'A vector drawn three times in soft light, so it takes the colour of what is under it.',
+    content: backLayer(3),
+  },
+  {
+    title: 'Overlay',
+    description: 'The gold frame and ornaments, also from the 2021 GIMP files.',
+    content: backLayer(4),
+  },
+  {
+    title: 'Label',
+    description: 'A gold gradient seen through the letters, with a shade on their lower edge.',
+    content: backLayer(5),
+  },
 ];
 
 export function CardBackLayers() {
@@ -173,10 +187,18 @@ const FRONT_LAYERS: readonly ExplodedLayer[] = [
   { title: 'Small decals', description: 'A row of small vector symbols, behind the frame.', content: frontLayer(2) },
   { title: 'Lasgun', description: 'The main vector decal, with an outline around it.', content: frontLayer(3) },
   { title: 'Head', description: 'The title band: two colours and a texture.', content: frontLayer(4) },
-  { title: 'Shade', description: 'Shading in soft light. Alone it looks black; on the card it shapes the title band.', content: frontLayer(5) },
+  {
+    title: 'Shade',
+    description: 'Shading in soft light. Alone it looks black; on the card it shapes the title band.',
+    content: frontLayer(5),
+  },
   { title: 'Frame', description: 'The printed card frame with its window, a 2021 GIMP layer.', content: frontLayer(6) },
   { title: 'Rules', description: 'The card text, set in Candara.', content: frontLayer(7) },
-  { title: 'Symbol', description: 'The round type badge: its own background and a vector icon.', content: frontLayer(8) },
+  {
+    title: 'Symbol',
+    description: 'The round type badge: its own background and a vector icon.',
+    content: frontLayer(8),
+  },
   { title: 'Title', description: 'Copperplate Gothic, shrunk to fit long names.', content: frontLayer(9) },
   { title: 'Type', description: 'The line under the title.', content: frontLayer(10) },
 ];

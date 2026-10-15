@@ -943,6 +943,8 @@ export const MEDIA_MAP: Readonly<Record<string, MediaMapEntry>> = {
   '/image/texture/080.jpg': ['3e191cb33b94605cb8bd', '#f8f8f8'],
   '/image/texture/081.jpg': ['a2ce280b7acc39f54d70', '#080808'],
   '/image/texture/082.jpg': ['4e47f3e5fc4284ed21ac', '#080808'],
+  '/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg': ['ebb942756691887e5cc0', '#181808'],
+  '/web/blog/drawing-dune-tokens-and-cards/token-details.jpg': ['b1ecde01f526df3acfac', '#182838'],
   '/web/blog/tabletop-simulator/abomination.jpg': ['113a383e19f3ce97fabb', '#f8f8c8'],
   '/web/blog/tabletop-simulator/battle-wheels.jpg': ['f8cf1fe8b56433fdbe57', '#383838'],
   '/web/blog/tabletop-simulator/bidder-next.jpg': ['d04f92f523ab114e5f9c', '#181818'],

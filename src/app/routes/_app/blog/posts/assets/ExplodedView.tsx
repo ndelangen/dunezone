@@ -71,22 +71,15 @@ export function ExplodedView({
   whole: ReactNode;
   caption?: ReactNode;
 }>) {
-  const reducedMotion = useMemo(
-    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    []
-  );
-  const [state, dispatch] = useReducer(reduce, {
-    apart: reducedMotion ? 1 : 0,
-    readerHolds: reducedMotion,
-    focused: null,
-  });
+  const [state, dispatch] = useReducer(reduce, { apart: 0, readerHolds: false, focused: null });
   const stage = useRef<HTMLDivElement>(null);
   const sliderLabel = useId();
 
   /* Scroll position and stage width are read from the page, so this subscribes to both. */
   useEffect(() => {
     const element = stage.current!;
-    const fit = () => element.style.setProperty('--fit', String((element.clientWidth * 0.62) / Math.max(width, height)));
+    const fit = () =>
+      element.style.setProperty('--fit', String((element.clientWidth * 0.62) / Math.max(width, height)));
     const scrolled = () => {
       const { top, height: tall } = element.getBoundingClientRect();
       const progress = (window.innerHeight - top) / (window.innerHeight + tall);
@@ -100,6 +93,11 @@ export function ExplodedView({
     const resize = new ResizeObserver(fit);
     resize.observe(element);
     fit();
+    /* A reader who asked for less motion gets the layers apart and still, without the scroll animation. */
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      dispatch({ type: 'slid', apart: 1 });
+      return () => resize.disconnect();
+    }
     scrolled();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {

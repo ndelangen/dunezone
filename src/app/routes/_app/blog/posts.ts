@@ -32,14 +32,15 @@ export type BlogPostMeta = {
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'drawing-dune-tokens-and-cards': {
     slug: 'drawing-dune-tokens-and-cards',
-    title: 'How dune.zone draws its Dune leader tokens and cards',
+    title: 'Drawing Dune leader tokens and cards: GIMP layers, SVG masks and photo textures',
     date: '2026-10-15',
     author: 'Central419',
-    summary: 'Draft.',
+    summary:
+      'How the leader tokens and cards on dune.zone are drawn, layer by layer, from GIMP files I made in 2021 to SVG masks and photo textures, traced through the git history of my old projects.',
     cover: {
-      key: '/web/blog/why-dune/tts-central419.jpg',
-      alt: 'Draft cover',
-      aspect: 1416 / 2048,
+      key: '/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg',
+      alt: 'The House Atreides leader tokens on dune.zone: Lady Jessica, Thufir Hawat, Paul Atreides, Gurney Halleck, Duncan Idaho and Doctor Yueh',
+      aspect: 620 / 2400,
     },
   },
   'tabletop-simulator': {

@@ -23,6 +23,12 @@
 
 /* The stage is taller than wide, so a stack of up to a dozen planes has room above and below the object. */
 .stage {
+  /* Defaults for the first paint; the component writes the live values inline. */
+  --apart: 0;
+  --fit: 1;
+  --natural-width: 300px;
+  --natural-height: 300px;
+
   position: relative;
   justify-self: center;
   width: 100%;
@@ -43,6 +49,8 @@
 
 /* Every plane is the whole renderer at its natural size, centred on the scene's origin and lifted by its place in the stack. */
 .plane {
+  --index: 0;
+
   position: absolute;
   top: calc(var(--natural-height) * var(--fit) / -2);
   left: calc(var(--natural-width) * var(--fit) / -2);
