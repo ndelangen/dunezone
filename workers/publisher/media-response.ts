@@ -3,8 +3,7 @@
  * Both serve content-addressed R2 objects, so a hit is cacheable forever and every refusal is `no-store`.
  *
  * A 200 for `/m` or a legacy raster URL is also kept in the edge cache, so repeat reads in a colo stay off the bucket (#1888 follow-up).
- * The cache key for `/m` is the URL alone, since a variant name never changes meaning.
- * A legacy URL can point at a new variant on any release, so its key also names the variant it resolved to: a remapped URL misses the edge at once, while browsers keep the hour-long policy the answer carries.
+ * The cache key is the URL alone: a variant name never changes meaning, and a legacy answer carries its own hour-long policy, which the cache honours.
  * Refusals are `no-store` and never enter it.
  */
 
@@ -30,11 +29,9 @@ function edgeCache(serving: MediaServing): MediaCache | undefined {
   return typeof caches === 'undefined' ? undefined : caches.default;
 }
 
-/** The URL path, and for a legacy URL the variant it resolved to, so a remapped legacy URL never answers from the previous release's copy. */
-function cacheKey(request: Request, variant?: string): Request {
+function cacheKey(request: Request): Request {
   const url = new URL(request.url);
-  const prefix = variant === undefined ? '' : `/__legacy/${encodeURIComponent(variant)}`;
-  return new Request(`${url.origin}${prefix}${url.pathname}`, { method: 'GET' });
+  return new Request(`${url.origin}${url.pathname}`, { method: 'GET' });
 }
 
 function report(event: string): void {
@@ -42,18 +39,14 @@ function report(event: string): void {
 }
 
 /** The edge's copy of the answer to a `GET` or `HEAD`, with the same 304 and `HEAD` handling as a bucket read, or null when the edge has none. */
-export async function cachedResponse(
-  request: Request,
-  serving: MediaServing,
-  variant?: string
-): Promise<Response | null> {
+export async function cachedResponse(request: Request, serving: MediaServing): Promise<Response | null> {
   const cache = edgeCache(serving);
   if (!cache || (request.method !== 'GET' && request.method !== 'HEAD')) {
     return null;
   }
   let hit: Response | undefined;
   try {
-    hit = await cache.match(cacheKey(request, variant));
+    hit = await cache.match(cacheKey(request));
   } catch {
     report('media_cache_match');
     return null;
@@ -78,12 +71,12 @@ export async function cachedResponse(
 }
 
 /** Keeps a copy of a `GET` 200 at the edge for the next reader and returns the response itself untouched. */
-export function remembered(request: Request, response: Response, serving: MediaServing, variant?: string): Response {
+export function remembered(request: Request, response: Response, serving: MediaServing): Response {
   const cache = edgeCache(serving);
   if (!cache || request.method !== 'GET' || response.status !== 200) {
     return response;
   }
-  const stored = cache.put(cacheKey(request, variant), response.clone()).catch(() => report('media_cache_put'));
+  const stored = cache.put(cacheKey(request), response.clone()).catch(() => report('media_cache_put'));
   serving.ctx?.waitUntil(stored);
   return response;
 }

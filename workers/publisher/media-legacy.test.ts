@@ -73,7 +73,7 @@ describe('legacy media URLs', () => {
     expect(new Uint8Array(await first.arrayBuffer())).toEqual(bytesFor(TIER_URL));
     await answer('/web/logo.svg', environment, {}, cache.serving);
     await cache.settle();
-    expect([...cache.stored.keys()]).toEqual([`${ORIGIN}/__legacy/${legacyVariant(TIER_URL)}${TIER_URL}`]);
+    expect([...cache.stored.keys()]).toEqual([`${ORIGIN}${TIER_URL}`]);
 
     environment.MEDIA_BUCKET.objects.clear();
     const again = await answer(TIER_URL, environment, {}, cache.serving);
@@ -82,20 +82,6 @@ describe('legacy media URLs', () => {
     expect(again.headers.get('X-Media-SHA256')).toBe(SHA256);
     expect(new Uint8Array(await again.arrayBuffer())).toEqual(bytesFor(TIER_URL));
     expect(environment.ASSETS.requested).toEqual(['/web/logo.svg']);
-  });
-
-  test('miss the edge copy a previous release kept for the URL when the lock now maps it to another variant', async () => {
-    const cache = memoryCache();
-    const stale = new Uint8Array([1, 1, 1]);
-    const headers = new Headers({ 'Cache-Control': 'public, max-age=3600', 'X-Media-SHA256': 'f'.repeat(64) });
-    cache.stored.set(`${ORIGIN}${TIER_URL}`, { bytes: stale, headers });
-    cache.stored.set(`${ORIGIN}/__legacy/previous-variant.jpg${TIER_URL}`, { bytes: stale, headers });
-    const environment = env([TIER_URL]);
-
-    const response = await answer(TIER_URL, environment, {}, cache.serving);
-
-    expect(response.headers.get('X-Media-SHA256')).toBe(SHA256);
-    expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytesFor(TIER_URL));
   });
 
   test('serve a canonical URL from the capped re-encode', async () => {
