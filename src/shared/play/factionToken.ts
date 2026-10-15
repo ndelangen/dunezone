@@ -46,10 +46,17 @@ export function factionTokenRingPose(angle: number, height = 0): { position: Vec
   };
 }
 
+/** Whether a faction token stands on the ring, as every token set down since tokens kept to it does. */
+export function factionTokenOnRing(piece: Pick<TablePiece, 'position'>): boolean {
+  return Math.abs(Math.hypot(piece.position[0], piece.position[2]) - PLAYER_RING_RADIUS) < 0.05;
+}
+
 /** The storm sector a table point lies in. */
 export function sectorIndexAt(position: Readonly<Vector3Tuple>): number {
   const turn = (factionTokenRingAngle(position) / (Math.PI * 2) + 1) % 1;
-  return Math.floor(turn * TABLE_SECTOR_COUNT) % TABLE_SECTOR_COUNT;
+  /* Rounded first, so a point on a sector's edge falls in the same sector however far from the centre it lies. */
+  const sectors = Math.round(turn * TABLE_SECTOR_COUNT * 1e9) / 1e9;
+  return Math.floor(sectors) % TABLE_SECTOR_COUNT;
 }
 
 /** Where a faction token set down at `position` comes to rest: the centre of that sector, on the ring. */

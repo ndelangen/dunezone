@@ -256,6 +256,9 @@ export function rotatedPiece(state: TableState, piece: TablePiece, turns: number
 }
 
 function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1, steps = 1): TableState {
+  if (isFactionToken(piece)) {
+    throw new GameRejection(`${piece.label} always faces the board.`);
+  }
   const rotated = rotatedPiece(state, piece, direction * steps);
   if (!rotated) {
     throw new GameRejection(`There is no room to rotate ${piece.label} here.`);

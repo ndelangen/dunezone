@@ -110,7 +110,8 @@ function suppliedSnapshot(
       setup: initialSetup(
         factions.map(({ capture }) => capture),
         next.roster,
-        table.stormSectorIndex
+        table.stormSectorIndex,
+        table.pieces
       ),
       controls: { ...next.controls!, ready: [] },
     },

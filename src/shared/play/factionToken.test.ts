@@ -82,3 +82,19 @@ describe('faction tokens on the ring', () => {
     expect(stormOrder(3, roster, pieces)).toEqual(['fremen', 'emperor']);
   });
 });
+
+describe('faction tokens settle only where there is room', () => {
+  test('a piece resting at the sector centre keeps the token out', () => {
+    const fremen = token('fremen', 2);
+    const pose = factionTokenRingPose(tableSectorCenterAngle(9));
+    const card = freshTableState().pieces.find((piece) => piece.kind === 'card')!;
+    const state = tableWith(fremen, { ...card, position: [pose.position[0], 0.005, pose.position[2]] });
+    expect(dropAt(state, fremen, pose.position)).toBeNull();
+  });
+
+  test('a point on a sector edge lands in one sector whatever its distance from the centre', () => {
+    const edge = (Math.PI * 2 * 10) / 18;
+    const sectors = [1, 4.39, 9].map((radius) => sectorIndexAt([Math.cos(edge) * radius, 0, Math.sin(edge) * radius]));
+    expect(new Set(sectors).size).toBe(1);
+  });
+});

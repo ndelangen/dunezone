@@ -386,11 +386,30 @@ function anchoredStackTarget(
 /* A faction token settles at the centre of the sector it is over; a locked token already standing there keeps its place. */
 function settleFactionTokenAt(state: TableState, draft: DraftMove, piece: TablePiece, position: Vector3Tuple) {
   const pose = factionTokenSectorPose(position);
-  if (factionTokenInSector(state.pieces, pose.position, draft.sourcePieceId)?.locked) {
+  const occupant = factionTokenInSector(state.pieces, pose.position, draft.sourcePieceId);
+  if (occupant?.locked) {
     return null;
   }
-  const resting = restingPositionAt(pose.position, { ...piece, orientation: pose.orientation });
+  const obstacles = placementObstaclesFor(state, draft).filter((candidate) => candidate.id !== occupant?.id);
+  const placed = { ...piece, orientation: pose.orientation };
+  const resting = restingPositionAt(pose.position, placed);
+  if (!isOverlapFreePosition(placed, resting, obstacles)) {
+    return null;
+  }
+  if (occupant && !swapLandingIsClear(occupant, draft, obstacles)) {
+    return null;
+  }
   return { ...moveDraftTo(draft, resting, null), orientation: pose.orientation };
+}
+
+/* The token traded out takes the sector the carried one came from, which must be clear of everything but the two tokens. */
+function swapLandingIsClear(occupant: TablePiece, draft: DraftMove, obstacles: TablePiece[]) {
+  if (sectorIndexAt(occupant.position) === sectorIndexAt(draft.origin)) {
+    return true;
+  }
+  const pose = factionTokenSectorPose(draft.origin);
+  const moved = { ...occupant, orientation: pose.orientation };
+  return isOverlapFreePosition(moved, restingPositionAt(pose.position, moved), obstacles);
 }
 
 function settleMoveAtPosition(
@@ -733,7 +752,7 @@ function swappedFactionTokens(current: TableState, draft: DraftMove, piece: Tabl
     return null;
   }
   const pose = factionTokenSectorPose(draft.origin);
-  const moved = { ...occupant, orientation: pose.orientation };
+  const moved = { ...occupant, orientation: pose.orientation, zoneId: null };
   return {
     occupant,
     pieces: pieces.map((candidate) =>
