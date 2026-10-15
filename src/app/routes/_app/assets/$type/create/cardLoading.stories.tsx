@@ -48,11 +48,11 @@ export const CustomCardCopy = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await expect(page.findByRole('button', { name: 'Delete card' })).resolves.toBeVisible();
     const copy = await loadAssetPage('card-custom', 'battle-reference-1');
-    expect(copy?.asset.id).not.toEqual(source?.asset.id);
-    expect(copy?.asset.data).toEqual(source?.asset.data);
-    expect(copy?.assignedGroup).toBeNull();
-    expect(copy?.inDecks).toEqual([]);
-    expect((await loadAssetPage('card-custom', 'battle-reference'))?.asset.data).toEqual(source?.asset.data);
+    await expect(copy?.asset.id).not.toEqual(source?.asset.id);
+    await expect(copy?.asset.data).toEqual(source?.asset.data);
+    await expect(copy?.assignedGroup).toBeNull();
+    await expect(copy?.inDecks).toEqual([]);
+    await expect((await loadAssetPage('card-custom', 'battle-reference'))?.asset.data).toEqual(source?.asset.data);
   },
 });
 
@@ -72,7 +72,7 @@ export const CancelAndReset = meta.story({
     await userEvent.click(page.getByRole('button', { name: /^Load card$/ }));
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
     await expect(name).toHaveValue('');
-    expect(page.queryByRole('tab', { name: '1. Text' })).toBeNull();
+    await expect(page.queryByRole('tab', { name: '1. Text' })).toBeNull();
   },
 });
 
@@ -83,12 +83,12 @@ export const TreacheryCardCopy = meta.story({
     const name = await page.findByRole('textbox', { name: 'Name' });
     await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
     await userEvent.click(await waitForFrame(() => page.getByRole('option', { name: /Lasgun/ })));
-    expect(page.queryByRole('option', { name: /Arsunt|Battle reference/ })).toBeNull();
+    await expect(page.queryByRole('option', { name: /Arsunt|Battle reference/ })).toBeNull();
     await userEvent.click(page.getByRole('button', { name: /^Load card$/ }));
     await expect(name).toHaveValue('Lasgun');
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await expect(page.findByRole('button', { name: 'Delete card' })).resolves.toBeVisible();
-    expect((await loadAssetPage('card-treachery', 'lasgun-1'))?.asset.data).toEqual(
+    await expect((await loadAssetPage('card-treachery', 'lasgun-1'))?.asset.data).toEqual(
       (await loadAssetPage('card-treachery', 'lasgun'))?.asset.data
     );
   },
@@ -105,7 +105,7 @@ export const SpiceCardCopy = meta.story({
     await expect(name).toHaveValue('Arsunt');
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await expect(page.findByRole('button', { name: 'Delete card' })).resolves.toBeVisible();
-    expect((await loadAssetPage('card-spice', 'arsunt-1'))?.asset.data).toEqual(publishingSpiceCard);
+    await expect((await loadAssetPage('card-spice', 'arsunt-1'))?.asset.data).toEqual(publishingSpiceCard);
   },
 });
 
@@ -123,15 +123,15 @@ export const StormCardCopy = meta.story({
     await expect(page.findByRole('button', { name: 'Delete card' })).resolves.toBeVisible();
     const source = await loadAssetPage('card-storm', '3-sectors');
     const copy = await loadAssetPage('card-storm', '3-sectors-1');
-    expect(copy?.asset.id).not.toEqual(source?.asset.id);
-    expect(copy?.asset.data).toEqual(source?.asset.data);
-    expect(copy?.inDecks).toEqual([]);
+    await expect(copy?.asset.id).not.toEqual(source?.asset.id);
+    await expect(copy?.asset.data).toEqual(source?.asset.data);
+    await expect(copy?.inDecks).toEqual([]);
     await userEvent.click(page.getByRole('combobox', { name: 'Storm movement' }));
     await userEvent.click(await page.findByRole('option', { name: /^6 sectors$/ }));
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await waitFor(() => expect(page.getByRole('button', { name: 'Save card' })).toHaveAccessibleDescription(/Saved/));
-    expect((await loadAssetPage('card-storm', '3-sectors-1'))?.asset.data).toMatchObject({ sectors: 6 });
-    expect((await loadAssetPage('card-storm', '3-sectors'))?.asset.data).toEqual(source?.asset.data);
+    await expect((await loadAssetPage('card-storm', '3-sectors-1'))?.asset.data).toMatchObject({ sectors: 6 });
+    await expect((await loadAssetPage('card-storm', '3-sectors'))?.asset.data).toEqual(source?.asset.data);
   },
 });
 
@@ -165,8 +165,8 @@ export const NarrowToolbar = meta.story({
     const search = await waitForFrame(() => page.getByRole('searchbox', { name: 'Search cards' }));
     await waitFor(() => expect(search).toBeVisible());
     const box = search.getBoundingClientRect();
-    expect(box.left).toBeGreaterThanOrEqual(0);
-    expect(box.right).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientWidth);
+    await expect(box.left).toBeGreaterThanOrEqual(0);
+    await expect(box.right).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientWidth);
   },
 });
 

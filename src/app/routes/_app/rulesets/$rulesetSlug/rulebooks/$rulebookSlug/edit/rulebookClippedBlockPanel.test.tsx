@@ -4,7 +4,7 @@ import { MantineProvider, TextInput } from '@mantine/core';
 import type { RulebookBlockKind } from '@shared/rulebooks/contents';
 import { cleanup, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { RulebookClippedBlockPanel } from './rulebookClippedBlockPanel';
 

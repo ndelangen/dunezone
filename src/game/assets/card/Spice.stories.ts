@@ -25,8 +25,8 @@ export const Arsunt = meta.story({
       getComputedStyle(element).backgroundImage.includes('/image/card/base-full-large.webp')
     );
 
-    expect(shape).toBeDefined();
-    expect(getComputedStyle(shape as HTMLElement).backgroundSize).toBe('100% 100%');
+    await expect(shape).toBeDefined();
+    await expect(getComputedStyle(shape as HTMLElement).backgroundSize).toBe('100% 100%');
   },
 });
 

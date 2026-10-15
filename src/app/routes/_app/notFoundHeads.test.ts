@@ -2,7 +2,7 @@ import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreac
 import type * as TanStackRouter from '@tanstack/react-router';
 import { createMemoryHistory, createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import { hydrate } from '@tanstack/react-router/ssr/client';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 import { pageHead } from '@app/routes/pageTitle';
 

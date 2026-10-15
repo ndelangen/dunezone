@@ -59,7 +59,7 @@ function htmlHeaders(object: R2Object, identity: DeliveryIdentity) {
   headers.set('Content-Type', 'text/html; charset=utf-8');
   headers.set('ETag', object.httpEtag);
   headers.set('Last-Modified', object.uploaded.toUTCString());
-  headers.set('Link', `<${new URL(canonicalPath, identity.publicBaseUrl)}>; rel="canonical"`);
+  headers.set('Link', `<${new URL(canonicalPath, identity.publicBaseUrl).href}>; rel="canonical"`);
   headers.set('X-Content-Type-Options', 'nosniff');
   if (identity.route.kind === 'edition') {
     headers.set('X-Robots-Tag', 'noindex');

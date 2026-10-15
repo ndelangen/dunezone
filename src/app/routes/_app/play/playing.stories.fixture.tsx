@@ -18,12 +18,12 @@ export function phaseControls(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
   const controls = () => within(page.getByRole('group', { name: 'Phase navigation' }));
   /* The table mounts once the connection settles, so each assertion reads the currently visible controls. */
-  const waitForPhase = (assert: () => void) =>
+  const waitForPhase = (assert: () => void | Promise<void>) =>
     waitFor(
-      () => {
-        expect(controls().getByRole('button', { name: 'More phase actions' })).toBeVisible();
-        expect(controls().getByRole('button', { name: 'Next phase' })).toBeVisible();
-        assert();
+      async () => {
+        await expect(controls().getByRole('button', { name: 'More phase actions' })).toBeVisible();
+        await expect(controls().getByRole('button', { name: 'Next phase' })).toBeVisible();
+        await assert();
       },
       { timeout: 30_000 }
     );
@@ -48,19 +48,19 @@ export { openControl as openTab };
 const SETTLE = { timeout: 30_000 } as const;
 
 /** Waits for the visible panel, which arrives with the connection. */
-export const settled = (assert: () => void) => waitFor(assert, SETTLE);
+export const settled = (assert: () => void | Promise<void>) => waitFor(assert, SETTLE);
 
-export function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number) {
+export async function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number) {
   const header = canvasElement.ownerDocument.querySelector('.seated-header');
   if (!(header instanceof HTMLElement)) {
     throw new TypeError('The hosted table header is missing.');
   }
   const phase = TABLE_PHASES[phaseIndex];
-  expect(within(header).queryByRole('img', { name: 'Dune' })).toBeNull();
-  expect(within(header).getByText(phase.label)).toBeVisible();
-  expect(header.querySelector('use')).toHaveAttribute('href', `${phase.symbol}#root`);
-  expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
-  expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
+  await expect(within(header).queryByRole('img', { name: 'Dune' })).toBeNull();
+  await expect(within(header).getByText(phase.label)).toBeVisible();
+  await expect(header.querySelector('use')).toHaveAttribute('href', `${phase.symbol}#root`);
+  await expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
+  await expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
 }
 
 /** The transport for `install`: a table with one shared inventory piece and one pending request from the other seat. */
@@ -202,9 +202,9 @@ export async function expectBattleCalloutPlacement(
   const page = within(canvasElement.ownerDocument.body);
   await waitForPlayCamera(canvasElement.ownerDocument);
   /* The scene writes the callout's position and shape only from inside its animation-frame callbacks, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1443). */
-  await waitForFrame(() => {
+  await waitForFrame(async () => {
     const cancel = page.getByRole('button', { name: 'Cancel battle' });
-    expect(cancel).toBeVisible();
+    await expect(cancel).toBeVisible();
     const callout = cancel.closest<HTMLElement>('[data-battle-stage]');
     if (!callout) {
       throw new TypeError('The battle callout is missing.');
@@ -220,18 +220,18 @@ export async function expectBattleCalloutPlacement(
     const centreX = bounds.left + bounds.width / 2;
     const centreY = bounds.top + bounds.height / 2;
     const verticalMidpoint = sceneBounds.top + sceneBounds.height / 2;
-    expect(bounds.width).toBeGreaterThan(0);
-    expect(Math.abs(centreX - viewport.width / 2)).toBeLessThanOrEqual(1);
+    await expect(bounds.width).toBeGreaterThan(0);
+    await expect(Math.abs(centreX - viewport.width / 2)).toBeLessThanOrEqual(1);
     if (expectedHalf === 'above') {
-      expect(centreY).toBeLessThan(verticalMidpoint);
+      await expect(centreY).toBeLessThan(verticalMidpoint);
     } else {
-      expect(centreY).toBeGreaterThan(verticalMidpoint);
+      await expect(centreY).toBeGreaterThan(verticalMidpoint);
     }
     const shapes = callout.querySelectorAll<SVGPathElement>('svg path');
-    expect(shapes).toHaveLength(1);
+    await expect(shapes).toHaveLength(1);
     const shape = shapes[0];
     const shapeBounds = shape.ownerSVGElement?.getBoundingClientRect();
-    expect(shapeBounds).toBeDefined();
+    await expect(shapeBounds).toBeDefined();
     const shapeRoot = shape.ownerSVGElement?.parentElement;
     const content = shapeRoot?.children.item(1);
     if (!shapeBounds || !content) {
@@ -240,15 +240,15 @@ export async function expectBattleCalloutPlacement(
     const contentBounds = content.getBoundingClientRect();
     const capsuleRadius = Math.min(shapeBounds.width / 2, contentBounds.height / 2);
     const arcRadii = Array.from(shape.getAttribute('d')?.matchAll(/\bA ([\d.]+) /g) ?? [], (match) => Number(match[1]));
-    expect(arcRadii.filter((radius) => Math.abs(radius - capsuleRadius) < 0.1)).toHaveLength(4);
+    await expect(arcRadii.filter((radius) => Math.abs(radius - capsuleRadius) < 0.1)).toHaveLength(4);
     const probe = shape.ownerSVGElement!.createSVGPoint();
     for (const direction of [-1, 1]) {
       probe.x = direction < 0 ? capsuleRadius * 0.27 : shapeBounds.width - capsuleRadius * 0.27;
       probe.y = contentBounds.height - capsuleRadius * 0.27;
-      expect(shape.isPointInFill(probe)).toBe(false);
+      await expect(shape.isPointInFill(probe)).toBe(false);
       probe.x = direction < 0 ? capsuleRadius * 0.31 : shapeBounds.width - capsuleRadius * 0.31;
       probe.y = contentBounds.height - capsuleRadius * 0.31;
-      expect(shape.isPointInFill(probe)).toBe(true);
+      await expect(shape.isPointInFill(probe)).toBe(true);
     }
     const pathLength = shape.getTotalLength();
     let closestDistance = Number.POSITIVE_INFINITY;
@@ -262,6 +262,6 @@ export async function expectBattleCalloutPlacement(
         )
       );
     }
-    expect(closestDistance).toBeLessThan(6);
+    await expect(closestDistance).toBeLessThan(6);
   }, SETTLE);
 }

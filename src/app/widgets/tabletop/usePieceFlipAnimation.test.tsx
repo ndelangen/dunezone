@@ -3,7 +3,7 @@
 import type { TablePiece } from '@shared/play/model';
 import { act, cleanup, render } from '@testing-library/react';
 import { Group } from 'three';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
 

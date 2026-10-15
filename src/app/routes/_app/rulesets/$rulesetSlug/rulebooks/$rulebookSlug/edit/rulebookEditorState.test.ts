@@ -1,5 +1,5 @@
 import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult } from './rulebookEditorState';

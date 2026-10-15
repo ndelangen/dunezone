@@ -139,21 +139,21 @@ export const ViewportContent = meta.story({
     const toolbar = canvasElement.querySelector<HTMLElement>('[data-page-layout-toolbar]');
     const content = canvasElement.querySelector<HTMLElement>('[data-page-layout-content]');
 
-    await waitFor(() => {
-      expect(toolbar).not.toBeNull();
-      expect(content).not.toBeNull();
+    await waitFor(async () => {
+      await expect(toolbar).not.toBeNull();
+      await expect(content).not.toBeNull();
 
       const toolbarRect = toolbar?.getBoundingClientRect();
       const contentRect = content?.getBoundingClientRect();
       const documentElement = canvasElement.ownerDocument.documentElement;
       const viewportWidth = documentElement.clientWidth;
 
-      expect(getComputedStyle(documentElement).scrollbarGutter).toBe('stable both-edges');
-      expect(documentElement.scrollHeight).toBeGreaterThan(documentElement.clientHeight);
-      expect(contentRect?.width).toBeCloseTo(viewportWidth - 40, 0);
-      expect(contentRect?.width).toBeGreaterThan(toolbarRect?.width ?? Number.POSITIVE_INFINITY);
-      expect(contentRect?.left).toBeCloseTo(20, 0);
-      expect(contentRect?.right).toBeCloseTo(viewportWidth - 20, 0);
+      await expect(getComputedStyle(documentElement).scrollbarGutter).toBe('stable both-edges');
+      await expect(documentElement.scrollHeight).toBeGreaterThan(documentElement.clientHeight);
+      await expect(contentRect?.width).toBeCloseTo(viewportWidth - 40, 0);
+      await expect(contentRect?.width).toBeGreaterThan(toolbarRect?.width ?? Number.POSITIVE_INFINITY);
+      await expect(contentRect?.left).toBeCloseTo(20, 0);
+      await expect(contentRect?.right).toBeCloseTo(viewportWidth - 20, 0);
     });
   },
 });

@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { legacyVariant } from '../../src/shared/media/legacyVariant';
 import { mediaVariantKey } from './media';

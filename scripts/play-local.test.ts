@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 /* scripts/lib/isolated-stack.test.ts covers the rule; these cases show that each backend URL option passes through it. */
 test.each([

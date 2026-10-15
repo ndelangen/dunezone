@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { DEFAULT_PHASE_PRIORITY } from '../../src/shared/factions/extraPhases';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';

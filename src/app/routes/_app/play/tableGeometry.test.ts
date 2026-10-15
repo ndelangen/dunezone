@@ -21,7 +21,7 @@ import {
 import { applyDraftToState, draftForGesture, settleCarryAtPosition } from '@shared/play/tableState';
 import { trackerArcSlots, TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { Raycaster, Vector2, Vector3 } from 'three';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { cameraPoseFor, tableCamera } from '../../../widgets/tabletop/playView';
 import { mapViewFramingPoints } from '../../../widgets/tabletop/tablePlateGeometry';

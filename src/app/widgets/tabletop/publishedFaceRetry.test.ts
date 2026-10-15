@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { unsettledArtworkLoads } from './artworkLoads';
 import { loadPublishedFace, sharedPublishedFaces } from './publishedFaceRetry';

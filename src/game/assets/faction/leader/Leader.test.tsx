@@ -3,7 +3,7 @@
 import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
 import { render } from '@testing-library/react';
 import type { ComponentProps } from 'react';
-import { expect, it } from 'vitest';
+import { expect, it } from 'vite-plus/test';
 
 import { LeaderToken } from './Leader';
 

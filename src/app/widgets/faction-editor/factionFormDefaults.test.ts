@@ -1,5 +1,5 @@
 import { FactionMemberIdSchema } from '@shared/factions/memberIdentity';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
 

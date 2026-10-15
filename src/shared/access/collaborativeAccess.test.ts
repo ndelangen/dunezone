@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { groupAccessForViewer, groupRosterCapabilities, groupSubjectFacts } from './collaborativeAccess';
 import type { AccessViewer, GroupRosterMemberFacts } from './collaborativeAccess';

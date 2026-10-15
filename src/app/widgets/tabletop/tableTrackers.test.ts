@@ -27,7 +27,7 @@ import {
 } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { Vector3 } from 'three';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { PHASE_DISC_COLOR } from './phaseSymbolLayout';
 import {

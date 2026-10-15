@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 import { convexTest } from 'convex-test';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { CARD_FRONT_PUBLICATION_REVISIONS, INITIAL_CARD_FRONT_PRESETS } from '../src/shared/assets/cardFrontPresets';
 import { GF9_LEADER_SKILLS } from '../src/shared/assets/gf9LeaderSkills';

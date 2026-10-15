@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import type { Id } from '../_generated/dataModel';
 import { evaluateCollaborativeAccess } from './collaborativeAccess';

@@ -143,10 +143,10 @@ export const ShortAbout = meta.story({
     await userEvent.tab();
     const chip = await page.findByRole('button', { name: /About: Ruleset About must be at least 50 characters/ });
     await userEvent.click(page.getByRole('button', { name: 'Create ruleset' }));
-    expect(page.queryByRole('heading', { name: 'Test Ruleset' })).toBeNull();
-    expect(chip).toBeVisible();
+    await expect(page.queryByRole('heading', { name: 'Test Ruleset' })).toBeNull();
+    await expect(chip).toBeVisible();
     await userEvent.click(chip);
-    expect(about).toHaveFocus();
+    await expect(about).toHaveFocus();
     await userEvent.type(about, ' It needs a fuller description before it can be created, which this now is.');
     await userEvent.click(page.getByRole('button', { name: 'Create ruleset' }));
     await expect(page.findByRole('heading', { name: 'Test Ruleset' }, { timeout: 30_000 })).resolves.toBeVisible();
@@ -160,6 +160,6 @@ export const SignedOut = meta.story({
     await expect(page.findByRole('heading', { name: 'Create ruleset' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     /* The gate frame, not the form: the settled signed-out answer must not leave the editor up. */
-    expect(page.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    await expect(page.queryByRole('textbox', { name: 'Name' })).toBeNull();
   },
 });

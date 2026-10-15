@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { applyBidding, BiddingRefusal, expireBid, idleBidding, reconcileBidding } from './bidding';
 import type { BiddingState } from './bidding';

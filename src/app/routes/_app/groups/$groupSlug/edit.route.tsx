@@ -62,7 +62,7 @@ function GroupEditor({ initial }: { initial: GroupEntry }) {
       {
         onSuccess: (entry) => {
           if (previousSlug !== entry.slug) {
-            navigate({
+            void navigate({
               to: '/groups/$groupSlug/edit',
               params: { groupSlug: entry.slug },
               replace: true,

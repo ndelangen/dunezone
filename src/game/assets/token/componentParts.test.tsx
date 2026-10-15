@@ -4,7 +4,7 @@ import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentG
 import { publishingRectangleTokenFace } from '@shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingTokenFace } from '@shared/assets/fixtures/publishingTokenFace';
 import { render } from '@testing-library/react';
-import { expect, it } from 'vitest';
+import { expect, it } from 'vite-plus/test';
 
 import { CustomToken } from './Custom';
 import { RectangleToken } from './Rectangle';

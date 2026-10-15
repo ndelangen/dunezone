@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, lazyPlugins } from "vite-plus";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -19,7 +19,7 @@ export default defineConfig({
       "three/examples/jsm/utils/BufferGeometryUtils.js",
     ],
   },
-  plugins: [
+  plugins: lazyPlugins(() => [
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tailwindcss(),
     tanstackStart({
@@ -28,5 +28,5 @@ export default defineConfig({
       },
     }),
     viteReact(),
-  ],
+  ]),
 });

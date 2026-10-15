@@ -311,7 +311,7 @@ function TableViewDial({
 }: {
   activeView: TableView;
   preferredView?: TableView;
-  onSelect(view: TableView): void;
+  onSelect: (view: TableView) => void;
 }) {
   return (
     <div className="camera-dial" role="group" aria-label="Table view">

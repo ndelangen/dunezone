@@ -592,7 +592,10 @@ export async function createPeer(): Promise<NativePeer> {
     }
   }
   function receiveQuerySet(connection: PeerConnection, data: RawData) {
-    const input: unknown = JSON.parse(data.toString());
+    /* A frame arrives as one Buffer, an ArrayBuffer or Buffer fragments depending on the socket's binaryType, and only a Buffer prints as its text. */
+    const input: unknown = JSON.parse(
+      (Array.isArray(data) ? Buffer.concat(data) : Buffer.isBuffer(data) ? data : Buffer.from(data)).toString()
+    );
     const message = frameTypeSchema.parse(input);
     peer.frames.push(message);
     if (message.type !== 'ModifyQuerySet') {

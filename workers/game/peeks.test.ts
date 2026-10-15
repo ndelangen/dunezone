@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { hasHiddenFace, PEEK_DECK_LIMIT, peekActionSchema } from '../../src/shared/play/peeking';
 import { piece, place } from '../../src/shared/play/setupSupply';

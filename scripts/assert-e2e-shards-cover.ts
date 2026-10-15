@@ -78,7 +78,9 @@ function validEntries(shard: string, files: unknown, problems: string[]) {
   return entries.filter((file): file is string => {
     const valid = typeof file === 'string' && SPEC_ENTRY.test(file);
     if (!valid) {
-      problems.push(`shard ${shard} lists ${file}, which is not a spec file directly under e2e`);
+      problems.push(
+        `shard ${shard} lists ${typeof file === 'string' ? file : JSON.stringify(file)}, which is not a spec file directly under e2e`
+      );
     }
     return valid;
   });

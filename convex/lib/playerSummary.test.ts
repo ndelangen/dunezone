@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import type { Doc, Id } from '../_generated/dataModel';
 import { playerSummary } from './playerSummary';

@@ -136,18 +136,18 @@ function withImages(image: string): FactionCatalogueEntry {
 export const Published = meta.story({
   args: { faction: withImages(publishedImage) },
   play: async ({ canvasElement }) => {
-    await waitFor(() => {
+    await waitFor(async () => {
       const images = canvasElement.querySelectorAll('img');
-      expect(images).toHaveLength(5);
-      expect([...images].every((image) => image.naturalWidth === 600)).toBe(true);
+      await expect(images).toHaveLength(5);
+      await expect([...images].every((image) => image.naturalWidth === 600)).toBe(true);
     });
   },
 });
 
 export const MissingPublications = meta.story({
   play: async ({ canvasElement }) => {
-    expect(within(canvasElement).getByText('LJ')).toBeVisible();
-    expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
+    await expect(within(canvasElement).getByText('LJ')).toBeVisible();
+    await expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
   },
 });
 
@@ -159,7 +159,7 @@ export const FailedPublications = meta.story({
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).findByRole('img', missingToken)).resolves.toBeVisible();
     await waitFor(() => expect(canvasElement.querySelectorAll('img')).toHaveLength(0));
-    expect(within(canvasElement).getByRole('link')).toHaveAttribute('href', '/factions/atreides');
+    await expect(within(canvasElement).getByRole('link')).toHaveAttribute('href', '/factions/atreides');
   },
 });
 
@@ -179,10 +179,10 @@ export const PublicationAfterFailure = meta.story({
     const canvas = within(canvasElement);
     await canvas.findByRole('img', missingToken);
     await userEvent.click(canvas.getByRole('button', { name: 'Use new publication' }));
-    await waitFor(() => {
+    await waitFor(async () => {
       const images = canvasElement.querySelectorAll('img');
-      expect(images).toHaveLength(5);
-      expect([...images].every((image) => image.naturalWidth === 600)).toBe(true);
+      await expect(images).toHaveLength(5);
+      await expect([...images].every((image) => image.naturalWidth === 600)).toBe(true);
     });
   },
 });
@@ -190,7 +190,7 @@ export const PublicationAfterFailure = meta.story({
 export const LiveDraftPreview = meta.story({
   args: { livePreview: true, faction: withImages(failedImage) },
   play: async ({ canvasElement }) => {
-    expect(within(canvasElement).getByLabelText('Lady Jessica')).toBeVisible();
-    expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
+    await expect(within(canvasElement).getByLabelText('Lady Jessica')).toBeVisible();
+    await expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
   },
 });

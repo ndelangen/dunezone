@@ -227,9 +227,9 @@ export const UntimedBidding = meta.story({
       try {
         clock.advance(13_000);
         await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent('7s'));
-        await waitFor(() => {
+        await waitFor(async () => {
           const offset = Number.parseFloat(getComputedStyle(arc).strokeDashoffset);
-          expect(offset).toBeCloseTo(65, 1);
+          await expect(offset).toBeCloseTo(65, 1);
         });
       } finally {
         animation.play();

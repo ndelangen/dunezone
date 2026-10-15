@@ -3,7 +3,7 @@
 import { MantineProvider } from '@mantine/core';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import type { ConversationView } from '../../../../db/tabletop/ConversationSession';
 import type { TableSession } from '../../../../db/tabletop/TableSession';

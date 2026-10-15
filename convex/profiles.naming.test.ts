@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import { applicationTriggers } from './lib/applicationTriggers';

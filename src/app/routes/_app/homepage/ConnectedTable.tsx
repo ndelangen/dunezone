@@ -68,8 +68,8 @@ export default function ConnectedTable({
   identity: string | null;
   className: string;
   sceneClassName: string;
-  onUnavailable(): void;
-  onHandlingChange(handling: boolean): void;
+  onUnavailable: () => void;
+  onHandlingChange: (handling: boolean) => void;
 }): ReactNode {
   const [subscription] = useState(() => new HomepageSubscription(runtime, null));
   const [session] = useState(() => new TableSession('homepage', subscription, runtime));

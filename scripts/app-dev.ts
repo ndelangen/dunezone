@@ -136,7 +136,7 @@ async function waitForOwnedViteUrl(url: string, readyFile: string, expectedPort:
 }
 
 function startVite(port: string, env: NodeJS.ProcessEnv) {
-  return spawn(process.execPath, ['x', 'vite', 'dev', '--port', port, '--strictPort'], {
+  return spawn(process.execPath, ['x', 'vp', 'dev', '--port', port, '--strictPort'], {
     cwd: rootDirectory,
     env,
     stdio: 'inherit',

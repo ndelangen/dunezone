@@ -6,7 +6,7 @@ import type { TablePiece } from '@shared/play/model';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import type { TableProjection, TableSession } from '../../db/tabletop/TableSession';
 import { stubMatchMedia } from '../../routes/_app/play/multiplayer/jsdom.test.fixture';
@@ -40,7 +40,7 @@ function liveTable(piece: TablePiece) {
   );
   return {
     controls,
-    show(next: TablePiece) {
+    show: (next: TablePiece) => {
       table = { ...table, peek: { piece: next } } as TableProjection;
       act(() => listeners.forEach((listener) => listener()));
     },

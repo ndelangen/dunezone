@@ -1,5 +1,5 @@
 /* @vitest-environment edge-runtime */
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import { playPerson, playRuleset, playTest } from './play.test.fixture';

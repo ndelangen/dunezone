@@ -21,13 +21,13 @@ async function tablePage(canvasElement: HTMLElement, phaseLabel: string = TABLE_
   const viewControls = await page.findByRole('group', { name: 'Table view' }, { timeout: 30_000 });
   const document = canvasElement.ownerDocument;
   await waitFor(
-    () => {
-      expect(viewControls).toBeVisible();
+    async () => {
+      await expect(viewControls).toBeVisible();
       const canvas = document.querySelector('.dune-play-shell canvas');
-      expect(canvas).toBeVisible();
-      expect(canvas?.getBoundingClientRect().height).toBeGreaterThan(100);
-      expect(document.querySelector('[data-piece-id="treachery-deck"]')).toHaveTextContent('10');
-      expect(
+      await expect(canvas).toBeVisible();
+      await expect(canvas?.getBoundingClientRect().height).toBeGreaterThan(100);
+      await expect(document.querySelector('[data-piece-id="treachery-deck"]')).toHaveTextContent('10');
+      await expect(
         Array.from(document.fonts).some(
           (font) => font.family.replaceAll('"', '') === 'Dune Play Table Label' && font.status === 'loaded'
         )
@@ -40,17 +40,17 @@ async function tablePage(canvasElement: HTMLElement, phaseLabel: string = TABLE_
     throw new Error('The Play route did not mount its table.');
   }
   await waitForPlayCamera(document);
-  expect(document.querySelector('[data-page-layout-height="fullscreen"]')).not.toBeNull();
+  await expect(document.querySelector('[data-page-layout-height="fullscreen"]')).not.toBeNull();
   const header = shell.querySelector('header');
   if (!header) {
     throw new Error('The table header is missing.');
   }
   /* The table runs to the top: no brand mark, only the floating phase and game chips. */
-  expect(within(header).queryByRole('img', { name: 'Dune' })).toBeNull();
-  expect(within(header).getByText(phaseLabel)).toBeVisible();
-  expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
-  expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
-  expect(page.queryByRole('link', { name: /^(Dune )?Play$/ })).toBeNull();
+  await expect(within(header).queryByRole('img', { name: 'Dune' })).toBeNull();
+  await expect(within(header).getByText(phaseLabel)).toBeVisible();
+  await expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
+  await expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
+  await expect(page.queryByRole('link', { name: /^(Dune )?Play$/ })).toBeNull();
   return { page, shell, document };
 }
 
@@ -62,8 +62,8 @@ export const OpensThroughAnIris = meta.story({
     const view = document.defaultView!;
     /* The runner's headless renderer may never report; the stage then opens on the fallback clock. */
     await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
-    expect(view.getComputedStyle(shell).animationName).toBe('dune-play-enter');
-    expect(within(document.body).queryByText('Opening the table...')).toBeNull();
+    await expect(view.getComputedStyle(shell).animationName).toBe('dune-play-enter');
+    await expect(within(document.body).queryByText('Opening the table...')).toBeNull();
   },
 });
 
@@ -79,13 +79,13 @@ export const OpensStill = meta.story({
     const view = document.defaultView!;
     const picker = within(shell).getByRole('group', { name: 'Table view' });
     for (const element of [shell, within(picker).getAllByRole('button')[0]!]) {
-      expect(Number.parseFloat(view.getComputedStyle(element).transitionDuration)).toBeLessThan(0.001);
-      expect(view.getComputedStyle(element).scrollBehavior).toBe('auto');
+      await expect(Number.parseFloat(view.getComputedStyle(element).transitionDuration)).toBeLessThan(0.001);
+      await expect(view.getComputedStyle(element).scrollBehavior).toBe('auto');
     }
-    expect(view.getComputedStyle(shell).clipPath).toBe('none');
+    await expect(view.getComputedStyle(shell).clipPath).toBe('none');
     await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
-    expect(view.getComputedStyle(shell).animationName).toBe('none');
-    expect(view.getComputedStyle(shell).clipPath).toBe('none');
+    await expect(view.getComputedStyle(shell).animationName).toBe('none');
+    await expect(view.getComputedStyle(shell).clipPath).toBe('none');
   },
 });
 
@@ -98,8 +98,8 @@ export const TableControls = meta.story({
     for (const view of ['left', 'right', 'bottom', 'map']) {
       const button = viewButtons.getByRole('button', { name: new RegExp(`^Focus on ${view}`) });
       await userEvent.click(button);
-      expect(button).toHaveAttribute('aria-pressed', 'true');
-      expect(shell).toHaveAttribute('data-table-view', view);
+      await expect(button).toHaveAttribute('aria-pressed', 'true');
+      await expect(shell).toHaveAttribute('data-table-view', view);
     }
 
     /* The header's controls lead the Tab order: Tab from the page start reaches the header before the separator. The pointer rests on the view buttons, not the table, so Tab moves focus instead of pinging (#2043). */
@@ -113,32 +113,32 @@ export const TableControls = meta.story({
       await userEvent.tab();
       focused = document.activeElement;
     }
-    expect(header.contains(focused), `Tab reaches ${focused?.outerHTML.slice(0, 80)} first`).toBe(true);
+    await expect(header.contains(focused), `Tab reaches ${focused?.outerHTML.slice(0, 80)} first`).toBe(true);
 
     divider.focus();
     await userEvent.keyboard('{Home}');
-    expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemin'));
+    await expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemin'));
     const minimum = Number(divider.getAttribute('aria-valuenow'));
     await userEvent.keyboard('{ArrowUp}');
-    expect(Number(divider.getAttribute('aria-valuenow'))).toBeGreaterThan(minimum);
+    await expect(Number(divider.getAttribute('aria-valuenow'))).toBeGreaterThan(minimum);
     await userEvent.keyboard('{End}');
-    expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemax'));
+    await expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemax'));
     await userEvent.tab();
 
     const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count'));
-    expect(counters.length).toBeGreaterThan(0);
+    await expect(counters.length).toBeGreaterThan(0);
     for (const counter of counters) {
-      expect(counter).not.toBeVisible();
+      await expect(counter).not.toBeVisible();
     }
     await userEvent.keyboard('{Alt>}');
-    expect(shell).toHaveAttribute('data-show-counts', 'true');
+    await expect(shell).toHaveAttribute('data-show-counts', 'true');
     for (const counter of counters) {
-      expect(counter).toBeVisible();
+      await expect(counter).toBeVisible();
     }
     window.dispatchEvent(new Event('blur'));
     await waitFor(() => expect(shell).toHaveAttribute('data-show-counts', 'false'));
     for (const counter of counters) {
-      expect(counter).not.toBeVisible();
+      await expect(counter).not.toBeVisible();
     }
     await userEvent.keyboard('{/Alt}');
   },
@@ -166,31 +166,31 @@ export const PieceNames = meta.story({
     const deckName = nameOf('treachery-deck');
     const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count'));
 
-    expect(troopName).not.toBeVisible();
+    await expect(troopName).not.toBeVisible();
     await user.keyboard('{Control>}');
-    expect(shell).toHaveAttribute('data-show-names', 'true');
-    expect(shell).toHaveAttribute('data-show-counts', 'false');
-    expect(troopName).toBeVisible();
-    expect(within(troopName).getByText(troop.label)).toBeVisible();
-    expect(within(troopName).getByText(factions[0]!.data.name)).toBeVisible();
-    expect(deckName).toBeVisible();
-    expect(deckName.querySelector('.scene-piece-name__owner')).toBeNull();
+    await expect(shell).toHaveAttribute('data-show-names', 'true');
+    await expect(shell).toHaveAttribute('data-show-counts', 'false');
+    await expect(troopName).toBeVisible();
+    await expect(within(troopName).getByText(troop.label)).toBeVisible();
+    await expect(within(troopName).getByText(factions[0]!.data.name)).toBeVisible();
+    await expect(deckName).toBeVisible();
+    await expect(deckName.querySelector('.scene-piece-name__owner')).toBeNull();
     /* Control shows names only: the counts wait for Alt, and holding both shows both. */
     for (const counter of counters) {
-      expect(counter).not.toBeVisible();
+      await expect(counter).not.toBeVisible();
     }
     await user.keyboard('{Alt>}');
-    expect(shell).toHaveAttribute('data-show-counts', 'true');
-    expect(troopName).toBeVisible();
-    expect(counters[0]).toBeVisible();
+    await expect(shell).toHaveAttribute('data-show-counts', 'true');
+    await expect(troopName).toBeVisible();
+    await expect(counters[0]).toBeVisible();
     await user.keyboard('{/Alt}');
-    expect(counters[0]).not.toBeVisible();
-    expect(troopName).toBeVisible();
+    await expect(counters[0]).not.toBeVisible();
+    await expect(troopName).toBeVisible();
 
     await user.keyboard('{/Control}');
-    expect(shell).toHaveAttribute('data-show-names', 'false');
-    expect(troopName).not.toBeVisible();
-    expect(deckName).not.toBeVisible();
+    await expect(shell).toHaveAttribute('data-show-names', 'false');
+    await expect(troopName).not.toBeVisible();
+    await expect(deckName).not.toBeVisible();
   },
 });
 
@@ -202,33 +202,33 @@ export const SettingsKeepLabelsOn = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
     const counts = await page.findByRole('menuitemcheckbox', { name: /^Stack counts/ });
     const names = page.getByRole('menuitemcheckbox', { name: /^Piece names/ });
-    expect(shell).toHaveAttribute('data-show-counts', 'false');
-    expect(shell).toHaveAttribute('data-show-names', 'false');
+    await expect(shell).toHaveAttribute('data-show-counts', 'false');
+    await expect(shell).toHaveAttribute('data-show-names', 'false');
 
     /* Each toggle leaves the menu open, so both labels can be set in one visit. */
     await userEvent.click(counts);
-    expect(counts).toHaveAttribute('aria-checked', 'true');
-    expect(shell).toHaveAttribute('data-show-counts', 'true');
+    await expect(counts).toHaveAttribute('aria-checked', 'true');
+    await expect(shell).toHaveAttribute('data-show-counts', 'true');
     await userEvent.click(names);
-    expect(shell).toHaveAttribute('data-show-names', 'true');
+    await expect(shell).toHaveAttribute('data-show-names', 'true');
     await userEvent.click(counts);
-    expect(counts).toHaveAttribute('aria-checked', 'false');
-    expect(shell).toHaveAttribute('data-show-counts', 'false');
-    expect(shell).toHaveAttribute('data-show-names', 'true');
+    await expect(counts).toHaveAttribute('aria-checked', 'false');
+    await expect(shell).toHaveAttribute('data-show-counts', 'false');
+    await expect(shell).toHaveAttribute('data-show-names', 'true');
   },
 });
 
 /* A tag's placement rounds to whole pixels, so a glide that settles a hair short of the pose can land one pixel off (#1957). */
-function expectPlacementNear(actual: string | undefined, expected: string | undefined) {
-  const parse = (transform: string | undefined) => {
+async function expectPlacementNear(actual: string | undefined, expected: string | undefined) {
+  const parse = async (transform: string | undefined) => {
     const match = transform?.match(/^translate3d\((-?[\d.]+)px, (-?[\d.]+)px, (-?[\d.]+)px\)(.*)$/);
-    expect(match, `an unexpected placement: ${transform}`).toBeTruthy();
+    await expect(match, `an unexpected placement: ${transform}`).toBeTruthy();
     return { x: Number(match![1]), y: Number(match![2]), rest: `${match![3]}${match![4]}` };
   };
-  const [got, want] = [parse(actual), parse(expected)];
-  expect(Math.abs(got.x - want.x), `${actual} against ${expected}`).toBeLessThanOrEqual(1);
-  expect(Math.abs(got.y - want.y), `${actual} against ${expected}`).toBeLessThanOrEqual(1);
-  expect(got.rest).toBe(want.rest);
+  const [got, want] = [await parse(actual), await parse(expected)];
+  await expect(Math.abs(got.x - want.x), `${actual} against ${expected}`).toBeLessThanOrEqual(1);
+  await expect(Math.abs(got.y - want.y), `${actual} against ${expected}`).toBeLessThanOrEqual(1);
+  await expect(got.rest).toBe(want.rest);
 }
 
 /* The wheel over the board moves in for a close look and backs out to the view's own pose; Ctrl with the wheel stays the browser's zoom. */
@@ -255,16 +255,16 @@ export const WheelTakesACloseLook = meta.story({
     };
     /* The tag is placed on a frame, so on a runner whose frames run seconds late the view's pose is read once a frame passes without moving it. */
     let previous = deckPlacement();
-    const approved = await waitForFrame(() => {
+    const approved = await waitForFrame(async () => {
       const placement = deckPlacement();
       const settled = placement === previous;
       previous = placement;
-      expect(settled && placement && !placement.includes('-9999px')).toBe(true);
+      await expect(settled && placement && !placement.includes('-9999px')).toBe(true);
       return placement!;
     });
 
-    expect(turnWheel(300, true)).toBe(false);
-    expect(turnWheel(300)).toBe(true);
+    await expect(turnWheel(300, true)).toBe(false);
+    await expect(turnWheel(300)).toBe(true);
     await waitForFrame(() => expect(deckPlacement()).not.toBe(approved));
     const closer = deckPlacement();
     turnWheel(300);
@@ -278,7 +278,7 @@ export const WheelTakesACloseLook = meta.story({
     await waitForFrame(() => expectPlacementNear(deckPlacement(), approved));
     turnWheel(-600);
     await new Promise((resolve) => setTimeout(resolve, 100));
-    expectPlacementNear(deckPlacement(), approved);
+    await expectPlacementNear(deckPlacement(), approved);
   },
 });
 
@@ -306,7 +306,7 @@ export const TwoFingersTiltTheCamera = meta.story({
       window.dispatchEvent(finger('pointerup', 12, x + 40, toY));
     };
     const approved = deckPlacement();
-    expect(approved).toBeTruthy();
+    await expect(approved).toBeTruthy();
 
     drag(box.bottom - 10, box.bottom - 10 - 600);
     await waitFor(() => expect(deckPlacement()).not.toBe(approved));
@@ -328,10 +328,10 @@ export const ShortWindow = meta.story({
     await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
     const header = shell.querySelector('header')!;
     const dock = shell.querySelector('.seated-controls-panel')!;
-    expect(dock.getBoundingClientRect().top).toBeLessThan(header.getBoundingClientRect().bottom);
+    await expect(dock.getBoundingClientRect().top).toBeLessThan(header.getBoundingClientRect().bottom);
     /* The dock grows up over the scene here, so the fixed split draws no separator across it. */
-    expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).not.toBeVisible();
-    expectControlsTakeThePointer(shell);
+    await expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).not.toBeVisible();
+    await expectControlsTakeThePointer(shell);
   },
 });
 
@@ -342,12 +342,12 @@ export const LowWindow = meta.story({
   play: async ({ canvasElement }) => {
     const { shell } = await tablePage(canvasElement);
     await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
-    expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).toBeVisible();
-    expectControlsTakeThePointer(shell);
+    await expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).toBeVisible();
+    await expectControlsTakeThePointer(shell);
     /* Docked, the dial keeps a column of its own: the panes beside it stay clear of it. */
     const camera = shell.querySelector('.seated-camera')!.getBoundingClientRect();
     for (const pane of shell.querySelectorAll('.seated-controls-panel > :not(.seated-camera)')) {
-      expect(pane.getBoundingClientRect().right, `${pane.className} runs under the dial`).toBeLessThanOrEqual(
+      await expect(pane.getBoundingClientRect().right, `${pane.className} runs under the dial`).toBeLessThanOrEqual(
         camera.left
       );
     }
@@ -355,7 +355,7 @@ export const LowWindow = meta.story({
 });
 
 /* Each control of the camera dial and the header's toolbar takes the pointer at its top, middle and bottom. */
-function expectControlsTakeThePointer(shell: HTMLElement) {
+async function expectControlsTakeThePointer(shell: HTMLElement) {
   const header = shell.querySelector('header')!;
   const picker = within(shell).getByRole('group', { name: 'Table view' });
   const controls = [
@@ -366,7 +366,7 @@ function expectControlsTakeThePointer(shell: HTMLElement) {
     const box = control.getBoundingClientRect();
     for (const y of [box.top + 2, box.top + box.height / 2, box.bottom - 2]) {
       const hit = shell.ownerDocument.elementFromPoint(box.left + box.width / 2, y);
-      expect(
+      await expect(
         control.contains(hit),
         `${control.textContent} at ${Math.round(y)} hits ${hit?.outerHTML.slice(0, 80)}`
       ).toBe(true);
@@ -374,18 +374,32 @@ function expectControlsTakeThePointer(shell: HTMLElement) {
   }
 }
 
+/*
+ * The browser's own `getContext`, kept as its property descriptor rather than as a bare method reference.
+ * A replacement calls it through `Reflect.apply` with the canvas as `this`, and defining the descriptor again restores the prototype exactly.
+ */
+function nativeGetContext() {
+  const descriptor: TypedPropertyDescriptor<HTMLCanvasElement['getContext']> | undefined =
+    Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, 'getContext');
+  const value = descriptor?.value;
+  if (!descriptor || !value) {
+    throw new TypeError('HTMLCanvasElement has no getContext method.');
+  }
+  return { descriptor, value };
+}
+
 /* Takes WebGL2 away and puts `gpu` in place of the browser's WebGPU, then restores both and the probe's answer. */
 const withoutGraphics = (gpu: unknown) => () => {
   resetTableGraphics();
-  const getContext = HTMLCanvasElement.prototype.getContext;
+  const getContext = nativeGetContext();
   HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
-    return kind === 'webgl2' ? null : Reflect.apply(getContext, this, [kind, ...rest]);
+    return kind === 'webgl2' ? null : Reflect.apply(getContext.value, this, [kind, ...rest]);
   } as HTMLCanvasElement['getContext'];
   Object.defineProperty(navigator, 'gpu', { configurable: true, value: gpu });
   const uninstall = install(() => productTransport())();
   return () => {
     uninstall();
-    HTMLCanvasElement.prototype.getContext = getContext;
+    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', getContext.descriptor);
     Reflect.deleteProperty(navigator, 'gpu');
     resetTableGraphics();
   };
@@ -394,12 +408,12 @@ const withoutGraphics = (gpu: unknown) => () => {
 async function expectGraphicsMessage(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
   const message = await page.findByRole('alert', {}, { timeout: 30_000 });
-  expect(message).toHaveTextContent(TABLE_GRAPHICS_UNAVAILABLE);
+  await expect(message).toHaveTextContent(TABLE_GRAPHICS_UNAVAILABLE);
   const shell = canvasElement.ownerDocument.querySelector<HTMLElement>('.dune-play-shell')!;
   await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'));
-  expect(shell.querySelector('canvas')).toBeNull();
-  expect(page.getByRole('button', { name: 'Game menu' })).toBeVisible();
-  expect(page.queryByText('Something went wrong!')).toBeNull();
+  await expect(shell.querySelector('canvas')).toBeNull();
+  await expect(page.getByRole('button', { name: 'Game menu' })).toBeVisible();
+  await expect(page.queryByText('Something went wrong!')).toBeNull();
 }
 
 /* A browser with neither WebGPU nor WebGL2 reads why the table is missing, and the shell around it still opens. */
@@ -432,19 +446,19 @@ export const PhaseViews = meta.story({
   play: async ({ canvasElement }) => {
     const { page, shell } = await tablePage(canvasElement, TABLE_PHASES[1].label);
     const views = within(page.getByRole('group', { name: 'Table view' }));
-    expect(views.getByRole('button', { name: 'Focus on right, recommended for this phase' })).toHaveAttribute(
+    await expect(views.getByRole('button', { name: 'Focus on right, recommended for this phase' })).toHaveAttribute(
       'aria-pressed',
       'false'
     );
-    expect(shell).toHaveAttribute('data-table-view', 'map');
+    await expect(shell).toHaveAttribute('data-table-view', 'map');
 
     session.transport.deliver(session.transport.view({ ...playingSnapshot(), phase: 2, revision: 1 }));
     await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'bottom'));
-    expect(views.getByRole('button', { name: 'Focus on bottom, recommended for this phase' })).toHaveAttribute(
+    await expect(views.getByRole('button', { name: 'Focus on bottom, recommended for this phase' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
-    expect(views.getByRole('button', { name: 'Focus on right' })).toHaveAttribute('aria-pressed', 'false');
+    await expect(views.getByRole('button', { name: 'Focus on right' })).toHaveAttribute('aria-pressed', 'false');
   },
 });
 
@@ -465,12 +479,12 @@ export const PhaseViewWaitsForTheDrop = meta.story({
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 0, clientY };
     await waitFor(
-      () => {
+      async () => {
         if (scene.style.cursor !== 'grabbing') {
           scene.dispatchEvent(new PointerEvent('pointerdown', { ...pointer, clientX, buttons: 1 }));
           scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 24, buttons: 1 }));
         }
-        expect(scene.style.cursor).toBe('grabbing');
+        await expect(scene.style.cursor).toBe('grabbing');
       },
       { timeout: 30_000 }
     );
@@ -480,8 +494,8 @@ export const PhaseViewWaitsForTheDrop = meta.story({
     await waitFor(() =>
       expect(views.getByRole('button', { name: 'Focus on right, recommended for this phase' })).toBeInTheDocument()
     );
-    expect(shell).toHaveAttribute('data-table-view', 'map');
-    expect(scene.style.cursor).toBe('grabbing');
+    await expect(shell).toHaveAttribute('data-table-view', 'map');
+    await expect(scene.style.cursor).toBe('grabbing');
 
     scene.dispatchEvent(new PointerEvent('pointerup', { ...pointer, clientX: clientX + 24, buttons: 0 }));
     await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'right'));
@@ -501,9 +515,9 @@ export const SpiceDiscAnswersOnReturn = meta.story({
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
     await waitFor(
-      () => {
+      async () => {
         scene.dispatchEvent(new PointerEvent('pointermove', pointer));
-        expect(scene.style.cursor).toBe('pointer');
+        await expect(scene.style.cursor).toBe('pointer');
       },
       { timeout: 30_000 }
     );
@@ -533,9 +547,9 @@ export const DeckShortcutsEndOffTheTable = meta.story({
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
     const hoverTheDeck = (offset: number) =>
       waitFor(
-        () => {
+        async () => {
           scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + offset }));
-          expect(scene.style.cursor).toBe('grab');
+          await expect(scene.style.cursor).toBe('grab');
         },
         { timeout: 30_000 }
       );
@@ -546,13 +560,13 @@ export const DeckShortcutsEndOffTheTable = meta.story({
     await waitFor(() => expect(scene.style.cursor).toBe('default'));
     const before = commands();
     await userEvent.keyboard('r');
-    expect(commands()).toBe(before);
+    await expect(commands()).toBe(before);
 
     await hoverTheDeck(1);
     document.defaultView!.dispatchEvent(new FocusEvent('blur'));
     await waitFor(() => expect(scene.style.cursor).toBe('default'));
     await userEvent.keyboard('r');
-    expect(commands()).toBe(before);
+    await expect(commands()).toBe(before);
 
     await hoverTheDeck(2);
     await userEvent.keyboard('r');
@@ -585,7 +599,10 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
       async () => {
         tap(deckOnScreen);
         await userEvent.keyboard('l');
-        expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'lock', pieceId: 'treachery-deck' } });
+        await expect(lastCommand()).toMatchObject({
+          type: 'command',
+          action: { kind: 'lock', pieceId: 'treachery-deck' },
+        });
       },
       { timeout: 30_000 }
     );
@@ -593,7 +610,7 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
     tap(boardPoint);
     const before = commands();
     await userEvent.keyboard('l');
-    expect(commands()).toBe(before);
+    await expect(commands()).toBe(before);
   },
 });
 
@@ -625,7 +642,10 @@ export const TapJitterLeavesNoHover = meta.story({
       async () => {
         tap(deckOnScreen, 2);
         await userEvent.keyboard('l');
-        expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'lock', pieceId: 'treachery-deck' } });
+        await expect(lastCommand()).toMatchObject({
+          type: 'command',
+          action: { kind: 'lock', pieceId: 'treachery-deck' },
+        });
       },
       { timeout: 30_000 }
     );
@@ -633,7 +653,7 @@ export const TapJitterLeavesNoHover = meta.story({
     tap(boardPoint, 0);
     const before = commands();
     await userEvent.keyboard('l');
-    expect(commands()).toBe(before);
+    await expect(commands()).toBe(before);
   },
 });
 
@@ -706,26 +726,26 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
     await waitFor(
-      () => {
+      async () => {
         scene.dispatchEvent(new PointerEvent('pointermove', pointer));
-        expect(scene.style.cursor).toBe('pointer');
+        await expect(scene.style.cursor).toBe('pointer');
       },
       { timeout: 30_000 }
     );
 
     await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
     session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: playingSnapshot() });
-    await waitFor(() => {
-      expect(page.getByRole('button', { name: 'Earlier phase' })).toBeVisible();
-      expect(scene.style.cursor).toBe('default');
+    await waitFor(async () => {
+      await expect(page.getByRole('button', { name: 'Earlier phase' })).toBeVisible();
+      await expect(scene.style.cursor).toBe('default');
     });
     leaveTheCanvas(page, scene, pointer);
 
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
     await waitFor(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
     await userEvent.keyboard('3');
-    expect(scene.style.cursor).toBe('default');
-    expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
+    await expect(scene.style.cursor).toBe('default');
+    await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
 
     scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 1 }));
     await waitFor(() => expect(scene.style.cursor).toBe('pointer'));
@@ -742,9 +762,9 @@ const tableContexts: { context: WebGL2RenderingContext; canvas: HTMLCanvasElemen
 /* Records every WebGL2 context the table creates, then restores the browser's own lookup. */
 const recordTableContexts = () => {
   tableContexts.length = 0;
-  const getContext = HTMLCanvasElement.prototype.getContext;
+  const getContext = nativeGetContext();
   HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
-    const context = Reflect.apply(getContext, this, [kind, ...rest]);
+    const context = Reflect.apply(getContext.value, this, [kind, ...rest]);
     if (kind === 'webgl2' && context && this.closest('.dune-play-shell')) {
       if (!tableContexts.some((entry) => entry.context === context)) {
         tableContexts.push({ context, canvas: this });
@@ -755,7 +775,7 @@ const recordTableContexts = () => {
   const uninstall = install(() => productTransport())();
   return () => {
     uninstall();
-    HTMLCanvasElement.prototype.getContext = getContext;
+    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', getContext.descriptor);
   };
 };
 
@@ -766,21 +786,21 @@ export const ReleasesItsRendererOnRemount = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await tablePage(canvasElement);
     const first = await waitFor(
-      () => {
-        expect(tableContexts[0]).toBeDefined();
+      async () => {
+        await expect(tableContexts[0]).toBeDefined();
         return tableContexts[0]!;
       },
       { timeout: 30_000 }
     );
     session.transport.disconnect();
     await page.findByRole('status', { name: /^Reconnecting\./ });
-    expect(first.canvas.isConnected).toBe(true);
+    await expect(first.canvas.isConnected).toBe(true);
     await waitFor(() => expect(page.queryByRole('status', { name: /^Reconnecting\./ })).toBeNull(), {
       timeout: 30_000,
     });
     await tablePage(canvasElement);
-    expect(tableContexts.at(-1)).toBe(first);
-    expect(first.context.isContextLost()).toBe(false);
+    await expect(tableContexts.at(-1)).toBe(first);
+    await expect(first.context.isContextLost()).toBe(false);
 
     session.transport.deliver({ type: 'admission', status: 'denied' });
     await waitFor(() => expect(first.canvas.isConnected).toBe(false), { timeout: 30_000 });

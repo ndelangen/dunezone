@@ -1,5 +1,5 @@
 import { PDFDict, PDFDocument, PDFName } from 'pdf-lib';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { inspectPublishedRulebookPdf } from './pdf-inspection';
 

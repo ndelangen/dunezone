@@ -3,7 +3,7 @@
 import { MantineProvider } from '@mantine/core';
 import { cleanup, fireEvent, render } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const mocks = vi.hoisted(() => ({
   loadMore: vi.fn(),

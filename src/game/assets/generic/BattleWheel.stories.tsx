@@ -190,10 +190,10 @@ export const Reveal = meta.story({
     const animations = canvasElement.getAnimations({ subtree: true });
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
       const reveal = animations.find((animation) => animation.effect?.getTiming().duration === 400);
-      expect(reveal).toBeDefined();
+      await expect(reveal).toBeDefined();
       reveal!.finish();
     } else {
-      expect(animations).toHaveLength(0);
+      await expect(animations).toHaveLength(0);
     }
     await expect(canvas.getByText('No leader')).toBeVisible();
     await expect(canvas.queryByRole('button')).toBeNull();

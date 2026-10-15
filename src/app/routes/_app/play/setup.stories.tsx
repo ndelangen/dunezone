@@ -17,12 +17,12 @@ export const TraitorSelection = meta.story({
     await expect(
       page.findByRole('button', { name: 'Gather tabletop traitors' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
     const traitors = session.transport.snapshot.table.pieces
       .filter((piece) => piece.stackKey === 'cards:traitor')
       .flatMap((piece) => piece.items);
-    expect(traitors).toHaveLength(30);
-    expect(traitors.filter((card) => card.faceUp || card.artwork?.name || card.artwork?.front)).toEqual([]);
+    await expect(traitors).toHaveLength(30);
+    await expect(traitors.filter((card) => card.faceUp || card.artwork?.name || card.artwork?.front)).toEqual([]);
     await userEvent.click(page.getByRole('button', { name: /^Ready$/ }));
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'ready', ready: true } })
@@ -30,7 +30,7 @@ export const TraitorSelection = meta.story({
     await openPanel(canvasElement, 'Spice');
     await expect(page.findByLabelText('Spice reserve balance')).resolves.toBeVisible();
     await openPanel(canvasElement, 'Shared inventory');
-    expect(page.queryByRole('button', { name: 'Add from catalogue' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Add from catalogue' })).toBeNull();
     await openPanel(canvasElement, 'Hand');
   },
 });
@@ -50,8 +50,8 @@ export const Prediction = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Lock prediction' }, { timeout: 30_000 })).resolves.toBeDisabled();
-    expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
-    expect(page.queryByRole('button', { name: /^Ready$/ })).toBeNull();
+    await expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
+    await expect(page.queryByRole('button', { name: /^Ready$/ })).toBeNull();
   },
 });
 
@@ -61,7 +61,7 @@ export const LockedPrediction = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Reveal prediction' }, { timeout: 30_000 })).resolves.toBeEnabled();
-    expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled();
     await userEvent.click(page.getByRole('button', { name: 'Reveal prediction' }));
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({

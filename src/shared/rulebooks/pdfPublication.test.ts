@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { RULEBOOK_PDF_MAX_PAGES } from './pdfOptimization';
 import { planRulebookPdfBatches } from './pdfPublication';

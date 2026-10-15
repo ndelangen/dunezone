@@ -9,7 +9,7 @@ import type * as TanStackRouter from '@tanstack/react-router';
 import { appContentTheme } from '@ui/theme';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { expect, test, vi } from 'vitest';
+import { expect, test, vi } from 'vite-plus/test';
 
 import { BLOG_POST_BODIES } from './postBodies';
 import { BLOG_POSTS } from './posts';

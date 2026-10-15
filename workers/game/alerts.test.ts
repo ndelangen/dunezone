@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import type { AlertEnv, AlertMarkers } from './alerts';
 import {
@@ -18,13 +18,17 @@ function laterWindow() {
   return clock;
 }
 
+function cacheKey(key: RequestInfo | URL) {
+  return key instanceof Request ? key.url : key.toString();
+}
+
 function relay(overrides: Partial<AlertEnv> = {}) {
   const send = vi.fn(async () => ({ messageId: 'sent' }));
   const stored = new Map<string, Response>();
   const markers: AlertMarkers = {
-    match: vi.fn(async (key: RequestInfo | URL) => stored.get(String(key))),
+    match: vi.fn(async (key: RequestInfo | URL) => stored.get(cacheKey(key))),
     put: vi.fn(async (key: RequestInfo | URL, value: Response) => {
-      stored.set(String(key), value);
+      stored.set(cacheKey(key), value);
     }),
   } as unknown as AlertMarkers;
   const env: AlertEnv = { ALERT_EMAIL: { send } as unknown as SendEmail, ALERT_EMAIL_TO: TO, ...overrides };

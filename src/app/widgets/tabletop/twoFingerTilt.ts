@@ -1,8 +1,8 @@
 type Callbacks = {
   /** A second finger landed: whatever the first finger had started on the table stops. */
-  onStart(): void;
+  onStart: () => void;
   /** The two fingers moved together by `deltaY` pixels; up is positive, like scrolling the wheel down. */
-  onTilt(deltaY: number): void;
+  onTilt: (deltaY: number) => void;
 };
 
 /**

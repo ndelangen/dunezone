@@ -1,5 +1,5 @@
 import { Object3D } from 'three';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { cameraPoseFor, tableCamera } from '../../../../widgets/tabletop/playView';
 import { faceHalfHeight, faceHalfWidth, faceOnCanvas, PICKS_PER_LINE } from './bidderFacePosition';

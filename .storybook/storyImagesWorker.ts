@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 import { transform } from 'esbuild';
-import type { Plugin } from 'vite';
+import type { Plugin } from 'vite-plus';
 
 const source = fileURLToPath(new URL('../workers/storybook/story-images.sw.ts', import.meta.url));
 const filename = 'story-images.sw.js';

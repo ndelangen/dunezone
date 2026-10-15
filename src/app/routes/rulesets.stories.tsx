@@ -31,7 +31,7 @@ export const AskQuestionMissingRuleset = meta.story({
        back that lives in the band are what only the frame produces. */
     await expect(page.findByText('This ruleset could not be loaded', {}, { timeout: 30_000 })).resolves.toBeVisible();
     const back = await page.findByRole('link', { name: 'Back to rulesets' }, { timeout: 30_000 });
-    expect(back.closest('main')).toBeNull();
+    await expect(back.closest('main')).toBeNull();
   },
 });
 /** The question names itself in the header band, and the asker, who is the viewer here, gets Edit and Delete in the toolbar. */
@@ -56,13 +56,13 @@ export const Question = meta.story({
     await userEvent.clear(question);
     await userEvent.type(question, 'When does the storm move in round two?');
     await userEvent.click(page.getByRole('checkbox', { name: 'Strategy' }));
-    expect(page.getByRole('checkbox', { name: 'Rules' })).toBeChecked();
-    expect(question).toHaveValue('When does the storm move in round two?');
+    await expect(page.getByRole('checkbox', { name: 'Rules' })).toBeChecked();
+    await expect(question).toHaveValue('When does the storm move in round two?');
     await userEvent.click(page.getByRole('button', { name: 'Save question' }));
     await waitFor(() =>
       expect(page.getByRole('heading', { name: 'When does the storm move in round two?' })).toBeVisible()
     );
-    expect(page.queryByRole('textbox', { name: 'Edit question' })).toBeNull();
+    await expect(page.queryByRole('textbox', { name: 'Edit question' })).toBeNull();
   },
 });
 export const RulebookEditor = meta.story({
@@ -132,7 +132,7 @@ export const EditShowsOnlyTheLatestSaveFailure = meta.story({
     await waitFor(() => expect(save()).toHaveAccessibleDescription(/The cover could not be stored/), {
       timeout: 30_000,
     });
-    expect(page.queryByText('Ruleset could not be saved')).toBeNull();
-    expect(save()).not.toHaveAccessibleDescription(/Ruleset name already exists/);
+    await expect(page.queryByText('Ruleset could not be saved')).toBeNull();
+    await expect(save()).not.toHaveAccessibleDescription(/Ruleset name already exists/);
   },
 });
