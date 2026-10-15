@@ -18,6 +18,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'package.json',
   'bun.lock',
   'bunfig.toml',
+  '.nvmrc',
   'tsconfig.json',
   'vite.config.ts',
   'coverage-denominator.ts',

@@ -212,3 +212,11 @@ export function useProbe() {
     expect(output).toContain('curly');
   });
 });
+
+describe('prefer-block-comments', { timeout: TEST_BUDGET_MS }, () => {
+  /* The rule once stripped any trailing star as if it were part of a `**\/` closer, so a glob at the end of a comment was reported on every run and its fix ate the glob a star at a time. */
+  test('leaves a comment that ends in a glob alone', async () => {
+    const source = '/**\n * Files matched by the glob src/**\n */\nexport const probe = 1;\n';
+    expect(await lintDiagnostics('probe.ts', source)).not.toContain('prefer-block-comments');
+  });
+});
