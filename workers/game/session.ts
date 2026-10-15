@@ -19,7 +19,7 @@ import {
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
-import { composeTurn, lobbyPhaseIndex, samePhaseIndex } from '../../src/shared/play/phases';
+import { composeTurn, lobbyPhaseIndex, recomposedTurn } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
 import { rosterFactionIds } from '../../src/shared/play/protocol';
 import type { ClientMessage, CommitMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
@@ -248,8 +248,8 @@ export class GameSession {
   private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
     const settled = settleEnding(snapshot, () => new Set(this.actors.seated().map((occupant) => occupant.userId)));
     const roster = this.actors.roster(this.seatCount());
-    const phases = this.composedTurn(roster, settled.table);
-    return { ...settled, roster, phases, phase: samePhaseIndex(settled.phase, settled.phases, phases) };
+    const phases = recomposedTurn(settled.phase, settled.phases, this.composedTurn(roster, settled.table));
+    return { ...settled, roster, phases };
   }
 
   /**

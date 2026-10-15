@@ -64,7 +64,7 @@ export function factionTokenSectorPose(position: Readonly<Vector3Tuple>, height 
   return factionTokenRingPose(tableSectorCenterAngle(sectorIndexAt(position)), height);
 }
 
-/** The other faction token already standing in the sector `position` lies in, if one does. */
+/** The other faction token already standing on the ring in the sector `position` lies in, if one does; a token off the ring is an ordinary obstacle. */
 export function factionTokenInSector<P extends Pick<TablePiece, 'id' | 'kind' | 'stackKey' | 'position'>>(
   pieces: readonly P[],
   position: Readonly<Vector3Tuple>,
@@ -72,6 +72,10 @@ export function factionTokenInSector<P extends Pick<TablePiece, 'id' | 'kind' | 
 ): P | undefined {
   const sector = sectorIndexAt(position);
   return pieces.find(
-    (piece) => piece.id !== exceptId && isFactionToken(piece) && sectorIndexAt(piece.position) === sector
+    (piece) =>
+      piece.id !== exceptId &&
+      isFactionToken(piece) &&
+      factionTokenOnRing(piece) &&
+      sectorIndexAt(piece.position) === sector
   );
 }

@@ -10,7 +10,7 @@ import {
   composeTurn,
   lobbyPhaseIndex,
   phaseAt,
-  samePhaseIndex,
+  recomposedTurn,
   STANDARD_PHASES,
   tableProgressFor,
 } from './phases';
@@ -204,18 +204,22 @@ describe('captured declarations (#1138)', () => {
   });
 });
 
-describe('samePhaseIndex', () => {
+describe('recomposedTurn', () => {
   const entry = (id: string) => ({ ...STANDARD_PHASES[0]!, id });
   const before = [entry('storm'), entry('a'), entry('b'), entry('bidding')];
   const after = [entry('storm'), entry('b'), entry('a'), entry('bidding')];
 
-  it('keeps the table in the entry it plays when the turn is reordered', () => {
-    expect(samePhaseIndex(4 + 1, before, after)).toBe(4 + 2);
-    expect(samePhaseIndex(3, before, after)).toBe(3);
+  it('takes the new order while nothing played so far moves', () => {
+    expect(recomposedTurn(4 + 0, before, after)).toBe(after);
   });
 
-  it('leaves the index alone when the turn changes shape', () => {
-    expect(samePhaseIndex(5, before, after.slice(1))).toBe(5);
-    expect(samePhaseIndex(5, undefined, after)).toBe(5);
+  it('keeps the order the turn started with once a reordered phase has been reached', () => {
+    expect(recomposedTurn(4 + 1, before, after)).toBe(before);
+    expect(recomposedTurn(4 + 3, before, after)).toBe(before);
+  });
+
+  it('takes a turn of a new shape as it comes', () => {
+    expect(recomposedTurn(5, before, after.slice(1))).toEqual(after.slice(1));
+    expect(recomposedTurn(5, undefined, after)).toBe(after);
   });
 });

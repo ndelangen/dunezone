@@ -91,19 +91,24 @@ export function phaseAt(index: number, phases: readonly PhaseEntry[] = STANDARD_
 }
 
 /**
- * The index of the phase the table is in once its turn is recomposed: the same entry in the same turn, wherever the new order puts it.
- * A storm move or a faction token changing sector reorders a composed turn without moving the table out of the phase it is playing.
+ * The turn the table plays once its factions' order may have changed, as when the storm moves or a faction token changes sector.
+ * The new order takes effect only while every phase played so far this turn, the current one included, keeps its place;
+ * otherwise the turn runs out in the order it started, so no phase is skipped or played twice, and the new order starts with the next turn.
  */
-export function samePhaseIndex(
+export function recomposedTurn(
   index: number,
   before: readonly PhaseEntry[] | undefined,
   after: readonly PhaseEntry[] | undefined
-): number {
+): PhaseEntry[] | undefined {
   if (!before || !after || before.length !== after.length) {
-    return index;
+    return after as PhaseEntry[] | undefined;
   }
-  const position = after.findIndex((entry) => entry.id === phaseAt(index, before).id);
-  return position < 0 ? index : index - (index % after.length) + position;
+  const played = (phases: readonly PhaseEntry[]) =>
+    phases
+      .slice(0, (index % phases.length) + 1)
+      .map((entry) => entry.id)
+      .join('\n');
+  return (played(before) === played(after) ? after : before) as PhaseEntry[];
 }
 
 export function tableProgressFor(index: number, phases: readonly PhaseEntry[] = STANDARD_PHASES) {

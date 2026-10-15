@@ -98,3 +98,24 @@ describe('faction tokens settle only where there is room', () => {
     expect(new Set(sectors).size).toBe(1);
   });
 });
+
+describe('faction tokens from games stored before the ring', () => {
+  const legacy = (id: string, degrees: number, radius = 4.39) => {
+    const angle = (degrees * Math.PI) / 180;
+    return { ...token(id, 2), position: [Math.cos(angle) * radius, 0.005, Math.sin(angle) * radius] as Vector3Tuple };
+  };
+
+  test('two tokens sharing a sector never settle on top of each other', () => {
+    const state = tableWith(legacy('a', 41), legacy('b', 59));
+    expect(dropAt(state, at(state, 'token-a'), at(state, 'token-a').position)).toBeNull();
+    expect(dropAt(state, at(state, 'token-b'), at(state, 'token-b').position)).toBeNull();
+  });
+
+  test('a token off the ring neither blocks nor trades with a ring sector', () => {
+    const state = tableWith(token('fremen', 2), { ...legacy('emperor', 155, 1.5), locked: true });
+    const target = factionTokenRingPose(tableSectorCenterAngle(8)).position;
+    const next = dropAt(state, at(state, 'token-fremen'), target)!;
+    expect(sectorIndexAt(at(next, 'token-fremen').position)).toBe(8);
+    expect(at(next, 'token-emperor').position).toEqual(at(state, 'token-emperor').position);
+  });
+});

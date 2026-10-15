@@ -390,13 +390,15 @@ function settleFactionTokenAt(state: TableState, draft: DraftMove, piece: TableP
   if (occupant?.locked) {
     return null;
   }
-  const obstacles = placementObstaclesFor(state, draft).filter((candidate) => candidate.id !== occupant?.id);
+  /* The occupant steps aside only when it trades sectors; one already sharing the carried token's own sector stays an obstacle. */
+  const swapping = occupant && sectorIndexAt(occupant.position) !== sectorIndexAt(draft.origin) ? occupant : undefined;
+  const obstacles = placementObstaclesFor(state, draft).filter((candidate) => candidate.id !== swapping?.id);
   const placed = { ...piece, orientation: pose.orientation };
   const resting = restingPositionAt(pose.position, placed);
   if (!isOverlapFreePosition(placed, resting, obstacles)) {
     return null;
   }
-  if (occupant && !swapLandingIsClear(occupant, draft, obstacles)) {
+  if (swapping && !swapLandingIsClear(swapping, draft, obstacles)) {
     return null;
   }
   return { ...moveDraftTo(draft, resting, null), orientation: pose.orientation };
@@ -404,9 +406,6 @@ function settleFactionTokenAt(state: TableState, draft: DraftMove, piece: TableP
 
 /* The token traded out takes the sector the carried one came from, which must be clear of everything but the two tokens. */
 function swapLandingIsClear(occupant: TablePiece, draft: DraftMove, obstacles: TablePiece[]) {
-  if (sectorIndexAt(occupant.position) === sectorIndexAt(draft.origin)) {
-    return true;
-  }
   const pose = factionTokenSectorPose(draft.origin);
   const moved = { ...occupant, orientation: pose.orientation };
   return isOverlapFreePosition(moved, restingPositionAt(pose.position, moved), obstacles);
