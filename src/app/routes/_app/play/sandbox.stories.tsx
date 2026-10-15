@@ -69,9 +69,9 @@ export const Sandbox = meta.story({
       expectedRevision: room.snapshot.revision,
       action: { kind: 'deck-draw', pieceId: deck.id, recipient: faction },
     });
-    expect(table.refusal).toBeUndefined();
-    expect(shown().hand).toHaveLength(handSize + 1);
-    expect(piece((candidate) => candidate.stackKey === 'deck:treachery-deck').items).toHaveLength(
+    await expect(table.refusal).toBeUndefined();
+    await expect(shown().hand).toHaveLength(handSize + 1);
+    await expect(piece((candidate) => candidate.stackKey === 'deck:treachery-deck').items).toHaveLength(
       deck.items.length - 1
     );
 
@@ -95,11 +95,11 @@ export const Sandbox = meta.story({
       position: target,
       orientation: 0,
     });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
     const moved = shown().table.pieces.find((candidate) => candidate.id === troop.id)!;
-    expect(moved.position).not.toEqual(troop.position);
-    expect(shown().versions[troop.id]).toBeGreaterThan(versionBefore);
-    expect(room.carries.size).toBe(0);
+    await expect(moved.position).not.toEqual(troop.position);
+    await expect(shown().versions[troop.id]).toBeGreaterThan(versionBefore);
+    await expect(room.carries.size).toBe(0);
 
     /* The page's own Next phase reaches the room, which moves from Bidding to Revival. */
     const { controls, waitForPhase } = phaseControls(canvasElement);
@@ -112,8 +112,8 @@ export const Sandbox = meta.story({
     /* Restart puts the table back at Bidding. */
     await userEvent.click(page.getByRole('button', { name: 'Restart' }));
     await waitForPhase(() => expectHeaderPhase(canvasElement, 3));
-    expect(sandbox.table).not.toBe(table);
-    expect(shown().hand ?? []).toHaveLength(handSize);
+    await expect(sandbox.table).not.toBe(table);
+    await expect(shown().hand ?? []).toHaveLength(handSize);
   },
 });
 
@@ -134,16 +134,16 @@ export const PeekAtTheDeck = meta.story({
       expectedRevision: table.room.snapshot.revision,
       action: { kind: 'peek', pieceId: deck.id },
     });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
     const view = await page.findByRole('dialog', { name: /^Peeking at / }, { timeout: 30_000 });
-    expect(within(view).getAllByRole('button', { name: 'Pull out' })).toHaveLength(deck.items.length);
+    await expect(within(view).getAllByRole('button', { name: 'Pull out' })).toHaveLength(deck.items.length);
 
     const other = journeyViewers().find((seat) => seat !== table.seat)!;
     const seen = table.frame(other).snapshot;
-    expect(seen.peek ?? null).toBeNull();
+    await expect(seen.peek ?? null).toBeNull();
     const otherDeck = seen.table.pieces.find((candidate) => candidate.id === deck.id)!;
-    expect(otherDeck.items.every((item) => !item.artwork || !('front' in item.artwork))).toBe(true);
-    expect(otherDeck.items.every((item) => item.peekedBy?.includes(faction))).toBe(true);
+    await expect(otherDeck.items.every((item) => !item.artwork || !('front' in item.artwork))).toBe(true);
+    await expect(otherDeck.items.every((item) => item.peekedBy?.includes(faction))).toBe(true);
   },
 });
 
@@ -165,9 +165,9 @@ export const PeekAtACard = meta.story({
     command('sandbox-close', { kind: 'peek-close' });
     const pulled = shown().table.pieces.find((candidate) => candidate.id.startsWith('pulled-'))!;
     command('sandbox-peek-card', { kind: 'peek', pieceId: pulled.id });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
     const view = await page.findByRole('dialog', { name: /^Peeking at / }, { timeout: 30_000 });
-    expect(within(view).queryByRole('button', { name: 'Pull out' })).toBeNull();
+    await expect(within(view).queryByRole('button', { name: 'Pull out' })).toBeNull();
   },
 });
 
@@ -189,15 +189,15 @@ export const DeleteACard = meta.story({
     const before = new Set(shown().table.pieces.map((candidate) => candidate.id));
     command('sandbox-split', { kind: 'split', pieceId: deck.id, count: 1 });
     const card = shown().table.pieces.find((candidate) => !before.has(candidate.id))!;
-    expect(card.kind).toBe('card');
+    await expect(card.kind).toBe('card');
     command('sandbox-flip', { kind: 'flip', pieceId: card.id });
     command('sandbox-delete', { kind: 'delete', pieceId: card.id });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
     const other = journeyViewers().find((seat) => seat !== table.seat)!;
     for (const seat of [table.seat, other]) {
-      expect(table.frame(seat).snapshot.table.pieces.some((candidate) => candidate.id === card.id)).toBe(false);
+      await expect(table.frame(seat).snapshot.table.pieces.some((candidate) => candidate.id === card.id)).toBe(false);
     }
-    expect(shown().table.events[0]?.message).toMatch(/deleted .* card from the game\.$/);
+    await expect(shown().table.events[0]?.message).toMatch(/deleted .* card from the game\.$/);
   },
 });
 
@@ -223,9 +223,9 @@ export const FlipWhileCarrying = meta.story({
     });
     table.receive({ type: 'pose', carryId: 'sandbox-flip', seq: 1, position, orientation: 0 });
     table.receive({ type: 'flip', carryId: 'sandbox-flip', flips: 1 });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
     const held = table.frame(other).carries[0]!.held;
-    expect(held.items[0]).toMatchObject({ faceUp: true, artwork: { front: expect.any(String) } });
+    await expect(held.items[0]).toMatchObject({ faceUp: true, artwork: { front: expect.any(String) } });
 
     table.receive({
       type: 'drop',
@@ -235,12 +235,12 @@ export const FlipWhileCarrying = meta.story({
       orientation: 0,
       flips: 1,
     });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
     const landed = table
       .frame(other)
       .snapshot.table.pieces.find((candidate) => candidate.items[0]?.id === held.items[0]!.id)!;
-    expect(landed.items[0]?.faceUp).toBe(true);
-    expect(
+    await expect(landed.items[0]?.faceUp).toBe(true);
+    await expect(
       shown()
         .table.events.slice(0, 2)
         .map((event) => event.command)
@@ -272,10 +272,10 @@ export const HiddenZone = meta.story({
     stored.items[0]!.artwork = { ...stored.items[0]!.artwork!, size: 0.35 };
     command('sandbox-zone-card', { kind: 'hand-zone', pieceId: card.id, at: { x: 0.3, y: 0.5 } });
     command('sandbox-zone-leader', { kind: 'hand-zone', pieceId: leader.id, at: { x: 0.316, y: 0.36 } });
-    expect(table.refusal).toBeUndefined();
-    expect(shown().hand!.filter((candidate) => candidate.hiddenZone)).toHaveLength(2);
+    await expect(table.refusal).toBeUndefined();
+    await expect(shown().hand!.filter((candidate) => candidate.hiddenZone)).toHaveLength(2);
     const other = journeyViewers().find((seat) => seat !== table.seat)!;
-    expect(JSON.stringify(table.frame(other).snapshot)).not.toContain('hiddenZone');
+    await expect(JSON.stringify(table.frame(other).snapshot)).not.toContain('hiddenZone');
     await openTab(page, 'Hidden zone');
     await expect(page.findAllByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 })).resolves.toHaveLength(
       2

@@ -94,7 +94,7 @@ function FactionEditPage() {
     },
     onSaved: (entry) => {
       if (entry.slug !== factionId) {
-        navigate({
+        void navigate({
           to: '/factions/$factionId/edit',
           params: { factionId: entry.slug },
           replace: true,

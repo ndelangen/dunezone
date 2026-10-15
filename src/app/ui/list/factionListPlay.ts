@@ -8,13 +8,13 @@ import { expect, waitFor, within } from 'storybook/test';
  */
 export async function expectFactionColumns(scope: HTMLElement, count: number) {
   const [card] = await within(scope).findAllByRole('link', {}, { timeout: 30_000 });
-  await waitFor(() => {
+  await waitFor(async () => {
     let grid = card.parentElement;
     while (grid && getComputedStyle(grid).display !== 'grid') {
       grid = grid.parentElement;
     }
     const tracks = grid ? getComputedStyle(grid).gridTemplateColumns.split(' ') : [];
-    expect(tracks).toHaveLength(count);
-    expect(card.getBoundingClientRect().width).toBeCloseTo(Number.parseFloat(tracks[0]), 0);
+    await expect(tracks).toHaveLength(count);
+    await expect(card.getBoundingClientRect().width).toBeCloseTo(Number.parseFloat(tracks[0]), 0);
   });
 }

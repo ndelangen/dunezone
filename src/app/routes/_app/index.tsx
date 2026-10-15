@@ -642,7 +642,7 @@ function LiveBoardPreview({
   onHandlingChange,
 }: {
   viewer: SessionViewer;
-  onHandlingChange(handling: boolean): void;
+  onHandlingChange: (handling: boolean) => void;
 }) {
   const member = viewer.kind === 'profile';
   const identity = member ? viewer.profile._id : 'observer';

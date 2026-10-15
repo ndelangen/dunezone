@@ -46,7 +46,7 @@ export const Default = meta.story({
     const band = within(canvasElement);
     const crumb = await band.findByRole('link', { name: 'Rulesets' });
     const column = crumb.parentElement ?? crumb;
-    expect(crumb.getBoundingClientRect().width).toBeLessThan(column.getBoundingClientRect().width);
+    await expect(crumb.getBoundingClientRect().width).toBeLessThan(column.getBoundingClientRect().width);
   },
 });
 

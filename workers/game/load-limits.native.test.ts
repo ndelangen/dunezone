@@ -129,7 +129,9 @@ describe('isolated load limits in native workerd', () => {
         })
       )
     );
-    expect(responses.map((response) => response.status).sort()).toEqual([101, 101, 429, 429, 429, 429]);
+    expect(responses.map((response) => response.status).sort((first, second) => first - second)).toEqual([
+      101, 101, 429, 429, 429, 429,
+    ]);
     for (const response of responses) {
       response.webSocket?.accept();
     }

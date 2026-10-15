@@ -496,7 +496,7 @@ function RulesetDetailPage() {
   };
 
   const handleFaqSearchChange = (value: string) => {
-    navigate({
+    void navigate({
       to: '.',
       search: (prev) => ({ ...prev, q: value.trim() || undefined }),
       replace: true,
@@ -504,7 +504,7 @@ function RulesetDetailPage() {
   };
 
   const handleFaqTagChange = (value: string | null) => {
-    navigate({
+    void navigate({
       to: '.',
       search: (prev) => ({
         ...prev,

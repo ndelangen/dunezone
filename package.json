@@ -10,6 +10,7 @@
       "@vitest/coverage-v8": "5.0.3",
       "oxfmt": "0.72.0",
       "oxlint": "1.87.0",
+      "oxlint-tsgolint": "7.0.2004",
       "vite": "npm:@voidzero-dev/vite-plus-core@1.1.0",
       "vite-plus": "1.1.0",
       "vitest": "5.0.3"
@@ -183,6 +184,7 @@
     "monocart-coverage-reports": "2.13.1",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
     "playwright": "1.63.0",
     "recursive-readdir-files": "^2.3.2",
     "sharp": "0.35.5",

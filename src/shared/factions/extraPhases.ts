@@ -58,7 +58,7 @@ export const phaseDeclarationSchema = z
     id: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/),
     type: z.enum(PHASE_TYPES, {
       error: (issue) =>
-        issue.input === undefined ? 'Choose a phase type.' : `"${String(issue.input)}" is not a phase type.`,
+        issue.input === undefined ? 'Choose a phase type.' : `${JSON.stringify(issue.input)} is not a phase type.`,
     }),
     title: z
       .string({ error: 'Give the phase a title.' })

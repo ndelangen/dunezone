@@ -137,7 +137,10 @@ describe('Publication save coalescing', () => {
       data: { ...assetPublishingFaction, name: 'Latest save while capturing' },
     });
     const beforeComplete = await jobsFor(t, faction._id);
-    expect(beforeComplete.map((job) => job.status).sort()).toEqual(['in_progress', 'pending']);
+    expect(beforeComplete.map((job) => job.status).sort((first, second) => first.localeCompare(second))).toEqual([
+      'in_progress',
+      'pending',
+    ]);
     expect(beforeComplete.find((job) => job.status === 'pending')).toMatchObject({
       asset_data: { faction: { name: 'Latest save while capturing' } },
     });

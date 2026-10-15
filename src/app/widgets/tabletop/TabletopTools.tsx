@@ -189,7 +189,7 @@ export function TabletopTools({
   keyboardActionsClassName,
 }: {
   pieceMenu: PieceMenuAnchor | null;
-  onMenuChange(menu: PieceMenuAnchor | null): void;
+  onMenuChange: (menu: PieceMenuAnchor | null) => void;
   area: RefObject<HTMLDivElement | null>;
   keyboardActionsClassName: string;
 }) {

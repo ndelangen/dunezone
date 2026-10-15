@@ -9,6 +9,7 @@ import { pureStaticAssignments, withoutCanvasBackground } from './threeRendererS
 /** Evaluates a rewritten module body and returns what it assigned to `exports`. */
 function run(code: string): Record<string, unknown> {
   const exports: Record<string, unknown> = {};
+  /* oxlint-disable-next-line typescript/no-implied-eval -- running the rewritten module text is what this test checks */
   new Function('exports', code)(exports);
   return exports;
 }

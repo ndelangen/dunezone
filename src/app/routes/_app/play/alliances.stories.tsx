@@ -101,7 +101,7 @@ export const IncomingOffer = meta.story({
     await openPanel(canvasElement, 'Alliances');
     await expect(page.findByText('Offers you an alliance')).resolves.toBeVisible();
     await userEvent.click(await page.findByRole('button', { name: 'Accept' }));
-    expect(lastCommand()).toMatchObject({
+    await expect(lastCommand()).toMatchObject({
       action: { kind: 'alliance-accept', factionId: faction(session.transport.snapshot, 'seat-1'), offer: 0 },
     });
   },
@@ -136,10 +136,12 @@ export const ManyAlliancesFitTheHeader = meta.story({
     const strip = doc.querySelector('.seated-chip--game [aria-label="Alliances"]')!;
     const phase = doc.querySelector('.seated-phase-status')!;
     const toolbar = doc.querySelector('.seated-toolbar')!;
-    await waitFor(() => {
-      expect(strip.getBoundingClientRect().top).toBeGreaterThanOrEqual(phase.getBoundingClientRect().bottom);
+    await waitFor(async () => {
+      await expect(strip.getBoundingClientRect().top).toBeGreaterThanOrEqual(phase.getBoundingClientRect().bottom);
       const [box, tools] = [strip.getBoundingClientRect(), toolbar.getBoundingClientRect()];
-      expect(box.right <= tools.left || box.top >= tools.bottom, 'The alliances run under the toolbar.').toBe(true);
+      await expect(box.right <= tools.left || box.top >= tools.bottom, 'The alliances run under the toolbar.').toBe(
+        true
+      );
     });
   },
 });
@@ -159,9 +161,11 @@ export const FinishedReadOnly = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    expect(await page.findByRole('img', { name: /are allied/ }, { timeout: 30_000 })).toBeVisible();
+    await expect(await page.findByRole('img', { name: /are allied/ }, { timeout: 30_000 })).toBeVisible();
     await openPanel(canvasElement, 'Alliances');
-    expect(await page.findByText('Offers you an alliance')).toBeVisible();
-    expect(page.queryByRole('button', { name: /Offer alliance|Accept|Withdraw offer|Break alliance/ })).toBeNull();
+    await expect(await page.findByText('Offers you an alliance')).toBeVisible();
+    await expect(
+      page.queryByRole('button', { name: /Offer alliance|Accept|Withdraw offer|Break alliance/ })
+    ).toBeNull();
   },
 });

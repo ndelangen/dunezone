@@ -14,7 +14,7 @@ function stubWebGL2(available: boolean) {
 }
 
 function stubWebGPU(adapter: Promise<unknown> | undefined) {
-  vi.stubGlobal('navigator', { ...navigator, gpu: adapter && { requestAdapter: () => adapter } });
+  vi.stubGlobal('navigator', { gpu: adapter && { requestAdapter: () => adapter } });
 }
 
 afterEach(() => {

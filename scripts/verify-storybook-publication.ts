@@ -458,7 +458,7 @@ async function verifyPublication() {
     });
   } finally {
     progress('Stopping the non-root static server.');
-    nonRootServer.stop(true);
+    await nonRootServer.stop(true);
     progress('Stopping the publication worker.');
     await stopProcess(wrangler);
   }

@@ -2174,12 +2174,22 @@ function placementName(contents: RulebookContentsDraftV1, placement?: Placement)
   return `${containerName(contents, container)}, ${boundary}`;
 }
 
+const SHOWN_PRIMITIVES: ReadonlySet<string> = new Set(['string', 'number', 'boolean', 'bigint']);
+
+function isShownPrimitive(value: unknown): value is string | number | boolean | bigint {
+  return SHOWN_PRIMITIVES.has(typeof value);
+}
+
 function reviewValue(value: unknown): ReactNode {
   if (value === undefined || value === null || value === '') {
     return <Text c="dimmed">Not set</Text>;
   }
-  if (typeof value !== 'object') {
+  if (isShownPrimitive(value)) {
     return <Text style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{String(value)}</Text>;
+  }
+  if (typeof value !== 'object') {
+    /* A draft is JSON, so it holds no functions or symbols to show. */
+    return null;
   }
   return (
     <Stack gap="xs">

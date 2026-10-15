@@ -37,9 +37,9 @@ test('the copy replaces only its generated modules, and its seam limits sign-in 
     /* Loading playProvisioning.ts fails if the copy stops exporting a name it imports from the seam. */
     await load(backend, 'convex/playProvisioning.ts');
     const { isSyntheticBackend, requireSyntheticBackend, syntheticIdentity } = await load<{
-      isSyntheticBackend(): boolean;
-      requireSyntheticBackend(): void;
-      syntheticIdentity(credentials: { email: string; password: string; flow: string }): { email: string };
+      isSyntheticBackend: () => boolean;
+      requireSyntheticBackend: () => void;
+      syntheticIdentity: (credentials: { email: string; password: string; flow: string }) => { email: string };
     }>(backend, 'convex/lib/playSynthetic.ts');
     const runId = 'a'.repeat(32);
     const account = { email: `load-0-${runId}@example.invalid`, password: 'p'.repeat(32), flow: 'signIn' };
@@ -141,6 +141,7 @@ async function load<Exports = unknown>(
     ],
   });
   const module: { exports: unknown } = { exports: {} };
+  /* oxlint-disable-next-line typescript/no-implied-eval -- the test loads the bundle it just built, as the hosted backend would */
   new Function('module', 'exports', bundle.outputFiles[0].text)(module, module.exports);
   return module.exports as Exports;
 }

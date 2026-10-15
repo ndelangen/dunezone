@@ -20,7 +20,7 @@ export async function putPublishedAsset(
   bytes: Uint8Array
 ): Promise<{ key: string; etag: string }> {
   if (!isPublicationAssetType(job.assetType)) {
-    throw new Error(`Unsupported Publication asset type: ${job.assetType}`);
+    throw new Error(`Unsupported Publication asset type: ${job.assetType as string}`);
   }
   if (!/^[0-9a-f]{64}$/.test(payloadHash)) {
     throw new Error('Payload hash is invalid');

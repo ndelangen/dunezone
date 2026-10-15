@@ -79,10 +79,10 @@ async function verifyLabelPaint({ canvasElement }: { canvasElement: HTMLElement 
   const label = canvasElement.querySelector<SVGTextElement>('text')!.ownerSVGElement!;
   const glyphs = Array.from(label.querySelectorAll<SVGTextElement>('text'));
   const paints = Array.from(label.querySelectorAll<SVGRectElement>('rect[mask]'));
-  await waitFor(() => {
+  await waitFor(async () => {
     for (const glyph of glyphs) {
-      expect(glyph.getComputedTextLength()).toBeLessThanOrEqual(680);
-      expect(Number.parseFloat(getComputedStyle(glyph).fontSize)).toBeLessThanOrEqual(90);
+      await expect(glyph.getComputedTextLength()).toBeLessThanOrEqual(680);
+      await expect(Number.parseFloat(getComputedStyle(glyph).fontSize)).toBeLessThanOrEqual(90);
     }
   });
   /* Glyph cells include blank font space, so the canvas metrics locate their painted ink. */

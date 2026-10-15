@@ -126,10 +126,10 @@ function renderPresence(showLocal = false) {
 describe('the viewer cursor', () => {
   test.each([0, 15])('positions the avatar at the pointer with a %s px fixed-position origin', (gutter) => {
     let fixedOrigin = gutter;
-    const originalBounds = HTMLElement.prototype.getBoundingClientRect;
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       if (this.dataset.tableHand !== 'local') {
-        return originalBounds.call(this);
+        /* The spy sits on HTMLElement.prototype, so Element.prototype still holds the browser's own measurement. */
+        return Element.prototype.getBoundingClientRect.call(this);
       }
       const translation = this.style.transform.match(/translate3d\(([-\d.]+)px, ([-\d.]+)px, 0\)/);
       return new DOMRect(fixedOrigin + Number(translation?.[1] ?? 0), Number(translation?.[2] ?? 0), 26, 32);

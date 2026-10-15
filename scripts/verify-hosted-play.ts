@@ -6,6 +6,7 @@ import { parseEnv } from 'node:util';
 
 import { ConvexHttpClient } from 'convex/browser';
 import WebSocket from 'ws';
+import type { RawData } from 'ws';
 
 import { api, internal } from '../convex/_generated/api.ts';
 import type { Id } from '../convex/_generated/dataModel.ts';
@@ -122,7 +123,7 @@ async function open(gameId: Id<'play_games'>, ticket?: string): Promise<Protocol
     },
   };
   sockets.push(peer);
-  socket.on('message', (bytes) => messages.push(readServerMessage(bytes.toString())));
+  socket.on('message', (bytes) => messages.push(readServerMessage(rawText(bytes))));
   socket.on('close', (code) => {
     peer.closeCode = code;
   });
@@ -475,6 +476,11 @@ function tokenIdentity(token: string): { userId: Id<'users'>; sessionId: Id<'aut
   const [userId, sessionId] = decoded.sub.split('|');
   assert.ok(userId && sessionId, 'The auth token needs a user and session subject.');
   return { userId: userId as Id<'users'>, sessionId: sessionId as Id<'authSessions'> };
+}
+
+/* A frame arrives as one Buffer, an ArrayBuffer or Buffer fragments depending on the socket's binaryType, and only a Buffer prints as its text. */
+function rawText(data: RawData): string {
+  return (Array.isArray(data) ? Buffer.concat(data) : Buffer.isBuffer(data) ? data : Buffer.from(data)).toString();
 }
 
 /** The native Node entry keeps the wire object intact so unexpected private fields remain visible to the probes. */

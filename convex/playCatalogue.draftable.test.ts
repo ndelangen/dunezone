@@ -61,11 +61,13 @@ describe('the draft reads the catalogue', () => {
     const t = convexTest(schema, modules);
     const { ruleset, linked, other } = await t.run(seed);
     const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
-    expect(factions.map((faction) => [faction.id, faction.linked, faction.published]).sort()).toEqual(
+    const byId = (first: readonly unknown[], second: readonly unknown[]) =>
+      String(first[0]).localeCompare(String(second[0]));
+    expect(factions.map((faction) => [faction.id, faction.linked, faction.published]).sort(byId)).toEqual(
       [
         [linked, true, true],
         [other, false, false],
-      ].sort()
+      ].sort(byId)
     );
     const atreides = factions.find((faction) => faction.id === linked)!;
     expect(atreides).toMatchObject({

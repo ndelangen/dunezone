@@ -41,6 +41,6 @@ export const ReferencedGroups = meta.story({
   },
   play: async ({ canvas, canvasElement }) => {
     await expect(canvas.getByLabelText('Exchange')).toBeVisible();
-    expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(1);
+    await expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(1);
   },
 });

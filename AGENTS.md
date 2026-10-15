@@ -22,7 +22,7 @@ Convex agent skills for common tasks can be installed by running
 - Non-obvious workflow: `bun run generate` refreshes generated game data outputs.
 - Vite+ (`vp`, package `vite-plus`) is the toolchain behind the `bun run` scripts.
 - Import from `vite-plus` and `vite-plus/test`, not `vite` or `vitest`.
-- Bump `vite`, `vitest`, `vite-plus`, Oxlint, Oxfmt and the Vitest plugins together in the Bun
+- Bump `vite`, `vitest`, `vite-plus`, Oxlint, `oxlint-tsgolint`, Oxfmt and the Vitest plugins together in the Bun
   catalog under `workspaces.catalog` in `package.json`.
 - Edit lint and format settings in `.oxlintrc.json` and `.oxfmtrc.json`; `vite.config.ts` reads them.
 - `bun run app:dev` connects to the configured online Convex deployment. Treat that deployment as a
