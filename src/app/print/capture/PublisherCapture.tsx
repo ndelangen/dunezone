@@ -165,6 +165,7 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
      */
     case 'token-disc':
     case 'token-tech':
+    case 'token-pointer':
     case 'token-plate':
       return printedImage(
         snapshot.assetType,

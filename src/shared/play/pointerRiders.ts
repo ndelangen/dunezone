@@ -1,13 +1,13 @@
-import { fromPieceFrame, HMS_HEIGHT, hmsCovers, isHmsPiece } from './hms';
 import type { TablePiece, Vector3Tuple } from './model';
+import { fromPieceFrame, POINTER_HEIGHT, pointerCovers, isPointerToken } from './pointerToken';
 import { restingPositionAt } from './tableGeometry';
 import { isCollisionFreePosition } from './tablePhysics';
 
 type Pose = Pick<TablePiece, 'position' | 'orientation'>;
 
 /** The pieces riding a plate where it rests: every piece on the table whose centre lies over it, other plates aside. */
-export function hmsRiders(pieces: readonly TablePiece[], plate: TablePiece): TablePiece[] {
-  if (!isHmsPiece(plate) || plate.inventory) {
+export function pointerRiders(pieces: readonly TablePiece[], plate: TablePiece): TablePiece[] {
+  if (!isPointerToken(plate) || plate.inventory) {
     return [];
   }
   return pieces.filter(
@@ -16,8 +16,8 @@ export function hmsRiders(pieces: readonly TablePiece[], plate: TablePiece): Tab
       !piece.inventory &&
       !piece.battleOverlay &&
       piece.items.length > 0 &&
-      !isHmsPiece(piece) &&
-      hmsCovers(plate, piece.position)
+      !isPointerToken(piece) &&
+      pointerCovers(plate, piece.position)
   );
 }
 
@@ -37,10 +37,10 @@ export function riderPose(rider: TablePiece, from: Pose, to: Pose): Pose {
 /** The table with every piece riding `plate` (as it rests in `pieces`) carried to the plate's new pose. */
 export function withRidersCarried(pieces: TablePiece[], moved: TablePiece): TablePiece[] {
   const plate = pieces.find((piece) => piece.id === moved.id);
-  if (!plate || !isHmsPiece(moved)) {
+  if (!plate || !isPointerToken(moved)) {
     return pieces;
   }
-  const riders = new Set(hmsRiders(pieces, plate));
+  const riders = new Set(pointerRiders(pieces, plate));
   if (!riders.size) {
     return pieces;
   }
@@ -56,8 +56,8 @@ export function placementRules(
   moving: TablePiece,
   obstacles: TablePiece[]
 ): { obstacles: TablePiece[]; fits: (position: Vector3Tuple, orientation?: number) => boolean } {
-  const plate = isHmsPiece(moving) ? pieces.find((piece) => piece.id === moving.id) : undefined;
-  const riders = plate ? hmsRiders(pieces, plate) : [];
+  const plate = isPointerToken(moving) ? pieces.find((piece) => piece.id === moving.id) : undefined;
+  const riders = plate ? pointerRiders(pieces, plate) : [];
   if (!plate || !riders.length) {
     return { obstacles, fits: () => true };
   }
@@ -78,7 +78,7 @@ export function placementRules(
  * `rested` is the table as the room holds it, which says who rides.
  */
 export function piecesOnPlates(shown: TablePiece[], rested: readonly TablePiece[]): TablePiece[] {
-  const plates = shown.filter((piece) => isHmsPiece(piece) && !piece.inventory);
+  const plates = shown.filter((piece) => isPointerToken(piece) && !piece.inventory);
   if (!plates.length) {
     return shown;
   }
@@ -93,11 +93,14 @@ export function piecesOnPlates(shown: TablePiece[], rested: readonly TablePiece[
 
 /* Each rider's pose on a plate as shown, by its id: carried with the plate and standing on its top. */
 function ridersShownOn(plate: TablePiece, resting: TablePiece | undefined, rested: readonly TablePiece[]) {
-  return (resting ? hmsRiders(rested, resting) : []).map((rider): [string, Pose] => {
+  return (resting ? pointerRiders(rested, resting) : []).map((rider): [string, Pose] => {
     const pose = riderPose(rider, resting!, plate);
     return [
       rider.id,
-      { orientation: pose.orientation, position: [pose.position[0], plate.position[1] + HMS_HEIGHT, pose.position[2]] },
+      {
+        orientation: pose.orientation,
+        position: [pose.position[0], plate.position[1] + POINTER_HEIGHT, pose.position[2]],
+      },
     ];
   });
 }

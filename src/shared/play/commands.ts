@@ -1,9 +1,9 @@
 import { isFactionToken } from './factionToken';
-import { placementRules, withRidersCarried } from './hmsRiders';
 import { freshTableState, gestureBlockReason, nearestZone, pieceCount } from './model';
 import type { TablePiece, TableState } from './model';
 import { phaseAt, STANDARD_PHASES, stepPhase, tableProgressFor, TURN_SELECT_REFUSAL } from './phases';
 import type { PhaseEntry } from './phases';
+import { placementRules, withRidersCarried } from './pointerRiders';
 import { ROTATE_STEPS_LIMIT } from './protocol';
 import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';

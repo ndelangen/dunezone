@@ -57,6 +57,7 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   'token-disc': 2,
   'token-tech': 2,
   'token-plate': 2,
+  'token-pointer': 2,
   [RECTANGLE_TOKEN_ASSET_TYPE]: 2,
   // 1: immutable Edition first pages join the publication pipeline (wayfinder #935).
   [RULEBOOK_FIRST_PAGE_ASSET_TYPE]: 1,

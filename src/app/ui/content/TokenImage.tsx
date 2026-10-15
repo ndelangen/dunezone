@@ -28,7 +28,7 @@ export function TokenImage({
       src={src}
       name={name}
       aspect={tokenShapeAspect(shape)}
-      raised={raised && shape !== 'gear'}
+      raised={raised && tokenOutline(shape).clipPath === undefined}
       {...tokenOutline(shape)}
     />
   );

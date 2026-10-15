@@ -59,3 +59,15 @@ export const FrontSymbols = meta.story({
     await expect(screen.queryByRole('group', { name: 'Decals / GF9 Stronghold cards' })).toBeNull();
   },
 });
+
+const pointerDraft = initialTokenDraft('token-pointer');
+
+/** A pointer token, such as the HMS: the proof is cut to the teardrop that rides the table as a plate. */
+export const PointerToken = meta.story({
+  args: {
+    type: 'token-pointer',
+    draft: { ...pointerDraft, name: 'HMS', front: { ...pointerDraft.front, top: 'HMS' } },
+    memory: initialTokenMemory(pointerDraft.back),
+    backProof: <TokenProof face={pointerDraft.front} type="token-pointer" />,
+  },
+});

@@ -1,6 +1,6 @@
-import { placementRules, withRidersCarried } from './hmsRiders';
 import { gestureBlockReason, isFlippablePiece, nearestZone, pieceCount, zoneById } from './model';
 import type { DraftMove, TableEvent, TableItem, TablePiece, TableState, Vector3Tuple } from './model';
+import { placementRules, withRidersCarried } from './pointerRiders';
 import { isSpicePiece } from './spice';
 import { isSpiceBankPosition } from './spiceBank';
 import { moveStormCounterclockwise } from './stormSector';

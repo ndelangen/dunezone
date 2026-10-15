@@ -1,6 +1,6 @@
 import { isFactionToken } from './factionToken';
-import { HMS_BODY_RADIUS, HMS_HEIGHT, isHmsPiece } from './hms';
 import type { TablePiece, Vector3Tuple } from './model';
+import { POINTER_BODY_RADIUS, POINTER_HEIGHT, isPointerToken } from './pointerToken';
 import {
   isSpicePiece,
   SPICE_FOOTPRINT_RADIUS,
@@ -10,7 +10,8 @@ import {
 } from './spice';
 import { isTroopStack } from './troop';
 
-type PieceFootprint = Pick<TablePiece, 'kind' | 'orientation'> & Partial<Pick<TablePiece, 'owner' | 'stackKey'>>;
+type PieceFootprint = Pick<TablePiece, 'kind' | 'orientation'> &
+  Partial<Pick<TablePiece, 'owner' | 'stackKey' | 'items'>>;
 
 export const BOARD_RADIUS = 3.98;
 export const BOARD_RIM_RADIUS = 4.23;
@@ -100,8 +101,8 @@ export function circleFootprintRadius(piece: PieceFootprint): number {
   if (isSpicePiece(piece)) {
     return SPICE_FOOTPRINT_RADIUS;
   }
-  if (isHmsPiece(piece)) {
-    return HMS_BODY_RADIUS;
+  if (isPointerToken(piece)) {
+    return POINTER_BODY_RADIUS;
   }
   return piece.kind === 'marker' ? MARKER_FOOTPRINT_RADIUS : TROOP_FOOTPRINT_RADIUS * troopScale(piece);
 }
@@ -139,6 +140,9 @@ export function visibleLayerCount(piece: TablePiece): number {
 }
 
 export function stackTopHeight(piece: TablePiece): number {
+  if (isPointerToken(piece)) {
+    return POINTER_HEIGHT;
+  }
   const layers = visibleLayerCount(piece);
   if (isSpicePiece(piece)) {
     return SPICE_LAYER_HEIGHT + (layers - 1) * SPICE_LAYER_PITCH;
@@ -149,7 +153,7 @@ export function stackTopHeight(piece: TablePiece): number {
   if (piece.kind === 'force') {
     return TROOP_LAYER_HEIGHT + (layers - 1) * TROOP_LAYER_PITCH;
   }
-  return isHmsPiece(piece) ? HMS_HEIGHT : MARKER_HEIGHT;
+  return MARKER_HEIGHT;
 }
 
 export function stackPreviewPositionFor(target: TablePiece): Vector3Tuple {
@@ -165,8 +169,8 @@ function contactShadowBase(piece: TablePiece | TablePiece['kind']): [number, num
     const diameter = SPICE_FOOTPRINT_RADIUS * 2 + 0.04;
     return [diameter, diameter];
   }
-  if (typeof piece !== 'string' && isHmsPiece(piece)) {
-    const diameter = HMS_BODY_RADIUS * 2 + 0.04;
+  if (typeof piece !== 'string' && isPointerToken(piece)) {
+    const diameter = POINTER_BODY_RADIUS * 2 + 0.04;
     return [diameter, diameter];
   }
   const kind = typeof piece === 'string' ? piece : piece.kind;

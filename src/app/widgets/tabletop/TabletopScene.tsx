@@ -2,11 +2,11 @@
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { isFactionToken } from '@shared/play/factionToken';
-import { isHmsPiece } from '@shared/play/hms';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { peekersOf } from '@shared/play/peeking';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
+import { isPointerToken } from '@shared/play/pointerToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
@@ -70,7 +70,6 @@ import {
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { HmsPlate } from './HmsPlate';
 import { ignoreRaycast } from './ignoreRaycast';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
@@ -79,6 +78,7 @@ import { topFaceHref } from './pieceFaceHref';
 import { pieceHasMenu } from './pieceMenu';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
+import { PointerTokenPlate } from './PointerTokenPlate';
 import { sharedPublishedFaces } from './publishedFaceRetry';
 import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
@@ -416,9 +416,6 @@ function MarkerLayers({ piece }: { piece: TablePiece }) {
   const meshes = useSharedMeshes();
   if (isSpicePiece(piece)) {
     return <SpiceLayers piece={piece} />;
-  }
-  if (isHmsPiece(piece)) {
-    return <HmsPlate piece={piece} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />;
   }
   return (
     <group rotation={[0, piece.orientation, 0]}>
@@ -830,7 +827,17 @@ function SelectionRingWarmup() {
   return null;
 }
 
+/* A pointer token shows the face it lies on: its front face up, its back face down. */
+function PointerTokenLayers({ piece }: { piece: TablePiece }) {
+  const item = piece.items[0];
+  const face = usePublishedFace(item?.artwork?.[item.faceUp ? 'front' : 'back']);
+  return <PointerTokenPlate piece={piece} face={face} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />;
+}
+
 export function TabletopPieceLayers({ piece }: { readonly piece: TablePiece }) {
+  if (isPointerToken(piece)) {
+    return <PointerTokenLayers piece={piece} />;
+  }
   if (piece.kind === 'marker') {
     return <MarkerLayers piece={piece} />;
   }

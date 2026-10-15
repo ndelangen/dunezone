@@ -32,7 +32,7 @@ import {
 } from '../../../assetEditorStates';
 
 /** Every token type a bundle may hold. A bundle mixes shapes freely, which is the point of it. */
-const TOKEN_TYPES = ['token-disc', 'token-tech', 'token-plate', 'token-enhance'];
+const TOKEN_TYPES = ['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance'];
 
 export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPublicPage }) {
   const query = useAssetPage('bundle', slug, { initialData: loaderData });

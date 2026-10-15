@@ -1,6 +1,6 @@
-import { fromPieceFrame, HMS_OUTLINE, isHmsPiece } from './hms';
-import type { PlanePoint } from './hms';
 import type { TablePiece, Vector3Tuple } from './model';
+import { fromPieceFrame, POINTER_OUTLINE, isPointerToken } from './pointerToken';
+import type { PlanePoint } from './pointerToken';
 import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, placementAnchorForPose } from './tableFurnitureLayout';
 import {
   CARD_FOOTPRINT_HALF_X,
@@ -59,8 +59,8 @@ const SEARCH_RING_COUNT = 96;
 const SEARCH_DIRECTIONS = 32;
 
 function footprintFor(piece: TablePiece): Footprint {
-  if (isHmsPiece(piece)) {
-    return { shape: 'polygon', points: HMS_OUTLINE };
+  if (isPointerToken(piece)) {
+    return { shape: 'polygon', points: POINTER_OUTLINE };
   }
   if (piece.kind === 'card') {
     return {
@@ -270,7 +270,7 @@ export function piecesOverlapAt(
  * Only cards with no back at all fall back to the key.
  */
 export function piecesCanStack(a: TablePiece, b: TablePiece): boolean {
-  if (a.kind !== b.kind || isHmsPiece(a)) {
+  if (a.kind !== b.kind || isPointerToken(a)) {
     return false;
   }
   const sameKey = a.stackKey !== null && a.stackKey === b.stackKey;
@@ -389,12 +389,12 @@ export function isOverlapFreePosition(
   obstacles: TablePiece[]
 ): boolean {
   /* Pieces stand on an HMS plate rather than beside it, so a plate is in the way only of another plate. */
-  const plateMoving = isHmsPiece(movingPiece);
+  const plateMoving = isPointerToken(movingPiece);
   return obstacles.every(
     (obstacle) =>
       !!obstacle.inventory ||
       obstacle.items.length === 0 ||
-      (isHmsPiece(obstacle) && !plateMoving) ||
+      (isPointerToken(obstacle) && !plateMoving) ||
       !piecesOverlapAt(movingPiece, position, obstacle)
   );
 }

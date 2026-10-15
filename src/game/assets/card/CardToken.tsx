@@ -1,5 +1,5 @@
 import type { CustomCardToken } from '@shared/assets/schema';
-import { GEAR_CLIP } from '@shared/assets/tokenOutline';
+import { tokenOutline, tokenShapeOfType } from '@shared/assets/tokenOutline';
 import type { z } from 'zod';
 
 import { CustomToken } from '../token/Custom';
@@ -8,6 +8,7 @@ import { RectangleToken } from '../token/Rectangle';
 /** Clips the linked front to its token shape; the caller draws the shadow outside this clipping box. */
 export function CardToken({ token }: { token: z.infer<typeof CustomCardToken> }) {
   const rectangle = token.type === 'token-enhance';
+  const { clipPath } = tokenOutline(tokenShapeOfType(token.type) ?? 'square');
   return (
     <div
       style={{
@@ -15,8 +16,8 @@ export function CardToken({ token }: { token: z.infer<typeof CustomCardToken> })
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        borderRadius: token.type === 'token-disc' ? '50%' : token.type === 'token-tech' ? undefined : 8,
-        clipPath: token.type === 'token-tech' ? GEAR_CLIP : undefined,
+        borderRadius: token.type === 'token-disc' ? '50%' : clipPath ? undefined : 8,
+        clipPath,
       }}
     >
       {rectangle ? (

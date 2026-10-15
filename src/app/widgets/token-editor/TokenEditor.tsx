@@ -82,9 +82,9 @@ const INITIAL_FACE: TokenFaceDraft = {
  * Only the edge ring varies, and only for tech tokens: a gear already reads as edged by its teeth, so a ring inside them is clutter rather than a rim (Norbert, 2026-08-20).
  * A function rather than a constant because the default is a fact about the shape, and the shape is the Asset type, which only the page knows.
  */
-/** The seed for any newly authored face, ringed by shape: a gear's teeth are its rim, so it starts bare. */
+/** The seed for any newly authored face, ringed by shape: a gear's teeth are its rim, and a round ring would not follow a pointer's point, so both start bare. */
 function initialTokenFace(type: string): TokenFaceDraft {
-  return { ...INITIAL_FACE, ring: type !== 'token-tech' };
+  return { ...INITIAL_FACE, ring: type !== 'token-tech' && type !== 'token-pointer' };
 }
 
 export function initialTokenDraft(type: string): TokenDraft {

@@ -58,6 +58,7 @@ function CreateAssetPage() {
     /* One editor for all three shapes: shape is the type, and only the proof's clip differs. */
     case 'token-disc':
     case 'token-tech':
+    case 'token-pointer':
     case 'token-plate':
       return <TokenCreatePage type={type} />;
     /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */

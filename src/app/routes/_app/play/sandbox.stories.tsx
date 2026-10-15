@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { HMS_STACK_KEY } from '@shared/play/hms';
+import { POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
 import { restingPositionAt } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -293,19 +293,28 @@ export const BattleBeacon = meta.story({ args: { step: chapter('Battle') } });
 /** An HMS plate for seat 1's faction, set down on the board where nothing stands. */
 function withHms(stored: StoredSnapshot): StoredSnapshot {
   const seat = stored.roster!.seats.find((entry) => entry.id === 'seat-1')!;
+  /* The faction's own token art stands in for a pointer token's face. */
+  const art = stored.table.pieces.find((candidate) => candidate.stackKey === `faction-token:${seat.faction!.id}`)!
+    .items[0]!.artwork!;
   const plate: StoredSnapshot['table']['pieces'][number] = {
     id: 'sandbox-hms',
     label: 'HMS',
     owner: seat.faction!.id,
     color: seat.faction!.color,
     accent: '#ead9bb',
-    items: [{ id: 'sandbox-hms-plate', faceUp: true }],
-    stackKey: HMS_STACK_KEY,
+    items: [
+      {
+        id: 'sandbox-hms-plate',
+        faceUp: true,
+        artwork: { front: art.front, back: art.back, name: 'HMS', type: POINTER_TOKEN_TYPE },
+      },
+    ],
+    stackKey: 'token:sandbox-hms',
     position: [0, 0, 0],
     orientation: 0.5,
     zoneId: null,
     locked: false,
-    kind: 'marker',
+    kind: 'force',
   };
   const spot = nearestCollisionFreePosition(plate, [0.6, 0, 1.6], stored.table.pieces)!;
   plate.position = restingPositionAt(spot, plate);
@@ -322,7 +331,7 @@ async function boardHms(canvasElement: HTMLElement) {
   await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
   const table = sandbox.table!;
   const faction = shown().bank!.factionId;
-  const plate = () => piece((candidate) => candidate.stackKey === HMS_STACK_KEY);
+  const plate = () => piece((candidate) => candidate.stackKey === 'token:sandbox-hms');
   const carry = (id: string, pieceId: string, position: [number, number, number], orientation = 0) => {
     table.receive({
       type: 'begin',
