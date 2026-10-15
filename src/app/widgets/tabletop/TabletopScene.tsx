@@ -78,7 +78,7 @@ import { topFaceHref } from './pieceFaceHref';
 import { pieceHasMenu } from './pieceMenu';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
-import { PointerTokenPlate } from './PointerTokenPlate';
+import { POINTER_SELECTION_RING, PointerTokenPlate } from './PointerTokenPlate';
 import { sharedPublishedFaces } from './publishedFaceRetry';
 import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
@@ -799,7 +799,11 @@ function PieceSelectionRing({
       position={[0, shadowLocalY + CONTACT_SHADOW_EPSILON, 0]}
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       rotation={[-Math.PI / 2, 0, 0]}
-      geometry={meshes.ring(...(isSpicePiece(piece) ? SPICE_SELECTION_RADII : selectionRadii(piece)))}
+      geometry={
+        isPointerToken(piece)
+          ? POINTER_SELECTION_RING
+          : meshes.ring(...(isSpicePiece(piece) ? SPICE_SELECTION_RADII : selectionRadii(piece)))
+      }
     >
       <meshBasicMaterial
         color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
@@ -834,8 +838,10 @@ function SelectionRingWarmup() {
 /* A pointer token shows the face it lies on: its front face up, its back face down. */
 function PointerTokenLayers({ piece }: { piece: TablePiece }) {
   const item = piece.items[0];
-  const face = usePublishedFace(item?.artwork?.[item.faceUp ? 'front' : 'back']);
-  return <PointerTokenPlate piece={piece} face={face} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />;
+  const front = usePublishedFace(item?.artwork?.front);
+  const back = usePublishedFace(item?.artwork?.back);
+  const [face, under] = item?.faceUp ? [front, back] : [back, front];
+  return <PointerTokenPlate piece={piece} face={face} under={under} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />;
 }
 
 export function TabletopPieceLayers({ piece }: { readonly piece: TablePiece }) {

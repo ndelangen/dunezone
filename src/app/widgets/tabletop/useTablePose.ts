@@ -108,13 +108,23 @@ class PlateFollowers {
     placeFollower(follower, this.link(plateId).plate);
   }
 
-  /* A follower whose carry ended rides on while its plate is still settling. */
+  /*
+   * A follower whose carry ended rides on while its plate is still settling.
+   * Whether the plate still moves is known only once every piece has taken the new table, a cancel's turn back included, so it is decided after.
+   */
   release(follower: Follower) {
-    const plate = follower.plateId ? this.links.get(follower.plateId)?.plate : null;
-    if (plate?.smoothing.active) {
-      follower.lingering = true;
-    } else {
-      this.detach(follower);
+    const plateId = follower.plateId;
+    if (!plateId) {
+      return;
+    }
+    follower.lingering = true;
+    queueMicrotask(() => this.settleIfStill(plateId));
+  }
+
+  /** Lets go of whoever only stayed on for the ride when the plate is not moving. */
+  settleIfStill(plateId: string) {
+    if (!this.links.get(plateId)?.plate?.smoothing.active) {
+      this.settle(plateId);
     }
   }
 
@@ -218,6 +228,10 @@ export function useTablePose(
     target.orientation = orientation;
     retargetPoseSmoothing(smoothing, remote || Boolean(follows), immediate);
     const group = groupRef.current;
+    /* A rider picked up on its own leaves the plate it was still riding out. */
+    if (pose.current.lingering && (remote || immediate)) {
+      followers?.detach(pose.current);
+    }
     if (pose.current.plateId) {
       /* A rider is placed by its plate, wherever the plate is shown now, even when the plate is still. */
       followers?.carry(pose.current.plateId);
@@ -228,6 +242,7 @@ export function useTablePose(
     }
     if (plateId) {
       followers?.carry(plateId);
+      followers?.settleIfStill(plateId);
     }
     invalidate();
   }, [followers, follows, immediate, invalidate, orientation, plateId, positionX, positionY, positionZ, remote]);
@@ -240,9 +255,7 @@ export function useTablePose(
     smoothing.active = advanceTablePose(group, target, delta);
     if (plateId) {
       followers?.carry(plateId);
-      if (!smoothing.active) {
-        followers?.settle(plateId);
-      }
+      followers?.settleIfStill(plateId);
     }
     if (smoothing.active) {
       invalidate();
