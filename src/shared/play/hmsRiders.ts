@@ -83,26 +83,22 @@ export function piecesOnPlates(shown: TablePiece[], rested: readonly TablePiece[
     return shown;
   }
   const restedById = new Map(rested.map((piece) => [piece.id, piece]));
-  const carried = new Map<string, TablePiece>();
-  for (const plate of plates) {
-    const resting = restedById.get(plate.id);
-    if (!resting) {
-      continue;
-    }
-    for (const rider of hmsRiders(rested, resting)) {
-      const pose = riderPose(rider, resting, plate);
-      carried.set(rider.id, {
-        ...rider,
-        orientation: pose.orientation,
-        position: [pose.position[0], plate.position[1] + HMS_HEIGHT, pose.position[2]],
-      });
-    }
-  }
+  const carried = new Map(plates.flatMap((plate) => ridersShownOn(plate, restedById.get(plate.id), rested)));
   return shown.map((piece) => {
     const riding = carried.get(piece.id);
     /* A rider someone has picked up is wherever their hand is, not on the plate. */
-    const atRest = riding && samePlace(piece, restedById.get(piece.id));
-    return riding && atRest ? { ...piece, position: riding.position, orientation: riding.orientation } : piece;
+    return riding && samePlace(piece, restedById.get(piece.id)) ? { ...piece, ...riding } : piece;
+  });
+}
+
+/* Each rider's pose on a plate as shown, by its id: carried with the plate and standing on its top. */
+function ridersShownOn(plate: TablePiece, resting: TablePiece | undefined, rested: readonly TablePiece[]) {
+  return (resting ? hmsRiders(rested, resting) : []).map((rider): [string, Pose] => {
+    const pose = riderPose(rider, resting!, plate);
+    return [
+      rider.id,
+      { orientation: pose.orientation, position: [pose.position[0], plate.position[1] + HMS_HEIGHT, pose.position[2]] },
+    ];
   });
 }
 
