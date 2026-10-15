@@ -35,16 +35,16 @@ async function artVersion(directory: string | undefined, file: string): Promise<
 }
 
 const changed = changedFiles();
-const newArtOnly = new Set<string>();
-for (const file of ART_FILES.filter((candidate) => changed.includes(candidate))) {
-  const [before, after] = [
-    await artVersion(process.env.ART_BEFORE, file),
-    await artVersion(process.env.ART_AFTER, file),
-  ];
-  if (onlyAddsArt(file, before, after)) {
-    newArtOnly.add(file);
-  }
-}
+const versions = await Promise.all(
+  ART_FILES.filter((file) => changed.includes(file)).map(async (file) => ({
+    file,
+    before: await artVersion(process.env.ART_BEFORE, file),
+    after: await artVersion(process.env.ART_AFTER, file),
+  }))
+);
+const newArtOnly = new Set(
+  versions.filter(({ file, before, after }) => onlyAddsArt(file, before, after)).map(({ file }) => file)
+);
 
 const decision = decideHostedPlay(changed, newArtOnly);
 console.log(JSON.stringify(decision));

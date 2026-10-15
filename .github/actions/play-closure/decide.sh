@@ -35,12 +35,12 @@ files_of() {
 # Both versions of each changed art file into art/before and art/after, so the script can tell new art from a changed or removed original.
 # A version that cannot be read is left out, and the script then counts the file as reaching the flows.
 art_versions() {
-  local file
+  local from="$1" to="$2" file
   for file in media/raster.lock.json src/shared/media/map.generated.ts; do
     if grep -qxF "$file" changed-files.txt; then
       mkdir -p "art/before/$(dirname "$file")" "art/after/$(dirname "$file")"
-      gh api -H 'Accept: application/vnd.github.raw' "repos/$REPO/contents/$file?ref=$1" > "art/before/$file" || rm -f "art/before/$file"
-      gh api -H 'Accept: application/vnd.github.raw' "repos/$REPO/contents/$file?ref=$2" > "art/after/$file" || rm -f "art/after/$file"
+      gh api -H 'Accept: application/vnd.github.raw' "repos/$REPO/contents/$file?ref=$from" > "art/before/$file" || rm -f "art/before/$file"
+      gh api -H 'Accept: application/vnd.github.raw' "repos/$REPO/contents/$file?ref=$to" > "art/after/$file" || rm -f "art/after/$file"
     fi
   done
   export ART_BEFORE="$RUNNER_TEMP/art/before" ART_AFTER="$RUNNER_TEMP/art/after"

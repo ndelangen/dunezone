@@ -63,7 +63,7 @@ export async function importGraph(
   });
   /* A stylesheet imported with `?inline` is the same file. */
   const repositoryFile = (file: string) => {
-    const path = file.replace(/\?.*$/u, '');
+    const [path] = file.split('?');
     return path.startsWith('node_modules/') || path.includes(':') ? undefined : path;
   };
   const graph = new Map<string, Set<string>>();

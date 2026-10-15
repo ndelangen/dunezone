@@ -1,5 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 
+import { byCodeUnit } from './storybook-shards';
+
 /*
  * The files a pull request must touch for the hosted play flows to be able to observe the change (#1598).
  * The globs name the game and publisher Workers, the backend, the shared modules, the play pages and the app code they import, the launcher with its flows, and the builds, generators and checks it runs as subprocesses with the configuration they read.
@@ -139,9 +141,9 @@ export function onlyAddsArt(file: string, before: unknown, after: unknown): bool
     return onlyGains(before, after);
   }
   if (file === 'src/shared/media/map.generated.ts' && isRecord(before) && isRecord(after)) {
-    const names = Object.keys(before).sort();
+    const names = Object.keys(before).sort(byCodeUnit);
     return (
-      isDeepStrictEqual(names, Object.keys(after).sort()) &&
+      isDeepStrictEqual(names, Object.keys(after).sort(byCodeUnit)) &&
       names.every((name) =>
         name === GROWING_EXPORT ? onlyGains(before[name], after[name]) : isDeepStrictEqual(before[name], after[name])
       )
