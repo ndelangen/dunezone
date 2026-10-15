@@ -2,7 +2,7 @@ import { UnstyledButton } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { Play } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import styles from './postContent.module.css';
@@ -67,6 +67,11 @@ export function Figure({ imageKey, alt, aspect, caption }: FigureProps) {
   );
 }
 
+/** The play button goes away when pressed, so the player takes the focus and a keyboard reader keeps their place; one function for every render, so a re-render never moves the focus again. */
+function focusOnMount(element: HTMLElement | null) {
+  element?.focus();
+}
+
 /**
  * A YouTube video that loads nothing from YouTube until the reader asks for it.
  * Until then it shows a still frame from `media/`, so the page stays fast and no third party sees the visit;
@@ -87,19 +92,12 @@ export function YouTube({
   caption?: ReactNode;
 }) {
   const [playing, setPlaying] = useState(false);
-  const player = useRef<HTMLIFrameElement>(null);
-  /* The play button goes away when pressed, so the player takes the focus and a keyboard reader keeps their place. */
-  useEffect(() => {
-    if (playing) {
-      player.current?.focus();
-    }
-  }, [playing]);
   return (
     <figure className={styles.figure}>
       <div className={styles.video}>
         {playing ? (
           <iframe
-            ref={player}
+            ref={focusOnMount}
             className={styles.player}
             src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1`}
             title={title}
