@@ -7658,6 +7658,15 @@
     "isOpaque": true,
     "color": "#181808"
   },
+  "/web/blog/drawing-dune-tokens-and-cards/exploded-layers.jpg": {
+    "sha256": "847bcdfd830a4aaa41f6488e7f3ae960f384cfe027bc833a299b20136247889c",
+    "bytes": 444430,
+    "width": 2400,
+    "height": 1800,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#d8c8a8"
+  },
   "/web/blog/drawing-dune-tokens-and-cards/thufir-token-photo.jpg": {
     "sha256": "f8cb0f3093fa2b95b3245edce2706f599aea1d9979cfeee36643b232ecd13d20",
     "bytes": 26517,
