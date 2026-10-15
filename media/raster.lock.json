@@ -4860,10 +4860,10 @@
     "color": "#d8b868"
   },
   "/image/leader/official/baron.jpg": {
-    "sha256": "eba4c9c117162861f17e372f877be642c5a687a061957b8fa19897b9754ff784",
-    "bytes": 39888,
-    "width": 431,
-    "height": 426,
+    "sha256": "3f19a9977ad02a00570ce843a5800bfe632bacfd94e3a6c0642eb09c0ed61e36",
+    "bytes": 184318,
+    "width": 862,
+    "height": 852,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#c8b878"
@@ -4896,19 +4896,19 @@
     "color": "#c8b878"
   },
   "/image/leader/official/bindikk-narvi.png": {
-    "sha256": "7ae2433fe942c6bdee29b7ab2ae8e28108b1b15d66fdff88ded9156c11176fe9",
-    "bytes": 88025,
-    "width": 298,
-    "height": 299,
+    "sha256": "3f0d93dcc093a14772c7bd40c7599e0bc231a6da801f0f594058f27a6a5b64d0",
+    "bytes": 314743,
+    "width": 596,
+    "height": 598,
     "format": "png",
     "isOpaque": true,
     "color": "#d8b868"
   },
   "/image/leader/official/blin.png": {
-    "sha256": "fc75f95d83fa87344a8ddf4348c1e944fad1cba82e7c3ca88e0dc8bc7cbf6e8e",
-    "bytes": 114350,
-    "width": 371,
-    "height": 366,
+    "sha256": "bfca42d49bd171eea0454e47defa487c57b5fd8878547bc0bbad759f97967ccb",
+    "bytes": 380652,
+    "width": 742,
+    "height": 732,
     "format": "png",
     "isOpaque": true,
     "color": "#c8b878"
@@ -4932,10 +4932,10 @@
     "color": "#c8b878"
   },
   "/image/leader/official/cammar.png": {
-    "sha256": "115610929fac49f17aff667e8bd9443dda28c470cc5b7018d430268c50ae9373",
-    "bytes": 90317,
-    "width": 376,
-    "height": 367,
+    "sha256": "be1691c865209ace3f62af876f30e647f5c1b6a62c184ea5513d46fa9270fc2c",
+    "bytes": 274405,
+    "width": 752,
+    "height": 734,
     "format": "png",
     "isOpaque": true,
     "color": "#c8b878"
@@ -4950,19 +4950,19 @@
     "color": "#c8b878"
   },
   "/image/leader/official/ctair.png": {
-    "sha256": "756fda949d428c33c56bfa4bff57bac42152be9c275345364da896f75e6773c1",
-    "bytes": 106629,
-    "width": 376,
-    "height": 367,
+    "sha256": "a41337a2df819bebe6980bfab44fda604484cf361685b8fb9394740c293d0141",
+    "bytes": 311840,
+    "width": 752,
+    "height": 734,
     "format": "png",
     "isOpaque": true,
     "color": "#c8b878"
   },
   "/image/leader/official/dominic.png": {
-    "sha256": "0df4bc476f086e6124a54ccb4ca9d7984ddb20632e7aa5bc351c9c2ff84d5e53",
-    "bytes": 98117,
-    "width": 376,
-    "height": 367,
+    "sha256": "adf4e3525b19733d96eff449af0a5554c17829c077a65e654f035664183612fa",
+    "bytes": 297162,
+    "width": 752,
+    "height": 734,
     "format": "png",
     "isOpaque": true,
     "color": "#c8b878"
@@ -4995,10 +4995,10 @@
     "color": "#c8b878"
   },
   "/image/leader/official/edric.jpg": {
-    "sha256": "c921b8d33e85d980e890b28a8c01a35aa0e6602099a7df09b35551e2550f0d97",
-    "bytes": 37962,
-    "width": 425,
-    "height": 421,
+    "sha256": "ed46b2826dd616678e27b18d180a79b7a0ae9bb27bbb2c394b32e7f9abccd51d",
+    "bytes": 143268,
+    "width": 850,
+    "height": 842,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#c8b878"
@@ -5049,10 +5049,10 @@
     "color": "#d8b868"
   },
   "/image/leader/official/grieu-kronos.png": {
-    "sha256": "a86fdb5146157124c977b2ba3c8239e68a51b35d35903a8f5d8608a52e53585a",
-    "bytes": 81779,
-    "width": 298,
-    "height": 299,
+    "sha256": "89fd92891c7e9a9587aa7127060972fb0566666d6b72e781f7dd5ca398df8926",
+    "bytes": 285530,
+    "width": 596,
+    "height": 598,
     "format": "png",
     "isOpaque": true,
     "color": "#d8b868"
@@ -5094,28 +5094,28 @@
     "color": "#c8b878"
   },
   "/image/leader/official/hidar.png": {
-    "sha256": "ad3f6a619c85084602b19e343668794735c658b6a7ea82e0948a59cc129a027f",
-    "bytes": 129400,
-    "width": 371,
-    "height": 366,
+    "sha256": "bd8a75780506cb3d8140e010d54a6f44ffeb97884a4f96f0bfa131eac3eff449",
+    "bytes": 437888,
+    "width": 742,
+    "height": 732,
     "format": "png",
     "isOpaque": true,
     "color": "#c8b878"
   },
   "/image/leader/official/hiih-resser.png": {
-    "sha256": "eb86900ee635e28203fcf645660a99c5553a91ba6aa3e0ea796cd7a12886c2b7",
-    "bytes": 66979,
-    "width": 298,
-    "height": 299,
+    "sha256": "5986f7e59276757e5a1c3882621facfdb06fe3fe98bfde06a1706ba43cd53d9c",
+    "bytes": 234041,
+    "width": 596,
+    "height": 598,
     "format": "png",
     "isOpaque": true,
     "color": "#d8b868"
   },
   "/image/leader/official/ilesa-ecaz.png": {
-    "sha256": "49b1ac6d754f4251e79f738b5ec8b0a7bdf02cce8d234e5befe0de68791a1b86",
-    "bytes": 94229,
-    "width": 298,
-    "height": 299,
+    "sha256": "325ab1c1d5672140ca0e10f69c0d2b34a9877a46b4b3857beeb3f48fff0f897e",
+    "bytes": 332699,
+    "width": 596,
+    "height": 598,
     "format": "png",
     "isOpaque": true,
     "color": "#d8b868"
@@ -5157,10 +5157,10 @@
     "color": "#c8b878"
   },
   "/image/leader/official/kailea.png": {
-    "sha256": "0dca2d7afad299c326af734950e578424b3dcaedc552cd77bfb0eacd57619417",
-    "bytes": 99419,
-    "width": 376,
-    "height": 372,
+    "sha256": "1eb2fa35c0aadee95eb9f92564cfbef307251354598779df0c211351c83db726",
+    "bytes": 304507,
+    "width": 752,
+    "height": 744,
     "format": "png",
     "isOpaque": true,
     "color": "#c8b878"
@@ -5193,19 +5193,19 @@
     "color": "#d8b868"
   },
   "/image/leader/official/liet.jpg": {
-    "sha256": "6d1967cd0a2db40f6a625281f1aecd71b9561871530d925d32b521d874aa7053",
-    "bytes": 26757,
-    "width": 428,
-    "height": 423,
+    "sha256": "d4d3685a54f47d620658a3cb15ec991ca197f45f2dcff2e5dd97a89859d16dbc",
+    "bytes": 131960,
+    "width": 856,
+    "height": 846,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#c8b878"
   },
   "/image/leader/official/lupino-ord.png": {
-    "sha256": "3d514ec3d3ace36319f0944e0c636f7897c43a5e520bb455f8f023fb31f2855a",
-    "bytes": 64509,
-    "width": 298,
-    "height": 298,
+    "sha256": "1e393d363e1cac4b7d3a7449d84f36533983985bc3c510630160a2996d214b87",
+    "bytes": 231602,
+    "width": 596,
+    "height": 596,
     "format": "png",
     "isOpaque": true,
     "color": "#d8b868"
@@ -5220,19 +5220,19 @@
     "color": "#c8b878"
   },
   "/image/leader/official/masters.jpg": {
-    "sha256": "b35ce62c96362af54932250e923c509ba4f158717e06e2b5599d482e2caf38aa",
-    "bytes": 38103,
-    "width": 434,
-    "height": 431,
+    "sha256": "ee094f1b9ef7bb3a52a9facc719f9eea4bbc4e5afe4eb8b7c385087a1fb9dd40",
+    "bytes": 140833,
+    "width": 868,
+    "height": 862,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#c8b878"
   },
   "/image/leader/official/mohiam.jpg": {
-    "sha256": "e1f85293766ef9175abb218142ade3331277c636a1c6769cbcfe2afed8bf9d14",
-    "bytes": 36749,
-    "width": 424,
-    "height": 423,
+    "sha256": "73fcf07764ada22725acae0aab28c7a384e1bb3520f6997e520e3fb312534064",
+    "bytes": 172148,
+    "width": 848,
+    "height": 846,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#c8b878"
@@ -5256,10 +5256,10 @@
     "color": "#c8b878"
   },
   "/image/leader/official/paul.jpg": {
-    "sha256": "3699f31ca0bf7f3ec66cbac461a9eee298c7f5a691664e42e48f2a1ff006049b",
-    "bytes": 28112,
-    "width": 426,
-    "height": 424,
+    "sha256": "903478d0de2471059a02af72514c6133b920f26063de44073b1cce05813adcc0",
+    "bytes": 134270,
+    "width": 852,
+    "height": 848,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#c8b878"
@@ -5292,10 +5292,10 @@
     "color": "#c8b878"
   },
   "/image/leader/official/rhombor.jpg": {
-    "sha256": "809cb47bb26bd3415759a34705ac86b241d6db82834e28ff27f438d0c527cf82",
-    "bytes": 28192,
-    "width": 433,
-    "height": 426,
+    "sha256": "8e89d30a2480380fc684ad42098b0fae470094968c94f0112799c1c700848cdc",
+    "bytes": 125653,
+    "width": 866,
+    "height": 852,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#c8b878"
@@ -5310,10 +5310,10 @@
     "color": "#d8b868"
   },
   "/image/leader/official/shadam.jpg": {
-    "sha256": "7fa380be571d0e048a5390cf73e928eec0768acd23b9a9837992a08f16a08aa4",
-    "bytes": 29993,
-    "width": 427,
-    "height": 423,
+    "sha256": "21aa779ce5be2680c7bfaebdb2cbdf80fdefb1d85f6c21dbb9a71f2a8e03446b",
+    "bytes": 140341,
+    "width": 854,
+    "height": 846,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#c8b878"
@@ -5364,10 +5364,10 @@
     "color": "#d8b868"
   },
   "/image/leader/official/tessia.png": {
-    "sha256": "01c03caa900e2fd9f73fa1ba4b026225547ce69c0e46ad9ef2f2efe9879b91a6",
-    "bytes": 82262,
-    "width": 376,
-    "height": 372,
+    "sha256": "8df13629ca3bab9379c7fbe2f0a224775689a9c5f75dc7a56567878ade18eddf",
+    "bytes": 249799,
+    "width": 752,
+    "height": 744,
     "format": "png",
     "isOpaque": true,
     "color": "#c8b878"
@@ -5400,19 +5400,19 @@
     "color": "#c8b878"
   },
   "/image/leader/official/vando-terboli.png": {
-    "sha256": "c07f9bb020a5383e94fe9d81a3c588e543c613fea054f901698e63ee68296eb5",
-    "bytes": 77089,
-    "width": 298,
-    "height": 298,
+    "sha256": "453cc1774e00e7b417ce6e4a4cc4d3152c1b47511f399b348f080eabff06c345",
+    "bytes": 271488,
+    "width": 596,
+    "height": 596,
     "format": "png",
     "isOpaque": true,
     "color": "#d8b868"
   },
   "/image/leader/official/viscount-tull.png": {
-    "sha256": "db317f5c2bcf3aa43a63ade4889ca8e28b1860c7228a280330febde9860639d1",
-    "bytes": 28183,
-    "width": 163,
-    "height": 163,
+    "sha256": "321ba5c0e1320fa3286c99a6cbf4230c5f43022616fd9f4c3b704eb83d82e958",
+    "bytes": 104467,
+    "width": 326,
+    "height": 326,
     "format": "png",
     "isOpaque": true,
     "color": "#d8b868"
@@ -5427,46 +5427,46 @@
     "color": "#c8b878"
   },
   "/image/leader/official/whitemore-bludd.png": {
-    "sha256": "3fda2713be1f819f101e8aca7cc72a1f9947c7f29a2f532240db07986cb697ca",
-    "bytes": 87421,
-    "width": 298,
-    "height": 299,
+    "sha256": "7e807e531cbf2cf88fdd1aa70941baf0ca52bc9f330512c2c45484294d254eae",
+    "bytes": 310679,
+    "width": 596,
+    "height": 598,
     "format": "png",
     "isOpaque": true,
     "color": "#d8b868"
   },
   "/image/leader/official/whitmore.jpg": {
-    "sha256": "5313a14461a7797156b9bbe7ba9a840dafa932872a8b6c8543acb9ad8e26ca27",
-    "bytes": 28958,
-    "width": 358,
-    "height": 355,
+    "sha256": "72727bbfd62f84fc65864f9f678bfe63c627c843f50333894f07d881cabea952",
+    "bytes": 115172,
+    "width": 716,
+    "height": 710,
     "format": "jpeg",
     "isOpaque": true,
     "color": "#c8b878"
   },
   "/image/leader/official/wykk.png": {
-    "sha256": "57c9d4cf69473ba90e80956a2326d339de380355b83b0e35eddd41aef21060e7",
-    "bytes": 130760,
-    "width": 371,
-    "height": 366,
+    "sha256": "af1802ce01aa5696aa513cea650290f019212d09ef81034812e0ca9b065cbe57",
+    "bytes": 459235,
+    "width": 742,
+    "height": 732,
     "format": "png",
     "isOpaque": true,
     "color": "#c8b878"
   },
   "/image/leader/official/zaaf.png": {
-    "sha256": "586193916efa3e805770560a5135e6cfbbc1b32c4fe74c9c506847d54e2c88f6",
-    "bytes": 129142,
-    "width": 371,
-    "height": 366,
+    "sha256": "6c1a584b3eb8323cbc205ac936b8e410d652ac4e977e03aab8bd1a449e55f2be",
+    "bytes": 441603,
+    "width": 742,
+    "height": 732,
     "format": "png",
     "isOpaque": true,
     "color": "#c8b878"
   },
   "/image/leader/official/zoal.png": {
-    "sha256": "c3efdbf3e02ec1e0a73a97e4cb4935c9a37dc2d9632cc4a152cb6c6b0619feff",
-    "bytes": 111916,
-    "width": 371,
-    "height": 366,
+    "sha256": "cafb064fe147fbb4f2cf594fb26008658ae164582a6332bb7bb979bea9ee8ab1",
+    "bytes": 374008,
+    "width": 742,
+    "height": 732,
     "format": "png",
     "isOpaque": true,
     "color": "#c8b878"
