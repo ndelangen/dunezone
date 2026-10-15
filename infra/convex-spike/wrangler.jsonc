@@ -8,8 +8,8 @@
   "workers_dev": true,
   "preview_urls": false,
   "observability": { "enabled": true },
-  // Keeps the Durable Object and its container awake, and restarts the container after a host restart.
-  "triggers": { "crons": ["* * * * *"] },
+  // The experiment is paused. Deployment removes its keepalive schedule.
+  "triggers": { "crons": [] },
   "containers": [
     {
       "class_name": "ConvexBackend",
@@ -35,6 +35,7 @@
     { "binding": "IMPORTS", "bucket_name": "convex-spike-imports" },
   ],
   "vars": {
+    "SPIKE_PAUSED": "true",
     "INSTANCE_NAME": "convex-spike",
     "CONVEX_ORIGIN": "https://convex-spike.ndelangen.workers.dev",
     "LITESTREAM_SYNC_INTERVAL": "1s",

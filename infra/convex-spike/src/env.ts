@@ -12,6 +12,7 @@ export interface Env {
   INSTANCE_NAME: string;
   CONVEX_ORIGIN: string;
   LITESTREAM_SYNC_INTERVAL: string;
+  SPIKE_PAUSED?: string;
   /** Convex's push-time module analysis limit; the backend's default is 4 s. */
   ISOLATE_ANALYZE_USER_TIMEOUT_SECONDS?: string;
   /** Secrets. */

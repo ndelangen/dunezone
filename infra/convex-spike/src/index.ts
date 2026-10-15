@@ -31,6 +31,10 @@ export class ConvexBackend extends DurableObject<Env> {
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
+    if (env.SPIKE_PAUSED === 'true') {
+      void ctx.blockConcurrencyWhile(() => this.pause());
+      return;
+    }
     ctx.storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS events (at INTEGER NOT NULL, generation INTEGER NOT NULL, kind TEXT NOT NULL, detail TEXT NOT NULL)'
     );
@@ -51,6 +55,14 @@ export class ConvexBackend extends DurableObject<Env> {
 
   private get container() {
     return (this.ctx as unknown as { container: ContainerApi }).container;
+  }
+
+  /** Clear the persistent restart alarm and stop compute while preserving the replica and object storage. */
+  private async pause() {
+    await this.ctx.storage.deleteAlarm();
+    if (this.container.running) {
+      this.container.signal(15);
+    }
   }
 
   private get kv() {
@@ -82,6 +94,9 @@ export class ConvexBackend extends DurableObject<Env> {
 
   /** Starts the container if needed and resolves once Litestream has uploaded to this generation and the backend answers. */
   async ensureReady(): Promise<number> {
+    if (this.env.SPIKE_PAUSED === 'true') {
+      throw new Error('Convex spike is paused');
+    }
     if (this.readyGeneration !== undefined && this.container.running) {
       return this.readyGeneration;
     }
@@ -205,6 +220,10 @@ export class ConvexBackend extends DurableObject<Env> {
   }
 
   async ping() {
+    if (this.env.SPIKE_PAUSED === 'true') {
+      await this.pause();
+      return { generation: this.kv.get<number>('generation') ?? 0, status: 503 };
+    }
     await this.keepAwake();
     const generation = await this.ensureReady();
     const version = await this.container.getTcpPort(3210).fetch('http://container/version');
@@ -219,6 +238,10 @@ export class ConvexBackend extends DurableObject<Env> {
 
   /** Every minute: keeps the object awake and starts a new generation if the container stopped (host restart, rollout). */
   override async alarm() {
+    if (this.env.SPIKE_PAUSED === 'true') {
+      await this.pause();
+      return;
+    }
     await this.ctx.storage.setAlarm(Date.now() + 60_000);
     if (!this.container.running) {
       this.record(this.kv.get<number>('generation') ?? 0, 'alarm-restart', 'container not running');
@@ -228,6 +251,18 @@ export class ConvexBackend extends DurableObject<Env> {
 
   override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+    if (this.env.SPIKE_PAUSED === 'true') {
+      await this.pause();
+      return Response.json(
+        {
+          paused: true,
+          running: this.container.running,
+          alarm: await this.ctx.storage.getAlarm(),
+          worker: this.env.VERSION.id,
+        },
+        { status: url.pathname === '/_spike/status' ? 200 : 503 }
+      );
+    }
     if (url.pathname.startsWith('/_spike/')) {
       return this.control(url, request);
     }
@@ -369,6 +404,9 @@ export default {
     return backend(env).fetch(request);
   },
   async scheduled(_controller, env, ctx) {
+    if (env.SPIKE_PAUSED === 'true') {
+      return;
+    }
     ctx.waitUntil(
       backend(env)
         .ping()
