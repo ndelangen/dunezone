@@ -1,6 +1,6 @@
 /* @jsxImportSource ./three-jsx */
 import { SPICE_TOKEN_RADIUS } from '@shared/play/spice';
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import type { ExtrudeGeometry } from 'three';
 
 import { ignoreRaycast } from './ignoreRaycast';
@@ -13,35 +13,39 @@ const SPICE_FACE_RADIUS = SPICE_TOKEN_RADIUS * 0.79;
 /* Every spice stack shares one icon solid, loaded once for the page and never disposed. */
 let shared: ExtrudeGeometry | null = null;
 let loading = false;
-const waiting = new Set<(geometry: ExtrudeGeometry) => void>();
+const listeners = new Set<() => void>();
+
+/* A failed load leaves `loading` clear, so the next stack to mount asks again. */
+function load() {
+  if (shared || loading) {
+    return;
+  }
+  loading = true;
+  loadPhaseSymbolGeometry(SPICE_ICON, SPICE_FACE_RADIUS, (loaded) => {
+    loading = false;
+    shared = loaded;
+    if (loaded) {
+      for (const notify of listeners) {
+        notify();
+      }
+    }
+  });
+}
+
+function subscribe(notify: () => void) {
+  listeners.add(notify);
+  load();
+  return () => {
+    listeners.delete(notify);
+  };
+}
 
 function useSpiceIconGeometry(): ExtrudeGeometry | null {
-  const [geometry, setGeometry] = useState(shared);
-  useEffect(() => {
-    if (shared) {
-      return;
-    }
-    waiting.add(setGeometry);
-    if (!loading) {
-      loading = true;
-      loadPhaseSymbolGeometry(SPICE_ICON, SPICE_FACE_RADIUS, (loaded) => {
-        /* A failed load leaves `loading` clear, so the next stack to mount asks again. */
-        loading = false;
-        shared = loaded;
-        if (loaded) {
-          for (const notify of waiting) {
-            notify(loaded);
-          }
-          waiting.clear();
-        }
-      });
-    }
-    return () => {
-      waiting.delete(setGeometry);
-    };
-  }, []);
-  /* Another stack's load can finish between this render and its effect, which then waits for nothing. */
-  return geometry ?? shared;
+  return useSyncExternalStore(
+    subscribe,
+    () => shared,
+    () => null
+  );
 }
 
 /** The site's spice icon, sitting on the top face of a spice stack layer. */
