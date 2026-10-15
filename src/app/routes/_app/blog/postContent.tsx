@@ -67,6 +67,16 @@ export function Figure({ imageKey, alt, aspect, caption }: FigureProps) {
   );
 }
 
+/** A figure as wide as `FigureRow`, for an interactive picture that needs more room than the reading column. */
+export function WideFigure({ children, caption }: Readonly<{ children: ReactNode; caption?: ReactNode }>) {
+  return (
+    <figure className={`${styles.figure} ${styles.wide}`}>
+      {children}
+      {caption ? <figcaption className={styles.caption}>{caption}</figcaption> : null}
+    </figure>
+  );
+}
+
 /** The play button goes away when pressed, so the player takes the focus and a keyboard reader keeps their place; one function for every render, so a re-render never moves the focus again. */
 function focusOnMount(element: HTMLElement | null) {
   element?.focus();

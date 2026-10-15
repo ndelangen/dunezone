@@ -30,6 +30,19 @@ export type BlogPostMeta = {
  * A body file under `posts/` is named for its slug, never `index.tsx` or `*.route.tsx`, which the router would read as a page.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'drawing-dune-tokens-and-cards': {
+    slug: 'drawing-dune-tokens-and-cards',
+    title: 'Recreating Dune board game art, layer by layer',
+    date: '2026-10-15',
+    author: 'Central419',
+    summary:
+      'How the leader tokens and cards on dune.zone are drawn, layer by layer, from GIMP files I made in 2021 to SVG masks and photo textures, traced through the git history of my old projects.',
+    cover: {
+      key: '/web/blog/drawing-dune-tokens-and-cards/exploded-layers.jpg',
+      alt: 'A treachery card back and a leader token pulled apart into their layers, floating one above the other',
+      aspect: 1800 / 2400,
+    },
+  },
   'tabletop-simulator': {
     slug: 'tabletop-simulator',
     title: 'Building Dune on Tabletop Simulator',
