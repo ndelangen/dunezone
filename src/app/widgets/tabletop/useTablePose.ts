@@ -44,18 +44,20 @@ function advanceTablePose(group: Group, target: TablePose, delta: number): boole
  * smoothing each rider separately would cut straight across the plate's arc as it turns.
  * Nothing about a ride is kept: every frame, a rider takes its place from where its plate is shown, and once the ride ends it glides on from there to its own place.
  * A plate in this page's own hand carries its riders the same way, so they keep up with it however it is set down.
+ * A ride that ends where the plate is set down at once, as this page's own hand does, ends at once for the riders too.
  */
 type PoseNode = { group: { current: Group | null }; target: TablePose };
-type PoseState = PoseNode & { smoothing: PoseSmoothing };
+/* `rodeOn` is the plate a rider followed in the last frame it rode, so the frame its ride ends can tell whether the plate still moves. */
+type PoseState = PoseNode & { smoothing: PoseSmoothing; rodeOn?: PoseState };
 
 /* Plates move before the pieces on them in every frame, so a rider is placed from where its plate is shown in that frame. */
 const PLATE_FRAME_PRIORITY = 1;
 
-const PlatePosesContext = createContext<Map<string, PoseNode> | null>(null);
+const PlatePosesContext = createContext<Map<string, PoseState> | null>(null);
 
 /** The scene's plates as they are shown, by id, so the pieces riding one can take their places from it. */
 export function PlatePosesProvider({ children }: { children: ReactNode }) {
-  const plates = useMemo(() => new Map<string, PoseNode>(), []);
+  const plates = useMemo(() => new Map<string, PoseState>(), []);
   return createElement(PlatePosesContext.Provider, { value: plates }, children);
 }
 
@@ -86,6 +88,13 @@ function placeRider(rider: PoseNode, plate: PoseNode | undefined) {
   group.rotation.y = rider.target.orientation + turn;
 }
 
+/* Whether a ride just ended on a plate that is not moving, such as one this page's own hand put back: the rider stops with it. */
+function rideEndsAtOnce(rider: PoseState): boolean {
+  const plate = rider.rodeOn;
+  rider.rodeOn = undefined;
+  return !!plate && !plate.smoothing.active;
+}
+
 type PoseLinks = {
   /** The piece's id when it is a plate that others may ride. */
   plateId?: string;
@@ -94,7 +103,11 @@ type PoseLinks = {
 };
 
 /* A plate's pose, shared with the scene while it is mounted. */
-function usePlatePose(plates: Map<string, PoseNode> | null, plateId: string | undefined, pose: { current: PoseState }) {
+function usePlatePose(
+  plates: Map<string, PoseState> | null,
+  plateId: string | undefined,
+  pose: { current: PoseState }
+) {
   useLayoutEffect(() => {
     if (!plates || !plateId) {
       return;
@@ -135,9 +148,7 @@ export function useTablePose(
     retargetPoseSmoothing(smoothing, remote || Boolean(follows), immediate);
     const group = groupRef.current;
     /* A rider is placed only in the frame, once its plate has taken its own pose there: plates commit their new targets in any order. */
-    if (follows) {
-      initialized.current = true;
-    } else if (group && (!initialized.current || !smoothing.active)) {
+    if (group && (!initialized.current || (!follows && !smoothing.active))) {
       snapTablePose(group, target);
       initialized.current = true;
     }
@@ -151,8 +162,13 @@ export function useTablePose(
         return;
       }
       if (follows) {
-        placeRider(pose.current, plates?.get(follows));
+        pose.current.rodeOn = plates?.get(follows);
+        placeRider(pose.current, pose.current.rodeOn);
         return;
+      }
+      if (rideEndsAtOnce(pose.current)) {
+        smoothing.active = false;
+        snapTablePose(group, target);
       }
       if (!smoothing.active) {
         return;

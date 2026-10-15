@@ -145,6 +145,7 @@ describe('a rider on a plate another player carries', () => {
 
   /*
    * The plate is carried by someone else while `riding`, so the rider follows it; otherwise both rest on their own.
+   * The plate is in another player's hand unless `plateHeld` says otherwise.
    * `riderInHand` has this page's own hand hold the rider, which puts it down at once; `riderFirst` mounts the rider before its plate.
    */
   function Plate({
@@ -153,15 +154,25 @@ describe('a rider on a plate another player carries', () => {
     riding = true,
     riderInHand = false,
     riderFirst = false,
+    plateHeld,
   }: {
     plate: Pose;
     rider: Pose;
     riding?: boolean;
     riderInHand?: boolean;
     riderFirst?: boolean;
+    /* Whose hand the plate is in: this page's own sets it down at once, while another player's glides; `false` has it rest after this page's hand let go. */
+    plateHeld?: 'own' | false;
   }) {
     const pieces = [
-      <Posed key="plate" pose={platePose} group={plate} links={{ plateId: 'hms' }} />,
+      <Posed
+        key="plate"
+        pose={platePose}
+        group={plate}
+        links={{ plateId: 'hms' }}
+        remote={plateHeld === undefined}
+        immediate={plateHeld === 'own'}
+      />,
       <Posed
         key="rider"
         pose={riderPose}
@@ -233,6 +244,32 @@ describe('a rider on a plate another player carries', () => {
     view.rerender(at(2));
     view.rerender(at(2, false));
     expect(rider.position.toArray()).toEqual(drawn.toArray());
+  });
+
+  test('starts at its own place when its ride ends before its first frame', () => {
+    const view = render(<Plate plate={{ at: [2, 0, 0], turn: 0 }} rider={{ at: [2, 0, -0.75], turn: 0 }} />);
+    view.rerender(<Plate plate={{ at: [2, 0, 0], turn: 0 }} rider={{ at: [2, 0, -0.75], turn: 0 }} riding={false} />);
+    runFrames(1);
+    expect(rider.position.toArray()).toEqual([2, 0, -0.75]);
+  });
+
+  test("snaps back with a plate in this page's own hand when the carry is cancelled", () => {
+    const held = (plateX: number, riding: boolean, plateHeld: 'own' | false) => (
+      <Plate
+        plate={{ at: [plateX, 0, 0], turn: 0 }}
+        rider={{ at: [plateX, 0, -0.75], turn: 0 }}
+        riding={riding}
+        plateHeld={plateHeld}
+      />
+    );
+    const view = render(held(0, true, 'own'));
+    view.rerender(held(3, true, 'own'));
+    runFrames(1);
+    expect(rider.position.x).toBeCloseTo(3);
+    view.rerender(held(0, false, false));
+    runFrames(1);
+    expect(plate.position.x).toBe(0);
+    expect(rider.position.toArray()).toEqual([0, 0, -0.75]);
   });
 
   test("is set down at once where this page's own hand puts it, during a ride or after one", () => {
