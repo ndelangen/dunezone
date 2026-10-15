@@ -512,7 +512,7 @@ try {
     env: { ...environment, WRANGLER_LOG_PATH: wranglerLog },
     logPath: workerLog,
   });
-  /* `scripts/workerd-exit-record.mjs` writes workerd's own exit into the Worker's log; this repeats it where the run's output is read. */
+  /* `scripts/workerd-exit-record.ts` writes workerd's own exit into the Worker's log; this repeats it where the run's output is read. */
   worker.once('exit', (code, signal) => {
     if (stopping) {
       return;
@@ -544,7 +544,7 @@ try {
           : environment,
         command: node,
         args: [
-          loadProfile ? runnerBundle! : path.join(root, 'scripts/verify-hosted-play.mjs'),
+          loadProfile ? runnerBundle! : path.join(root, 'scripts/verify-hosted-play.ts'),
           ...(loadProfile ? [] : ['--env-file', envFile]),
           '--origin',
           origin,
@@ -612,7 +612,7 @@ try {
           command: process.execPath,
           args: [
             '--no-env-file',
-            path.join(root, 'scripts/verify-hosted-play-browser.mjs'),
+            path.join(root, 'scripts/verify-hosted-play-browser.ts'),
             '--env-file',
             envFile,
             '--origin',

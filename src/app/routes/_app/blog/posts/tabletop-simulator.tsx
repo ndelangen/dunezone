@@ -52,11 +52,21 @@ function CommunityModSection() {
         symbol shows up, and it moves on to the next player by itself. Bidding happens every turn, so I think it may be
         the biggest single improvement the mod ever got.
       </Paragraph>
-      <Figure
-        imageKey="/web/blog/tabletop-simulator/bidder.jpg"
-        alt="The bidder: a numbered wheel with faction symbols beside it"
-        aspect={500 / 1000}
-        caption="The bidder."
+      <FigureRow
+        figures={[
+          {
+            imageKey: '/web/blog/tabletop-simulator/bidder.jpg',
+            alt: 'The Dune board in Tabletop Simulator with the bidder at its centre, a faction symbol and a Next arm',
+            aspect: 640 / 656,
+            caption: "The bidder in Krell's mod.",
+          },
+          {
+            imageKey: '/web/blog/tabletop-simulator/bidder-next.jpg',
+            alt: 'A later bidder: a red faction disc showing a bid of 1, with a timer and a Pass button',
+            aspect: 990 / 1050,
+            caption: 'Its next iteration, which never made it in.',
+          },
+        ]}
       />
       <Paragraph>
         I also scripted the storm, so each storm card moves it the right number of sectors; spice blow cards that spawn

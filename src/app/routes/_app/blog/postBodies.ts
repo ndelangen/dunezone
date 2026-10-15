@@ -1,4 +1,4 @@
-import type { BlogPostSlug } from '@shared/recordlessPublicPages';
+import type { BlogPostSlug } from '@shared/blogPostSlugs';
 import type { ComponentType } from 'react';
 
 import AllInOneDuneBoardGameWebapp from './posts/all-in-one-dune-board-game-webapp';

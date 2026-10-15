@@ -29,7 +29,7 @@ function run(
   return spawnSync(
     'bun',
     [
-      path.resolve('scripts/verify-hosted-play-browser.mjs'),
+      path.resolve('scripts/verify-hosted-play-browser.ts'),
       '--origin',
       origin,
       '--env-file',

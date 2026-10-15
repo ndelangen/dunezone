@@ -10181,11 +10181,17 @@
     "subjects": ["symbols"],
     "sourceHash": "f8cf1fe8b56433fdbe57c7e27cbf17b5b7658c3c0d39edc2cefd160720e24026"
   },
-  "/web/blog/tabletop-simulator/bidder.jpg": {
-    "description": "The Tabletop Simulator bidder: a numbered wheel with faction symbols beside it on a dark table.",
+  "/web/blog/tabletop-simulator/bidder-next.jpg": {
+    "description": "A later Tabletop Simulator bidder that never shipped: a red faction disc showing a bid of 1, with a countdown timer and a Pass button.",
     "tags": ["Tabletop Simulator", "bidding", "online play", "blog"],
     "subjects": ["symbols"],
-    "sourceHash": "7836975bb46ab77aaeddb4037b40f2749e868316497d1dbf3f10879bffc9468f"
+    "sourceHash": "d04f92f523ab114e5f9cd1475a5f2c1ca0912268e1b42078f784704174c418d1"
+  },
+  "/web/blog/tabletop-simulator/bidder.jpg": {
+    "description": "The Dune board in Krell's Tabletop Simulator mod, with the bidder at its centre showing a faction symbol and a Next arm.",
+    "tags": ["Tabletop Simulator", "bidding", "online play", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "5cea100bbf1aad1428da870c4119c86bd5ceaefd6bdcb212578d3d52d17a5ce9"
   },
   "/web/blog/tabletop-simulator/bidding-decks.jpg": {
     "description": "Two treachery decks in Tabletop Simulator with Take and Next buttons and a card counter.",

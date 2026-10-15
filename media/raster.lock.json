@@ -7730,14 +7730,23 @@
     "isOpaque": true,
     "color": "#383838"
   },
-  "/web/blog/tabletop-simulator/bidder.jpg": {
-    "sha256": "7836975bb46ab77aaeddb4037b40f2749e868316497d1dbf3f10879bffc9468f",
-    "bytes": 70567,
-    "width": 1000,
-    "height": 500,
+  "/web/blog/tabletop-simulator/bidder-next.jpg": {
+    "sha256": "d04f92f523ab114e5f9cd1475a5f2c1ca0912268e1b42078f784704174c418d1",
+    "bytes": 72052,
+    "width": 1050,
+    "height": 990,
     "format": "jpeg",
     "isOpaque": true,
-    "color": "#282828"
+    "color": "#181818"
+  },
+  "/web/blog/tabletop-simulator/bidder.jpg": {
+    "sha256": "5cea100bbf1aad1428da870c4119c86bd5ceaefd6bdcb212578d3d52d17a5ce9",
+    "bytes": 147109,
+    "width": 656,
+    "height": 640,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
   },
   "/web/blog/tabletop-simulator/bidding-decks.jpg": {
     "sha256": "da635e66697754bbdb5eed49f6a3a1a27d3f8c11362b7c95d6e1940c68754922",

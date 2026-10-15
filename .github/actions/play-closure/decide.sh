@@ -32,6 +32,19 @@ files_of() {
   jq -r '.files[] | .filename, (.previous_filename // empty)' "$1" > changed-files.txt \
     && [ "$(grep -c . changed-files.txt)" -lt 300 ]
 }
+# Both versions of each changed art file into art/before and art/after, so the script can tell new art from a changed or removed original.
+# A version that cannot be read is left out, and the script then counts the file as reaching the flows.
+art_versions() {
+  local from="$1" to="$2" file
+  for file in media/raster.lock.json src/shared/media/map.generated.ts; do
+    if grep -qxF "$file" changed-files.txt; then
+      mkdir -p "art/before/$(dirname "$file")" "art/after/$(dirname "$file")"
+      gh api -H 'Accept: application/vnd.github.raw' "repos/$REPO/contents/$file?ref=$from" > "art/before/$file" || rm -f "art/before/$file"
+      gh api -H 'Accept: application/vnd.github.raw' "repos/$REPO/contents/$file?ref=$to" > "art/after/$file" || rm -f "art/after/$file"
+    fi
+  done
+  export ART_BEFORE="$RUNNER_TEMP/art/before" ART_AFTER="$RUNNER_TEMP/art/after"
+}
 case "$EVENT" in
   pull_request)
     # Three dots: the files changed since the merge base, so main's own commits do not count.
@@ -39,6 +52,8 @@ case "$EVENT" in
       shards_run "The changed files could not be read in full from the compare API, so the shards run."
       exit 0
     fi
+    # Against the merge base, as the files are, so art main gained since the branch does not read as removed.
+    art_versions "$(jq -r .merge_base_commit.sha compare.json)" "$HEAD"
     # The script writes run=true or run=false to the outputs itself; a script that fails writes nothing and fails the shard.
     bun "$script" < changed-files.txt
     ;;
@@ -72,6 +87,7 @@ case "$EVENT" in
       shards_run "The merged pull request's files could not be read in full from the compare API, so the shards run."
       exit 0
     fi
+    art_versions "$first" "$second"
     # The script's own output and summary are not wanted here; its decision is read from the JSON it prints.
     decision="$(GITHUB_OUTPUT='' GITHUB_STEP_SUMMARY='' bun "$script" < changed-files.txt)"
     if [ "$(jq .run <<< "$decision")" = true ]; then

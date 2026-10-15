@@ -39,7 +39,7 @@ in for interface tests. The test suite's churn (the architecture test changed
      *absence* of a dependency, and absence has no type to hang off. The
      lint boundary in `.oxlintrc.json` covers `src/app/ui`; it does not
      cover `src/game`.
-   - `scripts/assert-breakpoints.mjs` (`bun run check:breakpoints`): a
+   - `scripts/assert-breakpoints.ts` (`bun run check:breakpoints`): a
      width `@media` query in a stylesheet appears only in the window chrome
      and only on the breakpoint ladder, since everything inside a page lays
      out by the room it is given. The guarantee is again a spelling across

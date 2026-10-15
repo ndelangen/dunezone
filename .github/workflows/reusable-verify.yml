@@ -772,7 +772,7 @@ jobs:
       # status). "Boot Convex backend" starts the production build in the
       # background, so it runs through boot and provision, and "Start app
       # server" waits for it. That build and the static server backgrounded in
-      # "Start app server" (scripts/e2e-serve-dist.mjs) keep running into later
+      # "Start app server" (scripts/e2e-serve-dist.ts) keep running into later
       # steps, same as the image pre-pull above.
       - name: Boot Convex backend
         if: steps.prior.outputs.reuse != 'true'

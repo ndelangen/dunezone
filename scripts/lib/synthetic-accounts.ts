@@ -1,17 +1,19 @@
 /**
- * Synthetic Password accounts for the browser runners: the hosted browser flows (`verify-hosted-play-browser.mjs`) and the load runner's browsers (`play-load`).
+ * Synthetic Password accounts for the browser runners: the hosted browser flows (`verify-hosted-play-browser.ts`) and the load runner's browsers (`play-load`).
  * Both provision every account a run needs before any browser starts, then sign each browser in through the login form, so no browser ever creates an account.
  * It sits in `scripts/lib` because the flow driver imports it directly and the load runner's bundle reaches it from `scripts/play-load`.
  */
 import { pbkdf2Sync, randomBytes, scrypt } from 'node:crypto';
 
-import type { ConvexHttpClient } from 'convex/browser';
-import { anyApi } from 'convex/server';
+import type { FunctionArgs } from 'convex/server';
 import type { Page, WebSocket } from 'playwright';
+import { z } from 'zod';
 
+import { internal } from '../../convex/_generated/api';
 import type { ProfileAvatar } from '../../convex/lib/profileAvatar';
+import { adminMutationReference } from './convex-admin.ts';
 
-type SyntheticAccount = { email: string; password: string; avatar?: ProfileAvatar };
+export type SyntheticAccount = { email: string; password: string; avatar?: ProfileAvatar };
 
 /**
  * The secret Convex Auth's Password provider stores for `password` by default: Lucia's Scrypt with N 16384, r 16 and p 1, a 64-byte key, and the hex salt used as text.
@@ -44,7 +46,13 @@ const ACCOUNTS_PER_MUTATION = 6;
  * Creates each account that does not exist yet through the synthetic backend's test control, with `admin` carrying the admin key.
  * Each password goes as Scrypt and as PBKDF2, and the control keeps the one the backend's Password checks.
  */
-export async function provisionAccounts(admin: ConvexHttpClient, accounts: SyntheticAccount[]) {
+const provisionReference = adminMutationReference(internal.playTesting.provisionAccounts);
+export type ProvisioningClient = {
+  mutation(reference: typeof provisionReference, args: FunctionArgs<typeof provisionReference>): Promise<unknown>;
+};
+export type ProvisionedAccount = FunctionArgs<typeof provisionReference>['accounts'][number];
+
+export async function provisionAccounts(admin: ProvisioningClient, accounts: SyntheticAccount[]) {
   const hashed = await Promise.all(
     accounts.map(async ({ email, password, avatar }) => ({
       email,
@@ -54,7 +62,7 @@ export async function provisionAccounts(admin: ConvexHttpClient, accounts: Synth
     }))
   );
   for (let start = 0; start < hashed.length; start += ACCOUNTS_PER_MUTATION) {
-    await admin.mutation(anyApi.playTesting.provisionAccounts, {
+    await admin.mutation(provisionReference, {
       accounts: hashed.slice(start, start + ACCOUNTS_PER_MUTATION),
     });
   }
@@ -67,10 +75,20 @@ export async function provisionAccounts(admin: ConvexHttpClient, accounts: Synth
 type SignInAttempt = { flow: string; error?: string | null };
 
 type Frame = { payload: string | Buffer };
+const authFrameSchema = z
+  .object({
+    type: z.string(),
+    requestId: z.number().optional(),
+    udfPath: z.string().optional(),
+    args: z.array(z.object({ params: z.object({ flow: z.unknown() }).optional() }).passthrough()).optional(),
+    success: z.boolean().optional(),
+    result: z.unknown().optional(),
+  })
+  .passthrough();
 
 function parseFrame({ payload }: Frame) {
   try {
-    return JSON.parse(payload.toString());
+    return authFrameSchema.parse(JSON.parse(payload.toString()));
   } catch {
     return null;
   }
@@ -80,7 +98,7 @@ function parseFrame({ payload }: Frame) {
 function signInRequest(frame: Frame) {
   const message = parseFrame(frame);
   const flow = message?.type === 'Action' && message.udfPath === 'auth:signIn' ? message.args?.[0]?.params?.flow : null;
-  return typeof flow === 'string' ? { requestId: message.requestId, flow } : null;
+  return typeof flow === 'string' && message ? { requestId: message.requestId, flow } : null;
 }
 
 /** The request id of an action response frame, with null for success or the backend's error text, or null for any other frame. */
@@ -97,11 +115,11 @@ function watchSignIn(page: Page) {
   const attempts: SignInAttempt[] = [];
   const detach: (() => void)[] = [];
   const onSocket = (socket: WebSocket) => {
-    const sent = new Map<unknown, SignInAttempt>();
+    const sent = new Map<number | undefined, SignInAttempt>();
     const onSent = (frame: Frame) => {
       const request = signInRequest(frame);
       if (request) {
-        const attempt = { flow: request.flow };
+        const attempt: SignInAttempt = { flow: request.flow };
         attempts.push(attempt);
         sent.set(request.requestId, attempt);
       }

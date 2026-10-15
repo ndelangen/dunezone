@@ -21,7 +21,7 @@ async function gate(files: Record<string, string>): Promise<{ code: number; outp
       writeFileSync(full, content);
     }
     try {
-      const { stdout } = await run('node', ['scripts/assert-css-custom-properties-defined.mjs'], {
+      const { stdout } = await run('node', ['scripts/assert-css-custom-properties-defined.ts'], {
         env: {
           ...process.env,
           CSS_VAR_DEFINITIONS_ROOT: join(root, 'src'),

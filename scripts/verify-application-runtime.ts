@@ -5,7 +5,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { getPlatformProxy, unstable_dev } from 'wrangler';
 
-import { BLOG_POST_PAGES, MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../src/shared/recordlessPublicPages.ts';
+import { BLOG_POST_PAGES } from '../src/shared/blogPostSlugs.ts';
+import { MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../src/shared/recordlessPublicPages.ts';
 import { jpegProfile, pngDimensions } from '../workers/publisher/image-inspection.ts';
 
 /* Exercise the assembled Worker, including Static Assets precedence and the real TanStack entry. */

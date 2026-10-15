@@ -14,7 +14,12 @@ const realClearTimeout = globalThis.clearTimeout.bind(globalThis);
 let clockOffset = 0;
 Date.now = () => realNow() + clockOffset;
 
-type Timer = { due: number; period: number | undefined; run: () => void; handle: number };
+type Timer = {
+  due: number;
+  period: number | undefined;
+  run: () => void;
+  handle: ReturnType<typeof realSetTimeout> | undefined;
+};
 const timers = new Map<number, Timer>();
 /* Far above the runtime's own ids, so clearing an id the runtime issued still reaches the runtime. */
 let lastTimer = 2 ** 30;
@@ -44,7 +49,12 @@ function fire(id: number) {
 
 function schedule(run: () => void, delay: number | undefined, repeat: boolean) {
   const wait = Math.max(0, Number(delay) || 0);
-  const timer: Timer = { due: Date.now() + wait, period: repeat ? Math.max(1, wait) : undefined, run, handle: 0 };
+  const timer: Timer = {
+    due: Date.now() + wait,
+    period: repeat ? Math.max(1, wait) : undefined,
+    run,
+    handle: undefined,
+  };
   const id = ++lastTimer;
   timers.set(id, timer);
   arm(id, timer);

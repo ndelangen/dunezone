@@ -1,5 +1,10 @@
 /** Creates the session's SQL tables before its domain stores read them. */
-export function initializeSessionStorage(sql: SqlStorage) {
+export function initializeSessionStorage(sql: {
+  exec<Row extends Record<string, SqlStorageValue>>(
+    query: string,
+    ...bindings: SqlStorageValue[]
+  ): Pick<SqlStorageCursor<Row>, 'toArray'>;
+}) {
   sql.exec('CREATE TABLE IF NOT EXISTS metadata (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
   sql.exec('CREATE TABLE IF NOT EXISTS current_state (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
   sql.exec(

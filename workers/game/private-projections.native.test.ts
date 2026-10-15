@@ -1,0 +1,529 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import type { ClientMessage } from '../../src/shared/play/protocol';
+import { spiceBankSlot } from '../../src/shared/play/spiceBank';
+import { messageOf } from './native-runtime.fixture.ts';
+import type { NativeMessage } from './native-runtime.fixture.ts';
+import { readHistoricalSnapshot } from './native-runtime.fixture.ts';
+import type { NativeConnection } from './native-runtime.fixture.ts';
+import { required } from './native-runtime.fixture.ts';
+import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
+import {
+  admitPlayer,
+  createPeer,
+  createRuntime,
+  eventually,
+  provision,
+  sendCommand,
+  syncView,
+} from './native-runtime.fixture.ts';
+
+describe('Faction privacy through native delivery', () => {
+  let peer: NativePeer, runtime: NativeRuntime;
+  beforeEach(async () => {
+    peer = await createPeer();
+    peer.watchMode = 'allow';
+    peer.expiresAt = () => Date.now() + 600_000;
+    runtime = await createRuntime(peer, 'game');
+    if ((await provision(runtime)).status !== 200) {
+      throw new Error('The native fixture did not provision.');
+    }
+    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    const snapshot = { ...readHistoricalSnapshot(rows[0].data), factionBanks: { harkonnen: 37, atreides: 83 } };
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
+    await runtime.exec('UPDATE history SET data=? WHERE step=0', [JSON.stringify(snapshot)]);
+    await runtime.restart();
+  });
+  afterEach(async () => {
+    await runtime?.close();
+    await peer?.close();
+  });
+
+  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const sync = syncView;
+  const command = sendCommand;
+
+  function assertAudience(connection: NativeConnection, factionId?: string, balance?: number) {
+    /* An update carries only what changed, so the view it produces is checked whole instead, and every update must produce one. */
+    expect(connection.unapplied).toEqual([]);
+    for (const message of connection.messages) {
+      expect(JSON.stringify(message)).not.toContain('factionBanks');
+      if ('snapshot' in message && message.snapshot && message.type !== 'update') {
+        if (factionId) {
+          expect(message.snapshot.bank).toEqual({ factionId, balance });
+        } else {
+          expect(message.snapshot).not.toHaveProperty('bank');
+        }
+      }
+    }
+  }
+
+  it('sends only the spice reserve of the current faction in snapshots, history, reconnects and cold restore', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const observer = await admit('c');
+    for (const connection of [a, b, observer]) {
+      connection.send({ type: 'history', step: 0 });
+      await connection.message('history');
+    }
+    assertAudience(a, 'harkonnen', 37);
+    assertAudience(b, 'atreides', 83);
+    assertAudience(observer);
+    const tab = await admit('a');
+    assertAudience(tab, 'harkonnen', 37);
+    await runtime.restart();
+    assertAudience(await admit('b'), 'atreides', 83);
+    assertAudience(await admit('c'));
+  });
+
+  it('revokes an old socket and every tab immediately when the current roster changes', async () => {
+    const a = await admit('a');
+    await admit('b');
+    const tab = await admit('a');
+    const replacement = await admit('c');
+    await runtime.exec("UPDATE actors SET seat='neutral' WHERE user_id='user-a'");
+    await runtime.exec("UPDATE actors SET seat='harkonnen' WHERE user_id='user-c'");
+    for (const connection of [a, tab]) {
+      const view = await sync(connection);
+      expect(view.viewer.viewerSeat).toBe('neutral');
+      expect(view.snapshot).not.toHaveProperty('bank');
+      connection.messages.length = 0;
+      connection.send({ type: 'history', step: 0 });
+      await connection.message('history');
+      assertAudience(connection);
+      connection.send({
+        type: 'command',
+        commandId: 'stale-player',
+        action: { kind: 'spice-spawn', count: 1 },
+        expectedRevision: 0,
+      });
+      expect(await connection.message('rejected')).toMatchObject({ message: expect.stringContaining('Spectators') });
+    }
+    expect((await sync(replacement)).snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 37 });
+    replacement.send({ type: 'history', step: 0 });
+    expect((await replacement.message('history')).snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 37 });
+  });
+
+  it('keeps the spice reserve with its faction when faction assignments move between seats', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await sync(a);
+    await runtime.exec("UPDATE seats SET faction_id='temporary' WHERE seat='harkonnen'");
+    await runtime.exec(
+      "UPDATE seats SET faction_id='harkonnen', faction_name='Harkonnen', faction_color='#ed927c' WHERE seat='atreides'"
+    );
+    await runtime.exec(
+      "UPDATE seats SET faction_id='atreides', faction_name='Atreides', faction_color='#75d8a7' WHERE seat='harkonnen'"
+    );
+    a.messages.length = 0;
+    b.send({ type: 'pointer', seq: 1, position: [0, 0.38, 0] });
+    expect((await a.message('view')).snapshot.bank).toEqual({ factionId: 'atreides', balance: 83 });
+    expect((await sync(a)).snapshot.bank).toEqual({ factionId: 'atreides', balance: 83 });
+    expect((await sync(b)).snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 37 });
+    a.send({ type: 'history', step: 0 });
+    expect((await a.message('history')).snapshot.bank).toEqual({ factionId: 'atreides', balance: 83 });
+  });
+
+  it('atomically withdraws and collects with private deltas, public effects and once-only receipts', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const observer = await admit('c');
+    const initial = await sync(a);
+    const withdrawal = await command(a, { kind: 'bank-withdraw', amount: 37 });
+    expect(withdrawal.reply.type).toBe('update');
+    const withdrawalFrame = messageOf(withdrawal.reply, 'update');
+    expect(required(withdrawalFrame.snapshot).bank).toEqual({ factionId: 'harkonnen', balance: 0 });
+    const stack = required(required(withdrawalFrame.snapshot).pieces.find((piece) => piece.stackKey === 'spice'));
+    expect(stack.items).toHaveLength(37);
+    const publicUpdate = await b.message('view', (entry) => entry.snapshot.revision === 1);
+    expect(publicUpdate.snapshot.bank).toEqual({ factionId: 'atreides', balance: 83 });
+    expect(publicUpdate.snapshot.table.pieces.find((piece) => piece.id === stack.id)).toEqual(stack);
+    expect((await observer.message('view', (entry) => entry.snapshot.revision === 1)).snapshot).not.toHaveProperty(
+      'bank'
+    );
+    const replayStart = a.messages.length;
+    a.send(withdrawal.message);
+    const replay = await eventually(
+      () =>
+        a.messages
+          .slice(replayStart)
+          .find((entry) => 'completedCommandId' in entry && entry.completedCommandId === withdrawal.message.commandId),
+      'withdrawal replay'
+    );
+    expect(required(required('snapshot' in replay ? replay.snapshot : undefined).bank).balance).toBe(0);
+    expect(required('snapshot' in replay ? replay.snapshot : undefined).revision).toBe(1);
+    expect((await command(a, { kind: 'bank-withdraw', amount: 1 })).reply).toMatchObject({
+      type: 'rejected',
+      message: expect.stringContaining('not enough'),
+    });
+    expect((await command(observer, { kind: 'bank-collect', pieceId: stack.id })).reply).toMatchObject({
+      type: 'rejected',
+      message: expect.stringContaining('Spectators'),
+    });
+    const collection = await command(b, { kind: 'bank-collect', pieceId: stack.id });
+    expect(required(messageOf(collection.reply, 'update').snapshot).bank).toEqual({
+      factionId: 'atreides',
+      balance: 120,
+    });
+    expect(required(messageOf(collection.reply, 'update').snapshot).removedPieces).toContain(stack.id);
+    const aAfter = await sync(a);
+    expect(required(aAfter.snapshot.bank).balance).toBe(0);
+    expect(aAfter.snapshot.table.pieces).toEqual(initial.snapshot.table.pieces);
+    expect((await command(a, { kind: 'bank-collect', pieceId: stack.id })).reply.type).toBe('rejected');
+    await runtime.restart();
+    expect(required(required(await sync(await admit('b'))).snapshot.bank).balance).toBe(120);
+  });
+
+  it('serializes competing withdrawals and leaves both spice reserve and table unchanged if persistence fails', async () => {
+    const a = await admit('a');
+    const tab = await admit('a');
+    const before = (await sync(a)).snapshot;
+    const first: ClientMessage = {
+      type: 'command',
+      commandId: 'first-withdrawal',
+      action: { kind: 'bank-withdraw', amount: 30 },
+      expectedRevision: before.revision,
+    };
+    const second = { ...first, commandId: 'second-withdrawal' };
+    a.send(first);
+    tab.send(second);
+    const outcomes = await Promise.all(
+      (
+        [
+          [a, first.commandId],
+          [tab, second.commandId],
+        ] as const
+      ).map(([connection, commandId]) =>
+        eventually(
+          () =>
+            connection.messages.find((entry) =>
+              entry.type === 'rejected'
+                ? 'requestId' in entry && entry.requestId === commandId
+                : 'completedCommandId' in entry && entry.completedCommandId === commandId
+            ),
+          'competing withdrawal outcome'
+        )
+      )
+    );
+    expect(outcomes.filter((entry) => entry.type !== 'rejected')).toHaveLength(1);
+    expect(
+      required(
+        required(required(outcomes.find((entry) => entry.type === 'view' || entry.type === 'update')).snapshot).bank
+      ).balance
+    ).toBe(7);
+    expect(
+      required(
+        outcomes.find((entry): entry is Extract<NativeMessage, { type: 'rejected' }> => entry.type === 'rejected')
+      ).message
+    ).toContain('changed');
+    const committed = (await sync(a)).snapshot;
+    await runtime.exec(
+      "CREATE TRIGGER fail_receipt BEFORE INSERT ON receipts BEGIN SELECT RAISE(ABORT, 'Fixture commit failure'); END"
+    );
+    expect((await command(a, { kind: 'bank-withdraw', amount: 7 })).reply).toMatchObject({
+      type: 'rejected',
+      message: 'Unable to process the command.',
+    });
+    expect((await sync(a)).snapshot).toEqual(committed);
+    await runtime.restart();
+    expect((await sync(await admit('a'))).snapshot).toEqual(committed);
+  });
+  it('publishes a paged transfer ledger without balances and leaves spice physical across turns', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const observer = await admit('c');
+    for (let index = 0; index < 11; index++) {
+      const withdrawal = await command(a, { kind: 'bank-withdraw', amount: 1 });
+      expect(withdrawal.reply.type).not.toBe('rejected');
+      const stack = (await sync(a)).snapshot.table.pieces.find((piece) => piece.stackKey === 'spice');
+      expect((await command(a, { kind: 'bank-collect', pieceId: required(stack).id })).reply.type).not.toBe('rejected');
+    }
+    const recent = (await sync(observer)).snapshot.spiceTransfers;
+    expect(recent).toHaveLength(20);
+    expect(required(recent)[0]).toEqual({
+      revision: 22,
+      actor: 'Synthetic A',
+      kind: 'collection',
+      amount: 1,
+      source: 'table',
+      destination: 'harkonnen',
+    });
+    observer.send({ type: 'spice-history', before: required(required(recent).at(-1)).revision });
+    const older = await observer.message('spice-history');
+    expect(older.more).toBe(false);
+    expect(older.entries.map((entry) => entry.revision)).toEqual([2, 1]);
+    for (const entry of [...required(recent), ...older.entries]) {
+      expect(Object.keys(entry).sort()).toEqual(['actor', 'amount', 'destination', 'kind', 'revision', 'source']);
+    }
+    expect((await command(b, { kind: 'spice-spawn', count: 4 })).reply.type).not.toBe('rejected');
+    const physical = (await sync(a)).snapshot.table.pieces;
+    for (let phase = 0; phase < 9; phase++) {
+      await runtime.clock(phase * (PHASE_CHANGE_COOLDOWN_MS + 1));
+      if (phase === 8) {
+        await command(a, { kind: 'ready', ready: true });
+        await command(b, { kind: 'ready', ready: true });
+      }
+      expect((await command(a, { kind: 'phase' })).reply.type).not.toBe('rejected');
+    }
+    expect((await sync(a)).snapshot).toMatchObject({ phase: 9, bank: { balance: 37 }, table: { pieces: physical } });
+    expect(required(required(await sync(b)).snapshot.bank).balance).toBe(83);
+    await runtime.clock(9 * (PHASE_CHANGE_COOLDOWN_MS + 1));
+    await command(b, { kind: 'phase', direction: -1 });
+    expect((await sync(a)).snapshot.table.pieces).toEqual(physical);
+    await runtime.restart();
+    const restored = await admit('c');
+    restored.send({ type: 'spice-history', before: 3 });
+    expect((await restored.message('spice-history')).entries).toEqual(older.entries);
+    expect(JSON.stringify(runtime.logs)).not.toMatch(/factionBanks|spice in the spice reserve|"balance"/);
+  }, 30_000);
+
+  it('fences collection against reservations, disposal, invalid targets and stale commands', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const initial = (await sync(a)).snapshot;
+    const nonspice = initial.table.pieces.find((piece) => !piece.locked);
+    expect((await command(a, { kind: 'bank-collect', pieceId: required(nonspice).id })).reply).toMatchObject({
+      type: 'rejected',
+    });
+    await command(a, { kind: 'spice-spawn', count: 3 });
+    const current = (await sync(a)).snapshot;
+    const stack = current.table.pieces.find((piece) => piece.stackKey === 'spice');
+    a.send({
+      type: 'begin',
+      carryId: 'dispose',
+      sourcePieceId: required(stack).id,
+      expectedVersion: current.versions[required(stack).id],
+      pickup: 'whole',
+    });
+    await a.message('carry');
+    expect((await command(b, { kind: 'bank-collect', pieceId: required(stack).id })).reply).toMatchObject({
+      type: 'rejected',
+      message: expect.stringContaining('carrying'),
+    });
+    a.send({
+      type: 'drop',
+      commandId: 'dispose-spice',
+      carryId: 'dispose',
+      position: spiceBankSlot().position,
+      orientation: 0,
+    });
+    await eventually(
+      () =>
+        a.messages.find((message) => 'completedCommandId' in message && message.completedCommandId === 'dispose-spice'),
+      'disposal commit'
+    );
+    expect((await command(b, { kind: 'bank-collect', pieceId: required(stack).id })).reply.type).toBe('rejected');
+    const after = (await sync(a)).snapshot;
+    expect(required(after.bank).balance).toBe(37);
+    expect(required(required(await sync(b)).snapshot.bank).balance).toBe(83);
+    expect(required(after.spiceTransfers)[0]).toEqual({
+      revision: 2,
+      actor: 'Synthetic A',
+      kind: 'disposal',
+      amount: 3,
+      source: 'table',
+    });
+    await runtime.exec(
+      "UPDATE seats SET faction_id=NULL, faction_name=NULL, faction_color=NULL WHERE seat='harkonnen'"
+    );
+    expect((await command(a, { kind: 'bank-withdraw', amount: 1 })).reply).toMatchObject({
+      type: 'rejected',
+      message: expect.stringContaining('current player'),
+    });
+    expect((await sync(a)).snapshot).not.toHaveProperty('bank');
+    await runtime.restart();
+    expect((await sync(await admit('a'))).snapshot).not.toHaveProperty('bank');
+  });
+
+  it.each(['seated', 'former player', 'restored without controls'])(
+    'removes deleted actors from transfer history and fences their existing sockets: %s',
+    async (state) => {
+      let a = await admit('a');
+      let tab = await admit('a');
+      let b = await admit('b');
+      await command(a, { kind: 'bank-withdraw', amount: 5 });
+      await command(b, { kind: 'phase' });
+      if (state === 'former player') {
+        await runtime.exec("UPDATE actors SET seat='neutral' WHERE user_id=?", ['user-a']);
+      } else if (state === 'restored without controls') {
+        const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+        const snapshot = readHistoricalSnapshot(rows[0].data);
+        delete snapshot.controls;
+        await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
+        await runtime.restart();
+        /* The restart closed every socket; the fence has to be observed on sockets the restored room admitted. */
+        a = await admit('a');
+        tab = await admit('a');
+        b = await admit('b');
+      }
+      const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameId: 'fixture-game',
+          secret: 'a'.repeat(64),
+          userId: 'user-a',
+          eventId: 'deletion-a',
+          deletionOperationId: 'operation-a',
+        }),
+      });
+      expect(response.status).toBe(200);
+      await eventually(() => a.closed && tab.closed, 'deleted sockets closed', 3000);
+      expect(b.closed).toBe(false);
+      expect(required(required(await sync(b)).snapshot.spiceTransfers)[0].actor).toBe('[deleted user]');
+      b.send({ type: 'history', step: 1 });
+      expect(required(required(await b.message('history')).snapshot.spiceTransfers)[0].actor).toBe('[deleted user]');
+      b.send({ type: 'spice-history', before: 10 });
+      expect((await b.message('spice-history')).entries[0].actor).toBe('[deleted user]');
+      await runtime.restart();
+      const replacement = await admit('c');
+      expect((await sync(replacement)).snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 32 });
+      expect(required(required(await sync(replacement)).snapshot.spiceTransfers)[0].actor).toBe('[deleted user]');
+    }
+  );
+  it('rejects locked spice, overflow and forged faction fields at the command boundary', async () => {
+    const a = await admit('a');
+    await command(a, { kind: 'spice-spawn', count: 2 });
+    const row = (await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1'))[0];
+    const snapshot = readHistoricalSnapshot(row.data);
+    const stack = snapshot.table.pieces.find((piece) => piece.stackKey === 'spice');
+    required(stack).locked = true;
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
+    await runtime.restart();
+    const locked = await admit('a');
+    expect((await command(locked, { kind: 'bank-collect', pieceId: required(stack).id })).reply).toMatchObject({
+      type: 'rejected',
+      message: 'Choose an unlocked spice stack on the table.',
+    });
+    required(stack).locked = false;
+    required(snapshot.factionBanks).harkonnen = Number.MAX_SAFE_INTEGER;
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
+    await runtime.restart();
+    const full = await admit('a');
+    expect((await command(full, { kind: 'bank-collect', pieceId: required(stack).id })).reply).toMatchObject({
+      type: 'rejected',
+      message: 'This collection exceeds the spice reserve capacity.',
+    });
+    expect(required(required(await sync(full)).snapshot.bank).balance).toBe(Number.MAX_SAFE_INTEGER);
+    full.sendInvalid({
+      type: 'command',
+      commandId: 'forged-faction',
+      expectedRevision: snapshot.revision,
+      action: { kind: 'bank-withdraw', amount: 1, factionId: 'atreides' },
+    });
+    await eventually(() => full.closed, 'forged faction refusal');
+    expect(
+      (await sync(await admit('a'))).snapshot.table.pieces.find((piece) => piece.id === required(stack).id)
+    ).toEqual(stack);
+  });
+
+  it('credits a contested stack once and rolls collection and its ledger back on a failed commit', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await command(a, { kind: 'spice-spawn', count: 6 });
+    const view = (await sync(a)).snapshot;
+    const stack = view.table.pieces.find((piece) => piece.stackKey === 'spice');
+    const commands = [a, b].map<{ connection: NativeConnection; message: Extract<ClientMessage, { type: 'command' }> }>(
+      (connection, index) => ({
+        connection,
+        message: {
+          type: 'command',
+          commandId: `collect-${index}`,
+          expectedRevision: view.revision,
+          action: { kind: 'bank-collect', pieceId: required(stack).id },
+        },
+      })
+    );
+    for (const { connection, message } of commands) {
+      connection.send(message);
+    }
+    const replies = await Promise.all(
+      commands.map(({ connection, message }) =>
+        eventually(
+          () =>
+            connection.messages.find(
+              (entry) =>
+                ('completedCommandId' in entry && entry.completedCommandId === message.commandId) ||
+                ('requestId' in entry && entry.requestId === message.commandId)
+            ),
+          'contested collection'
+        )
+      )
+    );
+    expect(
+      replies.filter((entry): entry is Extract<NativeMessage, { type: 'rejected' }> => entry.type === 'rejected')
+    ).toHaveLength(1);
+    expect(
+      required(required(await sync(a)).snapshot.bank).balance + required(required(await sync(b)).snapshot.bank).balance
+    ).toBe(126);
+    const winner = commands[replies.findIndex((entry) => entry.type !== 'rejected')];
+    const reconnected = await admit(winner.connection === a ? 'a' : 'b');
+    reconnected.send(winner.message);
+    await reconnected.message(
+      'view',
+      (entry) => 'completedCommandId' in entry && entry.completedCommandId === winner.message.commandId
+    );
+    expect(
+      required(required(await sync(a)).snapshot.bank).balance + required(required(await sync(b)).snapshot.bank).balance
+    ).toBe(126);
+    expect((await runtime.exec('SELECT * FROM spice_transfers')).length).toBe(2);
+    await command(a, { kind: 'spice-spawn', count: 2 });
+    const before = (await sync(a)).snapshot;
+    const second = before.table.pieces.find((piece) => piece.stackKey === 'spice');
+    await runtime.exec(
+      "CREATE TRIGGER fail_receipt BEFORE INSERT ON receipts BEGIN SELECT RAISE(ABORT, 'Fixture commit failure'); END"
+    );
+    expect((await command(a, { kind: 'bank-collect', pieceId: required(second).id })).reply.type).toBe('rejected');
+    expect((await sync(a)).snapshot).toEqual(before);
+    expect((await runtime.exec('SELECT * FROM spice_transfers')).length).toBe(3);
+    await runtime.restart();
+    expect((await sync(await admit('a'))).snapshot).toEqual(before);
+  });
+
+  it('refuses a withdrawal when the table is full without debiting the spice reserve', async () => {
+    const row = (await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1'))[0];
+    const snapshot = readHistoricalSnapshot(row.data);
+    const template = snapshot.table.pieces[0];
+    snapshot.table.pieces = [];
+    for (let x = -7; x <= 7; x += 0.7) {
+      for (let z = -7; z <= 7; z += 0.7) {
+        const id = `occupied-${snapshot.table.pieces.length}`;
+        snapshot.table.pieces.push({
+          ...template,
+          id,
+          kind: 'marker',
+          stackKey: 'occupied',
+          position: [x, 0.38, z],
+          items: [{ id: `${id}-item`, faceUp: true }],
+        });
+      }
+    }
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
+    await runtime.restart();
+    const a = await admit('a');
+    expect((await command(a, { kind: 'bank-withdraw', amount: 1 })).reply).toMatchObject({
+      type: 'rejected',
+      message: 'Make room on the table before withdrawing spice.',
+    });
+    expect(required(required(await sync(a)).snapshot.bank).balance).toBe(37);
+  });
+  it('changes the audience on activity fanout and suspends sockets whose actor disappeared', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const tab = await admit('a');
+    await sync(a);
+    await runtime.exec("UPDATE actors SET seat='neutral' WHERE user_id='user-a'");
+    a.messages.length = 0;
+    tab.messages.length = 0;
+    b.send({ type: 'pointer', seq: 1, position: [0, 0.38, 0] });
+    for (const connection of [a, tab]) {
+      const view = await connection.message('view');
+      expect(view.viewer.viewerSeat).toBe('neutral');
+      expect(view.snapshot).not.toHaveProperty('bank');
+    }
+    await runtime.exec("DELETE FROM actors WHERE user_id='user-a'");
+    a.send({ type: 'sync' });
+    expect(await a.message('admission')).toMatchObject({ status: 'suspended' });
+  });
+});

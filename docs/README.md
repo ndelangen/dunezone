@@ -2,6 +2,17 @@
 
 Quick reference for understanding and working with the codebase.
 
+## TypeScript source
+
+Maintained scripts, tests, mocks and Convex generated modules use TypeScript. `convex.json`
+selects TypeScript code generation. The pinned Convex patch replaces the generator's explicit
+`any` annotations with function-kind unions and preserves its generated API casts through
+`unknown`. Keep the patch aligned with Convex upgrades and regenerate with `convex codegen`.
+
+Storybook compiles `workers/storybook/story-images.sw.ts` during development and builds, then
+serves it at `/story-images.sw.js`. The source has a separate strict WebWorker type check in
+`bun run typecheck`. Both Storybook runners resolve the package mocks to their `.ts` sources.
+
 ## Entry points
 
 **Starting a new feature?**

@@ -20,9 +20,6 @@ import { resetFrameLag } from './storyWaits';
 /* A box with a height of its own, for a Layout that fills the height its parent gives it (`SplitPanels`). */
 const REGION = { width: 960, height: 600 };
 
-sb.mock(import('convex/react'));
-sb.mock(import('convex/browser'));
-sb.mock(import('@convex-dev/auth/react'));
 sb.mock(import('../src/app/db/core/index.ts'));
 
 export default definePreview({
