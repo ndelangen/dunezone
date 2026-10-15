@@ -22,7 +22,7 @@ export type TabletopContextValue = Pick<
   | 'peekControls'
   | 'closePeek'
   | 'remoteCarriedIds'
-  | 'remoteRiders'
+  | 'plateRiders'
   | 'renderedPieces'
   | 'reservedPieceIds'
   | 'selectedPiece'

@@ -43,6 +43,7 @@ function advanceTablePose(group: Group, target: TablePose, delta: number): boole
  * A piece riding a plate someone else carries is posed from the plate as shown, not smoothed on its own:
  * smoothing each rider separately would cut straight across the plate's arc as it turns.
  * Nothing about a ride is kept: every frame, a rider takes its place from where its plate is shown, and once the ride ends it glides on from there to its own place.
+ * A plate in this page's own hand carries its riders the same way, so they keep up with it however it is set down.
  */
 type PoseNode = { group: { current: Group | null }; target: TablePose };
 type PoseState = PoseNode & { smoothing: PoseSmoothing };
@@ -133,8 +134,8 @@ export function useTablePose(
     /* A ride that ends glides on from where the rider was last shown. */
     retargetPoseSmoothing(smoothing, remote || Boolean(follows), immediate);
     const group = groupRef.current;
+    /* A rider is placed only in the frame, once its plate has taken its own pose there: plates commit their new targets in any order. */
     if (follows) {
-      placeRider(pose.current, plates?.get(follows));
       initialized.current = true;
     } else if (group && (!initialized.current || !smoothing.active)) {
       snapTablePose(group, target);

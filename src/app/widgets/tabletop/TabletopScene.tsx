@@ -499,7 +499,7 @@ export type PieceSceneState = {
   stackTargeted: boolean;
   drafted: boolean;
   remoteCarried: boolean;
-  /* The plate another player is carrying that this piece rides, which it follows as the plate is shown. */
+  /* The plate in someone's hand that this piece rides, which it follows as the plate is shown. */
   ridingPlateId: string | undefined;
   locallyCarried: boolean;
   reserved: boolean;
@@ -521,11 +521,11 @@ function pieceSceneState(
     gestureActivePieceId,
     canHandleTable,
     remoteCarriedIds,
-    remoteRiders,
+    plateRiders,
     reservedPieceIds,
   }: Pick<
     TabletopContextValue,
-    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'remoteRiders' | 'reservedPieceIds'
+    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'plateRiders' | 'reservedPieceIds'
   >
 ): PieceSceneState {
   const drafted = state.draftMove?.pieceId === piece.id;
@@ -537,7 +537,7 @@ function pieceSceneState(
     stackTargeted: state.draftMove?.targetPieceId === piece.id,
     drafted,
     remoteCarried,
-    ridingPlateId: remoteRiders.get(piece.id),
+    ridingPlateId: plateRiders.get(piece.id),
     locallyCarried: drafted && gestureActivePieceId !== null,
     reserved,
     interactionBlocked: !canHandleTable || remoteCarried || (reserved && !localSource),

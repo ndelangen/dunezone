@@ -55,11 +55,13 @@ function remoteViewOf(pieces: TablePiece[], carries: PublicCarry[], rested: Tabl
   const held = new Set([...reservedPieceIds, ...(own ? draftSourceIds(own.draft) : [])]);
   const guarded = held.size ? rested.map((piece) => (held.has(piece.id) ? { ...piece, locked: true } : piece)) : rested;
   const remoteCarriedIds = new Set(carries.map((carry) => carry.held.id));
+  /* A plate in anyone's hand, this page's own included, takes its riders along as it is shown. */
+  const inHand = own ? new Set([...remoteCarriedIds, own.draft.pieceId]) : remoteCarriedIds;
   return {
     renderedPieces: piecesOnPlates(projectPublicCarries(pieces, carries), guarded),
     reservedPieceIds,
     remoteCarriedIds,
-    remoteRiders: ridersOf(guarded, remoteCarriedIds),
+    plateRiders: ridersOf(guarded, inHand),
   };
 }
 
@@ -175,8 +177,8 @@ export type TableProjection = {
   /* Letting go of the peek held open; a seated viewer can, even once the game is finished and the table no longer handles. */
   closePeek?: () => void;
   remoteCarriedIds: ReadonlySet<string>;
-  /* Pieces riding a plate another player is carrying, by id, to that plate's id: they follow the plate as it is shown. */
-  remoteRiders: ReadonlyMap<string, string>;
+  /* Pieces riding a plate in someone's hand, this page's own included, by id, to that plate's id: they follow the plate as it is shown. */
+  plateRiders: ReadonlyMap<string, string>;
   reservedPieceIds: ReadonlySet<string>;
   gestureActivePieceId: string | null;
   hoveredPieceId: string | null;
@@ -236,7 +238,7 @@ function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: Readonly
 }
 
 /* The controls a panel offers only while present, so only their presence counts for a panel's render. */
-const PIECE_ID_SETS = ['remoteCarriedIds', 'remoteRiders', 'reservedPieceIds'] as const;
+const PIECE_ID_SETS = ['remoteCarriedIds', 'plateRiders', 'reservedPieceIds'] as const;
 const PANEL_CONTROLS = ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls', 'closePeek'] as const;
 
 function samePlayback(previous: TableProjection['playback'], next: TableProjection['playback']) {
@@ -355,7 +357,7 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
     affordances: [],
     peek: null,
     remoteCarriedIds: new Set(),
-    remoteRiders: new Map(),
+    plateRiders: new Map(),
     reservedPieceIds: new Set(),
     gestureActivePieceId: null,
     hoveredPieceId: null,
@@ -722,7 +724,7 @@ export class TableSession {
       peekControls: undefined,
       closePeek: undefined,
       remoteCarriedIds: new Set(),
-      remoteRiders: new Map(),
+      plateRiders: new Map(),
       reservedPieceIds: new Set(),
       gestureActivePieceId: null,
       hoveredPieceId: null,

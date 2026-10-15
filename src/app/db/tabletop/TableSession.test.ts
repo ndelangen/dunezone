@@ -2375,7 +2375,7 @@ describe('a plate another player carries', () => {
       [-2.2, 0.38 + 0.05, -1].map((value) => expect.closeTo(value))
     );
     expect(renderedPiece(client, 'held-from')?.position).toEqual(heldFrom.position);
-    expect([...table(client).remoteRiders]).toEqual([['free', 'hms']]);
+    expect([...table(client).plateRiders]).toEqual([['free', 'hms']]);
   });
 
   test('leaves the stack this page is taking from behind', async () => {
@@ -2389,6 +2389,17 @@ describe('a plate another player carries', () => {
     socket().deliver(view({ snapshot, carries: [carry('alice', { ...plate, position: [-2, 0.38, -1] }, ['hms'])] }));
     const left = renderedPiece(client, 'held-from')!;
     expect([left.position[0], left.position[2]]).toEqual([heldFrom.position[0], heldFrom.position[2]]);
-    expect([...table(client).remoteRiders]).toEqual([['free', 'hms']]);
+    expect([...table(client).plateRiders]).toEqual([['free', 'hms']]);
+  });
+
+  test("names the riders of a plate in this page's own hand too, so they keep up with it", async () => {
+    const client = await connected();
+    socket().deliver(view({ snapshot: withPlate() }));
+    expect(table(client).plateRiders.size).toBe(0);
+    client.beginGesture('hms', 'whole');
+    expect([...table(client).plateRiders]).toEqual([
+      ['free', 'hms'],
+      ['held-from', 'hms'],
+    ]);
   });
 });

@@ -145,25 +145,32 @@ describe('a rider on a plate another player carries', () => {
 
   /*
    * The plate is carried by someone else while `riding`, so the rider follows it; otherwise both rest on their own.
-   * `riderInHand` has this page's own hand hold the rider, which puts it down at once.
+   * `riderInHand` has this page's own hand hold the rider, which puts it down at once; `riderFirst` mounts the rider before its plate.
    */
   function Plate({
     plate: platePose,
     rider: riderPose,
     riding = true,
     riderInHand = false,
+    riderFirst = false,
   }: {
     plate: Pose;
     rider: Pose;
     riding?: boolean;
     riderInHand?: boolean;
+    riderFirst?: boolean;
   }) {
-    return (
-      <PlatePosesProvider>
-        <Posed pose={platePose} group={plate} links={{ plateId: 'hms' }} />
-        <Posed pose={riderPose} group={rider} links={{ follows: riding ? 'hms' : undefined }} immediate={riderInHand} />
-      </PlatePosesProvider>
-    );
+    const pieces = [
+      <Posed key="plate" pose={platePose} group={plate} links={{ plateId: 'hms' }} />,
+      <Posed
+        key="rider"
+        pose={riderPose}
+        group={rider}
+        links={{ follows: riding ? 'hms' : undefined }}
+        immediate={riderInHand}
+      />,
+    ];
+    return <PlatePosesProvider>{riderFirst ? pieces.reverse() : pieces}</PlatePosesProvider>;
   }
 
   const runFrames = (count: number) => {
@@ -211,6 +218,23 @@ describe('a rider on a plate another player carries', () => {
     expect(rider.rotation.y).toBeCloseTo(Math.PI);
   });
 
+  test('starts its glide from where it was last drawn, even when it moved and was let go before a frame', () => {
+    const at = (plateX: number, riding = true) => (
+      <Plate
+        plate={{ at: [plateX, 0, 0], turn: 0 }}
+        rider={{ at: [plateX, 0, -0.75], turn: 0 }}
+        riding={riding}
+        riderFirst
+      />
+    );
+    const view = render(at(0));
+    runFrames(30);
+    const drawn = rider.position.clone();
+    view.rerender(at(2));
+    view.rerender(at(2, false));
+    expect(rider.position.toArray()).toEqual(drawn.toArray());
+  });
+
   test("is set down at once where this page's own hand puts it, during a ride or after one", () => {
     const view = render(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} />);
     view.rerender(<Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} />);
@@ -248,14 +272,16 @@ describe('a rider on a plate another player carries', () => {
     );
     const view = render(<Alone at={[1, 0, 1]} />);
     view.rerender(<Alone at={[2, 0, -1]} />);
+    runFrames(1);
     expect(rider.position.toArray()).toEqual([2, 0, -1]);
     expect(rider.rotation.y).toBeCloseTo(0.3);
   });
 
-  test('takes a new place on a still plate at once', () => {
+  test('takes a new place on a still plate in the next frame', () => {
     const view = render(<Plate plate={{ at: [2, 0, 0], turn: 0 }} rider={{ at: [2, 0, -0.75], turn: 0 }} />);
     runFrames(30);
     view.rerender(<Plate plate={{ at: [2, 0, 0], turn: 0 }} rider={{ at: [2.2, 0, -0.5], turn: 0.4 }} />);
+    runFrames(1);
     expect(rider.position.x).toBeCloseTo(2.2);
     expect(rider.position.z).toBeCloseTo(-0.5);
     expect(rider.rotation.y).toBeCloseTo(0.4);
