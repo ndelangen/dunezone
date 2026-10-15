@@ -54,3 +54,32 @@
 .rootChild[data-child="16"] > * > :not(:nth-child(16)) {
   visibility: hidden;
 }
+
+/* A background renderer draws its background first; the background part hides the rest of it. */
+.rootChild[data-part="background"] > * > * > :not(:first-child) {
+  visibility: hidden;
+}
+
+/* The contents part hides the renderer's own box and background, and shows only what it draws on top. */
+.rootChild[data-part="contents"] > * > * {
+  visibility: hidden;
+}
+
+.rootChild[data-part="contents"][data-child="1"] > * > :nth-child(1) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="2"] > * > :nth-child(2) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="3"] > * > :nth-child(3) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="4"] > * > :nth-child(4) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="5"] > * > :nth-child(5) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="6"] > * > :nth-child(6) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="7"] > * > :nth-child(7) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="8"] > * > :nth-child(8) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="9"] > * > :nth-child(9) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="10"] > * > :nth-child(10) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="11"] > * > :nth-child(11) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="12"] > * > :nth-child(12) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="13"] > * > :nth-child(13) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="14"] > * > :nth-child(14) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="15"] > * > :nth-child(15) > :not(:first-child),
+.rootChild[data-part="contents"][data-child="16"] > * > :nth-child(16) > :not(:first-child) {
+  visibility: visible;
+}

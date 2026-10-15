@@ -176,8 +176,8 @@ const LASGUN = treacheryToCustomCard({
   iconOpacity: 1,
 });
 
-const frontLayer = (index: number) => (
-  <RootChildLayer index={index}>
+const frontLayer = (index: number, part?: 'background' | 'contents') => (
+  <RootChildLayer index={index} part={part}>
     <CustomCard {...LASGUN} />
   </RootChildLayer>
 );
@@ -192,12 +192,22 @@ const FRONT_LAYERS: readonly ExplodedLayer[] = [
     description: 'Shading in soft light. Alone it looks black; on the card it shapes the title band.',
     content: frontLayer(5),
   },
-  { title: 'Frame', description: 'The printed card frame with its window, a 2021 GIMP layer.', content: frontLayer(6) },
+  {
+    title: 'Frame',
+    description: 'The printed card frame, a 2021 GIMP layer. Where the type symbol goes, it has only a dark hole.',
+    content: frontLayer(6),
+  },
   { title: 'Rules', description: 'The card text, set in Candara.', content: frontLayer(7) },
   {
-    title: 'Symbol',
-    description: 'The round type badge: its own background and a vector icon.',
-    content: frontLayer(8),
+    title: 'Symbol background',
+    description: 'The type symbol brings its own background into that hole: two gradients through a striped texture.',
+    content: frontLayer(8, 'background'),
+  },
+  {
+    title: 'Symbol icon',
+    description:
+      'The vector, blended in overlay over a faint copy. The symbol, not the hole, sets its edge, so it can be larger than the hole.',
+    content: frontLayer(8, 'contents'),
   },
   { title: 'Title', description: 'Copperplate Gothic, shrunk to fit long names.', content: frontLayer(9) },
   { title: 'Type', description: 'The line under the title.', content: frontLayer(10) },

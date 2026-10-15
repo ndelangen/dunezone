@@ -31,10 +31,17 @@ export function LeaderTokenLayer({ part, children }: Readonly<{ part: LeaderToke
   );
 }
 
-/** Shows only the `index`th element, counting from 1, of the renderer root it wraps. */
-export function RootChildLayer({ index, children }: Readonly<{ index: number; children: ReactNode }>) {
+/**
+ * Shows only the `index`th element, counting from 1, of the renderer root it wraps.
+ * When that element is a `BackgroundRenderer`, `part` narrows it to its background or to what it draws on top.
+ */
+export function RootChildLayer({
+  index,
+  part,
+  children,
+}: Readonly<{ index: number; part?: 'background' | 'contents'; children: ReactNode }>) {
   return (
-    <div className={styles.rootChild} data-child={index}>
+    <div className={styles.rootChild} data-child={index} data-part={part}>
       {children}
     </div>
   );

@@ -124,6 +124,10 @@ function CardsSection() {
         picture, the shade over the title band, so a card&rsquo;s name, rules, colours and picture can all change
         without anyone opening an image editor.
       </Paragraph>
+      <Paragraph>
+        One detail is easy to miss. The frame has only a dark hole where the type symbol sits. The symbol brings its own
+        background into that hole, and its icon is drawn on top of both, so the icon can be larger than the hole.
+      </Paragraph>
       <CardFrontLayers />
     </Section>
   );
