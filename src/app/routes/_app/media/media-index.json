@@ -10104,10 +10104,10 @@
     "sourceHash": "b1ecde01f526df3acfac44754e3d5ff21192010398cef556d9c9ba8f21f1b829"
   },
   "/web/blog/drawing-dune-tokens-and-cards/thufir-token-photo.jpg": {
-    "description": "Thufir Hawat's printed GF9 leader token, cropped to the portrait, with the strength 5, the Atreides emblem and his name printed over it.",
+    "description": "Thufir Hawat's printed GF9 leader token, cropped to the portrait and saved with heavy JPEG compression, with the strength 5, the Atreides emblem and his name printed over it.",
     "tags": ["leader tokens", "House Atreides", "blog"],
     "subjects": ["people", "symbols"],
-    "sourceHash": "7263e913cfc99a175cad393cd8bcadeba8b4c20d5d0c2ac042343ed83af62df7"
+    "sourceHash": "f8cb0f3093fa2b95b3245edce2706f599aea1d9979cfeee36643b232ecd13d20"
   },
   "/web/blog/why-dune/avalon-hill-set.jpg": {
     "description": "The original Avalon Hill edition of Dune laid out on a table: the board, faction shields, leader discs, combat wheels, troops and cards.",
