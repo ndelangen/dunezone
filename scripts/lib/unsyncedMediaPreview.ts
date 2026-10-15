@@ -2,10 +2,11 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 import sharp from 'sharp';
+import type { Sharp } from 'sharp';
 import type { Plugin } from 'vite';
 
 import { FORMAT_EXTENSION, ruleForKey } from '../../src/shared/assetRules.ts';
-import type { AssetSize } from '../../src/shared/assetRules.ts';
+import type { AssetFormat, AssetSize } from '../../src/shared/assetRules.ts';
 import type { RasterLock } from '../../src/shared/media/rasterLock.ts';
 
 /* The legacy variant path `resolveAsset` gives a raster the lock does not list, such as `/web/blog/why-dune/photo-small.jpg`. */
@@ -44,6 +45,12 @@ export function unsyncedOriginal(
   return null;
 }
 
+const ENCODERS: Record<AssetFormat, (pipeline: Sharp, quality: number) => Sharp> = {
+  jpeg: (pipeline, quality) => pipeline.jpeg({ quality, progressive: true }),
+  webp: (pipeline, quality) => pipeline.webp({ quality }),
+  png: (pipeline) => pipeline.png(),
+};
+
 /** A quick encode of one tier, close enough to judge an image by: the deployed bytes come from `generate-images.ts` once the original is synced. */
 async function encodePreview(file: string, key: string, tier: AssetSize): Promise<Buffer> {
   const rule = ruleForKey(key)!;
@@ -55,14 +62,7 @@ async function encodePreview(file: string, key: string, tier: AssetSize): Promis
   if (rule.grayscale) {
     pipeline = pipeline.grayscale();
   }
-  if (rule.format === 'jpeg') {
-    pipeline = pipeline.jpeg({ quality: rule.quality, progressive: true });
-  } else if (rule.format === 'webp') {
-    pipeline = pipeline.webp({ quality: rule.quality });
-  } else {
-    pipeline = pipeline.png();
-  }
-  return await pipeline.toBuffer();
+  return await ENCODERS[rule.format](pipeline, rule.quality).toBuffer();
 }
 
 /**
