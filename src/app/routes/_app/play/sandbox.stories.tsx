@@ -332,7 +332,7 @@ async function boardHms(canvasElement: HTMLElement) {
   const table = sandbox.table!;
   const faction = shown().bank!.factionId;
   const plate = () => piece((candidate) => candidate.stackKey === 'token:sandbox-hms');
-  const carry = (id: string, pieceId: string, position: [number, number, number], orientation = 0) => {
+  const carry = async (id: string, pieceId: string, position: [number, number, number], orientation = 0) => {
     table.receive({
       type: 'begin',
       carryId: id,
@@ -341,7 +341,7 @@ async function boardHms(canvasElement: HTMLElement) {
       pickup: 'whole',
     });
     table.receive({ type: 'drop', commandId: `${id}-drop`, carryId: id, position, orientation });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
   };
   const stacks = shown()
     .table.pieces.filter(
@@ -350,8 +350,8 @@ async function boardHms(canvasElement: HTMLElement) {
     )
     .slice(0, 2);
   const [x, , z] = plate().position;
-  carry('hms-first', stacks[0]!.id, [x - 0.2, 0.4, z + 0.1]);
-  carry('hms-second', stacks[1]!.id, [x + 0.2, 0.4, z - 0.1]);
+  await carry('hms-first', stacks[0]!.id, [x - 0.2, 0.4, z + 0.1]);
+  await carry('hms-second', stacks[1]!.id, [x + 0.2, 0.4, z - 0.1]);
   const riding = () => shown().table.pieces.filter((candidate) => stacks.some((stack) => stack.id === candidate.id));
   return { plate, carry, riding };
 }
@@ -385,11 +385,11 @@ export const HmsCarriesItsTroops = meta.story({
     const { plate, carry, riding } = await boardHms(canvasElement);
     const [x, , z] = plate().position;
     const before = riding().map((stack) => [stack.position[0] - x, stack.position[2] - z]);
-    carry('hms-plate', plate().id, [x - 1.6, 0.4, z - 1.2], plate().orientation);
+    await carry('hms-plate', plate().id, [x - 1.6, 0.4, z - 1.2], plate().orientation);
     const [nextX, , nextZ] = plate().position;
-    riding().forEach((stack, index) => {
-      expect(stack.position[0] - nextX).toBeCloseTo(before[index]![0]!);
-      expect(stack.position[2] - nextZ).toBeCloseTo(before[index]![1]!);
-    });
+    for (const [index, stack] of riding().entries()) {
+      await expect(stack.position[0] - nextX).toBeCloseTo(before[index]![0]!);
+      await expect(stack.position[2] - nextZ).toBeCloseTo(before[index]![1]!);
+    }
   },
 });
