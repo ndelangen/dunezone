@@ -4,12 +4,9 @@ import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 
 import { Figure, Lead, Paragraph } from '../postContent';
-import { BLOG_POST_META } from '../posts';
 import { BeforeAfter } from './assets/BeforeAfter';
 import { CardBackLayers, CardFrontLayers, LeaderTokenLayers } from './assets/figures';
 import { NoiseComparison } from './assets/NoiseComparison';
-
-const meta = BLOG_POST_META['drawing-dune-tokens-and-cards'];
 
 export default function Post() {
   return (
@@ -194,9 +191,9 @@ function InconsistencySection() {
         leaders shown below.
       </Paragraph>
       <Figure
-        imageKey={meta.cover.key}
-        alt={meta.cover.alt}
-        aspect={meta.cover.aspect}
+        imageKey="/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg"
+        alt="The House Atreides leader tokens on dune.zone: Lady Jessica, Thufir Hawat, Paul Atreides, Gurney Halleck, Duncan Idaho and Doctor Yueh"
+        aspect={620 / 2400}
         caption="House Atreides on dune.zone today."
       />
     </Section>

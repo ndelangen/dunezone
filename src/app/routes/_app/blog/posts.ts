@@ -38,9 +38,9 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
     summary:
       'How the leader tokens and cards on dune.zone are drawn, layer by layer, from GIMP files I made in 2021 to SVG masks and photo textures, traced through the git history of my old projects.',
     cover: {
-      key: '/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg',
-      alt: 'The House Atreides leader tokens on dune.zone: Lady Jessica, Thufir Hawat, Paul Atreides, Gurney Halleck, Duncan Idaho and Doctor Yueh',
-      aspect: 620 / 2400,
+      key: '/web/blog/drawing-dune-tokens-and-cards/exploded-layers.jpg',
+      alt: 'A treachery card back and a leader token pulled apart into their layers, floating one above the other',
+      aspect: 1800 / 2400,
     },
   },
   'tabletop-simulator': {
