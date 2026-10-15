@@ -102,9 +102,11 @@ export function unsyncedMediaPreview(repoRoot: string): Plugin {
           return;
         }
         let original: ReturnType<typeof unsyncedOriginal> = null;
+        let mtimeMs = 0;
         try {
-          /* Only variant paths read the lock, and a lock caught mid-write by `media:sync` falls through rather than failing every request. */
+          /* Only variant paths read the lock, and a lock caught mid-write by `media:sync` or an original swapped out mid-request falls through rather than failing. */
           original = VARIANT.test(url) ? unsyncedOriginal(url, mediaRoot, currentLock()) : null;
+          mtimeMs = original ? statSync(original.file).mtimeMs : 0;
         } catch {
           original = null;
         }
@@ -112,7 +114,6 @@ export function unsyncedMediaPreview(repoRoot: string): Plugin {
           next();
           return;
         }
-        const { mtimeMs } = statSync(original.file);
         const cached = encoded.get(url);
         const bytes =
           cached?.mtimeMs === mtimeMs
