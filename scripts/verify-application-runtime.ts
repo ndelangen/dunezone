@@ -328,7 +328,8 @@ try {
     const response = await worker.fetch(pathname);
     assert.equal(response.status, 200, pathname);
     assert.equal(response.headers.get('X-Application-Release'), null, pathname);
-    await response.body?.cancel();
+    /* Sign-in, editors and Play are not search results; a crawler that runs the shell would otherwise index them. */
+    assert.match(await response.text(), /<meta name="robots" content="noindex"\/>/, pathname);
   }
   for (const pathname of [
     `${rulebookPage}?edition=${Number.MAX_SAFE_INTEGER}`,

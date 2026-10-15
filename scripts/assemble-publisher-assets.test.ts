@@ -25,7 +25,7 @@ function fixture() {
   const publisher = path.join(root, 'publisher');
   mkdirSync(path.join(app, 'public'), { recursive: true });
   mkdirSync(path.join(publisher, 'publisher-capture'), { recursive: true });
-  writeFileSync(path.join(app, '_shell.html'), '<html>spa shell</html>');
+  writeFileSync(path.join(app, '_shell.html'), '<html><head></head>spa shell</html>');
   writeFileSync(path.join(app, 'public', 'app-hash.js'), 'application');
   writeFileSync(path.join(publisher, 'publisher-capture.html'), '<html>capture</html>');
   writeFileSync(path.join(publisher, 'publisher-capture', 'entry-hash.js'), 'capture');
@@ -69,8 +69,9 @@ describe('publisher Static Assets assembly', () => {
 
     expect(report.assetCount).toBe(6);
     expect(readFileSync(path.join(publisher, '_headers'), 'utf8')).toContain('immutable');
-    expect(readFileSync(path.join(publisher, 'index.html'), 'utf8')).toBe('<html>spa shell</html>');
-    expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe('<html>spa shell</html>');
+    const shell = '<html><head><meta name="robots" content="noindex"/></head>spa shell</html>';
+    expect(readFileSync(path.join(publisher, 'index.html'), 'utf8')).toBe(shell);
+    expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe(shell);
     expect(report.largestAsset.bytes).toBeGreaterThan(0);
   });
 
@@ -78,12 +79,13 @@ describe('publisher Static Assets assembly', () => {
     const { app, publisher, headers } = fixture();
     writeFileSync(
       path.join(app, '_shell.html'),
-      '<script>before;i:"__root__\0",u:1784218854699,s:"success",ssr:!0;after</script>'
+      '<head></head><script>before;i:"__root__\0",u:1784218854699,s:"success",ssr:!0;after</script>'
     );
 
     assemblePublisherAssets(app, publisher, headers);
 
-    const expected = '<script>before;i:"__root__\0",u:0,s:"success",ssr:!0;after</script>';
+    const expected =
+      '<head><meta name="robots" content="noindex"/></head><script>before;i:"__root__\0",u:0,s:"success",ssr:!0;after</script>';
     expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe(expected);
     expect(readFileSync(path.join(publisher, 'index.html'), 'utf8')).toBe(expected);
   });
@@ -97,6 +99,13 @@ describe('publisher Static Assets assembly', () => {
     writeFileSync(path.join(app, '_shell.html'), `<html><head>${tag}</head></html>`);
 
     expect(() => assemblePublisherAssets(app, publisher, headers)).toThrow('must not carry a page identity');
+  });
+
+  test('refuses a shell with no head to carry its noindex', () => {
+    const { app, publisher, headers } = fixture();
+    writeFileSync(path.join(app, '_shell.html'), '<html>spa shell</html>');
+
+    expect(() => assemblePublisherAssets(app, publisher, headers)).toThrow('no <head>');
   });
 
   test('removes stale assembled assets while preserving the fresh capture build', () => {

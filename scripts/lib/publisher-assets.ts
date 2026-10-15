@@ -29,6 +29,20 @@ function normalizePublisherShell(shell: string): string {
   );
 }
 
+/**
+ * Every browser-only path is served the shell: sign-in, editors, Play and unknown addresses.
+ * None of them is a search result, but a crawler that runs the shell's script indexes whatever it draws, as Bing did with the sign-in page.
+ * Public pages are server-rendered by the Worker and never served the shell, so the shell alone says noindex, before any script runs.
+ */
+const SHELL_ROBOTS = '<meta name="robots" content="noindex"/>';
+
+function markShellNoindex(shell: string): string {
+  if (!shell.includes('<head>')) {
+    throw new Error('The SPA shell has no <head> to carry its robots noindex');
+  }
+  return shell.includes(SHELL_ROBOTS) ? shell : shell.replace('<head>', `<head>${SHELL_ROBOTS}`);
+}
+
 /** Every browser-only path is served this one document, so a page identity in it would claim them all. */
 function assertAnonymousShell(shell: string): void {
   const identity = /<link[^>]+rel="canonical"|<meta[^>]+(?:property="og:url"|name="description")/.exec(shell);
@@ -98,6 +112,9 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   if (!shell.equals(index)) {
     throw new Error('Worker index.html must be an exact copy of the TanStack SPA shell');
   }
+  if (!shell.includes(SHELL_ROBOTS)) {
+    throw new Error('The SPA shell must carry a robots noindex');
+  }
 
   /* The required-file checks above guarantee `files` is not empty. */
   const largestAsset = files.reduce((largest, file) => (file.bytes > largest.bytes ? file : largest), files[0]);
@@ -138,7 +155,7 @@ export function assemblePublisherAssets(
   if (!existsSync(shell)) {
     throw new Error('Application build is missing the TanStack SPA shell');
   }
-  const normalizedShell = normalizePublisherShell(readFileSync(shell, 'utf8'));
+  const normalizedShell = markShellNoindex(normalizePublisherShell(readFileSync(shell, 'utf8')));
   assertAnonymousShell(normalizedShell);
   writeFileSync(shell, normalizedShell);
   copyFileSync(shell, path.join(publisherDirectory, 'index.html'));
