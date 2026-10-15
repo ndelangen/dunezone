@@ -5,6 +5,8 @@ import type { TabletopContextValue } from './TabletopContext';
 
 const DRAG_THRESHOLD_PX = 4;
 const STACK_HOLD_MS = 320;
+/* A Force Touch trackpad reports a firm press above the 0.5 every pressed mouse button reports; this is near its force click. */
+const FORCE_PRESSURE = 0.9;
 
 type PointerInput = Pick<PointerEvent, 'pointerId' | 'button' | 'clientX' | 'clientY' | 'timeStamp'> &
   Partial<Pick<PointerEvent, 'pointerType'>>;
@@ -142,6 +144,7 @@ export class PointerSession {
     events.addEventListener('pointercancel', this.pointerCancelled);
     events.addEventListener('blur', this.cancel);
     canvas.addEventListener('lostpointercapture', this.pointerCancelled);
+    canvas.addEventListener('webkitmouseforcedown', this.forced);
   }
 
   private release(cursor: string) {
@@ -157,6 +160,7 @@ export class PointerSession {
     events.removeEventListener('pointercancel', this.pointerCancelled);
     events.removeEventListener('blur', this.cancel);
     canvas.removeEventListener('lostpointercapture', this.pointerCancelled);
+    canvas.removeEventListener('webkitmouseforcedown', this.forced);
     try {
       canvas.releasePointerCapture(active.input.pointerId);
     } catch {
@@ -205,6 +209,13 @@ export class PointerSession {
     return piece ? controls.point(piece, input.clientX, input.clientY) : null;
   }
 
+  /* A force click on a Mac trackpad lifts the whole stack at once, in place of holding it still for a moment. */
+  private forced = () => {
+    if (this.active && !this.active.dragging) {
+      this.beginDrag('whole');
+    }
+  };
+
   private move = (event: PointerEvent) => {
     if (!this.matches(event) || !this.binding) {
       return;
@@ -213,6 +224,9 @@ export class PointerSession {
     if (this.active?.origin === 'table' && !controls.isPublicPoint(event.clientX, event.clientY)) {
       this.cancel();
       return;
+    }
+    if (event.pointerType === 'mouse' && event.pressure >= FORCE_PRESSURE) {
+      this.forced();
     }
     if (!this.dragAfterThreshold(event)) {
       return;

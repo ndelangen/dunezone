@@ -227,3 +227,21 @@ test('failed capture leaves no active listeners or carry', () => {
   expect(controls.finishGesture).not.toHaveBeenCalled();
   expect(session.press(pointer('pointerdown'), piece.id)).toBe(true);
 });
+
+test('a force click lifts the whole stack at once, before the hold or any movement', () => {
+  const { session, controls, canvas, piece } = table();
+  session.press(pointer('pointerdown'), piece.id);
+  canvas.dispatchEvent(new MouseEvent('webkitmouseforcedown'));
+  expect(controls.beginGesture).toHaveBeenCalledExactlyOnceWith(piece.id, 'whole');
+  window.dispatchEvent(pointer('pointerup', 10, 1, 50));
+  expect(controls.finishGesture).toHaveBeenCalledWith([10, 0, 10]);
+});
+
+test('a firm trackpad press reported as pointer pressure lifts the whole stack', () => {
+  const { session, controls, piece } = table();
+  session.press(pointer('pointerdown'), piece.id);
+  window.dispatchEvent(Object.assign(pointer('pointermove', 10, 1, 40), { pressure: 0.5 }));
+  expect(controls.beginGesture).not.toHaveBeenCalled();
+  window.dispatchEvent(Object.assign(pointer('pointermove', 10, 1, 60), { pressure: 0.95 }));
+  expect(controls.beginGesture).toHaveBeenCalledExactlyOnceWith(piece.id, 'whole');
+});
