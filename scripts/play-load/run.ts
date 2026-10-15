@@ -24,7 +24,7 @@ import type {
 } from '../../src/shared/play/protocol.ts';
 import { KEEPALIVE_INTERVAL_MS, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
-import { setAdminAuth, adminMutationReference, signalFetch } from '../lib/convex-admin.ts';
+import { setAdminAuth, adminMutationReference } from '../lib/convex-admin.ts';
 import { loopbackOrigin } from '../lib/isolated-stack.ts';
 import { provisionAccounts } from '../lib/synthetic-accounts.ts';
 import { browsers } from './browsers.ts';
@@ -54,6 +54,15 @@ import type {
   InteractionSlot,
 } from './types.ts';
 import { readServerMessage } from './wire.ts';
+
+/** Bun adds fetch.preconnect to its declaration; preserve it when replacing fetch for a bounded request. */
+function signalFetch(signal: () => AbortSignal): typeof fetch {
+  return Object.assign(
+    (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
+      fetch(input, { ...init, signal: signal() }),
+    fetch
+  );
+}
 
 /*
  * The bundle targets Node 22 and the runner reads import.meta.dirname; an older Node fails later and unclearly.
@@ -791,9 +800,9 @@ async function durable(peer: Peer, action: PieceAction, operation: string = acti
   );
 }
 
-/* Every recipient receives the same public snapshot; the spice reserve, hand and battle plan are projected per viewer. */
+/* Every recipient receives the same public snapshot; the spice reserve, hand, battle plan and peek are projected per viewer. */
 function publicFixtureSnapshot(snapshot: GameSnapshot) {
-  const { bank: _bank, hand: _hand, battlePlan: _battlePlan, ...publicSnapshot } = snapshot;
+  const { bank: _bank, hand: _hand, battlePlan: _battlePlan, peek: _peek, ...publicSnapshot } = snapshot;
   return publicSnapshot;
 }
 function processResources() {
@@ -941,18 +950,16 @@ try {
     assert.deepEqual(publicFixtureSnapshot(viewOf(peer).snapshot), publicFixtureSnapshot(replay.snapshot));
   }
   report.checks.push('A repeated command applies once and every recipient receives the same public durable snapshot.');
-  const actionPeer = peers.find((peer) => peer.role === 'secondary' && !peer.browser);
-  assert.ok(actionPeer);
   const trace =
     values.profile !== 'baseline' && values.case !== 'reconnect'
-      ? await createTrace({
-          peer: actionPeer,
-          request,
-          durable,
-          record,
-          seed,
-          operations: manifest.durableTrace,
-        })
+      ? await (async () => {
+          const peer = peers.find((peer) => peer.role === 'secondary' && !peer.browser);
+          assert.ok(peer, 'The synthetic trace requires a protocol secondary peer.');
+          return {
+            ...(await createTrace({ peer, request, durable, record, seed, operations: manifest.durableTrace })),
+            peer,
+          };
+        })()
       : undefined;
   const scheduleActions = async (startedAt: number, durationMs: number) => {
     let nextStep = 0;
@@ -974,7 +981,7 @@ try {
           : nextStep % 4 === 1
             ? 'flip'
             : 'rotate';
-        const peer = useTrace ? actionPeer : first;
+        const peer = useTrace ? trace.peer : first;
         const sample = beginInteraction(peer, operation, {
           ...slot,
           phase: slot.scheduledAt - startedAt < warmupSeconds * 1000 ? 'warmup' : 'measured',

@@ -6,7 +6,7 @@ import type { Vector3Tuple } from '../src/shared/play/model.ts';
 import { isSpicePiece } from '../src/shared/play/spice.ts';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 import type { HostedToolkit } from './verify-hosted-play-browser.ts';
-import { required } from './verify-hosted-types.ts';
+import { required, requireView } from './verify-hosted-types.ts';
 import type { HostedPeer, Until, TablePiece } from './verify-hosted-types.ts';
 
 /** Two signed-in players exercise the real battle controls on a disposable Worker. */
@@ -14,10 +14,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   const { seated, treacheryDeck, button, converged, focus, openTab, point, carrySteps, capture, until, passed } =
     toolkit;
   const { a, b, observer } = await seated();
-  assert.notEqual(
-    required(a.view(), 'authorized view').viewer.userId,
-    required(b.view(), 'authorized view').viewer.userId
-  );
+  assert.notEqual(requireView(a).viewer.userId, requireView(b).viewer.userId);
   assert.notEqual(a.context.browser(), b.context.browser());
   async function act(who: HostedPeer, name: string) {
     await toolkit.act(who, name);
@@ -32,7 +29,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   await act(b, 'Approve');
   await button(a, 'Close catalogue').click();
   const token = required(
-    required(a.view(), 'authorized view').snapshot.table.pieces.find((piece) => piece.inventory),
+    requireView(a).snapshot.table.pieces.find((piece) => piece.inventory),
     'token'
   );
   async function drag(who: HostedPeer, locator: Locator, destination: Vector3Tuple) {
@@ -62,29 +59,23 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   }
   await drag(a, button(a, 'Drag Recovery token onto the table'), [-1.5, 0.38, 1.5]);
   await until(
-    () =>
-      required(a.view(), 'authorized view').snapshot.table.pieces.some(
-        (piece) => piece.id === token.id && !piece.inventory
-      ),
+    () => requireView(a).snapshot.table.pieces.some((piece) => piece.id === token.id && !piece.inventory),
     'Leader token did not leave shared inventory.'
   );
   /* Setup credited the faction's starting spice; the support case counts from it. */
-  const startingSpice = required(required(a.view(), 'authorized view').snapshot.bank, 'bank').balance;
+  const startingSpice = required(requireView(a).snapshot.bank, 'bank').balance;
   await focus(a, 'map');
   await toolkit.spiceBankShortcut(a, '7');
-  await until(
-    () => required(a.view(), 'authorized view').snapshot.table.pieces.some(isSpicePiece),
-    'Spice did not spawn.'
-  );
-  const spice = required(required(a.view(), 'authorized view').snapshot.table.pieces.find(isSpicePiece), 'spice');
+  await until(() => requireView(a).snapshot.table.pieces.some(isSpicePiece), 'Spice did not spawn.');
+  const spice = required(requireView(a).snapshot.table.pieces.find(isSpicePiece), 'spice');
   const at = await point(a, [spice.position[0], spice.position[1] + stackTopHeight(spice), spice.position[2]]);
   await a.page.mouse.click(at.x, at.y, { button: 'right' });
   await a.page.getByRole('menuitem', { name: 'Take into spice reserve', exact: true }).click();
   await until(
-    () => required(required(a.view(), 'authorized view').snapshot.bank, 'bank').balance === startingSpice + 7,
+    () => required(requireView(a).snapshot.bank, 'bank').balance === startingSpice + 7,
     'Manual collection did not fund the spice reserve.'
   );
-  while (required(a.view(), 'authorized view').snapshot.phase !== 6) {
+  while (requireView(a).snapshot.phase !== 6) {
     await act(a, 'Next phase');
   }
   await openTab(a, 'Battle');
@@ -94,23 +85,19 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   async function take(who: HostedPeer, id: string) {
     await focus(who, 'map');
     const piece = required(
-      required(who.view(), 'authorized view').snapshot.table.pieces.find((piece) => piece.id === id),
+      requireView(who).snapshot.table.pieces.find((piece) => piece.id === id),
       'piece'
     );
     const at = await point(who, [piece.position[0], piece.position[1] + 0.05, piece.position[2]]);
     await who.page.mouse.click(at.x, at.y);
     await openTab(who, 'Battle');
-    const previousHand = new Set(
-      required(required(who.view(), 'authorized view').snapshot.hand, 'hand').map((entry) => entry.id)
-    );
+    const previousHand = new Set(required(requireView(who).snapshot.hand, 'hand').map((entry) => entry.id));
     await act(who, 'Take selected piece into hand');
     await until(
-      () => required(required(who.view(), 'authorized view').snapshot.hand, 'hand').length === previousHand.size + 1,
+      () => required(requireView(who).snapshot.hand, 'hand').length === previousHand.size + 1,
       'Private inventory did not receive the piece.'
     );
-    const received = required(required(who.view(), 'authorized view').snapshot.hand, 'hand').find(
-      (entry) => !previousHand.has(entry.id)
-    );
+    const received = required(requireView(who).snapshot.hand, 'hand').find((entry) => !previousHand.has(entry.id));
     assert.ok(received);
     assert.equal(received.kind, piece.kind);
     assert.equal(received.items.length, piece.items.length);
@@ -123,25 +110,21 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   async function draw(who: HostedPeer) {
     await focus(who, 'map');
     const deck = required(
-      required(who.view(), 'authorized view').snapshot.table.pieces.find((piece) => piece.id === treacheryDeck(who)),
+      requireView(who).snapshot.table.pieces.find((piece) => piece.id === treacheryDeck(who)),
       'deck'
     );
     const at = await point(who, [deck.position[0], deck.position[1] + stackTopHeight(deck), deck.position[2]]);
-    const previousHand = new Set(
-      required(required(who.view(), 'authorized view').snapshot.hand, 'hand').map((entry) => entry.id)
-    );
+    const previousHand = new Set(required(requireView(who).snapshot.hand, 'hand').map((entry) => entry.id));
     await who.page.mouse.click(at.x, at.y, { button: 'right' });
     await who.page.getByRole('menuitem', { name: 'Draw a card', exact: true }).click();
     await until(
-      () => required(required(who.view(), 'authorized view').snapshot.hand, 'hand').length === previousHand.size + 1,
+      () => required(requireView(who).snapshot.hand, 'hand').length === previousHand.size + 1,
       'The drawn card did not reach the hand.'
     );
     await who.page.keyboard.press('Escape');
     await openTab(who, 'Battle');
     return required(
-      required(required(who.view(), 'authorized view').snapshot.hand, 'hand').find(
-        (entry) => !previousHand.has(entry.id)
-      ),
+      required(requireView(who).snapshot.hand, 'hand').find((entry) => !previousHand.has(entry.id)),
       'drawn card'
     );
   }
@@ -155,41 +138,36 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   await a.page.mouse.down();
   await a.page.mouse.move(target.x, target.y, { steps: 25 });
   await a.page.mouse.up();
-  await until(() => required(a.view(), 'authorized view').snapshot.battle, 'Marker drop did not start a battle.');
+  await until(() => requireView(a).snapshot.battle, 'Marker drop did not start a battle.');
   await act(a, 'Claim left side');
   await act(b, 'Claim right side');
   await until(
-    () =>
-      required(a.view(), 'authorized view').snapshot.battlePlan &&
-      required(b.view(), 'authorized view').snapshot.battlePlan,
+    () => requireView(a).snapshot.battlePlan && requireView(b).snapshot.battlePlan,
     'The factions in the battle did not receive private plans.'
   );
-  assert.equal(required(observer.view(), 'authorized view').snapshot.battlePlan, null);
+  assert.equal(requireView(observer).snapshot.battlePlan, null);
   const cardName = required(required(battleCard.items[0].artwork, 'battle artwork').name, 'battle card name');
   await verifySupport({ a, b, observer, token, cardName, startingSpice, until, converged, capture });
   await act(a, 'Ready for battle');
   await act(b, 'Ready for battle');
   await until(
-    () => required(required(a.view(), 'authorized view').snapshot.battle, 'battle').stage === 'countdown',
+    () => required(requireView(a).snapshot.battle, 'battle').stage === 'countdown',
     'Both Ready did not start countdown.'
   );
   await act(a, 'Undo Ready');
-  assert.equal(
-    required(required(required(a.view(), 'authorized view').snapshot.battle, 'battle').sides[1], 'right side').ready,
-    true
-  );
+  assert.equal(required(required(requireView(a).snapshot.battle, 'battle').sides[1], 'right side').ready, true);
   await act(a, 'Ready for battle');
   await b.page.reload({ waitUntil: 'domcontentloaded' });
   await b.page.locator('[data-connection="authorized"]').waitFor();
   await until(
     () =>
-      required(required(a.view(), 'authorized view').snapshot.battle, 'battle').stage === 'revealed' &&
-      required(required(b.view(), 'authorized view').snapshot.battle, 'battle').stage === 'revealed',
+      required(requireView(a).snapshot.battle, 'battle').stage === 'revealed' &&
+      required(requireView(b).snapshot.battle, 'battle').stage === 'revealed',
     'Countdown did not reveal after reconnect.',
     15_000
   );
   await capture(a, 'after-battle-reveal');
-  assert.equal(required(required(a.view(), 'authorized view').snapshot.bank, 'bank').balance, startingSpice + 4);
+  assert.equal(required(requireView(a).snapshot.bank, 'bank').balance, startingSpice + 4);
   await drag(
     a,
     a.page
@@ -198,10 +176,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     [-2, 0.38, 2]
   );
   await until(
-    () =>
-      required(a.view(), 'authorized view').snapshot.table.pieces.some(
-        (piece) => piece.id === token.id && !piece.battleOverlay
-      ),
+    () => requireView(a).snapshot.table.pieces.some((piece) => piece.id === token.id && !piece.battleOverlay),
     'Revealed leader did not reach the real table.'
   );
   await drag(
@@ -212,30 +187,22 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     [1.6, 0.38, 1.8]
   );
   await until(
-    () =>
-      required(a.view(), 'authorized view').snapshot.table.pieces.some(
-        (piece) => piece.id === battleCard.id && !piece.battleOverlay
-      ),
+    () => requireView(a).snapshot.table.pieces.some((piece) => piece.id === battleCard.id && !piece.battleOverlay),
     'Revealed card did not reach the real table.'
   );
   const returnedCard = await take(a, battleCard.id);
   await act(a, 'Left side won');
   await act(b, 'Right side won');
   assert.deepEqual(
-    required(required(a.view(), 'authorized view').snapshot.battle, 'battle').sides.map(
-      (side) => required(side, 'battle side').choice
-    ),
+    required(requireView(a).snapshot.battle, 'battle').sides.map((side) => required(side, 'battle side').choice),
     ['left', 'right']
   );
   assert.equal(await button(observer, 'No winner').isDisabled(), true);
   await capture(a, 'after-battle-opposing-outcomes');
   await act(b, 'Left side won');
-  await until(() => !required(a.view(), 'authorized view').snapshot.battle, 'Matching choices did not resolve.');
+  await until(() => !requireView(a).snapshot.battle, 'Matching choices did not resolve.');
   await capture(a, 'after-battle-resolved');
-  assert.equal(
-    required(required(a.view(), 'authorized view').snapshot.battleResults, 'battleResults')[0].outcome,
-    'left'
-  );
+  assert.equal(required(requireView(a).snapshot.battleResults, 'battleResults')[0].outcome, 'left');
   passed(
     'Distinct signed-in players place the marker, claim sides, privately plan, withdraw Ready, reconnect during countdown and agree a public outcome; observer controls remain disabled'
   );
@@ -243,19 +210,19 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   await verifyReverseBattle({ a, b, openTab, drag, button, until, act, passed });
   await openTab(a, 'Battle');
   await drag(a, button(a, 'Drag battle marker onto territory'), [0, 0.18, 0]);
-  await until(() => required(a.view(), 'authorized view').snapshot.battle, 'Cancellation example did not start.');
+  await until(() => requireView(a).snapshot.battle, 'Cancellation example did not start.');
   await act(a, 'Claim left side');
   await commitCard({ who: a, name: cardName, until });
   await act(a, 'Ready for battle');
   await act(b, 'Cancel battle');
   await until(
     () =>
-      required(a.view(), 'authorized view').snapshot.hand?.some(
+      requireView(a).snapshot.hand?.some(
         (piece) => piece.id === returnedCard.id && piece.items[0].id === returnedCard.items[0].id
       ),
     'Cancellation did not restore the card.'
   );
-  assert.equal(required(required(a.view(), 'authorized view').snapshot.bank, 'bank').balance, startingSpice + 4);
+  assert.equal(required(requireView(a).snapshot.bank, 'bank').balance, startingSpice + 4);
   await capture(a, 'after-battle-cancellation');
   passed(
     'A seated faction outside the battle cancels preparation and restores the private card without a public result'
@@ -287,35 +254,26 @@ async function verifySupport({
   await count.fill('5');
   assert.equal(await count.inputValue(), '5');
   await count.press('Enter');
-  await until(
-    () => required(a.view(), 'authorized view').snapshot.battlePlan?.troops[0]?.undialed === 5,
-    'Five troops did not save.'
-  );
+  await until(() => requireView(a).snapshot.battlePlan?.troops[0]?.undialed === 5, 'Five troops did not save.');
   await a.page.getByRole('textbox', { name: 'Committed spice', exact: true }).fill('5');
   await a.page.getByRole('textbox', { name: 'Committed spice', exact: true }).press('Enter');
-  await until(
-    () => required(a.view(), 'authorized view').snapshot.battlePlan?.spice === 5,
-    'Five spice did not reserve.'
-  );
-  assert.equal(required(required(a.view(), 'authorized view').snapshot.bank, 'bank').balance, startingSpice + 2);
+  await until(() => requireView(a).snapshot.battlePlan?.spice === 5, 'Five spice did not reserve.');
+  assert.equal(required(requireView(a).snapshot.bank, 'bank').balance, startingSpice + 2);
   await count.fill('3');
   await count.press('Enter');
-  await until(
-    () => required(a.view(), 'authorized view').snapshot.battlePlan?.spice === 3,
-    'Troop declaration did not save.'
-  );
-  assert.equal(required(required(a.view(), 'authorized view').snapshot.battlePlan, 'battlePlan').troops[0].dialed, 3);
-  assert.equal(required(required(a.view(), 'authorized view').snapshot.bank, 'bank').balance, startingSpice + 4);
+  await until(() => requireView(a).snapshot.battlePlan?.spice === 3, 'Troop declaration did not save.');
+  assert.equal(required(requireView(a).snapshot.battlePlan, 'battlePlan').troops[0].dialed, 3);
+  assert.equal(required(requireView(a).snapshot.bank, 'bank').balance, startingSpice + 4);
   await a.page.getByRole('combobox', { name: 'Leader', exact: true }).click();
   await a.page.getByRole('option', { name: 'Recovery token', exact: true }).click();
   await until(
-    () => required(required(a.view(), 'authorized view').snapshot.battlePlan, 'battlePlan').leaderId === token.id,
+    () => required(requireView(a).snapshot.battlePlan, 'battlePlan').leaderId === token.id,
     'Leader did not commit.'
   );
   await commitCard({ who: a, name: cardName, until });
   /* B's view is read once it holds A's commit; before then it would show no reveal whatever the commit sent (#1481). */
   await converged([a, b]);
-  assert.equal(required(required(b.view(), 'authorized view').snapshot.battle, 'battle').revealed, undefined);
+  assert.equal(required(requireView(b).snapshot.battle, 'battle').revealed, undefined);
   await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
   await a.page.getByRole('heading', { name: 'Battle', exact: true }).scrollIntoViewIfNeeded();
   await capture(a, 'after-battle-private-plan');
@@ -324,10 +282,7 @@ async function verifySupport({
 /** The workbench commits a hand card through a pressed button; the committed card reads as removable. */
 async function commitCard({ who, name, until }: { who: HostedPeer; name: string; until: Until }) {
   await who.page.getByRole('button', { name: `Add ${name} to battle plan`, exact: true }).click();
-  await until(
-    () => required(who.view(), 'authorized view').snapshot.battlePlan?.cardIds.length === 1,
-    `${name} did not commit.`
-  );
+  await until(() => requireView(who).snapshot.battlePlan?.cardIds.length === 1, `${name} did not commit.`);
   await who.page.getByRole('button', { name: `Remove ${name} from battle plan`, exact: true, pressed: true }).waitFor();
 }
 function inspectPrivateCollections(peers: HostedPeer[]) {
@@ -357,7 +312,7 @@ async function verifyReverseBattle({
 }) {
   await openTab(b, 'Battle');
   await drag(b, button(b, 'Drag battle marker onto territory'), [0, 0.18, 0]);
-  await until(() => required(b.view(), 'authorized view').snapshot.battle, 'Second battle did not start.');
+  await until(() => requireView(b).snapshot.battle, 'Second battle did not start.');
   await act(b, 'Claim left side');
   await act(a, 'Claim right side');
   await act(b, 'Ready for battle');
@@ -367,18 +322,13 @@ async function verifyReverseBattle({
   await a.page.reload({ waitUntil: 'domcontentloaded' });
   await a.page.locator('[data-connection="authorized"]').waitFor();
   await until(
-    () =>
-      required(a.view(), 'authorized view').snapshot.battle?.stage === 'revealed' &&
-      required(b.view(), 'authorized view').snapshot.battle?.stage === 'revealed',
+    () => requireView(a).snapshot.battle?.stage === 'revealed' && requireView(b).snapshot.battle?.stage === 'revealed',
     'Reversed battle did not reveal.',
     15_000
   );
   await act(b, 'Right side won');
   await act(a, 'Right side won');
-  await until(() => !required(b.view(), 'authorized view').snapshot.battle, 'Reversed battle did not resolve.');
-  assert.equal(
-    required(required(a.view(), 'authorized view').snapshot.battleResults, 'battleResults')[0].outcome,
-    'right'
-  );
+  await until(() => !requireView(b).snapshot.battle, 'Reversed battle did not resolve.');
+  assert.equal(required(requireView(a).snapshot.battleResults, 'battleResults')[0].outcome, 'right');
   passed('Both players can claim either side, withdraw Ready and reconnect during their countdown');
 }

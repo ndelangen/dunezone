@@ -5,7 +5,7 @@ import type { Page } from 'playwright';
 import { phaseAt } from '../src/shared/play/phases.ts';
 import { describeResult } from '../src/shared/play/result.ts';
 import type { HostedToolkit } from './verify-hosted-play-browser.ts';
-import { required } from './verify-hosted-types.ts';
+import { required, requireView } from './verify-hosted-types.ts';
 import type { HostedPeer } from './verify-hosted-types.ts';
 
 /**
@@ -29,7 +29,7 @@ export async function verifyResults({
 }: HostedToolkit) {
   const { a, b, observer } = await seated();
   const everyone: HostedPeer[] = [a, b, observer];
-  const stage = (who: HostedPeer) => required(who.view(), 'authorized view').snapshot.stage;
+  const stage = (who: HostedPeer) => requireView(who).snapshot.stage;
   /* The end of the game opens the Result tab once for every panel; the finished result also heads the phase chip. */
   const bar = (who: HostedPeer) =>
     who.page.getByRole('tabpanel').filter({ has: who.page.getByText(/^(Determine winner|Finished)$/u) });
@@ -43,7 +43,7 @@ export async function verifyResults({
     await openTab(who, 'Phase');
   }
   /* Determine winner is offered only during Mentat pause, where the turn's phases end. */
-  while (phaseAt(required(a.view(), 'authorized view').snapshot.phase).id !== 'mentat-pause') {
+  while (phaseAt(requireView(a).snapshot.phase).id !== 'mentat-pause') {
     assert.equal(await button(a, 'Determine winner').count(), 0);
     await act(a, 'Next phase');
   }
@@ -55,13 +55,10 @@ export async function verifyResults({
 
   await act(a, 'Determine winner');
   await converged(everyone);
-  assert.equal(
-    required(a.view(), 'authorized view').snapshot.ending?.by.seat,
-    required(a.view(), 'authorized view').viewer.viewerSeat
-  );
+  assert.equal(requireView(a).snapshot.ending?.by.seat, requireView(a).viewer.viewerSeat);
   const declared = bar(a);
   await declared.getByText('Declare the result', { exact: true }).waitFor();
-  const name = required(required(a.view(), 'authorized view').snapshot.ending, 'ending').by.name;
+  const name = required(requireView(a).snapshot.ending, 'ending').by.name;
   for (const who of [b, observer]) {
     await bar(who).getByText(`${name} is determining the winner`, { exact: true }).waitFor();
     assert.equal(await bar(who).getByRole('button', { name: 'Declare', exact: true }).count(), 0);
@@ -79,7 +76,7 @@ export async function verifyResults({
     'The declared result did not finish the game.'
   );
   await converged(everyone);
-  const result = required(required(a.view(), 'authorized view').snapshot.result, 'game result');
+  const result = required(requireView(a).snapshot.result, 'game result');
   assert.equal(result.kind, 'faction');
   assert.deepEqual(result.factionIds, [winner.id]);
   const title = describeResult('faction', [winner.name]);
@@ -97,17 +94,14 @@ export async function verifyResults({
   await bar(observer)
     .getByText(/The table stays as it was\.$/u)
     .waitFor();
-  assert.equal(required(observer.view(), 'authorized view').viewer.viewerSeat, spectator);
+  assert.equal(requireView(observer).viewer.viewerSeat, spectator);
   await capture(b, 'after-finished-1440x1000');
   passed('Declaring a faction finishes the game for every panel; players may continue and the spectator may not');
 
   /* A reload re-admits into the finished game from the room's stored state, not from anything the page kept. */
-  const reloadedFrom = required(b.view(), 'authorized view').viewer.connectionId;
+  const reloadedFrom = requireView(b).viewer.connectionId;
   await b.page.reload({ waitUntil: 'domcontentloaded' });
-  await until(
-    () => required(b.view(), 'authorized view').viewer.connectionId !== reloadedFrom,
-    'The reload did not get a fresh connection.'
-  );
+  await until(() => requireView(b).viewer.connectionId !== reloadedFrom, 'The reload did not get a fresh connection.');
   await b.page.locator('[data-connection="authorized"]').waitFor();
   assert.equal(stage(b), 'finished');
   await bar(b).getByText(title, { exact: true }).waitFor();
@@ -125,7 +119,7 @@ export async function verifyResults({
     await page.locator('input[aria-label="Show games"]:visible').first().click();
     await page.getByRole('option', { name: new RegExp(`^${view}`) }).click();
   };
-  const observerLeft = required(observer.view(), 'authorized view').viewer.connectionId;
+  const observerLeft = requireView(observer).viewer.connectionId;
   await observer.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
   await observer.page.getByRole('heading', { name: 'Play Dune!' }).waitFor();
   await showGames(observer.page, 'Finished');
@@ -139,8 +133,8 @@ export async function verifyResults({
   await act(b, 'Continue playing');
   await until(() => [a, b].every((who: HostedPeer) => stage(who) === 'play'), 'Continue playing did not resume play.');
   await converged([a, b]);
-  assert.equal(required(a.view(), 'authorized view').snapshot.result ?? null, null);
-  assert.equal(phaseAt(required(a.view(), 'authorized view').snapshot.phase).id, 'mentat-pause');
+  assert.equal(requireView(a).snapshot.result ?? null, null);
+  assert.equal(phaseAt(requireView(a).snapshot.phase).id, 'mentat-pause');
   for (const who of [a, b]) {
     assert.equal(await header(who).getByText(title, { exact: true }).count(), 0);
     /* The Result tab closes with the result and the panel returns to the tab it opened over; Phase is chosen again so the check does not depend on which. */
@@ -155,7 +149,7 @@ export async function verifyResults({
   /* The observer still holds the finished game's frames, so its return waits for a fresh connection before reading the stage. */
   await lobbyCard(observer.page).getByRole('link').click();
   await until(
-    () => required(observer.view(), 'authorized view').viewer.connectionId !== observerLeft,
+    () => requireView(observer).viewer.connectionId !== observerLeft,
     'The observer did not get a fresh connection.'
   );
   await observer.page.locator('[data-connection="authorized"]').waitFor();

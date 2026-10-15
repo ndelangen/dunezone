@@ -5,60 +5,15 @@ import { readFile } from 'node:fs/promises';
 import { parseEnv } from 'node:util';
 
 import { ConvexHttpClient } from 'convex/browser';
-import { makeFunctionReference } from 'convex/server';
-import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import WebSocket from 'ws';
 
-import type { api as GeneratedApi, internal as GeneratedInternal } from '../convex/_generated/api.ts';
+import { api, internal } from '../convex/_generated/api.ts';
 import type { Id } from '../convex/_generated/dataModel.ts';
 import type { ClientMessage, PieceAction, ServerMessage } from '../src/shared/play/protocol.ts';
 import type { RoomView } from '../src/shared/play/updates.ts';
-import { setAdminAuth } from './lib/convex-admin.ts';
+import { setAdminAuth, adminMutationReference } from './lib/convex-admin.ts';
 import { required } from './verify-hosted-types.ts';
 
-type Api = typeof GeneratedApi & typeof GeneratedInternal;
-const references = {
-  accountDeletion_confirm: makeFunctionReference<
-    'mutation',
-    FunctionArgs<Api['accountDeletion']['confirm']>,
-    FunctionReturnType<Api['accountDeletion']['confirm']>
-  >('accountDeletion:confirm'),
-  auth_signIn: makeFunctionReference<
-    'action',
-    FunctionArgs<Api['auth']['signIn']>,
-    FunctionReturnType<Api['auth']['signIn']>
-  >('auth:signIn'),
-  auth_signOut: makeFunctionReference<
-    'action',
-    FunctionArgs<Api['auth']['signOut']>,
-    FunctionReturnType<Api['auth']['signOut']>
-  >('auth:signOut'),
-  playAdmission_issueTicket: makeFunctionReference<
-    'mutation',
-    FunctionArgs<Api['playAdmission']['issueTicket']>,
-    FunctionReturnType<Api['playAdmission']['issueTicket']>
-  >('playAdmission:issueTicket'),
-  playTesting_createFixture: makeFunctionReference<
-    'mutation',
-    FunctionArgs<Api['playTesting']['createFixture']>,
-    FunctionReturnType<Api['playTesting']['createFixture']>
-  >('playTesting:createFixture'),
-  playTesting_provisionAccounts: makeFunctionReference<
-    'mutation',
-    FunctionArgs<Api['playTesting']['provisionAccounts']>,
-    FunctionReturnType<Api['playTesting']['provisionAccounts']>
-  >('playTesting:provisionAccounts'),
-  playTesting_setAdministrator: makeFunctionReference<
-    'mutation',
-    FunctionArgs<Api['playTesting']['setAdministrator']>,
-    FunctionReturnType<Api['playTesting']['setAdministrator']>
-  >('playTesting:setAdministrator'),
-  playTesting_shortenSession: makeFunctionReference<
-    'mutation',
-    FunctionArgs<Api['playTesting']['shortenSession']>,
-    FunctionReturnType<Api['playTesting']['shortenSession']>
-  >('playTesting:shortenSession'),
-};
 const args = process.argv.slice(2);
 const option = (name: string) => args[args.indexOf(name) + 1];
 if (!args.includes('--env-file') || !args.includes('--origin')) {
@@ -103,7 +58,7 @@ const passed = (name: string, detail: Record<string, unknown> = {}) => {
   console.log(`PASS ${name}`);
 };
 /*
- * Scrypt and PBKDF2 match scripts/lib/synthetic-accounts.ts. That module imports the generated API at runtime, so this direct Node entry keeps the hashing here.
+ * Scrypt and PBKDF2 match scripts/lib/synthetic-accounts.ts. That module also imports extensionless shared modules, so this direct Node entry keeps the hashing here.
  * The provisioning control keeps the one the backend's Password checks, and a secret that Password does not accept fails the first sign-in.
  */
 function passwordSecret(password: string) {
@@ -135,12 +90,12 @@ async function provisionAccounts() {
       pbkdf2: pbkdf2Secret(password),
     }))
   );
-  await admin.mutation(references.playTesting_provisionAccounts, { accounts: hashed });
+  await admin.mutation(adminMutationReference(internal.playTesting.provisionAccounts), { accounts: hashed });
 }
 async function login(label: string) {
   assert.ok(accounts[label], `${label} has no provisioned account.`);
   const client = new ConvexHttpClient(backend.origin, { logger: false });
-  const result = await client.action(references.auth_signIn, {
+  const result = await client.action(api.auth.signIn, {
     provider: 'password',
     params: { flow: 'signIn', ...accounts[label] },
   });
@@ -181,7 +136,7 @@ async function open(gameId: Id<'play_games'>, ticket?: string): Promise<Protocol
   return peer;
 }
 async function connect(gameId: Id<'play_games'>, user: Awaited<ReturnType<typeof login>>) {
-  const issued = await user.client.mutation(references.playAdmission_issueTicket, { gameId });
+  const issued = await user.client.mutation(api.playAdmission.issueTicket, { gameId });
   assert.ok(issued.ok);
   const peer = await open(gameId, issued.ticket);
   await until(() => peer.view() || peer.closeCode, 'No admission result.');
@@ -215,7 +170,7 @@ async function command(peer: ProtocolPeer, action: PieceAction) {
 }
 try {
   await provisionAccounts();
-  const fixture = await admin.mutation(references.playTesting_createFixture, {});
+  const fixture = await admin.mutation(adminMutationReference(internal.playTesting.createFixture), {});
   const provisions = await Promise.all(
     [0, 1].map(() =>
       fetch(`${origin.origin}/__play/games/${fixture.gameId}/provision`, {
@@ -240,7 +195,7 @@ try {
   assert.equal(duplicate.status, unknown.status);
   assert.equal(await duplicate.text(), await unknown.text());
   passed('Concurrent provisioning creates one game and conceals duplicate versus unknown credentials');
-  assert.equal((await anonymous.mutation(references.playAdmission_issueTicket, { gameId: fixture.gameId })).ok, false);
+  assert.equal((await anonymous.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId })).ok, false);
   const pending = await open(fixture.gameId);
   pending.send({ type: 'command', commandId: randomUUID(), action: { kind: 'reset' }, expectedRevision: 0 });
   await until(() => pending.closeCode, 'Pending socket did not time out.', 7000);
@@ -379,7 +334,7 @@ try {
   passed(
     'Contested carries reserve once, transient motion reaches observers, and cross-connection receipts prevent duplicate drops'
   );
-  const sharedTicket = await bob.client.mutation(references.playAdmission_issueTicket, { gameId: fixture.gameId });
+  const sharedTicket = await bob.client.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId });
   assert.ok(sharedTicket.ok);
   const attempts = await Promise.all([
     open(fixture.gameId, sharedTicket.ticket),
@@ -390,12 +345,12 @@ try {
   passed('One browser ticket admits exactly one of two concurrent sockets');
   const aTab = await connect(fixture.gameId, alice);
   const seat = required(a.view(), 'Alice view').viewer.viewerSeat;
-  const previousExpiry = await admin.mutation(references.playTesting_shortenSession, {
+  const previousExpiry = await admin.mutation(adminMutationReference(internal.playTesting.shortenSession), {
     sessionId: alice.sessionId,
     kind: 'inactivity',
     expiresInMs: 2500,
   });
-  const refreshed = await alice.client.action(references.auth_signIn, { refreshToken: alice.tokens.refreshToken });
+  const refreshed = await alice.client.action(api.auth.signIn, { refreshToken: alice.tokens.refreshToken });
   assert.ok(refreshed.tokens?.token);
   assert.notEqual(refreshed.tokens.refreshToken, alice.tokens.refreshToken);
   const refreshedIdentity = tokenIdentity(refreshed.tokens.token);
@@ -408,13 +363,19 @@ try {
   await command(a, { kind: 'storm', direction: 1 });
   assert.equal(required(a.view(), 'Alice view').viewer.viewerSeat, seat);
   passed('Actual Auth refresh rotation extends inactivity without changing the session or seat');
-  await admin.mutation(references.playTesting_setAdministrator, { userId: alice.userId, enabled: true });
-  await admin.mutation(references.playTesting_setAdministrator, { userId: alice.userId, enabled: false });
+  await admin.mutation(adminMutationReference(internal.playTesting.setAdministrator), {
+    userId: alice.userId,
+    enabled: true,
+  });
+  await admin.mutation(adminMutationReference(internal.playTesting.setAdministrator), {
+    userId: alice.userId,
+    enabled: false,
+  });
   await command(a, { kind: 'storm', direction: 1 });
   passed('Removing administrator status does not revoke signed-in play access');
   const heldFrom = b.messages.length;
   const revokedAt = Date.now();
-  await alice.client.action(references.auth_signOut, {});
+  await alice.client.action(api.auth.signOut, {});
   await until(() => a.closeCode && aTab.closeCode, 'Logout did not revoke every tab of the Auth session.');
   const revocationMs = Date.now() - revokedAt;
   assert.ok(revocationMs <= 10_000);
@@ -424,10 +385,7 @@ try {
   await command(b, { kind: 'storm', direction: 1 });
   await delay(100);
   assert.deepEqual([a.messages.length, aTab.messages.length], endedCounts);
-  assert.equal(
-    (await alice.client.mutation(references.playAdmission_issueTicket, { gameId: fixture.gameId })).ok,
-    false
-  );
+  assert.equal((await alice.client.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId })).ok, false);
   const returned = await login('alice');
   const aNew = await connect(fixture.gameId, returned);
   assert.equal(required(aNew.view(), 'New view').viewer.viewerSeat, seat);
@@ -438,7 +396,7 @@ try {
   passed('Actual Auth logout stops all tab outputs; fresh login retains the faction seat', { revocationMs });
   const short = await login('short');
   const shortPeer = await connect(fixture.gameId, short);
-  const expiry = await admin.mutation(references.playTesting_shortenSession, {
+  const expiry = await admin.mutation(adminMutationReference(internal.playTesting.shortenSession), {
     sessionId: short.sessionId,
     kind: 'inactivity',
     expiresInMs: 1500,
@@ -452,25 +410,19 @@ try {
   await delay(100);
   assert.ok(shortPeer.messages.slice(afterExpiry).every((message) => message.type === 'admission'));
   await until(() => shortPeer.closeCode, 'Inactivity expiry did not revoke the connection.');
-  assert.equal(
-    (await short.client.mutation(references.playAdmission_issueTicket, { gameId: fixture.gameId })).ok,
-    false
-  );
+  assert.equal((await short.client.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId })).ok, false);
   passed('Inactivity expiry gates commands and fanout before the next reactive change');
   const long = await login('total-expiry');
   const totalPeer = await connect(fixture.gameId, long);
-  await admin.mutation(references.playTesting_shortenSession, {
+  await admin.mutation(adminMutationReference(internal.playTesting.shortenSession), {
     sessionId: long.sessionId,
     kind: 'total',
     expiresInMs: 0,
   });
   await until(() => totalPeer.closeCode, 'Total session expiry did not revoke access.');
-  assert.equal(
-    (await long.client.mutation(references.playAdmission_issueTicket, { gameId: fixture.gameId })).ok,
-    false
-  );
+  assert.equal((await long.client.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId })).ok, false);
   passed('Total Auth session expiry rejects both established and new connections');
-  await returned.client.mutation(references.accountDeletion_confirm, { replacementUserId: null });
+  await returned.client.mutation(api.accountDeletion.confirm, { replacementUserId: null });
   await until(() => aNew.closeCode, 'Account deletion did not revoke the seated player.');
   const replacement = await login('replacement');
   const replacementPeer = await connect(fixture.gameId, replacement);
