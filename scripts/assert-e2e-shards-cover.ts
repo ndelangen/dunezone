@@ -35,10 +35,16 @@ function resolveRoot(argument: string | undefined) {
 
 const root = resolveRoot(process.env.E2E_SHARDS_ROOT);
 
-/** Every specification file under e2e, as the repository-relative path the lists use. */
+/** Playwright's default `testMatch`, which `playwright.config.ts` leaves in place, so a file it matches anywhere under e2e is a test file. */
+const PLAYWRIGHT_TEST_FILE = /\.(?:spec|test)\.[cm]?[jt]sx?$/;
+
+/** Every file Playwright would collect under e2e, nested ones included, as the repository-relative path the lists use. */
 async function listSpecs(directory: string) {
-  const names = await readdir(join(directory, 'e2e'));
-  return names.filter((name) => name.endsWith('.spec.ts')).map((name) => `e2e/${name}`);
+  const names = await readdir(join(directory, 'e2e'), { recursive: true });
+  return names
+    .filter((name) => PLAYWRIGHT_TEST_FILE.test(name))
+    .map((name) => `e2e/${name.split(sep).join('/')}`)
+    .toSorted();
 }
 
 async function exists(path: string) {
@@ -103,6 +109,8 @@ async function missingFiles(directory: string, owners: Map<string, string[]>) {
 /** One shard owns a spec. */
 function coverageProblem(spec: string, shardsFor: string[]) {
   switch (true) {
+    case !SPEC_ENTRY.test(spec):
+      return `${spec} is a test file Playwright collects, but a shard can only list a .spec.ts file directly under e2e, so no CI run would execute it`;
     case shardsFor.length === 0:
       return `${spec} is assigned to no shard, so no CI run would execute it`;
     case shardsFor.length > 1:
@@ -132,7 +140,7 @@ if (problems.length > 0) {
   console.error(
     'e2e/shards.json does not cover the e2e directory:\n' +
       problems.map((problem) => `  - ${problem}`).join('\n') +
-      '\n\nEvery e2e/*.spec.ts belongs to exactly one shard. ' +
+      '\n\nEvery e2e/*.spec.ts belongs to exactly one shard, and Playwright test files live nowhere else under e2e. ' +
       'Add a new spec to the shard with the least measured cost (the costs are on #1049), ' +
       'or rebalance the lists and say so in the PR.'
   );

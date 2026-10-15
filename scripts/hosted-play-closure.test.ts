@@ -128,6 +128,7 @@ describe('the hosted play closure', () => {
       reaching: ['workers/game/index.ts'],
     });
     expect(decideHostedPlay([])).toMatchObject({ run: true });
+    expect(decideHostedPlay(['.nvmrc'])).toMatchObject({ run: true, reaching: ['.nvmrc'] });
   });
 
   /* PR #2217's files: a blog post with new pictures, which no flow can see. */
