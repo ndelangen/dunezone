@@ -23,6 +23,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-lg);
+}
+
+/* Both break out of the reading column to the same width. */
+.figureRow,
+.wide {
   align-self: center;
   width: min(56rem, calc(100vw - 2 * var(--app-shell-inline-gutter, 20px)));
 }

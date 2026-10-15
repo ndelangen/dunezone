@@ -64,10 +64,10 @@ function FirstTokenSection() {
       </Paragraph>
       <Paragraph>
         Since then the changes have been small, and I kept making them. The faction symbol started as a PNG with an
-        outline grown by a filter. In November 2021 it became a vector, drawn twice: once with a thick stroke for its
-        outline and once on top, which is still how the emblem is drawn. In 2024 the ring and lettering went white, and
-        later they took on the warm tint they have now. And a bug: when many tokens shared a page, they shared their
-        masks too, and drew each other&rsquo;s cut-outs, until I gave every token its own in January 2022.
+        outline grown by a filter. In November 2021 it became a vector, and the mask took a thick-stroked copy of it to
+        cut the gap around it, which is still how that gap is made. In 2024 the ring and lettering went white, and later
+        they took on the warm tint they have now. And a bug: when many tokens shared a page, they shared their masks
+        too, and drew each other&rsquo;s cut-outs, until I gave every token its own in January 2022.
       </Paragraph>
       <Figure
         imageKey="/web/blog/drawing-dune-tokens-and-cards/token-details.jpg"
@@ -120,8 +120,9 @@ function CardsSection() {
     <Section title="Cards">
       <Paragraph>
         Card fronts are built the same way, with more layers. Two of the ten layers on a treachery card are GIMP files
-        from 2021: the parchment behind the picture and the frame. The rest are vectors, textures and text, so a
-        card&rsquo;s name, rules, colours and picture can all change without anyone opening an image editor.
+        from 2021: the parchment behind the picture and the frame. The rest are vectors, textures, text and one later
+        picture, the shade over the title band, so a card&rsquo;s name, rules, colours and picture can all change
+        without anyone opening an image editor.
       </Paragraph>
       <CardFrontLayers />
     </Section>

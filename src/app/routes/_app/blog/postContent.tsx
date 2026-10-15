@@ -67,6 +67,16 @@ export function Figure({ imageKey, alt, aspect, caption }: FigureProps) {
   );
 }
 
+/** A figure as wide as `FigureRow`, for an interactive picture that needs more room than the reading column. */
+export function WideFigure({ children, caption }: Readonly<{ children: ReactNode; caption?: ReactNode }>) {
+  return (
+    <figure className={`${styles.figure} ${styles.wide}`}>
+      {children}
+      {caption ? <figcaption className={styles.caption}>{caption}</figcaption> : null}
+    </figure>
+  );
+}
+
 /**
  * A YouTube video that loads nothing from YouTube until the reader asks for it.
  * Until then it shows a still frame from `media/`, so the page stays fast and no third party sees the visit;

@@ -7,6 +7,7 @@ import type { z } from 'zod';
 
 import { Background } from '@game/assets/utils/Background';
 
+import { WideFigure } from '../../postContent';
 import { THUFIR } from './figures';
 import styles from './NoiseComparison.module.css';
 
@@ -69,7 +70,7 @@ export function NoiseComparison() {
   const { pattern, texture } = state;
 
   return (
-    <figure className={styles.figure}>
+    <WideFigure caption="Left, the noise filter from November 2021 with the five numbers every faction stored. Right, the renderer dune.zone uses today, set up as House Atreides.">
       <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="xl" className={styles.grid}>
         <Stack gap="md">
           <Text fw={600}>2021: generated noise</Text>
@@ -92,6 +93,7 @@ export function NoiseComparison() {
           <SimpleGrid cols={2} spacing="md" verticalSpacing="sm">
             <Setting label="Seed" value={pattern.seed}>
               <Slider
+                thumbLabel="Seed"
                 min={1}
                 max={400}
                 value={pattern.seed}
@@ -101,6 +103,7 @@ export function NoiseComparison() {
             </Setting>
             <Setting label="Octaves" value={pattern.octaves}>
               <Slider
+                thumbLabel="Octaves"
                 min={1}
                 max={8}
                 value={pattern.octaves}
@@ -110,6 +113,7 @@ export function NoiseComparison() {
             </Setting>
             <Setting label="Surface" value={pattern.surface}>
               <Slider
+                thumbLabel="Surface"
                 min={1}
                 max={15}
                 value={pattern.surface}
@@ -119,6 +123,7 @@ export function NoiseComparison() {
             </Setting>
             <Setting label="Light direction" value={`${pattern.azimuth}°`}>
               <Slider
+                thumbLabel="Light direction"
                 min={0}
                 max={360}
                 value={pattern.azimuth}
@@ -128,6 +133,7 @@ export function NoiseComparison() {
             </Setting>
             <Setting label="Light height" value={`${pattern.elevation}°`}>
               <Slider
+                thumbLabel="Light height"
                 min={10}
                 max={90}
                 value={pattern.elevation}
@@ -163,6 +169,7 @@ export function NoiseComparison() {
           <SimpleGrid cols={2} spacing="md" verticalSpacing="sm">
             <Setting label="Definition" value={(texture.definition ?? 0).toFixed(2)}>
               <Slider
+                thumbLabel="Definition"
                 min={0}
                 max={1}
                 step={0.01}
@@ -173,6 +180,7 @@ export function NoiseComparison() {
             </Setting>
             <Setting label="Influence" value={(texture.influence ?? 0).toFixed(2)}>
               <Slider
+                thumbLabel="Influence"
                 min={0}
                 max={1}
                 step={0.01}
@@ -201,18 +209,14 @@ export function NoiseComparison() {
           </SimpleGrid>
         </Stack>
       </SimpleGrid>
-      <figcaption className={styles.caption}>
-        Left, the noise filter from November 2021 with the five numbers every faction stored. Right, the renderer
-        dune.zone uses today, set up as House Atreides.
-      </figcaption>
-    </figure>
+    </WideFigure>
   );
 }
 
 function Setting({ label, value, children }: Readonly<{ label: string; value: ReactNode; children: ReactNode }>) {
   return (
-    <Stack gap={4}>
-      <Group justify="space-between" gap="xs">
+    <Stack gap="xs">
+      <Group justify="space-between" gap="xs" aria-hidden>
         <Text size="xs" c="dimmed">
           {label}
         </Text>

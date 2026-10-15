@@ -1,7 +1,8 @@
 import { Slider, Stack, Text, UnstyledButton } from '@mantine/core';
-import { useEffect, useId, useMemo, useReducer, useRef } from 'react';
+import { useEffect, useMemo, useReducer, useRef } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
+import { WideFigure } from '../../postContent';
 import styles from './ExplodedView.module.css';
 
 export type ExplodedLayer = Readonly<{
@@ -16,22 +17,37 @@ type State = Readonly<{
   apart: number;
   /** Once the reader moves the slider, scrolling stops moving the layers. */
   readerHolds: boolean;
-  focused: number | null;
+  /** The layer the pointer is over, which wins over a picked one while it lasts. */
+  hovered: number | null;
+  /** The layer the reader tapped or clicked, until they tap it again. */
+  picked: number | null;
 }>;
 
 type Event =
   | { type: 'scrolled'; apart: number }
   | { type: 'slid'; apart: number }
-  | { type: 'focused'; index: number | null };
+  | { type: 'hovered'; index: number | null }
+  | { type: 'picked'; index: number };
+
+/* The stage's widest size, `max-width` in the stylesheet, and the share of it the object fills. */
+const STAGE_MAX_WIDTH = 544;
+const FILL = 0.62;
 
 function reduce(state: State, event: Event): State {
   switch (event.type) {
     case 'scrolled':
-      return state.readerHolds ? state : { ...state, apart: event.apart };
+      return state.readerHolds || Math.abs(event.apart - state.apart) < 0.001
+        ? state
+        : { ...state, apart: event.apart };
     case 'slid':
       return { ...state, apart: event.apart, readerHolds: true };
-    case 'focused':
-      return { ...state, focused: event.index };
+    case 'hovered':
+      return { ...state, hovered: event.index };
+    case 'picked':
+      /* Picking a layer in a closed stack opens it, since a closed stack shows the whole object over its layers. */
+      return state.picked === event.index
+        ? { ...state, picked: null }
+        : { ...state, picked: event.index, apart: Math.max(state.apart, 1), readerHolds: true };
   }
 }
 
@@ -71,15 +87,15 @@ export function ExplodedView({
   whole: ReactNode;
   caption?: ReactNode;
 }>) {
-  const [state, dispatch] = useReducer(reduce, { apart: 0, readerHolds: false, focused: null });
+  const [state, dispatch] = useReducer(reduce, { apart: 0, readerHolds: false, hovered: null, picked: null });
   const stage = useRef<HTMLDivElement>(null);
-  const sliderLabel = useId();
+  const focused = state.hovered ?? state.picked;
 
   /* Scroll position and stage width are read from the page, so this subscribes to both. */
   useEffect(() => {
     const element = stage.current!;
     const fit = () =>
-      element.style.setProperty('--fit', String((element.clientWidth * 0.62) / Math.max(width, height)));
+      element.style.setProperty('--fit', String((element.clientWidth * FILL) / Math.max(width, height)));
     const scrolled = () => {
       const { top, height: tall } = element.getBoundingClientRect();
       const progress = (window.innerHeight - top) / (window.innerHeight + tall);
@@ -115,76 +131,81 @@ export function ExplodedView({
           key={layer.title}
           className={styles.plane}
           style={{ '--index': index - (layers.length - 1) / 2 } as CSSProperties}
-          data-dimmed={state.focused !== null && state.focused !== index ? true : undefined}
+          data-dimmed={focused !== null && focused !== index ? true : undefined}
         >
           <div className={styles.sheet} />
           <div className={styles.content}>{layer.content}</div>
         </div>
       )),
-    [layers, state.focused]
+    [layers, focused]
   );
 
   return (
-    <figure className={styles.figure}>
+    <WideFigure caption={caption}>
       <div className={styles.layout}>
-        <div
-          ref={stage}
-          className={styles.stage}
-          data-shape={shape}
-          style={
-            {
-              '--apart': state.apart,
-              '--natural-width': `${width}px`,
-              '--natural-height': `${height}px`,
-            } as CSSProperties
-          }
-        >
-          <div className={styles.scene}>{planes}</div>
-          <div className={styles.whole} aria-hidden={state.apart > 0.05}>
-            <div className={styles.content}>{whole}</div>
+        <div className={styles.columns}>
+          <div
+            ref={stage}
+            className={styles.stage}
+            data-shape={shape}
+            style={
+              {
+                '--apart': state.apart,
+                /* The fit for the widest stage, so the first paint, before scripts measure the stage, is already in proportion. */
+                '--fit': (STAGE_MAX_WIDTH * FILL) / Math.max(width, height),
+                '--natural-width': `${width}px`,
+                '--natural-height': `${height}px`,
+              } as CSSProperties
+            }
+          >
+            <div className={styles.scene} aria-hidden>
+              {planes}
+            </div>
+            <div className={styles.whole}>
+              <div className={styles.content}>{whole}</div>
+            </div>
           </div>
-        </div>
-        <Stack gap="sm" className={styles.controls}>
-          <Stack gap={4}>
-            <Text size="sm" c="dimmed" id={sliderLabel}>
-              Separate the layers
-            </Text>
-            <Slider
-              aria-labelledby={sliderLabel}
-              min={0}
-              max={1}
-              step={0.01}
-              value={state.apart}
-              onChange={(apart) => dispatch({ type: 'slid', apart })}
-              label={(value) => `${Math.round(value * 100)}%`}
-            />
+          <Stack gap="sm" className={styles.controls}>
+            <Stack gap="xs">
+              <Text size="sm" c="dimmed" aria-hidden>
+                Separate the layers
+              </Text>
+              <Slider
+                thumbLabel="Separate the layers"
+                min={0}
+                max={100}
+                value={Math.round(state.apart * 100)}
+                onChange={(percent) => dispatch({ type: 'slid', apart: percent / 100 })}
+                label={(percent) => `${percent}%`}
+                thumbValueText={(percent) => `${percent}%`}
+              />
+            </Stack>
+            <ol className={styles.legend}>
+              {layers.map((layer, index) => (
+                <li key={layer.title}>
+                  <UnstyledButton
+                    className={styles.layerButton}
+                    aria-pressed={state.picked === index}
+                    onClick={() => dispatch({ type: 'picked', index })}
+                    onMouseEnter={() => dispatch({ type: 'hovered', index })}
+                    onMouseLeave={() => dispatch({ type: 'hovered', index: null })}
+                  >
+                    <span className={styles.number}>{index + 1}</span>
+                    <span>
+                      <Text span size="sm" fw={600} c="var(--mantine-color-text)" display="block">
+                        {layer.title}
+                      </Text>
+                      <Text span size="xs" c="dimmed" display="block">
+                        {layer.description}
+                      </Text>
+                    </span>
+                  </UnstyledButton>
+                </li>
+              ))}
+            </ol>
           </Stack>
-          <ol className={styles.legend}>
-            {layers.map((layer, index) => (
-              <li key={layer.title}>
-                <UnstyledButton
-                  className={styles.layerButton}
-                  onMouseEnter={() => dispatch({ type: 'focused', index })}
-                  onMouseLeave={() => dispatch({ type: 'focused', index: null })}
-                  onFocus={() => dispatch({ type: 'focused', index })}
-                  onBlur={() => dispatch({ type: 'focused', index: null })}
-                >
-                  <span className={styles.number}>{index + 1}</span>
-                  <span>
-                    <Text span size="sm" fw={600} c="var(--mantine-color-text)" display="block">
-                      {layer.title}
-                    </Text>
-                    <Text span size="xs" c="dimmed" display="block">
-                      {layer.description}
-                    </Text>
-                  </span>
-                </UnstyledButton>
-              </li>
-            ))}
-          </ol>
-        </Stack>
+        </div>
       </div>
-      {caption ? <figcaption className={styles.caption}>{caption}</figcaption> : null}
-    </figure>
+    </WideFigure>
   );
 }

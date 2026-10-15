@@ -103,7 +103,7 @@ const TOKEN_LAYERS: readonly ExplodedLayer[] = [
   },
   {
     title: 'Faction emblem',
-    description: 'The Atreides hawk, a vector drawn twice: once thick for its outline, once on top.',
+    description: 'The Atreides hawk, a vector. A thick copy of it in the mask cuts the gap around it.',
     content: (
       <LeaderTokenLayer part="faction-emblem">
         <LeaderToken {...THUFIR} />

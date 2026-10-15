@@ -1,14 +1,8 @@
-.figure {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  align-self: center;
-  width: min(56rem, calc(100vw - 2 * var(--app-shell-inline-gutter, 20px)));
-  margin: 0;
+.layout {
   container-type: inline-size;
 }
 
-.layout {
+.columns {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-lg);
@@ -16,12 +10,12 @@
 }
 
 @container (width >= 48rem) {
-  .layout {
+  .columns {
     grid-template-columns: minmax(0, 1fr) 16rem;
   }
 }
 
-/* The stage is taller than wide, so a stack of up to a dozen planes has room above and below the object. */
+/* The stage is taller than wide, so a stack of a dozen planes has room above and below the object. */
 .stage {
   /* Defaults for the first paint; the component writes the live values inline. */
   --apart: 0;
@@ -34,6 +28,7 @@
   width: 100%;
   max-width: 34rem;
   aspect-ratio: 4 / 5;
+  overflow: clip;
   perspective: 1800px;
 }
 
@@ -111,7 +106,6 @@
 .legend {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -127,19 +121,14 @@
 }
 
 .layerButton:hover,
-.layerButton:focus-visible {
+.layerButton:focus-visible,
+.layerButton[aria-pressed="true"] {
   background: var(--mantine-color-default-hover);
 }
 
 .number {
   color: var(--mantine-color-dimmed);
   font-variant-numeric: tabular-nums;
-}
-
-.caption {
-  color: var(--mantine-color-dimmed);
-  font-size: var(--mantine-font-size-sm);
-  text-align: center;
 }
 
 @media (prefers-reduced-motion: reduce) {
