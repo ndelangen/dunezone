@@ -88,6 +88,16 @@ export function placementRules(
   };
 }
 
+/** The ids of every piece riding one of `plateIds` where it rests in `rested`. */
+export function riderIdsOf(rested: readonly TablePiece[], plateIds: Iterable<string>): Set<string> {
+  const ids = new Set(plateIds);
+  return new Set(
+    rested
+      .filter((piece) => ids.has(piece.id))
+      .flatMap((plate) => pointerRiders(rested, plate).map((rider) => rider.id))
+  );
+}
+
 /**
  * The pieces as a page shows them: whatever rides a plate that is being carried or turned moves with it, and everything resting on a plate stands on its top.
  * `rested` is the table as the room holds it, which says who rides.
@@ -99,11 +109,32 @@ export function piecesOnPlates(shown: TablePiece[], rested: readonly TablePiece[
   }
   const restedById = new Map(rested.map((piece) => [piece.id, piece]));
   const carried = new Map(plates.flatMap((plate) => ridersShownOn(plate, restedById.get(plate.id), rested)));
+  /* A plate that has not moved holds up whatever stands on it, riders or not, such as a locked troop. */
+  const still = plates.filter((plate) => samePlace(plate, restedById.get(plate.id)));
   return shown.map((piece) => {
-    const riding = carried.get(piece.id);
+    const resting = restedById.get(piece.id);
     /* A rider someone has picked up is wherever their hand is, not on the plate. */
-    return riding && samePlace(piece, restedById.get(piece.id)) ? { ...piece, ...riding } : piece;
+    if (!samePlace(piece, resting)) {
+      return piece;
+    }
+    const riding = carried.get(piece.id);
+    if (riding) {
+      /* A rider turned on its own keeps that turn on top of the plate's. */
+      return {
+        ...piece,
+        position: riding.position,
+        orientation: riding.orientation + piece.orientation - resting!.orientation,
+      };
+    }
+    return isPointerToken(piece) ? piece : standingOn(piece, still);
   });
+}
+
+/* A piece resting where a still plate lies, raised onto its top. */
+function standingOn(piece: TablePiece, plates: readonly TablePiece[]): TablePiece {
+  const plate = plates.find((candidate) => pointerCovers(candidate, piece.position));
+  const top = plate ? plate.position[1] + POINTER_HEIGHT : piece.position[1];
+  return top > piece.position[1] ? { ...piece, position: [piece.position[0], top, piece.position[2]] } : piece;
 }
 
 /* Each rider's pose on a plate as shown, by its id: carried with the plate and standing on its top. */
@@ -120,10 +151,7 @@ function ridersShownOn(plate: TablePiece, resting: TablePiece | undefined, reste
   });
 }
 
+/* Whether a piece is shown where it rests: a turn alone, such as a rider turned in place, does not take it off its plate. */
 function samePlace(piece: TablePiece, rested: TablePiece | undefined): boolean {
-  return (
-    !!rested &&
-    piece.position.every((value, axis) => value === rested.position[axis]) &&
-    piece.orientation === rested.orientation
-  );
+  return !!rested && piece.position.every((value, axis) => value === rested.position[axis]);
 }

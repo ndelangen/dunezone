@@ -3,8 +3,9 @@ import { describe, expect, test } from 'vitest';
 import { applyPieceAction } from './commands';
 import { freshTableState } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
-import { pointerRiders, piecesOnPlates } from './pointerRiders';
-import { POINTER_HEIGHT, POINTER_TOKEN_TYPE, pointerCovers } from './pointerToken';
+import { pieceFlipFrame, PIECE_FLIP_DURATION_MS } from './pieceFlip';
+import { pointerRiders, piecesOnPlates, riderIdsOf } from './pointerRiders';
+import { POINTER_BODY_RADIUS, POINTER_HEIGHT, POINTER_TOKEN_TYPE, pointerCovers } from './pointerToken';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import { BOARD_SURFACE_Y, restingPositionAt, supportHeightAt } from './tableGeometry';
 import { isCollisionFreePosition } from './tablePhysics';
@@ -171,5 +172,47 @@ describe('a pointer token, such as the HMS,', () => {
       piece.id === 't' ? { ...piece, position: [0, 0.38, piece.position[2]] as Vector3Tuple } : piece
     );
     expect(piecesOnPlates(lifted, state.pieces).find((piece) => piece.id === 't')!.position[1]).toBe(0.38);
+  });
+
+  test('holds a locked piece up on its top, without taking it along', () => {
+    const state = tableWith(plate([0, 0, 1]), { ...troop('t', [0, 0, 1]), locked: true });
+    const shown = piecesOnPlates(renderedPiecesFor(state), state.pieces);
+    expect(shown.find((piece) => piece.id === 't')!.position[1]).toBeCloseTo(
+      at(state, 'hms').position[1] + POINTER_HEIGHT
+    );
+
+    const moved = renderedPiecesFor(state).map((piece) =>
+      piece.id === 'hms' ? { ...piece, position: [-1, 0.4, -1] as Vector3Tuple } : piece
+    );
+    expect(piecesOnPlates(moved, state.pieces).find((piece) => piece.id === 't')!.position).toEqual(
+      at(state, 't').position
+    );
+  });
+
+  test('keeps a rider turned on its own on its top, turned as it is shown', () => {
+    const state = tableWith(plate([0, 0, 1]), troop('t', [0, 0, 1]));
+    const turned = renderedPiecesFor(state).map((piece) => (piece.id === 't' ? { ...piece, orientation: 0.7 } : piece));
+    const shown = piecesOnPlates(turned, state.pieces).find((piece) => piece.id === 't')!;
+    expect(shown.position[1]).toBeCloseTo(at(state, 'hms').position[1] + POINTER_HEIGHT);
+    expect(shown.orientation).toBeCloseTo(0.7);
+
+    const both = turned.map((piece) => (piece.id === 'hms' ? { ...piece, orientation: 0.5 } : piece));
+    expect(piecesOnPlates(both, state.pieces).find((piece) => piece.id === 't')!.orientation).toBeCloseTo(1.2);
+  });
+
+  test('names its riders, so a page can move them as smoothly as the plate', () => {
+    const state = tableWith(plate([0, 0, 1]), troop('t', [0, 0, 1]), troop('beside', [2, 0, 2]));
+    expect([...riderIdsOf(state.pieces, ['hms'])]).toEqual(['t']);
+    expect(riderIdsOf(state.pieces, ['beside']).size).toBe(0);
+  });
+
+  test('lifts clear of the table as wide as its round end when it turns over', () => {
+    const hms = plate([0, 0, 1]);
+    const halfway = pieceFlipFrame(
+      { fromRevision: 0, targetRevision: 1, startedAt: 0, heldSince: null },
+      hms,
+      PIECE_FLIP_DURATION_MS / 2
+    );
+    expect(halfway.lift).toBeGreaterThan(POINTER_BODY_RADIUS);
   });
 });

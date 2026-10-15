@@ -499,6 +499,8 @@ export type PieceSceneState = {
   stackTargeted: boolean;
   drafted: boolean;
   remoteCarried: boolean;
+  /* Riding a plate another player is carrying, so it glides along with the plate. */
+  remoteRiding: boolean;
   locallyCarried: boolean;
   reserved: boolean;
   interactionBlocked: boolean;
@@ -519,10 +521,11 @@ function pieceSceneState(
     gestureActivePieceId,
     canHandleTable,
     remoteCarriedIds,
+    remoteRidingIds,
     reservedPieceIds,
   }: Pick<
     TabletopContextValue,
-    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'reservedPieceIds'
+    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'remoteRidingIds' | 'reservedPieceIds'
   >
 ): PieceSceneState {
   const drafted = state.draftMove?.pieceId === piece.id;
@@ -534,6 +537,7 @@ function pieceSceneState(
     stackTargeted: state.draftMove?.targetPieceId === piece.id,
     drafted,
     remoteCarried,
+    remoteRiding: remoteRidingIds.has(piece.id),
     locallyCarried: drafted && gestureActivePieceId !== null,
     reserved,
     interactionBlocked: !canHandleTable || remoteCarried || (reserved && !localSource),
@@ -889,13 +893,24 @@ const PIECE_BADGE_CLASS_NAMES = {
 
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
   const meshes = useSharedMeshes();
-  const { piece, drafted, remoteCarried, locallyCarried, reserved, selected, stackTargeted, owner, peeked } = props;
+  const {
+    piece,
+    drafted,
+    remoteCarried,
+    remoteRiding,
+    locallyCarried,
+    reserved,
+    selected,
+    stackTargeted,
+    owner,
+    peeked,
+  } = props;
   const { finishPieceFlip } = useTabletopActions();
   const pointerEvents = usePiecePointerEvents(props);
   const displayedCount = pieceCount(piece);
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
-  const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried);
+  const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried || remoteRiding, locallyCarried);
   const faceReady = usePublishedFaceReady(topFaceHref(piece)) && !faceStillHidden(piece);
   /* A held piece turns over in hand too, so only an emptied projection cuts a flip short. */
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(

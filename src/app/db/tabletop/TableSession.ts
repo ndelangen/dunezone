@@ -10,7 +10,7 @@ import type { Affordance, DraftMove, TablePiece, TableState, Vector3Tuple } from
 import { isSeatAction } from '@shared/play/participation';
 import { rearrangeable } from '@shared/play/peeking';
 import type { Peek } from '@shared/play/peeking';
-import { piecesOnPlates } from '@shared/play/pointerRiders';
+import { piecesOnPlates, riderIdsOf } from '@shared/play/pointerRiders';
 import { carryPieceId, TABLE_PING_INTERVAL_MS, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
@@ -152,6 +152,8 @@ export type TableProjection = {
   /* Letting go of the peek held open; a seated viewer can, even once the game is finished and the table no longer handles. */
   closePeek?: () => void;
   remoteCarriedIds: ReadonlySet<string>;
+  /* Pieces riding a plate another player is carrying, which glide with it as the plate does. */
+  remoteRidingIds: ReadonlySet<string>;
   reservedPieceIds: ReadonlySet<string>;
   gestureActivePieceId: string | null;
   hoveredPieceId: string | null;
@@ -246,6 +248,7 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     PANEL_CONTROLS.every((key) => Boolean(previous[key]) === Boolean(next[key])) &&
     (previous.peek === null) === (next.peek === null) &&
     sameMembers(previous.remoteCarriedIds, next.remoteCarriedIds) &&
+    sameMembers(previous.remoteRidingIds, next.remoteRidingIds) &&
     sameMembers(previous.reservedPieceIds, next.reservedPieceIds) &&
     sameMembers(previous.flippingPieceIds, next.flippingPieceIds) &&
     [...previous.flippingPieceIds].every(([id, revision]) => next.flippingPieceIds.get(id) === revision)
@@ -330,6 +333,7 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
     affordances: [],
     peek: null,
     remoteCarriedIds: new Set(),
+    remoteRidingIds: new Set(),
     reservedPieceIds: new Set(),
     gestureActivePieceId: null,
     hoveredPieceId: null,
@@ -696,6 +700,7 @@ export class TableSession {
       peekControls: undefined,
       closePeek: undefined,
       remoteCarriedIds: new Set(),
+      remoteRidingIds: new Set(),
       reservedPieceIds: new Set(),
       gestureActivePieceId: null,
       hoveredPieceId: null,
@@ -784,6 +789,10 @@ export class TableSession {
           : undefined,
       closePeek: canInteract && displayed.peek ? () => this.closePeek(displayed.peek!.piece.id) : undefined,
       remoteCarriedIds: new Set(remote.map((carry) => carry.held.id)),
+      remoteRidingIds: riderIdsOf(
+        state.pieces,
+        remote.map((carry) => carry.held.id)
+      ),
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
       hoveredPieceId: this.hoveredId,
