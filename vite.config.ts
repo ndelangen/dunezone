@@ -11,6 +11,7 @@ import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scripts/lib/threeRendererStack.ts';
+import { unsyncedMediaPreview } from './scripts/lib/unsyncedMediaPreview.ts';
 
 /**
  * Codecov's bundle-report normalizer wildcards from the first `-` to the next `.`, so a dash or dot inside a base name either collapses distinct files into one normalized name (lato-latin-300-normal -> lato-*) or leaves the hash un-wildcarded (floating-ui.react-dom-<hash>).
@@ -116,6 +117,7 @@ const config = defineConfig({
   },
   plugins: withoutRouteSplittingInVitest([
     // devtools(),
+    unsyncedMediaPreview(fileURLToPath(new URL('.', import.meta.url))),
     tanstackStart({
       srcDirectory: './src/app',
       start: { entry: './routes/start.ts' },

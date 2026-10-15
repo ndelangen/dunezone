@@ -544,7 +544,10 @@ and `public/web/**` is generated output (gitignored), apart from the committed f
 from the lock. `bun run media:sync` downloads every original the lock lists into `media/` at its
 asset path, and uploads new or changed originals through ingest with `MEDIA_UPLOAD_TOKEN` before it
 writes the lock and the map. `generate:images` also downloads any original it needs that is missing.
-A locked key is permanent: deleting its file locally changes nothing. Run
+A locked key is permanent: deleting its file locally changes nothing. Art not synced yet is a
+draft: the dev server previews it straight from `media/` (`scripts/lib/unsyncedMediaPreview.ts`),
+so it can be tried on a page and swapped without uploading (`generate:images` still refuses to run
+while one is present). A blog post using an unsynced image fails `postBodies.test.tsx` until it is synced. Run
 `bun run generate:images` after changing sources or `src/shared/assetRules.ts` (dev and Storybook
 need the generated files locally; CI produces the deployed bytes). `bun run verify:images` checks
 the output structurally. Renderer identity hashes the *ingredients* (locked source hashes + other media bytes + rules +
