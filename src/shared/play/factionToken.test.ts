@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
+import { rotatedPiece } from './commands';
 import { factionTokenRingPose, factionTokenStackKey, sectorIndexAt } from './factionToken';
 import { freshTableState } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
@@ -67,6 +68,11 @@ describe('faction tokens on the ring', () => {
   test('a locked token keeps its sector', () => {
     const state = tableWith(token('fremen', 2), { ...token('emperor', 7), locked: true });
     expect(dropAt(state, at(state, 'token-fremen'), at(state, 'token-emperor').position)).toBeNull();
+  });
+
+  test('a token always faces the board, so a turn is never predicted', () => {
+    const state = tableWith(token('fremen', 2));
+    expect(rotatedPiece(state, at(state, 'token-fremen'), 1)).toBeNull();
   });
 
   test('storm order follows where the tokens stand', () => {

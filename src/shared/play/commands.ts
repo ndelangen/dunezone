@@ -238,8 +238,11 @@ export function foldedTurns(turns: number): number {
   return folded > ROTATE_STEPS_LIMIT ? folded - 24 : folded;
 }
 
-/** The piece turned by `turns` 15° steps, clockwise positive, resting where it lands; null when it would overlap another piece. */
+/** The piece turned by `turns` 15° steps, clockwise positive, resting where it lands; null when it would overlap another piece, or for a faction token, which always faces the board. */
 export function rotatedPiece(state: TableState, piece: TablePiece, turns: number): TablePiece | null {
+  if (isFactionToken(piece)) {
+    return null;
+  }
   const orientation = piece.orientation - turns * ROTATE_STEP;
   const rotated = {
     ...piece,

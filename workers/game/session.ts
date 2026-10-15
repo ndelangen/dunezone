@@ -248,12 +248,12 @@ export class GameSession {
   private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
     const settled = settleEnding(snapshot, () => new Set(this.actors.seated().map((occupant) => occupant.userId)));
     const roster = this.actors.roster(this.seatCount());
-    const phases = recomposedTurn(
-      settled.phase,
-      this.room?.snapshot.phase,
-      settled.phases,
-      this.composedTurn(roster, settled.table)
-    );
+    const composed = this.composedTurn(roster, settled.table);
+    /* Before play no phase has been played, so the turn takes the order as it stands, and the first turn plays it. */
+    const playing = inPlay(settled.stage) && (!this.room || inPlay(this.room.snapshot.stage));
+    const phases = playing
+      ? recomposedTurn(settled.phase, this.room?.snapshot.phase, settled.phases, composed)
+      : composed;
     return { ...settled, roster, phases };
   }
 
@@ -1331,4 +1331,9 @@ export class GameSession {
     this.finishSetupCleanup();
     return true;
   }
+}
+
+/* A fixture carries no stage and plays its phases from the start. */
+function inPlay(stage: StoredSnapshot['stage']) {
+  return stage === undefined || stage === 'play';
 }
