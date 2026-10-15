@@ -73,7 +73,7 @@ describe('legacy media URLs', () => {
     expect(new Uint8Array(await first.arrayBuffer())).toEqual(bytesFor(TIER_URL));
     await answer('/web/logo.svg', environment, {}, cache.serving);
     await cache.settle();
-    expect([...cache.stored.keys()]).toEqual([`${ORIGIN}${TIER_URL}`]);
+    expect([...cache.stored.keys()]).toEqual([`${ORIGIN}${TIER_URL}?variant=${legacyVariant(TIER_URL)}`]);
 
     environment.MEDIA_BUCKET.objects.clear();
     const again = await answer(TIER_URL, environment, {}, cache.serving);
@@ -82,6 +82,19 @@ describe('legacy media URLs', () => {
     expect(again.headers.get('X-Media-SHA256')).toBe(SHA256);
     expect(new Uint8Array(await again.arrayBuffer())).toEqual(bytesFor(TIER_URL));
     expect(environment.ASSETS.requested).toEqual(['/web/logo.svg']);
+  });
+
+  test('never serve the edge copy of the variant a URL pointed at before a deploy re-pointed it', async () => {
+    const cache = memoryCache();
+    const environment = env([TIER_URL]);
+    const stale = new Uint8Array([0xff, 0xd8, 0xff, 0]);
+    for (const key of [`${ORIGIN}${TIER_URL}`, `${ORIGIN}${TIER_URL}?variant=earlier.webp`]) {
+      cache.stored.set(key, { bytes: stale, headers: new Headers({ 'Cache-Control': 'public, max-age=3600' }) });
+    }
+
+    const response = await answer(TIER_URL, environment, {}, cache.serving);
+
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytesFor(TIER_URL));
   });
 
   test('serve a canonical URL from the capped re-encode', async () => {

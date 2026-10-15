@@ -4,7 +4,7 @@
  * Published rulebook HTML, CSS and saved documents embed these URLs, so they must keep working once static media leaves the deploy.
  * A URL the raster lock lists is answered with 200 from the variant it stands for in R2, never a redirect, cached for an hour because the lock can point it at a new original.
  * Everything else under those prefixes, such as committed SVGs or a raster not yet published, comes from the release's static files, and the SPA fallback's HTML is refused as a 404.
- * An answer from R2 is kept in the edge cache for its hour.
+ * An answer from R2 is kept in the edge cache for its hour, keyed by the URL and the variant it resolved to, so a deploy that re-points the URL is served at once.
  * Static files already come from the edge.
  */
 import { legacyVariant } from '../../src/shared/media/legacyVariant';
@@ -34,7 +34,7 @@ async function publishedVariant(
   name: string,
   serving: MediaServing
 ): Promise<Response | null> {
-  const cached = await cachedResponse(request, serving);
+  const cached = await cachedResponse(request, serving, name);
   if (cached) {
     return cached;
   }
@@ -67,7 +67,7 @@ async function publishedVariant(
     { sha256, bytes },
     LEGACY_CACHE_CONTROL
   );
-  return remembered(request, response, serving);
+  return remembered(request, response, serving, name);
 }
 
 async function staticFile(request: Request, env: LegacyMediaEnv): Promise<Response> {
