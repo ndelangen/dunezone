@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { USER_IMAGE_INGEST_PATH } from '../../src/shared/user-images/contract';
 import { fakeR2Object, jpegBytes, pngBytes } from './test-helpers';

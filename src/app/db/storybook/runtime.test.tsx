@@ -3,7 +3,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { makeFunctionReference } from 'convex/server';
 import type { PropsWithChildren } from 'react';
-import { expect, test, vi } from 'vitest';
+import { expect, test, vi } from 'vite-plus/test';
 
 import { api } from '../../../../convex/_generated/api';
 import { ConvexStorybookWorkerContext, useConvexStorybookPaginatedQuery, useConvexStorybookQuery } from './runtime';

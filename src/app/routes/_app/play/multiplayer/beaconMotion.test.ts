@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { beaconMode, beaconRisen, beaconTarget, initialMotion, stepBeacon } from './beaconMotion';
 import type { BeaconMode, BeaconMotion, BeaconSpot } from './beaconMotion';

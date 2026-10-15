@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import { factionTroopPublicationId } from '../src/shared/asset-publishing/factionTroopPublication';

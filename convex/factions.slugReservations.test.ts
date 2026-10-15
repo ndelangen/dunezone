@@ -4,7 +4,7 @@
 import aggregateTest from '@convex-dev/aggregate/test';
 import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';

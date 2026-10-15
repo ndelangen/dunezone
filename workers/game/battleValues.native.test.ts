@@ -1,6 +1,6 @@
 import type { PieceAction } from '../../src/shared/play/protocol';
 type BattlePlan = Extract<PieceAction, { kind: 'battle-plan' }>['plan'];
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vite-plus/test';
 
 import type { FactionInput } from '../../src/shared/factions/schema';
 import { PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '../../src/shared/play/phases';

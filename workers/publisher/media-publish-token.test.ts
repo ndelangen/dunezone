@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { fetchMedia } from '../../scripts/lib/media-fetch';
 import { fetchMediaAfterTokenRotation, waitForMediaPublishToken } from '../../scripts/media-publish-token';

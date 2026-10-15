@@ -1,5 +1,5 @@
 import { BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { BLOG_POSTS, blogPostAuthor } from './posts';
 

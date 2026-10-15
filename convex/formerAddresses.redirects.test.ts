@@ -2,7 +2,7 @@
 // @vitest-environment edge-runtime
 
 import type { FunctionArgs } from 'convex/server';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';

@@ -3,7 +3,7 @@
 import type { Vector3Tuple } from '@shared/play/model';
 import { act, cleanup, render } from '@testing-library/react';
 import { Group, PerspectiveCamera, Scene } from 'three';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { ScenePresence } from './ScenePresence';
 import styles from './ScenePresence.module.css';

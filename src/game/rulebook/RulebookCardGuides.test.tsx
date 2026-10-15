@@ -4,7 +4,7 @@ import { GEAR_CLIP } from '@shared/assets/tokenOutline';
 import { projectRulebookDraftRenderBlock } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookRenderBlockV1 } from '@shared/rulebooks/renderDocument';
 import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { RulebookBlockCanvas } from './RulebookBlockRenderer';
 import { cardEntryFixture, cardGroupFixture, cardGuideAssets } from './RulebookCardGuides.stories.fixture';

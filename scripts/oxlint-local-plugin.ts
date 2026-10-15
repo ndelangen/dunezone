@@ -1,4 +1,4 @@
-import type { RuleTester } from 'oxlint/plugins-dev';
+import type { RuleTester } from 'vite-plus/lint/plugins-dev';
 
 type BaseRule = Parameters<RuleTester['run']>[1];
 type Rule = BaseRule & { meta: NonNullable<BaseRule['meta']> & { name: string } };

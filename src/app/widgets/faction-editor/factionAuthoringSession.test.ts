@@ -1,6 +1,6 @@
 import { assetPublishingFaction, legacyAssetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { ensureFactionMemberIds } from '@shared/factions/memberIdentity';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import type { Faction, FactionEntry } from '@db/factions';
 

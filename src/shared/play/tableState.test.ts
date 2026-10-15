@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { freshTableState } from './model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from './model';

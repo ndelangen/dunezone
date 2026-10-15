@@ -1,5 +1,5 @@
 import { SUPPORTING_LEADER_LIMIT } from '@shared/factions/schema';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { CONVENTIONAL_SUPPORTING_LEADER_COUNT, canAddSupportingLeader } from './FactionFormSectionLeaders';
 

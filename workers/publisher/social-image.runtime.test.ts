@@ -6,7 +6,7 @@ import path from 'node:path';
 import { build } from 'esbuild';
 import { convertV4MiniflareOptions, Miniflare } from 'miniflare';
 import sharp from 'sharp';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { socialCardHref } from '../../src/shared/socialCard';
 import { jpegBytes } from './test-helpers';

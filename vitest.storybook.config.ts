@@ -6,8 +6,8 @@
  */
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import viteReact from '@vitejs/plugin-react';
-import { playwright } from '@vitest/browser-playwright';
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite-plus';
+import { playwright } from 'vite-plus/test/browser-playwright';
 
 import { convexPackageMocks } from './.storybook/convexPackageMocks.ts';
 import { pageStylesheetStaysWithItsStory } from './.storybook/pageStylesheet.ts';

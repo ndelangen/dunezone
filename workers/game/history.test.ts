@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import { applyPatch, diff } from './history';

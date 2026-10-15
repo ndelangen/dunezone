@@ -4,7 +4,7 @@
 import aggregateTest from '@convex-dev/aggregate/test';
 import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { PLAY_FIXTURE_KEY, PLAY_TICKET_TTL_MS, provisionPlaceholderId } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';

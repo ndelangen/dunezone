@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { publisherCaptureSnapshotSchema } from '../../src/shared/asset-publishing/publisher-snapshot';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';

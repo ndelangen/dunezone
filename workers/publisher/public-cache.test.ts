@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { socialCardHref } from '../../src/shared/socialCard';
 import { handleApplicationRequest } from './application';

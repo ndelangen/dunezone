@@ -2,7 +2,7 @@
 import aggregateTest from '@convex-dev/aggregate/test';
 import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
-import { vi } from 'vitest';
+import { vi } from 'vite-plus/test';
 
 import type { AuthProvider } from './lib/accountMethods';
 import { applicationTriggers } from './lib/applicationTriggers';

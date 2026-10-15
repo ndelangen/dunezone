@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { runActionSchedule } from './pacing.ts';
 import type { ActionSlot } from './pacing.ts';

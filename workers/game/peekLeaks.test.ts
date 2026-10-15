@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';

@@ -1,6 +1,6 @@
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { Vector3 } from 'three';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import type { TABLE_VIEW_OPTIONS } from './playView';
 import {

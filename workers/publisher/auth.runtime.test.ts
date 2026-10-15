@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import { build } from 'esbuild';
 import { convertV4MiniflareOptions, Miniflare } from 'miniflare';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 test('workerd preserves OAuth cookies, callback bodies and redirects through the auth proxy', async () => {
   const bundle = await build({

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { build } from 'esbuild';
-import { test, vi } from 'vitest';
+import { test, vi } from 'vite-plus/test';
 
 import { prepareHostedBackend } from './hosted-backend';
 import { syntheticHostedTarget } from './synthetic-target.ts';

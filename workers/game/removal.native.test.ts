@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import type { RemovalVote, RemovalAction } from '../../src/shared/play/removal';
 import { removalVoteSchema } from '../../src/shared/play/removal';

@@ -4,7 +4,7 @@ type BattlePlan = Extract<PieceAction, { kind: 'battle-plan' }>['plan'];
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { BATTLE_COUNTDOWN_MS } from '../../src/shared/play/battle';
 import {

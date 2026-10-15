@@ -3,7 +3,7 @@
 
 import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { takeWorkResultSchema } from '../src/shared/asset-publishing/publication';
 import { ensureFactionComponentIds } from '../src/shared/factions/componentIdentity';

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import type { TablePiece } from '../../src/shared/play/model';
 import type { GameSnapshot } from '../../src/shared/play/protocol';

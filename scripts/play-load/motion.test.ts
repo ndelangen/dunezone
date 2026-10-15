@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import type { MotionInput } from './motion.ts';
 import { runMotionSchedule } from './motion.ts';

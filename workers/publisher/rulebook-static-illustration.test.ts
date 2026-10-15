@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 import { RULEBOOK_STOCK_ARTWORK } from '../../src/shared/rulebooks/sources';
 import { loadRulebookStaticIllustration } from './rulebook-static-illustration';
