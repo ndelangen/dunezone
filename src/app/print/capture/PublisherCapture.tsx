@@ -7,6 +7,7 @@ import { publisherErrorMessage } from '@shared/asset-publishing/publisher-diagno
 import { assertRequiredPublisherFonts } from '@shared/asset-publishing/publisher-fonts';
 import type { PublisherCaptureSnapshot } from '@shared/asset-publishing/publisher-snapshot';
 import { publisherCaptureSnapshotSchema } from '@shared/asset-publishing/publisher-snapshot';
+import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import type { RulebookSize } from '@shared/rulebooks/settings';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -170,6 +171,7 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
       return printedImage(
         snapshot.assetType,
         <CustomToken
+          shape={tokenShapeOfType(snapshot.assetType) ?? 'round'}
           background={snapshot.payload.face.background}
           image={snapshot.payload.face.image}
           circle={snapshot.payload.face.ring}

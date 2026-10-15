@@ -80,11 +80,24 @@ const INITIAL_FACE: TokenFaceDraft = {
  * A fresh token, per shape.
  *
  * Only the edge ring varies, and only for tech tokens: a gear already reads as edged by its teeth, so a ring inside them is clutter rather than a rim (Norbert, 2026-08-20).
+ * A pointer starts ringed like a disc, because its ring follows the teardrop rather than cutting across the point.
  * A function rather than a constant because the default is a fact about the shape, and the shape is the Asset type, which only the page knows.
  */
-/** The seed for any newly authored face, ringed by shape: a gear's teeth are its rim, and a round ring would not follow a pointer's point, so both start bare. */
 function initialTokenFace(type: string): TokenFaceDraft {
-  return { ...INITIAL_FACE, ring: type !== 'token-tech' && type !== 'token-pointer' };
+  return { ...INITIAL_FACE, ring: type !== 'token-tech' };
+}
+
+/**
+ * The words that differ by shape.
+ * A pointer's top label runs straight across its neck rather than curving along a rim it does not have there, and its face is a teardrop rather than a disc.
+ */
+function faceCopy(type: string): { background: string; labels: string } {
+  return tokenShapeOfType(type) === 'pointer'
+    ? {
+        background: 'The teardrop behind the symbol.',
+        labels: 'One straight line across the neck, two curved under the symbol.',
+      }
+    : { background: 'The disc behind the symbol.', labels: 'One curved line along the top, two along the bottom.' };
 }
 
 export function initialTokenDraft(type: string): TokenDraft {
@@ -106,6 +119,7 @@ export function TokenProof({ face, type }: { face: TokenFaceDraft; type: string 
   return (
     <TokenFrame shape={shape}>
       <CustomToken
+        shape={shape}
         background={face.background}
         image={face.image}
         circle={face.ring}
@@ -125,6 +139,7 @@ type FacePatch = (update: Partial<TokenFaceDraft>) => void;
 function FaceFields({
   face,
   patch,
+  type,
   declaredCustom,
   onDeclaredCustomChange,
   modeMemory,
@@ -132,6 +147,7 @@ function FaceFields({
 }: {
   face: TokenFaceDraft;
   patch: FacePatch;
+  type: string;
   declaredCustom: boolean;
   onDeclaredCustomChange: (next: boolean) => void;
   modeMemory: BackgroundModeMemory;
@@ -141,7 +157,7 @@ function FaceFields({
     <>
       <BackgroundPresetControl
         title="Background"
-        description="The disc behind the symbol."
+        description={faceCopy(type).background}
         usedOn="this face"
         presets={FACE_PRESETS}
         value={face.background}
@@ -195,7 +211,7 @@ function FaceFields({
  * Its own chapter rather than the tail of the face, because the ring and the labels are one thing
  * (the labels curve along the ring) and neither is part of composing the face's artwork (Norbert, 2026-08-20).
  */
-function FaceRim({ face, patch }: { face: TokenFaceDraft; patch: FacePatch }) {
+function FaceRim({ face, patch, type }: { face: TokenFaceDraft; patch: FacePatch; type: string }) {
   return (
     <>
       <ControlBlock
@@ -223,7 +239,7 @@ function FaceRim({ face, patch }: { face: TokenFaceDraft; patch: FacePatch }) {
       />
       <ControlBlock
         title="Labels"
-        description="One curved line along the top, two along the bottom."
+        description={faceCopy(type).labels}
         input={
           <Stack gap="sm">
             <TextInput label="Top label" value={face.top} onChange={(e) => patch({ top: e.currentTarget.value })} />
@@ -445,6 +461,7 @@ export function TokenEditor({
         <FaceFields
           face={draft.front}
           patch={patchFace('front')}
+          type={type}
           declaredCustom={memory.backgroundCustom.front}
           onDeclaredCustomChange={(next) => remember({ backgroundCustom: { ...memory.backgroundCustom, front: next } })}
           modeMemory={memory.backgroundModeMemory.front}
@@ -458,7 +475,7 @@ export function TokenEditor({
       value: 'front-rim' as const,
       label: 'Front rim',
       icon: <Frame size={21} aria-hidden />,
-      panel: panel(<FaceRim face={draft.front} patch={patchFace('front')} />),
+      panel: panel(<FaceRim face={draft.front} patch={patchFace('front')} type={type} />),
     },
     ...(draft.back.mode === 'custom'
       ? [
@@ -470,6 +487,7 @@ export function TokenEditor({
               <FaceFields
                 face={draft.back.face}
                 patch={patchFace('back')}
+                type={type}
                 declaredCustom={memory.backgroundCustom.back}
                 onDeclaredCustomChange={(next) =>
                   remember({ backgroundCustom: { ...memory.backgroundCustom, back: next } })
@@ -485,7 +503,7 @@ export function TokenEditor({
             value: 'back-rim' as const,
             label: 'Back rim',
             icon: <Frame size={21} aria-hidden />,
-            panel: panel(<FaceRim face={draft.back.face} patch={patchFace('back')} />),
+            panel: panel(<FaceRim face={draft.back.face} patch={patchFace('back')} type={type} />),
           },
         ]
       : []),
