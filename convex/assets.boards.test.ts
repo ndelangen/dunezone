@@ -9,40 +9,48 @@ import schema from './schema';
 import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
+/*
+ * The first test loads the Convex modules and validates the full Arrakis board on each of two creates.
+ * It took about 2 s with coverage on an idle machine and 2.9 to 5.2 s in CI's coverage run, which runs test files in parallel, so Vitest's 5 s default failed it.
+ */
+const ARRAKIS_TEST_BUDGET_MS = 20_000;
 describe('authored board Assets', () => {
-  /* Coverage CI twice exceeded the five-second default for this full board roundtrip. */
-  test('saves editable Arrakis, clones it, and publishes the latest saved geometry', { timeout: 10_000 }, async () => {
-    const t = convexTest(schema, modules);
-    const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Board owner' }));
-    const owner = t.withIdentity({ subject: ownerId });
-    const board = arrakisBoard();
-    const created = await owner.mutation(api.assets.create, {
-      type: 'board',
-      data: { name: 'Arrakis', about: '', board },
-    });
-    const page = await assetPageAs(owner, { type: 'board', slug: created.slug });
-    expect(page?.asset.data).toEqual({ name: 'Arrakis', about: '', board });
-    expect(page?.viewerAccess.capabilities.edit).toBe(true);
-    expect(page?.assetPublishing?.captureStatus).toBe('scheduled');
-    const cloned = await owner.mutation(api.assets.create, {
-      type: 'board',
-      data: { name: 'New Arrakis', about: '', board },
-    });
-    expect(cloned.id).not.toBe(created.id);
-    const changed = blankBoard();
-    await owner.mutation(api.assets.update, { id: created.id, data: { name: 'Arrakis', about: '', board: changed } });
-    const jobs = await t.run((ctx) =>
-      ctx.db
-        .query('publication_jobs')
-        .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', created.id))
-        .collect()
-    );
-    expect(jobs).toHaveLength(1);
-    expect(jobs[0].asset_data).toEqual({ assetId: created.id, slug: created.slug, board: changed });
-    expect((await assetPageAs(owner, { type: 'board', slug: cloned.slug }))?.asset.data).toMatchObject({
-      board,
-    });
-  });
+  test(
+    'saves editable Arrakis, clones it, and publishes the latest saved geometry',
+    async () => {
+      const t = convexTest(schema, modules);
+      const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Board owner' }));
+      const owner = t.withIdentity({ subject: ownerId });
+      const board = arrakisBoard();
+      const created = await owner.mutation(api.assets.create, {
+        type: 'board',
+        data: { name: 'Arrakis', about: '', board },
+      });
+      const page = await assetPageAs(owner, { type: 'board', slug: created.slug });
+      expect(page?.asset.data).toEqual({ name: 'Arrakis', about: '', board });
+      expect(page?.viewerAccess.capabilities.edit).toBe(true);
+      expect(page?.assetPublishing?.captureStatus).toBe('scheduled');
+      const cloned = await owner.mutation(api.assets.create, {
+        type: 'board',
+        data: { name: 'New Arrakis', about: '', board },
+      });
+      expect(cloned.id).not.toBe(created.id);
+      const changed = blankBoard();
+      await owner.mutation(api.assets.update, { id: created.id, data: { name: 'Arrakis', about: '', board: changed } });
+      const jobs = await t.run((ctx) =>
+        ctx.db
+          .query('publication_jobs')
+          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', created.id))
+          .collect()
+      );
+      expect(jobs).toHaveLength(1);
+      expect(jobs[0].asset_data).toEqual({ assetId: created.id, slug: created.slug, board: changed });
+      expect((await assetPageAs(owner, { type: 'board', slug: cloned.slug }))?.asset.data).toMatchObject({
+        board,
+      });
+    },
+    ARRAKIS_TEST_BUDGET_MS
+  );
   test('refuses invalid board payloads and unauthorized writes', async () => {
     const t = convexTest(schema, modules);
     const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Owner' }));

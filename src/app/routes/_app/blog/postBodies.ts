@@ -1,4 +1,4 @@
-import type { BlogPostSlug } from '@shared/recordlessPublicPages';
+import type { BlogPostSlug } from '@shared/blogPostSlugs';
 import type { ComponentType } from 'react';
 
 import TabletopSimulator from './posts/tabletop-simulator';

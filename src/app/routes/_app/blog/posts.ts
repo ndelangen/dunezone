@@ -1,6 +1,6 @@
+import { BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
+import type { BlogPostSlug } from '@shared/blogPostSlugs';
 import { resolveAsset } from '@shared/media/resolveAsset';
-import { BLOG_POST_SLUGS } from '@shared/recordlessPublicPages';
-import type { BlogPostSlug } from '@shared/recordlessPublicPages';
 
 /*
  * What the post list, the page head and the sitemap know about each post, without its body.

@@ -1,6 +1,7 @@
 import { expect, test, vi } from 'vitest';
 
-import { BLOG_POST_PAGES, MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
+import { BLOG_POST_PAGES } from '../../src/shared/blogPostSlugs';
+import { MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
 import type { PublicCache } from './public-cache';
 import { handlePublicDiscovery } from './public-discovery';
 
