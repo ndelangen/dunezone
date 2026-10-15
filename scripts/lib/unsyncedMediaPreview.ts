@@ -85,6 +85,17 @@ export function unsyncedMediaPreview(repoRoot: string): Plugin {
     return lockCache.lock;
   }
 
+  /* Only variant paths read the lock. A malformed path, a lock caught mid-write by `media:sync`, or an original swapped out mid-request falls through rather than failing. */
+  function lookup(requestUrl = '') {
+    try {
+      const url = decodeURIComponent(requestUrl.split('?')[0]);
+      const original = VARIANT.test(url) ? unsyncedOriginal(url, mediaRoot, currentLock()) : null;
+      return original ? { url, original, mtimeMs: statSync(original.file).mtimeMs } : null;
+    } catch {
+      return null;
+    }
+  }
+
   return {
     name: 'dunezone:unsynced-media-preview',
     apply: 'serve',
@@ -94,26 +105,12 @@ export function unsyncedMediaPreview(repoRoot: string): Plugin {
           next();
           return;
         }
-        let url: string;
-        try {
-          url = decodeURIComponent((request.url ?? '').split('?')[0]);
-        } catch {
+        const found = lookup(request.url);
+        if (!found) {
           next();
           return;
         }
-        let original: ReturnType<typeof unsyncedOriginal> = null;
-        let mtimeMs = 0;
-        try {
-          /* Only variant paths read the lock, and a lock caught mid-write by `media:sync` or an original swapped out mid-request falls through rather than failing. */
-          original = VARIANT.test(url) ? unsyncedOriginal(url, mediaRoot, currentLock()) : null;
-          mtimeMs = original ? statSync(original.file).mtimeMs : 0;
-        } catch {
-          original = null;
-        }
-        if (!original) {
-          next();
-          return;
-        }
+        const { url, original, mtimeMs } = found;
         const cached = encoded.get(url);
         const bytes =
           cached?.mtimeMs === mtimeMs
