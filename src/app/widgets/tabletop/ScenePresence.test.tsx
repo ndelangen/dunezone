@@ -37,10 +37,16 @@ vi.mock('@react-three/fiber/webgpu', async () => {
 vi.mock('@react-three/drei/webgpu', () => ({ Html: () => null }));
 
 vi.mock('./TabletopContext', () => {
-  const table = { canInteract: true, viewer: { color: '#abcdef', avatarUrl: '' } };
+  const table = {
+    canInteract: true,
+    viewer: { color: '#abcdef', avatarUrl: '' },
+  };
   const commands = { publishPointer: () => {} };
   const pointers: never[] = [];
-  const actions = { subscribePointers: () => () => {}, getPointers: () => pointers };
+  const actions = {
+    subscribePointers: () => () => {},
+    getPointers: () => pointers,
+  };
   return {
     useTabletopSelector: (select: (value: typeof table) => unknown) => select(table),
     useTabletopCommands: () => commands,
@@ -154,6 +160,7 @@ describe('a rider on a plate another player carries', () => {
     riding = true,
     riderInHand = false,
     riderFirst = false,
+    riderRemote = false,
     plateHeld,
   }: {
     plate: Pose;
@@ -161,6 +168,8 @@ describe('a rider on a plate another player carries', () => {
     riding?: boolean;
     riderInHand?: boolean;
     riderFirst?: boolean;
+    /* Whether another player holds the rider. */
+    riderRemote?: boolean;
     /* Whose hand the plate is in: this page's own sets it down at once, while another player's glides; `false` has it rest after this page's hand let go. */
     plateHeld?: 'own' | false;
   }) {
@@ -178,6 +187,7 @@ describe('a rider on a plate another player carries', () => {
         pose={riderPose}
         group={rider}
         links={{ follows: riding ? 'hms' : undefined }}
+        remote={riderRemote}
         immediate={riderInHand}
       />,
     ];
@@ -272,6 +282,26 @@ describe('a rider on a plate another player carries', () => {
     expect(rider.position.toArray()).toEqual([0, 0, -0.75]);
   });
 
+  test("glides to another player's hand when they take it off a plate in this page's own hand", () => {
+    const view = render(
+      <Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} plateHeld="own" />
+    );
+    view.rerender(<Plate plate={{ at: [3, 0, 0], turn: 0 }} rider={{ at: [3, 0, -0.75], turn: 0 }} plateHeld="own" />);
+    runFrames(1);
+    expect(rider.position.x).toBeCloseTo(3);
+    view.rerender(
+      <Plate
+        plate={{ at: [3, 0, 0], turn: 0 }}
+        rider={{ at: [5, 0.4, -0.75], turn: 0 }}
+        plateHeld="own"
+        riding={false}
+        riderRemote
+      />
+    );
+    runFrames(1);
+    expect(rider.position.x).toBeCloseTo(3 + 2 * (1 - Math.exp(-24 / 60)));
+  });
+
   test("is set down at once where this page's own hand puts it, during a ride or after one", () => {
     const view = render(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} />);
     view.rerender(<Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} />);
@@ -333,8 +363,15 @@ function renderPresence(showLocal = false) {
   camera.updateMatrixWorld();
   const canvas = document.createElement('canvas');
   canvas.getBoundingClientRect = () => new DOMRect(100, 50, 800, 400);
-  scheduler.three = { camera, renderer: { domElement: canvas }, scene: new Scene() };
-  Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => canvas });
+  scheduler.three = {
+    camera,
+    renderer: { domElement: canvas },
+    scene: new Scene(),
+  };
+  Object.defineProperty(document, 'elementFromPoint', {
+    configurable: true,
+    value: () => canvas,
+  });
   render(<ScenePresence showLocal={showLocal} />);
   return camera;
 }

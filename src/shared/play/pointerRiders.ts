@@ -46,7 +46,10 @@ function riderPose(rider: TablePiece, from: Pose, to: Pose): Pose {
   const z = rider.position[2] - from.position[2];
   const [nextX, nextZ] = fromPieceFrame([x * cosine - z * sine, x * sine + z * cosine], to.position, to.orientation);
   const orientation = rider.orientation + turn;
-  return { position: restingPositionAt([nextX, 0, nextZ], { ...rider, orientation }), orientation };
+  return {
+    position: restingPositionAt([nextX, 0, nextZ], { ...rider, orientation }),
+    orientation,
+  };
 }
 
 /** The table with every piece riding `plate` (as it rests in `pieces`) carried to the plate's new pose. */
@@ -75,7 +78,10 @@ export function placementRules(
   pieces: readonly TablePiece[],
   moving: TablePiece,
   obstacles: TablePiece[]
-): { obstacles: TablePiece[]; fits: (position: Vector3Tuple, orientation?: number) => boolean } {
+): {
+  obstacles: TablePiece[];
+  fits: (position: Vector3Tuple, orientation?: number) => boolean;
+} {
   const plate = isPointerToken(moving) ? pieces.find((piece) => piece.id === moving.id) : undefined;
   const riders = plate ? pointerRiders(pieces, plate) : [];
   if (!plate || !riders.length) {
@@ -141,7 +147,7 @@ function standingOn(piece: TablePiece, plates: readonly TablePiece[]): TablePiec
   return top > piece.position[1] ? { ...piece, position: [piece.position[0], top, piece.position[2]] } : piece;
 }
 
-/* Each rider's pose on a plate as shown, by its id: carried with the plate and standing on its top. */
+/* Each rider's pose on a plate as shown, by its id: carried with the plate and standing on its top, or on the board's rim where that is higher. */
 function ridersShownOn(plate: TablePiece, resting: TablePiece | undefined, rested: readonly TablePiece[]) {
   return (resting ? pointerRiders(rested, resting) : []).map((rider): [string, Pose] => {
     const pose = riderPose(rider, resting!, plate);
@@ -149,7 +155,7 @@ function ridersShownOn(plate: TablePiece, resting: TablePiece | undefined, reste
       rider.id,
       {
         orientation: pose.orientation,
-        position: [pose.position[0], plate.position[1] + POINTER_HEIGHT, pose.position[2]],
+        position: [pose.position[0], Math.max(pose.position[1], plate.position[1] + POINTER_HEIGHT), pose.position[2]],
       },
     ];
   });

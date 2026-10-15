@@ -128,7 +128,10 @@ describe('a pointer token, such as the HMS,', () => {
     );
     expect(resting.find((piece) => piece.id === 'beside')).toBe(at(state, 'beside'));
 
-    const draft = { ...draftForGesture(at(state, 'hms'), 'whole')!, position: [-1, 0.4, -1] as Vector3Tuple };
+    const draft = {
+      ...draftForGesture(at(state, 'hms'), 'whole')!,
+      position: [-1, 0.4, -1] as Vector3Tuple,
+    };
     const shown = renderedPiecesFor({ ...state, draftMove: draft }).map((piece) =>
       piece.id === 'hms' ? { ...piece, position: draft.position } : piece
     );
@@ -136,7 +139,10 @@ describe('a pointer token, such as the HMS,', () => {
     expect(carried.position).toEqual([-1, 0.4 + POINTER_HEIGHT, -1]);
   });
   test('leaves a locked piece where it stands', () => {
-    const state = tableWith(plate([0, 0, 1]), { ...troop('t', [0, 0, 1]), locked: true });
+    const state = tableWith(plate([0, 0, 1]), {
+      ...troop('t', [0, 0, 1]),
+      locked: true,
+    });
     const next = dropAt(state, 'hms', [-1, 0, -1])!;
     expect(at(next, 't').position).toEqual(at(state, 't').position);
   });
@@ -161,9 +167,13 @@ describe('a pointer token, such as the HMS,', () => {
   });
 
   test('rests on the board when only its point reaches over it', () => {
-    expect(supportHeightAt([0, 0, 4.7], { kind: 'force', orientation: 0, items: plate([0, 0, 0]).items })).toBe(
-      BOARD_SURFACE_Y
-    );
+    expect(
+      supportHeightAt([0, 0, 4.7], {
+        kind: 'force',
+        orientation: 0,
+        items: plate([0, 0, 0]).items,
+      })
+    ).toBe(BOARD_SURFACE_Y);
   });
 
   test('a page leaves a rider lifted off it in the hand that holds it', () => {
@@ -175,7 +185,10 @@ describe('a pointer token, such as the HMS,', () => {
   });
 
   test('holds a locked piece up on its top, without taking it along', () => {
-    const state = tableWith(plate([0, 0, 1]), { ...troop('t', [0, 0, 1]), locked: true });
+    const state = tableWith(plate([0, 0, 1]), {
+      ...troop('t', [0, 0, 1]),
+      locked: true,
+    });
     const shown = piecesOnPlates(renderedPiecesFor(state), state.pieces);
     expect(shown.find((piece) => piece.id === 't')!.position[1]).toBeCloseTo(
       at(state, 'hms').position[1] + POINTER_HEIGHT
@@ -203,11 +216,27 @@ describe('a pointer token, such as the HMS,', () => {
   test('keeps a rider on its top when a turn settles it a little lower on the board', () => {
     const state = tableWith(plate([0, 0, 1]), troop('t', [0, 0, 1]));
     const turned = renderedPiecesFor(state).map((piece) =>
-      piece.id === 't' ? { ...piece, orientation: 0.7, position: [0, 0.125, 1] as Vector3Tuple } : piece
+      piece.id === 't'
+        ? {
+            ...piece,
+            orientation: 0.7,
+            position: [0, 0.125, 1] as Vector3Tuple,
+          }
+        : piece
     );
     expect(piecesOnPlates(turned, state.pieces).find((piece) => piece.id === 't')!.position[1]).toBeCloseTo(
       at(state, 'hms').position[1] + POINTER_HEIGHT
     );
+  });
+
+  test("keeps a rider up on the board's rim where that stands higher than the plate's top", () => {
+    const state = tableWith(plate([0, 0, 1]), troop('t', [0, 0, 1.4]));
+    const moved = plate([4.7, 0, 0], -Math.PI / 2);
+    const shown = renderedPiecesFor(state).map((piece) => (piece.id === 'hms' ? { ...piece, ...moved } : piece));
+    const rider = piecesOnPlates(shown, state.pieces).find((piece) => piece.id === 't')!;
+    expect(rider.position[0]).toBeCloseTo(4.3);
+    expect(rider.position[1]).toBeCloseTo(restingPositionAt([4.3, 0, 0], troopBase)[1]);
+    expect(rider.position[1]).toBeGreaterThan(moved.position[1] + POINTER_HEIGHT);
   });
 
   test('carries nobody while it is set in a battle', () => {

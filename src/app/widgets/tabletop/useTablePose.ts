@@ -88,11 +88,14 @@ function placeRider(rider: PoseNode, plate: PoseNode | undefined) {
   group.rotation.y = rider.target.orientation + turn;
 }
 
-/* Whether a ride just ended on a plate that is not moving, such as one this page's own hand put back: the rider stops with it. */
+/*
+ * Whether a ride just ended on a plate that is not moving, such as one this page's own hand put back: the rider stops with it.
+ * A rider another player takes off the plate glides to their hand instead.
+ */
 function rideEndsAtOnce(rider: PoseState): boolean {
   const plate = rider.rodeOn;
   rider.rodeOn = undefined;
-  return !!plate && !plate.smoothing.active;
+  return !!plate && !plate.smoothing.active && !rider.smoothing.wasRemote;
 }
 
 type PoseLinks = {
