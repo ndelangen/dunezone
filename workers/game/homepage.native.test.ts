@@ -371,6 +371,20 @@ describe('the public homepage table', () => {
     );
     expect((await member.message('rejected', (message) => message.requestId === 'stale')).message).toContain('reset');
   });
+
+  it('lasts an hour from when it opens in the isolated local stack, so a verification run never meets the hour', async () => {
+    await runtime.close();
+    runtime = await createRuntime(peer, 'homepage', {
+      GIT_SHA: 'local-isolated',
+      APPLICATION_ORIGIN: 'http://127.0.0.1:8787',
+    });
+    const watcher = await visitor();
+    const opened = await syncView(watcher);
+    await runtime.fetch('/native-test/clock?offset=3540000');
+    expect((await syncView(watcher)).epoch).toBe(opened.epoch);
+    await runtime.fetch('/native-test/clock?offset=3600001');
+    expect((await syncView(watcher)).epoch).not.toBe(opened.epoch);
+  });
 });
 
 it('reports invalid admission responses and recovery without tickets or response content', async () => {
