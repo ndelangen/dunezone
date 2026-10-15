@@ -1,0 +1,56 @@
+.leader,
+.rootChild {
+  width: 100%;
+  height: 100%;
+}
+
+/* A leader token is a background beside one SVG drawing; a background part hides the drawing, every other part hides the background. */
+.leader[data-part="colour-one"] > * > svg,
+.leader[data-part="texture"] > * > svg,
+.leader[data-part="colour-two"] > * > svg,
+.leader:not([data-part="colour-one"], [data-part="texture"], [data-part="colour-two"]) > * > div {
+  visibility: hidden;
+}
+
+/* The background draws its first colour, then the second through the texture; the texture part is drawn by the caller as black and white. */
+.leader[data-part="colour-one"] > * > div svg > rect:nth-of-type(2),
+.leader[data-part="colour-two"] > * > div svg > rect:nth-of-type(1) {
+  visibility: hidden;
+}
+
+.leader > * > svg > :not(defs) {
+  visibility: hidden;
+}
+
+.leader[data-part="portrait"] > * > svg > [data-component-part="portrait"],
+.leader[data-part="mask"] > * > svg > [data-component-part="portrait"],
+.leader[data-part="ring"] > * > svg > circle,
+.leader[data-part="strength"] > * > svg > [data-component-part="strength"],
+.leader[data-part="name"] > * > svg > [data-component-part="name"],
+.leader[data-part="faction-emblem"] > * > svg > [data-component-part="faction-emblem"] {
+  visibility: visible;
+}
+
+.leader[data-part="mask"] > * > svg > [data-component-part="portrait"] {
+  filter: brightness(0) invert(0.92) opacity(0.6);
+}
+
+/* Written out per index, since `nth-child` takes no custom property. */
+.rootChild[data-child="1"] > * > :not(:nth-child(1)),
+.rootChild[data-child="2"] > * > :not(:nth-child(2)),
+.rootChild[data-child="3"] > * > :not(:nth-child(3)),
+.rootChild[data-child="4"] > * > :not(:nth-child(4)),
+.rootChild[data-child="5"] > * > :not(:nth-child(5)),
+.rootChild[data-child="6"] > * > :not(:nth-child(6)),
+.rootChild[data-child="7"] > * > :not(:nth-child(7)),
+.rootChild[data-child="8"] > * > :not(:nth-child(8)),
+.rootChild[data-child="9"] > * > :not(:nth-child(9)),
+.rootChild[data-child="10"] > * > :not(:nth-child(10)),
+.rootChild[data-child="11"] > * > :not(:nth-child(11)),
+.rootChild[data-child="12"] > * > :not(:nth-child(12)),
+.rootChild[data-child="13"] > * > :not(:nth-child(13)),
+.rootChild[data-child="14"] > * > :not(:nth-child(14)),
+.rootChild[data-child="15"] > * > :not(:nth-child(15)),
+.rootChild[data-child="16"] > * > :not(:nth-child(16)) {
+  visibility: hidden;
+}

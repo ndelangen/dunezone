@@ -30,6 +30,18 @@ export type BlogPostMeta = {
  * A body file under `posts/` is named for its slug, never `index.tsx` or `*.route.tsx`, which the router would read as a page.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'drawing-dune-tokens-and-cards': {
+    slug: 'drawing-dune-tokens-and-cards',
+    title: 'How dune.zone draws its Dune leader tokens and cards',
+    date: '2026-10-15',
+    author: 'Central419',
+    summary: 'Draft.',
+    cover: {
+      key: '/web/blog/why-dune/tts-central419.jpg',
+      alt: 'Draft cover',
+      aspect: 1416 / 2048,
+    },
+  },
   'tabletop-simulator': {
     slug: 'tabletop-simulator',
     title: 'Building Dune on Tabletop Simulator',

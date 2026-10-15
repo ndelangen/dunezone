@@ -1,0 +1,141 @@
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-self: center;
+  width: min(56rem, calc(100vw - 2 * var(--app-shell-inline-gutter, 20px)));
+  margin: 0;
+  container-type: inline-size;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: center;
+}
+
+@container (width >= 48rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 16rem;
+  }
+}
+
+/* The stage is taller than wide, so a stack of up to a dozen planes has room above and below the object. */
+.stage {
+  position: relative;
+  justify-self: center;
+  width: 100%;
+  max-width: 34rem;
+  aspect-ratio: 4 / 5;
+  perspective: 1800px;
+}
+
+.scene {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(calc(var(--apart) * 62deg)) rotateZ(calc(var(--apart) * -28deg));
+}
+
+/* Every plane is the whole renderer at its natural size, centred on the scene's origin and lifted by its place in the stack. */
+.plane {
+  position: absolute;
+  top: calc(var(--natural-height) * var(--fit) / -2);
+  left: calc(var(--natural-width) * var(--fit) / -2);
+  width: calc(var(--natural-width) * var(--fit));
+  height: calc(var(--natural-height) * var(--fit));
+  transform: translateZ(calc(var(--apart) * var(--index) * var(--natural-height) * var(--fit) * 0.16));
+  transform-style: preserve-3d;
+  transition: opacity 150ms ease;
+}
+
+.plane[data-dimmed] {
+  opacity: 0.12;
+}
+
+.content {
+  width: var(--natural-width);
+  height: var(--natural-height);
+  transform: scale(var(--fit));
+  transform-origin: 0 0;
+}
+
+/* The whole renderer sits flat over the closed stack and fades out as soon as the layers start to part. */
+.whole {
+  position: absolute;
+  top: calc(50% - var(--natural-height) * var(--fit) / 2);
+  left: calc(50% - var(--natural-width) * var(--fit) / 2);
+  width: calc(var(--natural-width) * var(--fit));
+  height: calc(var(--natural-height) * var(--fit));
+  opacity: max(0, calc(1 - var(--apart) * 12));
+  pointer-events: none;
+}
+
+/* A dark glass sheet behind each plane, so a layer that is mostly empty, or drawn in the light tint, still reads as a layer once the stack opens. */
+.sheet {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--mantine-radius-md);
+  background: rgb(14 20 32 / 0.14);
+  box-shadow: inset 0 0 0 1px rgb(120 100 60 / 0.35);
+  opacity: min(1, calc(var(--apart) * 4));
+  pointer-events: none;
+}
+
+.stage[data-shape="disc"] .sheet {
+  border-radius: 50%;
+}
+
+/* A token is round only because whatever holds it clips it, so the stage clips every plane the same way. */
+.stage[data-shape="disc"] .content {
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.controls {
+  min-width: 0;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.layerButton {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-xs);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.layerButton:hover,
+.layerButton:focus-visible {
+  background: var(--mantine-color-default-hover);
+}
+
+.number {
+  color: var(--mantine-color-dimmed);
+  font-variant-numeric: tabular-nums;
+}
+
+.caption {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plane {
+    transition: none;
+  }
+}
