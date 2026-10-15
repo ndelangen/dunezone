@@ -22,7 +22,7 @@ export function pointerRiders(pieces: readonly TablePiece[], plate: TablePiece):
 }
 
 /** Where a rider ends up when its plate goes from one pose to another: it keeps its place and its angle on the plate. */
-export function riderPose(rider: TablePiece, from: Pose, to: Pose): Pose {
+function riderPose(rider: TablePiece, from: Pose, to: Pose): Pose {
   const turn = to.orientation - from.orientation;
   /* The rider's offset in the plate's own frame, put back down at the plate's new pose. */
   const cosine = Math.cos(from.orientation);
