@@ -94,14 +94,20 @@ export function phaseAt(index: number, phases: readonly PhaseEntry[] = STANDARD_
  * The turn the table plays once its factions' order may have changed, as when the storm moves or a faction token changes sector.
  * The new order takes effect only while every phase played so far this turn, the current one included, keeps its place;
  * otherwise the turn runs out in the order it started, so no phase is skipped or played twice, and the new order starts with the next turn.
+ * `previous` is the index the table was at before this change: stepping into a new turn takes the new order before its first phase is played.
  */
 export function recomposedTurn(
   index: number,
+  previous: number | undefined,
   before: readonly PhaseEntry[] | undefined,
   after: readonly PhaseEntry[] | undefined
 ): PhaseEntry[] | undefined {
   if (!before || !after || before.length !== after.length) {
     return after as PhaseEntry[] | undefined;
+  }
+  const turnOf = (at: number) => Math.floor(at / before.length);
+  if (previous !== undefined && turnOf(index) > turnOf(previous)) {
+    return after as PhaseEntry[];
   }
   const played = (phases: readonly PhaseEntry[]) =>
     phases

@@ -210,16 +210,24 @@ describe('recomposedTurn', () => {
   const after = [entry('storm'), entry('b'), entry('a'), entry('bidding')];
 
   it('takes the new order while nothing played so far moves', () => {
-    expect(recomposedTurn(4 + 0, before, after)).toBe(after);
+    expect(recomposedTurn(4 + 0, 4 + 0, before, after)).toBe(after);
   });
 
   it('keeps the order the turn started with once a reordered phase has been reached', () => {
-    expect(recomposedTurn(4 + 1, before, after)).toBe(before);
-    expect(recomposedTurn(4 + 3, before, after)).toBe(before);
+    expect(recomposedTurn(4 + 1, 4 + 1, before, after)).toBe(before);
+    expect(recomposedTurn(4 + 3, 4 + 3, before, after)).toBe(before);
+  });
+
+  it('takes the deferred order as the next turn starts, even when a reordered phase comes first', () => {
+    const first = [entry('b'), entry('a'), entry('storm'), entry('bidding')];
+    const swapped = [entry('a'), entry('b'), entry('storm'), entry('bidding')];
+    expect(recomposedTurn(0, 0, first, swapped)).toBe(first);
+    expect(recomposedTurn(4, 3, first, swapped)).toBe(swapped);
+    expect(recomposedTurn(4, 4, first, swapped)).toBe(first);
   });
 
   it('takes a turn of a new shape as it comes', () => {
-    expect(recomposedTurn(5, before, after.slice(1))).toEqual(after.slice(1));
-    expect(recomposedTurn(5, undefined, after)).toBe(after);
+    expect(recomposedTurn(5, 5, before, after.slice(1))).toEqual(after.slice(1));
+    expect(recomposedTurn(5, 5, undefined, after)).toBe(after);
   });
 });

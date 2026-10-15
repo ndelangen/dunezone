@@ -248,7 +248,12 @@ export class GameSession {
   private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
     const settled = settleEnding(snapshot, () => new Set(this.actors.seated().map((occupant) => occupant.userId)));
     const roster = this.actors.roster(this.seatCount());
-    const phases = recomposedTurn(settled.phase, settled.phases, this.composedTurn(roster, settled.table));
+    const phases = recomposedTurn(
+      settled.phase,
+      this.room?.snapshot.phase,
+      settled.phases,
+      this.composedTurn(roster, settled.table)
+    );
     return { ...settled, roster, phases };
   }
 
