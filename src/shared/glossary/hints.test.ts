@@ -125,6 +125,15 @@ describe('fixTermWording', () => {
     );
   });
 
+  test('points sandworms and thopters to their rulebook names', () => {
+    expect(fixTermWording('A sandworm eats the thopters.')).toBe('A Shai-Hulud eats the ornithopters.');
+  });
+
+  test('leaves the special Karama power alone while still hinting other powers', () => {
+    expect(summary('Use your special Karama power.')).toEqual([]);
+    expect(summary('Their powers are strong.')).toEqual([['powers', 'Advantage']]);
+  });
+
   test('points a pact to a deal', () => {
     expect(fixTermWording('We made a pact, then two more pacts.')).toBe('We made a deal, then two more deals.');
   });

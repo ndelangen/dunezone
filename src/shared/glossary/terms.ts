@@ -383,6 +383,52 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     avoid: [{ word: 'sandstorm', forms: ['sandstorms'], hint: false }],
   },
   {
+    id: 'sand-territory',
+    term: 'Sand territory',
+    topic: 'board',
+    explanation:
+      'A territory of open desert. Spice appears only on the sand, and the storm destroys troops and spice in the sand sectors it passes.',
+    reason: 'The rulebook word. Desert is the same place under a second name.',
+    source: 'rulebook',
+    avoid: [
+      {
+        word: 'desert territory',
+        forms: ['desert territories'],
+        fixes: { 'desert territory': 'sand territory', 'desert territories': 'sand territories' },
+      },
+    ],
+  },
+  {
+    id: 'rock-territory',
+    term: 'Rock territory',
+    topic: 'board',
+    explanation:
+      'A territory of rock rising out of the sand, such as the Shield Wall. Troops on rock are safe from the storm.',
+    reason: 'The rulebook word.',
+    source: 'rulebook',
+    avoid: [],
+  },
+  {
+    id: 'polar-sink',
+    term: 'Polar Sink',
+    topic: 'board',
+    explanation:
+      'The territory at the centre of the map. The storm never reaches it, and troops of different factions share it without battle.',
+    reason: 'The rulebook name.',
+    source: 'rulebook',
+    avoid: [],
+  },
+  {
+    id: 'ornithopters',
+    term: 'Ornithopters',
+    topic: 'board',
+    explanation:
+      'Flying craft that speed up movement. A faction with troops in Arrakeen or Carthag when it starts its move may move a group up to three territories instead of one.',
+    reason: 'The rulebook word. Thopter is the short form players say at the table.',
+    source: 'rulebook',
+    avoid: [{ word: 'thopter', forms: ['thopters'], fixes: { thopter: 'ornithopter', thopters: 'ornithopters' } }],
+  },
+  {
     id: 'spice',
     term: 'Spice',
     topic: 'spice',
@@ -457,7 +503,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     term: 'Spice card',
     topic: 'cards',
     explanation:
-      'A card from the spice deck, turned over during Spice Blow to show where new spice appears or when a sandworm strikes.',
+      'A card from the spice deck, turned over during Spice Blow to show where new spice appears or when Shai-Hulud strikes.',
     reason:
       'The rulebook word. Territory card names the card after what is printed on it rather than the deck it belongs to.',
     source: 'rulebook',
@@ -472,6 +518,19 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
         forms: ['spice blow cards'],
         fixes: { 'spice blow card': 'spice card', 'spice blow cards': 'spice cards' },
       },
+    ],
+  },
+  {
+    id: 'shai-hulud',
+    term: 'Shai-Hulud',
+    topic: 'cards',
+    explanation:
+      'The great sandworm of Arrakis, and the spice card that calls it. When Shai-Hulud is turned over during Spice Blow, it devours every troop and all spice in the territory of the last spice card. After the first turn, it also starts a Nexus.',
+    reason: 'The name printed on the card. Sandworm and worm are what the card shows, not what it is called.',
+    source: 'rulebook',
+    avoid: [
+      { word: 'sandworm', forms: ['sandworms'], fixes: { sandworm: 'Shai-Hulud', sandworms: 'Shai-Hulud' } },
+      { word: 'worm', forms: ['worms'], fixes: { worm: 'Shai-Hulud' } },
     ],
   },
   {
@@ -516,10 +575,20 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       {
         word: 'power',
         forms: ['powers'],
-        exceptions: [/desert\s+power/i],
+        exceptions: [/desert\s+power/i, /karama\s+powers?/i],
       },
       { word: 'perk', forms: ['perks'], fixes: { perk: 'advantage', perks: 'advantages' } },
     ],
+  },
+  {
+    id: 'special-karama-power',
+    term: 'Special Karama power',
+    topic: 'factions',
+    explanation:
+      'In the advanced game, a power only one faction has, used by playing a Karama card. Each faction may use its special Karama power once per game.',
+    reason: 'The rulebook name. It stays apart from advantages because it costs a Karama card and works only once.',
+    source: 'rulebook',
+    avoid: [],
   },
   {
     id: 'leader',
