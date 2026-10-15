@@ -297,7 +297,7 @@ async function verifyBrowser(browser: Browser, workerPath: string) {
     const target = 'https://example.com/';
     let blocked = false;
     const onViolation = (event: SecurityPolicyViolationEvent) => {
-      if (event.effectiveDirective === 'connect-src' && event.blockedURI.startsWith('https://example.com')) {
+      if (event.effectiveDirective === 'connect-src' && event.blockedURI === target) {
         blocked = true;
       }
     };
