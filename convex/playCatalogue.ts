@@ -136,6 +136,25 @@ export const factionDefinition = publicQuery({
 
 const DRAFTABLE_FACTION_LIMIT = 500;
 
+/* The ruleset's own factions always make the list; the rest of it holds the newest live factions, in creation order. */
+async function draftCandidates(ctx: QueryCtx, linked: ReadonlySet<Id<'factions'>>) {
+  const rows = await Promise.all([...linked].map((id) => ctx.db.get(id)));
+  const chosen = new Map(
+    rows.filter((row): row is Doc<'factions'> => row !== null && !row.is_deleted).map((row) => [row._id, row])
+  );
+  const newest = ctx.db
+    .query('factions')
+    .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+    .order('desc');
+  for await (const row of newest) {
+    if (chosen.size >= DRAFTABLE_FACTION_LIMIT) {
+      break;
+    }
+    chosen.set(row._id, row);
+  }
+  return [...chosen.values()].sort((a, b) => a._creationTime - b._creationTime);
+}
+
 /**
  * Every live faction as a drafting game reads it: its token's render data, its theme colour, whether it is linked to the game's ruleset and whether its token is published.
  * A row that does not parse is left out;
@@ -153,24 +172,7 @@ export const draftableFactions = publicQuery({
           .take(500)
       : [];
     const linked = new Set(links.map((link) => link.faction_id));
-    /* The ruleset's own factions always make the list; the rest of it holds the newest live factions, in creation order. */
-    const chosen = new Map<Id<'factions'>, Doc<'factions'>>();
-    for (const id of linked) {
-      const row = await ctx.db.get(id);
-      if (row && !row.is_deleted) {
-        chosen.set(row._id, row);
-      }
-    }
-    for await (const row of ctx.db
-      .query('factions')
-      .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-      .order('desc')) {
-      if (chosen.size >= DRAFTABLE_FACTION_LIMIT) {
-        break;
-      }
-      chosen.set(row._id, row);
-    }
-    const rows = [...chosen.values()].sort((a, b) => a._creationTime - b._creationTime);
+    const rows = await draftCandidates(ctx, linked);
     const factions = [];
     for (const row of rows) {
       const parsed = CanonicalFactionStoredSchema.safeParse(row.data);
