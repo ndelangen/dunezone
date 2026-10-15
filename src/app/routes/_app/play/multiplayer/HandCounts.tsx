@@ -228,7 +228,10 @@ function useHandCountTexture(rows: readonly Row[]) {
  */
 export function HandCountsScene({ table }: { table: TableProjection }) {
   const roster = table.snapshot.roster;
-  const order = useMemo(() => stormOrder(table.state.stormSectorIndex, roster), [table.state.stormSectorIndex, roster]);
+  const order = useMemo(
+    () => stormOrder(table.state.stormSectorIndex, roster, table.state.pieces),
+    [table.state.stormSectorIndex, roster, table.state.pieces]
+  );
   const texture = useHandCountTexture(handCountRows(table, order));
   const shown = Boolean(roster && table.snapshot.handCounts);
   if (!shown || !texture) {

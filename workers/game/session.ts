@@ -248,7 +248,7 @@ export class GameSession {
   private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
     const settled = settleEnding(snapshot, () => new Set(this.actors.seated().map((occupant) => occupant.userId)));
     const roster = this.actors.roster(this.seatCount());
-    return { ...settled, roster, phases: this.composedTurn(roster, settled.table.stormSectorIndex) };
+    return { ...settled, roster, phases: this.composedTurn(roster, settled.table) };
   }
 
   /**
@@ -256,7 +256,7 @@ export class GameSession {
    * Recomposed with every snapshot the room accepts, so a storm move reorders the entries after Storm and nothing stores an order.
    * A game whose seated factions declare nothing (a fixture, one still drafting, or plain factions) plays the standard turn and carries no list.
    */
-  private composedTurn(roster: TableRoster, stormSectorIndex: number): PhaseEntry[] | undefined {
+  private composedTurn(roster: TableRoster, table: StoredSnapshot['table']): PhaseEntry[] | undefined {
     const seated = new Set(rosterFactionIds(roster));
     const factions = this.captures
       .phaseDeclarations()
@@ -264,7 +264,7 @@ export class GameSession {
     if (!factions.length) {
       return undefined;
     }
-    return composeTurn(factions, stormOrder(stormSectorIndex, roster));
+    return composeTurn(factions, stormOrder(table.stormSectorIndex, roster, table.pieces));
   }
 
   /** A drafting roster that outgrew its stations fixes a larger count, inside the caller's transaction. */

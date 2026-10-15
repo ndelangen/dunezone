@@ -1,3 +1,11 @@
+import {
+  factionTokenInSector,
+  factionTokenRingAngle,
+  factionTokenRingPose,
+  factionTokenSectorPose,
+  isFactionToken,
+  sectorIndexAt,
+} from './factionToken';
 import { gestureBlockReason, isFlippablePiece, nearestZone, pieceCount, zoneById } from './model';
 import type { DraftMove, TableEvent, TableItem, TablePiece, TableState, Vector3Tuple } from './model';
 import { isSpicePiece } from './spice';
@@ -341,6 +349,10 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
   if (isSpicePiece(piece) && isSpiceBankPosition(position)) {
     return moveDraftTo(draft, [...position], null);
   }
+  if (isFactionToken(piece)) {
+    const pose = factionTokenRingPose(factionTokenRingAngle(position), position[1]);
+    return { ...moveDraftTo(draft, pose.position, null), orientation: pose.orientation };
+  }
   const placementAnchor = placementAnchorAtPosition(piece, position);
   const targetPiece = anchoredStackTarget(state, draft, piece, position, placementAnchor);
   if (targetPiece) {
@@ -371,12 +383,25 @@ function anchoredStackTarget(
   return compatibleStackTarget(state, projectedPiece, targetPosition, { draft });
 }
 
+/* A faction token settles at the centre of the sector it is over; a locked token already standing there keeps its place. */
+function settleFactionTokenAt(state: TableState, draft: DraftMove, piece: TablePiece, position: Vector3Tuple) {
+  const pose = factionTokenSectorPose(position);
+  if (factionTokenInSector(state.pieces, pose.position, draft.sourcePieceId)?.locked) {
+    return null;
+  }
+  const resting = restingPositionAt(pose.position, { ...piece, orientation: pose.orientation });
+  return { ...moveDraftTo(draft, resting, null), orientation: pose.orientation };
+}
+
 function settleMoveAtPosition(
   state: TableState,
   draft: DraftMove,
   piece: TablePiece,
   position: Vector3Tuple
 ): DraftMove | null {
+  if (isFactionToken(piece)) {
+    return settleFactionTokenAt(state, draft, piece, position);
+  }
   const placementAnchor = placementAnchorAtPosition(piece, position);
   if (placementAnchor) {
     const anchoredPiece = {
@@ -701,6 +726,35 @@ function piecesAfterMove(current: TableState, draft: DraftMove, movedPiece: Tabl
   return current.pieces.map((candidate) => (candidate.id === movedPiece.id ? movedPiece : candidate));
 }
 
+/* A faction token set down in a sector another token holds trades places with it: that token takes the sector the carried one came from. */
+function swappedFactionTokens(current: TableState, draft: DraftMove, piece: TablePiece, pieces: TablePiece[]) {
+  const occupant = isFactionToken(piece) && factionTokenInSector(current.pieces, draft.position, draft.sourcePieceId);
+  if (!occupant || sectorIndexAt(occupant.position) === sectorIndexAt(draft.origin)) {
+    return null;
+  }
+  const pose = factionTokenSectorPose(draft.origin);
+  const moved = { ...occupant, orientation: pose.orientation };
+  return {
+    occupant,
+    pieces: pieces.map((candidate) =>
+      candidate.id === occupant.id ? { ...moved, position: restingPositionAt(pose.position, moved) } : candidate
+    ),
+  };
+}
+
+function applyFactionTokenMove(application: DraftApplication, movedPiece: TablePiece): TableState {
+  const { current, draft, piece } = application;
+  const pieces = piecesAfterMove(current, draft, movedPiece);
+  const swap = swappedFactionTokens(current, draft, piece, pieces);
+  return accepted(
+    { ...current, pieces: swap?.pieces ?? pieces, selectedPieceId: movedPiece.id, draftMove: null },
+    'piece.move',
+    swap
+      ? `${piece.label} swapped places with ${swap.occupant.label}.`
+      : `${piece.label} moved to sector ${sectorIndexAt(draft.position) + 1}.`
+  );
+}
+
 function applyMove(application: DraftApplication): TableState {
   const { current, draft, piece } = application;
   const destination = zoneById(draft.targetZoneId)?.label ?? 'a free table position';
@@ -710,6 +764,9 @@ function applyMove(application: DraftApplication): TableState {
     orientation: draft.orientation,
     zoneId: draft.targetZoneId,
   };
+  if (isFactionToken(piece)) {
+    return applyFactionTokenMove(application, movedPiece);
+  }
   return accepted(
     {
       ...current,
