@@ -7,6 +7,7 @@ const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]']);
  * Whether this game Worker runs in the isolated local stack: it carries play-local's marker and serves a loopback origin.
  * A deployed Worker has neither, because its GIT_SHA is the commit it runs and its origin is public.
  * The test phase cooldown and the test start stage from a synthetic backend are accepted only here.
+ * Here the homepage table also lasts an hour from when it opens instead of resetting on the clock hour.
  */
 export function isLocalIsolatedRuntime(env: { GIT_SHA: string; APPLICATION_ORIGIN: string }): boolean {
   if (env.GIT_SHA !== LOCAL_ISOLATED_GIT_SHA) {
