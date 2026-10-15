@@ -144,20 +144,23 @@ async function stopProcess(process: ReturnType<typeof Bun.spawn>) {
   invariant(killed, 'Wrangler did not stop after SIGKILL.');
 }
 
-/** A CSP directive's source list exactly as written, so an extra source such as `https:` beside `'self'` cannot hide behind a substring match. */
-function directive(policy: string, name: string) {
-  return policy
-    .split(';')
+/**
+ * Whether some policy in the header limits a directive to exactly these sources.
+ * A response can carry several policies, joined with commas when more than one `_headers` rule matches, and the browser enforces every one, so one exact match is the binding limit.
+ * Exact matching stops an extra source such as `https:` beside `'self'` from hiding behind a substring check.
+ */
+function limits(header: string, name: string, sources: string) {
+  return header
+    .split(',')
+    .flatMap((policy) => policy.split(';'))
     .map((part) => part.trim().split(/\s+/))
-    .find(([directiveName]) => directiveName === name)
-    ?.slice(1)
-    .join(' ');
+    .some(([directive, ...rest]) => directive === name && rest.join(' ') === sources);
 }
 
 function assertDocumentCsp(value: string | null) {
   invariant(value, 'The Storybook document has no CSP.');
   invariant(value.includes("default-src 'self'"), 'The Storybook document CSP has no same-origin default.');
-  invariant(directive(value, 'connect-src') === "'self'", 'The Storybook document CSP permits external connections.');
+  invariant(limits(value, 'connect-src', "'self'"), 'The Storybook document CSP permits external connections.');
   invariant(value.includes("worker-src 'self'"), 'The Storybook document CSP cannot start its same-origin worker.');
   invariant(value.includes("object-src 'none'"), 'The Storybook document CSP permits objects.');
 }
@@ -166,8 +169,8 @@ function assertWorkerCsp(value: string | null) {
   invariant(value, 'The browser-local Convex worker has no CSP.');
   invariant(value.includes("default-src 'none'"), 'The Convex worker CSP has no deny-by-default policy.');
   invariant(value.includes("script-src 'self'"), 'The Convex worker CSP cannot load its same-origin chunks.');
-  invariant(directive(value, 'connect-src') === "'none'", 'The Convex worker CSP permits connections.');
-  invariant(directive(value, 'worker-src') === "'none'", 'The Convex worker CSP permits subworkers.');
+  invariant(limits(value, 'connect-src', "'none'"), 'The Convex worker CSP permits connections.');
+  invariant(limits(value, 'worker-src', "'none'"), 'The Convex worker CSP permits subworkers.');
 }
 
 async function verifyHeaders(workerPath: string) {
