@@ -65,20 +65,13 @@ describe('assert-css-custom-properties-defined', () => {
     expect(result.code).toBe(0);
   });
 
-  test('a commented-out definition satisfies nothing', async () => {
-    const result = await gate({
-      'src/app/a.module.css': '/* --color-ghost: red; */ .x { color: var(--color-ghost); }',
-    });
+  test.each([
+    ['a commented-out definition', '/* --color-ghost: red; */ .x { color: var(--color-ghost); }', '--color-ghost'],
+    ['a BEM modifier selector', '.card--accent:hover { opacity: 1; } .title { color: var(--accent); }', '--accent'],
+  ])('%s satisfies nothing', async (_case, css, name) => {
+    const result = await gate({ 'src/app/a.module.css': css });
     expect(result.code).toBe(1);
-    expect(result.output).toContain('--color-ghost');
-  });
-
-  test('a BEM modifier selector defines nothing', async () => {
-    const result = await gate({
-      'src/app/a.module.css': '.card--accent:hover { opacity: 1; } .title { color: var(--accent); }',
-    });
-    expect(result.code).toBe(1);
-    expect(result.output).toContain('--accent');
+    expect(result.output).toContain(name);
   });
 
   test('a read in TypeScript is policed like one in CSS', async () => {
