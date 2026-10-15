@@ -37,6 +37,11 @@ type Props = {
   clipPath?: string;
   /** Whether the image wears a raised frame's shadow, which arrives with it rather than ahead of it. */
   raised?: boolean;
+  /**
+   * Whether this is the page's main image, which is written into the server-rendered HTML and fetched first.
+   * It is then the page's largest paint without waiting for scripts, and what image search finds on the page.
+   */
+  priority?: boolean;
 };
 
 /**
@@ -106,10 +111,14 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-function initialState(src: string | null): State {
+function initialState(src: string | null, priority: boolean): State {
   const base = { arrival: 'animate', fetching: false, slot: false, order: null } as const;
   if (src === null) {
     return { ...base, phase: 'missing' };
+  }
+  /* The server writes a main image's src, so the client's first render must hold it too. */
+  if (priority) {
+    return { ...base, phase: 'loading', fetching: true };
   }
   /* An image decoded before fetches at once, and is shown before the first paint if the browser still holds it. */
   if (wasDecoded(src)) {
@@ -123,8 +132,8 @@ function inFetchRange(element: HTMLElement) {
   return rect.bottom >= -FETCH_MARGIN_PX && rect.top <= window.innerHeight + FETCH_MARGIN_PX;
 }
 
-function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props) {
-  const [state, dispatch] = useReducer(reducer, src, initialState);
+function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority = false }: Props) {
+  const [state, dispatch] = useReducer(reducer, src, (initial) => initialState(initial, priority));
   const motion = useMotionAllowed();
   const rootRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -168,12 +177,20 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
     return () => observer.disconnect();
   }, [fetching, phase]);
 
-  /* An image the browser already holds is complete the moment it gets its src, so it is shown before the first paint. */
+  /*
+   * An image the browser already holds is complete the moment it gets its src, so it is shown before the first paint.
+   * A server-rendered one may have loaded or failed before hydration, whose events nothing heard, so it is settled here too.
+   */
   useLayoutEffect(() => {
     const img = imgRef.current;
-    if (fetching && phase === 'loading' && src && img?.complete && img.naturalWidth > 0) {
+    if (!fetching || phase !== 'loading' || !src || !img?.complete) {
+      return;
+    }
+    if (img.naturalWidth > 0) {
       markDecoded(src);
       dispatch({ type: 'decoded' });
+    } else {
+      dispatch({ type: 'failed' });
     }
   }, [fetching, phase, src]);
 
@@ -335,6 +352,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
                 src={src}
                 alt={name}
                 decoding="async"
+                fetchPriority={priority ? 'high' : undefined}
                 draggable={false}
                 onLoad={onLoad}
                 onError={() => {

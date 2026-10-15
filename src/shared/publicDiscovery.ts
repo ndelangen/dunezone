@@ -19,7 +19,16 @@ export const sitemapArgsSchema = z.object({
 });
 
 export const sitemapPageSchema = z.object({
-  entries: z.array(z.object({ pathname: z.string().max(2048), lastmod: z.string().nullable() })).max(SITEMAP_PAGE_SIZE),
+  entries: z
+    .array(
+      z.object({
+        pathname: z.string().max(2048),
+        lastmod: z.string().nullable(),
+        /** The generated images the page shows, by the same paths its `<img>` elements use. */
+        images: z.array(z.string().max(2048)).max(2).optional(),
+      })
+    )
+    .max(SITEMAP_PAGE_SIZE),
   cursor: z.string().max(8192).nullable(),
 });
 export type SitemapArgs = z.infer<typeof sitemapArgsSchema>;

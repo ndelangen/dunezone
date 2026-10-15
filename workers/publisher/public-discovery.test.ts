@@ -77,6 +77,29 @@ test('a complete paginated result is escaped and shared by GET, HEAD and trackin
   expect(load).toHaveBeenCalledTimes(2);
 });
 
+test('an asset page names the generated images it shows, beside the URL they belong to', async () => {
+  const load = vi.fn().mockResolvedValueOnce({
+    entries: [
+      {
+        pathname: '/assets/token-disc/spice',
+        lastmod: null,
+        images: ['/published/round-tokens/abc/token.jpg?v=1&x', '/published/round-tokens/abc.back/token.jpg?v=1'],
+      },
+      { pathname: '/assets/token-disc/bare', lastmod: null },
+    ],
+    cursor: null,
+  });
+  const result = await handlePublicDiscovery(request('/sitemap-token-disc.xml'), env, undefined, load);
+  const body = await result!.text();
+  expect(body).toContain('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"');
+  expect(body).toContain(
+    '<url><loc>https://dune.zone/assets/token-disc/spice</loc>' +
+      '<image:image><image:loc>https://dune.zone/published/round-tokens/abc/token.jpg?v=1&amp;x</image:loc></image:image>' +
+      '<image:image><image:loc>https://dune.zone/published/round-tokens/abc.back/token.jpg?v=1</image:loc></image:image></url>'
+  );
+  expect(body).toContain('<url><loc>https://dune.zone/assets/token-disc/bare</loc></url>');
+});
+
 test('failed and non-advancing scans return retryable errors without caching partial XML', async () => {
   const log = vi.spyOn(console, 'error').mockImplementation(() => {});
   for (const load of [

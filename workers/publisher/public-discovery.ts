@@ -31,7 +31,9 @@ function location(pathname: string): string {
 }
 
 function document(kind: 'sitemapindex' | 'urlset', contents: string): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<${kind} xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${contents}</${kind}>\n`;
+  /* Google's image extension lets a page name the generated images it shows, which its HTML alone may not reveal before scripts run. */
+  const images = kind === 'urlset' ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : '';
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<${kind} xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${images}>${contents}</${kind}>\n`;
 }
 
 function loadFromConvex(env: Pick<Env, 'CONVEX_CLOUD_BASE_URL'>): LoadPage {
@@ -51,7 +53,13 @@ function loadFromConvex(env: Pick<Env, 'CONVEX_CLOUD_BASE_URL'>): LoadPage {
 }
 
 function urlElement(entry: SitemapPage['entries'][number]): string {
-  return `<url>${location(entry.pathname)}${entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : ''}</url>`;
+  const images = (entry.images ?? [])
+    .map(
+      (image) =>
+        `<image:image><image:loc>${escapeXml(new URL(image, PUBLIC_SITE_ORIGIN).href)}</image:loc></image:image>`
+    )
+    .join('');
+  return `<url>${location(entry.pathname)}${entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : ''}${images}</url>`;
 }
 
 function assertCapacity(count: number, bytes: number): void {
