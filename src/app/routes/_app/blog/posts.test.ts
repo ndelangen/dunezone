@@ -1,4 +1,4 @@
-import { BLOG_POST_SLUGS } from '@shared/recordlessPublicPages';
+import { BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
 import { expect, test } from 'vitest';
 
 import { BLOG_POSTS, blogPostAuthor } from './posts';

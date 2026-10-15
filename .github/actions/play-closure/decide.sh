@@ -26,10 +26,11 @@ read_api() {
   fi
 }
 # The files of a compare response, one per line, into changed-files.txt.
+# A modified file whose diff deletes no line carries a tab and only-adds-lines, which lets new art skip the shards (scripts/lib/hosted-play-closure.ts).
 # A renamed file counts under both its names, so a file moved out of the closure still reaches.
 # One response carries the files of the whole comparison (paging splits only its commits) and lists at most 300, so a list that long may be cut short and fails this function.
 files_of() {
-  jq -r '.files[] | .filename, (.previous_filename // empty)' "$1" > changed-files.txt \
+  jq -r '.files[] | (if .status == "modified" and .deletions == 0 then "\(.filename)\tonly-adds-lines" else .filename end), (.previous_filename // empty)' "$1" > changed-files.txt \
     && [ "$(grep -c . changed-files.txt)" -lt 300 ]
 }
 case "$EVENT" in

@@ -5,8 +5,14 @@ import { join, resolve } from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
-import { decideHostedPlay, globToRegExp, reachesHostedPlay } from './lib/hosted-play-closure';
-import { importedFiles } from './lib/import-graph';
+import {
+  UNOBSERVED_IMPORTS,
+  decideHostedPlay,
+  globToRegExp,
+  parseChangedFiles,
+  reachesHostedPlay,
+} from './lib/hosted-play-closure';
+import { importGraph } from './lib/import-graph';
 
 const root = resolve(import.meta.dirname, '..');
 
@@ -51,10 +57,16 @@ const ENTRY_POINTS = [
 describe('the hosted play closure', () => {
   test('covers every file the play pages, the Workers and the launcher import', async () => {
     /* Absolute urls name files under public/ the pages load at run time, a directory the closure names whole, and the route tree names every page, not the ones a flow visits. */
-    const files = await importedFiles(root, ENTRY_POINTS, /^\/|routeTree\.gen$/, 'test-results/hosted-play-closure');
+    const graph = await importGraph(root, ENTRY_POINTS, /^\/|routeTree\.gen$/, 'test-results/hosted-play-closure');
+    const files = [...graph.keys()];
     expect(files.length).toBeGreaterThan(200);
-    const outside = files.filter((file) => !reachesHostedPlay(file));
+    const outside = files.filter((file) => !reachesHostedPlay(file) && !Object.hasOwn(UNOBSERVED_IMPORTS, file));
     expect(outside, 'files the hosted flows exercise that no closure glob names').toEqual([]);
+    /* An unobserved file stays unobserved only while the files that read it are the ones its entry names. */
+    for (const [file, { importers }] of Object.entries(UNOBSERVED_IMPORTS)) {
+      expect(graph.get(file), `${file} is no longer imported by the flows' code; drop its entry`).toBeDefined();
+      expect(graph.get(file), `the files in the flows' import graph that import ${file}`).toEqual(importers);
+    }
   }, 60_000);
 
   test.each([
@@ -97,20 +109,64 @@ describe('the hosted play closure', () => {
     ['scripts/lib/reactCompiler.ts', true],
     ['scripts/lib/storybook-shards.ts', false],
     ['coverage-denominator.ts', true],
+    ['src/shared/recordlessPublicPages.ts', true],
+    ['src/shared/blogPostSlugs.ts', false],
+    ['workers/publisher/renderer-manifest.generated.ts', false],
+    ['workers/publisher/renderer-manifest-build.ts', true],
+    ['media/raster.lock.json', true],
   ])('%s reaches the flows: %s', (file, reaches) => {
     expect(reachesHostedPlay(file)).toBe(reaches);
   });
 
   test('a diff outside the closure skips the shards, one inside runs them, and no diff at all runs them', () => {
-    expect(decideHostedPlay(['docs/deployment.md', 'media/vector/icon/drup.svg'])).toMatchObject({
+    expect(decideHostedPlay(parseChangedFiles('docs/deployment.md\nmedia/vector/icon/drup.svg\n'))).toMatchObject({
       run: false,
       reaching: [],
     });
-    expect(decideHostedPlay(['docs/deployment.md', 'workers/game/index.ts'])).toMatchObject({
+    expect(decideHostedPlay(parseChangedFiles('docs/deployment.md\nworkers/game/index.ts\n'))).toMatchObject({
       run: true,
       reaching: ['workers/game/index.ts'],
     });
     expect(decideHostedPlay([])).toMatchObject({ run: true });
+  });
+
+  /* PR #2217's files: a blog post with new pictures, which no flow can see. */
+  const blogPost = [
+    'media/raster.lock.json\tonly-adds-lines',
+    'src/shared/media/map.generated.ts\tonly-adds-lines',
+    'src/shared/blogPostSlugs.ts',
+    'workers/publisher/renderer-manifest.generated.ts',
+    'src/app/routes/_app/blog/posts.ts',
+    'src/app/routes/_app/blog/posts/tabletop-simulator.tsx',
+    'src/app/routes/_app/media/media-index.json\tonly-adds-lines',
+    'src/app/routes/site.stories.tsx',
+  ].join('\n');
+
+  test('new art and a new blog post skip the shards', () => {
+    expect(decideHostedPlay(parseChangedFiles(blogPost))).toMatchObject({ run: false, reaching: [] });
+  });
+
+  test.each([
+    ['a changed or removed original', 'media/raster.lock.json'],
+    ['a rewritten media map', 'src/shared/media/map.generated.ts'],
+  ])('%s, which deletes a line, runs them', (_, file) => {
+    expect(decideHostedPlay(parseChangedFiles(`${blogPost}\n${file}`))).toMatchObject({ run: true, reaching: [file] });
+  });
+
+  test('only the art lock and map may only add lines; any other file that only adds lines still runs them', () => {
+    expect(decideHostedPlay(parseChangedFiles('src/shared/recordlessPublicPages.ts\tonly-adds-lines\n'))).toMatchObject(
+      { run: true, reaching: ['src/shared/recordlessPublicPages.ts'] }
+    );
+    expect(
+      decideHostedPlay(parseChangedFiles('src/shared/stockAssetCollections.json\tonly-adds-lines\n'))
+    ).toMatchObject({ run: true });
+  });
+
+  test('a line is a path, with the marker after a tab only on a modified file that deletes no line', () => {
+    expect(parseChangedFiles('a b.ts\nmedia/raster.lock.json\tonly-adds-lines\n\n')).toEqual([
+      { path: 'a b.ts', onlyAddsLines: false },
+      { path: 'media/raster.lock.json', onlyAddsLines: true },
+    ]);
   });
 
   test('globs match whole paths, with ** across directories and * within one', () => {
@@ -124,6 +180,7 @@ describe('the hosted play closure', () => {
   test.each([
     ['docs/deployment.md\nmedia/vector/icon/drup.svg\n', 'false'],
     ['docs/deployment.md\nworkers/game/index.ts\n', 'true'],
+    ['media/raster.lock.json\tonly-adds-lines\n', 'false'],
     ['', 'true'],
   ])('the script writes the decision for %j to the job outputs: run=%s', (list, run) => {
     const directory = mkdtempSync(join(tmpdir(), 'hosted-play-closure-'));
