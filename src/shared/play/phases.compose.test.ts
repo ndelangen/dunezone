@@ -5,7 +5,15 @@ import { capturedDeclarations, factionCaptureSchema } from './capture';
 import type { FactionCapture } from './capture';
 import { applyPieceAction } from './commands';
 import { freshTableState } from './model';
-import { composeSetup, composeTurn, lobbyPhaseIndex, phaseAt, STANDARD_PHASES, tableProgressFor } from './phases';
+import {
+  composeSetup,
+  composeTurn,
+  lobbyPhaseIndex,
+  phaseAt,
+  recomposedTurn,
+  STANDARD_PHASES,
+  tableProgressFor,
+} from './phases';
 import { GameRejection } from './rejection';
 import type { TableRoster } from './schema';
 import { phaseGate } from './setup';
@@ -42,17 +50,17 @@ const beforeBidding = (turn: ReturnType<typeof composeTurn>) =>
 
 describe('storm order (#1138)', () => {
   it('ranks seats by the sectors the storm still has to travel, a seat under the marker last', () => {
-    expect(stormOrder(5, roster)).toEqual(['harkonnen', 'atreides']);
+    expect(stormOrder(5, roster, [])).toEqual(['harkonnen', 'atreides']);
     /* One step counter-clockwise puts the storm over Harkonnen, which it has now passed. */
-    expect(stormOrder(4, roster)).toEqual(['atreides', 'harkonnen']);
-    expect(stormOrder(13, roster)).toEqual(['harkonnen', 'atreides']);
+    expect(stormOrder(4, roster, [])).toEqual(['atreides', 'harkonnen']);
+    expect(stormOrder(13, roster, [])).toEqual(['harkonnen', 'atreides']);
   });
 
   it('leaves out seats without a faction and reads an absent roster as no order', () => {
-    expect(stormOrder(5, { ...roster, seats: [{ ...roster.seats[0]!, faction: null }, roster.seats[1]!] })).toEqual([
-      'harkonnen',
-    ]);
-    expect(stormOrder(5, undefined)).toEqual([]);
+    expect(stormOrder(5, { ...roster, seats: [{ ...roster.seats[0]!, faction: null }, roster.seats[1]!] }, [])).toEqual(
+      ['harkonnen']
+    );
+    expect(stormOrder(5, undefined, [])).toEqual([]);
   });
 });
 
@@ -63,11 +71,11 @@ describe('composition (#1138)', () => {
   ];
 
   it('orders equal priorities at one target by storm order, and swaps them once the storm passes one', () => {
-    expect(beforeBidding(composeTurn(tie, stormOrder(5, roster))).map((entry) => entry.id)).toEqual([
+    expect(beforeBidding(composeTurn(tie, stormOrder(5, roster, []))).map((entry) => entry.id)).toEqual([
       'harkonnen:h',
       'atreides:a',
     ]);
-    expect(beforeBidding(composeTurn(tie, stormOrder(4, roster))).map((entry) => entry.id)).toEqual([
+    expect(beforeBidding(composeTurn(tie, stormOrder(4, roster, []))).map((entry) => entry.id)).toEqual([
       'atreides:a',
       'harkonnen:h',
     ]);
@@ -79,7 +87,7 @@ describe('composition (#1138)', () => {
       { factionId: 'harkonnen', declarations: [declaration({ id: 'h', priority: 20 })] },
     ];
     for (const storm of [4, 5, 13]) {
-      expect(beforeBidding(composeTurn(ranked, stormOrder(storm, roster))).map((entry) => entry.id)).toEqual([
+      expect(beforeBidding(composeTurn(ranked, stormOrder(storm, roster, []))).map((entry) => entry.id)).toEqual([
         'atreides:a',
         'harkonnen:h',
       ]);
@@ -193,5 +201,33 @@ describe('captured declarations (#1138)', () => {
     expect(definition.safeParse([declaration({ id: 'kept' }), renamed]).success).toBe(true);
     const capture = { definition: { extraPhases: [declaration({ id: 'kept' }), renamed] } } as FactionCapture;
     expect(capturedDeclarations(capture).map((row) => row.id)).toEqual(['kept']);
+  });
+});
+
+describe('recomposedTurn', () => {
+  const entry = (id: string) => ({ ...STANDARD_PHASES[0]!, id });
+  const before = [entry('storm'), entry('a'), entry('b'), entry('bidding')];
+  const after = [entry('storm'), entry('b'), entry('a'), entry('bidding')];
+
+  it('takes the new order while nothing played so far moves', () => {
+    expect(recomposedTurn(4 + 0, 4 + 0, before, after)).toBe(after);
+  });
+
+  it('keeps the order the turn started with once a reordered phase has been reached', () => {
+    expect(recomposedTurn(4 + 1, 4 + 1, before, after)).toBe(before);
+    expect(recomposedTurn(4 + 3, 4 + 3, before, after)).toBe(before);
+  });
+
+  it('takes the deferred order as the next turn starts, even when a reordered phase comes first', () => {
+    const first = [entry('b'), entry('a'), entry('storm'), entry('bidding')];
+    const swapped = [entry('a'), entry('b'), entry('storm'), entry('bidding')];
+    expect(recomposedTurn(0, 0, first, swapped)).toBe(first);
+    expect(recomposedTurn(4, 3, first, swapped)).toBe(swapped);
+    expect(recomposedTurn(4, 4, first, swapped)).toBe(first);
+  });
+
+  it('takes a turn of a new shape as it comes', () => {
+    expect(recomposedTurn(5, 5, before, after.slice(1))).toEqual(after.slice(1));
+    expect(recomposedTurn(5, 5, undefined, after)).toBe(after);
   });
 });
