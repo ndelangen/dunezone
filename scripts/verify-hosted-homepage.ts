@@ -7,7 +7,7 @@ import sharp from 'sharp';
 import type { Vector3Tuple } from '../src/shared/play/model.ts';
 import { CARRIED_BASE_Y, stackPreviewPositionFor } from '../src/shared/play/tableGeometry.ts';
 import type { HostedToolkit } from './verify-hosted-play-browser.ts';
-import { required } from './verify-hosted-types.ts';
+import { required, requireView } from './verify-hosted-types.ts';
 import type { HostedPeer, Point, Bounds, Until, TablePiece } from './verify-hosted-types.ts';
 
 const thumbnails = new Map([
@@ -162,8 +162,7 @@ async function dragTroop({
   try {
     await until(
       () =>
-        required(member.view(), 'authorized view').snapshot.table.pieces.find((piece) => piece.id === source.id)?.items
-          .length ===
+        requireView(member).snapshot.table.pieces.find((piece) => piece.id === source.id)?.items.length ===
         source.items.length - 1,
       'Dragging a troop did not remove it from its source stack.'
     );
@@ -255,10 +254,10 @@ async function verifyReserveGesture({
     () => member.page.evaluate(() => window.__duneTable!.pieces().every((piece) => !piece.localCarried)),
     'Cancelling the reserve drag left a carried troop in the scene.'
   );
-  assert.equal(required(member.view(), 'authorized view').snapshot.revision, revision);
-  assert.equal(required(guest.view(), 'authorized view').snapshot.revision, revision);
+  assert.equal(requireView(member).snapshot.revision, revision);
+  assert.equal(requireView(guest).snapshot.revision, revision);
   assert.deepEqual(
-    required(member.view(), 'authorized view').snapshot.table.pieces.find((piece) => piece.id === source.id),
+    requireView(member).snapshot.table.pieces.find((piece) => piece.id === source.id),
     source
   );
 }
@@ -270,7 +269,7 @@ async function verifyReservePickup(
   until: Until,
   passed: HostedToolkit['passed']
 ) {
-  const reserves = required(member.view(), 'authorized view').snapshot.table.pieces.filter(
+  const reserves = requireView(member).snapshot.table.pieces.filter(
     (piece) => piece.id.startsWith('reserve-') && piece.items.length > 1
   );
   let source;
@@ -290,7 +289,7 @@ async function verifyReservePickup(
   assert.ok(source && start, 'A reserve stack needs to be available in the homepage viewport.');
   const target = await point(member, [source.position[0] * 0.8, CARRIED_BASE_Y, source.position[2] * 0.8]);
   const destination: [number, number] = [source.position[0] * 0.8, source.position[2] * 0.8];
-  const revision = required(member.view(), 'authorized view').snapshot.revision;
+  const revision = requireView(member).snapshot.revision;
   for (const wholeStack of [false, false, true]) {
     await verifyReserveGesture({ member, guest, source, start, target, destination, revision, wholeStack, until });
   }
@@ -556,7 +555,7 @@ export async function verifyHomepage({
     if (who === member) {
       await capture(member, 'homepage-member-ready-after-slow-artwork');
     } else {
-      const connectionId = required(guest.view(), 'authorized view').viewer.connectionId;
+      const connectionId = requireView(guest).viewer.connectionId;
       await required(disconnectGuestSocket, 'guest socket')();
       await until(() => {
         const view = guest.view();
@@ -572,11 +571,8 @@ export async function verifyHomepage({
     'The homepage shows its board before delayed artwork, which finishes in place, and keeps one canvas through a reconnect'
   );
   await recordRenderer(member, '#play-preview canvas');
-  await until(
-    () => required(member.view(), 'authorized view').viewer.viewerSeat !== spectator,
-    'Signing in did not grant table handling.'
-  );
-  assert.equal(required(guest.view(), 'authorized view').viewer.viewerSeat, spectator);
+  await until(() => requireView(member).viewer.viewerSeat !== spectator, 'Signing in did not grant table handling.');
+  assert.equal(requireView(guest).viewer.viewerSeat, spectator);
   assert.ok(member.sent.some((message) => message.type === 'authenticate' && message.ticketLength === 64));
   assert.equal(await member.page.getByRole('link', { name: 'Sign in to join in.' }).count(), 0);
   await guest.page.getByRole('link', { name: 'Sign in to join in.' }).waitFor();
@@ -586,9 +582,7 @@ export async function verifyHomepage({
   passed('The sneak peek invites signed-in handling and lets unsigned visitors watch without names or counts');
 
   const sourceId = 'starting-1-carthag';
-  const source = required(member.view(), 'authorized view').snapshot.table.pieces.find(
-    (piece: { id: string }) => piece.id === sourceId
-  );
+  const source = requireView(member).snapshot.table.pieces.find((piece: { id: string }) => piece.id === sourceId);
   assert.ok(source, 'The prepared Carthag troops are missing.');
   const target: Vector3Tuple = [source.position[0] + 0.6, source.position[1], source.position[2] + 0.6];
   const start = await point(member, stackPreviewPositionFor(source));
@@ -624,7 +618,7 @@ export async function verifyHomepage({
   await member.page.mouse.click(emptyBoard.x, emptyBoard.y, { button: 'right' });
   assert.equal(await member.page.evaluate(() => window.__homepageContextMenuPrevented), true);
   passed('Empty board clicks clear selection and the preview keeps its context-menu handling');
-  const polarTroop = required(member.view(), 'authorized view').snapshot.table.pieces.find(
+  const polarTroop = requireView(member).snapshot.table.pieces.find(
     (piece: { id: string }) => piece.id === 'starting-5-polar'
   );
   assert.ok(polarTroop, 'The prepared Polar Sink troop is missing.');
@@ -633,9 +627,7 @@ export async function verifyHomepage({
   await member.page.mouse.move(start.x, start.y);
   await until(
     () =>
-      required(guest.view(), 'authorized view').pointers.some(
-        (pointer) => pointer.connectionId === required(member.view(), 'authorized view').viewer.connectionId
-      ),
+      requireView(guest).pointers.some((pointer) => pointer.connectionId === requireView(member).viewer.connectionId),
     'The unsigned visitor did not see the signed-in visitor pointer.'
   );
   await member.page.locator('[data-table-hand="local"]').waitFor();
@@ -644,12 +636,12 @@ export async function verifyHomepage({
   await loadedAvatarBelowHand(guest, 'remote', homepageAvatar(origin).url, until);
   passed('Authenticated avatars load below the local and remote hands');
   await dragTroop({ member, source, start, finish, carrySteps, point, until });
-  const revision = required(member.view(), 'authorized view').snapshot.revision;
+  const revision = requireView(member).snapshot.revision;
   await until(
-    () => required(guest.view(), 'authorized view').snapshot.revision === revision,
+    () => requireView(guest).snapshot.revision === revision,
     'The unsigned visitor did not receive the drop.'
   );
-  const moved = required(member.view(), 'authorized view').snapshot.table.pieces.find(
+  const moved = requireView(member).snapshot.table.pieces.find(
     (piece) => source.items.some((item) => item.id === piece.items[0]?.id) && piece.id !== sourceId
   );
   assert.ok(moved, 'The dropped troop is missing from the shared table.');
@@ -675,7 +667,7 @@ export async function verifyHomepage({
     () => member.page.evaluate(() => window.__duneTable!.pieces().every((piece) => !piece.localCarried)),
     'Cancelling the second pickup left a troop held.'
   );
-  assert.equal(required(member.view(), 'authorized view').snapshot.revision, revision);
+  assert.equal(requireView(member).snapshot.revision, revision);
   passed('A dropped troop can be picked up again immediately and cancelled');
 
   await verifyReservePickup(member, guest, point, until, passed);
@@ -694,8 +686,8 @@ export async function verifyHomepage({
     guest.sent.slice(sentBefore).some((message) => message.type === 'act'),
     false
   );
-  assert.equal(required(member.view(), 'authorized view').snapshot.revision, revision);
-  assert.equal(required(guest.view(), 'authorized view').snapshot.revision, revision);
+  assert.equal(requireView(member).snapshot.revision, revision);
+  assert.equal(requireView(guest).snapshot.revision, revision);
   await capture(guest, 'homepage-observer-after-shared-drag');
   passed('Dragging as an unsigned visitor sends no handling command and leaves the table unchanged');
   await scrollUnderPointer(guest, guestStart, until);

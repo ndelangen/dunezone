@@ -4,7 +4,7 @@ import type { Scene, Mesh, MeshBasicMaterial } from 'three';
 
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 import type { HostedToolkit } from './verify-hosted-play-browser.ts';
-import { required } from './verify-hosted-types.ts';
+import { required, requireView } from './verify-hosted-types.ts';
 import type { HostedPeer } from './verify-hosted-types.ts';
 
 /** Real deck menus and shortcuts against the isolated authority, with distinct private recipients. */
@@ -25,14 +25,12 @@ export async function verifyDecks({
   const deckId = treacheryDeck(a);
   const deck = (who: HostedPeer) =>
     required(
-      required(who.view(), 'authorized view').snapshot.table.pieces.find((piece) => piece.id === deckId),
+      requireView(who).snapshot.table.pieces.find((piece) => piece.id === deckId),
       'treachery deck'
     );
   /* Setup dealt each player's leaders into the same private inventory; only cards count here. */
   const hands = (who: HostedPeer) =>
-    (required(who.view(), 'authorized view').snapshot.hand ?? []).filter(
-      (piece: { kind: string }) => piece.kind === 'card'
-    );
+    (requireView(who).snapshot.hand ?? []).filter((piece: { kind: string }) => piece.kind === 'card');
   await focus(a, 'map');
   const original = deck(a).items.map((item) => item.id);
   const size = original.length;
@@ -72,7 +70,7 @@ export async function verifyDecks({
   });
   await control.waitFor();
   await capture(a, 'private-hand-after-draw');
-  const beforeDrop = new Set(required(a.view(), 'authorized view').snapshot.table.pieces.map((piece) => piece.id));
+  const beforeDrop = new Set(requireView(a).snapshot.table.pieces.map((piece) => piece.id));
   await control.scrollIntoViewIfNeeded();
   const bounds = await control.boundingBox();
   assert.ok(bounds);
@@ -82,17 +80,15 @@ export async function verifyDecks({
   await a.page.mouse.move(landing.x, landing.y, { steps: 25 });
   await a.page.mouse.up();
   await until(() => hands(a).length === 0, 'The hand card did not reach the table.');
-  const dropped = required(a.view(), 'authorized view').snapshot.table.pieces.find(
-    (piece) => !beforeDrop.has(piece.id)
-  );
+  const dropped = requireView(a).snapshot.table.pieces.find((piece) => !beforeDrop.has(piece.id));
   assert.ok(dropped);
   assert.notEqual(dropped.id, handCard.id);
   await until(
-    () => required(observer.view(), 'authorized view').snapshot.table.pieces.some((piece) => piece.id === dropped.id),
+    () => requireView(observer).snapshot.table.pieces.some((piece) => piece.id === dropped.id),
     'The observer did not receive the face-down drop.'
   );
   const publicDrop = required(
-    required(observer.view(), 'authorized view').snapshot.table.pieces.find((piece) => piece.id === dropped.id),
+    requireView(observer).snapshot.table.pieces.find((piece) => piece.id === dropped.id),
     'publicDrop'
   );
   assert.equal(publicDrop.items[0].faceUp, false);

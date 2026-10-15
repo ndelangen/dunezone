@@ -60,6 +60,9 @@ export function required<Value>(value: Value, description: string): NonNullable<
   }
   return value;
 }
+export function requireView(peer: HostedPeer): RoomView {
+  return required(peer.view(), 'authorized view');
+}
 declare global {
   interface Window {
     __THREE_DEVTOOLS__?: EventTarget;

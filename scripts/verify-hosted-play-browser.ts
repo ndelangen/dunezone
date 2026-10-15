@@ -49,7 +49,7 @@ import { verifyPublicControls } from './verify-hosted-public-controls.ts';
 import { parseExpectedRenderer, rendererMismatch, rendererReport, runningChromium } from './verify-hosted-renderer.ts';
 import type { TableRendererObservation } from './verify-hosted-renderer.ts';
 import { verifyResults } from './verify-hosted-results.ts';
-import { required } from './verify-hosted-types.ts';
+import { required, requireView } from './verify-hosted-types.ts';
 import type { HostedPeer, Point, ConnectionStatus, ObservedRenderer } from './verify-hosted-types.ts';
 
 const { values: parsedValues } = parseArgs({
@@ -654,7 +654,7 @@ async function admitted(who: HostedPeer) {
   );
   assert.equal(who.sent[0].type, 'admit');
   assert.equal(who.sent[0].ticketLength, 64);
-  if (required(who.view(), 'authorized view').snapshot.stage === 'play') {
+  if (requireView(who).snapshot.stage === 'play') {
     await who.page.getByRole('group', { name: 'Table view' }).waitFor();
     await tableLoaded(who);
   }
@@ -724,13 +724,13 @@ async function createGame(who: HostedPeer) {
   await who.page.getByRole('button', { name: 'Game link copied', exact: true }).waitFor();
   assert.equal(await who.page.evaluate(() => navigator.clipboard.readText()), `${origin}/play/${gameSlug}`);
   await who.page.keyboard.press('Escape');
-  assert.notEqual(required(who.view(), 'authorized view').viewer.viewerSeat, SPECTATOR);
+  assert.notEqual(requireView(who).viewer.viewerSeat, SPECTATOR);
   /*
    * The backend provisions this flow's games at the stage the flow table names (#1594).
    * A game at any other stage fails here rather than being played through by hand.
    */
   assert.equal(
-    required(who.view(), 'authorized view').snapshot.stage,
+    requireView(who).snapshot.stage,
     flow.startsInPlay ? 'play' : 'drafting',
     'The game did not start at the stage this flow expects.'
   );
@@ -753,7 +753,7 @@ async function account(label: string) {
  * Later: the header's Seats popover names the open seat, and the vacant seat's Info in the player rail carries Approve.
  */
 async function seatThrough(approver: HostedPeer, who: HostedPeer) {
-  const drafting = required(who.view(), 'authorized view').snapshot.stage === 'drafting';
+  const drafting = requireView(who).snapshot.stage === 'drafting';
   if (!drafting) {
     await who.page.getByRole('button', { name: 'Seats', exact: true }).click();
   }
@@ -761,20 +761,14 @@ async function seatThrough(approver: HostedPeer, who: HostedPeer) {
     ? who.page.getByRole('button', { name: 'Take a seat', exact: true })
     : who.page.getByRole('button', { name: /^Request (a seat|seat \d+)/u });
   await until(() => request.isEnabled(), 'The seat request did not become available.', 20_000);
-  const before = required(who.view(), 'authorized view').snapshot.revision;
+  const before = requireView(who).snapshot.revision;
   await request.click();
-  await until(
-    () => required(who.view(), 'authorized view').snapshot.revision > before,
-    'The seat request did not commit.'
-  );
+  await until(() => requireView(who).snapshot.revision > before, 'The seat request did not commit.');
   if (!drafting) {
     await approver.page.getByRole('tab', { name: /, a spectator asks for this seat/u }).click();
   }
   await act(approver, 'Approve');
-  await until(
-    () => required(who.view(), 'authorized view').viewer.viewerSeat !== SPECTATOR,
-    'The approved request did not seat its player.'
-  );
+  await until(() => requireView(who).viewer.viewerSeat !== SPECTATOR, 'The approved request did not seat its player.');
 }
 /** A seated player gives up the seat by holding it in the game menu for five seconds; the seat stays open with its faction. */
 async function depart(who: HostedPeer) {
@@ -784,7 +778,7 @@ async function depart(who: HostedPeer) {
   await who.page.mouse.down();
   await who.page.getByText(/^Leaving in \d\.\.$/u).waitFor();
   await until(
-    () => required(who.view(), 'authorized view').viewer.viewerSeat === SPECTATOR,
+    () => requireView(who).viewer.viewerSeat === SPECTATOR,
     'The departure did not release the seat.',
     15_000
   );
@@ -792,8 +786,8 @@ async function depart(who: HostedPeer) {
 }
 /** Seat indices do not name factions: each player's faction is the one public assignment dealt to their seat. */
 function factionOf(who: HostedPeer) {
-  const seat = required(required(who.view(), 'authorized view').snapshot.roster, 'roster').seats.find(
-    (entry) => entry.id === required(who.view(), 'authorized view').viewer.viewerSeat
+  const seat = required(requireView(who).snapshot.roster, 'roster').seats.find(
+    (entry) => entry.id === requireView(who).viewer.viewerSeat
   );
   assert.ok(seat?.faction, `${who.label} holds no faction.`);
   return seat.faction;
@@ -805,7 +799,7 @@ function factionOf(who: HostedPeer) {
  * Nothing patches the game: every step is a command the table accepts from its players.
  */
 async function playReady(players: HostedPeer[], audience: HostedPeer[]) {
-  const stage = () => required(players[0].view(), 'authorized view').snapshot.stage;
+  const stage = () => requireView(players[0]).snapshot.stage;
   /* A game the backend provisioned at Turn 1 (#1594) has nothing left to play through; every other game is taken there by hand. */
   if (stage() !== 'play') {
     await playThroughSetup(players);
@@ -835,12 +829,12 @@ async function lockPrediction(
   await predictor.page.locator(`[role="option"][value="${factionOf(other).id}"]`).click();
   await act(predictor, 'Lock prediction');
   await converged(players);
-  assert.deepEqual(
-    required(required(predictor.view(), 'authorized view').snapshot.predictions, 'predictions')[step.id].choice,
-    { factionId: factionOf(other).id, turn: 1 }
-  );
+  assert.deepEqual(required(requireView(predictor).snapshot.predictions, 'predictions')[step.id].choice, {
+    factionId: factionOf(other).id,
+    turn: 1,
+  });
   assert.equal(
-    required(required(other.view(), 'authorized view').snapshot.predictions, 'predictions')[step.id].choice,
+    required(requireView(other).snapshot.predictions, 'predictions')[step.id].choice,
     undefined,
     'A locked prediction reached the other seat.'
   );
@@ -849,15 +843,15 @@ async function lockPrediction(
   await act(predictor, 'Reveal prediction');
   await until(
     () =>
-      required(required(other.view(), 'authorized view').snapshot.predictions, 'predictions')[step.id].choice
-        ?.factionId === factionOf(other).id,
+      required(requireView(other).snapshot.predictions, 'predictions')[step.id].choice?.factionId ===
+      factionOf(other).id,
     'The revealed prediction did not reach the other seat.'
   );
   await other.page.getByText('Prediction revealed', { exact: true }).waitFor();
 }
 /** Drafting, the deal, trading and every setup step, with the controls the table offers its players. */
 async function playThroughSetup(players: HostedPeer[]) {
-  const stage = () => required(players[0].view(), 'authorized view').snapshot.stage;
+  const stage = () => requireView(players[0]).snapshot.stage;
   for (const who of players) {
     await act(who, 'Ready');
   }
@@ -875,7 +869,7 @@ async function playThroughSetup(players: HostedPeer[]) {
 async function completeSetupStep(players: HostedPeer[]) {
   /* Next clears readiness, and a player whose view has not yet reached that step would read its old Ready and skip it (#1481). */
   await converged(players);
-  const setup = required(required(players[0].view(), 'authorized view').snapshot.setup, 'setup');
+  const setup = required(requireView(players[0]).snapshot.setup, 'setup');
   const step = setupStep(setup);
   walkedSetup.push(step);
   /* A prediction gates on its lock; any other step asks for readiness unless its author turned that off. */
@@ -888,9 +882,7 @@ async function completeSetupStep(players: HostedPeer[]) {
   }
   for (const who of players.filter(
     (player) =>
-      !required(required(player.view(), 'authorized view').snapshot.controls, 'controls').ready.includes(
-        required(player.view(), 'authorized view').viewer.viewerSeat
-      )
+      !required(requireView(player).snapshot.controls, 'controls').ready.includes(requireView(player).viewer.viewerSeat)
   )) {
     await act(who, 'Ready');
   }
@@ -946,18 +938,13 @@ async function act(who: HostedPeer, name: string) {
   await until(async () => (await control()).isEnabled(), `${name} did not become enabled.`, 20_000);
   /* Read after the control is enabled: a commit that enabled it has then reached this view,
      so the next revision is this click's and not that one arriving late. */
-  const before = required(who.view(), 'authorized view').snapshot.revision;
+  const before = requireView(who).snapshot.revision;
   await (await control()).click();
-  await until(() => required(who.view(), 'authorized view').snapshot.revision > before, `${name} did not commit.`);
+  await until(() => requireView(who).snapshot.revision > before, `${name} did not commit.`);
 }
 async function converged(peers: HostedPeer[]) {
   await until(
-    () =>
-      peers.every(
-        (who) =>
-          required(who.view(), 'authorized view').snapshot.revision ===
-          required(peers[0].view(), 'authorized view').snapshot.revision
-      ),
+    () => peers.every((who) => requireView(who).snapshot.revision === requireView(peers[0]).snapshot.revision),
     'Recipient revisions did not converge.'
   );
 }
@@ -1108,7 +1095,7 @@ async function spiceBankShortcut(who: HostedPeer, key: string) {
 }
 /** The ruleset's treachery deck: setup lays each slotted deck out as one stack, the treachery deck on the left of the map. */
 function treacheryDeck(who: HostedPeer) {
-  const deck = required(who.view(), 'authorized view').snapshot.table.pieces.find(
+  const deck = requireView(who).snapshot.table.pieces.find(
     (value) => value.stackKey?.startsWith('deck:') && value.position[0] < 0
   );
   assert.ok(deck, 'Setup supplied no treachery deck.');
@@ -1119,25 +1106,25 @@ function treacheryDeck(who: HostedPeer) {
  * Stacks are keyed by persistent troop identity (#1227), and setup lays them out in troop order, so the first is the first troop.
  */
 function troopStack(who: HostedPeer) {
-  const faction = required(required(who.view(), 'authorized view').snapshot.roster, 'roster').seats.find(
+  const faction = required(requireView(who).snapshot.roster, 'roster').seats.find(
     (seat) => seat.faction?.name === 'Harkonnen'
   )?.faction;
   assert.ok(faction, 'No seat holds the red Harkonnen faction.');
-  const stack = required(who.view(), 'authorized view').snapshot.table.pieces.find((value) =>
+  const stack = requireView(who).snapshot.table.pieces.find((value) =>
     value.stackKey?.startsWith(`troops:${faction.id}:`)
   );
   assert.ok(stack, 'The Harkonnen seat has no troop reserve on the table.');
   return stack.id;
 }
 const piece = (who: HostedPeer, id: string) => {
-  const result = required(who.view(), 'authorized view').snapshot.table.pieces.find((value) => value.id === id);
+  const result = requireView(who).snapshot.table.pieces.find((value) => value.id === id);
   assert.ok(result, `Missing ${id}`);
   return result;
 };
 async function revision(who: HostedPeer, expected: number) {
   await until(
-    () => required(who.view(), 'authorized view').snapshot.revision === expected,
-    `Expected revision ${expected}, got ${required(who.view(), 'authorized view').snapshot.revision}.`
+    () => requireView(who).snapshot.revision === expected,
+    `Expected revision ${expected}, got ${requireView(who).snapshot.revision}.`
   );
 }
 async function capture(who: HostedPeer, name: string) {
@@ -1260,7 +1247,7 @@ async function redPixels(recipient: HostedPeer, sender: HostedPeer, center: Poin
 async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: string) {
   await focus(sender, 'map');
   await focus(recipient, 'map');
-  const savedRevision = required(sender.view(), 'authorized view').snapshot.revision;
+  const savedRevision = requireView(sender).snapshot.revision;
   const first = await point(sender, [0, 0.38, 1]);
   const second = await point(sender, [1, 0.38, 1]);
   await sender.page.mouse.move(first.x, first.y);
@@ -1324,8 +1311,8 @@ async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: 
       `${name}: the cancelled token remained visible at a dragged location.`
     );
   }
-  assert.equal(required(sender.view(), 'authorized view').snapshot.revision, savedRevision);
-  assert.equal(required(recipient.view(), 'authorized view').snapshot.revision, savedRevision);
+  assert.equal(requireView(sender).snapshot.revision, savedRevision);
+  assert.equal(requireView(recipient).snapshot.revision, savedRevision);
   passed(`${name}: held token moves visibly before drop and cancellation restores the saved table`);
 }
 
@@ -1411,16 +1398,12 @@ async function displayedPhase(who: HostedPeer, index: number, { held = false } =
 }
 
 async function readyBeforeAdvance(sender: HostedPeer, recipient: HostedPeer) {
-  if (phaseAt(required(sender.view(), 'authorized view').snapshot.phase).id !== 'mentat-pause') {
+  if (phaseAt(requireView(sender).snapshot.phase).id !== 'mentat-pause') {
     return;
   }
   for (const who of [sender, recipient]) {
-    if (
-      !required(required(who.view(), 'authorized view').snapshot.controls, 'controls').ready.includes(
-        required(who.view(), 'authorized view').viewer.viewerSeat
-      )
-    ) {
-      const before = required(who.view(), 'authorized view').snapshot.revision;
+    if (!required(requireView(who).snapshot.controls, 'controls').ready.includes(requireView(who).viewer.viewerSeat)) {
+      const before = requireView(who).snapshot.revision;
       await who.page.getByRole('button', { name: 'Ready', exact: true }).click();
       await revision(sender, before + 1);
       await revision(recipient, before + 1);
@@ -1432,17 +1415,14 @@ async function phaseStep(sender: HostedPeer, recipient: HostedPeer, direction = 
   if (direction === 1) {
     await readyBeforeAdvance(sender, recipient);
   }
-  const before = required(sender.view(), 'authorized view').snapshot;
+  const before = requireView(sender).snapshot;
   await (direction === 1 ? button(sender, 'Next phase') : await previousPhase(sender)).click();
   await revision(sender, before.revision + 1);
   await revision(recipient, before.revision + 1);
-  assert.equal(required(sender.view(), 'authorized view').snapshot.phase, before.phase + direction);
+  assert.equal(requireView(sender).snapshot.phase, before.phase + direction);
   samePublicView(sender, recipient);
-  assert.deepEqual(required(sender.view(), 'authorized view').snapshot.table.pieces, before.table.pieces);
-  assert.equal(
-    required(sender.view(), 'authorized view').snapshot.table.stormSectorIndex,
-    before.table.stormSectorIndex
-  );
+  assert.deepEqual(requireView(sender).snapshot.table.pieces, before.table.pieces);
+  assert.equal(requireView(sender).snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
   await displayedPhase(sender, before.phase + direction);
   await displayedPhase(recipient, before.phase + direction, { held: recipientHeld });
 }
@@ -1459,29 +1439,25 @@ async function sharedPhaseFlow(a: HostedPeer, b: HostedPeer) {
   await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).waitFor();
   passed('Turn 1 starts with shared Storm instructions and no earlier phase');
 
-  const beforeStorm = required(a.view(), 'authorized view').snapshot;
+  const beforeStorm = requireView(a).snapshot;
   await a.page.getByRole('button', { name: 'Advance one', exact: true }).click();
   await revision(a, beforeStorm.revision + 1);
   await revision(b, beforeStorm.revision + 1);
-  assert.equal(required(a.view(), 'authorized view').snapshot.phase, beforeStorm.phase);
-  assert.notEqual(
-    required(a.view(), 'authorized view').snapshot.table.stormSectorIndex,
-    beforeStorm.table.stormSectorIndex
-  );
+  assert.equal(requireView(a).snapshot.phase, beforeStorm.phase);
+  assert.notEqual(requireView(a).snapshot.table.stormSectorIndex, beforeStorm.table.stormSectorIndex);
   samePublicView(a, b);
   passed('Storm movement is shared separately from phase and turn changes');
 
   const id = troopStack(b);
   const source = piece(b, id);
-  const beforeCarry = required(a.view(), 'authorized view').snapshot.revision;
+  const beforeCarry = requireView(a).snapshot.revision;
   const start = await point(b, [source.position[0], source.position[1] + 0.12, source.position[2]]);
   const target: Vector3Tuple = [-1.5, 0.38, 1.4];
   const targetPoint = await point(b, target);
   /* The next phase recommends a view other than the map (#1389). At the phase change the idle recipient's
      camera moves there, and the carrying player's camera waits for the drop, so the recipient samples the
      held token in both views, each against its own empty board. */
-  const nextView =
-    PHASE_VIEWS[phaseAt(required(a.view(), 'authorized view').snapshot.phase + 1).id as keyof typeof PHASE_VIEWS];
+  const nextView = PHASE_VIEWS[phaseAt(requireView(a).snapshot.phase + 1).id as keyof typeof PHASE_VIEWS];
   assert.notEqual(nextView, 'map', 'The phase after Storm must recommend a view other than the map.');
   await focus(a, nextView);
   await a.page.mouse.move(10, 10);
@@ -1579,23 +1555,21 @@ async function sharedSpiceRoundTrip(
 ) {
   await sender.page.mouse.move(10, 10);
   await recipient.page.mouse.move(10, 10);
-  const before = required(sender.view(), 'authorized view').snapshot;
+  const before = requireView(sender).snapshot;
   const beforeIds = new Set(before.table.pieces.map((value) => value.id));
   const baselines = await Promise.all([sender, recipient].map((who) => who.page.screenshot()));
   await interact();
   await revision(sender, before.revision + 1);
   await revision(recipient, before.revision + 1);
-  const spawned = required(sender.view(), 'authorized view').snapshot.table.pieces.filter(
-    (value) => !beforeIds.has(value.id)
-  );
+  const spawned = requireView(sender).snapshot.table.pieces.filter((value) => !beforeIds.has(value.id));
   assert.equal(spawned.length, 1);
   const stack = spawned[0];
   assert.ok(isSpicePiece(stack));
   assert.equal(stack.items.length, count);
-  assert.equal(required(sender.view(), 'authorized view').snapshot.phase, before.phase);
+  assert.equal(requireView(sender).snapshot.phase, before.phase);
   samePublicView(sender, recipient);
   assert.deepEqual(
-    required(sender.view(), 'authorized view').snapshot.table.pieces.filter((value) => value.id !== stack.id),
+    requireView(sender).snapshot.table.pieces.filter((value) => value.id !== stack.id),
     before.table.pieces
   );
 
@@ -1650,12 +1624,9 @@ async function sharedSpiceRoundTrip(
   await revision(sender, before.revision + 2);
   await revision(recipient, before.revision + 2);
   samePublicView(sender, recipient);
-  assert.deepEqual(required(sender.view(), 'authorized view').snapshot.table.pieces, before.table.pieces);
-  assert.equal(required(sender.view(), 'authorized view').snapshot.phase, before.phase);
-  assert.equal(
-    required(sender.view(), 'authorized view').snapshot.table.stormSectorIndex,
-    before.table.stormSectorIndex
-  );
+  assert.deepEqual(requireView(sender).snapshot.table.pieces, before.table.pieces);
+  assert.equal(requireView(sender).snapshot.phase, before.phase);
+  assert.equal(requireView(sender).snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
   await until(
     () => sender.messages.findLast((message) => message.type === 'activity')?.carries.length === 0,
     `${name}: returning the spice left a public carry behind.`
@@ -1675,13 +1646,13 @@ async function sharedSpiceRoundTrip(
 /** Clicks the turn wheel's printed `turn`, which the wheel shows around the current one; the click must change nothing (#1683). */
 async function clickTurnOnWheel(who: HostedPeer, current: number, turn: number) {
   /* The page lays the tracker arc out for the game's own turn, which faction phases can lengthen (#1473). */
-  const { phase, phases } = required(who.view(), 'authorized view').snapshot;
+  const { phase, phases } = requireView(who).snapshot;
   const turnSlot = trackerArcSlots(tableProgressFor(phase, phases).phases.length).find((slot) => slot.kind === 'turn');
   assert.ok(turnSlot, 'The shared layout must include the turn disc.');
   const sector = turnTrackerLayout({
     radius: turnSlot.radius,
     turn: current,
-    lastTurn: lastTurnOf(required(who.view(), 'authorized view').snapshot),
+    lastTurn: lastTurnOf(requireView(who).snapshot),
   }).sectors.find((value) => value.turn === turn);
   assert.ok(sector, `Turn ${turn} must be printed on the wheel at turn ${current}.`);
   const wheelPoint = await point(who, [
@@ -1693,18 +1664,18 @@ async function clickTurnOnWheel(who: HostedPeer, current: number, turn: number) 
 }
 
 async function sharedTrackerFlow(a: HostedPeer, b: HostedPeer) {
-  const originalPhase = required(a.view(), 'authorized view').snapshot.phase;
+  const originalPhase = requireView(a).snapshot.phase;
   const originalTurn = tableProgressFor(originalPhase).turn;
   await focus(a, 'map');
   await focus(b, 'map');
   /* Past the cooldown, so a click the wheel still acted on would land. */
   await phaseCooldownEnded(a);
-  const before = required(a.view(), 'authorized view').snapshot.revision;
+  const before = requireView(a).snapshot.revision;
   await clickTurnOnWheel(a, originalTurn, originalTurn + 1);
   await delay(1000);
-  assert.equal(required(a.view(), 'authorized view').snapshot.revision, before);
-  assert.equal(required(b.view(), 'authorized view').snapshot.revision, before);
-  assert.equal(required(a.view(), 'authorized view').snapshot.phase, originalPhase);
+  assert.equal(requireView(a).snapshot.revision, before);
+  assert.equal(requireView(b).snapshot.revision, before);
+  assert.equal(requireView(a).snapshot.phase, originalPhase);
   await displayedPhase(a, originalPhase);
   passed('Clicking a later turn on the wheel changes nothing: the turn moves only through the phases (#1683)');
 
@@ -1722,14 +1693,13 @@ async function sharedTrackerFlow(a: HostedPeer, b: HostedPeer) {
 /** Setup dealt each player's leaders into a private hand; everything but the spice reserve, the hand and a battle plan is the same for both players. */
 function samePublicView(a: HostedPeer, b: HostedPeer) {
   const shared = (who: HostedPeer) => ({
-    ...required(who.view(), 'authorized view').snapshot,
+    ...requireView(who).snapshot,
     bank: undefined,
     hand: undefined,
     battlePlan: undefined,
   });
   assert.deepEqual(shared(a), shared(b));
-  const handIds = (who: HostedPeer) =>
-    new Set((required(who.view(), 'authorized view').snapshot.hand ?? []).map((piece) => piece.id));
+  const handIds = (who: HostedPeer) => new Set((requireView(who).snapshot.hand ?? []).map((piece) => piece.id));
   assert.ok(handIds(a).size > 0 && handIds(b).size > 0, 'Setup did not deal private hands.');
   assert.ok(![...handIds(a)].some((id) => handIds(b).has(id)), 'A private hand reached the other player.');
 }
@@ -1745,7 +1715,7 @@ async function seededCustomContent(a: HostedPeer, b: HostedPeer) {
   assert.equal(walkedSetup[0].title, 'Bene Gesserit prediction');
   assert.equal(walkedSetup[2].title, 'Synthetic muster');
   const extras = (who: HostedPeer) =>
-    (required(who.view(), 'authorized view').snapshot.hand ?? [])
+    (requireView(who).snapshot.hand ?? [])
       .filter((piece: { label: string }) => piece.label === 'Synthetic extra')
       .map((piece) => piece.id);
   const declaring = [a, b].find((who) => factionOf(who).id === walkedSetup[0].factionId);
@@ -1760,7 +1730,7 @@ async function seededCustomContent(a: HostedPeer, b: HostedPeer) {
 
 /** Replays earlier stages while another player advances live play, then returns to the current table. */
 async function verifyCheckpointPlayback(a: HostedPeer, b: HostedPeer) {
-  const beforePlayback = required(a.view(), 'authorized view').snapshot.revision;
+  const beforePlayback = requireView(a).snapshot.revision;
   await openTab(b, 'Replay');
   await b.page.getByRole('button', { name: 'Replay from start' }).click();
   await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
@@ -1813,38 +1783,29 @@ async function verifyRegular() {
   await enter(b);
   await seatThrough(a, b);
   await playReady([a, b], []);
-  assert.notEqual(required(a.view(), 'authorized view').viewer.viewerSeat, SPECTATOR);
-  assert.notEqual(required(b.view(), 'authorized view').viewer.viewerSeat, SPECTATOR);
-  assert.notEqual(
-    required(a.view(), 'authorized view').viewer.viewerSeat,
-    required(b.view(), 'authorized view').viewer.viewerSeat
-  );
+  assert.notEqual(requireView(a).viewer.viewerSeat, SPECTATOR);
+  assert.notEqual(requireView(b).viewer.viewerSeat, SPECTATOR);
+  assert.notEqual(requireView(a).viewer.viewerSeat, requireView(b).viewer.viewerSeat);
   assert.notEqual(factionOf(a).id, factionOf(b).id);
-  assert.notEqual(
-    required(a.view(), 'authorized view').viewer.userId,
-    required(b.view(), 'authorized view').viewer.userId
-  );
+  assert.notEqual(requireView(a).viewer.userId, requireView(b).viewer.userId);
   /*
    * Player B's seat reaches player A in a later frame at the same revision, so the views are compared once it has.
    * If it never does, the wait ends quietly and the comparison fails with the full diff.
    */
-  const seatB = required(b.view(), 'authorized view').viewer.viewerSeat;
+  const seatB = requireView(b).viewer.viewerSeat;
   await until(() => {
-    const { seats, players } = required(required(a.view(), 'authorized view').snapshot.controls, 'controls');
+    const { seats, players } = required(requireView(a).snapshot.controls, 'controls');
     return seats.includes(seatB) && players.some((player) => player.seat === seatB);
   }, "Player A's view did not list player B's seat.").catch(() => {});
   samePublicView(a, b);
   await seededCustomContent(a, b);
-  const initialItems = required(a.view(), 'authorized view')
+  const initialItems = requireView(a)
     .snapshot.table.pieces.flatMap((value) => value.items.map((item) => item.id))
     .sort();
   passed(
     'Independent real Password sessions create a real game, take approved seats and receive identical public snapshots with disjoint private hands',
     {
-      seats: [
-        required(a.view(), 'authorized view').viewer.viewerSeat,
-        required(b.view(), 'authorized view').viewer.viewerSeat,
-      ],
+      seats: [requireView(a).viewer.viewerSeat, requireView(b).viewer.viewerSeat],
     }
   );
   const visitor = await peer('visitor');
@@ -1895,7 +1856,7 @@ async function verifyRegular() {
 
   const id = troopStack(a);
   const start = await point(a, [piece(a, id).position[0], piece(a, id).position[1] + 0.12, piece(a, id).position[2]]);
-  const before = required(a.view(), 'authorized view').snapshot.revision;
+  const before = requireView(a).snapshot.revision;
   await a.page.mouse.move(start.x, start.y);
   await a.page.mouse.down();
   await delay(350);
@@ -1912,9 +1873,9 @@ async function verifyRegular() {
         ?.carries.some((carry) => carry.reservedIds.includes(id)),
     'Other browser did not receive public carry.'
   );
-  assert.equal(required(a.view(), 'authorized view').snapshot.revision, before);
-  assert.equal(required(b.view(), 'authorized view').snapshot.revision, before);
-  const connectionBeforeAddressChange = required(a.view(), 'authorized view').viewer.connectionId;
+  assert.equal(requireView(a).snapshot.revision, before);
+  assert.equal(requireView(b).snapshot.revision, before);
+  const connectionBeforeAddressChange = requireView(a).viewer.connectionId;
   const socketsBeforeAddressChange = a.sockets.length;
   await a.page.evaluate((legacy: string | URL | null | undefined) => {
     window.__addressProofCanvas = document.querySelector('canvas');
@@ -1925,7 +1886,7 @@ async function verifyRegular() {
       url.pathname === `/play/${gameSlug}` && url.search === '?address-proof=carry'
   );
   assert.equal(new URL(a.page.url()).hash, '#address-proof');
-  assert.equal(required(a.view(), 'authorized view').viewer.connectionId, connectionBeforeAddressChange);
+  assert.equal(requireView(a).viewer.connectionId, connectionBeforeAddressChange);
   assert.equal(a.sockets.length, socketsBeforeAddressChange);
   assert.ok(await a.page.evaluate(() => window.__addressProofCanvas === document.querySelector('canvas')));
   assert.ok(await a.page.evaluate(() => window.__duneTable!.pieces().some((piece) => piece.localCarried)));
@@ -1938,7 +1899,7 @@ async function verifyRegular() {
     () => b.messages.findLast((message) => message.type === 'activity')?.carries.length === 0,
     'Cancel did not clear remote carry.'
   );
-  assert.equal(required(a.view(), 'authorized view').snapshot.revision, before);
+  assert.equal(requireView(a).snapshot.revision, before);
   passed('Native mesh carry reaches the other browser and Escape cancels without a durable write');
 
   await a.page.mouse.move(start.x, start.y);
@@ -1951,7 +1912,7 @@ async function verifyRegular() {
   await revision(b, before + 1);
   samePublicView(a, b);
   assert.deepEqual(
-    required(a.view(), 'authorized view')
+    requireView(a)
       .snapshot.table.pieces.flatMap((value) => value.items.map((item) => item.id))
       .sort(),
     initialItems
@@ -1965,20 +1926,17 @@ async function verifyRegular() {
   await readyBeforeAdvance(a, b);
   const beforePlayback = await verifyCheckpointPlayback(a, b);
 
-  const connectionId = required(b.view(), 'authorized view').viewer.connectionId;
+  const connectionId = requireView(b).viewer.connectionId;
   const oldDocumentSockets = [...b.sockets];
   await b.page.reload({ waitUntil: 'domcontentloaded' });
   for (const socket of oldDocumentSockets) {
     socket.documentReplaced = true;
   }
-  await until(
-    () => required(b.view(), 'authorized view').viewer.connectionId !== connectionId,
-    'Reload did not get a fresh connection.'
-  );
+  await until(() => requireView(b).viewer.connectionId !== connectionId, 'Reload did not get a fresh connection.');
   await b.page.locator('[data-connection="authorized"]').waitFor();
-  assert.equal(required(b.view(), 'authorized view').viewer.viewerSeat, seatB);
-  assert.equal(required(b.view(), 'authorized view').snapshot.revision, beforePlayback + 1);
-  assert.equal(required(b.view(), 'authorized view').snapshot.phase, TABLE_PHASES.length);
+  assert.equal(requireView(b).viewer.viewerSeat, seatB);
+  assert.equal(requireView(b).snapshot.revision, beforePlayback + 1);
+  assert.equal(requireView(b).snapshot.phase, TABLE_PHASES.length);
   await displayedPhase(b, TABLE_PHASES.length);
   passed('Reload gets a fresh admitted connection while retaining seat and durable revision');
 
@@ -2014,7 +1972,7 @@ async function verifyRegular() {
    */
   const observer = await account('observer');
   await enter(observer);
-  assert.equal(required(observer.view(), 'authorized view').viewer.viewerSeat, SPECTATOR);
+  assert.equal(requireView(observer).viewer.viewerSeat, SPECTATOR);
   assert.equal(await observer.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
   assert.equal(await previousPhaseDisabled(observer), true);
   await displayedPhase(observer, TABLE_PHASES.length);
@@ -2030,10 +1988,7 @@ async function verifyRegular() {
 
   const aTab = await peer('player-a-tab', a.context);
   await enter(aTab);
-  assert.equal(
-    required(aTab.view(), 'authorized view').viewer.userId,
-    required(a.view(), 'authorized view').viewer.userId
-  );
+  assert.equal(requireView(aTab).viewer.userId, requireView(a).viewer.userId);
   const others = [b, observer];
   const tables = await Promise.all(others.map((who) => who.page.locator('.dune-play-shell canvas').elementHandle()));
   const othersFrom = others.map((who) => who.rawMessages.length);
@@ -2061,7 +2016,7 @@ async function verifyRegular() {
     'Signed-out game data remained visible.'
   );
   const lastCounts = [a.messages.length, aTab.messages.length];
-  const beforeSignOutFanout = required(b.view(), 'authorized view').snapshot.revision;
+  const beforeSignOutFanout = requireView(b).snapshot.revision;
   await until(
     () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
     'Next phase did not re-enable before the sign-out fanout check.',
@@ -2094,11 +2049,11 @@ async function verifyRegular() {
   /* The Next phase press above moves this player's camera to the new phase's view; waiting for that move keeps it from landing after the map is chosen. */
   await recommendedViewButton(
     b,
-    PHASE_VIEWS[phaseAt(required(b.view(), 'authorized view').snapshot.phase).id as keyof typeof PHASE_VIEWS],
+    PHASE_VIEWS[phaseAt(requireView(b).snapshot.phase).id as keyof typeof PHASE_VIEWS],
     true
   ).waitFor();
   await focus(b, 'map');
-  const leavingConnectionId = required(b.view(), 'authorized view').viewer.connectionId;
+  const leavingConnectionId = requireView(b).viewer.connectionId;
   const exitPointer = await point(b, [0, 0.38, 1.5]);
   const beforeExitPointer = observer.messages.length;
   await b.page.mouse.move(exitPointer.x, exitPointer.y);

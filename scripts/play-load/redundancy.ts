@@ -10,7 +10,7 @@ type PatchObject = Record<string, unknown>;
 
 const ENTRY_KEY: Record<string, string> = { pointers: 'connectionId' };
 /* The protocol's arrays are homogeneous, so the first entry says whether the array is addressed by id. */
-const identified = (key: string, entries: PatchValue[]) =>
+const identified = (key: string, entries: PatchValue[]): entries is PatchObject[] =>
   entries.length === 0 || (isObject(entries[0]) && typeof entries[0][key] === 'string');
 const KINDS = ['empty', 'activity', 'durable', 'both'] as const;
 const EMPTY_SAMPLES = 3;
@@ -145,12 +145,9 @@ function keyedPatch(key: string, base: PatchObject[], next: PatchObject[]): Patc
   return Object.keys(patch).length ? smaller(patch, next) : undefined;
 }
 
-const addressed = (key: string, base: PatchValue[], next: PatchValue[]) =>
-  base.length + next.length > 0 && identified(key, base) && identified(key, next);
-
 function arrayPatch(base: PatchValue[], next: PatchValue[], name?: string): PatchValue {
   const key = (name === undefined ? undefined : ENTRY_KEY[name]) ?? 'id';
-  if (base.every(isObject) && next.every(isObject) && addressed(key, base, next)) {
+  if (base.length + next.length > 0 && identified(key, base) && identified(key, next)) {
     return keyedPatch(key, base, next);
   }
   return same(base, next) ? undefined : next;

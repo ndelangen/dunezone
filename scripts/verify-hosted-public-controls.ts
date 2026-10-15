@@ -5,7 +5,7 @@ import sharp from 'sharp';
 import { lastTurnOf, turnCaption } from '../src/shared/play/lastTurn.ts';
 import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, tableProgressFor } from '../src/shared/play/phases.ts';
 import type { HostedToolkit } from './verify-hosted-play-browser.ts';
-import { required } from './verify-hosted-types.ts';
+import { required, requireView } from './verify-hosted-types.ts';
 import type { HostedPeer, TablePiece } from './verify-hosted-types.ts';
 
 /**
@@ -67,12 +67,11 @@ export async function verifyPublicControls({
   await enter(b);
   await seatThrough(a, b);
   await playReady([a, b], []);
-  const departed = required(b.view(), 'authorized view').viewer.viewerSeat;
+  const departed = requireView(b).viewer.viewerSeat;
   await depart(b);
   const inventory = (who: HostedPeer) =>
-    required(who.view(), 'authorized view').snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
-  const requests = (who: HostedPeer) =>
-    required(required(who.view(), 'authorized view').snapshot.controls, 'controls').requests;
+    requireView(who).snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
+  const requests = (who: HostedPeer) => required(requireView(who).snapshot.controls, 'controls').requests;
   async function facePixels(who: HostedPeer, piece: TablePiece, face: 'front' | 'back') {
     const center = await point(who, [piece.position[0], piece.position[1] + 0.05, piece.position[2]]);
     const png = await who.page.screenshot();
@@ -109,17 +108,15 @@ export async function verifyPublicControls({
   await verifyReadiness();
 
   async function verifySolePlayer() {
-    assert.notEqual(required(a.view(), 'authorized view').viewer.viewerSeat, spectator);
+    assert.notEqual(requireView(a).viewer.viewerSeat, spectator);
     /* `depart` waits for B's own view; A's copy of the departure is another frame on another socket (#1481). */
     await until(
-      () => !required(required(a.view(), 'authorized view').snapshot.controls, 'controls').seats.includes(departed),
+      () => !required(requireView(a).snapshot.controls, 'controls').seats.includes(departed),
       "Player B's departure did not reach player A's roster."
     );
-    assert.deepEqual(required(required(a.view(), 'authorized view').snapshot.controls, 'controls').seats, [
-      required(a.view(), 'authorized view').viewer.viewerSeat,
-    ]);
+    assert.deepEqual(required(requireView(a).snapshot.controls, 'controls').seats, [requireView(a).viewer.viewerSeat]);
     assert.equal(inventory(a).length, 0);
-    const original = structuredClone(required(a.view(), 'authorized view').snapshot.table.pieces);
+    const original = structuredClone(requireView(a).snapshot.table.pieces);
     await focus(a, 'map');
     await capture(a, 'after-hosted-map-1440x1000');
     await a.page.setViewportSize({ width: 900, height: 1000 });
@@ -138,7 +135,7 @@ export async function verifyPublicControls({
     assert.equal(inventory(a).length, 1);
     assert.equal(requests(a).length, 0);
     assert.deepEqual(
-      required(a.view(), 'authorized view').snapshot.table.pieces.filter((piece) => !piece.inventory),
+      requireView(a).snapshot.table.pieces.filter((piece) => !piece.inventory),
       original
     );
     await button(a, 'Close catalogue').click();
@@ -154,14 +151,11 @@ export async function verifyPublicControls({
     await seatThrough(a, b);
     const observer = await account('observer');
     await enter(observer);
-    assert.notEqual(required(b.view(), 'authorized view').viewer.viewerSeat, spectator);
-    assert.equal(required(observer.view(), 'authorized view').viewer.viewerSeat, spectator);
-    assert.notEqual(
-      required(a.view(), 'authorized view').viewer.userId,
-      required(b.view(), 'authorized view').viewer.userId
-    );
+    assert.notEqual(requireView(b).viewer.viewerSeat, spectator);
+    assert.equal(requireView(observer).viewer.viewerSeat, spectator);
+    assert.notEqual(requireView(a).viewer.userId, requireView(b).viewer.userId);
     await until(
-      () => required(required(a.view(), 'authorized view').snapshot.controls, 'controls').seats.length === 2,
+      () => required(requireView(a).snapshot.controls, 'controls').seats.length === 2,
       'Joining did not update the roster.'
     );
     await choose(a);
@@ -219,22 +213,17 @@ export async function verifyPublicControls({
     await a.page.mouse.move(destination.x, destination.y, { steps: carrySteps });
     await a.page.mouse.up();
     await until(
-      () =>
-        required(a.view(), 'authorized view').snapshot.table.pieces.some(
-          (piece) => piece.id === token.id && !piece.inventory
-        ),
+      () => requireView(a).snapshot.table.pieces.some((piece) => piece.id === token.id && !piece.inventory),
       'Inventory drop did not reach the board.'
     );
     const dropped = () =>
       required(
-        required(a.view(), 'authorized view').snapshot.table.pieces.find((piece) => piece.id === token.id),
+        requireView(a).snapshot.table.pieces.find((piece) => piece.id === token.id),
         'dropped inventory token'
       );
     assert.ok(dropped().items.every((item: { faceUp: boolean }) => item.faceUp === false));
     await until(
-      () =>
-        required(b.view(), 'authorized view').snapshot.revision ===
-        required(a.view(), 'authorized view').snapshot.revision,
+      () => requireView(b).snapshot.revision === requireView(a).snapshot.revision,
       'Drop did not reach the other player.'
     );
     await until(() => facePixels(a, dropped(), 'back'), 'The published blue back did not render on the board.');
@@ -255,19 +244,16 @@ export async function verifyPublicControls({
     for (const who of viewers) {
       await who.page.evaluate(recordPhaseCooldowns);
     }
-    while (required(a.view(), 'authorized view').snapshot.phase < 8) {
+    while (requireView(a).snapshot.phase < 8) {
       await act(a, 'Next phase');
       /* The launcher provisions this flow's game with the real cooldown, which the change's frame states. */
       assert.ok(
         a.phaseCooldown.ms > PHASE_CHANGE_COOLDOWN_MS / 2,
         `The phase change stated a ${a.phaseCooldown.ms} ms cooldown instead of the real ${PHASE_CHANGE_COOLDOWN_MS} ms.`
       );
-      const { snapshot } = required(a.view(), 'authorized view');
+      const { snapshot } = requireView(a);
       const { phase, phases } = snapshot;
-      await until(
-        () => required(b.view(), 'authorized view').snapshot.phase === phase,
-        'Phase did not reach the other player.'
-      );
+      await until(() => requireView(b).snapshot.phase === phase, 'Phase did not reach the other player.');
       /*
        * Each page notes the turn and phase its header named whenever both buttons were disabled.
        * From phase 1 on, a seated player's Previous is disabled only while the cooldown runs or while this page cannot act, as during a suspension, a re-admission or playback.
@@ -282,24 +268,20 @@ export async function verifyPublicControls({
       }
     }
     await act(a, 'Ready');
-    assert.equal(required(a.view(), 'authorized view').snapshot.phase, 8);
+    assert.equal(requireView(a).snapshot.phase, 8);
     assert.equal(await button(a, 'Next phase').isDisabled(), true);
     await act(a, 'Withdraw readiness');
-    assert.deepEqual(required(required(a.view(), 'authorized view').snapshot.controls, 'controls').ready, []);
+    assert.deepEqual(required(requireView(a).snapshot.controls, 'controls').ready, []);
     await act(a, 'Ready');
-    const saved = structuredClone(required(a.view(), 'authorized view').snapshot);
+    const saved = structuredClone(requireView(a).snapshot);
     await a.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
     await act(b, 'Ready');
-    assert.equal(required(b.view(), 'authorized view').snapshot.phase, 8);
+    assert.equal(requireView(b).snapshot.phase, 8);
     await until(() => button(b, 'Next phase').isEnabled(), 'Last ready did not enable Next.', 20_000);
     await enter(a);
-    assert.equal(required(a.view(), 'authorized view').snapshot.phase, 8);
-    assert.ok(
-      required(required(a.view(), 'authorized view').snapshot.controls, 'controls').ready.includes(
-        required(a.view(), 'authorized view').viewer.viewerSeat
-      )
-    );
-    assert.deepEqual(required(a.view(), 'authorized view').snapshot.table.pieces, saved.table.pieces);
+    assert.equal(requireView(a).snapshot.phase, 8);
+    assert.ok(required(requireView(a).snapshot.controls, 'controls').ready.includes(requireView(a).viewer.viewerSeat));
+    assert.deepEqual(requireView(a).snapshot.table.pieces, saved.table.pieces);
     assert.equal(await button(observer, 'Ready').isDisabled(), true);
     await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
     await button(a, 'Withdraw readiness').scrollIntoViewIfNeeded();
@@ -307,17 +289,14 @@ export async function verifyPublicControls({
     await act(a, 'Withdraw readiness');
     await until(() => button(b, 'Next phase').isDisabled(), 'Withdrawal did not disable Next.');
     await act(a, 'Ready');
-    assert.equal(required(a.view(), 'authorized view').snapshot.phase, 8);
+    assert.equal(requireView(a).snapshot.phase, 8);
     await act(b, 'Next phase');
-    assert.equal(required(b.view(), 'authorized view').snapshot.phase, 9);
+    assert.equal(requireView(b).snapshot.phase, 9);
     await act(b, 'Previous phase');
-    assert.equal(required(b.view(), 'authorized view').snapshot.phase, 8);
-    assert.deepEqual(required(required(b.view(), 'authorized view').snapshot.controls, 'controls').ready, []);
-    assert.deepEqual(required(b.view(), 'authorized view').snapshot.table.pieces, saved.table.pieces);
-    await until(
-      () => required(a.view(), 'authorized view').snapshot.phase === 8,
-      'Revisit did not reach the other player.'
-    );
+    assert.equal(requireView(b).snapshot.phase, 8);
+    assert.deepEqual(required(requireView(b).snapshot.controls, 'controls').ready, []);
+    assert.deepEqual(requireView(b).snapshot.table.pieces, saved.table.pieces);
+    await until(() => requireView(a).snapshot.phase === 8, 'Revisit did not reach the other player.');
     await capture(a, 'after-mentat-revisit');
     passed(
       'Ready and withdrawal are separate from Next; readiness survives Mentat reconnect, last-ready enables explicit advance, and revisiting clears readiness without undoing pieces'

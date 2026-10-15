@@ -8,6 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 
 import type { IncomingRequestCfProperties, SqlStorageValue } from '@cloudflare/workers-types/experimental/index.ts';
+import type { FunctionArgs } from 'convex/server';
 import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import type { RequestInit, V4WorkerdStructuredLog } from 'miniflare';
@@ -15,6 +16,7 @@ import { WebSocketServer } from 'ws';
 import type { WebSocket as PeerSocket, RawData } from 'ws';
 import { z } from 'zod';
 
+import type { api } from '../../convex/_generated/api';
 import type { HistoricalFactionPublicationObject } from '../../src/shared/factions/schema';
 import type { homepageAdmissionSchema } from '../../src/shared/homepage/protocol';
 import type { homepageMessageSchema } from '../../src/shared/homepage/protocol';
@@ -54,8 +56,14 @@ type AccountResult = Extract<z.infer<typeof playReconcileAccountsResultSchema>, 
 type Allowed = boolean | ((registrationId: string) => boolean);
 export type NativeMessage = ServerMessage & Partial<ServerClock>;
 export type NativeView = RoomView & Partial<ServerClock>;
+const assetTypesArgsSchema = z.object({ types: z.array(z.string()) }) satisfies z.ZodType<
+  FunctionArgs<typeof api.assets.listByTypes>
+>;
+const peerBodySchema = z.object({ path: z.string(), args: z.tuple([z.unknown()]) });
+const frameTypeSchema = z.object({ type: z.string() });
+const optionalClockSchema = serverClockSchema.partial();
 const peerRequestSchema = z.discriminatedUnion('function', [
-  z.object({ function: z.literal('assets:listByTypes'), args: z.object({ types: z.array(z.string()).optional() }) }),
+  z.object({ function: z.literal('assets:listByTypes'), args: assetTypesArgsSchema }),
   z.object({
     function: z.literal('playCatalogue:assetSupply'),
     args: z.object({ type: z.string(), slug: z.string() }),
@@ -258,9 +266,7 @@ async function readPeerRequest(request: IncomingMessage, response: ServerRespons
   for await (const chunk of request) {
     chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
   }
-  const body = z
-    .object({ path: z.string(), args: z.tuple([z.unknown()]) })
-    .parse(JSON.parse(Buffer.concat(chunks).toString()));
+  const body = peerBodySchema.parse(JSON.parse(Buffer.concat(chunks).toString()));
   const parsed = peerRequestSchema.parse({ function: body.path, args: body.args[0] });
   const record: PeerRequest = {
     ...parsed,
@@ -567,6 +573,11 @@ export async function createPeer(): Promise<NativePeer> {
       if (error instanceof Error && 'code' in error && error.code === 'ECONNRESET') {
         return;
       }
+      if (error instanceof z.ZodError || error instanceof SyntaxError) {
+        response.writeHead(400, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ status: 'error', errorMessage: error.message }));
+        return;
+      }
       throw error;
     }
     peer.requests.push(record);
@@ -582,7 +593,7 @@ export async function createPeer(): Promise<NativePeer> {
   }
   function receiveQuerySet(connection: PeerConnection, data: RawData) {
     const input: unknown = JSON.parse(data.toString());
-    const message = z.object({ type: z.string() }).parse(input);
+    const message = frameTypeSchema.parse(input);
     peer.frames.push(message);
     if (message.type !== 'ModifyQuerySet') {
       return;
@@ -868,7 +879,7 @@ export async function openGame(runtime: NativeRuntime, path = `/__play/games/${g
     }
     const raw: unknown = JSON.parse(event.data);
     serverMessageSchema.parse(raw);
-    serverClockSchema.partial().parse(raw);
+    optionalClockSchema.parse(raw);
     // Keep the original frame, including unexpected fields that privacy assertions must observe.
     const message = raw as NativeMessage;
     connection.messages.push(message);

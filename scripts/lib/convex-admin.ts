@@ -18,12 +18,3 @@ export function adminMutationReference<A extends Record<string, unknown>, R>(
 ): FunctionReference<'mutation', 'public', A, R> {
   return makeFunctionReference<'mutation', A, R>(getFunctionName(reference));
 }
-
-/** Bun adds fetch.preconnect to its declaration; preserve it when replacing fetch for a bounded request. */
-export function signalFetch(signal: () => AbortSignal): typeof fetch {
-  return Object.assign(
-    (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
-      fetch(input, { ...init, signal: signal() }),
-    fetch
-  );
-}
