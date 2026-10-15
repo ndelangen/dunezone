@@ -378,11 +378,17 @@ describe('the public homepage table', () => {
       GIT_SHA: 'local-isolated',
       APPLICATION_ORIGIN: 'http://127.0.0.1:8787',
     });
+    /*
+     * The table opens half past an hour, so the deployed rule would reset it thirty minutes in.
+     * That hour is far enough ahead to pass the reset the table took when it first loaded at the real time.
+     */
+    const hour = (Math.floor(Date.now() / 3_600_000) + 3) * 3_600_000;
+    await runtime.fetch(`/native-test/clock?now=${hour - 1_800_000}`);
     const watcher = await visitor();
     const opened = await syncView(watcher);
-    await runtime.fetch('/native-test/clock?offset=3540000');
+    await runtime.fetch(`/native-test/clock?now=${hour + 1_740_000}`);
     expect((await syncView(watcher)).epoch).toBe(opened.epoch);
-    await runtime.fetch('/native-test/clock?offset=3600001');
+    await runtime.fetch(`/native-test/clock?now=${hour + 1_860_000}`);
     expect((await syncView(watcher)).epoch).not.toBe(opened.epoch);
   });
 });
