@@ -7658,6 +7658,15 @@
     "isOpaque": true,
     "color": "#181808"
   },
+  "/web/blog/drawing-dune-tokens-and-cards/thufir-token-photo.jpg": {
+    "sha256": "7263e913cfc99a175cad393cd8bcadeba8b4c20d5d0c2ac042343ed83af62df7",
+    "bytes": 136508,
+    "width": 741,
+    "height": 745,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#e8c888"
+  },
   "/web/blog/drawing-dune-tokens-and-cards/token-details.jpg": {
     "sha256": "b1ecde01f526df3acfac44754e3d5ff21192010398cef556d9c9ba8f21f1b829",
     "bytes": 382295,

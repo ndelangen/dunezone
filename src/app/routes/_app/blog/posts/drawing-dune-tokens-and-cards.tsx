@@ -1,9 +1,11 @@
 import { Anchor } from '@mantine/core';
+import { resolveAsset } from '@shared/media/resolveAsset';
 import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 
 import { Figure, Lead, Paragraph } from '../postContent';
 import { BLOG_POST_META } from '../posts';
+import { BeforeAfter } from './assets/BeforeAfter';
 import { CardBackLayers, CardFrontLayers, LeaderTokenLayers } from './assets/figures';
 import { NoiseComparison } from './assets/NoiseComparison';
 
@@ -28,6 +30,7 @@ export default function Post() {
       <NoiseSection />
       <TokenSection />
       <CardsSection />
+      <PortraitSection />
       <InconsistencySection />
     </>
   );
@@ -129,6 +132,36 @@ function CardsSection() {
         background into that hole, and its icon is drawn on top of both, so the icon can be larger than the hole.
       </Paragraph>
       <CardFrontLayers />
+    </Section>
+  );
+}
+
+function PortraitSection() {
+  return (
+    <Section title="Improving the art">
+      <Paragraph>
+        Redrawing the icons and decals as vectors is only half of it. The bitmaps needed work too, and the leader
+        portraits needed the most. The only source for them was the printed tokens, and on a token the number, the
+        emblem, the name and the ring all sit on top of the portrait.
+      </Paragraph>
+      <Paragraph>
+        So I cut each portrait out of its token and filled in what those covered: the cape behind the number, the jacket
+        under the emblem, the shoulders below the ring. I also replaced the printed background with a clean, flat one.
+        That is what lets dune.zone draw the number, emblem and name itself, in any style, on top of an uncovered
+        portrait.
+      </Paragraph>
+      <BeforeAfter
+        before={{
+          src: resolveAsset('/web/blog/drawing-dune-tokens-and-cards/thufir-token-photo.jpg', 'small'),
+          alt: "Thufir Hawat's printed leader token",
+        }}
+        after={{
+          src: resolveAsset('/image/leader/official/thufir.png', 'large'),
+          alt: "Thufir Hawat's cleaned-up portrait",
+        }}
+        aspect={745 / 741}
+        caption="Thufir on the printed token, and the portrait I made from it. Drag the slider to compare."
+      />
     </Section>
   );
 }
