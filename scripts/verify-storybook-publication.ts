@@ -144,10 +144,20 @@ async function stopProcess(process: ReturnType<typeof Bun.spawn>) {
   invariant(killed, 'Wrangler did not stop after SIGKILL.');
 }
 
+/** A CSP directive's source list exactly as written, so an extra source such as `https:` beside `'self'` cannot hide behind a substring match. */
+function directive(policy: string, name: string) {
+  return policy
+    .split(';')
+    .map((part) => part.trim().split(/\s+/))
+    .find(([directiveName]) => directiveName === name)
+    ?.slice(1)
+    .join(' ');
+}
+
 function assertDocumentCsp(value: string | null) {
   invariant(value, 'The Storybook document has no CSP.');
   invariant(value.includes("default-src 'self'"), 'The Storybook document CSP has no same-origin default.');
-  invariant(value.includes("connect-src 'self'"), 'The Storybook document CSP permits external connections.');
+  invariant(directive(value, 'connect-src') === "'self'", 'The Storybook document CSP permits external connections.');
   invariant(value.includes("worker-src 'self'"), 'The Storybook document CSP cannot start its same-origin worker.');
   invariant(value.includes("object-src 'none'"), 'The Storybook document CSP permits objects.');
 }
@@ -156,8 +166,8 @@ function assertWorkerCsp(value: string | null) {
   invariant(value, 'The browser-local Convex worker has no CSP.');
   invariant(value.includes("default-src 'none'"), 'The Convex worker CSP has no deny-by-default policy.');
   invariant(value.includes("script-src 'self'"), 'The Convex worker CSP cannot load its same-origin chunks.');
-  invariant(value.includes("connect-src 'none'"), 'The Convex worker CSP permits connections.');
-  invariant(value.includes("worker-src 'none'"), 'The Convex worker CSP permits subworkers.');
+  invariant(directive(value, 'connect-src') === "'none'", 'The Convex worker CSP permits connections.');
+  invariant(directive(value, 'worker-src') === "'none'", 'The Convex worker CSP permits subworkers.');
 }
 
 async function verifyHeaders(workerPath: string) {
@@ -279,19 +289,37 @@ async function verifyBrowser(browser: Browser, workerPath: string) {
   invariant(externalRequests.length === 0, `Storybook requested an external URL: ${externalRequests.join(', ')}`);
   invariant(consoleErrors.length === 0, `Storybook logged browser errors: ${consoleErrors.join('\n')}`);
 
+  /*
+   * A cors fetch to another origin rejects without CORS headers even after the request went out, so a rejection alone proves nothing.
+   * The probe counts only the browser's own report that connect-src blocked the request.
+   */
   const networkResult = await page.evaluate(async (timeoutMs) => {
+    const target = 'https://example.com/';
+    let blocked = false;
+    const onViolation = (event: SecurityPolicyViolationEvent) => {
+      if (event.effectiveDirective === 'connect-src' && event.blockedURI.startsWith('https://example.com')) {
+        blocked = true;
+      }
+    };
+    document.addEventListener('securitypolicyviolation', onViolation);
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
     try {
-      await fetch('https://example.com', { signal: controller.signal });
-      return 'connected';
-    } catch (error) {
-      return error instanceof Error ? error.message : String(error);
+      await fetch(target, { mode: 'no-cors', signal: controller.signal });
+    } catch {
+      /* The violation report decides; a blocked fetch rejects, and so does an unreachable network. */
     } finally {
       window.clearTimeout(timeout);
     }
+    /* The report is queued as a task, so it can arrive just after the fetch settles. */
+    await new Promise((resolve) => window.setTimeout(resolve, 100));
+    document.removeEventListener('securitypolicyviolation', onViolation);
+    return blocked ? 'blocked' : 'not blocked';
   }, NETWORK_PROBE_TIMEOUT_MS);
-  invariant(networkResult !== 'connected', 'The Storybook document connected to an external origin.');
+  invariant(
+    networkResult === 'blocked',
+    'The Storybook document CSP did not block a connection to an external origin.'
+  );
 
   const subworkerResult = await page.evaluate(async (url) => {
     return await new Promise<string>((resolve, reject) => {

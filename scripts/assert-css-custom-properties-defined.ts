@@ -48,7 +48,7 @@ const withoutCssComments = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, '
 
 const defined = new Set<string>();
 for (const file of filesUnder(definitionsRoot, ['.css'])) {
-  for (const match of withoutCssComments(readFileSync(file, 'utf8')).matchAll(/(--[a-zA-Z][\w-]*)\s*:/g)) {
+  for (const match of withoutCssComments(readFileSync(file, 'utf8')).matchAll(/(?<![\w-])(--[a-zA-Z][\w-]*)\s*:/g)) {
     defined.add(match[1]);
   }
 }

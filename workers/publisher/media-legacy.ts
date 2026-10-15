@@ -34,7 +34,7 @@ async function publishedVariant(
   name: string,
   serving: MediaServing
 ): Promise<Response | null> {
-  const cached = await cachedResponse(request, serving);
+  const cached = await cachedResponse(request, serving, name);
   if (cached) {
     return cached;
   }
@@ -67,7 +67,7 @@ async function publishedVariant(
     { sha256, bytes },
     LEGACY_CACHE_CONTROL
   );
-  return remembered(request, response, serving);
+  return remembered(request, response, serving, name);
 }
 
 async function staticFile(request: Request, env: LegacyMediaEnv): Promise<Response> {

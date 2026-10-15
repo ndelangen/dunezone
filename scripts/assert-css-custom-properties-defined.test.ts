@@ -73,6 +73,14 @@ describe('assert-css-custom-properties-defined', () => {
     expect(result.output).toContain('--color-ghost');
   });
 
+  test('a BEM modifier selector defines nothing', async () => {
+    const result = await gate({
+      'src/app/a.module.css': '.card--accent:hover { opacity: 1; } .title { color: var(--accent); }',
+    });
+    expect(result.code).toBe(1);
+    expect(result.output).toContain('--accent');
+  });
+
   test('a read in TypeScript is policed like one in CSS', async () => {
     const result = await gate({
       'src/app/a.ts': "export const tint = 'var(--color-phantom)';",
