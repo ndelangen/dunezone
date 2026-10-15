@@ -20,11 +20,11 @@ Convex agent skills for common tasks can be installed by running
   briefly) inside `src/app/db`, so there is no TanStack Query and no client cache to manage; see
   [`docs/state-management.md`](docs/state-management.md) for what Convex holds instead.
 - Non-obvious workflow: `bun run generate` refreshes generated game data outputs.
-- Toolchain: Vite+ (`vp`, package `vite-plus`) runs build, test, lint and format; the `bun run`
-  scripts call it. Import from `vite-plus` and `vite-plus/test`, not `vite` or `vitest`.
-  `vite`, `vitest`, `vite-plus` and the Vitest plugins are pinned together in the Bun catalog under `workspaces.catalog` in `package.json`,
-  so bump them there as one. Oxlint and Oxfmt keep `.oxlintrc.json` and `.oxfmtrc.json`, which
-  `vite.config.ts` reads.
+- Vite+ (`vp`, package `vite-plus`) runs build, test, lint and format; the `bun run` scripts call it.
+- Import from `vite-plus` and `vite-plus/test`, not `vite` or `vitest`.
+- Bump `vite`, `vitest`, `vite-plus`, Oxlint, Oxfmt and the Vitest plugins together in the Bun
+  catalog under `workspaces.catalog` in `package.json`.
+- Edit lint and format settings in `.oxlintrc.json` and `.oxfmtrc.json`; `vite.config.ts` reads them.
 - `bun run app:dev` connects to the configured online Convex deployment. Treat that deployment as a
   shared integration target. For branch work on Convex functions, schemas, or migrations, add
   `--local`; each launch then owns a disposable Docker-backed environment with local test auth and
