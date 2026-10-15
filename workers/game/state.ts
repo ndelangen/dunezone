@@ -144,6 +144,8 @@ export function internalAction<Action extends PieceAction>(snapshot: StoredSnaps
  * A hidden card as a viewer receives it: its back and the word printed on that back.
  * Its front, name and type stay behind, so face-down cards in one stack look alike even when their fronts differ in kind.
  */
+const CONCEALED_TOKEN = 'concealed-token';
+
 function concealed({ back, backName }: NonNullable<TableItem['artwork']>) {
   return { back, ...(backName ? { backName } : {}) };
 }
@@ -240,7 +242,7 @@ export class RoomProjection {
     pieceHandles: StoredSnapshot['pieceHandles'] = {}
   ): TablePiece {
     if (piece.kind !== 'card') {
-      return piece;
+      return visible ? piece : this.token(piece);
     }
     const handleKey = [
       pieceHandles[piece.id] ?? piece.id,
@@ -267,6 +269,37 @@ export class RoomProjection {
         this.pieces.set(piece, variants);
       }
     }
+    return projected;
+  }
+
+  /* A leader lying face down shows only its back: its front, name and member id stay with the table until someone turns it over or peeks. */
+  private token(piece: TablePiece): TablePiece {
+    if (!piece.stackKey?.startsWith('leader:') || piece.items.every((item) => item.faceUp)) {
+      return piece;
+    }
+    const cached = this.pieces.get(piece)?.get(CONCEALED_TOKEN);
+    if (cached) {
+      return cached;
+    }
+    const projected: TablePiece = {
+      ...piece,
+      label: 'Face-down leader',
+      stackKey: `leader:${piece.owner}:${this.cardId(piece.id)}`,
+      items: piece.items.map((item) => {
+        const artwork = item.artwork;
+        if (item.faceUp || !artwork?.type) {
+          return item;
+        }
+        /* The type and size keep the disc's shape, which its back shows anyway. */
+        return {
+          ...item,
+          artwork: { ...concealed(artwork), type: artwork.type, ...(artwork.size ? { size: artwork.size } : {}) },
+        };
+      }),
+    };
+    const variants = this.pieces.get(piece) ?? new Map<string, TablePiece>();
+    variants.set(CONCEALED_TOKEN, projected);
+    this.pieces.set(piece, variants);
     return projected;
   }
 

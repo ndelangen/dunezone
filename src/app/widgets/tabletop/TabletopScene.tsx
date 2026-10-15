@@ -686,6 +686,16 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
   const hasMenu = !carrying && pieceHasMenu(piece);
   const stopLongPress = useRef<(() => void) | null>(null);
   useEffect(() => () => stopLongPress.current?.(), []);
+  /* A piece that leaves the table under a still cursor hears no pointer leave, so its hover would keep the keys aimed at a piece that is gone. */
+  const hovered = useRef(false);
+  useEffect(
+    () => () => {
+      if (hovered.current) {
+        setHoveredPiece(null);
+      }
+    },
+    [setHoveredPiece]
+  );
 
   return {
     onContextMenu: (event: ThreeEvent<MouseEvent>) => {
@@ -743,6 +753,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
         return;
       }
       if (!interactionBlocked) {
+        hovered.current = true;
         setHoveredPiece(piece.id);
       }
       get().renderer.domElement.style.cursor = pieceHoverCursor(
@@ -752,6 +763,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
       );
     },
     onPointerLeave: () => {
+      hovered.current = false;
       setHoveredPiece(null);
       if (!pointerSession.isDragging(piece.id)) {
         get().renderer.domElement.style.cursor = 'default';

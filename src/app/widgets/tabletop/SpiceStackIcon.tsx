@@ -25,6 +25,7 @@ function useSpiceIconGeometry(): ExtrudeGeometry | null {
     if (!loading) {
       loading = true;
       loadPhaseSymbolGeometry(SPICE_ICON, SPICE_FACE_RADIUS, (loaded) => {
+        /* A failed load leaves `loading` clear, so the next stack to mount asks again. */
         loading = false;
         shared = loaded;
         if (loaded) {
@@ -39,7 +40,8 @@ function useSpiceIconGeometry(): ExtrudeGeometry | null {
       waiting.delete(setGeometry);
     };
   }, []);
-  return geometry;
+  /* Another stack's load can finish between this render and its effect, which then waits for nothing. */
+  return geometry ?? shared;
 }
 
 /** The site's spice icon, sitting on the top face of a spice stack layer. */

@@ -209,9 +209,7 @@ describe('phase symbol loading lifetime', () => {
     vi.spyOn(SVGLoader.prototype, 'loadAsync').mockRejectedValue(new Error('Image unavailable'));
     const receive = vi.fn();
     const release = loadPhaseSymbolGeometry('/vector/icon/missing.svg', PHASE_TRACKER_RADIUS, receive);
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(receive).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(receive).toHaveBeenCalledWith(null));
     release();
   });
 
