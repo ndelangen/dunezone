@@ -45,6 +45,12 @@ function latestLogPages(): Record<LogTab, number> {
   return { game: Number.MAX_SAFE_INTEGER, audit: Number.MAX_SAFE_INTEGER };
 }
 
+/* The pieces other players are carrying, and those riding a plate one of them carries, which glide along with it. */
+function remoteCarryIds(carries: PublicCarry[], rested: readonly TablePiece[]) {
+  const remoteCarriedIds = new Set(carries.map((carry) => carry.held.id));
+  return { remoteCarriedIds, remoteRidingIds: riderIdsOf(rested, remoteCarriedIds) };
+}
+
 function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): TablePiece[] {
   let result = pieces;
   for (const carry of carries) {
@@ -213,6 +219,7 @@ function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: Readonly
 }
 
 /* The controls a panel offers only while present, so only their presence counts for a panel's render. */
+const PIECE_ID_SETS = ['remoteCarriedIds', 'remoteRidingIds', 'reservedPieceIds'] as const;
 const PANEL_CONTROLS = ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls', 'closePeek'] as const;
 
 function samePlayback(previous: TableProjection['playback'], next: TableProjection['playback']) {
@@ -247,9 +254,7 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     previous.gestureActivePieceId === next.gestureActivePieceId &&
     PANEL_CONTROLS.every((key) => Boolean(previous[key]) === Boolean(next[key])) &&
     (previous.peek === null) === (next.peek === null) &&
-    sameMembers(previous.remoteCarriedIds, next.remoteCarriedIds) &&
-    sameMembers(previous.remoteRidingIds, next.remoteRidingIds) &&
-    sameMembers(previous.reservedPieceIds, next.reservedPieceIds) &&
+    PIECE_ID_SETS.every((key) => sameMembers(previous[key], next[key])) &&
     sameMembers(previous.flippingPieceIds, next.flippingPieceIds) &&
     [...previous.flippingPieceIds].every(([id, revision]) => next.flippingPieceIds.get(id) === revision)
   );
@@ -788,11 +793,7 @@ export class TableSession {
             }
           : undefined,
       closePeek: canInteract && displayed.peek ? () => this.closePeek(displayed.peek!.piece.id) : undefined,
-      remoteCarriedIds: new Set(remote.map((carry) => carry.held.id)),
-      remoteRidingIds: riderIdsOf(
-        state.pieces,
-        remote.map((carry) => carry.held.id)
-      ),
+      ...remoteCarryIds(remote, state.pieces),
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
       hoveredPieceId: this.hoveredId,
