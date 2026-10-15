@@ -388,7 +388,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     topic: 'board',
     explanation:
       'A territory of open desert. Spice appears only on the sand, and the storm destroys troops and spice in the sand sectors it passes.',
-    reason: 'The rulebook word. Desert is the same place under a second name.',
+    reason: 'The rulebook word for the storm and spice rules. Desert describes the same place less precisely.',
     source: 'rulebook',
     avoid: [
       {
@@ -419,11 +419,11 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     avoid: [],
   },
   {
-    id: 'ornithopters',
-    term: 'Ornithopters',
+    id: 'ornithopter',
+    term: 'Ornithopter',
     topic: 'board',
     explanation:
-      'Flying craft that speed up movement. A faction with troops in Arrakeen or Carthag when it starts its move may move a group up to three territories instead of one.',
+      'A flying craft that speeds up movement. A faction with troops in Arrakeen or Carthag when it starts its move may move a group up to three territories instead of one.',
     reason: 'The rulebook word. Thopter is the short form players say at the table.',
     source: 'rulebook',
     avoid: [{ word: 'thopter', forms: ['thopters'], fixes: { thopter: 'ornithopter', thopters: 'ornithopters' } }],
@@ -525,12 +525,17 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     term: 'Shai-Hulud',
     topic: 'cards',
     explanation:
-      'The great sandworm of Arrakis, and the spice card that calls it. When Shai-Hulud is turned over during Spice Blow, it devours every troop and all spice in the territory of the last spice card. After the first turn, it also starts a Nexus.',
+      'The great sandworm of Arrakis, and the spice card that calls it. On the first turn a Shai-Hulud card is set aside and shuffled back. From the second turn on, when it is turned over during Spice Blow it devours the troops and spice in the territory of the spice card below it on the same pile, and a Nexus follows the Spice Blow.',
     reason: 'The name printed on the card. Sandworm and worm are what the card shows, not what it is called.',
     source: 'rulebook',
     avoid: [
-      { word: 'sandworm', forms: ['sandworms'], fixes: { sandworm: 'Shai-Hulud', sandworms: 'Shai-Hulud' } },
-      { word: 'worm', forms: ['worms'], fixes: { worm: 'Shai-Hulud' } },
+      { word: 'sandworm', forms: ['sandworms'], fixes: { sandworm: 'Shai-Hulud' } },
+      {
+        word: 'worm',
+        forms: ['worms'],
+        exceptions: [/rid(?:e|es|ing)\s+the\s+worms?/i],
+        fixes: { worm: 'Shai-Hulud' },
+      },
     ],
   },
   {
@@ -585,7 +590,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     term: 'Special Karama power',
     topic: 'factions',
     explanation:
-      'In the advanced game, a power only one faction has, used by playing a Karama card. Each faction may use its special Karama power once per game.',
+      'In the advanced game, each faction has one special Karama power of its own, printed on its faction sheet. Playing a Karama card uses it, and each faction may use its special Karama power only once per game.',
     reason: 'The rulebook name. It stays apart from advantages because it costs a Karama card and works only once.',
     source: 'rulebook',
     avoid: [],
