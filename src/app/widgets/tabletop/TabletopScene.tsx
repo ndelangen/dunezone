@@ -2,6 +2,7 @@
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { isFactionToken } from '@shared/play/factionToken';
+import { isHmsPiece } from '@shared/play/hms';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { peekersOf } from '@shared/play/peeking';
@@ -69,6 +70,7 @@ import {
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { HmsPlate } from './HmsPlate';
 import { ignoreRaycast } from './ignoreRaycast';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
@@ -414,6 +416,9 @@ function MarkerLayers({ piece }: { piece: TablePiece }) {
   const meshes = useSharedMeshes();
   if (isSpicePiece(piece)) {
     return <SpiceLayers piece={piece} />;
+  }
+  if (isHmsPiece(piece)) {
+    return <HmsPlate piece={piece} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />;
   }
   return (
     <group rotation={[0, piece.orientation, 0]}>

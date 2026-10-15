@@ -1,3 +1,5 @@
+import { fromPieceFrame, HMS_OUTLINE, isHmsPiece } from './hms';
+import type { PlanePoint } from './hms';
 import type { TablePiece, Vector3Tuple } from './model';
 import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, placementAnchorForPose } from './tableFurnitureLayout';
 import {
@@ -27,7 +29,13 @@ type BoxFootprint = {
   halfZ: number;
 };
 
-type Footprint = CircleFootprint | BoxFootprint;
+/* A convex outline in the piece's own frame, as [x, z]: the HMS plate's teardrop. */
+type PolygonFootprint = {
+  shape: 'polygon';
+  points: readonly PlanePoint[];
+};
+
+type Footprint = CircleFootprint | BoxFootprint | PolygonFootprint;
 
 type BoxPose = {
   footprint: BoxFootprint;
@@ -51,6 +59,9 @@ const SEARCH_RING_COUNT = 96;
 const SEARCH_DIRECTIONS = 32;
 
 function footprintFor(piece: TablePiece): Footprint {
+  if (isHmsPiece(piece)) {
+    return { shape: 'polygon', points: HMS_OUTLINE };
+  }
   if (piece.kind === 'card') {
     return {
       shape: 'box',
@@ -122,6 +133,104 @@ function boxOverlapsBox(a: BoxPose, b: BoxPose): boolean {
   });
 }
 
+/* A box or a convex outline as its corners across the table. */
+function worldOutline(footprint: BoxFootprint | PolygonFootprint, position: Vector3Tuple, orientation: number) {
+  const points: readonly PlanePoint[] =
+    footprint.shape === 'polygon'
+      ? footprint.points
+      : [
+          [-footprint.halfX, -footprint.halfZ],
+          [footprint.halfX, -footprint.halfZ],
+          [footprint.halfX, footprint.halfZ],
+          [-footprint.halfX, footprint.halfZ],
+        ];
+  return points.map((point) => fromPieceFrame(point, position, orientation));
+}
+
+function edgeNormals(points: readonly Vector2[]): Vector2[] {
+  return points.map((point, index) => {
+    const next = points[(index + 1) % points.length]!;
+    return [next[1] - point[1], point[0] - next[0]];
+  });
+}
+
+function projectionRange(points: readonly Vector2[], axis: Vector2): [number, number] {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const point of points) {
+    const projected = dot(point, axis);
+    min = Math.min(min, projected);
+    max = Math.max(max, projected);
+  }
+  return [min, max];
+}
+
+/* Two convex outlines overlap unless some edge's normal separates them. */
+function outlineOverlapsOutline(a: readonly Vector2[], b: readonly Vector2[]): boolean {
+  return [...edgeNormals(a), ...edgeNormals(b)].every((axis) => {
+    const [aMin, aMax] = projectionRange(a, axis);
+    const [bMin, bMax] = projectionRange(b, axis);
+    return aMin < bMax && bMin < aMax;
+  });
+}
+
+function distanceToSegment(point: Vector2, start: Vector2, end: Vector2): number {
+  const segment = subtract(end, start);
+  const length = dot(segment, segment);
+  const along = length === 0 ? 0 : Math.max(0, Math.min(1, dot(subtract(point, start), segment) / length));
+  return Math.hypot(point[0] - start[0] - segment[0] * along, point[1] - start[1] - segment[1] * along);
+}
+
+function outlineContains(points: readonly Vector2[], point: Vector2): boolean {
+  let side = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const start = points[index]!;
+    const end = points[(index + 1) % points.length]!;
+    const cross = (end[0] - start[0]) * (point[1] - start[1]) - (end[1] - start[1]) * (point[0] - start[0]);
+    if (cross !== 0) {
+      if (side !== 0 && Math.sign(cross) !== side) {
+        return false;
+      }
+      side = Math.sign(cross);
+    }
+  }
+  return true;
+}
+
+function circleOverlapsOutline(circle: CircleFootprint, center: Vector2, points: readonly Vector2[]): boolean {
+  return (
+    outlineContains(points, center) ||
+    points.some(
+      (point, index) => distanceToSegment(center, point, points[(index + 1) % points.length]!) < circle.radius
+    )
+  );
+}
+
+/* A pair where either side is an outline: boxes join it as their four corners. */
+function overlapWithOutline(
+  aFootprint: Footprint,
+  aPosition: Vector3Tuple,
+  aOrientation: number,
+  bFootprint: Footprint,
+  bPosition: Vector3Tuple,
+  bOrientation: number
+): boolean {
+  if (aFootprint.shape === 'circle') {
+    return circleOverlapsOutline(
+      aFootprint,
+      centerOf(aPosition),
+      worldOutline(bFootprint as BoxFootprint | PolygonFootprint, bPosition, bOrientation)
+    );
+  }
+  if (bFootprint.shape === 'circle') {
+    return circleOverlapsOutline(bFootprint, centerOf(bPosition), worldOutline(aFootprint, aPosition, aOrientation));
+  }
+  return outlineOverlapsOutline(
+    worldOutline(aFootprint, aPosition, aOrientation),
+    worldOutline(bFootprint, bPosition, bOrientation)
+  );
+}
+
 export function piecesOverlapAt(
   a: TablePiece,
   aPosition: Vector3Tuple,
@@ -130,6 +239,9 @@ export function piecesOverlapAt(
 ): boolean {
   const aFootprint = footprintFor(a);
   const bFootprint = footprintFor(b);
+  if (aFootprint.shape === 'polygon' || bFootprint.shape === 'polygon') {
+    return overlapWithOutline(aFootprint, aPosition, a.orientation, bFootprint, bPosition, b.orientation);
+  }
   const aCenter = centerOf(aPosition);
   const bCenter = centerOf(bPosition);
 
@@ -158,7 +270,7 @@ export function piecesOverlapAt(
  * Only cards with no back at all fall back to the key.
  */
 export function piecesCanStack(a: TablePiece, b: TablePiece): boolean {
-  if (a.kind !== b.kind) {
+  if (a.kind !== b.kind || isHmsPiece(a)) {
     return false;
   }
   const sameKey = a.stackKey !== null && a.stackKey === b.stackKey;
@@ -190,6 +302,9 @@ function footprintTableRadius(piece: TablePiece): number {
   const footprint = footprintFor(piece);
   if (footprint.shape === 'circle') {
     return footprint.radius;
+  }
+  if (footprint.shape === 'polygon') {
+    return Math.max(...footprint.points.map(([x, z]) => Math.hypot(x, z)));
   }
   return Math.hypot(footprint.halfX, footprint.halfZ);
 }
@@ -273,9 +388,14 @@ export function isOverlapFreePosition(
   position: Vector3Tuple,
   obstacles: TablePiece[]
 ): boolean {
+  /* Pieces stand on an HMS plate rather than beside it, so a plate is in the way only of another plate. */
+  const plateMoving = isHmsPiece(movingPiece);
   return obstacles.every(
     (obstacle) =>
-      !!obstacle.inventory || obstacle.items.length === 0 || !piecesOverlapAt(movingPiece, position, obstacle)
+      !!obstacle.inventory ||
+      obstacle.items.length === 0 ||
+      (isHmsPiece(obstacle) && !plateMoving) ||
+      !piecesOverlapAt(movingPiece, position, obstacle)
   );
 }
 
@@ -293,12 +413,18 @@ function searchAngleFor(pieceId: string): number {
   return ((seed % SEARCH_DIRECTIONS) / SEARCH_DIRECTIONS) * Math.PI * 2;
 }
 
+/**
+ * The free spot nearest the requested one, searched in rings outward.
+ * `fits` adds a condition of the caller's own, such as room for what rides the moving piece.
+ */
 export function nearestCollisionFreePosition(
   movingPiece: TablePiece,
   requestedPosition: Vector3Tuple,
-  obstacles: TablePiece[]
+  obstacles: TablePiece[],
+  fits: (position: Vector3Tuple) => boolean = () => true
 ): Vector3Tuple | null {
-  if (isCollisionFreePosition(movingPiece, requestedPosition, obstacles)) {
+  const free = (position: Vector3Tuple) => isCollisionFreePosition(movingPiece, position, obstacles) && fits(position);
+  if (free(requestedPosition)) {
     return [...requestedPosition];
   }
 
@@ -312,7 +438,7 @@ export function nearestCollisionFreePosition(
         requestedPosition[1],
         requestedPosition[2] + Math.sin(angle) * radius,
       ];
-      if (isCollisionFreePosition(movingPiece, candidate, obstacles)) {
+      if (free(candidate)) {
         return candidate;
       }
     }

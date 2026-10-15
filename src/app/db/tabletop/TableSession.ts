@@ -3,6 +3,7 @@ import type { BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battl
 import type { PublicFaction } from '@shared/play/capture';
 import { foldedTurns, rotatedPiece } from '@shared/play/commands';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
+import { piecesOnPlates } from '@shared/play/hmsRiders';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
 import { affordancesFor, gestureBlockReason } from '@shared/play/model';
@@ -324,7 +325,7 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
     phaseCooling: false,
     battleCountdownSeconds: 0,
     state,
-    renderedPieces: renderedPiecesFor(state),
+    renderedPieces: piecesOnPlates(renderedPiecesFor(state), state.pieces),
     selectedPiece: null,
     affordances: [],
     peek: null,
@@ -676,7 +677,7 @@ export class TableSession {
     }
     const { table, serverNow } = this.lastLive;
     const state = { ...table.state, draftMove: null };
-    const renderedPieces = renderedPiecesFor(state);
+    const renderedPieces = piecesOnPlates(renderedPiecesFor(state), state.pieces);
     return {
       ...table,
       reconnecting: true,
@@ -724,7 +725,7 @@ export class TableSession {
     const local = this.localProjection(state);
     const canInteract = this.canAct();
     const canHandleTable = this.canHandle();
-    const renderedPieces = projectPublicCarries(local.pieces, remote);
+    const renderedPieces = piecesOnPlates(projectPublicCarries(local.pieces, remote), state.pieces);
     const reservedPieceIds = new Set(remote.flatMap((carry) => carry.reservedIds));
     return {
       viewer,

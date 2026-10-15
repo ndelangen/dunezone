@@ -1,3 +1,4 @@
+import { placementRules, withRidersCarried } from './hmsRiders';
 import { gestureBlockReason, isFlippablePiece, nearestZone, pieceCount, zoneById } from './model';
 import type { DraftMove, TableEvent, TableItem, TablePiece, TableState, Vector3Tuple } from './model';
 import { isSpicePiece } from './spice';
@@ -390,7 +391,8 @@ function settleMoveAtPosition(
     return { ...moveDraftTo(draft, anchoredPosition, null), orientation: placementAnchor.orientation };
   }
   const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece));
-  const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, placementObstaclesFor(state, draft));
+  const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
+  const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, rules.obstacles, rules.fits);
   if (!resolvedPosition) {
     return null;
   }
@@ -698,7 +700,9 @@ function piecesAfterMove(current: TableState, draft: DraftMove, movedPiece: Tabl
   if (draft.withdrawals.length) {
     return [...piecesWithoutHeld(current, draft, movedPiece), movedPiece];
   }
-  return current.pieces.map((candidate) => (candidate.id === movedPiece.id ? movedPiece : candidate));
+  return withRidersCarried(current.pieces, movedPiece).map((candidate) =>
+    candidate.id === movedPiece.id ? movedPiece : candidate
+  );
 }
 
 function applyMove(application: DraftApplication): TableState {

@@ -1,4 +1,5 @@
 import { isFactionToken } from './factionToken';
+import { HMS_BODY_RADIUS, HMS_HEIGHT, isHmsPiece } from './hms';
 import type { TablePiece, Vector3Tuple } from './model';
 import {
   isSpicePiece,
@@ -99,6 +100,9 @@ export function circleFootprintRadius(piece: PieceFootprint): number {
   if (isSpicePiece(piece)) {
     return SPICE_FOOTPRINT_RADIUS;
   }
+  if (isHmsPiece(piece)) {
+    return HMS_BODY_RADIUS;
+  }
   return piece.kind === 'marker' ? MARKER_FOOTPRINT_RADIUS : TROOP_FOOTPRINT_RADIUS * troopScale(piece);
 }
 
@@ -145,7 +149,7 @@ export function stackTopHeight(piece: TablePiece): number {
   if (piece.kind === 'force') {
     return TROOP_LAYER_HEIGHT + (layers - 1) * TROOP_LAYER_PITCH;
   }
-  return MARKER_HEIGHT;
+  return isHmsPiece(piece) ? HMS_HEIGHT : MARKER_HEIGHT;
 }
 
 export function stackPreviewPositionFor(target: TablePiece): Vector3Tuple {
@@ -159,6 +163,10 @@ export function pieceLabelHeight(piece: TablePiece): number {
 function contactShadowBase(piece: TablePiece | TablePiece['kind']): [number, number] {
   if (typeof piece !== 'string' && isSpicePiece(piece)) {
     const diameter = SPICE_FOOTPRINT_RADIUS * 2 + 0.04;
+    return [diameter, diameter];
+  }
+  if (typeof piece !== 'string' && isHmsPiece(piece)) {
+    const diameter = HMS_BODY_RADIUS * 2 + 0.04;
     return [diameter, diameter];
   }
   const kind = typeof piece === 'string' ? piece : piece.kind;
