@@ -50,6 +50,12 @@ no invented modification time. Dates describe edits to the record, not changes t
 - The browser-only shell names no page: no canonical, `og:url` or description. Pages served from it
   take only their title, once JavaScript runs, and stay out of the sitemap until they are
   server-rendered.
+- The browser-only shell carries `<meta name="robots" content="noindex">`, added when the release is
+  assembled (`scripts/lib/publisher-assets.ts`). Sign-in, editors, Play and unknown addresses are all
+  served the shell, and a crawler that runs its script would otherwise index what it draws: Bing
+  listed the sign-in page as the top result for "dune.zone". Public pages are server-rendered by the
+  Worker and never served the shell. A browser-only page that should be found must become a public,
+  server-rendered page first.
 - Search, filter and sort variants retain their working browser URLs but point to the unfiltered
   catalogue as canonical. They are not listed separately in sitemaps. No robots rule prevents a
   crawler from reading their canonical tag.
