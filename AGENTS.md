@@ -20,7 +20,7 @@ Convex agent skills for common tasks can be installed by running
   briefly) inside `src/app/db`, so there is no TanStack Query and no client cache to manage; see
   [`docs/state-management.md`](docs/state-management.md) for what Convex holds instead.
 - Non-obvious workflow: `bun run generate` refreshes generated game data outputs.
-- Vite+ (`vp`, package `vite-plus`) runs build, test, lint and format; the `bun run` scripts call it.
+- Vite+ (`vp`, package `vite-plus`) is the toolchain behind the `bun run` scripts.
 - Import from `vite-plus` and `vite-plus/test`, not `vite` or `vitest`.
 - Bump `vite`, `vitest`, `vite-plus`, Oxlint, Oxfmt and the Vitest plugins together in the Bun
   catalog under `workspaces.catalog` in `package.json`.
