@@ -281,10 +281,13 @@ WebGPU reports, turned most of this job's runs red while the Linux shards stayed
 In CI the hosted shards run on a pull request only when its diff can reach the flows, decided at
 the start of each shard by the `play-closure` action from the closure in `scripts/lib/hosted-play-closure.ts`; a daily run on
 `main` runs them once more when the tree at its tip has not had them
-([deployment](../deployment.md#hosted-gameplay)). New art alone does not run them: a raster lock and
-media map that only gain lines add keys no flow can load, while a changed or removed original still
-runs them. The blog's post list and the publisher's renderer manifest are imported but never
-observed by a flow, and the closure test holds the files that import them.
+([deployment](../deployment.md#hosted-gameplay)). Art the pickers do not list, such as blog
+and page pictures, does not run them: the action reads both versions of the raster lock and media
+map, and when those only gained keys, with every existing key and recipe unchanged, they cannot reach
+a flow. Picker art still runs them, through the asset ids and collections it regenerates under
+`src/shared`, and so does a changed or removed original. The blog's post list and the publisher's
+renderer manifest are imported but never observed by a flow; the closure test holds which files
+import them and what they read.
 
 `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all` boots one stack and
 runs every browser flow against it, each on a fresh game with fresh accounts. `--flow` repeats to

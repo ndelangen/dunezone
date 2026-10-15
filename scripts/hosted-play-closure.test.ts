@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -9,7 +9,7 @@ import {
   UNOBSERVED_IMPORTS,
   decideHostedPlay,
   globToRegExp,
-  parseChangedFiles,
+  onlyAddsArt,
   reachesHostedPlay,
 } from './lib/hosted-play-closure';
 import { importGraph } from './lib/import-graph';
@@ -63,9 +63,23 @@ describe('the hosted play closure', () => {
     const outside = files.filter((file) => !reachesHostedPlay(file) && !Object.hasOwn(UNOBSERVED_IMPORTS, file));
     expect(outside, 'files the hosted flows exercise that no closure glob names').toEqual([]);
     /* An unobserved file stays unobserved only while the files that read it are the ones its entry names. */
-    for (const [file, { importers }] of Object.entries(UNOBSERVED_IMPORTS)) {
+    for (const [file, { importers, reads }] of Object.entries(UNOBSERVED_IMPORTS)) {
       expect(graph.get(file), `${file} is no longer imported by the flows' code; drop its entry`).toBeDefined();
       expect(graph.get(file), `the files in the flows' import graph that import ${file}`).toEqual(importers);
+      /* Each read is the imported binding and one of the named fields; the bare binding past its import, such as passed on whole, is another read. */
+      for (const importer of reads === undefined ? [] : importers) {
+        const binding = reads![0].split('.')[0];
+        const uses =
+          readFileSync(resolve(root, importer), 'utf8').match(new RegExp(`\\b${binding}\\b(?:\\.\\w+)?`, 'gu')) ?? [];
+        expect(
+          uses.filter((use) => use === binding),
+          `${importer} names ${binding} past its import`
+        ).toHaveLength(1);
+        expect(
+          uses.filter((use) => use !== binding && !reads!.includes(use)),
+          `what ${importer} reads of ${file} besides ${reads!.join(', ')}`
+        ).toEqual([]);
+      }
     }
   }, 60_000);
 
@@ -119,11 +133,11 @@ describe('the hosted play closure', () => {
   });
 
   test('a diff outside the closure skips the shards, one inside runs them, and no diff at all runs them', () => {
-    expect(decideHostedPlay(parseChangedFiles('docs/deployment.md\nmedia/vector/icon/drup.svg\n'))).toMatchObject({
+    expect(decideHostedPlay(['docs/deployment.md', 'media/vector/icon/drup.svg'])).toMatchObject({
       run: false,
       reaching: [],
     });
-    expect(decideHostedPlay(parseChangedFiles('docs/deployment.md\nworkers/game/index.ts\n'))).toMatchObject({
+    expect(decideHostedPlay(['docs/deployment.md', 'workers/game/index.ts'])).toMatchObject({
       run: true,
       reaching: ['workers/game/index.ts'],
     });
@@ -132,41 +146,76 @@ describe('the hosted play closure', () => {
 
   /* PR #2217's files: a blog post with new pictures, which no flow can see. */
   const blogPost = [
-    'media/raster.lock.json\tonly-adds-lines',
-    'src/shared/media/map.generated.ts\tonly-adds-lines',
+    'media/raster.lock.json',
+    'src/shared/media/map.generated.ts',
     'src/shared/blogPostSlugs.ts',
     'workers/publisher/renderer-manifest.generated.ts',
     'src/app/routes/_app/blog/posts.ts',
     'src/app/routes/_app/blog/posts/tabletop-simulator.tsx',
-    'src/app/routes/_app/media/media-index.json\tonly-adds-lines',
+    'src/app/routes/_app/media/media-index.json',
     'src/app/routes/site.stories.tsx',
-  ].join('\n');
+  ];
+  const art = ['media/raster.lock.json', 'src/shared/media/map.generated.ts'];
 
-  test('new art and a new blog post skip the shards', () => {
-    expect(decideHostedPlay(parseChangedFiles(blogPost))).toMatchObject({ run: false, reaching: [] });
+  test('a blog post with new art skips the shards, unless the art files changed more than new art', () => {
+    expect(decideHostedPlay(blogPost, new Set(art))).toMatchObject({ run: false, reaching: [] });
+    expect(decideHostedPlay(blogPost, new Set([art[0]]))).toMatchObject({ run: true, reaching: [art[1]] });
+    expect(decideHostedPlay(blogPost)).toMatchObject({ run: true, reaching: art });
   });
+
+  const entry = {
+    sha256: 'a'.repeat(64),
+    bytes: 1,
+    width: 1,
+    height: 1,
+    format: 'png',
+    isOpaque: true,
+    color: '#000000',
+  };
 
   test.each([
-    ['a changed or removed original', 'media/raster.lock.json'],
-    ['a rewritten media map', 'src/shared/media/map.generated.ts'],
-  ])('%s, which deletes a line, runs them', (_, file) => {
-    expect(decideHostedPlay(parseChangedFiles(`${blogPost}\n${file}`))).toMatchObject({ run: true, reaching: [file] });
+    ['a new original', { '/a.png': entry }, { '/a.png': entry, '/b.png': entry }, true],
+    ['nothing new', { '/a.png': entry }, { '/a.png': entry }, true],
+    [
+      'a changed original',
+      { '/a.png': entry },
+      { '/a.png': { ...entry, sha256: 'b'.repeat(64) }, '/b.png': entry },
+      false,
+    ],
+    ['a field added to an original', { '/a.png': entry }, { '/a.png': { ...entry, extra: 1 } }, false],
+    ['a removed original', { '/a.png': entry, '/b.png': entry }, { '/a.png': entry }, false],
+    ['a version that could not be read', { '/a.png': entry }, undefined, false],
+  ])('the raster lock with %s only adds art: %s', (_, before, after, expected) => {
+    expect(onlyAddsArt('media/raster.lock.json', before, after)).toBe(expected);
   });
 
-  test('only the art lock and map may only add lines; any other file that only adds lines still runs them', () => {
-    expect(decideHostedPlay(parseChangedFiles('src/shared/recordlessPublicPages.ts\tonly-adds-lines\n'))).toMatchObject(
-      { run: true, reaching: ['src/shared/recordlessPublicPages.ts'] }
-    );
-    expect(
-      decideHostedPlay(parseChangedFiles('src/shared/stockAssetCollections.json\tonly-adds-lines\n'))
-    ).toMatchObject({ run: true });
+  const map = {
+    MEDIA_RECIPES: { 'image/card': { small: '78b25dffe3', large: '6a76de3578' } },
+    MEDIA_CANONICAL_RECIPES: { 'image/card': { jpeg: '0123456789' } },
+    MEDIA_MAP: { '/image/card/a.jpg': ['0123456789abcdef0123', '#000000'] },
+  };
+
+  test.each([
+    [
+      'a new entry',
+      { ...map, MEDIA_MAP: { ...map.MEDIA_MAP, '/web/b.jpg': ['1123456789abcdef0123', '#ffffff'] } },
+      true,
+    ],
+    ['a changed entry', { ...map, MEDIA_MAP: { '/image/card/a.jpg': ['1123456789abcdef0123', '#000000'] } }, false],
+    ['a removed entry', { ...map, MEDIA_MAP: {} }, false],
+    [
+      'a new recipe',
+      { ...map, MEDIA_RECIPES: { ...map.MEDIA_RECIPES, 'web/blog': { small: '0', large: '1' } } },
+      false,
+    ],
+    ['a changed canonical recipe', { ...map, MEDIA_CANONICAL_RECIPES: {} }, false],
+    ['a new export', { ...map, OTHER: {} }, false],
+  ])('the media map with %s only adds art: %s', (_, after, expected) => {
+    expect(onlyAddsArt('src/shared/media/map.generated.ts', map, after)).toBe(expected);
   });
 
-  test('a line is a path, with the marker after a tab only on a modified file that deletes no line', () => {
-    expect(parseChangedFiles('a b.ts\nmedia/raster.lock.json\tonly-adds-lines\n\n')).toEqual([
-      { path: 'a b.ts', onlyAddsLines: false },
-      { path: 'media/raster.lock.json', onlyAddsLines: true },
-    ]);
+  test('no other file can only add art', () => {
+    expect(onlyAddsArt('src/shared/stockAssetCollections.json', {}, { a: 1 })).toBe(false);
   });
 
   test('globs match whole paths, with ** across directories and * within one', () => {
@@ -177,18 +226,38 @@ describe('the hosted play closure', () => {
     expect(globToRegExp('package.json').test('workers/game/package.json')).toBe(false);
   });
 
+  /* The committed map, and the same map with one more entry, as the action leaves them for the script. */
+  const committedMap = readFileSync(resolve(root, 'src/shared/media/map.generated.ts'), 'utf8');
+  const grownMap = committedMap.replace(
+    /(export const MEDIA_MAP[^{]*\{\n)/u,
+    "$1  '/web/new-art.jpg': ['0123456789abcdef0123', '#000000'],\n"
+  );
+
   test.each([
-    ['docs/deployment.md\nmedia/vector/icon/drup.svg\n', 'false'],
-    ['docs/deployment.md\nworkers/game/index.ts\n', 'true'],
-    ['media/raster.lock.json\tonly-adds-lines\n', 'false'],
-    ['', 'true'],
-  ])('the script writes the decision for %j to the job outputs: run=%s', (list, run) => {
+    ['docs/deployment.md\nmedia/vector/icon/drup.svg\n', undefined, 'false'],
+    ['docs/deployment.md\nworkers/game/index.ts\n', undefined, 'true'],
+    ['src/shared/media/map.generated.ts\n', undefined, 'true'],
+    ['src/shared/media/map.generated.ts\n', [committedMap, grownMap], 'false'],
+    ['src/shared/media/map.generated.ts\n', [grownMap, committedMap], 'true'],
+    ['', undefined, 'true'],
+  ])('the script writes the decision for %j to the job outputs: run=%s', (list, versions, run) => {
     const directory = mkdtempSync(join(tmpdir(), 'hosted-play-closure-'));
     const env = {
       ...process.env,
       GITHUB_OUTPUT: join(directory, 'output'),
       GITHUB_STEP_SUMMARY: join(directory, 'summary.md'),
+      ART_BEFORE: join(directory, 'before'),
+      ART_AFTER: join(directory, 'after'),
     };
+    if (versions !== undefined) {
+      for (const [side, source] of [
+        [env.ART_BEFORE, versions[0]],
+        [env.ART_AFTER, versions[1]],
+      ]) {
+        mkdirSync(join(side, 'src/shared/media'), { recursive: true });
+        writeFileSync(join(side, 'src/shared/media/map.generated.ts'), source);
+      }
+    }
     const printed = execFileSync('bun', [resolve(root, 'scripts/hosted-play-closure.ts')], {
       input: list,
       env,
