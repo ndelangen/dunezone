@@ -340,7 +340,9 @@ export const DeletePagesAndBlocks = meta.story({
         if (count === 1) {
           await expect(page.getByText('This Rulebook has no Pages.')).toBeVisible();
         } else {
-          await expect(within(page.getByRole('navigation', { name: 'Pages' })).getAllByRole('link')).toHaveLength(count - 1);
+          await expect(within(page.getByRole('navigation', { name: 'Pages' })).getAllByRole('link')).toHaveLength(
+            count - 1
+          );
         }
       });
     }

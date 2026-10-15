@@ -92,7 +92,9 @@ export const DetailWithTroopStrengths = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const troops = within(await page.findByRole('region', { name: 'Troops' }));
     const soldiers = within(troops.getByRole('article', { name: 'Soldiers' }));
-    await expect(soldiers.getByRole('img', { name: 'Strength per troop: 0.5 unsupported | 1 supported' })).toBeVisible();
+    await expect(
+      soldiers.getByRole('img', { name: 'Strength per troop: 0.5 unsupported | 1 supported' })
+    ).toBeVisible();
     await expect(soldiers.getByRole('img', { name: 'Support cost: 1 spice per supported troop' })).toBeVisible();
     await expect(soldiers.getByRole('img', { name: 'Cannot participate in battle' })).toBeVisible();
     await expect(soldiers.getByRole('img', { name: '15 troop tokens' })).toBeVisible();

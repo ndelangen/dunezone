@@ -86,7 +86,9 @@ export const ChoosingFactions = meta.story({
             name: /Ixians, banned by Twaffle/,
           })
         ).toBeVisible();
-        await expect(within(page.getByRole('region', { name: 'Drafted factions' })).getAllByRole('img')).toHaveLength(9);
+        await expect(within(page.getByRole('region', { name: 'Drafted factions' })).getAllByRole('img')).toHaveLength(
+          9
+        );
       },
       { timeout: 30_000 }
     );

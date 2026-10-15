@@ -149,7 +149,9 @@ export const DeclaringOnAPhone = meta.story({
       const box = declare.getBoundingClientRect();
       if (box.bottom > view.innerHeight) {
         const scrollers = touchScrollers(declare);
-        await expect(scrollers, 'Declare sits below the window with nothing to scroll it into view').not.toHaveLength(0);
+        await expect(scrollers, 'Declare sits below the window with nothing to scroll it into view').not.toHaveLength(
+          0
+        );
         /* The Result tab sits above the players' pane in the phone's stacked dock, so each pane scrolls to Declare, not to its end, the panel first and then the dock around it. */
         for (const scroller of scrollers) {
           const bottom = Math.min(scroller.getBoundingClientRect().bottom, view.innerHeight);
@@ -158,7 +160,9 @@ export const DeclaringOnAPhone = meta.story({
       }
       const shown = declare.getBoundingClientRect();
       await expect(shown.bottom).toBeLessThanOrEqual(view.innerHeight);
-      await expect(declare.contains(canvasElement.ownerDocument.elementFromPoint(shown.left + 4, shown.top + 4))).toBe(true);
+      await expect(declare.contains(canvasElement.ownerDocument.elementFromPoint(shown.left + 4, shown.top + 4))).toBe(
+        true
+      );
       /* The section holds its whole content, so Declare sits inside its frame. */
       await expect(shown.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().bottom);
     });

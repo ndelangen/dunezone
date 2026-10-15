@@ -52,13 +52,7 @@ export const GradientDef: FC<{ id: string; gradient: z.infer<typeof GRADIENT> }>
   );
 };
 
-export const Background: FC<z.infer<typeof BackGroundType>> = ({
-  colors,
-  image,
-  invert = true,
-  definition = 0,
-  influence = 0,
-}) => {
+export const Background: FC<z.infer<typeof BackGroundType>> = ({ colors, image, invert, definition, influence }) => {
   // Fragment refs like url(#gradient-0) are resolved in the whole HTML document, not per-<svg>.
   const base = useId().replace(/:/g, '');
   const textureId = `bg-${base}-texture`;

@@ -40,7 +40,7 @@ function liveTable(piece: TablePiece) {
   );
   return {
     controls,
-    show(next: TablePiece) {
+    show: (next: TablePiece) => {
       table = { ...table, peek: { piece: next } } as TableProjection;
       act(() => listeners.forEach((listener) => listener()));
     },

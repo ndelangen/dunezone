@@ -2178,8 +2178,17 @@ function reviewValue(value: unknown): ReactNode {
   if (value === undefined || value === null || value === '') {
     return <Text c="dimmed">Not set</Text>;
   }
-  if (typeof value !== 'object') {
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
     return <Text style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{String(value)}</Text>;
+  }
+  if (typeof value !== 'object') {
+    /* A draft is JSON, so it holds no functions or symbols to show. */
+    return null;
   }
   return (
     <Stack gap="xs">

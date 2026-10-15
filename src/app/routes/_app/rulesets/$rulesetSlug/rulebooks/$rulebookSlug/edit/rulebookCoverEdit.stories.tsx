@@ -45,7 +45,10 @@ export const Cover = meta.story({
     await userEvent.type(canvas.getByRole('textbox', { name: 'Background image URL' }), 'http://example.com/image.jpg');
     await expect(canvas.getByRole('textbox', { name: 'Background image URL' })).toHaveAttribute('aria-invalid', 'true');
     await userEvent.clear(canvas.getByRole('textbox', { name: 'Background image URL' }));
-    await expect(canvas.getByRole('textbox', { name: 'Background image URL' })).not.toHaveAttribute('aria-invalid', 'true');
+    await expect(canvas.getByRole('textbox', { name: 'Background image URL' })).not.toHaveAttribute(
+      'aria-invalid',
+      'true'
+    );
   },
 });
 
@@ -65,7 +68,10 @@ export const CoverPresets = meta.story({
     const option = await page.findByRole('option', { name: 'Dreamrules rainbow' });
     await userEvent.hover(within(option).getByText('Dreamrules rainbow'));
     const preview = await waitForFrame(() => page.getByRole('dialog', { name: 'Artwork preview' }));
-    await expect(preview.querySelector('img')).toHaveAttribute('src', '/image/rulebook-cover/dreamrules-rainbow-small.jpg');
+    await expect(preview.querySelector('img')).toHaveAttribute(
+      'src',
+      '/image/rulebook-cover/dreamrules-rainbow-small.jpg'
+    );
     await userEvent.keyboard('{Escape}');
     await expect(preset).toHaveValue('Sandworm');
     await userEvent.click(preset);

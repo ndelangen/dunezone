@@ -374,18 +374,32 @@ async function expectControlsTakeThePointer(shell: HTMLElement) {
   }
 }
 
+/*
+ * The browser's own `getContext`, kept as its property descriptor rather than as a bare method reference.
+ * A replacement calls it through `Reflect.apply` with the canvas as `this`, and defining the descriptor again restores the prototype exactly.
+ */
+function nativeGetContext() {
+  const descriptor: TypedPropertyDescriptor<HTMLCanvasElement['getContext']> | undefined =
+    Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, 'getContext');
+  const value = descriptor?.value;
+  if (!descriptor || !value) {
+    throw new TypeError('HTMLCanvasElement has no getContext method.');
+  }
+  return { descriptor, value };
+}
+
 /* Takes WebGL2 away and puts `gpu` in place of the browser's WebGPU, then restores both and the probe's answer. */
 const withoutGraphics = (gpu: unknown) => () => {
   resetTableGraphics();
-  const getContext = HTMLCanvasElement.prototype.getContext;
+  const getContext = nativeGetContext();
   HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
-    return kind === 'webgl2' ? null : Reflect.apply(getContext, this, [kind, ...rest]);
+    return kind === 'webgl2' ? null : Reflect.apply(getContext.value, this, [kind, ...rest]);
   } as HTMLCanvasElement['getContext'];
   Object.defineProperty(navigator, 'gpu', { configurable: true, value: gpu });
   const uninstall = install(() => productTransport())();
   return () => {
     uninstall();
-    HTMLCanvasElement.prototype.getContext = getContext;
+    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', getContext.descriptor);
     Reflect.deleteProperty(navigator, 'gpu');
     resetTableGraphics();
   };
@@ -585,7 +599,10 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
       async () => {
         tap(deckOnScreen);
         await userEvent.keyboard('l');
-        await expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'lock', pieceId: 'treachery-deck' } });
+        await expect(lastCommand()).toMatchObject({
+          type: 'command',
+          action: { kind: 'lock', pieceId: 'treachery-deck' },
+        });
       },
       { timeout: 30_000 }
     );
@@ -625,7 +642,10 @@ export const TapJitterLeavesNoHover = meta.story({
       async () => {
         tap(deckOnScreen, 2);
         await userEvent.keyboard('l');
-        await expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'lock', pieceId: 'treachery-deck' } });
+        await expect(lastCommand()).toMatchObject({
+          type: 'command',
+          action: { kind: 'lock', pieceId: 'treachery-deck' },
+        });
       },
       { timeout: 30_000 }
     );
@@ -742,9 +762,9 @@ const tableContexts: { context: WebGL2RenderingContext; canvas: HTMLCanvasElemen
 /* Records every WebGL2 context the table creates, then restores the browser's own lookup. */
 const recordTableContexts = () => {
   tableContexts.length = 0;
-  const getContext = HTMLCanvasElement.prototype.getContext;
+  const getContext = nativeGetContext();
   HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
-    const context = Reflect.apply(getContext, this, [kind, ...rest]);
+    const context = Reflect.apply(getContext.value, this, [kind, ...rest]);
     if (kind === 'webgl2' && context && this.closest('.dune-play-shell')) {
       if (!tableContexts.some((entry) => entry.context === context)) {
         tableContexts.push({ context, canvas: this });
@@ -755,7 +775,7 @@ const recordTableContexts = () => {
   const uninstall = install(() => productTransport())();
   return () => {
     uninstall();
-    HTMLCanvasElement.prototype.getContext = getContext;
+    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', getContext.descriptor);
   };
 };
 

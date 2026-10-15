@@ -63,9 +63,7 @@ describe('UniqueNameInput', () => {
     expect(view.queryByText(nameConflictComplaint({ holder: 'live', slug: 'shield' }))).toBeNull();
 
     act(() => {
-
       vi.advanceTimersByTime(400);
-
     });
     expect(view.getByText(nameConflictComplaint({ holder: 'live', slug: 'shield' }))).not.toBeNull();
     expect(onConflictChange).toHaveBeenLastCalledWith({ holder: 'live', slug: 'shield' });
@@ -101,9 +99,7 @@ describe('UniqueNameInput', () => {
     expect(view.queryByText('Try instead:')).toBeNull();
 
     act(() => {
-
       vi.advanceTimersByTime(400);
-
     });
     expect(view.getByText('Try instead:')).not.toBeNull();
     view.getByRole('button', { name: 'Try instead: Shield 2' }).click();

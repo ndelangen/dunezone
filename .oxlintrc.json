@@ -2,6 +2,10 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "unicorn", "oxc", "react", "jsx-a11y", "vitest", "import", "jsdoc"],
   "jsPlugins": ["./scripts/oxlint-local-plugin.ts"],
+  /*
+   * Type-aware rules run through oxlint-tsgolint, which reads each file's nearest tsconfig.json.
+   * Type checking itself stays with the typecheck scripts, so `typeCheck` is left off.
+   */
   "options": {
     "typeAware": true
   },
@@ -395,6 +399,28 @@
       "files": ["**/*.stories.tsx"],
       "rules": {
         "local/no-ai-tells-in-story-descriptions": "error"
+      }
+    },
+    {
+      /*
+       * A test asserts on a mocked method by passing it to `expect`, as in `expect(env.ASSETS.fetch).toHaveBeenCalled()`.
+       * `unbound-method` reads that as a method detached from its object, though the matcher only inspects the mock and never calls it.
+       * Every other finding the rule made in test files was fixed rather than covered; this exemption is for the mock assertions alone.
+       */
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "typescript/unbound-method": "off"
+      }
+    },
+    {
+      /*
+       * The story-image service worker is typed by workers/storybook/tsconfig.service-worker.json, which adds the WebWorker library.
+       * Type-aware lint reads only a tsconfig.json, and none covers this file, so it sees `ExtendableEvent` as an unresolved type.
+       * `bun run typecheck` checks the file against its real configuration.
+       */
+      "files": ["workers/storybook/story-images.sw.ts"],
+      "rules": {
+        "typescript/no-redundant-type-constituents": "off"
       }
     }
   ],

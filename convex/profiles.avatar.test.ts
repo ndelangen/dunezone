@@ -38,7 +38,7 @@ function stubIngestEnvironment() {
  */
 function avatarWorkerSimulation(t: ReturnType<typeof convexTest>, options: { deadHosts?: string[] } = {}) {
   return vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
-    const body = JSON.parse(String(init?.body)) as { source_url: string; token: string };
+    const body = JSON.parse(init?.body as string) as { source_url: string; token: string };
     if (options.deadHosts?.some((host) => body.source_url.includes(host))) {
       return new Response(JSON.stringify({ error: 'The image host answered with status 404' }), {
         status: 422,
@@ -88,7 +88,7 @@ describe('profile avatar rehosting', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
-        const body = JSON.parse(String(init?.body)) as { token: string };
+        const body = JSON.parse(init?.body as string) as { token: string };
         /* The account starts deleting while the Worker is fetching. */
         await t.run(async (ctx) => {
           await ctx.db.patch(saved.profile._id, { account_state: 'deletion_pending' });
@@ -141,7 +141,7 @@ describe('profile avatar rehosting', () => {
     const [request, init] = fetchMock.mock.calls[0] ?? [];
     expect(request).toBe('https://worker.test/__user-images/ingest');
     expect(new Headers(init?.headers).get('Authorization')).toBeNull();
-    const sent = JSON.parse(String(init?.body)) as { source_url: string; token: string };
+    const sent = JSON.parse(init?.body as string) as { source_url: string; token: string };
     expect(sent.source_url).toBe(SOURCE_URL);
     expect(sent.token).toMatch(/^[0-9a-f]{64}$/);
     const row = await t.run(async (ctx) => await ctx.db.get(saved.profile._id));

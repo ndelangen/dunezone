@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { parseTakeWorkResponse as parseTakeWork } from '../../src/shared/asset-publishing/publication';
 import { ConvexPublisherClient } from './convex';
+import { requestUrl } from './test-helpers';
 
 function assignedJob(index = 1) {
   return {
@@ -59,8 +60,8 @@ describe('Convex Publication client', () => {
     const requests: Array<{ operation: string; body: Record<string, unknown> }> = [];
     const cacheToken = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const operation = String(input).split('/').at(-1) ?? '';
-      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      const operation = requestUrl(input).split('/').at(-1) ?? '';
+      const body = JSON.parse(init?.body as string) as Record<string, unknown>;
       requests.push({ operation, body });
       if (operation === 'take-work') {
         return Response.json({
@@ -106,8 +107,8 @@ describe('Convex Publication client', () => {
     const rulebookId = 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p';
     const requests: string[] = [];
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const route = String(input).replace('https://convex.example.com/asset-publishing/executor/', '');
-      requests.push(`${route} ${String(init?.body)}`);
+      const route = requestUrl(input).replace('https://convex.example.com/asset-publishing/executor/', '');
+      requests.push(`${route} ${init?.body as string}`);
       if (route.endsWith('/take-work')) {
         return Response.json({ ok: true, schemaVersion: 1, items: [] });
       }

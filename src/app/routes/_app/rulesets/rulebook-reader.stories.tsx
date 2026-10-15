@@ -190,11 +190,11 @@ async function prepareTargetRecovery(canvasElement: HTMLElement) {
   const originalBounds = target.getBoundingClientRect.bind(target);
   const originalScrollIntoView = target.scrollIntoView.bind(target);
   const scrollIntoView = fn();
-  target.getBoundingClientRect = () => ({
-    ...originalBounds(),
-    top: storyWindow.innerHeight + 200,
-    bottom: storyWindow.innerHeight + 400,
-  });
+  /* A DOMRect's fields are prototype getters, so spreading one copies none of them; a new rect keeps the target's horizontal span. */
+  target.getBoundingClientRect = () => {
+    const bounds = originalBounds();
+    return new DOMRect(bounds.x, storyWindow.innerHeight + 200, bounds.width, 200);
+  };
   target.scrollIntoView = scrollIntoView;
   return {
     page,
@@ -251,7 +251,9 @@ export const CurrentEdition = meta.story({
     await expect(pageNavigation.getByRole('link', { current: 'page' })).toHaveAttribute('data-active', 'true');
     const articles = page.getAllByRole('article');
     await expect(articles).toHaveLength(3);
-    await expect(canvasElement.ownerDocument.defaultView?.getComputedStyle(articles[1]!).contentVisibility).toBe('auto');
+    await expect(canvasElement.ownerDocument.defaultView?.getComputedStyle(articles[1]!).contentVisibility).toBe(
+      'auto'
+    );
   },
 });
 
@@ -270,7 +272,10 @@ export const HistoricalEdition = meta.story({
     await userEvent.keyboard('{Escape}');
     await expect(page.getByRole('heading', { name: 'Welcome to Arrakis' })).toBeVisible();
     await expect(page.queryByRole('heading', { name: 'The gathered rules' })).not.toBeInTheDocument();
-    await expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('href', `${readerPath}?edition=1#movement`);
+    await expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute(
+      'href',
+      `${readerPath}?edition=1#movement`
+    );
   },
 });
 
@@ -599,16 +604,13 @@ export const ScrollTrackingWritesOnlyChangedAnchors = meta.story({
     }
     storyWindow.scrollTo({ top: 0 });
     await new Promise<void>((resolve) => storyWindow.requestAnimationFrame(() => resolve()));
-    const originalReplaceState = storyWindow.history.replaceState;
-    originalReplaceState.call(
-      storyWindow.history,
+    const originalReplaceState = storyWindow.history.replaceState.bind(storyWindow.history);
+    originalReplaceState(
       storyWindow.history.state,
       '',
       `${storyWindow.location.pathname}${storyWindow.location.search}`
     );
-    const replaceState = fn((...args: Parameters<History['replaceState']>) =>
-      originalReplaceState.apply(storyWindow.history, args)
-    );
+    const replaceState = fn((...args: Parameters<History['replaceState']>) => originalReplaceState(...args));
     storyWindow.history.replaceState = replaceState;
     try {
       storyWindow.dispatchEvent(new WheelEvent('wheel'));
@@ -619,7 +621,8 @@ export const ScrollTrackingWritesOnlyChangedAnchors = meta.story({
       await expect(replaceState).toHaveBeenCalledTimes(1);
       await expect(new URL(storyWindow.location.href).hash).toBe('#welcome-to-arrakis');
     } finally {
-      storyWindow.history.replaceState = originalReplaceState;
+      /* The spy is an own property of this history object, so removing it uncovers the prototype's method again. */
+      Reflect.deleteProperty(storyWindow.history, 'replaceState');
     }
   },
 });

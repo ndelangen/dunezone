@@ -156,11 +156,12 @@ for (const cssFile of routeStylesheets) {
   }
 }
 
-const report = [
+const sections: [heading: string, rows: string[]][] = [
   ['Stylesheets nobody imports', unimported],
   ['Classes defined but never used', orphans],
   ['Classes used but never defined', missing],
-].filter(([, rows]) => rows.length > 0);
+];
+const report = sections.filter(([, rows]) => rows.length > 0);
 
 if (report.length === 0) {
   console.log(`CSS clean: ${cssFiles.length} modules and ${routeStylesheets.length} route stylesheets, no orphans.`);

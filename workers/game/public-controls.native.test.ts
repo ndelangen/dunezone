@@ -238,7 +238,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     state = await act(restored, { kind: 'spawn-dismiss', requestId: required(state.controls).requests[0].id });
     expect(required(state.controls).requests).toEqual([]);
     expect(state.table.pieces.some((piece) => piece.inventory)).toBe(false);
-    const invalidPages: { rejection: string; change(page: AssetSupply): void }[] = [
+    const invalidPages: { rejection: string; change: (page: AssetSupply) => void }[] = [
       {
         rejection: 'definition',
         change: (page) => {

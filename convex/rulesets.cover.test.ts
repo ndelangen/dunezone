@@ -69,7 +69,7 @@ function ingestSuccess() {
  */
 function ingestWorkerSimulation(t: ReturnType<typeof convexTest>) {
   return vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
-    const body = JSON.parse(String(init?.body)) as { source_url: string; token: string };
+    const body = JSON.parse(init?.body as string) as { source_url: string; token: string };
     const answer = await t.mutation(api.ingestTokens.consume, {
       token: body.token,
       result: { url: DELIVERY_URL, thumb_url: DELIVERY_THUMB_URL, width: 800, height: 600 },
@@ -103,7 +103,7 @@ describe('ruleset cover rehosting', () => {
     const [request, init] = fetchMock.mock.calls[0] ?? [];
     expect(request).toBe('https://worker.test/__user-images/ingest');
     expect(new Headers(init?.headers).get('Authorization')).toBeNull();
-    const sent = JSON.parse(String(init?.body)) as { source_url: string; token: string };
+    const sent = JSON.parse(init?.body as string) as { source_url: string; token: string };
     expect(sent.source_url).toBe(SOURCE_URL);
     expect(sent.token).toMatch(/^[0-9a-f]{64}$/);
 
@@ -147,7 +147,7 @@ describe('ruleset cover rehosting', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
-        const body = JSON.parse(String(init?.body)) as { token: string };
+        const body = JSON.parse(init?.body as string) as { token: string };
         await t.run(async (ctx) => {
           await ctx.db.patch(ruleset._id, { is_deleted: true });
         });
@@ -369,7 +369,7 @@ describe('ruleset cover rehosting', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
-        const body = JSON.parse(String(init?.body)) as { source_url: string; token: string };
+        const body = JSON.parse(init?.body as string) as { source_url: string; token: string };
         if (body.source_url === SOURCE_URL) {
           await t.mutation(api.ingestTokens.consume, {
             token: body.token,
@@ -410,7 +410,7 @@ describe('ruleset cover rehosting', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
-        const body = JSON.parse(String(init?.body)) as { token: string };
+        const body = JSON.parse(init?.body as string) as { token: string };
         /* The author edits while the backfill is fetching, so the scan's snapshot is stale by the time the callback lands. */
         await t.run(async (ctx) => {
           await ctx.db.patch(ruleset._id, { image_cover: 'https://elsewhere.example/new.png' });

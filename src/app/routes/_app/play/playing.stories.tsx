@@ -67,7 +67,9 @@ export const RemovalVoting = meta.story({
     await userEvent.click(await page.findByRole('tab', { name: 'Twaffle, removal vote in progress' }));
     await expect(page.getByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Withdraw' }));
-    await expect(lastCommand()).toMatchObject({ action: { kind: 'removal-ballot', voteId: 'removal-12', choice: null } });
+    await expect(lastCommand()).toMatchObject({
+      action: { kind: 'removal-ballot', voteId: 'removal-12', choice: null },
+    });
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
     await expect(lastCommand()).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
   },
@@ -299,9 +301,9 @@ export const ConversationHistory = meta.story({
       entries: [{ peerId, latest: 56, unread: 1 }],
     });
     await expect(page.findByRole('tab', { name: 'Twaffle, 1 unread' })).resolves.toBeVisible();
-    await expect(session.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 56)).toBe(
-      false
-    );
+    await expect(
+      session.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 56)
+    ).toBe(false);
     await expect(Math.abs(history.scrollTop - readingPosition)).toBeLessThan(2);
     await expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
     history.scrollTop = history.scrollHeight;
@@ -346,7 +348,9 @@ export const ConversationDelivery = meta.story({
     });
     await expect(page.findByText('Failed', { exact: true })).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: /^Retry$/ }));
-    await expect([...session.transport.messages].reverse().find((entry) => entry.type === 'conversation-send')).toEqual(sent);
+    await expect([...session.transport.messages].reverse().find((entry) => entry.type === 'conversation-send')).toEqual(
+      sent
+    );
     const { factionId, peerId } = conversationPair();
     session.transport.deliver({
       type: 'conversation-message',
@@ -591,7 +595,9 @@ export const MentatReadiness = meta.story({
     /* Readiness is a phase control: it sits in the header's phase navigation, not on a tab. */
     const navigation = page.getByRole('group', { name: 'Phase navigation' });
     await expect(within(navigation).getByRole('button', { name: /^Ready$/ })).toBeVisible();
-    await expect(within(navigation).getByRole('button', { name: /^Ready$/ })).toHaveAccessibleDescription('5 of 6 ready');
+    await expect(within(navigation).getByRole('button', { name: /^Ready$/ })).toHaveAccessibleDescription(
+      '5 of 6 ready'
+    );
     await expect(navigation.closest('header')).not.toBeNull();
     await expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
     await userEvent.click(page.getByRole('button', { name: /^Ready$/ }));
@@ -948,14 +954,16 @@ export const PanelSchemeIsland = meta.story({
     const paint = () => [view.getComputedStyle(balance).color, view.getComputedStyle(button).backgroundColor];
     root.setAttribute('data-mantine-color-scheme', 'light');
     const light = paint();
-    await expect(light[0]).toBe(paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim()));
+    await expect(light[0]).toBe(
+      paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim())
+    );
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
     const glass = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim());
     const menu = await openPieceMenu(canvasElement.ownerDocument, deck, 'Deck actions');
     /* The ring carries its own leather, the same in either page scheme. */
-    await expect(view.getComputedStyle(within(menu).getByRole('menuitem', { name: 'Draw a card' })).backgroundColor).toBe(
-      'rgba(24, 16, 10, 0.95)'
-    );
+    await expect(
+      view.getComputedStyle(within(menu).getByRole('menuitem', { name: 'Draw a card' })).backgroundColor
+    ).toBe('rgba(24, 16, 10, 0.95)');
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
     const raised = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--tip-surface').trim());

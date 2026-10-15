@@ -53,9 +53,13 @@ export const Member = meta.story({
     await expect(create).toBeDisabled();
     await userEvent.click(page.getByRole('combobox', { name: 'Ruleset' }));
     /* The dropdown says why a ruleset cannot start a game before it is chosen. */
-    await expect(await page.findByRole('option', { name: /^Dreamrules/ })).toHaveTextContent('No spice deck is linked.');
+    await expect(await page.findByRole('option', { name: /^Dreamrules/ })).toHaveTextContent(
+      'No spice deck is linked.'
+    );
     await userEvent.click(page.getByRole('option', { name: /^Dreamrules/ }));
-    await expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveAccessibleDescription('No spice deck is linked.');
+    await expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveAccessibleDescription(
+      'No spice deck is linked.'
+    );
     await expect(page.findByRole('status')).resolves.toHaveTextContent('Dreamrules cannot start a game yet.');
     await expect(page.getByRole('slider', { name: 'Minimum players' })).toHaveAttribute('aria-valuenow', '6');
     await expect(create).toBeDisabled();

@@ -264,8 +264,12 @@ export const RepeatedClippedAuthorWarnings = meta.story({
     await expect(page.findByRole('region', { name: 'Movement editor' })).resolves.toBeVisible();
     await waitFor(
       async () => {
-        await expect(page.getByRole('button', { name: 'Page 1 / Referenced illustration 1: is clipped' })).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Page 1 / Referenced illustration 2: is clipped' })).toBeVisible();
+        await expect(
+          page.getByRole('button', { name: 'Page 1 / Referenced illustration 1: is clipped' })
+        ).toBeVisible();
+        await expect(
+          page.getByRole('button', { name: 'Page 1 / Referenced illustration 2: is clipped' })
+        ).toBeVisible();
         await expect(renderedPageCount(canvasElement)).toBe(4);
       },
       { timeout: 30_000 }

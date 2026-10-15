@@ -159,7 +159,7 @@ export async function shareDrawings(document: PDFDocument): Promise<number> {
       objects.set(key, ref);
       resources.set(name('XObject'), objects);
       page.node.set(name('Resources'), resources);
-      drawing.page.replacements.push({ start: drawing.start, end: drawing.end, value: `${key} Do` });
+      drawing.page.replacements.push({ start: drawing.start, end: drawing.end, value: `${key.toString()} Do` });
     }
     shared += 1;
   }

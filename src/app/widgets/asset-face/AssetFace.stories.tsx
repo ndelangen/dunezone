@@ -110,7 +110,9 @@ export const MissingPublication = meta.story({
   args: { href: null, name: 'Missing Artwork' },
   render: acrossWidths,
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getAllByRole('img', { name: 'Missing Artwork: preview unavailable' })).toHaveLength(4);
+    await expect(
+      within(canvasElement).getAllByRole('img', { name: 'Missing Artwork: preview unavailable' })
+    ).toHaveLength(4);
     await expect(canvasElement.querySelectorAll('img, svg pattern')).toHaveLength(0);
   },
 });

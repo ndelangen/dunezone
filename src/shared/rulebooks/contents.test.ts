@@ -113,7 +113,7 @@ describe('Rulebook Contents V1', () => {
     const id = createRulebookLocalId(['2222'], () => bytes.shift()!);
     expect(id).toBe('3333');
     expect(id).toHaveLength(4);
-    expect([...id].every((character) => rulebookLocalIdAlphabet.includes(character))).toBe(true);
+    expect(Array.from(id).every((character) => rulebookLocalIdAlphabet.includes(character))).toBe(true);
   });
 
   it('fails closed when randomness cannot produce a unique ID', () => {

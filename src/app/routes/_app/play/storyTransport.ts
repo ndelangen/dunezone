@@ -202,20 +202,20 @@ export function storyTransport(
     messages,
     snapshot,
     runtime,
-    dispose() {
+    dispose: () => {
       for (const socket of sockets) {
         socket.onclose = null;
         socket.close();
       }
     },
-    deliver(message: ServerMessage) {
+    deliver: (message: ServerMessage) => {
       const socket = sockets.at(-1);
       if (!socket) {
         throw new Error('The story has not connected.');
       }
       socket.deliver(message);
     },
-    disconnect() {
+    disconnect: () => {
       sockets.at(-1)?.close();
     },
     /** Whether the page holds an open socket a frame can be delivered to. */

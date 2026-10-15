@@ -139,7 +139,9 @@ export const ManyAlliancesFitTheHeader = meta.story({
     await waitFor(async () => {
       await expect(strip.getBoundingClientRect().top).toBeGreaterThanOrEqual(phase.getBoundingClientRect().bottom);
       const [box, tools] = [strip.getBoundingClientRect(), toolbar.getBoundingClientRect()];
-      await expect(box.right <= tools.left || box.top >= tools.bottom, 'The alliances run under the toolbar.').toBe(true);
+      await expect(box.right <= tools.left || box.top >= tools.bottom, 'The alliances run under the toolbar.').toBe(
+        true
+      );
     });
   },
 });
@@ -162,6 +164,8 @@ export const FinishedReadOnly = meta.story({
     await expect(await page.findByRole('img', { name: /are allied/ }, { timeout: 30_000 })).toBeVisible();
     await openPanel(canvasElement, 'Alliances');
     await expect(await page.findByText('Offers you an alliance')).toBeVisible();
-    await expect(page.queryByRole('button', { name: /Offer alliance|Accept|Withdraw offer|Break alliance/ })).toBeNull();
+    await expect(
+      page.queryByRole('button', { name: /Offer alliance|Accept|Withdraw offer|Break alliance/ })
+    ).toBeNull();
   },
 });

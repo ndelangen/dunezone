@@ -354,7 +354,8 @@ async function runContextConformance(): Promise<ContextConformanceResult> {
 let world = createWorld([]);
 const unhandledRequest = Symbol('unhandledRequest');
 
-async function handleLifecycleRequest(request: WorkerRequest): Promise<unknown | typeof unhandledRequest> {
+/* Resolves to `unhandledRequest` when the operation is not a lifecycle one, so the caller can try the next handler. */
+async function handleLifecycleRequest(request: WorkerRequest): Promise<unknown> {
   if (request.operation === 'ping') {
     return null;
   }
