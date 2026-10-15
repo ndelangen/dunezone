@@ -9,10 +9,15 @@ type Pose = Pick<TablePiece, 'position' | 'orientation'>;
 
 /** The pieces riding a plate where it rests: every piece on the table whose centre lies over it, other plates aside. */
 export function pointerRiders(pieces: readonly TablePiece[], plate: TablePiece): TablePiece[] {
-  if (!isPointerToken(plate) || plate.inventory || plate.battleOverlay) {
+  if (!carriesRiders(plate)) {
     return [];
   }
   return pieces.filter((piece) => piece.id !== plate.id && canRide(piece) && pointerCovers(plate, piece.position));
+}
+
+/* A plate carries only while it lies on the table itself, not in a hand or set in a battle. */
+function carriesRiders(plate: TablePiece): boolean {
+  return isPointerToken(plate) && !plate.inventory && !plate.battleOverlay;
 }
 
 /*
