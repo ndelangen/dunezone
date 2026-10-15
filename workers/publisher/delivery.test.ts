@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { factionMemberPublicationId } from '../../src/shared/asset-publishing/componentPublication';
 import { publishedHref } from '../../src/shared/asset-publishing/publicationTargets';

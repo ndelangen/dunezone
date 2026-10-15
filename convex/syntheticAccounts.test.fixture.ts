@@ -5,7 +5,7 @@ import { generateKeyPairSync, randomBytes } from 'node:crypto';
 
 import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
-import { vi } from 'vitest';
+import { vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import schema from './schema';

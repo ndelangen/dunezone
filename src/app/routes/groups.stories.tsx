@@ -27,8 +27,8 @@ export const Detail = meta.story({
 
     /* Both lists are citations now. The asymmetry an earlier version of this story pinned was ruled out. */
     for (const citation of [faction, ruleset]) {
-      expect(citation.closest('li')).toBeNull();
-      expect(citation.querySelector('span[class*="media"]')).not.toBeNull();
+      await expect(citation.closest('li')).toBeNull();
+      await expect(citation.querySelector('span[class*="media"]')).not.toBeNull();
 
       /*
        * A Stack stretches its children, so a chip once spanned the whole card and the empty half of the row navigated.
@@ -36,22 +36,22 @@ export const Detail = meta.story({
        * The fallback to the chip itself is what stops a row-less path from passing.
        */
       const row = citation.parentElement ?? citation;
-      expect(citation.getBoundingClientRect().width).toBeLessThan(row.getBoundingClientRect().width);
+      await expect(citation.getBoundingClientRect().width).toBeLessThan(row.getBoundingClientRect().width);
     }
 
     /* The faction wears its own mark rather than the shared glyph: the token renders an svg, the glyph a masked span. */
-    expect(faction.querySelector('svg')).not.toBeNull();
+    await expect(faction.querySelector('svg')).not.toBeNull();
 
     /* Ownership reads from the band now. The card it used to sit in is gone rather than hidden. */
     const ownedBy = await page.findByText('Owned by', {}, { timeout: 30_000 });
     const line = ownedBy.parentElement;
     /* By href rather than accessible name: the avatar placeholder puts its initials into the name. */
-    expect(line?.querySelector('a[href="/profiles/storybook-viewer"]')).not.toBeNull();
+    await expect(line?.querySelector('a[href="/profiles/storybook-viewer"]')).not.toBeNull();
     /* The standing follows the viewer, which the browser resolves after the shared page. */
     await waitFor(() => expect(line?.textContent).toContain('Owner'), { timeout: 30_000 });
     /* The member count is the band's too, so the roster card no longer repeats it in its title. */
-    expect(page.getByRole('heading', { name: 'Members' })).toBeVisible();
-    expect(page.queryByRole('heading', { name: 'Stewardship' })).toBeNull();
+    await expect(page.getByRole('heading', { name: 'Members' })).toBeVisible();
+    await expect(page.queryByRole('heading', { name: 'Stewardship' })).toBeNull();
   },
 });
 
@@ -87,9 +87,9 @@ export const DetailNotAMember = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const ownedBy = await page.findByText('Owned by', {}, { timeout: 30_000 });
-    expect(ownedBy.parentElement?.querySelector('a[href="/profiles/reverend-mother"]')).not.toBeNull();
-    expect(page.queryByText('Not a member')).toBeNull();
-    expect(page.queryByText('Owner')).toBeNull();
+    await expect(ownedBy.parentElement?.querySelector('a[href="/profiles/reverend-mother"]')).not.toBeNull();
+    await expect(page.queryByText('Not a member')).toBeNull();
+    await expect(page.queryByText('Owner')).toBeNull();
     await expect(page.findByRole('button', { name: 'Request membership' })).resolves.toBeVisible();
   },
 });
@@ -106,7 +106,7 @@ export const CreateSignedOut = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'Back to profiles' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Save group' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Save group' })).toBeNull();
   },
 });
 export const Edit = meta.story({
@@ -135,17 +135,17 @@ export const DetailMemberRowCitesOnce = meta.story({
 
     const avatars = [...document.querySelectorAll('img[src="/vector/icon/spice.svg"]')];
     /* Without this the filter below passes on a page that rendered no avatar at all. */
-    expect(avatars.length).toBeGreaterThan(0);
-    expect(avatars.filter((avatar) => !avatar.closest('a'))).toHaveLength(0);
+    await expect(avatars.length).toBeGreaterThan(0);
+    await expect(avatars.filter((avatar) => !avatar.closest('a'))).toHaveLength(0);
 
     /*
      * By role and name, which this story could not do while the avatar and the initials both spoke:
      * a citation announced as "storybook-viewer storybook-viewer" matches no name a reader would use.
      */
     const citations = await page.findAllByRole('link', { name: 'storybook-viewer' }, { timeout: 30_000 });
-    expect(citations.length).toBeGreaterThan(0);
+    await expect(citations.length).toBeGreaterThan(0);
     for (const citation of citations) {
-      expect(citation.querySelectorAll('img')).toHaveLength(1);
+      await expect(citation.querySelectorAll('img')).toHaveLength(1);
     }
   },
 });

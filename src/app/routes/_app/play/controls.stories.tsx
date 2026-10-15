@@ -97,7 +97,7 @@ export const SetupPredictionCardInHand = meta.story({
     await expect(
       page.findByText('Prediction locked. Place your prediction card on the table to reveal it.', undefined, WAIT)
     ).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Reveal prediction' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Reveal prediction' })).toBeNull();
   },
 });
 
@@ -221,7 +221,7 @@ export const BattleRevealed = meta.story({
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Battle');
     await expect(page.findByRole('textbox', { name: 'Adjustment' }, WAIT)).resolves.toBeDisabled();
-    expect(page.queryByRole('button', { name: /Ready for battle|Undo Ready/ })).toBeNull();
+    await expect(page.queryByRole('button', { name: /Ready for battle|Undo Ready/ })).toBeNull();
     await expect(page.findByRole('button', { name: 'No winner' }, WAIT)).resolves.toBeVisible();
   },
 });
@@ -232,7 +232,7 @@ export const SpectatorOpensOnLog = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('tab', { name: 'Game log' }, WAIT)).resolves.toHaveAttribute('aria-selected', 'true');
-    expect(page.getByRole('tablist', { name: 'Controls' }).querySelector('[aria-label="Table"]')).toHaveAttribute(
+    await expect(page.getByRole('tablist', { name: 'Controls' }).querySelector('[aria-label="Table"]')).toHaveAttribute(
       'aria-selected',
       'false'
     );
@@ -248,7 +248,7 @@ export const BattleSpectator = meta.story({
     ).resolves.toHaveAttribute('aria-selected', 'true');
     const page = await openPanel(canvasElement, 'Battle');
     await expect(page.findByRole('button', { name: 'No winner' }, WAIT)).resolves.toBeDisabled();
-    expect(page.getByText('Both plans are revealed on the table.')).toBeVisible();
+    await expect(page.getByText('Both plans are revealed on the table.')).toBeVisible();
   },
 });
 
@@ -259,10 +259,10 @@ export const FullGameSpectatorSeat = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const seat = await seatPopover(canvasElement, 'You are watching');
     await expect(seat().findByText('All 6 seats are taken')).resolves.toBeVisible();
-    expect(seat().queryByRole('button', { name: /^Request/ })).toBeNull();
+    await expect(seat().queryByRole('button', { name: /^Request/ })).toBeNull();
     const dock = canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-controls-panel')!;
-    expect(within(dock).queryByRole('region', { name: 'You are watching' })).toBeNull();
-    expect(page.getAllByRole('region', { name: 'You are watching' })).toHaveLength(1);
+    await expect(within(dock).queryByRole('region', { name: 'You are watching' })).toBeNull();
+    await expect(page.getAllByRole('region', { name: 'You are watching' })).toHaveLength(1);
   },
 });
 

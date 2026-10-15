@@ -30,7 +30,7 @@ export const MigrationsSignedOut = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Sync migration status' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Sync migration status' })).toBeNull();
   },
 });
 

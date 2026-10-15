@@ -43,14 +43,14 @@ export const SaveAndReopen = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Save board' }));
     await expect(page.findByRole('button', { name: 'Delete board' })).resolves.toBeVisible();
     const saved = await loadAssetPage('board', 'authored-arrakis');
-    expect(saved?.assetPublishing?.captureStatus).toBe('scheduled');
-    expect(
+    await expect(saved?.assetPublishing?.captureStatus).toBe('scheduled');
+    await expect(
       Object.values((saved!.asset.data as BoardAssetData).board.properties).find((p) => p.name === 'Arrakeen')?.id
     ).toBe('arrakeen');
     const properties = BoardAsset.parse(saved!.asset.data).board.properties;
-    expect(Object.keys(properties)).toHaveLength(42);
-    expect(JSON.stringify(saved?.asset.data)).not.toContain('ghosts');
-    expect(
+    await expect(Object.keys(properties)).toHaveLength(42);
+    await expect(JSON.stringify(saved?.asset.data)).not.toContain('ghosts');
+    await expect(
       Object.values(properties)
         .find((territory) => territory.id === 'arrakeen')
         ?.decals.map((decal) => decal.artwork)
@@ -91,7 +91,7 @@ export const TerritoryNames = meta.story({
     await expect(page.getByRole('textbox', { name: 'Territory name' })).toHaveValue('Arrakeen city');
     await expect(page.getByRole('textbox', { name: 'Territory ID' })).toHaveValue('arrakeen_city');
     const saved = await loadAssetPage('board', 'arrakis');
-    expect(
+    await expect(
       Object.values((saved!.asset.data as BoardAssetData).board.properties).find((p) => p.name === 'Arrakeen city')?.id
     ).toBe('arrakeen_city');
   },
@@ -136,7 +136,7 @@ export const DrawCurves = meta.story({
     await expect(page.findByRole('button', { name: 'Delete board' })).resolves.toBeVisible();
     const saved = await loadAssetPage('board', 'curved-board');
     const board = (saved!.asset.data as { board: { nodes: object; edges: { kind: string }[] } }).board;
-    expect(Object.keys(board.nodes)).toHaveLength(8);
-    expect(board.edges.map((edge) => edge.kind)).toEqual(['arc', 'arc', 'arc', 'arc', 'cubic', 'arc']);
+    await expect(Object.keys(board.nodes)).toHaveLength(8);
+    await expect(board.edges.map((edge) => edge.kind)).toEqual(['arc', 'arc', 'arc', 'arc', 'cubic', 'arc']);
   },
 });

@@ -143,7 +143,7 @@ load_app_pid() {
 # keeps that mapping near-exact (validated on prototype/e2e-coverage-build-serve).
 build_app() {
   VITE_E2E_LOCAL_AUTH="$VITE_E2E_LOCAL_AUTH" VITE_CONVEX_URL="$VITE_CONVEX_URL" \
-    bun run vite build --sourcemap --minify false >"$BUILD_LOG" 2>&1
+    bun run vp build . --sourcemap --minify false >"$BUILD_LOG" 2>&1
 }
 
 # The build needs only the VITE_* values from the env file, not a running

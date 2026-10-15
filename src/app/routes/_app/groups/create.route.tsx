@@ -114,7 +114,7 @@ function GroupCreatePage() {
                 { input: nameCheck.data },
                 {
                   onSuccess: () => {
-                    navigate({
+                    void navigate({
                       to: '/profiles/$profileSlug',
                       params: { profileSlug: profileRow.slug },
                     });

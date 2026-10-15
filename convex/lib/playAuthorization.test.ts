@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { PLAY_FIXTURE_KEY } from '../../src/shared/play/admission';
 import type { Id } from '../_generated/dataModel';

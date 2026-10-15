@@ -1,5 +1,5 @@
 import { PDFDocument } from 'pdf-lib';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { inspectChromiumPdf } from './pdf-inspection';
 import { incompleteClassicXrefPdf } from './pdf-inspection-test-fixtures';

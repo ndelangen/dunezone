@@ -301,7 +301,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
             window.alert('Profile saved, but the selected default Group was no longer available.');
           }
           if (previousSlug !== entry.slug) {
-            navigate({
+            void navigate({
               to: '/profiles/$profileSlug',
               params: { profileSlug: entry.slug },
               replace: true,

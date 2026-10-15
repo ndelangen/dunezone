@@ -14,13 +14,13 @@ export const Credits = meta.story({
   play: async (context) => {
     await expectContained(context);
     const groups = [...context.canvasElement.querySelectorAll('[data-rulebook-block-id="CRED"] h3')];
-    expect(groups.map((heading) => heading.textContent)).toEqual([
+    await expect(groups.map((heading) => heading.textContent)).toEqual([
       'Game design',
       'Artwork and typesetting',
       'Rules compilation',
     ]);
     const contributors = [...context.canvasElement.querySelectorAll('[data-rulebook-block-id="CRED"] li')];
-    expect(contributors.map((item) => item.getAttribute('data-rulebook-item-id'))).toEqual([
+    await expect(contributors.map((item) => item.getAttribute('data-rulebook-item-id'))).toEqual([
       'EBER',
       'KITT',
       'OLOT',
@@ -28,6 +28,6 @@ export const Credits = meta.story({
       'TYPE',
       'EDIT',
     ]);
-    expect(contributors[3]!.textContent).toBe('Dune ZoneBoard and card rendering');
+    await expect(contributors[3]!.textContent).toBe('Dune ZoneBoard and card rendering');
   },
 });

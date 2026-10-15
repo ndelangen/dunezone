@@ -2,7 +2,7 @@
 
 import { PerspectiveCamera } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 function connectedControls() {
   const camera = new PerspectiveCamera();

@@ -37,7 +37,7 @@ export function createHmac(algorithm: string, key: string) {
     },
     digest(encoding: 'hex') {
       if (encoding !== 'hex') {
-        throw new Error(`The Storybook crypto shim only digests to hex, not ${encoding}.`);
+        throw new Error(`The Storybook crypto shim only digests to hex, not ${encoding as string}.`);
       }
       return HmacSHA256(message, key).toString();
     },

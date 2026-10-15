@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { affordancesFor, freshTableState } from './model';
 import type { TablePiece, TableState } from './model';

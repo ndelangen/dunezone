@@ -1,5 +1,5 @@
 import { MEDIA_GALLERY_SLUGS } from '@shared/recordlessPublicPages';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { mediaHead } from './mediaHead';
 import { mediaKinds } from './mediaSearchParams';

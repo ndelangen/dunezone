@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 
 import { serverMessageSchema } from '@shared/play/protocol';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { journeyFrame, journeySteps, journeyViewers, railsTarget, stepCode } from './journey.stories.fixture';
 

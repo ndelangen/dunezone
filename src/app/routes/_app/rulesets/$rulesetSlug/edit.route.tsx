@@ -155,7 +155,7 @@ function RulesetEditor({
         imageCover: coverChanged && trimmedCover === '' ? null : undefined,
       });
       if (previousSlug !== entry.slug) {
-        navigate({
+        void navigate({
           to: '/rulesets/$rulesetSlug/edit',
           params: { rulesetSlug: entry.slug },
           replace: true,

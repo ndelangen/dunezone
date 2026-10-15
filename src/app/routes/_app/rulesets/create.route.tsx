@@ -72,7 +72,7 @@ function CreateRulesetForm() {
       { input: { name: nameCheck.data, about: aboutCheck.data } },
       {
         onSuccess: (entry) => {
-          navigate({
+          void navigate({
             to: '/rulesets/$rulesetSlug',
             params: { rulesetSlug: entry.slug },
             search: entry.route_notice ? { notice: entry.route_notice } : {},

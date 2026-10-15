@@ -38,7 +38,7 @@ async function listed<Row>(
   result: PaginationResult<Row>,
   toEntry: (row: Row) => Entry | null | Promise<Entry | null>
 ): Promise<SitemapPage> {
-  const entries = await Promise.all(result.page.map(toEntry));
+  const entries = await Promise.all(result.page.map(async (row) => toEntry(row)));
   return {
     entries: entries.filter((value): value is Entry => value !== null),
     cursor: result.isDone ? null : result.continueCursor,

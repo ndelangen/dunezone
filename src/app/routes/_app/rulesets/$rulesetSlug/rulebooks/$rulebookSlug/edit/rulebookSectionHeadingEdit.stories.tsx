@@ -14,6 +14,6 @@ export const SectionHeading = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.type(canvas.getByRole('textbox', { name: 'Title' }), ' phase');
-    expect(sectionHeadingChange).toHaveBeenLastCalledWith({ title: 'Shipment and movement phase' });
+    await expect(sectionHeadingChange).toHaveBeenLastCalledWith({ title: 'Shipment and movement phase' });
   },
 });

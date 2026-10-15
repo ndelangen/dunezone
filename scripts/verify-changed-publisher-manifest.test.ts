@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, wr
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vite-plus/test';
 
 const scriptPath = path.join(import.meta.dirname, 'verify-changed-publisher-manifest.ts');
 const bunExecutable = spawnSync('which', ['bun'], { encoding: 'utf8' }).stdout.trim();

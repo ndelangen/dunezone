@@ -1,5 +1,5 @@
 import { FactionRender } from '@shared/factions/schema';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import type { Faction } from '@db/factions';
 

@@ -2,7 +2,7 @@
 // @vitest-environment edge-runtime
 
 import SHA256 from 'crypto-js/sha256';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { rulebookFirstPageAssetDataSchema } from '../src/shared/asset-publishing/publication';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import type { SwapAction } from '../../src/shared/play/swapping';
 import { dealt, draftingRuntime } from './native-drafting.fixture.ts';

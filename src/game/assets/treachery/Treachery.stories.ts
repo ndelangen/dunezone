@@ -10,10 +10,10 @@ const meta = preview.meta({
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
     const text = canvasElement.querySelector<HTMLElement>('[data-component-part="name"] span');
-    expect(text).not.toBeNull();
-    expect(text!.scrollWidth).toBeLessThanOrEqual(text!.parentElement!.clientWidth + 1);
+    await expect(text).not.toBeNull();
+    await expect(text!.scrollWidth).toBeLessThanOrEqual(text!.parentElement!.clientWidth + 1);
     const icon = canvasElement.querySelector('[data-component-part="icon"]');
-    expect(text!.getBoundingClientRect().right).toBeLessThanOrEqual(icon!.getBoundingClientRect().left);
+    await expect(text!.getBoundingClientRect().right).toBeLessThanOrEqual(icon!.getBoundingClientRect().left);
   },
   globals: {
     viewport: {

@@ -2,7 +2,7 @@
 /* @vitest-environment edge-runtime */
 import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { internal } from './_generated/api';
 import { revokeAccountSessions } from './lib/authSessionLifecycle';

@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 import { freshTableState } from '@shared/play/model';
 import { draftForGesture } from '@shared/play/tableState';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { TableKeyboard } from './TableKeyboard';
 

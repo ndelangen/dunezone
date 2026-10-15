@@ -2,8 +2,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import viteReact from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
-import type { Rolldown } from 'vite';
+import { defineConfig } from 'vite-plus';
+import type { Rolldown } from 'vite-plus';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const runtimeEntry = 'virtual:rulebook-html-runtime';

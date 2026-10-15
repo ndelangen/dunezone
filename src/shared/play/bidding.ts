@@ -73,7 +73,7 @@ export function biddingFactions(
   roster: TableRoster | undefined,
   pieces: readonly TablePiece[]
 ): string[] {
-  return stormOrder(stormSectorIndex, roster).filter((factionId) => factionTokenFaceUp(pieces, factionId));
+  return stormOrder(stormSectorIndex, roster, pieces).filter((factionId) => factionTokenFaceUp(pieces, factionId));
 }
 
 /** The next faction after `from` in storm order that is still bidding; `from` itself when it is the only one. */

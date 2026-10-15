@@ -64,7 +64,13 @@ function observeMessages() {
   if (!prototype) {
     throw new Error('WebSocket has no onmessage descriptor.');
   }
-  const descriptor = Object.getOwnPropertyDescriptor(prototype, 'onmessage');
+  /* The accessors are typed as detached functions that take the socket as `this`, which is how they are called below. */
+  const descriptor:
+    | {
+        get?: (this: WebSocket) => WebSocket['onmessage'];
+        set?: (this: WebSocket, handler: WebSocket['onmessage']) => void;
+      }
+    | undefined = Object.getOwnPropertyDescriptor(prototype, 'onmessage');
   if (!descriptor?.get || !descriptor.set) {
     throw new Error('WebSocket onmessage descriptor is incomplete.');
   }
@@ -345,7 +351,7 @@ export async function browsers<P extends BrowserPeer>({
       }
     },
     async collect(peers: P[]) {
-      await Promise.all(peers.map((peer) => peer.browserCapture));
+      await Promise.all(peers.flatMap((peer) => peer.browserCapture ?? []));
       for (const peer of peers.filter((candidate) => candidate.page && !candidate.page.isClosed())) {
         try {
           assert.ok(peer.browserReport);

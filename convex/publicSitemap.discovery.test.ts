@@ -2,7 +2,7 @@
 // @vitest-environment edge-runtime
 
 import { convexTest } from 'convex-test';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import { SITEMAP_RECORD_COLLECTIONS } from '../src/shared/publicDiscovery';

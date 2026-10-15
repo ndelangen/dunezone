@@ -30,8 +30,8 @@ export const Arrived = meta.story({
   play: async ({ canvasElement }) => {
     const image = await within(canvasElement).findByRole<HTMLImageElement>('img', { name: 'Atreides' });
     await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
-    expect(image.naturalWidth).toBe(600);
-    expect(canvasElement.getAnimations({ subtree: true })).toHaveLength(0);
+    await expect(image.naturalWidth).toBe(600);
+    await expect(canvasElement.getAnimations({ subtree: true })).toHaveLength(0);
   },
 });
 
@@ -41,8 +41,8 @@ export const Loading = meta.story({
   loaders: [serveStoryImages],
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(animationDurations(canvasElement)).toContain(240));
-    expect(canvasElement.querySelector('[aria-busy="true"]')).not.toBeNull();
-    expect(within(canvasElement).queryByRole('img', { name: /preview unavailable/ })).toBeNull();
+    await expect(canvasElement.querySelector('[aria-busy="true"]')).not.toBeNull();
+    await expect(within(canvasElement).queryByRole('img', { name: /preview unavailable/ })).toBeNull();
   },
 });
 
@@ -51,9 +51,9 @@ export const Missing = meta.story({
   args: { src: null },
   play: async ({ canvasElement }) => {
     const missing = within(canvasElement).getByRole('img', { name: 'Atreides: preview unavailable' });
-    expect(missing).toBeVisible();
-    expect(missing).not.toHaveAttribute('aria-busy');
-    expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
+    await expect(missing).toBeVisible();
+    await expect(missing).not.toHaveAttribute('aria-busy');
+    await expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
   },
 });
 
@@ -64,7 +64,7 @@ export const FailedLoad = meta.story({
     await expect(
       within(canvasElement).findByRole('img', { name: 'Atreides: preview unavailable' })
     ).resolves.toBeVisible();
-    expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
+    await expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
   },
 });
 
@@ -82,8 +82,8 @@ export const RecoversAfterFailedLoad = meta.story({
      */
     const image = await canvas.findByRole<HTMLImageElement>('img', { name: 'Atreides' }, { timeout: 40_000 });
     await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
-    expect(image.naturalWidth).toBe(600);
-    expect(canvas.queryByRole('img', { name: 'Atreides: preview unavailable' })).toBeNull();
+    await expect(image.naturalWidth).toBe(600);
+    await expect(canvas.queryByRole('img', { name: 'Atreides: preview unavailable' })).toBeNull();
   },
 });
 
@@ -95,7 +95,7 @@ export const Arriving = meta.story({
     const image = await within(canvasElement).findByRole('img', { name: 'Atreides' });
     await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
     const keyframes = arrivalKeyframes(canvasElement);
-    expect(keyframes).toContainEqual(expect.objectContaining({ filter: 'blur(12px)', transform: 'scale(1.03)' }));
+    await expect(keyframes).toContainEqual(expect.objectContaining({ filter: 'blur(12px)', transform: 'scale(1.03)' }));
   },
 });
 
@@ -107,8 +107,8 @@ export const ArrivingWithReducedMotion = meta.story({
   play: async ({ canvasElement }) => {
     const image = await within(canvasElement).findByRole('img', { name: 'Atreides' });
     await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
-    expect(animationDurations(canvasElement)).toContain(160);
+    await expect(animationDurations(canvasElement)).toContain(160);
     const keyframes = arrivalKeyframes(canvasElement);
-    expect(keyframes.some((frame) => 'filter' in frame || 'transform' in frame)).toBe(false);
+    await expect(keyframes.some((frame) => 'filter' in frame || 'transform' in frame)).toBe(false);
   },
 });

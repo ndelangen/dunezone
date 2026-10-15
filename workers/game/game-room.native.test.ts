@@ -1,5 +1,5 @@
-import type { TestContext } from 'vitest';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { TestContext } from 'vite-plus/test';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { PLAY_AUTH_RECOVERY_MS } from '../../src/shared/play/admission.ts';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases.ts';

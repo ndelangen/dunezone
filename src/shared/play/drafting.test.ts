@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
 import { dealSeats, draftGates, draftWarning, draftedPool, emptyDraft, resolveFactionPool } from './drafting';
@@ -77,6 +77,6 @@ describe('dealing seats', () => {
   it('gives every seat one distinct faction and one distinct station', () => {
     const deal = dealSeats(['s1', 's2', 's3'], ['a', 'b', 'c'], (n) => n - 1);
     expect(new Set(deal.map((entry) => entry.factionId)).size).toBe(3);
-    expect(deal.map((entry) => entry.position).sort()).toEqual([0, 1, 2]);
+    expect(deal.map((entry) => entry.position).sort((first, second) => first - second)).toEqual([0, 1, 2]);
   });
 });

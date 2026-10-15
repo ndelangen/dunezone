@@ -4,7 +4,7 @@ import { MantineProvider } from '@mantine/core';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { useState } from 'react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, expect, it, vi } from 'vite-plus/test';
 
 import { initialTokenDraft, initialTokenMemory, TokenEditor, tokenDraftWarnings } from './TokenEditor';
 import type { TokenChapter, TokenDraft, TokenMemory } from './TokenEditor';

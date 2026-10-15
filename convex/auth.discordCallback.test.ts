@@ -3,7 +3,7 @@
 
 import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import schema from './schema';
@@ -33,7 +33,7 @@ async function discordCallback(
   const providerFetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     if (url === 'https://discord.com/api/oauth2/token') {
-      expect(new URLSearchParams(String(init?.body)).get('redirect_uri')).toBe(expectedCallback);
+      expect(new URLSearchParams(init?.body as string).get('redirect_uri')).toBe(expectedCallback);
       return Response.json({ access_token: 'test-access-token', token_type: 'Bearer', expires_in: 3600 });
     }
     if (url === 'https://discord.com/api/users/@me') {

@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { PublicLog } from './log';
 import type { StoredSnapshot } from './state';

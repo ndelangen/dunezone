@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { clientMessageSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage } from '../../src/shared/play/protocol';

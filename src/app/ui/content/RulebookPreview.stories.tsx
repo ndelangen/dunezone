@@ -33,14 +33,14 @@ export const Available = meta.story({
 export const Unavailable = meta.story({
   args: { imageUrl: null },
   play: async ({ canvas }) => {
-    expect(canvas.getByRole('img', { name: 'First page of Movement: preview unavailable' })).toBeVisible();
+    await expect(canvas.getByRole('img', { name: 'First page of Movement: preview unavailable' })).toBeVisible();
   },
 });
 
 export const Preparing = meta.story({
   args: { imageUrl: null, status: 'in_progress' },
   play: async ({ canvas }) => {
-    expect(canvas.getByRole('img', { name: 'First-page preview preparing for Movement' })).toBeVisible();
+    await expect(canvas.getByRole('img', { name: 'First-page preview preparing for Movement' })).toBeVisible();
   },
 });
 
@@ -50,7 +50,7 @@ export const Tall = meta.story({ args: { size: 'tall', imageUrl: null } });
 export const FailedCapture = meta.story({
   args: { imageUrl: null, status: 'failed' },
   play: async ({ canvas }) => {
-    expect(canvas.getByRole('img', { name: 'First-page preview failed for Movement' })).toBeVisible();
+    await expect(canvas.getByRole('img', { name: 'First-page preview failed for Movement' })).toBeVisible();
   },
 });
 

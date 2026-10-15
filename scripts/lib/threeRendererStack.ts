@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 
-import { parseAst } from 'vite';
-import type { Alias, Plugin } from 'vite';
+import { parseAst } from 'vite-plus';
+import type { Alias, Plugin } from 'vite-plus';
 
 /**
  * drei's WebGPU entry imports the plain `@react-three/fiber` entry and one class from three's source tree, which three marks as having side effects.

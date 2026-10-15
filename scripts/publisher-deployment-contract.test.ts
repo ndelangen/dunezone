@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import packageJson from '../package.json';
 import { rendererManifest } from '../workers/publisher/renderer-manifest.generated';
@@ -195,7 +195,7 @@ function controlPlane(answers: Answer[], versions: Version[] = [RELEASED, PREVIO
   let clock = 1_000_000;
   let reads = 0;
   const fetcher = async (input: string | URL | Request): Promise<Response> => {
-    const url = new URL(String(input));
+    const url = new URL(input instanceof Request ? input.url : input);
     if (url.pathname.endsWith('/versions')) {
       return Response.json({
         success: true,

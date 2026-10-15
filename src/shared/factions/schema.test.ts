@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { parsePublicationAssetData } from '../asset-publishing/publication';
 import { assetPublishingFaction, legacyAssetPublishingFaction } from './fixtures/assetPublishingFaction';

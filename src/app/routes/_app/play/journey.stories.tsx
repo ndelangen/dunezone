@@ -66,13 +66,13 @@ const PLAYERS_AT_TABLE_FULL = 'Thialfi';
 export const Walkthrough = meta.story({
   play: async ({ canvasElement }) => {
     const { page, panel } = await atStep(canvasElement, 1);
-    expect(panel.getByText(journeySteps()[0]!.title)).toBeVisible();
+    await expect(panel.getByText(journeySteps()[0]!.title)).toBeVisible();
     /* The page itself follows the panel: the second player shows once the table fills, and leaves again at the start. */
     const seated = () => page.queryAllByText(PLAYERS_AT_TABLE_FULL, { exact: true });
-    expect(seated()).toHaveLength(0);
+    await expect(seated()).toHaveLength(0);
     await userEvent.click(panel.getByRole('button', { name: 'Next' }));
     await waitFor(() => expect(panel.getByText(stepCode(1))).toBeVisible());
-    expect(journey.step).toBe(1);
+    await expect(journey.step).toBe(1);
     await waitFor(() => expect(seated().length).toBeGreaterThan(0));
     /* Back to the start, so the story opens where the game does. */
     await userEvent.click(panel.getByRole('button', { name: 'Previous' }));

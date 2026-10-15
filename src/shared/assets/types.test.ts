@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { ASSET_TYPE_KEYS, ASSET_TYPES, assetTypeNoun } from './types';
 

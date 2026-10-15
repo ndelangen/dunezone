@@ -1,6 +1,6 @@
 import viteReact from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
-import type { Plugin } from 'vite';
+import { defineConfig } from 'vite-plus';
+import type { Plugin } from 'vite-plus';
 
 import { reactCompiler } from '../scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from '../scripts/lib/threeRendererStack.ts';
