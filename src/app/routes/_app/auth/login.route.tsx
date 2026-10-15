@@ -3,12 +3,10 @@ import { Button, Stack, Text, TextInput } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
-import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
 import { ArrowRight } from 'lucide-react';
-import { useReducer } from 'react';
+import { useReducer, useState } from 'react';
 import type { SVGProps } from 'react';
 import { SiDiscord } from 'react-icons/si';
 
@@ -16,7 +14,11 @@ import { authProviderNames, useSignInProviders } from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
+import { useMotionAllowed } from '@app/styles/motion';
 
+/* File imports give the build hashed URLs, as the masthead does. */
+import bandPoster from '../../../../../public/video/band-poster.jpg?url';
+import bandVideo from '../../../../../public/video/band.mp4?url';
 import styles from './login.module.css';
 
 export const Route = createFileRoute('/_app/auth/login')({
@@ -106,87 +108,92 @@ function SignInPanel({ providers }: { providers: ReturnType<typeof useSignInProv
     }
   };
   return (
-    <Section
-      title="Enter Arrakis"
-      description="Sign in to build factions, write rulesets and join games."
-      alignment="center"
-    >
-      <Stack gap="sm">
-        {state.error && <FormError title="Sign-in could not start">{state.error}</FormError>}
-        {localAuthEnabled ? (
-          <Stack component="form" gap="sm" onSubmit={(event) => void localLogin(event)}>
-            <TextInput
-              label="Email"
-              type="email"
-              autoComplete="username"
-              value={state.email}
-              onChange={(event) => dispatch({ kind: 'emailChanged', value: event.currentTarget.value })}
-              disabled={state.busy !== null}
-            />
-            <TextInput
-              label="Password"
-              type="password"
-              autoComplete="current-password"
-              value={state.password}
-              onChange={(event) => dispatch({ kind: 'passwordChanged', value: event.currentTarget.value })}
-              disabled={state.busy !== null}
-            />
-            <Button
-              type="submit"
-              data-testid="local-auth-submit"
-              loading={state.busy === 'password'}
-              disabled={state.busy !== null}
-            >
-              Continue with local auth
-            </Button>
-          </Stack>
-        ) : providers ? (
-          providers.map((method) => {
-            const name = authProviderNames[method.provider];
-            return (
-              <Button
-                key={method.provider}
-                className={styles.provider}
-                variant="default"
-                size="lg"
-                fullWidth
-                justify="space-between"
-                leftSection={<ProviderMark provider={method.provider} />}
-                rightSection={
-                  method.available ? (
-                    <ArrowRight size={18} aria-hidden />
-                  ) : (
-                    <Text span size="xs" c="dimmed">
-                      Unavailable
-                    </Text>
-                  )
-                }
-                loading={state.busy === method.provider}
-                disabled={state.busy !== null || !method.available}
-                onClick={() => void socialLogin(method.provider)}
-              >
-                Continue with {name}
-              </Button>
-            );
-          })
-        ) : (
-          <StatusBadge tone="progress" live>
-            Loading sign-in methods
-          </StatusBadge>
-        )}
-        <Text size="xs" c="dimmed" ta="center">
-          No password to remember. Your first sign-in creates your account.
-        </Text>
-      </Stack>
-    </Section>
+    <Stack gap="sm" className={styles.actions}>
+      {state.error && <FormError title="Sign-in could not start">{state.error}</FormError>}
+      {localAuthEnabled ? (
+        <Stack component="form" gap="sm" onSubmit={(event) => void localLogin(event)}>
+          <TextInput
+            label="Email"
+            type="email"
+            autoComplete="username"
+            value={state.email}
+            onChange={(event) => dispatch({ kind: 'emailChanged', value: event.currentTarget.value })}
+            disabled={state.busy !== null}
+          />
+          <TextInput
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            value={state.password}
+            onChange={(event) => dispatch({ kind: 'passwordChanged', value: event.currentTarget.value })}
+            disabled={state.busy !== null}
+          />
+          <Button
+            type="submit"
+            data-testid="local-auth-submit"
+            loading={state.busy === 'password'}
+            disabled={state.busy !== null}
+          >
+            Continue with local auth
+          </Button>
+        </Stack>
+      ) : providers ? (
+        providers.map((method) => (
+          <Button
+            key={method.provider}
+            className={styles.provider}
+            data-provider={method.provider}
+            size="xl"
+            fullWidth
+            justify="space-between"
+            leftSection={<ProviderMark provider={method.provider} />}
+            rightSection={method.available ? <ArrowRight size={18} aria-hidden /> : <span>Unavailable</span>}
+            loading={state.busy === method.provider}
+            disabled={state.busy !== null || !method.available}
+            onClick={() => void socialLogin(method.provider)}
+          >
+            Continue with {authProviderNames[method.provider]}
+          </Button>
+        ))
+      ) : (
+        <StatusBadge tone="progress" live>
+          Loading sign-in methods
+        </StatusBadge>
+      )}
+      <Text size="sm" className={styles.fine}>
+        No password to remember. Your first sign-in creates your account.
+      </Text>
+    </Stack>
   );
 }
 
 function ProviderMark({ provider }: { provider: AuthProvider }) {
-  return provider === 'google' ? (
-    <GoogleColoredMark width={22} height={22} />
-  ) : (
-    <SiDiscord size={22} className={styles.discord} aria-hidden />
+  return provider === 'google' ? <GoogleColoredMark width={22} height={22} /> : <SiDiscord size={22} aria-hidden />;
+}
+
+/*
+ * The storm behind the page: the masthead's own artwork, here at full screen because a fullscreen page hides the masthead.
+ * The loop mounts only when motion is welcome, and fades in over the poster once it actually plays.
+ */
+function Storm() {
+  const motionOk = useMotionAllowed();
+  const [playing, setPlaying] = useState(false);
+  return (
+    <div className={styles.storm} aria-hidden>
+      <img alt="" src={bandPoster} />
+      {motionOk && (
+        <video
+          data-ready={playing || undefined}
+          onPlaying={() => setPlaying(true)}
+          src={bandVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+          tabIndex={-1}
+        />
+      )}
+    </div>
   );
 }
 
@@ -194,24 +201,50 @@ function LoginPage() {
   const profile = useCurrentProfile();
   const providers = useSignInProviders();
   return (
-    <PageLayout>
-      <PageLayout.Header size="compact">
+    <PageLayout height="fullscreen">
+      <PageLayout.Header>
         <PageTitle title="Sign in" />
       </PageLayout.Header>
-      <PageLayout.Content>
-        <div className={styles.column}>
-          <Surface padding="xl">
-            {profile.data ? (
-              <Section title="You're signed in">
-                <Stack gap="sm">
-                  <Text>{profile.data.username ?? 'Player'}</Text>
-                  <Link to="/">Go to home</Link>
-                </Stack>
-              </Section>
-            ) : (
-              <SignInPanel providers={providers} />
-            )}
-          </Surface>
+      <PageLayout.Content width="viewport">
+        <div className={styles.stage} data-scheme-dark>
+          <Storm />
+          <div className={styles.frame}>
+            <div className={styles.topBar}>
+              <Link to="/" aria-label="Dune Zone home">
+                <img className={styles.logo} src="/web/logo.svg" alt="" />
+              </Link>
+              <Link to="/" className={styles.back}>
+                Back to Dune Zone
+              </Link>
+            </div>
+            <div className={styles.pitch}>
+              {profile.data ? (
+                <>
+                  <Text className={styles.eyebrow}>Welcome back</Text>
+                  <Text className={styles.headline}>{profile.data.username ?? 'Player'}</Text>
+                  <Text className={styles.lead}>You are already signed in.</Text>
+                  <Button
+                    component={Link}
+                    to="/"
+                    size="xl"
+                    className={styles.provider}
+                    rightSection={<ArrowRight size={18} aria-hidden />}
+                  >
+                    Go to Dune Zone
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Text className={styles.eyebrow}>The spice must flow</Text>
+                  <Text className={styles.headline}>Enter the deep desert</Text>
+                  <Text className={styles.lead}>
+                    Build factions, write your own rulesets and play Dune with friends.
+                  </Text>
+                  <SignInPanel providers={providers} />
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </PageLayout.Content>
     </PageLayout>

@@ -1,15 +1,149 @@
-/* A sign-in card reads as one decision, so it stays narrow and centred however wide the window is. */
-.column {
+/*
+ * The sign-in page is a full custom page: the storm fills the window and the invitation sits on its darker left side.
+ * The stage scrolls on its own, because the fullscreen frame clips and a short phone would otherwise lose the buttons.
+ */
+.stage {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+  color: var(--color-paper);
+  background-color: #1a120b;
+}
+
+.storm {
+  position: fixed;
+  inset: 0;
+}
+
+.storm img,
+.storm video {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  max-width: 28rem;
-  margin-inline: auto;
+  height: 100%;
+  object-fit: cover;
+  object-position: 70% center;
+}
+
+.storm video {
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.storm video[data-ready] {
+  opacity: 1;
+}
+
+/* The veil darkens the left, where the words sit, and the floor, so the storm stays loud only on the right. */
+.storm::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(20 12 6 / 92%) 0%, rgb(20 12 6 / 75%) 38%, rgb(20 12 6 / 10%) 72%),
+    linear-gradient(0deg, rgb(20 12 6 / 70%), transparent 40%);
+}
+
+.frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  min-height: 100%;
+  padding: var(--space-xl) clamp(var(--space-md), 5vw, 4rem);
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.logo {
+  display: block;
+  height: 1.75rem;
+}
+
+.back {
+  color: inherit;
+  opacity: 0.85;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 60%);
+  text-decoration: none;
+}
+
+.back:hover,
+.back:focus-visible {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.pitch {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-lg);
+  max-width: 33rem;
+  padding-block-end: var(--space-xl);
+}
+
+.eyebrow {
+  font-family: "C_Copperplate_Gothic", sans-serif;
+  font-size: 0.875rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--color-caution-inverse);
+}
+
+.headline {
+  font-family: "C_Copperplate_Gothic_Heavy", sans-serif;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  line-height: 1.02;
+  text-transform: uppercase;
+  text-shadow: 0 4px 30px rgb(0 0 0 / 50%);
+}
+
+.lead {
+  font-size: 1.25rem;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.actions {
+  max-width: 25rem;
 }
 
 .provider {
-  border-width: 2px;
+  height: auto;
+  padding-block: var(--space-md);
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
-/* Discord's mark keeps its own brand colour, as Google's does. */
-.discord {
-  color: #5865f2;
+.provider:hover:not(:disabled) {
+  background-color: var(--color-paper);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 45%);
+}
+
+/* Discord's own blurple, as Google keeps its four colours in its mark. */
+.provider[data-provider="discord"],
+.provider[data-provider="discord"]:hover:not(:disabled) {
+  background-color: #5865f2;
+  color: white;
+}
+
+.provider:disabled {
+  opacity: 0.55;
+}
+
+.fine {
+  opacity: 0.7;
 }
