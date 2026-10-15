@@ -8,7 +8,8 @@ import { RectangleToken } from '../token/Rectangle';
 /** Clips the linked front to its token shape; the caller draws the shadow outside this clipping box. */
 export function CardToken({ token }: { token: z.infer<typeof CustomCardToken> }) {
   const rectangle = token.type === 'token-enhance';
-  const { clipPath } = tokenOutline(tokenShapeOfType(token.type) ?? 'square');
+  const shape = tokenShapeOfType(token.type);
+  const { clipPath } = tokenOutline(shape ?? 'square');
   return (
     <div
       style={{
@@ -24,6 +25,7 @@ export function CardToken({ token }: { token: z.infer<typeof CustomCardToken> })
         <RectangleToken {...token.face} />
       ) : (
         <CustomToken
+          shape={shape ?? 'round'}
           background={token.face.background}
           image={token.face.image}
           circle={token.face.ring}

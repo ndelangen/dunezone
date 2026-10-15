@@ -450,9 +450,10 @@ export class Room {
       this.available(settled.targetPieceId, id);
     }
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
-    // Apply to the real table so temporary reservation locks are never persisted.
-    const table = requireAccepted(raw, applyDraftToState(raw, settled, seatSubject(identity.viewerSeat)));
-    return nextSnapshot(this.snapshot, table);
+    // Applied to the guarded table, so a plate leaves behind what another player is carrying off it;
+    // the temporary reservation locks are then put back as stored, never persisted.
+    const next = requireAccepted(guarded, applyDraftToState(guarded, settled, seatSubject(identity.viewerSeat)));
+    return nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, next));
   }
 
   /* Phase, battle and catalogue controls belong to play; setup opens only physical handling. */

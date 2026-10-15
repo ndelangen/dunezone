@@ -1,3 +1,5 @@
+import { isFactionToken } from './factionToken';
+import { nearestZone } from './model';
 import type { TablePiece, Vector3Tuple } from './model';
 import { fromPieceFrame, POINTER_HEIGHT, pointerCovers, isPointerToken } from './pointerToken';
 import { restingPositionAt } from './tableGeometry';
@@ -13,9 +15,20 @@ export function pointerRiders(pieces: readonly TablePiece[], plate: TablePiece):
   return pieces.filter((piece) => piece.id !== plate.id && canRide(piece) && pointerCovers(plate, piece.position));
 }
 
-/* Only something standing on the table can ride, and a plate never rides another. */
+/*
+ * Only troops, cards and tokens standing loose on the table ride: a locked piece, or one another player is carrying, stays where it is.
+ * Markers and faction tokens keep to their own places on the table, and a plate never rides another.
+ */
 function canRide(piece: TablePiece): boolean {
-  return !piece.inventory && !piece.battleOverlay && piece.items.length > 0 && !isPointerToken(piece);
+  return (
+    !piece.inventory &&
+    !piece.battleOverlay &&
+    !piece.locked &&
+    piece.kind !== 'marker' &&
+    piece.items.length > 0 &&
+    !isPointerToken(piece) &&
+    !isFactionToken(piece)
+  );
 }
 
 /** Where a rider ends up when its plate goes from one pose to another: it keeps its place and its angle on the plate. */
@@ -41,7 +54,12 @@ export function withRidersCarried(pieces: TablePiece[], moved: TablePiece): Tabl
   if (!riders.size) {
     return pieces;
   }
-  return pieces.map((piece) => (riders.has(piece) ? { ...piece, ...riderPose(piece, plate, moved) } : piece));
+  return pieces.map((piece) => (riders.has(piece) ? carriedRider(piece, riderPose(piece, plate, moved)) : piece));
+}
+
+/* A rider set down at its new pose takes the zone it now stands in, as any piece moved there would. */
+function carriedRider(rider: TablePiece, pose: Pose): TablePiece {
+  return { ...rider, ...pose, zoneId: nearestZone(pose.position)?.id ?? null };
 }
 
 /**
@@ -105,8 +123,7 @@ function ridersShownOn(plate: TablePiece, resting: TablePiece | undefined, reste
 function samePlace(piece: TablePiece, rested: TablePiece | undefined): boolean {
   return (
     !!rested &&
-    piece.position[0] === rested.position[0] &&
-    piece.position[2] === rested.position[2] &&
+    piece.position.every((value, axis) => value === rested.position[axis]) &&
     piece.orientation === rested.orientation
   );
 }

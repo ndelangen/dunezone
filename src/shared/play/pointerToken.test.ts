@@ -5,7 +5,9 @@ import { freshTableState } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { pointerRiders, piecesOnPlates } from './pointerRiders';
 import { POINTER_HEIGHT, POINTER_TOKEN_TYPE, pointerCovers } from './pointerToken';
-import { restingPositionAt } from './tableGeometry';
+import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
+import { BOARD_SURFACE_Y, restingPositionAt, supportHeightAt } from './tableGeometry';
+import { isCollisionFreePosition } from './tablePhysics';
 import { applyDraftToState, draftForGesture, renderedPiecesFor, settleCarryAtPosition } from './tableState';
 
 const troopBase = freshTableState().pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
@@ -131,5 +133,43 @@ describe('a pointer token, such as the HMS,', () => {
     );
     const carried = piecesOnPlates(shown, state.pieces).find((piece) => piece.id === 't')!;
     expect(carried.position).toEqual([-1, 0.4 + POINTER_HEIGHT, -1]);
+  });
+  test('leaves a locked piece where it stands', () => {
+    const state = tableWith(plate([0, 0, 1]), { ...troop('t', [0, 0, 1]), locked: true });
+    const next = dropAt(state, 'hms', [-1, 0, -1])!;
+    expect(at(next, 't').position).toEqual(at(state, 't').position);
+  });
+
+  test('its riders take the zone they are carried to', () => {
+    const state = tableWith(plate([0, 0, 1]), troop('t', [0, 0, 1]));
+    const next = dropAt(state, 'hms', [-1, 0, -1])!;
+    expect(at(next, 't').zoneId).toBe(at(next, 'hms').zoneId);
+  });
+
+  test('set down in a shelf slot, it takes its riders only where they fit', () => {
+    const state = tableWith(plate([0, 0, 1]), troop('t', [0.2, 0, 1]));
+    const next = dropAt(state, 'hms', SHARED_ITEM_PLACEMENT_ANCHORS[0]!.position);
+    const rider = at(next!, 't');
+    expect(
+      isCollisionFreePosition(
+        rider,
+        rider.position,
+        next!.pieces.filter((piece) => piece.id !== 't')
+      )
+    ).toBe(true);
+  });
+
+  test('rests on the board when only its point reaches over it', () => {
+    expect(supportHeightAt([0, 0, 4.7], { kind: 'force', orientation: 0, items: plate([0, 0, 0]).items })).toBe(
+      BOARD_SURFACE_Y
+    );
+  });
+
+  test('a page leaves a rider lifted off it in the hand that holds it', () => {
+    const state = tableWith(plate([0, 0, 1]), troop('t', [0, 0, 1]));
+    const lifted = renderedPiecesFor(state).map((piece) =>
+      piece.id === 't' ? { ...piece, position: [0, 0.38, piece.position[2]] as Vector3Tuple } : piece
+    );
+    expect(piecesOnPlates(lifted, state.pieces).find((piece) => piece.id === 't')!.position[1]).toBe(0.38);
   });
 });

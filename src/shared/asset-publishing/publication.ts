@@ -48,7 +48,7 @@ export const STORM_CARD_ASSET_TYPE = 'card-storm' as const;
 export const SPICE_CARD_ASSET_TYPE = 'card-spice' as const;
 export const DECK_ASSET_TYPE = 'deck' as const;
 export const RULEBOOK_FIRST_PAGE_ASSET_TYPE = 'rulebook-first-page' as const;
-/** The three shapes whose face is a symbol in a fixed slot. The rectangle is a token too, and a different face model. */
+/** The shapes whose face is a symbol in a fixed slot. The rectangle is a token too, and a different face model. */
 export const ROUND_TOKEN_ASSET_TYPES = ['token-disc', 'token-tech', 'token-plate', 'token-pointer'] as const;
 export const RECTANGLE_TOKEN_ASSET_TYPE = 'token-enhance' as const;
 /**

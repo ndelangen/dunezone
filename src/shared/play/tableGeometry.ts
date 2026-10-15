@@ -1,6 +1,6 @@
 import { isFactionToken } from './factionToken';
 import type { TablePiece, Vector3Tuple } from './model';
-import { POINTER_BODY_RADIUS, POINTER_HEIGHT, isPointerToken } from './pointerToken';
+import { POINTER_BODY_RADIUS, POINTER_HEIGHT, isPointerToken, pointerCovers, pointerDistanceTo } from './pointerToken';
 import {
   isSpicePiece,
   SPICE_FOOTPRINT_RADIUS,
@@ -108,6 +108,10 @@ export function circleFootprintRadius(piece: PieceFootprint): number {
 }
 
 function minimumFootprintRadius(position: Vector3Tuple, piece: PieceFootprint): number {
+  /* A pointer's point reaches well past its round end, so its whole outline decides what it rests on. */
+  if (isPointerToken(piece)) {
+    return pointerDistanceTo({ position, orientation: piece.orientation }, [0, 0, 0]);
+  }
   if (piece.kind !== 'card') {
     return Math.max(0, Math.hypot(position[0], position[2]) - circleFootprintRadius(piece));
   }
@@ -123,6 +127,9 @@ function minimumFootprintRadius(position: Vector3Tuple, piece: PieceFootprint): 
 
 /** Whether a point on the table, relative to the piece's centre, lies over the piece's footprint. */
 export function pieceFootprintContains(offset: Vector3Tuple, piece: PieceFootprint): boolean {
+  if (isPointerToken(piece)) {
+    return pointerCovers({ position: [0, 0, 0], orientation: piece.orientation }, offset);
+  }
   return minimumFootprintRadius(offset, piece) === 0;
 }
 

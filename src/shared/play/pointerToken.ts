@@ -80,3 +80,22 @@ export function pointerCovers(
   }
   return true;
 }
+
+/** How far a table point lies from the plate as it rests at its pose: zero over the plate, else the gap to its nearest edge. */
+export function pointerDistanceTo(
+  plate: Pick<TablePiece, 'position' | 'orientation'>,
+  point: Readonly<Vector3Tuple>
+): number {
+  if (pointerCovers(plate, point)) {
+    return 0;
+  }
+  const [x, z] = toPieceFrame(point, plate.position, plate.orientation);
+  return Math.min(
+    ...POINTER_OUTLINE.map(([ax, az], index) => {
+      const [bx, bz] = POINTER_OUTLINE[(index + 1) % POINTER_OUTLINE.length]!;
+      const length = (bx - ax) ** 2 + (bz - az) ** 2;
+      const along = Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (z - az) * (bz - az)) / length));
+      return Math.hypot(x - (ax + along * (bx - ax)), z - (az + along * (bz - az)));
+    })
+  );
+}

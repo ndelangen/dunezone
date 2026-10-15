@@ -428,7 +428,11 @@ function settleMoveAtPosition(
       orientation: placementAnchor.orientation,
     };
     const anchoredPosition = restingPositionAt(placementAnchor.position, anchoredPiece);
-    if (!isOverlapFreePosition(anchoredPiece, anchoredPosition, placementObstaclesFor(state, draft))) {
+    const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
+    if (
+      !isOverlapFreePosition(anchoredPiece, anchoredPosition, rules.obstacles) ||
+      !rules.fits(anchoredPosition, placementAnchor.orientation)
+    ) {
       return null;
     }
     return { ...moveDraftTo(draft, anchoredPosition, null), orientation: placementAnchor.orientation };

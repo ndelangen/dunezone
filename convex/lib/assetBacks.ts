@@ -11,7 +11,7 @@ import { supersedePendingPublication } from './publication';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 
-/** The four token types, the set every back rule ranges over. */
+/** The token types, the set every back rule ranges over. */
 export const TOKEN_ASSET_TYPES = new Set(['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance']);
 
 /** A token's stored back, read without trusting the row to satisfy the current schema. */

@@ -69,7 +69,7 @@ export function PointerTokenPlate({
   renderOrder: number;
 }) {
   return (
-    <group rotation={[0, piece.orientation, 0]}>
+    <group>
       <mesh geometry={RIM} renderOrder={renderOrder} castShadow receiveShadow>
         <meshStandardMaterial color={BRASS} roughness={0.4} metalness={0.6} />
       </mesh>
