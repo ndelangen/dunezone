@@ -52,14 +52,13 @@ function reduce(state: State, event: Event): State {
 }
 
 /*
- * How far apart the layers are for a figure at `progress` through the viewport, 0 entering at the bottom and 1 leaving at the top.
- * The layers separate while the figure rises to the middle of the screen, stay apart there, and close again as it leaves.
+ * How far apart the layers are when the stage's centre is `height` of the way up the screen, 0 at the bottom edge and 1 at the top.
+ * The layers start to separate as the centre passes 30% of the way up, are fully apart at 65%, and stay apart after that.
+ * Between those points the motion eases in and out, so a reader scrolling at a steady pace sees it start slowly, speed up and settle.
  */
-function apartAt(progress: number): number {
-  const rise = (progress - 0.15) / 0.3;
-  const fall = (0.95 - progress) / 0.2;
-  const linear = Math.min(1, Math.max(0, Math.min(rise, fall)));
-  return linear * linear * (3 - 2 * linear);
+function apartAt(height: number): number {
+  const linear = Math.min(1, Math.max(0, (height - 0.3) / 0.35));
+  return linear * linear * linear * (linear * (linear * 6 - 15) + 10);
 }
 
 /**
@@ -97,9 +96,8 @@ export function ExplodedView({
     const fit = () =>
       element.style.setProperty('--fit', String((element.clientWidth * FILL) / Math.max(width, height)));
     const scrolled = () => {
-      const { top, height: tall } = element.getBoundingClientRect();
-      const progress = (window.innerHeight - top) / (window.innerHeight + tall);
-      dispatch({ type: 'scrolled', apart: apartAt(progress) });
+      const { top, height } = element.getBoundingClientRect();
+      dispatch({ type: 'scrolled', apart: apartAt(1 - (top + height / 2) / window.innerHeight) });
     };
     let frame = 0;
     const onScroll = () => {

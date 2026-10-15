@@ -1,4 +1,3 @@
-import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
 import { treacheryToCustomCard } from '@shared/assets/treacheryToCustomCard';
 import type { ComponentProps } from 'react';
 
@@ -125,8 +124,20 @@ export function LeaderTokenLayers() {
   );
 }
 
-/* The treachery back as a new deck starts with it. */
-const TREACHERY_BACK = INITIAL_CARDBACK_PRESETS.find((preset) => preset.key === 'treachery')!.cardback;
+/* The treachery back preset as production stores it, read from the public `cardbackPresets:list` query on 15 October 2026 at revision 2. */
+const TREACHERY_BACK: ComponentProps<typeof CardBack> = {
+  name: 'Treachery',
+  background: {
+    image: '/image/texture/082.jpg',
+    colors: ['#44290a', '#6c4e2c'],
+    invert: true,
+    definition: 0.75,
+    influence: 0.9728,
+  },
+  image: '/vector/icon/treachery.svg',
+  imageOffset: [0, 10],
+  imageScale: 0.95,
+};
 
 const backLayer = (index: number) => (
   <RootChildLayer index={index}>
