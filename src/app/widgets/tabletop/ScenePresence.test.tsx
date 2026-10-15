@@ -3,7 +3,7 @@
 import type { Vector3Tuple } from '@shared/play/model';
 import { act, cleanup, render } from '@testing-library/react';
 import { Group, PerspectiveCamera, Scene } from 'three';
-import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { ScenePresence } from './ScenePresence';
 import styles from './ScenePresence.module.css';
@@ -111,8 +111,12 @@ describe('remote pose smoothing', () => {
 
 describe('a rider on a plate another player carries', () => {
   type Pose = { at: Vector3Tuple; turn: number };
-  const plate = new Group();
-  const rider = new Group();
+  let plate = new Group();
+  let rider = new Group();
+  beforeEach(() => {
+    plate = new Group();
+    rider = new Group();
+  });
 
   function Posed({ pose, group, links }: { pose: Pose; group: Group; links: Parameters<typeof useTablePose>[4] }) {
     const poseRef = useTablePose(pose.at, pose.turn, Boolean(links?.plateId), false, links);
@@ -125,27 +129,74 @@ describe('a rider on a plate another player carries', () => {
     );
   }
 
-  function Plate({ plate: platePose, rider: riderPose }: { plate: Pose; rider: Pose }) {
+  /* The plate is carried by someone else while `riding`, so the rider follows it; otherwise both rest on their own. */
+  function Plate({
+    plate: platePose,
+    rider: riderPose,
+    riding = true,
+  }: {
+    plate: Pose;
+    rider: Pose;
+    riding?: boolean;
+  }) {
     return (
       <PlateFollowersProvider>
         <Posed pose={platePose} group={plate} links={{ plateId: 'hms' }} />
-        <Posed pose={riderPose} group={rider} links={{ follows: 'hms' }} />
+        <Posed pose={riderPose} group={rider} links={{ follows: riding ? 'hms' : undefined }} />
       </PlateFollowersProvider>
     );
   }
 
+  const runFrames = (count: number) => {
+    for (let frame = 0; frame < count; frame += 1) {
+      act(() => {
+        for (const callback of scheduler.frames) {
+          callback({}, 1 / 60);
+        }
+      });
+    }
+  };
+  /* How far the rider is from where it sits on the plate as shown, at 0.75 towards the plate's point. */
+  const offPlate = () => {
+    const turn = plate.rotation.y;
+    return Math.hypot(
+      rider.position.x - (plate.position.x + 0.75 * Math.sin(turn) * -1),
+      rider.position.z - (plate.position.z - 0.75 * Math.cos(turn))
+    );
+  };
+
   test('keeps its place on the plate while the plate turns, rather than cutting across it', () => {
     const view = render(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} />);
     view.rerender(<Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} />);
-    act(() => {
-      for (const callback of scheduler.frames) {
-        callback({}, 1 / 60);
-      }
-    });
+    runFrames(1);
     expect(plate.rotation.y).toBeGreaterThan(0);
     expect(plate.rotation.y).toBeLessThan(Math.PI);
-    expect(Math.hypot(rider.position.x - plate.position.x, rider.position.z - plate.position.z)).toBeCloseTo(0.75);
+    expect(offPlate()).toBeCloseTo(0);
     expect(rider.rotation.y).toBeCloseTo(plate.rotation.y);
+  });
+
+  test('stays on the plate after the carry ends, until the plate has settled', () => {
+    const view = render(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} />);
+    view.rerender(<Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} />);
+    runFrames(1);
+    view.rerender(
+      <Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} riding={false} />
+    );
+    runFrames(1);
+    expect(plate.rotation.y).toBeLessThan(Math.PI - 0.01);
+    expect(offPlate()).toBeCloseTo(0);
+    runFrames(60);
+    expect(rider.position.z).toBeCloseTo(0.75);
+    expect(rider.rotation.y).toBeCloseTo(Math.PI);
+  });
+
+  test('takes a new place on a still plate at once', () => {
+    const view = render(<Plate plate={{ at: [2, 0, 0], turn: 0 }} rider={{ at: [2, 0, -0.75], turn: 0 }} />);
+    runFrames(30);
+    view.rerender(<Plate plate={{ at: [2, 0, 0], turn: 0 }} rider={{ at: [2.2, 0, -0.5], turn: 0.4 }} />);
+    expect(rider.position.x).toBeCloseTo(2.2);
+    expect(rider.position.z).toBeCloseTo(-0.5);
+    expect(rider.rotation.y).toBeCloseTo(0.4);
   });
 });
 

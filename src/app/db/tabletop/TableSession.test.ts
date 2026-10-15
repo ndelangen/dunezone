@@ -2377,4 +2377,18 @@ describe('a plate another player carries', () => {
     expect(renderedPiece(client, 'held-from')?.position).toEqual(heldFrom.position);
     expect([...table(client).remoteRiders]).toEqual([['free', 'hms']]);
   });
+
+  test('leaves the stack this page is taking from behind', async () => {
+    const client = await connected();
+    const snapshot = withPlate();
+    const plate = snapshot.table.pieces.find((piece) => piece.id === 'hms')!;
+    const heldFrom = snapshot.table.pieces.find((piece) => piece.id === 'held-from')!;
+    socket().deliver(view({ snapshot }));
+    client.beginGesture('held-from', 'top');
+    expect(table(client).state.draftMove?.sourcePieceId).toBe('held-from');
+    socket().deliver(view({ snapshot, carries: [carry('alice', { ...plate, position: [-2, 0.38, -1] }, ['hms'])] }));
+    const left = renderedPiece(client, 'held-from')!;
+    expect([left.position[0], left.position[2]]).toEqual([heldFrom.position[0], heldFrom.position[2]]);
+    expect([...table(client).remoteRiders]).toEqual([['free', 'hms']]);
+  });
 });

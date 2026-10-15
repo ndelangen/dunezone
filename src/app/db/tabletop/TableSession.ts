@@ -49,11 +49,11 @@ function latestLogPages(): Record<LogTab, number> {
  * The table as others' carries leave it on this page: what they hold shown in their hands, the pieces they keep from moving, and what rides a plate one of them carries.
  * A piece another player holds part of stays put, as the room's own locks keep it, so it rides no plate.
  */
-function remoteView(pieces: TablePiece[], carries: PublicCarry[], rested: TablePiece[]) {
+function remoteViewOf(pieces: TablePiece[], carries: PublicCarry[], rested: TablePiece[], own: LocalCarry | null) {
   const reservedPieceIds = new Set(carries.flatMap((carry) => carry.reservedIds));
-  const guarded = reservedPieceIds.size
-    ? rested.map((piece) => (reservedPieceIds.has(piece.id) ? { ...piece, locked: true } : piece))
-    : rested;
+  /* What this page is carrying from is held for it too, so another's plate leaves it behind as well. */
+  const held = new Set([...reservedPieceIds, ...(own ? draftSourceIds(own.draft) : [])]);
+  const guarded = held.size ? rested.map((piece) => (held.has(piece.id) ? { ...piece, locked: true } : piece)) : rested;
   const remoteCarriedIds = new Set(carries.map((carry) => carry.held.id));
   return {
     renderedPieces: piecesOnPlates(projectPublicCarries(pieces, carries), guarded),
@@ -61,6 +61,11 @@ function remoteView(pieces: TablePiece[], carries: PublicCarry[], rested: TableP
     remoteCarriedIds,
     remoteRiders: ridersOf(guarded, remoteCarriedIds),
   };
+}
+
+/* The stacks a carry takes from: the one it was picked up from, and any it took more from on the way. */
+function draftSourceIds(draft: DraftMove): string[] {
+  return [draft.sourcePieceId, ...draft.withdrawals.map((withdrawal) => withdrawal.sourcePieceId)];
 }
 
 function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): TablePiece[] {
@@ -747,7 +752,7 @@ export class TableSession {
     const local = this.localProjection(state);
     const canInteract = this.canAct();
     const canHandleTable = this.canHandle();
-    const { renderedPieces, reservedPieceIds, ...remoteIds } = remoteView(local.pieces, remote, state.pieces);
+    const { renderedPieces, reservedPieceIds, ...remoteIds } = this.remoteView(local.pieces, remote, state.pieces);
     return {
       viewer,
       snapshot: displayed,
@@ -859,6 +864,10 @@ export class TableSession {
       this.command({ kind: 'peek-pull', pieceId, index });
     }
   };
+  private remoteView(pieces: TablePiece[], carries: PublicCarry[], rested: TablePiece[]) {
+    return remoteViewOf(pieces, carries, rested, this.carry);
+  }
+
   private activityForView() {
     if (this.history) {
       return { carries: [], pointers: [] };
