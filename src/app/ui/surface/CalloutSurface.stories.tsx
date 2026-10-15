@@ -15,26 +15,26 @@ const calloutActions = (
 async function expectCalloutGeometry(canvasElement: HTMLElement, pointerAbove = false) {
   const canvas = within(canvasElement);
   const cancel = canvas.getByRole('button', { name: 'Cancel' });
-  expect(cancel).toBeVisible();
+  await expect(cancel).toBeVisible();
   const [shape] = canvasElement.querySelectorAll('svg path');
-  expect(shape).toBeTruthy();
+  await expect(shape).toBeTruthy();
   if (!(shape instanceof SVGPathElement)) {
     return;
   }
   await waitFor(() => expect(shape.getAttribute('d')).toMatch(/\bM\b/));
   const outline = shape.getAttribute('d') ?? '';
-  expect.soft(outline.match(/\bM\b/g) ?? []).toHaveLength(1);
-  expect.soft(outline.match(/\bZ\b/g) ?? []).toHaveLength(1);
-  expect.soft(outline.match(/\bA\b/g)?.length ?? 0).toBeGreaterThanOrEqual(8);
-  expect.soft(outline).not.toMatch(/\bQ\b/);
+  await expect.soft(outline.match(/\bM\b/g) ?? []).toHaveLength(1);
+  await expect.soft(outline.match(/\bZ\b/g) ?? []).toHaveLength(1);
+  await expect.soft(outline.match(/\bA\b/g)?.length ?? 0).toBeGreaterThanOrEqual(8);
+  await expect.soft(outline).not.toMatch(/\bQ\b/);
 
   const svg = shape.ownerSVGElement;
   const root = svg?.parentElement;
   const content = root?.children.item(1);
   const actions = root?.children.item(2);
-  expect(svg).toBeTruthy();
-  expect(content).toBeTruthy();
-  expect(actions).toBeTruthy();
+  await expect(svg).toBeTruthy();
+  await expect(content).toBeTruthy();
+  await expect(actions).toBeTruthy();
   if (!svg || !content || !actions) {
     return;
   }
@@ -46,22 +46,22 @@ async function expectCalloutGeometry(canvasElement: HTMLElement, pointerAbove = 
   const capsuleCornerProbe = capsuleRadius * 0.27;
   point.x = capsuleCornerProbe;
   point.y = capsuleCornerProbe;
-  expect.soft(shape.isPointInFill(point)).toBe(false);
+  await expect.soft(shape.isPointInFill(point)).toBe(false);
   point.x = capsuleRadius * 0.31;
   point.y = capsuleRadius * 0.31;
-  expect.soft(shape.isPointInFill(point)).toBe(true);
+  await expect.soft(shape.isPointInFill(point)).toBe(true);
   for (const direction of [-1, 1]) {
     point.x = direction < 0 ? capsuleRadius * 0.27 : svgBounds.width - capsuleRadius * 0.27;
     point.y = contentBounds.height - capsuleRadius * 0.27;
-    expect.soft(shape.isPointInFill(point)).toBe(false);
+    await expect.soft(shape.isPointInFill(point)).toBe(false);
     point.x = direction < 0 ? capsuleRadius * 0.31 : svgBounds.width - capsuleRadius * 0.31;
     point.y = contentBounds.height - capsuleRadius * 0.31;
-    expect.soft(shape.isPointInFill(point)).toBe(true);
+    await expect.soft(shape.isPointInFill(point)).toBe(true);
   }
 
   point.x = actionsBounds.right - svgBounds.left + 1;
   point.y = contentBounds.bottom - svgBounds.top + 2;
-  expect.soft(shape.isPointInFill(point)).toBe(true);
+  await expect.soft(shape.isPointInFill(point)).toBe(true);
 
   point.y = pointerAbove ? -4 : actionsBounds.bottom - svgBounds.top + 4;
   const samples = Array.from({ length: Math.ceil(svgBounds.width) }, (_, x) => {
@@ -78,14 +78,14 @@ async function expectCalloutGeometry(canvasElement: HTMLElement, pointerAbove = 
       runStart = null;
     }
   }
-  expect.soft(longestRun).toBeGreaterThanOrEqual(48);
+  await expect.soft(longestRun).toBeGreaterThanOrEqual(48);
 
   const actionsRadius = Math.min(24, actionsBounds.width / 2, actionsBounds.height);
   const pointerBaseHalfWidth = Math.min(40, actionsBounds.width / 2 - actionsRadius);
   point.y = pointerAbove ? -2 : actionsBounds.bottom - svgBounds.top + 2;
   for (const direction of [-1, 1]) {
     point.x = svgBounds.width / 2 + direction * (pointerBaseHalfWidth - 4.25);
-    expect.soft(shape.isPointInFill(point)).toBe(true);
+    await expect.soft(shape.isPointInFill(point)).toBe(true);
   }
 }
 

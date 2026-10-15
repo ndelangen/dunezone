@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { allianceOf, alliesOf, applyAlliance, emptyAlliances } from './alliances';
 import type { AllianceAction, AllianceState } from './alliances';

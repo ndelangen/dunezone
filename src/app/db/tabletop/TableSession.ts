@@ -145,8 +145,8 @@ export type TableProjection = {
   /* Peeking at a hidden card, token or deck, and changing a deck held open; present only while this viewer's faction can act. */
   peekControls?: {
     peek(pieceId: string): void;
-    arrange(pieceId: string, order: number[]): void;
-    pull(pieceId: string, index: number): void;
+    arrange: (pieceId: string, order: number[]) => void;
+    pull: (pieceId: string, index: number) => void;
   };
   /* Letting go of the peek held open; a seated viewer can, even once the game is finished and the table no longer handles. */
   closePeek?: () => void;

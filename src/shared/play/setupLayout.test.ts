@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { factionSupplyLayout } from './setupLayout';
 import { CARD_BAY_PLACEMENT_ANCHORS, CARD_SLOT_OUTER_SIZE } from './tableFurnitureLayout';

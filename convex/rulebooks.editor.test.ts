@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';

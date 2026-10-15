@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { backendCacheDirectory, cachedBackendArchive, spawnFailure } from './verify-hosted-backend-cache';
 

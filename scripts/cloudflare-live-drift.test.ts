@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { checkCloudflareLiveDrift } from './cloudflare-live-drift';
 
@@ -127,7 +127,7 @@ function liveFetcher(
     executorSecret?: boolean;
     extraSecret?: boolean;
     retiredSecret?: boolean;
-    queueConsumers?: number;
+    retiredQueue?: boolean;
     cron?: string;
     publisherBucketPublic?: boolean;
     workerDomains?: string[];
@@ -197,13 +197,15 @@ function liveFetcher(
     }
     if (url.pathname.endsWith('/queues')) {
       return envelope(
-        [
-          {
-            queue_name: 'faction-sheet-asset-publisher',
-            producers_total_count: 0,
-            consumers_total_count: options.queueConsumers ?? 0,
-          },
-        ],
+        options.retiredQueue
+          ? [
+              {
+                queue_name: 'faction-sheet-asset-publisher',
+                producers_total_count: 0,
+                consumers_total_count: 0,
+              },
+            ]
+          : [],
         { total_pages: 1 }
       );
     }
@@ -264,7 +266,7 @@ describe('Cloudflare live drift check', () => {
       secretCount: 4,
       retiredSecrets: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET'],
       cronCount: 1,
-      queueCount: 1,
+      queueCount: 0,
       bucketCount: 2,
       game: {
         worker: 'dunezone-game',
@@ -313,8 +315,15 @@ describe('Cloudflare live drift check', () => {
     ).rejects.toThrow(/Worker secrets drift: missing ASSET_PUBLISHER_EXECUTOR_SECRET/);
   });
 
-  test('reports extra secrets and restored Queue consumers together', async () => {
-    const live = liveFetcher({ extraSecret: true, queueConsumers: 1 });
+  test('rejects the retired Queue even when it has no producers or consumers', async () => {
+    const live = liveFetcher({ retiredQueue: true });
+    await expect(
+      checkCloudflareLiveDrift({ accountId: ACCOUNT_ID, apiToken: 'read-only-token', fetcher: live.fetcher })
+    ).rejects.toThrow(/Owned Queue inventory drift: unexpected faction-sheet-asset-publisher/);
+  });
+
+  test('reports extra secrets and the restored Queue together', async () => {
+    const live = liveFetcher({ extraSecret: true, retiredQueue: true });
     await expect(
       checkCloudflareLiveDrift({
         accountId: ACCOUNT_ID,
@@ -322,7 +331,7 @@ describe('Cloudflare live drift check', () => {
         fetcher: live.fetcher,
       })
     ).rejects.toThrow(
-      /Worker secrets drift: unexpected ASSET_PUBLISHER_POLL_SECRET[\s\S]*expected 0 producers\/0 consumers, found 0\/1/
+      /Worker secrets drift: unexpected ASSET_PUBLISHER_POLL_SECRET[\s\S]*Owned Queue inventory drift: unexpected faction-sheet-asset-publisher/
     );
   });
 

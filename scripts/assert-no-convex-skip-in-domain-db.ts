@@ -11,6 +11,8 @@ import { join, relative } from 'node:path';
 
 const root = join(import.meta.dirname, '..');
 const dbRoot = join(root, 'src', 'app', 'db');
+/* The Storybook stand-in for Convex's own hooks, which has to accept `'skip'` because the hooks it replaces do. */
+const storybookRuntime = join(dbRoot, 'storybook', 'runtime.tsx');
 
 async function* walk(dir: string): AsyncGenerator<string> {
   const entries = await readdir(dir, { withFileTypes: true });
@@ -20,8 +22,9 @@ async function* walk(dir: string): AsyncGenerator<string> {
       yield* walk(p);
     } else if (
       e.isFile() &&
-      e.name.endsWith('.ts') &&
+      /\.tsx?$/.test(e.name) &&
       !e.name.endsWith('.d.ts') &&
+      p !== storybookRuntime &&
       !e.name.includes('.test.') &&
       !e.name.includes('.spec.')
     ) {

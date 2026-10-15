@@ -2,7 +2,7 @@
 
 import { act, renderHook } from '@testing-library/react';
 import type { KeyboardEvent } from 'react';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { useHoldToConfirm } from './useHoldToConfirm';
 
@@ -17,12 +17,16 @@ test('a blocked hold cannot start before the action becomes available', () => {
   );
   const press = { key: 'Enter', repeat: false, preventDefault: vi.fn() } as unknown as KeyboardEvent<HTMLElement>;
   act(() => result.current.handlers.onKeyDown(press));
-  act(() => vi.advanceTimersByTime(5000));
+  act(() => {
+    vi.advanceTimersByTime(5000);
+  });
   expect(onConfirm).not.toHaveBeenCalled();
 
   rerender({ blocked: false });
   act(() => result.current.handlers.onKeyDown(press));
-  act(() => vi.advanceTimersByTime(5000));
+  act(() => {
+    vi.advanceTimersByTime(5000);
+  });
   expect(onConfirm).toHaveBeenCalledTimes(1);
   unmount();
 });

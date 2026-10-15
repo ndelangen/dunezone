@@ -25,7 +25,7 @@ import { trackerArcSlots } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { cameraPoseFor, tableCamera } from '../../../widgets/tabletop/playView';
 import {

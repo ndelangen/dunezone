@@ -5,7 +5,7 @@ import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
 import { rulebookCoverPresetCatalogue } from '@shared/rulebooks/coverPresets';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { ConvexError } from 'convex/values';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 const mocks = vi.hoisted(() => ({ save: vi.fn(), rehost: vi.fn() }));
 vi.mock('@db/core', () => ({ db: { query: vi.fn() } }));

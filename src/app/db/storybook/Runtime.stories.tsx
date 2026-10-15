@@ -33,24 +33,24 @@ function RuntimeProof() {
         type="button"
         onClick={async () => {
           assertContext(await client.runContextConformance());
-          expect(await client.runNetworkProbe()).toBe('Convex Storybook workers cannot make network requests.');
-          expect(await client.runHttpProbe()).toEqual({ body: { error: 'Not found' }, status: 404 });
-          expect(await client.runRollbackProbe()).toEqual({
+          await expect(await client.runNetworkProbe()).toBe('Convex Storybook workers cannot make network requests.');
+          await expect(await client.runHttpProbe()).toEqual({ body: { error: 'Not found' }, status: 404 });
+          await expect(await client.runRollbackProbe()).toEqual({
             error: 'Intentional rollback probe',
             usersAfterFailure: 0,
           });
           const scheduled = await client.runSchedulerProbe();
-          expect(scheduled.after.users).toBe(1);
-          expect(scheduled.after.rulesets).toBe(1);
-          expect(
+          await expect(scheduled.after.users).toBe(1);
+          await expect(scheduled.after.rulesets).toBe(1);
+          await expect(
             await client.query(convexStorybookReferences.migrationsAdminDashboard, { ids: [] }, storybookViewer)
           ).toMatchObject({ snapshots: [] });
-          expect(
+          await expect(
             await client.mutation(convexStorybookReferences.migrationsSyncRuns, { ids: [] }, storybookViewer)
           ).toEqual({ synced: 0 });
           for (let count = 0; count < 20; count += 1) {
             const nextClient = await reset();
-            expect(await nextClient.query(convexStorybookReferences.rulesetsList, {})).toHaveLength(1);
+            await expect(await nextClient.query(convexStorybookReferences.rulesetsList, {})).toHaveLength(1);
           }
           setStatus('Context, components, scheduling, rollback, network isolation, and 20 resets passed');
         }}

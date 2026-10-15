@@ -1444,7 +1444,8 @@ try {
       report: path.join(directory, 'report.json'),
     })
   );
-  if (report.status === 'failed') {
+  /* A budget stop or an interruption is `incomplete`, never a pass, so the stack launcher reads it as a failure too. */
+  if (report.status !== 'smoke-complete') {
     process.exitCode = 1;
   }
 }

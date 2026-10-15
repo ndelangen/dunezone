@@ -27,7 +27,7 @@ export type TableSubscription = {
   readonly ready: boolean;
   supportsCommand(kind: PieceAction['kind']): boolean;
   getSnapshot(): RoomView | null;
-  serverNow(): number;
+  serverNow: () => number;
   subscribe(listener: (event: TableSubscriptionEvent) => void): () => void;
   send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean;
 };

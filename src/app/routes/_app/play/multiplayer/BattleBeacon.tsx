@@ -105,7 +105,7 @@ function useBeaconFrame({
   anchor: Vector3Tuple | undefined;
   pending: Vector3Tuple | null;
   /* Read every frame, since a carry moves the point without rendering. */
-  carryAt(): Vector3Tuple | null;
+  carryAt: () => Vector3Tuple | null;
   motion: boolean;
   group: RefObject<Group | null>;
   handle: RefObject<Group | null>;
@@ -150,7 +150,7 @@ function BeaconHandle({
 }: {
   handle: RefObject<Group | null>;
   enabled: boolean;
-  pickUp(event: PointerEvent): void;
+  pickUp: (event: PointerEvent) => void;
 }) {
   const pointerSession = useContext(PointerSessionContext);
   return (
@@ -196,7 +196,7 @@ type Props = {
   table: TableProjection;
   battle: PublicBattle | null | undefined;
   /** Marks a battle where the beacon was dropped; the game decides whether it stands. */
-  onDrop(position: Vector3Tuple): void;
+  onDrop: (position: Vector3Tuple) => void;
 };
 
 /**

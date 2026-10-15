@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { measureComponentGeometry } from './componentGeometry';
 

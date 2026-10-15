@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it } from 'vitest';
+import { afterEach, beforeEach, expect, it } from 'vite-plus/test';
 
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import { messageOf } from './native-runtime.fixture.ts';

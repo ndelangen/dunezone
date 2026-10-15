@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import type { BattlePlanInput } from '../../src/shared/play/battle';
 import type { Vector3Tuple } from '../../src/shared/play/model';

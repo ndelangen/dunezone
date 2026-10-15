@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { distinctTermHints, findTermHints, fixTermWording } from './hints';
 import { GLOSSARY } from './terms';
@@ -62,6 +62,11 @@ describe('findTermHints', () => {
     );
   });
 
+  test('leaves the special Karama power alone while still hinting other powers', () => {
+    expect(summary('Use your special Karama power.')).toEqual([]);
+    expect(summary('Their powers are strong.')).toEqual([['powers', 'Advantage']]);
+  });
+
   test('leaves fight alone, since it is plain English', () => {
     expect(findTermHints('They fight over Arrakeen and fought again.')).toEqual([]);
   });
@@ -123,6 +128,10 @@ describe('fixTermWording', () => {
     expect(fixTermWording('Spend troops wisely; never commit troops blindly.')).toBe(
       'Dial troops wisely; never commit troops blindly.'
     );
+  });
+
+  test('points sandworms and thopters to their rulebook names', () => {
+    expect(fixTermWording('A sandworm eats the thopters.')).toBe('A Shai-Hulud eats the ornithopters.');
   });
 
   test('points a pact to a deal', () => {

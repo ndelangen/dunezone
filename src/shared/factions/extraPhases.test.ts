@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { phaseDeclarationProblems, phaseDeclarationSchema } from './extraPhases';
 import { assetPublishingFaction } from './fixtures/assetPublishingFaction';

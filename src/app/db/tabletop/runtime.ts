@@ -8,7 +8,7 @@ export type GameSocket = Pick<
 /** Browser effects used by a single hosted table; stories supply their own socket. */
 export type GameRuntime = {
   openSocket(gameId: string): GameSocket;
-  monotonicNow(): number;
+  monotonicNow: () => number;
   onHidden(listener: () => void): () => void;
   onOnline(listener: () => void): () => void;
   /* A tab coming back to the foreground, whose socket may have died while its timers were frozen. */

@@ -1,7 +1,7 @@
 import { homepageSnapshot } from '@shared/homepage/setup';
 import { KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import type { requestHomepageTicket } from '@db/homepage';
 import type { GameRuntime, GameSocket } from '@db/tabletop/runtime';

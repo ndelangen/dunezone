@@ -62,38 +62,38 @@ export function regionRects(host: HTMLElement) {
   }));
 }
 
-export function verifyGeometry(host: HTMLElement, item: GeometryCase) {
+export async function verifyGeometry(host: HTMLElement, item: GeometryCase) {
   const page = host.querySelector<HTMLElement>('[data-rulebook-page]')!;
   const pageRect = page.getBoundingClientRect();
   const size = getRulebookSize(item.size);
-  expect(pageRect.width / pageRect.height).toBeCloseTo(size.widthMm / size.heightMm, 2);
+  await expect(pageRect.width / pageRect.height).toBeCloseTo(size.widthMm / size.heightMm, 2);
   const regions = regionRects(host);
-  expect(regions.map(({ key }) => key)).toEqual(
+  await expect(regions.map(({ key }) => key)).toEqual(
     getRulebookRegionOrder(createCataloguePage(item.layoutId, item), item.pageNumber)
   );
   for (const { rect } of regions) {
-    expect(rect.width).toBeGreaterThan(0);
-    expect(rect.height).toBeGreaterThan(0);
-    expect(rect.left).toBeGreaterThanOrEqual(pageRect.left);
-    expect(rect.right).toBeLessThanOrEqual(pageRect.right);
-    expect(rect.bottom).toBeLessThanOrEqual(pageRect.bottom);
+    await expect(rect.width).toBeGreaterThan(0);
+    await expect(rect.height).toBeGreaterThan(0);
+    await expect(rect.left).toBeGreaterThanOrEqual(pageRect.left);
+    await expect(rect.right).toBeLessThanOrEqual(pageRect.right);
+    await expect(rect.bottom).toBeLessThanOrEqual(pageRect.bottom);
   }
   const byKey = Object.fromEntries(regions.map(({ key, rect }) => [key, rect]));
   if (item.layoutId === 'wide-narrow') {
-    expect(byKey.wide!.width / byKey.narrow!.width).toBeCloseTo(2, 1);
-    expect(byKey.wide!.top).toBeCloseTo(byKey.narrow!.top, 1);
-    expect(byKey.wide!.left < byKey.narrow!.left).toBe(item.widePosition !== 'right');
+    await expect(byKey.wide!.width / byKey.narrow!.width).toBeCloseTo(2, 1);
+    await expect(byKey.wide!.top).toBeCloseTo(byKey.narrow!.top, 1);
+    await expect(byKey.wide!.left < byKey.narrow!.left).toBe(item.widePosition !== 'right');
   }
   if (item.layoutId === 'two-columns' || item.layoutId === 'outer-rail' || item.layoutId === 'band-columns') {
-    expect(byKey.column1!.width).toBeCloseTo(byKey.column2!.width, 1);
-    expect(byKey.column1!.top).toBeCloseTo(byKey.column2!.top, 1);
-    expect(byKey.column1!.right).toBeLessThan(byKey.column2!.left);
+    await expect(byKey.column1!.width).toBeCloseTo(byKey.column2!.width, 1);
+    await expect(byKey.column1!.top).toBeCloseTo(byKey.column2!.top, 1);
+    await expect(byKey.column1!.right).toBeLessThan(byKey.column2!.left);
   }
   if (item.layoutId === 'outer-rail') {
-    expect(byKey.rail!.left < byKey.column1!.left).toBe(item.pageNumber % 2 === 0);
+    await expect(byKey.rail!.left < byKey.column1!.left).toBe(item.pageNumber % 2 === 0);
   }
   if (item.layoutId === 'band-columns') {
-    expect(byKey.band!.top < byKey.column1!.top).toBe(item.bandPosition !== 'bottom');
-    expect(byKey.band!.width).toBeGreaterThan(byKey.column1!.width * 2);
+    await expect(byKey.band!.top < byKey.column1!.top).toBe(item.bandPosition !== 'bottom');
+    await expect(byKey.band!.width).toBeGreaterThan(byKey.column1!.width * 2);
   }
 }

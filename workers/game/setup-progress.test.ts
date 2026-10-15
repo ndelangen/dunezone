@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { toStoredHeroKey } from '../../src/shared/factions/schema';
@@ -102,7 +102,7 @@ test('two factions whose joined ids would read alike still get distinct setup st
       { position: 1, faction: { id: 'a', name: 'A' } },
     ],
   } as unknown as TableRoster;
-  const setup = initialSetup([capture('a_b', 'c'), capture('a', 'b_c')], roster, 0);
+  const setup = initialSetup([capture('a_b', 'c'), capture('a', 'b_c')], roster, 0, []);
   const ids = setup.steps.map((step) => step.id);
 
   expect(new Set(ids).size).toBe(ids.length);

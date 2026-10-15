@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 import { convexTest } from 'convex-test';
-import { expect, test, vi } from 'vitest';
+import { expect, test, vi } from 'vite-plus/test';
 
 import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCustomCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';

@@ -581,8 +581,8 @@ export const InteriorHeadingVisibility = meta.story({
     const canvas = within(canvasElement);
     const toggle = canvas.getByRole('switch', { name: 'Show page heading' });
     await userEvent.click(toggle);
-    expect(toggle).not.toBeChecked();
-    expect(canvas.getByRole('textbox', { name: 'Title' })).toHaveValue('Movement');
+    await expect(toggle).not.toBeChecked();
+    await expect(canvas.getByRole('textbox', { name: 'Title' })).toHaveValue('Movement');
   },
 });
 

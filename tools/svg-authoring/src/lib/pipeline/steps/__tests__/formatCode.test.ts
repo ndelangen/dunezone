@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { formatCode, formatSvg } from "../formatCode";
 import { createTestContext } from "../../../../test/createTestContext";
 import { createSvgDocument } from "../../../svg/types";

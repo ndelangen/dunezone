@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite-plus';
 
 /* The mutation trial covers the isolated load-target guards without booting an application or backend. */
 export default defineConfig({

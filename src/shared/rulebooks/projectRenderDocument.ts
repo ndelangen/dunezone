@@ -196,12 +196,25 @@ function projectMovementGroup(
   };
 }
 
+/**
+ * A page, or an anchored block on it, that text can link to.
+ * A page target has no `blockId`.
+ * The type is spelled out because an inferred one collapsed both shapes into the page shape and lost `blockId`.
+ */
+export type RulebookReferenceTarget = {
+  pageId: string;
+  blockId?: string;
+  label: string;
+  anchor: string;
+  pageNumber: number;
+};
+
 /** Names an authored destination without copying its label or position into the referring text. */
 export function rulebookReferenceTargets(
   contents: RulebookContentsDraftV1,
   assetsById: RulebookResolvedAssetsById = {},
   factionsById: RulebookResolvedFactionsById = {}
-) {
+): RulebookReferenceTarget[] {
   return contents.pageOrder.flatMap((pageId, index) => {
     const page = contents.pagesById[pageId];
     if (!page) {
@@ -233,10 +246,7 @@ export function projectRulebookTextReferences(
   targets: ReturnType<typeof rulebookReferenceTargets>
 ) {
   return references.map((reference) => {
-    const target = targets.find(
-      (target) =>
-        target.pageId === reference.pageId && ('blockId' in target ? target.blockId : undefined) === reference.blockId
-    );
+    const target = targets.find((target) => target.pageId === reference.pageId && target.blockId === reference.blockId);
     return target
       ? { label: target.label, anchor: target.anchor, pageNumber: target.pageNumber }
       : { label: 'Reference unavailable' };

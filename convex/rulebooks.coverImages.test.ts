@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
@@ -240,7 +240,7 @@ describe('Rulebook cover image staging', () => {
     vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', 'https://worker.test');
     let token = '';
     const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
-      const body = JSON.parse(String(init?.body)) as { token: string; source_url: string };
+      const body = JSON.parse(init?.body as string) as { token: string; source_url: string };
       token = body.token;
       expect(body.source_url).toBe(SOURCE_URL);
       expect(await f.t.query(api.ingestTokens.check, { token, now: Date.now() })).toEqual({

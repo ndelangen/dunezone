@@ -34,7 +34,8 @@ export const linkedomDom: SvgDom = {
     return root;
   },
   serialize(root) {
-    return root.toString();
+    /* `parse` hands out linkedom elements, whose outerHTML is the element's markup. */
+    return (root as unknown as Element).outerHTML;
   },
 };
 

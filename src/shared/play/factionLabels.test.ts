@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { rosterFactionEventName, snapshotFactionLabels, snapshotFactionTieBreaks } from './factionLabels';
 import type { TableRoster } from './schema';

@@ -4,7 +4,7 @@ import { MantineProvider } from '@mantine/core';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import type { TableSession } from '../../../../db/tabletop/TableSession';
 import { SeatPopover, StagePlayback, VacantSeatRequests } from './SeatRequests';

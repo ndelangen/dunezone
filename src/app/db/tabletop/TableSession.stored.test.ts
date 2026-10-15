@@ -1,6 +1,6 @@
 import { initialSnapshot } from '@shared/play/commands';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { forgetStoredPlayTable, keepsPlayTable } from '@db/playTables';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';

@@ -213,6 +213,11 @@ async function ensureRequiredMigrationsReady({
       } catch {
         // Ignore status fetch failures while polling and continue until timeout.
       }
+      /* A failed migration stays failed until someone reruns it, so waiting out the deadline would only delay the same error. */
+      const failed = parseStatuses(lastStatusRaw).filter((status) => status.state === 'failed');
+      if (failed.length > 0) {
+        throw new Error(`Required migrations failed (${modeLabel}): ${formatStatusForLog(failed)}`);
+      }
       await sleep(intervalMs);
     }
   }

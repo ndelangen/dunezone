@@ -3,7 +3,7 @@
 import { MantineProvider } from '@mantine/core';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { ConfirmDeleteAction } from './ConfirmDeleteAction';
 
@@ -36,12 +36,18 @@ describe('ConfirmDeleteAction', () => {
 
     const trigger = screen.getByRole('button', { name: 'Delete card' });
     fireEvent.pointerDown(trigger, { isPrimary: true, button: 0 });
-    act(() => vi.advanceTimersByTime(4000));
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
     expect(onConfirm).not.toHaveBeenCalled();
-    act(() => vi.advanceTimersByTime(1000));
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
     expect(onConfirm).toHaveBeenCalledTimes(1);
     /* The countdown ended; nothing further may fire however long the press lingers. */
-    act(() => vi.advanceTimersByTime(5000));
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
     expect(onConfirm).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
   });
@@ -53,9 +59,13 @@ describe('ConfirmDeleteAction', () => {
 
     const trigger = screen.getByRole('button', { name: 'Delete card' });
     fireEvent.pointerDown(trigger, { isPrimary: true, button: 0 });
-    act(() => vi.advanceTimersByTime(3000));
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
     fireEvent.pointerUp(trigger);
-    act(() => vi.advanceTimersByTime(10_000));
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
     expect(onConfirm).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
@@ -67,10 +77,14 @@ describe('ConfirmDeleteAction', () => {
 
     const trigger = screen.getByRole('button', { name: 'Delete card' });
     fireEvent.keyDown(trigger, { key: 'Enter' });
-    act(() => vi.advanceTimersByTime(3000));
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
     /* Held keys repeat; a repeat mid-hold must not reset the clock. */
     fireEvent.keyDown(trigger, { key: 'Enter', repeat: true });
-    act(() => vi.advanceTimersByTime(2000));
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
     expect(onConfirm).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
   });
@@ -82,11 +96,15 @@ describe('ConfirmDeleteAction', () => {
 
     const trigger = screen.getByRole('button', { name: 'Delete card' });
     fireEvent.pointerDown(trigger, { isPrimary: true, button: 0 });
-    act(() => vi.advanceTimersByTime(5000));
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
     expect(onConfirm).toHaveBeenCalledTimes(1);
     fireEvent.pointerUp(trigger);
     fireEvent.pointerDown(trigger, { isPrimary: true, button: 0 });
-    act(() => vi.advanceTimersByTime(5000));
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
     expect(onConfirm).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
   });
@@ -97,7 +115,9 @@ describe('ConfirmDeleteAction', () => {
 
     const trigger = screen.getByRole('button', { name: 'Delete card' });
     fireEvent.pointerDown(trigger, { isPrimary: true, button: 2 });
-    act(() => vi.advanceTimersByTime(10_000));
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
     expect(onConfirm).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
@@ -109,9 +129,13 @@ describe('ConfirmDeleteAction', () => {
 
     const trigger = screen.getByRole('button', { name: 'Delete card' });
     fireEvent.keyDown(trigger, { key: 'Enter' });
-    act(() => vi.advanceTimersByTime(3000));
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
     fireEvent.blur(trigger);
-    act(() => vi.advanceTimersByTime(10_000));
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
     expect(onConfirm).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
@@ -123,9 +147,13 @@ describe('ConfirmDeleteAction', () => {
 
     const trigger = screen.getByRole('button', { name: 'Delete card' });
     fireEvent.pointerDown(trigger, { isPrimary: true, button: 0 });
-    act(() => vi.advanceTimersByTime(3000));
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
     unmount();
-    act(() => vi.advanceTimersByTime(10_000));
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
     expect(onConfirm).not.toHaveBeenCalled();
     vi.useRealTimers();
   });

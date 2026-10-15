@@ -4,7 +4,7 @@ import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { useState } from 'react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, expect, it, vi } from 'vite-plus/test';
 
 import type { DeckChapter, DeckDraft, DeckMemory } from './DeckEditor';
 import { DeckEditor, INITIAL_DECK_DRAFT, initialDeckMemory } from './DeckEditor';

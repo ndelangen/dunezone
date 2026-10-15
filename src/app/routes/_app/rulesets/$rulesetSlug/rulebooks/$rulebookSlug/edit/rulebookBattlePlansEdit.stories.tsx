@@ -14,7 +14,7 @@ export const StandalonePlans = meta.story({
     await userEvent.type(dial, '4');
     await userEvent.tab();
     await expect(dial).toHaveValue('4');
-    expect(canvasElement.querySelector('.rulebookBattlePlans')).not.toBeNull();
-    expect(canvasElement.querySelector('.rulebookBattleNarrative')).toBeNull();
+    await expect(canvasElement.querySelector('.rulebookBattlePlans')).not.toBeNull();
+    await expect(canvasElement.querySelector('.rulebookBattleNarrative')).toBeNull();
   },
 });

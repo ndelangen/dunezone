@@ -1,5 +1,5 @@
 import { PDFDocument, StandardFonts } from 'pdf-lib';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import { planRulebookPdfBatches } from '../../src/shared/rulebooks/pdfPublication';

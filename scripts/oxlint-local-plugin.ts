@@ -1,4 +1,4 @@
-import type { RuleTester } from 'oxlint/plugins-dev';
+import type { RuleTester } from 'vite-plus/lint/plugins-dev';
 
 type BaseRule = Parameters<RuleTester['run']>[1];
 type Rule = BaseRule & { meta: NonNullable<BaseRule['meta']> & { name: string } };
@@ -71,8 +71,9 @@ function getLinePrefix(sourceCode: string, commentStart: number) {
 }
 
 function normalizeCommentBody(sourceCode: string, commentStart: number, commentEnd: number) {
-  return sourceCode
-    .slice(commentStart, commentEnd)
+  const raw = sourceCode.slice(commentStart, commentEnd);
+  /* Only a closer written with a doubled star leaves a stray one; a body that itself ends in a star, such as a recursive glob, keeps it. */
+  const body = raw
     .slice(3, -2)
     .replaceAll('\r\n', '\n')
     .split('\n')
@@ -81,8 +82,8 @@ function normalizeCommentBody(sourceCode: string, commentStart: number, commentE
       return line.replace(normalizedLine, '').trimEnd();
     })
     .join('\n')
-    .trim()
-    .replace(COMMENT_END_RE, '');
+    .trim();
+  return raw.endsWith('**/') ? body.replace(COMMENT_END_RE, '') : body;
 }
 
 function mergeSentenceFragments(rawLines: string[]) {

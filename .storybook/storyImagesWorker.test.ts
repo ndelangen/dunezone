@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { chromium } from 'playwright';
-import { build, createServer, preview } from 'vite';
-import { expect, test } from 'vitest';
+import { build, createServer, preview } from 'vite-plus';
+import { expect, test } from 'vite-plus/test';
 
 import { storyImagesWorker } from './storyImagesWorker.ts';
 

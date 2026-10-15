@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import type { ReusableJob } from './lib/ci-job-inputs';
 import { JOB_INPUTS, jobKey, jobReads, parseLsTree } from './lib/ci-job-inputs';
@@ -54,7 +54,9 @@ const SAMPLES: Record<ReusableJob, { reads: string[]; skips: string[] }> = {
       'workers/game/session.test.ts',
       'src/shared/assetIds.ts',
       'bun.lock',
+      '.nvmrc',
       '.github/workflows/reusable-verify.yml',
+      'src/app/routes/_app/play/product.stories.fixture/factions.json',
     ],
     skips: ['src/app/ui/control/Button.tsx', '.github/workflows/deploy-main.yml', 'workers/game/README.md'],
   },

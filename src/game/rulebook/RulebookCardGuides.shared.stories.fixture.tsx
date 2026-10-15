@@ -59,9 +59,9 @@ export async function expectContained({ canvasElement }: { canvasElement: HTMLEl
   const region = canvasElement.querySelector('[data-rulebook-region]')!.getBoundingClientRect();
   for (const block of canvasElement.querySelectorAll('[data-rulebook-block-id]')) {
     const bounds = block.getBoundingClientRect();
-    expect(bounds.left).toBeGreaterThanOrEqual(region.left - 1);
-    expect(bounds.right).toBeLessThanOrEqual(region.right + 1);
-    expect(bounds.bottom).toBeLessThanOrEqual(region.bottom + 1);
+    await expect(bounds.left).toBeGreaterThanOrEqual(region.left - 1);
+    await expect(bounds.right).toBeLessThanOrEqual(region.right + 1);
+    await expect(bounds.bottom).toBeLessThanOrEqual(region.bottom + 1);
   }
 }
 

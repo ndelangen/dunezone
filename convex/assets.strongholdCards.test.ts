@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 import { convexTest } from 'convex-test';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { publisherCaptureSnapshotSchema } from '../src/shared/asset-publishing/publisher-snapshot';
 import { GF9_STRONGHOLD_CARDS } from '../src/shared/assets/gf9StrongholdDeck';
