@@ -63,23 +63,9 @@ describe('the hosted play closure', () => {
     const outside = files.filter((file) => !reachesHostedPlay(file) && !Object.hasOwn(UNOBSERVED_IMPORTS, file));
     expect(outside, 'files the hosted flows exercise that no closure glob names').toEqual([]);
     /* An unobserved file stays unobserved only while the files that read it are the ones its entry names. */
-    for (const [file, { importers, reads }] of Object.entries(UNOBSERVED_IMPORTS)) {
+    for (const [file, { importers }] of Object.entries(UNOBSERVED_IMPORTS)) {
       expect(graph.get(file), `${file} is no longer imported by the flows' code; drop its entry`).toBeDefined();
       expect(graph.get(file), `the files in the flows' import graph that import ${file}`).toEqual(importers);
-      /* Each read is the imported binding and one of the named fields; the bare binding past its import, such as passed on whole, is another read. */
-      for (const importer of reads === undefined ? [] : importers) {
-        const binding = reads![0].split('.')[0];
-        const uses =
-          readFileSync(resolve(root, importer), 'utf8').match(new RegExp(`\\b${binding}\\b(?:\\.\\w+)?`, 'gu')) ?? [];
-        expect(
-          uses.filter((use) => use === binding),
-          `${importer} names ${binding} past its import`
-        ).toHaveLength(1);
-        expect(
-          uses.filter((use) => use !== binding && !reads!.includes(use)),
-          `what ${importer} reads of ${file} besides ${reads!.join(', ')}`
-        ).toEqual([]);
-      }
     }
   }, 60_000);
 

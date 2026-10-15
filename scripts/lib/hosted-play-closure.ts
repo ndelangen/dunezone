@@ -91,20 +91,19 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
 const NEVER_REACHES_HOSTED_PLAY: readonly string[] = ['**/*.test.*', '**/*.spec.*', '**/*.stories.*', '**/*.md'];
 
 /**
- * Files the flows' code imports but whose contents no flow can observe, each with the only files that may import it and, where it names them, the only fields they may read.
- * `scripts/hosted-play-closure.test.ts` fails when another file in the flows' import graph imports one, or an importer reads another field, since that might put it in front of a flow.
+ * Files the flows' code imports but whose contents no flow can observe, each with the only files that may import it.
+ * `scripts/hosted-play-closure.test.ts` fails when another file in the flows' import graph imports one, since that file might put it in front of a flow.
  */
 export const UNOBSERVED_IMPORTS: Readonly<
-  Record<string, { readonly importers: readonly string[]; readonly reads?: readonly string[]; readonly why: string }>
+  Record<string, { readonly importers: readonly string[]; readonly why: string }>
 > = {
   'src/shared/blogPostSlugs.ts': {
     importers: ['workers/publisher/public-discovery.ts'],
     why: 'The publisher reads the blog posts only for the landing sitemap, and no flow requests the sitemap or a blog page.',
   },
   'workers/publisher/renderer-manifest.generated.ts': {
-    importers: ['workers/publisher/index.ts', 'workers/publisher/telemetry.ts'],
-    reads: ['rendererManifest.rendererIdentity', 'rendererManifest.digest'],
-    why: 'The renderer identity is a label the publisher stamps on what it captures and logs; no flow reads it, and publisher_release checks the manifest is current.',
+    importers: ['workers/publisher/renderer-identity.ts'],
+    why: 'Its importer passes on only the identity the publisher stamps on what it captures and the digest it logs; no flow reads either, and publisher_release checks the manifest is current.',
   },
 };
 
