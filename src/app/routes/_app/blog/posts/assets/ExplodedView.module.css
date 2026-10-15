@@ -52,7 +52,6 @@
   width: calc(var(--natural-width) * var(--fit));
   height: calc(var(--natural-height) * var(--fit));
   transform: translateZ(calc(var(--apart) * var(--index) * var(--natural-height) * var(--fit) * 0.16));
-  transform-style: preserve-3d;
   transition: opacity 150ms ease;
 }
 
