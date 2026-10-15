@@ -12,6 +12,12 @@ import type { RasterLock } from '../../src/shared/media/rasterLock.ts';
 const VARIANT = /^(\/.+)-(small|large|print)\.(jpg|webp|png)$/;
 const ORIGINAL_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
 
+/** Whether a variant with this extension is one the key's category produces. */
+function producesExtension(key: string, extension: string): boolean {
+  const rule = ruleForKey(key);
+  return rule !== undefined && FORMAT_EXTENSION[rule.format] === extension;
+}
+
 /** The original in `media/` that a variant path stands for, when the lock does not list it yet. */
 export function unsyncedOriginal(
   url: string,
@@ -25,12 +31,12 @@ export function unsyncedOriginal(
   const [, base, tier, extension] = match;
   for (const originalExtension of ORIGINAL_EXTENSIONS) {
     const key = `${base}${originalExtension}`;
-    const rule = ruleForKey(key);
-    if (!rule || FORMAT_EXTENSION[rule.format] !== extension || lock[key]) {
+    if (lock[key] || !producesExtension(key, extension)) {
       continue;
     }
     const file = path.join(mediaRoot, key);
-    if (file.startsWith(`${mediaRoot}${path.sep}`) && existsSync(file)) {
+    const insideMedia = file.startsWith(`${mediaRoot}${path.sep}`);
+    if (insideMedia && existsSync(file)) {
       return { key, file, tier: tier as AssetSize };
     }
   }
