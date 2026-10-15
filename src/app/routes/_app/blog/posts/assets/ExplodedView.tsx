@@ -125,7 +125,7 @@ export function ExplodedView({
                 /* The fit for the widest stage, so the first paint, before scripts measure the stage, is already in proportion. */
                 '--fit': (STAGE_MAX_WIDTH * FILL) / Math.max(width, height),
                 '--natural-width': `${width}px`,
-              '--layers': layers.length,
+                '--layers': layers.length,
                 '--natural-height': `${height}px`,
               } as CSSProperties
             }
