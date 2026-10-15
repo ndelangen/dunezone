@@ -10,7 +10,8 @@ import { assetPageAs } from './viewerAccess.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 describe('authored board Assets', () => {
-  test('saves editable Arrakis, clones it, and publishes the latest saved geometry', async () => {
+  /* Coverage CI twice exceeded the five-second default for this full board roundtrip. */
+  test('saves editable Arrakis, clones it, and publishes the latest saved geometry', { timeout: 10_000 }, async () => {
     const t = convexTest(schema, modules);
     const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Board owner' }));
     const owner = t.withIdentity({ subject: ownerId });
