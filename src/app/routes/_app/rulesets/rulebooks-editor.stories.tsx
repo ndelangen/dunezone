@@ -118,10 +118,23 @@ export const Rename = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 }));
+    await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 });
+    /* On a cold start the editor can still settle after the form opens, which closes it, so the form is reopened and refilled until the name holds. */
+    await waitFor(
+      async () => {
+        if (!page.queryByRole('form', { name: 'Rename Rulebook' })) {
+          await userEvent.click(page.getByRole('button', { name: 'Rename Rulebook' }));
+        }
+        const name = within(page.getByRole('form', { name: 'Rename Rulebook' })).getByRole('textbox', {
+          name: 'Rulebook name',
+        });
+        await userEvent.clear(name);
+        await userEvent.type(name, 'Battle reference');
+        expect(page.getByRole('textbox', { name: 'Rulebook name' })).toHaveValue('Battle reference');
+      },
+      { timeout: 30_000 }
+    );
     const form = page.getByRole('form', { name: 'Rename Rulebook' });
-    await userEvent.clear(within(form).getByRole('textbox', { name: 'Rulebook name' }));
-    await userEvent.type(within(form).getByRole('textbox', { name: 'Rulebook name' }), 'Battle reference');
     expect(page.getByText(/bookmarks or shared links to the old one stop/)).toBeVisible();
     await userEvent.click(within(form).getByRole('button', { name: 'Rename Rulebook' }));
     await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());
