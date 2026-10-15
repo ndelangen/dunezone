@@ -77,6 +77,11 @@ export function WideFigure({ children, caption }: Readonly<{ children: ReactNode
   );
 }
 
+/** The play button goes away when pressed, so the player takes the focus and a keyboard reader keeps their place; one function for every render, so a re-render never moves the focus again. */
+function focusOnMount(element: HTMLElement | null) {
+  element?.focus();
+}
+
 /**
  * A YouTube video that loads nothing from YouTube until the reader asks for it.
  * Until then it shows a still frame from `media/`, so the page stays fast and no third party sees the visit;
@@ -102,6 +107,7 @@ export function YouTube({
       <div className={styles.video}>
         {playing ? (
           <iframe
+            ref={focusOnMount}
             className={styles.player}
             src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1`}
             title={title}
