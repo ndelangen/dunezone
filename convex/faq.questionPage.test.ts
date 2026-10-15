@@ -2,7 +2,7 @@
 // @vitest-environment edge-runtime
 
 import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';

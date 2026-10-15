@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { rulebookContentsV1Schema, rulebookDraftEntitySchemas, rulebookEditionContentsV1Schema } from './contents';
 import type { RulebookBlockDraft, RulebookContentsDraftV1 } from './contents';

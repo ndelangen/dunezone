@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createConnection, createServer } from 'node:net';
 import type { Socket } from 'node:net';
 
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { slowLink } from './slow-link.ts';
 

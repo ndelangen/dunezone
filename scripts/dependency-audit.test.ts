@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { ATTEMPT_MS, RETRY_DELAYS_MS, auditDependencies, classifyAudit, verdictLine } from './dependency-audit';
 import type { AuditAttempt } from './dependency-audit';

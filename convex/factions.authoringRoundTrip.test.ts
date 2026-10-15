@@ -3,7 +3,7 @@
 
 import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { PLANET, TROOP_MODIFIER } from '../src/shared/assetIds';
 import { recalculateFactionComplexity } from '../src/shared/factions/complexity';

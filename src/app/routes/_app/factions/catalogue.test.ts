@@ -1,6 +1,6 @@
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { factionRulesetLabel } from '@ui/block/FactionCard';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 

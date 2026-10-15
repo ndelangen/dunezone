@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { TOPIC_ICON_TOPICS, TopicIcon } from './TopicIcon';
 import type { TopicIconTopic } from './TopicIcon';

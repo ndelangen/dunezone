@@ -3,7 +3,7 @@
 import { MantineProvider } from '@mantine/core';
 import { cleanup, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, expect, it, vi } from 'vite-plus/test';
 
 import { FormattedText, FormattedTextSource, InlineFormattedTextSource } from './FormattedText';
 import type { FormattedTextBlocks } from './FormattedText';

@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import type { ReusableJob } from './lib/ci-job-inputs';
 import { JOB_INPUTS, jobKey, jobReads, parseLsTree } from './lib/ci-job-inputs';

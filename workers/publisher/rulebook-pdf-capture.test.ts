@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
 import {

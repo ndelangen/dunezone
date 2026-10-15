@@ -5,7 +5,7 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { appContentTheme } from '@ui/theme';
 import { useLayoutEffect } from 'react';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { useEditPageHeader } from './useEditPageHeader';
 import { ValidationHeader } from './ValidationHeader';

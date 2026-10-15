@@ -6,7 +6,7 @@ import path from 'node:path';
 
 import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
-import { test } from 'vitest';
+import { test } from 'vite-plus/test';
 import { z } from 'zod';
 
 import { controllerSchema } from './hosted-session.ts';

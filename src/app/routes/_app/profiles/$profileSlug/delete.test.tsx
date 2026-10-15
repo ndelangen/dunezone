@@ -5,7 +5,7 @@ import type * as TanStackRouter from '@tanstack/react-router';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import type { ComponentType, ReactNode } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const mocks = vi.hoisted(() => ({
   page: vi.fn(),

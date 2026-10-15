@@ -1,6 +1,6 @@
 import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import type { FactionInput } from '@shared/factions/schema';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import {
   COMPLEXITY_CAPACITY_WORDS,

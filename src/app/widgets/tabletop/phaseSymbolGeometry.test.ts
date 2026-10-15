@@ -10,7 +10,7 @@ import { Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import type { BufferGeometry } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import type { SVGResult } from 'three/examples/jsm/loaders/SVGLoader.js';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { unsettledArtworkLoads } from './artworkLoads';
 import {

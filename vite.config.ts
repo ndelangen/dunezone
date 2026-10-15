@@ -4,11 +4,12 @@ import { fileURLToPath } from 'node:url';
 
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react';
-import type { PluginOption } from 'vite';
-import { configDefaults, defineConfig } from 'vitest/config';
+import type { PluginOption, UserConfig } from 'vite-plus';
+import { configDefaults, defineConfig } from 'vite-plus';
 
 import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
+import { readJsonc } from './scripts/lib/jsonc.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scripts/lib/threeRendererStack.ts';
 
@@ -57,6 +58,9 @@ function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] 
 }
 
 const config = defineConfig({
+  /* Oxfmt and Oxlint keep their own config files, which scripts and docs read; Vite+ takes them from here. */
+  fmt: readJsonc(fileURLToPath(new URL('./.oxfmtrc.json', import.meta.url))) as UserConfig['fmt'],
+  lint: readJsonc(fileURLToPath(new URL('./.oxlintrc.json', import.meta.url))) as UserConfig['lint'],
   server: {
     proxy: process.env.PLAY_WORKER_URL ? { '/__play': { target: process.env.PLAY_WORKER_URL, ws: true } } : undefined,
   },

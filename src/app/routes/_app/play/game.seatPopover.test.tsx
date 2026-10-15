@@ -2,7 +2,7 @@
 import { MantineProvider, Popover } from '@mantine/core';
 import { act, cleanup, render } from '@testing-library/react';
 import { useState } from 'react';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 /* The story helper needs no router or fixture transport to open a real Mantine popover. */
 vi.mock('../../storybookConfig', () => ({ pageStoryMeta: {} }));

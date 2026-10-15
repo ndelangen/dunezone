@@ -3,7 +3,7 @@
 import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import type { WithoutSystemFields } from 'convex/server';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { placeholderOwner } from '../scripts/lib/snapshot-policy';
 import { internal } from './_generated/api';

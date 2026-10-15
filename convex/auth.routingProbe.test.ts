@@ -2,7 +2,7 @@
 /* @vitest-environment edge-runtime */
 
 import { convexTest } from 'convex-test';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import schema from './schema';
 

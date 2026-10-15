@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi } from 'vite-plus/test';
 
 /** jsdom has no matchMedia; Mantine reads it for the colour scheme and reduced motion, and every query matches nothing. */
 export function stubMatchMedia() {

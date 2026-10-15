@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 
-import { parseSync, transformWithOxc } from 'vite';
-import type { Plugin } from 'vite';
+import { parseSync, transformWithOxc } from 'vite-plus';
+import type { Plugin } from 'vite-plus';
 
 const SCRIPT_FILE = /\.[cm]?[jt]sx?$/;
 const WORKER_PACKAGE_PATHS = [

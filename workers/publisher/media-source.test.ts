@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { MEDIA_SOURCE_MAX_BYTES, handleMediaSourceRequest, mediaSourceKey } from './media-source';
 import type { MediaSourceEnv } from './media-source';

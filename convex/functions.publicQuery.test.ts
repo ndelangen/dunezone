@@ -2,7 +2,7 @@ import aggregateTest from '@convex-dev/aggregate/test';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { convexTest } from 'convex-test';
 import { createFunctionHandle, makeFunctionReference } from 'convex/server';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { components } from './_generated/api';
 import { publicQuery, viewerQuery } from './functions';

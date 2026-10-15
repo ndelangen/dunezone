@@ -5,7 +5,7 @@ import type { RulebookResolvedFactionsById } from '@shared/rulebooks/references'
 import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 import type { z } from 'zod';
 
 /** @vitest-environment jsdom */
