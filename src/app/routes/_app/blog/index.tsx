@@ -16,7 +16,7 @@ export const Route = createFileRoute('/_app/blog/')({
   ssr: true,
   head: () =>
     publicPageHead({
-      name: 'Building Dune Zone',
+      name: 'Developer blog: Building Dune Zone',
       kind: 'Dune board game tools',
       pathname: '/blog',
       description:
@@ -32,7 +32,7 @@ function BlogPage() {
       <PageLayout.Header size="hero">
         <SimpleGrid className={styles.hero} cols={{ base: 1, md: 2 }} spacing="xl">
           <div className={styles.title}>
-            <PageTitle eyebrow="Notes from" title="Building Dune Zone" />
+            <PageTitle eyebrow="Developer blog" title="Building Dune Zone" />
           </div>
           <Surface padding="lg" className={styles.intro}>
             <Text size="lg">
