@@ -25,7 +25,8 @@ export function unsyncedOriginal(
   lock: RasterLock
 ): { key: string; file: string; tier: AssetSize } | null {
   const match = VARIANT.exec(url);
-  if (!match) {
+  /* A path with `.` or `..` segments would be checked against the lock under a key other than the file it reaches. */
+  if (!match || path.posix.normalize(url) !== url) {
     return null;
   }
   const [, base, tier, extension] = match;
@@ -100,7 +101,13 @@ export function unsyncedMediaPreview(repoRoot: string): Plugin {
           next();
           return;
         }
-        const original = unsyncedOriginal(url, mediaRoot, currentLock());
+        let original: ReturnType<typeof unsyncedOriginal> = null;
+        try {
+          /* Only variant paths read the lock, and a lock caught mid-write by `media:sync` falls through rather than failing every request. */
+          original = VARIANT.test(url) ? unsyncedOriginal(url, mediaRoot, currentLock()) : null;
+        } catch {
+          original = null;
+        }
         if (!original) {
           next();
           return;

@@ -37,4 +37,5 @@ test('ignores paths with no original, the wrong extension for the category, or o
   expect(unsyncedOriginal('/web/blog/post/photo-small.webp', root, {})).toBeNull();
   expect(unsyncedOriginal('/web/../../etc/passwd-small.jpg', root, {})).toBeNull();
   expect(unsyncedOriginal('/web/blog/post/photo.jpg', root, {})).toBeNull();
+  expect(unsyncedOriginal('/web/blog/post/./photo-small.jpg', root, {})).toBeNull();
 });

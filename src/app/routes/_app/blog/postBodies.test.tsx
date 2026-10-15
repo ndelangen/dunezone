@@ -1,7 +1,10 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
+import type { AssetSize } from '@shared/assetRules';
 import type { BlogPostSlug } from '@shared/blogPostSlugs';
+import { MEDIA_MAP } from '@shared/media/map.generated';
+import type * as ResolveAsset from '@shared/media/resolveAsset';
 import type * as TanStackRouter from '@tanstack/react-router';
 import { appContentTheme } from '@ui/theme';
 import type { ReactNode } from 'react';
@@ -10,6 +13,19 @@ import { expect, test, vi } from 'vitest';
 
 import { BLOG_POST_BODIES } from './postBodies';
 import { BLOG_POSTS } from './posts';
+
+/* Every asset key a post resolves while it renders, including images `PublishedImage` only draws once the browser runs. */
+const resolvedKeys = new Set<string>();
+vi.mock('@shared/media/resolveAsset', async (importOriginal) => {
+  const actual = await importOriginal<typeof ResolveAsset>();
+  return {
+    ...actual,
+    resolveAsset: (key: string, size: AssetSize) => {
+      resolvedKeys.add(key);
+      return actual.resolveAsset(key, size);
+    },
+  };
+});
 
 /* A post's in-site links need no router to be drawn as markup. */
 vi.mock('@tanstack/react-router', async (importOriginal) => ({
@@ -51,11 +67,12 @@ test.each(BLOG_POSTS.map(({ slug }) => slug))('the post %s ends with a picture',
  * Nothing serves that path on the live site, so a post ships only once every image it shows resolves to its synced `/m/` variant.
  */
 test.each(BLOG_POSTS.map(({ slug }) => slug))('every image in the post %s is synced', (slug) => {
-  const markup = renderBody(slug).innerHTML;
-  const sources = [...markup.matchAll(/src="([^"]+)"/g)].map(([, source]) => source);
-  expect(sources.length, 'the post shows no images').toBeGreaterThan(0);
+  resolvedKeys.clear();
+  renderBody(slug);
+  const rasters = [...resolvedKeys].filter((key) => /\.(png|jpe?g)$/i.test(key));
+  expect(rasters.length, 'the post shows no images').toBeGreaterThan(0);
   expect(
-    sources.filter((source) => source.startsWith('/') && !source.startsWith('/m/')),
+    rasters.filter((key) => !MEDIA_MAP[key]),
     'run `bun run media:sync` to upload these images'
   ).toEqual([]);
 });
