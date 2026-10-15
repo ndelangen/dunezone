@@ -21,22 +21,22 @@ export const WaitingForPlayers = meta.story({
     ).resolves.toBeVisible();
     /* The table arrives with its chunk and the connection, so every read waits for the header. */
     await waitFor(
-      () => {
+      async () => {
         const header = canvasElement.ownerDocument.querySelector('.seated-header');
-        expect(header).toBeInstanceOf(HTMLElement);
-        expect(within(header as HTMLElement).getByText('Waiting for 3 more players')).toBeVisible();
-        expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
-        expect(within(header as HTMLElement).getByRole('list', { name: 'Before the deal' })).toHaveTextContent(
+        await expect(header).toBeInstanceOf(HTMLElement);
+        await expect(within(header as HTMLElement).getByText('Waiting for 3 more players')).toBeVisible();
+        await expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
+        await expect(within(header as HTMLElement).getByRole('list', { name: 'Before the deal' })).toHaveTextContent(
           /Players 1\/4\+.*Factions.*Ready 0\/1/
         );
-        expect(within(header as HTMLElement).getByRole('button', { name: 'Copy invite link' })).toBeVisible();
-        expect(within(header as HTMLElement).getByRole('button', { name: 'Ready' })).toBeVisible();
+        await expect(within(header as HTMLElement).getByRole('button', { name: 'Copy invite link' })).toBeVisible();
+        await expect(within(header as HTMLElement).getByRole('button', { name: 'Ready' })).toBeVisible();
         /* The (+) is a spectator's way into the roster, never a player's. */
-        expect(page.queryByRole('button', { name: 'Take a seat' })).toBeNull();
+        await expect(page.queryByRole('button', { name: 'Take a seat' })).toBeNull();
         /* Nothing sits between the board and the controls. */
-        expect(canvasElement.ownerDocument.querySelector('[data-decision-bar]')).toBeNull();
+        await expect(canvasElement.ownerDocument.querySelector('[data-decision-bar]')).toBeNull();
         /* The seated player is cited through ProfileLink, leading to their profile. */
-        expect(
+        await expect(
           within(page.getByRole('region', { name: 'Players' })).getByRole('link', { name: 'Thialfi' })
         ).toHaveAttribute('href', '/profiles/thialfi');
       },
@@ -51,7 +51,7 @@ export const PlayersLeftBelowMinimum = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('Waiting for 2 more players', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.getByRole('list', { name: 'Before the deal' })).toHaveTextContent(/Players 2\/4\+/);
+    await expect(page.getByRole('list', { name: 'Before the deal' })).toHaveTextContent(/Players 2\/4\+/);
   },
 });
 
@@ -65,7 +65,7 @@ export const EighteenSeats = meta.story({
     await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.__duneTable?.stations()).toHaveLength(18));
     /* Ready is the header's, beside the gear, as in play. */
     const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
-    expect(within(header).getByRole('button', { name: 'Ready' })).toBeVisible();
+    await expect(within(header).getByRole('button', { name: 'Ready' })).toBeVisible();
   },
 });
 
@@ -78,15 +78,15 @@ export const ChoosingFactions = meta.story({
       page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await waitFor(
-      () => {
+      async () => {
         const header = canvasElement.ownerDocument.querySelector('.seated-header');
-        expect(within(header as HTMLElement).getByText('Waiting for 5 to be ready')).toBeVisible();
-        expect(
+        await expect(within(header as HTMLElement).getByText('Waiting for 5 to be ready')).toBeVisible();
+        await expect(
           within(page.getByRole('region', { name: 'Banned factions' })).getByRole('img', {
             name: /Ixians, banned by Twaffle/,
           })
         ).toBeVisible();
-        expect(within(page.getByRole('region', { name: 'Drafted factions' })).getAllByRole('img')).toHaveLength(9);
+        await expect(within(page.getByRole('region', { name: 'Drafted factions' })).getAllByRole('img')).toHaveLength(9);
       },
       { timeout: 30_000 }
     );
@@ -116,8 +116,8 @@ export const Observer = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await shows(() => page.getByRole('button', { name: 'Take a seat' }));
     await shows(() => page.getByRole('region', { name: 'Drafted factions' }));
-    expect(page.queryByLabelText('Search factions')).toBeNull();
-    expect(page.queryByRole('button', { name: /^Ready$/ })).toBeNull();
+    await expect(page.queryByLabelText('Search factions')).toBeNull();
+    await expect(page.queryByRole('button', { name: /^Ready$/ })).toBeNull();
   },
 });
 
@@ -142,9 +142,9 @@ export const InsufficientFactionPool = meta.story({
       page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await waitFor(
-      () => {
-        expect(headerAlert(canvasElement)).toHaveTextContent('Not enough factions in the pool');
-        expect(headerAlert(canvasElement)).toHaveTextContent('Remove a ban or draft more factions');
+      async () => {
+        await expect(headerAlert(canvasElement)).toHaveTextContent('Not enough factions in the pool');
+        await expect(headerAlert(canvasElement)).toHaveTextContent('Remove a ban or draft more factions');
       },
       { timeout: 30_000 }
     );
@@ -184,7 +184,7 @@ export const FactionSetAside = meta.story({
     const list = () => within(page.getByRole('list', { name: 'Factions' }));
     await shows(() => list().getByText(`Not ready to deal: ${NOT_READY}`));
     const row = list().getByText('Iduali').closest('li') as HTMLElement;
-    expect(within(row).getByRole('button', { name: /^Draft$/ })).toBeDisabled();
+    await expect(within(row).getByRole('button', { name: /^Draft$/ })).toBeDisabled();
   },
 });
 
@@ -206,8 +206,8 @@ export const ObserverAfterAFailedDeal = meta.story({
       () => expect(headerAlert(canvasElement)).toHaveTextContent('Set aside as not ready to deal: Iduali'),
       { timeout: 30_000 }
     );
-    expect(headerAlert(canvasElement)).toHaveTextContent('Seats were not dealt');
-    expect(page.queryByRole('button', { name: 'Ready' })).toBeNull();
+    await expect(headerAlert(canvasElement)).toHaveTextContent('Seats were not dealt');
+    await expect(page.queryByRole('button', { name: 'Ready' })).toBeNull();
   },
 });
 
@@ -219,7 +219,7 @@ export const SpectatorAsksForASeat = meta.story({
     /* While drafting the (+) is the way in, so the header's Seats popover waits for play. */
     await press(() => page.getByRole('button', { name: 'Take a seat' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-request' } }));
-    expect(page.queryByRole('button', { name: 'Seats' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Seats' })).toBeNull();
   },
 });
 
@@ -231,7 +231,7 @@ export const SeatedSpectatorLandsOnDrafting = meta.story({
     await shows(() => page.getByRole('button', { name: 'Take a seat' }));
     /* A spectator's dock holds the Log alone, so that is where it opens. */
     await shows(() => page.getByRole('tab', { name: 'History' }));
-    expect(page.queryByRole('tab', { name: 'Drafting' })).toBeNull();
+    await expect(page.queryByRole('tab', { name: 'Drafting' })).toBeNull();
     const seated = session.transport.view({
       ...draftingSnapshot([SIX[0]!, SIX[1]!], 6),
       revision: drafting().revision + 1,
@@ -252,7 +252,7 @@ export const WaitingForApproval = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await shows(() => page.getByText('Waiting for approval'));
-    expect(page.queryByRole('button', { name: 'Take a seat' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Take a seat' })).toBeNull();
     await press(() => page.getByRole('button', { name: 'Withdraw your seat request' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-withdraw' } }));
   },
@@ -295,7 +295,7 @@ export const PlayerLeavesTheGame = meta.story({
     await waitForFrame(() => expect(leave()).toBeVisible(), { timeout: 30_000 });
     await userEvent.pointer([{ keys: '[MouseLeft>]', target: leave() }]);
     await waitForFrame(() => expect(page.getByText(/Leaving in \d\.\./)).toBeVisible());
-    expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
+    await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-depart' } }), {
       timeout: 10_000,
     });
@@ -321,14 +321,14 @@ export const Discarded = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await waitFor(
-      () => {
+      async () => {
         const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
-        expect(within(header).getByText('Its last player left')).toBeVisible();
+        await expect(within(header).getByText('Its last player left')).toBeVisible();
       },
       { timeout: 30_000 }
     );
-    expect(page.queryByRole('button', { name: 'Seats' })).toBeNull();
-    expect(page.queryByRole('button', { name: 'Take a seat' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Seats' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Take a seat' })).toBeNull();
   },
 });
 
@@ -344,10 +344,10 @@ export const NamedGame = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText(/· Dreamrules/, {}, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(canvasElement.ownerDocument.querySelector('.seated-header')).not.toHaveTextContent(
+    await expect(canvasElement.ownerDocument.querySelector('.seated-header')).not.toHaveTextContent(
       'Annual Bene Gesserit wedding traitor and the unexpected Arrakeen dinner ambush'
     );
-    expect(
+    await expect(
       page.getByRole('heading', {
         name: 'Annual Bene Gesserit wedding traitor and the unexpected Arrakeen dinner ambush',
         level: 1,
@@ -361,7 +361,7 @@ export const NamedGame = meta.story({
     ).mockResolvedValue();
     const copy = await page.findByRole('button', { name: 'Copy game link' });
     await userEvent.click(copy);
-    expect(writeText).toHaveBeenCalledWith(
+    await expect(writeText).toHaveBeenCalledWith(
       expect.stringMatching(/\/play\/annual-bene-gesserit-wedding-traitor-and-the-unexpected-arrakeen$/)
     );
     await waitFor(() => expect(copy).toHaveTextContent('Game link copied'));

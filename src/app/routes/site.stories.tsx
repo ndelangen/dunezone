@@ -24,7 +24,7 @@ export const NotFound = meta.story({
       page.findByRole('heading', { name: 'This page does not exist' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     const back = await page.findByRole('link', { name: 'Go back home' }, { timeout: 30_000 });
-    expect(back.closest('main')).toBeNull();
+    await expect(back.closest('main')).toBeNull();
   },
 });
 export const Icons = meta.story({ args: { path: '/__icons' } });
@@ -118,10 +118,10 @@ export const Glossary = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'Troop' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(canvasElement.ownerDocument.getElementById('battle')).not.toBeNull();
+    await expect(canvasElement.ownerDocument.getElementById('battle')).not.toBeNull();
     await userEvent.type(page.getByRole('textbox', { name: 'Search the glossary' }), 'combat');
     await expect(page.findByRole('heading', { name: 'Battle', level: 3 })).resolves.toBeVisible();
-    expect(page.queryByRole('heading', { name: 'Troop' })).toBeNull();
+    await expect(page.queryByRole('heading', { name: 'Troop' })).toBeNull();
   },
 });
 

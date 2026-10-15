@@ -172,6 +172,7 @@
     "monocart-coverage-reports": "2.13.1",
     "oxfmt": "0.72.0",
     "oxlint": "1.87.0",
+    "oxlint-tsgolint": "7.0.2004",
     "playwright": "1.63.0",
     "recursive-readdir-files": "^2.3.2",
     "sharp": "0.35.5",

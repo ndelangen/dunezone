@@ -2,6 +2,9 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "unicorn", "oxc", "react", "jsx-a11y", "vitest", "import", "jsdoc"],
   "jsPlugins": ["./scripts/oxlint-local-plugin.ts"],
+  "options": {
+    "typeAware": true
+  },
   "categories": {
     "correctness": "error"
   },

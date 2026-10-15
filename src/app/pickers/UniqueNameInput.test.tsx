@@ -62,14 +62,20 @@ describe('UniqueNameInput', () => {
     view.rerender(field('Shield', onConflictChange));
     expect(view.queryByText(nameConflictComplaint({ holder: 'live', slug: 'shield' }))).toBeNull();
 
-    act(() => vi.advanceTimersByTime(400));
+    act(() => {
+
+      vi.advanceTimersByTime(400);
+
+    });
     expect(view.getByText(nameConflictComplaint({ holder: 'live', slug: 'shield' }))).not.toBeNull();
     expect(onConflictChange).toHaveBeenLastCalledWith({ holder: 'live', slug: 'shield' });
 
     /* Switching to a free name clears the warning at once, and shield's verdict must never surface tagged with the new slug. */
     view.rerender(field('Lasgun', onConflictChange));
     expect(view.queryByText(nameConflictComplaint({ holder: 'live', slug: 'shield' }))).toBeNull();
-    act(() => vi.advanceTimersByTime(400));
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
     expect(onConflictChange).not.toHaveBeenCalledWith(expect.objectContaining({ slug: 'lasgun' }));
     expect(onConflictChange).toHaveBeenLastCalledWith(null);
   });
@@ -94,14 +100,20 @@ describe('UniqueNameInput', () => {
     /* Before the settle there is no conflict, so there is no offer either: the way out belongs to the verdict. */
     expect(view.queryByText('Try instead:')).toBeNull();
 
-    act(() => vi.advanceTimersByTime(400));
+    act(() => {
+
+      vi.advanceTimersByTime(400);
+
+    });
     expect(view.getByText('Try instead:')).not.toBeNull();
     view.getByRole('button', { name: 'Try instead: Shield 2' }).click();
     expect(onChange).toHaveBeenCalledWith('Shield 2');
 
     /* A free name has nothing to escape from. */
     view.rerender(field('Lasgun', vi.fn(), undefined, { canRename: true }, onChange));
-    act(() => vi.advanceTimersByTime(400));
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
     expect(view.queryByText('Try instead:')).toBeNull();
   });
 
@@ -121,7 +133,9 @@ describe('UniqueNameInput', () => {
   it('never questions an unchanged name on an edit page', () => {
     const onConflictChange = vi.fn();
     const view = render(field('Shield', onConflictChange, 'shield'));
-    act(() => vi.advanceTimersByTime(400));
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
     expect(view.queryByText(nameConflictComplaint({ holder: 'live', slug: 'shield' }))).toBeNull();
     expect(onConflictChange).not.toHaveBeenCalledWith(expect.objectContaining({ slug: 'shield' }));
   });

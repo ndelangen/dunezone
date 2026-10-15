@@ -39,7 +39,7 @@ export const Detail = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'House Atreides' })).resolves.toBeVisible();
-    expect(page.queryByRole('region', { name: 'Planets' })).not.toBeInTheDocument();
+    await expect(page.queryByRole('region', { name: 'Planets' })).not.toBeInTheDocument();
   },
 });
 
@@ -92,13 +92,13 @@ export const DetailWithTroopStrengths = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const troops = within(await page.findByRole('region', { name: 'Troops' }));
     const soldiers = within(troops.getByRole('article', { name: 'Soldiers' }));
-    expect(soldiers.getByRole('img', { name: 'Strength per troop: 0.5 unsupported | 1 supported' })).toBeVisible();
-    expect(soldiers.getByRole('img', { name: 'Support cost: 1 spice per supported troop' })).toBeVisible();
-    expect(soldiers.getByRole('img', { name: 'Cannot participate in battle' })).toBeVisible();
-    expect(soldiers.getByRole('img', { name: '15 troop tokens' })).toBeVisible();
+    await expect(soldiers.getByRole('img', { name: 'Strength per troop: 0.5 unsupported | 1 supported' })).toBeVisible();
+    await expect(soldiers.getByRole('img', { name: 'Support cost: 1 spice per supported troop' })).toBeVisible();
+    await expect(soldiers.getByRole('img', { name: 'Cannot participate in battle' })).toBeVisible();
+    await expect(soldiers.getByRole('img', { name: '15 troop tokens' })).toBeVisible();
     const reverse = soldiers.getByRole('img', { name: 'Advisors, reverse side' });
-    expect(reverse).toHaveAccessibleDescription('The reverse side supports the faction without joining battles.');
-    expect(
+    await expect(reverse).toHaveAccessibleDescription('The reverse side supports the faction without joining battles.');
+    await expect(
       within(troops.getByRole('article', { name: 'Recruits' })).getByRole('img', {
         name: 'Battle strengths have not been set. This side is unavailable in battle plans.',
       })
@@ -106,7 +106,7 @@ export const DetailWithTroopStrengths = meta.story({
     reverse.focus();
     await userEvent.tab({ shift: true });
     await userEvent.tab();
-    expect(reverse).toHaveFocus();
+    await expect(reverse).toHaveFocus();
     await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(
       'The reverse side supports the faction without joining battles.'
     );
@@ -125,9 +125,9 @@ export const DetailWithTroopStrengthsMobile = meta.story({
     const sectionBounds = troops.getBoundingClientRect();
     for (const card of within(troops).getAllByRole('article')) {
       const bounds = card.getBoundingClientRect();
-      expect(bounds.left).toBeGreaterThanOrEqual(sectionBounds.left);
-      expect(bounds.right).toBeLessThanOrEqual(sectionBounds.right);
-      expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
+      await expect(bounds.left).toBeGreaterThanOrEqual(sectionBounds.left);
+      await expect(bounds.right).toBeLessThanOrEqual(sectionBounds.right);
+      await expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
     }
   },
 });
@@ -159,11 +159,11 @@ export const DetailWithIndependentTroopFaces = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const troops = within(await page.findByRole('region', { name: 'Troops' }));
-    expect(troops.getByRole('img', { name: 'Strength per troop: 0 unsupported | 1.5 supported' })).toBeVisible();
-    expect(troops.getByRole('img', { name: 'Support cost: 0 spice per supported troop' })).toBeVisible();
-    expect(troops.getByRole('img', { name: 'Strength per troop: 0.5 unsupported | 1 supported' })).toBeVisible();
+    await expect(troops.getByRole('img', { name: 'Strength per troop: 0 unsupported | 1.5 supported' })).toBeVisible();
+    await expect(troops.getByRole('img', { name: 'Support cost: 0 spice per supported troop' })).toBeVisible();
+    await expect(troops.getByRole('img', { name: 'Strength per troop: 0.5 unsupported | 1 supported' })).toBeVisible();
     const card = troops.getByRole('article');
-    expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
+    await expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
     const flip = troops
       .getByRole('img', { name: 'Flip side: An independently authored reverse' })
       .getBoundingClientRect();
@@ -174,8 +174,8 @@ export const DetailWithIndependentTroopFaces = meta.story({
       .getByRole('img', { name: 'Support cost: 2 spice per supported troop' })
       .getBoundingClientRect();
     const count = troops.getByRole('img', { name: '1 troop token' }).getBoundingClientRect();
-    expect(frontCost.right).toBeLessThanOrEqual(flip.left);
-    expect(backCost.right).toBeLessThanOrEqual(count.left);
+    await expect(frontCost.right).toBeLessThanOrEqual(flip.left);
+    await expect(backCost.right).toBeLessThanOrEqual(count.left);
   },
 });
 
@@ -216,7 +216,7 @@ export const DetailWithPlanets = meta.story({
     const sidebar = await page.findByRole('complementary', { name: 'Faction details' });
     const planets = within(sidebar).getByRole('region', { name: 'Planets' });
     const planet = within(planets).getByRole('listitem', { name: 'Space Hulk Leviathan' });
-    expect(planet).toHaveAccessibleDescription(spaceOrks.planet[0].description);
+    await expect(planet).toHaveAccessibleDescription(spaceOrks.planet[0].description);
     await userEvent.hover(planet);
     await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(spaceOrks.planet[0].description);
     await userEvent.unhover(planet);
@@ -225,7 +225,7 @@ export const DetailWithPlanets = meta.story({
     planet.focus();
     await userEvent.tab({ shift: true });
     await userEvent.tab();
-    expect(planet).toHaveFocus();
+    await expect(planet).toHaveFocus();
     // The troop hint behind Shift+Tab can still be fading out, so wait for the planet's own tooltip.
     await page.findByRole('tooltip', { name: spaceOrks.planet[0].description });
     await userEvent.keyboard('{Escape}');
@@ -246,9 +246,9 @@ export const DetailWithUndescribedPlanet = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const planet = await page.findByRole('listitem', { name: 'Space Hulk Leviathan' });
     await userEvent.hover(planet);
-    expect(page.queryByRole('tooltip')).not.toBeInTheDocument();
-    expect(planet).not.toHaveAccessibleDescription();
-    expect(planet.tabIndex).toBe(-1);
+    await expect(page.queryByRole('tooltip')).not.toBeInTheDocument();
+    await expect(planet).not.toHaveAccessibleDescription();
+    await expect(planet.tabIndex).toBe(-1);
     await userEvent.unhover(planet);
   },
 });
@@ -310,7 +310,7 @@ export const DetailTellsItsEditorsAReplacementFailed = meta.story({
       page.findByText('The published faction sheet may be out of date because the latest changes were not captured.')
     ).resolves.toBeVisible();
     await expect(page.findByText('Update failed')).resolves.toBeVisible();
-    expect(page.queryByText('Current')).toBeNull();
+    await expect(page.queryByText('Current')).toBeNull();
     await expect(page.findByRole('link', { name: 'Open published PDF' })).resolves.toBeVisible();
   },
 });
@@ -332,8 +332,8 @@ export const DetailTellsReadersAReplacementFailed = meta.story({
       )
     ).resolves.toBeVisible();
     await expect(page.findByText('Update failed')).resolves.toBeVisible();
-    expect(page.queryByText('Current')).toBeNull();
-    expect(page.queryByRole('link', { name: 'Edit faction' })).toBeNull();
+    await expect(page.queryByText('Current')).toBeNull();
+    await expect(page.queryByRole('link', { name: 'Edit faction' })).toBeNull();
     await expect(page.findByRole('link', { name: 'Open published PDF' })).resolves.toBeVisible();
   },
 });
@@ -368,8 +368,8 @@ export const DetailTellsReadersTheFirstPublishFailed = meta.story({
       )
     ).resolves.toBeVisible();
     await expect(page.findByText('Publish failed')).resolves.toBeVisible();
-    expect(page.queryByText('Update failed')).toBeNull();
-    expect(page.queryByRole('link', { name: 'Open published PDF' })).toBeNull();
+    await expect(page.queryByText('Update failed')).toBeNull();
+    await expect(page.queryByRole('link', { name: 'Open published PDF' })).toBeNull();
   },
 });
 
@@ -400,7 +400,7 @@ export const DetailNotFoundDeclaresTheLoadedBand = meta.story({
     await expect(page.findByText('Back to factions', {}, { timeout: 30_000 })).resolves.toBeVisible();
 
     const root = canvasElement.ownerDocument.querySelector('[data-page-layout-header-size]');
-    expect(root?.getAttribute('data-page-layout-header-size')).toBe('compact');
+    await expect(root?.getAttribute('data-page-layout-header-size')).toBe('compact');
   },
 });
 
@@ -513,7 +513,7 @@ export const EditRandomColorsFilesTheGradientItReplaces = meta.story({
       }).catch(() => undefined);
       landed = await currentLayerMode(page, 'pattern');
     }
-    expect(landed).not.toBe('linear');
+    await expect(landed).not.toBe('linear');
 
     /* The recipe replaced a linear gradient with no flip, so the memory is the only place 135 still exists. */
     await userEvent.click((await layerModeControl(page, 'pattern')).getByRole('radio', { name: 'Linear' }));
@@ -560,9 +560,9 @@ export const CreateResetClosesTheValidationBand = meta.story({
     const body = canvasElement.ownerDocument.body;
     /* Anchor on the rendered page before the null read, or the empty shell satisfies it (the zero-count trap). */
     await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 30_000 });
-    expect(body.querySelector('[data-page-layout-header-size]')).toBeNull();
+    await expect(body.querySelector('[data-page-layout-header-size]')).toBeNull();
     await raiseAWarning(page);
-    expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
+    await expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
     await waitFor(() => expect(body.querySelector('[data-page-layout-header-size]')).toBeNull(), { timeout: 30_000 });
   },
@@ -583,7 +583,7 @@ export const CreateLoadClosesTheValidationBand = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const body = canvasElement.ownerDocument.body;
     await raiseAWarning(page);
-    expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
+    await expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Load existing faction' }));
     await userEvent.click((await waitForFrame(() => page.getAllByRole('option'), { timeout: 30_000 }))[0]!);
     await userEvent.click(await page.findByRole('button', { name: 'Load faction' }, { timeout: 30_000 }));

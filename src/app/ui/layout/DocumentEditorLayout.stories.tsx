@@ -26,32 +26,32 @@ function DocumentEditorLayoutFixture({ ratio, fit, sidebarContentHeight }: Story
   );
 }
 
-function expectPreviewFillToStayContained(canvasElement: HTMLElement) {
+async function expectPreviewFillToStayContained(canvasElement: HTMLElement) {
   const previewFrame = canvasElement.querySelector<HTMLElement>('[data-document-editor-preview] > div');
-  expect(previewFrame).not.toBeNull();
+  await expect(previewFrame).not.toBeNull();
   const requiredPreviewFrame = previewFrame as HTMLElement;
   const previewFill = requiredPreviewFrame.firstElementChild;
-  expect(previewFill).not.toBeNull();
+  await expect(previewFill).not.toBeNull();
   const requiredPreviewFill = previewFill as HTMLElement;
 
   const frameRect = requiredPreviewFrame.getBoundingClientRect();
   const fillRect = requiredPreviewFill.getBoundingClientRect();
-  expect(fillRect.x).toBeCloseTo(frameRect.x, 0);
-  expect(fillRect.y).toBeCloseTo(frameRect.y, 0);
-  expect(fillRect.width).toBeCloseTo(frameRect.width, 0);
-  expect(fillRect.height).toBeCloseTo(frameRect.height, 0);
+  await expect(fillRect.x).toBeCloseTo(frameRect.x, 0);
+  await expect(fillRect.y).toBeCloseTo(frameRect.y, 0);
+  await expect(fillRect.width).toBeCloseTo(frameRect.width, 0);
+  await expect(fillRect.height).toBeCloseTo(frameRect.height, 0);
 }
 
-function expectSidebarToMatchPreviewMinimum(canvasElement: HTMLElement) {
+async function expectSidebarToMatchPreviewMinimum(canvasElement: HTMLElement) {
   const sidebarContent = canvasElement.querySelector<HTMLElement>('[data-document-editor-sidebar] > div');
   const previewFrame = canvasElement.querySelector<HTMLElement>('[data-document-editor-preview] > div');
   const sidebarSlot = sidebarContent?.firstElementChild;
-  expect(sidebarContent).not.toBeNull();
-  expect(sidebarSlot).not.toBeNull();
-  expect(previewFrame).not.toBeNull();
+  await expect(sidebarContent).not.toBeNull();
+  await expect(sidebarSlot).not.toBeNull();
+  await expect(previewFrame).not.toBeNull();
   const previewHeight = previewFrame?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY;
-  expect(sidebarContent?.getBoundingClientRect().height).toBeGreaterThanOrEqual(previewHeight);
-  expect(sidebarSlot?.getBoundingClientRect().height).toBeGreaterThanOrEqual(previewHeight);
+  await expect(sidebarContent?.getBoundingClientRect().height).toBeGreaterThanOrEqual(previewHeight);
+  await expect(sidebarSlot?.getBoundingClientRect().height).toBeGreaterThanOrEqual(previewHeight);
 }
 
 const defaultArgs = {
@@ -99,8 +99,8 @@ export const Playground = meta.story({
 export const WideFitHeight = meta.story({
   args: { fit: 'height', sidebarContentHeight: 540 },
   globals: { viewport: { value: 'appAuthoringWide' } },
-  play: ({ canvasElement }) => {
-    expectSidebarToMatchPreviewMinimum(canvasElement);
+  play: async ({ canvasElement }) => {
+    await expectSidebarToMatchPreviewMinimum(canvasElement);
   },
 });
 
@@ -114,9 +114,9 @@ export const WideFitWidth = meta.story({
 export const NarrowSidebarFirst = meta.story({
   args: { sidebarContentHeight: 340 },
   globals: { viewport: { value: 'appMobile' } },
-  play: ({ canvasElement }) => {
-    expectPreviewFillToStayContained(canvasElement);
-    expectSidebarToMatchPreviewMinimum(canvasElement);
+  play: async ({ canvasElement }) => {
+    await expectPreviewFillToStayContained(canvasElement);
+    await expectSidebarToMatchPreviewMinimum(canvasElement);
   },
 });
 
@@ -124,13 +124,13 @@ export const NarrowSidebarFirst = meta.story({
 export const NarrowPreviewFirst = meta.story({
   args: { sidebarContentHeight: 340 },
   globals: { viewport: { value: 'appMobile' } },
-  play: ({ canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const layout = canvasElement.querySelector<HTMLElement>('[data-document-editor-layout]');
     if (layout) {
       layout.scrollLeft = layout.scrollWidth;
     }
-    expectPreviewFillToStayContained(canvasElement);
-    expectSidebarToMatchPreviewMinimum(canvasElement);
+    await expectPreviewFillToStayContained(canvasElement);
+    await expectSidebarToMatchPreviewMinimum(canvasElement);
   },
 });
 

@@ -32,11 +32,11 @@ export const Detail = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     /* Both FAQ strips cite the ruleset, so both are checked rather than whichever came first. */
-    expect(page.queryByRole('region', { name: 'Sign-in methods' })).toBeNull();
+    await expect(page.queryByRole('region', { name: 'Sign-in methods' })).toBeNull();
     const citations = await page.findAllByRole('link', { name: 'ClassicRules' }, { timeout: 30_000 });
-    expect(citations.length).toBeGreaterThan(1);
+    await expect(citations.length).toBeGreaterThan(1);
     for (const citation of citations) {
-      expect(citation.querySelector('img')).not.toBeNull();
+      await expect(citation.querySelector('img')).not.toBeNull();
     }
   },
 });
@@ -77,12 +77,12 @@ export const BoardGameGeekLink = meta.story({
     await userEvent.type(field, 'https://boardgamegeek.com/user/ExamplePlayer');
     await userEvent.click(page.getByRole('tab', { name: 'Sign-in methods' }));
     await userEvent.click(page.getByRole('tab', { name: 'Profile' }));
-    expect(page.getByRole('textbox', { name: 'BoardGameGeek profile URL' })).toHaveValue(
+    await expect(page.getByRole('textbox', { name: 'BoardGameGeek profile URL' })).toHaveValue(
       'https://boardgamegeek.com/user/ExamplePlayer'
     );
     await userEvent.click(page.getByRole('button', { name: 'Save profile' }));
     await waitFor(() => expect(page.getByRole('button', { name: 'Save profile' })).toBeDisabled());
-    expect(page.getByRole('textbox', { name: 'BoardGameGeek profile URL' })).toHaveValue(
+    await expect(page.getByRole('textbox', { name: 'BoardGameGeek profile URL' })).toHaveValue(
       'https://boardgamegeek.com/user/ExamplePlayer'
     );
   },
@@ -101,8 +101,8 @@ export const BoardGameGeekProfileLink = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const link = await page.findByRole('link', { name: 'View BGG profile' }, { timeout: 30_000 });
-    expect(link).toHaveAttribute('href', 'https://boardgamegeek.com/user/ExamplePlayer');
-    expect(page.getByText('Unverified')).toBeVisible();
+    await expect(link).toHaveAttribute('href', 'https://boardgamegeek.com/user/ExamplePlayer');
+    await expect(page.getByText('Unverified')).toBeVisible();
   },
 });
 
@@ -131,10 +131,10 @@ export const SettingsInvalidNameOpensTheBand = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const body = canvasElement.ownerDocument.body;
     const nameField = await page.findByRole('textbox', { name: 'Display name' }, { timeout: 30_000 });
-    expect(body.querySelector('[data-page-layout-header-size]')).toBeNull();
+    await expect(body.querySelector('[data-page-layout-header-size]')).toBeNull();
     await userEvent.clear(nameField);
     await expect(page.findByText('Needs attention', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
+    await expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
     await userEvent.type(nameField, 'StorybookViewer');
     await userEvent.tab();
     await waitFor(() => expect(body.querySelector('[data-page-layout-header-size]')).toBeNull(), { timeout: 30_000 });
@@ -152,7 +152,7 @@ export const SettingsSignedOut = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'Back to profiles' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Save profile' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Save profile' })).toBeNull();
   },
 });
 export const DeleteAccount = meta.story({

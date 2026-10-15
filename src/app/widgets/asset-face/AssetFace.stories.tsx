@@ -97,12 +97,12 @@ function acrossWidths(args: Parameters<typeof AssetFace>[0]) {
 export const PublishedCard = meta.story({
   render: acrossWidths,
   play: async ({ canvasElement }) => {
-    await waitFor(() => {
+    await waitFor(async () => {
       const images = canvasElement.querySelectorAll('img');
-      expect(images).toHaveLength(WIDTHS.length);
-      expect([...images].every((image) => image.naturalWidth === 900)).toBe(true);
+      await expect(images).toHaveLength(WIDTHS.length);
+      await expect([...images].every((image) => image.naturalWidth === 900)).toBe(true);
     });
-    expect(canvasElement.querySelectorAll('svg pattern')).toHaveLength(0);
+    await expect(canvasElement.querySelectorAll('svg pattern')).toHaveLength(0);
   },
 });
 
@@ -110,8 +110,8 @@ export const MissingPublication = meta.story({
   args: { href: null, name: 'Missing Artwork' },
   render: acrossWidths,
   play: async ({ canvasElement }) => {
-    expect(within(canvasElement).getAllByRole('img', { name: 'Missing Artwork: preview unavailable' })).toHaveLength(4);
-    expect(canvasElement.querySelectorAll('img, svg pattern')).toHaveLength(0);
+    await expect(within(canvasElement).getAllByRole('img', { name: 'Missing Artwork: preview unavailable' })).toHaveLength(4);
+    await expect(canvasElement.querySelectorAll('img, svg pattern')).toHaveLength(0);
   },
 });
 
@@ -121,11 +121,11 @@ export const LoadingPublication = meta.story({
   loaders: [serveStoryImages],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await waitFor(() => {
-      expect(canvas.queryByText(/\S/)).toBeNull();
-      expect(canvasElement.querySelector('[aria-busy="true"]')).not.toBeNull();
+    await waitFor(async () => {
+      await expect(canvas.queryByText(/\S/)).toBeNull();
+      await expect(canvasElement.querySelector('[aria-busy="true"]')).not.toBeNull();
     });
-    expect(canvas.queryByRole('img', { name: /preview unavailable/ })).toBeNull();
+    await expect(canvas.queryByRole('img', { name: /preview unavailable/ })).toBeNull();
   },
 });
 
@@ -135,7 +135,7 @@ export const FailedPublication = meta.story({
     await expect(
       within(canvasElement).findByRole('img', { name: 'Lasgun: preview unavailable' })
     ).resolves.toBeVisible();
-    expect(canvasElement.querySelectorAll('img, svg pattern')).toHaveLength(0);
+    await expect(canvasElement.querySelectorAll('img, svg pattern')).toHaveLength(0);
   },
 });
 
@@ -158,7 +158,7 @@ export const PublicationAfterFailure = meta.story({
     await canvas.findByRole('img', { name: 'Treachery: preview unavailable' });
     await userEvent.click(canvas.getByRole('button', { name: 'Use new publication' }));
     await waitFor(() => expect(canvasElement.querySelector('img')?.naturalWidth).toBe(900));
-    expect(canvasElement.querySelectorAll('svg pattern')).toHaveLength(0);
+    await expect(canvasElement.querySelectorAll('svg pattern')).toHaveLength(0);
   },
 });
 
@@ -186,7 +186,7 @@ export const BundleWithMembers = meta.story({
   args: { type: 'bundle', data: BUNDLE, name: 'Weapons', href: null, members: MEMBERS },
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelectorAll('img')).toHaveLength(3));
-    expect(canvasElement.querySelectorAll('svg pattern')).toHaveLength(1);
+    await expect(canvasElement.querySelectorAll('svg pattern')).toHaveLength(1);
   },
 });
 

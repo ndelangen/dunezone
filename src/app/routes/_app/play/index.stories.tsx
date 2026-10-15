@@ -27,9 +27,9 @@ export const SignedOut = meta.story({
     await expect(
       page.findByText('Ongoing and past games appear here once you sign in.', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
-    expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
-    expect(page.queryByRole('link', { name: /demo/i })).toBeNull();
+    await expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
+    await expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
+    await expect(page.queryByRole('link', { name: /demo/i })).toBeNull();
   },
 });
 
@@ -176,14 +176,14 @@ export const SignedIn = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const games = await page.findByRole('list', { name: 'Games' }, { timeout: 30_000 });
-    expect(within(games).getAllByRole('listitem')).toHaveLength(5);
-    expect(within(games).getAllByRole('link', { name: /^Open / })).toHaveLength(5);
-    expect(page.getAllByText('Your seat')).toHaveLength(2);
-    expect(page.getAllByText('Seats open')).toHaveLength(2);
-    expect(page.getByRole('img', { name: `${SIX[1]!.name} (you), ${factions[1]!.data.name}` })).toBeVisible();
+    await expect(within(games).getAllByRole('listitem')).toHaveLength(5);
+    await expect(within(games).getAllByRole('link', { name: /^Open / })).toHaveLength(5);
+    await expect(page.getAllByText('Your seat')).toHaveLength(2);
+    await expect(page.getAllByText('Seats open')).toHaveLength(2);
+    await expect(page.getByRole('img', { name: `${SIX[1]!.name} (you), ${factions[1]!.data.name}` })).toBeVisible();
     /* Create stands in the header and as the toolbar's plus, as on the faction catalogue, never repeated in the list. */
-    expect(page.getAllByRole('link', { name: 'Create a game' })).toHaveLength(2);
-    expect(within(games).queryByRole('link', { name: 'Create a game' })).toBeNull();
+    await expect(page.getAllByRole('link', { name: 'Create a game' })).toHaveLength(2);
+    await expect(within(games).queryByRole('link', { name: 'Create a game' })).toBeNull();
   },
 });
 
@@ -196,11 +196,11 @@ export const Finished = meta.story({
     await userEvent.click(page.getAllByLabelText('Show games').at(-1)!);
     await userEvent.click(await page.findByRole('option', { name: /^Finished/ }));
     const games = page.getByRole('list', { name: 'Games' });
-    expect(within(games).getAllByRole('listitem')).toHaveLength(1);
-    expect(
+    await expect(within(games).getAllByRole('listitem')).toHaveLength(1);
+    await expect(
       within(games).getByText(`${factions[0]!.data.name} and ${factions[3]!.data.name} won together`)
     ).toBeVisible();
-    expect(within(games).getAllByRole('img', { name: /, a winner$/ })).toHaveLength(2);
+    await expect(within(games).getAllByRole('img', { name: /, a winner$/ })).toHaveLength(2);
   },
 });
 
@@ -221,7 +221,7 @@ export const NoGames = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'No games yet' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.getByRole('link', { name: 'Create a game' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Create a game' })).toBeVisible();
   },
 });
 
@@ -233,7 +233,7 @@ export const ServerUnreachable = meta.story({
     await expect(
       page.findByText("Can't reach the server. Retrying...", {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.getByRole('link', { name: 'Go back home' })).toHaveAttribute('href', '/');
-    expect(page.queryByText('Loading games.')).toBeNull();
+    await expect(page.getByRole('link', { name: 'Go back home' })).toHaveAttribute('href', '/');
+    await expect(page.queryByText('Loading games.')).toBeNull();
   },
 });

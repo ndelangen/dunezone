@@ -138,7 +138,9 @@ describe('account deletion page', () => {
     vi.useFakeTimers();
     const submit = view.getByRole('button', { name: 'Transfer ownership and delete account' });
     fireEvent.pointerDown(submit, { isPrimary: true, button: 0 });
-    act(() => vi.advanceTimersByTime(5000));
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
     vi.useRealTimers();
     expect(mocks.mutate).toHaveBeenCalledWith({ replacementUserId: 'user-2' });
   });
@@ -154,7 +156,9 @@ describe('account deletion page', () => {
     expect(mocks.mutate).not.toHaveBeenCalled();
     vi.useFakeTimers();
     fireEvent.pointerDown(submit, { isPrimary: true, button: 0 });
-    act(() => vi.advanceTimersByTime(5000));
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
     vi.useRealTimers();
     expect(mocks.mutate).toHaveBeenCalledWith({ replacementUserId: null });
   });

@@ -42,17 +42,17 @@ async function expectContained({ canvasElement }: { canvasElement: HTMLElement }
   await document.fonts.ready;
   const region = canvasElement.querySelector('[data-rulebook-region]')!.getBoundingClientRect();
   const block = canvasElement.querySelector('[data-rulebook-explainer]')!.getBoundingClientRect();
-  expect(block.left).toBeGreaterThanOrEqual(region.left - 1);
-  expect(block.right).toBeLessThanOrEqual(region.right + 1);
-  expect(block.bottom).toBeLessThanOrEqual(region.bottom + 1);
-  expect(canvasElement.querySelectorAll('ol[aria-label="Explanations"]')).toHaveLength(1);
+  await expect(block.left).toBeGreaterThanOrEqual(region.left - 1);
+  await expect(block.right).toBeLessThanOrEqual(region.right + 1);
+  await expect(block.bottom).toBeLessThanOrEqual(region.bottom + 1);
+  await expect(canvasElement.querySelectorAll('ol[aria-label="Explanations"]')).toHaveLength(1);
 }
 
 export const Strongholds = meta.story({
   play: async (context) => {
     await expectContained(context);
-    expect(context.canvasElement.querySelectorAll('[data-rulebook-marker]')).toHaveLength(6);
-    expect(context.canvasElement.querySelectorAll('[data-rulebook-highlight]')).not.toHaveLength(0);
+    await expect(context.canvasElement.querySelectorAll('[data-rulebook-marker]')).toHaveLength(6);
+    await expect(context.canvasElement.querySelectorAll('[data-rulebook-highlight]')).not.toHaveLength(0);
   },
 });
 export const CustomMarkerColors = meta.story({
@@ -63,16 +63,16 @@ export const LeaderAnatomy = meta.story({
   args: { specimen: 'leader', size: 'square' },
   play: async (context) => {
     await expectContained(context);
-    expect(context.canvasElement.querySelectorAll('line')).toHaveLength(4);
-    expect(context.canvasElement.querySelectorAll('[data-rulebook-highlight]')).toHaveLength(0);
+    await expect(context.canvasElement.querySelectorAll('line')).toHaveLength(4);
+    await expect(context.canvasElement.querySelectorAll('[data-rulebook-highlight]')).toHaveLength(0);
   },
 });
 export const UnavailableAndPositionedTargets = meta.story({
   args: { specimen: 'unavailable', size: 'tall', design: 'restrained' },
   play: async (context) => {
     await expectContained(context);
-    expect(context.canvasElement.querySelectorAll('[data-rulebook-marker]')).toHaveLength(2);
-    expect(context.canvasElement.querySelector('[data-target-status="part-unavailable"]')).not.toBeNull();
-    expect(context.canvasElement.querySelector('[data-target-status="source-replaced"]')).not.toBeNull();
+    await expect(context.canvasElement.querySelectorAll('[data-rulebook-marker]')).toHaveLength(2);
+    await expect(context.canvasElement.querySelector('[data-target-status="part-unavailable"]')).not.toBeNull();
+    await expect(context.canvasElement.querySelector('[data-target-status="source-replaced"]')).not.toBeNull();
   },
 });

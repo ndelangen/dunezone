@@ -29,10 +29,10 @@ export const AnnotatedBoardWithPieces = meta.story({
       canvas.getByRole('img', { name: 'Complete board with troops and numbered explanations' })
     ).toBeVisible();
     await expect(canvas.getByRole('list', { name: 'Explanations' })).toBeVisible();
-    expect(canvasElement.querySelectorAll('[data-rulebook-marker]')).toHaveLength(2);
-    expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(1);
+    await expect(canvasElement.querySelectorAll('[data-rulebook-marker]')).toHaveLength(2);
+    await expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(1);
     const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
-    expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
+    await expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
   },
 });
 
@@ -51,8 +51,8 @@ export const Routes = meta.story({
   ),
   play: async ({ canvas, canvasElement }) => {
     await expect(canvas.getByRole('list', { name: 'Routes' })).toBeVisible();
-    expect(canvasElement.querySelectorAll('[data-route-segment]')).toHaveLength(2);
-    expect(canvasElement.querySelectorAll('[data-route-segment][data-blocked]')).toHaveLength(1);
-    expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(1);
+    await expect(canvasElement.querySelectorAll('[data-route-segment]')).toHaveLength(2);
+    await expect(canvasElement.querySelectorAll('[data-route-segment][data-blocked]')).toHaveLength(1);
+    await expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(1);
   },
 });

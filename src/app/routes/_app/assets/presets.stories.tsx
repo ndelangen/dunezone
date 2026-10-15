@@ -166,6 +166,6 @@ export const FrontAt360 = meta.story({
     const builder = page.getByRole('region', { name: 'Background builder' });
     await expect(builder).toBeVisible();
     const document = canvasElement.ownerDocument;
-    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.defaultView!.innerWidth);
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.defaultView!.innerWidth);
   },
 });

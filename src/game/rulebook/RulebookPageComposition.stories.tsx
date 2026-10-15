@@ -20,9 +20,9 @@ export const EmptyBlocks = meta.story({
   args: { treatment: 'empty', size: 'square' },
   play: async (context) => {
     await expectContained(context);
-    expect(context.canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(2);
-    expect(context.canvasElement.querySelector('th')).toBeNull();
-    expect(context.canvasElement.querySelector('[data-rulebook-block-id="CRED"] h3')).toBeNull();
+    await expect(context.canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(2);
+    await expect(context.canvasElement.querySelector('th')).toBeNull();
+    await expect(context.canvasElement.querySelector('[data-rulebook-block-id="CRED"] h3')).toBeNull();
   },
 });
 
@@ -34,12 +34,12 @@ export const WrittenRules = meta.story({
   ),
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
-    expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(7);
-    expect(within(canvasElement).getByRole('heading', { name: 'Choose a group', level: 3 })).toBeVisible();
-    expect(canvasElement.querySelector('[data-faction-id="atreides"]')?.textContent).toBe('Shipment and movement');
-    expect(canvasElement.querySelectorAll('blockquote')).toHaveLength(1);
+    await expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(7);
+    await expect(within(canvasElement).getByRole('heading', { name: 'Choose a group', level: 3 })).toBeVisible();
+    await expect(canvasElement.querySelector('[data-faction-id="atreides"]')?.textContent).toBe('Shipment and movement');
+    await expect(canvasElement.querySelectorAll('blockquote')).toHaveLength(1);
     for (const region of canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-region]')) {
-      expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
+      await expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
     }
   },
 });
@@ -79,9 +79,9 @@ export const RoutesAndStandaloneTransfers = meta.story({
   },
   play: async ({ canvas, canvasElement }) => {
     await expect(canvas.getByLabelText('Exchange')).toBeVisible();
-    expect(canvasElement.querySelectorAll('[data-route-segment]')).toHaveLength(2);
-    expect(canvasElement.querySelectorAll('[data-route-segment][data-blocked]')).toHaveLength(1);
+    await expect(canvasElement.querySelectorAll('[data-route-segment]')).toHaveLength(2);
+    await expect(canvasElement.querySelectorAll('[data-route-segment][data-blocked]')).toHaveLength(1);
     const board = canvasElement.querySelector<SVGElement>('.rulebookTerritoryScene')!;
-    expect(board.getBoundingClientRect().width).toBeGreaterThan(300);
+    await expect(board.getBoundingClientRect().width).toBeGreaterThan(300);
   },
 });

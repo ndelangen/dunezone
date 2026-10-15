@@ -19,7 +19,7 @@ export const ReferenceTable = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const portal = within(canvasElement.ownerDocument.body);
-    expect(renderedRow(canvasElement, 'ATRE')).toEqual(['Atreides', '10', '10 in Arrakeen', '2']);
+    await expect(renderedRow(canvasElement, 'ATRE')).toEqual(['Atreides', '10', '10 in Arrakeen', '2']);
 
     /* Moving the first column to the end carries its cells: the Atreides row reads the same values in the new order. */
     const handle = canvas.getByRole('button', { name: 'Reorder column 1' });
@@ -35,25 +35,25 @@ export const ReferenceTable = meta.story({
     await waitFor(() =>
       expect(renderedHeaders(canvasElement)).toEqual(['Starting spice', 'Faction', 'Forces on Dune', 'Free revival'])
     );
-    expect(renderedRow(canvasElement, 'ATRE')).toEqual(['10', 'Atreides', '10 in Arrakeen', '2']);
+    await expect(renderedRow(canvasElement, 'ATRE')).toEqual(['10', 'Atreides', '10 in Arrakeen', '2']);
 
     /* A new column supplies a blank cell to every row, and typing fills only the row being edited. */
     await userEvent.click(canvas.getByRole('button', { name: 'Add column' }));
     await userEvent.type(canvas.getByRole('textbox', { name: 'Column 5 label' }), 'Alliance');
     await waitFor(() => expect(renderedHeaders(canvasElement)).toHaveLength(5));
-    expect(renderedRow(canvasElement, 'ATRE')).toEqual(['10', 'Atreides', '10 in Arrakeen', '2', '']);
+    await expect(renderedRow(canvasElement, 'ATRE')).toEqual(['10', 'Atreides', '10 in Arrakeen', '2', '']);
     await userEvent.type(canvas.getByRole('textbox', { name: 'Row 1, Alliance' }), 'Any');
     await waitFor(() =>
       expect(renderedRow(canvasElement, 'ATRE')).toEqual(['10', 'Atreides', '10 in Arrakeen', '2', 'Any'])
     );
-    expect(renderedRow(canvasElement, 'HARK')).toEqual(['10', 'Harkonnen', '10 in Carthag', '2', '']);
+    await expect(renderedRow(canvasElement, 'HARK')).toEqual(['10', 'Harkonnen', '10 in Carthag', '2', '']);
 
     /* Removing the moved column takes only its cells; the other columns keep theirs. */
     await userEvent.click(canvas.getByRole('button', { name: 'Remove column 2' }));
     await waitFor(() =>
       expect(renderedHeaders(canvasElement)).toEqual(['Starting spice', 'Forces on Dune', 'Free revival', 'Alliance'])
     );
-    expect(renderedRow(canvasElement, 'ATRE')).toEqual(['10', '10 in Arrakeen', '2', 'Any']);
+    await expect(renderedRow(canvasElement, 'ATRE')).toEqual(['10', '10 in Arrakeen', '2', 'Any']);
 
     await userEvent.click(canvas.getByRole('button', { name: 'Remove row 6' }));
     await waitFor(() =>

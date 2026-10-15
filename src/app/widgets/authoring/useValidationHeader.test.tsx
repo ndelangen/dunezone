@@ -87,7 +87,9 @@ describe('the hold the header exists for', () => {
       act(() => result.current.settle());
       fireEvent(window, new MouseEvent('pointerup', { button: 0 }));
       expect(result.current.open).toBe(true);
-      act(() => vi.runAllTimers());
+      act(() => {
+        vi.runAllTimers();
+      });
       expect(result.current.open).toBe(false);
     } finally {
       vi.useRealTimers();

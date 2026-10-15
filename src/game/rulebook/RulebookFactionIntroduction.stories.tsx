@@ -47,10 +47,10 @@ async function expectResponsiveFaction({
   const summary = block.querySelector<HTMLElement>('.rulebookFactionSummary')!;
   const roster = block.querySelector<HTMLElement>('.rulebookFactionRoster')!;
   await waitFor(
-    () => {
+    async () => {
       for (const image of block.querySelectorAll('img')) {
-        expect(image.complete && image.naturalWidth > 0).toBe(true);
-        expect(new URL(image.src).pathname).toMatch(/^\/published\/(faction-tokens|leaders)\//);
+        await expect(image.complete && image.naturalWidth > 0).toBe(true);
+        await expect(new URL(image.src).pathname).toMatch(/^\/published\/(faction-tokens|leaders)\//);
       }
     },
     { timeout: 15_000 }
@@ -58,32 +58,32 @@ async function expectResponsiveFaction({
   const leaderTokens = [...block.querySelectorAll('.rulebookFactionLeaders figure')].map((token) =>
     token.getBoundingClientRect()
   );
-  expect(leaderTokens[0].top).toBeCloseTo(leaderTokens[1].top, 0);
-  expect(leaderTokens[2].top).toBeGreaterThan(leaderTokens[0].top);
-  expect(leaderTokens[2].top).toBeCloseTo(leaderTokens[4].top, 0);
-  expect(leaderTokens[0].left).toBeGreaterThan(leaderTokens[2].left);
-  expect(getComputedStyle(summary.querySelector('h3')!).display).toBe(args.narrow ? 'none' : 'block');
+  await expect(leaderTokens[0].top).toBeCloseTo(leaderTokens[1].top, 0);
+  await expect(leaderTokens[2].top).toBeGreaterThan(leaderTokens[0].top);
+  await expect(leaderTokens[2].top).toBeCloseTo(leaderTokens[4].top, 0);
+  await expect(leaderTokens[0].left).toBeGreaterThan(leaderTokens[2].left);
+  await expect(getComputedStyle(summary.querySelector('h3')!).display).toBe(args.narrow ? 'none' : 'block');
   const initial = block.getBoundingClientRect();
   if (args.narrow) {
-    expect(summary.getBoundingClientRect().top).toBeGreaterThan(identity.getBoundingClientRect().bottom);
-    expect(roster.getBoundingClientRect().top).toBeGreaterThan(summary.getBoundingClientRect().bottom);
+    await expect(summary.getBoundingClientRect().top).toBeGreaterThan(identity.getBoundingClientRect().bottom);
+    await expect(roster.getBoundingClientRect().top).toBeGreaterThan(summary.getBoundingClientRect().bottom);
   } else if (args.block.flipped) {
-    expect(identity.getBoundingClientRect().left).toBeGreaterThanOrEqual(summary.getBoundingClientRect().right);
-    expect(block.querySelector('.rulebookFactionLeaderGroup')!.getBoundingClientRect().right).toBeLessThan(
+    await expect(identity.getBoundingClientRect().left).toBeGreaterThanOrEqual(summary.getBoundingClientRect().right);
+    await expect(block.querySelector('.rulebookFactionLeaderGroup')!.getBoundingClientRect().right).toBeLessThan(
       summary.getBoundingClientRect().left
     );
   } else {
-    expect(summary.getBoundingClientRect().left).toBeGreaterThanOrEqual(identity.getBoundingClientRect().right);
+    await expect(summary.getBoundingClientRect().left).toBeGreaterThanOrEqual(identity.getBoundingClientRect().right);
   }
   for (const image of block.querySelectorAll('img')) {
-    expect(image.getBoundingClientRect().right).toBeLessThanOrEqual(initial.right + 1);
+    await expect(image.getBoundingClientRect().right).toBeLessThanOrEqual(initial.right + 1);
   }
   /* Reflow is driven by the containing region while the viewport stays unchanged. */
   const region = block.parentElement!;
   const width = region.style.width;
   region.style.width = args.narrow ? '100%' : '48%';
-  await waitFor(() => {
-    expect(getComputedStyle(roster).display).toBe(args.narrow ? 'contents' : 'flex');
+  await waitFor(async () => {
+    await expect(getComputedStyle(roster).display).toBe(args.narrow ? 'contents' : 'flex');
   });
   region.style.width = width;
 }
@@ -119,8 +119,8 @@ export const ShortIntroduction = meta.story({
     await expectResponsiveFaction(context);
     const body = context.canvasElement.querySelector('.rulebookFactionBody')!.getBoundingClientRect();
     /* The printed reference's short row is about 22% as tall as it is wide. */
-    expect(body.height / body.width).toBeGreaterThan(0.2);
-    expect(body.height / body.width).toBeLessThan(0.23);
+    await expect(body.height / body.width).toBeGreaterThan(0.2);
+    await expect(body.height / body.width).toBeLessThan(0.23);
   },
 });
 

@@ -16,9 +16,13 @@ test('a wait reads as unreachable only once it has lasted the whole timeout, and
   const { result, rerender } = renderHook(({ waiting }) => useServerUnreachable(waiting), {
     initialProps: { waiting: true },
   });
-  act(() => vi.advanceTimersByTime(SERVER_WAIT_MS - 1));
+  act(() => {
+    vi.advanceTimersByTime(SERVER_WAIT_MS - 1);
+  });
   expect(result.current).toBe(false);
-  act(() => vi.advanceTimersByTime(1));
+  act(() => {
+    vi.advanceTimersByTime(1);
+  });
   expect(result.current).toBe(true);
   rerender({ waiting: false });
   expect(result.current).toBe(false);
@@ -28,17 +32,25 @@ test('a wait interrupted by an answer starts its own timeout instead of finishin
   const { result, rerender } = renderHook(({ waiting }) => useServerUnreachable(waiting), {
     initialProps: { waiting: true },
   });
-  act(() => vi.advanceTimersByTime(SERVER_WAIT_MS / 2));
+  act(() => {
+    vi.advanceTimersByTime(SERVER_WAIT_MS / 2);
+  });
   rerender({ waiting: false });
   rerender({ waiting: true });
-  act(() => vi.advanceTimersByTime(SERVER_WAIT_MS - 1));
+  act(() => {
+    vi.advanceTimersByTime(SERVER_WAIT_MS - 1);
+  });
   expect(result.current).toBe(false);
-  act(() => vi.advanceTimersByTime(1));
+  act(() => {
+    vi.advanceTimersByTime(1);
+  });
   expect(result.current).toBe(true);
 });
 
 test('a page that never waits never reads as unreachable', () => {
   const { result } = renderHook(() => useServerUnreachable(false));
-  act(() => vi.advanceTimersByTime(SERVER_WAIT_MS * 3));
+  act(() => {
+    vi.advanceTimersByTime(SERVER_WAIT_MS * 3);
+  });
   expect(result.current).toBe(false);
 });

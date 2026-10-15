@@ -37,10 +37,10 @@ export const LongEffects = meta.story({
     await Promise.all(
       Array.from(canvasElement.querySelectorAll('section'), async (section) => {
         const rules = section.lastElementChild as HTMLElement;
-        await waitFor(() => {
-          expect(rules.scrollHeight).toBeLessThanOrEqual(rules.clientHeight + 1);
-          expect(rules.scrollWidth).toBeLessThanOrEqual(rules.clientWidth + 1);
-          expect(section.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        await waitFor(async () => {
+          await expect(rules.scrollHeight).toBeLessThanOrEqual(rules.clientHeight + 1);
+          await expect(rules.scrollWidth).toBeLessThanOrEqual(rules.clientWidth + 1);
+          await expect(section.getBoundingClientRect().bottom).toBeLessThanOrEqual(
             section.parentElement!.getBoundingClientRect().bottom + 1
           );
         });
