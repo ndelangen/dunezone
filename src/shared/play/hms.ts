@@ -8,10 +8,10 @@ import type { TablePiece, Vector3Tuple } from './model';
 
 /** The stack key every HMS carries; it never stacks, whoever owns it. */
 export const HMS_STACK_KEY = 'hms';
-/** The round end's radius, centred on the plate's position: room for about four troop stacks. */
-export const HMS_BODY_RADIUS = 0.62;
+/** The round end's radius, centred on the plate's position: room for about two troop stacks side by side. */
+export const HMS_BODY_RADIUS = 0.42;
 /** How far the point reaches from the round end's centre, along the plate's own forward (-z). */
-export const HMS_TIP = 1.2;
+export const HMS_TIP = 0.82;
 /** How thick the plate is: what stands on it stands this much higher. */
 export const HMS_HEIGHT = 0.05;
 /* Enough points that the edge reads as round where a troop rests against it. */

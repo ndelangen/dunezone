@@ -52,11 +52,11 @@ describe('the HMS plate', () => {
   test('covers its round end and its point, and nothing beyond its edge', () => {
     const hms = plate([0, 0, 0]);
     expect(hmsCovers(hms, [0, 0, 0])).toBe(true);
-    expect(hmsCovers(hms, [0, 0, -1.1])).toBe(true);
-    expect(hmsCovers(hms, [0.5, 0, -1.1])).toBe(false);
-    expect(hmsCovers(hms, [0, 0, 0.7])).toBe(false);
+    expect(hmsCovers(hms, [0, 0, -0.75])).toBe(true);
+    expect(hmsCovers(hms, [0.3, 0, -0.75])).toBe(false);
+    expect(hmsCovers(hms, [0, 0, 0.5])).toBe(false);
     /* Turned a quarter, its point faces the other way across the table. */
-    expect(hmsCovers(plate([0, 0, 0], Math.PI / 2), [-1.1, 0, 0])).toBe(true);
+    expect(hmsCovers(plate([0, 0, 0], Math.PI / 2), [-0.75, 0, 0])).toBe(true);
   });
 
   test('a troop can be set down on it', () => {
@@ -69,16 +69,16 @@ describe('the HMS plate', () => {
   test('carries the troops on it, each keeping its place on the plate', () => {
     const state = tableWith(
       plate([0, 0, 1]),
-      troop('front', [0, 0, 0.3]),
-      troop('back', [0.25, 0, 1.2]),
+      troop('front', [0, 0, 0.4]),
+      troop('back', [0.2, 0, 1.15]),
       troop('beside', [1.4, 0, 1])
     );
     const next = dropAt(state, 'hms', [-1, 0, -1])!;
     expect(at(next, 'hms').position[0]).toBeCloseTo(-1);
     expect(at(next, 'front').position[0]).toBeCloseTo(-1);
-    expect(at(next, 'front').position[2]).toBeCloseTo(-1.7);
-    expect(at(next, 'back').position[0]).toBeCloseTo(-0.75);
-    expect(at(next, 'back').position[2]).toBeCloseTo(-0.8);
+    expect(at(next, 'front').position[2]).toBeCloseTo(-1.6);
+    expect(at(next, 'back').position[0]).toBeCloseTo(-0.8);
+    expect(at(next, 'back').position[2]).toBeCloseTo(-0.85);
     expect(at(next, 'beside').position).toEqual(at(state, 'beside').position);
   });
 
@@ -97,11 +97,11 @@ describe('the HMS plate', () => {
   });
 
   test('turns the troops on it with it', () => {
-    const state = tableWith(plate([0, 0, 0]), troop('t', [0, 0, -0.8]));
+    const state = tableWith(plate([0, 0, 0]), troop('t', [0, 0, -0.6]));
     const next = applyPieceAction(state, { kind: 'rotate', pieceId: 'hms', direction: 1, steps: 6 }, 0);
     const moved = at(next, 't');
     /* A quarter turn takes the point, and the troop at it, from -z round to +x. */
-    expect(moved.position[0]).toBeCloseTo(0.8);
+    expect(moved.position[0]).toBeCloseTo(0.6);
     expect(moved.position[2]).toBeCloseTo(0);
     expect(hmsCovers(at(next, 'hms'), moved.position)).toBe(true);
   });
