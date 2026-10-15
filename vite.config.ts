@@ -101,9 +101,8 @@ const config = defineConfig({
   publicDir: 'public',
   /* The dev server's prebundled fiber and drei run the same code as the build. */
   optimizeDeps: { rolldownOptions: { plugins: [threeRendererStackTreeShaking()] } },
-  // Typings in the current Vite package lag behind docs/runtime support.
   resolve: {
-    ...({ tsconfigPaths: true } as Record<string, unknown>),
+    tsconfigPaths: true,
     alias: [
       {
         find: 'application-ssr-runtime',
