@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/tes
 import { ScenePresence } from './ScenePresence';
 import styles from './ScenePresence.module.css';
 import { isCursorTablePoint, isPublicTablePoint } from './tablePointerPoint';
-import { PlateFollowersProvider, useTablePose } from './useTablePose';
+import { PlatePosesProvider, useTablePose } from './useTablePose';
 
 const scheduler = vi.hoisted(() => ({
   frames: new Set<(state: unknown, delta: number) => void>(),
@@ -145,26 +145,24 @@ describe('a rider on a plate another player carries', () => {
 
   /*
    * The plate is carried by someone else while `riding`, so the rider follows it; otherwise both rest on their own.
-   * `snapped` sets the plate down at once, as this page's own hand does; `riderCarried` has someone pick the rider up.
+   * `riderInHand` has this page's own hand hold the rider, which puts it down at once.
    */
   function Plate({
     plate: platePose,
     rider: riderPose,
     riding = true,
-    snapped = false,
-    riderCarried = false,
+    riderInHand = false,
   }: {
     plate: Pose;
     rider: Pose;
     riding?: boolean;
-    snapped?: boolean;
-    riderCarried?: boolean;
+    riderInHand?: boolean;
   }) {
     return (
-      <PlateFollowersProvider>
-        <Posed pose={platePose} group={plate} links={{ plateId: 'hms' }} immediate={snapped} />
-        <Posed pose={riderPose} group={rider} links={{ follows: riding ? 'hms' : undefined }} remote={riderCarried} />
-      </PlateFollowersProvider>
+      <PlatePosesProvider>
+        <Posed pose={platePose} group={plate} links={{ plateId: 'hms' }} />
+        <Posed pose={riderPose} group={rider} links={{ follows: riding ? 'hms' : undefined }} immediate={riderInHand} />
+      </PlatePosesProvider>
     );
   }
 
@@ -196,82 +194,62 @@ describe('a rider on a plate another player carries', () => {
     expect(rider.rotation.y).toBeCloseTo(plate.rotation.y);
   });
 
-  test('stays on the plate after the carry ends, until the plate has settled', () => {
+  test('glides on from where it was last shown to its own place once the ride ends', () => {
     const view = render(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} />);
     view.rerender(<Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} />);
     runFrames(1);
     view.rerender(
       <Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} riding={false} />
     );
+    const before = rider.position.clone();
     runFrames(1);
-    expect(plate.rotation.y).toBeLessThan(Math.PI - 0.01);
-    expect(offPlate()).toBeCloseTo(0);
+    const amount = 1 - Math.exp(-24 / 60);
+    expect(rider.position.x).toBeCloseTo(before.x * (1 - amount));
+    expect(rider.position.z).toBeCloseTo(before.z + (0.75 - before.z) * amount);
     runFrames(60);
     expect(rider.position.z).toBeCloseTo(0.75);
     expect(rider.rotation.y).toBeCloseTo(Math.PI);
   });
 
-  /* Lets the rider's release, decided once every piece has taken the new table, run. */
-  const settleRelease = () => act(async () => {});
-
-  test('turns with the plate when a carry held still is cancelled', async () => {
-    const view = render(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} />);
-    view.rerender(<Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} />);
-    runFrames(60);
-    view.rerender(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} riding={false} />);
-    await settleRelease();
-    runFrames(1);
-    expect(plate.rotation.y).toBeGreaterThan(0.01);
-    expect(offPlate()).toBeCloseTo(0);
-    runFrames(60);
-    expect(rider.position.z).toBeCloseTo(-0.75);
-  });
-
-  test('goes its own way when picked up while it still rides out a turning plate', async () => {
+  test("is set down at once where this page's own hand puts it, during a ride or after one", () => {
     const view = render(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} />);
     view.rerender(<Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} />);
     runFrames(1);
-    view.rerender(
-      <Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} riding={false} />
-    );
-    await settleRelease();
     view.rerender(
       <Plate
         plate={{ at: [0, 0, 0], turn: Math.PI }}
-        rider={{ at: [3, 0, 3], turn: Math.PI }}
+        rider={{ at: [0.43, 0.4, 0], turn: 0 }}
         riding={false}
-        riderCarried
+        riderInHand
       />
     );
-    const before = rider.position.clone();
-    runFrames(1);
-    const amount = 1 - Math.exp(-24 / 60);
-    expect(rider.position.x).toBeCloseTo(before.x + (3 - before.x) * amount);
-    expect(rider.position.z).toBeCloseTo(before.z + (3 - before.z) * amount);
-  });
-
-  test('lets go of the plate when the plate is set down at once', async () => {
-    const view = render(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} />);
-    view.rerender(<Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} />);
-    runFrames(1);
+    expect(rider.position.toArray()).toEqual([0.43, 0.4, 0]);
+    runFrames(60);
     view.rerender(
-      <Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} riding={false} />
+      <Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0.43, 0, 0], turn: 0 }} riding={false} />
     );
-    await settleRelease();
+    runFrames(60);
     view.rerender(
       <Plate
         plate={{ at: [0, 0, 0], turn: Math.PI }}
-        rider={{ at: [0, 0, 0.75], turn: Math.PI }}
+        rider={{ at: [-0.43, 0.4, 0], turn: 0 }}
         riding={false}
-        snapped
+        riderInHand
       />
     );
-    view.rerender(
-      <Plate plate={{ at: [2, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} riding={false} />
+    expect(rider.position.toArray()).toEqual([-0.43, 0.4, 0]);
+  });
+
+  test('stands at its own place while its plate is not drawn', () => {
+    const Alone = ({ at }: { at: Vector3Tuple }) => (
+      <PlatePosesProvider>
+        <Posed pose={{ at, turn: 0.3 }} group={rider} links={{ follows: 'hms' }} />
+      </PlatePosesProvider>
     );
-    runFrames(1);
-    expect(rider.position.x).toBeCloseTo(0);
-    expect(rider.position.z).toBeCloseTo(0.75);
+    const view = render(<Alone at={[1, 0, 1]} />);
+    view.rerender(<Alone at={[2, 0, -1]} />);
+    expect(rider.position.toArray()).toEqual([2, 0, -1]);
+    expect(rider.rotation.y).toBeCloseTo(0.3);
   });
 
   test('takes a new place on a still plate at once', () => {

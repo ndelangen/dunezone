@@ -210,6 +210,11 @@ describe('a pointer token, such as the HMS,', () => {
     );
   });
 
+  test('carries nobody while it is set in a battle', () => {
+    const state = tableWith({ ...plate([0, 0, 1]), battleOverlay: 'battle' }, troop('t', [0, 0, 1]));
+    expect(pointerRiders(state.pieces, at(state, 'hms'))).toEqual([]);
+  });
+
   test('names its riders, so a page can move them as smoothly as the plate', () => {
     const state = tableWith(plate([0, 0, 1]), troop('t', [0, 0, 1]), troop('beside', [2, 0, 2]));
     expect([...ridersOf(state.pieces, new Set(['hms']))]).toEqual([['t', 'hms']]);

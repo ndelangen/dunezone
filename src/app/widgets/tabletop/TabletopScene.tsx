@@ -96,7 +96,7 @@ import type { TableProgress } from './tableTrackers';
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
-import { PlateFollowersProvider, useTablePose } from './useTablePose';
+import { PlatePosesProvider, useTablePose } from './useTablePose';
 
 type TabletopSceneProps = {
   children?: ReactNode;
@@ -1088,7 +1088,7 @@ function SceneContents({
             trackerSlots={trackerSlots}
           />
         )}
-        <PlateFollowersProvider>
+        <PlatePosesProvider>
           {renderedPieces
             /* Troop reserves arrive with the board: setup keeps them off the table until the map shows. */
             .filter((piece) => !piece.battleOverlay && (stage !== 'setup' || mapVisible || !isTroopStack(piece)))
@@ -1101,7 +1101,7 @@ function SceneContents({
                 {...pieceSceneState(piece, table)}
               />
             ))}
-        </PlateFollowersProvider>
+        </PlatePosesProvider>
       </group>
       {presentation === 'preview' ? (
         <MapPreviewCamera mapFramingPoints={mapFramingPoints} />
