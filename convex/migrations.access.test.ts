@@ -3,7 +3,7 @@
 
 import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
 import schema from './schema';

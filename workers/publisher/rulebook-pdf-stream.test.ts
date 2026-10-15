@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { RULEBOOK_PDF_TRANSFER_BYTES } from '../../src/shared/rulebooks/pdfOptimization';
 import { captureCompressedRulebookPdf, RulebookPdfOutputError } from './rulebook-pdf-stream';

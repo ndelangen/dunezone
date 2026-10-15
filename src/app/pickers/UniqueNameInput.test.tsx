@@ -4,7 +4,7 @@ import { MantineProvider } from '@mantine/core';
 import { act, cleanup, render } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { useEffect } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { nameWayOut, UniqueNameInput, nameConflictComplaint } from './UniqueNameInput';
 import type { NameHolder } from './UniqueNameInput';

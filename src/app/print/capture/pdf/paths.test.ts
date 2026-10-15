@@ -1,5 +1,5 @@
 import { PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { contentTokens, decodedContent, pageContent } from './content';
 import { shareFilledPaths } from './paths';

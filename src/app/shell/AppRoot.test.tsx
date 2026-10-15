@@ -7,7 +7,7 @@ import { appContentTheme } from '@ui/theme';
 import { act } from 'react';
 import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { AppRoot } from './AppRoot';
 import { PRIMARY_LINKS } from './SiteNavigation';

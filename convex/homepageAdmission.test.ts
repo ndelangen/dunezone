@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { HOMEPAGE_LEASE_MS, HOMEPAGE_TICKET_TTL_MS } from '../src/shared/homepage/protocol';
 import { api } from './_generated/api';

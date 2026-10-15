@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { boundedPublisherTelemetryEvent, MAX_TELEMETRY_EVENT_BYTES } from './telemetry';

@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { MEDIA_MAP, MEDIA_RECIPES } from './map.generated';
 import { resolveAsset } from './resolveAsset';

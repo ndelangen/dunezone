@@ -4,7 +4,7 @@
 import aggregateTest from '@convex-dev/aggregate/test';
 import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
-import { expect, test, vi } from 'vitest';
+import { expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
 import { applicationTriggers } from './lib/applicationTriggers';

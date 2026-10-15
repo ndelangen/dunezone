@@ -1,6 +1,6 @@
 import { request as httpRequest } from 'node:http';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 import { z } from 'zod';
 
 import { PLAY_CONFIRMATION_RETRY_MS, PLAY_REQUEST_TIMEOUT_MS } from '../../src/shared/play/admission.ts';

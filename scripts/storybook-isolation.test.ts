@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 const sourceExtensions = new Set(['.css', '.html', '.js', '.jsx', '.ts', '.tsx']);
 const forbiddenAssetRoot = `/${'generated'}/`;

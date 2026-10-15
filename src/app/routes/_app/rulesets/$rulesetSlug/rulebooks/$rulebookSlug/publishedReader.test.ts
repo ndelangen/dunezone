@@ -1,6 +1,6 @@
 import { createRulebookRenderDocumentFixture } from '@shared/rulebooks/renderDocument.fixture';
 import { parseHTML } from 'linkedom/worker';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { renderRulebookHtmlDocument, rulebookRendererCss } from '@app/print/rulebookHtmlRuntime';
 import { rulebookHtmlSvg } from '@app/print/rulebookHtmlSvg';

@@ -3,7 +3,7 @@
 
 import { makeFunctionReference } from 'convex/server';
 import { ConvexError, v } from 'convex/values';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { PLAY_SEAT_LIMIT } from '../src/shared/play/seatLimit';
 import { api, internal } from './_generated/api';

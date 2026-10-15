@@ -1,7 +1,7 @@
 import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 import type { RulebookContentsDraftV1 } from '@shared/rulebooks/contents';
 import { collectRulebookReferenceIds } from '@shared/rulebooks/references';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult } from './rulebookEditorState';

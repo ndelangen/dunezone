@@ -1,7 +1,7 @@
 import { renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { createServer } from 'vite';
+import { createServer } from 'vite-plus';
 
 const rootDirectory = path.resolve(import.meta.dirname, '..');
 

@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { parseAst } from 'vite';
-import { describe, expect, it } from 'vitest';
+import { parseAst } from 'vite-plus';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { pureStaticAssignments, withoutCanvasBackground } from './threeRendererStack.ts';
 

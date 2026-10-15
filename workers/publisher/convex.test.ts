@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { parseTakeWorkResponse as parseTakeWork } from '../../src/shared/asset-publishing/publication';
 import { ConvexPublisherClient } from './convex';

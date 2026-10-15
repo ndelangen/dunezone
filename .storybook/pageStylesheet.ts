@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 
-import type { Plugin } from 'vite';
+import type { Plugin } from 'vite-plus';
 
 const rootRoute = fileURLToPath(new URL('../src/app/routes/__root.tsx', import.meta.url));
 const pageStylesheet = fileURLToPath(new URL('../src/app/styles/page.css', import.meta.url));

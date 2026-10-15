@@ -13,7 +13,7 @@ import {
 } from '@shared/play/protocol';
 import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { online, runtime, Socket, visible } from './gameRuntime.test.fixture';
 import { GameSubscription } from './GameSubscription';

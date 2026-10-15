@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import rasterLock from '../../../../media/raster.lock.json';
 import { assetColorStyle } from './assetColor';

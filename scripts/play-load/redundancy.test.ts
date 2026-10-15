@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 import { z } from 'zod';
 
 import type { PublicCarry, PublicPointer, SnapshotChange, ActivityChange } from '../../src/shared/play/protocol.ts';

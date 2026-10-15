@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import { Scheduler } from '@react-three/fiber/webgpu';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { resetFrameLag, waitForFrame } from './storyWaits';
 

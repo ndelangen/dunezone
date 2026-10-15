@@ -1,6 +1,6 @@
 import { publishingRectangleTokenFace } from '@shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingTokenFace } from '@shared/assets/fixtures/publishingTokenFace';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { referencedRectangleBackFace, referencedTokenBackFace } from './referencedBackFace';
 

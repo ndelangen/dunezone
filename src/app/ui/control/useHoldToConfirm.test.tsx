@@ -2,7 +2,7 @@
 
 import { act, renderHook } from '@testing-library/react';
 import type { KeyboardEvent } from 'react';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { useHoldToConfirm } from './useHoldToConfirm';
 

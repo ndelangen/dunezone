@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { rulebookDraftEntitySchemas, rulebookContentsV1Schema, rulebookCoverFooterSchema } from './contents';
 import { getRulebookCoverPreset } from './coverPresets';

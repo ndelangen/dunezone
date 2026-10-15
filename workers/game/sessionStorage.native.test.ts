@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { initializeSessionStorage } from './sessionStorage';
 

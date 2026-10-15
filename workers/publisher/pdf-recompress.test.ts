@@ -1,7 +1,7 @@
 import { deflateSync } from 'node:zlib';
 
 import { PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { downsampleRgb, RECOMPRESS_RGB_SCALE, recompressCapturedPdf } from './pdf-recompress';
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { playCallbackOperations } from '../../src/shared/play/callbacks';
 import { rendererManifest } from './renderer-manifest.generated';
