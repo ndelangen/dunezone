@@ -782,6 +782,14 @@ function selectionRadii(piece: TablePiece): [number, number, number] {
   return [inner * scale, outer * scale, segments];
 }
 
+/* A plate's ring follows its teardrop; every other piece's is round. */
+function selectionRingGeometry(meshes: ReturnType<typeof useSharedMeshes>, piece: TablePiece) {
+  if (isPointerToken(piece)) {
+    return POINTER_SELECTION_RING;
+  }
+  return meshes.ring(...(isSpicePiece(piece) ? SPICE_SELECTION_RADII : selectionRadii(piece)));
+}
+
 function PieceSelectionRing({
   piece,
   shadowLocalY,
@@ -799,11 +807,7 @@ function PieceSelectionRing({
       position={[0, shadowLocalY + CONTACT_SHADOW_EPSILON, 0]}
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       rotation={[-Math.PI / 2, 0, 0]}
-      geometry={
-        isPointerToken(piece)
-          ? POINTER_SELECTION_RING
-          : meshes.ring(...(isSpicePiece(piece) ? SPICE_SELECTION_RADII : selectionRadii(piece)))
-      }
+      geometry={selectionRingGeometry(meshes, piece)}
     >
       <meshBasicMaterial
         color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
