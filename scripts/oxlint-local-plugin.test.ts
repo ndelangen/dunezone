@@ -15,6 +15,11 @@ const REPOSITORY = join(import.meta.dirname, '..');
  * bin, which is the largest part of a cold spawn, and it is one missing bin away from a registry call.
  */
 const OXLINT = join(REPOSITORY, 'node_modules', '.bin', 'oxlint');
+/**
+ * `vp test` sets VP_VERSION, and oxlint then reads its config from a `vite.config.ts` instead of `.oxlintrc.json`.
+ * The probe tree has only the JSON copy, so the spawn runs without it.
+ */
+const { VP_VERSION: _vitePlus, ...OXLINT_ENV } = process.env;
 
 /*
  * Measured on CI: a warm oxlint run costs 0.3 to 0.85 s, and the first run in a fresh job, which
@@ -61,7 +66,7 @@ async function lintDiagnostics(fileName: string, source: string, root = FIXTURE_
     writeFileSync(join(tree, file), source);
     /* Only the spawn's failure is read as a lint result; a failure to build the tree throws instead of reading as an empty one. */
     try {
-      const { stdout } = await run(OXLINT, [file], { cwd: tree, timeout: SPAWN_BUDGET_MS });
+      const { stdout } = await run(OXLINT, [file], { cwd: tree, env: OXLINT_ENV, timeout: SPAWN_BUDGET_MS });
       return stdout;
     } catch (error) {
       if (wasKilled(error)) {
