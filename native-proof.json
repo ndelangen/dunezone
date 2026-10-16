@@ -1,0 +1,11 @@
+{
+  "backend": "disposable local Convex",
+  "concurrentCreates": 3,
+  "distinctSlugs": [
+    "house-atreides-native-1792160061514",
+    "house-atreides-native-1792160061514-1",
+    "house-atreides-native-1792160061514-2"
+  ],
+  "displayName": "House Atreides Native 1792160061514",
+  "stableSaves": true
+}
