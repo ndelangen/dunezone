@@ -194,6 +194,16 @@ describe('table views', () => {
     });
   });
 
+  test('glides rather than steps as the camera turns past a cached tilt', () => {
+    const aspectRatio = 1600 / 1000;
+    const frame = mapViewFramingPoints(trackerArcSlots(9));
+    const before = cameraPoseFor('map', aspectRatio, frame, 0.07812499);
+    const after = cameraPoseFor('map', aspectRatio, frame, 0.07812501);
+
+    before.target.forEach((value, axis) => expect(Math.abs(value - after.target[axis])).toBeLessThan(1e-4));
+    before.position.forEach((value, axis) => expect(Math.abs(value - after.position[axis])).toBeLessThan(1e-4));
+  });
+
   test('centres a board its width holds back between the canvas top and bottom', () => {
     const aspectRatio = 814 / 900;
     const projected = projectedFrame(

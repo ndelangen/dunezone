@@ -331,8 +331,8 @@ function fixedViewTarget(view: Exclude<TableView, 'map'>, aspectRatio: number): 
 /*
  * The map view's centred targets already found, per frame and set of chips, by canvas shape and tilt.
  * A close look asks for its view's pose several times a frame while it zooms or pans, turning as it closes in, so the target is
- * looked for at the nearest of a few fixed tilts: the search runs once per step of tilt, and the camera's distance, worked out
- * for the tilt itself, still keeps the frame in view. The approved angle and top-down are steps of their own.
+ * looked for only at a few fixed tilts and blended between the two either side, which keeps a turning camera gliding rather
+ * than stepping. The camera's distance, worked out for the tilt itself, still keeps the frame in view.
  */
 const MAP_TARGET_TILT_STEPS = 32;
 const MAP_TARGET_CACHE_SIZE = 64;
@@ -341,13 +341,7 @@ const mapTargetCache = new WeakMap<
   WeakMap<readonly ScreenRect[], Map<string, Vector3Tuple>>
 >();
 
-function cachedMapTarget(
-  aspectRatio: number,
-  framingPoints: readonly Vector3Tuple[],
-  tilt: number,
-  obstacles: readonly ScreenRect[]
-): Vector3Tuple {
-  const steppedTilt = Math.round(tilt * MAP_TARGET_TILT_STEPS) / MAP_TARGET_TILT_STEPS;
+function mapTargetsFor(framingPoints: readonly Vector3Tuple[], obstacles: readonly ScreenRect[]) {
   let byObstacles = mapTargetCache.get(framingPoints);
   if (!byObstacles) {
     byObstacles = new WeakMap();
@@ -358,7 +352,17 @@ function cachedMapTarget(
     targets = new Map();
     byObstacles.set(obstacles, targets);
   }
-  const key = `${aspectRatio}:${steppedTilt}`;
+  return targets;
+}
+
+function steppedMapTarget(
+  targets: Map<string, Vector3Tuple>,
+  aspectRatio: number,
+  framingPoints: readonly Vector3Tuple[],
+  step: number,
+  obstacles: readonly ScreenRect[]
+): Vector3Tuple {
+  const key = `${aspectRatio}:${step}`;
   const cached = targets.get(key);
   if (cached) {
     return cached;
@@ -367,7 +371,7 @@ function cachedMapTarget(
     aspectRatio,
     framingPoints,
     MAP_VIEW_TOP_LIMIT,
-    cameraBasisFor(steppedTilt),
+    cameraBasisFor(step / MAP_TARGET_TILT_STEPS),
     obstacles
   );
   if (targets.size >= MAP_TARGET_CACHE_SIZE) {
@@ -375,6 +379,24 @@ function cachedMapTarget(
   }
   targets.set(key, target);
   return target;
+}
+
+function cachedMapTarget(
+  aspectRatio: number,
+  framingPoints: readonly Vector3Tuple[],
+  tilt: number,
+  obstacles: readonly ScreenRect[]
+): Vector3Tuple {
+  const targets = mapTargetsFor(framingPoints, obstacles);
+  const position = tilt * MAP_TARGET_TILT_STEPS;
+  const below = Math.floor(position);
+  const blend = position - below;
+  const low = steppedMapTarget(targets, aspectRatio, framingPoints, below, obstacles);
+  if (blend < 1e-9) {
+    return [...low];
+  }
+  const high = steppedMapTarget(targets, aspectRatio, framingPoints, below + 1, obstacles);
+  return [0, 1, 2].map((axis) => low[axis] + (high[axis] - low[axis]) * blend) as Vector3Tuple;
 }
 
 /*

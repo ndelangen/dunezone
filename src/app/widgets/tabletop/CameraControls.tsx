@@ -358,15 +358,35 @@ function useTableOverlayRects(canvas: HTMLCanvasElement): readonly ScreenRect[] 
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(measure);
     });
-    const header = seatedHeaderOf(canvas);
-    for (const element of [canvas, header, ...tableOverlaysOf(canvas)]) {
-      if (element) {
-        observer.observe(element);
+    const observeOverlays = () => {
+      for (const element of [canvas, seatedHeaderOf(canvas), ...tableOverlaysOf(canvas)]) {
+        if (element) {
+          observer.observe(element);
+        }
       }
+    };
+    observeOverlays();
+    /* The dial mounts after drafting ends and a chip can appear later, so new overlays are observed and measured too. */
+    const shell = canvas.closest('.dune-play-shell');
+    let mutationFrame = 0;
+    const mutations =
+      shell && typeof MutationObserver !== 'undefined'
+        ? new MutationObserver(() => {
+            cancelAnimationFrame(mutationFrame);
+            mutationFrame = requestAnimationFrame(() => {
+              observeOverlays();
+              measure();
+            });
+          })
+        : null;
+    if (shell) {
+      mutations?.observe(shell, { childList: true, subtree: true });
     }
     return () => {
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(mutationFrame);
       observer.disconnect();
+      mutations?.disconnect();
     };
   }, [canvas]);
 
@@ -406,7 +426,12 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
     }
   });
 
-  const overlays = useTableOverlayRects(renderer.domElement);
+  const measuredOverlays = useTableOverlayRects(renderer.domElement);
+  /* While a piece is carried the chips may come and go, but the board holds still under the drop until the carry ends. */
+  const [overlays, setOverlays] = useState(measuredOverlays);
+  if (enabled && overlays !== measuredOverlays) {
+    setOverlays(measuredOverlays);
+  }
 
   /* The view's pose at a tilt changes only with the view and the canvas, so a close look's frames reuse it. */
   useLayoutEffect(() => {

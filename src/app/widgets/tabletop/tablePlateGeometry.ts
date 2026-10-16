@@ -61,6 +61,9 @@ function appendCircleBoundary(points: Vector3Tuple[], center: Vector3Tuple, radi
   }
 }
 
+/** How high the battle beacon hovers over its tracker slot; the map view keeps that height over every slot in frame, so the raised beacon is never cut off. */
+export const TRACKER_BEACON_HEIGHT = 0.6;
+
 export function mapViewFramingPoints(
   slots: readonly TrackerArcSlot[],
   seatCount: TableSeatCount = DEFAULT_TABLE_SEAT_COUNT
@@ -89,6 +92,12 @@ export function mapViewFramingPoints(
   slots.forEach((slot) => {
     appendCircleBoundary(points, slot.position, trackerScallopRadius(slot), 48);
     appendCircleBoundary(points, [slot.position[0], TRACKER_DISC_CONTENT_Y, slot.position[2]], slot.radius, 48);
+    appendCircleBoundary(
+      points,
+      [slot.position[0], TRACKER_DISC_CONTENT_Y + TRACKER_BEACON_HEIGHT, slot.position[2]],
+      slot.radius,
+      48
+    );
   });
   return points;
 }
