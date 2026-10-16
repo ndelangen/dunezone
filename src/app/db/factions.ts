@@ -179,14 +179,6 @@ export async function loadFactionCataloguePage(): Promise<FactionCataloguePageDa
 }
 
 /**
- * The save guard's slug rule as a live subscription, for the faction editor's name-conflict warning.
- * Always real args: the caller mounts and unmounts the probe holding this, which is how a domain read stays conditional without a skip.
- */
-export function useFactionSlugTaken(args: { slug: string }) {
-  return useQuery(api.factions.slugTaken, args);
-}
-
-/**
  * The live faction behind a slug, for the detail and edit routes.
  * Pass the route loader's `loadPublicFaction` result as `initialData`;
  * without it the first render has no faction and the page flashes its pending frame.

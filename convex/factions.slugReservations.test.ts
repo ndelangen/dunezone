@@ -87,10 +87,6 @@ describe('faction slug reservations', () => {
     );
   });
 
-  /*
-   * The editor's warning and the save guard's refusal read one predicate, so this pins all three answers the query can give.
-   * Without it the two surfaces can drift and only a reader typing a taken name would notice.
-   */
   test('slugTaken answers live, deleted, and free', async () => {
     const { asUser } = await authenticatedTest();
     expect(await asUser.query(api.factions.slugTaken, { slug: 'reserved-faction' })).toBe(null);
@@ -102,37 +98,66 @@ describe('faction slug reservations', () => {
     expect(await asUser.query(api.factions.slugTaken, { slug: 'reserved-faction' })).toBe('deleted');
   });
 
-  test('a live faction refuses a colliding name in its own words', async () => {
+  test('repeated names keep their display text and receive distinct addresses', async () => {
     const { asUser } = await authenticatedTest();
-    await createFaction(asUser, 'Reserved Faction');
-
-    await expect(createFaction(asUser, 'Reserved Faction')).rejects.toThrow(
-      'another faction already lives at "reserved-faction"'
-    );
+    const factions = [];
+    for (let i = 0; i < 3; i += 1) {
+      factions.push(await createFaction(asUser, 'House Atreides'));
+    }
+    expect(factions.map((faction) => faction.slug)).toEqual(['house-atreides', 'house-atreides-1', 'house-atreides-2']);
+    for (const faction of factions) {
+      const page = await asUser.query(api.factions.pageBySlug, { slug: faction.slug });
+      expect(page.faction._id).toBe(faction._id);
+      expect(page.faction.data.name).toBe('House Atreides');
+    }
   });
 
-  test('a soft-deleted faction keeps its slug reserved for create', async () => {
-    const { asUser } = await authenticatedTest();
-    const faction = await createFaction(asUser, 'Reserved Faction');
-    await asUser.mutation(api.factions.softDelete, { id: faction._id });
-
-    await expect(createFaction(asUser, 'Reserved Faction')).rejects.toThrow(
-      '"reserved-faction" stays reserved by a deleted faction'
-    );
-  });
-
-  test('a soft-deleted faction keeps its slug reserved for rename', async () => {
+  test('a deleted faction reserves its address while its name can be reused on create and rename', async () => {
     const { asUser } = await authenticatedTest();
     const reserved = await createFaction(asUser, 'Reserved Faction');
     await asUser.mutation(api.factions.softDelete, { id: reserved._id });
+    const created = await createFaction(asUser, 'Reserved Faction');
+    expect(created.slug).toBe('reserved-faction-1');
     const active = await createFaction(asUser, 'Active Faction');
-
+    const renamed = await asUser.mutation(api.factions.update, {
+      id: active._id,
+      data: { ...active.data, name: 'Reserved Faction' },
+    });
+    expect(renamed.slug).toBe('reserved-faction-2');
+    expect(renamed.data.name).toBe('Reserved Faction');
     await expect(
-      asUser.mutation(api.factions.update, {
-        id: active._id,
-        data: { ...active.data, name: 'Reserved Faction' },
+      asUser.query(api.formerAddresses.resolve, {
+        address: { kind: 'faction', slug: active.slug },
       })
-    ).rejects.toThrow('"reserved-faction" stays reserved by a deleted faction');
+    ).resolves.toBe('/factions/reserved-faction-2');
+    expect(await asUser.query(api.factions.slugTaken, { slug: reserved.slug })).toBe('deleted');
+  });
+
+  test('ordinary saves and spelling-only changes retain a suffix after the base becomes free', async () => {
+    const { asUser } = await authenticatedTest();
+    const first = await createFaction(asUser, 'House Atreides');
+    const second = await createFaction(asUser, 'House Atreides');
+    await asUser.mutation(api.factions.update, { id: first._id, data: { ...first.data, name: 'House Corrino' } });
+    const saved = await asUser.mutation(api.factions.update, {
+      id: second._id,
+      data: { ...second.data, logo: first.data.logo },
+    });
+    expect(saved.slug).toBe(second.slug);
+    const spelling = await asUser.mutation(api.factions.update, {
+      id: second._id,
+      data: { ...second.data, name: 'HOUSE ATREIDES!' },
+    });
+    expect(spelling.slug).toBe(second.slug);
+    expect(spelling.data.name).toBe('HOUSE ATREIDES!');
+  });
+
+  test('occupied numbered addresses are skipped without changing the display name', async () => {
+    const { asUser } = await authenticatedTest();
+    await createFaction(asUser, 'House Atreides');
+    await createFaction(asUser, 'House Atreides 1');
+    const faction = await createFaction(asUser, 'House Atreides');
+    expect(faction.slug).toBe('house-atreides-2');
+    expect(faction.data.name).toBe('House Atreides');
   });
 
   test('the repair keeps the active public slug and archives the deleted duplicate', async () => {
