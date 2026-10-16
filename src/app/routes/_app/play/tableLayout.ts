@@ -97,3 +97,10 @@ export function useColumnsFit(): boolean {
     () => true
   );
 }
+
+/** The layout the table shows: the viewer's choice, where the window is wide enough for it. */
+export function useShownTableLayout(): TableLayout {
+  const chosen = useTableLayout();
+  const fits = useColumnsFit();
+  return chosen === 'columns' && fits ? 'columns' : 'stacked';
+}

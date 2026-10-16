@@ -28,7 +28,6 @@ import {
 } from '../../../../widgets/tabletop/tablePanSpeed';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 import { setTableLayout, useColumnsFit, useTableLayout } from '../tableLayout';
-import type { TableLayout } from '../tableLayout';
 import { publicControlsOf } from './publicControls';
 import { isSpectator } from './tableFactions';
 
@@ -306,7 +305,7 @@ function TableLayoutItems() {
   return (
     <>
       <Menu.Label>Table layout</Menu.Label>
-      <Menu.RadioGroup value={layout} onChange={(value) => setTableLayout(value as TableLayout)}>
+      <Menu.RadioGroup value={layout} onChange={(value) => setTableLayout(value === 'columns' ? 'columns' : 'stacked')}>
         <Menu.RadioItem value="stacked">Board on top</Menu.RadioItem>
         <Menu.RadioItem
           value="columns"

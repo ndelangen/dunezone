@@ -1,4 +1,4 @@
-import { Children, isValidElement, useEffect, useId, useLayoutEffect, useReducer, useRef } from 'react';
+import { Children, isValidElement, useEffect, useEffectEvent, useId, useLayoutEffect, useReducer, useRef } from 'react';
 import type {
   AriaAttributes,
   CSSProperties,
@@ -90,8 +90,11 @@ function reduceSplit(state: SplitState, event: SplitEvent): SplitState {
         return state;
       }
       return { ...state, pointerId: null, settled: state.settled + 1 };
-    case 'key.pressed':
-      return { ...state, size: clamp(event.size, state.limits), settled: state.settled + 1 };
+    case 'key.pressed': {
+      /* A key against a limit moves nothing, so it settles nothing either. */
+      const size = clamp(event.size, state.limits);
+      return size === state.size ? state : { ...state, size, settled: state.settled + 1 };
+    }
   }
 }
 
@@ -187,14 +190,11 @@ function SplitPanelsBase({
   }, [limits, orientation]);
 
   /* Only a size the reader settled is reported: none while a drag is under way, none for the default, and none when new limits clamp it, so a caller remembers what the reader chose rather than what a narrow window allowed. */
-  const reportSize = useRef(onSizeChange);
-  reportSize.current = onSizeChange;
+  const reportSize = useEffectEvent(() => onSizeChange?.(state.size));
   useEffect(() => {
     if (state.settled > 0) {
-      reportSize.current?.(state.size);
+      reportSize();
     }
-    // Only a new settlement reports; the size it reports is the one it settled on.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.settled]);
 
   /* A separator concealed while it holds focus gives it up: not every browser moves focus off a hidden element. */

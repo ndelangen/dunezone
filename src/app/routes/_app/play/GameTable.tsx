@@ -50,6 +50,7 @@ import {
 } from './controlPanelLayout';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import { Held, HeldSlot, useHeldNode } from './HeldContent';
+import type { HeldNode } from './HeldContent';
 import { TableLabelsContext } from './tableLabels';
 import type { TableLabels } from './tableLabels';
 import {
@@ -58,11 +59,11 @@ import {
   playersColumnLimits,
   setControlsColumnPercent,
   setPlayersColumnPercent,
-  useColumnsFit,
   useControlsColumnPercent,
   usePlayersColumnPercent,
-  useTableLayout,
+  useShownTableLayout,
 } from './tableLayout';
+import type { TableLayout } from './tableLayout';
 import { TableWait } from './TableWait';
 
 /* How long the shell waits for the renderer before opening anyway. */
@@ -789,6 +790,103 @@ function measureDock(node: HTMLElement | null) {
   };
 }
 
+type LayoutProps = Readonly<{
+  /** The held scene, controls and players; no players node when the stage has no players panel. */
+  nodes: Readonly<{ scene: HeldNode; controls: HeldNode; players: HeldNode | null }>;
+  camera: ReactNode;
+  inert: boolean;
+}>;
+
+/* The controls, the table and the players side by side; the separators either side of the table resize the columns and are remembered. */
+function ColumnsLayout({ nodes, camera, inert }: LayoutProps) {
+  const controlsPercent = useControlsColumnPercent();
+  const playersPercent = usePlayersColumnPercent();
+  const scene = (
+    <>
+      <HeldSlot node={nodes.scene} />
+      <div className="seated-column-camera" inert={inert}>
+        {camera}
+      </div>
+    </>
+  );
+  return (
+    <SplitPanels
+      orientation="vertical"
+      defaultSize={controlsPercent}
+      limits={nodes.players ? controlsColumnLimits : controlsColumnLimitsWithoutPlayers}
+      step={KEYBOARD_STEP_PERCENT}
+      pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+      label="Resize controls column"
+      onSizeChange={setControlsColumnPercent}
+    >
+      <SplitPanels.First>
+        <div className="seated-controls-panel seated-controls-panel--column" inert={inert}>
+          <HeldSlot node={nodes.controls} />
+        </div>
+      </SplitPanels.First>
+      <SplitPanels.Second>
+        {nodes.players ? (
+          <SplitPanels
+            orientation="vertical"
+            primary="second"
+            defaultSize={playersPercent}
+            limits={playersColumnLimits}
+            step={KEYBOARD_STEP_PERCENT}
+            pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+            label="Resize players column"
+            onSizeChange={setPlayersColumnPercent}
+          >
+            <SplitPanels.First>{scene}</SplitPanels.First>
+            <SplitPanels.Second>
+              <div className="seated-controls-panel seated-controls-panel--column" inert={inert}>
+                <HeldSlot node={nodes.players} />
+              </div>
+            </SplitPanels.Second>
+          </SplitPanels>
+        ) : (
+          scene
+        )}
+      </SplitPanels.Second>
+    </SplitPanels>
+  );
+}
+
+/* The table above the dock, whose two panes hold the controls and the players. */
+function StackedLayout({ nodes, camera, inert }: LayoutProps) {
+  return (
+    <SplitPanels
+      orientation="horizontal"
+      primary="second"
+      defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
+      limits={controlsPanelLimits}
+      step={KEYBOARD_STEP_PERCENT}
+      pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+      label="Resize controls panel"
+      valueText={controlsPanelValueText}
+    >
+      <SplitPanels.First>
+        <HeldSlot node={nodes.scene} />
+      </SplitPanels.First>
+      <SplitPanels.Second>
+        <div ref={measureDock} className="seated-controls-panel" inert={inert}>
+          {camera}
+          <PanelPanes secondary={nodes.players && <HeldSlot node={nodes.players} />}>
+            <HeldSlot node={nodes.controls} />
+          </PanelPanes>
+        </div>
+      </SplitPanels.Second>
+    </SplitPanels>
+  );
+}
+
+/*
+ * The layout this viewer picked in the game menu, where the window is wide enough for it.
+ * Each layout is keyed, so neither inherits the other's separator size.
+ */
+function TableLayouts({ layout, ...props }: LayoutProps & Readonly<{ layout: TableLayout }>) {
+  return layout === 'columns' ? <ColumnsLayout key="columns" {...props} /> : <StackedLayout key="stacked" {...props} />;
+}
+
 export function GameTable({
   sceneContent,
   panelTabs,
@@ -818,9 +916,6 @@ export function GameTable({
   const gestureActive = useTabletopSelector((table) => table.gestureActivePieceId !== null);
   const heldOverlays = useHeldOverlays();
   const tableLabels = usePinnedLabels();
-  const columnsFit = useColumnsFit();
-  const controlsColumnPercent = useControlsColumnPercent();
-  const playersColumnPercent = usePlayersColumnPercent();
   const frame = stageFrame(stage);
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
@@ -854,7 +949,7 @@ export function GameTable({
     return () => clearTimeout(timer);
   }, [handleSceneReady]);
 
-  const columns = useTableLayout() === 'columns' && columnsFit;
+  const layout = useShownTableLayout();
   const sceneNode = useHeldNode();
   const controlsNode = useHeldNode();
   const playersNode = useHeldNode();
@@ -916,7 +1011,7 @@ export function GameTable({
               {...darkSchemeIslandAttributes}
               data-board-gesture-active={overlaysInert}
               data-table-view={viewState.activeView}
-              data-table-layout={columns ? 'columns' : 'stacked'}
+              data-table-layout={layout}
               data-show-counts={heldOverlays.counts || tableLabels.pinned.counts}
               data-show-names={heldOverlays.names || tableLabels.pinned.names}
             >
@@ -954,82 +1049,12 @@ export function GameTable({
               <Held node={controlsNode}>{controls}</Held>
               {playerPanel && <Held node={playersNode}>{playerPanel}</Held>}
 
-              {/* Each layout is keyed, so neither inherits the other's separator size. */}
-              {columns ? (
-                <SplitPanels
-                  key="columns"
-                  orientation="vertical"
-                  defaultSize={controlsColumnPercent}
-                  limits={playerPanel ? controlsColumnLimits : controlsColumnLimitsWithoutPlayers}
-                  step={KEYBOARD_STEP_PERCENT}
-                  pageStep={KEYBOARD_PAGE_STEP_PERCENT}
-                  label="Resize controls column"
-                  onSizeChange={setControlsColumnPercent}
-                >
-                  <SplitPanels.First>
-                    <div className="seated-controls-panel seated-controls-panel--column" inert={overlaysInert}>
-                      <HeldSlot node={controlsNode} />
-                    </div>
-                  </SplitPanels.First>
-                  <SplitPanels.Second>
-                    {playerPanel ? (
-                      <SplitPanels
-                        orientation="vertical"
-                        primary="second"
-                        defaultSize={playersColumnPercent}
-                        limits={playersColumnLimits}
-                        step={KEYBOARD_STEP_PERCENT}
-                        pageStep={KEYBOARD_PAGE_STEP_PERCENT}
-                        label="Resize players column"
-                        onSizeChange={setPlayersColumnPercent}
-                      >
-                        <SplitPanels.First>
-                          <HeldSlot node={sceneNode} />
-                          <div className="seated-column-camera" inert={overlaysInert}>
-                            {camera}
-                          </div>
-                        </SplitPanels.First>
-                        <SplitPanels.Second>
-                          <div className="seated-controls-panel seated-controls-panel--column" inert={overlaysInert}>
-                            <HeldSlot node={playersNode} />
-                          </div>
-                        </SplitPanels.Second>
-                      </SplitPanels>
-                    ) : (
-                      <>
-                        <HeldSlot node={sceneNode} />
-                        <div className="seated-column-camera" inert={overlaysInert}>
-                          {camera}
-                        </div>
-                      </>
-                    )}
-                  </SplitPanels.Second>
-                </SplitPanels>
-              ) : (
-                <SplitPanels
-                  key="stacked"
-                  orientation="horizontal"
-                  primary="second"
-                  defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
-                  limits={controlsPanelLimits}
-                  step={KEYBOARD_STEP_PERCENT}
-                  pageStep={KEYBOARD_PAGE_STEP_PERCENT}
-                  label="Resize controls panel"
-                  valueText={controlsPanelValueText}
-                >
-                  <SplitPanels.First>
-                    <HeldSlot node={sceneNode} />
-                  </SplitPanels.First>
-                  <SplitPanels.Second>
-                    <div ref={measureDock} className="seated-controls-panel" inert={overlaysInert}>
-                      {camera}
-                      <PanelPanes secondary={playerPanel && <HeldSlot node={playersNode} />}>
-                        <HeldSlot node={controlsNode} />
-                      </PanelPanes>
-                    </div>
-                  </SplitPanels.Second>
-                </SplitPanels>
-              )}
+              <TableLayouts
+                layout={layout}
+                nodes={{ scene: sceneNode, controls: controlsNode, players: playerPanel ? playersNode : null }}
+                camera={camera}
+                inert={overlaysInert}
+              />
             </div>
           </div>
         </DarkSchemeIsland>
