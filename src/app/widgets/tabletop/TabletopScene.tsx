@@ -1,6 +1,8 @@
 /* @jsxImportSource ./three-jsx */
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
+import { arrakisBoard } from '@shared/boards/geometry';
+import type { Board } from '@shared/boards/schema';
 import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
@@ -41,6 +43,7 @@ import type { TableSeatCount } from '@shared/play/tableSettings';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import { isTroopStack } from '@shared/play/troop';
+import clsx from 'clsx';
 import {
   createContext,
   memo,
@@ -55,7 +58,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { Texture } from 'three';
 import {
   DoubleSide,
@@ -93,6 +96,8 @@ import type { TabletopContextValue } from './TabletopContext';
 import styles from './TabletopScene.module.css';
 import type { PieceMenuAnchor } from './TabletopTools';
 import type { TableProgress } from './tableTrackers';
+import { BRUSH_CURSOR, territoryBrush, useTerritoryBrush } from './territoryBrush';
+import { territoryAtTablePoint } from './TerritoryTints';
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
@@ -113,6 +118,15 @@ type TabletopSceneProps = {
   stage?: GameSnapshot['stage'];
   mapVisible?: boolean;
 };
+
+/** With the paintbrush on, a click on the map adds the territory under it to the brush's tint, or takes it out. */
+function paintTerritory(board: Board | undefined, x: number, z: number) {
+  const brush = territoryBrush();
+  const territory = brush && territoryAtTablePoint(board ?? arrakisBoard(), x, z);
+  if (brush && territory) {
+    brush.paint(territory);
+  }
+}
 
 const PieceBadge = lazy(() => import('./PieceBadge').then((module) => ({ default: module.PieceBadge })));
 const ScenePresence = lazy(() => import('./ScenePresence').then((module) => ({ default: module.ScenePresence })));
@@ -1079,6 +1093,7 @@ function SceneContents({
 }) {
   const table = useTabletop();
   const board = useTabletopSelector((value) => value.snapshot.board);
+  const tints = useTabletopSelector((value) => value.snapshot.tints);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
@@ -1099,10 +1114,16 @@ function SceneContents({
           <ScenePings />
         </Suspense>
       )}
-      <group onClick={() => selectPiece(null)}>
+      <group
+        onClick={(event) => {
+          paintTerritory(board?.definition, event.point.x, event.point.z);
+          selectPiece(null);
+        }}
+      >
         {drawBoard && (
           <TabletopBoard
             board={board}
+            tints={tints}
             seatCount={seatCount}
             interactive
             stormSectorIndex={state.stormSectorIndex}
@@ -1173,11 +1194,13 @@ export function TabletopScene({
   );
   const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(stage, providedProgress, seatCount);
   const areaRef = useRef<HTMLDivElement>(null);
+  const brush = useTerritoryBrush();
 
   return (
     <div
       ref={areaRef}
-      className={className}
+      className={clsx(className, brush && styles.painting)}
+      style={brush ? ({ '--brush-cursor': BRUSH_CURSOR } as CSSProperties) : undefined}
       onContextMenu={(event) => {
         event.preventDefault();
         if (hasDraft) {

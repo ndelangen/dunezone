@@ -230,3 +230,8 @@
   font-style: italic;
   font-weight: 700;
 }
+
+/* The paintbrush wins over the hand cursor the presence layer puts on the canvas while it is on. */
+.painting canvas {
+  cursor: var(--brush-cursor) !important;
+}

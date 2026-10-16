@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Brush,
   Dices,
   EyeOff,
   Globe2,
@@ -84,6 +85,8 @@ const TOPIC_ICON_DEFINITIONS = {
   planet: { kind: 'mask', src: '/vector/generic/ringworld.svg' },
   cards: { kind: 'mask', src: '/vector/icon/treachery.svg' },
   deals: { kind: 'component', component: Handshake },
+  /* Colours the table lays over territories in Play, painted on with a brush. */
+  tints: { kind: 'component', component: Brush },
 } as const satisfies Record<string, { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }>;
 
 export type TopicIconTopic = keyof typeof TOPIC_ICON_DEFINITIONS;
