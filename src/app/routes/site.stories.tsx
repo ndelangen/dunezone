@@ -91,6 +91,29 @@ export const BlogPost = meta.story({
   },
 });
 
+/** The third post, about the early projects: its title in the band, and links to the dune-assets repository and the Atreides page. */
+export const BlogPostAllInOneDuneBoardGameWebapp = meta.story({
+  args: { path: '/blog/all-in-one-dune-board-game-webapp' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole(
+        'heading',
+        { level: 1, name: 'My earlier attempts at building an all-in-one webapp for the Dune board game' },
+        { timeout: 30_000 }
+      )
+    ).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'dune-assets' })).resolves.toHaveAttribute(
+      'href',
+      'https://github.com/ndelangen/dune-assets'
+    );
+    await expect(page.findByRole('link', { name: 'dune.zone' })).resolves.toHaveAttribute(
+      'href',
+      '/factions/house-atreides'
+    );
+  },
+});
+
 /** The second post, about Tabletop Simulator: its title in the band, then screenshots, and links to the Workshop mods and the Iduali faction. */
 export const BlogPostTabletopSimulator = meta.story({
   args: { path: '/blog/tabletop-simulator' },
