@@ -54,8 +54,7 @@ function remoteViewOf(
   pieces: TablePiece[],
   carries: PublicCarry[],
   rested: TablePiece[],
-  own: LocalCarry | null,
-  pickupRiders: ReadonlyMap<string, ReadonlySet<string>>
+  { own, pickupRiders }: Readonly<{ own: LocalCarry | null; pickupRiders: ReadonlyMap<string, ReadonlySet<string>> }>
 ) {
   const reservedPieceIds = new Set(carries.flatMap((carry) => carry.reservedIds));
   const remoteCarriedIds = new Set(carries.map((carry) => carry.held.id));
@@ -85,6 +84,17 @@ function lateRiders(
   return [...ridersOf(rested, inHand)]
     .filter(([riderId, plateId]) => !pickupRiders.get(plateId)?.has(riderId))
     .map(([riderId]) => riderId);
+}
+
+/* What rode each carried plate when it was first seen in a hand, kept while it stays carried; a plate newly in a hand takes what rests on it now. */
+function pickupRidersFor(
+  carried: ReadonlySet<string>,
+  rested: readonly TablePiece[],
+  known: ReadonlyMap<string, ReadonlySet<string>>
+): ReadonlyMap<string, ReadonlySet<string>> {
+  return new Map(
+    [...carried].map((plateId) => [plateId, known.get(plateId) ?? new Set(ridersOf(rested, new Set([plateId])).keys())])
+  );
 }
 
 /* The stacks a carry takes from: the one it was picked up from, and any it took more from on the way. */
@@ -421,7 +431,7 @@ export class TableSession {
   private hoveredId: string | null = null;
   private carry: LocalCarry | null = null;
   private carries: PublicCarry[] = [];
-  private readonly pickupRiders = new Map<string, ReadonlySet<string>>();
+  private pickupRiders: ReadonlyMap<string, ReadonlySet<string>> = new Map();
   private pointers: PublicPointer[] = [];
   private flipping = new Map<string, number>();
   private readonly pendingFlips = new Map<string, string>();
@@ -891,7 +901,7 @@ export class TableSession {
     }
   };
   private remoteView(pieces: TablePiece[], carries: PublicCarry[], rested: TablePiece[]) {
-    return remoteViewOf(pieces, carries, rested, this.carry, this.pickupRiders);
+    return remoteViewOf(pieces, carries, rested, { own: this.carry, pickupRiders: this.pickupRiders });
   }
 
   /* What rode each carried plate when this page first saw it in a hand, kept until the carry ends, as the room keeps it for the drop. */
@@ -905,17 +915,7 @@ export class TableSession {
     if (this.carry) {
       carried.add(this.carry.draft.pieceId);
     }
-    for (const plateId of this.pickupRiders.keys()) {
-      if (!carried.has(plateId)) {
-        this.pickupRiders.delete(plateId);
-      }
-    }
-    for (const plateId of carried) {
-      if (!this.pickupRiders.has(plateId)) {
-        const riders = ridersOf(rested, new Set([plateId]));
-        this.pickupRiders.set(plateId, new Set(riders.keys()));
-      }
-    }
+    this.pickupRiders = pickupRidersFor(carried, rested, this.pickupRiders);
   }
 
   private activityForView() {
