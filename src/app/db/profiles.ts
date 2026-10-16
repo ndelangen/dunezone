@@ -53,9 +53,12 @@ export async function loadProfileBySlug(slug: string): Promise<ProfilePageData> 
 /** A profile as `ProfileLink` cites it, or null when no public profile holds the slug. */
 export type ProfileLinkEntry = FunctionReturnType<typeof api.profiles.linkBySlug>;
 
-/** One profile's link fields, for a page that cites a person without loading their page. */
-export async function loadProfileLink(slug: string): Promise<ProfileLinkEntry> {
-  return await db.query(api.profiles.linkBySlug, { slug });
+/**
+ * One profile's link fields, live, for a page that cites a person without loading their page.
+ * It is a hook rather than a loader so a record-less page (the blog) keeps rendering on the server without a query.
+ */
+export function useProfileLink(slug: string): ProfileLinkEntry | undefined {
+  return useLiveQuery(api.profiles.linkBySlug, { slug });
 }
 
 /** The directory route's loader, paired with `useProfilesAll`. */

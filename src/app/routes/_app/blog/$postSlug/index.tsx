@@ -5,8 +5,8 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowLeft } from 'lucide-react';
 
 import { publicPageHead } from '@app/routes/publicPage';
-import { BlogByline } from '@app/widgets/blog-byline/BlogByline';
 
+import { AuthorByline } from '../AuthorByline';
 import { BLOG_POST_BODIES } from '../postBodies';
 import styles from './index.module.css';
 
@@ -16,21 +16,12 @@ export const Route = createFileRoute('/_app/blog/$postSlug/')({
    * The loader and head ship with the route tree to every page, so the registry and the media map it resolves the cover through load only here, on demand.
    */
   loader: async ({ params }) => {
-    const [{ blogPostImage, findBlogPost, blogPostAuthor }, { loadAuthorImages }] = await Promise.all([
-      import('../posts'),
-      import('../authorImages'),
-    ]);
+    const { blogPostImage, findBlogPost, blogPostAuthor } = await import('../posts');
     const post = findBlogPost(params.postSlug);
     if (!post) {
       throw notFound();
     }
-    const author = blogPostAuthor(post);
-    const images = await loadAuthorImages([author.profileSlug]);
-    return {
-      meta: post,
-      image: blogPostImage(post),
-      author: { ...author, image: author.profileSlug ? images[author.profileSlug] : undefined },
-    };
+    return { meta: post, image: blogPostImage(post), author: blogPostAuthor(post) };
   },
   head: ({ loaderData, match }) =>
     loaderData
@@ -66,7 +57,7 @@ function BlogPostPage() {
     <PageLayout>
       <PageLayout.Header size="compact">
         <Stack gap="xs" align="center">
-          <BlogByline date={meta.date} author={author} tone="inverse" />
+          <AuthorByline date={meta.date} author={author} tone="inverse" />
           <PageTitle title={meta.title} />
         </Stack>
       </PageLayout.Header>

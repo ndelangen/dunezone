@@ -6,7 +6,7 @@ import { ProfileLink } from '@ui/content/ProfileLink';
 type BlogBylineProps = {
   date: string;
   /** `image` is the linked profile's avatar; without one the link shows the name's initials. */
-  author: { name: string; profileSlug?: string; image?: string };
+  author: { name: string; profileSlug?: string; image?: string | null };
   tone?: 'accent' | 'inverse';
 };
 
