@@ -49,12 +49,12 @@ describe('tabletop contact geometry', () => {
   });
 
   test.each([
-    { kind: 'card', maximum: 5, width: 0.98, depth: 1.3 },
-    { kind: 'force', maximum: 4, width: 0.39, depth: 0.39 },
-    { kind: 'marker', maximum: 1, width: 1, depth: 1 },
-  ] as const)('preserves the visible layers and shadow footprint of a $kind', ({ kind, maximum, width, depth }) => {
+    { kind: 'card', layers: 5, width: 0.98, depth: 1.3 },
+    { kind: 'force', layers: 5, width: 0.39, depth: 0.39 },
+    { kind: 'marker', layers: 1, width: 1, depth: 1 },
+  ] as const)('preserves the visible layers and shadow footprint of a $kind', ({ kind, layers, width, depth }) => {
     const piece = { ...pieceFrom(freshTableState(), 'harkonnen-force-stack'), kind };
-    expect(visibleLayerCount(piece)).toBe(maximum);
+    expect(visibleLayerCount(piece)).toBe(layers);
     expect(visibleLayerCount({ ...piece, items: [] })).toBe(1);
     for (const carried of [false, true]) {
       const expansion = carried ? 1.14 : 1;
@@ -63,6 +63,16 @@ describe('tabletop contact geometry', () => {
       expect(scale[1]).toBeCloseTo(depth * expansion, 8);
       expect(scale[2]).toBe(1);
     }
+  });
+
+  test('a troop stack shows one layer per troop up to eight, then grows more slowly', () => {
+    const piece = pieceFrom(freshTableState(), 'harkonnen-force-stack');
+    const layersFor = (count: number) =>
+      visibleLayerCount({
+        ...piece,
+        items: Array.from({ length: count }, (_, index) => ({ id: `${index}`, faceUp: true })),
+      });
+    expect([1, 2, 5, 8, 9, 10, 12, 15, 20].map(layersFor)).toEqual([1, 2, 5, 8, 9, 10, 10, 11, 12]);
   });
 
   test.each([
