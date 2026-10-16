@@ -47,6 +47,18 @@
 }
 
 /*
+ * An immersive header lays the name over the dark left of a window-filling band, left aligned and very large.
+ */
+:global([data-page-layout-header-size="immersive"]) .title {
+  color: white;
+  font-family: "C_Copperplate_Gothic_Heavy", sans-serif;
+  font-size: clamp(2.5rem, 6vw, 4.25rem);
+  line-height: 1.02;
+  text-shadow: 0 4px 30px rgb(0 0 0 / 50%);
+  text-transform: uppercase;
+}
+
+/*
  * The subtitle is framed between two thin gilt rules in widely spaced small caps, like a title card.
  * On a narrow band the rules shorten and the letters close up, and a long subtitle wraps between its rules.
  */

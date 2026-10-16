@@ -6,7 +6,7 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowRight } from 'lucide-react';
-import { useReducer, useState } from 'react';
+import { useReducer } from 'react';
 import type { SVGProps } from 'react';
 import { SiDiscord } from 'react-icons/si';
 
@@ -14,11 +14,7 @@ import { authProviderNames, useSignInProviders } from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
-import { useMotionAllowed } from '@app/styles/motion';
 
-/* File imports give the build hashed URLs, as the masthead does. */
-import bandPoster from '../../../../../public/video/band-poster.jpg?url';
-import bandVideo from '../../../../../public/video/band.mp4?url';
 import styles from './login.module.css';
 
 export const Route = createFileRoute('/_app/auth/login')({
@@ -171,82 +167,38 @@ function ProviderMark({ provider }: { provider: AuthProvider }) {
   return provider === 'google' ? <GoogleColoredMark width={22} height={22} /> : <SiDiscord size={22} aria-hidden />;
 }
 
-/*
- * The storm behind the page: the masthead's own artwork, here at full screen because a fullscreen page hides the masthead.
- * The loop mounts only when motion is welcome, and fades in over the poster once it actually plays.
- */
-function Storm() {
-  const motionOk = useMotionAllowed();
-  const [playing, setPlaying] = useState(false);
-  return (
-    <div className={styles.storm} aria-hidden>
-      <img alt="" src={bandPoster} />
-      {motionOk && (
-        <video
-          data-ready={playing || undefined}
-          onPlaying={() => setPlaying(true)}
-          src={bandVideo}
-          autoPlay
-          muted
-          loop
-          playsInline
-          tabIndex={-1}
-        />
-      )}
-    </div>
-  );
-}
-
 function LoginPage() {
   const profile = useCurrentProfile();
   const providers = useSignInProviders();
   return (
-    <PageLayout height="fullscreen">
-      <PageLayout.Header>
-        <PageTitle title="Sign in" />
+    <PageLayout>
+      <PageLayout.Header size="immersive">
+        {profile.data ? (
+          <>
+            <PageTitle eyebrow="Welcome back" title={profile.data.username ?? 'Player'} />
+            <Text className={styles.lead}>You are already signed in.</Text>
+            <div className={styles.actions}>
+              <Button
+                component={Link}
+                to="/"
+                size="xl"
+                fullWidth
+                justify="space-between"
+                className={styles.provider}
+                rightSection={<ArrowRight size={18} aria-hidden />}
+              >
+                Go to Dune Zone
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <PageTitle eyebrow="The spice must flow" title="Enter the deep desert" />
+            <Text className={styles.lead}>Build factions, write your own rulesets and play Dune with friends.</Text>
+            <SignInPanel providers={providers} />
+          </>
+        )}
       </PageLayout.Header>
-      <PageLayout.Content width="viewport">
-        <div className={styles.stage} data-scheme-dark>
-          <Storm />
-          <div className={styles.frame}>
-            <div className={styles.topBar}>
-              <Link to="/" aria-label="Dune Zone home">
-                <img className={styles.logo} src="/web/logo.svg" alt="" />
-              </Link>
-              <Link to="/" className={styles.back}>
-                Back to Dune Zone
-              </Link>
-            </div>
-            <div className={styles.pitch}>
-              {profile.data ? (
-                <>
-                  <Text className={styles.eyebrow}>Welcome back</Text>
-                  <Text className={styles.headline}>{profile.data.username ?? 'Player'}</Text>
-                  <Text className={styles.lead}>You are already signed in.</Text>
-                  <Button
-                    component={Link}
-                    to="/"
-                    size="xl"
-                    className={styles.provider}
-                    rightSection={<ArrowRight size={18} aria-hidden />}
-                  >
-                    Go to Dune Zone
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Text className={styles.eyebrow}>The spice must flow</Text>
-                  <Text className={styles.headline}>Enter the deep desert</Text>
-                  <Text className={styles.lead}>
-                    Build factions, write your own rulesets and play Dune with friends.
-                  </Text>
-                  <SignInPanel providers={providers} />
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </PageLayout.Content>
     </PageLayout>
   );
 }

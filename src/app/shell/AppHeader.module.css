@@ -26,7 +26,11 @@
   overflow: hidden;
   border-radius: 6px;
   box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.5);
-  transition: height 0.2s ease-out;
+  transition:
+    height 0.2s ease-out,
+    width 0.2s ease-out,
+    margin 0.2s ease-out,
+    border-radius 0.2s ease-out;
 }
 
 :global(html[data-motion="reduce"]) .band {
@@ -90,6 +94,47 @@
   .frame:has([data-page-layout-header-size="compact"]) .band {
     height: 220px;
   }
+}
+
+/*
+ * An immersive page grows the band out of the column to fill the window edge to edge, and leaving one shrinks it back.
+ * Every property involved is a length, so the band stays mounted and the move animates both ways, video still playing.
+ * `--app-frame-left` is the frame's distance from the window's left edge, which `AppHeader` measures because the scrollbar gutter makes it unknowable in CSS.
+ * A transition takes its timing from the style it lands on, so the slow curve sits on the immersive state for the growth and on `data-band-unwinding`, which `AppHeader` holds for the length of the shrink, for the way back.
+ */
+.frame:has([data-page-layout-header-size="immersive"]) .band {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  margin-left: calc(-1 * var(--app-frame-left, 0px));
+  margin-top: -40px;
+  border-radius: 0;
+}
+
+.frame:has([data-page-layout-header-size="immersive"]) .band,
+.frame:has([data-page-layout-header-size="immersive"]) .band::after,
+.frame[data-band-unwinding] .band,
+.frame[data-band-unwinding] .band::after {
+  transition-duration: 0.7s;
+  transition-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* The veil darkens the left, where an immersive page's words sit, and the floor; it fades with the growth. */
+.band::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  background:
+    linear-gradient(90deg, rgb(20 12 6 / 92%) 0%, rgb(20 12 6 / 72%) 40%, rgb(20 12 6 / 5%) 75%),
+    linear-gradient(0deg, rgb(20 12 6 / 70%), transparent 40%);
+  pointer-events: none;
+  transition: opacity 0.5s ease-out;
+}
+
+.frame:has([data-page-layout-header-size="immersive"]) .band::after {
+  opacity: 1;
 }
 
 /* Inline-size containment would anchor the fixed workspace to this frame, not the viewport. */

@@ -1,116 +1,16 @@
 /*
- * The sign-in page is a full custom page: the storm fills the window and the invitation sits on its darker left side.
- * The stage scrolls on its own, because the fullscreen frame clips and a short phone would otherwise lose the buttons.
+ * The sign-in page lays its words over the band, which grows to fill the window for it (the immersive header).
+ * The band never flips with the colour scheme, so neither does this ink.
  */
-.stage {
-  position: relative;
-  height: 100%;
-  overflow-y: auto;
-  color: var(--color-paper);
-  background-color: #1a120b;
-}
-
-.storm {
-  position: fixed;
-  inset: 0;
-}
-
-.storm img,
-.storm video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 70% center;
-}
-
-.storm video {
-  opacity: 0;
-  transition: opacity 1.2s ease;
-}
-
-.storm video[data-ready] {
-  opacity: 1;
-}
-
-/* The veil darkens the left, where the words sit, and the floor, so the storm stays loud only on the right. */
-.storm::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgb(20 12 6 / 92%) 0%, rgb(20 12 6 / 75%) 38%, rgb(20 12 6 / 10%) 72%),
-    linear-gradient(0deg, rgb(20 12 6 / 70%), transparent 40%);
-}
-
-.frame {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-  min-height: 100%;
-  padding: var(--space-xl) clamp(var(--space-md), 5vw, 4rem);
-}
-
-.topBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
-}
-
-.logo {
-  display: block;
-  height: 1.75rem;
-}
-
-.back {
-  color: inherit;
-  opacity: 0.85;
-  text-shadow: 0 1px 8px rgb(0 0 0 / 60%);
-  text-decoration: none;
-}
-
-.back:hover,
-.back:focus-visible {
-  opacity: 1;
-  text-decoration: underline;
-}
-
-.pitch {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--space-lg);
-  max-width: 33rem;
-  padding-block-end: var(--space-xl);
-}
-
-.eyebrow {
-  font-family: "C_Copperplate_Gothic", sans-serif;
-  font-size: 0.875rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--color-caution-inverse);
-}
-
-.headline {
-  font-family: "C_Copperplate_Gothic_Heavy", sans-serif;
-  font-size: clamp(2.5rem, 6vw, 4rem);
-  line-height: 1.02;
-  text-transform: uppercase;
-  text-shadow: 0 4px 30px rgb(0 0 0 / 50%);
-}
-
 .lead {
+  color: var(--color-paper);
   font-size: 1.25rem;
   line-height: 1.5;
-  opacity: 0.85;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 60%);
 }
 
 .actions {
+  width: 100%;
   max-width: 25rem;
 }
 
@@ -145,5 +45,6 @@
 }
 
 .fine {
-  opacity: 0.7;
+  color: var(--color-paper);
+  opacity: 0.75;
 }
