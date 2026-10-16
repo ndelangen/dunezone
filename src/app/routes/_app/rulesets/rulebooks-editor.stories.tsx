@@ -4,7 +4,7 @@ import { waitForFrame } from '@sb/storyWaits';
 import { compareCodeUnits } from '@shared/compareText';
 import { rulebookContentsV1Schema, rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, useStorybookDatabaseClient } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
@@ -115,8 +115,8 @@ function renderedPageCount(canvasElement: HTMLElement) {
 }
 
 export const Rename = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
-  play: async ({ canvasElement }) => {
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details', onResolved: fn() },
+  play: async ({ canvasElement, args }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 });
     /* On a cold start the editor can still settle after the form opens, which closes it, so the form is reopened and refilled until the name holds. */
@@ -138,8 +138,12 @@ export const Rename = meta.story({
     await expect(page.getByText(/bookmarks or shared links to the old one stop/)).toBeVisible();
     await userEvent.click(within(form).getByRole('button', { name: 'Rename Rulebook' }));
     await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());
+    await waitFor(
+      () => expect(args.onResolved).toHaveBeenLastCalledWith('/rulesets/classicrules/rulebooks/battle-reference/edit'),
+      { timeout: 30_000 }
+    );
     /* The toolbar carries no name any more, so the new one is read back from the form it was set in. */
-    /* A rename re-slugs, so the editor remounts at its new address before the action is back, and it stays unavailable until the draft settles. */
+    /* The form closes before navigation resolves; wait for the new address before opening it again (#2250). */
     const rename = await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 });
     await waitFor(() => expect(rename).not.toHaveAttribute('aria-disabled'), { timeout: 30_000 });
     await userEvent.click(rename);
