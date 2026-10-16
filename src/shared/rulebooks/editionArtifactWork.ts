@@ -64,10 +64,14 @@ export const rulebookArtifactWorkOutcomeSchema = z.strictObject({
   status: z.enum(['ready', 'failed', 'missing']),
 });
 
-/** The route a delivery request names for each format; HTML also has the latest-Edition alias, and PDF has none (#760). */
+/**
+ * The route a delivery request names for each format;
+ * HTML also has the latest-Edition alias.
+ * PDF has no public alias (#760), but its delivery may ask which Edition is newest by leaving the number out, to let only that one be indexed.
+ */
 export type RulebookArtifactRoute<K extends RulebookEditionArtifactKind> = {
   html: RulebookHtmlRoute;
-  pdf: RulebookPdfRoute;
+  pdf: RulebookPdfRoute | Readonly<{ rulebookId: string }>;
 }[K];
 
 const resolveHtmlDeliveryRequestSchema = z.discriminatedUnion('kind', [
@@ -87,7 +91,8 @@ const resolveHtmlDeliveryRequestSchema = z.discriminatedUnion('kind', [
 const resolvePdfDeliveryRequestSchema = z.strictObject({
   schemaVersion: z.literal(1),
   rulebookId: z.string().min(1),
-  editionNumber: z.number().int().positive(),
+  /* Left out, it asks for the newest ready Edition. */
+  editionNumber: z.number().int().positive().optional(),
 });
 
 type ResolveDeliveryRequests = {
@@ -95,7 +100,7 @@ type ResolveDeliveryRequests = {
   pdf: z.infer<typeof resolvePdfDeliveryRequestSchema>;
 };
 
-/** The resolve-delivery request for each format; the HTML body's own `kind` names latest or Edition, and the PDF body always names its Edition. */
+/** The resolve-delivery request for each format; the HTML body's own `kind` names latest or Edition, and a PDF body without an Edition asks for the newest. */
 export const resolveRulebookArtifactDeliveryRequestSchemas: {
   [K in RulebookEditionArtifactKind]: z.ZodType<ResolveDeliveryRequests[K]>;
 } = {

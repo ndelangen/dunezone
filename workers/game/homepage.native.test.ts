@@ -371,6 +371,26 @@ describe('the public homepage table', () => {
     );
     expect((await member.message('rejected', (message) => message.requestId === 'stale')).message).toContain('reset');
   });
+
+  it('lasts an hour from when it opens in the isolated local stack, so a verification run never meets the hour', async () => {
+    await runtime.close();
+    runtime = await createRuntime(peer, 'homepage', {
+      GIT_SHA: 'local-isolated',
+      APPLICATION_ORIGIN: 'http://127.0.0.1:8787',
+    });
+    /*
+     * The table opens half past an hour, so the deployed rule would reset it thirty minutes in.
+     * That hour is far enough ahead to pass the reset the table took when it first loaded at the real time.
+     */
+    const hour = (Math.floor(Date.now() / 3_600_000) + 3) * 3_600_000;
+    await runtime.fetch(`/native-test/clock?now=${hour - 1_800_000}`);
+    const watcher = await visitor();
+    const opened = await syncView(watcher);
+    await runtime.fetch(`/native-test/clock?now=${hour + 1_740_000}`);
+    expect((await syncView(watcher)).epoch).toBe(opened.epoch);
+    await runtime.fetch(`/native-test/clock?now=${hour + 1_860_000}`);
+    expect((await syncView(watcher)).epoch).not.toBe(opened.epoch);
+  });
 });
 
 it('reports invalid admission responses and recovery without tickets or response content', async () => {

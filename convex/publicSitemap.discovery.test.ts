@@ -46,7 +46,13 @@ test('discovery crosses page bounds, omits deleted records and keeps type-scoped
   expect(paths).not.toContain('/factions/old-name');
   expect(paths).not.toContain('/factions/deleted');
   await expect(t.query(api.publicSitemap.page, { collection: 'token-disc', cursor: null })).resolves.toMatchObject({
-    entries: [{ pathname: '/assets/token-disc/same-name', lastmod: '2026-02-02T00:00:00.000Z' }],
+    entries: [
+      {
+        pathname: '/assets/token-disc/same-name',
+        lastmod: '2026-02-02T00:00:00.000Z',
+        image: expect.stringMatching(/^\/published\/round-tokens\/[^/]+\/token\.jpg\?v=2026-02-02/),
+      },
+    ],
     cursor: null,
   });
   await expect(t.query(api.publicSitemap.page, { collection: 'card-treachery', cursor: null })).resolves.toMatchObject({
@@ -113,4 +119,24 @@ test('rulesets, rulebooks, FAQ questions, profiles and Groups list only what the
 
 test('record sitemap names stay clear of Asset type names', () => {
   expect(SITEMAP_RECORD_COLLECTIONS.filter((name) => (ASSET_TYPE_KEYS as string[]).includes(name))).toEqual([]);
+});
+
+test('an asset entry names the face its own listing draws, and nothing when that face is not its own', async () => {
+  const t = convexTest(schema, modules);
+  await t.run(async (ctx) => {
+    const owner_id = await ctx.db.insert('users', { name: 'Owner' });
+    const row = { owner_id, group_id: null, is_deleted: false, created_at: 'x', updated_at: 'x' };
+    await ctx.db.insert('assets', { ...row, type: 'token-plate', slug: 'plate', data: { back: { mode: 'custom' } } });
+    await ctx.db.insert('assets', { ...row, type: 'deck', slug: 'authored', data: { cardback: { mode: 'custom' } } });
+    await ctx.db.insert('assets', { ...row, type: 'deck', slug: 'preset', data: { cardback: { mode: 'preset' } } });
+    await ctx.db.insert('assets', { ...row, type: 'bundle', slug: 'pile', data: {} });
+  });
+  const listing = await t.query(api.assets.listByTypes, { types: ['token-plate', 'deck', 'bundle'] });
+  const drawn = (slug: string) => listing.find((asset) => asset.slug === slug)?.previewHref;
+  const images = async (collection: string) =>
+    (await t.query(api.publicSitemap.page, { collection, cursor: null })).entries.map((entry) => entry.image);
+  expect(await images('token-plate')).toEqual([drawn('plate')]);
+  expect(drawn('plate')).toMatch(/^\/published\/square-tokens\//);
+  expect(await images('deck')).toEqual([drawn('authored'), undefined]);
+  expect(await images('bundle')).toEqual([undefined]);
 });

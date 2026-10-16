@@ -37,6 +37,7 @@ import {
   legacyRelationBackId,
   resolveBackHref,
   TOKEN_ASSET_TYPES,
+  ownPublishedFace,
   tokenBackOf,
 } from './lib/assetBacks';
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
@@ -151,7 +152,7 @@ async function presentedAppearance(
   deckBacks: Map<Id<'assets'>, Doc<'assets'> | null>,
   presets: CardbackPresetMemo
 ) {
-  const href = isPublicationAssetType(row.type) ? publishedHref(row.type, row._id, row.updated_at) : null;
+  const href = ownPublishedFace(row);
   if (row.type !== 'deck') {
     return { data: row.data, href };
   }
@@ -161,7 +162,7 @@ async function presentedAppearance(
     return { data: { ...row.data, cardback: preset?.cardback ?? null }, href: preset?.href ?? null };
   }
   if (!cardback || cardback.mode !== 'reference') {
-    return { data: row.data, href: authoredDeckCardback(row) ? href : null };
+    return { data: row.data, href };
   }
   const targetId = typeof cardback.asset_id === 'string' ? (cardback.asset_id as Id<'assets'>) : null;
   let target: Doc<'assets'> | null = null;

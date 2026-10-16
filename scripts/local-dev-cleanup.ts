@@ -48,7 +48,7 @@ function main() {
   if (!/^dunezone-local-[a-f0-9-]{36}$/.test(environment.COMPOSE_PROJECT_NAME ?? '')) {
     throw new Error('Cleanup requires the dunezone-local UUID project printed by app:dev --local');
   }
-  composeDown({ ...environment, COMPOSE_PROFILES: 'worktree-local' });
+  composeDown({ ...environment, COMPOSE_PROFILES: 'worktree-local,dashboard' });
 }
 
 if (import.meta.main) {

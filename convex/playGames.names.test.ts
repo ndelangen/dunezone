@@ -128,6 +128,16 @@ describe('permanent Play names and addresses', () => {
     }
   });
 
+  test('Latin letters that do not decompose keep a plain spelling in the address', () => {
+    expect(['Straße', 'Øresund game', 'Łódź', 'Ø', 'Æon'].map(normalizePlayGameSlug)).toEqual([
+      'strasse',
+      'oresund-game',
+      'lodz',
+      'o',
+      'aeon',
+    ]);
+  });
+
   test('custom spelling, apostrophes, Gom Jabbar and accented equivalents share one normalizer', async () => {
     const { create } = await world();
     const first = await create("Pául's Gom Jabbar party!");

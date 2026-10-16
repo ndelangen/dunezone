@@ -65,3 +65,68 @@ test('a stored auction from before optional timing loads untimed and cannot expi
   expect(biddingDeadline(snapshot)).toBe(0);
   expect(expireBidding(snapshot, LATER)).toBeUndefined();
 });
+
+test('a faction token flipped in hand and dropped face down turns its faction out of the bidding', () => {
+  const base = initialSnapshot();
+  const token = (factionId: string, x: number) => ({
+    id: `token-${factionId}`,
+    label: factionId,
+    owner: factionId,
+    color: '#000000',
+    accent: '#000000',
+    kind: 'force' as const,
+    stackKey: `faction-token:${factionId}`,
+    items: [{ id: `token-${factionId}-item`, faceUp: true }],
+    position: [x, 0, 12] as [number, number, number],
+    orientation: 0,
+    zoneId: null,
+    locked: false,
+  });
+  const room = new Room(
+    {
+      ...base,
+      phase: BIDDING,
+      roster: hostedFixturePlan.roster,
+      table: { ...base.table, pieces: [token('harkonnen', -10), token('atreides', -7)] },
+      versions: { 'token-harkonnen': 0, 'token-atreides': 0 },
+    },
+    () => ['harkonnen', 'atreides'],
+    () => 'atreides'
+  );
+  room.accept(room.command(bob, { kind: 'bid-start', factionId: 'atreides' }, room.snapshot.revision, LATER));
+  const round = room.snapshot.bidding!.round;
+  room.accept(room.command(bob, { kind: 'bid-raise', round }, room.snapshot.revision, LATER));
+  expect(room.snapshot.bidding?.stage).toBe('open');
+  const harkonnen: Identity = {
+    ...bob,
+    connectionId: 'alice-connection',
+    userId: 'alice-user',
+    viewerSeat: 'harkonnen',
+  };
+  const asHarkonnen = new Room(
+    room.snapshot,
+    () => ['harkonnen', 'atreides'],
+    () => 'harkonnen'
+  );
+  asHarkonnen.begin(harkonnen, {
+    carryId: 'carry',
+    sourcePieceId: 'token-harkonnen',
+    expectedVersion: 0,
+    pickup: 'whole',
+  });
+  const position = asHarkonnen.snapshot.table.pieces.find((piece) => piece.id === 'token-harkonnen')!.position;
+  const next = asHarkonnen.drop(harkonnen, 'carry', { position, orientation: 0, flips: 1 });
+  expect(next.table.pieces.find((piece) => piece.id === 'token-harkonnen')?.items[0]?.faceUp).toBe(false);
+  expect(next.bidding?.stage).not.toBe('open');
+});
+
+test('a game in progress refuses the fixture reset', () => {
+  const room = new Room(
+    { ...initialSnapshot(), stage: 'play', phase: BIDDING, roster: hostedFixturePlan.roster },
+    () => ['harkonnen', 'atreides'],
+    () => 'atreides'
+  );
+  expect(() => room.command(bob, { kind: 'reset' }, room.snapshot.revision, LATER)).toThrow(
+    'A game in progress cannot be reset.'
+  );
+});

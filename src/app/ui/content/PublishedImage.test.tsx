@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { hydrateRoot } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { PUBLISHED_IMAGE_RETRIES, PublishedImage, publishedImageRetryDelayMs } from './PublishedImage';
@@ -115,5 +117,48 @@ describe('PublishedImage retries a failed publication', () => {
       await vi.advanceTimersByTimeAsync(10 * 60_000);
     });
     expect(probedSources).toEqual([]);
+  });
+});
+
+describe("PublishedImage as a page's main image", () => {
+  test('writes its src into the server HTML, fetched first and shown, and only then', () => {
+    const main = renderToString(<PublishedImage src="/published/atreides.jpg" name="Atreides" aspect={1} priority />);
+    expect(main).toContain('src="/published/atreides.jpg"');
+    expect(main).toContain('alt="Atreides"');
+    expect(main).toContain('fetchPriority="high"');
+    /* Shown as it lands, so the page paints it before scripts run. */
+    expect(main).toContain('data-phase="shown"');
+    expect(main).toContain('data-arrival="instant"');
+    expect(renderToString(<PublishedImage src="/published/atreides.jpg" name="Atreides" aspect={1} />)).not.toContain(
+      '<img'
+    );
+  });
+
+  test('arrives like any other image when the client mounts it, as after navigation', () => {
+    const { container } = render(<PublishedImage src="/published/atreides.jpg" name="Atreides" aspect={1} priority />);
+    const root = container.firstElementChild!;
+    expect(root.getAttribute('data-phase')).toBe('loading');
+    expect(root.getAttribute('data-arrival')).toBe('animate');
+    expect(container.querySelector('img')?.getAttribute('fetchpriority')).toBe('high');
+  });
+
+  test('settles a load that failed before hydration, which no error event reports', async () => {
+    const element = <PublishedImage src="/published/atreides.jpg" name="Atreides" aspect={1} priority />;
+    const container = document.createElement('div');
+    container.innerHTML = renderToString(element);
+    document.body.append(container);
+    const img = container.querySelector('img')!;
+    Object.defineProperty(img, 'complete', { value: true });
+    Object.defineProperty(img, 'naturalWidth', { value: 0 });
+    const errors = vi.spyOn(console, 'error');
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    await act(async () => {
+      root = hydrateRoot(container, element);
+    });
+    expect(screen.getByRole('img', { name: MISSING })).toBeTruthy();
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+    act(() => root!.unmount());
+    container.remove();
   });
 });
