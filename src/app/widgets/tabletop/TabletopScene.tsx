@@ -1,8 +1,7 @@
 /* @jsxImportSource ./three-jsx */
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
-import { arrakisBoard } from '@shared/boards/geometry';
-import type { Board } from '@shared/boards/schema';
+import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
@@ -119,10 +118,24 @@ type TabletopSceneProps = {
   mapVisible?: boolean;
 };
 
+/** The play area's class and style: the paintbrush cursor while the brush is on. */
+function usePaintingArea(className: string | undefined) {
+  const brush = useTerritoryBrush();
+  return brush
+    ? { className: clsx(className, styles.painting), style: { '--brush-cursor': BRUSH_CURSOR } as CSSProperties }
+    : { className };
+}
+
 /** With the paintbrush on, a click on the map adds the territory under it to the brush's tint, or takes it out. */
-function paintTerritory(board: Board | undefined, x: number, z: number) {
+function paintTerritory(
+  board: GameSnapshot['board'],
+  { stage, mapVisible }: Readonly<{ stage: GameSnapshot['stage']; mapVisible?: boolean }>,
+  { x, z }: Readonly<{ x: number; z: number }>
+) {
   const brush = territoryBrush();
-  const territory = brush && territoryAtTablePoint(board ?? arrakisBoard(), x, z);
+  /* Setup keeps the map off the table until it is shown, and nothing can be painted on a map that is not there. */
+  const mapShown = stage !== 'setup' || !!mapVisible;
+  const territory = brush && mapShown && territoryAtTablePoint(board?.definition ?? retainedArrakisBoard(), x, z);
   if (brush && territory) {
     brush.paint(territory);
   }
@@ -1116,7 +1129,7 @@ function SceneContents({
       )}
       <group
         onClick={(event) => {
-          paintTerritory(board?.definition, event.point.x, event.point.z);
+          paintTerritory(board, { stage, mapVisible }, event.point);
           selectPiece(null);
         }}
       >
@@ -1194,13 +1207,12 @@ export function TabletopScene({
   );
   const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(stage, providedProgress, seatCount);
   const areaRef = useRef<HTMLDivElement>(null);
-  const brush = useTerritoryBrush();
+  const painting = usePaintingArea(className);
 
   return (
     <div
       ref={areaRef}
-      className={clsx(className, brush && styles.painting)}
-      style={brush ? ({ '--brush-cursor': BRUSH_CURSOR } as CSSProperties) : undefined}
+      {...painting}
       onContextMenu={(event) => {
         event.preventDefault();
         if (hasDraft) {

@@ -1,7 +1,7 @@
 /* @jsxImportSource ./three-jsx */
 import { useTexture } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
-import { arrakisBoard } from '@shared/boards/geometry';
+import { retainedArrakisBoard } from '@shared/boards/geometry';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import {
@@ -443,7 +443,7 @@ function BoardMap({
       */}
       <group position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}>
         <BoardPaint board={board} />
-        {tints?.length ? <TerritoryTints board={board?.definition ?? arrakisBoard()} tints={tints} /> : null}
+        {tints?.length ? <TerritoryTints board={board?.definition ?? retainedArrakisBoard()} tints={tints} /> : null}
       </group>
     </group>
   );

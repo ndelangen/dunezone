@@ -29,20 +29,26 @@ test('a seated faction makes a tint, paints territories in and out, and removes 
   const send = (action: Parameters<Room['command']>[1]) =>
     table.accept(table.command(bob, action, table.snapshot.revision, LATER));
   send({ kind: 'tint-create', tintId: 'zone', name: 'Fremen deployment', color: '#2f7fe0', territories: ['tabr'] });
-  send({ kind: 'tint-paint', tintId: 'zone', territory: 'carthag', name: 'Carthag' });
+  send({ kind: 'tint-paint', tintId: 'zone', territory: 'carthag', name: 'Carthag', painted: true });
   expect(table.snapshot.tints).toEqual([
     { id: 'zone', name: 'Fremen deployment', color: '#2f7fe0', territories: ['tabr', 'carthag'] },
   ]);
-  send({ kind: 'tint-paint', tintId: 'zone', territory: 'tabr', name: 'Tabr' });
+  send({ kind: 'tint-paint', tintId: 'zone', territory: 'tabr', name: 'Tabr', painted: false });
   expect(table.snapshot.tints?.[0]?.territories).toEqual(['carthag']);
-  expect(table.snapshot.table.events[0]?.message).toBe('Took Tabr out of the Fremen deployment tint.');
+  expect(table.snapshot.table.events[0]?.message).toBe('Took Tabr out of Fremen deployment.');
   send({ kind: 'tint-remove', tintId: 'zone' });
   expect(table.snapshot.tints).toEqual([]);
 });
 
 test('a spectator, a repeated tint and a missing tint are refused', () => {
   const table = room();
-  const create = { kind: 'tint-create', tintId: 'zone', name: 'Red', color: '#d63a2a', territories: [] } as const;
+  const create: Parameters<Room['command']>[1] = {
+    kind: 'tint-create',
+    tintId: 'zone',
+    name: 'Red',
+    color: '#d63a2a',
+    territories: [],
+  };
   expect(() => table.command(spectator, create, table.snapshot.revision, LATER)).toThrow(
     'Spectators can watch but cannot change the table'
   );
@@ -53,4 +59,25 @@ test('a spectator, a repeated tint and a missing tint are refused', () => {
   expect(() => table.command(bob, { kind: 'tint-remove', tintId: 'other' }, table.snapshot.revision, LATER)).toThrow(
     'That tint is no longer on the table.'
   );
+});
+
+test('a paint that crossed another for the same territory is refused rather than undoing it', () => {
+  const table = room();
+  table.accept(
+    table.command(
+      bob,
+      { kind: 'tint-create', tintId: 'zone', name: 'Blue tint', color: '#2f7fe0', territories: ['carthag'] },
+      table.snapshot.revision,
+      LATER
+    )
+  );
+  expect(() =>
+    table.command(
+      bob,
+      { kind: 'tint-paint', tintId: 'zone', territory: 'carthag', name: 'Carthag', painted: true },
+      table.snapshot.revision,
+      LATER
+    )
+  ).toThrow('Carthag is already in Blue tint.');
+  expect(table.snapshot.tints?.[0]?.territories).toEqual(['carthag']);
 });

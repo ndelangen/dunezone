@@ -1,24 +1,23 @@
 import { ActionIcon, Button, ColorSwatch, Group, Stack, Text, Tooltip } from '@mantine/core';
-import { arrakisBoard } from '@shared/boards/geometry';
+import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { territoryId } from '@shared/boards/schema';
 import { MAX_TINTS, TINT_COLOR_NAMES, TINT_COLORS } from '@shared/play/territoryTints';
 import type { TerritoryTint } from '@shared/play/territoryTints';
 import { Section } from '@ui/block/Section';
-import { Brush, X } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { Brush } from 'lucide-react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import atomicsSvg from '../../../../../../media/vector/decal/atomics.svg?raw';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import type { TerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
 import { setTerritoryBrush, territoryBrush, useTerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
 import { territoryTintPresets } from './territoryTintPresets';
 
 type Props = { client: TableSession; table: TableProjection };
+type TintDraft = Omit<TerritoryTint, 'id'>;
 
 const ATOMICS = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(atomicsSvg.replace('<svg ', '<svg fill="#f3e6c8" '))}`;
-
-function newTintId() {
-  return `tint-${crypto.randomUUID()}`;
-}
 
 /** "Blue tint", or "Blue tint 2" when the table already has one by that name. */
 function freshName(color: (typeof TINT_COLORS)[number], tints: readonly TerritoryTint[]) {
@@ -31,45 +30,194 @@ function freshName(color: (typeof TINT_COLORS)[number], tints: readonly Territor
   return name;
 }
 
+/**
+ * A brush that outlived this player's right to change the table, or a tint the table had and no longer has, is put down.
+ * A tint this page just made is not on the table yet, so its brush waits for it.
+ */
+function brushOutlived(
+  brush: TerritoryBrush | null,
+  canEdit: boolean,
+  tints: readonly TerritoryTint[],
+  seen: ReadonlySet<string>
+) {
+  return !!brush && (!canEdit || (seen.has(brush.tintId) && tints.every((tint) => tint.id !== brush.tintId)));
+}
+
+/** What a row says under the tint's name: painting, its one territory, or how many it covers. */
+function tintSummary(tint: TerritoryTint, painting: boolean, names: ReadonlyMap<string, string>) {
+  if (painting) {
+    return 'Painting: click territories on the board';
+  }
+  if (tint.territories.length === 1) {
+    return names.get(tint.territories[0]) ?? '1 territory';
+  }
+  return `${tint.territories.length} territories`;
+}
+
+function TintRow({
+  tint,
+  painting,
+  canEdit,
+  names,
+  onBrush,
+  onRemove,
+}: Readonly<{
+  tint: TerritoryTint;
+  painting: boolean;
+  canEdit: boolean;
+  names: ReadonlyMap<string, string>;
+  onBrush: () => void;
+  onRemove: () => void;
+}>) {
+  return (
+    <Group
+      justify="space-between"
+      wrap="nowrap"
+      px="sm"
+      py={6}
+      style={{ borderRadius: 8, border: `1px solid ${painting ? tint.color : 'var(--mantine-color-default-border)'}` }}
+    >
+      <Group gap="sm" wrap="nowrap">
+        <ColorSwatch color={tint.color} size={22}>
+          {tint.stamp === 'atomics' && <img src={ATOMICS} width={16} height={16} alt="" />}
+        </ColorSwatch>
+        <div>
+          <Text size="sm" fw={600}>
+            {tint.name}
+          </Text>
+          <Text size="xs" c="dimmed">
+            {tintSummary(tint, painting, names)}
+          </Text>
+        </div>
+      </Group>
+      <Group gap={4} wrap="nowrap">
+        <Tooltip label={painting ? 'Stop painting (Esc)' : `Paint ${tint.name}`}>
+          <ActionIcon
+            variant={painting ? 'filled' : 'subtle'}
+            color={painting ? 'yellow' : 'gray'}
+            autoContrast
+            aria-label={`Paint ${tint.name}`}
+            aria-pressed={painting}
+            disabled={!canEdit}
+            onClick={onBrush}
+          >
+            <Brush size={18} />
+          </ActionIcon>
+        </Tooltip>
+        <ConfirmDeleteAction
+          label={`Remove ${tint.name}`}
+          verb="remove"
+          size="sm"
+          pending={false}
+          disabled={!canEdit}
+          onConfirm={onRemove}
+        />
+      </Group>
+    </Group>
+  );
+}
+
+function NewTints({
+  tints,
+  enabled,
+  onCreate,
+}: Readonly<{ tints: readonly TerritoryTint[]; enabled: boolean; onCreate: (tint: TintDraft) => void }>) {
+  return (
+    <Group gap="xs">
+      <Text size="xs" c="dimmed" mr={4}>
+        New tint
+      </Text>
+      {TINT_COLORS.map((color) => {
+        const label = `New ${TINT_COLOR_NAMES[color].toLowerCase()} tint`;
+        return (
+          <Tooltip key={color} label={label}>
+            <ColorSwatch
+              component="button"
+              type="button"
+              color={color}
+              size={22}
+              aria-label={label}
+              disabled={!enabled}
+              style={{ cursor: enabled ? 'pointer' : 'not-allowed' }}
+              onClick={() => onCreate({ name: freshName(color, tints), color, territories: [] })}
+            />
+          </Tooltip>
+        );
+      })}
+    </Group>
+  );
+}
+
+function Presets({
+  presets,
+  enabled,
+  onCreate,
+}: Readonly<{ presets: readonly TintDraft[]; enabled: boolean; onCreate: (tint: TintDraft) => void }>) {
+  if (!presets.length) {
+    return null;
+  }
+  return (
+    <Group gap="xs">
+      <Text size="xs" c="dimmed" mr={4}>
+        Presets
+      </Text>
+      {presets.map((preset) => (
+        <Button
+          key={preset.name}
+          size="compact-sm"
+          variant="default"
+          disabled={!enabled}
+          onClick={() => onCreate(preset)}
+        >
+          {preset.name}
+        </Button>
+      ))}
+    </Group>
+  );
+}
+
+/** The paintbrush for this panel's tints: on for one tint at a time, and put down when it no longer applies. */
+function useTintBrush(client: TableSession, canEdit: boolean, tints: readonly TerritoryTint[]) {
+  const brush = useTerritoryBrush();
+  const seen = useRef(new Set<string>());
+  useEffect(() => {
+    for (const tint of tints) {
+      seen.current.add(tint.id);
+    }
+    if (brushOutlived(brush, canEdit, tints, seen.current)) {
+      setTerritoryBrush(null);
+    }
+  }, [brush, canEdit, tints]);
+  useEffect(() => () => setTerritoryBrush(null), []);
+  const start = (tintId: string) =>
+    setTerritoryBrush({
+      tintId,
+      paint: (territory) => {
+        const tint = client.getTable()?.snapshot.tints?.find((candidate) => candidate.id === tintId);
+        const painted = !tint?.territories.includes(territory.id);
+        client.command({ kind: 'tint-paint', tintId, territory: territory.id, name: territory.name, painted });
+      },
+    });
+  const toggle = (tintId: string) => (territoryBrush()?.tintId === tintId ? setTerritoryBrush(null) : start(tintId));
+  return { brush, start, toggle };
+}
+
 /** Shared tints over territories: make one, then switch on its paintbrush and click territories on the board to add or remove them. */
 export function TerritoryTints({ client, table }: Props) {
   const tints = useMemo(() => table.snapshot.tints ?? [], [table.snapshot.tints]);
-  const board = table.snapshot.board?.definition ?? arrakisBoard();
+  const board = table.snapshot.board?.definition ?? retainedArrakisBoard();
   const presets = useMemo(() => territoryTintPresets(board), [board]);
   const names = useMemo(
     () => new Map(Object.values(board.properties).map((property) => [territoryId(property.name), property.name])),
     [board]
   );
-  const brush = useTerritoryBrush();
   const canEdit = table.canInteract && !!table.snapshot.bank;
-  const full = tints.length >= MAX_TINTS;
-
-  /* The brush goes with its tint, and with this player's right to change the table. */
-  useEffect(() => {
-    if (brush && (!canEdit || !tints.some((tint) => tint.id === brush.tintId))) {
-      setTerritoryBrush(null);
-    }
-  }, [brush, canEdit, tints]);
-  useEffect(() => () => setTerritoryBrush(null), []);
-
-  const startBrush = (tintId: string) =>
-    setTerritoryBrush({
-      tintId,
-      paint: (territory) => {
-        client.command({ kind: 'tint-paint', tintId, territory: territory.id, name: territory.name });
-      },
-    });
-  const toggleBrush = (tintId: string) => {
-    if (territoryBrush()?.tintId === tintId) {
-      setTerritoryBrush(null);
-    } else {
-      startBrush(tintId);
-    }
-  };
-  const create = (tint: Omit<TerritoryTint, 'id'>, paint: boolean) => {
-    const tintId = newTintId();
+  const { brush, start, toggle } = useTintBrush(client, canEdit, tints);
+  const canCreate = canEdit && tints.length < MAX_TINTS;
+  const create = (tint: TintDraft, paint: boolean) => {
+    const tintId = `tint-${crypto.randomUUID()}`;
     if (client.command({ kind: 'tint-create', tintId, ...tint }) !== undefined && paint) {
-      startBrush(tintId);
+      start(tintId);
     }
   };
 
@@ -79,104 +227,19 @@ export function TerritoryTints({ client, table }: Props) {
       description="Everyone sees these. Turn on a tint's paintbrush, then click territories on the board to add or remove them. Escape stops painting."
     >
       <Stack gap="xs">
-        {tints.map((tint) => {
-          const painting = brush?.tintId === tint.id;
-          const count = tint.territories.length;
-          return (
-            <Group
-              key={tint.id}
-              justify="space-between"
-              wrap="nowrap"
-              px="sm"
-              py={6}
-              style={{
-                borderRadius: 8,
-                border: `1px solid ${painting ? tint.color : 'var(--mantine-color-default-border)'}`,
-              }}
-            >
-              <Group gap="sm" wrap="nowrap">
-                <ColorSwatch color={tint.color} size={22}>
-                  {tint.stamp === 'atomics' && <img src={ATOMICS} width={16} height={16} alt="" />}
-                </ColorSwatch>
-                <div>
-                  <Text size="sm" fw={600}>
-                    {tint.name}
-                  </Text>
-                  <Text size="xs" c="dimmed">
-                    {painting
-                      ? 'Painting: click territories on the board'
-                      : count === 1
-                        ? (names.get(tint.territories[0]) ?? '1 territory')
-                        : `${count} territories`}
-                  </Text>
-                </div>
-              </Group>
-              <Group gap={4} wrap="nowrap">
-                <Tooltip label={painting ? 'Stop painting (Esc)' : `Paint ${tint.name}`}>
-                  <ActionIcon
-                    variant={painting ? 'filled' : 'subtle'}
-                    color={painting ? 'yellow' : 'gray'}
-                    autoContrast
-                    aria-label={`Paint ${tint.name}`}
-                    aria-pressed={painting}
-                    disabled={!canEdit}
-                    onClick={() => toggleBrush(tint.id)}
-                  >
-                    <Brush size={18} />
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip label={`Remove ${tint.name}`}>
-                  <ActionIcon
-                    variant="subtle"
-                    color="gray"
-                    aria-label={`Remove ${tint.name}`}
-                    disabled={!canEdit}
-                    onClick={() => client.command({ kind: 'tint-remove', tintId: tint.id })}
-                  >
-                    <X size={18} />
-                  </ActionIcon>
-                </Tooltip>
-              </Group>
-            </Group>
-          );
-        })}
-        <Group gap="xs">
-          <Text size="xs" c="dimmed" mr={4}>
-            New tint
-          </Text>
-          {TINT_COLORS.map((color) => (
-            <Tooltip key={color} label={`New ${TINT_COLOR_NAMES[color].toLowerCase()} tint`}>
-              <ColorSwatch
-                component="button"
-                type="button"
-                color={color}
-                size={22}
-                aria-label={`New ${TINT_COLOR_NAMES[color].toLowerCase()} tint`}
-                disabled={!canEdit || full}
-                style={{ cursor: canEdit && !full ? 'pointer' : 'not-allowed' }}
-                onClick={() => create({ name: freshName(color, tints), color, territories: [] }, true)}
-              />
-            </Tooltip>
-          ))}
-        </Group>
-        {presets.length > 0 && (
-          <Group gap="xs">
-            <Text size="xs" c="dimmed" mr={4}>
-              Presets
-            </Text>
-            {presets.map((preset) => (
-              <Button
-                key={preset.name}
-                size="compact-sm"
-                variant="default"
-                disabled={!canEdit || full}
-                onClick={() => create(preset, false)}
-              >
-                {preset.name}
-              </Button>
-            ))}
-          </Group>
-        )}
+        {tints.map((tint) => (
+          <TintRow
+            key={tint.id}
+            tint={tint}
+            painting={brush?.tintId === tint.id}
+            canEdit={canEdit}
+            names={names}
+            onBrush={() => toggle(tint.id)}
+            onRemove={() => client.command({ kind: 'tint-remove', tintId: tint.id })}
+          />
+        ))}
+        <NewTints tints={tints} enabled={canCreate} onCreate={(tint) => create(tint, true)} />
+        <Presets presets={presets} enabled={canCreate} onCreate={(tint) => create(tint, false)} />
       </Stack>
     </Section>
   );
