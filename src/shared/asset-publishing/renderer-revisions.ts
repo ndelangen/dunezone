@@ -30,7 +30,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   'faction-alliance': 1,
   // 9: formatted text replaces Markdown while setup and revival stay inline (wayfinder #669).
   // 10: the PDF is titled after its faction rather than the capture page, since search engines show that title.
-  [FACTION_SHEET_ASSET_TYPE]: 10,
+  /* Revision 11 uses the faction's section name, defaulting to Faction Special Karama (#2271). */
+  [FACTION_SHEET_ASSET_TYPE]: 11,
   /* Revision 6 captures the shared front preset for each Treachery category. */
   // 1: cards join the pipeline (wayfinder #516). Activating this is also the backfill for cards that predate it.
   [TREACHERY_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[TREACHERY_CARD_ASSET_TYPE],
