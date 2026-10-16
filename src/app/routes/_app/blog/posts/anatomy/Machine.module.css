@@ -1,0 +1,158 @@
+/* A small brass-and-steel machine; colours are its own, since it is a drawing rather than part of the page's chrome. */
+.machine {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 10px 18px rgb(0 0 0 / 55%));
+}
+
+.brass {
+  fill: #b99a5b;
+  stroke: #6e5a2f;
+  stroke-width: 1.2;
+}
+
+.hole {
+  fill: #20242c;
+  stroke: #6e5a2f;
+  stroke-width: 1;
+}
+
+.pipe {
+  fill: #59606d;
+  stroke: #2a2e36;
+  stroke-width: 1;
+}
+
+.body {
+  stroke: #b99a5b;
+  stroke-width: 1.5;
+}
+
+.panel {
+  fill: none;
+  stroke: rgb(255 255 255 / 10%);
+  stroke-width: 1;
+}
+
+.rivet {
+  fill: #8d93a0;
+  stroke: #1b1e25;
+  stroke-width: 0.8;
+}
+
+.groove {
+  fill: none;
+  stroke: rgb(0 0 0 / 45%);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.bezel {
+  fill: #11141a;
+  stroke: #b99a5b;
+  stroke-width: 1.5;
+}
+
+.screenSmall,
+.screenTitle {
+  fill: #8fe39a;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  text-anchor: middle;
+  filter: drop-shadow(0 0 3px rgb(120 230 140 / 70%));
+}
+
+.screenSmall {
+  font-size: 7.5px;
+  letter-spacing: 0.12em;
+  opacity: 0.75;
+}
+
+.screenTitle {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.screenBar {
+  fill: #8fe39a;
+  opacity: 0.5;
+}
+
+.cursor {
+  fill: #8fe39a;
+  animation: blink 1.1s steps(1) infinite;
+}
+
+.lightGreen,
+.lightAmber {
+  stroke: #1b1e25;
+  stroke-width: 1;
+  animation: blink 1.3s steps(1) infinite;
+}
+
+.lightGreen {
+  fill: #6fe07f;
+  filter: drop-shadow(0 0 3px #6fe07f);
+}
+
+.lightAmber {
+  fill: #f2b544;
+  filter: drop-shadow(0 0 3px #f2b544);
+}
+
+.dial {
+  fill: #e9e0c8;
+  stroke: #6e5a2f;
+  stroke-width: 1.5;
+}
+
+.needle {
+  fill: none;
+  stroke: #a0322a;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  animation: needle 3.2s ease-in-out infinite alternate;
+}
+
+.gear {
+  animation: turn 9s linear infinite;
+}
+
+.gearReverse {
+  animation: turn 7s linear infinite reverse;
+}
+
+@keyframes turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes needle {
+  from {
+    transform: rotate(-40deg);
+  }
+
+  to {
+    transform: rotate(70deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gear,
+  .gearReverse,
+  .cursor,
+  .lightGreen,
+  .lightAmber,
+  .needle {
+    animation: none;
+  }
+}

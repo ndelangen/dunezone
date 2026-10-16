@@ -18,6 +18,7 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { card, disc, page, shield } from '@game/data/sizes';
 
 import styles from './FactionRecipe.module.css';
+import { Machine } from './Machine';
 
 /*
  * The post's main figure, in three bands: what an author enters and picks in the faction editor, the one faction record the database keeps, and the assets the site draws from that record.
@@ -110,10 +111,11 @@ function Portrait({ src }: { src: string }) {
 }
 
 /* Art is built when the figure renders, not when the module loads, so the media resolver sees every key a render asks for. */
-const INPUTS: Record<InputId, { label: string; art: () => ReactNode }> = {
-  name: { label: 'Name', art: () => <span className={styles.name}>{FACTION.name}</span> },
+const INPUTS: Record<InputId, { label: string; zoom?: number; art: () => ReactNode }> = {
+  name: { label: 'Name', zoom: 1.15, art: () => <span className={styles.name}>{FACTION.name}</span> },
   colours: {
     label: 'Colours',
+    zoom: 0.9,
     art: () => (
       <span className={styles.swatches}>
         {FACTION.background.colors.map((color, index) =>
@@ -122,7 +124,7 @@ const INPUTS: Record<InputId, { label: string; art: () => ReactNode }> = {
       </span>
     ),
   },
-  theme: { label: 'Theme colour', art: () => <Swatch color={FACTION.themeColor} /> },
+  theme: { label: 'Theme colour', zoom: 0.8, art: () => <Swatch color={FACTION.themeColor} /> },
   rules: {
     label: 'Rules',
     art: () => (
@@ -140,14 +142,16 @@ const INPUTS: Record<InputId, { label: string; art: () => ReactNode }> = {
     label: 'Alliance',
     art: () => <span className={styles.text}>{FACTION.rules.alliance.text}</span>,
   },
-  logo: { label: 'Logo', art: () => <Glyph src={FACTION.logo} /> },
-  troop: { label: 'Troop', art: () => <Glyph src={FACTION.troops[0]?.image ?? ''} /> },
+  logo: { label: 'Logo', zoom: 1.25, art: () => <Glyph src={FACTION.logo} /> },
+  troop: { label: 'Troop', zoom: 1.05, art: () => <Glyph src={FACTION.troops[0]?.image ?? ''} /> },
   texture: {
     label: 'Texture',
+    zoom: 1.15,
     art: () => <img className={styles.texture} src={resolveAsset(FACTION.background.image, 'small')} alt="" />,
   },
   leaders: {
     label: 'Leaders',
+    zoom: 1.4,
     art: () => (
       <span className={styles.portraits}>
         {FACTION.leaders.map((leader) => (
@@ -156,7 +160,7 @@ const INPUTS: Record<InputId, { label: string; art: () => ReactNode }> = {
       </span>
     ),
   },
-  factionLeader: { label: 'Faction leader', art: () => <Portrait src={FACTION.factionLeader.image} /> },
+  factionLeader: { label: 'Faction leader', zoom: 1.3, art: () => <Portrait src={FACTION.factionLeader.image} /> },
 };
 
 /**
@@ -260,6 +264,16 @@ const OUTPUTS: Record<OutputId, { label: string; art: () => ReactNode }> = {
   },
 };
 
+/**
+ * Where an ingredient sits in the arch over the machine: the middle ones ride highest and the outer ones drop towards it.
+ * `--lift` is a fraction of the stylesheet's arch height, and `--zoom` sizes the ingredient's art.
+ */
+function inputPlacement(id: InputId): CSSProperties {
+  const middle = (INPUT_ORDER.length - 1) / 2;
+  const fromMiddle = (INPUT_ORDER.indexOf(id) - middle) / middle;
+  return { '--lift': (fromMiddle * fromMiddle).toFixed(3), '--zoom': INPUTS[id].zoom ?? 1 } as CSSProperties;
+}
+
 type Line = { key: string; d: string; input?: InputId; output?: OutputId };
 
 /** Curves from each ingredient's art down into the record, and from the record down to each asset, measured from the laid-out figure. */
@@ -321,23 +335,6 @@ function useTour(rootRef: RefObject<HTMLElement | null>, paused: boolean) {
   return step < 0 ? null : (INPUT_ORDER[step] ?? null);
 }
 
-/** The database the record lives in, drawn as the usual stack of disks. */
-function Record() {
-  return (
-    <div className={styles.hub} data-hub>
-      <svg className={styles.cylinder} viewBox="0 0 240 120" preserveAspectRatio="none" aria-hidden>
-        <path d="M 2 18 V 102 A 118 16 0 0 0 238 102 V 18" />
-        <ellipse cx="120" cy="18" rx="118" ry="16" />
-      </svg>
-      <span className={styles.hubName}>
-        <Glyph src={FACTION.logo} />
-        House {FACTION.name}
-      </span>
-      <span className={styles.hubNote}>one faction record in the database</span>
-    </div>
-  );
-}
-
 export function FactionRecipe() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [lines, setLines] = useState<Line[]>([]);
@@ -380,12 +377,14 @@ export function FactionRecipe() {
 
   const tile = (kind: 'input' | 'output', id: InputId | OutputId, label: string, art: ReactNode) => {
     const next = { kind, id } as Pick;
+    const style = kind === 'input' ? inputPlacement(id as InputId) : undefined;
     const isLit = kind === 'input' ? lit?.inputs.has(id as InputId) : lit?.outputs.has(id as OutputId);
     return (
       <UnstyledButton
         key={id}
         {...{ [`data-${kind}`]: id }}
         className={clsx(styles.tile, isLit && styles.lit)}
+        style={style}
         aria-pressed={pick?.kind === kind && pick.id === id}
         onClick={() => choose(next)}
         onMouseEnter={() => {
@@ -430,7 +429,9 @@ export function FactionRecipe() {
           </div>
         ))}
       </div>
-      <Record />
+      <div className={styles.hub} data-hub>
+        <Machine title={`House ${FACTION.name}`} subtitle="Faction record" />
+      </div>
       <div className={styles.outputs}>
         {OUTPUT_ORDER.map((id) => (
           <Fragment key={id}>{tile('output', id, OUTPUTS[id].label, OUTPUTS[id].art())}</Fragment>
