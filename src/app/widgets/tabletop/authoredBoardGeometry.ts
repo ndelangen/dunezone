@@ -6,13 +6,16 @@ import { BufferAttribute, BufferGeometry, Color, ShapeUtils, Vector2 } from 'thr
 
 const colors = { sand: '#F6D979', rock: '#A67A3E', stronghold: '#F7BA7A', polar: '#ffffff' };
 
-/** The same sampled rings supply visible triangles and territory lookup. */
-export function authoredBoardGeometry(board: Board) {
+/** The same sampled rings supply visible triangles and territory lookup; `polarOnly` keeps just the Polar Sink. */
+export function authoredBoardGeometry(board: Board, polarOnly = false) {
   const positions: number[] = [],
     normals: number[] = [],
     uv: number[] = [],
     painted: number[] = [];
   for (const face of boardTerritories(board)) {
+    if (polarOnly && board.properties[face.key].type !== 'polar') {
+      continue;
+    }
     const rings = face.rings.map((ring) => ring.slice(0, -1).map(([x, y]) => new Vector2(x, y)));
     const flat = rings.flat();
     const color = new Color(colors[board.properties[face.key].type]);

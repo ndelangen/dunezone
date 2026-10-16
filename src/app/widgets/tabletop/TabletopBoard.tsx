@@ -37,6 +37,7 @@ import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.webp?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
+import { POLAR_SINK_RENDER_ORDER } from './boardRenderOrder';
 import {
   BOARD_RIM_COLOR,
   BOARD_RIM_DEPTH,
@@ -335,7 +336,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
         renderOrder={-2}
         raycast={ignoreRaycast}
       >
-        {/* The storm runs to the board's centre, tinting the Polar Sink too, and ends in a point. */}
+        {/* The storm's sides meet at the board's centre, under the Polar Sink, which is drawn above it. */}
         <circleGeometry args={[BOARD_RADIUS, 96, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE]} />
         <meshBasicMaterial
           color="#e13632"
@@ -388,11 +389,23 @@ const AuthoredBoard = lazy(() => import('./AuthoredBoard'));
 
 function LegacyBoardPaint() {
   const geometry = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS), []);
-  useEffect(() => () => geometry.dispose(), [geometry]);
+  const polarSink = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS, 'polar'), []);
+  useEffect(
+    () => () => {
+      geometry.dispose();
+      polarSink.dispose();
+    },
+    [geometry, polarSink]
+  );
   return (
-    <mesh receiveShadow geometry={geometry} renderOrder={BOARD_MAP_RENDER_ORDER} raycast={ignoreRaycast}>
-      <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
-    </mesh>
+    <>
+      <mesh receiveShadow geometry={geometry} renderOrder={BOARD_MAP_RENDER_ORDER} raycast={ignoreRaycast}>
+        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
+      </mesh>
+      <mesh receiveShadow geometry={polarSink} renderOrder={POLAR_SINK_RENDER_ORDER} raycast={ignoreRaycast}>
+        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
+      </mesh>
+    </>
   );
 }
 
