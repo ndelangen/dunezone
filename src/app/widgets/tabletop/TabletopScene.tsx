@@ -325,8 +325,10 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
         const itemIndex = layerItemIndex(piece, index, shownLayers);
+        const [offsetX, offsetZ, yaw] =
+          index === shownLayers - 1 ? [0, 0, 0] : handStackedOffset(piece.items[itemIndex]?.id ?? `${index}`);
         return (
-          <group key={index} position={[0, index * TROOP_LAYER_PITCH, 0]}>
+          <group key={index} position={[offsetX, index * TROOP_LAYER_PITCH, offsetZ]} rotation={[0, yaw, 0]}>
             <mesh
               position={[0, TROOP_LAYER_HEIGHT / 2, 0]}
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
@@ -337,7 +339,13 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
                   : meshes.cylinder(TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48)
               }
             >
-              <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
+              {/* A round piece's wall is reeded like a coin's edge; its caps lie under the faces, so the ribs never show there. */}
+              <meshStandardMaterial
+                color={piece.color}
+                roughness={0.56}
+                metalness={0.1}
+                map={ratio != null ? null : meshes.reeding(Math.round(REEDING_RIBS_PER_TROOP * scale))}
+              />
             </mesh>
             {index === shownLayers - 1 ? <TokenFace piece={piece} faceUp={faceUp} itemIndex={itemIndex} /> : null}
             {index === 0 ? <TokenFace piece={piece} faceUp={!faceUp} underside itemIndex={itemIndex} /> : null}
@@ -346,6 +354,23 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
       })}
     </group>
   );
+}
+
+const REEDING_RIBS_PER_TROOP = 28;
+/* How far a hand-stacked layer may sit off the one above it, and how far it may turn. */
+const HAND_STACK_SHIFT = TROOP_TOP_RADIUS * 0.06;
+const HAND_STACK_TURN = (2.5 * Math.PI) / 180;
+
+/* The same small, steady shift and turn for an item wherever it lies, so a stack does not shuffle as it changes. */
+function handStackedOffset(id: string): [number, number, number] {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < id.length; index++) {
+    hash = Math.imul(hash ^ id.charCodeAt(index), 16_777_619);
+  }
+  const unit = (shift: number) => (((hash >>> shift) & 0xff) / 255) * 2 - 1;
+  const angle = unit(0) * Math.PI;
+  const distance = Math.abs(unit(8)) * HAND_STACK_SHIFT;
+  return [Math.cos(angle) * distance, Math.sin(angle) * distance, unit(16) * HAND_STACK_TURN];
 }
 
 function CardFace({

@@ -129,7 +129,19 @@ export function restingPositionAt(position: Vector3Tuple, piece: PieceFootprint)
   return [position[0], supportHeightAt(position, piece), position[2]];
 }
 
+/* A troop stack shows one layer per item while it is short, then grows more slowly, so its height still tells a big stack from a bigger one. */
+const TROOP_EXACT_LAYERS = 8;
+
+function troopLayerCount(items: number): number {
+  return items <= TROOP_EXACT_LAYERS
+    ? items
+    : Math.round(TROOP_EXACT_LAYERS + 1.2 * Math.sqrt(items - TROOP_EXACT_LAYERS));
+}
+
 export function visibleLayerCount(piece: TablePiece): number {
+  if (piece.kind === 'force' && !isSpicePiece(piece)) {
+    return Math.max(1, troopLayerCount(piece.items.length));
+  }
   const maximum = isSpicePiece(piece) ? SPICE_MAX_VISIBLE_LAYERS : MAX_VISIBLE_LAYERS[piece.kind];
   return Math.min(maximum, Math.max(1, piece.items.length));
 }
