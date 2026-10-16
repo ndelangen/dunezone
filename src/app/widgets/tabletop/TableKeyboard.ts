@@ -4,6 +4,8 @@ import type { TabletopContextValue } from './TabletopContext';
 
 /* How long a number key is held before it draws that many from a stack. */
 const DRAW_HOLD_MS = 1000;
+/* An easter egg: Tab held this long pings again, with a rumble from under the sand instead of the tone. */
+const RUMBLE_HOLD_MS = 3000;
 
 type Controls = Pick<
   TabletopContextValue,
@@ -96,6 +98,7 @@ export class TableKeyboard {
   private readonly rotateHeld = new Set<string>();
   /* Whether the Tab held down now pinged, so its repeats stay with the table too. */
   private pingHeld = false;
+  private rumbleTimer: ReturnType<typeof setTimeout> | null = null;
   /* The held pan keys, by the physical key that went down, with the direction it typed then. */
   private readonly panHeld = new Map<string, string>();
   private readonly panListeners = new Set<() => void>();
@@ -163,6 +166,7 @@ export class TableKeyboard {
     }
     this.cancelDraw();
     this.releasePan();
+    this.releasePing();
     this.releaseRotation();
     binding.events.removeEventListener('blur', this.releasePan);
     binding.events.removeEventListener('blur', this.releasePing);
@@ -226,7 +230,14 @@ export class TableKeyboard {
       return;
     }
     if (!event.repeat) {
+      this.releasePing();
       this.pingHeld = controls.ping();
+      if (this.pingHeld) {
+        this.rumbleTimer = setTimeout(() => {
+          this.rumbleTimer = null;
+          this.binding?.read().ping('fart');
+        }, RUMBLE_HOLD_MS);
+      }
     }
     if (this.pingHeld) {
       event.preventDefault();
@@ -236,6 +247,10 @@ export class TableKeyboard {
   /* A Tab let go while the page had no focus never comes up here, so leaving the page lets it go. */
   private releasePing = () => {
     this.pingHeld = false;
+    if (this.rumbleTimer !== null) {
+      clearTimeout(this.rumbleTimer);
+      this.rumbleTimer = null;
+    }
   };
 
   /* A turn held when the page loses the key, as when it loses focus, goes out as far as it got. */
