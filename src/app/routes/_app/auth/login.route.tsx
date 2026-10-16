@@ -143,7 +143,9 @@ function SignInPanel({ providers }: { providers: ReturnType<typeof useSignInProv
             fullWidth
             justify="space-between"
             leftSection={<ProviderMark provider={method.provider} />}
-            rightSection={method.available ? <ArrowRight size={18} aria-hidden /> : <span>Unavailable</span>}
+            rightSection={
+              method.available ? <ArrowRight size={18} aria-hidden /> : <span aria-hidden>Unavailable</span>
+            }
             loading={state.busy === method.provider}
             disabled={state.busy !== null || !method.available}
             onClick={() => void socialLogin(method.provider)}

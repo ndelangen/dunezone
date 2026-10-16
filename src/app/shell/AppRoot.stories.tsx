@@ -113,7 +113,7 @@ function HeaderResizePage() {
   );
 }
 
-/* The band's `transition: height 0.2s` in `AppHeader.module.css`. */
+/* The band's `height 0.2s` transition in `AppHeader.module.css`. */
 const BAND_TRANSITION_MS = 200;
 
 /**
@@ -179,7 +179,9 @@ async function playHeaderResize({ canvasElement }: { canvasElement: HTMLElement 
     } finally {
       observer.disconnect();
     }
-    await expect(view.getComputedStyle(header).transitionDuration).toBe(motion === 'reduce' ? '0s' : '0.2s');
+    /* The band lists one duration per property it transitions (height, width, margin and corner radius). */
+    const durations = new Set(view.getComputedStyle(header).transitionDuration.split(', '));
+    await expect([...durations]).toEqual([motion === 'reduce' ? '0s' : '0.2s']);
     await waitFor(async () => {
       await expect(canvasElement.querySelector('[data-app-band]')).toBe(header);
       if (expanded) {
