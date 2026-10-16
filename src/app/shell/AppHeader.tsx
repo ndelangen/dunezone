@@ -103,7 +103,11 @@ function useFrameLeft(frameRef: RefObject<HTMLDivElement | null>) {
     const observer = new ResizeObserver(measure);
     observer.observe(document.documentElement);
     observer.observe(frame);
-    return () => observer.disconnect();
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
   }, [frameRef]);
 }
 
