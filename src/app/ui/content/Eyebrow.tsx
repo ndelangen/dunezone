@@ -30,7 +30,7 @@ export function Eyebrow({ children, tone = 'muted', id }: EyebrowProps) {
       tt="uppercase"
       lts="0.14em"
       lh={1.4}
-      c={tone === 'accent' ? 'var(--color-link)' : tone === 'inverse' ? 'white' : 'dimmed'}
+      c={tone === 'accent' ? 'var(--color-link)' : tone === 'inverse' ? '#fff' : 'dimmed'}
       style={tone === 'inverse' ? { textShadow: INVERSE_TEXT_SHADOW } : undefined}
     >
       {children}
