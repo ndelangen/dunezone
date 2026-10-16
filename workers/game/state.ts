@@ -389,6 +389,7 @@ export class RoomProjection {
       ...(snapshot.bidding ? { bidding: snapshot.bidding } : {}),
       ...(snapshot.alliances ? { alliances: snapshot.alliances } : {}),
       ...(snapshot.lastTurn ? { lastTurn: snapshot.lastTurn } : {}),
+      ...(snapshot.tints?.length ? { tints: snapshot.tints } : {}),
       controls: controls && {
         ...controls,
         requests: controls.requests.map((request) => ({ ...request, contents: this.contents(request.contents) })),

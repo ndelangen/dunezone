@@ -1,4 +1,5 @@
 import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { tableHandlingOpen } from '@shared/play/admission';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { PublicControls, SpawnSelection } from '@shared/play/inventory';
 import { lastTurnOf } from '@shared/play/lastTurn';
@@ -71,6 +72,7 @@ import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction } from './tableFactions';
 import { TableSettings } from './TableSettings';
+import { TerritoryTints } from './TerritoryTints';
 import { ServerClockContext } from './useServerNow';
 import '../dune-play.css';
 
@@ -841,6 +843,17 @@ function tableTab({ client, table, error }: ConnectionControlsProps): PanelTab {
         ...SHARED_INVENTORY_GUIDANCE,
         content: <SharedInventory client={client} table={table} />,
       },
+      ...(tableHandlingOpen(table.snapshot.stage)
+        ? [
+            {
+              key: 'tints',
+              label: 'Territory tints',
+              topic: 'tints' as const,
+              description: 'Colour territories for everyone to see.',
+              content: withTableError(error, <TerritoryTints client={client} table={table} />),
+            },
+          ]
+        : []),
       ...(table.snapshot.stage === 'play'
         ? [
             {

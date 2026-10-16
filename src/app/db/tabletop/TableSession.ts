@@ -1672,6 +1672,8 @@ export class TableSession {
     }
     return sent;
   }
+  /** Whether a command this page sent is still waiting for the table's answer. */
+  awaiting = (commandId: string) => this.unanswered.has(commandId);
   /** Sends a table command, and returns its id when it went out. */
   command = (action: PieceAction): string | undefined => {
     if (!this.subscription.supportsCommand(action.kind)) {

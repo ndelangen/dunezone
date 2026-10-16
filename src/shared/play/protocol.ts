@@ -45,6 +45,7 @@ import {
 import { setupActionSchema, setupStateSchema, predictionsSchema } from './setup';
 import { spiceReserveActionSchema, spiceReserveSchema, spiceTransferSchema } from './spiceReserve';
 import { swapActionSchema, swappingStateSchema } from './swapping';
+import { territoryTintActionSchema, territoryTintsSchema } from './territoryTints';
 
 const factionArtworkSchema = z.record(
   z.string(),
@@ -98,6 +99,8 @@ export const gameSnapshotSchema = z.object({
   alliances: allianceStateSchema.optional(),
   /* The turn the table agreed the game ends after; absent means the standard ten. */
   lastTurn: lastTurnSchema.optional(),
+  /* Tints the table laid over territories, for everyone to see; absent until a faction makes one. */
+  tints: territoryTintsSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
@@ -179,6 +182,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...biddingActionSchema.options,
   ...allianceActionSchema.options,
   lastTurnActionSchema,
+  ...territoryTintActionSchema.options,
   ...spiceReserveActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,

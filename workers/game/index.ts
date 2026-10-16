@@ -28,6 +28,7 @@ import {
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
+import { CLIENT_MESSAGE_LIMIT } from '../../src/shared/play/messageLimit';
 import type {
   ClientMessage,
   CommitMessage,
@@ -1375,7 +1376,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     connection: Connection,
     input: string | ArrayBuffer
   ): ClientMessage | undefined {
-    if (typeof input !== 'string' || input.length > 8192) {
+    if (typeof input !== 'string' || input.length > CLIENT_MESSAGE_LIMIT) {
       this.deny(socket);
       return;
     }

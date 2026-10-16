@@ -56,6 +56,8 @@ import {
   projectCarryAtPosition,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
+import { isTerritoryTintAction } from '../../src/shared/play/territoryTints';
+import type { TerritoryTintAction } from '../../src/shared/play/territoryTints';
 import { allianceCommand } from './alliances';
 import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
@@ -66,12 +68,13 @@ import { closeLostPeeks, forgetPeekers, peekCommand } from './peeks';
 import { setupCommand, gatherTraitors } from './setup-progress';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
+import { territoryTintCommand } from './territoryTints';
 
 export type Identity = Viewer;
 /* The session routes the lifecycle families to their own modules; the room applies every other action. */
-type FactionSetting = BiddingAction | LastTurnAction;
+type FactionSetting = BiddingAction | LastTurnAction | TerritoryTintAction;
 function isFactionSetting(action: { kind: string }): action is FactionSetting {
-  return action.kind === 'last-turn' || isBiddingAction(action);
+  return action.kind === 'last-turn' || isBiddingAction(action) || isTerritoryTintAction(action);
 }
 type RoomAction = Exclude<PieceAction, SeatAction | RemovalAction | ResultAction | DraftAction | SwapAction>;
 type Carry = Identity & {
@@ -123,6 +126,11 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'alliance-accept',
   'alliance-decline',
   'last-turn',
+  'tint-create',
+  'tint-paint',
+  'tint-set',
+  'tint-color',
+  'tint-remove',
 ]);
 
 /*
@@ -498,6 +506,11 @@ export class Room {
         'hand-take',
         'hand-play',
         'hand-zone',
+        'tint-create',
+        'tint-paint',
+        'tint-set',
+        'tint-color',
+        'tint-remove',
         'bank-withdraw',
         'bank-collect',
         'spice-spawn',
@@ -512,9 +525,12 @@ export class Room {
     }
   }
 
-  /** The bidder and the last turn: commands any seated faction sends that touch no piece. */
+  /** The bidder, the last turn and the territory tints: commands any seated faction sends that touch no piece. */
   private factionSettingCommand(identity: Identity, action: FactionSetting, now: number): StoredSnapshot {
     const factionId = this.requireFaction(identity);
+    if (isTerritoryTintAction(action)) {
+      return territoryTintCommand(this.snapshot, action);
+    }
     return action.kind === 'last-turn'
       ? lastTurnCommand(this.snapshot, action)
       : biddingCommand(this.snapshot, factionId, action, now);

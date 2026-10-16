@@ -363,6 +363,13 @@ export function arrakisBoard(): Board {
   return structuredClone(arrakis.board) as unknown as Board;
 }
 
+let retained: Board | undefined;
+/** One shared Arrakis board for readers that never change it, so its derived territories are worked out once. */
+export function retainedArrakisBoard(): Board {
+  retained ??= arrakisBoard();
+  return retained;
+}
+
 function nearestBoundary(board: Board, point: Point) {
   let closest: { edge: Edge; t: number; point: Point; distance: number } | undefined;
   for (const edge of board.edges) {
