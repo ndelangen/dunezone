@@ -36,6 +36,7 @@ import {
   MARKER_TOP_RADIUS,
   stackTopHeight,
   visibleLayerCount,
+  BOARD_SURFACE_Y,
 } from '@shared/play/tableGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
@@ -58,16 +59,18 @@ import {
   useSyncExternalStore,
 } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import type { Texture } from 'three';
+import type { Ray, Texture } from 'three';
 import {
   DoubleSide,
   Mesh,
   MeshBasicMaterial,
+  Plane,
   Raycaster,
   RingGeometry,
   SRGBColorSpace,
   TextureLoader,
   Vector2,
+  Vector3,
 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -127,15 +130,19 @@ function usePaintingArea(className: string | undefined) {
 }
 
 /** With the paintbrush on, a click on the map adds the territory under it to the brush's tint, or takes it out. */
+/* The board's face, where a paint click lands whatever piece the pointer passed through first. */
+const BOARD_PLANE = new Plane(new Vector3(0, 1, 0), -BOARD_SURFACE_Y);
+
 function paintTerritory(
   board: GameSnapshot['board'],
   { stage, mapVisible }: Readonly<{ stage: GameSnapshot['stage']; mapVisible?: boolean }>,
-  { x, z }: Readonly<{ x: number; z: number }>
+  ray: Ray
 ) {
   const brush = territoryBrush();
   /* Setup keeps the map off the table until it is shown, and nothing can be painted on a map that is not there. */
   const mapShown = stage !== 'setup' || !!mapVisible;
-  const territory = brush && mapShown && territoryAtTablePoint(board?.definition ?? retainedArrakisBoard(), x, z);
+  const point = brush && mapShown && ray.intersectPlane(BOARD_PLANE, new Vector3());
+  const territory = point && territoryAtTablePoint(board?.definition ?? retainedArrakisBoard(), point.x, point.z);
   if (brush && territory) {
     brush.paint(territory);
   }
@@ -727,13 +734,13 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
   const hasMenu = !carrying && pieceHasMenu(piece);
   const stopLongPress = useRef<(() => void) | null>(null);
   useEffect(() => () => stopLongPress.current?.(), []);
-  /* A piece that leaves the table under a still cursor hears no pointer leave, so its hover would keep the keys aimed at a piece that is gone. */
-  const hovered = useRef(false);
   /* Only a left press handles a piece, and none does while the table blocks it or the paintbrush is on. */
   const ignoresPress = (event: ThreeEvent<PointerEvent>) => {
     const notLeftOrBlocked = event.button !== 0 || interactionBlocked;
     return notLeftOrBlocked || territoryBrush() !== null;
   };
+  /* A piece that leaves the table under a still cursor hears no pointer leave, so its hover would keep the keys aimed at a piece that is gone. */
+  const hovered = useRef(false);
   useEffect(
     () => () => {
       if (hovered.current) {
@@ -1137,7 +1144,11 @@ function SceneContents({
       )}
       <group
         onClick={(event) => {
-          paintTerritory(board, { stage, mapVisible }, event.point);
+          /* A click reaches here once for each mesh the pointer passed through; the paintbrush handles it once, on the board's face. */
+          if (territoryBrush()) {
+            event.stopPropagation();
+            paintTerritory(board, { stage, mapVisible }, event.ray);
+          }
           selectPiece(null);
         }}
       >
