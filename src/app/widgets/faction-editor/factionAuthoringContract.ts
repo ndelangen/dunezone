@@ -1,4 +1,5 @@
 import { phaseDeclarationProblems } from '@shared/factions/extraPhases';
+import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 
 import type { Faction } from '@db/factions';
 
@@ -139,7 +140,15 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
     warnings.push(warning('rules.revivalText', 'rules', 'Rules', 'revival instructions', 'rules-revival'));
   }
   if (isBlank(faction.rules.fate.text)) {
-    warnings.push(warning('rules.fate.text', 'rules', 'Rules', 'fate text', 'rules-fate-text'));
+    warnings.push(
+      warning(
+        'rules.fate.text',
+        'rules',
+        'Rules',
+        `${factionSpecialRuleLabel(faction.rules.fate.label)} text`,
+        'rules-fate-text'
+      )
+    );
   }
   faction.rules.advantages.forEach((advantage, index) => {
     if (isBlank(advantage.text)) {
@@ -271,10 +280,20 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
     state: 'control',
     chapter: 'worlds',
   }),
-  ...coverage(['rules.startText', 'rules.revivalText', 'rules.spiceCount', 'rules.fate.title', 'rules.fate.text'], {
-    state: 'control',
-    chapter: 'rules',
-  }),
+  ...coverage(
+    [
+      'rules.startText',
+      'rules.revivalText',
+      'rules.spiceCount',
+      'rules.fate.label',
+      'rules.fate.title',
+      'rules.fate.text',
+    ],
+    {
+      state: 'control',
+      chapter: 'rules',
+    }
+  ),
   ...coverage(['rules.advantages[].title', 'rules.advantages[].text', 'rules.advantages[].karama'], {
     state: 'control',
     chapter: 'advantages',

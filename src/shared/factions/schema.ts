@@ -6,6 +6,7 @@ import { slugify } from '../slugify';
 import { extraPhasesSchema } from './extraPhases';
 import { factionExtrasSchema, storedFactionExtrasSchema } from './extras';
 import { assertUniqueFactionMemberIds, FactionMemberIdSchema } from './memberIdentity';
+import { factionSpecialRuleLabelSchema } from './specialRule';
 import { assertUniqueFactionTroopIds, FactionTroopIdSchema } from './troopIdentity';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
@@ -22,6 +23,8 @@ const RULE = z.strictObject({
   text: z.string(),
   karama: z.string().optional(),
 });
+
+const specialRuleLabelShape = { label: factionSpecialRuleLabelSchema.optional() };
 
 const Leader = z.strictObject({
   memberId: FactionMemberIdSchema.optional(),
@@ -249,7 +252,7 @@ const factionBaseShape = {
     revivalText: z.string(),
     spiceCount: z.number().int().positive(),
     advantages: z.array(RULE),
-    fate: RULE.omit({ karama: true }),
+    fate: RULE.omit({ karama: true }).extend(specialRuleLabelShape),
     alliance: RULE.omit({ karama: true, title: true }).required(),
   }),
 
@@ -303,7 +306,7 @@ const factionAuthoringShape = {
     revivalText: marksOnlyFormattedTextSchema,
     spiceCount: z.number().int().positive(),
     advantages: z.array(AuthoringRule),
-    fate: AuthoringRule.omit({ karama: true }),
+    fate: AuthoringRule.omit({ karama: true }).extend(specialRuleLabelShape),
     alliance: AuthoringRule.omit({ karama: true, title: true }).required(),
   }),
   extras: factionExtrasSchema.optional(),

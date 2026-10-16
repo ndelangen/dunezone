@@ -1,4 +1,5 @@
 import { Accordion, Box, Stack, Text, Title } from '@mantine/core';
+import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import type { PublicFaction } from '@shared/play/capture';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -12,7 +13,7 @@ type Faction = Readonly<{ faction: PublicFaction }>;
 /**
  * What a faction starts the game with, as the game captured it from its page.
  * The leaders stay in view.
- * Advantages, alliance, fate and setup fold open on demand.
+ * Advantages, alliance, the special rule and setup fold open on demand.
  */
 export function FactionDetails({ faction }: Faction) {
   return (
@@ -32,10 +33,17 @@ export function FactionDetails({ faction }: Faction) {
           </Accordion.Panel>
         </Accordion.Item>
         <Accordion.Item value="fate">
-          <Accordion.Control icon={<TopicIcon topic="fate" size={18} />}>
-            {faction.rules.fate.title || 'Fate'}
+          <Accordion.Control
+            icon={<TopicIcon topic={faction.rules.fate.label === 'fate' ? 'fate' : 'karama'} size={18} />}
+          >
+            {factionSpecialRuleLabel(faction.rules.fate.label)}
           </Accordion.Control>
           <Accordion.Panel>
+            {faction.rules.fate.title ? (
+              <Text size="sm" fw={700}>
+                {faction.rules.fate.title}
+              </Text>
+            ) : null}
             <FormattedTextSource source={faction.rules.fate.text} size="sm" />
           </Accordion.Panel>
         </Accordion.Item>

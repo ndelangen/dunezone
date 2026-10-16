@@ -1,5 +1,6 @@
 import { Alert, Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
+import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
 import type { TroopFaceBattleValues } from '@shared/factions/troopBattle';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
@@ -575,7 +576,15 @@ function FactionDetailContent({
                 <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">
                   <FormattedTextSource source={data.rules.alliance.text} size="sm" />
                 </Card>
-                <Card icon={<TopicIcon topic="fate" size={20} />} title={data.rules.fate.title || 'Fate'}>
+                <Card
+                  icon={<TopicIcon topic={data.rules.fate.label === 'fate' ? 'fate' : 'karama'} size={20} />}
+                  title={factionSpecialRuleLabel(data.rules.fate.label)}
+                >
+                  {data.rules.fate.title ? (
+                    <Text size="sm" fw={700}>
+                      {data.rules.fate.title}
+                    </Text>
+                  ) : null}
                   <FormattedTextSource source={data.rules.fate.text} size="sm" />
                 </Card>
               </SimpleGrid>

@@ -46,8 +46,7 @@ const defaultFactionInput = {
       text: 'Alliance rules text.',
     },
     fate: {
-      title: 'Fate',
-      text: 'Fate rules text.',
+      text: 'Special rule text.',
     },
   },
 } satisfies Omit<Faction, 'complexity'>;

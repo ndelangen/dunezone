@@ -1,4 +1,5 @@
 import type { FactionRender } from '@shared/factions/schema';
+import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import type { z } from 'zod';
 
 import { CAPTURE_PROTOCOL } from '../../../../shared/asset-publishing/capture-protocol';
@@ -85,7 +86,7 @@ export function FactionSheetPage1(props: SheetProps) {
             <FormattedText value={props.rules.alliance.text} />
           </div>
         </div>
-        <div className={styles.subtitle}>Fate</div>
+        <div className={styles.subtitle}>{factionSpecialRuleLabel(props.rules.fate.label)}</div>
         <div className={styles.rule}>
           {props.rules.fate.title && <div className={styles.head}>{props.rules.fate.title}</div>}
           <div className={styles.text}>
