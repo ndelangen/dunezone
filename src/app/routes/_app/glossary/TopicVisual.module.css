@@ -376,17 +376,3 @@
 [data-demonstrating] .bribeSpice {
   animation: pass 2.4s ease-in-out infinite;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .piece,
-  .phase,
-  .faction,
-  .face {
-    transition: none;
-  }
-
-  [data-demonstrating] .arriving > *,
-  [data-demonstrating] .bribeSpice {
-    animation: none;
-  }
-}
