@@ -166,7 +166,6 @@ async function readyArtifact(
 /**
  * The private key of one ready artifact of a live Rulebook, or null.
  * Without an Edition number it answers the newest ready Edition.
- * Only the HTML resolve body may leave the number out.
  */
 export const resolve = internalQuery({
   args: {

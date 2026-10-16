@@ -38,8 +38,8 @@ type Props = {
   /** Whether the image wears a raised frame's shadow, which arrives with it rather than ahead of it. */
   raised?: boolean;
   /**
-   * Whether this is the page's main image, which is written into the server-rendered HTML and fetched first.
-   * It is then the page's largest paint without waiting for scripts, and what image search finds on the page.
+   * Whether this is the page's main image, which is written into the server-rendered HTML, fetched first and shown as it lands, with no arrival.
+   * It then paints without waiting for scripts, and is what image search finds on the page.
    */
   priority?: boolean;
 };
@@ -116,9 +116,9 @@ function initialState(src: string | null, priority: boolean): State {
   if (src === null) {
     return { ...base, phase: 'missing' };
   }
-  /* The server writes a main image's src, so the client's first render must hold it too. */
+  /* The server writes a main image's src and shows it, so the client's first render must hold the same. */
   if (priority) {
-    return { ...base, phase: 'loading', fetching: true };
+    return { ...base, phase: 'shown', arrival: 'instant', fetching: true };
   }
   /* An image decoded before fetches at once, and is shown before the first paint if the browser still holds it. */
   if (wasDecoded(src)) {
@@ -179,18 +179,20 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
 
   /*
    * An image the browser already holds is complete the moment it gets its src, so it is shown before the first paint.
-   * A server-rendered one may have loaded or failed before hydration, whose events nothing heard, so it is settled here too.
+   * A server-rendered main image may have failed before hydration, whose error event nothing heard, so that is settled here too.
    */
   useLayoutEffect(() => {
     const img = imgRef.current;
-    if (!fetching || phase !== 'loading' || !src || !img?.complete) {
+    if (!fetching || !src || !img?.complete) {
       return;
     }
-    if (img.naturalWidth > 0) {
+    if (img.naturalWidth === 0) {
+      if (phase === 'loading' || phase === 'shown') {
+        dispatch({ type: 'failed' });
+      }
+    } else if (phase === 'loading') {
       markDecoded(src);
       dispatch({ type: 'decoded' });
-    } else {
-      dispatch({ type: 'failed' });
     }
   }, [fetching, phase, src]);
 

@@ -24,8 +24,8 @@ export const sitemapPageSchema = z.object({
       z.object({
         pathname: z.string().max(2048),
         lastmod: z.string().nullable(),
-        /** The generated images the page shows, by the same paths its `<img>` elements use. */
-        images: z.array(z.string().max(2048)).max(2).optional(),
+        /** The generated image the page shows as its own, by the same href its `<img>` uses. */
+        image: z.string().max(2048).optional(),
       })
     )
     .max(SITEMAP_PAGE_SIZE),

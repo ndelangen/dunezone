@@ -274,7 +274,7 @@ export function AssetFace({
    * Empty draws the container alone, which is also what a bundle nobody has filled draws.
    */
   members?: AssetFaceMember[];
-  /** Whether this face is its page's main image, as `PublishedImage` means it. A bundle's container is drawn, so only its members' images could be. */
+  /** Whether this face is its page's main image, as `PublishedImage` means it. A bundle ignores it, as it ignores `href`. */
   priority?: boolean;
 }) {
   if (type !== 'bundle') {

@@ -1,11 +1,6 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 import type { PaginationResult } from 'convex/server';
 
-import {
-  isPublicationAssetType,
-  publicationFaceId,
-  publishedHref,
-} from '../src/shared/asset-publishing/publicationTargets';
 import type { AssetType } from '../src/shared/assets/types';
 import {
   sitemapArgsSchema,
@@ -18,7 +13,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
 import { publicQuery } from './functions';
 import { isPublicProfile } from './lib/accountLifecycle';
-import { authoredDeckCardback, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
+import { ownPublishedFace } from './lib/assetBacks';
 import { liveGroupOrNull } from './lib/collaborativeAccess';
 
 type Entry = SitemapPage['entries'][number];
@@ -70,20 +65,6 @@ function liveRulesetSlugs(ctx: QueryCtx) {
 /** A record whose page lives at `/<prefix>/<slug>` and whose last edit is its `updated_at`. */
 const at = (prefix: string[]) => (row: { slug?: string; updated_at?: string }) =>
   entry(prefix, row.slug, row.updated_at);
-
-/**
- * The generated images an Asset's page draws as its own, by the hrefs the page uses, so image search ties each to its page.
- * A bundle publishes nothing, and a deck wearing a preset or another deck's cardback shows an image that is not its own.
- */
-function assetImages(row: Doc<'assets'>): string[] {
-  if (!isPublicationAssetType(row.type) || (row.type === 'deck' && !authoredDeckCardback(row))) {
-    return [];
-  }
-  const front = publishedHref(row.type, row._id, row.updated_at);
-  return TOKEN_ASSET_TYPES.has(row.type) && tokenBackOf(row.data)?.mode === 'custom'
-    ? [front, publishedHref(row.type, publicationFaceId(row._id, 'back'), row.updated_at)]
-    : [front];
-}
 
 /** Only public URL identity leaves the database; owners, content and publication state stay here. */
 export const page = publicQuery({
@@ -139,10 +120,12 @@ export const page = publicQuery({
     const rows = ctx.db
       .query('assets')
       .withIndex('by_type_deleted', (q) => q.eq('type', collection).eq('is_deleted', false));
+    const assetEntry = at(['assets', collection]);
+    /* The page's own face rides along, so image search ties the generated image to the page that shows it. */
     return await listed(await rows.paginate(pagination), (row) => {
-      const found = at(['assets', collection])(row);
-      const images = assetImages(row);
-      return found && images.length ? { ...found, images } : found;
+      const found = assetEntry(row);
+      const image = ownPublishedFace(row);
+      return found && image ? { ...found, image } : found;
     });
   },
 });

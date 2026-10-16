@@ -121,11 +121,14 @@ describe('PublishedImage retries a failed publication', () => {
 });
 
 describe("PublishedImage as a page's main image", () => {
-  test('writes its src into the server HTML, fetched first, and only then', () => {
+  test('writes its src into the server HTML, fetched first and shown, and only then', () => {
     const main = renderToString(<PublishedImage src="/published/atreides.jpg" name="Atreides" aspect={1} priority />);
     expect(main).toContain('src="/published/atreides.jpg"');
     expect(main).toContain('alt="Atreides"');
     expect(main).toContain('fetchPriority="high"');
+    /* Shown as it lands, so the page paints it before scripts run. */
+    expect(main).toContain('data-phase="shown"');
+    expect(main).toContain('data-arrival="instant"');
     expect(renderToString(<PublishedImage src="/published/atreides.jpg" name="Atreides" aspect={1} />)).not.toContain(
       '<img'
     );

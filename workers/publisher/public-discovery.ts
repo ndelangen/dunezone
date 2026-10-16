@@ -53,13 +53,10 @@ function loadFromConvex(env: Pick<Env, 'CONVEX_CLOUD_BASE_URL'>): LoadPage {
 }
 
 function urlElement(entry: SitemapPage['entries'][number]): string {
-  const images = (entry.images ?? [])
-    .map(
-      (image) =>
-        `<image:image><image:loc>${escapeXml(new URL(image, PUBLIC_SITE_ORIGIN).href)}</image:loc></image:image>`
-    )
-    .join('');
-  return `<url>${location(entry.pathname)}${entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : ''}${images}</url>`;
+  const image = entry.image
+    ? `<image:image><image:loc>${escapeXml(new URL(entry.image, PUBLIC_SITE_ORIGIN).href)}</image:loc></image:image>`
+    : '';
+  return `<url>${location(entry.pathname)}${entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : ''}${image}</url>`;
 }
 
 function assertCapacity(count: number, bytes: number): void {
