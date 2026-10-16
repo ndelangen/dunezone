@@ -19,6 +19,7 @@ import {
   TINT_COLORS,
   TINT_STAMPS,
   tintSetting,
+  withFillOpacity,
 } from '@shared/play/territoryTints';
 import type { TerritoryTint, TerritoryTintAction, TintStamp } from '@shared/play/territoryTints';
 import { Section } from '@ui/block/Section';
@@ -167,7 +168,7 @@ function TintColor({
   enabled,
   onColor,
 }: Readonly<{ tint: TerritoryTint; enabled: boolean; onColor: (color: string) => void }>) {
-  const [draft, setDraft] = useState(tint.color);
+  const [draft, setDraft] = useState(withFillOpacity(tint.color));
   const [opened, setOpened] = useState(false);
   const label = `Colour of ${tint.name}`;
   return (
@@ -182,7 +183,7 @@ function TintColor({
             aria-label={label}
             disabled={!enabled}
             onClick={() => {
-              setDraft(tint.color);
+              setDraft(withFillOpacity(tint.color));
               setOpened((open) => !open);
             }}
             style={{ cursor: enabled ? 'pointer' : 'default', flexShrink: 0 }}
@@ -191,14 +192,14 @@ function TintColor({
       </Popover.Target>
       <Popover.Dropdown aria-label={label}>
         <ColorPicker
-          format="hex"
+          format="hexa"
           value={draft}
-          swatches={[...TINT_COLORS]}
+          swatches={TINT_COLORS.map(withFillOpacity)}
           swatchesPerRow={TINT_COLORS.length}
           onChange={setDraft}
           onChangeEnd={(color) => {
             const hex = color.toLowerCase();
-            if (hex !== tint.color) {
+            if (hex !== withFillOpacity(tint.color)) {
               onColor(hex);
             }
           }}

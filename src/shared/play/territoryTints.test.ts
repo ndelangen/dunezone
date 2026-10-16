@@ -1,6 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
-import { fitsTintCommand, territoryTintActionSchema } from './territoryTints';
+import { fitsTintCommand, territoryTintActionSchema, tintPaint } from './territoryTints';
 
 const tintId = 'tint-6f1c1d2e-9a7b-4c3d-8e5f-0a1b2c3d4e5f';
 
@@ -22,10 +22,15 @@ test('a preset too long for one message does not fit', () => {
   ).toBe(false);
 });
 
-test('a tint colour must be a six-digit hex colour', () => {
+test('a tint colour is a hex colour, optionally with its fill opacity', () => {
   expect(territoryTintActionSchema.safeParse({ kind: 'tint-color', tintId: 'tint-a', color: '#7a3e9d' }).success).toBe(
     true
   );
+  expect(
+    territoryTintActionSchema.safeParse({ kind: 'tint-color', tintId: 'tint-a', color: '#7a3e9d33' }).success
+  ).toBe(true);
+  expect(tintPaint('#7a3e9d33')).toEqual({ color: '#7a3e9d', opacity: 0.2 });
+  expect(tintPaint('#7a3e9d')).toEqual({ color: '#7a3e9d', opacity: 0.5 });
   expect(territoryTintActionSchema.safeParse({ kind: 'tint-color', tintId: 'tint-a', color: 'red' }).success).toBe(
     false
   );

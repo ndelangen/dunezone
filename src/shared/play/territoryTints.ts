@@ -17,6 +17,20 @@ export const TINT_COLOR_NAMES: Record<(typeof TINT_COLORS)[number], string> = {
   '#f2f2f2': 'White',
   '#1b1b1b': 'Black',
 };
+/* A tint's fill shows the board through it; a colour may carry its own see-through amount as two more hex digits. */
+const DEFAULT_FILL_OPACITY = 0.5;
+
+/** A tint colour split into its solid colour and how opaque its fill is. */
+export function tintPaint(color: string) {
+  const alpha = color.slice(7, 9);
+  return { color: color.slice(0, 7), opacity: alpha ? Number.parseInt(alpha, 16) / 255 : DEFAULT_FILL_OPACITY };
+}
+
+/** A tint colour written with its fill opacity, as the colour picker shows it. */
+export function withFillOpacity(color: string) {
+  return color.length === 7 ? `${color}80` : color;
+}
+
 /** Stickers a tint may put on each of its territories, in the order they sit side by side. */
 export const TINT_STAMPS = [
   'sietch',
@@ -46,7 +60,7 @@ const territorySchema = z
   .regex(/^[a-z0-9_]+$/)
   .max(128);
 const nameSchema = z.string().trim().min(1).max(48);
-const colorSchema = z.string().regex(/^#[0-9a-f]{6}$/);
+const colorSchema = z.string().regex(/^#[0-9a-f]{6}([0-9a-f]{2})?$/);
 const stampsSchema = z.array(z.enum(TINT_STAMPS)).max(TINT_STAMPS.length);
 
 const tintSchema = z.strictObject({

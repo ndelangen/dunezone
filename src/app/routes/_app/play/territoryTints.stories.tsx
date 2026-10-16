@@ -156,9 +156,9 @@ export const Settings = meta.story({
     await waitFor(() => expect(city).toHaveAttribute('aria-pressed', 'true'), { timeout: 10_000 });
     await userEvent.keyboard('{Escape}');
     await userEvent.click(await page.findByRole('button', { name: 'Colour of Shield Wall destroyed' }));
-    await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole('button', { name: '#9450d0' }));
+    await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole('button', { name: '#9450d080' }));
     await waitFor(() =>
-      expect(lastCommand()?.action).toEqual({ kind: 'tint-color', tintId: 'tint-shield', color: '#9450d0' })
+      expect(lastCommand()?.action).toEqual({ kind: 'tint-color', tintId: 'tint-shield', color: '#9450d080' })
     );
   },
 });

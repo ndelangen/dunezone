@@ -5,6 +5,7 @@ import { territoryId } from '@shared/boards/schema';
 import { boardTerritories, boardTerritoryAt } from '@shared/boards/territories';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { TerritoryTint, TintStamp } from '@shared/play/territoryTints';
+import { tintPaint } from '@shared/play/territoryTints';
 import { useEffect, useMemo } from 'react';
 import { BufferAttribute, BufferGeometry, DoubleSide, ShapeGeometry, ShapeUtils, Vector2 } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
@@ -12,7 +13,8 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 import { ignoreRaycast } from './ignoreRaycast';
 import { placeStickers } from './stickerPlacement';
-import { outerSegments } from './tintOutline';
+import type { OutlinePath } from './tintOutline';
+import { offsetPath, outerSegments, outlinePaths } from './tintOutline';
 import { TINT_STICKERS } from './tintStickers';
 
 /* Board drawing units run across the board's circle; the table's board disc is BOARD_RADIUS wide. */
@@ -65,37 +67,27 @@ const TINT_ORDER = { fill: -2.8, line: -2.6, stickerOutline: -2.4, stickerInk: -
 const DOUBLE_LINE_WIDTH = 0.012;
 const DOUBLE_LINE_GAP = 0.012;
 
-/** A flat strip along one segment, between two distances to its left, a little past both ends so neighbouring strips meet. */
-function stripAlong(
-  positions: number[],
-  [ax, az]: [number, number],
-  [bx, bz]: [number, number],
-  near: number,
-  far: number
-) {
-  const length = Math.hypot(bx - ax, bz - az) || 1;
-  const [ux, uz] = [(bx - ax) / length, (bz - az) / length];
-  const reach = DOUBLE_LINE_WIDTH / 2;
-  const [sx, sz, ex, ez] = [ax - ux * reach, az - uz * reach, bx + ux * reach, bz + uz * reach];
-  const corners = [
-    [sx - uz * near, sz + ux * near],
-    [sx - uz * far, sz + ux * far],
-    [ex - uz * far, ez + ux * far],
-    [ex - uz * near, ez + ux * near],
-  ];
-  for (const index of [0, 1, 2, 0, 2, 3]) {
-    positions.push(corners[index][0], 0, corners[index][1]);
+/** A flat band between two sideways distances from a line, in quads from one corner to the next. */
+function bandAlong(positions: number[], path: OutlinePath, near: number, far: number) {
+  const [inner, outer] = [offsetPath(path, near), offsetPath(path, far)];
+  const corners = path.closed ? inner.length : inner.length - 1;
+  for (let i = 0; i < corners; i++) {
+    const j = (i + 1) % inner.length;
+    const quad = [inner[i], outer[i], outer[j], inner[j]];
+    for (const index of [0, 1, 2, 0, 2, 3]) {
+      positions.push(quad[index][0], 0, quad[index][1]);
+    }
   }
 }
 
-/** Two strips along each segment, one either side of it, so the outline reads as a double line. */
+/** Two bands along each line, one either side of it, so the outline reads as a double line. */
 function doubleLineGeometry(segments: readonly (readonly [Readonly<Point>, Readonly<Point>])[]) {
   const [inner, outer] = [DOUBLE_LINE_GAP / 2, DOUBLE_LINE_GAP / 2 + DOUBLE_LINE_WIDTH];
   const positions: number[] = [];
-  for (const [from, to] of segments) {
-    const [a, b] = [toTable(from), toTable(to)];
-    stripAlong(positions, a, b, inner, outer);
-    stripAlong(positions, a, b, -inner, -outer);
+  for (const { points, closed } of outlinePaths(segments)) {
+    const path = { points: points.map(toTable), closed };
+    bandAlong(positions, path, inner, outer);
+    bandAlong(positions, path, -inner, -outer);
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
@@ -114,7 +106,7 @@ function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: rea
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
     <mesh geometry={geometry} raycast={ignoreRaycast} renderOrder={TINT_ORDER.line}>
-      <meshBasicMaterial color={tint.color} transparent depthWrite={false} side={DoubleSide} />
+      <meshBasicMaterial color={tintPaint(tint.color).color} transparent depthWrite={false} side={DoubleSide} />
     </mesh>
   );
 }
@@ -208,15 +200,22 @@ function TintedTerritory({
   face,
   shapes,
 }: Readonly<{ tint: TerritoryTint; face: Face; shapes: { fill: BufferGeometry; line: BufferGeometry } }>) {
+  const paint = tintPaint(tint.color);
   return (
     <>
       {!tint.outline && (
         <>
           <mesh geometry={shapes.fill} raycast={ignoreRaycast} renderOrder={TINT_ORDER.fill}>
-            <meshBasicMaterial color={tint.color} transparent opacity={0.5} depthWrite={false} side={DoubleSide} />
+            <meshBasicMaterial
+              color={paint.color}
+              transparent
+              opacity={paint.opacity}
+              depthWrite={false}
+              side={DoubleSide}
+            />
           </mesh>
           <lineSegments geometry={shapes.line} raycast={ignoreRaycast} renderOrder={TINT_ORDER.line}>
-            <lineBasicMaterial color={tint.color} transparent opacity={0.95} depthWrite={false} />
+            <lineBasicMaterial color={paint.color} transparent opacity={0.95} depthWrite={false} />
           </lineSegments>
         </>
       )}
