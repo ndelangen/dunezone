@@ -16,7 +16,12 @@ export function BlogByline({ date, author, tone = 'accent' }: BlogBylineProps) {
     <Group gap="xs">
       <Eyebrow tone={tone}>{formatStableDate(date)}</Eyebrow>
       {author.profileSlug ? (
-        <ProfileLink slug={author.profileSlug} name={author.name} image={author.image} />
+        <ProfileLink
+          slug={author.profileSlug}
+          name={author.name}
+          image={author.image}
+          tone={tone === 'inverse' ? 'inverse' : 'default'}
+        />
       ) : (
         <Eyebrow tone={tone}>{author.name}</Eyebrow>
       )}
