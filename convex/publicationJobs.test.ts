@@ -521,8 +521,8 @@ describe('Publication regeneration and administration', () => {
 });
 
 describe('Publication pickup read budget', () => {
-  test('a queue of large jobs is picked up within a bounded read, not until the transaction limit throws', async () => {
-    const t = convexTest(schema, modules);
+  async function largeJobs(jobs: Array<{ status: 'pending' | 'in_progress'; assetId: string; createdAt: number }>) {
+    const t = convexTest({ schema, modules, transactionLimits: true });
     await t.run(async (ctx) => {
       await ctx.db.insert('admin_settings', {
         key: 'publication',
@@ -530,21 +530,56 @@ describe('Publication pickup read budget', () => {
         renderer_revisions: {},
         updated_at: Date.now(),
       });
-      /* Board jobs carry their whole definition; 40 of these are 16 MB, past what one transaction may read. */
-      for (let index = 0; index < 40; index += 1) {
+    });
+    /* Board jobs carry their whole definition, so a few dozen of these pass what one transaction may read. */
+    for (const job of jobs) {
+      await t.run(async (ctx) => {
         await ctx.db.insert('publication_jobs', {
           asset_type: 'board',
-          asset_id: `board-${index}`,
-          asset_data: { padding: 'x'.repeat(400_000) },
-          status: 'pending',
+          asset_id: job.assetId,
+          asset_data: { padding: 'x'.repeat(900_000) },
+          status: job.status,
           attempt_counter: 0,
-          created_at: index,
-          updated_at: index,
+          ...(job.status === 'in_progress' ? { expires_at: 1 } : {}),
+          created_at: job.createdAt,
+          updated_at: job.createdAt,
         });
-      }
-    });
+      });
+    }
+    return t;
+  }
+
+  test('a queue of large pending jobs is picked up within the read limit', async () => {
+    const t = await largeJobs(
+      Array.from({ length: 40 }, (_, index) => ({
+        status: 'pending' as const,
+        assetId: `board-${index}`,
+        createdAt: index,
+      }))
+    );
     const assignment = await t.mutation(internal.publicationJobs.takeWork, {});
     expect(assignment.items.length).toBeGreaterThan(0);
-    expect(assignment.items.length).toBeLessThan(10);
+  });
+
+  test('large expired captures with pending successors are recovered within the read limit', async () => {
+    const t = await largeJobs(
+      Array.from({ length: 20 }, (_, index) => [
+        { status: 'in_progress' as const, assetId: `board-${index}`, createdAt: index },
+        { status: 'pending' as const, assetId: `board-${index}`, createdAt: 100 + index },
+      ]).flat()
+    );
+    const first = await t.mutation(internal.publicationJobs.takeWork, {});
+    expect(first.recovered).toBeGreaterThan(0);
+    /* Later calls finish the recovery the first one left for want of headroom. */
+    for (let call = 0; call < 20; call += 1) {
+      await t.mutation(internal.publicationJobs.takeWork, {});
+    }
+    const left = await t.run(async (ctx) =>
+      ctx.db
+        .query('publication_jobs')
+        .withIndex('by_status_and_expires_at', (q) => q.eq('status', 'in_progress').lte('expires_at', 1))
+        .collect()
+    );
+    expect(left).toEqual([]);
   });
 });

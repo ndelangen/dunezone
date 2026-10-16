@@ -71,7 +71,7 @@ async function scanAssets(ctx: MutationCtx, assetType: string, cursor: string | 
   for (const asset of page.page) {
     /*
      * One row its type's schema no longer accepts must not take the scan down with it, as with the rulebook scan below.
-     * The enqueue parses before it writes, so a refused row leaves nothing behind.
+     * The enqueue parses before it writes, except that a token's front face is queued before its back is parsed, and that front job is valid on its own.
      */
     try {
       await enqueueAssetPublication(ctx, asset);

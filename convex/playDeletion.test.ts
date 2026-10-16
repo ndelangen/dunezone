@@ -7,7 +7,7 @@ import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
-import { PLAY_FIXTURE_KEY, PLAY_PROVISION_TIMEOUT_MS } from '../src/shared/play/admission';
+import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import schema from './schema';
@@ -80,7 +80,7 @@ async function fixture() {
   return { ...created, registrationId: admitted.registrationId };
 }
 
-async function startDeletion(subject: Awaited<ReturnType<typeof createdGame>>) {
+async function startDeletion(subject: Awaited<ReturnType<typeof fixture>>) {
   const { operationId } = await subject.player.mutation(api.accountDeletion.confirm, { replacementUserId: null });
   await subject.t.mutation(internal.playDeletion.queueAccountDeletion, {
     operationId,
@@ -106,63 +106,22 @@ afterEach(() => {
 });
 
 describe('Play account deletion', () => {
-  test('a creator who has not entered yet is routed, so reconciliation keeps their seat and deletion reaches the game', async () => {
+  test('a creator who has not entered yet keeps their seat through reconciliation until they delete their account', async () => {
     const subject = await createdGame();
-    expect(
+    const reconcile = async () =>
       await subject.t.query(api.playAdmission.reconcileAccounts, {
         gameId: subject.game._id,
         secret: subject.game.secret,
         userIds: [subject.userId],
-      })
-    ).toEqual({ ok: true, accounts: [{ userId: subject.userId, state: 'active', deletionOperationId: null }] });
-    const { event } = await startDeletion(subject);
-    expect(event).toMatchObject({ game_id: subject.game._id, user_id: subject.userId });
-  });
-
-  test('a game that is never ready drops its creator routing and settles their deletion when it expires', async () => {
-    const t = (await createdGame()).t;
-    const { userId, sessionId } = await t.run(async (ctx) => {
-      const userId = await ctx.db.insert('users', { account_state: 'active' });
-      const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 3_600_000 });
-      await ctx.db.insert('profiles', {
-        user_id: userId,
-        username: 'Unlucky creator',
-        avatar_url: null,
-        account_state: 'active',
-        slug: 'unlucky-creator',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
-      return { userId, sessionId };
+    expect(await reconcile()).toEqual({
+      ok: true,
+      accounts: [{ userId: subject.userId, state: 'active', deletionOperationId: null }],
     });
-    const { gameId } = await t.run(async (ctx) => {
-      const ruleset = await ctx.db.query('rulesets').first();
-      return await insertPendingGame(ctx, { ruleset_id: ruleset!._id, minimum_players: 4, creator_id: userId });
-    });
-    const { operationId } = await t
-      .withIdentity({ subject: `${userId}|${sessionId}` })
-      .mutation(api.accountDeletion.confirm, { replacementUserId: null });
-    await t.mutation(internal.playDeletion.queueAccountDeletion, {
-      operationId,
-      paginationOpts: { cursor: null, numItems: 32 },
-    });
-    vi.advanceTimersByTime(PLAY_PROVISION_TIMEOUT_MS);
-    await t.mutation(internal.playProvisioning.expireProvisioning, { gameId });
-    await t.run(async (ctx) => {
-      expect(
-        await ctx.db
-          .query('play_game_accounts')
-          .withIndex('by_game_id_user_id', (q) => q.eq('game_id', gameId))
-          .collect()
-      ).toEqual([]);
-      expect(
-        (
-          await ctx.db
-            .query('play_account_deletions')
-            .withIndex('by_game_id_operation_id', (q) => q.eq('game_id', gameId))
-            .collect()
-        ).map((event) => event.state)
-      ).toEqual(['acknowledged']);
+    const { operationId } = await subject.player.mutation(api.accountDeletion.confirm, { replacementUserId: null });
+    expect(await reconcile()).toEqual({
+      ok: true,
+      accounts: [{ userId: subject.userId, state: 'deletion_pending', deletionOperationId: operationId }],
     });
   });
 

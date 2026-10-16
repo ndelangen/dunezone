@@ -36,17 +36,6 @@ export async function insertPendingGame(
     provision_expires_at: expiresAt,
     created_at: Date.now(),
   });
-  /*
-   * The Worker seats the creator when it provisions the game, before any ticket of theirs is redeemed.
-   * Without a routing row, reconciliation would answer `unknown` for them and the Worker would unseat them at the first other admission.
-   */
-  if (gameFields.creator_id) {
-    await ctx.db.insert('play_game_accounts', {
-      game_id: gameId,
-      user_id: gameFields.creator_id,
-      actor_user_ids: [gameFields.creator_id],
-    });
-  }
   await ctx.scheduler.runAt(expiresAt, internal.playProvisioning.expireProvisioning, { gameId });
   return { gameId, secret, attemptId, expiresAt };
 }

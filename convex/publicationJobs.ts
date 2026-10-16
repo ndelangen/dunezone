@@ -47,10 +47,10 @@ function renderPayloadHash(job: Doc<'publication_jobs'>, payload: unknown) {
 /* How many pending jobs one pickup reads past held ones to fill its batch. */
 const PUBLICATION_PICKUP_SCAN = PUBLICATION_MAX_PICKUP * 5;
 /*
- * Bounds the bytes of that scan. A board job carries its whole board definition (hundreds of KB), and each scanned job is read again with its siblings,
- * so a scan of large jobs counted only in rows would pass the transaction's read limit and stall pickup and expiry recovery together.
+ * What one more job may still read: itself, its siblings and its parent checks.
+ * A board job carries its whole board definition (hundreds of KB), so recovery and pickup counted only in rows could pass the transaction's read limit, and every retry would then roll back without recovering or assigning anything.
  */
-const PUBLICATION_PICKUP_SCAN_BYTES = 3_000_000;
+const PUBLICATION_JOB_READ_RESERVE_BYTES = 5_000_000;
 
 const publicationJobResult = v.object({
   jobId: v.id('publication_jobs'),
@@ -112,40 +112,42 @@ export const takeWork = internalMutation({
     const settings = await publicationSettings(ctx);
     const pickupEnabled = settings?.publication_pickup_enabled ?? false;
 
-    const expired = await ctx.db
+    const hasReadHeadroom = async () =>
+      (await ctx.meta.getTransactionMetrics()).bytesRead.remaining > PUBLICATION_JOB_READ_RESERVE_BYTES;
+
+    let recovered = 0;
+    for await (const job of ctx.db
       .query('publication_jobs')
       .withIndex('by_status_and_expires_at', (q) => q.eq('status', 'in_progress').lte('expires_at', now))
       /* Newest lease first, so of two overlapping captures the later one is recovered before the earlier is weighed against it. */
-      .order('desc')
-      .take(PUBLICATION_MAX_PICKUP);
-    for (const job of expired) {
+      .order('desc')) {
+      if (recovered >= PUBLICATION_MAX_PICKUP || !(await hasReadHeadroom())) {
+        break;
+      }
       await recordFailure(ctx, job, 'Capture expired before completion', now);
+      recovered += 1;
     }
 
     if (!pickupEnabled) {
       return {
         status: 'empty' as const,
         reason: 'disabled' as const,
-        recovered: expired.length,
+        recovered,
         items: [],
       };
     }
 
     /* Held jobs, such as successors waiting on their asset's capture, are read past rather than filling the batch, up to a bounded scan. */
-    const { page: pending } = await ctx.db
-      .query('publication_jobs')
-      .withIndex('by_status_and_created_at', (q) => q.eq('status', 'pending'))
-      .paginate({
-        cursor: null,
-        numItems: PUBLICATION_PICKUP_SCAN,
-        maximumBytesRead: PUBLICATION_PICKUP_SCAN_BYTES,
-      });
     const expiresAt = now + PUBLICATION_JOB_EXPIRY_MS;
     const items = [];
-    for (const job of pending) {
-      if (items.length >= PUBLICATION_MAX_PICKUP) {
+    let scanned = 0;
+    for await (const job of ctx.db
+      .query('publication_jobs')
+      .withIndex('by_status_and_created_at', (q) => q.eq('status', 'pending'))) {
+      if (items.length >= PUBLICATION_MAX_PICKUP || scanned >= PUBLICATION_PICKUP_SCAN || !(await hasReadHeadroom())) {
         break;
       }
+      scanned += 1;
       /*
        * The new Worker deploys before activation makes this type eligible for pickup.
        * Until then its jobs are dropped rather than held, where they would fill the scan and keep other work waiting; activation rescans every faction.
@@ -202,12 +204,12 @@ export const takeWork = internalMutation({
       ? {
           status: 'empty' as const,
           reason: 'no_pending_work' as const,
-          recovered: expired.length,
+          recovered,
           items,
         }
       : {
           status: 'assigned' as const,
-          recovered: expired.length,
+          recovered,
           items,
         };
   },

@@ -256,6 +256,10 @@ function routedAccountState(routing: Doc<'play_game_accounts'>, user: Doc<'users
   if (routing.deletion_operation_id || !user) {
     return 'deleted' as const;
   }
+  return playAccountState(user);
+}
+
+function playAccountState(user: Doc<'users'>) {
   return accountStateOf(user) === 'merge_pending'
     ? ('active' as const)
     : accountStateOf(user) === 'deleted'
@@ -289,6 +293,20 @@ async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: str
           .unique()
       : null;
   const effectiveRouting = sourceRouting ?? routing;
+  if (!effectiveRouting && id && user) {
+    /*
+     * The Worker seats the creator when it provisions the game, before any ticket of theirs creates routing.
+     * Answering `unknown` there would have the Worker unseat them at the first other admission.
+     */
+    const game = await ctx.db.get(gameId);
+    if (game && id === (game.creator_actor_id ?? game.creator_id)) {
+      return {
+        userId,
+        state: playAccountState(user),
+        deletionOperationId: user.account_deletion_operation_id ?? null,
+      };
+    }
+  }
   if (!effectiveRouting || !id || (!sourceRouting && id !== user?._id && !routing?.actor_user_ids?.includes(id))) {
     return { userId, state: 'unknown' as const, deletionOperationId: null };
   }
