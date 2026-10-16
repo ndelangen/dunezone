@@ -6,8 +6,8 @@ import { Surface } from '@ui/surface';
 import { ArrowRight } from 'lucide-react';
 
 import { publicPageHead } from '@app/routes/publicPage';
-import { BlogByline } from '@app/widgets/blog-byline/BlogByline';
 
+import { AuthorByline } from './AuthorByline';
 import styles from './index.module.css';
 import { BLOG_POSTS, blogPostAuthor } from './posts';
 import type { BlogPostMeta } from './posts';
@@ -66,7 +66,7 @@ function PostEntry({ meta, number }: { meta: BlogPostMeta; number: number }) {
       </Grid.Col>
       <Grid.Col span={{ base: 12, sm: 10 }}>
         <Stack gap="sm">
-          <BlogByline date={meta.date} author={blogPostAuthor(meta)} />
+          <AuthorByline date={meta.date} author={blogPostAuthor(meta)} />
           <Title order={2}>
             <Anchor renderRoot={postLink} inherit c="inherit">
               {meta.title}

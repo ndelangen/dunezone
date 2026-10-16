@@ -33,6 +33,12 @@
   color: var(--color-text);
 }
 
+/* Pure white with the same drop shadow as an inverse `Eyebrow`, so header text reads as one treatment. */
+.username.inverse {
+  color: white;
+  text-shadow: 0 2px 8px rgb(0 0 0 / 85%);
+}
+
 .avatarPlaceholder {
   width: var(--profile-link-avatar-size);
   height: var(--profile-link-avatar-size);
