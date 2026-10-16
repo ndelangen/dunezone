@@ -33,7 +33,31 @@ export function publicDescription(source: string | undefined): string {
         : block.items.map((item) => inlineText(item.children)).join(' ')
     )
     .join(' ');
-  return Array.from(text.replace(/\s+/g, ' ').trim()).slice(0, 200).join('');
+  return Array.from(text.replace(/\s+/g, ' ').trim()).slice(0, EXCERPT_LIMIT).join('');
+}
+
+const EXCERPT_LIMIT = 200;
+
+/** Text cut to the excerpt bound at a word, with an ellipsis when anything was cut. */
+function clipExcerpt(text: string, limit: number): string {
+  const points = Array.from(text);
+  if (points.length <= limit) {
+    return text;
+  }
+  const cut = points.slice(0, Math.max(0, limit - 1)).join('');
+  const word = cut.replace(/\s+\S*$/, '');
+  return `${word || cut}…`;
+}
+
+/**
+ * A member's work in a search result: what it is, which game it is for and who made it, as in "Atreides, a custom faction for the Dune board game by Paul."
+ * The work's own text rarely says so, as an advantage reading "You have limited Prescience." shows.
+ * The social card and the structured data already name the work, its kind and its creator, so they keep the authored text alone.
+ */
+function workLead(name: string, kind: string, creator: string | undefined): string {
+  const noun = kind.replace(/^[A-Z](?=[a-z])/, (letter) => letter.toLowerCase());
+  const article = /^[aeiou]/i.test(noun) ? 'an' : 'a';
+  return `${name}, ${article} ${noun} for the Dune board game${creator ? ` by ${creator}` : ''}.`;
 }
 
 /** A page that a structured-data trail or byline points at. */
@@ -169,6 +193,10 @@ export function publicPageHead({
   }
   const url = absoluteUrl(pathname);
   const title = pageTitle(name, kind);
+  const lead = entity?.type === 'work' && kind ? workLead(name, kind, entity.author?.name) : '';
+  const searchDescription = lead
+    ? [lead, clipExcerpt(description, EXCERPT_LIMIT - Array.from(lead).length - 1)].filter(Boolean).join(' ')
+    : description;
   const imagePath = social
     ? socialCardHref({ name, description, image, kind: social.kind ?? kind ?? '', shape: social.shape })
     : image || bandPoster;
@@ -181,11 +209,11 @@ export function publicPageHead({
     links: [{ rel: 'canonical', href: url }],
     meta: [
       ...pageHead(name, { kind }).meta!,
-      { name: 'description', content: description },
+      { name: 'description', content: searchDescription },
       { property: 'og:type', content: entity?.type === 'article' ? 'article' : 'website' },
       { property: 'og:site_name', content: 'Dune Zone' },
       { property: 'og:title', content: title },
-      { property: 'og:description', content: description },
+      { property: 'og:description', content: searchDescription },
       { property: 'og:url', content: url },
       ...(entity?.type === 'article'
         ? [
@@ -206,7 +234,7 @@ export function publicPageHead({
         : []),
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
-      { name: 'twitter:description', content: description },
+      { name: 'twitter:description', content: searchDescription },
       { name: 'twitter:image', content: imageUrl },
       { name: 'twitter:image:alt', content: details?.alt ?? name },
       ...(graph ? [{ 'script:ld+json': graph }] : []),
