@@ -30,6 +30,19 @@ export type BlogPostMeta = {
  * A body file under `posts/` is named for its slug, never `index.tsx` or `*.route.tsx`, which the router would read as a page.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'building-a-dune-sandbox': {
+    slug: 'building-a-dune-sandbox',
+    title: "Why I'm building a Dune sandbox instead of contributing to Treachery.Online",
+    date: '2026-10-16',
+    author: 'Central419',
+    summary:
+      'Why build my own instead of contributing to Treachery.Online? Because I want a sandbox. Why I love Treachery.Online, why my group still plays on Tabletop Simulator, and the gap I hope dune.zone can fill.',
+    cover: {
+      key: '/web/blog/building-a-dune-sandbox/game-table.jpg',
+      alt: 'A battle on the dune.zone game table: two battle wheels with Feyd-Rautha and Lady Jessica over the Dune board',
+      aspect: 1019 / 2048,
+    },
+  },
   'all-in-one-dune-board-game-webapp': {
     slug: 'all-in-one-dune-board-game-webapp',
     title: 'My earlier attempts at building an all-in-one webapp for the Dune board game',
