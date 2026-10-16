@@ -94,6 +94,8 @@ type Connection = {
   pointerSeq: number;
   /* When this connection last pinged, by the room's clock. */
   pingedAt: number;
+  /* When this connection's last ping carried the rumble. */
+  rumbledAt: number;
   tokens: number;
   motionTokens: number;
   commandTokens: number;
@@ -117,6 +119,8 @@ const RATE_PER_SECOND = 60;
  */
 const COMMAND_BURST = 30;
 const COMMANDS_PER_SECOND = 10;
+/* A held Tab rumbles after three seconds, so one connection rumbles at most that often. */
+const RUMBLE_INTERVAL_MS = 3000;
 const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try again.';
 const SWEEP_MS = 1000;
 /** A sweep this late counts as a stall, and the room keeps the most recent ones. */
@@ -639,6 +643,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       everAuthorized: false,
       pointerSeq: -1,
       pingedAt: 0,
+      rumbledAt: 0,
       tokens: RATE_BURST,
       motionTokens: RATE_BURST,
       commandTokens: COMMAND_BURST,
@@ -1279,6 +1284,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     connection.pingedAt = now;
+    /* A page rumbles only after Tab is held for seconds, so a rumble sooner than that after the last goes out as a plain ping. */
+    const sound = message.sound && now - connection.rumbledAt >= RUMBLE_INTERVAL_MS ? message.sound : undefined;
+    if (sound) {
+      connection.rumbledAt = now;
+    }
     const { connectionId, viewerSeat, displayName, color } = viewer;
     const ping = {
       connectionId,
@@ -1286,7 +1296,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       displayName,
       color,
       position: message.position,
-      ...(message.sound && { sound: message.sound }),
+      ...(sound && { sound }),
     };
     for (const [peer, other] of this.connections) {
       if (peer !== socket && other.viewer) {

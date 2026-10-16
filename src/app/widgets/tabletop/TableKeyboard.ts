@@ -227,7 +227,9 @@ export class TableKeyboard {
    * With the cursor off the table there is nowhere to ping, so Tab moves the focus as usual.
    */
   private pingKey(event: KeyboardEvent, controls: Controls) {
+    /* Shift, or a text field taking the focus mid-hold, hands Tab back to the page, and a rumble on its way is let go with it. */
     if (event.shiftKey || focusKeepsKey(event.target, 'spiceBank')) {
+      this.releasePing();
       return;
     }
     if (!event.repeat) {
