@@ -232,19 +232,10 @@ function BundleBlock({ members, children }: { members: AssetFaceMember[]; childr
 }
 
 /*
- * A published face's outline and whether it wears a shadow, by type.
- * A gear is clipped rather than rounded, and a clip cuts away any shadow drawn around it.
+ * A published face's outline, by type. Every face wears a shadow; `PublishedImage` draws a clipped gear's or pointer's as a drop shadow, which follows the clip.
  */
 function publishedOutline(shape: TokenShape | null): { radius?: string; clipPath?: string; raised: boolean } {
-  switch (shape) {
-    case null:
-      return { radius: CARD_CORNER, raised: true };
-    case 'gear':
-    case 'pointer':
-      return { ...tokenOutline(shape), raised: false };
-    default:
-      return { ...tokenOutline(shape), raised: true };
-  }
+  return shape === null ? { radius: CARD_CORNER, raised: true } : { ...tokenOutline(shape), raised: true };
 }
 
 /**

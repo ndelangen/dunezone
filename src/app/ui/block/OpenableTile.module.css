@@ -8,13 +8,15 @@
   border-radius: var(--mantine-radius-sm);
 }
 
+/*
+ * Nothing here clips: a face draws its own outline, and the art box only lifts it.
+ * It had clipped to a rounded rectangle, which cut the resting shadow of every face off at the box's edges.
+ */
 .art {
   position: relative;
-  overflow: hidden;
-  border-radius: var(--mantine-radius-sm);
   transition:
     transform 150ms ease,
-    box-shadow 150ms ease;
+    filter 150ms ease;
 }
 
 /*
@@ -22,10 +24,11 @@
  * It had been a 2px border in the primary colour, which drew a hard red rectangle tight around artwork that is
  * not rectangular: a disc is a circle and a bundle has members standing above its container, so the box read as
  * a crop mark, and red now means destructive besides (Norbert, 2026-08-20).
+ * A drop shadow rather than a box shadow for the same reason: it follows the face's own outline, where a box shadow drew the art box's square behind a disc or a pointer.
  */
 .tile:hover .art {
   transform: translateY(-2px);
-  box-shadow: 0 4px 24px 0 rgb(0 0 0 / 30%);
+  filter: drop-shadow(0 4px 12px rgb(0 0 0 / 30%));
 }
 
 /* The ring goes on the anchor with an offset, so focus never crops the art. */
