@@ -748,11 +748,14 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
         openPieceMenu(piece.id, clientX, clientY, touch);
       }
     },
+    /* While the paintbrush is on, a click on a piece paints the territory under it, and the piece is neither picked up nor selected. */
     onClick: (event: ThreeEvent<MouseEvent>) => {
-      event.stopPropagation();
+      if (!territoryBrush()) {
+        event.stopPropagation();
+      }
     },
     onPointerDown: (event: ThreeEvent<PointerEvent>) => {
-      if (event.button !== 0 || interactionBlocked) {
+      if (event.button !== 0 || interactionBlocked || territoryBrush()) {
         return;
       }
       event.stopPropagation();
