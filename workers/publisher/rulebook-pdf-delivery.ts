@@ -5,7 +5,12 @@ import type { PublicAssetBucket } from './delivery';
 
 type RulebookPdfDeliveryClient = Pick<ConvexPublisherClient, 'resolveRulebookArtifactDelivery'>;
 
-const CACHE_CONTROL = 'public, max-age=31536000, immutable';
+/*
+ * A superseded Edition's bytes and its noindex never change again.
+ * The newest Edition's noindex will once a newer one is ready, and an Edition whose standing could not be told may be the newest, so both revalidate hourly.
+ */
+const SUPERSEDED_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+const REVALIDATED_CACHE_CONTROL = 'public, max-age=3600';
 const SUPPORTED_METHODS = new Set(['GET', 'HEAD']);
 
 function response(status: number, message: string, headers?: HeadersInit) {
@@ -30,9 +35,26 @@ function notModified(request: Request, metadata: R2Object) {
   );
 }
 
-function pdfHeaders(object: R2Object, route: RulebookPdfRoute) {
+/**
+ * The newest ready Edition's number, or null when it cannot be told.
+ * Only that Edition's PDF is offered to search engines, so a failed lookup errs towards `noindex` and never fails delivery.
+ */
+async function newestEdition(client: RulebookPdfDeliveryClient, rulebookId: string): Promise<number | null> {
+  try {
+    const newest = await client.resolveRulebookArtifactDelivery('pdf', { rulebookId });
+    return newest.status === 'found' ? newest.editionNumber : null;
+  } catch {
+    return null;
+  }
+}
+
+function pdfHeaders(object: R2Object, route: RulebookPdfRoute, newestEdition: number | null) {
+  const newest = newestEdition === route.editionNumber;
   const headers = new Headers();
-  headers.set('Cache-Control', CACHE_CONTROL);
+  headers.set(
+    'Cache-Control',
+    newestEdition !== null && newestEdition > route.editionNumber ? SUPERSEDED_CACHE_CONTROL : REVALIDATED_CACHE_CONTROL
+  );
   headers.set('Content-Disposition', 'attachment; filename="rulebook.pdf"');
   headers.set('Content-Length', String(object.size));
   headers.set('Content-Location', rulebookEditionArtifactPath(route.rulebookId, route.editionNumber, 'pdf'));
@@ -40,7 +62,10 @@ function pdfHeaders(object: R2Object, route: RulebookPdfRoute) {
   headers.set('ETag', object.httpEtag);
   headers.set('Last-Modified', object.uploaded.toUTCString());
   headers.set('X-Content-Type-Options', 'nosniff');
-  headers.set('X-Robots-Tag', 'noindex');
+  /* The current Edition is the Rulebook's PDF in search; earlier ones stay out of it, so results never offer superseded rules. */
+  if (!newest) {
+    headers.set('X-Robots-Tag', 'noindex');
+  }
   return headers;
 }
 
@@ -55,6 +80,7 @@ export async function handleRulebookPdfRequest(
   }
 
   let resolution;
+  const newest = newestEdition(dependencies.client, route.rulebookId);
   try {
     resolution = await dependencies.client.resolveRulebookArtifactDelivery('pdf', route);
   } catch {
@@ -77,7 +103,7 @@ export async function handleRulebookPdfRequest(
   if (!metadata) {
     return response(503, 'Rulebook Temporarily Unavailable');
   }
-  const headers = pdfHeaders(metadata, route);
+  const headers = pdfHeaders(metadata, route, await newest);
   if (notModified(request, metadata)) {
     headers.delete('Content-Length');
     return new Response(null, { status: 304, headers });

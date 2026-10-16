@@ -18,8 +18,6 @@ const config: KnipConfig = {
         'src/app/widgets/tabletop/three-jsx/*.{ts,tsx}',
         /* Type fixtures are checked by tsc without a runtime importer. */
         'src/**/*.typecheck.{ts,tsx}',
-        // Built via workers/publisher/vite.config.ts (publisher-capture.html input).
-        'src/app/print/capture/publisher-entry.tsx',
         // Worker entry, referenced from workers/publisher/wrangler.jsonc.
         'workers/publisher/index.ts',
         'workers/game/index.ts',

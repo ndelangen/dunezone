@@ -452,8 +452,10 @@ export class Room {
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
     // Applied to the guarded table, so a plate leaves behind what another player is carrying off it;
     // the temporary reservation locks are then put back as stored, never persisted.
-    const next = requireAccepted(guarded, applyDraftToState(guarded, settled, seatSubject(identity.viewerSeat)));
-    return nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, next));
+    const table = requireAccepted(guarded, applyDraftToState(guarded, settled, seatSubject(identity.viewerSeat)));
+    const next = nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table));
+    /* A faction token flipped in hand turns its faction out of the bidding, the same as the flip command. */
+    return { ...next, ...biddingAfterTable(this.snapshot, next, Date.now()) };
   }
 
   /* Phase, battle and catalogue controls belong to play; setup opens only physical handling. */
@@ -528,8 +530,12 @@ export class Room {
 
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
     const next = this.applyCommand(identity, action, expectedRevision, now);
-    /* A new phase forgets who peeked at what, and closes every peek. */
-    return next.phase === this.snapshot.phase ? next : forgetPeekers(next);
+    /* A new phase forgets who peeked at what, and closes every peek; setup holds the phase still, so each setup step and the start of play count too. */
+    const moved =
+      next.phase !== this.snapshot.phase ||
+      next.stage !== this.snapshot.stage ||
+      next.setup?.index !== this.snapshot.setup?.index;
+    return moved ? forgetPeekers(next) : next;
   }
 
   private applyCommand(identity: Identity, action: RoomAction, expectedRevision: number, now: number): StoredSnapshot {
@@ -577,6 +583,10 @@ export class Room {
 
   /** A reset waits for the battle to end and every private piece to return; a flip waits for the piece's last flip to finish. */
   private assertTableSettled(action: RoomAction, now: number) {
+    /* Only a fixture has a demo table to go back to; a real game's table is the game. */
+    if (action.kind === 'reset' && this.snapshot.stage !== undefined) {
+      throw new GameRejection('A game in progress cannot be reset.');
+    }
     if (
       action.kind === 'reset' &&
       (this.snapshot.battleState || Object.values(this.snapshot.factionInventories).some((pieces) => pieces.length))

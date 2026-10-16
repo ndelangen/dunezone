@@ -19,6 +19,7 @@ import { gameHttpClient } from './authorization';
 import { onCurrentBoard } from './boardLayoutSnapshot';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
+import { isLocalIsolatedRuntime } from './localRuntime';
 import { Room } from './room';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
@@ -193,7 +194,13 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     const now = Date.now();
     if (this.resetAt <= now) {
       const snapshot = storedSnapshotSchema.parse(homepageSnapshot(this.env.APPLICATION_ORIGIN));
-      const resetAt = (Math.floor(now / HOMEPAGE_RESET_MS) + 1) * HOMEPAGE_RESET_MS;
+      /*
+       * A deployed table resets on the hour. The isolated stack's table lasts an hour from when it opens instead,
+       * so a verification run that crosses the hour does not lose its held troop and revision to the reset.
+       */
+      const resetAt = isLocalIsolatedRuntime(this.env)
+        ? now + HOMEPAGE_RESET_MS
+        : (Math.floor(now / HOMEPAGE_RESET_MS) + 1) * HOMEPAGE_RESET_MS;
       const epoch = crypto.randomUUID();
       await this.ctx.storage.put<Saved>('table', { resetAt, snapshot, epoch });
       this.resetAt = resetAt;

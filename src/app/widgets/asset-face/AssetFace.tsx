@@ -260,6 +260,7 @@ export function AssetFace({
   name,
   href,
   members = [],
+  priority = false,
 }: {
   type: string;
   /** Only a bundle reads this: its band. */
@@ -276,12 +277,15 @@ export function AssetFace({
    * Empty draws the container alone, which is also what a bundle nobody has filled draws.
    */
   members?: AssetFaceMember[];
+  /** Whether this face is its page's main image, as `PublishedImage` means it. A bundle ignores it, as it ignores `href`. */
+  priority?: boolean;
 }) {
   if (type !== 'bundle') {
     return (
       <PublishedImage
         src={href}
         name={name}
+        priority={priority}
         aspect={assetFaceAspect(type)}
         {...publishedOutline(type === 'board' ? 'round' : tokenShapeOfType(type))}
       />

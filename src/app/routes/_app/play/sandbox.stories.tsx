@@ -9,6 +9,7 @@ import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
 import { sandbox, sandboxDecorator, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
+import { COLUMNS_MIN_WIDTH_REM, setTableLayout } from './tableLayout';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -391,5 +392,69 @@ export const HmsCarriesItsTroops = meta.story({
       await expect(stack.position[0] - nextX).toBeCloseTo(before[index]![0]!);
       await expect(stack.position[2] - nextZ).toBeCloseTo(before[index]![1]!);
     }
+  },
+});
+
+/**
+ * The table between the controls and the players, the layout a viewer picks in the game menu;
+ * the separators either side of the table resize the columns.
+ * A window too narrow for the columns keeps the board on top.
+ * Switching back and forth keeps the table's renderer and a half-typed message: the layouts move the same content, they never mount it afresh.
+ */
+export const ThreeColumns = meta.story({
+  beforeEach: () => {
+    setTableLayout('columns');
+    return () => setTableLayout('stacked');
+  },
+  play: async ({ canvasElement }) => {
+    const body = canvasElement.ownerDocument.body;
+    const page = within(body);
+    await expect(
+      page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    const shell = () => body.querySelector<HTMLElement>('.dune-play-shell')!;
+    await waitFor(() => expect(body.querySelector('.dune-play-stage[data-scene-ready="true"] canvas')).not.toBeNull(), {
+      timeout: 30_000,
+    });
+    const fits = window.matchMedia(`(min-width: ${COLUMNS_MIN_WIDTH_REM}rem)`).matches;
+    await expect(shell().dataset.tableLayout).toBe(fits ? 'columns' : 'stacked');
+    if (fits) {
+      await expect(page.getByRole('separator', { name: 'Resize controls column' })).toBeVisible();
+      await expect(page.getByRole('separator', { name: 'Resize players column' })).toBeVisible();
+    }
+    const canvas = body.querySelector('canvas');
+    const message = (await page.findByPlaceholderText('Message')) as HTMLTextAreaElement;
+    await userEvent.type(message, 'half typed');
+
+    for (const [choice, layout] of [
+      ['Board on top', 'stacked'],
+      ['Three columns', fits ? 'columns' : 'stacked'],
+    ] as const) {
+      await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
+      await userEvent.click(await page.findByRole('menuitemradio', { name: choice }));
+      await userEvent.keyboard('{Escape}');
+      await waitFor(() => expect(shell().dataset.tableLayout).toBe(layout));
+      await expect(body.querySelector('canvas')).toBe(canvas);
+      await expect(page.getByPlaceholderText('Message')).toHaveValue('half typed');
+    }
+
+    /* A layout change while typing, as when the window crosses the columns' width, moves the composer without blurring or refocusing it. */
+    message.focus();
+    message.setSelectionRange(2, 6, 'backward');
+    const focusChanges: string[] = [];
+    const count = (event: FocusEvent) => focusChanges.push(event.type);
+    message.addEventListener('focus', count);
+    message.addEventListener('blur', count);
+    setTableLayout('stacked');
+    await waitFor(() => expect(shell().dataset.tableLayout).toBe('stacked'));
+    await expect(body.ownerDocument.activeElement).toBe(message);
+    await expect([message.selectionStart, message.selectionEnd, message.selectionDirection]).toEqual([
+      2,
+      6,
+      'backward',
+    ]);
+    await expect(focusChanges).toEqual([]);
+    message.removeEventListener('focus', count);
+    message.removeEventListener('blur', count);
   },
 });

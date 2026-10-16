@@ -116,9 +116,23 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 
 /* While a board gesture is held, the chrome around the scene stops taking the pointer: the overlay, the header, the dock and the separator above it. */
 :where(.dune-play-shell).dune-play-shell--seated[data-board-gesture-active="true"]
-  :is(.seated-stage-overlay, .seated-header, .seated-camera, .seated-controls-panel, [role="separator"]),
+  :is(
+    .seated-stage-overlay,
+    .seated-header,
+    .seated-camera,
+    .seated-column-camera,
+    .seated-controls-panel,
+    [role="separator"]
+  ),
 :where(.dune-play-shell).dune-play-shell--seated[data-board-gesture-active="true"]
-  :is(.seated-stage-overlay, .seated-header, .seated-camera, .seated-controls-panel, [role="separator"])
+  :is(
+    .seated-stage-overlay,
+    .seated-header,
+    .seated-camera,
+    .seated-column-camera,
+    .seated-controls-panel,
+    [role="separator"]
+  )
   * {
   pointer-events: none !important;
   user-select: none;
@@ -468,4 +482,36 @@ html[data-motion="reduce"] :where(.dune-play-shell) *::after {
     .seated-controls-tab-content {
     overscroll-behavior: auto;
   }
+}
+
+/*
+ * Three columns (a viewer's choice in the game menu): the controls, the table, and the players side by side.
+ * The header's chips still float across the top, so each side column starts below them.
+ */
+:where(.dune-play-shell) .seated-controls-panel--column {
+  top: 0;
+  min-height: 0;
+  padding: calc(var(--play-header-height) + var(--space-xs)) var(--space-sm) var(--space-sm);
+  box-shadow: none;
+}
+
+:where(.dune-play-shell) .seated-controls-panel--column .seated-controls-tabs {
+  width: 100%;
+}
+
+/* The camera dial keeps to the table's lower right corner. */
+:where(.dune-play-shell) .seated-column-camera {
+  position: absolute;
+  z-index: 1;
+  right: 1.1rem;
+  bottom: calc(var(--space-sm) + 1.6rem);
+}
+
+:where(.dune-play-shell) .seated-column-camera .seated-camera {
+  position: static;
+}
+
+/* The scene, the controls and the players stay mounted while the layout moves them (HeldContent.tsx); their holders draw no box of their own. */
+:where(.dune-play-shell) .seated-held {
+  display: contents;
 }

@@ -1,10 +1,13 @@
 import { expect, test } from 'vite-plus/test';
 
 import { hasHiddenFace, PEEK_DECK_LIMIT, peekActionSchema } from '../../src/shared/play/peeking';
+import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { piece, place } from '../../src/shared/play/setupSupply';
 import { deckCommand } from './decks';
 import { hostedFixturePlan } from './fixture';
 import { closeLostPeeks, forgetPeekers, peekCommand } from './peeks';
+import { Room } from './room';
+import { initialSetup } from './setup-progress';
 import { RoomProjection } from './state';
 import type { StoredSnapshot } from './state';
 
@@ -190,4 +193,38 @@ test("a faction's token turned face down has nothing to peek at: both its sides 
   const token = { kind: 'force' as const, stackKey: 'faction-token:atreides', items: [{ id: 'token', faceUp: false }] };
   expect(hasHiddenFace(token)).toBe(false);
   expect(hasHiddenFace({ ...token, stackKey: 'troops:atreides' })).toBe(true);
+});
+
+test('a setup step forgets who peeked, though setup holds the phase still', () => {
+  const peeked = peekCommand(
+    {
+      ...table(2),
+      stage: 'setup',
+      phase: 0,
+      setup: initialSetup([], hostedFixturePlan.roster, 0, table(2).table.pieces),
+    },
+    'atreides',
+    { kind: 'peek', pieceId: 'deck' }
+  );
+  const factions: Record<string, string> = { 'atreides-user': 'atreides', 'harkonnen-user': 'harkonnen' };
+  const room = new Room(
+    peeked,
+    () => ['atreides', 'harkonnen'],
+    (userId) => factions[userId]
+  );
+  const later = Date.now() + 10 * PHASE_CHANGE_COOLDOWN_MS;
+  const players = ['atreides', 'harkonnen'].map((seat) => ({
+    connectionId: `${seat}-connection`,
+    userId: `${seat}-user`,
+    viewerSeat: seat,
+    displayName: seat,
+    color: '#d0c8b9',
+  }));
+  for (const player of players) {
+    room.accept(room.command(player, { kind: 'ready', ready: true }, room.snapshot.revision, later));
+  }
+  const next = room.command(players[0]!, { kind: 'phase' }, room.snapshot.revision, later);
+  expect(next.setup?.index).not.toBe(peeked.setup?.index);
+  expect(next.table.pieces[0]?.items.some((item) => item.peekedBy)).toBe(false);
+  expect(next.peeks).toEqual({});
 });
