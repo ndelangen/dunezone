@@ -294,21 +294,20 @@ async function accountEntry(ctx: QueryCtx, game: Doc<'play_games'>, userId: stri
           .unique()
       : null;
   const effectiveRouting = sourceRouting ?? routing;
-  if (!effectiveRouting && id && user) {
+  if (!effectiveRouting || !id || (!sourceRouting && id !== user?._id && !routing?.actor_user_ids?.includes(id))) {
     /*
-     * The Worker seats the creator when it provisions the game, before any ticket of theirs creates routing.
-     * Answering `unknown` there would have the Worker unseat them at the first other admission.
-     * Deletion fan-out follows routing, so such a creator learns of a deletion only at the next reconciliation.
+     * The Worker seats the creator when it provisions the game, before any ticket of theirs creates routing,
+     * and a merge into an account already routed here leaves no row naming them until the transfer runs.
+     * Answering `unknown` for them would have the Worker unseat them at the next reconciliation.
+     * Deletion fan-out follows routing, so an unrouted creator learns of a deletion only at that reconciliation.
      */
-    if (id === (game.creator_actor_id ?? game.creator_id)) {
+    if (id && user && id === (game.creator_actor_id ?? game.creator_id)) {
       return {
         userId,
-        state: playAccountState(user),
-        deletionOperationId: user.account_deletion_operation_id ?? null,
+        state: routing ? routedAccountState(routing, user) : playAccountState(user),
+        deletionOperationId: routing?.deletion_operation_id ?? user.account_deletion_operation_id ?? null,
       };
     }
-  }
-  if (!effectiveRouting || !id || (!sourceRouting && id !== user?._id && !routing?.actor_user_ids?.includes(id))) {
     return { userId, state: 'unknown' as const, deletionOperationId: null };
   }
   const deletionOperationId = effectiveRouting.deletion_operation_id ?? user?.account_deletion_operation_id ?? null;
