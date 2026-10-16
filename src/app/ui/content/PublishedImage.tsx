@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { ImageOff } from 'lucide-react';
-import { useEffect, useLayoutEffect, useReducer, useRef } from 'react';
+import { useEffect, useLayoutEffect, useReducer, useRef, useSyncExternalStore } from 'react';
 import type { CSSProperties } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -127,6 +127,11 @@ function initialState(src: string | null, priority: boolean): State {
   return { ...base, phase: 'loading' };
 }
 
+/** True while rendering on the server or hydrating its HTML, and false for anything the client mounts afterwards. */
+const subscribeToNothing = () => () => {};
+const clientSnapshot = () => false;
+const serverSnapshot = () => true;
+
 /** What an image the browser has finished with settles to: a broken one has failed, and a drawn one is decoded unless it already moved on. */
 function completeImageAction(img: HTMLImageElement, phase: Phase): Action | null {
   if (img.naturalWidth === 0) {
@@ -141,7 +146,9 @@ function inFetchRange(element: HTMLElement) {
 }
 
 function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority = false }: Props) {
-  const [state, dispatch] = useReducer(reducer, src, (initial) => initialState(initial, priority));
+  /* Only a server-rendered main image starts shown; one mounted later, by navigation or a new src, arrives like any other. */
+  const serverRendered = useSyncExternalStore(subscribeToNothing, clientSnapshot, serverSnapshot);
+  const [state, dispatch] = useReducer(reducer, src, (initial) => initialState(initial, priority && serverRendered));
   const motion = useMotionAllowed();
   const rootRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);

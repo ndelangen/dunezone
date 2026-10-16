@@ -82,7 +82,7 @@ describe('Rulebook PDF delivery', () => {
 
     expect(response.status).toBe(200);
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(PDF);
-    expect(response.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600');
     expect(response.headers.get('Content-Disposition')).toBe('attachment; filename="rulebook.pdf"');
     expect(response.headers.get('Content-Location')).toContain('/editions/4/rulebook.pdf');
     expect(response.headers.get('X-Robots-Tag')).toBeNull();
@@ -102,6 +102,9 @@ describe('Rulebook PDF delivery', () => {
       );
       expect(response.status).toBe(200);
       expect(response.headers.get('X-Robots-Tag')).toBe('noindex');
+      expect(response.headers.get('Cache-Control')).toBe(
+        newest === 5 ? 'public, max-age=31536000, immutable' : 'public, max-age=3600'
+      );
     }
   });
 

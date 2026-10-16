@@ -134,6 +134,14 @@ describe("PublishedImage as a page's main image", () => {
     );
   });
 
+  test('arrives like any other image when the client mounts it, as after navigation', () => {
+    const { container } = render(<PublishedImage src="/published/atreides.jpg" name="Atreides" aspect={1} priority />);
+    const root = container.firstElementChild!;
+    expect(root.getAttribute('data-phase')).toBe('loading');
+    expect(root.getAttribute('data-arrival')).toBe('animate');
+    expect(container.querySelector('img')?.getAttribute('fetchpriority')).toBe('high');
+  });
+
   test('settles a load that failed before hydration, which no error event reports', async () => {
     const element = <PublishedImage src="/published/atreides.jpg" name="Atreides" aspect={1} priority />;
     const container = document.createElement('div');

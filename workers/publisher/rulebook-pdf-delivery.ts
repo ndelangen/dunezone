@@ -5,7 +5,12 @@ import type { PublicAssetBucket } from './delivery';
 
 type RulebookPdfDeliveryClient = Pick<ConvexPublisherClient, 'resolveRulebookArtifactDelivery'>;
 
-const CACHE_CONTROL = 'public, max-age=31536000, immutable';
+/*
+ * A superseded Edition's bytes and its noindex never change again.
+ * The newest Edition's noindex will once a newer one is ready, and an Edition whose standing could not be told may be the newest, so both revalidate hourly.
+ */
+const SUPERSEDED_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+const REVALIDATED_CACHE_CONTROL = 'public, max-age=3600';
 const SUPPORTED_METHODS = new Set(['GET', 'HEAD']);
 
 function response(status: number, message: string, headers?: HeadersInit) {
@@ -43,9 +48,13 @@ async function newestEdition(client: RulebookPdfDeliveryClient, rulebookId: stri
   }
 }
 
-function pdfHeaders(object: R2Object, route: RulebookPdfRoute, newest: boolean) {
+function pdfHeaders(object: R2Object, route: RulebookPdfRoute, newestEdition: number | null) {
+  const newest = newestEdition === route.editionNumber;
   const headers = new Headers();
-  headers.set('Cache-Control', CACHE_CONTROL);
+  headers.set(
+    'Cache-Control',
+    newestEdition !== null && newestEdition > route.editionNumber ? SUPERSEDED_CACHE_CONTROL : REVALIDATED_CACHE_CONTROL
+  );
   headers.set('Content-Disposition', 'attachment; filename="rulebook.pdf"');
   headers.set('Content-Length', String(object.size));
   headers.set('Content-Location', rulebookEditionArtifactPath(route.rulebookId, route.editionNumber, 'pdf'));
@@ -94,7 +103,7 @@ export async function handleRulebookPdfRequest(
   if (!metadata) {
     return response(503, 'Rulebook Temporarily Unavailable');
   }
-  const headers = pdfHeaders(metadata, route, (await newest) === route.editionNumber);
+  const headers = pdfHeaders(metadata, route, await newest);
   if (notModified(request, metadata)) {
     headers.delete('Content-Length');
     return new Response(null, { status: 304, headers });
