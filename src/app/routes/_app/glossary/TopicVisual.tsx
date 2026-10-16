@@ -468,16 +468,29 @@ function FactionsVisual() {
   );
 }
 
-/* A bribe on the table: spice passing from one faction to another. */
+/* A bribe on the table: while it is demonstrated, the spice crosses token by token from the paying faction to the receiving one. */
+const BRIBE_SPICE = 3;
+
 function DealsVisual() {
+  const term = useTeachingTerm();
+  const moved = useTeachingStep(demonstrates(term, 'bribe'), BRIBE_SPICE + 2, 650);
   return (
     <Piece caption="Bribe" anchor="bribe">
       <span className={styles.deal}>
         <Disc>
           <Token {...factionTokenFixtures.harkonnen} />
         </Disc>
-        <span className={styles.bribeSpice}>
-          <SpicePile count={2} />
+        <span className={styles.bribeLane}>
+          {Array.from({ length: BRIBE_SPICE }, (_, index) => (
+            <img
+              key={index}
+              className={clsx(styles.spiceToken, styles.bribeSpice)}
+              style={{ top: `${index * 22}%` }}
+              data-moved={index < moved || undefined}
+              src={SPICE_TOKEN_HREF}
+              alt=""
+            />
+          ))}
         </span>
         <Disc>
           <Token {...factionTokenFixtures.atreides} />

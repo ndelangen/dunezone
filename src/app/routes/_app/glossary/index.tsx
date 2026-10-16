@@ -64,6 +64,7 @@ const TERM_ICONS: Partial<Record<string, TopicIconTopic>> = {
   'shai-hulud': 'shaiHulud',
   karama: 'karama',
   'special-karama-power': 'karama',
+  fate: 'fate',
   faction: 'factions',
   'faction-leader': 'factionLeader',
   'kwisatz-haderach': 'kwisatz',
