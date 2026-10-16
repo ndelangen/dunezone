@@ -49,7 +49,7 @@ export const Route = createFileRoute('/_app/')({
     name: 'Dune board game factions and rulebooks',
     pathname: '/',
     description:
-      'Custom factions, faction sheets and Rulebooks for the Dune board game, the 1979 classic reissued by Gale Force Nine. Create and share your own factions, cards, tokens and boards.',
+      "Custom factions, faction sheets and Rulebooks for the Dune board game, Avalon Hill's 1979 classic reissued by Gale Force Nine. Create and share your own factions, cards, tokens and boards.",
     image: '/web/homepage-social-play-large.jpg',
     entity: { type: 'site' } as const,
     imageDetails: {

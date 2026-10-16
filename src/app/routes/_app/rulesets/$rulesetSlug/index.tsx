@@ -60,13 +60,7 @@ import {
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
-import {
-  profileLink,
-  publicDescription,
-  publicPageHead,
-  useLivePageTitle,
-  workDescription,
-} from '@app/routes/publicPage';
+import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -379,12 +373,7 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
       kind: loaderData ? 'Ruleset' : undefined,
       pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}`,
       description: loaderData
-        ? workDescription({
-            name: loaderData.ruleset.name,
-            noun: 'ruleset',
-            creator: loaderData.owner?.username,
-            text: publicDescription(loaderData.ruleset.about) || 'Read its published Rulebooks and rules questions.',
-          })
+        ? publicDescription(loaderData.ruleset.about) || 'Read its published Rulebooks and rules questions.'
         : '',
       image: loaderData?.ruleset.coverThumbUrl,
       social: { shape: 'portrait' },

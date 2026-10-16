@@ -53,13 +53,7 @@ import { loadAssetPage, useAssetPage, useConvertTreacheryToCustom } from '@app/d
 import type { AssetPageData } from '@app/db/assets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
-import {
-  profileLink,
-  publicDescription,
-  publicPageHead,
-  useLivePageTitle,
-  workDescription,
-} from '@app/routes/publicPage';
+import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -96,14 +90,7 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
       name: loaderData?.asset.name ?? 'Asset',
       kind: noun,
       pathname: `/assets/${encodeURIComponent(params.type)}/${encodeURIComponent(loaderData?.asset.slug ?? params.slug)}`,
-      description: loaderData
-        ? workDescription({
-            name: loaderData.asset.name,
-            noun: (noun ?? 'asset').toLowerCase(),
-            creator: loaderData.asset.owner?.username,
-            text: publicDescription(loaderData.asset.data.about),
-          })
-        : '',
+      description: publicDescription(loaderData?.asset.data.about),
       image: loaderData?.asset.previewHref,
       social: {
         shape: params.type === 'token-disc' ? 'round' : params.type === 'token-enhance' ? 'landscape' : 'portrait',
