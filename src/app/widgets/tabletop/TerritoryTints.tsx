@@ -73,47 +73,57 @@ type TintOrder = typeof TINT_ORDER;
 const DOUBLE_LINE_WIDTH = 0.012;
 const DOUBLE_LINE_GAP = 0.012;
 
-/** A flat band between two sideways distances from a line, in quads from one corner to the next. */
-function bandAlong(positions: number[], path: OutlinePath, near: number, far: number) {
+type Segment = readonly [Readonly<Point>, Readonly<Point>];
+const edgeKey = ([a, b]: Segment) => [a.join(), b.join()].sort((x, y) => x.localeCompare(y)).join(' ');
+
+/** Where each stretch of a double line goes: drawn at its own render order, or raised with the Polar Sink. */
+type Bands = { rest: number[]; raised: number[] };
+
+/**
+ * A flat band between two sideways distances from a line, in quads from one corner to the next.
+ * The offsets are worked out along the whole line, so its corners stay mitred where a raised stretch meets the rest.
+ */
+function bandAlong(bands: Bands, path: OutlinePath, raised: readonly boolean[], near: number, far: number) {
   const [inner, outer] = [offsetPath(path, near), offsetPath(path, far)];
   const corners = path.closed ? inner.length : inner.length - 1;
   for (let i = 0; i < corners; i++) {
     const j = (i + 1) % inner.length;
     const quad = [inner[i], outer[i], outer[j], inner[j]];
+    const positions = raised[i] ? bands.raised : bands.rest;
     for (const index of [0, 1, 2, 0, 2, 3]) {
       positions.push(quad[index][0], 0, quad[index][1]);
     }
   }
 }
 
-/** Two bands along each line, one either side of it, so the outline reads as a double line. */
-function doubleLineGeometry(segments: readonly (readonly [Readonly<Point>, Readonly<Point>])[]) {
-  const [inner, outer] = [DOUBLE_LINE_GAP / 2, DOUBLE_LINE_GAP / 2 + DOUBLE_LINE_WIDTH];
-  const positions: number[] = [];
-  for (const { points, closed } of outlinePaths(segments)) {
-    const path = { points: points.map(toTable), closed };
-    bandAlong(positions, path, inner, outer);
-    bandAlong(positions, path, -inner, -outer);
-  }
+function positionsGeometry(positions: number[]) {
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
   return geometry;
 }
 
+/** Two bands along each line, one either side of it, so the outline reads as a double line; the stretches along `raisedEdges` come apart, to draw above the Polar Sink's paint. */
+function doubleLineGeometries(segments: readonly Segment[], raisedEdges: ReadonlySet<string>) {
+  const [inner, outer] = [DOUBLE_LINE_GAP / 2, DOUBLE_LINE_GAP / 2 + DOUBLE_LINE_WIDTH];
+  const bands: Bands = { rest: [], raised: [] };
+  for (const { points, closed } of outlinePaths(segments)) {
+    const raised = points.map((point, i) => raisedEdges.has(edgeKey([point, points[(i + 1) % points.length]])));
+    const path = { points: points.map(toTable), closed };
+    bandAlong(bands, path, raised, inner, outer);
+    bandAlong(bands, path, raised, -inner, -outer);
+  }
+  return { rest: positionsGeometry(bands.rest), raised: positionsGeometry(bands.raised) };
+}
+
 type Face = { id: string; center: Point; rings: Point[][]; polar: boolean };
 
-type Segment = readonly [Readonly<Point>, Readonly<Point>];
-const edgeKey = ([a, b]: Segment) => [a.join(), b.join()].sort((x, y) => x.localeCompare(y)).join(' ');
-
-/* The outline's stretches along the Polar Sink's own border, apart from the rest, so only they draw above the sink's paint. */
-function splitAtPolarSink(segments: readonly Segment[], faces: readonly Face[]) {
-  const polarEdges = new Set(
+/* The Polar Sink's own border, edge by edge, so an outline's stretches along it draw above the sink's paint. */
+function polarEdges(faces: readonly Face[]) {
+  return new Set(
     faces
       .filter((face) => face.polar)
       .flatMap((face) => face.rings.flatMap((ring) => ring.slice(1).map((to, i) => edgeKey([ring[i], to]))))
   );
-  const polar = segments.filter((segment) => polarEdges.has(edgeKey(segment)));
-  return { polar, rest: segments.filter((segment) => !polarEdges.has(edgeKey(segment))) };
 }
 
 /** An outline-only tint: one double line round its territories taken together, the borders between them and the board's rim left out. */
@@ -122,13 +132,13 @@ function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: rea
   const geometries = useMemo(() => {
     const ids = new Set(key.split(' '));
     const tinted = faces.filter((face) => ids.has(face.id));
-    const { polar, rest } = splitAtPolarSink(
+    const { rest, raised } = doubleLineGeometries(
       offRim(outerSegments(tinted.map((face) => face.rings)), CENTER, RADIUS),
-      tinted
+      polarEdges(tinted)
     );
     return [
-      { geometry: doubleLineGeometry(rest), order: TINT_ORDER.line },
-      { geometry: doubleLineGeometry(polar), order: POLAR_TINT_ORDER.line },
+      { geometry: rest, order: TINT_ORDER.line },
+      { geometry: raised, order: POLAR_TINT_ORDER.line },
     ];
   }, [faces, key]);
   useEffect(

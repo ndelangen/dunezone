@@ -2387,6 +2387,31 @@ describe('a plate another player carries', () => {
     expect([...table(client).plateRiders]).toEqual([['free', 'hms']]);
   });
 
+  test('leaves behind a troop set down where the plate lay after it was picked up, as the room does', async () => {
+    const client = await connected();
+    const snapshot = withPlate();
+    const plate = snapshot.table.pieces.find((piece) => piece.id === 'hms')!;
+    const free = snapshot.table.pieces.find((piece) => piece.id === 'free')!;
+    const carried = [carry('alice', { ...plate, position: [-2, 0.38, -1] }, ['hms'])];
+    socket().deliver(view({ snapshot, carries: carried }));
+    const late: TablePiece = {
+      ...free,
+      id: 'late',
+      items: [{ id: 'late-item', faceUp: true }],
+      position: [-0.1, 0.132, 1],
+    };
+    const later = {
+      ...snapshot,
+      revision: snapshot.revision + 1,
+      table: { ...snapshot.table, pieces: [...snapshot.table.pieces, late] },
+    };
+    socket().deliver(view({ snapshot: later, carries: carried }));
+    expect(table(client).plateRiders.has('free')).toBe(true);
+    expect(table(client).plateRiders.has('late')).toBe(false);
+    const left = renderedPiece(client, 'late')!;
+    expect([left.position[0], left.position[2]]).toEqual([late.position[0], late.position[2]]);
+  });
+
   test('leaves the stack this page is taking from behind', async () => {
     const client = await connected();
     const snapshot = withPlate();
