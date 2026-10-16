@@ -26,6 +26,11 @@
   padding: 40px 0;
 }
 
+/* An immersive page has nothing below its band, so the main's bottom padding would only push the footer further down. */
+.main:has([data-page-layout-header-size="immersive"]) {
+  padding-bottom: 0;
+}
+
 /* Out of flow, so it takes no room in the column, and clipped away until a keyboard user reaches it. */
 .skipLink {
   position: fixed;

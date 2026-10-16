@@ -111,6 +111,11 @@
   border-radius: 0;
 }
 
+/* The band already fills the window, so the gap to the content row below it would only add an empty strip before the footer. */
+.frame:has([data-page-layout-header-size="immersive"]) {
+  row-gap: 0;
+}
+
 .frame:has([data-page-layout-header-size="immersive"]) .band,
 .frame:has([data-page-layout-header-size="immersive"]) .band::after,
 .frame[data-band-unwinding] .band,
