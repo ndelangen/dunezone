@@ -46,7 +46,7 @@ export const Route = createFileRoute('/_app/assets/$type/')({
     publicPageHead({
       name: isAssetType(params.type) ? ASSET_TYPES[params.type].label : 'Assets',
       pathname: `/assets/${encodeURIComponent(params.type)}`,
-      description: `Browse community ${isAssetType(params.type) ? ASSET_TYPES[params.type].label.toLowerCase() : 'assets'} for Dune.`,
+      description: `Browse community ${isAssetType(params.type) ? ASSET_TYPES[params.type].label.toLowerCase() : 'assets'} for the Dune board game. Find pieces for your table, or create and share your own.`,
       match,
     }),
   component: AssetTypePage,
