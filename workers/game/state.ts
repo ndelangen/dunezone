@@ -295,6 +295,7 @@ export class RoomProjection {
       ...carry,
       held: this.piece(carry.held, false, snapshot.cardHandles, snapshot.pieceHandles),
       reservedIds: carry.reservedIds.map(id),
+      ...(carry.riderIds ? { riderIds: carry.riderIds.map(id) } : {}),
       withdrawnCounts: Object.fromEntries(
         Object.entries(carry.withdrawnCounts).map(([key, count]) => [id(key), count])
       ),

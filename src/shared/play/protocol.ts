@@ -133,6 +133,8 @@ const carrySchema = publicIdentitySchema.extend({
   held: pieceSchema,
   withdrawnCounts: z.record(z.string(), count),
   reservedIds: z.array(id),
+  /* What rode a carried plate when it was picked up; a piece set down where the plate lay since stays behind on the drop. */
+  riderIds: z.array(id).optional(),
   expiresAt: count,
   sourceSeq: z.number().int().min(-1).optional(),
 });

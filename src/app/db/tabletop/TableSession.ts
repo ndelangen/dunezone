@@ -10,7 +10,7 @@ import type { Affordance, DraftMove, TablePiece, TableState, Vector3Tuple } from
 import { isSeatAction } from '@shared/play/participation';
 import { rearrangeable } from '@shared/play/peeking';
 import type { Peek } from '@shared/play/peeking';
-import { piecesOnPlates, ridersOf } from '@shared/play/pointerRiders';
+import { piecesOnPlates, pointerRiders, ridersOf } from '@shared/play/pointerRiders';
 import { carryPieceId, TABLE_PING_INTERVAL_MS, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
@@ -50,20 +50,47 @@ function latestLogPages(): Record<LogTab, number> {
  * The table as others' carries leave it on this page: what they hold shown in their hands, the pieces they keep from moving, and what rides a plate one of them carries.
  * A piece another player holds part of stays put, as the room's own locks keep it, so it rides no plate.
  */
-function remoteViewOf(pieces: TablePiece[], carries: PublicCarry[], rested: TablePiece[], own: LocalCarry | null) {
+function remoteViewOf(
+  pieces: TablePiece[],
+  carries: PublicCarry[],
+  rested: TablePiece[],
+  { own, pickupRiders }: Readonly<{ own: LocalCarry | null; pickupRiders: ReadonlyMap<string, ReadonlySet<string>> }>
+) {
   const reservedPieceIds = new Set(carries.flatMap((carry) => carry.reservedIds));
-  /* What this page is carrying from is held for it too, so another's plate leaves it behind as well. */
-  const held = new Set([...reservedPieceIds, ...(own ? draftSourceIds(own.draft) : [])]);
-  const guarded = held.size ? rested.map((piece) => (held.has(piece.id) ? { ...piece, locked: true } : piece)) : rested;
   const remoteCarriedIds = new Set(carries.map((carry) => carry.held.id));
   /* A plate in anyone's hand, this page's own included, takes its riders along as it is shown. */
   const inHand = own ? new Set([...remoteCarriedIds, own.draft.pieceId]) : remoteCarriedIds;
+  /* What this page is carrying from is held for it too, so another's plate leaves it behind as well; so is a piece set down where a carried plate lay, which never rode it. */
+  const held = new Set([
+    ...reservedPieceIds,
+    ...(own ? draftSourceIds(own.draft) : []),
+    ...lateRiders(rested, inHand, pickupRiders),
+  ]);
+  const guarded = held.size ? rested.map((piece) => (held.has(piece.id) ? { ...piece, locked: true } : piece)) : rested;
   return {
     renderedPieces: piecesOnPlates(projectPublicCarries(pieces, carries), guarded),
     reservedPieceIds,
     remoteCarriedIds,
     plateRiders: ridersOf(guarded, inHand),
   };
+}
+
+/* The pieces now resting on a carried plate that were not on it when it was picked up, as the room leaves them behind on its drop; a carry the room has not described yet keeps all it covers. */
+function lateRiders(
+  rested: readonly TablePiece[],
+  inHand: ReadonlySet<string>,
+  pickupRiders: ReadonlyMap<string, ReadonlySet<string>>
+): string[] {
+  /* Each plate on its own, as the room drops it: a piece under two carried plates is held if either picked it up without it. */
+  return rested
+    .filter((plate) => inHand.has(plate.id) && pickupRiders.has(plate.id))
+    .flatMap((plate) => pointerRiders(rested, plate).filter((rider) => !pickupRiders.get(plate.id)!.has(rider.id)))
+    .map((rider) => rider.id);
+}
+
+/* What rode each carried plate when it was picked up, by the plate's id, as the room says in each carry. */
+function pickupRidersOf(carries: readonly PublicCarry[]): ReadonlyMap<string, ReadonlySet<string>> {
+  return new Map(carries.flatMap((carry) => (carry.riderIds ? [[carry.held.id, new Set(carry.riderIds)]] : [])));
 }
 
 /* The stacks a carry takes from: the one it was picked up from, and any it took more from on the way. */
@@ -869,7 +896,8 @@ export class TableSession {
     }
   };
   private remoteView(pieces: TablePiece[], carries: PublicCarry[], rested: TablePiece[]) {
-    return remoteViewOf(pieces, carries, rested, this.carry);
+    /* The live carries, this page's own among them, even while history is shown. */
+    return remoteViewOf(pieces, carries, rested, { own: this.carry, pickupRiders: pickupRidersOf(this.carries) });
   }
 
   private activityForView() {

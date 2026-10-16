@@ -62,55 +62,99 @@ function outlineGeometry(rings: Point[][]) {
 
 /* Between the map (-3) and the storm's sector (-2), so the storm lies over the tints. */
 const TINT_ORDER = { fill: -2.8, line: -2.6, stickerOutline: -2.4, stickerInk: -2.2 };
+/*
+ * The Polar Sink's paint is drawn again above the storm (-1), which would hide a tint there.
+ * The storm never reaches the Polar Sink, so its tints draw above that paint, still before contact shadows (1).
+ */
+const POLAR_TINT_ORDER = { fill: -0.8, line: -0.6, stickerOutline: -0.4, stickerInk: -0.2 };
+type TintOrder = typeof TINT_ORDER;
 
 /* An outline-only tint's double line, in table units: each line's width, and the gap between the two. */
 const DOUBLE_LINE_WIDTH = 0.012;
 const DOUBLE_LINE_GAP = 0.012;
 
-/** A flat band between two sideways distances from a line, in quads from one corner to the next. */
-function bandAlong(positions: number[], path: OutlinePath, near: number, far: number) {
+type Segment = readonly [Readonly<Point>, Readonly<Point>];
+const edgeKey = ([a, b]: Segment) => [a.join(), b.join()].sort((x, y) => x.localeCompare(y)).join(' ');
+
+/** Where each stretch of a double line goes: drawn at its own render order, or raised with the Polar Sink. */
+type Bands = { rest: number[]; raised: number[] };
+
+/**
+ * A flat band between two sideways distances from a line, in quads from one corner to the next.
+ * The offsets are worked out along the whole line, so its corners stay mitred where a raised stretch meets the rest.
+ */
+function bandAlong(bands: Bands, path: OutlinePath, raised: readonly boolean[], near: number, far: number) {
   const [inner, outer] = [offsetPath(path, near), offsetPath(path, far)];
   const corners = path.closed ? inner.length : inner.length - 1;
   for (let i = 0; i < corners; i++) {
     const j = (i + 1) % inner.length;
     const quad = [inner[i], outer[i], outer[j], inner[j]];
+    const positions = raised[i] ? bands.raised : bands.rest;
     for (const index of [0, 1, 2, 0, 2, 3]) {
       positions.push(quad[index][0], 0, quad[index][1]);
     }
   }
 }
 
-/** Two bands along each line, one either side of it, so the outline reads as a double line. */
-function doubleLineGeometry(segments: readonly (readonly [Readonly<Point>, Readonly<Point>])[]) {
-  const [inner, outer] = [DOUBLE_LINE_GAP / 2, DOUBLE_LINE_GAP / 2 + DOUBLE_LINE_WIDTH];
-  const positions: number[] = [];
-  for (const { points, closed } of outlinePaths(segments)) {
-    const path = { points: points.map(toTable), closed };
-    bandAlong(positions, path, inner, outer);
-    bandAlong(positions, path, -inner, -outer);
-  }
+function positionsGeometry(positions: number[]) {
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
   return geometry;
 }
 
-type Face = { id: string; center: Point; rings: Point[][] };
+/** Two bands along each line, one either side of it, so the outline reads as a double line; the stretches along `raisedEdges` come apart, to draw above the Polar Sink's paint. */
+function doubleLineGeometries(segments: readonly Segment[], raisedEdges: ReadonlySet<string>) {
+  const [inner, outer] = [DOUBLE_LINE_GAP / 2, DOUBLE_LINE_GAP / 2 + DOUBLE_LINE_WIDTH];
+  const bands: Bands = { rest: [], raised: [] };
+  for (const { points, closed } of outlinePaths(segments)) {
+    const raised = points.map((point, i) => raisedEdges.has(edgeKey([point, points[(i + 1) % points.length]])));
+    const path = { points: points.map(toTable), closed };
+    bandAlong(bands, path, raised, inner, outer);
+    bandAlong(bands, path, raised, -inner, -outer);
+  }
+  return { rest: positionsGeometry(bands.rest), raised: positionsGeometry(bands.raised) };
+}
+
+type Face = { id: string; center: Point; rings: Point[][]; polar: boolean };
+
+/* The Polar Sink's own border, edge by edge, so an outline's stretches along it draw above the sink's paint. */
+function polarEdges(faces: readonly Face[]) {
+  return new Set(
+    faces
+      .filter((face) => face.polar)
+      .flatMap((face) => face.rings.flatMap((ring) => ring.slice(1).map((to, i) => edgeKey([ring[i], to]))))
+  );
+}
 
 /** An outline-only tint: one double line round its territories taken together, the borders between them and the board's rim left out. */
 function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: readonly Face[] }>) {
   const key = tint.territories.join(' ');
-  const geometry = useMemo(() => {
+  const geometries = useMemo(() => {
     const ids = new Set(key.split(' '));
-    return doubleLineGeometry(
-      offRim(outerSegments(faces.filter((face) => ids.has(face.id)).map((face) => face.rings)), CENTER, RADIUS)
+    const tinted = faces.filter((face) => ids.has(face.id));
+    const { rest, raised } = doubleLineGeometries(
+      offRim(outerSegments(tinted.map((face) => face.rings)), CENTER, RADIUS),
+      polarEdges(tinted)
     );
+    return [
+      { geometry: rest, order: TINT_ORDER.line },
+      { geometry: raised, order: POLAR_TINT_ORDER.line },
+    ];
   }, [faces, key]);
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  return (
-    <mesh geometry={geometry} raycast={ignoreRaycast} renderOrder={TINT_ORDER.line}>
-      <meshBasicMaterial color={tintPaint(tint.color).color} transparent depthWrite={false} side={DoubleSide} />
-    </mesh>
+  useEffect(
+    () => () => {
+      for (const { geometry } of geometries) {
+        geometry.dispose();
+      }
+    },
+    [geometries]
   );
+  const color = tintPaint(tint.color).color;
+  return geometries.map(({ geometry, order }) => (
+    <mesh key={order} geometry={geometry} raycast={ignoreRaycast} renderOrder={order}>
+      <meshBasicMaterial color={color} transparent depthWrite={false} side={DoubleSide} />
+    </mesh>
+  ));
 }
 
 /* The largest a sticker gets, in table units, and the smallest it shrinks to in a cramped territory. */
@@ -173,7 +217,12 @@ function stickerPlacement(rings: Point[][], count: number) {
 
 /* Transparent like the tints beneath, so they draw after the board rather than under it. */
 /** A tint's stickers on one territory, black on a pale outline, each where the territory has the most room for it. */
-function Stickers({ tint, rings, center }: Readonly<{ tint: TerritoryTint; rings: Point[][]; center: Point }>) {
+function Stickers({
+  tint,
+  rings,
+  center,
+  order,
+}: Readonly<{ tint: TerritoryTint; rings: Point[][]; center: Point; order: TintOrder }>) {
   const stamps = tint.stamps ?? [];
   if (!stamps.length) {
     return null;
@@ -185,10 +234,10 @@ function Stickers({ tint, rings, center }: Readonly<{ tint: TerritoryTint; rings
     const { ink, outline } = stickerGeometry(stamp);
     return (
       <group key={stamp} position={[x, 0.004, z]} rotation={[Math.PI / 2, 0, 0]} scale={size}>
-        <mesh geometry={outline} raycast={ignoreRaycast} renderOrder={TINT_ORDER.stickerOutline}>
+        <mesh geometry={outline} raycast={ignoreRaycast} renderOrder={order.stickerOutline}>
           <meshBasicMaterial color={STICKER_OUTLINE} transparent depthWrite={false} side={DoubleSide} />
         </mesh>
-        <mesh geometry={ink} raycast={ignoreRaycast} renderOrder={TINT_ORDER.stickerInk}>
+        <mesh geometry={ink} raycast={ignoreRaycast} renderOrder={order.stickerInk}>
           <meshBasicMaterial color={STICKER_INK} transparent depthWrite={false} side={DoubleSide} />
         </mesh>
       </group>
@@ -203,11 +252,12 @@ function TintedTerritory({
   shapes,
 }: Readonly<{ tint: TerritoryTint; face: Face; shapes: { fill: BufferGeometry; line: BufferGeometry } }>) {
   const paint = tintPaint(tint.color);
+  const order = face.polar ? POLAR_TINT_ORDER : TINT_ORDER;
   return (
     <>
       {!tint.outline && (
         <>
-          <mesh geometry={shapes.fill} raycast={ignoreRaycast} renderOrder={TINT_ORDER.fill}>
+          <mesh geometry={shapes.fill} raycast={ignoreRaycast} renderOrder={order.fill}>
             <meshBasicMaterial
               color={paint.color}
               transparent
@@ -216,12 +266,12 @@ function TintedTerritory({
               side={DoubleSide}
             />
           </mesh>
-          <lineSegments geometry={shapes.line} raycast={ignoreRaycast} renderOrder={TINT_ORDER.line}>
+          <lineSegments geometry={shapes.line} raycast={ignoreRaycast} renderOrder={order.line}>
             <lineBasicMaterial color={paint.color} transparent opacity={0.95} depthWrite={false} />
           </lineSegments>
         </>
       )}
-      <Stickers tint={tint} rings={face.rings} center={face.center} />
+      <Stickers tint={tint} rings={face.rings} center={face.center} order={order} />
     </>
   );
 }
@@ -234,6 +284,7 @@ export function TerritoryTints({ board, tints }: Readonly<{ board: Board; tints:
         id: territoryId(board.properties[face.key].name),
         center: face.center,
         rings: face.rings,
+        polar: board.properties[face.key].type === 'polar',
       })),
     [board]
   );

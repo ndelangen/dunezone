@@ -194,8 +194,9 @@ export const RemoveRefused = meta.story({
     const remove = await page.findByRole('button', { name: 'Remove Shield Wall destroyed' }, { timeout: 30_000 });
     remove.focus();
     await userEvent.keyboard('{Enter>}');
+    /* The hold counts down five seconds on timers a busy CI page can stall for seconds at a time, so the command gets room past that. */
     await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'tint-remove', tintId: 'tint-shield' }), {
-      timeout: 10_000,
+      timeout: 30_000,
     });
     await userEvent.keyboard('{/Enter}');
     const again = await page.findByRole('button', { name: 'Remove Shield Wall destroyed' });

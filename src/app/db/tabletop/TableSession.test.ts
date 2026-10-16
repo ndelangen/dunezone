@@ -2387,6 +2387,54 @@ describe('a plate another player carries', () => {
     expect([...table(client).plateRiders]).toEqual([['free', 'hms']]);
   });
 
+  test('leaves behind a troop set down where the plate lay after it was picked up, as the room does', async () => {
+    const client = await connected();
+    const snapshot = withPlate();
+    const plate = snapshot.table.pieces.find((piece) => piece.id === 'hms')!;
+    const free = snapshot.table.pieces.find((piece) => piece.id === 'free')!;
+    /* The room says what rode the plate when it was picked up; a page that joins later learns it from the carry. */
+    const carried = [
+      { ...carry('alice', { ...plate, position: [-2, 0.38, -1] }, ['hms']), riderIds: ['free', 'held-from'] },
+    ];
+    const late: TablePiece = {
+      ...free,
+      id: 'late',
+      items: [{ id: 'late-item', faceUp: true }],
+      position: [-0.1, 0.132, 1],
+    };
+    const later = {
+      ...snapshot,
+      revision: snapshot.revision + 1,
+      table: { ...snapshot.table, pieces: [...snapshot.table.pieces, late] },
+    };
+    socket().deliver(view({ snapshot: later, carries: carried }));
+    expect(table(client).plateRiders.has('free')).toBe(true);
+    expect(table(client).plateRiders.has('late')).toBe(false);
+    const left = renderedPiece(client, 'late')!;
+    expect([left.position[0], left.position[2]]).toEqual([late.position[0], late.position[2]]);
+  });
+
+  test('holds a piece one carried plate picked up without, though another carried plate it rode covers it too', async () => {
+    const client = await connected();
+    const snapshot = withPlate();
+    const plate = snapshot.table.pieces.find((piece) => piece.id === 'hms')!;
+    const other: TablePiece = { ...plate, id: 'hms-2', items: [{ ...plateItem, id: 'hms-2-item' }] };
+    const both = { ...snapshot, table: { ...snapshot.table, pieces: [...snapshot.table.pieces, other] } };
+    socket().deliver(
+      view({
+        snapshot: both,
+        carries: [
+          { ...carry('alice', { ...plate, position: [-2, 0.38, -1] }, ['hms']), riderIds: [] },
+          { ...carry('bob', { ...other, position: [2, 0.38, -1] }, ['hms-2']), riderIds: ['free', 'held-from'] },
+        ],
+      })
+    );
+    expect(table(client).plateRiders.has('free')).toBe(false);
+    const left = renderedPiece(client, 'free')!;
+    const free = snapshot.table.pieces.find((piece) => piece.id === 'free')!;
+    expect([left.position[0], left.position[2]]).toEqual([free.position[0], free.position[2]]);
+  });
+
   test('leaves the stack this page is taking from behind', async () => {
     const client = await connected();
     const snapshot = withPlate();
