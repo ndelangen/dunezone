@@ -115,7 +115,8 @@ export function TerritoryTints({ client, table }: Props) {
                 <Tooltip label={painting ? 'Stop painting (Esc)' : `Paint ${tint.name}`}>
                   <ActionIcon
                     variant={painting ? 'filled' : 'subtle'}
-                    color={painting ? 'orange' : 'gray'}
+                    color={painting ? 'yellow' : 'gray'}
+                    autoContrast
                     aria-label={`Paint ${tint.name}`}
                     aria-pressed={painting}
                     disabled={!canEdit}
