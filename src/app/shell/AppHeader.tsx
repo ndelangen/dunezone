@@ -42,7 +42,6 @@ export function AppHeader({ children }: AppHeaderProps) {
   const bandShown = useShown(bandRef);
   const playVideo = motionOk && bandShown;
   const frameRef = useRef<HTMLDivElement>(null);
-  useUnwindAfterImmersion(frameRef);
   useFrameLeft(frameRef);
 
   if (!playVideo && videoReady) {
@@ -61,7 +60,7 @@ export function AppHeader({ children }: AppHeaderProps) {
   }, [playVideo]);
 
   return (
-    <div ref={frameRef} className={styles.frame}>
+    <div ref={frameRef} className={styles.frame} data-app-frame>
       {/* Artwork and site navigation, not the banner: the page's own header is that landmark (see PageLayout). */}
       <div ref={bandRef} className={styles.band} data-app-band>
         <img alt="" aria-hidden className={styles.bandPlaceholder} src={bandPlaceholder} />
@@ -95,9 +94,13 @@ function useFrameLeft(frameRef: RefObject<HTMLDivElement | null>) {
     if (!frame || typeof ResizeObserver === 'undefined') {
       return;
     }
+    let published = '';
     const measure = () => {
-      const left = frame.getBoundingClientRect().left + window.scrollX;
-      frame.style.setProperty('--app-frame-left', `${left}px`);
+      const left = `${frame.getBoundingClientRect().left + window.scrollX}px`;
+      if (left !== published) {
+        published = left;
+        frame.style.setProperty('--app-frame-left', left);
+      }
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -107,39 +110,6 @@ function useFrameLeft(frameRef: RefObject<HTMLDivElement | null>) {
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', measure);
-    };
-  }, [frameRef]);
-}
-
-/* How long the band takes to shrink back from an immersive page; matches the immersive transition in AppHeader.module.css. */
-const UNWIND_MS = 700;
-
-/*
- * Marks the frame while the band shrinks back from an immersive page, so the shrink keeps the growth's slow curve instead of the everyday 0.2s.
- * The page cannot report upward (see the component's comment) and the router swaps pages without rendering this component, so it watches the page's declaration in the DOM instead.
- */
-function useUnwindAfterImmersion(frameRef: RefObject<HTMLDivElement | null>) {
-  useEffect(() => {
-    const frame = frameRef.current;
-    if (!frame || typeof MutationObserver === 'undefined') {
-      return;
-    }
-    const isImmersive = () => frame.querySelector('[data-page-layout-header-size="immersive"]') !== null;
-    let wasImmersive = isImmersive();
-    let timer: number | undefined;
-    const observer = new MutationObserver(() => {
-      const immersive = isImmersive();
-      if (wasImmersive && !immersive) {
-        frame.setAttribute('data-band-unwinding', '');
-        window.clearTimeout(timer);
-        timer = window.setTimeout(() => frame.removeAttribute('data-band-unwinding'), UNWIND_MS);
-      }
-      wasImmersive = immersive;
-    });
-    observer.observe(frame, { subtree: true, childList: true, attributeFilter: ['data-page-layout-header-size'] });
-    return () => {
-      observer.disconnect();
-      window.clearTimeout(timer);
     };
   }, [frameRef]);
 }

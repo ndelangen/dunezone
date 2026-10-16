@@ -100,7 +100,7 @@
  * An immersive page grows the band out of the column to fill the window edge to edge, and leaving one shrinks it back.
  * Every property involved is a length, so the band stays mounted and the move animates both ways, video still playing.
  * `--app-frame-left` is the frame's distance from the window's left edge, which `AppHeader` measures because the scrollbar gutter makes it unknowable in CSS.
- * A transition takes its timing from the style it lands on, so the slow curve sits on the immersive state for the growth and on `data-band-unwinding`, which `AppHeader` holds for the length of the shrink, for the way back.
+ * A transition takes its timing from the style it lands on, so the slow curve sits on the immersive state for the growth and on `data-band-unwinding`, which `PageLayout` sets on the frame for the length of the shrink when an immersive page leaves, for the way back.
  */
 .frame:has([data-page-layout-header-size="immersive"]) .band {
   width: 100vw;

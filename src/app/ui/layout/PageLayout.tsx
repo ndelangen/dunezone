@@ -1,5 +1,5 @@
-import { Children, createContext, isValidElement, useContext } from 'react';
-import type { PropsWithChildren, ReactNode } from 'react';
+import { Children, createContext, isValidElement, useContext, useLayoutEffect, useRef } from 'react';
+import type { PropsWithChildren, ReactNode, RefObject } from 'react';
 
 import styles from './PageLayout.module.css';
 import { warnDroppedChild } from './warnDroppedChild';
@@ -57,6 +57,27 @@ const Content: (props: PropsWithChildren<{ width?: PageContentWidth }>) => null 
  * Landmarks: the header content is the page's one `header` (banner), since the shell's band above it is artwork and site navigation;
  * the toolbar and content are its one `main`, with the id `PAGE_CONTENT_ID` the shell's skip link moves to.
  */
+/* How long the band takes to shrink back from an immersive page; matches the immersive transition in the AppHeader stylesheet. */
+const UNWIND_MS = 700;
+
+/*
+ * When an immersive page leaves, marks the shell's frame for as long as the band takes to shrink back, so the shrink keeps the growth's slow curve instead of the everyday 0.2s.
+ * A transition takes its timing from the style it lands on, and the shrink lands on the everyday band, so the mark has to be in place in the commit that removes the page.
+ * A layout effect's cleanup runs in that commit, before the browser restyles.
+ */
+function useUnwindOnLeave(layoutRef: RefObject<HTMLDivElement | null>, immersive: boolean) {
+  useLayoutEffect(() => {
+    const frame = immersive ? layoutRef.current?.closest<HTMLElement>('[data-app-frame]') : null;
+    if (!frame) {
+      return;
+    }
+    return () => {
+      frame.setAttribute('data-band-unwinding', '');
+      window.setTimeout(() => frame.removeAttribute('data-band-unwinding'), UNWIND_MS);
+    };
+  }, [layoutRef, immersive]);
+}
+
 const PAGE_LAYOUT_SLOTS = ['PageLayout.Header', 'PageLayout.Toolbar', 'PageLayout.Content'] as const;
 
 function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
@@ -93,9 +114,12 @@ function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
   });
 
   const hasToolbarContent = Children.toArray(toolbar).length > 0;
+  const layoutRef = useRef<HTMLDivElement>(null);
+  useUnwindOnLeave(layoutRef, hasHeader && (headerSize as PageHeaderSize) === 'immersive');
 
   return (
     <div
+      ref={layoutRef}
       className={styles.layout}
       data-page-layout-compact={hasHeader ? undefined : 'true'}
       data-page-layout-header-size={hasHeader ? headerSize : undefined}
