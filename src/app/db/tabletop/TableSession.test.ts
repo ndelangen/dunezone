@@ -222,6 +222,50 @@ describe('hosted public controls', () => {
       expect(socket().sent.at(-1)).toEqual({ type: 'log-history', tab, before: Number.MAX_SAFE_INTEGER });
     }
   });
+  test('a changed table reads the log page again at once, and a burst of changes once more at its end', async () => {
+    const client = await connected();
+    const reads = () => socket().sent.filter((message) => message.type === 'log-history').length;
+    client.refreshLogHistory('game');
+    expect(reads()).toBe(1);
+    client.refreshLogHistory('game');
+    client.refreshLogHistory('game');
+    expect(reads()).toBe(1);
+    vi.advanceTimersByTime(500);
+    expect(reads()).toBe(2);
+    vi.advanceTimersByTime(1000);
+    expect(reads()).toBe(2);
+    client.refreshLogHistory('game');
+    expect(reads()).toBe(3);
+    /* A read still waiting is dropped with the panel that asked for it. */
+    const stop = client.refreshLogHistory('game');
+    stop();
+    vi.advanceTimersByTime(1000);
+    expect(reads()).toBe(3);
+    /* Each tab keeps its own wait. */
+    client.refreshLogHistory('audit');
+    expect(reads()).toBe(4);
+  });
+  test('a log page read again with nothing new leaves the panels as they are', async () => {
+    const client = await connected();
+    const entry = { sequence: 1, class: 'phase' as const, text: 'Storm began.', context: 'Turn 1', at: 1 };
+    const page = (entries: (typeof entry)[]) =>
+      socket().deliver({ type: 'log-history', tab: 'game', before: Number.MAX_SAFE_INTEGER, entries, more: false });
+    client.readLogHistory('game');
+    page([entry]);
+    const shown = client.getSnapshot();
+    const panelListener = vi.fn();
+    client.subscribe(panelListener);
+
+    client.readLogHistory('game');
+    page([{ ...entry }]);
+    expect(client.getSnapshot()).toBe(shown);
+    expect(panelListener).not.toHaveBeenCalled();
+
+    client.readLogHistory('game');
+    page([{ ...entry, sequence: 2, text: 'Spice blew.' }, entry]);
+    expect(client.getSnapshot().logHistory.game?.entries).toHaveLength(2);
+    expect(panelListener).toHaveBeenCalledTimes(1);
+  });
   test('releases the capture on a completion the tab could not apply', async () => {
     const client = await connected();
     const sentReads = () =>
@@ -1506,6 +1550,43 @@ function battleTable() {
   return { plan, snapshot };
 }
 
+test('the battle countdown ticks its own seconds and leaves the panels and the scene alone', async () => {
+  const client = await connected();
+  const { snapshot } = battleTable();
+  const counting = { ...snapshot, battle: { ...snapshot.battle!, stage: 'countdown' as const } };
+  socket().deliver({ ...view({ snapshot: counting }), battleCountdownMs: 3000 });
+  expect(client.getBattleCountdownSeconds()).toBe(3);
+  const panelListener = vi.fn();
+  const sceneListener = vi.fn();
+  const countdownListener = vi.fn();
+  client.subscribe(panelListener);
+  client.subscribeTable(sceneListener);
+  client.subscribeBattleCountdown(countdownListener);
+
+  vi.advanceTimersByTime(1000);
+  expect(client.getBattleCountdownSeconds()).toBe(2);
+  expect(countdownListener).toHaveBeenCalledTimes(1);
+  vi.advanceTimersByTime(2000);
+  expect(client.getBattleCountdownSeconds()).toBe(0);
+  expect(countdownListener).toHaveBeenCalledTimes(3);
+  vi.advanceTimersByTime(1000);
+  expect(countdownListener).toHaveBeenCalledTimes(3);
+  expect(panelListener).not.toHaveBeenCalled();
+  expect(sceneListener).not.toHaveBeenCalled();
+});
+
+test('a lost connection holds the battle countdown where it stopped', async () => {
+  const client = await connected();
+  const { snapshot } = battleTable();
+  const counting = { ...snapshot, battle: { ...snapshot.battle!, stage: 'countdown' as const } };
+  socket().deliver({ ...view({ snapshot: counting }), battleCountdownMs: 3000 });
+  vi.advanceTimersByTime(1000);
+  socket().close();
+  vi.advanceTimersByTime(1000);
+  expect(table(client).reconnecting).toBe(true);
+  expect(client.getBattleCountdownSeconds()).toBe(2);
+});
+
 test('serializes quick private plan edits and waits for their acknowledgment before Ready', async () => {
   const client = await connected();
   const { plan, snapshot } = battleTable();
@@ -1989,6 +2070,79 @@ describe('pointer moves', () => {
     vi.advanceTimersByTime(1600);
     pointerUpdate(3, { pointerMoves: [{ connectionId: 'other', position: [2, 0, 0], updatedAt: 2 }] });
     expect(table(client).phaseCooling).toBe(false);
+  });
+
+  test("the piece menu's controls keep their identity while another player's carry moves", async () => {
+    const client = await connected();
+    socket().deliver(
+      view({ sequence: 1, snapshot: { ...initialSnapshot(), bank: { factionId: 'harkonnen', balance: 20 } } })
+    );
+    const { source, carry } = otherCarry(client);
+    pointerUpdate(2, { carries: [carry] });
+    const before = table(client);
+    expect(
+      before.spiceReserveControls && before.deckControls && before.deleteControls && before.peekControls
+    ).toBeTruthy();
+
+    pointerUpdate(3, {
+      carryMoves: [{ id: 'other-carry', position: [2, 0.38, 2], orientation: 0, expiresAt: Date.now() + 8000 }],
+    });
+
+    const after = table(client);
+    expect(after).not.toBe(before);
+    for (const key of ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls'] as const) {
+      expect(after[key]).toBe(before[key]);
+    }
+    /* The reserve reads the table as it is when asked, so the kept control still knows the stack is in a hand. */
+    expect(after.spiceReserveControls!.canCollect(source.id)).toBe(false);
+    pointerUpdate(4, { removedCarries: ['other-carry'] });
+    expect(table(client).spiceReserveControls).toBe(before.spiceReserveControls);
+    expect(table(client).spiceReserveControls!.canCollect(source.id)).toBe(true);
+  });
+
+  test("this page's own carry tells the scene once a frame, and a drop tells it at once", async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    client.beginGesture('harkonnen-force-stack', 'whole');
+    const panelListener = vi.fn();
+    const sceneListener = vi.fn();
+    client.subscribe(panelListener);
+    client.subscribeTable(sceneListener);
+
+    client.updateGesture([0.2, 0.38, 0.2]);
+    client.updateGesture([0.4, 0.38, 0.4]);
+
+    /* The table follows every move at once; only the scene's notice waits for the frame. */
+    expect(table(client).state.draftMove?.position).toEqual([0.4, 0.38, 0.4]);
+    expect(sceneListener).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(16);
+    expect(sceneListener).toHaveBeenCalledTimes(1);
+
+    client.updateGesture([0.45, 0.38, 0.45]);
+    client.finishGesture(dropPosition);
+
+    expect(sceneListener).toHaveBeenCalledTimes(2);
+    expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', position: dropPosition });
+    vi.advanceTimersByTime(16);
+    expect(sceneListener).toHaveBeenCalledTimes(2);
+    expect(panelListener).toHaveBeenCalled();
+  });
+
+  test('a cancelled carry tells the scene at once, with the move still waiting for its frame', async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    client.beginGesture('harkonnen-force-stack', 'whole');
+    const sceneListener = vi.fn();
+    client.subscribeTable(sceneListener);
+
+    client.updateGesture([0.2, 0.38, 0.2]);
+    expect(sceneListener).not.toHaveBeenCalled();
+    client.cancelDraft();
+
+    expect(sceneListener).toHaveBeenCalledTimes(1);
+    expect(table(client).state.draftMove).toBeNull();
+    vi.advanceTimersByTime(16);
+    expect(sceneListener).toHaveBeenCalledTimes(1);
   });
 });
 

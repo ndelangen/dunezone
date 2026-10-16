@@ -23,7 +23,7 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
 import clsx from 'clsx';
 import type { CSSProperties, ReactNode } from 'react';
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useReducer, useState, useSyncExternalStore } from 'react';
 import type { Camera } from 'three';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 
@@ -803,9 +803,18 @@ function BattleCentre(props: ActiveProps) {
   if (props.battle.stage !== 'countdown') {
     return null;
   }
+  return <BattleCountdown client={props.client} />;
+}
+/* The seconds left re-render on their own each second; the battle around them waits for the table to change. */
+function BattleCountdown({ client }: { client: TableSession }) {
+  const seconds = useSyncExternalStore(
+    client.subscribeBattleCountdown,
+    client.getBattleCountdownSeconds,
+    client.getBattleCountdownSeconds
+  );
   return (
     <Text size="xl" fw={700} role="timer">
-      {props.table.battleCountdownSeconds}
+      {seconds}
     </Text>
   );
 }
