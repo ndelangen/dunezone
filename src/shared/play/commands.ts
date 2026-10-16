@@ -3,6 +3,7 @@ import { freshTableState, gestureBlockReason, nearestZone, pieceCount } from './
 import type { TablePiece, TableState } from './model';
 import { phaseAt, STANDARD_PHASES, stepPhase, tableProgressFor, TURN_SELECT_REFUSAL } from './phases';
 import type { PhaseEntry } from './phases';
+import { placementRules, withRidersCarried } from './pointerRiders';
 import { ROTATE_STEPS_LIMIT } from './protocol';
 import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
@@ -249,11 +250,13 @@ export function rotatedPiece(state: TableState, piece: TablePiece, turns: number
     orientation,
     position: restingPositionAt(piece.position, { ...piece, orientation }),
   };
-  return isCollisionFreePosition(
-    rotated,
-    rotated.position,
+  const rules = placementRules(
+    state.pieces,
+    piece,
     state.pieces.filter((candidate) => candidate.id !== piece.id)
-  )
+  );
+  return isCollisionFreePosition(rotated, rotated.position, rules.obstacles) &&
+    rules.fits(rotated.position, orientation)
     ? rotated
     : null;
 }
@@ -267,7 +270,12 @@ function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1, st
     throw new GameRejection(`There is no room to rotate ${piece.label} here.`);
   }
   return accepted(
-    { ...state, pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? rotated : candidate)) },
+    {
+      ...state,
+      pieces: withRidersCarried(state.pieces, rotated).map((candidate) =>
+        candidate.id === piece.id ? rotated : candidate
+      ),
+    },
     'piece.rotate',
     `${piece.label} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by ${steps * 15} degrees.`
   );

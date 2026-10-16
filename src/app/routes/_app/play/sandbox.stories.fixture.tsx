@@ -40,8 +40,11 @@ type View = Extract<ServerMessage, { type: 'view' }>;
 type Message = Exclude<ClientMessage, { type: 'admit' | 'log-history' | 'conversation-history' }>;
 type TableMessage<Type extends Message['type']> = Extract<Message, { type: Type }>;
 type RoomAction = Parameters<Room['command']>[1];
-/** Where a sandbox starts: a journey step (0-based) and the seat the page is viewed as. */
-export type SandboxStart = { start: number; seat: string };
+/**
+ * Where a sandbox starts: a journey step (0-based) and the seat the page is viewed as.
+ * `prepare` changes the stored table before it opens, as a story trying out a piece the recording never had.
+ */
+export type SandboxStart = { start: number; seat: string; prepare?: (stored: StoredSnapshot) => StoredSnapshot };
 
 /* The session commits these families outside the table, so the sandbox refuses them with a pointer to the journey. */
 const SESSION_ONLY = [isDraftAction, isSwapAction, isSeatAction, isRemovalAction, isResultAction];
@@ -105,11 +108,14 @@ export class SandboxTable {
   seat: string;
   /** Why the room refused the latest message it refused, for a story to assert on. */
   refusal: string | undefined;
+  readonly prepare: SandboxStart['prepare'];
 
-  constructor({ start, seat }: SandboxStart) {
+  constructor({ start, seat, prepare }: SandboxStart) {
     this.start = clampStart(start);
     this.step = journeySteps()[this.start]!;
-    const stored = variedTreachery(storedSnapshotSchema.parse(onCurrentBoard(this.step.stored)));
+    this.prepare = prepare;
+    const recorded = variedTreachery(storedSnapshotSchema.parse(onCurrentBoard(this.step.stored)));
+    const stored = prepare ? storedSnapshotSchema.parse(prepare(recorded)) : recorded;
     /* Every viewer the recording connected, each with a connection of its own so carries keep their owners apart. */
     const last = journeySteps().at(-1)!.views;
     this.viewers = Object.fromEntries(
@@ -416,7 +422,7 @@ export function sandboxTransport(place: SandboxStart) {
 function restart(place: SandboxStart) {
   const deliver = sandbox.table?.deliver;
   sandbox.table?.dispose();
-  const table = new SandboxTable(place);
+  const table = new SandboxTable({ prepare: sandbox.table?.prepare, ...place });
   table.open();
   if (deliver) {
     table.deliver = deliver;

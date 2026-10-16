@@ -10,6 +10,7 @@ import type { Affordance, DraftMove, TablePiece, TableState, Vector3Tuple } from
 import { isSeatAction } from '@shared/play/participation';
 import { rearrangeable } from '@shared/play/peeking';
 import type { Peek } from '@shared/play/peeking';
+import { piecesOnPlates, ridersOf } from '@shared/play/pointerRiders';
 import { carryPieceId, TABLE_PING_INTERVAL_MS, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
@@ -42,6 +43,31 @@ import type { TableSubscription, TableSubscriptionEvent } from './TableSubscript
 /* Both tabs open on their newest page. */
 function latestLogPages(): Record<LogTab, number> {
   return { game: Number.MAX_SAFE_INTEGER, audit: Number.MAX_SAFE_INTEGER };
+}
+
+/*
+ * The table as others' carries leave it on this page: what they hold shown in their hands, the pieces they keep from moving, and what rides a plate one of them carries.
+ * A piece another player holds part of stays put, as the room's own locks keep it, so it rides no plate.
+ */
+function remoteViewOf(pieces: TablePiece[], carries: PublicCarry[], rested: TablePiece[], own: LocalCarry | null) {
+  const reservedPieceIds = new Set(carries.flatMap((carry) => carry.reservedIds));
+  /* What this page is carrying from is held for it too, so another's plate leaves it behind as well. */
+  const held = new Set([...reservedPieceIds, ...(own ? draftSourceIds(own.draft) : [])]);
+  const guarded = held.size ? rested.map((piece) => (held.has(piece.id) ? { ...piece, locked: true } : piece)) : rested;
+  const remoteCarriedIds = new Set(carries.map((carry) => carry.held.id));
+  /* A plate in anyone's hand, this page's own included, takes its riders along as it is shown. */
+  const inHand = own ? new Set([...remoteCarriedIds, own.draft.pieceId]) : remoteCarriedIds;
+  return {
+    renderedPieces: piecesOnPlates(projectPublicCarries(pieces, carries), guarded),
+    reservedPieceIds,
+    remoteCarriedIds,
+    plateRiders: ridersOf(guarded, inHand),
+  };
+}
+
+/* The stacks a carry takes from: the one it was picked up from, and any it took more from on the way. */
+function draftSourceIds(draft: DraftMove): string[] {
+  return [draft.sourcePieceId, ...draft.withdrawals.map((withdrawal) => withdrawal.sourcePieceId)];
 }
 
 function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): TablePiece[] {
@@ -151,6 +177,8 @@ export type TableProjection = {
   /* Letting go of the peek held open; a seated viewer can, even once the game is finished and the table no longer handles. */
   closePeek?: () => void;
   remoteCarriedIds: ReadonlySet<string>;
+  /* Pieces riding a plate in someone's hand, this page's own included, by id, to that plate's id: they follow the plate as it is shown. */
+  plateRiders: ReadonlyMap<string, string>;
   reservedPieceIds: ReadonlySet<string>;
   gestureActivePieceId: string | null;
   hoveredPieceId: string | null;
@@ -210,6 +238,7 @@ function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: Readonly
 }
 
 /* The controls a panel offers only while present, so only their presence counts for a panel's render. */
+const PIECE_ID_SETS = ['remoteCarriedIds', 'plateRiders', 'reservedPieceIds'] as const;
 const PANEL_CONTROLS = ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls', 'closePeek'] as const;
 
 function samePlayback(previous: TableProjection['playback'], next: TableProjection['playback']) {
@@ -244,8 +273,7 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     previous.gestureActivePieceId === next.gestureActivePieceId &&
     PANEL_CONTROLS.every((key) => Boolean(previous[key]) === Boolean(next[key])) &&
     (previous.peek === null) === (next.peek === null) &&
-    sameMembers(previous.remoteCarriedIds, next.remoteCarriedIds) &&
-    sameMembers(previous.reservedPieceIds, next.reservedPieceIds) &&
+    PIECE_ID_SETS.every((key) => sameMembers(previous[key], next[key])) &&
     sameMembers(previous.flippingPieceIds, next.flippingPieceIds) &&
     [...previous.flippingPieceIds].every(([id, revision]) => next.flippingPieceIds.get(id) === revision)
   );
@@ -324,11 +352,12 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
     phaseCooling: false,
     battleCountdownSeconds: 0,
     state,
-    renderedPieces: renderedPiecesFor(state),
+    renderedPieces: piecesOnPlates(renderedPiecesFor(state), state.pieces),
     selectedPiece: null,
     affordances: [],
     peek: null,
     remoteCarriedIds: new Set(),
+    plateRiders: new Map(),
     reservedPieceIds: new Set(),
     gestureActivePieceId: null,
     hoveredPieceId: null,
@@ -676,7 +705,7 @@ export class TableSession {
     }
     const { table, serverNow } = this.lastLive;
     const state = { ...table.state, draftMove: null };
-    const renderedPieces = renderedPiecesFor(state);
+    const renderedPieces = piecesOnPlates(renderedPiecesFor(state), state.pieces);
     return {
       ...table,
       reconnecting: true,
@@ -695,6 +724,7 @@ export class TableSession {
       peekControls: undefined,
       closePeek: undefined,
       remoteCarriedIds: new Set(),
+      plateRiders: new Map(),
       reservedPieceIds: new Set(),
       gestureActivePieceId: null,
       hoveredPieceId: null,
@@ -724,8 +754,7 @@ export class TableSession {
     const local = this.localProjection(state);
     const canInteract = this.canAct();
     const canHandleTable = this.canHandle();
-    const renderedPieces = projectPublicCarries(local.pieces, remote);
-    const reservedPieceIds = new Set(remote.flatMap((carry) => carry.reservedIds));
+    const { renderedPieces, reservedPieceIds, ...remoteIds } = this.remoteView(local.pieces, remote, state.pieces);
     return {
       viewer,
       snapshot: displayed,
@@ -782,7 +811,7 @@ export class TableSession {
             }
           : undefined,
       closePeek: canInteract && displayed.peek ? () => this.closePeek(displayed.peek!.piece.id) : undefined,
-      remoteCarriedIds: new Set(remote.map((carry) => carry.held.id)),
+      ...remoteIds,
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
       hoveredPieceId: this.hoveredId,
@@ -837,6 +866,10 @@ export class TableSession {
       this.command({ kind: 'peek-pull', pieceId, index });
     }
   };
+  private remoteView(pieces: TablePiece[], carries: PublicCarry[], rested: TablePiece[]) {
+    return remoteViewOf(pieces, carries, rested, this.carry);
+  }
+
   private activityForView() {
     if (this.history) {
       return { carries: [], pointers: [] };

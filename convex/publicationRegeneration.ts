@@ -163,6 +163,7 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
     case DECK_ASSET_TYPE:
     case 'token-disc':
     case 'token-tech':
+    case 'token-pointer':
     case 'token-plate':
     case RECTANGLE_TOKEN_ASSET_TYPE:
       return await scanAssets(ctx, assetType, cursor);

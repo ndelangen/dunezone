@@ -78,3 +78,16 @@ export const Spice = meta.story({
     size: { width: 190, height: 190 },
   },
 });
+
+/**
+ * A pointer token's face, laid out for the teardrop the consumer cuts from this square: point at the top, round end on the bottom edge.
+ * One symbol and the background sit on the round end's centre, the ring follows the outline, and labels are not drawn.
+ */
+export const Pointer = meta.story({
+  args: {
+    shape: 'pointer',
+    background: backgroundPresets.techBlue,
+    image: '/vector/icon/heighliners.svg',
+    circle: true,
+  },
+});

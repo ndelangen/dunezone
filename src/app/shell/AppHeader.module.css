@@ -19,8 +19,13 @@
  * interpolate between two lengths, so every mode must state its height in the same currency.
  */
 .band {
+  --band-media-align-x: 0.5;
+
   grid-area: hero;
   position: relative;
+
+  /* Sized, so the artwork can cover it through cqw and cqh. */
+  container-type: size;
   width: 100%;
   height: calc(100cqw * (1125 / 3064));
   overflow: hidden;
@@ -39,8 +44,27 @@
   }
 }
 
-/* The band artwork, bottom to top: inlined blurred frame, poster photograph, looping video.
-   All negative z-index so `SiteNavigation` paints above; tree order settles who covers whom. */
+/*
+ * The artwork covers the band the way `object-fit: cover` would, but as a box of its own at the art's 16:9.
+ * That gives the immersive grow and shrink (see bandMotion.ts) one layer to scale on the compositor instead of redrawing the art at every size.
+ * Centred vertically, and across by `--band-media-align-x`.
+ * Negative z-index so `SiteNavigation` paints above.
+ */
+.bandMedia {
+  --band-media-width: max(100cqw, 100cqh * 16 / 9);
+
+  position: absolute;
+  top: calc((100cqh - var(--band-media-width) * 9 / 16) / 2);
+  left: calc((100cqw - var(--band-media-width)) * var(--band-media-align-x));
+  width: var(--band-media-width);
+  aspect-ratio: 16 / 9;
+  transform-origin: 0 0;
+  will-change: transform;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Bottom to top: inlined blurred frame, poster photograph, looping video; tree order settles who covers whom. */
 .bandPlaceholder,
 .bandPoster,
 .bandVideo {
@@ -49,8 +73,6 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
-  z-index: -1;
 }
 
 /* The scale tucks the blur's washed-out edges under the band's overflow clip. */
@@ -81,15 +103,66 @@
     height: 319px;
   }
 
-  .bandPlaceholder,
-  .bandPoster,
-  .bandVideo {
-    object-position: left center;
+  .band {
+    --band-media-align-x: 0;
   }
 
   .frame:has([data-page-layout-header-size="compact"]) .band {
     height: 220px;
   }
+}
+
+/*
+ * An immersive page lifts the band out of the column to fill the window edge to edge, and leaving one puts it back.
+ * The band takes the window's size at once and `bandMotion.ts` animates the clip that reveals it, so the move runs on the compositor both ways, video still playing.
+ * `--app-frame-left` is the frame's distance from the window's left edge, which `AppHeader` measures because the scrollbar gutter makes it unknowable in CSS.
+ * `data-band-unwinding` holds the band at the window's size for the length of the shrink, above the arriving page so the clip closes over it.
+ */
+.frame:has([data-page-layout-header-size="immersive"]) .band,
+.frame[data-band-unwinding] .band {
+  position: absolute;
+  top: -40px;
+  left: calc(-1 * var(--app-frame-left, 0px));
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  border-radius: 0;
+  box-shadow: none;
+  transition: none;
+}
+
+.frame[data-band-unwinding] .band {
+  z-index: 2;
+}
+
+/* The band already fills the window, so the gap to the content row below it would only add an empty strip before the footer. */
+.frame:has([data-page-layout-header-size="immersive"]) {
+  row-gap: 0;
+}
+
+.frame:has([data-page-layout-header-size="immersive"]) .band::after,
+.frame[data-band-unwinding] .band::after {
+  transition-duration: 0.7s;
+  transition-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* The veil darkens the left, where an immersive page's words sit, and the floor; it fades with the growth. */
+.band::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  background:
+    linear-gradient(90deg, rgb(20 12 6 / 92%) 0%, rgb(20 12 6 / 72%) 40%, rgb(20 12 6 / 5%) 75%),
+    linear-gradient(0deg, rgb(20 12 6 / 70%), transparent 40%);
+  pointer-events: none;
+  transition: opacity 0.5s ease-out;
+  will-change: opacity;
+}
+
+.frame:has([data-page-layout-header-size="immersive"]) .band::after {
+  opacity: 1;
 }
 
 /* Inline-size containment would anchor the fixed workspace to this frame, not the viewport. */

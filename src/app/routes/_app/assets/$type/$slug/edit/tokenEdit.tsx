@@ -173,7 +173,7 @@ function TokenEditSession({
     noun: 'token',
   });
   const warnings: (TokenWarning | { source: string; complaint: string; chapter: TokenChapter })[] = [
-    ...tokenDraftWarnings(state.data),
+    ...tokenDraftWarnings(state.data, type),
     ...(danglingBack && state.data.back.mode === 'reference'
       ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as TokenChapter }]
       : []),

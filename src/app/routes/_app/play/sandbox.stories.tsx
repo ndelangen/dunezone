@@ -1,10 +1,15 @@
 import preview from '@sb/preview';
+import { POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
+import { restingPositionAt } from '@shared/play/tableGeometry';
+import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
 import { sandbox, sandboxDecorator, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
+import { COLUMNS_MIN_WIDTH_REM, setTableLayout } from './tableLayout';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -285,3 +290,171 @@ export const HiddenZone = meta.story({
 
 /** The battle beacon at the Battle phase: pick the acrylic disc up over the tracker's Battle disc and drop it on a territory; it lies flat and fades as the battle shows. */
 export const BattleBeacon = meta.story({ args: { step: chapter('Battle') } });
+
+/** An HMS plate for seat 1's faction, set down on the board where nothing stands. */
+function withHms(stored: StoredSnapshot): StoredSnapshot {
+  const seat = stored.roster!.seats.find((entry) => entry.id === 'seat-1')!;
+  /* The faction's own token art stands in for a pointer token's face. */
+  const art = stored.table.pieces.find((candidate) => candidate.stackKey === `faction-token:${seat.faction!.id}`)!
+    .items[0]!.artwork!;
+  const plate: StoredSnapshot['table']['pieces'][number] = {
+    id: 'sandbox-hms',
+    label: 'HMS',
+    owner: seat.faction!.id,
+    color: seat.faction!.color,
+    accent: '#ead9bb',
+    items: [
+      {
+        id: 'sandbox-hms-plate',
+        faceUp: true,
+        artwork: { front: art.front, back: art.back, name: 'HMS', type: POINTER_TOKEN_TYPE },
+      },
+    ],
+    stackKey: 'token:sandbox-hms',
+    position: [0, 0, 0],
+    orientation: 0.5,
+    zoneId: null,
+    locked: false,
+    kind: 'force',
+  };
+  const spot = nearestCollisionFreePosition(plate, [0.6, 0, 1.6], stored.table.pieces)!;
+  plate.position = restingPositionAt(spot, plate);
+  return {
+    ...stored,
+    table: { ...stored.table, pieces: [...stored.table.pieces, plate] },
+    versions: { ...stored.versions, [plate.id]: stored.revision },
+  };
+}
+
+/** Seat 1 sets two of its troop stacks on the HMS; answers the stacks and the plate as the page sees them. */
+async function boardHms(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
+  const table = sandbox.table!;
+  const faction = shown().bank!.factionId;
+  const plate = () => piece((candidate) => candidate.stackKey === 'token:sandbox-hms');
+  const carry = async (id: string, pieceId: string, position: [number, number, number], orientation = 0) => {
+    table.receive({
+      type: 'begin',
+      carryId: id,
+      sourcePieceId: pieceId,
+      expectedVersion: shown().versions[pieceId]!,
+      pickup: 'whole',
+    });
+    table.receive({ type: 'drop', commandId: `${id}-drop`, carryId: id, position, orientation });
+    await expect(table.refusal).toBeUndefined();
+  };
+  const stacks = shown()
+    .table.pieces.filter(
+      (candidate) =>
+        !candidate.inventory && candidate.kind === 'force' && !!candidate.stackKey?.startsWith(`troops:${faction}:`)
+    )
+    .slice(0, 2);
+  const [x, , z] = plate().position;
+  await carry('hms-first', stacks[0]!.id, [x - 0.2, 0.4, z + 0.1]);
+  await carry('hms-second', stacks[1]!.id, [x + 0.2, 0.4, z - 0.1]);
+  const riding = () => shown().table.pieces.filter((candidate) => stacks.some((stack) => stack.id === candidate.id));
+  return { plate, carry, riding };
+}
+
+const hmsSandbox = {
+  args: { step: chapter('Shipment and movement'), seat: 'seat-1' },
+  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+    install(() =>
+      sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1'), prepare: withHms })
+    )(),
+};
+
+/**
+ * The HMS: a teardrop plate that carries whatever stands on it.
+ * Seat 1 has set two of its troop stacks on it.
+ * Drag the plate and both stacks ride along;
+ * drag a stack off and it stays behind;
+ * Q or E turns the plate with its troops.
+ */
+export const Hms = meta.story({
+  ...hmsSandbox,
+  play: async ({ canvasElement }) => {
+    await boardHms(canvasElement);
+  },
+});
+
+/** Seat 1 moves the HMS across the board with two troop stacks on it: both ride along, each keeping its place on the plate. */
+export const HmsCarriesItsTroops = meta.story({
+  ...hmsSandbox,
+  play: async ({ canvasElement }) => {
+    const { plate, carry, riding } = await boardHms(canvasElement);
+    const [x, , z] = plate().position;
+    const before = riding().map((stack) => [stack.position[0] - x, stack.position[2] - z]);
+    await carry('hms-plate', plate().id, [x - 1.6, 0.4, z - 1.2], plate().orientation);
+    const [nextX, , nextZ] = plate().position;
+    for (const [index, stack] of riding().entries()) {
+      await expect(stack.position[0] - nextX).toBeCloseTo(before[index]![0]!);
+      await expect(stack.position[2] - nextZ).toBeCloseTo(before[index]![1]!);
+    }
+  },
+});
+
+/**
+ * The table between the controls and the players, the layout a viewer picks in the game menu;
+ * the separators either side of the table resize the columns.
+ * A window too narrow for the columns keeps the board on top.
+ * Switching back and forth keeps the table's renderer and a half-typed message: the layouts move the same content, they never mount it afresh.
+ */
+export const ThreeColumns = meta.story({
+  beforeEach: () => {
+    setTableLayout('columns');
+    return () => setTableLayout('stacked');
+  },
+  play: async ({ canvasElement }) => {
+    const body = canvasElement.ownerDocument.body;
+    const page = within(body);
+    await expect(
+      page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    const shell = () => body.querySelector<HTMLElement>('.dune-play-shell')!;
+    await waitFor(() => expect(body.querySelector('.dune-play-stage[data-scene-ready="true"] canvas')).not.toBeNull(), {
+      timeout: 30_000,
+    });
+    const fits = window.matchMedia(`(min-width: ${COLUMNS_MIN_WIDTH_REM}rem)`).matches;
+    await expect(shell().dataset.tableLayout).toBe(fits ? 'columns' : 'stacked');
+    if (fits) {
+      await expect(page.getByRole('separator', { name: 'Resize controls column' })).toBeVisible();
+      await expect(page.getByRole('separator', { name: 'Resize players column' })).toBeVisible();
+    }
+    const canvas = body.querySelector('canvas');
+    const message = (await page.findByPlaceholderText('Message')) as HTMLTextAreaElement;
+    await userEvent.type(message, 'half typed');
+
+    for (const [choice, layout] of [
+      ['Board on top', 'stacked'],
+      ['Three columns', fits ? 'columns' : 'stacked'],
+    ] as const) {
+      await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
+      await userEvent.click(await page.findByRole('menuitemradio', { name: choice }));
+      await userEvent.keyboard('{Escape}');
+      await waitFor(() => expect(shell().dataset.tableLayout).toBe(layout));
+      await expect(body.querySelector('canvas')).toBe(canvas);
+      await expect(page.getByPlaceholderText('Message')).toHaveValue('half typed');
+    }
+
+    /* A layout change while typing, as when the window crosses the columns' width, moves the composer without blurring or refocusing it. */
+    message.focus();
+    message.setSelectionRange(2, 6, 'backward');
+    const focusChanges: string[] = [];
+    const count = (event: FocusEvent) => focusChanges.push(event.type);
+    message.addEventListener('focus', count);
+    message.addEventListener('blur', count);
+    setTableLayout('stacked');
+    await waitFor(() => expect(shell().dataset.tableLayout).toBe('stacked'));
+    await expect(body.ownerDocument.activeElement).toBe(message);
+    await expect([message.selectionStart, message.selectionEnd, message.selectionDirection]).toEqual([
+      2,
+      6,
+      'backward',
+    ]);
+    await expect(focusChanges).toEqual([]);
+    message.removeEventListener('focus', count);
+    message.removeEventListener('blur', count);
+  },
+});

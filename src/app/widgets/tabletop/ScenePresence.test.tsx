@@ -2,13 +2,14 @@
 
 import type { Vector3Tuple } from '@shared/play/model';
 import { act, cleanup, render } from '@testing-library/react';
+import { useCallback } from 'react';
 import { Group, PerspectiveCamera, Scene } from 'three';
-import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { ScenePresence } from './ScenePresence';
 import styles from './ScenePresence.module.css';
 import { isCursorTablePoint, isPublicTablePoint } from './tablePointerPoint';
-import { useTablePose } from './useTablePose';
+import { PlatePosesProvider, useTablePose } from './useTablePose';
 
 const scheduler = vi.hoisted(() => ({
   frames: new Set<(state: unknown, delta: number) => void>(),
@@ -36,10 +37,16 @@ vi.mock('@react-three/fiber/webgpu', async () => {
 vi.mock('@react-three/drei/webgpu', () => ({ Html: () => null }));
 
 vi.mock('./TabletopContext', () => {
-  const table = { canInteract: true, viewer: { color: '#abcdef', avatarUrl: '' } };
+  const table = {
+    canInteract: true,
+    viewer: { color: '#abcdef', avatarUrl: '' },
+  };
   const commands = { publishPointer: () => {} };
   const pointers: never[] = [];
-  const actions = { subscribePointers: () => () => {}, getPointers: () => pointers };
+  const actions = {
+    subscribePointers: () => () => {},
+    getPointers: () => pointers,
+  };
   return {
     useTabletopSelector: (select: (value: typeof table) => unknown) => select(table),
     useTabletopCommands: () => commands,
@@ -109,6 +116,245 @@ describe('remote pose smoothing', () => {
   );
 });
 
+describe('a rider on a plate another player carries', () => {
+  type Pose = { at: Vector3Tuple; turn: number };
+  let plate = new Group();
+  let rider = new Group();
+  beforeEach(() => {
+    plate = new Group();
+    rider = new Group();
+  });
+
+  function Posed({
+    pose,
+    group,
+    links,
+    remote = Boolean(links?.plateId),
+    immediate = false,
+  }: {
+    pose: Pose;
+    group: Group;
+    links: Parameters<typeof useTablePose>[4];
+    remote?: boolean;
+    immediate?: boolean;
+  }) {
+    const poseRef = useTablePose(pose.at, pose.turn, remote, immediate, links);
+    /* A stable ref, as the scene's own groups have: an inline one is let go and taken again on every render. */
+    const attach = useCallback(
+      (element: HTMLSpanElement | null) => {
+        poseRef.current = element ? group : null;
+      },
+      [group, poseRef]
+    );
+    return <span ref={attach} />;
+  }
+
+  /*
+   * The plate is carried by someone else while `riding`, so the rider follows it; otherwise both rest on their own.
+   * The plate is in another player's hand unless `plateHeld` says otherwise.
+   * `riderInHand` has this page's own hand hold the rider, which puts it down at once; `riderFirst` mounts the rider before its plate.
+   */
+  function Plate({
+    plate: platePose,
+    rider: riderPose,
+    riding = true,
+    riderInHand = false,
+    riderFirst = false,
+    riderRemote = false,
+    plateHeld,
+  }: {
+    plate: Pose;
+    rider: Pose;
+    riding?: boolean;
+    riderInHand?: boolean;
+    riderFirst?: boolean;
+    /* Whether another player holds the rider. */
+    riderRemote?: boolean;
+    /* Whose hand the plate is in: this page's own sets it down at once, while another player's glides; `false` has it rest after this page's hand let go. */
+    plateHeld?: 'own' | false;
+  }) {
+    const pieces = [
+      <Posed
+        key="plate"
+        pose={platePose}
+        group={plate}
+        links={{ plateId: 'hms' }}
+        remote={plateHeld === undefined}
+        immediate={plateHeld === 'own'}
+      />,
+      <Posed
+        key="rider"
+        pose={riderPose}
+        group={rider}
+        links={{ follows: riding ? 'hms' : undefined }}
+        remote={riderRemote}
+        immediate={riderInHand}
+      />,
+    ];
+    return <PlatePosesProvider>{riderFirst ? pieces.reverse() : pieces}</PlatePosesProvider>;
+  }
+
+  const runFrames = (count: number) => {
+    for (let frame = 0; frame < count; frame += 1) {
+      act(() => {
+        for (const callback of scheduler.frames) {
+          callback({}, 1 / 60);
+        }
+      });
+    }
+  };
+  /* How far the rider is from where it sits on the plate as shown, at 0.75 towards the plate's point. */
+  const offPlate = () => {
+    const turn = plate.rotation.y;
+    return Math.hypot(
+      rider.position.x - (plate.position.x + 0.75 * Math.sin(turn) * -1),
+      rider.position.z - (plate.position.z - 0.75 * Math.cos(turn))
+    );
+  };
+
+  test('keeps its place on the plate while the plate turns, rather than cutting across it', () => {
+    const view = render(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} />);
+    view.rerender(<Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} />);
+    runFrames(1);
+    expect(plate.rotation.y).toBeGreaterThan(0);
+    expect(plate.rotation.y).toBeLessThan(Math.PI);
+    expect(offPlate()).toBeCloseTo(0);
+    expect(rider.rotation.y).toBeCloseTo(plate.rotation.y);
+  });
+
+  test('glides on from where it was last shown to its own place once the ride ends', () => {
+    const view = render(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} />);
+    view.rerender(<Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} />);
+    runFrames(1);
+    view.rerender(
+      <Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} riding={false} />
+    );
+    const before = rider.position.clone();
+    runFrames(1);
+    const amount = 1 - Math.exp(-24 / 60);
+    expect(rider.position.x).toBeCloseTo(before.x * (1 - amount));
+    expect(rider.position.z).toBeCloseTo(before.z + (0.75 - before.z) * amount);
+    runFrames(60);
+    expect(rider.position.z).toBeCloseTo(0.75);
+    expect(rider.rotation.y).toBeCloseTo(Math.PI);
+  });
+
+  test('starts its glide from where it was last drawn, even when it moved and was let go before a frame', () => {
+    const at = (plateX: number, riding = true) => (
+      <Plate
+        plate={{ at: [plateX, 0, 0], turn: 0 }}
+        rider={{ at: [plateX, 0, -0.75], turn: 0 }}
+        riding={riding}
+        riderFirst
+      />
+    );
+    const view = render(at(0));
+    runFrames(30);
+    const drawn = rider.position.clone();
+    view.rerender(at(2));
+    view.rerender(at(2, false));
+    expect(rider.position.toArray()).toEqual(drawn.toArray());
+  });
+
+  test('starts at its own place when its ride ends before its first frame', () => {
+    const view = render(<Plate plate={{ at: [2, 0, 0], turn: 0 }} rider={{ at: [2, 0, -0.75], turn: 0 }} />);
+    view.rerender(<Plate plate={{ at: [2, 0, 0], turn: 0 }} rider={{ at: [2, 0, -0.75], turn: 0 }} riding={false} />);
+    runFrames(1);
+    expect(rider.position.toArray()).toEqual([2, 0, -0.75]);
+  });
+
+  test("snaps back with a plate in this page's own hand when the carry is cancelled", () => {
+    const held = (plateX: number, riding: boolean, plateHeld: 'own' | false) => (
+      <Plate
+        plate={{ at: [plateX, 0, 0], turn: 0 }}
+        rider={{ at: [plateX, 0, -0.75], turn: 0 }}
+        riding={riding}
+        plateHeld={plateHeld}
+      />
+    );
+    const view = render(held(0, true, 'own'));
+    view.rerender(held(3, true, 'own'));
+    runFrames(1);
+    expect(rider.position.x).toBeCloseTo(3);
+    view.rerender(held(0, false, false));
+    runFrames(1);
+    expect(plate.position.x).toBe(0);
+    expect(rider.position.toArray()).toEqual([0, 0, -0.75]);
+  });
+
+  test("glides to another player's hand when they take it off a plate in this page's own hand", () => {
+    const view = render(
+      <Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} plateHeld="own" />
+    );
+    view.rerender(<Plate plate={{ at: [3, 0, 0], turn: 0 }} rider={{ at: [3, 0, -0.75], turn: 0 }} plateHeld="own" />);
+    runFrames(1);
+    expect(rider.position.x).toBeCloseTo(3);
+    view.rerender(
+      <Plate
+        plate={{ at: [3, 0, 0], turn: 0 }}
+        rider={{ at: [5, 0.4, -0.75], turn: 0 }}
+        plateHeld="own"
+        riding={false}
+        riderRemote
+      />
+    );
+    runFrames(1);
+    expect(rider.position.x).toBeCloseTo(3 + 2 * (1 - Math.exp(-24 / 60)));
+  });
+
+  test("is set down at once where this page's own hand puts it, during a ride or after one", () => {
+    const view = render(<Plate plate={{ at: [0, 0, 0], turn: 0 }} rider={{ at: [0, 0, -0.75], turn: 0 }} />);
+    view.rerender(<Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0, 0, 0.75], turn: Math.PI }} />);
+    runFrames(1);
+    view.rerender(
+      <Plate
+        plate={{ at: [0, 0, 0], turn: Math.PI }}
+        rider={{ at: [0.43, 0.4, 0], turn: 0 }}
+        riding={false}
+        riderInHand
+      />
+    );
+    expect(rider.position.toArray()).toEqual([0.43, 0.4, 0]);
+    runFrames(60);
+    view.rerender(
+      <Plate plate={{ at: [0, 0, 0], turn: Math.PI }} rider={{ at: [0.43, 0, 0], turn: 0 }} riding={false} />
+    );
+    runFrames(60);
+    view.rerender(
+      <Plate
+        plate={{ at: [0, 0, 0], turn: Math.PI }}
+        rider={{ at: [-0.43, 0.4, 0], turn: 0 }}
+        riding={false}
+        riderInHand
+      />
+    );
+    expect(rider.position.toArray()).toEqual([-0.43, 0.4, 0]);
+  });
+
+  test('stands at its own place while its plate is not drawn', () => {
+    const Alone = ({ at }: { at: Vector3Tuple }) => (
+      <PlatePosesProvider>
+        <Posed pose={{ at, turn: 0.3 }} group={rider} links={{ follows: 'hms' }} />
+      </PlatePosesProvider>
+    );
+    const view = render(<Alone at={[1, 0, 1]} />);
+    view.rerender(<Alone at={[2, 0, -1]} />);
+    runFrames(1);
+    expect(rider.position.toArray()).toEqual([2, 0, -1]);
+    expect(rider.rotation.y).toBeCloseTo(0.3);
+  });
+
+  test('takes a new place on a still plate in the next frame', () => {
+    const view = render(<Plate plate={{ at: [2, 0, 0], turn: 0 }} rider={{ at: [2, 0, -0.75], turn: 0 }} />);
+    runFrames(30);
+    view.rerender(<Plate plate={{ at: [2, 0, 0], turn: 0 }} rider={{ at: [2.2, 0, -0.5], turn: 0.4 }} />);
+    runFrames(1);
+    expect(rider.position.x).toBeCloseTo(2.2);
+    expect(rider.position.z).toBeCloseTo(-0.5);
+    expect(rider.rotation.y).toBeCloseTo(0.4);
+  });
+});
+
 /** Renders the scene's presence layer on an 800 by 400 canvas at (100, 50), seen by a camera that looks at the origin. */
 function renderPresence(showLocal = false) {
   const camera = new PerspectiveCamera(50, 2, 0.1, 100);
@@ -117,8 +363,15 @@ function renderPresence(showLocal = false) {
   camera.updateMatrixWorld();
   const canvas = document.createElement('canvas');
   canvas.getBoundingClientRect = () => new DOMRect(100, 50, 800, 400);
-  scheduler.three = { camera, renderer: { domElement: canvas }, scene: new Scene() };
-  Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => canvas });
+  scheduler.three = {
+    camera,
+    renderer: { domElement: canvas },
+    scene: new Scene(),
+  };
+  Object.defineProperty(document, 'elementFromPoint', {
+    configurable: true,
+    value: () => canvas,
+  });
   render(<ScenePresence showLocal={showLocal} />);
   return camera;
 }

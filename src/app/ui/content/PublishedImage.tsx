@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { ImageOff } from 'lucide-react';
-import { useEffect, useLayoutEffect, useReducer, useRef } from 'react';
+import { useEffect, useLayoutEffect, useReducer, useRef, useSyncExternalStore } from 'react';
 import type { CSSProperties } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -35,8 +35,13 @@ type Props = {
   radius?: string;
   /** An outline a radius cannot draw, as a CSS clip path. */
   clipPath?: string;
-  /** Whether the image wears a raised frame's shadow, which arrives with it rather than ahead of it. */
+  /** Whether the image wears a raised frame's shadow, which arrives with it rather than ahead of it. A clipped outline wears it as a drop shadow, which the clip cannot cut. */
   raised?: boolean;
+  /**
+   * Whether this is the page's main image, which is written into the server-rendered HTML, fetched first and shown as it lands, with no arrival.
+   * It then paints without waiting for scripts, and is what image search finds on the page.
+   */
+  priority?: boolean;
 };
 
 /**
@@ -106,10 +111,14 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-function initialState(src: string | null): State {
+function initialState(src: string | null, priority: boolean): State {
   const base = { arrival: 'animate', fetching: false, slot: false, order: null } as const;
   if (src === null) {
     return { ...base, phase: 'missing' };
+  }
+  /* The server writes a main image's src and shows it, so the client's first render must hold the same. */
+  if (priority) {
+    return { ...base, phase: 'shown', arrival: 'instant', fetching: true };
   }
   /* An image decoded before fetches at once, and is shown before the first paint if the browser still holds it. */
   if (wasDecoded(src)) {
@@ -118,13 +127,28 @@ function initialState(src: string | null): State {
   return { ...base, phase: 'loading' };
 }
 
+/** True while rendering on the server or hydrating its HTML, and false for anything the client mounts afterwards. */
+const subscribeToNothing = () => () => {};
+const clientSnapshot = () => false;
+const serverSnapshot = () => true;
+
+/** What an image the browser has finished with settles to: a broken one has failed, and a drawn one is decoded unless it already moved on. */
+function completeImageAction(img: HTMLImageElement, phase: Phase): Action | null {
+  if (img.naturalWidth === 0) {
+    return phase === 'loading' || phase === 'shown' ? { type: 'failed' } : null;
+  }
+  return phase === 'loading' ? { type: 'decoded' } : null;
+}
+
 function inFetchRange(element: HTMLElement) {
   const rect = element.getBoundingClientRect();
   return rect.bottom >= -FETCH_MARGIN_PX && rect.top <= window.innerHeight + FETCH_MARGIN_PX;
 }
 
-function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props) {
-  const [state, dispatch] = useReducer(reducer, src, initialState);
+function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority = false }: Props) {
+  /* Only a server-rendered main image starts shown; one mounted later, by navigation or a new src, arrives like any other. */
+  const serverRendered = useSyncExternalStore(subscribeToNothing, clientSnapshot, serverSnapshot);
+  const [state, dispatch] = useReducer(reducer, src, (initial) => initialState(initial, priority && serverRendered));
   const motion = useMotionAllowed();
   const rootRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -168,12 +192,18 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
     return () => observer.disconnect();
   }, [fetching, phase]);
 
-  /* An image the browser already holds is complete the moment it gets its src, so it is shown before the first paint. */
+  /*
+   * An image the browser already holds is complete the moment it gets its src, so it is shown before the first paint.
+   * A server-rendered main image may have failed before hydration, whose error event nothing heard, so that is settled here too.
+   */
   useLayoutEffect(() => {
     const img = imgRef.current;
-    if (fetching && phase === 'loading' && src && img?.complete && img.naturalWidth > 0) {
-      markDecoded(src);
-      dispatch({ type: 'decoded' });
+    const settled = fetching && src && img?.complete ? completeImageAction(img, phase) : null;
+    if (settled?.type === 'decoded') {
+      markDecoded(src!);
+    }
+    if (settled) {
+      dispatch(settled);
     }
   }, [fetching, phase, src]);
 
@@ -309,7 +339,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
   return (
     <div
       ref={rootRef}
-      className={clsx(styles.root, raised && styles.raised)}
+      className={clsx(styles.root, raised && (clipPath ? styles.cutout : styles.raised))}
       style={{ aspectRatio: `1 / ${aspect}` }}
       data-phase={waiting ? 'loading' : phase}
       data-arrival={state.arrival}
@@ -335,6 +365,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
                 src={src}
                 alt={name}
                 decoding="async"
+                fetchPriority={priority ? 'high' : undefined}
                 draggable={false}
                 onLoad={onLoad}
                 onError={() => {

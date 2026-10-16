@@ -21,6 +21,7 @@ const artworkTypes = new Set([
   'token-disc',
   'token-tech',
   'token-plate',
+  'token-pointer',
   'token-enhance',
   'rulebook-first-page',
 ]);

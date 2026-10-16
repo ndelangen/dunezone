@@ -27,6 +27,7 @@ import {
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
+import { setTableLayout, useColumnsFit, useTableLayout } from '../tableLayout';
 import { publicControlsOf } from './publicControls';
 import { isSpectator } from './tableFactions';
 
@@ -297,6 +298,33 @@ export function requestedSeats(table: TableProjection): ReadonlySet<string> {
   );
 }
 
+/* Where this viewer's controls and players sit around the table; it stays in this browser and never reaches the game. */
+function TableLayoutItems() {
+  const layout = useTableLayout();
+  const fits = useColumnsFit();
+  return (
+    <>
+      <Menu.Label>Table layout</Menu.Label>
+      <Menu.RadioGroup value={layout} onChange={(value) => setTableLayout(value === 'columns' ? 'columns' : 'stacked')}>
+        <Menu.RadioItem value="stacked">Board on top</Menu.RadioItem>
+        <Menu.RadioItem
+          value="columns"
+          rightSection={
+            fits ? undefined : (
+              <Text size="xs" c="dimmed">
+                wider window
+              </Text>
+            )
+          }
+        >
+          Three columns
+        </Menu.RadioItem>
+      </Menu.RadioGroup>
+      <Menu.Divider />
+    </>
+  );
+}
+
 /* This viewer's table brightness; it stays in this browser and never reaches the game. */
 function TableLightingSlider() {
   const lighting = useTableLighting();
@@ -405,6 +433,7 @@ export function GameMenu({
       <Menu.Dropdown>
         {sharing}
         <Menu.Divider />
+        <TableLayoutItems />
         <TableLightingSlider />
         <TablePanSpeedSlider />
         <TableLabelItems />
