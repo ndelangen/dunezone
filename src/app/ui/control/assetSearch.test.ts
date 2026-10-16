@@ -35,6 +35,10 @@ describe('matchAsset', () => {
     expect(matchAsset(['nef'], asset)).toBe(2);
   });
 
+  it('matches everything without a search', () => {
+    expect(matchAsset([], { label: 'Nefud' })).toBe(2);
+  });
+
   it('keeps short and unrelated words strict', () => {
     expect(matchAsset(['nfd'], { label: 'Nefud' })).toBe(0);
     expect(matchAsset(['paul'], { label: 'Nefud' })).toBe(0);

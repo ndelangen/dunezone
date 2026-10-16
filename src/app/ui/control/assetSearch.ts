@@ -57,6 +57,9 @@ function closeTo(term: string, word: string) {
  * Near misses only look at the name so collection keywords cannot pull in unrelated artwork.
  */
 export function matchAsset(terms: readonly string[], asset: SearchableAsset, extra = ''): AssetMatch {
+  if (terms.length === 0) {
+    return 2;
+  }
   const nameWords = searchTerms(asset.label);
   const names = [...nameWords, nameWords.join('')];
   const text = `${normalize(`${asset.label} ${asset.keywords ?? ''} ${extra}`)} ${names.at(-1)}`;
