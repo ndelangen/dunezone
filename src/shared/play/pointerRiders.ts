@@ -129,12 +129,7 @@ export function piecesOnPlates(shown: TablePiece[], rested: readonly TablePiece[
     }
     const riding = carried.get(piece.id);
     if (riding) {
-      /* A rider turned on its own keeps that turn on top of the plate's. */
-      return {
-        ...piece,
-        position: riding.position,
-        orientation: riding.orientation + piece.orientation - resting!.orientation,
-      };
+      return shownRiding(piece, resting!, riding);
     }
     return isPointerToken(piece) ? piece : standingOn(piece, still);
   });
@@ -147,18 +142,25 @@ function standingOn(piece: TablePiece, plates: readonly TablePiece[]): TablePiec
   return top > piece.position[1] ? { ...piece, position: [piece.position[0], top, piece.position[2]] } : piece;
 }
 
-/* Each rider's pose on a plate as shown, by its id: carried with the plate and standing on its top, or on the board's rim where that is higher. */
+type Riding = { pose: Pose; top: number };
+
+/* Each rider's pose on a plate as shown, by its id, carried with the plate, and the height of the plate's top. */
 function ridersShownOn(plate: TablePiece, resting: TablePiece | undefined, rested: readonly TablePiece[]) {
-  return (resting ? pointerRiders(rested, resting) : []).map((rider): [string, Pose] => {
-    const pose = riderPose(rider, resting!, plate);
-    return [
-      rider.id,
-      {
-        orientation: pose.orientation,
-        position: [pose.position[0], Math.max(pose.position[1], plate.position[1] + POINTER_HEIGHT), pose.position[2]],
-      },
-    ];
-  });
+  const top = plate.position[1] + POINTER_HEIGHT;
+  return (resting ? pointerRiders(rested, resting) : []).map((rider): [string, Riding] => [
+    rider.id,
+    { pose: riderPose(rider, resting!, plate), top },
+  ]);
+}
+
+/*
+ * A rider as shown on its plate: a turn of its own keeps on top of the plate's.
+ * It stands on the plate's top, or on the board's rim beneath it where that is higher at the angle it is shown.
+ */
+function shownRiding(piece: TablePiece, resting: TablePiece, { pose, top }: Riding): TablePiece {
+  const orientation = pose.orientation + piece.orientation - resting.orientation;
+  const [x, support, z] = restingPositionAt(pose.position, { ...piece, orientation });
+  return { ...piece, orientation, position: [x, Math.max(support, top), z] };
 }
 
 /*

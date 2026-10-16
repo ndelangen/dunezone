@@ -239,6 +239,22 @@ describe('a pointer token, such as the HMS,', () => {
     expect(rider.position[1]).toBeGreaterThan(moved.position[1] + POINTER_HEIGHT);
   });
 
+  test("lifts a rider turned on its own onto the board's rim where the turn needs it", () => {
+    const cardBase = freshTableState().pieces.find((piece) => piece.kind === 'card')!;
+    const card = {
+      ...cardBase,
+      id: 'c',
+      orientation: 0,
+      position: restingPositionAt([4.73, 0, 0], { ...cardBase, orientation: 0 }),
+    };
+    const state = tableWith(plate([4.7, 0, 0], -Math.PI / 2), card);
+    const turned = renderedPiecesFor(state).map((piece) =>
+      piece.id === 'c' ? { ...piece, orientation: Math.PI / 2 } : piece
+    );
+    const shown = piecesOnPlates(turned, state.pieces).find((piece) => piece.id === 'c')!;
+    expect(shown.position[1]).toBeCloseTo(restingPositionAt([4.73, 0, 0], { ...card, orientation: Math.PI / 2 })[1]);
+  });
+
   test('carries nobody while it is set in a battle', () => {
     const state = tableWith({ ...plate([0, 0, 1]), battleOverlay: 'battle' }, troop('t', [0, 0, 1]));
     expect(pointerRiders(state.pieces, at(state, 'hms'))).toEqual([]);
