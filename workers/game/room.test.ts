@@ -14,6 +14,7 @@ import { hostedFixturePlan } from './fixture';
 import { applyPatch, diff } from './history';
 import { LOAD_SEATS, loadSnapshot } from './loadFixture';
 import { Room } from './room';
+import { RoomProjection } from './state';
 
 const alice = {
   connectionId: 'alice-connection',
@@ -767,5 +768,13 @@ describe('a pointer token carrying riders', () => {
     const after = piece(troop.id);
     expect(after.position).toEqual(landed.position);
     expect(after.locked).toBe(landed.locked);
+  });
+
+  test('names its riders by the handles pages know them by', () => {
+    const { room, troop, begin } = plateRoom([0, 0, 1], 'rider-item');
+    begin(alice, 'alice-moves-plate', 'hms');
+    const snapshot = { ...room.snapshot, pieceHandles: { ...room.snapshot.pieceHandles, [troop.id]: 'handle-x' } };
+    const [carry] = new RoomProjection('secret').carries(room.publicCarries(), snapshot);
+    expect(carry.riderIds).toEqual(['handle-x']);
   });
 });
