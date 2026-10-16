@@ -185,6 +185,26 @@ export const expireProvisioning = internalMutation({
     const game = await ctx.db.get(args.gameId);
     if (game?.state === 'pending' && Date.now() >= game.provision_expires_at) {
       await ctx.db.patch(game._id, { state: 'expired' });
+      /*
+       * Only the creator is routed to a game that was never ready, since no ticket can be redeemed before then.
+       * No room will ever acknowledge a deletion for it, so its routing goes and a deletion already queued for it is settled.
+       */
+      const routings = await ctx.db
+        .query('play_game_accounts')
+        .withIndex('by_game_id_user_id', (q) => q.eq('game_id', game._id))
+        .take(8);
+      for (const routing of routings) {
+        await ctx.db.delete(routing._id);
+      }
+      const deletions = await ctx.db
+        .query('play_account_deletions')
+        .withIndex('by_game_id_operation_id', (q) => q.eq('game_id', game._id))
+        .take(16);
+      for (const deletion of deletions) {
+        if (deletion.state === 'pending') {
+          await ctx.db.patch(deletion._id, { state: 'acknowledged' });
+        }
+      }
     }
     return null;
   },

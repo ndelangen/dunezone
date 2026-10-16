@@ -519,3 +519,32 @@ describe('Publication regeneration and administration', () => {
     });
   });
 });
+
+describe('Publication pickup read budget', () => {
+  test('a queue of large jobs is picked up within a bounded read, not until the transaction limit throws', async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert('admin_settings', {
+        key: 'publication',
+        publication_pickup_enabled: true,
+        renderer_revisions: {},
+        updated_at: Date.now(),
+      });
+      /* Board jobs carry their whole definition; 40 of these are 16 MB, past what one transaction may read. */
+      for (let index = 0; index < 40; index += 1) {
+        await ctx.db.insert('publication_jobs', {
+          asset_type: 'board',
+          asset_id: `board-${index}`,
+          asset_data: { padding: 'x'.repeat(400_000) },
+          status: 'pending',
+          attempt_counter: 0,
+          created_at: index,
+          updated_at: index,
+        });
+      }
+    });
+    const assignment = await t.mutation(internal.publicationJobs.takeWork, {});
+    expect(assignment.items.length).toBeGreaterThan(0);
+    expect(assignment.items.length).toBeLessThan(10);
+  });
+});

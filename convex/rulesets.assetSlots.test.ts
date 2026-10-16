@@ -144,6 +144,23 @@ describe('ruleset asset slots', () => {
     expect(rows).toHaveLength(1);
   });
 
+  test('a ruleset with both many-asset slots full still presents a single slot set last', async () => {
+    const { t, owner, ruleset, first, second, slotted } = await slotFixture();
+    await t.run(async (ctx) => {
+      for (const slot of ['custom', 'customTokens'] as const) {
+        for (let index = 0; index < 100; index += 1) {
+          await ctx.db.insert('ruleset_asset_slots', { ruleset_id: ruleset._id, asset_id: first.id, slot });
+        }
+      }
+    });
+    await owner.mutation(api.rulesets.setAssetSlot, {
+      ruleset_id: ruleset._id,
+      asset_id: second.id,
+      slot: 'treachery',
+    });
+    expect(await slotted()).toContainEqual(['treachery', 'House Spice']);
+  });
+
   test('the schema lists exactly the slots the shared table defines', () => {
     /* The schema cannot import the shared table and stay a schema, so this is what keeps the two from drifting. */
     const validator = schema.tables.ruleset_asset_slots.validator;

@@ -67,10 +67,27 @@ async function scanAssets(ctx: MutationCtx, assetType: string, cursor: string | 
     .query('assets')
     .withIndex('by_type_deleted', (q) => q.eq('type', assetType).eq('is_deleted', false))
     .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
+  let enqueued = 0;
   for (const asset of page.page) {
-    await enqueueAssetPublication(ctx, asset);
+    /*
+     * One row its type's schema no longer accepts must not take the scan down with it, as with the rulebook scan below.
+     * The enqueue parses before it writes, so a refused row leaves nothing behind.
+     */
+    try {
+      await enqueueAssetPublication(ctx, asset);
+      enqueued += 1;
+    } catch (error) {
+      console.warn(
+        JSON.stringify({
+          event: 'publication_regeneration_asset_skipped',
+          assetType,
+          assetId: asset._id,
+          reason: error instanceof Error ? error.message : String(error),
+        })
+      );
+    }
   }
-  return scanResult(page, page.page.length);
+  return scanResult(page, enqueued);
 }
 
 async function scanRulebookFirstPages(ctx: MutationCtx, cursor: string | null) {

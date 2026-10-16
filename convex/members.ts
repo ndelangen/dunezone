@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
+import { accountStateOf, isPublicProfile } from './lib/accountLifecycle';
 import { requireGroupCapability, requireMembershipRequest } from './lib/collaborativeAccess';
 import { groupMemberValidator, membershipCommandAcknowledgementValidator } from './lib/collaborativeAccessValidators';
 import { clearDefaultGroupForRemovedMembership } from './lib/defaultGroupPreference';
@@ -100,6 +101,15 @@ async function removeMembership(
 async function addMemberHandler(ctx: MutationCtx, args: { groupId: Id<'groups'>; userId: Id<'users'> }) {
   const actorId = await requireAuthUserId(ctx);
   await requireGroupCapability(ctx, args.groupId, 'addMember');
+  /* The id is caller-supplied: a roster row for an account with no public profile would break the Group page for every viewer. */
+  const user = await ctx.db.get('users', args.userId);
+  const profile = await ctx.db
+    .query('profiles')
+    .withIndex('by_user_id', (q) => q.eq('user_id', args.userId))
+    .unique();
+  if (!user || accountStateOf(user) !== 'active' || user.merged_into_user_id || !profile || !isPublicProfile(profile)) {
+    throw new Error('User not found');
+  }
 
   const existing = await getMembership(ctx, args.groupId, args.userId);
   if (existing) {

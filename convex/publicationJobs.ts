@@ -46,6 +46,11 @@ function renderPayloadHash(job: Doc<'publication_jobs'>, payload: unknown) {
 
 /* How many pending jobs one pickup reads past held ones to fill its batch. */
 const PUBLICATION_PICKUP_SCAN = PUBLICATION_MAX_PICKUP * 5;
+/*
+ * Bounds the bytes of that scan. A board job carries its whole board definition (hundreds of KB), and each scanned job is read again with its siblings,
+ * so a scan of large jobs counted only in rows would pass the transaction's read limit and stall pickup and expiry recovery together.
+ */
+const PUBLICATION_PICKUP_SCAN_BYTES = 3_000_000;
 
 const publicationJobResult = v.object({
   jobId: v.id('publication_jobs'),
@@ -127,10 +132,14 @@ export const takeWork = internalMutation({
     }
 
     /* Held jobs, such as successors waiting on their asset's capture, are read past rather than filling the batch, up to a bounded scan. */
-    const pending = await ctx.db
+    const { page: pending } = await ctx.db
       .query('publication_jobs')
       .withIndex('by_status_and_created_at', (q) => q.eq('status', 'pending'))
-      .take(PUBLICATION_PICKUP_SCAN);
+      .paginate({
+        cursor: null,
+        numItems: PUBLICATION_PICKUP_SCAN,
+        maximumBytesRead: PUBLICATION_PICKUP_SCAN_BYTES,
+      });
     const expiresAt = now + PUBLICATION_JOB_EXPIRY_MS;
     const items = [];
     for (const job of pending) {

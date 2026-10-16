@@ -7,14 +7,15 @@ import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
-import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
+import { PLAY_FIXTURE_KEY, PLAY_PROVISION_TIMEOUT_MS } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
 
-async function fixture() {
+/* A confirmed game the player created, before any ticket of theirs is redeemed. */
+async function createdGame() {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
   migrationsTest.register(t);
@@ -58,22 +59,28 @@ async function fixture() {
     throw new Error('Missing game');
   }
   const player = t.withIdentity({ subject: `${userId}|${sessionId}` });
-  const issued = await player.mutation(api.playAdmission.issueTicket, { gameId });
+  return { t, player, game, userId, sessionId };
+}
+
+async function fixture() {
+  const created = await createdGame();
+  const { t, player, game } = created;
+  const issued = await player.mutation(api.playAdmission.issueTicket, { gameId: game._id });
   if (!issued.ok) {
     throw new Error('Issuance refused');
   }
   const admitted = await t.mutation(api.playAdmission.redeemTicket, {
-    gameId,
+    gameId: game._id,
     secret: game.secret,
     ticket: issued.ticket,
   });
   if (!admitted.ok) {
     throw new Error('Admission refused');
   }
-  return { t, player, game, userId, sessionId, registrationId: admitted.registrationId };
+  return { ...created, registrationId: admitted.registrationId };
 }
 
-async function startDeletion(subject: Awaited<ReturnType<typeof fixture>>) {
+async function startDeletion(subject: Awaited<ReturnType<typeof createdGame>>) {
   const { operationId } = await subject.player.mutation(api.accountDeletion.confirm, { replacementUserId: null });
   await subject.t.mutation(internal.playDeletion.queueAccountDeletion, {
     operationId,
@@ -99,6 +106,66 @@ afterEach(() => {
 });
 
 describe('Play account deletion', () => {
+  test('a creator who has not entered yet is routed, so reconciliation keeps their seat and deletion reaches the game', async () => {
+    const subject = await createdGame();
+    expect(
+      await subject.t.query(api.playAdmission.reconcileAccounts, {
+        gameId: subject.game._id,
+        secret: subject.game.secret,
+        userIds: [subject.userId],
+      })
+    ).toEqual({ ok: true, accounts: [{ userId: subject.userId, state: 'active', deletionOperationId: null }] });
+    const { event } = await startDeletion(subject);
+    expect(event).toMatchObject({ game_id: subject.game._id, user_id: subject.userId });
+  });
+
+  test('a game that is never ready drops its creator routing and settles their deletion when it expires', async () => {
+    const t = (await createdGame()).t;
+    const { userId, sessionId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert('users', { account_state: 'active' });
+      const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 3_600_000 });
+      await ctx.db.insert('profiles', {
+        user_id: userId,
+        username: 'Unlucky creator',
+        avatar_url: null,
+        account_state: 'active',
+        slug: 'unlucky-creator',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      return { userId, sessionId };
+    });
+    const { gameId } = await t.run(async (ctx) => {
+      const ruleset = await ctx.db.query('rulesets').first();
+      return await insertPendingGame(ctx, { ruleset_id: ruleset!._id, minimum_players: 4, creator_id: userId });
+    });
+    const { operationId } = await t
+      .withIdentity({ subject: `${userId}|${sessionId}` })
+      .mutation(api.accountDeletion.confirm, { replacementUserId: null });
+    await t.mutation(internal.playDeletion.queueAccountDeletion, {
+      operationId,
+      paginationOpts: { cursor: null, numItems: 32 },
+    });
+    vi.advanceTimersByTime(PLAY_PROVISION_TIMEOUT_MS);
+    await t.mutation(internal.playProvisioning.expireProvisioning, { gameId });
+    await t.run(async (ctx) => {
+      expect(
+        await ctx.db
+          .query('play_game_accounts')
+          .withIndex('by_game_id_user_id', (q) => q.eq('game_id', gameId))
+          .collect()
+      ).toEqual([]);
+      expect(
+        (
+          await ctx.db
+            .query('play_account_deletions')
+            .withIndex('by_game_id_operation_id', (q) => q.eq('game_id', gameId))
+            .collect()
+        ).map((event) => event.state)
+      ).toEqual(['acknowledged']);
+    });
+  });
+
   test('confirmation suspends the registered session and supplies deletion reconciliation before notification delivery', async () => {
     const subject = await fixture();
     const { operationId } = await subject.player.mutation(api.accountDeletion.confirm, { replacementUserId: null });
