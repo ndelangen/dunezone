@@ -1,0 +1,50 @@
+/*
+ * The sign-in page lays its words over the band, which grows to fill the window for it (the immersive header).
+ * The band never flips with the colour scheme, so neither does this ink.
+ */
+.lead {
+  color: var(--color-paper);
+  font-size: 1.25rem;
+  line-height: 1.5;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 60%);
+}
+
+.actions {
+  width: 100%;
+  max-width: 25rem;
+}
+
+.provider {
+  height: auto;
+  padding-block: var(--space-md);
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.provider:hover:not(:disabled) {
+  background-color: var(--color-paper);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 45%);
+}
+
+/* Discord's own blurple, as Google keeps its four colours in its mark. */
+.provider[data-provider="discord"],
+.provider[data-provider="discord"]:hover:not(:disabled) {
+  background-color: #5865f2;
+  color: white;
+}
+
+.provider:disabled {
+  opacity: 0.55;
+}
+
+.fine {
+  color: var(--color-paper);
+  opacity: 0.75;
+}

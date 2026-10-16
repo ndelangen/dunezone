@@ -1,14 +1,11 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Button, Group, Stack, Text, TextInput } from '@mantine/core';
+import { Button, Stack, Text, TextInput } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
-import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ControlBlock } from '@ui/control/ControlBlock';
-import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
+import { ArrowRight } from 'lucide-react';
 import { useReducer } from 'react';
 import type { SVGProps } from 'react';
 import { SiDiscord } from 'react-icons/si';
@@ -17,6 +14,8 @@ import { authProviderNames, useSignInProviders } from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
+
+import styles from './login.module.css';
 
 export const Route = createFileRoute('/_app/auth/login')({
   head: () => pageHead('Sign in'),
@@ -105,75 +104,69 @@ function SignInPanel({ providers }: { providers: ReturnType<typeof useSignInProv
     }
   };
   return (
-    <Section title="Welcome" description="Sign in with your preferred account to continue.">
-      <Stack gap="md">
-        {state.error && <FormError title="Sign-in could not start">{state.error}</FormError>}
-        {localAuthEnabled ? (
-          <Stack component="form" gap="sm" onSubmit={(event) => void localLogin(event)}>
-            <TextInput
-              label="Email"
-              type="email"
-              autoComplete="username"
-              value={state.email}
-              onChange={(event) => dispatch({ kind: 'emailChanged', value: event.currentTarget.value })}
-              disabled={state.busy !== null}
-            />
-            <TextInput
-              label="Password"
-              type="password"
-              autoComplete="current-password"
-              value={state.password}
-              onChange={(event) => dispatch({ kind: 'passwordChanged', value: event.currentTarget.value })}
-              disabled={state.busy !== null}
-            />
-            <Button
-              type="submit"
-              data-testid="local-auth-submit"
-              loading={state.busy === 'password'}
-              disabled={state.busy !== null}
-            >
-              Continue with local auth
-            </Button>
-          </Stack>
-        ) : providers ? (
-          providers.map((method) => {
-            const name = authProviderNames[method.provider];
-            const icon =
-              method.provider === 'google' ? (
-                <GoogleColoredMark width={24} height={24} />
-              ) : (
-                <SiDiscord size={24} aria-hidden />
-              );
-            return (
-              <ControlBlock
-                key={method.provider}
-                title={name}
-                input={
-                  <Group justify="space-between">
-                    <StatusBadge tone="neutral">{method.available ? 'Available' : 'Currently unavailable'}</StatusBadge>
-                    <IconAction
-                      label={`Continue with ${name}`}
-                      icon={icon}
-                      size="xl"
-                      intent="neutral"
-                      emphasis="standard"
-                      loading={state.busy === method.provider}
-                      disabled={state.busy !== null || !method.available}
-                      onClick={() => void socialLogin(method.provider)}
-                    />
-                  </Group>
-                }
-              />
-            );
-          })
-        ) : (
-          <StatusBadge tone="progress" live>
-            Loading sign-in methods
-          </StatusBadge>
-        )}
-      </Stack>
-    </Section>
+    <Stack gap="sm" className={styles.actions}>
+      {state.error && <FormError title="Sign-in could not start">{state.error}</FormError>}
+      {localAuthEnabled ? (
+        <Stack component="form" gap="sm" onSubmit={(event) => void localLogin(event)}>
+          <TextInput
+            label="Email"
+            type="email"
+            autoComplete="username"
+            value={state.email}
+            onChange={(event) => dispatch({ kind: 'emailChanged', value: event.currentTarget.value })}
+            disabled={state.busy !== null}
+          />
+          <TextInput
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            value={state.password}
+            onChange={(event) => dispatch({ kind: 'passwordChanged', value: event.currentTarget.value })}
+            disabled={state.busy !== null}
+          />
+          <Button
+            type="submit"
+            data-testid="local-auth-submit"
+            loading={state.busy === 'password'}
+            disabled={state.busy !== null}
+          >
+            Continue with local auth
+          </Button>
+        </Stack>
+      ) : providers ? (
+        providers.map((method) => (
+          <Button
+            key={method.provider}
+            className={styles.provider}
+            data-provider={method.provider}
+            size="xl"
+            fullWidth
+            justify="space-between"
+            leftSection={<ProviderMark provider={method.provider} />}
+            rightSection={
+              method.available ? <ArrowRight size={18} aria-hidden /> : <span aria-hidden>Unavailable</span>
+            }
+            loading={state.busy === method.provider}
+            disabled={state.busy !== null || !method.available}
+            onClick={() => void socialLogin(method.provider)}
+          >
+            Continue with {authProviderNames[method.provider]}
+          </Button>
+        ))
+      ) : (
+        <StatusBadge tone="progress" live>
+          Loading sign-in methods
+        </StatusBadge>
+      )}
+      <Text size="sm" className={styles.fine}>
+        No password to remember. Your first sign-in creates your account.
+      </Text>
+    </Stack>
   );
+}
+
+function ProviderMark({ provider }: { provider: AuthProvider }) {
+  return provider === 'google' ? <GoogleColoredMark width={22} height={22} /> : <SiDiscord size={22} aria-hidden />;
 }
 
 function LoginPage() {
@@ -181,23 +174,33 @@ function LoginPage() {
   const providers = useSignInProviders();
   return (
     <PageLayout>
-      <PageLayout.Header>
-        <PageTitle title="Sign in" />
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <Surface padding="lg">
-          {profile.data ? (
-            <Section title="You're signed in">
-              <Stack gap="sm">
-                <Text>{profile.data.username ?? 'Player'}</Text>
-                <Link to="/">Go to home</Link>
-              </Stack>
-            </Section>
-          ) : (
+      <PageLayout.Header size="immersive">
+        {profile.data ? (
+          <>
+            <PageTitle eyebrow="Welcome back" title="You're signed in" />
+            <Text className={styles.lead}>Good to see you again, {profile.data.username ?? 'Player'}.</Text>
+            <div className={styles.actions}>
+              <Button
+                component={Link}
+                to="/"
+                size="xl"
+                fullWidth
+                justify="space-between"
+                className={styles.provider}
+                rightSection={<ArrowRight size={18} aria-hidden />}
+              >
+                Go to Dune Zone
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <PageTitle eyebrow="The spice must flow" title="Enter the deep desert" />
+            <Text className={styles.lead}>Build factions, write your own rulesets and play Dune with friends.</Text>
             <SignInPanel providers={providers} />
-          )}
-        </Surface>
-      </PageLayout.Content>
+          </>
+        )}
+      </PageLayout.Header>
     </PageLayout>
   );
 }
