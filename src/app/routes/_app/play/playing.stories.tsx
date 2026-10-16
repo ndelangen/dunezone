@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import type { LogEntry } from '@shared/play/log';
 import type { TablePiece } from '@shared/play/model';
-import { composeTurn, PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '@shared/play/phases';
+import { composeTurn, TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { item, piece } from '@shared/play/setupSupply';
@@ -706,6 +706,10 @@ export const PhaseCooldown = meta.story({
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
     /* The menu opens first and stays open, so reading Previous phase cannot outlast the cooldown. */
     const previous = await openPrevious();
+    /*
+     * The client cools down for as long as the view says, counted from its arrival.
+     * The real two seconds can end before a frame that runs seconds late commits the menu item, so this cooldown outlasts every wait below, and the next view ends it.
+     */
     session.transport.deliver({
       ...session.transport.view({
         ...initialSnapshot(),
@@ -716,7 +720,7 @@ export const PhaseCooldown = meta.story({
           phaseChangedAt: STORYBOOK_NOW - 3_600_000,
         },
       }),
-      phaseCooldownMs: PHASE_CHANGE_COOLDOWN_MS,
+      phaseCooldownMs: 60_000,
     });
     await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled());
     /* The open menu's item re-renders on its own commit, which can land a frame after the button's. */
