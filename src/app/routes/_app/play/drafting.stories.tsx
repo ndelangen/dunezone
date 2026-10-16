@@ -367,11 +367,13 @@ export const NamedGame = meta.story({
       canvasElement.ownerDocument.defaultView!.navigator.clipboard,
       'writeText'
     ).mockResolvedValue();
-    const copy = await page.findByRole('button', { name: 'Copy game link' });
-    await userEvent.click(copy);
+    await userEvent.click(await page.findByRole('button', { name: 'Copy game link' }));
+    /*
+     * The button's "Game link copied" label lasts two seconds, and this table page can take longer than that to commit it on the runner, so Play/Create's Custom Name Created story checks the label on the page before the table opens.
+     * This story checks the address the long name produces.
+     */
     await expect(writeText).toHaveBeenCalledWith(
       expect.stringMatching(/\/play\/annual-bene-gesserit-wedding-traitor-and-the-unexpected-arrakeen$/)
     );
-    await waitFor(() => expect(copy).toHaveTextContent('Game link copied'));
   },
 });
