@@ -73,6 +73,17 @@ function rememberFocus(node: HeldNode) {
   }
 }
 
+function restoreSelection(
+  element: HTMLElement,
+  start: number | null,
+  end: number | null,
+  direction: HeldFocus['direction']
+) {
+  if (start !== null && isTextField(element)) {
+    element.setSelectionRange(start, end, direction);
+  }
+}
+
 /*
  * Focus goes back only to what the node still holds, and only when the move took it away and nothing else took it meanwhile;
  * a node `moveBefore` moved kept its focus, and refocusing it would fire focus handlers for a move nobody made.
@@ -89,8 +100,8 @@ function restoreFocus(node: HeldNode) {
   if (document.activeElement === document.body) {
     element.focus({ preventScroll: true });
   }
-  if (start !== null && document.activeElement === element && isTextField(element)) {
-    element.setSelectionRange(start, end, direction);
+  if (document.activeElement === element) {
+    restoreSelection(element, start, end, direction);
   }
 }
 
