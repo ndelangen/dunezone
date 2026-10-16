@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { publicPageHead } from '@app/routes/publicPage';
 
 import styles from './index.module.css';
+import { TeachingRunContext, TeachingTermContext } from './teaching';
 import { TopicVisual } from './TopicVisual';
 
 export const Route = createFileRoute('/_app/glossary/')({
@@ -41,6 +42,34 @@ const TOPIC_ICONS: Record<GlossaryTopic, TopicIconTopic> = {
   cards: 'cards',
   factions: 'factions',
   deals: 'deals',
+};
+
+/* Terms the game prints a symbol for wear it beside their name. */
+const TERM_ICONS: Partial<Record<string, TopicIconTopic>> = {
+  troop: 'troops',
+  'flipped-troop': 'flip',
+  turn: 'turn',
+  bidding: 'bidding',
+  revival: 'revival',
+  'spice-collection': 'spiceCollection',
+  battle: 'battle',
+  territory: 'board',
+  stronghold: 'stronghold',
+  storm: 'storm',
+  ornithopter: 'ornithopter',
+  spice: 'spice',
+  'treachery-card': 'cards',
+  'traitor-card': 'leaders',
+  'spice-card': 'spiceBlow',
+  'shai-hulud': 'shaiHulud',
+  karama: 'karama',
+  'special-karama-power': 'karama',
+  fate: 'fate',
+  faction: 'factions',
+  'faction-leader': 'factionLeader',
+  'kwisatz-haderach': 'kwisatz',
+  alliance: 'alliance',
+  deal: 'deals',
 };
 
 /* A search matches the preferred term or any word it replaces, so a reader can look up the word they were about to use. */
@@ -85,11 +114,21 @@ function TermBody({ term }: { term: GlossaryTerm }) {
   );
 }
 
-function TermSection({ term }: { term: GlossaryTerm }) {
+/* Pointing at a term asks its topic's picture to demonstrate it; the demonstration is decorative, since the term's words carry its meaning. */
+function TermSection({ term, onTeach }: Readonly<{ term: GlossaryTerm; onTeach: (term: string | null) => void }>) {
+  const icon = TERM_ICONS[term.id];
   return (
-    <Section id={term.id} className={styles.term} title={term.term} action={<SourceBadge term={term} />}>
-      <TermBody term={term} />
-    </Section>
+    <div onMouseEnter={() => onTeach(term.id)} onMouseLeave={() => onTeach(null)}>
+      <Section
+        id={term.id}
+        className={styles.term}
+        icon={icon ? <TopicIcon topic={icon} size={18} /> : undefined}
+        title={term.term}
+        action={<SourceBadge term={term} />}
+      >
+        <TermBody term={term} />
+      </Section>
+    </div>
   );
 }
 
@@ -97,19 +136,28 @@ type TopicProps = { topic: GlossaryTopic; terms: GlossaryTerm[]; flip: boolean }
 
 /* The topic's picture and its terms side by side on one pane, the picture swapping sides from one topic to the next; on a phone the picture goes and the terms keep the pane. */
 function TopicPane({ topic, terms, flip }: TopicProps) {
+  const [teaching, setTeaching] = useState<{ term: string | null; run: number }>({ term: null, run: 0 });
+  const teach = (term: string | null) =>
+    setTeaching((current) =>
+      current.term === term ? current : { term, run: crypto.getRandomValues(new Uint32Array(1))[0]! }
+    );
   return (
     <Surface padding="lg">
       <AsymmetricSplitLayout narrowSide={flip ? 'end' : 'start'} narrowFallback="hide">
         <AsymmetricSplitLayout.Wide>
           <Stack gap="lg">
             {terms.map((term) => (
-              <TermSection key={term.id} term={term} />
+              <TermSection key={term.id} term={term} onTeach={teach} />
             ))}
           </Stack>
         </AsymmetricSplitLayout.Wide>
         <AsymmetricSplitLayout.Narrow>
           <div className={styles.visual}>
-            <TopicVisual topic={topic} />
+            <TeachingTermContext.Provider value={teaching.term}>
+              <TeachingRunContext.Provider value={teaching.run}>
+                <TopicVisual topic={topic} />
+              </TeachingRunContext.Provider>
+            </TeachingTermContext.Provider>
           </div>
         </AsymmetricSplitLayout.Narrow>
       </AsymmetricSplitLayout>

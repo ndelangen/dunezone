@@ -64,4 +64,6 @@
   font-family: "Caladea", serif;
   letter-spacing: -20px;
   font-size: 200px;
+  /* Printed ink like the card's other text, so the number never takes the colour of the page around the card. */
+  color: #0b0503;
 }
