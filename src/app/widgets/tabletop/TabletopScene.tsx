@@ -339,13 +339,7 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
                   : meshes.cylinder(TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48)
               }
             >
-              {/* A round piece's wall is reeded like a coin's edge; its caps lie under the faces, so the ribs never show there. */}
-              <meshStandardMaterial
-                color={piece.color}
-                roughness={0.56}
-                metalness={0.1}
-                map={ratio != null ? null : meshes.reeding(Math.round(REEDING_RIBS_PER_TROOP * scale))}
-              />
+              <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
             </mesh>
             {index === shownLayers - 1 ? <TokenFace piece={piece} faceUp={faceUp} itemIndex={itemIndex} /> : null}
             {index === 0 ? <TokenFace piece={piece} faceUp={!faceUp} underside itemIndex={itemIndex} /> : null}
@@ -356,7 +350,6 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
-const REEDING_RIBS_PER_TROOP = 28;
 /* How far a hand-stacked layer may sit off the one above it, and how far it may turn. */
 const HAND_STACK_SHIFT = TROOP_TOP_RADIUS * 0.06;
 const HAND_STACK_TURN = (2.5 * Math.PI) / 180;

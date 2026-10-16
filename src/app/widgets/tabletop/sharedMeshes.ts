@@ -8,9 +8,7 @@ import {
   ConeGeometry,
   CylinderGeometry,
   PlaneGeometry,
-  RepeatWrapping,
   RingGeometry,
-  SRGBColorSpace,
 } from 'three';
 
 /*
@@ -66,28 +64,6 @@ function sharedMeshes() {
         context.fillStyle = gradient;
         context.fillRect(0, 0, canvas.width, canvas.height);
         return new CanvasTexture(canvas);
-      }),
-    /*
-     * The reeded edge of a coin, as a shade map for a cylinder's wall: one tile is one rib, lit along its crest and
-     * darker in the groove beside it. The wall's UVs run once around the piece, so `ribs` repeats set how many it has.
-     */
-    reeding: (ribs: number) =>
-      cached(`reeding:${ribs}`, () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 16;
-        canvas.height = 1;
-        const context = canvas.getContext('2d')!;
-        for (let x = 0; x < canvas.width; x++) {
-          const groove = Math.pow(0.5 - 0.5 * Math.cos(((x + 0.5) / canvas.width) * Math.PI * 2), 2);
-          const shade = Math.round(255 - 120 * groove);
-          context.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
-          context.fillRect(x, 0, 1, 1);
-        }
-        const texture = new CanvasTexture(canvas);
-        texture.colorSpace = SRGBColorSpace;
-        texture.wrapS = RepeatWrapping;
-        texture.repeat.set(ribs, 1);
-        return texture;
       }),
     dispose: () => {
       for (const resource of resources.values()) {
