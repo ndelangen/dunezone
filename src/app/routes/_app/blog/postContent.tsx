@@ -17,7 +17,7 @@ import styles from './postContent.module.css';
  * a figure or an embed goes between them, never inside.
  */
 
-/** The opening paragraph, set larger than the rest. */
+/** The opening paragraph, set larger than the rest, with a drop cap and a small-caps first line. */
 export function Lead({ children }: { children: ReactNode }) {
   return <p className={styles.lead}>{children}</p>;
 }
