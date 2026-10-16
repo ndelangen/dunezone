@@ -61,6 +61,18 @@ function roomAmong(point: { at: Point; room: number }, placed: readonly Point[])
   return placed.reduce((room, [x, y]) => Math.min(room, Math.hypot(point.at[0] - x, point.at[1] - y) / 2), point.room);
 }
 
+/** The point with the most room left among the stickers already placed, and that room. */
+function roomiest(points: readonly { at: Point; room: number }[], placed: readonly Point[]) {
+  let best = { at: points[0].at, room: roomAmong(points[0], placed) };
+  for (const point of points) {
+    const room = roomAmong(point, placed);
+    if (room > best.room) {
+      best = { at: point.at, room };
+    }
+  }
+  return best;
+}
+
 /**
  * Where a territory's stickers go and how large they are: each in turn takes the roomiest spot left, away from the edges and the stickers before it, so a long band lines them up along its length and a round one clusters them in the middle.
  * They are as large as the tightest spot allows, up to `largest`.
@@ -70,8 +82,8 @@ export function placeStickers(rings: readonly (readonly Point[])[], count: numbe
   const placed: Point[] = [];
   let room = Infinity;
   for (let index = 0; index < count && points.length; index++) {
-    const best = points.reduce((a, b) => (roomAmong(b, placed) > roomAmong(a, placed) ? b : a));
-    room = Math.min(room, roomAmong(best, placed));
+    const best = roomiest(points, placed);
+    room = Math.min(room, best.room);
     placed.push(best.at);
   }
   return { at: placed, size: Math.min(largest, room / CLEARANCE_PER_SIZE) };
