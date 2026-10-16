@@ -57,8 +57,8 @@ function tintedSnapshot(): GameSnapshot {
   };
 }
 
-/** The table as the Worker runs it, refusals included, so painting can be tried by hand; refuseCreate refuses every new tint, as a full table would. */
-function liveTransport(start: GameSnapshot, { refuseCreate = false } = {}) {
+/** The table as the Worker runs it, refusals included, so painting can be tried by hand; refuseCreate refuses every new tint, as a full table would, and refuseRemove every removal. */
+function liveTransport(start: GameSnapshot, { refuseCreate = false, refuseRemove = false } = {}) {
   let snapshot = start;
   const transport = productTransport(VIEWER, snapshot, {
     receive: (message: ClientMessage) => {
@@ -70,6 +70,9 @@ function liveTransport(start: GameSnapshot, { refuseCreate = false } = {}) {
         try {
           if (refuseCreate && action.kind === 'tint-create') {
             throw new Error('The table holds at most 12 tints. Remove one first.');
+          }
+          if (refuseRemove && action.kind === 'tint-remove') {
+            throw new Error('That tint is already gone.');
           }
           const { tints } = applyTerritoryTint(snapshot.tints ?? [], action);
           snapshot = { ...snapshot, revision: snapshot.revision + 1, tints };
@@ -176,5 +179,23 @@ export const Refused = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'New green tint' }, { timeout: 30_000 }));
     await waitFor(() => expect(lastCommand()?.action).toMatchObject({ kind: 'tint-create', name: 'Green tint' }));
     await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[style*="--brush-cursor"]')).toBeNull());
+  },
+});
+
+/** A removal the table refuses gives the remove button back, so the hold can be tried again. */
+export const RemoveRefused = meta.story({
+  beforeEach: install(() => liveTransport(tintedSnapshot(), { refuseRemove: true })),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Territory tints');
+    const remove = await page.findByRole('button', { name: 'Remove Shield Wall destroyed' }, { timeout: 30_000 });
+    remove.focus();
+    await userEvent.keyboard('{Enter>}');
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'tint-remove', tintId: 'tint-shield' }), {
+      timeout: 10_000,
+    });
+    await userEvent.keyboard('{/Enter}');
+    const again = await page.findByRole('button', { name: 'Remove Shield Wall destroyed' });
+    await waitFor(() => expect(again).not.toHaveAttribute('data-loading'), { timeout: 10_000 });
+    await expect(again).toBeEnabled();
   },
 });

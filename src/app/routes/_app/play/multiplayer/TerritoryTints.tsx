@@ -209,6 +209,34 @@ function TintColor({
   );
 }
 
+/** A tint's removal. The hold latches once it fires; when the table refuses the removal, or it never went out, the trigger remounts (the attempt) so the hold can be tried again. A removal that goes through takes the row with it. */
+function useTintRemoval(client: TableSession, tintId: string) {
+  const [commandId, setCommandId] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (commandId === null) {
+      return;
+    }
+    const settle = () => {
+      if (!client.awaiting(commandId)) {
+        setCommandId(null);
+        setAttempt((count) => count + 1);
+      }
+    };
+    settle();
+    return client.subscribe(settle);
+  }, [client, commandId]);
+  const remove = () => {
+    const sent = client.command({ kind: 'tint-remove', tintId });
+    if (sent === undefined) {
+      setAttempt((count) => count + 1);
+    } else {
+      setCommandId(sent);
+    }
+  };
+  return { attempt, remove };
+}
+
 function TintRow({
   tint,
   painting,
@@ -217,7 +245,7 @@ function TintRow({
   onBrush,
   onSet,
   onColor,
-  onRemove,
+  client,
 }: Readonly<{
   tint: TerritoryTint;
   painting: boolean;
@@ -226,8 +254,9 @@ function TintRow({
   onBrush: () => void;
   onSet: (setting: TintSetting, on: boolean) => void;
   onColor: (color: string) => void;
-  onRemove: () => void;
+  client: TableSession;
 }>) {
+  const removal = useTintRemoval(client, tint.id);
   const toggle = (setting: TintSetting) => () => onSet(setting, !tintSetting(tint, setting));
   return (
     <Group
@@ -279,12 +308,13 @@ function TintRow({
           </ActionIcon>
         </Tooltip>
         <ConfirmDeleteAction
+          key={removal.attempt}
           label={`Remove ${tint.name}`}
           verb="remove"
           size="sm"
           pending={false}
           disabled={!canEdit}
-          onConfirm={onRemove}
+          onConfirm={removal.remove}
         />
       </Group>
     </Group>
@@ -429,7 +459,7 @@ export function TerritoryTints({ client, table }: Props) {
             onBrush={() => toggle(tint.id)}
             onSet={(setting, on) => client.command({ kind: 'tint-set', tintId: tint.id, setting, on })}
             onColor={(color) => client.command({ kind: 'tint-color', tintId: tint.id, color })}
-            onRemove={() => client.command({ kind: 'tint-remove', tintId: tint.id })}
+            client={client}
           />
         ))}
         <NewTints tints={tints} enabled={canCreate} onCreate={(tint) => create(tint, true)} />
