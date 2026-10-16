@@ -427,10 +427,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Pre-pull Convex images in background
-        # Overlaps the pull and the backend image build with the app build; the wait step below
-        # serializes before the isolation proof.
+        # Overlaps the pull with the build; the wait step below serializes before the isolation proof.
         run: |
-          (docker compose -f docker-compose.convex-local.yml --profile worktree-local pull -q --ignore-buildable > /tmp/convex-pull.log 2>&1; docker compose -f docker-compose.convex-local.yml build -q >> /tmp/convex-pull.log 2>&1 || true; touch /tmp/convex-pull.done) &
+          (docker compose -f docker-compose.convex-local.yml pull -q > /tmp/convex-pull.log 2>&1 || true; touch /tmp/convex-pull.done) &
       - uses: ./.github/actions/setup
       - name: Generate app artifacts
         run: bun run generate
@@ -727,7 +726,7 @@ jobs:
         # Overlaps the pull with dependency/browser install; the wait step below
         # serializes before e2e-local.sh runs compose.
         run: |
-          (docker compose -f docker-compose.convex-local.yml build -q > /tmp/convex-pull.log 2>&1 || true; touch /tmp/convex-pull.done) &
+          (docker compose -f docker-compose.convex-local.yml pull -q > /tmp/convex-pull.log 2>&1 || true; touch /tmp/convex-pull.done) &
       - if: steps.prior.outputs.reuse != 'true'
         uses: ./.github/actions/setup
       - if: steps.prior.outputs.reuse != 'true'

@@ -196,13 +196,10 @@ Use the printed command from a checkout with the same Docker context and `LOCAL_
 then delete only the printed temporary directory. It holds auth keys, and a downloaded snapshot
 until that snapshot's import has run.
 
-The backend image is built by `docker/convex-backend/Dockerfile` from Convex's precompiled
-release binary, checked against a pinned digest, because Convex's ghcr.io images refuse
-anonymous pulls. Its tag names the release, so an existing Docker cache cannot silently select
-an older runtime. The dashboard image is still pinned to a ghcr.io digest and starts only for
-`app:dev --local`. When upgrading the Convex packages, bump the release and digests in the
-Dockerfile, the compose tag, `scripts/verify-hosted-play-stack.ts` and the dashboard digest
-together, and verify a clean `bun run app:dev --local` start.
+The backend and dashboard images are pinned to multi-platform digests in
+`docker-compose.convex-local.yml`, so an existing Docker cache cannot silently select an
+older runtime. When upgrading the Convex packages, update both image digests together and
+verify a clean `bun run app:dev --local` start.
 
 After the two configured local password users sign in, every faction and group, whether seeded or
 from the snapshot, is handed to user A (user B becomes an active member of every group) so
