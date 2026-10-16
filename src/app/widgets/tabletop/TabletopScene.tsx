@@ -729,6 +729,11 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
   useEffect(() => () => stopLongPress.current?.(), []);
   /* A piece that leaves the table under a still cursor hears no pointer leave, so its hover would keep the keys aimed at a piece that is gone. */
   const hovered = useRef(false);
+  /* Only a left press handles a piece, and none does while the table blocks it or the paintbrush is on. */
+  const ignoresPress = (event: ThreeEvent<PointerEvent>) => {
+    const notLeftOrBlocked = event.button !== 0 || interactionBlocked;
+    return notLeftOrBlocked || territoryBrush() !== null;
+  };
   useEffect(
     () => () => {
       if (hovered.current) {
@@ -755,7 +760,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
       }
     },
     onPointerDown: (event: ThreeEvent<PointerEvent>) => {
-      if (event.button !== 0 || interactionBlocked || territoryBrush()) {
+      if (ignoresPress(event)) {
         return;
       }
       event.stopPropagation();
