@@ -129,6 +129,7 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'tint-create',
   'tint-paint',
   'tint-set',
+  'tint-color',
   'tint-remove',
 ]);
 
@@ -508,6 +509,7 @@ export class Room {
         'tint-create',
         'tint-paint',
         'tint-set',
+        'tint-color',
         'tint-remove',
         'bank-withdraw',
         'bank-collect',

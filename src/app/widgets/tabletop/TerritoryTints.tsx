@@ -61,27 +61,19 @@ function outlineGeometry(rings: Point[][]) {
 /* Between the map (-3) and the storm's sector (-2), so the storm lies over the tints. */
 const TINT_ORDER = { fill: -2.8, line: -2.6, stickerOutline: -2.4, stickerInk: -2.2 };
 
-/* How wide an outline-only tint's line is, in table units. */
-const RIBBON_WIDTH = 0.03;
+/* How far either line of an outline-only tint's double line sits from the border it follows, in table units. */
+const DOUBLE_LINE_OFFSET = 0.006;
 
-/** A flat band along each segment, a little past both ends so the corners between them close. */
-function ribbonGeometry(segments: readonly (readonly [Readonly<Point>, Readonly<Point>])[]) {
-  const half = RIBBON_WIDTH / 2;
+/** Two hairlines along each segment, one either side of it, so the outline reads as a double line at any zoom. */
+function doubleLineGeometry(segments: readonly (readonly [Readonly<Point>, Readonly<Point>])[]) {
   const positions: number[] = [];
   for (const [from, to] of segments) {
     const [ax, az] = toTable(from);
     const [bx, bz] = toTable(to);
     const length = Math.hypot(bx - ax, bz - az) || 1;
-    const [ux, uz] = [((bx - ax) / length) * half, ((bz - az) / length) * half];
-    const [sx, sz, ex, ez] = [ax - ux, az - uz, bx + ux, bz + uz];
-    const corners = [
-      [sx - uz, sz + ux],
-      [sx + uz, sz - ux],
-      [ex + uz, ez - ux],
-      [ex - uz, ez + ux],
-    ];
-    for (const index of [0, 1, 2, 0, 2, 3]) {
-      positions.push(corners[index][0], 0, corners[index][1]);
+    const [nx, nz] = [(-(bz - az) / length) * DOUBLE_LINE_OFFSET, ((bx - ax) / length) * DOUBLE_LINE_OFFSET];
+    for (const side of [1, -1]) {
+      positions.push(ax + side * nx, 0, az + side * nz, bx + side * nx, 0, bz + side * nz);
     }
   }
   const geometry = new BufferGeometry();
@@ -91,18 +83,18 @@ function ribbonGeometry(segments: readonly (readonly [Readonly<Point>, Readonly<
 
 type Face = { id: string; center: Point; rings: Point[][] };
 
-/** An outline-only tint: one line round its territories taken together, the borders between them left out. */
+/** An outline-only tint: one double line round its territories taken together, the borders between them left out. */
 function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: readonly Face[] }>) {
   const key = tint.territories.join(' ');
   const geometry = useMemo(() => {
     const ids = new Set(key.split(' '));
-    return ribbonGeometry(outerSegments(faces.filter((face) => ids.has(face.id)).map((face) => face.rings)));
+    return doubleLineGeometry(outerSegments(faces.filter((face) => ids.has(face.id)).map((face) => face.rings)));
   }, [faces, key]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
-    <mesh geometry={geometry} raycast={ignoreRaycast} renderOrder={TINT_ORDER.line}>
-      <meshBasicMaterial color={tint.color} transparent depthWrite={false} side={DoubleSide} />
-    </mesh>
+    <lineSegments geometry={geometry} raycast={ignoreRaycast} renderOrder={TINT_ORDER.line}>
+      <lineBasicMaterial color={tint.color} transparent depthWrite={false} />
+    </lineSegments>
   );
 }
 

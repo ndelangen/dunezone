@@ -1,6 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
-import { fitsTintCommand } from './territoryTints';
+import { fitsTintCommand, territoryTintActionSchema } from './territoryTints';
 
 const tintId = 'tint-6f1c1d2e-9a7b-4c3d-8e5f-0a1b2c3d4e5f';
 
@@ -20,4 +20,13 @@ test('a preset too long for one message does not fit', () => {
   expect(
     fitsTintCommand({ kind: 'tint-create', tintId, name: 'Fremen deployment', color: '#2f7fe0', territories })
   ).toBe(false);
+});
+
+test('a tint colour must be a six-digit hex colour', () => {
+  expect(territoryTintActionSchema.safeParse({ kind: 'tint-color', tintId: 'tint-a', color: '#7a3e9d' }).success).toBe(
+    true
+  );
+  expect(territoryTintActionSchema.safeParse({ kind: 'tint-color', tintId: 'tint-a', color: 'red' }).success).toBe(
+    false
+  );
 });

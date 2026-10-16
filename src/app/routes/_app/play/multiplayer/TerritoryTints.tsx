@@ -1,4 +1,15 @@
-import { ActionIcon, Button, ColorSwatch, Group, Popover, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Button,
+  ColorPicker,
+  ColorSwatch,
+  Group,
+  Popover,
+  SimpleGrid,
+  Stack,
+  Text,
+  Tooltip,
+} from '@mantine/core';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { territoryId } from '@shared/boards/schema';
 import {
@@ -13,7 +24,7 @@ import type { TerritoryTint, TerritoryTintAction, TintStamp } from '@shared/play
 import { Section } from '@ui/block/Section';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { Brush, Eye, EyeOff, Square, Sticker } from 'lucide-react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
@@ -150,6 +161,53 @@ function StickerPicker({
   );
 }
 
+/** The tint's colour swatch, which opens a picker: a preset colour or any other, sent once the pick settles. */
+function TintColor({
+  tint,
+  enabled,
+  onColor,
+}: Readonly<{ tint: TerritoryTint; enabled: boolean; onColor: (color: string) => void }>) {
+  const [draft, setDraft] = useState(tint.color);
+  const [opened, setOpened] = useState(false);
+  const label = `Colour of ${tint.name}`;
+  return (
+    <Popover position="bottom-start" shadow="md" withArrow opened={opened} onChange={setOpened} disabled={!enabled}>
+      <Popover.Target>
+        <Tooltip label={label} disabled={opened}>
+          <ColorSwatch
+            component="button"
+            type="button"
+            color={tint.color}
+            size={22}
+            aria-label={label}
+            disabled={!enabled}
+            onClick={() => {
+              setDraft(tint.color);
+              setOpened((open) => !open);
+            }}
+            style={{ cursor: enabled ? 'pointer' : 'default', flexShrink: 0 }}
+          />
+        </Tooltip>
+      </Popover.Target>
+      <Popover.Dropdown aria-label={label}>
+        <ColorPicker
+          format="hex"
+          value={draft}
+          swatches={[...TINT_COLORS]}
+          swatchesPerRow={TINT_COLORS.length}
+          onChange={setDraft}
+          onChangeEnd={(color) => {
+            const hex = color.toLowerCase();
+            if (hex !== tint.color) {
+              onColor(hex);
+            }
+          }}
+        />
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
 function TintRow({
   tint,
   painting,
@@ -157,6 +215,7 @@ function TintRow({
   names,
   onBrush,
   onSet,
+  onColor,
   onRemove,
 }: Readonly<{
   tint: TerritoryTint;
@@ -165,6 +224,7 @@ function TintRow({
   names: ReadonlyMap<string, string>;
   onBrush: () => void;
   onSet: (setting: TintSetting, on: boolean) => void;
+  onColor: (color: string) => void;
   onRemove: () => void;
 }>) {
   const toggle = (setting: TintSetting) => () => onSet(setting, !tintSetting(tint, setting));
@@ -177,7 +237,7 @@ function TintRow({
       style={{ borderRadius: 8, border: `1px solid ${painting ? tint.color : 'var(--mantine-color-default-border)'}` }}
     >
       <Group gap="sm" wrap="nowrap" style={{ opacity: tint.hidden ? 0.5 : 1 }}>
-        <ColorSwatch color={tint.color} size={22} />
+        <TintColor tint={tint} enabled={canEdit} onColor={onColor} />
         <div>
           <Text size="sm" fw={600}>
             {tint.name}
@@ -367,6 +427,7 @@ export function TerritoryTints({ client, table }: Props) {
             names={names}
             onBrush={() => toggle(tint.id)}
             onSet={(setting, on) => client.command({ kind: 'tint-set', tintId: tint.id, setting, on })}
+            onColor={(color) => client.command({ kind: 'tint-color', tintId: tint.id, color })}
             onRemove={() => client.command({ kind: 'tint-remove', tintId: tint.id })}
           />
         ))}

@@ -109,3 +109,16 @@ test('a tint is hidden and shown, and outlined, and takes city and spice sticker
     table.command(bob, { kind: 'tint-set', tintId: 'zone', setting: 'spice', on: true }, table.snapshot.revision, LATER)
   ).toThrow('Someone changed Shield Wall first.');
 });
+
+test('a tint takes any colour, and the same colour again is refused', () => {
+  const table = room();
+  const send = (action: Parameters<Room['command']>[1]) =>
+    table.accept(table.command(bob, action, table.snapshot.revision, LATER));
+  send({ kind: 'tint-create', tintId: 'zone', name: 'Zone', color: '#2f7fe0', territories: [] });
+  send({ kind: 'tint-color', tintId: 'zone', color: '#7a3e9d' });
+  expect(table.snapshot.tints?.[0]?.color).toBe('#7a3e9d');
+  expect(table.snapshot.table.events[0]?.message).toBe('Recoloured Zone.');
+  expect(() =>
+    table.command(bob, { kind: 'tint-color', tintId: 'zone', color: '#7a3e9d' }, table.snapshot.revision, LATER)
+  ).toThrow('Zone is already that colour.');
+});

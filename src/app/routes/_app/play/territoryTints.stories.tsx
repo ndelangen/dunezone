@@ -27,7 +27,7 @@ function tintedSnapshot(): GameSnapshot {
       {
         id: 'tint-fremen',
         name: 'Fremen deployment',
-        color: '#e8b923',
+        color: '#2b5ea7',
         territories: [
           'the_great_flat',
           'the_greater_flat',
@@ -129,7 +129,7 @@ export const Preset = meta.story({
   },
 });
 
-/** Hiding a tint, outlining one and switching stickers on change the table for everyone, and the row follows. */
+/** Hiding a tint, outlining one, switching stickers on and recolouring one change the table for everyone, and the row follows. */
 export const Settings = meta.story({
   beforeEach: install(() => liveTransport(tintedSnapshot())),
   play: async ({ canvasElement }) => {
@@ -154,6 +154,12 @@ export const Settings = meta.story({
       expect(lastCommand()?.action).toEqual({ kind: 'tint-set', tintId: 'tint-shield', setting: 'city', on: true })
     );
     await waitFor(() => expect(city).toHaveAttribute('aria-pressed', 'true'), { timeout: 10_000 });
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(await page.findByRole('button', { name: 'Colour of Shield Wall destroyed' }));
+    await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole('button', { name: '#9450d0' }));
+    await waitFor(() =>
+      expect(lastCommand()?.action).toEqual({ kind: 'tint-color', tintId: 'tint-shield', color: '#9450d0' })
+    );
   },
 });
 

@@ -6,7 +6,7 @@ import { CLIENT_MESSAGE_LIMIT } from './messageLimit';
 import { GameRejection } from './rejection';
 import { tableIdSchema as id } from './schema';
 
-/** The colours a tint can take, in the order the panel offers them. */
+/** The colours the panel offers first, in its order; a tint can take any other colour too. */
 export const TINT_COLORS = ['#2f7fe0', '#d63a2a', '#e8b923', '#3fae4a', '#9450d0', '#f2f2f2', '#1b1b1b'] as const;
 export const TINT_COLOR_NAMES: Record<(typeof TINT_COLORS)[number], string> = {
   '#2f7fe0': 'Blue',
@@ -46,7 +46,7 @@ const territorySchema = z
   .regex(/^[a-z0-9_]+$/)
   .max(128);
 const nameSchema = z.string().trim().min(1).max(48);
-const colorSchema = z.enum(TINT_COLORS);
+const colorSchema = z.string().regex(/^#[0-9a-f]{6}$/);
 const stampsSchema = z.array(z.enum(TINT_STAMPS)).max(TINT_STAMPS.length);
 
 const tintSchema = z.strictObject({
@@ -87,6 +87,7 @@ export const territoryTintActionSchema = z.discriminatedUnion('kind', [
   }),
   /* Like painting, says what the page wants rather than flipping, so two players switching at once agree. */
   z.strictObject({ kind: z.literal('tint-set'), tintId: id, setting: z.enum(TINT_SETTINGS), on: z.boolean() }),
+  z.strictObject({ kind: z.literal('tint-color'), tintId: id, color: colorSchema }),
   z.strictObject({ kind: z.literal('tint-remove'), tintId: id }),
 ]);
 export type TerritoryTintAction = z.infer<typeof territoryTintActionSchema>;
@@ -196,6 +197,13 @@ function setTint(
   return { tints: replaced(tints, tint, withSetting(tint, setting, on)), message: settingMessage(tint, setting, on) };
 }
 
+function recolor(tints: readonly TerritoryTint[], tint: TerritoryTint, color: string): Applied {
+  if (tint.color === color) {
+    throw new GameRejection(`${tint.name} is already that colour.`);
+  }
+  return { tints: replaced(tints, tint, { ...tint, color }), message: `Recoloured ${tint.name}.` };
+}
+
 function paintIn(tints: readonly TerritoryTint[], tint: TerritoryTint, territory: string, name: string): Applied {
   if (tint.territories.includes(territory)) {
     throw new GameRejection(`${name} is already in ${tint.name}.`);
@@ -234,6 +242,9 @@ export function applyTerritoryTint(tints: readonly TerritoryTint[], action: Terr
   }
   if (action.kind === 'tint-remove') {
     return { tints: tints.filter((candidate) => candidate !== tint), message: `Removed tint: ${tint.name}.` };
+  }
+  if (action.kind === 'tint-color') {
+    return recolor(tints, tint, action.color);
   }
   if (action.kind === 'tint-set') {
     return setTint(tints, tint, action);

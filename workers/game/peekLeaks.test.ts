@@ -100,6 +100,10 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
     [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: [] }],
     [bob, { kind: 'tint-set', tintId: 'tint-a', setting: 'hidden', on: true }],
   ],
+  'tint-color': () => [
+    [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: [] }],
+    [bob, { kind: 'tint-color', tintId: 'tint-a', color: '#1b1b1b' }],
+  ],
   'tint-remove': () => [
     [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: [] }],
     [bob, { kind: 'tint-remove', tintId: 'tint-a' }],
