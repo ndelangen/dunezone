@@ -21,10 +21,11 @@ export function setTerritoryBrush(next: TerritoryBrush | null) {
     return;
   }
   brush = next;
+  /* Captured, since a focused panel control may keep Escape to itself. */
   if (next) {
-    window.addEventListener('keydown', stopOnEscape);
+    window.addEventListener('keydown', stopOnEscape, true);
   } else {
-    window.removeEventListener('keydown', stopOnEscape);
+    window.removeEventListener('keydown', stopOnEscape, true);
   }
   for (const listener of listeners) {
     listener();

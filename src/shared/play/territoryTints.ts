@@ -16,7 +16,7 @@ export const TINT_COLOR_NAMES: Record<(typeof TINT_COLORS)[number], string> = {
   '#1b1b1b': 'Black',
 };
 /** Artwork a tint may stamp on each of its territories. */
-export const TINT_STAMPS = ['atomics'] as const;
+const TINT_STAMPS = ['atomics'] as const;
 export const MAX_TINTS = 12;
 /* Far more than any board's territories; bounds what one tint stores and resends. */
 const MAX_TINT_TERRITORIES = 128;
@@ -83,22 +83,34 @@ function createTint(
   return { tints: [...tints, tint], message: `New tint: ${tint.name}.` };
 }
 
-function paintTint(
-  tints: readonly TerritoryTint[],
-  tint: TerritoryTint,
-  action: Extract<TerritoryTintAction, { kind: 'tint-paint' }>
-): Applied {
-  const { territory, name, painted } = action;
-  if (tint.territories.includes(territory) === painted) {
-    throw new GameRejection(painted ? `${name} is already in ${tint.name}.` : `${name} is not in ${tint.name}.`);
+function withTerritories(tints: readonly TerritoryTint[], tint: TerritoryTint, territories: string[]) {
+  return tints.map((candidate) => (candidate === tint ? { ...tint, territories } : candidate));
+}
+
+function paintIn(tints: readonly TerritoryTint[], tint: TerritoryTint, territory: string, name: string): Applied {
+  if (tint.territories.includes(territory)) {
+    throw new GameRejection(`${name} is already in ${tint.name}.`);
   }
-  if (painted && tint.territories.length >= MAX_TINT_TERRITORIES) {
+  if (tint.territories.length >= MAX_TINT_TERRITORIES) {
     throw new GameRejection(`A tint covers at most ${MAX_TINT_TERRITORIES} territories.`);
   }
-  const territories = painted ? [...tint.territories, territory] : tint.territories.filter((id) => id !== territory);
   return {
-    tints: tints.map((candidate) => (candidate === tint ? { ...tint, territories } : candidate)),
-    message: painted ? `Added ${name} to ${tint.name}.` : `Took ${name} out of ${tint.name}.`,
+    tints: withTerritories(tints, tint, [...tint.territories, territory]),
+    message: `Added ${name} to ${tint.name}.`,
+  };
+}
+
+function paintOut(tints: readonly TerritoryTint[], tint: TerritoryTint, territory: string, name: string): Applied {
+  if (!tint.territories.includes(territory)) {
+    throw new GameRejection(`${name} is not in ${tint.name}.`);
+  }
+  return {
+    tints: withTerritories(
+      tints,
+      tint,
+      tint.territories.filter((id) => id !== territory)
+    ),
+    message: `Took ${name} out of ${tint.name}.`,
   };
 }
 
@@ -114,5 +126,5 @@ export function applyTerritoryTint(tints: readonly TerritoryTint[], action: Terr
   if (action.kind === 'tint-remove') {
     return { tints: tints.filter((candidate) => candidate !== tint), message: `Removed tint: ${tint.name}.` };
   }
-  return paintTint(tints, tint, action);
+  return (action.painted ? paintIn : paintOut)(tints, tint, action.territory, action.name);
 }

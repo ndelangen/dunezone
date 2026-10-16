@@ -32,15 +32,20 @@ function freshName(color: (typeof TINT_COLORS)[number], tints: readonly Territor
 
 /**
  * A brush that outlived this player's right to change the table, or a tint the table had and no longer has, is put down.
- * A tint this page just made is not on the table yet, so its brush waits for it.
+ * A tint this page just made is not on the table yet, so its brush waits for it, unless the table refused to make it.
  */
 function brushOutlived(
   brush: TerritoryBrush | null,
   canEdit: boolean,
   tints: readonly TerritoryTint[],
-  seen: ReadonlySet<string>
+  seen: ReadonlySet<string>,
+  creating: boolean
 ) {
-  return !!brush && (!canEdit || (seen.has(brush.tintId) && tints.every((tint) => tint.id !== brush.tintId)));
+  if (!brush) {
+    return false;
+  }
+  const onTable = tints.some((tint) => tint.id === brush.tintId);
+  return !canEdit || (!onTable && (seen.has(brush.tintId) || !creating));
 }
 
 /** What a row says under the tint's name: painting, its one territory, or how many it covers. */
@@ -180,26 +185,47 @@ function Presets({
 function useTintBrush(client: TableSession, canEdit: boolean, tints: readonly TerritoryTint[]) {
   const brush = useTerritoryBrush();
   const seen = useRef(new Set<string>());
+  /* The create command of each tint this page made, so a brush on a tint the table refused is put down. */
+  const created = useRef(new Map<string, string>());
+  const creating = (tintId: string) => {
+    const commandId = created.current.get(tintId);
+    return !!commandId && client.awaiting(commandId);
+  };
   useEffect(() => {
     for (const tint of tints) {
       seen.current.add(tint.id);
     }
-    if (brushOutlived(brush, canEdit, tints, seen.current)) {
+    if (brush && brushOutlived(brush, canEdit, tints, seen.current, creating(brush.tintId))) {
       setTerritoryBrush(null);
     }
-  }, [brush, canEdit, tints]);
+  });
   useEffect(() => () => setTerritoryBrush(null), []);
   const start = (tintId: string) =>
     setTerritoryBrush({
       tintId,
       paint: (territory) => {
         const tint = client.getTable()?.snapshot.tints?.find((candidate) => candidate.id === tintId);
-        const painted = !tint?.territories.includes(territory.id);
+        if (!tint) {
+          /* Still being made: the click waits for nothing. Refused or removed: the brush goes down. */
+          if (!creating(tintId)) {
+            setTerritoryBrush(null);
+          }
+          return;
+        }
+        const painted = !tint.territories.includes(territory.id);
         client.command({ kind: 'tint-paint', tintId, territory: territory.id, name: territory.name, painted });
       },
     });
+  const create = (tint: TintDraft, paint: boolean) => {
+    const tintId = `tint-${crypto.randomUUID()}`;
+    const commandId = client.command({ kind: 'tint-create', tintId, ...tint });
+    if (commandId !== undefined && paint) {
+      created.current.set(tintId, commandId);
+      start(tintId);
+    }
+  };
   const toggle = (tintId: string) => (territoryBrush()?.tintId === tintId ? setTerritoryBrush(null) : start(tintId));
-  return { brush, start, toggle };
+  return { brush, create, toggle };
 }
 
 /** Shared tints over territories: make one, then switch on its paintbrush and click territories on the board to add or remove them. */
@@ -212,14 +238,8 @@ export function TerritoryTints({ client, table }: Props) {
     [board]
   );
   const canEdit = table.canInteract && !!table.snapshot.bank;
-  const { brush, start, toggle } = useTintBrush(client, canEdit, tints);
+  const { brush, create, toggle } = useTintBrush(client, canEdit, tints);
   const canCreate = canEdit && tints.length < MAX_TINTS;
-  const create = (tint: TintDraft, paint: boolean) => {
-    const tintId = `tint-${crypto.randomUUID()}`;
-    if (client.command({ kind: 'tint-create', tintId, ...tint }) !== undefined && paint) {
-      start(tintId);
-    }
-  };
 
   return (
     <Section

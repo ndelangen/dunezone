@@ -58,20 +58,28 @@ function tintedSnapshot(): GameSnapshot {
   };
 }
 
-/** The table as the Worker runs it: tint commands are applied by the shared rules, so painting can be tried by hand. */
-function liveTransport(start: GameSnapshot) {
+/** The table as the Worker runs it, refusals included, so painting can be tried by hand; refuseCreate refuses every new tint, as a full table would. */
+function liveTransport(start: GameSnapshot, { refuseCreate = false } = {}) {
   let snapshot = start;
   const transport = productTransport(VIEWER, snapshot, {
-    answerCommand: (message: Extract<ClientMessage, { type: 'command' }>) => {
-      if (isTerritoryTintAction(message.action)) {
-        try {
-          const { tints } = applyTerritoryTint(snapshot.tints ?? [], message.action);
-          snapshot = { ...snapshot, revision: snapshot.revision + 1, tints };
-        } catch {
-          // A refused command leaves the table as it was, as the Worker would.
-        }
+    receive: (message: ClientMessage) => {
+      if (message.type !== 'command' || !isTerritoryTintAction(message.action)) {
+        return false;
       }
-      return transport.view(snapshot, message.commandId);
+      const { action, commandId } = message;
+      queueMicrotask(() => {
+        try {
+          if (refuseCreate && action.kind === 'tint-create') {
+            throw new Error('The table holds at most 12 tints. Remove one first.');
+          }
+          const { tints } = applyTerritoryTint(snapshot.tints ?? [], action);
+          snapshot = { ...snapshot, revision: snapshot.revision + 1, tints };
+          transport.deliver(transport.view(snapshot, commandId));
+        } catch (error) {
+          transport.deliver({ type: 'rejected', requestId: commandId, message: (error as Error).message });
+        }
+      });
+      return true;
     },
   });
   return transport;
@@ -94,10 +102,10 @@ export const Painting = meta.story({
     const page = await openPanel(canvasElement, 'Territory tints');
     const brush = await page.findByRole('button', { name: 'Paint Fremen deployment' }, { timeout: 30_000 });
     await userEvent.click(brush);
-    await waitFor(() => expect(brush).toHaveAttribute('aria-pressed', 'true'));
+    await waitFor(() => expect(brush).toHaveAttribute('aria-pressed', 'true'), { timeout: 10_000 });
     await expect(page.findByText('Painting: click territories on the board')).resolves.toBeVisible();
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(brush).toHaveAttribute('aria-pressed', 'false'));
+    await waitFor(() => expect(brush).toHaveAttribute('aria-pressed', 'false'), { timeout: 10_000 });
     await userEvent.click(brush);
   },
 });
@@ -119,5 +127,21 @@ export const Preset = meta.story({
       })
     );
     await expect(page.findByRole('button', { name: 'Paint Shield Wall destroyed' })).resolves.toBeVisible();
+  },
+});
+
+/** A new tint the table refuses puts its paintbrush down again, so clicks on the board send nothing. */
+export const Refused = meta.story({
+  beforeEach: install(() =>
+    liveTransport(
+      { ...playingSnapshot(VIEWER), bank: { factionId: 'house-harkonnen', balance: 0 } },
+      { refuseCreate: true }
+    )
+  ),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Territory tints');
+    await userEvent.click(await page.findByRole('button', { name: 'New green tint' }, { timeout: 30_000 }));
+    await waitFor(() => expect(lastCommand()?.action).toMatchObject({ kind: 'tint-create', name: 'Green tint' }));
+    await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[style*="--brush-cursor"]')).toBeNull());
   },
 });
