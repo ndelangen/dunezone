@@ -351,8 +351,8 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
 }
 
 /* How far a hand-stacked layer may sit off the one above it, and how far it may turn. */
-const HAND_STACK_SHIFT = TROOP_TOP_RADIUS * 0.06;
-const HAND_STACK_TURN = (2.5 * Math.PI) / 180;
+const HAND_STACK_SHIFT = TROOP_TOP_RADIUS * 0.12;
+const HAND_STACK_TURN = (5 * Math.PI) / 180;
 
 /* The same small, steady shift and turn for an item wherever it lies, so a stack does not shuffle as it changes. */
 function handStackedOffset(id: string): [number, number, number] {
