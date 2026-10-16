@@ -148,6 +148,18 @@ function paintTerritory(
   }
 }
 
+/** A click reaches the scene once for each mesh the pointer passed through; the paintbrush takes the first, and paints on the board's face. */
+function paintClick(
+  event: ThreeEvent<MouseEvent>,
+  board: GameSnapshot['board'],
+  view: Readonly<{ stage: GameSnapshot['stage']; mapVisible?: boolean }>
+) {
+  if (territoryBrush()) {
+    event.stopPropagation();
+    paintTerritory(board, view, event.ray);
+  }
+}
+
 const PieceBadge = lazy(() => import('./PieceBadge').then((module) => ({ default: module.PieceBadge })));
 const ScenePresence = lazy(() => import('./ScenePresence').then((module) => ({ default: module.ScenePresence })));
 const ScenePings = lazy(() => import('./ScenePings').then((module) => ({ default: module.ScenePings })));
@@ -1144,11 +1156,7 @@ function SceneContents({
       )}
       <group
         onClick={(event) => {
-          /* A click reaches here once for each mesh the pointer passed through; the paintbrush handles it once, on the board's face. */
-          if (territoryBrush()) {
-            event.stopPropagation();
-            paintTerritory(board, { stage, mapVisible }, event.ray);
-          }
+          paintClick(event, board, { stage, mapVisible });
           selectPiece(null);
         }}
       >
