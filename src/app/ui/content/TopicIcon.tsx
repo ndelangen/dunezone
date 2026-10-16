@@ -84,6 +84,15 @@ const TOPIC_ICON_DEFINITIONS = {
   planet: { kind: 'mask', src: '/vector/generic/ringworld.svg' },
   cards: { kind: 'mask', src: '/vector/icon/treachery.svg' },
   deals: { kind: 'component', component: Handshake },
+  /* Glossary terms with a symbol of their own on the cards and board: three phases, places, cards and the Kwisatz Haderach. */
+  bidding: { kind: 'mask', src: '/vector/icon/bidding_standalone.svg' },
+  revival: { kind: 'mask', src: '/vector/icon/revival_standalone.svg' },
+  spiceCollection: { kind: 'mask', src: '/vector/icon/collection_standalone.svg' },
+  stronghold: { kind: 'mask', src: '/vector/icon/stronghold.svg' },
+  ornithopter: { kind: 'mask', src: '/vector/icon/ornithopter.svg' },
+  spiceBlow: { kind: 'mask', src: '/vector/icon/spice-blow_standalone.svg' },
+  shaiHulud: { kind: 'mask', src: '/vector/icon/shai-hulud.svg' },
+  kwisatz: { kind: 'mask', src: '/vector/icon/kwisatz.svg' },
 } as const satisfies Record<string, { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }>;
 
 export type TopicIconTopic = keyof typeof TOPIC_ICON_DEFINITIONS;

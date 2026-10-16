@@ -271,6 +271,17 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     ],
   },
   {
+    id: 'battle-reveal',
+    term: 'Battle reveal',
+    topic: 'battle',
+    explanation:
+      'The moment both factions in a battle show their battle plans at the same time. Until the reveal, each battle wheel shows only its faction’s token, so neither side sees the other’s leader, cards or dial.',
+    reason:
+      'The rulebook says both plans are revealed at once. Dune Zone names that moment so rules text and the battle screen can point at it.',
+    source: 'house',
+    avoid: [],
+  },
+  {
     id: 'dialed',
     term: 'Dialed',
     topic: 'battle',
@@ -584,6 +595,17 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       },
       { word: 'perk', forms: ['perks'], fixes: { perk: 'advantage', perks: 'advantages' } },
     ],
+  },
+  {
+    id: 'fate',
+    term: 'Fate',
+    topic: 'factions',
+    explanation:
+      'The name a faction may give its special Karama power section on its sheet, in place of Faction Special Karama. The rule is still used by playing a Karama card.',
+    reason:
+      'Dune Zone’s faction editor and sheets offer Fate as the section’s other name. Saying so here lets readers take the two names as one thing.',
+    source: 'house',
+    avoid: [],
   },
   {
     id: 'special-karama-power',
