@@ -52,6 +52,7 @@ import { TableFurniture } from './TableFurniture';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
 import { TurnTracker } from './TurnTracker';
+import { TerritoryTintsMock } from './TerritoryTintsMock';
 const SpiceBank = lazy(() => import('./SpiceBank').then((module) => ({ default: module.SpiceBank })));
 useTexture.preload(stormMarkerUrl);
 
@@ -433,6 +434,9 @@ function BoardMap({ animate = false, board }: { animate?: boolean; board: GameSn
       */}
       <group position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}>
         <BoardPaint board={board} />
+        <Suspense fallback={null}>
+          <TerritoryTintsMock board={board?.definition} />
+        </Suspense>
       </group>
     </group>
   );

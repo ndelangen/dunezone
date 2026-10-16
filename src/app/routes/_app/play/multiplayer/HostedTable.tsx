@@ -71,6 +71,7 @@ import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction } from './tableFactions';
 import { TableSettings } from './TableSettings';
+import { TerritoryTintsPanelMock } from './TerritoryTintsPanelMock';
 import { ServerClockContext } from './useServerNow';
 import '../dune-play.css';
 
@@ -834,6 +835,13 @@ function tableTab({ client, table, error }: ConnectionControlsProps): PanelTab {
     description: 'Shared pieces and table settings.',
     content: null,
     subtabs: [
+      {
+        key: 'tints',
+        label: 'Territory tints',
+        topic: 'decals',
+        description: 'Tint territories for everyone.',
+        content: <TerritoryTintsPanelMock />,
+      },
       {
         key: 'shared',
         label: 'Shared inventory',
