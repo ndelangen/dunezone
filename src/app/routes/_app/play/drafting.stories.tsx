@@ -62,7 +62,13 @@ export const EighteenSeats = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('Waiting for 12 more players', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.__duneTable?.stations()).toHaveLength(18));
+    /*
+     * The stations are read off the scene, which mounts only once the renderer has started and the scene's assets have loaded.
+     * That takes about three seconds after the canvas appears on an idle machine, and more than the default wait's ten on a busy runner, so this wait takes the scene's own startup bound.
+     */
+    await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.__duneTable?.stations()).toHaveLength(18), {
+      timeout: 30_000,
+    });
     /* Ready is the header's, beside the gear, as in play. */
     const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
     await expect(within(header).getByRole('button', { name: 'Ready' })).toBeVisible();
@@ -361,11 +367,13 @@ export const NamedGame = meta.story({
       canvasElement.ownerDocument.defaultView!.navigator.clipboard,
       'writeText'
     ).mockResolvedValue();
-    const copy = await page.findByRole('button', { name: 'Copy game link' });
-    await userEvent.click(copy);
+    await userEvent.click(await page.findByRole('button', { name: 'Copy game link' }));
+    /*
+     * The button's "Game link copied" label lasts two seconds, and this table page can take longer than that to commit it on the runner, so Play/Create's Custom Name Created story checks the label on the page before the table opens.
+     * This story checks the address the long name produces.
+     */
     await expect(writeText).toHaveBeenCalledWith(
       expect.stringMatching(/\/play\/annual-bene-gesserit-wedding-traitor-and-the-unexpected-arrakeen$/)
     );
-    await waitFor(() => expect(copy).toHaveTextContent('Game link copied'));
   },
 });
