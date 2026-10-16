@@ -33,6 +33,7 @@ import type {
   ClientMessage,
   CommitMessage,
   PieceAction,
+  PingSound,
   ServerClock,
   ServerMessage,
   Viewer,
@@ -121,6 +122,15 @@ const COMMAND_BURST = 30;
 const COMMANDS_PER_SECOND = 10;
 /* A held Tab rumbles after three seconds, so one connection rumbles at most that often. */
 const RUMBLE_INTERVAL_MS = 3000;
+
+/* A page rumbles only after Tab is held for seconds, so a rumble sooner than that after the last goes out as a plain ping. */
+function pingSoundAllowed(connection: Pick<Connection, 'rumbledAt'>, sound: PingSound | undefined, now: number) {
+  if (!sound || now - connection.rumbledAt < RUMBLE_INTERVAL_MS) {
+    return undefined;
+  }
+  connection.rumbledAt = now;
+  return sound;
+}
 const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try again.';
 const SWEEP_MS = 1000;
 /** A sweep this late counts as a stall, and the room keeps the most recent ones. */
@@ -1284,11 +1294,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     connection.pingedAt = now;
-    /* A page rumbles only after Tab is held for seconds, so a rumble sooner than that after the last goes out as a plain ping. */
-    const sound = message.sound && now - connection.rumbledAt >= RUMBLE_INTERVAL_MS ? message.sound : undefined;
-    if (sound) {
-      connection.rumbledAt = now;
-    }
+    const sound = pingSoundAllowed(connection, message.sound, now);
     const { connectionId, viewerSeat, displayName, color } = viewer;
     const ping = {
       connectionId,
