@@ -1810,14 +1810,23 @@ describe('pointer moves', () => {
     expect(client.ping()).toBe(true);
     await vi.advanceTimersByTimeAsync(400);
     client.ping();
+    await vi.advanceTimersByTimeAsync(400);
+    client.ping('fart');
 
     expect(socket().sent.filter((message) => message.type === 'ping')).toEqual([
       { type: 'ping', position: [1, 0.132, 1] },
       { type: 'ping', position: [1, 0.132, 1] },
+      { type: 'ping', position: [1, 0.132, 1], sound: 'fart' },
     ]);
-    expect(pings).toHaveBeenCalledTimes(2);
+    expect(pings).toHaveBeenCalledTimes(3);
+    expect(pings).toHaveBeenNthCalledWith(2, expect.not.objectContaining({ sound: expect.anything() }));
     expect(pings).toHaveBeenLastCalledWith(
-      expect.objectContaining({ connectionId: viewer.connectionId, color: viewer.color, position: [1, 0.132, 1] })
+      expect.objectContaining({
+        connectionId: viewer.connectionId,
+        color: viewer.color,
+        position: [1, 0.132, 1],
+        sound: 'fart',
+      })
     );
   });
 

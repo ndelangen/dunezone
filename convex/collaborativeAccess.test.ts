@@ -810,6 +810,26 @@ describe('collaborative access moderation commands', () => {
       userId: ids.assetOwnerId,
     });
     expect(added).toMatchObject({ status: 'active' });
+    const profileless = await t.run(async (ctx) => await ctx.db.insert('users', { account_state: 'active' }));
+    await expect(member.mutation(api.members.addMember, { groupId: ids.groupId, userId: profileless })).rejects.toThrow(
+      'User not found'
+    );
+    const deleted = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert('users', { account_state: 'deleted' });
+      await ctx.db.insert('profiles', {
+        user_id: userId,
+        username: 'Deleted user',
+        avatar_url: null,
+        account_state: 'deleted',
+        slug: 'deleted-user',
+        created_at: now,
+        updated_at: now,
+      });
+      return userId;
+    });
+    await expect(member.mutation(api.members.addMember, { groupId: ids.groupId, userId: deleted })).rejects.toThrow(
+      'User not found'
+    );
     await expect(
       assetOwner.mutation(api.factions.setGroup, { id: ids.factionId, group_id: ids.groupId })
     ).resolves.toMatchObject({

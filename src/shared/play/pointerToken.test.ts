@@ -7,7 +7,7 @@ import { pieceFlipFrame, PIECE_FLIP_DURATION_MS } from './pieceFlip';
 import { pointerRiders, piecesOnPlates, ridersOf } from './pointerRiders';
 import { POINTER_BODY_RADIUS, POINTER_HEIGHT, POINTER_TOKEN_TYPE, pointerCovers } from './pointerToken';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
-import { BOARD_SURFACE_Y, restingPositionAt, supportHeightAt } from './tableGeometry';
+import { BOARD_SURFACE_Y, CARRIED_BASE_Y, restingPositionAt, supportHeightAt } from './tableGeometry';
 import { isCollisionFreePosition } from './tablePhysics';
 import { applyDraftToState, draftForGesture, renderedPiecesFor, settleCarryAtPosition } from './tableState';
 
@@ -179,9 +179,9 @@ describe('a pointer token, such as the HMS,', () => {
   test('a page leaves a rider lifted off it in the hand that holds it', () => {
     const state = tableWith(plate([0, 0, 1]), troop('t', [0, 0, 1]));
     const lifted = renderedPiecesFor(state).map((piece) =>
-      piece.id === 't' ? { ...piece, position: [0, 0.38, piece.position[2]] as Vector3Tuple } : piece
+      piece.id === 't' ? { ...piece, position: [0, CARRIED_BASE_Y, piece.position[2]] as Vector3Tuple } : piece
     );
-    expect(piecesOnPlates(lifted, state.pieces).find((piece) => piece.id === 't')!.position[1]).toBe(0.38);
+    expect(piecesOnPlates(lifted, state.pieces).find((piece) => piece.id === 't')!.position[1]).toBe(CARRIED_BASE_Y);
   });
 
   test('holds a locked piece up on its top, without taking it along', () => {

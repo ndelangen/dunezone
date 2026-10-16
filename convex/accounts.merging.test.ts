@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 import { api, internal } from './_generated/api';
 import { account, setup, stubAuthEnvironment, restoreAuthEnvironment } from './authAccount.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { insertPendingGame } from './lib/playProvisioningSchedule';
 
 beforeEach(stubAuthEnvironment);
 afterEach(restoreAuthEnvironment);
@@ -360,6 +361,51 @@ test('two retained answers to one question remain readable and do not allow a th
       answer: 'Another sufficiently long answer.',
     })
   ).rejects.toThrow('already answered');
+});
+
+test('a creator who never entered keeps their seat when merged into an account already routed to the game', async () => {
+  const t = setup();
+  const source = await account(t, 'creator', 'discord');
+  const target = await account(t, 'spectator', 'google', true);
+  const game = await t.run(async (ctx) => {
+    const now = new Date().toISOString();
+    const rulesetId = await ctx.db.insert('rulesets', {
+      name: 'Classic',
+      slug: 'classic',
+      about: 'A ruleset for merge coverage.',
+      created_at: now,
+      updated_at: now,
+      owner_id: source.userId,
+      group_id: null,
+      is_deleted: false,
+      image_cover: null,
+    });
+    return await insertPendingGame(ctx, { ruleset_id: rulesetId, minimum_players: 4, creator_id: source.userId });
+  });
+  await t.mutation(api.playProvisioning.confirmProvisioning, {
+    gameId: game.gameId,
+    secret: game.secret,
+    attemptId: game.attemptId,
+  });
+  await t.run(async (ctx) => {
+    await ctx.db.insert('play_game_accounts', {
+      game_id: game.gameId,
+      user_id: target.userId,
+      actor_user_ids: [target.userId],
+    });
+  });
+  const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
+  await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
+  const args = { gameId: game.gameId, secret: game.secret, userIds: [source.userId, target.userId] };
+  const expected = {
+    accounts: [
+      { userId: source.userId, state: 'active' },
+      { userId: target.userId, state: 'active' },
+    ],
+  };
+  expect(await t.query(api.playAdmission.reconcileAccounts, args)).toMatchObject(expected);
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  expect(await t.query(api.playAdmission.reconcileAccounts, args)).toMatchObject(expected);
 });
 
 test('a connected Discord account protects the last usable method', async () => {

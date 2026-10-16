@@ -90,10 +90,7 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
       name: loaderData?.asset.name ?? 'Asset',
       kind: noun,
       pathname: `/assets/${encodeURIComponent(params.type)}/${encodeURIComponent(loaderData?.asset.slug ?? params.slug)}`,
-      description: loaderData
-        ? publicDescription(loaderData.asset.data.about) ||
-          `${loaderData.asset.name} is ${/^[aeiou]/i.test(noun ?? 'asset') ? 'an' : 'a'} ${(noun ?? 'asset').toLowerCase()} for Dune${loaderData.asset.owner?.username ? ` by ${loaderData.asset.owner.username}` : ''}.`
-        : '',
+      description: publicDescription(loaderData?.asset.data.about),
       image: loaderData?.asset.previewHref,
       social: {
         shape: params.type === 'token-disc' ? 'round' : params.type === 'token-enhance' ? 'landscape' : 'portrait',

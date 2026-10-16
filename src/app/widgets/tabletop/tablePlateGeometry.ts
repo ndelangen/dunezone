@@ -1,4 +1,5 @@
 import type { Vector3Tuple } from '@shared/play/model';
+import { SUPPLY_RESERVE_REACH } from '@shared/play/setupLayout';
 import {
   BOTTOM_SHELF_POSITION,
   BOTTOM_SHELF_SIZE,
@@ -60,6 +61,11 @@ function appendCircleBoundary(points: Vector3Tuple[], center: Vector3Tuple, radi
   }
 }
 
+/** How high the battle beacon hovers over its tracker slot; the map view keeps that height over every slot in frame, so the raised beacon is never cut off. */
+export const TRACKER_BEACON_HEIGHT = 0.6;
+/* The hovering beacon's grab handle reaches this far above the beacon, so the frame keeps its top edge in view as well. */
+const TRACKER_BEACON_HANDLE_REACH = 0.5;
+
 export function mapViewFramingPoints(
   slots: readonly TrackerArcSlot[],
   seatCount: TableSeatCount = DEFAULT_TABLE_SEAT_COUNT
@@ -73,10 +79,31 @@ export function mapViewFramingPoints(
       PLAYER_STATION_RADIUS,
       48
     );
+    /* The troop reserves right behind each faction token, so the view never cuts a seat's supply off at the canvas's edge. */
+    appendCircleBoundary(
+      points,
+      [
+        Math.cos(angle) * SUPPLY_RESERVE_REACH.radius,
+        BOARD_RIM_SURFACE_Y + 0.001,
+        Math.sin(angle) * SUPPLY_RESERVE_REACH.radius,
+      ],
+      SUPPLY_RESERVE_REACH.halfWidth,
+      48
+    );
   });
   slots.forEach((slot) => {
     appendCircleBoundary(points, slot.position, trackerScallopRadius(slot), 48);
     appendCircleBoundary(points, [slot.position[0], TRACKER_DISC_CONTENT_Y, slot.position[2]], slot.radius, 48);
+    appendCircleBoundary(
+      points,
+      [
+        slot.position[0],
+        TRACKER_DISC_CONTENT_Y + TRACKER_BEACON_HEIGHT + TRACKER_BEACON_HANDLE_REACH,
+        slot.position[2],
+      ],
+      slot.radius,
+      48
+    );
   });
   return points;
 }

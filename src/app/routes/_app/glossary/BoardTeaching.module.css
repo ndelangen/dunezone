@@ -1,0 +1,71 @@
+.teaching {
+  position: relative;
+}
+
+/* The ornithopter's flight is a demonstration, not a scene with a key; the term beside the picture names it. */
+.teaching :global(.rulebookRouteLegend) {
+  display: none;
+}
+
+/* The demonstration sits exactly over the square board, above any route legend below it. */
+.overlay {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 1;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.shade {
+  fill: rgb(20 10 4 / 55%);
+}
+
+.lit path {
+  fill: currentcolor;
+  fill-opacity: 0.75;
+  stroke: #fff9eb;
+  stroke-width: 0.005;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 0.012px currentcolor);
+}
+
+.lit[data-faint] path {
+  fill-opacity: 0.3;
+  stroke-width: 0.002;
+}
+
+/* Sand, rock and the Polar Sink blink together so every territory of the kind shows at once. */
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.1;
+  }
+}
+
+.overlay[data-blink] .lit {
+  animation: blink 900ms ease-in-out infinite;
+}
+
+.storm {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  transition: transform 1000ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.stormWedge {
+  fill: #c0392b;
+  fill-opacity: 0.45;
+  stroke: #fff9eb;
+  stroke-width: 0.004;
+}
+
+.stormMarker {
+  fill: #fff9eb;
+  stroke: #8b3628;
+  stroke-width: 0.004;
+}

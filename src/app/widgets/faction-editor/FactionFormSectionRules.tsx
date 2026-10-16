@@ -1,4 +1,6 @@
-import { Divider, NumberInput, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import { Divider, Group, NumberInput, Radio, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import { factionSpecialRuleLabel, factionSpecialRuleLabels } from '@shared/factions/specialRule';
+import { Section } from '@ui/block/Section';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 
@@ -110,55 +112,71 @@ function SetupFields({ form }: { form: FactionFormApi }) {
 
 function FateFields({ form }: { form: FactionFormApi }) {
   return (
-    <Stack component="section" gap="md" aria-labelledby="fate-fields-heading">
-      <Stack gap="xs">
-        <Text id="fate-fields-heading" fw={700} size="lg">
-          Fate
-        </Text>
-        <Text c="dimmed" size="sm">
-          Author the faction&apos;s Fate rule. The heading is optional; the rule text remains editable independently.
-        </Text>
-      </Stack>
-      <Stack gap="md">
-        <form.Field name="rules.fate.title">
-          {(field) => (
+    <form.Field name="rules.fate.label">
+      {(labelField) => {
+        const label = factionSpecialRuleLabel(labelField.state.value);
+        return (
+          <Section title={label}>
             <ControlBlock
-              title="Fate title (optional)"
-              description="Leave blank when this Fate rule does not need a separate heading."
+              title="Section name"
+              description="Used on this faction's page, in Play, and on its sheet and PDF."
               input={
-                <TextInput
-                  id="rules-fate-title"
-                  aria-label="Fate title (optional)"
-                  value={field.state.value ?? ''}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
-                />
+                <Radio.Group
+                  aria-label="Section name"
+                  value={labelField.state.value ?? 'karama'}
+                  onBlur={labelField.handleBlur}
+                  onChange={(value) => labelField.handleChange(value === 'fate' ? 'fate' : undefined)}
+                >
+                  <Group gap="md">
+                    <Radio value="karama" label={factionSpecialRuleLabels.karama} color="selected" />
+                    <Radio value="fate" label={factionSpecialRuleLabels.fate} color="selected" />
+                  </Group>
+                </Radio.Group>
               }
             />
-          )}
-        </form.Field>
-        <form.Field name="rules.fate.text">
-          {(field) => {
-            const warningId = 'rules-fate-text-warning';
-            return (
-              <Stack gap="md">
-                <FormattedTextInput
-                  id="rules-fate-text"
-                  label="Fate rule"
-                  autosize
-                  minRows={3}
-                  value={field.state.value}
-                  aria-describedby={isBlank(field.state.value) ? warningId : undefined}
-                  onBlur={field.handleBlur}
-                  onChange={field.handleChange}
+            <form.Field name="rules.fate.title">
+              {(field) => (
+                <ControlBlock
+                  title="Ability title (optional)"
+                  description="Leave blank when this rule does not need a separate title."
+                  input={
+                    <TextInput
+                      id="rules-fate-title"
+                      aria-label="Ability title (optional)"
+                      value={field.state.value ?? ''}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+                    />
+                  }
                 />
-                {isBlank(field.state.value) ? <Advisory id={warningId}>Fate text is empty.</Advisory> : null}
-              </Stack>
-            );
-          }}
-        </form.Field>
-      </Stack>
-    </Stack>
+              )}
+            </form.Field>
+            <form.Field name="rules.fate.text">
+              {(field) => {
+                const warningId = 'rules-fate-text-warning';
+                return (
+                  <Stack gap="md">
+                    <FormattedTextInput
+                      id="rules-fate-text"
+                      label="Rule text"
+                      autosize
+                      minRows={3}
+                      value={field.state.value}
+                      aria-describedby={isBlank(field.state.value) ? warningId : undefined}
+                      onBlur={field.handleBlur}
+                      onChange={field.handleChange}
+                    />
+                    {isBlank(field.state.value) ? (
+                      <Advisory id={warningId}>{`${label} text is empty.`}</Advisory>
+                    ) : null}
+                  </Stack>
+                );
+              }}
+            </form.Field>
+          </Section>
+        );
+      }}
+    </form.Field>
   );
 }
 

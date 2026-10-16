@@ -5604,7 +5604,7 @@
     "sourceHash": "cb91942b074559a821075d7a09ef77f7ae709606bbe7b16c228aadae752d6a9f"
   },
   "/image/leader/official/dryeuh.png": {
-    "description": "Dryeuh. Illustrated head-and-shoulders character portrait. Forehead diamond, short beard and brown scarf.",
+    "description": "Dr. Yueh. Illustrated head-and-shoulders character portrait. Forehead diamond, short beard and brown scarf.",
     "tags": ["portrait", "head", "diamond", "illustration"],
     "subjects": ["people", "symbols"],
     "sourceHash": "8d663fe6acd75ac8ede074bee4d35e8c36156f613e79c21f29a2b5586984e50a"
@@ -5658,7 +5658,7 @@
     "sourceHash": "911be8f690fc79eccab551505acae2ae85a0c6a4202c947d0cfb2e5a447c2cb6"
   },
   "/image/leader/official/nafud.png": {
-    "description": "Nafud. Illustrated head-and-shoulders character portrait. Red scarf and raised black collar.",
+    "description": "Nefud. Illustrated head-and-shoulders character portrait. Red scarf and raised black collar.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
     "sourceHash": "bc7d4970cd440d8e4bccc5902a2bc8fd9e9deebd06fac2abb9968c953a6e345d"
@@ -5670,7 +5670,7 @@
     "sourceHash": "937b3f8679437b9f763e5977e3da75000579c99c8acb70d8ebd0b230c5fbe72b"
   },
   "/image/leader/official/uman.png": {
-    "description": "Uman. Illustrated head-and-shoulders character portrait. Goggles above the forehead.",
+    "description": "Umman Kudu. Illustrated head-and-shoulders character portrait. Goggles above the forehead.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
     "sourceHash": "493c5da41bc0ff3024e8198aa53eb07e9dcc8545debcd17baf2327e2d9f5bad7"
@@ -5802,7 +5802,7 @@
     "sourceHash": "b2d37b3fd7c94f708186a08b8e08642979be1472ffda7115d6ed6e2d9b92f9b7"
   },
   "/image/leader/official/guildrep.png": {
-    "description": "Guildrep. Illustrated head-and-shoulders character portrait.",
+    "description": "Guild Rep. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
     "sourceHash": "7b93578a8f522960aca486b4be91c4ddf08975859ddbd0078ccab390cca78ede"
@@ -5826,7 +5826,7 @@
     "sourceHash": "be1691c865209ace3f62af876f30e647f5c1b6a62c184ea5513d46fa9270fc2c"
   },
   "/image/leader/official/ctair.png": {
-    "description": "Ctair. Illustrated head-and-shoulders character portrait.",
+    "description": "C'Tair. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
     "sourceHash": "a41337a2df819bebe6980bfab44fda604484cf361685b8fb9394740c293d0141"
@@ -5844,7 +5844,7 @@
     "sourceHash": "1eb2fa35c0aadee95eb9f92564cfbef307251354598779df0c211351c83db726"
   },
   "/image/leader/official/rhombor.jpg": {
-    "description": "Rhombor. Illustrated head-and-shoulders character portrait.",
+    "description": "Rhombur. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
     "sourceHash": "8e89d30a2480380fc684ad42098b0fae470094968c94f0112799c1c700848cdc"
@@ -5988,7 +5988,7 @@
     "sourceHash": "3f61e0a60643f1438ba52fc5136d8cd2c1fcc1ce3453ddc2a3dc1233ff49adde"
   },
   "/image/leader/official/whitemore-bludd.png": {
-    "description": "Whitemore Bludd. Illustrated head-and-shoulders character portrait.",
+    "description": "Whitmore Bludd. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
     "sourceHash": "7e807e531cbf2cf88fdd1aa70941baf0ca52bc9f330512c2c45484294d254eae"
@@ -6120,7 +6120,7 @@
     "sourceHash": "68365cb49b2a3581be8cb8c7cda13a778730bfd43966291c2e01f5c7111dfef3"
   },
   "/image/leader/official/smuggler2.png": {
-    "description": "Smuggler2. Illustrated head-and-shoulders character portrait. Dark round goggles.",
+    "description": "Smuggler 2. Illustrated head-and-shoulders character portrait. Dark round goggles.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
     "sourceHash": "2b614a6f9b7085f2aea0fa44b6b4bd68e7d37d17980219bcbadd22dcef0add5b"

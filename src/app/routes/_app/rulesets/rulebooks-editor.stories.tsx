@@ -142,8 +142,16 @@ export const Rename = meta.story({
     /* A rename re-slugs, so the editor remounts at its new address before the action is back, and it stays unavailable until the draft settles. */
     const rename = await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 });
     await waitFor(() => expect(rename).not.toHaveAttribute('aria-disabled'), { timeout: 30_000 });
-    await userEvent.click(rename);
-    await expect(page.findByRole('textbox', { name: 'Rulebook name' })).resolves.toHaveValue('Battle reference');
+    /* The remounted editor can settle after the form reopens, which closes it again, so it is reopened until the name shows. */
+    await waitFor(
+      async () => {
+        if (!page.queryByRole('form', { name: 'Rename Rulebook' })) {
+          await userEvent.click(page.getByRole('button', { name: 'Rename Rulebook' }));
+        }
+        await expect(page.getByRole('textbox', { name: 'Rulebook name' })).toHaveValue('Battle reference');
+      },
+      { timeout: 30_000 }
+    );
     /* The form's submit shares the name, and the toolbar's toggle comes first. */
     await userEvent.click(page.getAllByRole('button', { name: 'Rename Rulebook' })[0]!);
     await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());

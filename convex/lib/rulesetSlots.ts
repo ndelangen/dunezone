@@ -1,9 +1,16 @@
+import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
 
-/** Bounds one ruleset's slot contents. Slots are curated by hand, so this is a ceiling on nonsense rather than a paging limit. */
-const RULESET_SLOT_LIMIT = 200;
+/** Bounds one many-asset slot's contents. The many-asset slots are curated by hand, so this is a ceiling on nonsense rather than a paging limit. */
+export const SLOT_CONTENTS_LIMIT = 100;
+
+/* Every slot at its capacity, so a full ruleset's newest row is still read. */
+const RULESET_SLOT_LIMIT = Object.values(RULESET_ASSET_SLOTS).reduce(
+  (total, rule) => total + (rule.single ? 1 : SLOT_CONTENTS_LIMIT),
+  0
+);
 
 /**
  * The assets a ruleset has slotted, by slot.

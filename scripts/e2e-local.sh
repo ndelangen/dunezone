@@ -319,8 +319,8 @@ phase_test() {
   fi
 
   # A CI shard runs only its files from e2e/shards.json (every spec is assigned to exactly one
-  # shard, guarded by check:e2e-shards); the animation project runs in each shard as their
-  # dependency. Without E2E_SHARD the whole suite runs, as it does locally.
+  # shard, guarded by check:e2e-shards), the animation project's file included.
+  # Without E2E_SHARD the whole suite runs, as it does locally.
   local -a targets=()
   if [[ -n "${E2E_SHARD:-}" ]]; then
     local shard_files

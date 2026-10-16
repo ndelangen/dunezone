@@ -1280,7 +1280,14 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     connection.pingedAt = now;
     const { connectionId, viewerSeat, displayName, color } = viewer;
-    const ping = { connectionId, viewerSeat, displayName, color, position: message.position };
+    const ping = {
+      connectionId,
+      viewerSeat,
+      displayName,
+      color,
+      position: message.position,
+      ...(message.sound && { sound: message.sound }),
+    };
     for (const [peer, other] of this.connections) {
       if (peer !== socket && other.viewer) {
         this.send(peer, { type: 'ping', ping });

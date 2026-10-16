@@ -29,7 +29,7 @@ import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { lazy, Suspense, useMemo, useRef, useLayoutEffect, useEffect } from 'react';
 import type { ExtrudeGeometry, Group } from 'three';
-import { BufferGeometry, EdgesGeometry, Float32BufferAttribute, RingGeometry, SRGBColorSpace } from 'three';
+import { BufferGeometry, CircleGeometry, EdgesGeometry, Float32BufferAttribute, SRGBColorSpace } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -38,6 +38,7 @@ import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.webp?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
+import { POLAR_SINK_RENDER_ORDER, STORM_OUTLINE_RENDER_ORDER, STORM_SECTOR_RENDER_ORDER } from './boardRenderOrder';
 import {
   BOARD_RIM_COLOR,
   BOARD_RIM_DEPTH,
@@ -274,7 +275,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
   }, [loadedMarkerTexture]);
   const markerGeometry = useMemo(() => createStormMarkerGeometry(), []);
   const outlineGeometry = useMemo(() => {
-    const sectorGeometry = new RingGeometry(0.72, BOARD_RADIUS, 96, 1, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE);
+    const sectorGeometry = new CircleGeometry(BOARD_RADIUS, 96, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE);
     const outline = new EdgesGeometry(sectorGeometry, 15);
     sectorGeometry.dispose();
     return outline;
@@ -334,10 +335,11 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
       <mesh
         position={[0, BOARD_SURFACE_Y + 0.002, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
-        renderOrder={-2}
+        renderOrder={STORM_SECTOR_RENDER_ORDER}
         raycast={ignoreRaycast}
       >
-        <ringGeometry args={[0.72, BOARD_RADIUS, 96, 1, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE]} />
+        {/* The storm's sides meet at the board's centre, under the Polar Sink, which is drawn above it. */}
+        <circleGeometry args={[BOARD_RADIUS, 96, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE]} />
         <meshBasicMaterial
           color="#e13632"
           transparent
@@ -352,7 +354,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
         geometry={outlineGeometry}
         position={[0, BOARD_SURFACE_Y + 0.003, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
-        renderOrder={1}
+        renderOrder={STORM_OUTLINE_RENDER_ORDER}
         raycast={ignoreRaycast}
       >
         <lineBasicMaterial
@@ -389,11 +391,23 @@ const AuthoredBoard = lazy(() => import('./AuthoredBoard'));
 
 function LegacyBoardPaint() {
   const geometry = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS), []);
-  useEffect(() => () => geometry.dispose(), [geometry]);
+  const polarSink = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS, 'polar'), []);
+  useEffect(
+    () => () => {
+      geometry.dispose();
+      polarSink.dispose();
+    },
+    [geometry, polarSink]
+  );
   return (
-    <mesh receiveShadow geometry={geometry} renderOrder={BOARD_MAP_RENDER_ORDER} raycast={ignoreRaycast}>
-      <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
-    </mesh>
+    <>
+      <mesh receiveShadow geometry={geometry} renderOrder={BOARD_MAP_RENDER_ORDER} raycast={ignoreRaycast}>
+        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
+      </mesh>
+      <mesh receiveShadow geometry={polarSink} renderOrder={POLAR_SINK_RENDER_ORDER} raycast={ignoreRaycast}>
+        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
+      </mesh>
+    </>
   );
 }
 

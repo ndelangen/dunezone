@@ -30,7 +30,7 @@ export function ScenePings() {
     const timers = new Set<ReturnType<typeof setTimeout>>();
     const stop = subscribePings((ping) => {
       const key = next++;
-      playPingSound();
+      playPingSound(ping.sound);
       setPings((shown) => [...shown.slice(1 - MOST_PINGS), { ...ping, key }]);
       const timer = setTimeout(() => {
         timers.delete(timer);
