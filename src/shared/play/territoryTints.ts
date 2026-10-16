@@ -168,6 +168,19 @@ function settingMessage(tint: TerritoryTint, setting: TintFlag | TintStamp, on: 
     : `Took the ${TINT_STAMP_NAMES[setting].toLowerCase()} stickers off ${tint.name}.`;
 }
 
+/** The tint with one setting switched, its stickers kept in their set order. */
+function withSetting(tint: TerritoryTint, setting: TintFlag | TintStamp, on: boolean): TerritoryTint {
+  const { hidden: _hidden, outline: _outline, stamps: _stamps, ...plain } = tint;
+  const has = (name: TintFlag | TintStamp) => (name === setting ? on : tintSetting(tint, name));
+  const stamps = TINT_STAMPS.filter(has);
+  return {
+    ...plain,
+    ...(stamps.length ? { stamps } : {}),
+    ...(has('hidden') ? { hidden: true as const } : {}),
+    ...(has('outline') ? { outline: true as const } : {}),
+  };
+}
+
 function setTint(
   tints: readonly TerritoryTint[],
   tint: TerritoryTint,
@@ -176,18 +189,7 @@ function setTint(
   if (tintSetting(tint, setting) === on) {
     throw new GameRejection(`Someone changed ${tint.name} first.`);
   }
-  const { hidden: _hidden, outline: _outline, stamps: _stamps, ...plain } = tint;
-  const flag = (name: TintFlag) => (name === setting ? on : !!tint[name]);
-  const stamps = TINT_STAMPS.filter((stamp) => (stamp === setting ? on : !!tint.stamps?.includes(stamp)));
-  return {
-    tints: replaced(tints, tint, {
-      ...plain,
-      ...(stamps.length ? { stamps } : {}),
-      ...(flag('hidden') ? { hidden: true as const } : {}),
-      ...(flag('outline') ? { outline: true as const } : {}),
-    }),
-    message: settingMessage(tint, setting, on),
-  };
+  return { tints: replaced(tints, tint, withSetting(tint, setting, on)), message: settingMessage(tint, setting, on) };
 }
 
 function paintIn(tints: readonly TerritoryTint[], tint: TerritoryTint, territory: string, name: string): Applied {
