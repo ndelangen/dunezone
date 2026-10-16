@@ -285,6 +285,7 @@ export async function enqueueAssetPublication(
      */
     case 'token-disc':
     case 'token-tech':
+    case 'token-pointer':
     case 'token-plate':
       return await enqueueTokenFaces(ctx, asset, asset.type, TokenAsset.parse(asset.data), now);
     case RECTANGLE_TOKEN_ASSET_TYPE:

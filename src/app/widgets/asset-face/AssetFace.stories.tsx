@@ -167,7 +167,7 @@ export const PublicationAfterFailure = meta.story({
 export const PublishedTokenShapes = meta.story({
   render: () => (
     <Group align="start">
-      {['token-disc', 'token-tech', 'token-plate', 'token-enhance'].map((type) => (
+      {['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance'].map((type) => (
         <Box key={type} w={96}>
           <AssetFace type={type} data={DISC} name={type} href={publishedImage} />
         </Box>

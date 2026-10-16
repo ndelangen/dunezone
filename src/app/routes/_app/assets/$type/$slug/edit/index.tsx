@@ -56,6 +56,7 @@ function EditAssetPage() {
       return <SpiceEditPage slug={slug} loaderData={loaderData} />;
     case 'token-disc':
     case 'token-tech':
+    case 'token-pointer':
     case 'token-plate':
       return <TokenEditPage type={type} slug={slug} loaderData={loaderData} />;
     /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */

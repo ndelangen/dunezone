@@ -14,7 +14,7 @@ import { BundleBand } from '@shared/assets/schema';
  * It was once handed a pixel width instead, which made every caller state a size the face already knew: six of them wrapped it in a `CanvasScale` restating the same 900 and the same ratio, and the landing page ran a `ResizeObserver` whose entire output was that one prop.
  * A surface needing exact pixels still gets them, by giving the face a fixed-size parent, so there is never a second way to say the same thing.
  */
-import { GEAR_CLIP, tokenOutline, tokenShapeAspect, tokenShapeOfType } from '@shared/assets/tokenOutline';
+import { tokenOutline, tokenShapeAspect, tokenShapeOfType } from '@shared/assets/tokenOutline';
 import type { TokenShape } from '@shared/assets/tokenOutline';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { CanvasScale } from '@ui/layout/CanvasScale';
@@ -106,18 +106,20 @@ export function CardFrame({ children }: { children: ReactNode }) {
  * No scaling: the token renderers fill their box rather than drawing at an intrinsic size, so the shape's own ratio is the whole of the geometry.
  */
 export function TokenFrame({ shape, children }: { shape: TokenShape; children: ReactNode }) {
-  const gear = shape === 'gear';
+  /* A gear or a pointer is cut by a clip path, which cuts away any box shadow drawn around it. */
+  const { radius, clipPath } = tokenOutline(shape);
+  const clipped = clipPath !== undefined;
   return (
     <div
       style={{
         width: '100%',
         aspectRatio: `1 / ${tokenShapeAspect(shape)}`,
         position: 'relative',
-        borderRadius: shape === 'round' ? '50%' : gear ? undefined : 8,
-        clipPath: gear ? GEAR_CLIP : undefined,
+        borderRadius: shape === 'round' ? '50%' : clipped ? undefined : (radius ?? 8),
+        clipPath,
         overflow: 'hidden',
-        boxShadow: gear ? undefined : '0 2px 10px rgba(0,0,0,0.45)',
-        filter: gear ? 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' : undefined,
+        boxShadow: clipped ? undefined : '0 2px 10px rgba(0,0,0,0.45)',
+        filter: clipped ? 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' : undefined,
         /* Defends the ratio, not a width: as a flex item in a column a face without this is squashed below its own height. */
         flexShrink: 0,
       }}
@@ -238,6 +240,7 @@ function publishedOutline(shape: TokenShape | null): { radius?: string; clipPath
     case null:
       return { radius: CARD_CORNER, raised: true };
     case 'gear':
+    case 'pointer':
       return { ...tokenOutline(shape), raised: false };
     default:
       return { ...tokenOutline(shape), raised: true };

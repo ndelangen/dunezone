@@ -6,6 +6,7 @@ import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { peekersOf } from '@shared/play/peeking';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
+import { isPointerToken } from '@shared/play/pointerToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
@@ -77,6 +78,7 @@ import { topFaceHref } from './pieceFaceHref';
 import { pieceHasMenu } from './pieceMenu';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
+import { POINTER_SELECTION_RING, PointerTokenPlate } from './PointerTokenPlate';
 import { sharedPublishedFaces } from './publishedFaceRetry';
 import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
@@ -94,7 +96,7 @@ import type { TableProgress } from './tableTrackers';
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
-import { useTablePose } from './useTablePose';
+import { PlatePosesProvider, useTablePose } from './useTablePose';
 
 type TabletopSceneProps = {
   children?: ReactNode;
@@ -505,6 +507,8 @@ export type PieceSceneState = {
   stackTargeted: boolean;
   drafted: boolean;
   remoteCarried: boolean;
+  /* The plate in someone's hand that this piece rides, which it follows as the plate is shown. */
+  ridingPlateId: string | undefined;
   locallyCarried: boolean;
   reserved: boolean;
   interactionBlocked: boolean;
@@ -525,10 +529,11 @@ function pieceSceneState(
     gestureActivePieceId,
     canHandleTable,
     remoteCarriedIds,
+    plateRiders,
     reservedPieceIds,
   }: Pick<
     TabletopContextValue,
-    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'reservedPieceIds'
+    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'plateRiders' | 'reservedPieceIds'
   >
 ): PieceSceneState {
   const drafted = state.draftMove?.pieceId === piece.id;
@@ -540,6 +545,7 @@ function pieceSceneState(
     stackTargeted: state.draftMove?.targetPieceId === piece.id,
     drafted,
     remoteCarried,
+    ridingPlateId: plateRiders.get(piece.id),
     locallyCarried: drafted && gestureActivePieceId !== null,
     reserved,
     interactionBlocked: !canHandleTable || remoteCarried || (reserved && !localSource),
@@ -796,6 +802,14 @@ function selectionRadii(piece: TablePiece): [number, number, number] {
   return [inner * scale, outer * scale, segments];
 }
 
+/* A plate's ring follows its teardrop; every other piece's is round. */
+function selectionRingGeometry(meshes: ReturnType<typeof useSharedMeshes>, piece: TablePiece) {
+  if (isPointerToken(piece)) {
+    return POINTER_SELECTION_RING;
+  }
+  return meshes.ring(...(isSpicePiece(piece) ? SPICE_SELECTION_RADII : selectionRadii(piece)));
+}
+
 function PieceSelectionRing({
   piece,
   shadowLocalY,
@@ -813,7 +827,7 @@ function PieceSelectionRing({
       position={[0, shadowLocalY + CONTACT_SHADOW_EPSILON, 0]}
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       rotation={[-Math.PI / 2, 0, 0]}
-      geometry={meshes.ring(...(isSpicePiece(piece) ? SPICE_SELECTION_RADII : selectionRadii(piece)))}
+      geometry={selectionRingGeometry(meshes, piece)}
     >
       <meshBasicMaterial
         color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
@@ -845,7 +859,19 @@ function SelectionRingWarmup() {
   return null;
 }
 
+/* A pointer token shows the face it lies on: its front face up, its back face down. */
+function PointerTokenLayers({ piece }: { piece: TablePiece }) {
+  const item = piece.items[0];
+  const front = usePublishedFace(item?.artwork?.front);
+  const back = usePublishedFace(item?.artwork?.back);
+  const [face, under] = item?.faceUp ? [front, back] : [back, front];
+  return <PointerTokenPlate piece={piece} face={face} under={under} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />;
+}
+
 export function TabletopPieceLayers({ piece }: { readonly piece: TablePiece }) {
+  if (isPointerToken(piece)) {
+    return <PointerTokenLayers piece={piece} />;
+  }
   if (piece.kind === 'marker') {
     return <MarkerLayers piece={piece} />;
   }
@@ -897,13 +923,27 @@ const PIECE_BADGE_CLASS_NAMES = {
 
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
   const meshes = useSharedMeshes();
-  const { piece, drafted, remoteCarried, locallyCarried, reserved, selected, stackTargeted, owner, peeked } = props;
+  const {
+    piece,
+    drafted,
+    remoteCarried,
+    ridingPlateId,
+    locallyCarried,
+    reserved,
+    selected,
+    stackTargeted,
+    owner,
+    peeked,
+  } = props;
   const { finishPieceFlip } = useTabletopActions();
   const pointerEvents = usePiecePointerEvents(props);
   const displayedCount = pieceCount(piece);
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
-  const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried);
+  const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried, {
+    plateId: isPointerToken(piece) ? piece.id : undefined,
+    follows: ridingPlateId,
+  });
   const faceReady = usePublishedFaceReady(topFaceHref(piece)) && !faceStillHidden(piece);
   /* A held piece turns over in hand too, so only an emptied projection cuts a flip short. */
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
@@ -1072,18 +1112,20 @@ function SceneContents({
             trackerSlots={trackerSlots}
           />
         )}
-        {renderedPieces
-          /* Troop reserves arrive with the board: setup keeps them off the table until the map shows. */
-          .filter((piece) => !piece.battleOverlay && (stage !== 'setup' || mapVisible || !isTroopStack(piece)))
-          .map((piece, index) => (
-            <TablePieceMesh
-              showLabels={presentation !== 'preview'}
-              arrivalDelay={presentation === 'preview' ? Math.min(index * 32, 320) : undefined}
-              key={piece.id}
-              piece={piece}
-              {...pieceSceneState(piece, table)}
-            />
-          ))}
+        <PlatePosesProvider>
+          {renderedPieces
+            /* Troop reserves arrive with the board: setup keeps them off the table until the map shows. */
+            .filter((piece) => !piece.battleOverlay && (stage !== 'setup' || mapVisible || !isTroopStack(piece)))
+            .map((piece, index) => (
+              <TablePieceMesh
+                showLabels={presentation !== 'preview'}
+                arrivalDelay={presentation === 'preview' ? Math.min(index * 32, 320) : undefined}
+                key={piece.id}
+                piece={piece}
+                {...pieceSceneState(piece, table)}
+              />
+            ))}
+        </PlatePosesProvider>
       </group>
       {presentation === 'preview' ? (
         <MapPreviewCamera mapFramingPoints={mapFramingPoints} />
