@@ -179,7 +179,7 @@ async function playHeaderResize({ canvasElement }: { canvasElement: HTMLElement 
     } finally {
       observer.disconnect();
     }
-    /* The band lists one duration per property it transitions (height, width, margin and corner radius). */
+    /* The band transitions its height alone; the immersive grow and shrink run as animations in bandMotion.ts. */
     const durations = new Set(view.getComputedStyle(header).transitionDuration.split(', '));
     await expect([...durations]).toEqual([motion === 'reduce' ? '0s' : '0.2s']);
     await waitFor(async () => {

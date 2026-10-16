@@ -6,6 +6,7 @@ import bandPoster from '../../../public/video/band-poster.jpg?url';
 import bandVideo from '../../../public/video/band.mp4?url';
 import { useMotionAllowed } from '../styles/motion';
 import styles from './AppHeader.module.css';
+import { useBandMotion } from './bandMotion';
 import { SiteNavigation } from './SiteNavigation';
 
 /*
@@ -42,7 +43,9 @@ export function AppHeader({ children }: AppHeaderProps) {
   const bandShown = useShown(bandRef);
   const playVideo = motionOk && bandShown;
   const frameRef = useRef<HTMLDivElement>(null);
+  const mediaRef = useRef<HTMLDivElement>(null);
   useFrameLeft(frameRef);
+  useBandMotion(frameRef, bandRef, mediaRef, motionOk);
 
   if (!playVideo && videoReady) {
     setVideoReady(false);
@@ -63,23 +66,25 @@ export function AppHeader({ children }: AppHeaderProps) {
     <div ref={frameRef} className={styles.frame} data-app-frame>
       {/* Artwork and site navigation, not the banner: the page's own header is that landmark (see PageLayout). */}
       <div ref={bandRef} className={styles.band} data-app-band>
-        <img alt="" aria-hidden className={styles.bandPlaceholder} src={bandPlaceholder} />
-        <img alt="" aria-hidden className={styles.bandPoster} src={bandPoster} />
-        {playVideo && (
-          <video
-            ref={videoRef}
-            className={styles.bandVideo}
-            data-ready={videoReady || undefined}
-            onPlaying={() => setVideoReady(true)}
-            src={bandVideo}
-            autoPlay
-            muted
-            loop
-            playsInline
-            aria-hidden
-            tabIndex={-1}
-          />
-        )}
+        <div ref={mediaRef} className={styles.bandMedia}>
+          <img alt="" aria-hidden className={styles.bandPlaceholder} src={bandPlaceholder} />
+          <img alt="" aria-hidden className={styles.bandPoster} src={bandPoster} />
+          {playVideo && (
+            <video
+              ref={videoRef}
+              className={styles.bandVideo}
+              data-ready={videoReady || undefined}
+              onPlaying={() => setVideoReady(true)}
+              src={bandVideo}
+              autoPlay
+              muted
+              loop
+              playsInline
+              aria-hidden
+              tabIndex={-1}
+            />
+          )}
+        </div>
         <SiteNavigation />
       </div>
       {children}

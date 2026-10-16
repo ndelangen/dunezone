@@ -1,6 +1,7 @@
 import { Children, createContext, isValidElement, useContext, useLayoutEffect, useRef } from 'react';
 import type { PropsWithChildren, ReactNode, RefObject } from 'react';
 
+import { IMMERSIVE_ENTER_EVENT, IMMERSIVE_LEAVE_EVENT } from './immersiveEvents';
 import styles from './PageLayout.module.css';
 import { warnDroppedChild } from './warnDroppedChild';
 
@@ -58,22 +59,19 @@ const Content: (props: PropsWithChildren<{ width?: PageContentWidth }>) => null 
  * the toolbar and content are its one `main`, with the id `PAGE_CONTENT_ID` the shell's skip link moves to.
  */
 /* How long the band takes to shrink back from an immersive page; matches the immersive transition in the AppHeader stylesheet. */
-const UNWIND_MS = 700;
-
 /*
- * When an immersive page leaves, marks the shell's frame for as long as the band takes to shrink back, so the shrink keeps the growth's slow curve instead of the everyday 0.2s.
- * A transition takes its timing from the style it lands on, and the shrink lands on the everyday band, so the mark has to be in place in the commit that removes the page.
- * A layout effect's cleanup runs in that commit, before the browser restyles.
+ * Tells the shell's frame when an immersive page arrives and leaves, so the band can grow to fill the window and shrink back.
+ * Both run in the commit that mounts or removes the page, before the browser restyles, so the band can still read where it stood.
  */
-function useUnwindOnLeave(layoutRef: RefObject<HTMLDivElement | null>, immersive: boolean) {
+function useAnnounceImmersive(layoutRef: RefObject<HTMLDivElement | null>, immersive: boolean) {
   useLayoutEffect(() => {
     const frame = immersive ? layoutRef.current?.closest<HTMLElement>('[data-app-frame]') : null;
     if (!frame) {
       return;
     }
+    frame.dispatchEvent(new Event(IMMERSIVE_ENTER_EVENT));
     return () => {
-      frame.setAttribute('data-band-unwinding', '');
-      window.setTimeout(() => frame.removeAttribute('data-band-unwinding'), UNWIND_MS);
+      frame.dispatchEvent(new Event(IMMERSIVE_LEAVE_EVENT));
     };
   }, [layoutRef, immersive]);
 }
@@ -115,7 +113,7 @@ function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
 
   const hasToolbarContent = Children.toArray(toolbar).length > 0;
   const layoutRef = useRef<HTMLDivElement>(null);
-  useUnwindOnLeave(layoutRef, hasHeader && (headerSize as PageHeaderSize) === 'immersive');
+  useAnnounceImmersive(layoutRef, hasHeader && (headerSize as PageHeaderSize) === 'immersive');
 
   return (
     <div

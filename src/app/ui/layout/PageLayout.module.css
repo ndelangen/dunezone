@@ -118,6 +118,11 @@
   }
 }
 
+/* While the band shrinks back from an immersive page it covers the arriving page; the header rides above it, over the art it lands on. */
+:global([data-band-unwinding]) .headerContent {
+  z-index: 3;
+}
+
 /* Keep the route's heading in the accessibility tree without taking space from the workspace. */
 .layout[data-page-layout-height="fullscreen"] .headerContent {
   position: absolute;
