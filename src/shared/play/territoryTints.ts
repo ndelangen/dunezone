@@ -19,7 +19,7 @@ export const TINT_COLOR_NAMES: Record<(typeof TINT_COLORS)[number], string> = {
 const TINT_STAMPS = ['atomics'] as const;
 export const MAX_TINTS = 12;
 /* Far more than any board's territories; bounds what one tint stores and resends. */
-const MAX_TINT_TERRITORIES = 128;
+export const MAX_TINT_TERRITORIES = 128;
 
 /* A territory is named by the ID its board derives from its name, so it reads the same on every board copy. */
 const territorySchema = z

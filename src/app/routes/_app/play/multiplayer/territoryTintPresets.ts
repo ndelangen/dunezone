@@ -1,22 +1,33 @@
 import type { Board } from '@shared/boards/schema';
 import { territoryId } from '@shared/boards/schema';
 import { boardTerritories } from '@shared/boards/territories';
+import { MAX_TINT_TERRITORIES } from '@shared/play/territoryTints';
 import type { TerritoryTint } from '@shared/play/territoryTints';
 
 type Preset = Omit<TerritoryTint, 'id'>;
 
-/** Territories by ID, each with the territories it shares a border with. */
+type Stretch = { edge: string; t0: number; t1: number };
+/* Shorter stretches than this are a shared corner, not a shared border. */
+const TOUCH = 1e-6;
+
+/** Whether two stretches lie along the same part of one edge, not merely the same edge. */
+function overlaps(a: Stretch, b: Stretch) {
+  const from = Math.max(Math.min(a.t0, a.t1), Math.min(b.t0, b.t1));
+  const to = Math.min(Math.max(a.t0, a.t1), Math.max(b.t0, b.t1));
+  return a.edge === b.edge && to - from > TOUCH;
+}
+
+/** Territories by ID, each with the territories it shares a stretch of border with. */
 function neighbours(board: Board) {
   const faces = boardTerritories(board).map((face) => ({
     id: territoryId(board.properties[face.key].name),
-    edges: new Set(face.edges),
+    stretches: face.boundaries.flat(),
   }));
+  const borders = (a: Stretch[], b: Stretch[]) => a.some((stretch) => b.some((other) => overlaps(stretch, other)));
   return new Map(
     faces.map((face) => [
       face.id,
-      faces
-        .filter((other) => other !== face && [...other.edges].some((edge) => face.edges.has(edge)))
-        .map((other) => other.id),
+      faces.filter((other) => other !== face && borders(face.stretches, other.stretches)).map((other) => other.id),
     ])
   );
 }
@@ -31,11 +42,11 @@ function within(board: Board, start: string, steps: number) {
   return [...reached];
 }
 
-/** The presets this board can lay: each needs the territories it names, so a custom board without them offers fewer. */
+/** The presets this board can lay: a custom board missing a preset's territories, or with more of them than a tint holds, offers fewer. */
 export function territoryTintPresets(board: Board): Preset[] {
   const ids = new Set(Object.values(board.properties).map((property) => territoryId(property.name)));
   const greatFlat = ['the_great_flat', 'great_flat'].find((id) => ids.has(id));
-  return [
+  const presets: Preset[] = [
     ...(greatFlat
       ? [
           {
@@ -57,4 +68,5 @@ export function territoryTintPresets(board: Board): Preset[] {
         ]
       : []),
   ];
+  return presets.filter((preset) => preset.territories.length <= MAX_TINT_TERRITORIES);
 }
