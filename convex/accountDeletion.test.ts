@@ -255,6 +255,19 @@ describe('account deletion', () => {
       expect((await ctx.db.get('assets', rows.assetId))?.is_deleted).toBe(false);
       expect((await ctx.db.get('assets', rows.deletedAssetId))?.is_deleted).toBe(true);
     });
+
+    /* A later deletion is undone only by its own operation, never by replaying the earlier one. */
+    const { operationId: secondId } = await asSource.mutation(api.accountDeletion.confirm, { replacementUserId: null });
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    await expect(
+      t.withIdentity({ subject: admin.subject }).mutation(api.accountDeletion.restore, { operationId })
+    ).rejects.toThrow('Deleted source account not found');
+    await t.withIdentity({ subject: admin.subject }).mutation(api.accountDeletion.restore, { operationId: secondId });
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    await t.run(async (ctx) => {
+      expect((await ctx.db.get('users', source.userId))?.account_state).toBe('active');
+      expect((await ctx.db.get('groups', rows.groupId))?.is_deleted).toBe(false);
+    });
   });
 
   test('an operation that snapshotted before assets were a kind captures them before it completes', async () => {

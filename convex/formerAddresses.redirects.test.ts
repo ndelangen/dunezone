@@ -88,6 +88,31 @@ describe('former addresses', () => {
     expect(page.profile.slug).toBe('stilgar');
   });
 
+  test('a profile old address still answers when a newer profile that left it is deleted', async () => {
+    const { t, owner } = await world();
+    const before = await owner.mutation(api.profiles.bootstrapCurrent, {});
+    await owner.mutation(api.profiles.updateCurrent, {
+      username: 'Stilgar',
+      avatar_url: 'https://example.com/avatar.png',
+    });
+    /* Another profile took the address, left it in turn, then was deleted. */
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert('users', { account_state: 'deleted' });
+      const profileId = await ctx.db.insert('profiles', {
+        user_id: userId,
+        username: 'Gone',
+        avatar_url: null,
+        account_state: 'deleted',
+        slug: 'gone',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      await ctx.db.insert('former_slugs', { kind: 'profile', scope: '', slug: before.slug, record_id: profileId });
+    });
+    const page = await t.query(api.profiles.pageBySlug, { slug: before.slug });
+    expect(page.profile.slug).toBe('stilgar');
+  });
+
   test('a renamed or converted asset leads from its old type and slug to its current address', async () => {
     const { t, owner } = await world();
     const adminId = await t.run((ctx) => ctx.db.insert('users', { name: 'Administrator', isAdmin: true }));

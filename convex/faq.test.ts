@@ -373,6 +373,26 @@ describe('FAQ lifecycle', () => {
     ).toMatchObject({ answers: [{ id: answer._id, accepted: false }] });
   });
 
+  test('an answer on a deleted ruleset cannot be edited', async () => {
+    const { t, owner, answerer, ruleset } = await faqFixture();
+    const question = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
+      question: 'Does a deleted ruleset keep its answers?',
+      tags: ['rules'],
+    });
+    const answer = await answerer.mutation(api.faq.createAnswer, {
+      faq_item_id: question.questionId,
+      answer: 'They stay as they were until the ruleset is restored.',
+    });
+    await t.run(async (ctx) => await ctx.db.patch(ruleset._id, { is_deleted: true }));
+    await expect(
+      answerer.mutation(api.faq.editAnswer, {
+        answerId: answer._id,
+        input: { answer: 'Changed while it was deleted.' },
+      })
+    ).rejects.toThrow('Ruleset not found');
+  });
+
   test('clears acceptance when the accepted answer is deleted', async () => {
     const { owner, answerer, ruleset } = await faqFixture();
     const question = await owner.mutation(api.faq.createQuestion, {

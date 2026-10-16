@@ -391,6 +391,11 @@ async function editAnswerHandler(ctx: MutationCtx, args: { answerId: Id<'faq_ans
   if (answer.answered_by !== userId) {
     throw new Error('Not authorized');
   }
+  const item = await getFaqItem(ctx, answer.faq_item_id);
+  const ruleset = item ? await getRuleset(ctx, item.ruleset_id) : null;
+  if (!ruleset || ruleset.is_deleted) {
+    throw new Error('Ruleset not found');
+  }
 
   await ctx.db.patch(answer._id, { answer: parsedAnswer.data });
   const updated = await ctx.db.get(answer._id);
