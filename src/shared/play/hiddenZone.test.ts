@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { clampHiddenZoneSpot, hiddenZoneFootprint, hiddenZonePieces, nextHiddenZoneSpot } from './hiddenZone';
+import {
+  clampHiddenZoneSpot,
+  HIDDEN_ZONE_MIN_SCALE,
+  hiddenZoneFootprint,
+  hiddenZonePieces,
+  hiddenZoneView,
+  nextHiddenZoneSpot,
+} from './hiddenZone';
 import type { TablePiece } from './model';
 import { CARD_DEPTH, CARD_WIDTH, TROOP_FOOTPRINT_RADIUS } from './tableGeometry';
 
@@ -70,5 +77,28 @@ describe('nextHiddenZoneSpot', () => {
 describe('clampHiddenZoneSpot', () => {
   it('keeps a spot dropped past an edge inside the zone', () => {
     expect(clampHiddenZoneSpot({ x: -0.2, y: 1.4 })).toEqual({ x: 0, y: 1 });
+  });
+
+  it('keeps a spot inside the zone a roomier view shows', () => {
+    expect(clampHiddenZoneSpot({ x: 0.5, y: 3.4 }, { x: 1.2, y: 2.5 })).toEqual({ x: 0.5, y: 2.5 });
+  });
+});
+
+describe('hiddenZoneView', () => {
+  it('fits the standard patch in a wide view and adds the room left over', () => {
+    const view = hiddenZoneView(1280, 280);
+    expect(view.scale).toBe(100);
+    expect(view.extent).toEqual({ x: 2, y: 1 });
+  });
+
+  it('keeps pieces from shrinking in a narrow column, showing part of the patch across and more of it down', () => {
+    const view = hiddenZoneView(288, 1008);
+    expect(view.scale).toBe(HIDDEN_ZONE_MIN_SCALE);
+    expect(view.extent.x).toBeCloseTo(0.625);
+    expect(view.extent.y).toBeCloseTo(5);
+  });
+
+  it('draws nothing before the view has a size', () => {
+    expect(hiddenZoneView(0, 0).scale).toBe(0);
   });
 });
