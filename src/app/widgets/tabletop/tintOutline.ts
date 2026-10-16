@@ -29,63 +29,90 @@ export function outerSegments(territories: readonly (readonly (readonly Point[])
 
 export type OutlinePath = { points: Point[]; closed: boolean };
 
-/** Segments joined end to end into lines, so each bend can be drawn as a join; a line breaks where more than two segments meet. */
-export function outlinePaths(segments: readonly Segment[]): OutlinePath[] {
-  const atPoint = new Map<string, number[]>();
+type Joins = Map<string, number[]>;
+
+function segmentsAtPoints(segments: readonly Segment[]): Joins {
+  const atPoint: Joins = new Map();
   segments.forEach((segment, index) => {
     for (const point of segment) {
       const key = pointKey(point);
       atPoint.set(key, [...(atPoint.get(key) ?? []), index]);
     }
   });
+  return atPoint;
+}
+
+/* Where a line must stop: an open end, or a point more than two segments meet at. */
+const isJunction = (atPoint: Joins, point: Point) => atPoint.get(pointKey(point))!.length !== 2;
+
+function otherEnd([a, b]: Segment, at: Point) {
+  return pointKey(a) === pointKey(at) ? b : a;
+}
+
+/** Follows unused segments from a point until the line ends, meets a junction or comes back round. */
+function walk(segments: readonly Segment[], atPoint: Joins, used: Set<number>, start: Point): OutlinePath {
+  const points = [start];
+  let at = start;
+  let next = atPoint.get(pointKey(at))!.find((index) => !used.has(index));
+  while (next !== undefined) {
+    used.add(next);
+    at = otherEnd(segments[next], at);
+    points.push(at);
+    next = isJunction(atPoint, at) ? undefined : atPoint.get(pointKey(at))!.find((index) => !used.has(index));
+  }
+  const closed = points.length > 2 && pointKey(points[0]) === pointKey(at) && !isJunction(atPoint, at);
+  return { points: closed ? points.slice(0, -1) : points, closed };
+}
+
+/** Segments joined end to end into lines, so each bend can be drawn as a join; a line breaks where more than two segments meet. */
+export function outlinePaths(segments: readonly Segment[]): OutlinePath[] {
+  const atPoint = segmentsAtPoints(segments);
   const used = new Set<number>();
-  const isJunction = (point: Point) => atPoint.get(pointKey(point))!.length !== 2;
-  const walk = (start: Point): OutlinePath => {
-    const points = [start];
-    let at = start;
-    for (;;) {
-      const next = atPoint.get(pointKey(at))!.find((index) => !used.has(index));
-      if (next === undefined) {
-        break;
-      }
-      used.add(next);
-      const [a, b] = segments[next];
-      at = pointKey(a) === pointKey(at) ? b : a;
-      points.push(at);
-      if (isJunction(at)) {
-        break;
-      }
-    }
-    const closed = points.length > 2 && pointKey(points[0]) === pointKey(at) && !isJunction(at);
-    return { points: closed ? points.slice(0, -1) : points, closed };
-  };
+  const hasUnused = (point: Point) => atPoint.get(pointKey(point))!.some((index) => !used.has(index));
+  const starts = [...segments.flat().filter((point) => isJunction(atPoint, point)), ...segments.map(([a]) => a)];
   const paths: OutlinePath[] = [];
-  const starts = [...segments.flat().filter(isJunction), ...segments.map(([a]) => a)];
   for (const start of starts) {
-    while (atPoint.get(pointKey(start))!.some((index) => !used.has(index))) {
-      paths.push(walk(start));
+    while (hasUnused(start)) {
+      paths.push(walk(segments, atPoint, used, start));
     }
   }
   return paths;
 }
 
+function unitNormal(a: Point, b: Point): Point {
+  const length = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+  return [-(b[1] - a[1]) / length, (b[0] - a[0]) / length];
+}
+
+function neighbour({ points, closed }: OutlinePath, index: number): Point | undefined {
+  if (index >= 0 && index < points.length) {
+    return points[index];
+  }
+  return closed ? points[(index + points.length) % points.length] : undefined;
+}
+
+/** Which way, and how far per unit of offset, a corner moves so the sides either side of it stay parallel. */
+function miter(before: Point | undefined, after: Point | undefined, miterLimit: number) {
+  if (!before || !after) {
+    return { direction: (before ?? after)!, reach: 1 };
+  }
+  const [nx, ny] = [before[0] + after[0], before[1] + after[1]];
+  const length = Math.hypot(nx, ny) || 1;
+  const direction: Point = [nx / length, ny / length];
+  const cos = direction[0] * before[0] + direction[1] * before[1];
+  return { direction, reach: 1 / Math.max(cos, 1 / miterLimit) };
+}
+
 /** A line moved sideways by a distance, its corners mitred so the moved segments meet without gaps or overlaps. */
-export function offsetPath({ points, closed }: OutlinePath, distance: number, miterLimit = 4): Point[] {
-  const count = points.length;
-  const normal = (a: Point, b: Point): Point => {
-    const length = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
-    return [-(b[1] - a[1]) / length, (b[0] - a[0]) / length];
-  };
-  return points.map((point, i) => {
-    const previous = i > 0 ? points[i - 1] : closed ? points[count - 1] : undefined;
-    const next = i < count - 1 ? points[i + 1] : closed ? points[0] : undefined;
-    const before = previous && normal(previous, point);
-    const after = next && normal(point, next);
-    const [nx, ny] = before && after ? [before[0] + after[0], before[1] + after[1]] : (before ?? after)!;
-    const along = Math.hypot(nx, ny) || 1;
-    const [ux, uy] = [nx / along, ny / along];
-    const cos = before && after ? ux * before[0] + uy * before[1] : 1;
-    const reach = distance / Math.max(cos, 1 / miterLimit);
-    return [point[0] + ux * reach, point[1] + uy * reach];
+export function offsetPath(path: OutlinePath, distance: number, miterLimit = 4): Point[] {
+  return path.points.map((point, i) => {
+    const previous = neighbour(path, i - 1);
+    const next = neighbour(path, i + 1);
+    const { direction, reach } = miter(
+      previous && unitNormal(previous, point),
+      next && unitNormal(point, next),
+      miterLimit
+    );
+    return [point[0] + direction[0] * reach * distance, point[1] + direction[1] * reach * distance];
   });
 }
