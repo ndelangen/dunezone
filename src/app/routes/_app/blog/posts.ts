@@ -30,6 +30,19 @@ export type BlogPostMeta = {
  * A body file under `posts/` is named for its slug, never `index.tsx` or `*.route.tsx`, which the router would read as a page.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'all-in-one-dune-board-game-webapp': {
+    slug: 'all-in-one-dune-board-game-webapp',
+    title: 'My earlier attempts at building an all-in-one webapp for the Dune board game',
+    date: '2026-10-14',
+    author: 'Central419',
+    summary:
+      'Long before this site, I built a stats dashboard, a card creator, a database-free prototype and a repository that drew its own images. Each was a different answer to the same two questions: where does the data live, and who turns it into images?',
+    cover: {
+      key: '/web/blog/running-from-databases/dune-assets.jpg',
+      alt: 'Generated Dune cards and tokens: a Duncan Idaho traitor card, Crysknife, an Atreides alliance card, a spice card and faction tokens',
+      aspect: 1062 / 2048,
+    },
+  },
   'tabletop-simulator': {
     slug: 'tabletop-simulator',
     title: 'Building Dune on Tabletop Simulator',
