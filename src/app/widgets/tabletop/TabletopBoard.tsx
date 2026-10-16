@@ -28,7 +28,7 @@ import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { lazy, Suspense, useMemo, useRef, useLayoutEffect, useEffect } from 'react';
 import type { ExtrudeGeometry, Group } from 'three';
-import { BufferGeometry, EdgesGeometry, Float32BufferAttribute, RingGeometry, SRGBColorSpace } from 'three';
+import { BufferGeometry, CircleGeometry, EdgesGeometry, Float32BufferAttribute, SRGBColorSpace } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -272,7 +272,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
   }, [loadedMarkerTexture]);
   const markerGeometry = useMemo(() => createStormMarkerGeometry(), []);
   const outlineGeometry = useMemo(() => {
-    const sectorGeometry = new RingGeometry(0.72, BOARD_RADIUS, 96, 1, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE);
+    const sectorGeometry = new CircleGeometry(BOARD_RADIUS, 96, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE);
     const outline = new EdgesGeometry(sectorGeometry, 15);
     sectorGeometry.dispose();
     return outline;
@@ -335,7 +335,8 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
         renderOrder={-2}
         raycast={ignoreRaycast}
       >
-        <ringGeometry args={[0.72, BOARD_RADIUS, 96, 1, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE]} />
+        {/* The storm runs to the board's centre, tinting the Polar Sink too, and ends in a point. */}
+        <circleGeometry args={[BOARD_RADIUS, 96, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE]} />
         <meshBasicMaterial
           color="#e13632"
           transparent
