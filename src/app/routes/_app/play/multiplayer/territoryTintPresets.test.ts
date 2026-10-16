@@ -5,7 +5,7 @@ import { territoryTintPresets } from './territoryTintPresets';
 
 test('the Arrakis board offers the Fremen deployment zone and the Shield Wall', () => {
   const [fremen, shieldWall] = territoryTintPresets(arrakisBoard());
-  expect(fremen.name).toBe('Fremen deployment');
+  expect(fremen).toMatchObject({ name: 'Fremen deployment', color: '#e8b923' });
   expect([...fremen.territories].sort()).toEqual(
     [
       'bight_of_the_cliff',
@@ -28,8 +28,8 @@ test('the Arrakis board offers the Fremen deployment zone and the Shield Wall', 
   );
   expect(shieldWall).toEqual({
     name: 'Shield Wall destroyed',
-    color: '#d63a2a',
-    stamp: 'atomics',
+    color: '#1b1b1b',
+    stamps: ['atomics'],
     territories: ['shield_wall'],
   });
 });

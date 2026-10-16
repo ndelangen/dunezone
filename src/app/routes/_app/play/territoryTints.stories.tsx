@@ -27,7 +27,7 @@ function tintedSnapshot(): GameSnapshot {
       {
         id: 'tint-fremen',
         name: 'Fremen deployment',
-        color: '#2f7fe0',
+        color: '#e8b923',
         territories: [
           'the_great_flat',
           'the_greater_flat',
@@ -50,8 +50,8 @@ function tintedSnapshot(): GameSnapshot {
       {
         id: 'tint-shield',
         name: 'Shield Wall destroyed',
-        color: '#d63a2a',
-        stamp: 'atomics',
+        color: '#1b1b1b',
+        stamps: ['atomics'],
         territories: ['shield_wall'],
       },
     ],
@@ -122,11 +122,37 @@ export const Preset = meta.story({
       expect(lastCommand()?.action).toMatchObject({
         kind: 'tint-create',
         name: 'Shield Wall destroyed',
-        stamp: 'atomics',
+        stamps: ['atomics'],
         territories: ['shield_wall'],
       })
     );
     await expect(page.findByRole('button', { name: 'Paint Shield Wall destroyed' })).resolves.toBeVisible();
+  },
+});
+
+/** Hiding a tint and switching stickers on change the table for everyone, and the row follows. */
+export const Settings = meta.story({
+  beforeEach: install(() => liveTransport(tintedSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Territory tints');
+    const shown = await page.findByRole('button', { name: 'Show Fremen deployment' }, { timeout: 30_000 });
+    await userEvent.click(shown);
+    await waitFor(() =>
+      expect(lastCommand()?.action).toEqual({ kind: 'tint-set', tintId: 'tint-fremen', setting: 'hidden', on: true })
+    );
+    await waitFor(() => expect(shown).toHaveAttribute('aria-pressed', 'false'), { timeout: 10_000 });
+    await expect(page.findByRole('button', { name: 'Paint Fremen deployment' })).resolves.toBeDisabled();
+    const [, strongholds] = await page.findAllByRole('button', { name: 'Stronghold stickers' });
+    await userEvent.click(strongholds);
+    await waitFor(() =>
+      expect(lastCommand()?.action).toEqual({
+        kind: 'tint-set',
+        tintId: 'tint-shield',
+        setting: 'stronghold',
+        on: true,
+      })
+    );
+    await waitFor(() => expect(strongholds).toHaveAttribute('aria-pressed', 'true'), { timeout: 10_000 });
   },
 });
 

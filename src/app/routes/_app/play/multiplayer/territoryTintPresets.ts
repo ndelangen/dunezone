@@ -51,7 +51,7 @@ export function territoryTintPresets(board: Board): Preset[] {
       ? [
           {
             name: 'Fremen deployment',
-            color: '#2f7fe0' as const,
+            color: '#e8b923' as const,
             /* The Fremen send forces from their reserves to the Great Flat or any territory within two territories of it. */
             territories: within(board, greatFlat, 2),
           },
@@ -61,8 +61,8 @@ export function territoryTintPresets(board: Board): Preset[] {
       ? [
           {
             name: 'Shield Wall destroyed',
-            color: '#d63a2a' as const,
-            stamp: 'atomics' as const,
+            color: '#1b1b1b' as const,
+            stamps: ['atomics' as const],
             territories: ['shield_wall'],
           },
         ]

@@ -90,6 +90,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'media/vector/icon/seitch.svg',
   'media/vector/icon/ornithopter.svg',
   'media/vector/decal/atomics.svg',
+  'media/vector/icon/stronghold.svg',
 ];
 
 /** Files no hosted flow can observe wherever they sit: tests, stories, prose. */

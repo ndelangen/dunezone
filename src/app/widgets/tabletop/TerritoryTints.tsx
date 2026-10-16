@@ -4,12 +4,13 @@ import type { Board, Point } from '@shared/boards/schema';
 import { territoryId } from '@shared/boards/schema';
 import { boardTerritories, boardTerritoryAt } from '@shared/boards/territories';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
-import type { TerritoryTint } from '@shared/play/territoryTints';
+import type { TerritoryTint, TintStamp } from '@shared/play/territoryTints';
 import { useEffect, useMemo } from 'react';
 import { BufferAttribute, BufferGeometry, DoubleSide, ShapeGeometry, ShapeUtils, Vector2 } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 
 import atomicsSvg from '../../../../media/vector/decal/atomics.svg?raw';
+import strongholdSvg from '../../../../media/vector/icon/stronghold.svg?raw';
 import { ignoreRaycast } from './ignoreRaycast';
 
 /* Board drawing units run across the board's circle; the table's board disc is BOARD_RADIUS wide. */
@@ -56,13 +57,39 @@ function outlineGeometry(rings: Point[][]) {
 }
 
 const STAMP_SIZE = 0.6;
-let atomicsGeometry: ShapeGeometry | undefined;
-/* The stamp artwork is drawn on a 100-unit square; the shape is made once and shared by every stamp. */
-function stampGeometry() {
-  atomicsGeometry ??= new ShapeGeometry(
-    new SVGLoader().parse(atomicsSvg).paths.flatMap((path) => path.toShapes())
-  ).translate(-50, -50, 0);
-  return atomicsGeometry;
+const STAMP_ART: Record<TintStamp, string> = { stronghold: strongholdSvg, atomics: atomicsSvg };
+const stampGeometries = new Map<TintStamp, ShapeGeometry>();
+/* Each sticker's artwork is drawn on a 100-unit square; its shape is made once and shared by every territory. */
+function stampGeometry(stamp: TintStamp) {
+  let geometry = stampGeometries.get(stamp);
+  if (!geometry) {
+    geometry = new ShapeGeometry(
+      new SVGLoader().parse(STAMP_ART[stamp]).paths.flatMap((path) => path.toShapes())
+    ).translate(-50, -50, 0);
+    stampGeometries.set(stamp, geometry);
+  }
+  return geometry;
+}
+
+/* Dark ink reads on every tint but black, which takes the light ink. */
+const stampInk = (tint: TerritoryTint) => (tint.color === '#1b1b1b' ? '#f3e6c8' : '#1d120b');
+
+/** A tint's stickers on one territory, side by side around its centre. */
+function Stamps({ tint, at: [x, z] }: Readonly<{ tint: TerritoryTint; at: [number, number] }>) {
+  const stamps = tint.stamps ?? [];
+  return stamps.map((stamp, index) => (
+    <mesh
+      key={stamp}
+      geometry={stampGeometry(stamp)}
+      position={[x + (index - (stamps.length - 1) / 2) * STAMP_SIZE * 1.05, 0.004, z]}
+      rotation={[Math.PI / 2, 0, 0]}
+      scale={STAMP_SIZE / 100}
+      raycast={ignoreRaycast}
+      renderOrder={4}
+    >
+      <meshBasicMaterial color={stampInk(tint)} transparent opacity={0.9} depthWrite={false} side={DoubleSide} />
+    </mesh>
+  ));
 }
 
 /** Tints laid over territories, oldest first so a later tint paints over an earlier one; each territory keeps the colour's outline. */
@@ -92,41 +119,32 @@ export function TerritoryTints({ board, tints }: Readonly<{ board: Board; tints:
   );
   return (
     <group position={[0, 0.003, 0]}>
-      {tints.map((tint, layer) =>
-        faces
-          .filter((face) => tint.territories.includes(face.id))
-          .map((face) => {
-            const shapes = geometries.get(face.id)!;
-            const [x, z] = toTable(face.center);
-            return (
-              <group key={`${tint.id}:${face.id}`} position={[0, layer * 0.0005, 0]}>
-                <mesh geometry={shapes.fill} raycast={ignoreRaycast} renderOrder={2}>
-                  <meshBasicMaterial
-                    color={tint.color}
-                    transparent
-                    opacity={0.5}
-                    depthWrite={false}
-                    side={DoubleSide}
-                  />
-                </mesh>
-                <lineSegments geometry={shapes.line} raycast={ignoreRaycast} renderOrder={3}>
-                  <lineBasicMaterial color={tint.color} transparent opacity={0.95} depthWrite={false} />
-                </lineSegments>
-                {tint.stamp === 'atomics' && (
-                  <mesh
-                    geometry={stampGeometry()}
-                    position={[x, 0.004, z]}
-                    rotation={[Math.PI / 2, 0, 0]}
-                    scale={STAMP_SIZE / 100}
-                    raycast={ignoreRaycast}
-                    renderOrder={4}
-                  >
-                    <meshBasicMaterial color="#1d120b" transparent opacity={0.9} depthWrite={false} side={DoubleSide} />
+      {tints.map(
+        (tint, layer) =>
+          !tint.hidden &&
+          faces
+            .filter((face) => tint.territories.includes(face.id))
+            .map((face) => {
+              const shapes = geometries.get(face.id)!;
+              const [x, z] = toTable(face.center);
+              return (
+                <group key={`${tint.id}:${face.id}`} position={[0, layer * 0.0005, 0]}>
+                  <mesh geometry={shapes.fill} raycast={ignoreRaycast} renderOrder={2}>
+                    <meshBasicMaterial
+                      color={tint.color}
+                      transparent
+                      opacity={0.5}
+                      depthWrite={false}
+                      side={DoubleSide}
+                    />
                   </mesh>
-                )}
-              </group>
-            );
-          })
+                  <lineSegments geometry={shapes.line} raycast={ignoreRaycast} renderOrder={3}>
+                    <lineBasicMaterial color={tint.color} transparent opacity={0.95} depthWrite={false} />
+                  </lineSegments>
+                  <Stamps tint={tint} at={[x, z]} />
+                </group>
+              );
+            })
       )}
     </group>
   );

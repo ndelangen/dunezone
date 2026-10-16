@@ -1,14 +1,23 @@
 import { ActionIcon, Button, ColorSwatch, Group, Stack, Text, Tooltip } from '@mantine/core';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { territoryId } from '@shared/boards/schema';
-import { fitsTintCommand, MAX_TINTS, TINT_COLOR_NAMES, TINT_COLORS } from '@shared/play/territoryTints';
-import type { TerritoryTint } from '@shared/play/territoryTints';
+import {
+  fitsTintCommand,
+  MAX_TINTS,
+  TINT_COLOR_NAMES,
+  TINT_COLORS,
+  TINT_STAMPS,
+  tintSetting,
+} from '@shared/play/territoryTints';
+import type { TerritoryTint, TerritoryTintAction, TintStamp } from '@shared/play/territoryTints';
 import { Section } from '@ui/block/Section';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
-import { Brush } from 'lucide-react';
+import { Brush, Eye, EyeOff } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
+import type { ReactNode } from 'react';
 
 import atomicsSvg from '../../../../../../media/vector/decal/atomics.svg?raw';
+import strongholdSvg from '../../../../../../media/vector/icon/stronghold.svg?raw';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import type { TerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
 import { setTerritoryBrush, territoryBrush, useTerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
@@ -16,8 +25,24 @@ import { territoryTintPresets } from './territoryTintPresets';
 
 type Props = { client: TableSession; table: TableProjection };
 type TintDraft = Omit<TerritoryTint, 'id'>;
+type TintSetting = Extract<TerritoryTintAction, { kind: 'tint-set' }>['setting'];
 
-const ATOMICS = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(atomicsSvg.replace('<svg ', '<svg fill="#f3e6c8" '))}`;
+const svgUrl = (svg: string) => `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;
+const STICKERS: Record<TintStamp, { label: string; mask: string }> = {
+  stronghold: { label: 'Stronghold stickers', mask: svgUrl(strongholdSvg) },
+  atomics: { label: 'Explosion stickers', mask: svgUrl(atomicsSvg) },
+};
+
+/** A sticker's artwork in the button's own colour, so it follows the button's state like a lucide icon. */
+function StickerIcon({ stamp }: Readonly<{ stamp: TintStamp }>) {
+  const mask = `${STICKERS[stamp].mask} center / contain no-repeat`;
+  return (
+    <span
+      aria-hidden
+      style={{ display: 'block', width: 18, height: 18, background: 'currentColor', mask, WebkitMask: mask }}
+    />
+  );
+}
 
 /** "Blue tint", or "Blue tint 2" when the table already has one by that name. */
 function freshName(color: (typeof TINT_COLORS)[number], tints: readonly TerritoryTint[]) {
@@ -35,11 +60,15 @@ function freshName(color: (typeof TINT_COLORS)[number], tints: readonly Territor
  * A tint this page just made is not on the table yet, so its brush waits for it until the table has answered (`settled`).
  */
 function brushOutlived(brush: TerritoryBrush, canEdit: boolean, tints: readonly TerritoryTint[], settled: boolean) {
-  return !canEdit || (settled && tints.every((tint) => tint.id !== brush.tintId));
+  const tint = tints.find((candidate) => candidate.id === brush.tintId);
+  return !canEdit || !!tint?.hidden || (settled && !tint);
 }
 
-/** What a row says under the tint's name: painting, its one territory, or how many it covers. */
+/** What a row says under the tint's name: painting, hidden, its one territory, or how many it covers. */
 function tintSummary(tint: TerritoryTint, painting: boolean, names: ReadonlyMap<string, string>) {
+  if (tint.hidden) {
+    return 'Hidden';
+  }
   if (painting) {
     return 'Painting: click territories on the board';
   }
@@ -49,12 +78,37 @@ function tintSummary(tint: TerritoryTint, painting: boolean, names: ReadonlyMap<
   return `${tint.territories.length} territories`;
 }
 
+/** A switch on a tint's row: the button looks pressed while the setting is on. */
+function SettingToggle({
+  label,
+  on,
+  enabled,
+  onToggle,
+  children,
+}: Readonly<{ label: string; on: boolean; enabled: boolean; onToggle: () => void; children: ReactNode }>) {
+  return (
+    <Tooltip label={label}>
+      <ActionIcon
+        variant={on ? 'light' : 'subtle'}
+        color={on ? 'yellow' : 'gray'}
+        aria-label={label}
+        aria-pressed={on}
+        disabled={!enabled}
+        onClick={onToggle}
+      >
+        {children}
+      </ActionIcon>
+    </Tooltip>
+  );
+}
+
 function TintRow({
   tint,
   painting,
   canEdit,
   names,
   onBrush,
+  onSet,
   onRemove,
 }: Readonly<{
   tint: TerritoryTint;
@@ -62,8 +116,10 @@ function TintRow({
   canEdit: boolean;
   names: ReadonlyMap<string, string>;
   onBrush: () => void;
+  onSet: (setting: TintSetting, on: boolean) => void;
   onRemove: () => void;
 }>) {
+  const toggle = (setting: TintSetting) => () => onSet(setting, !tintSetting(tint, setting));
   return (
     <Group
       justify="space-between"
@@ -72,10 +128,8 @@ function TintRow({
       py={6}
       style={{ borderRadius: 8, border: `1px solid ${painting ? tint.color : 'var(--mantine-color-default-border)'}` }}
     >
-      <Group gap="sm" wrap="nowrap">
-        <ColorSwatch color={tint.color} size={22}>
-          {tint.stamp === 'atomics' && <img src={ATOMICS} width={16} height={16} alt="" />}
-        </ColorSwatch>
+      <Group gap="sm" wrap="nowrap" style={{ opacity: tint.hidden ? 0.5 : 1 }}>
+        <ColorSwatch color={tint.color} size={22} />
         <div>
           <Text size="sm" fw={600}>
             {tint.name}
@@ -86,6 +140,29 @@ function TintRow({
         </div>
       </Group>
       <Group gap={4} wrap="nowrap">
+        <Tooltip label={tint.hidden ? `Show ${tint.name}` : `Hide ${tint.name}`}>
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            aria-label={`Show ${tint.name}`}
+            aria-pressed={!tint.hidden}
+            disabled={!canEdit}
+            onClick={toggle('hidden')}
+          >
+            {tint.hidden ? <EyeOff size={18} /> : <Eye size={18} />}
+          </ActionIcon>
+        </Tooltip>
+        {TINT_STAMPS.map((stamp) => (
+          <SettingToggle
+            key={stamp}
+            label={STICKERS[stamp].label}
+            on={tintSetting(tint, stamp)}
+            enabled={canEdit}
+            onToggle={toggle(stamp)}
+          >
+            <StickerIcon stamp={stamp} />
+          </SettingToggle>
+        ))}
         <Tooltip label={painting ? 'Stop painting (Esc)' : `Paint ${tint.name}`}>
           <ActionIcon
             variant={painting ? 'filled' : 'subtle'}
@@ -93,7 +170,7 @@ function TintRow({
             autoContrast
             aria-label={`Paint ${tint.name}`}
             aria-pressed={painting}
-            disabled={!canEdit}
+            disabled={!canEdit || !!tint.hidden}
             onClick={onBrush}
           >
             <Brush size={18} />
@@ -248,6 +325,7 @@ export function TerritoryTints({ client, table }: Props) {
             canEdit={canEdit}
             names={names}
             onBrush={() => toggle(tint.id)}
+            onSet={(setting, on) => client.command({ kind: 'tint-set', tintId: tint.id, setting, on })}
             onRemove={() => client.command({ kind: 'tint-remove', tintId: tint.id })}
           />
         ))}

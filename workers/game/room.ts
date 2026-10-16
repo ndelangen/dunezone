@@ -128,6 +128,7 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'last-turn',
   'tint-create',
   'tint-paint',
+  'tint-set',
   'tint-remove',
 ]);
 
@@ -506,6 +507,7 @@ export class Room {
         'hand-zone',
         'tint-create',
         'tint-paint',
+        'tint-set',
         'tint-remove',
         'bank-withdraw',
         'bank-collect',

@@ -7,17 +7,21 @@ import { GameRejection } from './rejection';
 import { tableIdSchema as id } from './schema';
 
 /** The colours a tint can take, in the order the panel offers them. */
-export const TINT_COLORS = ['#2f7fe0', '#d63a2a', '#3fae4a', '#9450d0', '#f2f2f2', '#1b1b1b'] as const;
+export const TINT_COLORS = ['#2f7fe0', '#d63a2a', '#e8b923', '#3fae4a', '#9450d0', '#f2f2f2', '#1b1b1b'] as const;
 export const TINT_COLOR_NAMES: Record<(typeof TINT_COLORS)[number], string> = {
   '#2f7fe0': 'Blue',
   '#d63a2a': 'Red',
+  '#e8b923': 'Yellow',
   '#3fae4a': 'Green',
   '#9450d0': 'Purple',
   '#f2f2f2': 'White',
   '#1b1b1b': 'Black',
 };
-/** Artwork a tint may stamp on each of its territories. */
-const TINT_STAMPS = ['atomics'] as const;
+/** Stickers a tint may put on each of its territories, in the order they sit side by side. */
+export const TINT_STAMPS = ['stronghold', 'atomics'] as const;
+export type TintStamp = (typeof TINT_STAMPS)[number];
+/** What a tint can switch on and off after it is made: whether it shows, and each sticker. */
+const TINT_SETTINGS = ['hidden', ...TINT_STAMPS] as const;
 export const MAX_TINTS = 12;
 /* Far more than any board's territories; bounds what one tint stores and resends. */
 const MAX_TINT_TERRITORIES = 128;
@@ -29,12 +33,15 @@ const territorySchema = z
   .max(128);
 const nameSchema = z.string().trim().min(1).max(48);
 const colorSchema = z.enum(TINT_COLORS);
+const stampsSchema = z.array(z.enum(TINT_STAMPS)).max(TINT_STAMPS.length);
 
 const tintSchema = z.strictObject({
   id,
   name: nameSchema,
   color: colorSchema,
-  stamp: z.enum(TINT_STAMPS).optional(),
+  stamps: stampsSchema.optional(),
+  /* Hidden for everyone, so a tint kept for later stays out of the way. */
+  hidden: z.literal(true).optional(),
   territories: z.array(territorySchema).max(MAX_TINT_TERRITORIES),
 });
 export type TerritoryTint = z.infer<typeof tintSchema>;
@@ -48,7 +55,7 @@ export const territoryTintActionSchema = z.discriminatedUnion('kind', [
     tintId: id,
     name: nameSchema,
     color: colorSchema,
-    stamp: z.enum(TINT_STAMPS).optional(),
+    stamps: stampsSchema.optional(),
     territories: z.array(territorySchema).max(MAX_TINT_TERRITORIES),
   }),
   /*
@@ -62,6 +69,8 @@ export const territoryTintActionSchema = z.discriminatedUnion('kind', [
     name: z.string().trim().min(1).max(TERRITORY_NAME_LIMIT),
     painted: z.boolean(),
   }),
+  /* Like painting, says what the page wants rather than flipping, so two players switching at once agree. */
+  z.strictObject({ kind: z.literal('tint-set'), tintId: id, setting: z.enum(TINT_SETTINGS), on: z.boolean() }),
   z.strictObject({ kind: z.literal('tint-remove'), tintId: id }),
 ]);
 export type TerritoryTintAction = z.infer<typeof territoryTintActionSchema>;
@@ -90,13 +99,62 @@ function createTint(
   if (tints.length >= MAX_TINTS) {
     throw new GameRejection(`The table holds at most ${MAX_TINTS} tints. Remove one first.`);
   }
-  const { tintId, kind: _kind, territories, ...rest } = action;
-  const tint: TerritoryTint = { id: tintId, ...rest, territories: [...new Set(territories)] };
+  const { tintId, kind: _kind, territories, stamps, ...rest } = action;
+  const tint: TerritoryTint = {
+    id: tintId,
+    ...rest,
+    ...(stamps?.length ? { stamps: TINT_STAMPS.filter((stamp) => stamps.includes(stamp)) } : {}),
+    territories: [...new Set(territories)],
+  };
   return { tints: [...tints, tint], message: `New tint: ${tint.name}.` };
 }
 
+function replaced(tints: readonly TerritoryTint[], tint: TerritoryTint, next: TerritoryTint) {
+  return tints.map((candidate) => (candidate === tint ? next : candidate));
+}
+
 function withTerritories(tints: readonly TerritoryTint[], tint: TerritoryTint, territories: string[]) {
-  return tints.map((candidate) => (candidate === tint ? { ...tint, territories } : candidate));
+  return replaced(tints, tint, { ...tint, territories });
+}
+
+const STAMP_NAMES: Record<TintStamp, string> = { stronghold: 'stronghold', atomics: 'explosion' };
+
+/** Whether the setting is on for this tint: it is hidden, or carries that sticker. */
+export function tintSetting(
+  tint: TerritoryTint,
+  setting: Extract<TerritoryTintAction, { kind: 'tint-set' }>['setting']
+) {
+  return setting === 'hidden' ? !!tint.hidden : !!tint.stamps?.includes(setting);
+}
+
+function settingMessage(tint: TerritoryTint, setting: TintStamp | 'hidden', on: boolean) {
+  if (setting === 'hidden') {
+    return on ? `Hid ${tint.name}.` : `Showed ${tint.name}.`;
+  }
+  return on
+    ? `Put ${STAMP_NAMES[setting]} stickers on ${tint.name}.`
+    : `Took the ${STAMP_NAMES[setting]} stickers off ${tint.name}.`;
+}
+
+function setTint(
+  tints: readonly TerritoryTint[],
+  tint: TerritoryTint,
+  { setting, on }: Extract<TerritoryTintAction, { kind: 'tint-set' }>
+): Applied {
+  if (tintSetting(tint, setting) === on) {
+    throw new GameRejection(`Someone changed ${tint.name} first.`);
+  }
+  const { hidden: _hidden, stamps: _stamps, ...plain } = tint;
+  const hidden = setting === 'hidden' ? on : !!tint.hidden;
+  const stamps = TINT_STAMPS.filter((stamp) => (stamp === setting ? on : !!tint.stamps?.includes(stamp)));
+  return {
+    tints: replaced(tints, tint, {
+      ...plain,
+      ...(stamps.length ? { stamps } : {}),
+      ...(hidden ? { hidden: true as const } : {}),
+    }),
+    message: settingMessage(tint, setting, on),
+  };
 }
 
 function paintIn(tints: readonly TerritoryTint[], tint: TerritoryTint, territory: string, name: string): Applied {
@@ -137,6 +195,9 @@ export function applyTerritoryTint(tints: readonly TerritoryTint[], action: Terr
   }
   if (action.kind === 'tint-remove') {
     return { tints: tints.filter((candidate) => candidate !== tint), message: `Removed tint: ${tint.name}.` };
+  }
+  if (action.kind === 'tint-set') {
+    return setTint(tints, tint, action);
   }
   return (action.painted ? paintIn : paintOut)(tints, tint, action.territory, action.name);
 }
