@@ -747,4 +747,58 @@ describe('a pointer token carrying riders', () => {
     expect(rider.locked).toBe(troop.locked);
     expect(room.publicCarries().map((carry) => carry.id)).toContain('bob-takes-rider');
   });
+  test('leaves behind a troop set down where it lay while it was carried', () => {
+    const initial = initialSnapshot();
+    const loose = initial.table.pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
+    const plate = {
+      ...loose,
+      id: 'hms',
+      label: 'HMS',
+      stackKey: 'token:hms',
+      items: [
+        {
+          id: 'hms-item',
+          faceUp: true,
+          artwork: { back: 'https://dune.zone/hms.jpg', name: 'HMS', type: POINTER_TOKEN_TYPE },
+        },
+      ],
+      position: restingPositionAt([0, 0, 1], { kind: 'force', orientation: 0 }),
+      orientation: 0,
+    };
+    const troop = {
+      ...loose,
+      owner: 'atreides',
+      items: [{ id: 'late-item', faceUp: true }],
+      position: restingPositionAt([1.5, 0, -1], loose),
+    };
+    const room = new Room(
+      {
+        ...initial,
+        table: { ...initial.table, pieces: [plate, troop] },
+        versions: { hms: initial.revision, [troop.id]: initial.revision },
+      },
+      seated
+    );
+    room.begin(alice, {
+      carryId: 'alice-moves-plate',
+      sourcePieceId: 'hms',
+      expectedVersion: room.snapshot.versions.hms,
+      pickup: 'whole',
+    });
+    room.begin(bob, {
+      carryId: 'bob-moves-troop',
+      sourcePieceId: troop.id,
+      expectedVersion: room.snapshot.versions[troop.id],
+      pickup: 'whole',
+    });
+    room.accept(room.drop(bob, 'bob-moves-troop', { position: [0, 0.38, 1], orientation: 0 }), 'bob-moves-troop');
+    const landed = room.snapshot.table.pieces.find((piece) => piece.id === troop.id)!;
+    room.accept(
+      room.drop(alice, 'alice-moves-plate', { position: [-1.5, 0.38, -1.5], orientation: 0 }),
+      'alice-moves-plate'
+    );
+    const after = room.snapshot.table.pieces.find((piece) => piece.id === troop.id)!;
+    expect(after.position).toEqual(landed.position);
+    expect(after.locked).toBe(landed.locked);
+  });
 });

@@ -62,6 +62,12 @@ function outlineGeometry(rings: Point[][]) {
 
 /* Between the map (-3) and the storm's sector (-2), so the storm lies over the tints. */
 const TINT_ORDER = { fill: -2.8, line: -2.6, stickerOutline: -2.4, stickerInk: -2.2 };
+/*
+ * The Polar Sink's paint is drawn again above the storm (-1), which would hide a tint there.
+ * The storm never reaches the Polar Sink, so its tints draw above that paint, still before contact shadows (1).
+ */
+const POLAR_TINT_ORDER = { fill: -0.8, line: -0.6, stickerOutline: -0.4, stickerInk: -0.2 };
+type TintOrder = typeof TINT_ORDER;
 
 /* An outline-only tint's double line, in table units: each line's width, and the gap between the two. */
 const DOUBLE_LINE_WIDTH = 0.012;
@@ -94,11 +100,12 @@ function doubleLineGeometry(segments: readonly (readonly [Readonly<Point>, Reado
   return geometry;
 }
 
-type Face = { id: string; center: Point; rings: Point[][] };
+type Face = { id: string; center: Point; rings: Point[][]; polar: boolean };
 
 /** An outline-only tint: one double line round its territories taken together, the borders between them and the board's rim left out. */
 function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: readonly Face[] }>) {
   const key = tint.territories.join(' ');
+  const polar = faces.some((face) => face.polar && tint.territories.includes(face.id));
   const geometry = useMemo(() => {
     const ids = new Set(key.split(' '));
     return doubleLineGeometry(
@@ -107,7 +114,7 @@ function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: rea
   }, [faces, key]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
-    <mesh geometry={geometry} raycast={ignoreRaycast} renderOrder={TINT_ORDER.line}>
+    <mesh geometry={geometry} raycast={ignoreRaycast} renderOrder={(polar ? POLAR_TINT_ORDER : TINT_ORDER).line}>
       <meshBasicMaterial color={tintPaint(tint.color).color} transparent depthWrite={false} side={DoubleSide} />
     </mesh>
   );
@@ -173,7 +180,12 @@ function stickerPlacement(rings: Point[][], count: number) {
 
 /* Transparent like the tints beneath, so they draw after the board rather than under it. */
 /** A tint's stickers on one territory, black on a pale outline, each where the territory has the most room for it. */
-function Stickers({ tint, rings, center }: Readonly<{ tint: TerritoryTint; rings: Point[][]; center: Point }>) {
+function Stickers({
+  tint,
+  rings,
+  center,
+  order,
+}: Readonly<{ tint: TerritoryTint; rings: Point[][]; center: Point; order: TintOrder }>) {
   const stamps = tint.stamps ?? [];
   if (!stamps.length) {
     return null;
@@ -185,10 +197,10 @@ function Stickers({ tint, rings, center }: Readonly<{ tint: TerritoryTint; rings
     const { ink, outline } = stickerGeometry(stamp);
     return (
       <group key={stamp} position={[x, 0.004, z]} rotation={[Math.PI / 2, 0, 0]} scale={size}>
-        <mesh geometry={outline} raycast={ignoreRaycast} renderOrder={TINT_ORDER.stickerOutline}>
+        <mesh geometry={outline} raycast={ignoreRaycast} renderOrder={order.stickerOutline}>
           <meshBasicMaterial color={STICKER_OUTLINE} transparent depthWrite={false} side={DoubleSide} />
         </mesh>
-        <mesh geometry={ink} raycast={ignoreRaycast} renderOrder={TINT_ORDER.stickerInk}>
+        <mesh geometry={ink} raycast={ignoreRaycast} renderOrder={order.stickerInk}>
           <meshBasicMaterial color={STICKER_INK} transparent depthWrite={false} side={DoubleSide} />
         </mesh>
       </group>
@@ -203,11 +215,12 @@ function TintedTerritory({
   shapes,
 }: Readonly<{ tint: TerritoryTint; face: Face; shapes: { fill: BufferGeometry; line: BufferGeometry } }>) {
   const paint = tintPaint(tint.color);
+  const order = face.polar ? POLAR_TINT_ORDER : TINT_ORDER;
   return (
     <>
       {!tint.outline && (
         <>
-          <mesh geometry={shapes.fill} raycast={ignoreRaycast} renderOrder={TINT_ORDER.fill}>
+          <mesh geometry={shapes.fill} raycast={ignoreRaycast} renderOrder={order.fill}>
             <meshBasicMaterial
               color={paint.color}
               transparent
@@ -216,12 +229,12 @@ function TintedTerritory({
               side={DoubleSide}
             />
           </mesh>
-          <lineSegments geometry={shapes.line} raycast={ignoreRaycast} renderOrder={TINT_ORDER.line}>
+          <lineSegments geometry={shapes.line} raycast={ignoreRaycast} renderOrder={order.line}>
             <lineBasicMaterial color={paint.color} transparent opacity={0.95} depthWrite={false} />
           </lineSegments>
         </>
       )}
-      <Stickers tint={tint} rings={face.rings} center={face.center} />
+      <Stickers tint={tint} rings={face.rings} center={face.center} order={order} />
     </>
   );
 }
@@ -234,6 +247,7 @@ export function TerritoryTints({ board, tints }: Readonly<{ board: Board; tints:
         id: territoryId(board.properties[face.key].name),
         center: face.center,
         rings: face.rings,
+        polar: board.properties[face.key].type === 'polar',
       })),
     [board]
   );
