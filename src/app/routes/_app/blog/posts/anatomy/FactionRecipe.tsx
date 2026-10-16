@@ -111,6 +111,7 @@ function Portrait({ src }: { src: string }) {
 }
 
 /* Art is built when the figure renders, not when the module loads, so the media resolver sees every key a render asks for. */
+/* `zoom` sizes an ingredient's art against the others, so the row has a rhythm rather than ten equal tiles. */
 const INPUTS: Record<InputId, { label: string; zoom?: number; art: () => ReactNode }> = {
   name: { label: 'Name', zoom: 1.15, art: () => <span className={styles.name}>{FACTION.name}</span> },
   colours: {
@@ -151,7 +152,7 @@ const INPUTS: Record<InputId, { label: string; zoom?: number; art: () => ReactNo
   },
   leaders: {
     label: 'Leaders',
-    zoom: 1.4,
+    zoom: 1.25,
     art: () => (
       <span className={styles.portraits}>
         {FACTION.leaders.map((leader) => (
@@ -264,19 +265,12 @@ const OUTPUTS: Record<OutputId, { label: string; art: () => ReactNode }> = {
   },
 };
 
-/**
- * Where an ingredient sits in the arch over the machine: the middle ones ride highest and the outer ones drop towards it.
- * `--lift` is a fraction of the stylesheet's arch height, and `--zoom` sizes the ingredient's art.
- */
-function inputPlacement(id: InputId): CSSProperties {
-  const middle = (INPUT_ORDER.length - 1) / 2;
-  const fromMiddle = (INPUT_ORDER.indexOf(id) - middle) / middle;
-  return { '--lift': (fromMiddle * fromMiddle).toFixed(3), '--zoom': INPUTS[id].zoom ?? 1 } as CSSProperties;
-}
-
 type Line = { key: string; d: string; input?: InputId; output?: OutputId };
 
 /** Curves from each ingredient's art down into the record, and from the record down to each asset, measured from the laid-out figure. */
+/** How far a drop curves as it turns onto its bus. */
+const BUS_RADIUS = 6;
+
 function measureLines(root: HTMLElement): Line[] {
   const box = root.getBoundingClientRect();
   const hub = root.querySelector<HTMLElement>('[data-hub]')?.getBoundingClientRect();
@@ -289,14 +283,34 @@ function measureLines(root: HTMLElement): Line[] {
     return `M ${x1} ${y1} C ${x1} ${middle}, ${x2} ${middle}, ${x2} ${y2}`;
   };
   const lines: Line[] = [];
-  for (const element of root.querySelectorAll<HTMLElement>('[data-input]')) {
-    const rect = element.getBoundingClientRect();
-    const input = element.dataset.input as InputId;
-    lines.push({
-      key: `in-${input}`,
-      input,
-      d: curve(rect.left + rect.width / 2 - box.left, rect.bottom - box.top, hubX, hub.top - box.top),
-    });
+  /*
+   * Each kind of ingredient has a bus under it, like a wiring harness: a line drops from each ingredient onto the bus, runs along it to the middle, and one trunk carries the whole kind into the intake.
+   * When a kind wraps onto more rows, as on a phone, only the bottom row drops onto the bus, so no line crosses an ingredient; the rows above light up the trunk alone.
+   */
+  for (const group of root.querySelectorAll<HTMLElement>('[data-group]')) {
+    const bus = group.querySelector<HTMLElement>('[data-bus]')?.getBoundingClientRect();
+    if (!bus) {
+      continue;
+    }
+    const busX = bus.left + bus.width / 2 - box.left;
+    const busY = bus.top - box.top;
+    const trunk = curve(busX, busY, hubX, hub.top - box.top).slice(`M ${busX} ${busY}`.length);
+    const tiles = [...group.querySelectorAll<HTMLElement>('[data-input]')];
+    const lowest = Math.max(...tiles.map((element) => element.getBoundingClientRect().bottom));
+    for (const element of tiles) {
+      const rect = element.getBoundingClientRect();
+      const input = element.dataset.input as InputId;
+      const x = rect.left + rect.width / 2 - box.left;
+      const onBottomRow = rect.bottom > lowest - 4;
+      const turn = Math.sign(busX - x) * Math.min(BUS_RADIUS, Math.abs(busX - x));
+      const drop =
+        onBottomRow && turn !== 0
+          ? `M ${x} ${rect.bottom - box.top} V ${busY - BUS_RADIUS} Q ${x} ${busY}, ${x + turn} ${busY} H ${busX}`
+          : onBottomRow
+            ? `M ${x} ${rect.bottom - box.top} V ${busY}`
+            : `M ${busX} ${busY}`;
+      lines.push({ key: `in-${input}`, input, d: `${drop}${trunk}` });
+    }
   }
   for (const element of root.querySelectorAll<HTMLElement>('[data-output]')) {
     const rect = element.getBoundingClientRect();
@@ -361,7 +375,7 @@ export function FactionRecipe() {
     }
     const observer = new ResizeObserver(remeasure);
     observer.observe(root);
-    for (const tile of root.querySelectorAll('[data-input], [data-output], [data-hub]')) {
+    for (const tile of root.querySelectorAll('[data-input], [data-output], [data-hub], [data-group]')) {
       observer.observe(tile);
     }
     return () => observer.disconnect();
@@ -377,7 +391,8 @@ export function FactionRecipe() {
 
   const tile = (kind: 'input' | 'output', id: InputId | OutputId, label: string, art: ReactNode) => {
     const next = { kind, id } as Pick;
-    const style = kind === 'input' ? inputPlacement(id as InputId) : undefined;
+    const zoom = kind === 'input' ? INPUTS[id as InputId].zoom : undefined;
+    const style = zoom ? ({ '--zoom': zoom } as CSSProperties) : undefined;
     const isLit = kind === 'input' ? lit?.inputs.has(id as InputId) : lit?.outputs.has(id as OutputId);
     return (
       <UnstyledButton
@@ -419,13 +434,14 @@ export function FactionRecipe() {
       <p className={styles.band}>Entered and picked in the faction editor</p>
       <div className={styles.groups}>
         {GROUPS.map((group) => (
-          <div key={group.title} className={styles.group}>
+          <div key={group.title} className={styles.group} data-group>
             <p className={styles.groupTitle}>{group.title}</p>
             <div className={styles.inputs}>
               {group.inputs.map((id) => (
                 <Fragment key={id}>{tile('input', id, INPUTS[id].label, INPUTS[id].art())}</Fragment>
               ))}
             </div>
+            <span className={styles.bus} data-bus />
           </div>
         ))}
       </div>

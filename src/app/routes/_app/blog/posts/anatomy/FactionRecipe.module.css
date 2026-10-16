@@ -1,11 +1,9 @@
 /*
- * Three bands: the editor's ingredients grouped by kind and hung in an arch, the machine that keeps the record, and the assets drawn from it, with curves behind joining them.
+ * Three bands: the editor's ingredients in three clusters by kind, the machine that keeps the record, and the assets drawn from it, with curves behind joining them.
  * The figure takes the wide figure column, like a row of figures does, and everything wraps, so a phone gets the same diagram in more rows.
  */
 .root {
-  --base-art: 2.5rem;
-  /* How far the outermost ingredients drop below the middle ones. */
-  --arch: 3rem;
+  --base-art: 2.875rem;
   --output-height: 7.5rem;
   /* One round of pulses, as long as the figure's own tour lingers on an ingredient (`TOUR_MS`). */
   --pulse-duration: 2600ms;
@@ -22,8 +20,7 @@
 
 @container blog-article (width < 36rem) {
   .root {
-    --base-art: 2.75rem;
-    --arch: 0rem;
+    --base-art: 2.25rem;
     --output-height: 5.5rem;
 
     gap: var(--space-lg);
@@ -134,16 +131,52 @@
   text-transform: uppercase;
 }
 
+/*
+ * The three kinds sit side by side as clusters, each over its own bus.
+ * On a phone each cluster is a column, its ingredients stacked; on a wide screen each is one row, typed fields on the left, images on the right,
+ * and the two vectors lower down in the middle, right above the machine.
+ */
 .groups {
   position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-start;
-  gap: var(--space-md);
+  display: grid;
+  grid-template-columns: auto auto auto;
+  justify-content: space-between;
+  align-items: stretch;
+  width: 100%;
 }
 
-/* A group is named by a title over a thin rule as wide as the group, with no box around it. */
+/* The outer clusters share a baseline, so their buses line up across the figure. */
+.group .bus {
+  margin-block-start: auto;
+}
+
+.group:nth-child(2) {
+  align-self: start;
+  margin-block-start: 2rem;
+}
+
+@container blog-article (width < 36rem) {
+  .group .inputs {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .group .bus {
+    margin-inline: var(--space-xs);
+  }
+}
+
+@container blog-article (width >= 36rem) {
+  .group .inputs {
+    flex-wrap: nowrap;
+  }
+
+  .group:nth-child(2) {
+    margin-block-start: 4rem;
+  }
+}
+
+/* A cluster is named like a callout on a drawing: a small spaced label over its ingredients, with no box around it. */
 .group {
   display: flex;
   flex-direction: column;
@@ -153,12 +186,22 @@
 
 .groupTitle {
   margin: 0;
-  padding-block-end: var(--space-xs);
-  border-block-end: 1px solid rgb(255 255 255 / 25%);
-  color: var(--mantine-color-dimmed);
-  font-size: var(--mantine-font-size-xs);
+  color: #e4f0ff;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
   text-align: center;
+  text-transform: uppercase;
   text-shadow: 0 0 3px rgb(0 0 0 / 90%);
+}
+
+/* The bus the cluster's lines drop onto: a hairline bracket with ticks at both ends, drawn under the ingredients. */
+.bus {
+  display: block;
+  height: 6px;
+  margin-inline: var(--space-md);
+  border: 1px solid rgb(228 240 255 / 45%);
+  border-block-end: 0;
 }
 
 .inputs,
@@ -168,7 +211,7 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-end;
-  gap: var(--space-xs);
+  gap: var(--space-sm) var(--space-xs);
 }
 
 .outputs {
@@ -177,7 +220,6 @@
 
 .tile {
   --zoom: 1;
-  --lift: 0;
   --art-height: calc(var(--base-art) * var(--zoom));
 
   display: flex;
@@ -193,10 +235,6 @@
   transition: opacity 250ms ease;
 }
 
-.groups .tile {
-  transform: translateY(calc(var(--lift) * var(--arch)));
-}
-
 .focused .tile {
   opacity: 0.35;
 }
@@ -210,7 +248,14 @@
 }
 
 .label {
+  max-width: 4.5rem;
   font-size: var(--mantine-font-size-xs);
+  line-height: 1.25;
+  text-align: center;
+}
+
+.outputs .label {
+  max-width: none;
   white-space: nowrap;
 }
 
@@ -273,7 +318,7 @@
 }
 
 .portraits .portrait + .portrait {
-  margin-inline-start: calc(var(--art-height) * -0.6);
+  margin-inline-start: calc(var(--art-height) * -0.65);
 }
 
 .portrait {
@@ -288,7 +333,7 @@
 
 .text {
   display: -webkit-box;
-  max-width: 4.75rem;
+  max-width: 4.5rem;
   overflow: hidden;
   font-size: var(--mantine-font-size-xs);
   line-height: 1.3;
@@ -299,7 +344,7 @@
 
 /* The machine that keeps the record, between the ingredients and the assets. */
 .hub {
-  width: min(22rem, 100%);
+  width: min(29rem, 100%);
   margin-block: var(--space-xl) var(--space-md);
 }
 
