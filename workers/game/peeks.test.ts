@@ -197,7 +197,12 @@ test("a faction's token turned face down has nothing to peek at: both its sides 
 
 test('a setup step forgets who peeked, though setup holds the phase still', () => {
   const peeked = peekCommand(
-    { ...table(2), stage: 'setup', phase: 0, setup: initialSetup([], hostedFixturePlan.roster, 0, table(2).table.pieces) },
+    {
+      ...table(2),
+      stage: 'setup',
+      phase: 0,
+      setup: initialSetup([], hostedFixturePlan.roster, 0, table(2).table.pieces),
+    },
     'atreides',
     { kind: 'peek', pieceId: 'deck' }
   );
