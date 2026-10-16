@@ -14,7 +14,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { ignoreRaycast } from './ignoreRaycast';
 import { placeStickers } from './stickerPlacement';
 import type { OutlinePath } from './tintOutline';
-import { offsetPath, outerSegments, outlinePaths } from './tintOutline';
+import { offRim, offsetPath, outerSegments, outlinePaths } from './tintOutline';
 import { TINT_STICKERS } from './tintStickers';
 
 /* Board drawing units run across the board's circle; the table's board disc is BOARD_RADIUS wide. */
@@ -46,14 +46,14 @@ function fillGeometry(rings: Point[][]) {
   return geometry;
 }
 
+/* A filled territory's own outline, without the stretch along the board's rim. */
 function outlineGeometry(rings: Point[][]) {
+  const edges = rings.flatMap((ring) => ring.slice(1).map((to, i) => [ring[i], to] as const));
   const positions: number[] = [];
-  for (const ring of rings) {
-    for (let i = 0; i < ring.length - 1; i++) {
-      const [ax, az] = toTable(ring[i]);
-      const [bx, bz] = toTable(ring[i + 1]);
-      positions.push(ax, 0, az, bx, 0, bz);
-    }
+  for (const [from, to] of offRim(edges, CENTER, RADIUS)) {
+    const [ax, az] = toTable(from);
+    const [bx, bz] = toTable(to);
+    positions.push(ax, 0, az, bx, 0, bz);
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
@@ -96,12 +96,14 @@ function doubleLineGeometry(segments: readonly (readonly [Readonly<Point>, Reado
 
 type Face = { id: string; center: Point; rings: Point[][] };
 
-/** An outline-only tint: one double line round its territories taken together, the borders between them left out. */
+/** An outline-only tint: one double line round its territories taken together, the borders between them and the board's rim left out. */
 function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: readonly Face[] }>) {
   const key = tint.territories.join(' ');
   const geometry = useMemo(() => {
     const ids = new Set(key.split(' '));
-    return doubleLineGeometry(outerSegments(faces.filter((face) => ids.has(face.id)).map((face) => face.rings)));
+    return doubleLineGeometry(
+      offRim(outerSegments(faces.filter((face) => ids.has(face.id)).map((face) => face.rings)), CENTER, RADIUS)
+    );
   }, [faces, key]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (

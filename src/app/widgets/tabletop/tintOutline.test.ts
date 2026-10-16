@@ -1,10 +1,10 @@
-import { retainedArrakisBoard } from '@shared/boards/geometry';
+import { CENTER, RADIUS, retainedArrakisBoard } from '@shared/boards/geometry';
 import { territoryId } from '@shared/boards/schema';
 import { boardTerritories } from '@shared/boards/territories';
 import { describe, expect, it } from 'vitest';
 
 import { territoryTintPresets } from '../../routes/_app/play/multiplayer/territoryTintPresets';
-import { offsetPath, outerSegments, outlinePaths } from './tintOutline';
+import { offRim, offsetPath, outerSegments, outlinePaths } from './tintOutline';
 
 type Point = readonly [number, number];
 
@@ -102,5 +102,20 @@ describe('offsetPath', () => {
       [0.9, 0.9],
       [0.1, 0.9],
     ]);
+  });
+});
+
+describe('offRim', () => {
+  it('keeps the inland edges of a territory on the rim and drops the ones along it', () => {
+    const board = retainedArrakisBoard();
+    const segments = boardTerritories(board).flatMap((face) =>
+      face.rings.flatMap((ring) => ring.slice(1).map((b, i) => [ring[i], b] as const))
+    );
+    const inland = offRim(segments, CENTER, RADIUS);
+    expect(inland.length).toBeLessThan(segments.length);
+    for (const [a, b] of inland) {
+      const middle: Point = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      expect(Math.hypot(middle[0] - CENTER[0], middle[1] - CENTER[1])).toBeLessThan(RADIUS * 0.995);
+    }
   });
 });
