@@ -103,7 +103,7 @@ function doubleLineGeometry(segments: readonly (readonly [Readonly<Point>, Reado
 type Face = { id: string; center: Point; rings: Point[][]; polar: boolean };
 
 type Segment = readonly [Readonly<Point>, Readonly<Point>];
-const edgeKey = ([a, b]: Segment) => [a.join(), b.join()].sort().join(' ');
+const edgeKey = ([a, b]: Segment) => [a.join(), b.join()].sort((x, y) => x.localeCompare(y)).join(' ');
 
 /* The outline's stretches along the Polar Sink's own border, apart from the rest, so only they draw above the sink's paint. */
 function splitAtPolarSink(segments: readonly Segment[], faces: readonly Face[]) {
