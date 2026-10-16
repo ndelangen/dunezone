@@ -133,7 +133,7 @@ function GapSection() {
         imageKey={meta.cover.key}
         alt={meta.cover.alt}
         aspect={meta.cover.aspect}
-        caption="A battle on the dune.zone game table. See you at the table."
+        caption="The dune.zone game table. See you there."
       />
     </Section>
   );

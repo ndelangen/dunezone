@@ -39,7 +39,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
       'Why build my own instead of contributing to Treachery.Online? Because I want a sandbox. Why I love Treachery.Online, why my group still plays on Tabletop Simulator, and the gap I hope dune.zone can fill.',
     cover: {
       key: '/web/blog/building-a-dune-sandbox/game-table.jpg',
-      alt: 'A battle on the dune.zone game table: two battle wheels with Feyd-Rautha and Lady Jessica over the Dune board',
+      alt: 'The dune.zone game table during the spice blow: the Dune board with troops, faction shields and the treachery deck',
       aspect: 1019 / 2048,
     },
   },
