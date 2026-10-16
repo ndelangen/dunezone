@@ -255,8 +255,6 @@ async function runLocalDevelopment(requested: LocalData) {
   let shuttingDown = false;
   let localEnv = commandEnvironment(values, {
     ...localDevelopmentEnvironmentOverrides(instance),
-    /* Only a launch someone browses gets the dashboard; its ghcr.io image refuses anonymous pulls. */
-    COMPOSE_PROFILES: 'worktree-local,dashboard',
     E2E_LOCAL_AUTH: 'true',
     VITE_E2E_LOCAL_AUTH: 'true',
     IS_TEST: 'true',
