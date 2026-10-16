@@ -9,7 +9,7 @@ import {
   TABLE_TANKS_LABEL_POSITION,
 } from '@shared/play/tableFurnitureLayout';
 import type { CardBaySide } from '@shared/play/tableFurnitureLayout';
-import { CARD_DEPTH, CARD_WIDTH } from '@shared/play/tableGeometry';
+import { CARD_CORNER_RADIUS, CARD_DEPTH, CARD_WIDTH } from '@shared/play/tableGeometry';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { useMemo } from 'react';
 import type { ExtrudeGeometry } from 'three';
@@ -28,7 +28,7 @@ const TABLE_PLATE_EXTRUDE_OPTIONS = {
   steps: 1,
 } as const;
 const SLOT_RIM_SHAPE = createRoundedRectangleShape(CARD_SLOT_OUTER_SIZE.width, CARD_SLOT_OUTER_SIZE.depth, 0.1);
-const SLOT_WELL_SHAPE = createRoundedRectangleShape(CARD_WIDTH, CARD_DEPTH, 0.08);
+const SLOT_WELL_SHAPE = createRoundedRectangleShape(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS);
 
 function TablePlate({ trackerSlots }: { trackerSlots: readonly TrackerArcSlot[] }) {
   const layers = useMemo(() => createTablePlateLayers(trackerSlots), [trackerSlots]);

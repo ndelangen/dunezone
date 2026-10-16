@@ -12,6 +12,7 @@ import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import {
   CARD_DEPTH,
+  CARD_CORNER_RADIUS,
   CARD_LAYER_HEIGHT,
   CARD_LAYER_PITCH,
   CARD_WIDTH,
@@ -216,7 +217,9 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
     <mesh
       position={[0, 0, 0.002]}
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-      geometry={card ? meshes.plane(CARD_WIDTH, CARD_DEPTH) : tokenFaceGeometry(meshes, ratio)}
+      geometry={
+        card ? meshes.roundedPlane(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS) : tokenFaceGeometry(meshes, ratio)
+      }
     >
       {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
       {texture ? (
@@ -391,7 +394,10 @@ function CardFace({
           <PredictionOverlay prediction={artwork.prediction} />
         </Suspense>
       )}
-      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={meshes.plane(CARD_WIDTH, CARD_DEPTH)}>
+      <mesh
+        renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
+        geometry={meshes.roundedPlane(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS)}
+      >
         <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
       </mesh>
       {covered ? null : (
@@ -423,7 +429,7 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
             <mesh
               position={[0, CARD_LAYER_HEIGHT / 2, 0]}
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-              geometry={meshes.box(CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH)}
+              geometry={meshes.roundedSlab(CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH, CARD_CORNER_RADIUS)}
             >
               <meshStandardMaterial color="#ead9bb" roughness={0.68} metalness={0.03} />
             </mesh>

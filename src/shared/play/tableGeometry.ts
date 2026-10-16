@@ -33,6 +33,8 @@ const LEADER_SCALE = 2;
 export const FACTION_TOKEN_SCALE = 0.42 / TROOP_TOP_RADIUS;
 export const CARD_WIDTH = 0.86;
 export const CARD_DEPTH = 1.18;
+/* Cards have rounded corners, as round as the wells they sit in. */
+export const CARD_CORNER_RADIUS = 0.08;
 export const CARD_LAYER_HEIGHT = 0.028;
 export const CARD_LAYER_PITCH = 0.022;
 export const CARD_FOOTPRINT_HALF_X = 0.49;

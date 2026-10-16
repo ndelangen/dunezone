@@ -1,13 +1,15 @@
 /* @jsxImportSource ../three-jsx */
-import { CARD_WIDTH, CARD_DEPTH } from '@shared/play/tableGeometry';
+import { CARD_CORNER_RADIUS, CARD_DEPTH, CARD_WIDTH } from '@shared/play/tableGeometry';
 import { useMemo, useEffect } from 'react';
 import { CanvasTexture, SRGBColorSpace } from 'three';
 
+import { useSharedMeshes } from '../sharedMeshes';
 import type { CardPrediction } from './predictionFace';
 import { usePredictionFace } from './predictionFace';
 
 /* A prediction card's chosen logo and turn, drawn over its published base (#1753). */
 export function PredictionOverlay({ prediction }: { prediction: CardPrediction }) {
+  const meshes = useSharedMeshes();
   const face = usePredictionFace(prediction);
   const texture = useMemo(() => {
     if (!face) {
@@ -22,8 +24,11 @@ export function PredictionOverlay({ prediction }: { prediction: CardPrediction }
     return null;
   }
   return (
-    <mesh position={[0, 0, 0.003]} renderOrder={2}>
-      <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
+    <mesh
+      position={[0, 0, 0.003]}
+      renderOrder={2}
+      geometry={meshes.roundedPlane(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS)}
+    >
       <meshBasicMaterial map={texture} transparent depthWrite={false} />
     </mesh>
   );
