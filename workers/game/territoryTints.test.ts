@@ -82,18 +82,18 @@ test('a paint that crossed another for the same territory is refused rather than
   expect(table.snapshot.tints?.[0]?.territories).toEqual(['carthag']);
 });
 
-test('a tint is hidden and shown, and takes stronghold and explosion stickers in a set order', () => {
+test('a tint is hidden and shown, and takes city and explosion stickers in a set order', () => {
   const table = room();
   const send = (action: Parameters<Room['command']>[1]) =>
     table.accept(table.command(bob, action, table.snapshot.revision, LATER));
   send({ kind: 'tint-create', tintId: 'zone', name: 'Shield Wall', color: '#1b1b1b', territories: ['shield_wall'] });
   send({ kind: 'tint-set', tintId: 'zone', setting: 'atomics', on: true });
-  send({ kind: 'tint-set', tintId: 'zone', setting: 'stronghold', on: true });
+  send({ kind: 'tint-set', tintId: 'zone', setting: 'city', on: true });
   send({ kind: 'tint-set', tintId: 'zone', setting: 'hidden', on: true });
-  expect(table.snapshot.tints?.[0]).toMatchObject({ stamps: ['stronghold', 'atomics'], hidden: true });
+  expect(table.snapshot.tints?.[0]).toMatchObject({ stamps: ['city', 'atomics'], hidden: true });
   expect(table.snapshot.table.events[0]?.message).toBe('Hid Shield Wall.');
   send({ kind: 'tint-set', tintId: 'zone', setting: 'hidden', on: false });
-  send({ kind: 'tint-set', tintId: 'zone', setting: 'stronghold', on: false });
+  send({ kind: 'tint-set', tintId: 'zone', setting: 'city', on: false });
   expect(table.snapshot.tints?.[0]).toEqual({
     id: 'zone',
     name: 'Shield Wall',
@@ -101,7 +101,7 @@ test('a tint is hidden and shown, and takes stronghold and explosion stickers in
     stamps: ['atomics'],
     territories: ['shield_wall'],
   });
-  expect(table.snapshot.table.events[0]?.message).toBe('Took the stronghold stickers off Shield Wall.');
+  expect(table.snapshot.table.events[0]?.message).toBe('Took the city stickers off Shield Wall.');
   expect(() =>
     table.command(
       bob,

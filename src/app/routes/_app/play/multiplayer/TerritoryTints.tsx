@@ -16,11 +16,10 @@ import { Brush, Eye, EyeOff } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 
-import atomicsSvg from '../../../../../../media/vector/decal/atomics.svg?raw';
-import strongholdSvg from '../../../../../../media/vector/icon/stronghold.svg?raw';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import type { TerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
 import { setTerritoryBrush, territoryBrush, useTerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
+import { TINT_STICKERS } from '../../../../widgets/tabletop/tintStickers';
 import { territoryTintPresets } from './territoryTintPresets';
 
 type Props = { client: TableSession; table: TableProjection };
@@ -28,14 +27,13 @@ type TintDraft = Omit<TerritoryTint, 'id'>;
 type TintSetting = Extract<TerritoryTintAction, { kind: 'tint-set' }>['setting'];
 
 const svgUrl = (svg: string) => `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;
-const STICKERS: Record<TintStamp, { label: string; mask: string }> = {
-  stronghold: { label: 'Stronghold stickers', mask: svgUrl(strongholdSvg) },
-  atomics: { label: 'Explosion stickers', mask: svgUrl(atomicsSvg) },
-};
+const STICKER_MASKS = Object.fromEntries(
+  TINT_STAMPS.map((stamp) => [stamp, svgUrl(TINT_STICKERS[stamp].svg)])
+) as Record<TintStamp, string>;
 
 /** A sticker's artwork in the button's own colour, so it follows the button's state like a lucide icon. */
 function StickerIcon({ stamp }: Readonly<{ stamp: TintStamp }>) {
-  const mask = `${STICKERS[stamp].mask} center / contain no-repeat`;
+  const mask = `${STICKER_MASKS[stamp]} center / contain no-repeat`;
   return (
     <span
       aria-hidden
@@ -155,7 +153,7 @@ function TintRow({
         {TINT_STAMPS.map((stamp) => (
           <SettingToggle
             key={stamp}
-            label={STICKERS[stamp].label}
+            label={TINT_STICKERS[stamp].label}
             on={tintSetting(tint, stamp)}
             enabled={canEdit}
             onToggle={toggle(stamp)}

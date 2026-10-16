@@ -142,17 +142,17 @@ export const Settings = meta.story({
     );
     await waitFor(() => expect(shown).toHaveAttribute('aria-pressed', 'false'), { timeout: 10_000 });
     await expect(page.findByRole('button', { name: 'Paint Fremen deployment' })).resolves.toBeDisabled();
-    const [, strongholds] = await page.findAllByRole('button', { name: 'Stronghold stickers' });
-    await userEvent.click(strongholds);
+    const [, cities] = await page.findAllByRole('button', { name: 'City stickers' });
+    await userEvent.click(cities);
     await waitFor(() =>
       expect(lastCommand()?.action).toEqual({
         kind: 'tint-set',
         tintId: 'tint-shield',
-        setting: 'stronghold',
+        setting: 'city',
         on: true,
       })
     );
-    await waitFor(() => expect(strongholds).toHaveAttribute('aria-pressed', 'true'), { timeout: 10_000 });
+    await waitFor(() => expect(cities).toHaveAttribute('aria-pressed', 'true'), { timeout: 10_000 });
   },
 });
 

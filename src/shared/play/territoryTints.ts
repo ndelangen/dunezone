@@ -18,7 +18,7 @@ export const TINT_COLOR_NAMES: Record<(typeof TINT_COLORS)[number], string> = {
   '#1b1b1b': 'Black',
 };
 /** Stickers a tint may put on each of its territories, in the order they sit side by side. */
-export const TINT_STAMPS = ['stronghold', 'atomics'] as const;
+export const TINT_STAMPS = ['sietch', 'city', 'palace', 'atomics'] as const;
 export type TintStamp = (typeof TINT_STAMPS)[number];
 /** What a tint can switch on and off after it is made: whether it shows, and each sticker. */
 const TINT_SETTINGS = ['hidden', ...TINT_STAMPS] as const;
@@ -117,7 +117,12 @@ function withTerritories(tints: readonly TerritoryTint[], tint: TerritoryTint, t
   return replaced(tints, tint, { ...tint, territories });
 }
 
-const STAMP_NAMES: Record<TintStamp, string> = { stronghold: 'stronghold', atomics: 'explosion' };
+const STAMP_NAMES: Record<TintStamp, string> = {
+  sietch: 'sietch',
+  city: 'city',
+  palace: 'palace',
+  atomics: 'explosion',
+};
 
 /** Whether the setting is on for this tint: it is hidden, or carries that sticker. */
 export function tintSetting(
