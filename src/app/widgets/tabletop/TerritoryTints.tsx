@@ -61,20 +61,41 @@ function outlineGeometry(rings: Point[][]) {
 /* Between the map (-3) and the storm's sector (-2), so the storm lies over the tints. */
 const TINT_ORDER = { fill: -2.8, line: -2.6, stickerOutline: -2.4, stickerInk: -2.2 };
 
-/* How far either line of an outline-only tint's double line sits from the border it follows, in table units. */
-const DOUBLE_LINE_OFFSET = 0.006;
+/* An outline-only tint's double line, in table units: each line's width, and the gap between the two. */
+const DOUBLE_LINE_WIDTH = 0.012;
+const DOUBLE_LINE_GAP = 0.012;
 
-/** Two hairlines along each segment, one either side of it, so the outline reads as a double line at any zoom. */
+/** A flat strip along one segment, between two distances to its left, a little past both ends so neighbouring strips meet. */
+function stripAlong(
+  positions: number[],
+  [ax, az]: [number, number],
+  [bx, bz]: [number, number],
+  near: number,
+  far: number
+) {
+  const length = Math.hypot(bx - ax, bz - az) || 1;
+  const [ux, uz] = [(bx - ax) / length, (bz - az) / length];
+  const reach = DOUBLE_LINE_WIDTH / 2;
+  const [sx, sz, ex, ez] = [ax - ux * reach, az - uz * reach, bx + ux * reach, bz + uz * reach];
+  const corners = [
+    [sx - uz * near, sz + ux * near],
+    [sx - uz * far, sz + ux * far],
+    [ex - uz * far, ez + ux * far],
+    [ex - uz * near, ez + ux * near],
+  ];
+  for (const index of [0, 1, 2, 0, 2, 3]) {
+    positions.push(corners[index][0], 0, corners[index][1]);
+  }
+}
+
+/** Two strips along each segment, one either side of it, so the outline reads as a double line. */
 function doubleLineGeometry(segments: readonly (readonly [Readonly<Point>, Readonly<Point>])[]) {
+  const [inner, outer] = [DOUBLE_LINE_GAP / 2, DOUBLE_LINE_GAP / 2 + DOUBLE_LINE_WIDTH];
   const positions: number[] = [];
   for (const [from, to] of segments) {
-    const [ax, az] = toTable(from);
-    const [bx, bz] = toTable(to);
-    const length = Math.hypot(bx - ax, bz - az) || 1;
-    const [nx, nz] = [(-(bz - az) / length) * DOUBLE_LINE_OFFSET, ((bx - ax) / length) * DOUBLE_LINE_OFFSET];
-    for (const side of [1, -1]) {
-      positions.push(ax + side * nx, 0, az + side * nz, bx + side * nx, 0, bz + side * nz);
-    }
+    const [a, b] = [toTable(from), toTable(to)];
+    stripAlong(positions, a, b, inner, outer);
+    stripAlong(positions, a, b, -inner, -outer);
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
@@ -92,9 +113,9 @@ function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: rea
   }, [faces, key]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
-    <lineSegments geometry={geometry} raycast={ignoreRaycast} renderOrder={TINT_ORDER.line}>
-      <lineBasicMaterial color={tint.color} transparent depthWrite={false} />
-    </lineSegments>
+    <mesh geometry={geometry} raycast={ignoreRaycast} renderOrder={TINT_ORDER.line}>
+      <meshBasicMaterial color={tint.color} transparent depthWrite={false} side={DoubleSide} />
+    </mesh>
   );
 }
 
@@ -105,7 +126,7 @@ const STICKER_SMALLEST = 0.14;
 const STICKER_INK = '#1a0b00';
 const STICKER_OUTLINE = '#fffed8';
 /* The outline's width per unit of sticker size, drawn as copies of the shape nudged round a circle. */
-const OUTLINE_WIDTH = 0.07;
+const OUTLINE_WIDTH = 0.035;
 const OUTLINE_STEPS = 16;
 
 type StickerShapes = { ink: BufferGeometry; outline: BufferGeometry };
