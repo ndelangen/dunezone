@@ -1,5 +1,5 @@
 #! /bin/bash
-# Copied from get-convex/convex-backend self-hosted/docker-build (Apache-2.0).
+# Adapted from get-convex/convex-backend self-hosted/docker-build (Apache-2.0).
 
 export DATA_DIR=${DATA_DIR:-/convex/data}
 export TMPDIR=${TMPDIR:-"$DATA_DIR/tmp"}
@@ -16,13 +16,13 @@ mkdir -p "$TMPDIR" "$STORAGE_DIR"
 source ./read_credentials.sh
 
 # Determine database configuration
-if [ -n "$POSTGRES_URL" ]; then
+if [[ -n "$POSTGRES_URL" ]]; then
     DB_SPEC="$POSTGRES_URL"
     DB_FLAGS=("${POSTGRES_DB_FLAGS[@]}")
-elif [ -n "$MYSQL_URL" ]; then
+elif [[ -n "$MYSQL_URL" ]]; then
     DB_SPEC="$MYSQL_URL"
     DB_FLAGS=("${MYSQL_DB_FLAGS[@]}")
-elif [ -n "$DATABASE_URL" ]; then
+elif [[ -n "$DATABASE_URL" ]]; then
     echo "Warning: DATABASE_URL is deprecated. Please use POSTGRES_URL for PostgreSQL or MYSQL_URL for MySQL connections instead."
     DB_SPEC="$DATABASE_URL"
     DB_FLAGS=("${POSTGRES_DB_FLAGS[@]}")  # Maintain backwards compatibility with existing DATABASE_URL behavior
@@ -34,17 +34,17 @@ fi
 
 # Check if all required S3 environment variables are present
 MISSING_VARS=()
-[ -z "$AWS_REGION" ] && MISSING_VARS+=("AWS_REGION")
-[ -z "$S3_STORAGE_EXPORTS_BUCKET" ] && MISSING_VARS+=("S3_STORAGE_EXPORTS_BUCKET")
-[ -z "$S3_STORAGE_SNAPSHOT_IMPORTS_BUCKET" ] && MISSING_VARS+=("S3_STORAGE_SNAPSHOT_IMPORTS_BUCKET")
-[ -z "$S3_STORAGE_MODULES_BUCKET" ] && MISSING_VARS+=("S3_STORAGE_MODULES_BUCKET")
-[ -z "$S3_STORAGE_FILES_BUCKET" ] && MISSING_VARS+=("S3_STORAGE_FILES_BUCKET")
-[ -z "$S3_STORAGE_SEARCH_BUCKET" ] && MISSING_VARS+=("S3_STORAGE_SEARCH_BUCKET")
+[[ -z "$AWS_REGION" ]] && MISSING_VARS+=("AWS_REGION")
+[[ -z "$S3_STORAGE_EXPORTS_BUCKET" ]] && MISSING_VARS+=("S3_STORAGE_EXPORTS_BUCKET")
+[[ -z "$S3_STORAGE_SNAPSHOT_IMPORTS_BUCKET" ]] && MISSING_VARS+=("S3_STORAGE_SNAPSHOT_IMPORTS_BUCKET")
+[[ -z "$S3_STORAGE_MODULES_BUCKET" ]] && MISSING_VARS+=("S3_STORAGE_MODULES_BUCKET")
+[[ -z "$S3_STORAGE_FILES_BUCKET" ]] && MISSING_VARS+=("S3_STORAGE_FILES_BUCKET")
+[[ -z "$S3_STORAGE_SEARCH_BUCKET" ]] && MISSING_VARS+=("S3_STORAGE_SEARCH_BUCKET")
 
-if [ ${#MISSING_VARS[@]} -eq 0 ]; then
+if [[ ${#MISSING_VARS[@]} -eq 0 ]]; then
     STORAGE_FLAGS=(--s3-storage)
 else
-    if [ ${#MISSING_VARS[@]} -lt 6 ]; then
+    if [[ ${#MISSING_VARS[@]} -lt 6 ]]; then
         echo "Warning: Some AWS/S3 environment variables are missing. Falling back to local storage."
         echo "Missing variables: ${MISSING_VARS[*]}"
     fi
