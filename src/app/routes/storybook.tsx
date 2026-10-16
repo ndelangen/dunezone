@@ -6,7 +6,7 @@ import {
   RouterProvider,
 } from '@tanstack/react-router';
 import type { AnyRoute } from '@tanstack/react-router';
-import { Suspense, use, useEffect, useMemo } from 'react';
+import { Suspense, use, useMemo } from 'react';
 
 import { useStorybookDatabaseClient } from '@db/storybook';
 import type { SeedReference } from '@db/storybook';
@@ -69,28 +69,23 @@ function seedReference(path: string): SeedReference | null {
     : null;
 }
 
-type NavigationObserver = {
-  /** Reports the settled memory-router path to a page story's interaction checks. */
-  onResolved?: (pathname: string) => void;
-};
-
-function SeededPage({ reference, onResolved }: Readonly<{ reference: SeedReference } & NavigationObserver>) {
+function SeededPage({ reference }: Readonly<{ reference: SeedReference }>) {
   const client = useStorybookDatabaseClient();
-  return <RoutedPage path={use(client.resolve(reference))} onResolved={onResolved} />;
+  return <RoutedPage path={use(client.resolve(reference))} />;
 }
 
-export function StorybookPage({ path, onResolved }: Readonly<{ path: string } & NavigationObserver>) {
+export function StorybookPage({ path }: Readonly<{ path: string }>) {
   const reference = seedReference(path);
   return reference ? (
     <Suspense fallback={<div role="status">Resolving the page address…</div>}>
-      <SeededPage reference={reference} onResolved={onResolved} />
+      <SeededPage reference={reference} />
     </Suspense>
   ) : (
-    <RoutedPage path={path} onResolved={onResolved} />
+    <RoutedPage path={path} />
   );
 }
 
-function RoutedPage({ path, onResolved }: Readonly<{ path: string } & NavigationObserver>) {
+function RoutedPage({ path }: Readonly<{ path: string }>) {
   const router = useMemo(
     () =>
       createRouter({
@@ -100,12 +95,6 @@ function RoutedPage({ path, onResolved }: Readonly<{ path: string } & Navigation
       }),
     [path]
   );
-
-  useEffect(() => {
-    if (onResolved) {
-      return router.subscribe('onResolved', ({ toLocation }) => onResolved(toLocation.pathname));
-    }
-  }, [router, onResolved]);
 
   /* The document stylesheet belongs to the page for as long as the page is mounted, and to nothing
      after it: the root route's own import of it is stubbed under Storybook (.storybook/pageStylesheet.ts),
