@@ -24,6 +24,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'coverage-denominator.ts',
   'browser-launch-tests.ts',
   'docker-compose.convex-local.yml',
+  'docker/convex-backend/**',
   'patches/**',
   'convex.json',
   'convex/**',
