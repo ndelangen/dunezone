@@ -1,7 +1,7 @@
 import { ActionIcon, Button, ColorSwatch, Group, Stack, Text, Tooltip } from '@mantine/core';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { territoryId } from '@shared/boards/schema';
-import { MAX_TINTS, TINT_COLOR_NAMES, TINT_COLORS } from '@shared/play/territoryTints';
+import { fitsTintCommand, MAX_TINTS, TINT_COLOR_NAMES, TINT_COLORS } from '@shared/play/territoryTints';
 import type { TerritoryTint } from '@shared/play/territoryTints';
 import { Section } from '@ui/block/Section';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -203,7 +203,10 @@ function useTintBrush(client: TableSession, canEdit: boolean, tints: readonly Te
           return;
         }
         const painted = !tint.territories.includes(territory.id);
-        client.command({ kind: 'tint-paint', tintId, territory: territory.id, name: territory.name, painted });
+        const action = { kind: 'tint-paint', tintId, territory: territory.id, name: territory.name, painted } as const;
+        if (fitsTintCommand(action)) {
+          client.command(action);
+        }
       },
     });
   const create = (tint: TintDraft, paint: boolean) => {

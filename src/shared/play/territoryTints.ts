@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { TERRITORY_NAME_LIMIT } from '../boards/schema';
 import { actionKindGuard } from './actionKinds';
 import { GameRejection } from './rejection';
-import { tableIdSchema as id } from './schema';
+import { CLIENT_MESSAGE_LIMIT, tableIdSchema as id } from './schema';
 
 /** The colours a tint can take, in the order the panel offers them. */
 export const TINT_COLORS = ['#2f7fe0', '#d63a2a', '#3fae4a', '#9450d0', '#f2f2f2', '#1b1b1b'] as const;
@@ -19,7 +19,7 @@ export const TINT_COLOR_NAMES: Record<(typeof TINT_COLORS)[number], string> = {
 const TINT_STAMPS = ['atomics'] as const;
 export const MAX_TINTS = 12;
 /* Far more than any board's territories; bounds what one tint stores and resends. */
-export const MAX_TINT_TERRITORIES = 128;
+const MAX_TINT_TERRITORIES = 128;
 
 /* A territory is named by the ID its board derives from its name, so it reads the same on every board copy. */
 const territorySchema = z
@@ -65,6 +65,17 @@ export const territoryTintActionSchema = z.discriminatedUnion('kind', [
 ]);
 export type TerritoryTintAction = z.infer<typeof territoryTintActionSchema>;
 export const isTerritoryTintAction = actionKindGuard(territoryTintActionSchema);
+
+/* Room for the command's envelope around the action: its type, ID and revision. */
+const ENVELOPE_ALLOWANCE = 512;
+
+/** Whether the table can read this action; a custom board's names can make a territory ID or a preset too long, and the page sends neither rather than lose its connection. */
+export function fitsTintCommand(action: TerritoryTintAction) {
+  return (
+    territoryTintActionSchema.safeParse(action).success &&
+    JSON.stringify(action).length <= CLIENT_MESSAGE_LIMIT - ENVELOPE_ALLOWANCE
+  );
+}
 
 type Applied = { tints: TerritoryTint[]; message: string };
 

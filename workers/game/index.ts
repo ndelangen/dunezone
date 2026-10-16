@@ -48,7 +48,7 @@ import {
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
-import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { CLIENT_MESSAGE_LIMIT, rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import type { SetupState } from '../../src/shared/play/setup';
@@ -1368,7 +1368,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     connection: Connection,
     input: string | ArrayBuffer
   ): ClientMessage | undefined {
-    if (typeof input !== 'string' || input.length > 8192) {
+    if (typeof input !== 'string' || input.length > CLIENT_MESSAGE_LIMIT) {
       this.deny(socket);
       return;
     }

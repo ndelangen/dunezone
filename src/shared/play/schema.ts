@@ -13,6 +13,8 @@ export const tablePositionSchema = z.tuple([
 export const tableOrientationSchema = z.number().min(-100_000).max(100_000);
 
 /** A viewer without a seat. Spectators watch; they never own, ready or publish. */
+/** The longest message, in characters, a game socket accepts; a longer one closes the socket. */
+export const CLIENT_MESSAGE_LIMIT = 8192;
 export const SPECTATOR_SEAT = 'neutral';
 /** A piece no faction owns: decks, the spice disc, anything in the shared inventory. */
 const SHARED_OWNER = 'shared';

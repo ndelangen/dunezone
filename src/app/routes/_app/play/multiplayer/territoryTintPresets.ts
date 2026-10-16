@@ -1,7 +1,7 @@
 import type { Board } from '@shared/boards/schema';
 import { territoryId } from '@shared/boards/schema';
 import { boardTerritories } from '@shared/boards/territories';
-import { MAX_TINT_TERRITORIES } from '@shared/play/territoryTints';
+import { fitsTintCommand } from '@shared/play/territoryTints';
 import type { TerritoryTint } from '@shared/play/territoryTints';
 
 type Preset = Omit<TerritoryTint, 'id'>;
@@ -42,7 +42,7 @@ function within(board: Board, start: string, steps: number) {
   return [...reached];
 }
 
-/** The presets this board can lay: a custom board missing a preset's territories, or with more of them than a tint holds, offers fewer. */
+/** The presets this board can lay: a custom board missing a preset's territories, or with more of them than one command carries, offers fewer. */
 export function territoryTintPresets(board: Board): Preset[] {
   const ids = new Set(Object.values(board.properties).map((property) => territoryId(property.name)));
   const greatFlat = ['the_great_flat', 'great_flat'].find((id) => ids.has(id));
@@ -68,5 +68,8 @@ export function territoryTintPresets(board: Board): Preset[] {
         ]
       : []),
   ];
-  return presets.filter((preset) => preset.territories.length <= MAX_TINT_TERRITORIES);
+  /* The ID only stands in for the one the panel makes, which is as long. */
+  return presets.filter((preset) =>
+    fitsTintCommand({ kind: 'tint-create', tintId: `tint-${crypto.randomUUID()}`, ...preset })
+  );
 }
