@@ -315,7 +315,7 @@ export const ThreeColumns = meta.story({
       await expect(page.getByRole('separator', { name: 'Resize players column' })).toBeVisible();
     }
     const canvas = body.querySelector('canvas');
-    const message = await page.findByPlaceholderText('Message');
+    const message = (await page.findByPlaceholderText('Message')) as HTMLTextAreaElement;
     await userEvent.type(message, 'half typed');
 
     for (const [choice, layout] of [
@@ -329,5 +329,24 @@ export const ThreeColumns = meta.story({
       await expect(body.querySelector('canvas')).toBe(canvas);
       await expect(page.getByPlaceholderText('Message')).toHaveValue('half typed');
     }
+
+    /* A layout change while typing, as when the window crosses the columns' width, moves the composer without blurring or refocusing it. */
+    message.focus();
+    message.setSelectionRange(2, 6, 'backward');
+    const focusChanges: string[] = [];
+    const count = (event: FocusEvent) => focusChanges.push(event.type);
+    message.addEventListener('focus', count);
+    message.addEventListener('blur', count);
+    setTableLayout('stacked');
+    await waitFor(() => expect(shell().dataset.tableLayout).toBe('stacked'));
+    await expect(body.ownerDocument.activeElement).toBe(message);
+    await expect([message.selectionStart, message.selectionEnd, message.selectionDirection]).toEqual([
+      2,
+      6,
+      'backward',
+    ]);
+    await expect(focusChanges).toEqual([]);
+    message.removeEventListener('focus', count);
+    message.removeEventListener('blur', count);
   },
 });

@@ -881,10 +881,33 @@ function StackedLayout({ nodes, camera, inert }: LayoutProps) {
 
 /*
  * The layout this viewer picked in the game menu, where the window is wide enough for it.
+ * The scene, the controls and the players render once into held nodes that whichever layout is shown takes into its slots, so switching keeps them mounted.
  * Each layout is keyed, so neither inherits the other's separator size.
  */
-function TableLayouts({ layout, ...props }: LayoutProps & Readonly<{ layout: TableLayout }>) {
-  return layout === 'columns' ? <ColumnsLayout key="columns" {...props} /> : <StackedLayout key="stacked" {...props} />;
+function TableLayouts({
+  layout,
+  scene,
+  controls,
+  players,
+  ...props
+}: Omit<LayoutProps, 'nodes'> &
+  Readonly<{ layout: TableLayout; scene: ReactNode; controls: ReactNode; players: ReactNode | undefined }>) {
+  const sceneNode = useHeldNode();
+  const controlsNode = useHeldNode();
+  const playersNode = useHeldNode();
+  const nodes = { scene: sceneNode, controls: controlsNode, players: players ? playersNode : null };
+  return (
+    <>
+      <Held node={sceneNode}>{scene}</Held>
+      <Held node={controlsNode}>{controls}</Held>
+      {players && <Held node={playersNode}>{players}</Held>}
+      {layout === 'columns' ? (
+        <ColumnsLayout key="columns" nodes={nodes} {...props} />
+      ) : (
+        <StackedLayout key="stacked" nodes={nodes} {...props} />
+      )}
+    </>
+  );
 }
 
 export function GameTable({
@@ -950,9 +973,6 @@ export function GameTable({
   }, [handleSceneReady]);
 
   const layout = useShownTableLayout();
-  const sceneNode = useHeldNode();
-  const controlsNode = useHeldNode();
-  const playersNode = useHeldNode();
   const scene = (
     <>
       <TableKeyboardContext value={tableKeyboard}>
@@ -1045,13 +1065,11 @@ export function GameTable({
                 </div>
               </header>
 
-              <Held node={sceneNode}>{scene}</Held>
-              <Held node={controlsNode}>{controls}</Held>
-              {playerPanel && <Held node={playersNode}>{playerPanel}</Held>}
-
               <TableLayouts
                 layout={layout}
-                nodes={{ scene: sceneNode, controls: controlsNode, players: playerPanel ? playersNode : null }}
+                scene={scene}
+                controls={controls}
+                players={playerPanel}
                 camera={camera}
                 inert={overlaysInert}
               />

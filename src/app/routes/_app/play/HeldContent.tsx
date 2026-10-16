@@ -25,7 +25,12 @@ export function Held({ node, children }: Readonly<{ node: HeldNode; children: Re
   return createPortal(children, node);
 }
 
-type HeldFocus = Readonly<{ element: HTMLElement; start: number | null; end: number | null }>;
+type HeldFocus = Readonly<{
+  element: HTMLElement;
+  start: number | null;
+  end: number | null;
+  direction: 'forward' | 'backward' | 'none' | undefined;
+}>;
 type HeldScroll = Readonly<{ element: Element; top: number; left: number }>;
 
 /*
@@ -35,10 +40,14 @@ type HeldScroll = Readonly<{ element: Element; top: number; left: number }>;
 const heldFocus = new WeakMap<HeldNode, HeldFocus>();
 const heldScrolls = new WeakMap<HeldNode, readonly HeldScroll[]>();
 
+function isTextField(element: Element): element is HTMLInputElement | HTMLTextAreaElement {
+  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
+}
+
 function selectionOf(element: Element) {
-  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement
-    ? { start: element.selectionStart, end: element.selectionEnd }
-    : { start: null, end: null };
+  return isTextField(element)
+    ? { start: element.selectionStart, end: element.selectionEnd, direction: element.selectionDirection ?? undefined }
+    : { start: null, end: null, direction: undefined };
 }
 
 function rememberScrolls(node: HeldNode) {
@@ -64,20 +73,47 @@ function rememberFocus(node: HeldNode) {
   }
 }
 
+/*
+ * Focus goes back only to what the node still holds, and only when the move took it away and nothing else took it meanwhile;
+ * a node `moveBefore` moved kept its focus, and refocusing it would fire focus handlers for a move nobody made.
+ * The caret goes back either way, since a moved text field can lose its selection.
+ */
 function restoreFocus(node: HeldNode) {
   const held = heldFocus.get(node);
   heldFocus.delete(node);
-  if (!held || !node.contains(held.element) || node.ownerDocument.activeElement !== node.ownerDocument.body) {
+  if (!held || !node.contains(held.element)) {
     return;
   }
-  held.element.focus({ preventScroll: true });
-  if (
-    held.start !== null &&
-    (held.element instanceof HTMLInputElement || held.element instanceof HTMLTextAreaElement)
-  ) {
-    held.element.setSelectionRange(held.start, held.end);
+  const { element, start, end, direction } = held;
+  const document = node.ownerDocument;
+  if (document.activeElement === document.body) {
+    element.focus({ preventScroll: true });
+  }
+  if (start !== null && document.activeElement === element && isTextField(element)) {
+    element.setSelectionRange(start, end, direction);
   }
 }
+
+/*
+ * Where a browser can move a node without taking it out of the document (`moveBefore`), nothing inside it notices the move:
+ * no blur, no focus, no scroll reset. Between a deleted slot and the next one the node waits in the body for the rest of the commit;
+ * a node no slot takes by then (the table closed) leaves the body too.
+ */
+function parkNode(node: HeldNode) {
+  if (!node.isConnected) {
+    node.remove();
+    return;
+  }
+  const body = node.ownerDocument.body;
+  body.moveBefore(node, null);
+  queueMicrotask(() => {
+    if (node.parentNode === body) {
+      node.remove();
+    }
+  });
+}
+
+const canMoveNodes = typeof Element !== 'undefined' && 'moveBefore' in Element.prototype;
 
 /*
  * Where a layout shows a held node.
@@ -90,13 +126,22 @@ export function HeldSlot({ node }: Readonly<{ node: HeldNode }>) {
       if (!slot) {
         return;
       }
-      slot.append(node);
+      if (canMoveNodes && node.isConnected) {
+        slot.moveBefore(node, null);
+      } else {
+        slot.append(node);
+      }
       restoreScrolls(node);
       restoreFocus(node);
       return () => {
-        if (node.parentNode === slot) {
-          rememberScrolls(node);
-          rememberFocus(node);
+        if (node.parentNode !== slot) {
+          return;
+        }
+        rememberScrolls(node);
+        rememberFocus(node);
+        if (canMoveNodes) {
+          parkNode(node);
+        } else {
           node.remove();
         }
       };
