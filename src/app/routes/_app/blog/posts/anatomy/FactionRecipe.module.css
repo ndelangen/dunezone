@@ -3,7 +3,7 @@
  * The figure takes the wide figure column, like a row of figures does, and every tile wraps, so a phone gets the same diagram in more rows.
  */
 .root {
-  --art-height: 4.5rem;
+  --art-height: 3.25rem;
   --output-height: 7.5rem;
 
   position: relative;
@@ -38,7 +38,7 @@
   fill: none;
   stroke: var(--color-text);
   stroke-width: 1;
-  opacity: 0.18;
+  opacity: 0.14;
   transition:
     opacity 250ms ease,
     stroke 250ms ease,
@@ -65,7 +65,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
 }
 
 .outputs {
@@ -77,14 +77,13 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
-  border: 1px solid transparent;
-  border-radius: var(--mantine-radius-md);
-  background: var(--mantine-color-body);
+  padding: var(--space-xs);
   color: var(--color-text);
-  transition:
-    opacity 250ms ease,
-    border-color 250ms ease;
+  /* Without a box behind it, the text sits on the page artwork, which is light in places. */
+  text-shadow:
+    0 0 3px rgb(0 0 0 / 90%),
+    0 1px 6px rgb(0 0 0 / 80%);
+  transition: opacity 250ms ease;
 }
 
 .focused .tile {
@@ -93,7 +92,10 @@
 
 .focused .tile.lit {
   opacity: 1;
-  border-color: var(--color-brand);
+}
+
+.focused .tile.lit .label {
+  color: var(--color-brand);
 }
 
 .label {
@@ -117,7 +119,7 @@
 }
 
 .name {
-  max-width: 7rem;
+  max-width: 6rem;
   font-family: var(--mantine-font-family-headings);
   font-size: var(--mantine-font-size-md);
   line-height: 1.1;
@@ -175,13 +177,13 @@
 
 .text {
   display: -webkit-box;
-  max-width: 9rem;
+  max-width: 7.5rem;
   overflow: hidden;
   font-size: var(--mantine-font-size-xs);
   line-height: 1.3;
   text-align: start;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
 }
 
 .hub {
@@ -189,14 +191,11 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-lg);
-  border: 1px solid var(--color-brand);
-  border-radius: 999px;
-  background: var(--mantine-color-body);
+  padding: var(--space-xs) var(--space-md);
   font-family: var(--mantine-font-family-headings);
-  font-size: var(--mantine-font-size-lg);
+  font-size: var(--mantine-font-size-xl);
 
-  --art-height: 2rem;
+  --art-height: 2.5rem;
 }
 
 .scaled {
