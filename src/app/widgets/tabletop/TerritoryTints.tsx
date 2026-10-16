@@ -102,22 +102,49 @@ function doubleLineGeometry(segments: readonly (readonly [Readonly<Point>, Reado
 
 type Face = { id: string; center: Point; rings: Point[][]; polar: boolean };
 
+type Segment = readonly [Readonly<Point>, Readonly<Point>];
+const edgeKey = ([a, b]: Segment) => [a.join(), b.join()].sort().join(' ');
+
+/* The outline's stretches along the Polar Sink's own border, apart from the rest, so only they draw above the sink's paint. */
+function splitAtPolarSink(segments: readonly Segment[], faces: readonly Face[]) {
+  const polarEdges = new Set(
+    faces
+      .filter((face) => face.polar)
+      .flatMap((face) => face.rings.flatMap((ring) => ring.slice(1).map((to, i) => edgeKey([ring[i], to]))))
+  );
+  const polar = segments.filter((segment) => polarEdges.has(edgeKey(segment)));
+  return { polar, rest: segments.filter((segment) => !polarEdges.has(edgeKey(segment))) };
+}
+
 /** An outline-only tint: one double line round its territories taken together, the borders between them and the board's rim left out. */
 function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: readonly Face[] }>) {
   const key = tint.territories.join(' ');
-  const polar = faces.some((face) => face.polar && tint.territories.includes(face.id));
-  const geometry = useMemo(() => {
+  const geometries = useMemo(() => {
     const ids = new Set(key.split(' '));
-    return doubleLineGeometry(
-      offRim(outerSegments(faces.filter((face) => ids.has(face.id)).map((face) => face.rings)), CENTER, RADIUS)
+    const tinted = faces.filter((face) => ids.has(face.id));
+    const { polar, rest } = splitAtPolarSink(
+      offRim(outerSegments(tinted.map((face) => face.rings)), CENTER, RADIUS),
+      tinted
     );
+    return [
+      { geometry: doubleLineGeometry(rest), order: TINT_ORDER.line },
+      { geometry: doubleLineGeometry(polar), order: POLAR_TINT_ORDER.line },
+    ];
   }, [faces, key]);
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  return (
-    <mesh geometry={geometry} raycast={ignoreRaycast} renderOrder={(polar ? POLAR_TINT_ORDER : TINT_ORDER).line}>
-      <meshBasicMaterial color={tintPaint(tint.color).color} transparent depthWrite={false} side={DoubleSide} />
-    </mesh>
+  useEffect(
+    () => () => {
+      for (const { geometry } of geometries) {
+        geometry.dispose();
+      }
+    },
+    [geometries]
   );
+  const color = tintPaint(tint.color).color;
+  return geometries.map(({ geometry, order }) => (
+    <mesh key={order} geometry={geometry} raycast={ignoreRaycast} renderOrder={order}>
+      <meshBasicMaterial color={color} transparent depthWrite={false} side={DoubleSide} />
+    </mesh>
+  ));
 }
 
 /* The largest a sticker gets, in table units, and the smallest it shrinks to in a cramped territory. */
