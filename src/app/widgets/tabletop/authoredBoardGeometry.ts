@@ -12,10 +12,8 @@ export function authoredBoardGeometry(board: Board, polarOnly = false) {
     normals: number[] = [],
     uv: number[] = [],
     painted: number[] = [];
-  for (const face of boardTerritories(board)) {
-    if (polarOnly && board.properties[face.key].type !== 'polar') {
-      continue;
-    }
+  const faces = boardTerritories(board).filter((face) => !polarOnly || board.properties[face.key].type === 'polar');
+  for (const face of faces) {
     const rings = face.rings.map((ring) => ring.slice(0, -1).map(([x, y]) => new Vector2(x, y)));
     const flat = rings.flat();
     const color = new Color(colors[board.properties[face.key].type]);
