@@ -1,0 +1,252 @@
+{
+  "pullRequest": {
+    "headRefOid": "a75ef6afaf55e12075c7bd77651560dd84b122cf",
+    "mergeCommit": {
+      "oid": "76ff63efafef3c72af2ed4f277d2b6932c79e8ad"
+    },
+    "mergedAt": "2026-10-16T15:01:28Z",
+    "state": "MERGED",
+    "url": "https://github.com/ndelangen/dunezone/pull/2278"
+  },
+  "ci": {
+    "conclusion": "success",
+    "headSha": "a75ef6afaf55e12075c7bd77651560dd84b122cf",
+    "status": "completed",
+    "url": "https://github.com/ndelangen/dunezone/actions/runs/38918535410"
+  },
+  "checks": [
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117038681636",
+      "name": "ci_ok",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://app.codecov.io/gh/ndelangen/dunezone/pull/2278",
+      "name": "codecov/patch",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://app.codecov.io/gh/ndelangen/dunezone/pull/2278",
+      "name": "codecov/project",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38919060738/job/117033954737",
+      "name": "audit",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032168560",
+      "name": "verify / hosted_play_webgpu (regular)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/runs/117032821023",
+      "name": "Semgrep OSS",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://sourcery.ai",
+      "name": "Sourcery review",
+      "state": "SKIPPED"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/runs/117032417677",
+      "name": "CodeQL",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://app.codacy.com/gh/ndelangen/dunezone/pull-requests/2278",
+      "name": "Codacy Static Code Analysis",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://sonarcloud.io/dashboard?id=ndelangen_dunezone&pullRequest=2278",
+      "name": "SonarCloud Code Analysis",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032169466",
+      "name": "verify / storybook (play-table)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://socket.dev",
+      "name": "Socket Security: Pull Request Alerts",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032168944",
+      "name": "verify / browser_checks",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032168921",
+      "name": "verify / e2e_docker (editor)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032168932",
+      "name": "verify / e2e_docker (factions)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032169000",
+      "name": "verify / generate_and_build",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032169304",
+      "name": "verify / publisher_release",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032168939",
+      "name": "verify / game_release",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032168969",
+      "name": "verify / lint",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032168873",
+      "name": "verify / test",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032168950",
+      "name": "verify / hosted_play (regular)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032169065",
+      "name": "verify / e2e_docker (rulebooks)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032169136",
+      "name": "verify / hosted_play (catalogue)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032169142",
+      "name": "verify / storybook (pages)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032169001",
+      "name": "verify / storybook (components)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032169056",
+      "name": "verify / storybook (play-flows)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535344/job/117032168415",
+      "name": "Semgrep and mutation report",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918535410/job/117032169293",
+      "name": "verify / hosted_play (protocol)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918532757/job/117032163248",
+      "name": "Analyze (javascript-typescript)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://socket.dev/dashboard/org/dunezone/sbom/1e403821-f7a3-4787-a621-ad6321d7deef",
+      "name": "Socket Security: Project Report",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/ndelangen/dunezone/actions/runs/38918532757/job/117032163558",
+      "name": "Analyze (actions)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://codescene.io/projects/83418/delta/results/7988207",
+      "name": "CodeScene Code Health Review (main)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "",
+      "name": "CodeRabbit",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://app.codecov.io/gh/ndelangen/dunezone/pull/2278?dropdown=bundle",
+      "name": "codecov/bundles",
+      "state": "SUCCESS"
+    }
+  ],
+  "astra": {
+    "model": "gpt-6-astra",
+    "reasoningEffort": "high",
+    "behaviorReview": "approved",
+    "standardsReview": "approved",
+    "reviewedHead": "a75ef6afaf55e12075c7bd77651560dd84b122cf"
+  },
+  "mergedTreeMatchesTestedHead": true,
+  "nativeProof": {
+    "backend": "disposable local Convex",
+    "concurrentCreates": 3,
+    "distinctSlugs": [
+      "house-atreides-native-1792160061514",
+      "house-atreides-native-1792160061514-1",
+      "house-atreides-native-1792160061514-2"
+    ],
+    "displayName": "House Atreides Native 1792160061514",
+    "stableSaves": true
+  },
+  "deployment": {
+    "conclusion": "success",
+    "headSha": "76ff63efafef3c72af2ed4f277d2b6932c79e8ad",
+    "status": "completed",
+    "updatedAt": "2026-10-16T15:15:32Z",
+    "url": "https://github.com/ndelangen/dunezone/actions/runs/38920538151"
+  },
+  "productionHealth": [
+    {
+      "url": "https://dune.zone/__asset-publisher/health",
+      "status": 200,
+      "identity": {
+        "gitSha": "76ff63efafef3c72af2ed4f277d2b6932c79e8ad",
+        "workerVersionId": "899d1c61-687f-409a-b583-f8448b56bb5f",
+        "workerVersionTag": "76ff63efafef3c72af2ed4f277d2b6932c79e8ad",
+        "workerVersionTimestamp": "2026-10-16T15:12:44.017993Z",
+        "rendererIdentity": "faction-sheet/sha256:835ceaa9e2adf439c49ef10f329461ab827524ccbc4461fc9459b5766d54930c",
+        "rendererManifestDigest": "835ceaa9e2adf439c49ef10f329461ab827524ccbc4461fc9459b5766d54930c"
+      }
+    },
+    {
+      "url": "https://dune.zone/__play/health",
+      "status": 200,
+      "identity": {
+        "gitSha": "76ff63efafef3c72af2ed4f277d2b6932c79e8ad",
+        "workerVersionId": "4290eb6d-db01-4d2e-99ad-9dee1022a83a",
+        "workerVersionTag": "76ff63efafef3c72af2ed4f277d2b6932c79e8ad"
+      }
+    }
+  ],
+  "liveBrowser": {
+    "url": "https://dune.zone/factions/create",
+    "name": "House Atreides",
+    "saveEnabled": true,
+    "duplicateWarnings": 0,
+    "alternativeNameButtons": 0,
+    "alerts": 0,
+    "saved": false
+  },
+  "preservedPublicUrl": {
+    "url": "https://dune.zone/factions/house-atreides",
+    "headingVisible": true
+  },
+  "verifiedAt": "2026-10-16T15:17:11.196Z"
+}
