@@ -5,8 +5,8 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowLeft } from 'lucide-react';
 
 import { publicPageHead } from '@app/routes/publicPage';
-import { BlogByline } from '@app/widgets/blog-byline/BlogByline';
 
+import { AuthorByline } from '../AuthorByline';
 import { BLOG_POST_BODIES } from '../postBodies';
 import styles from './index.module.css';
 
@@ -57,7 +57,7 @@ function BlogPostPage() {
     <PageLayout>
       <PageLayout.Header size="compact">
         <Stack gap="xs" align="center">
-          <BlogByline date={meta.date} author={author} tone="inverse" />
+          <AuthorByline date={meta.date} author={author} tone="inverse" />
           <PageTitle title={meta.title} />
         </Stack>
       </PageLayout.Header>
