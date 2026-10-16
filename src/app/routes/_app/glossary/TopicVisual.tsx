@@ -1,7 +1,6 @@
 import { VisuallyHidden } from '@mantine/core';
 import type { GlossaryTopic } from '@shared/glossary/terms';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
-import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
@@ -18,6 +17,8 @@ import { card, disc } from '@game/data/sizes';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
 
+import { BoardTeaching } from './BoardTeaching';
+import { useTeachingStep, useTeachingTerm } from './teaching';
 import styles from './TopicVisual.module.css';
 
 const atreides = factionTokenFixtures.atreides;
@@ -42,6 +43,18 @@ const beneGesseritTroop = {
  * A piece of game artwork with the glossary word under it, linking to that word's entry.
  * An `extra` piece drops out when the picture's column is too slim for two pieces side by side.
  */
+/* Terms whose demonstration lights up pieces that carry another term's caption. */
+const DEMONSTRATED_BY: Record<string, readonly string[]> = {
+  battle: ['battle-wheel', 'dialed', 'supported', 'battle-plan'],
+  spice: ['spice-bank', 'spice-reserve'],
+  deal: ['bribe'],
+  'binding-deal': ['bribe'],
+};
+
+function demonstrates(term: string | null, anchor: string) {
+  return term !== null && (term === anchor || (DEMONSTRATED_BY[term]?.includes(anchor) ?? false));
+}
+
 function Piece({
   caption,
   anchor,
@@ -56,8 +69,13 @@ function Piece({
   captionHidden?: boolean;
   children: ReactNode;
 }) {
+  const term = useTeachingTerm();
   return (
-    <a className={clsx(styles.piece, extra && styles.extra)} href={`#${anchor}`}>
+    <a
+      className={clsx(styles.piece, extra && styles.extra)}
+      href={`#${anchor}`}
+      data-demonstrating={demonstrates(term, anchor) || undefined}
+    >
       <span className={styles.art} aria-hidden="true">
         {children}
       </span>
@@ -103,6 +121,25 @@ const PHASES = [
   { name: 'Mentat Pause', icon: '/vector/icon/mentat.svg', ring: true },
 ] as const;
 
+/* The Bene Gesserit troop turns over and back while its term is demonstrated, showing both of its sides. */
+function FlippingTroop() {
+  const flipped = useTeachingStep(useTeachingTerm() === 'flipped-troop', 2, 1200) === 1;
+  return (
+    <span className={styles.flip} data-flipped={flipped || undefined}>
+      <span className={styles.face}>
+        <Disc troop>
+          <TroopToken {...beneGesseritTroop} striped />
+        </Disc>
+      </span>
+      <span className={clsx(styles.face, styles.back)}>
+        <Disc troop>
+          <TroopToken {...beneGesseritTroop} />
+        </Disc>
+      </span>
+    </span>
+  );
+}
+
 function PiecesVisual() {
   return (
     <div className={styles.row}>
@@ -123,12 +160,10 @@ function PiecesVisual() {
         </Disc>
       </Piece>
       <Piece caption="Flipped troop" anchor="flipped-troop">
-        <Disc troop>
-          <TroopToken {...beneGesseritTroop} striped />
-        </Disc>
+        <FlippingTroop />
       </Piece>
       <Piece caption="Reserves" anchor="reserves" extra>
-        <span className={styles.troopStack}>
+        <span className={clsx(styles.troopStack, styles.arriving)}>
           {[0, 1, 2].map((index) => (
             <Disc key={index} troop>
               <TroopToken {...atreidesTroop} />
@@ -156,11 +191,28 @@ function PiecesVisual() {
   );
 }
 
+/* Which phases a turn term lights up at each step of its demonstration. */
+function litPhases(term: string | null, step: number): ReadonlySet<string> {
+  if (term === 'turn') {
+    return new Set(PHASES.slice(0, step + 1).map((phase) => phase.name));
+  }
+  if (term === 'phase') {
+    return new Set([PHASES[step]!.name]);
+  }
+  const named = PHASES.find((phase) => 'anchor' in phase && phase.anchor === term);
+  return new Set(named ? [named.name] : []);
+}
+
+/* A turn fills the strip phase by phase; a phase walks along it one at a time; a phase's own term lights only that phase. */
 function TurnVisual() {
+  const term = useTeachingTerm();
+  const walking = term === 'turn' || term === 'phase';
+  const step = useTeachingStep(walking, term === 'turn' ? PHASES.length + 2 : PHASES.length, 600);
+  const lit = litPhases(term, Math.min(step, PHASES.length - 1));
   return (
-    <ol className={styles.phases}>
+    <ol className={styles.phases} data-demonstrating={lit.size > 0 || undefined}>
       {PHASES.map((phase) => (
-        <li key={phase.name} className={styles.phase}>
+        <li key={phase.name} className={styles.phase} data-lit={lit.has(phase.name) || undefined}>
           {'ring' in phase ? (
             <span className={styles.ring}>
               <Glyph src={phase.icon} />
@@ -250,7 +302,7 @@ function BattleVisual() {
           </span>
         </Piece>
         <Piece caption="Supported with 3 spice" anchor="supported">
-          <SpicePile count={3} />
+          <SpicePile count={3} arriving />
         </Piece>
         <Piece caption="Battle plan: leader" anchor="battle-plan">
           <Disc>
@@ -272,9 +324,9 @@ function BattleVisual() {
   );
 }
 
-function SpicePile({ count }: { count: number }) {
+function SpicePile({ count, arriving = false }: { count: number; arriving?: boolean }) {
   return (
-    <span className={styles.spicePile}>
+    <span className={clsx(styles.spicePile, arriving && styles.arriving)}>
       {Array.from({ length: count }, (_, index) => (
         <img key={index} className={styles.spiceToken} src={SPICE_TOKEN_HREF} alt="" />
       ))}
@@ -282,15 +334,11 @@ function SpicePile({ count }: { count: number }) {
   );
 }
 
-const board = RULEBOOK_BOARD_DEFINITIONS[0]!;
-
 function BoardVisual() {
   return (
-    <img
-      className={styles.board}
-      src={board.imageUrl}
-      alt="The board of Arrakis, divided into sectors and territories"
-    />
+    <div className={styles.board}>
+      <BoardTeaching />
+    </div>
   );
 }
 
@@ -350,13 +398,26 @@ function CardsVisual() {
 
 const BASE_FACTIONS = ['atreides', 'harkonnen', 'emperor', 'fremen', 'guild', 'beneGesserit'] as const;
 
+/* An alliance pairs two factions; a faction term walks through the six base factions one at a time. */
+const ALLIES = new Set(['atreides', 'fremen']);
+
 function FactionsVisual() {
+  const term = useTeachingTerm();
+  const step = useTeachingStep(term === 'faction', BASE_FACTIONS.length, 700);
+  const lit = (faction: (typeof BASE_FACTIONS)[number], index: number) =>
+    term === 'faction' ? index === step : term === 'alliance' ? ALLIES.has(faction) : false;
   return (
-    <div className={styles.factions}>
-      {BASE_FACTIONS.map((faction) => (
-        <Disc key={faction}>
-          <Token {...factionTokenFixtures[faction]} />
-        </Disc>
+    <div
+      className={styles.factions}
+      data-demonstrating={term === 'faction' || term === 'alliance' || undefined}
+      data-allied={term === 'alliance' || undefined}
+    >
+      {BASE_FACTIONS.map((faction, index) => (
+        <span key={faction} className={styles.faction} data-lit={lit(faction, index) || undefined}>
+          <Disc>
+            <Token {...factionTokenFixtures[faction]} />
+          </Disc>
+        </span>
       ))}
     </div>
   );
@@ -370,7 +431,9 @@ function DealsVisual() {
         <Disc>
           <Token {...factionTokenFixtures.harkonnen} />
         </Disc>
-        <SpicePile count={2} />
+        <span className={styles.bribeSpice}>
+          <SpicePile count={2} />
+        </span>
         <Disc>
           <Token {...factionTokenFixtures.atreides} />
         </Disc>

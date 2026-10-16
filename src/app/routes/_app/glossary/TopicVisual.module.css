@@ -261,3 +261,126 @@
     justify-content: center;
   }
 }
+
+/* Teaching: the term a reader points at lights up its pieces in the picture and the rest step back. */
+.piece,
+.phase,
+.faction {
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease,
+    filter 200ms ease;
+}
+
+.stage:has([data-demonstrating]) .piece:not([data-demonstrating]),
+.phases[data-demonstrating] .phase:not([data-lit]),
+.factions[data-demonstrating] .faction:not([data-lit]) {
+  opacity: 0.45;
+}
+
+.piece[data-demonstrating] .art,
+.faction[data-lit] {
+  transform: translateY(-4px) scale(1.04);
+  filter: drop-shadow(0 0 12px rgb(240 180 80 / 55%));
+}
+
+.phase[data-lit] {
+  color: var(--color-brand, var(--color-text));
+}
+
+/* An alliance draws its two factions together. */
+.factions[data-allied] .faction[data-lit]:nth-child(1) {
+  transform: translateX(25%) scale(1.04);
+}
+
+.factions[data-allied] .faction[data-lit]:nth-child(4) {
+  transform: translateX(-25%) scale(1.04);
+}
+
+.flip {
+  display: grid;
+  perspective: 600px;
+}
+
+.face {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+  transition: transform 500ms ease;
+}
+
+.back {
+  transform: rotateY(180deg);
+}
+
+.flip[data-flipped] .face {
+  transform: rotateY(180deg);
+}
+
+.flip[data-flipped] .back {
+  transform: rotateY(360deg);
+}
+
+/* Reserves arrive one by one, and the spice supporting troops drops onto the wheel token by token. */
+@keyframes arrive {
+  0%,
+  10% {
+    opacity: 0;
+    transform: translateY(-40%);
+  }
+
+  35%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+[data-demonstrating] .arriving > * {
+  animation: arrive 2.4s ease-out infinite both;
+}
+
+[data-demonstrating] .arriving > :nth-child(2) {
+  animation-delay: 300ms;
+}
+
+[data-demonstrating] .arriving > :nth-child(3) {
+  animation-delay: 600ms;
+}
+
+/* A bribe's spice passes from the paying faction to the receiving one. */
+@keyframes pass {
+  0%,
+  15% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+
+  45%,
+  75% {
+    transform: none;
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+[data-demonstrating] .bribeSpice {
+  animation: pass 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piece,
+  .phase,
+  .faction,
+  .face {
+    transition: none;
+  }
+
+  [data-demonstrating] .arriving > *,
+  [data-demonstrating] .bribeSpice {
+    animation: none;
+  }
+}

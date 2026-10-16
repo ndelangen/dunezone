@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { publicPageHead } from '@app/routes/publicPage';
 
 import styles from './index.module.css';
+import { TeachingTermContext } from './teaching';
 import { TopicVisual } from './TopicVisual';
 
 export const Route = createFileRoute('/_app/glossary/')({
@@ -85,11 +86,20 @@ function TermBody({ term }: { term: GlossaryTerm }) {
   );
 }
 
-function TermSection({ term }: { term: GlossaryTerm }) {
+/* Pointing at or focusing a term asks its topic's picture to demonstrate it. */
+function TermSection({ term, onTeach }: { term: GlossaryTerm; onTeach: (term: string | null) => void }) {
   return (
-    <Section id={term.id} className={styles.term} title={term.term} action={<SourceBadge term={term} />}>
-      <TermBody term={term} />
-    </Section>
+    <div
+      className={styles.teachable}
+      onMouseEnter={() => onTeach(term.id)}
+      onMouseLeave={() => onTeach(null)}
+      onFocus={() => onTeach(term.id)}
+      onBlur={() => onTeach(null)}
+    >
+      <Section id={term.id} className={styles.term} title={term.term} action={<SourceBadge term={term} />}>
+        <TermBody term={term} />
+      </Section>
+    </div>
   );
 }
 
@@ -97,19 +107,22 @@ type TopicProps = { topic: GlossaryTopic; terms: GlossaryTerm[]; flip: boolean }
 
 /* The topic's picture and its terms side by side on one pane, the picture swapping sides from one topic to the next; on a phone the picture goes and the terms keep the pane. */
 function TopicPane({ topic, terms, flip }: TopicProps) {
+  const [teaching, setTeaching] = useState<string | null>(null);
   return (
     <Surface padding="lg">
       <AsymmetricSplitLayout narrowSide={flip ? 'end' : 'start'} narrowFallback="hide">
         <AsymmetricSplitLayout.Wide>
           <Stack gap="lg">
             {terms.map((term) => (
-              <TermSection key={term.id} term={term} />
+              <TermSection key={term.id} term={term} onTeach={setTeaching} />
             ))}
           </Stack>
         </AsymmetricSplitLayout.Wide>
         <AsymmetricSplitLayout.Narrow>
           <div className={styles.visual}>
-            <TopicVisual topic={topic} />
+            <TeachingTermContext.Provider value={teaching}>
+              <TopicVisual topic={topic} />
+            </TeachingTermContext.Provider>
           </div>
         </AsymmetricSplitLayout.Narrow>
       </AsymmetricSplitLayout>
