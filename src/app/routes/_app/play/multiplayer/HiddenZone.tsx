@@ -6,6 +6,7 @@ import {
   HIDDEN_ZONE_WIDTH,
   hiddenZoneFootprint,
   hiddenZonePieces,
+  hiddenZoneView,
 } from '@shared/play/hiddenZone';
 import type { TablePiece } from '@shared/play/model';
 import { Section } from '@ui/block/Section';
@@ -16,6 +17,9 @@ import type { TableSession, TableProjection } from '../../../../db/tabletop/Tabl
 import { PieceImage, pieceName } from './HandPiece';
 import styles from './HiddenZone.module.css';
 import { HIDDEN_ZONE_HELP } from './panelGuidance';
+
+/* A piece's offset along one side, kept within the zone, or at its start where the piece is larger than the zone. */
+const inside = (offset: number, max: number) => Math.max(0, Math.min(max, offset));
 
 type Props = { client: TableSession; table: TableProjection; hand: TablePiece[] };
 /* A drag inside the zone carries this type beside the hand's own, so a drop on the table still plays the piece. */
@@ -68,7 +72,7 @@ export function HandPieceMenu({
   );
 }
 
-/* The height the panel scrolling the zone shows, so the whole zone fits in view without scrolling, whatever the dock's height. */
+/* The height the panel scrolling the zone shows, so the zone fills the tab without scrolling, whatever the dock's height. */
 function useScrollParentHeight(ref: RefObject<HTMLElement | null>) {
   const [height, setHeight] = useState<number | null>(null);
   useEffect(() => {
@@ -99,11 +103,11 @@ function useScrollParentHeight(ref: RefObject<HTMLElement | null>) {
  * a drag onto the table plays the piece as the hand does.
  */
 export function HiddenZone({ client, table, hand }: Props) {
-  const { ref, width } = useElementSize<HTMLDivElement>();
+  const { ref, width, height } = useElementSize<HTMLDivElement>();
   const grab = useRef<{ dx: number; dy: number } | null>(null);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
   const pieces = hiddenZonePieces(hand);
-  const scale = width / HIDDEN_ZONE_WIDTH;
+  const { scale, extent } = hiddenZoneView(width, height);
   const enabled = table.canHandleTable;
   const frame = useRef<HTMLDivElement>(null);
   const fitHeight = useScrollParentHeight(frame);
@@ -117,10 +121,13 @@ export function HiddenZone({ client, table, hand }: Props) {
     }
     event.preventDefault();
     const bounds = event.currentTarget.getBoundingClientRect();
-    const at = clampHiddenZoneSpot({
-      x: (event.clientX - bounds.left - offset.dx) / bounds.width,
-      y: (event.clientY - bounds.top - offset.dy) / bounds.height,
-    });
+    const at = clampHiddenZoneSpot(
+      {
+        x: (event.clientX - bounds.left - offset.dx) / (HIDDEN_ZONE_WIDTH * scale),
+        y: (event.clientY - bounds.top - offset.dy) / (HIDDEN_ZONE_DEPTH * scale),
+      },
+      extent
+    );
     grab.current = null;
     client.command({ kind: 'hand-zone', pieceId, at });
   };
@@ -131,10 +138,7 @@ export function HiddenZone({ client, table, hand }: Props) {
         <div
           ref={ref}
           className={styles.zone}
-          style={{
-            aspectRatio: `${HIDDEN_ZONE_WIDTH} / ${HIDDEN_ZONE_DEPTH}`,
-            width: fitHeight ? `min(100%, ${(fitHeight * HIDDEN_ZONE_WIDTH) / HIDDEN_ZONE_DEPTH}px)` : '100%',
-          }}
+          style={fitHeight ? { height: fitHeight } : { aspectRatio: `${HIDDEN_ZONE_WIDTH} / ${HIDDEN_ZONE_DEPTH}` }}
           onDragOver={(event) => {
             if (event.dataTransfer.types.includes(ZONE_DRAG)) {
               event.preventDefault();
@@ -148,7 +152,7 @@ export function HiddenZone({ client, table, hand }: Props) {
               Right-click a piece in your hand and choose Move to hidden zone.
             </Text>
           )}
-          {!!width &&
+          {scale > 0 &&
             pieces.map((piece) => {
               const footprint = hiddenZoneFootprint(piece);
               const pieceWidth = footprint.width * scale;
@@ -163,8 +167,9 @@ export function HiddenZone({ client, table, hand }: Props) {
                   role="button"
                   tabIndex={0}
                   style={{
-                    left: spot.x * width - pieceWidth / 2,
-                    top: spot.y * HIDDEN_ZONE_DEPTH * scale - pieceDepth / 2,
+                    /* Kept whole in view: a piece laid out in a roomier tab sits at this one's edge until moved. */
+                    left: inside(spot.x * HIDDEN_ZONE_WIDTH * scale - pieceWidth / 2, width - pieceWidth),
+                    top: inside(spot.y * HIDDEN_ZONE_DEPTH * scale - pieceDepth / 2, height - pieceDepth),
                     width: pieceWidth,
                     height: pieceDepth,
                   }}

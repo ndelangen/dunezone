@@ -91,7 +91,13 @@ const storedItemSchema = z.object({
 });
 
 /** A spot in a faction's hidden zone: a piece's centre as fractions of the zone's width and depth. */
-export const hiddenZoneSpotSchema = z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) });
+/** How many standard patches the hidden zone reaches each way, at most. */
+export const HIDDEN_ZONE_SPOT_MAX = 8;
+/* A spot in the hidden zone, in fractions of its standard patch; past 1 where a roomier tab shows more of the zone. */
+export const hiddenZoneSpotSchema = z.object({
+  x: z.number().min(0).max(HIDDEN_ZONE_SPOT_MAX),
+  y: z.number().min(0).max(HIDDEN_ZONE_SPOT_MAX),
+});
 
 /** A piece as the game Worker stores it: every item with artwork carries its type. */
 export const storedPieceSchema = z.object({
