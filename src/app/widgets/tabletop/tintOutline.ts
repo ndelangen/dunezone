@@ -3,7 +3,10 @@ type Segment = readonly [Point, Point];
 
 /* Neighbouring territories trace their shared border through the same points; this rounding absorbs float noise. */
 const pointKey = ([x, y]: Point) => `${x.toFixed(3)},${y.toFixed(3)}`;
-const segmentKey = (a: Point, b: Point) => [pointKey(a), pointKey(b)].sort().join('|');
+function segmentKey(a: Point, b: Point) {
+  const [from, to] = [pointKey(a), pointKey(b)];
+  return from < to ? `${from}|${to}` : `${to}|${from}`;
+}
 
 /** The edges round a group of territories taken as one shape: every border segment but those two of them share. */
 export function outerSegments(territories: readonly (readonly (readonly Point[])[])[]): Segment[] {
