@@ -10,6 +10,7 @@ import {
   TextInput,
   useCombobox,
 } from '@mantine/core';
+import { matchAsset, searchTerms } from '@ui/control/assetSearch';
 import { useCallback, useMemo, useState } from 'react';
 
 import { useAssetsByTypes } from '@app/db/assets';
@@ -107,10 +108,13 @@ export function AssetPicker({
     return filter ? offered.filter((row) => filter(row)) : offered;
   }, [catalogue.data, excludeIds, filter]);
 
-  const query = search.trim().toLocaleLowerCase();
-  const filteredRows = query
-    ? availableRows.filter((row) => assetPickerSearchText(row).toLocaleLowerCase().includes(query))
-    : availableRows;
+  const terms = searchTerms(search);
+  /* Near misses of a name follow rows containing every typed word. */
+  const filteredRows = availableRows
+    .map((row) => ({ row, match: matchAsset(terms, { label: row.name, keywords: assetPickerSearchText(row) }) }))
+    .filter(({ match }) => match > 0)
+    .sort((a, b) => b.match - a.match)
+    .map(({ row }) => row);
 
   const rowsById = useMemo(() => new Map(availableRows.map((row) => [String(row.id), row])), [availableRows]);
 
