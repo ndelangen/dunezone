@@ -37,7 +37,7 @@ import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.webp?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
-import { POLAR_SINK_RENDER_ORDER } from './boardRenderOrder';
+import { POLAR_SINK_RENDER_ORDER, STORM_OUTLINE_RENDER_ORDER, STORM_SECTOR_RENDER_ORDER } from './boardRenderOrder';
 import {
   BOARD_RIM_COLOR,
   BOARD_RIM_DEPTH,
@@ -333,7 +333,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
       <mesh
         position={[0, BOARD_SURFACE_Y + 0.002, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
-        renderOrder={-2}
+        renderOrder={STORM_SECTOR_RENDER_ORDER}
         raycast={ignoreRaycast}
       >
         {/* The storm's sides meet at the board's centre, under the Polar Sink, which is drawn above it. */}
@@ -352,7 +352,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
         geometry={outlineGeometry}
         position={[0, BOARD_SURFACE_Y + 0.003, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
-        renderOrder={1}
+        renderOrder={STORM_OUTLINE_RENDER_ORDER}
         raycast={ignoreRaycast}
       >
         <lineBasicMaterial
