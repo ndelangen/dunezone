@@ -52,6 +52,7 @@ function coverBox(box: Box, alignX: number): Box {
 }
 
 interface Parts {
+  frame: HTMLElement;
   band: HTMLElement;
   media: HTMLElement;
   navigation: HTMLElement;
@@ -83,6 +84,136 @@ function keyframesFor(parts: Parts, box: Box, view: Box) {
   };
 }
 
+/* The band's grow and shrink for one mounted frame, driven by the immersive page's events. */
+class BandMotion {
+  private running: Animation[] = [];
+  private unwinding = false;
+  /* The band's height in the page flow, read after every resize so a grow knows the box it leaves even though the band has already restyled by then. */
+  private restingHeight: number;
+  private readonly resting: ResizeObserver | null;
+
+  constructor(
+    private readonly parts: Parts,
+    private readonly motionAllowed: () => boolean
+  ) {
+    this.restingHeight = parts.band.getBoundingClientRect().height;
+    this.resting = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(this.measureResting);
+    this.resting?.observe(parts.band);
+    parts.frame.addEventListener(IMMERSIVE_ENTER_EVENT, this.enter);
+    parts.frame.addEventListener(IMMERSIVE_LEAVE_EVENT, this.leave);
+  }
+
+  dispose() {
+    this.parts.frame.removeEventListener(IMMERSIVE_ENTER_EVENT, this.enter);
+    this.parts.frame.removeEventListener(IMMERSIVE_LEAVE_EVENT, this.leave);
+    this.resting?.disconnect();
+    this.stop();
+  }
+
+  private readonly measureResting = () => {
+    const { band } = this.parts;
+    if (getComputedStyle(band).position !== 'absolute') {
+      this.restingHeight = band.getBoundingClientRect().height;
+    }
+  };
+
+  private readonly stop = () => {
+    for (const animation of this.running) {
+      animation.cancel();
+    }
+    this.running = [];
+  };
+
+  /* Restyles the band with its everyday height transition held off, so a switch between window-sized and resting lands at once. */
+  private restyle(change: () => void) {
+    const { band } = this.parts;
+    band.style.transition = 'none';
+    change();
+    void getComputedStyle(band).height;
+    band.style.transition = '';
+  }
+
+  private play(box: Box, from: Box, to: Box, done: () => void) {
+    const { band, media, navigation } = this.parts;
+    const start = keyframesFor(this.parts, box, from);
+    const end = keyframesFor(this.parts, box, to);
+    const options: KeyframeAnimationOptions = { duration: DURATION_MS, easing: EASING, fill: 'both' };
+    this.running = [
+      band.animate([start.band, end.band], options),
+      media.animate([start.media, end.media], options),
+      navigation.animate([start.navigation, end.navigation], options),
+    ];
+    this.running[0].finished.then(done, () => {});
+  }
+
+  /* Ends a shrink: the band drops back into the flow at the size the animation ended on, and its shadow fades back in. */
+  private readonly settle = () => {
+    if (!this.unwinding) {
+      return;
+    }
+    const { frame, band } = this.parts;
+    this.unwinding = false;
+    this.restyle(() => frame.removeAttribute('data-band-unwinding'));
+    frame.style.removeProperty('grid-template-rows');
+    this.stop();
+    const shadow = getComputedStyle(band).boxShadow;
+    if (shadow !== 'none') {
+      band.animate([{ boxShadow: shadow.replace(/rgba?\([^)]*\)/, 'transparent') }, { boxShadow: shadow }], 250);
+    }
+  };
+
+  private readonly enter = () => {
+    this.settle();
+    this.stop();
+    if (!this.motionAllowed()) {
+      return;
+    }
+    const frameBox = pageBox(this.parts.frame);
+    const from = { x: frameBox.x, y: frameBox.y, width: frameBox.width, height: this.restingHeight };
+    const box = pageBox(this.parts.band);
+    this.play(box, from, box, this.stop);
+  };
+
+  private readonly leave = () => {
+    this.stop();
+    if (!this.motionAllowed()) {
+      return;
+    }
+    this.unwinding = true;
+    this.parts.frame.setAttribute('data-band-unwinding', '');
+    /* The arriving page mounts later in this same commit; once it has, the band can read the resting box it shrinks to. */
+    queueMicrotask(this.shrink);
+  };
+
+  private readonly shrink = () => {
+    const { frame, band } = this.parts;
+    if (!this.unwinding || !band.isConnected) {
+      return;
+    }
+    const box = pageBox(band);
+    let to = box;
+    this.restyle(() => {
+      frame.removeAttribute('data-band-unwinding');
+      to = pageBox(band);
+      frame.setAttribute('data-band-unwinding', '');
+    });
+    /* Out of the flow, the band no longer holds its row open, so the row keeps the height it is shrinking to and the arriving page stays put. */
+    frame.style.setProperty('grid-template-rows', `${to.height}px auto`);
+    this.play(box, box, to, this.settle);
+  };
+}
+
+function findParts(frame: HTMLElement | null, band: HTMLElement | null, media: HTMLElement | null): Parts | null {
+  if (!frame || !band) {
+    return null;
+  }
+  const navigation = band.querySelector('nav');
+  if (!media || !navigation) {
+    return null;
+  }
+  return typeof band.animate === 'function' ? { frame, band, media, navigation } : null;
+}
+
 /** Runs the band's grow and shrink whenever an immersive page arrives or leaves the frame. */
 export function useBandMotion(
   frameRef: RefObject<HTMLElement | null>,
@@ -96,125 +227,11 @@ export function useBandMotion(
   }, [motionOk]);
 
   useEffect(() => {
-    const frame = frameRef.current;
-    const band = bandRef.current;
-    const media = mediaRef.current;
-    const navigation = band?.querySelector('nav');
-    if (!frame || !band || !media || !navigation || typeof band.animate !== 'function') {
+    const parts = findParts(frameRef.current, bandRef.current, mediaRef.current);
+    if (!parts) {
       return;
     }
-    const parts: Parts = { band, media, navigation };
-
-    /* The band's height in the page flow, read after every resize so a grow knows the box it leaves even though the band has already restyled by then. */
-    let restingHeight = band.getBoundingClientRect().height;
-    const resting =
-      typeof ResizeObserver === 'undefined'
-        ? null
-        : new ResizeObserver(() => {
-            if (getComputedStyle(band).position !== 'absolute') {
-              restingHeight = band.getBoundingClientRect().height;
-            }
-          });
-    resting?.observe(band);
-
-    let running: Animation[] = [];
-    let unwinding = false;
-
-    const stop = () => {
-      for (const animation of running) {
-        animation.cancel();
-      }
-      running = [];
-    };
-
-    /* Restyles the band with its everyday height transition held off, so a switch between window-sized and resting lands at once. */
-    const restyle = (change: () => void) => {
-      band.style.transition = 'none';
-      change();
-      void getComputedStyle(band).height;
-      band.style.transition = '';
-    };
-
-    const play = (box: Box, from: Box, to: Box, done: () => void) => {
-      const start = keyframesFor(parts, box, from);
-      const end = keyframesFor(parts, box, to);
-      const options: KeyframeAnimationOptions = {
-        duration: DURATION_MS,
-        easing: EASING,
-        fill: 'both',
-      };
-      running = [
-        band.animate([start.band, end.band], options),
-        media.animate([start.media, end.media], options),
-        navigation.animate([start.navigation, end.navigation], options),
-      ];
-      running[0].finished.then(done, () => {});
-    };
-
-    /* Ends a shrink: the band drops back into the flow at the size the animation ended on, and its shadow fades back in. */
-    const settle = () => {
-      if (!unwinding) {
-        return;
-      }
-      unwinding = false;
-      restyle(() => frame.removeAttribute('data-band-unwinding'));
-      frame.style.removeProperty('grid-template-rows');
-      stop();
-      const shadow = getComputedStyle(band).boxShadow;
-      if (shadow !== 'none') {
-        band.animate([{ boxShadow: shadow.replace(/rgba?\([^)]*\)/, 'transparent') }, { boxShadow: shadow }], 250);
-      }
-    };
-
-    const enter = () => {
-      settle();
-      stop();
-      if (!motionRef.current) {
-        return;
-      }
-      const frameBox = pageBox(frame);
-      const from = {
-        x: frameBox.x,
-        y: frameBox.y,
-        width: frameBox.width,
-        height: restingHeight,
-      };
-      const box = pageBox(band);
-      play(box, from, box, stop);
-    };
-
-    const leave = () => {
-      stop();
-      if (!motionRef.current) {
-        return;
-      }
-      unwinding = true;
-      frame.setAttribute('data-band-unwinding', '');
-      /* The arriving page mounts later in this same commit; once it has, the band can read the resting box it shrinks to. */
-      queueMicrotask(() => {
-        if (!unwinding || !band.isConnected) {
-          return;
-        }
-        const box = pageBox(band);
-        let to = box;
-        restyle(() => {
-          frame.removeAttribute('data-band-unwinding');
-          to = pageBox(band);
-          frame.setAttribute('data-band-unwinding', '');
-        });
-        /* Out of the flow, the band no longer holds its row open, so the row keeps the height it is shrinking to and the arriving page stays put. */
-        frame.style.setProperty('grid-template-rows', `${to.height}px auto`);
-        play(box, box, to, settle);
-      });
-    };
-
-    frame.addEventListener(IMMERSIVE_ENTER_EVENT, enter);
-    frame.addEventListener(IMMERSIVE_LEAVE_EVENT, leave);
-    return () => {
-      frame.removeEventListener(IMMERSIVE_ENTER_EVENT, enter);
-      frame.removeEventListener(IMMERSIVE_LEAVE_EVENT, leave);
-      resting?.disconnect();
-      stop();
-    };
+    const motion = new BandMotion(parts, () => motionRef.current);
+    return () => motion.dispose();
   }, [frameRef, bandRef, mediaRef]);
 }
