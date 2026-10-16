@@ -2,8 +2,9 @@ import { z } from 'zod';
 
 import { TERRITORY_NAME_LIMIT } from '../boards/schema';
 import { actionKindGuard } from './actionKinds';
+import { CLIENT_MESSAGE_LIMIT } from './messageLimit';
 import { GameRejection } from './rejection';
-import { CLIENT_MESSAGE_LIMIT, tableIdSchema as id } from './schema';
+import { tableIdSchema as id } from './schema';
 
 /** The colours a tint can take, in the order the panel offers them. */
 export const TINT_COLORS = ['#2f7fe0', '#d63a2a', '#3fae4a', '#9450d0', '#f2f2f2', '#1b1b1b'] as const;

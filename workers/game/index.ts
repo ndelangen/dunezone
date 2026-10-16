@@ -28,6 +28,7 @@ import {
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
+import { CLIENT_MESSAGE_LIMIT } from '../../src/shared/play/messageLimit';
 import type {
   ClientMessage,
   CommitMessage,
@@ -48,7 +49,7 @@ import {
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
-import { CLIENT_MESSAGE_LIMIT, rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import type { SetupState } from '../../src/shared/play/setup';
