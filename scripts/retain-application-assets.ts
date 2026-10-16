@@ -6,16 +6,34 @@ import {
   retainApplicationAssets,
 } from './lib/application-assets';
 import { inspectPublisherAssets } from './lib/publisher-assets';
+import { TransientError, describeError, retryTransient } from './retry-transient';
 
 const origin = 'https://dune.zone';
 const directory = path.resolve(import.meta.dir, '../workers/publisher/dist');
 const nonce = Date.now();
+const RETRY_DELAYS_MS = [2000, 4000, 8000];
+/* A 429, a 5xx or a dropped connection from the live site is transport, not a missing asset, so it is retried before the release stops. */
 const request = (pathname: string) =>
-  fetch(`${origin}/${pathname}?retention=${nonce}`, {
-    headers: { 'Cache-Control': 'no-cache' },
-    redirect: 'error',
-    signal: AbortSignal.timeout(30_000),
-  });
+  retryTransient(
+    async () => {
+      let response: Response;
+      try {
+        response = await fetch(`${origin}/${pathname}?retention=${nonce}`, {
+          headers: { 'Cache-Control': 'no-cache' },
+          redirect: 'error',
+          signal: AbortSignal.timeout(30_000),
+        });
+      } catch (error) {
+        throw new TransientError(describeError(error));
+      }
+      if (response.status === 429 || response.status >= 500) {
+        await response.body?.cancel();
+        throw new TransientError(`HTTP ${response.status}`);
+      }
+      return response;
+    },
+    { subject: pathname, delaysMs: RETRY_DELAYS_MS }
+  );
 const readAsset = async (assetPath: string): Promise<Uint8Array> => {
   const response = await request(assetPath);
   if (!response.ok || response.headers.get('Content-Type')?.includes('text/html')) {

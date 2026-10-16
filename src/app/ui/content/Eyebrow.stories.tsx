@@ -18,7 +18,7 @@ export const Accent = meta.story({
   args: { tone: 'accent' },
 });
 
-/** For dark hero artwork, where both other tones would disappear. */
+/** Pure white with a drop shadow, for text laid over header artwork. */
 export const Inverse = meta.story({
   args: { tone: 'inverse' },
 });

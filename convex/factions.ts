@@ -47,7 +47,6 @@ import type { MutationCtx, QueryCtx } from './types';
 
 /**
  * Who holds this address: a living faction, a soft-deleted one whose slug stays reserved, or nobody.
- * One rule read twice, the assets convention: the save guard refuses on it and the editor's name probe subscribes to it, so the warning and the refusal can never disagree.
  * `exceptId` is the faction doing the asking, so renaming a faction never trips over its own address.
  */
 async function factionSlugHolder(
@@ -65,35 +64,18 @@ async function factionSlugHolder(
   return existing.is_deleted ? 'deleted' : 'live';
 }
 
-/** The faction editor's live name-conflict check, the save guard's rule as a subscription. */
+/** Retained for older browser bundles and the Storybook seat resolver; new editors allow repeated names. */
 export const slugTaken = publicQuery({
   args: { slug: v.string() },
   returns: v.union(v.literal('live'), v.literal('deleted'), v.null()),
   handler: async (ctx, args) => (args.slug === 'create' ? null : await factionSlugHolder(ctx, args.slug)),
 });
 
-async function assertFactionSlugAvailable(ctx: MutationCtx, slug: string, factionId?: Id<'factions'>) {
-  /* ConvexError, so the words reach the editor's banner in production rather than being redacted to "Server Error". */
-  const holder = await factionSlugHolder(ctx, slug, factionId);
-  if (holder === 'live') {
-    throw new ConvexError(`The name is taken: another faction already lives at "${slug}". Pick a different name.`);
-  }
-  if (holder === 'deleted') {
-    throw new ConvexError(`The name is taken: "${slug}" stays reserved by a deleted faction. Pick a different name.`);
-  }
-}
-
 async function resolveFactionSlug(ctx: MutationCtx, name: string, own?: Doc<'factions'>) {
   const base = slugify(name);
-  if (base !== 'create') {
-    await assertFactionSlugAvailable(ctx, base, own?._id);
-    return base;
-  }
-  /* The creation route owns the base; keep an allocated address on later saves, and repair legacy holders of the base. */
-  if (own) {
-    if (slugify(own.data.name) === base && own.slug !== base) {
-      return own.slug;
-    }
+  /* Keep existing suffixes on ordinary saves, including after the plain address becomes free. */
+  if (own && slugify(own.data.name) === base && own.slug !== 'create') {
+    return own.slug;
   }
   return await allocateCounterSlug(ctx, `faction-slug:${JSON.stringify([base])}`, base, async (slug) => {
     if (slug === 'create') {

@@ -1032,23 +1032,52 @@ async function tableInstalled(who: HostedPeer) {
     });
   await installed.dispose();
 }
+/*
+ * The camera's view transition and wheel glide both run on elapsed time, under a second together, so a slower renderer settles them in fewer frames.
+ * A projection still changing after this many frames therefore comes from a camera that never stops, however fast the page draws.
+ */
+const SETTLE_FRAME_LIMIT = 300;
+/*
+ * A homepage frame on CI's software renderer took up to 5.8 s for the member and 17 s for the observer (runs 38781866071, 38784395719 and 38816593150).
+ * A wall-clock budget of 10 s then covered as few as four frames, and the member's camera, which had not moved, failed to settle.
+ * So the wait is counted in frames, and time bounds only a page that stops drawing.
+ */
+const STALLED_FRAME_MS = 60_000;
 /**
  * In the page: the projection once three reads, each two frames apart, agree;
  * `remounted` when the table uninstalled `window.__duneTable` meanwhile;
- * the frames drawn and the last reads, with the page's scroll, when the camera kept moving until `timeoutMs`.
- * A failure then shows whether the camera moved, the page scrolled or too few frames were drawn.
- * The camera eases to a newly focused view over several frames, and a software renderer draws them slowly.
+ * otherwise why it gave up (`moving` after `frameLimit` frames, or `stalled` when two frames took `stalledMs`), with the frames drawn and the last reads and the page's scroll.
+ * A failure then shows whether the camera moved, the page scrolled or the page stopped drawing.
  */
-async function settledProjection({ value, timeoutMs }: { value: Vector3Tuple; timeoutMs: number }) {
-  const deadline = performance.now() + timeoutMs;
+async function settledProjection({
+  value,
+  frameLimit,
+  stalledMs,
+}: {
+  value: Vector3Tuple;
+  frameLimit: number;
+  stalledMs: number;
+}) {
   const read = () => window.__duneTable?.worldToScreen(value);
   const agree = (a: Point, b: Point) => Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5;
+  const twoFrames = () =>
+    new Promise<boolean>((resolve) => {
+      const stall = setTimeout(() => resolve(false), stalledMs);
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          clearTimeout(stall);
+          resolve(true);
+        })
+      );
+    });
   let previous = read();
   let agreeing = 0;
   let frames = 0;
   const recent: { x: number; y: number; scrollY: number }[] = [];
-  while (previous && agreeing < 2 && performance.now() < deadline) {
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  while (previous && agreeing < 2 && frames < frameLimit) {
+    if (!(await twoFrames())) {
+      return { reason: 'stalled' as const, frames, recent };
+    }
     frames += 2;
     const current = read();
     agreeing = current && agree(current, previous) ? agreeing + 1 : 0;
@@ -1061,7 +1090,7 @@ async function settledProjection({ value, timeoutMs }: { value: Vector3Tuple; ti
   if (!previous) {
     return 'remounted';
   }
-  return agreeing === 2 ? previous : { frames, recent };
+  return agreeing === 2 ? previous : { reason: 'moving' as const, frames, recent };
 }
 /**
  * The page coordinates of a table position, projected through the camera the page renders once that camera has settled.
@@ -1070,13 +1099,21 @@ async function settledProjection({ value, timeoutMs }: { value: Vector3Tuple; ti
 async function point(who: HostedPeer, position: Vector3Tuple) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     await tableInstalled(who);
-    const settled = await who.page.evaluate(settledProjection, { value: position, timeoutMs: 10_000 });
+    const settled = await who.page.evaluate(settledProjection, {
+      value: position,
+      frameLimit: SETTLE_FRAME_LIMIT,
+      stalledMs: STALLED_FRAME_MS,
+    });
     if (settled === 'remounted') {
       continue;
     }
-    if ('frames' in settled) {
+    if ('reason' in settled) {
+      const cause =
+        settled.reason === 'moving'
+          ? `${who.label}'s camera kept moving for ${settled.frames} frames`
+          : `${who.label}'s page drew no two frames within ${STALLED_FRAME_MS / 1000} s after ${settled.frames} frames`;
       throw new Error(
-        `${who.label}'s camera did not settle within 10 s, so the table position has no stable page point; ${settled.frames} frames, last reads ${JSON.stringify(settled.recent)}.`
+        `${cause}, so the table position has no stable page point; last reads ${JSON.stringify(settled.recent)}.`
       );
     }
     return settled;

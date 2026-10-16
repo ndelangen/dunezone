@@ -14,6 +14,8 @@ type ProfileLinkBase = {
   image?: ProfileEntry['avatar_url'];
   className?: string;
   style?: CSSProperties;
+  /** `inverse` sets the name in pure white with a drop shadow, for a link laid over header artwork. */
+  tone?: 'default' | 'inverse';
 };
 
 /*
@@ -32,8 +34,19 @@ export type ProfileLinkProps = ProfileLinkBase &
  * this owns how a person is cited anywhere in the app: the avatar (or its initials fallback) always present, the name beside it unless the context is too tight (`showName`), the whole thing one link.
  * It exists so every mention of a contributor looks and navigates identically.
  */
-export const ProfileLink = ({ slug, name, image, className, style, title, showName = true }: ProfileLinkProps) => {
-  const afterAvatar = showName ? <span className={styles.username}>{name}</span> : null;
+export const ProfileLink = ({
+  slug,
+  name,
+  image,
+  className,
+  style,
+  title,
+  showName = true,
+  tone = 'default',
+}: ProfileLinkProps) => {
+  const afterAvatar = showName ? (
+    <span className={clsx(styles.username, tone === 'inverse' && styles.inverse)}>{name}</span>
+  ) : null;
 
   return (
     <Link

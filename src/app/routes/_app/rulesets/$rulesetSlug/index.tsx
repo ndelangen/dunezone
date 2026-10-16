@@ -372,9 +372,9 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
       name: loaderData?.ruleset.name ?? 'Ruleset',
       kind: loaderData ? 'Ruleset' : undefined,
       pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}`,
-      description:
-        publicDescription(loaderData?.ruleset.about) ||
-        `Explore ${loaderData?.ruleset.name ?? 'this ruleset'} and its published Rulebooks.`,
+      description: loaderData
+        ? publicDescription(loaderData.ruleset.about) || 'Read its published Rulebooks and rules questions.'
+        : '',
       image: loaderData?.ruleset.coverThumbUrl,
       social: { shape: 'portrait' },
       trail: [{ name: 'Rulesets', pathname: '/rulesets' }],
