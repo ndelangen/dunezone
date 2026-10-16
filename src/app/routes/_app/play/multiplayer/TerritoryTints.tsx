@@ -224,7 +224,10 @@ function useTintRemoval(client: TableSession, tintId: string) {
       }
     };
     settle();
-    return client.subscribe(settle);
+    const stop = client.subscribe(settle);
+    return () => {
+      stop();
+    };
   }, [client, commandId]);
   const remove = () => {
     const sent = client.command({ kind: 'tint-remove', tintId });
