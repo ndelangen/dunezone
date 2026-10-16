@@ -266,10 +266,16 @@ export const ConversationHistory = meta.story({
     await waitFor(() =>
       expect(loadedHistory.scrollHeight - loadedHistory.scrollTop - loadedHistory.clientHeight).toBeLessThan(8)
     );
-    await waitFor(() =>
-      expect(
-        session.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 55)
-      ).toBe(true)
+    /*
+     * The read receipt follows an IntersectionObserver entry for the history's end marker, and the browser delivers those only while it updates the rendering of a frame.
+     * No wait can draw that frame, and the runner has gone more than nine seconds without one, so this wait takes a bound longer than the default ten seconds.
+     */
+    await waitFor(
+      () =>
+        expect(
+          session.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 55)
+        ).toBe(true),
+      { timeout: 30_000 }
     );
     session.transport.deliver({
       type: 'conversations',
