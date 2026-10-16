@@ -75,26 +75,20 @@ function remoteViewOf(
   };
 }
 
-/* The pieces now resting on a carried plate that were not on it when it was picked up, as the room leaves them behind on its drop. */
+/* The pieces now resting on a carried plate that were not on it when it was picked up, as the room leaves them behind on its drop; a carry the room has not described yet keeps all it covers. */
 function lateRiders(
   rested: readonly TablePiece[],
   inHand: ReadonlySet<string>,
   pickupRiders: ReadonlyMap<string, ReadonlySet<string>>
 ): string[] {
   return [...ridersOf(rested, inHand)]
-    .filter(([riderId, plateId]) => !pickupRiders.get(plateId)?.has(riderId))
+    .filter(([riderId, plateId]) => pickupRiders.get(plateId)?.has(riderId) === false)
     .map(([riderId]) => riderId);
 }
 
-/* What rode each carried plate when it was first seen in a hand, kept while it stays carried; a plate newly in a hand takes what rests on it now. */
-function pickupRidersFor(
-  carried: ReadonlySet<string>,
-  rested: readonly TablePiece[],
-  known: ReadonlyMap<string, ReadonlySet<string>>
-): ReadonlyMap<string, ReadonlySet<string>> {
-  return new Map(
-    [...carried].map((plateId) => [plateId, known.get(plateId) ?? new Set(ridersOf(rested, new Set([plateId])).keys())])
-  );
+/* What rode each carried plate when it was picked up, by the plate's id, as the room says in each carry. */
+function pickupRidersOf(carries: readonly PublicCarry[]): ReadonlyMap<string, ReadonlySet<string>> {
+  return new Map(carries.flatMap((carry) => (carry.riderIds ? [[carry.held.id, new Set(carry.riderIds)]] : [])));
 }
 
 /* The stacks a carry takes from: the one it was picked up from, and any it took more from on the way. */
@@ -431,7 +425,6 @@ export class TableSession {
   private hoveredId: string | null = null;
   private carry: LocalCarry | null = null;
   private carries: PublicCarry[] = [];
-  private pickupRiders: ReadonlyMap<string, ReadonlySet<string>> = new Map();
   private pointers: PublicPointer[] = [];
   private flipping = new Map<string, number>();
   private readonly pendingFlips = new Map<string, string>();
@@ -901,21 +894,8 @@ export class TableSession {
     }
   };
   private remoteView(pieces: TablePiece[], carries: PublicCarry[], rested: TablePiece[]) {
-    return remoteViewOf(pieces, carries, rested, { own: this.carry, pickupRiders: this.pickupRiders });
-  }
-
-  /* What rode each carried plate when this page first saw it in a hand, kept until the carry ends, as the room keeps it for the drop. */
-  private notePickupRiders() {
-    if (!this.viewer || !this.snapshot) {
-      return;
-    }
-    const carries = this.activityForView().carries;
-    const rested = tableForViewer(this.snapshot, this.viewer.viewerSeat).pieces;
-    const carried = new Set(carries.map((carry) => carry.held.id));
-    if (this.carry) {
-      carried.add(this.carry.draft.pieceId);
-    }
-    this.pickupRiders = pickupRidersFor(carried, rested, this.pickupRiders);
+    /* The live carries, this page's own among them, even while history is shown. */
+    return remoteViewOf(pieces, carries, rested, { own: this.carry, pickupRiders: pickupRidersOf(this.carries) });
   }
 
   private activityForView() {
@@ -1259,7 +1239,6 @@ export class TableSession {
       this.droppedCarryNotice = null;
     }
     this.reconcileCarry();
-    this.notePickupRiders();
   }
   /* A drop already sent may or may not have landed, so it asks the player to look; a drop still waiting to go out never left the hand, and one the server confirmed needs no notice. */
   private noteEndedCarry(notice: { held: string; placing: string }) {
@@ -1500,7 +1479,6 @@ export class TableSession {
       draft.pieceId = carryPieceId(id);
     }
     this.carry = { id, sourceId, draft, granted: false };
-    this.notePickupRiders();
     this.selectedId = draft.pieceId;
     this.error = null;
     this.send({

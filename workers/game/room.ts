@@ -26,6 +26,7 @@ import {
 } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { pointerRiders } from '../../src/shared/play/pointerRiders';
+import { isPointerToken } from '../../src/shared/play/pointerToken';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
 import type {
   ClientMessage,
@@ -86,8 +87,8 @@ type Carry = Identity & {
   seq: number;
   beginPayload: string;
   takes: Map<string, string>;
-  /* What rode the carried piece when it was picked up; only a plate has riders. */
-  riders: ReadonlySet<string>;
+  /* What rode the carried plate when it was picked up; nothing for any other piece. */
+  riders?: ReadonlySet<string>;
 };
 type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
@@ -316,10 +317,10 @@ export class Room {
     return draft;
   }
 
-  private ridersOn(identity: Identity, pieceId: string): ReadonlySet<string> {
+  private ridersOn(identity: Identity, pieceId: string): ReadonlySet<string> | undefined {
     const pieces = tableForViewer(this.snapshot, identity.viewerSeat).pieces;
     const plate = pieces.find((piece) => piece.id === pieceId);
-    return new Set(plate ? pointerRiders(pieces, plate).map((rider) => rider.id) : []);
+    return plate && isPointerToken(plate) ? new Set(pointerRiders(pieces, plate).map((rider) => rider.id)) : undefined;
   }
 
   /*
@@ -329,7 +330,7 @@ export class Room {
   private lateRiders(state: TableState, carry: Carry): ReadonlySet<string> {
     const plate = state.pieces.find((piece) => piece.id === carry.draft.sourcePieceId);
     const riders = plate ? pointerRiders(state.pieces, plate) : [];
-    return new Set(riders.filter((rider) => !carry.riders.has(rider.id)).map((rider) => rider.id));
+    return new Set(riders.filter((rider) => !carry.riders?.has(rider.id)).map((rider) => rider.id));
   }
 
   private assertCarryHistory(identity: Identity, input: CarryInput<'begin'>) {
@@ -1126,6 +1127,7 @@ export class Room {
         held,
         withdrawnCounts: this.withdrawnCounts(carry),
         reservedIds: [...carry.versions.keys()],
+        ...(carry.riders ? { riderIds: [...carry.riders] } : {}),
         expiresAt: carry.lastSeen + 8000,
         sourceSeq: carry.seq,
       },

@@ -2392,8 +2392,10 @@ describe('a plate another player carries', () => {
     const snapshot = withPlate();
     const plate = snapshot.table.pieces.find((piece) => piece.id === 'hms')!;
     const free = snapshot.table.pieces.find((piece) => piece.id === 'free')!;
-    const carried = [carry('alice', { ...plate, position: [-2, 0.38, -1] }, ['hms'])];
-    socket().deliver(view({ snapshot, carries: carried }));
+    /* The room says what rode the plate when it was picked up; a page that joins later learns it from the carry. */
+    const carried = [
+      { ...carry('alice', { ...plate, position: [-2, 0.38, -1] }, ['hms']), riderIds: ['free', 'held-from'] },
+    ];
     const late: TablePiece = {
       ...free,
       id: 'late',

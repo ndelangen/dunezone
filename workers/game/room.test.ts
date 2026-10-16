@@ -756,6 +756,7 @@ describe('a pointer token carrying riders', () => {
   test('leaves behind a troop set down where it lay while it was carried', () => {
     const { room, troop, begin, piece } = plateRoom([1.5, 0, -1], 'late-item');
     begin(alice, 'alice-moves-plate', 'hms');
+    expect(room.publicCarries().find((carry) => carry.id === 'alice-moves-plate')?.riderIds).toEqual([]);
     begin(bob, 'bob-moves-troop', troop.id);
     room.accept(room.drop(bob, 'bob-moves-troop', { position: [0, 0.38, 1], orientation: 0 }), 'bob-moves-troop');
     const landed = piece(troop.id);
