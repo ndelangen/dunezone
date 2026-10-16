@@ -394,7 +394,11 @@ const CUSTOM_CARD_MAX_COMPOSITION_BYTES = 262_144;
 
 /** A token's current front, resolved separately from the card's stored references. */
 export const CustomCardToken = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.enum(['token-disc', 'token-tech', 'token-plate']), name: z.string(), face: TokenFace }),
+  z.strictObject({
+    type: z.enum(['token-disc', 'token-tech', 'token-plate', 'token-pointer']),
+    name: z.string(),
+    face: TokenFace,
+  }),
   z.strictObject({ type: z.literal('token-enhance'), name: z.string(), face: RectangleTokenFace }),
 ]);
 export const CustomCardTokens = z.record(z.string(), CustomCardToken.nullable());

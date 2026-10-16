@@ -108,6 +108,7 @@ export const COMPONENT_ASSET_TYPES = [
   'token-disc',
   'token-tech',
   'token-plate',
+  'token-pointer',
   'token-enhance',
 ] as const;
 export type ComponentAssetType = (typeof COMPONENT_ASSET_TYPES)[number];

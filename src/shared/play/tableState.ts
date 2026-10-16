@@ -8,6 +8,7 @@ import {
 } from './factionToken';
 import { gestureBlockReason, isFlippablePiece, nearestZone, pieceCount, zoneById } from './model';
 import type { DraftMove, TableEvent, TableItem, TablePiece, TableState, Vector3Tuple } from './model';
+import { placementRules, withRidersCarried } from './pointerRiders';
 import { isSpicePiece } from './spice';
 import { isSpiceBankPosition } from './spiceBank';
 import { moveStormCounterclockwise } from './stormSector';
@@ -427,13 +428,18 @@ function settleMoveAtPosition(
       orientation: placementAnchor.orientation,
     };
     const anchoredPosition = restingPositionAt(placementAnchor.position, anchoredPiece);
-    if (!isOverlapFreePosition(anchoredPiece, anchoredPosition, placementObstaclesFor(state, draft))) {
+    const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
+    if (
+      !isOverlapFreePosition(anchoredPiece, anchoredPosition, rules.obstacles) ||
+      !rules.fits(anchoredPosition, placementAnchor.orientation)
+    ) {
       return null;
     }
     return { ...moveDraftTo(draft, anchoredPosition, null), orientation: placementAnchor.orientation };
   }
   const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece));
-  const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, placementObstaclesFor(state, draft));
+  const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
+  const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, rules.obstacles, rules.fits);
   if (!resolvedPosition) {
     return null;
   }
@@ -741,7 +747,9 @@ function piecesAfterMove(current: TableState, draft: DraftMove, movedPiece: Tabl
   if (draft.withdrawals.length) {
     return [...piecesWithoutHeld(current, draft, movedPiece), movedPiece];
   }
-  return current.pieces.map((candidate) => (candidate.id === movedPiece.id ? movedPiece : candidate));
+  return withRidersCarried(current.pieces, movedPiece).map((candidate) =>
+    candidate.id === movedPiece.id ? movedPiece : candidate
+  );
 }
 
 /* A faction token set down in a sector another token holds trades places with it: that token takes the sector the carried one came from. */
