@@ -8,7 +8,6 @@
  * a name reads in the Actions UI where a number would not.
  * A list that is written by hand can miss a file, and a spec that no shard runs is a green run that proves nothing, so this gate reads the directory and the lists together.
  *
- * it is never listed.
  * `E2E_SHARDS_ROOT` names another root, which the test uses to point the gate at fixtures, as the CSS gates do with theirs.
  */
 import { readdir, readFile, stat } from 'node:fs/promises';

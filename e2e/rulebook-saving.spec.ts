@@ -240,9 +240,7 @@ test('a clean saved draft publishes the next Edition without waiting for HTML or
   await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
   await expect(publish).toBeEnabled();
 
-  /* Held, not clicked: a click publishes nothing. */
-  await publish.click();
-  await expect(page.getByText('The new Edition is now current.')).toHaveCount(0);
+  /* Held, not clicked. That a click publishes nothing is the ReleasedEarly story's to prove: a count of zero read here passes before any publish could land. */
   await holdToPublish(publish);
   await expect(page.getByText('The new Edition is now current.')).toBeVisible();
   await expect(page.getByRole('button', { name: /^Publish Edition/ })).toBeDisabled();
