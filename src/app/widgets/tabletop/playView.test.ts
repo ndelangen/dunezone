@@ -39,8 +39,8 @@ describe('table views', () => {
     expect(pose.target[0]).toBe(0);
     expect(pose.target[1]).toBe(0.1);
     expect(scale).toBeGreaterThan(0.85);
-    /* A square canvas is held back by the frame's width, seats' troop reserves included. */
-    expect(scale).toBeLessThan(1.05);
+    /* A square canvas is held back by the frame: its width, seats' troop reserves included, and the raised battle beacon. */
+    expect(scale).toBeLessThan(1.1);
     expect((pose.position[1] - pose.target[1]) / (pose.position[2] - pose.target[2])).toBeCloseTo(9.4 / 11.2);
   });
 
