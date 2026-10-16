@@ -20,6 +20,7 @@ import type {
   PublicCarry,
   PublicPointer,
   ServerMessage,
+  PingSound,
   TablePing,
 } from '@shared/play/protocol';
 import { isRemovalAction } from '@shared/play/removal';
@@ -611,9 +612,10 @@ export class TableSession {
    * Pings the table where the cursor is, for everyone, and answers whether the ping key was used.
    * It was not when there is no cursor on the table, or the connection cannot carry pings, as on the homepage's table.
    * A ping sooner than the interval after the last is skipped, though the key still counts as used.
+   * A `sound` plays instead of the usual tone, for everyone.
    */
-  ping = (): boolean => {
-    const ping = this.pingHere();
+  ping = (sound?: PingSound): boolean => {
+    const ping = this.pingHere(sound);
     if (!ping) {
       return false;
     }
@@ -621,7 +623,7 @@ export class TableSession {
     if (now - this.pingedAt < TABLE_PING_INTERVAL_MS) {
       return true;
     }
-    if (!this.send({ type: 'ping', position: ping.position })) {
+    if (!this.send({ type: 'ping', position: ping.position, ...(sound && { sound }) })) {
       return false;
     }
     this.pingedAt = now;
@@ -629,7 +631,7 @@ export class TableSession {
     return true;
   };
   /* This page's ping on the table surface under its cursor, while it has a cursor on the table and may act. */
-  private pingHere(): TablePing | null {
+  private pingHere(sound: PingSound | undefined): TablePing | null {
     if (!this.canAct()) {
       return null;
     }
@@ -638,7 +640,7 @@ export class TableSession {
       return null;
     }
     const { connectionId, viewerSeat, displayName, color } = viewer;
-    return { connectionId, viewerSeat, displayName, color, position: this.pingPoint };
+    return { connectionId, viewerSeat, displayName, color, position: this.pingPoint, ...(sound && { sound }) };
   }
   /* A ping changes nothing on the table, so it skips the update every other message makes. */
   private receivePing(ping: TablePing) {

@@ -363,6 +363,52 @@ describe('Tab pings', () => {
     expect(controls.ping).not.toHaveBeenCalled();
   });
 
+  test('held for three seconds pings once more, with the rumble', () => {
+    const { controls } = table();
+
+    tab('keydown');
+    vi.advanceTimersByTime(2999);
+    expect(controls.ping.mock.calls).toEqual([[]]);
+    vi.advanceTimersByTime(1);
+    vi.advanceTimersByTime(5000);
+    expect(controls.ping.mock.calls).toEqual([[], ['fart']]);
+  });
+
+  test('let go, or the page left, before three seconds, rumbles nothing', () => {
+    const { controls } = table();
+
+    tab('keydown');
+    vi.advanceTimersByTime(2000);
+    tab('keyup');
+    tab('keydown');
+    vi.advanceTimersByTime(2000);
+    window.dispatchEvent(new Event('blur'));
+    vi.advanceTimersByTime(5000);
+
+    expect(controls.ping.mock.calls).toEqual([[], []]);
+  });
+
+  test('Cmd pressed during the hold rumbles nothing, as macOS may never send the Tab keyup', () => {
+    const { controls } = table();
+
+    tab('keydown');
+    vi.advanceTimersByTime(1000);
+    key('keydown', { key: 'Meta', code: 'MetaLeft', metaKey: true });
+    vi.advanceTimersByTime(5000);
+
+    expect(controls.ping.mock.calls).toEqual([[]]);
+  });
+
+  test('a press off the table never rumbles', () => {
+    const { controls } = table();
+    controls.ping.mockReturnValue(false);
+
+    tab('keydown');
+    vi.advanceTimersByTime(5000);
+
+    expect(controls.ping).toHaveBeenCalledTimes(1);
+  });
+
   test('pings over a button clicked a moment ago, which keeps the focus', () => {
     const { controls } = table();
     const button = document.body.appendChild(document.createElement('button'));
