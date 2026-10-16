@@ -178,10 +178,11 @@ export class TableKeyboard {
   }
 
   private keyDown = (event: KeyboardEvent) => {
-    /* macOS sends no keyup for a key let go while Cmd is down, so Cmd lets go of a held pan or draw rather than leave it running. */
+    /* macOS sends no keyup for a key let go while Cmd is down, so Cmd lets go of a held pan, draw or rumble rather than leave it running. */
     if (event.key === 'Meta') {
       this.releasePan();
       this.cancelDraw();
+      this.releasePing();
       this.releaseRotation();
     }
     const controls = this.binding?.read();

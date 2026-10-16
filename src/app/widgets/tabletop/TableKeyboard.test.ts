@@ -388,6 +388,17 @@ describe('Tab pings', () => {
     expect(controls.ping.mock.calls).toEqual([[], []]);
   });
 
+  test('Cmd pressed during the hold rumbles nothing, as macOS may never send the Tab keyup', () => {
+    const { controls } = table();
+
+    tab('keydown');
+    vi.advanceTimersByTime(1000);
+    key('keydown', { key: 'Meta', code: 'MetaLeft', metaKey: true });
+    vi.advanceTimersByTime(5000);
+
+    expect(controls.ping.mock.calls).toEqual([[]]);
+  });
+
   test('a press off the table never rumbles', () => {
     const { controls } = table();
     controls.ping.mockReturnValue(false);
