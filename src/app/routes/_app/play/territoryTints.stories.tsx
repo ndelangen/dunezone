@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
 import { applyTerritoryTint, isTerritoryTintAction } from '@shared/play/territoryTints';
+import type { TerritoryTintAction } from '@shared/play/territoryTints';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { openPanel } from './controls.stories.fixture';
@@ -60,6 +61,14 @@ function tintedSnapshot(): GameSnapshot {
 /** The table as the Worker runs it, refusals included, so painting can be tried by hand; refuseCreate refuses every new tint, as a full table would, and refuseRemove every removal. */
 function liveTransport(start: GameSnapshot, { refuseCreate = false, refuseRemove = false } = {}) {
   let snapshot = start;
+  const refuse = (action: TerritoryTintAction) => {
+    if (refuseCreate && action.kind === 'tint-create') {
+      throw new Error('The table holds at most 12 tints. Remove one first.');
+    }
+    if (refuseRemove && action.kind === 'tint-remove') {
+      throw new Error('That tint is already gone.');
+    }
+  };
   const transport = productTransport(VIEWER, snapshot, {
     receive: (message: ClientMessage) => {
       if (message.type !== 'command' || !isTerritoryTintAction(message.action)) {
@@ -68,12 +77,7 @@ function liveTransport(start: GameSnapshot, { refuseCreate = false, refuseRemove
       const { action, commandId } = message;
       queueMicrotask(() => {
         try {
-          if (refuseCreate && action.kind === 'tint-create') {
-            throw new Error('The table holds at most 12 tints. Remove one first.');
-          }
-          if (refuseRemove && action.kind === 'tint-remove') {
-            throw new Error('That tint is already gone.');
-          }
+          refuse(action);
           const { tints } = applyTerritoryTint(snapshot.tints ?? [], action);
           snapshot = { ...snapshot, revision: snapshot.revision + 1, tints };
           transport.deliver(transport.view(snapshot, commandId));
