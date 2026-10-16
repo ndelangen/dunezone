@@ -8,6 +8,18 @@ function words(value: string) {
   return value.replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+/** Display names for stock files whose saved file name is misspelled; saved identifiers never change. */
+const assetNames: Record<string, string> = {
+  '/image/leader/official/dryeuh.png': 'Dr. Yueh',
+  '/image/leader/official/nafud.png': 'Nefud',
+  '/image/leader/official/uman.png': 'Umman Kudu',
+  '/image/leader/official/guildrep.png': 'Guild Rep',
+  '/image/leader/official/ctair.png': "C'Tair",
+  '/image/leader/official/rhombor.jpg': 'Rhombur',
+  '/image/leader/official/whitemore-bludd.png': 'Whitmore Bludd',
+  '/image/leader/official/smuggler2.png': 'Smuggler 2',
+};
+
 const vectorCategories: Record<string, string> = {
   logo: 'Emblems',
   generic: 'General symbols',
@@ -56,7 +68,7 @@ export function stockAssetOptions(values: readonly string[]) {
       return {
         value,
         glyphPreview: value.startsWith('/vector/') && !value.includes('-multicolor'),
-        label: words(name),
+        label: assetNames[value] ?? words(name),
         collection: group,
         keywords: `${group} ${collection?.keywords ?? ''} ${value}`,
       };
