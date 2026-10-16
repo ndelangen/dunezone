@@ -13,11 +13,7 @@ import { TtsColorsEditor } from './TtsColorsEditor';
 
 const logoSelectOptions = stockAssetOptions(logoOptions);
 
-/**
- * The control that renders in the name's place, supplied by the route.
- * The route supplies the owner-only rename capability; the widget owns the form binding.
- * The form binding stays in the section, so the caller supplies a control rather than learning this form's API.
- */
+/** The route supplies owner-only renaming; the section binds the control to its form. */
 export type FactionIdentityNameField = (props: {
   value: string;
   onChange: (name: string) => void;
