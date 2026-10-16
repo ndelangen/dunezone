@@ -32,20 +32,10 @@ function freshName(color: (typeof TINT_COLORS)[number], tints: readonly Territor
 
 /**
  * A brush that outlived this player's right to change the table, or a tint the table had and no longer has, is put down.
- * A tint this page just made is not on the table yet, so its brush waits for it, unless the table refused to make it.
+ * A tint this page just made is not on the table yet, so its brush waits for it until the table has answered (`settled`).
  */
-function brushOutlived(
-  brush: TerritoryBrush | null,
-  canEdit: boolean,
-  tints: readonly TerritoryTint[],
-  seen: ReadonlySet<string>,
-  creating: boolean
-) {
-  if (!brush) {
-    return false;
-  }
-  const onTable = tints.some((tint) => tint.id === brush.tintId);
-  return !canEdit || (!onTable && (seen.has(brush.tintId) || !creating));
+function brushOutlived(brush: TerritoryBrush, canEdit: boolean, tints: readonly TerritoryTint[], settled: boolean) {
+  return !canEdit || (settled && tints.every((tint) => tint.id !== brush.tintId));
 }
 
 /** What a row says under the tint's name: painting, its one territory, or how many it covers. */
@@ -195,7 +185,7 @@ function useTintBrush(client: TableSession, canEdit: boolean, tints: readonly Te
     for (const tint of tints) {
       seen.current.add(tint.id);
     }
-    if (brush && brushOutlived(brush, canEdit, tints, seen.current, creating(brush.tintId))) {
+    if (brush && brushOutlived(brush, canEdit, tints, seen.current.has(brush.tintId) || !creating(brush.tintId))) {
       setTerritoryBrush(null);
     }
   });
