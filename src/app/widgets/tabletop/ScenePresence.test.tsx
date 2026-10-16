@@ -1,9 +1,10 @@
 /* @vitest-environment jsdom */
 
 import type { Vector3Tuple } from '@shared/play/model';
+import type { PublicPointer } from '@shared/play/protocol';
 import { act, cleanup, render } from '@testing-library/react';
 import { useCallback } from 'react';
-import { Group, PerspectiveCamera, Scene } from 'three';
+import { Group, PerspectiveCamera, Scene, Vector3 } from 'three';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { ScenePresence } from './ScenePresence';
@@ -14,13 +15,23 @@ import { PlatePosesProvider, useTablePose } from './useTablePose';
 const scheduler = vi.hoisted(() => ({
   frames: new Set<(state: unknown, delta: number) => void>(),
   three: {} as Record<string, unknown>,
+  invalidations: 0,
+}));
+const presence = vi.hoisted(() => ({
+  pointers: [] as PublicPointer[],
+  listeners: new Set<() => void>(),
 }));
 
 vi.mock('@react-three/fiber/webgpu', async () => {
   const { useLayoutEffect } = await import('react');
   return {
     useThree: (select?: (state: Record<string, unknown>) => unknown) => {
-      const state = { invalidate: () => {}, ...scheduler.three };
+      const state = {
+        invalidate: () => {
+          scheduler.invalidations += 1;
+        },
+        ...scheduler.three,
+      };
       return select ? select(state) : state;
     },
     useFrame: (callback: (state: unknown, delta: number) => void) => {
@@ -42,10 +53,14 @@ vi.mock('./TabletopContext', () => {
     viewer: { color: '#abcdef', avatarUrl: '' },
   };
   const commands = { publishPointer: () => {} };
-  const pointers: never[] = [];
   const actions = {
-    subscribePointers: () => () => {},
-    getPointers: () => pointers,
+    subscribePointers: (listener: () => void) => {
+      presence.listeners.add(listener);
+      return () => {
+        presence.listeners.delete(listener);
+      };
+    },
+    getPointers: () => presence.pointers,
   };
   return {
     useTabletopSelector: (select: (value: typeof table) => unknown) => select(table),
@@ -58,6 +73,10 @@ afterEach(() => {
   cleanup();
   scheduler.frames.clear();
   scheduler.three = {};
+  scheduler.invalidations = 0;
+  presence.pointers = [];
+  presence.listeners.clear();
+  document.body.replaceChildren();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
   Reflect.deleteProperty(document, 'elementFromPoint');
@@ -363,10 +382,15 @@ function renderPresence(showLocal = false) {
   camera.updateMatrixWorld();
   const canvas = document.createElement('canvas');
   canvas.getBoundingClientRect = () => new DOMRect(100, 50, 800, 400);
+  const area = document.createElement('div');
+  area.append(canvas);
+  document.body.append(area);
   scheduler.three = {
     camera,
     renderer: { domElement: canvas },
     scene: new Scene(),
+    size: { width: 800, height: 400, top: 50, left: 100 },
+    events: {},
   };
   Object.defineProperty(document, 'elementFromPoint', {
     configurable: true,
@@ -419,6 +443,113 @@ describe('the viewer cursor', () => {
     cleanup();
     expect(canvas.style.getPropertyValue('--table-hand-cursor')).toBe('');
     expect(document.querySelector('[data-table-hand=local]')).toBeNull();
+  });
+});
+
+describe("another player's hand", () => {
+  const animationFrames: FrameRequestCallback[] = [];
+  let now = 0;
+  beforeEach(() => {
+    animationFrames.length = 0;
+    now = 0;
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => animationFrames.push(callback));
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+    vi.stubGlobal('devicePixelRatio', 1);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const point = (positions: Vector3Tuple[]) => {
+    act(() => {
+      presence.pointers = positions.map((position) => ({
+        connectionId: 'other',
+        viewerSeat: 'harkonnen',
+        displayName: 'Bob',
+        color: '#bbcf87',
+        position,
+        updatedAt: 0,
+      }));
+      for (const listener of presence.listeners) {
+        listener();
+      }
+    });
+  };
+  /* Runs the hands' own animation frames at 60 fps until they stop asking for one or the count runs out, and says how many ran. */
+  const runAnimationFrames = (count: number) => {
+    let ran = 0;
+    while (ran < count && animationFrames.length > 0) {
+      now += 1000 / 60;
+      for (const frame of animationFrames.splice(0)) {
+        frame(now);
+      }
+      ran += 1;
+    }
+    return ran;
+  };
+  const runSceneFrame = () => {
+    act(() => {
+      for (const callback of scheduler.frames) {
+        callback({}, 1 / 60);
+      }
+    });
+  };
+  /* The element placed over the canvas, which holds the label's wrapper and the label. */
+  const handElement = () =>
+    document.querySelector<HTMLElement>('[data-table-hand=remote]')?.parentElement?.parentElement ?? null;
+  const screenX = () => Number(handElement()?.style.transform.match(/translate3d\(([-\d.]+)px/)?.[1]);
+
+  test('is placed over the canvas where its pointer is, stacked as the scene placed it', () => {
+    renderPresence();
+    point([[0, 0, 0]]);
+    runAnimationFrames(1);
+    const element = handElement();
+    expect(element?.parentElement?.querySelector('canvas')).not.toBeNull();
+    expect(element?.style.transform).toBe('translate3d(400px,200px,0) scale(1)');
+    /* Ten units from a camera whose range is 0.1 to 100, in the hands' z-index range of 6 down to 0. */
+    expect(element?.style.zIndex).toBe(`${Math.round((-6 / 99.9) * 10 + (6 / 99.9) * 100)}`);
+    expect(element?.firstElementChild).toHaveProperty('style.pointerEvents', 'none');
+  });
+
+  test('glides to each new place in its own frames, without drawing the scene, and then stops', () => {
+    const camera = renderPresence();
+    point([[0, 0, 0]]);
+    runAnimationFrames(1);
+    const invalidations = scheduler.invalidations;
+    const unit = new Vector3(1, 0, 0).project(camera).x * 400;
+    const amount = 1 - Math.exp(-24 / 60);
+    point([[1, 0, 0]]);
+    /* The first frame after the hands were still counts for no longer than the last frame they ran, and none had run yet. */
+    runAnimationFrames(1);
+    expect(screenX()).toBe(400);
+    runAnimationFrames(1);
+    expect(screenX()).toBe(Math.round(400 + unit * amount));
+    expect(runAnimationFrames(120)).toBeLessThan(120);
+    expect(animationFrames).toHaveLength(0);
+    expect(screenX()).toBe(Math.round(400 + unit));
+    point([[2, 0, 0]]);
+    runAnimationFrames(1);
+    expect(screenX()).toBe(Math.round(400 + unit + unit * amount));
+    expect(scheduler.invalidations).toBe(invalidations);
+  });
+
+  test('follows the camera in the scene frames', () => {
+    const camera = renderPresence();
+    point([[0, 0, 0]]);
+    runAnimationFrames(1);
+    camera.position.set(1, 0, 10);
+    runSceneFrame();
+    expect(screenX()).toBeLessThan(399);
+    expect(animationFrames).toHaveLength(0);
+  });
+
+  test('is hidden while it is behind the camera, and goes when its pointer does', () => {
+    renderPresence();
+    point([[0, 0, 20]]);
+    runAnimationFrames(1);
+    expect(handElement()?.style.display).toBe('none');
+    point([]);
+    expect(document.querySelector('[data-table-hand=remote]')).toBeNull();
   });
 });
 
