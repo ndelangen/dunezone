@@ -5,6 +5,7 @@
  * `.storybook/static/.assetsignore` leaves them out of the upload, and `run_worker_first` sends only those prefixes here.
  * Each GET or HEAD is fetched from https://dune.zone, which answers them from R2 at the same paths, so stories keep loading images from their own origin and the CSP stays `img-src 'self'`.
  * A fetch from one Custom Domain Worker to another on the same zone invokes that Worker without a service binding.
+ * A connection that drops before an answer arrives is retried once, since a GET or HEAD is safe to repeat and one lost connection would otherwise break the image.
  * Every other path never reaches this code, and anything that does is handed back to the static assets.
  */
 const MEDIA_ORIGIN = 'https://dune.zone';
@@ -26,6 +27,11 @@ export default {
       return new Response(null, { status: 405, headers: { Allow: 'GET, HEAD' } });
     }
     /* Only the path and query cross over: Storybook sends no credentials, and the application Worker needs none. */
-    return await fetch(`${MEDIA_ORIGIN}${url.pathname}${url.search}`, { method: request.method });
+    const target = `${MEDIA_ORIGIN}${url.pathname}${url.search}`;
+    try {
+      return await fetch(target, { method: request.method });
+    } catch {
+      return await fetch(target, { method: request.method });
+    }
   },
 };
