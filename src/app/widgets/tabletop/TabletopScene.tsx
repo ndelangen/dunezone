@@ -267,6 +267,14 @@ function SittingOutSign() {
   );
 }
 
+/* Under printed art the plain face wears the piece's own colour: the art's anti-aliased rim lets it through where the disc's corners reach the image's edge, and a light accent there drew a dotted ring. */
+function plainTokenFaceColor(piece: TablePiece, faceUp: boolean, printed: boolean) {
+  if (printed) {
+    return piece.color;
+  }
+  return faceUp ? piece.accent : '#261c18';
+}
+
 function TokenFace({
   piece,
   faceUp,
@@ -287,13 +295,8 @@ function TokenFace({
     <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
       {href && <PublishedFace href={href} card={false} ratio={ratio} />}
       {blocked && <SittingOutSign />}
-      {/* Under printed art the plain face wears the piece's own colour: the art's anti-aliased rim lets it through where the disc's corners reach the image's edge, and a light accent there drew a dotted ring. */}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={tokenFaceGeometry(meshes, ratio)}>
-        <meshStandardMaterial
-          color={href ? piece.color : faceUp ? piece.accent : '#261c18'}
-          roughness={0.5}
-          metalness={0.08}
-        />
+        <meshStandardMaterial color={plainTokenFaceColor(piece, faceUp, !!href)} roughness={0.5} metalness={0.08} />
       </mesh>
       {!faceUp && !piece.items[itemIndex]?.artwork ? (
         <mesh
