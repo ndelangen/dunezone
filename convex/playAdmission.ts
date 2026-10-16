@@ -269,7 +269,8 @@ function playAccountState(user: Doc<'users'>) {
         : ('active' as const);
 }
 
-async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: string) {
+async function accountEntry(ctx: QueryCtx, game: Doc<'play_games'>, userId: string) {
+  const gameId = game._id;
   /*
    * A synthetic backend vouches for the placeholders that took its provisioned games to Turn 1 (#1594).
    * No other backend has any.
@@ -297,9 +298,9 @@ async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: str
     /*
      * The Worker seats the creator when it provisions the game, before any ticket of theirs creates routing.
      * Answering `unknown` there would have the Worker unseat them at the first other admission.
+     * Deletion fan-out follows routing, so such a creator learns of a deletion only at the next reconciliation.
      */
-    const game = await ctx.db.get(gameId);
-    if (game && id === (game.creator_actor_id ?? game.creator_id)) {
+    if (id === (game.creator_actor_id ?? game.creator_id)) {
       return {
         userId,
         state: playAccountState(user),
@@ -324,7 +325,7 @@ export const reconcileAccounts = readyGameQuery({
   schema: playReconcileAccountsRequestSchema,
   handler: async (ctx, { game, args }) => ({
     ok: true as const,
-    accounts: await Promise.all(args.userIds.map((id) => accountEntry(ctx, game._id, id))),
+    accounts: await Promise.all(args.userIds.map((id) => accountEntry(ctx, game, id))),
   }),
 });
 

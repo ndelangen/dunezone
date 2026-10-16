@@ -125,6 +125,29 @@ describe('Play account deletion', () => {
     });
   });
 
+  test('a creator merged away before entering still answers as the account they were merged into', async () => {
+    const subject = await createdGame();
+    const targetId = await subject.t.run(async (ctx) => {
+      const targetId = await ctx.db.insert('users', { account_state: 'active' });
+      await ctx.db.patch(subject.userId, { merged_into_user_id: targetId, account_state: 'deleted' });
+      await ctx.db.patch(subject.game._id, { creator_id: targetId, creator_actor_id: subject.userId });
+      return targetId;
+    });
+    expect(
+      await subject.t.query(api.playAdmission.reconcileAccounts, {
+        gameId: subject.game._id,
+        secret: subject.game.secret,
+        userIds: [subject.userId, targetId],
+      })
+    ).toEqual({
+      ok: true,
+      accounts: [
+        { userId: subject.userId, state: 'active', deletionOperationId: null },
+        { userId: targetId, state: 'unknown', deletionOperationId: null },
+      ],
+    });
+  });
+
   test('confirmation suspends the registered session and supplies deletion reconciliation before notification delivery', async () => {
     const subject = await fixture();
     const { operationId } = await subject.player.mutation(api.accountDeletion.confirm, { replacementUserId: null });
