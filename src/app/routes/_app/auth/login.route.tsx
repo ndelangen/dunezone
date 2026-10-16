@@ -175,8 +175,8 @@ function LoginPage() {
       <PageLayout.Header size="immersive">
         {profile.data ? (
           <>
-            <PageTitle eyebrow="Welcome back" title={profile.data.username ?? 'Player'} />
-            <Text className={styles.lead}>You are already signed in.</Text>
+            <PageTitle eyebrow="Welcome back" title="You're signed in" />
+            <Text className={styles.lead}>Good to see you again, {profile.data.username ?? 'Player'}.</Text>
             <div className={styles.actions}>
               <Button
                 component={Link}
