@@ -52,13 +52,13 @@ test('the special rule name round-trips as an optional override and reaches shee
     }
 
     const sheet = FactionRender.sheet.parse(job.asset_data.faction);
-    for (const faction of [page.faction.data, stored?.data, sheet]) {
-      expect(faction?.rules.fate).toEqual({ ...authoredRule, ...(label ? { label } : {}) });
-      expect(factionSpecialRuleLabel(faction?.rules.fate.label)).toBe(
-        label === 'fate' ? 'Fate' : 'Faction Special Karama'
-      );
-    }
-    expect(updated.data.rules.fate.text).toBe(authoredRule.text);
-    expect(updated.data.rules.fate.title).toBe(authoredRule.title);
+    const expectedRule = { ...authoredRule, ...(label ? { label } : {}) };
+    expect([updated.data.rules.fate, page.faction.data.rules.fate, stored?.data.rules.fate, sheet.rules.fate]).toEqual([
+      expectedRule,
+      expectedRule,
+      expectedRule,
+      expectedRule,
+    ]);
+    expect(factionSpecialRuleLabel(sheet.rules.fate.label)).toBe(label === 'fate' ? 'Fate' : 'Faction Special Karama');
   }
 });
