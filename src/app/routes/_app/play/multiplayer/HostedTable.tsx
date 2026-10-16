@@ -847,7 +847,7 @@ function tableTab({ client, table, error }: ConnectionControlsProps): PanelTab {
               key: 'settings',
               label: 'Settings',
               topic: 'controls' as const,
-              description: 'Game length and bidding time.',
+              description: 'Game length.',
               content: withTableError(error, <TableSettings client={client} table={table} />),
             },
           ]

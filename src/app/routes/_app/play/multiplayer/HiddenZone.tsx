@@ -204,7 +204,7 @@ export function HiddenZone({ client, table, hand }: Props) {
             setMenu(null);
           }}
         >
-          Move to inventory
+          Move to hand
         </Menu.Item>
       </HandPieceMenu>
     </Section>
