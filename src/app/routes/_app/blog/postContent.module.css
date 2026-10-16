@@ -1,13 +1,57 @@
+/*
+ * The opening paragraph reads like the first page of a book chapter:
+ * a drop cap in the headings' face, a first line in spaced small caps, and a short rule that closes it off from the body.
+ */
 .lead {
   margin: 0;
   font-size: var(--mantine-font-size-xl);
-  line-height: 1.55;
+  line-height: 1.6;
+}
+
+.lead::first-letter {
+  float: left;
+  margin: 0.04em 0.1em 0 0;
+  font-family: var(--mantine-font-family-headings);
+  font-size: 3.5em;
+  font-weight: 700;
+  line-height: 0.9;
+}
+
+.lead::first-line {
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+.lead::after {
+  content: "";
+  display: block;
+  clear: both;
+  width: 6rem;
+  height: 1px;
+  margin: var(--space-lg) auto 0;
+  background: currentColor;
+  opacity: 0.35;
 }
 
 .paragraph {
   margin: 0;
   font-size: var(--mantine-font-size-lg);
   line-height: 1.7;
+}
+
+/* A link in running text keeps the text's size, and is underlined so it reads as a link without relying on colour. */
+.lead a,
+.paragraph a {
+  font-size: inherit;
+  line-height: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.lead a:hover,
+.paragraph a:hover {
+  text-decoration-thickness: 2px;
 }
 
 .figure {
