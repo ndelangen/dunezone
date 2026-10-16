@@ -31,7 +31,7 @@ import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPub
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-import { useFactionNameField } from '../factionNameField';
+import { factionNameField } from '../factionNameField';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode } => {
@@ -102,13 +102,9 @@ function FactionEditPage() {
       }
     },
   });
-  const { nameField, conflictWarnings } = useFactionNameField({
-    currentSlug: faction.slug,
-    canRename: viewerAccess.capabilities.rename,
-  });
-  const allWarnings = [...authoring.editing.warnings, ...conflictWarnings];
+  const nameField = factionNameField(viewerAccess.capabilities.rename);
   const validationHeader = useEditPageHeader({
-    warnings: allWarnings,
+    warnings: authoring.editing.warnings,
     onFocusWarning: (warning) => viewRef.current?.focusWarning(warning),
   });
   const backToFaction = (
@@ -266,7 +262,7 @@ function FactionEditPage() {
             form={authoring.form}
             errors={authoring.persistence.errors}
             isNameBlank={authoring.editing.isNameBlank}
-            warnings={allWarnings}
+            warnings={authoring.editing.warnings}
             onSettle={validationHeader.settle}
             backgroundModeMemory={authoring.backgroundModeMemory}
             onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}

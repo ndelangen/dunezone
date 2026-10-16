@@ -22,9 +22,6 @@ export const factionAuthoringChapters = [
 
 export type FactionAuthoringChapterId = (typeof factionAuthoringChapters)[number]['id'];
 
-/**
- * The two shapes `ValidationHeader` already accepts, which is why this union rather than a `missing` string alone: most gaps are an absence ("missing a name"), but a name conflict is a whole complaint about a value that is present.
- */
 export type FactionAuthoringWarning = {
   path: string;
   chapter: FactionAuthoringChapterId;
@@ -32,18 +29,9 @@ export type FactionAuthoringWarning = {
   targetId: string;
   /** The entity the gap belongs to; the validation header renders one chip per source. */
   source: string;
-} & (
-  | {
-      /** What the source is missing, e.g. "name" or "back description". */
-      missing: string;
-      complaint?: never;
-    }
-  | {
-      /** A whole complaint about the source, e.g. "its name is already taken". */
-      complaint: string;
-      missing?: never;
-    }
-);
+  /** What the source is missing, such as a name or back description. */
+  missing: string;
+};
 
 function isBlank(value: string | undefined): boolean {
   return value == null || value.trim().length === 0;
@@ -57,23 +45,6 @@ function warning(
   targetId: string
 ): FactionAuthoringWarning {
   return { path, chapter, label: `${source}: missing ${missing}`, targetId, source, missing };
-}
-
-/**
- * The name-conflict warning, built where the other faction warnings are so its shape cannot drift from theirs.
- * It carries a complaint rather than a `missing`, because the name is present;
- * it is the address behind it that is taken.
- * `targetId` is the name field's own id, so the header's chip focuses the field the author has to change.
- */
-export function factionNameConflictWarning(complaint: string): FactionAuthoringWarning {
-  return {
-    path: 'name',
-    chapter: 'identity',
-    label: `Faction identity: ${complaint}`,
-    targetId: 'faction-name',
-    source: 'Faction identity',
-    complaint,
-  };
 }
 
 /** Schema-valid blanks that are probably accidental, but never prevent an explicit save. */
