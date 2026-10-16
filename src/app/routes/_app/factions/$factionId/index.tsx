@@ -35,7 +35,13 @@ import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
-import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import {
+  profileLink,
+  publicDescription,
+  publicPageHead,
+  useLivePageTitle,
+  workDescription,
+} from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { useAsset } from '@game/assets/assetRenderMode';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -66,8 +72,14 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
       kind: loaderData ? FACTION_KIND : undefined,
       pathname: `/factions/${encodeURIComponent(loaderData?.faction.slug ?? params.factionId)}`,
       description: loaderData
-        ? publicDescription(loaderData.faction.data.rules.advantages[0]?.text) ||
-          `${loaderData.faction.data.name} is a custom faction for Dune${loaderData.owner?.username ? ` by ${loaderData.owner.username}` : ''}, with its rules, leaders and troops.`
+        ? workDescription({
+            name: loaderData.faction.data.name,
+            noun: FACTION_KIND.toLowerCase(),
+            creator: loaderData.owner?.username,
+            text:
+              publicDescription(loaderData.faction.data.rules.advantages[0]?.text) ||
+              'Read its rules, leaders and troops, and print its faction sheet.',
+          })
         : '',
       image: loaderData ? publishedHref('faction-token', loaderData.faction._id, loaderData.faction.updated_at) : null,
       social: { shape: 'round' },

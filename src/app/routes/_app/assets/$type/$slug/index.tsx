@@ -53,7 +53,13 @@ import { loadAssetPage, useAssetPage, useConvertTreacheryToCustom } from '@app/d
 import type { AssetPageData } from '@app/db/assets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
-import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import {
+  profileLink,
+  publicDescription,
+  publicPageHead,
+  useLivePageTitle,
+  workDescription,
+} from '@app/routes/publicPage';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -91,8 +97,12 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
       kind: noun,
       pathname: `/assets/${encodeURIComponent(params.type)}/${encodeURIComponent(loaderData?.asset.slug ?? params.slug)}`,
       description: loaderData
-        ? publicDescription(loaderData.asset.data.about) ||
-          `${loaderData.asset.name} is ${/^[aeiou]/i.test(noun ?? 'asset') ? 'an' : 'a'} ${(noun ?? 'asset').toLowerCase()} for Dune${loaderData.asset.owner?.username ? ` by ${loaderData.asset.owner.username}` : ''}.`
+        ? workDescription({
+            name: loaderData.asset.name,
+            noun: (noun ?? 'asset').toLowerCase(),
+            creator: loaderData.asset.owner?.username,
+            text: publicDescription(loaderData.asset.data.about),
+          })
         : '',
       image: loaderData?.asset.previewHref,
       social: {

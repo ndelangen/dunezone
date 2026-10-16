@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { countOf, profileLink, publicDescription, publicPageHead } from './publicPage';
+import { countOf, profileLink, publicDescription, publicPageHead, workDescription } from './publicPage';
 
 describe('public metadata excerpts', () => {
   test('reads marked prose and lists as plain text', () => {
@@ -13,6 +13,29 @@ describe('public metadata excerpts', () => {
     expect(publicDescription(undefined)).toBe('');
     expect(publicDescription('  ')).toBe('');
     expect(publicDescription('A'.repeat(199) + '🌕tail')).toBe('A'.repeat(199) + '🌕');
+  });
+});
+
+describe('work descriptions', () => {
+  test('lead with the work, the game and its creator, then its own text', () => {
+    expect(
+      workDescription({
+        name: 'House Atreides',
+        noun: 'custom faction',
+        creator: 'IHasPinecone',
+        text: 'You have limited Prescience.',
+      })
+    ).toBe('House Atreides, a custom faction for the Dune board game by IHasPinecone. You have limited Prescience.');
+  });
+
+  test('stand alone without a creator or text, and choose the article', () => {
+    expect(workDescription({ name: 'Crysknife', noun: 'enhance token' })).toBe(
+      'Crysknife, an enhance token for the Dune board game.'
+    );
+  });
+
+  test('stay within the excerpt bound', () => {
+    expect(Array.from(workDescription({ name: 'X', noun: 'ruleset', text: '🌕'.repeat(300) }))).toHaveLength(200);
   });
 });
 

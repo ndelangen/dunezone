@@ -36,6 +36,29 @@ export function publicDescription(source: string | undefined): string {
   return Array.from(text.replace(/\s+/g, ' ').trim()).slice(0, 200).join('');
 }
 
+/**
+ * A member's work described for search results: what it is, which game it is for and who made it, then its own authored text.
+ * The lead names the game because a work's own text, such as an advantage reading "You have limited Prescience.", rarely does.
+ */
+export function workDescription({
+  name,
+  noun,
+  creator,
+  text,
+}: {
+  name: string;
+  /** What the work is, lower case, as in "custom faction" or "treachery card". */
+  noun: string;
+  creator?: string | null;
+  text?: string;
+}): string {
+  const article = /^[aeiou]/i.test(noun) ? 'an' : 'a';
+  const lead = `${name}, ${article} ${noun} for the Dune board game${creator ? ` by ${creator}` : ''}.`;
+  return Array.from(text ? `${lead} ${text}` : lead)
+    .slice(0, 200)
+    .join('');
+}
+
 /** A page that a structured-data trail or byline points at. */
 export type PublicPageLink = { name: string; pathname: string };
 
