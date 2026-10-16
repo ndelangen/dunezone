@@ -1,6 +1,9 @@
 import { Box, Button, Group, Stack, Text } from '@mantine/core';
 import preview from '@sb/preview';
 import { heldImage, serveStoryImages } from '@sb/storyImages';
+import { OpenableTile } from '@ui/block/OpenableTile';
+import { TileGrid } from '@ui/list/TileGrid';
+import { Surface } from '@ui/surface';
 import { useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -204,4 +207,40 @@ export const UnreadableBundle = meta.story({
 export const BundleAtAnyWidth = meta.story({
   args: { type: 'bundle', data: BUNDLE, name: 'Weapons', href: null, members: MEMBERS },
   render: acrossWidths,
+});
+
+const tokenImage = (fill: string) =>
+  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="400" height="400" fill="${fill}"/><circle cx="200" cy="200" r="120" fill="#eee0bb" opacity="0.5"/></svg>`)}`;
+
+const BROWSE_TILES = [
+  { type: 'token-disc', name: 'Shai Hulud', href: tokenImage('#8a7a55') },
+  { type: 'token-pointer', name: 'HMS', href: tokenImage('#4d4623') },
+  { type: 'token-tech', name: 'Water', href: tokenImage('#1d2b55') },
+  { type: 'card-treachery', name: 'Lasgun', href: publishedImage },
+];
+
+/**
+ * Faces as the browse grid draws them, each in an `OpenableTile` on a page surface.
+ * Hover a tile: the lift's shadow must follow the face's own outline, a disc's circle and a pointer's teardrop, and no face's resting shadow may be cut off by the tile.
+ */
+export const InBrowseTiles = meta.story({
+  render: () => (
+    <Surface padding="xl">
+      <TileGrid>
+        {BROWSE_TILES.map((tile) => (
+          <OpenableTile
+            key={tile.name}
+            caption={tile.name}
+            renderRoot={({ children, ...rest }) => (
+              <a {...rest} href={`#${tile.type}`}>
+                {children}
+              </a>
+            )}
+          >
+            <AssetFace type={tile.type} data={DISC} name={tile.name} href={tile.href} />
+          </OpenableTile>
+        ))}
+      </TileGrid>
+    </Surface>
+  ),
 });

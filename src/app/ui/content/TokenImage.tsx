@@ -20,16 +20,10 @@ export function TokenImage({
   src: string | null;
   name: string;
   shape: TokenShape;
-  /** Whether it wears a raised shadow. A gear never does, since its clip would cut the shadow away. */
+  /** Whether it wears a raised shadow. A gear or a pointer wears it as a drop shadow, which follows its clip. */
   raised?: boolean;
 }>) {
   return (
-    <PublishedImage
-      src={src}
-      name={name}
-      aspect={tokenShapeAspect(shape)}
-      raised={raised && tokenOutline(shape).clipPath === undefined}
-      {...tokenOutline(shape)}
-    />
+    <PublishedImage src={src} name={name} aspect={tokenShapeAspect(shape)} raised={raised} {...tokenOutline(shape)} />
   );
 }
