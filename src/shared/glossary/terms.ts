@@ -271,6 +271,17 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     ],
   },
   {
+    id: 'battle-reveal',
+    term: 'Battle reveal',
+    topic: 'battle',
+    explanation:
+      'The moment both factions in a battle show their battle plans at the same time. Until the reveal, each battle wheel shows only its faction’s token, so neither side sees the other’s leader, cards or dial.',
+    reason:
+      'The rulebook says both plans are revealed at once. Dune Zone names that moment so rules text and the battle screen can point at it.',
+    source: 'house',
+    avoid: [],
+  },
+  {
     id: 'dialed',
     term: 'Dialed',
     topic: 'battle',

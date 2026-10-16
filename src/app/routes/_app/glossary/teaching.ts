@@ -7,6 +7,13 @@ export function useTeachingTerm() {
   return useContext(TeachingTermContext);
 }
 
+/** A fresh random number each time the reader points at a term, so a demonstration can vary from one pointing to the next. */
+export const TeachingRunContext = createContext(0);
+
+export function useTeachingRun() {
+  return useContext(TeachingRunContext);
+}
+
 /*
  * Steps through a demonstration while it plays, starting again from the first step each time it begins.
  * Demonstrations play whatever the reader's reduced-motion setting says: they only move while the reader points at a term, and a still frame cannot show what the term means.

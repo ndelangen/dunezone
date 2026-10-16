@@ -257,33 +257,47 @@ function DuncanIdaho() {
   );
 }
 
-/* The wheel draws at its native 170px and scales to the column, with room above it for the plan's cards. */
+/*
+ * The wheel draws at its native 170px and scales to the column, with room above it for the plan's cards.
+ * Demonstrating the battle reveal, it turns from its hidden side to the plan and back, playing the wheel's own reveal.
+ */
 function Wheel() {
+  const revealing = useTeachingTerm() === 'battle-reveal';
+  const hidden = useTeachingStep(revealing, 2, 1800) === 0 && revealing;
   return (
     <div className={styles.wheel}>
       <CanvasScale canvasWidth={WHEEL.width} canvasHeight={WHEEL.width + WHEEL.cardRoom}>
         <div style={{ paddingTop: WHEEL.cardRoom }}>
-          <BattleWheel
-            state="revealed"
-            label="An Atreides battle plan on the battle wheel"
-            background={atreides.background}
-            strength={4}
-            spice={3}
-            adjustment={0}
-            troops={[{ id: 'regular', name: 'Troops', dialed: 3, undialed: 2, artwork: atreidesTroop }]}
-            cards={[
-              <WheelCard key="weapon" front={treacheryCardFixtures.maulaPistol} />,
-              <WheelCard key="defense" front={treacheryCardFixtures.shield} />,
-            ]}
-            leader={
-              <div className={styles.wheelLeader}>
-                <Disc>
-                  <DuncanIdaho />
-                </Disc>
-              </div>
-            }
-            motion={false}
-          />
+          {hidden ? (
+            <BattleWheel
+              state="unrevealed"
+              label="An Atreides battle wheel before the reveal"
+              artwork={atreides}
+              motion
+            />
+          ) : (
+            <BattleWheel
+              state="revealed"
+              label="An Atreides battle plan on the battle wheel"
+              background={atreides.background}
+              strength={4}
+              spice={3}
+              adjustment={0}
+              troops={[{ id: 'regular', name: 'Troops', dialed: 3, undialed: 2, artwork: atreidesTroop }]}
+              cards={[
+                <WheelCard key="weapon" front={treacheryCardFixtures.maulaPistol} />,
+                <WheelCard key="defense" front={treacheryCardFixtures.shield} />,
+              ]}
+              leader={
+                <div className={styles.wheelLeader}>
+                  <Disc>
+                    <DuncanIdaho />
+                  </Disc>
+                </div>
+              }
+              motion={revealing}
+            />
+          )}
         </div>
       </CanvasScale>
     </div>
@@ -301,7 +315,11 @@ function BattleVisual() {
   const planLit = (piece: (typeof PLAN_ORDER)[number]) => (planning ? built.includes(piece) : undefined);
   return (
     <div className={styles.column}>
-      <Piece caption="Battle wheel" anchor="battle-wheel" lit={planLit('wheel')}>
+      <Piece
+        caption="Battle wheel"
+        anchor="battle-wheel"
+        lit={planLit('wheel') ?? (term === 'battle-reveal' ? true : undefined)}
+      >
         <Wheel />
       </Piece>
       <div className={clsx(styles.grid, styles.extra)}>
@@ -380,27 +398,7 @@ function SpiceVisual() {
   );
 }
 
-/* The top of the spice blow pile: a spice card, which Shai-Hulud's demonstration turns over to reveal the worm. */
-function SpiceBlowPile() {
-  const revealed = useTeachingStep(useTeachingTerm() === 'shai-hulud', 2, 1400) === 1;
-  return (
-    <span className={styles.flip} data-flipped={revealed || undefined}>
-      <span className={styles.face}>
-        <GameCard>
-          <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" highlights={['arsunt']} amount={3} />
-        </GameCard>
-      </span>
-      <span className={clsx(styles.face, styles.back)}>
-        <GameCard>
-          <TreacheryCard {...treacheryCardFixtures.shaiHulud} />
-        </GameCard>
-      </span>
-    </span>
-  );
-}
-
 function CardsVisual() {
-  const term = useTeachingTerm();
   return (
     <div className={styles.column}>
       <div className={styles.fan}>
@@ -427,15 +425,18 @@ function CardsVisual() {
           </GameCard>
         </Piece>
       </div>
-      <Piece
-        captionHidden
-        caption="Spice card, and Shai-Hulud beneath it"
-        anchor="spice-card"
-        lit={term === 'spice-card' || term === 'shai-hulud' ? true : undefined}
-        extra
-      >
-        <SpiceBlowPile />
-      </Piece>
+      <div className={styles.row}>
+        <Piece captionHidden caption="Spice card" anchor="spice-card">
+          <GameCard>
+            <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" highlights={['arsunt']} amount={3} />
+          </GameCard>
+        </Piece>
+        <Piece captionHidden caption="Shai-Hulud" anchor="shai-hulud">
+          <GameCard>
+            <TreacheryCard {...treacheryCardFixtures.shaiHulud} />
+          </GameCard>
+        </Piece>
+      </div>
     </div>
   );
 }

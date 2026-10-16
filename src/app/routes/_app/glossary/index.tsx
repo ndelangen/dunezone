@@ -17,7 +17,7 @@ import { useState } from 'react';
 import { publicPageHead } from '@app/routes/publicPage';
 
 import styles from './index.module.css';
-import { TeachingTermContext } from './teaching';
+import { TeachingRunContext, TeachingTermContext } from './teaching';
 import { TopicVisual } from './TopicVisual';
 
 export const Route = createFileRoute('/_app/glossary/')({
@@ -42,6 +42,33 @@ const TOPIC_ICONS: Record<GlossaryTopic, TopicIconTopic> = {
   cards: 'cards',
   factions: 'factions',
   deals: 'deals',
+};
+
+/* Terms the game prints a symbol for wear it beside their name. */
+const TERM_ICONS: Partial<Record<string, TopicIconTopic>> = {
+  troop: 'troops',
+  'flipped-troop': 'flip',
+  turn: 'turn',
+  bidding: 'bidding',
+  revival: 'revival',
+  'spice-collection': 'spiceCollection',
+  battle: 'battle',
+  territory: 'board',
+  stronghold: 'stronghold',
+  storm: 'storm',
+  ornithopter: 'ornithopter',
+  spice: 'spice',
+  'treachery-card': 'cards',
+  'traitor-card': 'leaders',
+  'spice-card': 'spiceBlow',
+  'shai-hulud': 'shaiHulud',
+  karama: 'karama',
+  'special-karama-power': 'karama',
+  faction: 'factions',
+  'faction-leader': 'factionLeader',
+  'kwisatz-haderach': 'kwisatz',
+  alliance: 'alliance',
+  deal: 'deals',
 };
 
 /* A search matches the preferred term or any word it replaces, so a reader can look up the word they were about to use. */
@@ -96,7 +123,13 @@ function TermSection({ term, onTeach }: { term: GlossaryTerm; onTeach: (term: st
       onFocus={() => onTeach(term.id)}
       onBlur={() => onTeach(null)}
     >
-      <Section id={term.id} className={styles.term} title={term.term} action={<SourceBadge term={term} />}>
+      <Section
+        id={term.id}
+        className={styles.term}
+        icon={TERM_ICONS[term.id] ? <TopicIcon topic={TERM_ICONS[term.id]!} size={18} /> : undefined}
+        title={term.term}
+        action={<SourceBadge term={term} />}
+      >
         <TermBody term={term} />
       </Section>
     </div>
@@ -107,21 +140,25 @@ type TopicProps = { topic: GlossaryTopic; terms: GlossaryTerm[]; flip: boolean }
 
 /* The topic's picture and its terms side by side on one pane, the picture swapping sides from one topic to the next; on a phone the picture goes and the terms keep the pane. */
 function TopicPane({ topic, terms, flip }: TopicProps) {
-  const [teaching, setTeaching] = useState<string | null>(null);
+  const [teaching, setTeaching] = useState<{ term: string | null; run: number }>({ term: null, run: 0 });
+  const teach = (term: string | null) =>
+    setTeaching((current) => (current.term === term ? current : { term, run: Math.random() }));
   return (
     <Surface padding="lg">
       <AsymmetricSplitLayout narrowSide={flip ? 'end' : 'start'} narrowFallback="hide">
         <AsymmetricSplitLayout.Wide>
           <Stack gap="lg">
             {terms.map((term) => (
-              <TermSection key={term.id} term={term} onTeach={setTeaching} />
+              <TermSection key={term.id} term={term} onTeach={teach} />
             ))}
           </Stack>
         </AsymmetricSplitLayout.Wide>
         <AsymmetricSplitLayout.Narrow>
           <div className={styles.visual}>
-            <TeachingTermContext.Provider value={teaching}>
-              <TopicVisual topic={topic} />
+            <TeachingTermContext.Provider value={teaching.term}>
+              <TeachingRunContext.Provider value={teaching.run}>
+                <TopicVisual topic={topic} />
+              </TeachingRunContext.Provider>
             </TeachingTermContext.Provider>
           </div>
         </AsymmetricSplitLayout.Narrow>

@@ -269,7 +269,9 @@
   transition:
     opacity 200ms ease,
     transform 200ms ease,
-    filter 200ms ease;
+    filter 200ms ease,
+    background-color 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .stage:has([data-demonstrating]) .piece:not([data-demonstrating]),
@@ -284,8 +286,27 @@
   filter: drop-shadow(0 0 12px rgb(240 180 80 / 55%));
 }
 
+.phases[data-demonstrating] .phase:not([data-lit]) {
+  opacity: 0.25;
+}
+
+/* A lit phase steps out of the list in the same spice gold as the glow on lit pieces. */
+.phase {
+  justify-self: start;
+  border-radius: 999px;
+  padding-inline: var(--space-xs) var(--space-md);
+  transform-origin: left center;
+}
+
 .phase[data-lit] {
-  color: var(--color-brand, var(--color-text));
+  color: rgb(150 92 18);
+  background: rgb(240 180 80 / 22%);
+  box-shadow: 0 0 18px rgb(240 180 80 / 45%);
+  transform: scale(1.08);
+}
+
+:global(html[data-mantine-color-scheme="dark"]) .phase[data-lit] {
+  color: rgb(240 180 80);
 }
 
 /* Troops and leaders that go to the Tleilaxu Tanks fade and sink out of play. */
