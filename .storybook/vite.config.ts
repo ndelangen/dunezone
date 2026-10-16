@@ -6,6 +6,7 @@ import { reactCompiler } from '../scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from '../scripts/lib/threeRendererStack.ts';
 import { convexPackageMocks } from './convexPackageMocks.ts';
 import { pageStylesheetStaysWithItsStory } from './pageStylesheet.ts';
+import { storyBoardFace } from './storyBoardFace.ts';
 import { storyImagesWorker } from './storyImagesWorker.ts';
 import {
   convexWorkerAliases,
@@ -90,6 +91,7 @@ export default defineConfig({
   },
   plugins: [
     storyImagesWorker(),
+    storyBoardFace(),
     ...convexWorkerServePlugins(),
     pageStylesheetStaysWithItsStory(),
     viteReact(),
