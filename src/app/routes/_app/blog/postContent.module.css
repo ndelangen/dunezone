@@ -8,13 +8,17 @@
   line-height: 1.6;
 }
 
+/* The cap stays under two lines' height (3.2em of lead text), or the third line is indented beside it too. */
 .lead::first-letter {
-  float: left;
-  margin: 0.04em 0.1em 0 0;
+  float: inline-start;
+  margin-block-start: 0.04em;
+  margin-inline-end: 0.1em;
   font-family: var(--mantine-font-family-headings);
   font-size: 3.5em;
   font-weight: 700;
-  line-height: 0.9;
+  font-variant: normal;
+  letter-spacing: 0;
+  line-height: 0.85;
 }
 
 .lead::first-line {
@@ -49,9 +53,11 @@
   text-underline-offset: 0.18em;
 }
 
-.lead a:hover,
-.paragraph a:hover {
-  text-decoration-thickness: 2px;
+@media (hover: hover) {
+  .lead a:hover,
+  .paragraph a:hover {
+    text-decoration-thickness: 2px;
+  }
 }
 
 .figure {
