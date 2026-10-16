@@ -15,8 +15,8 @@ export function tableOverlaysOf(canvas: Element): HTMLElement[] {
 }
 
 /**
- * The chips and dial over the canvas, as rectangles in its normalised device coordinates with a margin around each,
- * so the map view frames the board around them. One wholly off the canvas, or not drawn, frames nothing.
+ * The chips and dial over the canvas, as rectangles in its normalised device coordinates with a margin around each, so the map view frames the board around them.
+ * One wholly off the canvas, or not drawn, frames nothing.
  */
 export function tableOverlayRects(canvas: Element): ScreenRect[] {
   const bounds = canvas.getBoundingClientRect();

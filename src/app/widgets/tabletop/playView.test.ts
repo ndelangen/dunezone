@@ -20,7 +20,6 @@ import {
   cameraTiltAfterWheel,
   cameraViewTransitionProgress,
   createTableViewState,
-  mapViewTopLimitForViewport,
   reduceTableView,
   CAMERA_VIEW_TRANSITION_MS,
   MAP_VIEW_BOTTOM_LIMIT,
@@ -29,6 +28,7 @@ import {
   MAP_VIEW_TOP_LIMIT,
   tableCamera,
 } from './playView';
+import type { ScreenRect } from './playView';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 
 describe('table views', () => {
@@ -36,10 +36,11 @@ describe('table views', () => {
     const pose = cameraPoseFor('map', 1, mapViewFramingPoints(trackerArcSlots(9)));
     const scale = (pose.position[1] - pose.target[1]) / 9.4;
 
-    expect(pose.target).toEqual([0, 0.1, 0.8]);
+    expect(pose.target[0]).toBe(0);
+    expect(pose.target[1]).toBe(0.1);
     expect(scale).toBeGreaterThan(0.85);
-    expect(scale).toBeLessThan(1);
-    expect(pose.position[1]).toBeLessThan(9.5);
+    /* A square canvas is held back by the frame's width, seats' troop reserves included. */
+    expect(scale).toBeLessThan(1.05);
     expect((pose.position[1] - pose.target[1]) / (pose.position[2] - pose.target[2])).toBeCloseTo(9.4 / 11.2);
   });
 
@@ -91,7 +92,6 @@ describe('table views', () => {
     expect(narrow.position[2]).toBeGreaterThan(wide.position[2]);
     /* Extra phase discs refit into the standard arc (#1138), so the map framing does not move. */
     expect(expandedArc.position).toEqual(wide.position);
-    expect(narrow.target).toEqual(wide.target);
     expect(expandedArc.target).toEqual(wide.target);
   });
 
@@ -103,64 +103,90 @@ describe('table views', () => {
     expect(scale).toBeLessThan(0.93);
   });
 
-  test('reserves header clearance at the maximum controls-panel split', () => {
-    const viewportWidth = 1366;
-    const canvasHeight = 650 * 0.5;
-    const headerHeight = 5.2 * 16;
-    const aspectRatio = viewportWidth / canvasHeight;
-    const frame = mapViewFramingPoints(trackerArcSlots(9));
-    const topLimit = mapViewTopLimitForViewport(canvasHeight, headerHeight);
-    const pose = cameraPoseFor('map', aspectRatio, frame, topLimit);
+  /* A rectangle on a canvas, given in pixels from its top left corner, in normalised device coordinates. */
+  const chipOn = (
+    canvasWidth: number,
+    canvasHeight: number,
+    left: number,
+    top: number,
+    right: number,
+    bottom: number
+  ) =>
+    ({
+      left: (left / canvasWidth) * 2 - 1,
+      right: (right / canvasWidth) * 2 - 1,
+      top: 1 - (top / canvasHeight) * 2,
+      bottom: 1 - (bottom / canvasHeight) * 2,
+    }) satisfies ScreenRect;
+  const projectedFrame = (pose: ReturnType<typeof cameraPoseFor>, aspectRatio: number) => {
     const camera = tableCamera(pose, aspectRatio);
-    const headerBottom = 1 - (2 * headerHeight) / canvasHeight;
+    return mapViewFramingPoints(trackerArcSlots(9)).map((point) => new Vector3(...point).project(camera));
+  };
+  /* Inside by more than rounding: a point may sit right on a chip's edge. */
+  const under = (point: Vector3, rect: ScreenRect) =>
+    Math.min(point.x - rect.left, rect.right - point.x, point.y - rect.bottom, rect.top - point.y) > 1e-9;
 
-    expect(topLimit).toBeLessThan(MAP_VIEW_TOP_LIMIT);
-    frame.forEach((point) => {
-      const projected = new Vector3(...point).project(camera);
-      expect(projected.y).toBeLessThan(headerBottom);
-    });
+  /* The table above a tall dock, as in a wide window: the phase chips at the top left, the toolbar at the top right, the dial at the bottom right. */
+  test('runs the board up to the canvas top beside the chips over a short, wide canvas', () => {
+    const [canvasWidth, canvasHeight] = [1497, 427];
+    const aspectRatio = canvasWidth / canvasHeight;
+    const chips = [
+      chipOn(canvasWidth, canvasHeight, 7, 7, 168, 114),
+      chipOn(canvasWidth, canvasHeight, 1263, 7, 1490, 68),
+      chipOn(canvasWidth, canvasHeight, 1376, 300, 1490, 420),
+    ];
+    const frame = mapViewFramingPoints(trackerArcSlots(9));
+    const pose = cameraPoseFor('map', aspectRatio, frame, 0, chips);
+    const projected = projectedFrame(pose, aspectRatio);
+    const top = Math.max(...projected.map((point) => point.y));
+    const bottom = Math.min(...projected.map((point) => point.y));
+
+    /* Within a tenth of the canvas of its top, where the old header band held it below a third. */
+    expect(top).toBeGreaterThan(0.8);
+    expect(top).toBeLessThanOrEqual(MAP_VIEW_TOP_LIMIT + 1e-9);
+    expect(MAP_VIEW_TOP_LIMIT - top).toBeCloseTo(bottom + MAP_VIEW_BOTTOM_LIMIT, 3);
+    projected.forEach((point) => chips.forEach((chip) => expect(under(point, chip)).toBe(false)));
   });
 
-  /* An iPhone 13 and a 360px Android phone in the browser: the seated header takes most of the canvas's upper half. */
+  /* A narrow canvas, as in the three-column layout's middle or a phone, where the frame's width meets the chips first. */
   test.each([
-    [390, 456, 155],
-    [360, 518, 200],
-  ])('fills a %ipx phone canvas with the map below its header', (canvasWidth, canvasHeight, headerHeight) => {
+    [814, 900],
+    [390, 456],
+  ])('keeps the board out from under the chips over a %ipx canvas', (canvasWidth, canvasHeight) => {
     const aspectRatio = canvasWidth / canvasHeight;
+    const chips = [
+      chipOn(canvasWidth, canvasHeight, 0, 0, canvasWidth * 0.4, 110),
+      chipOn(canvasWidth, canvasHeight, canvasWidth * 0.55, 0, canvasWidth, 70),
+    ];
     const frame = mapViewFramingPoints(trackerArcSlots(9));
-    const topLimit = mapViewTopLimitForViewport(canvasHeight, headerHeight);
-    const camera = tableCamera(cameraPoseFor('map', aspectRatio, frame, topLimit), aspectRatio);
-    const projected = frame.map((point) => new Vector3(...point).project(camera));
-    const widest = Math.max(...projected.map((point) => Math.abs(point.x)));
-    const headerBottom = 1 - (2 * headerHeight) / canvasHeight;
+    const projected = projectedFrame(cameraPoseFor('map', aspectRatio, frame, 0, chips), aspectRatio);
 
-    expect(widest).toBeGreaterThan(0.6);
-    expect(widest).toBeLessThanOrEqual(MAP_VIEW_HORIZONTAL_LIMIT + 1e-9);
     projected.forEach((point) => {
-      expect(point.y).toBeLessThan(headerBottom);
+      chips.forEach((chip) => expect(under(point, chip)).toBe(false));
+      expect(Math.abs(point.x)).toBeLessThanOrEqual(MAP_VIEW_HORIZONTAL_LIMIT + 1e-9);
+      expect(point.y).toBeLessThanOrEqual(MAP_VIEW_TOP_LIMIT + 1e-9);
       expect(point.y).toBeGreaterThanOrEqual(-MAP_VIEW_BOTTOM_LIMIT - 1e-9);
     });
   });
 
-  test('keeps the phase crown close to the header in the standard map view', () => {
-    const canvasWidth = 1165;
-    const canvasHeight = 920;
-    const headerHeight = 83;
-    const aspectRatio = canvasWidth / canvasHeight;
-    const frame = mapViewFramingPoints(trackerArcSlots(9));
-    const topLimit = mapViewTopLimitForViewport(canvasHeight, headerHeight);
-    const pose = cameraPoseFor('map', aspectRatio, frame, topLimit);
-    const camera = tableCamera(pose, aspectRatio);
-    const projectedPoints = frame.map((point) => new Vector3(...point).project(camera));
-    const topmostPoint = Math.max(...projectedPoints.map((point) => point.y));
-    const bottommostPoint = Math.min(...projectedPoints.map((point) => point.y));
-    const widestPoint = Math.max(...projectedPoints.map((point) => Math.abs(point.x)));
-    const crownTop = ((1 - topmostPoint) / 2) * canvasHeight;
+  test('centres a board its width holds back between the canvas top and bottom', () => {
+    const aspectRatio = 814 / 900;
+    const projected = projectedFrame(
+      cameraPoseFor('map', aspectRatio, mapViewFramingPoints(trackerArcSlots(9))),
+      aspectRatio
+    );
+    const top = Math.max(...projected.map((point) => point.y));
+    const bottom = Math.min(...projected.map((point) => point.y));
 
-    expect(crownTop - headerHeight).toBeLessThanOrEqual(72);
-    expect(topmostPoint).toBeLessThanOrEqual(topLimit + 1e-12);
-    expect(bottommostPoint).toBeGreaterThanOrEqual(-MAP_VIEW_BOTTOM_LIMIT);
-    expect(widestPoint).toBeLessThanOrEqual(MAP_VIEW_HORIZONTAL_LIMIT);
+    expect(Math.max(...projected.map((point) => Math.abs(point.x)))).toBeCloseTo(MAP_VIEW_HORIZONTAL_LIMIT, 3);
+    expect(MAP_VIEW_TOP_LIMIT - top).toBeCloseTo(bottom + MAP_VIEW_BOTTOM_LIMIT, 3);
+  });
+
+  test('a chip over the middle of the canvas frames nothing', () => {
+    const frame = mapViewFramingPoints(trackerArcSlots(9));
+    const middle = { left: -0.2, right: 0.2, bottom: -0.2, top: 0.2 };
+
+    expect(cameraPoseFor('map', 1.6, frame, 0, [middle])).toEqual(cameraPoseFor('map', 1.6, frame));
   });
 
   test('changes map distance continuously around a square viewport', () => {
@@ -198,20 +224,18 @@ describe('table views', () => {
     const aspectRatio = 1165 / 920;
     const frame = mapViewFramingPoints(trackerArcSlots(9));
     const polarAngle = (tilt: number) => {
-      const pose = cameraPoseFor('map', aspectRatio, frame, MAP_VIEW_TOP_LIMIT, tilt);
+      const pose = cameraPoseFor('map', aspectRatio, frame, tilt);
       return Math.atan2(pose.position[2] - pose.target[2], pose.position[1] - pose.target[1]);
     };
 
-    expect(cameraPoseFor('map', aspectRatio, frame, MAP_VIEW_TOP_LIMIT, 0)).toEqual(
-      cameraPoseFor('map', aspectRatio, frame)
-    );
+    expect(cameraPoseFor('map', aspectRatio, frame, 0)).toEqual(cameraPoseFor('map', aspectRatio, frame));
     expect(polarAngle(0.5)).toBeLessThan(polarAngle(0));
     expect(polarAngle(1)).toBeLessThan(polarAngle(0.5));
     expect(polarAngle(1)).toBeCloseTo(0.2);
     expect(polarAngle(2)).toBeCloseTo(polarAngle(1));
     expect(polarAngle(-1)).toBeCloseTo(polarAngle(0));
     for (const tilt of [0.5, 1]) {
-      const camera = tableCamera(cameraPoseFor('map', aspectRatio, frame, MAP_VIEW_TOP_LIMIT, tilt), aspectRatio);
+      const camera = tableCamera(cameraPoseFor('map', aspectRatio, frame, tilt), aspectRatio);
       frame.forEach((point) => {
         const projected = new Vector3(...point).project(camera);
         expect(projected.y).toBeLessThanOrEqual(MAP_VIEW_TOP_LIMIT + 1e-9);
@@ -232,7 +256,7 @@ describe('table views', () => {
   });
 
   test('moves the fog range with responsive camera framing', () => {
-    const defaultRange = cameraFogRange(cameraPoseFor('map').position);
+    const defaultRange = cameraFogRange(cameraPoseFor('map', 16 / 9).position);
     const distantPose = cameraPoseFor('map', 390 / 844, mapViewFramingPoints(trackerArcSlots(30)));
     const distantRange = cameraFogRange(distantPose.position);
     const distantCameraDistance = Math.hypot(
@@ -354,7 +378,7 @@ describe('table views', () => {
 });
 
 describe('close look', () => {
-  const poseAt = (tilt: number) => cameraPoseForCloseLook('map', 1.6, undefined, undefined, tilt);
+  const poseAt = (tilt: number) => cameraPoseForCloseLook('map', 1.6, undefined, tilt);
   const spot = { ndcX: 0.3, ndcY: 0.2, aspectRatio: 1.6, height: 0.132 };
   const zoomIn = (turns: number) => {
     let zoom = NO_CAMERA_ZOOM;
@@ -375,7 +399,7 @@ describe('close look', () => {
   test('the closest look of every view stays farther out than the controls allow, so its glide arrives', () => {
     for (const view of ['map', 'left', 'right', 'bottom'] as const) {
       for (const aspectRatio of [390 / 844, 1, 1.6, 2.4]) {
-        const viewPoseAt = (tilt: number) => cameraPoseForCloseLook(view, aspectRatio, undefined, undefined, tilt);
+        const viewPoseAt = (tilt: number) => cameraPoseForCloseLook(view, aspectRatio, undefined, tilt);
         let zoom = NO_CAMERA_ZOOM;
         for (let turn = 0; turn < 40; turn++) {
           zoom = cameraZoomAfterWheelAt(zoom, 0, viewPoseAt, { ...spot, aspectRatio }, 100);

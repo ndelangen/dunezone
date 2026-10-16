@@ -342,7 +342,9 @@ function useTableOverlayRects(canvas: HTMLCanvasElement): readonly ScreenRect[] 
   useLayoutEffect(() => {
     const measure = () => {
       const rects = tableOverlayRects(canvas);
-      const key = rects.map((rect) => [rect.left, rect.right, rect.bottom, rect.top].map((v) => v.toFixed(4))).join(';');
+      const key = rects
+        .map((rect) => [rect.left, rect.right, rect.bottom, rect.top].map((v) => v.toFixed(4)))
+        .join(';');
       setMeasured((current) => (current.canvas === canvas && current.key === key ? current : { canvas, key, rects }));
     };
     measure();
