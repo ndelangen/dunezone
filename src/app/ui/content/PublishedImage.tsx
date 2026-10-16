@@ -35,7 +35,7 @@ type Props = {
   radius?: string;
   /** An outline a radius cannot draw, as a CSS clip path. */
   clipPath?: string;
-  /** Whether the image wears a raised frame's shadow, which arrives with it rather than ahead of it. */
+  /** Whether the image wears a raised frame's shadow, which arrives with it rather than ahead of it. A clipped outline wears it as a drop shadow, which the clip cannot cut. */
   raised?: boolean;
   /**
    * Whether this is the page's main image, which is written into the server-rendered HTML, fetched first and shown as it lands, with no arrival.
@@ -339,7 +339,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
   return (
     <div
       ref={rootRef}
-      className={clsx(styles.root, raised && styles.raised)}
+      className={clsx(styles.root, raised && (clipPath ? styles.cutout : styles.raised))}
       style={{ aspectRatio: `1 / ${aspect}` }}
       data-phase={waiting ? 'loading' : phase}
       data-arrival={state.arrival}

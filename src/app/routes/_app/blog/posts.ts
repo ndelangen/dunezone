@@ -33,7 +33,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'all-in-one-dune-board-game-webapp': {
     slug: 'all-in-one-dune-board-game-webapp',
     title: 'My earlier attempts at building an all-in-one webapp for the Dune board game',
-    date: '2026-10-14',
+    date: '2026-10-16',
     author: 'Central419',
     summary:
       'Long before this site, I built a stats dashboard, a card creator, a database-free prototype and a repository that drew its own images. Each was a different answer to the same two questions: where does the data live, and who turns it into images?',
@@ -46,7 +46,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'tabletop-simulator': {
     slug: 'tabletop-simulator',
     title: 'Building Dune on Tabletop Simulator',
-    date: '2026-10-14',
+    date: '2026-10-15',
     author: 'Central419',
     summary:
       "Before dune.zone there was Tabletop Simulator: the scripts and models I added to the community's Dune mod, the mods I built on my own, and how the tedium of making assets by hand led me to the fundamentals.",

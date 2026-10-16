@@ -13,6 +13,7 @@ import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import {
   CARD_DEPTH,
+  CARD_CORNER_RADIUS,
   CARD_LAYER_HEIGHT,
   CARD_LAYER_PITCH,
   CARD_WIDTH,
@@ -218,7 +219,9 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
     <mesh
       position={[0, 0, 0.002]}
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-      geometry={card ? meshes.plane(CARD_WIDTH, CARD_DEPTH) : tokenFaceGeometry(meshes, ratio)}
+      geometry={
+        card ? meshes.roundedPlane(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS) : tokenFaceGeometry(meshes, ratio)
+      }
     >
       {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
       {texture ? (
@@ -327,8 +330,10 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
         const itemIndex = layerItemIndex(piece, index, shownLayers);
+        const [offsetX, offsetZ, yaw] =
+          index === shownLayers - 1 ? [0, 0, 0] : handStackedOffset(piece.items[itemIndex]?.id ?? `${index}`);
         return (
-          <group key={index} position={[0, index * TROOP_LAYER_PITCH, 0]}>
+          <group key={index} position={[offsetX, index * TROOP_LAYER_PITCH, offsetZ]} rotation={[0, yaw, 0]}>
             <mesh
               position={[0, TROOP_LAYER_HEIGHT / 2, 0]}
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
@@ -348,6 +353,22 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
       })}
     </group>
   );
+}
+
+/* How far a hand-stacked layer may sit off the one above it, and how far it may turn. */
+const HAND_STACK_SHIFT = TROOP_TOP_RADIUS * 0.12;
+const HAND_STACK_TURN = (5 * Math.PI) / 180;
+
+/* The same small, steady shift and turn for an item wherever it lies, so a stack does not shuffle as it changes. */
+function handStackedOffset(id: string): [number, number, number] {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < id.length; index++) {
+    hash = Math.imul(hash ^ id.charCodeAt(index), 16_777_619);
+  }
+  const unit = (shift: number) => (((hash >>> shift) & 0xff) / 255) * 2 - 1;
+  const angle = unit(0) * Math.PI;
+  const distance = Math.abs(unit(8)) * HAND_STACK_SHIFT;
+  return [Math.cos(angle) * distance, Math.sin(angle) * distance, unit(16) * HAND_STACK_TURN];
 }
 
 function CardFace({
@@ -375,7 +396,10 @@ function CardFace({
           <PredictionOverlay prediction={artwork.prediction} />
         </Suspense>
       )}
-      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={meshes.plane(CARD_WIDTH, CARD_DEPTH)}>
+      <mesh
+        renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
+        geometry={meshes.roundedPlane(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS)}
+      >
         <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
       </mesh>
       {covered ? null : (
@@ -407,7 +431,7 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
             <mesh
               position={[0, CARD_LAYER_HEIGHT / 2, 0]}
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-              geometry={meshes.box(CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH)}
+              geometry={meshes.roundedSlab(CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH, CARD_CORNER_RADIUS)}
             >
               <meshStandardMaterial color="#ead9bb" roughness={0.68} metalness={0.03} />
             </mesh>
