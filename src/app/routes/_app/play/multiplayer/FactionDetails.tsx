@@ -1,6 +1,7 @@
 import { Accordion, Box, Stack, Text, Title } from '@mantine/core';
 import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import type { PublicFaction } from '@shared/play/capture';
+import { Section } from '@ui/block/Section';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
 
@@ -40,11 +41,12 @@ export function FactionDetails({ faction }: Faction) {
           </Accordion.Control>
           <Accordion.Panel>
             {faction.rules.fate.title ? (
-              <Text size="sm" fw={700}>
-                {faction.rules.fate.title}
-              </Text>
-            ) : null}
-            <FormattedTextSource source={faction.rules.fate.text} size="sm" />
+              <Section title={faction.rules.fate.title}>
+                <FormattedTextSource source={faction.rules.fate.text} size="sm" />
+              </Section>
+            ) : (
+              <FormattedTextSource source={faction.rules.fate.text} size="sm" />
+            )}
           </Accordion.Panel>
         </Accordion.Item>
         <Accordion.Item value="setup">

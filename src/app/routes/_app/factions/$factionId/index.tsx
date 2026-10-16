@@ -369,11 +369,12 @@ function FactionSpecialRule({ rule }: { rule: FactionData['rules']['fate'] }) {
       title={factionSpecialRuleLabel(rule.label)}
     >
       {rule.title ? (
-        <Text size="sm" fw={700}>
-          {rule.title}
-        </Text>
-      ) : null}
-      <FormattedTextSource source={rule.text} size="sm" />
+        <Section title={rule.title}>
+          <FormattedTextSource source={rule.text} size="sm" />
+        </Section>
+      ) : (
+        <FormattedTextSource source={rule.text} size="sm" />
+      )}
     </Card>
   );
 }

@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { expect, fn, screen, userEvent, within } from 'storybook/test';
 
 import type { Faction } from '@db/factions';
@@ -23,6 +24,15 @@ export const NamingChoice = meta.story({
     const openRules = () => userEvent.click(canvas.getByRole('tab', { name: /^Rules/ }));
     await openRules();
     await expect(canvas.getByRole('radio', { name: 'Faction Special Karama' })).toBeChecked();
+    const naming = within(canvas.getByRole('group', { name: /^Section name$/ }));
+    const help = naming.getByRole('img', { name: 'Help' });
+    await userEvent.hover(help);
+    await waitForFrame(() =>
+      expect(screen.getByRole('tooltip')).toHaveTextContent(
+        "Used on this faction's page, in Play, and on its sheet and PDF."
+      )
+    );
+    await userEvent.unhover(help);
     const title = canvas.getByRole('textbox', { name: 'Ability title (optional)' });
     await userEvent.type(title, 'Preserved ability title');
 

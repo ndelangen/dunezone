@@ -1,5 +1,6 @@
 import { Divider, Group, NumberInput, Radio, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { factionSpecialRuleLabel, factionSpecialRuleLabels } from '@shared/factions/specialRule';
+import { Section } from '@ui/block/Section';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 
@@ -115,22 +116,24 @@ function FateFields({ form }: { form: FactionFormApi }) {
       {(labelField) => {
         const label = factionSpecialRuleLabel(labelField.state.value);
         return (
-          <Stack component="section" gap="md" aria-labelledby="fate-fields-heading">
-            <Text id="fate-fields-heading" fw={700} size="lg">
-              {label}
-            </Text>
-            <Radio.Group
-              label="Section name"
+          <Section title={label}>
+            <ControlBlock
+              title="Section name"
               description="Used on this faction's page, in Play, and on its sheet and PDF."
-              value={labelField.state.value ?? 'karama'}
-              onBlur={labelField.handleBlur}
-              onChange={(value) => labelField.handleChange(value === 'fate' ? 'fate' : undefined)}
-            >
-              <Group gap="md" mt="xs">
-                <Radio value="karama" label={factionSpecialRuleLabels.karama} />
-                <Radio value="fate" label={factionSpecialRuleLabels.fate} />
-              </Group>
-            </Radio.Group>
+              input={
+                <Radio.Group
+                  aria-label="Section name"
+                  value={labelField.state.value ?? 'karama'}
+                  onBlur={labelField.handleBlur}
+                  onChange={(value) => labelField.handleChange(value === 'fate' ? 'fate' : undefined)}
+                >
+                  <Group gap="md">
+                    <Radio value="karama" label={factionSpecialRuleLabels.karama} color="selected" />
+                    <Radio value="fate" label={factionSpecialRuleLabels.fate} color="selected" />
+                  </Group>
+                </Radio.Group>
+              }
+            />
             <form.Field name="rules.fate.title">
               {(field) => (
                 <ControlBlock
@@ -170,7 +173,7 @@ function FateFields({ form }: { form: FactionFormApi }) {
                 );
               }}
             </form.Field>
-          </Stack>
+          </Section>
         );
       }}
     </form.Field>
