@@ -16,6 +16,7 @@ import { SlidersHorizontal } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useReducer, useRef } from 'react';
 
+import { matchAsset, searchTerms } from './assetSearch';
 import styles from './AssetSelect.module.css';
 import { IconAction } from './IconAction';
 
@@ -92,8 +93,6 @@ function browseReducer(state: BrowseState, event: BrowseEvent): BrowseState {
   }
 }
 
-const normalize = (text: string) => text.toLocaleLowerCase().replace(/[-_/]+/g, ' ');
-
 /** Callers own the selected artwork; this field owns searching and browsing its supplied collections. */
 export function AssetSelect({
   'aria-describedby': ariaDescribedBy,
@@ -143,19 +142,23 @@ export function AssetSelect({
     groups.set(name, items);
   }
   const activeCollection = groups.has(browse.collection) ? browse.collection : '';
-  const terms = normalize(browse.search).trim().split(/\s+/).filter(Boolean);
-  const matches = (text: string) => terms.every((term) => normalize(text).includes(term));
+  const terms = searchTerms(browse.search);
+  /* Near misses sort after options that contain every typed word, keeping the supplied order within each. */
   const visibleGroups = [...groups]
     .filter(([name]) => !activeCollection || activeCollection === name)
     .map(([name, items]) => ({
       name,
-      items: items.filter((option) => matches(`${option.label} ${option.keywords ?? ''} ${name}`)),
+      items: items
+        .map((option) => ({ option, match: matchAsset(terms, option, name) }))
+        .filter(({ match }) => match > 0)
+        .sort((a, b) => b.match - a.match)
+        .map(({ option }) => option),
     }))
     .filter(({ items }) => items.length > 0);
   const collections = [
     { value: '', label: 'All collections', count: data.length },
     ...[...groups].map(([name, items]) => ({ value: name, label: name, count: items.length })),
-  ].filter((collection) => matches(collection.label));
+  ].filter((collection) => matchAsset(terms, collection) > 0);
   const choosingCollection = browse.mode === 'collections';
   const blocked = props.disabled || props.readOnly;
 
