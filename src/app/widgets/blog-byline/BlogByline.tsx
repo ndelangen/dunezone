@@ -5,7 +5,8 @@ import { ProfileLink } from '@ui/content/ProfileLink';
 
 type BlogBylineProps = {
   date: string;
-  author: { name: string; profileSlug?: string };
+  /** `image` is the linked profile's avatar; without one the link shows the name's initials. */
+  author: { name: string; profileSlug?: string; image?: string };
   tone?: 'accent' | 'inverse';
 };
 
@@ -15,7 +16,7 @@ export function BlogByline({ date, author, tone = 'accent' }: BlogBylineProps) {
     <Group gap="xs">
       <Eyebrow tone={tone}>{formatStableDate(date)}</Eyebrow>
       {author.profileSlug ? (
-        <ProfileLink slug={author.profileSlug} name={author.name} />
+        <ProfileLink slug={author.profileSlug} name={author.name} image={author.image} />
       ) : (
         <Eyebrow tone={tone}>{author.name}</Eyebrow>
       )}

@@ -50,6 +50,14 @@ export async function loadProfileBySlug(slug: string): Promise<ProfilePageData> 
   return normalizeProfilePage(result);
 }
 
+/** A profile as `ProfileLink` cites it, or null when no public profile holds the slug. */
+export type ProfileLinkEntry = FunctionReturnType<typeof api.profiles.linkBySlug>;
+
+/** One profile's link fields, for a page that cites a person without loading their page. */
+export async function loadProfileLink(slug: string): Promise<ProfileLinkEntry> {
+  return await db.query(api.profiles.linkBySlug, { slug });
+}
+
 /** The directory route's loader, paired with `useProfilesAll`. */
 export async function loadProfilesAll(): Promise<ProfileListEntry[]> {
   const entries = await db.query(api.profiles.list, {});

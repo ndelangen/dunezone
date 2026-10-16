@@ -16,12 +16,21 @@ export const Route = createFileRoute('/_app/blog/$postSlug/')({
    * The loader and head ship with the route tree to every page, so the registry and the media map it resolves the cover through load only here, on demand.
    */
   loader: async ({ params }) => {
-    const { blogPostImage, findBlogPost, blogPostAuthor } = await import('../posts');
+    const [{ blogPostImage, findBlogPost, blogPostAuthor }, { loadAuthorImages }] = await Promise.all([
+      import('../posts'),
+      import('../authorImages'),
+    ]);
     const post = findBlogPost(params.postSlug);
     if (!post) {
       throw notFound();
     }
-    return { meta: post, image: blogPostImage(post), author: blogPostAuthor(post) };
+    const author = blogPostAuthor(post);
+    const images = await loadAuthorImages([author.profileSlug]);
+    return {
+      meta: post,
+      image: blogPostImage(post),
+      author: { ...author, image: author.profileSlug ? images[author.profileSlug] : undefined },
+    };
   },
   head: ({ loaderData, match }) =>
     loaderData

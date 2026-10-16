@@ -4,7 +4,7 @@ import { profileUserEditFormSchema } from '../src/shared/profiles/validation';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { mutation, publicQuery, viewerQuery } from './functions';
-import { isActiveProfile, optionalActiveUserId } from './lib/accountLifecycle';
+import { isActiveProfile, isPublicProfile, optionalActiveUserId } from './lib/accountLifecycle';
 import { accountMethods, authMethodValidator } from './lib/accountMethods';
 import {
   assignedGroupSummaryValidator,
@@ -164,6 +164,28 @@ export const pageBySlug = publicQuery({
   args: { slug: v.string() },
   returns: profilePageValidator,
   handler: async (ctx, args) => await loadProfilePageBySlug(ctx, args.slug),
+});
+
+/**
+ * A person as `ProfileLink` cites them: slug, name and avatar, for pages that name a profile without showing its page.
+ * Null when no public profile holds the slug, so a citing page can fall back to plain text instead of failing.
+ */
+export const linkBySlug = publicQuery({
+  args: { slug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({ slug: v.string(), username: v.union(v.string(), v.null()), image: v.union(v.string(), v.null()) })
+  ),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query('profiles')
+      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
+      .unique();
+    if (!profile || !isPublicProfile(profile)) {
+      return null;
+    }
+    return { slug: profile.slug, username: profile.username, image: profile.avatar?.url ?? profile.avatar_url };
+  },
 });
 
 const profileListEntryValidator = profileValidator.extend({

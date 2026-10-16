@@ -8,12 +8,16 @@ import { ArrowRight } from 'lucide-react';
 import { publicPageHead } from '@app/routes/publicPage';
 import { BlogByline } from '@app/widgets/blog-byline/BlogByline';
 
+import { loadAuthorImages } from './authorImages';
 import styles from './index.module.css';
 import { BLOG_POSTS, blogPostAuthor } from './posts';
 import type { BlogPostMeta } from './posts';
 
 export const Route = createFileRoute('/_app/blog/')({
   ssr: true,
+  loader: async () => ({
+    authorImages: await loadAuthorImages(BLOG_POSTS.map((meta) => blogPostAuthor(meta).profileSlug)),
+  }),
   head: () =>
     publicPageHead({
       name: 'Developer blog: Building Dune Zone',
@@ -54,6 +58,8 @@ function BlogPage() {
 
 /** One post in the list; posts are numbered in the order they were published, so the newest carries the highest number. */
 function PostEntry({ meta, number }: { meta: BlogPostMeta; number: number }) {
+  const { authorImages } = Route.useLoaderData();
+  const author = blogPostAuthor(meta);
   const postLink = (props: Record<string, unknown>) => (
     <Link {...props} to="/blog/$postSlug" params={{ postSlug: meta.slug }} />
   );
@@ -66,7 +72,10 @@ function PostEntry({ meta, number }: { meta: BlogPostMeta; number: number }) {
       </Grid.Col>
       <Grid.Col span={{ base: 12, sm: 10 }}>
         <Stack gap="sm">
-          <BlogByline date={meta.date} author={blogPostAuthor(meta)} />
+          <BlogByline
+            date={meta.date}
+            author={{ ...author, image: author.profileSlug ? authorImages[author.profileSlug] : undefined }}
+          />
           <Title order={2}>
             <Anchor renderRoot={postLink} inherit c="inherit">
               {meta.title}
