@@ -260,40 +260,39 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(page.getByText('7/10', { exact: true })).toBeVisible();
     await expect(page.getByText('Complexity 7/10 · Expert', { exact: true })).toHaveCount(1);
   });
-});
 
-test('factions can share a display name while keeping distinct URLs', async ({ page }) => {
-  test.setTimeout(factionLifecycleTimeoutMs);
-  const name = `House Atreides E2E${Date.now()}`;
-  const slug = name.toLowerCase().replaceAll(' ', '-');
-  const field = () => page.getByRole('textbox', { name: 'Faction name' });
-  const save = () => page.getByRole('button', { name: 'Save faction' });
+  await test.step('factions can share a display name while keeping distinct URLs', async () => {
+    const name = `House Atreides E2E${Date.now()}`;
+    const slug = name.toLowerCase().replaceAll(' ', '-');
+    const field = () => page.getByRole('textbox', { name: 'Faction name' });
+    const save = () => page.getByRole('button', { name: 'Save faction' });
 
-  for (const address of [slug, `${slug}-1`]) {
-    await page.goto('/factions/create');
-    await field().fill(name);
-    await expect(page.getByText(/its name is already taken/)).toHaveCount(0);
+    for (const address of [slug, `${slug}-1`]) {
+      await page.goto('/factions/create');
+      await field().fill(name);
+      await expect(page.getByText(/its name is already taken/)).toHaveCount(0);
+      await save().click();
+      await expect(page).toHaveURL(new RegExp(`/factions/${address}/edit$`));
+      await expect(field()).toHaveValue(name);
+    }
+
+    await page.getByRole('tab', { name: /^Faction leader/ }).click();
+    await page.getByRole('textbox', { name: 'Faction leader name' }).fill('Duke Leto');
     await save().click();
-    await expect(page).toHaveURL(new RegExp(`/factions/${address}/edit$`));
+    await expect(save()).toHaveAccessibleDescription(/^Saved/);
+    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-1/edit$`));
+    await page.reload();
     await expect(field()).toHaveValue(name);
-  }
 
-  await page.getByRole('tab', { name: /^Faction leader/ }).click();
-  await page.getByRole('textbox', { name: 'Faction leader name' }).fill('Duke Leto');
-  await save().click();
-  await expect(save()).toHaveAccessibleDescription(/^Saved/);
-  await expect(page).toHaveURL(new RegExp(`/factions/${slug}-1/edit$`));
-  await page.reload();
-  await expect(field()).toHaveValue(name);
+    const previous = page.url();
+    await field().fill(`${name} renamed`);
+    await save().click();
+    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed/edit$`));
+    await page.goto(previous);
+    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed/edit$`));
+    await expect(field()).toHaveValue(`${name} renamed`);
 
-  const previous = page.url();
-  await field().fill(`${name} renamed`);
-  await save().click();
-  await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed/edit$`));
-  await page.goto(previous);
-  await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed/edit$`));
-  await expect(field()).toHaveValue(`${name} renamed`);
-
-  await page.goto(`/factions/${slug}`);
-  await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+    await page.goto(`/factions/${slug}`);
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+  });
 });
