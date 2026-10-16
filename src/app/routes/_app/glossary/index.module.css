@@ -18,8 +18,3 @@
 .topicSegment :is(input, button) {
   padding-inline: var(--space-sm);
 }
-
-/* A term the reader can point at to see it demonstrated in the picture. */
-.teachable {
-  border-radius: var(--radius-md);
-}

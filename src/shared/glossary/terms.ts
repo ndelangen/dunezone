@@ -601,8 +601,9 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     term: 'Fate',
     topic: 'factions',
     explanation:
-      'A rule of one faction’s own that it uses by playing its fate card. The faction sheet prints the fate below the advantages, sometimes under a name of its own.',
-    reason: 'The name Dune Zone faction sheets and the faction editor give this rule.',
+      'The name a faction may give its special Karama power section on its sheet, in place of Faction Special Karama. The rule is still used by playing a Karama card.',
+    reason:
+      'Dune Zone’s faction editor and sheets offer Fate as the section’s other name. Saying so here lets readers take the two names as one thing.',
     source: 'house',
     avoid: [],
   },

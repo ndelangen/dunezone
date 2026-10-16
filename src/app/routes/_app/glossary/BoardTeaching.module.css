@@ -2,6 +2,11 @@
   position: relative;
 }
 
+/* The ornithopter's flight is a demonstration, not a scene with a key; the term beside the picture names it. */
+.teaching :global(.rulebookRouteLegend) {
+  display: none;
+}
+
 /* The demonstration sits exactly over the square board, above any route legend below it. */
 .overlay {
   position: absolute;

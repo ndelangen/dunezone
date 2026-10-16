@@ -114,20 +114,15 @@ function TermBody({ term }: { term: GlossaryTerm }) {
   );
 }
 
-/* Pointing at or focusing a term asks its topic's picture to demonstrate it. */
+/* Pointing at a term asks its topic's picture to demonstrate it; the demonstration is decorative, since the term's words carry its meaning. */
 function TermSection({ term, onTeach }: Readonly<{ term: GlossaryTerm; onTeach: (term: string | null) => void }>) {
+  const icon = TERM_ICONS[term.id];
   return (
-    <div
-      className={styles.teachable}
-      onMouseEnter={() => onTeach(term.id)}
-      onMouseLeave={() => onTeach(null)}
-      onFocus={() => onTeach(term.id)}
-      onBlur={() => onTeach(null)}
-    >
+    <div onMouseEnter={() => onTeach(term.id)} onMouseLeave={() => onTeach(null)}>
       <Section
         id={term.id}
         className={styles.term}
-        icon={TERM_ICONS[term.id] ? <TopicIcon topic={TERM_ICONS[term.id]!} size={18} /> : undefined}
+        icon={icon ? <TopicIcon topic={icon} size={18} /> : undefined}
         title={term.term}
         action={<SourceBadge term={term} />}
       >

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-/** The glossary term a reader is pointing at or has focused, which its topic's picture demonstrates. */
+/** The glossary term a reader is pointing at, which its topic's picture demonstrates. */
 export const TeachingTermContext = createContext<string | null>(null);
 
 export function useTeachingTerm() {
@@ -19,8 +19,10 @@ export function useTeachingRun() {
  * Demonstrations play whatever the reader's reduced-motion setting says: they only move while the reader points at a term, and a still frame cannot show what the term means.
  */
 export function useTeachingStep(playing: boolean, steps: number, interval = 700) {
-  /* Each run of a demonstration counts its own ticks, so a new run starts from the first step without resetting state. */
-  const run = `${playing}:${steps}:${interval}`;
+  /* Each pointing at a term is its own run with its own tick count, so a new run starts from the first step. */
+  const term = useTeachingTerm();
+  const pointing = useTeachingRun();
+  const run = `${term}:${pointing}:${steps}:${interval}`;
   const [ticks, setTicks] = useState({ run, count: 0 });
   useEffect(() => {
     if (!playing || steps < 2) {
@@ -30,11 +32,7 @@ export function useTeachingStep(playing: boolean, steps: number, interval = 700)
       () => setTicks((current) => ({ run, count: current.run === run ? current.count + 1 : 1 })),
       interval
     );
-    return () => {
-      clearInterval(timer);
-      /* Pointing at the same term again starts its demonstration over. */
-      setTicks({ run: '', count: 0 });
-    };
+    return () => clearInterval(timer);
   }, [playing, steps, interval, run]);
   if (!playing) {
     return 0;

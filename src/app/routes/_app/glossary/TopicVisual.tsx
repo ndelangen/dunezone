@@ -39,10 +39,6 @@ const beneGesseritTroop = {
   striped: undefined,
 } as const;
 
-/*
- * A piece of game artwork with the glossary word under it, linking to that word's entry.
- * An `extra` piece drops out when the picture's column is too slim for two pieces side by side.
- */
 /* Terms whose demonstration lights up pieces that carry another term's caption. */
 const DEMONSTRATED_BY: Record<string, readonly string[]> = {
   battle: ['battle-wheel', 'dialed', 'supported', 'battle-plan'],
@@ -56,6 +52,10 @@ function demonstrates(term: string | null, anchor: string) {
   return term !== null && (term === anchor || (DEMONSTRATED_BY[term]?.includes(anchor) ?? false));
 }
 
+/*
+ * A piece of game artwork with the glossary word under it, linking to that word's entry.
+ * An `extra` piece drops out when the picture's column is too slim for two pieces side by side.
+ */
 function Piece({
   caption,
   anchor,

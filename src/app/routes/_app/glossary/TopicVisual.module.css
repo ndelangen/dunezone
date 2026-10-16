@@ -286,6 +286,15 @@
   filter: drop-shadow(0 0 12px rgb(240 180 80 / 55%));
 }
 
+/* Fanned cards keep their tilt while they lift. */
+.fan .piece[data-demonstrating]:nth-child(1) .art {
+  transform: rotate(-6deg) translateY(calc(var(--space-xs) - 4px)) scale(1.04);
+}
+
+.fan .piece[data-demonstrating]:nth-child(3) .art {
+  transform: rotate(6deg) translateY(calc(var(--space-xs) - 4px)) scale(1.04);
+}
+
 .phases[data-demonstrating] .phase:not([data-lit]) {
   opacity: 0.25;
 }
