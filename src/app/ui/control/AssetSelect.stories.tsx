@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { ALL, LOGO } from '@shared/assetIds';
+import { ALL, LEADERS, LOGO } from '@shared/assetIds';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { Plus } from 'lucide-react';
@@ -102,6 +102,27 @@ export const FactionEmblems = meta.story({
     await userEvent.click(within(canvasElement).getByRole('combobox', { name: 'Faction emblem' }));
     await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(LOGO.options.length);
     await expect(screen.getByRole('group', { name: 'Faction emblems / Board game factions' })).toBeVisible();
+  },
+});
+
+export const LeaderPortraitSearch = meta.story({
+  args: {
+    'aria-label': 'Leader portrait',
+    w: 680,
+    maw: 'calc(100vw - 2rem)',
+    data: stockAssetOptions(LEADERS.options),
+    getPreviewSrc: (value) => resolveAsset(value, 'small'),
+    value: '/image/leader/official/dryeuh.png',
+  },
+  play: async ({ canvasElement, userEvent }) => {
+    const field = within(canvasElement).getByRole('combobox', { name: 'Leader portrait' });
+    await expect(field).toHaveValue('Dr. Yueh');
+    await userEvent.click(field);
+    await userEvent.type(field, 'nafud');
+    await expect(screen.getByRole('option', { name: 'Nefud' })).toBeVisible();
+    await userEvent.clear(field);
+    await userEvent.type(field, 'bain');
+    await expect(screen.getAllByRole('option')[0]).toHaveAccessibleName('Bain');
   },
 });
 

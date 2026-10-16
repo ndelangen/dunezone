@@ -10,10 +10,13 @@ HTTP client for server reads.
 
 Each route calls its existing page query once. That result supplies the visible content, title,
 canonical URL, description, social metadata and structured data. The faction excerpt comes from its
-first advantage; an asset uses About. Formatting marks become readable text. When that text is empty,
-the description names the work's kind and creator instead, and a profile counts what its member has
-shared, so no public page leaves its search snippet blank or shares one with every other page of its kind.
-Descriptions stop at 200 Unicode code points.
+first advantage; an asset uses About. Formatting marks become readable text. A member's work, a
+faction, asset or ruleset, opens its search snippet with what it is, that it is for the Dune board game
+and who made it, as in "Atreides, a custom faction for the Dune board game by Paul.", then its own text.
+The social card and the structured data keep the authored text alone, since they already name the work,
+its kind and its creator. A profile counts what its member has shared, so no public page leaves its search
+snippet blank or shares one with every other page of its kind. Descriptions stop at 200 Unicode code
+points; a work's own text is shortened at a word so its lead stays whole.
 
 Titles name what the page is between its name and the site, as in "Atreides · Custom faction · Dune Zone".
 The live title keeps the same kind after hydration. Catalogue pages keep their own names, which already
