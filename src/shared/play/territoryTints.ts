@@ -18,10 +18,22 @@ export const TINT_COLOR_NAMES: Record<(typeof TINT_COLORS)[number], string> = {
   '#1b1b1b': 'Black',
 };
 /** Stickers a tint may put on each of its territories, in the order they sit side by side. */
-export const TINT_STAMPS = ['sietch', 'city', 'palace', 'atomics'] as const;
+export const TINT_STAMPS = [
+  'sietch',
+  'landscape',
+  'city',
+  'shai_hulud',
+  'spice_mine',
+  'herb',
+  'ornithopter',
+  'spice',
+] as const;
 export type TintStamp = (typeof TINT_STAMPS)[number];
-/** What a tint can switch on and off after it is made: whether it shows, and each sticker. */
-const TINT_SETTINGS = ['hidden', ...TINT_STAMPS] as const;
+/* The switches that are not stickers: whether a tint shows, and whether it is drawn as one outline round its territories. */
+const TINT_FLAGS = ['hidden', 'outline'] as const;
+type TintFlag = (typeof TINT_FLAGS)[number];
+/** What a tint can switch on and off after it is made: whether it shows, its outline-only look, and each sticker. */
+const TINT_SETTINGS = [...TINT_FLAGS, ...TINT_STAMPS] as const;
 export const MAX_TINTS = 12;
 /* Far more than any board's territories; bounds what one tint stores and resends. */
 const MAX_TINT_TERRITORIES = 128;
@@ -42,6 +54,8 @@ const tintSchema = z.strictObject({
   stamps: stampsSchema.optional(),
   /* Hidden for everyone, so a tint kept for later stays out of the way. */
   hidden: z.literal(true).optional(),
+  /* Drawn as one line round its territories, borders between them left out, with no fill. */
+  outline: z.literal(true).optional(),
   territories: z.array(territorySchema).max(MAX_TINT_TERRITORIES),
 });
 export type TerritoryTint = z.infer<typeof tintSchema>;
@@ -117,28 +131,41 @@ function withTerritories(tints: readonly TerritoryTint[], tint: TerritoryTint, t
   return replaced(tints, tint, { ...tint, territories });
 }
 
-const STAMP_NAMES: Record<TintStamp, string> = {
-  sietch: 'sietch',
-  city: 'city',
-  palace: 'palace',
-  atomics: 'explosion',
+/** Each sticker's name, as the panel and the log say it. */
+export const TINT_STAMP_NAMES: Record<TintStamp, string> = {
+  sietch: 'Sietch',
+  landscape: 'Landscape',
+  city: 'City',
+  shai_hulud: 'Shai-Hulud',
+  spice_mine: 'Spice mine',
+  herb: 'Herb',
+  ornithopter: 'Ornithopter',
+  spice: 'Spice',
 };
 
-/** Whether the setting is on for this tint: it is hidden, or carries that sticker. */
+const isFlag = (setting: TintFlag | TintStamp): setting is TintFlag =>
+  (TINT_FLAGS as readonly string[]).includes(setting);
+
+/** Whether the setting is on for this tint: it is hidden or outlined, or carries that sticker. */
 export function tintSetting(
   tint: TerritoryTint,
   setting: Extract<TerritoryTintAction, { kind: 'tint-set' }>['setting']
 ) {
-  return setting === 'hidden' ? !!tint.hidden : !!tint.stamps?.includes(setting);
+  return isFlag(setting) ? !!tint[setting] : !!tint.stamps?.includes(setting);
 }
 
-function settingMessage(tint: TerritoryTint, setting: TintStamp | 'hidden', on: boolean) {
-  if (setting === 'hidden') {
-    return on ? `Hid ${tint.name}.` : `Showed ${tint.name}.`;
+const FLAG_MESSAGES: Record<TintFlag, [on: string, off: string]> = {
+  hidden: ['Hid', 'Showed'],
+  outline: ['Outlined', 'Filled in'],
+};
+
+function settingMessage(tint: TerritoryTint, setting: TintFlag | TintStamp, on: boolean) {
+  if (isFlag(setting)) {
+    return `${FLAG_MESSAGES[setting][on ? 0 : 1]} ${tint.name}.`;
   }
   return on
-    ? `Put ${STAMP_NAMES[setting]} stickers on ${tint.name}.`
-    : `Took the ${STAMP_NAMES[setting]} stickers off ${tint.name}.`;
+    ? `Put ${TINT_STAMP_NAMES[setting].toLowerCase()} stickers on ${tint.name}.`
+    : `Took the ${TINT_STAMP_NAMES[setting].toLowerCase()} stickers off ${tint.name}.`;
 }
 
 function setTint(
@@ -149,14 +176,15 @@ function setTint(
   if (tintSetting(tint, setting) === on) {
     throw new GameRejection(`Someone changed ${tint.name} first.`);
   }
-  const { hidden: _hidden, stamps: _stamps, ...plain } = tint;
-  const hidden = setting === 'hidden' ? on : !!tint.hidden;
+  const { hidden: _hidden, outline: _outline, stamps: _stamps, ...plain } = tint;
+  const flag = (name: TintFlag) => (name === setting ? on : !!tint[name]);
   const stamps = TINT_STAMPS.filter((stamp) => (stamp === setting ? on : !!tint.stamps?.includes(stamp)));
   return {
     tints: replaced(tints, tint, {
       ...plain,
       ...(stamps.length ? { stamps } : {}),
-      ...(hidden ? { hidden: true as const } : {}),
+      ...(flag('hidden') ? { hidden: true as const } : {}),
+      ...(flag('outline') ? { outline: true as const } : {}),
     }),
     message: settingMessage(tint, setting, on),
   };

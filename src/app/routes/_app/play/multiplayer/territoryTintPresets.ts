@@ -62,7 +62,6 @@ export function territoryTintPresets(board: Board): Preset[] {
           {
             name: 'Shield Wall destroyed',
             color: '#1b1b1b' as const,
-            stamps: ['atomics' as const],
             territories: ['shield_wall'],
           },
         ]

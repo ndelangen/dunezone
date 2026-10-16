@@ -12,10 +12,11 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 import { ignoreRaycast } from './ignoreRaycast';
 import { placeStickers } from './stickerPlacement';
+import { outerSegments } from './tintOutline';
 import { TINT_STICKERS } from './tintStickers';
 
 /* Board drawing units run across the board's circle; the table's board disc is BOARD_RADIUS wide. */
-function toTable([x, y]: Point): [number, number] {
+function toTable([x, y]: Readonly<Point>): [number, number] {
   return [((x - CENTER[0]) / RADIUS) * BOARD_RADIUS, ((y - CENTER[1]) / RADIUS) * BOARD_RADIUS];
 }
 
@@ -57,9 +58,54 @@ function outlineGeometry(rings: Point[][]) {
   return geometry;
 }
 
+/* How wide an outline-only tint's line is, in table units. */
+const RIBBON_WIDTH = 0.045;
+
+/** A flat band along each segment, a little past both ends so the corners between them close. */
+function ribbonGeometry(segments: readonly (readonly [Readonly<Point>, Readonly<Point>])[]) {
+  const half = RIBBON_WIDTH / 2;
+  const positions: number[] = [];
+  for (const [from, to] of segments) {
+    const [ax, az] = toTable(from);
+    const [bx, bz] = toTable(to);
+    const length = Math.hypot(bx - ax, bz - az) || 1;
+    const [ux, uz] = [((bx - ax) / length) * half, ((bz - az) / length) * half];
+    const [sx, sz, ex, ez] = [ax - ux, az - uz, bx + ux, bz + uz];
+    const corners = [
+      [sx - uz, sz + ux],
+      [sx + uz, sz - ux],
+      [ex + uz, ez - ux],
+      [ex - uz, ez + ux],
+    ];
+    for (const index of [0, 1, 2, 0, 2, 3]) {
+      positions.push(corners[index][0], 0, corners[index][1]);
+    }
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
+  return geometry;
+}
+
+type Face = { id: string; center: Point; rings: Point[][] };
+
+/** An outline-only tint: one line round its territories taken together, the borders between them left out. */
+function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: readonly Face[] }>) {
+  const key = tint.territories.join(' ');
+  const geometry = useMemo(() => {
+    const ids = new Set(key.split(' '));
+    return ribbonGeometry(outerSegments(faces.filter((face) => ids.has(face.id)).map((face) => face.rings)));
+  }, [faces, key]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return (
+    <mesh geometry={geometry} raycast={ignoreRaycast} renderOrder={3}>
+      <meshBasicMaterial color={tint.color} transparent depthWrite={false} side={DoubleSide} />
+    </mesh>
+  );
+}
+
 /* The largest a sticker gets, in table units, and the smallest it shrinks to in a cramped territory. */
-const STICKER_LARGEST = 0.6;
-const STICKER_SMALLEST = 0.25;
+const STICKER_LARGEST = 0.4;
+const STICKER_SMALLEST = 0.18;
 /* The board's glyph colours: near-black ink inside a pale outline. */
 const STICKER_INK = '#1a0b00';
 const STICKER_OUTLINE = '#fffed8';
@@ -140,9 +186,32 @@ function Stickers({ tint, rings, center }: Readonly<{ tint: TerritoryTint; rings
   });
 }
 
-/** Tints laid over territories, oldest first so a later tint paints over an earlier one; each territory keeps the colour's outline. */
+/** One territory of a tint: filled with an outline of its own, or only its stickers when the tint is outline-only. */
+function TintedTerritory({
+  tint,
+  face,
+  shapes,
+}: Readonly<{ tint: TerritoryTint; face: Face; shapes: { fill: BufferGeometry; line: BufferGeometry } }>) {
+  return (
+    <>
+      {!tint.outline && (
+        <>
+          <mesh geometry={shapes.fill} raycast={ignoreRaycast} renderOrder={2}>
+            <meshBasicMaterial color={tint.color} transparent opacity={0.5} depthWrite={false} side={DoubleSide} />
+          </mesh>
+          <lineSegments geometry={shapes.line} raycast={ignoreRaycast} renderOrder={3}>
+            <lineBasicMaterial color={tint.color} transparent opacity={0.95} depthWrite={false} />
+          </lineSegments>
+        </>
+      )}
+      <Stickers tint={tint} rings={face.rings} center={face.center} />
+    </>
+  );
+}
+
+/** Tints laid over territories, oldest first so a later tint paints over an earlier one; each territory keeps the colour's outline, or the tint is one outline round them all. */
 export function TerritoryTints({ board, tints }: Readonly<{ board: Board; tints: readonly TerritoryTint[] }>) {
-  const faces = useMemo(
+  const faces = useMemo<Face[]>(
     () =>
       boardTerritories(board).map((face) => ({
         id: territoryId(board.properties[face.key].name),
@@ -169,29 +238,16 @@ export function TerritoryTints({ board, tints }: Readonly<{ board: Board; tints:
     <group position={[0, 0.003, 0]}>
       {tints.map(
         (tint, layer) =>
-          !tint.hidden &&
-          faces
-            .filter((face) => tint.territories.includes(face.id))
-            .map((face) => {
-              const shapes = geometries.get(face.id)!;
-              return (
-                <group key={`${tint.id}:${face.id}`} position={[0, layer * 0.0005, 0]}>
-                  <mesh geometry={shapes.fill} raycast={ignoreRaycast} renderOrder={2}>
-                    <meshBasicMaterial
-                      color={tint.color}
-                      transparent
-                      opacity={0.5}
-                      depthWrite={false}
-                      side={DoubleSide}
-                    />
-                  </mesh>
-                  <lineSegments geometry={shapes.line} raycast={ignoreRaycast} renderOrder={3}>
-                    <lineBasicMaterial color={tint.color} transparent opacity={0.95} depthWrite={false} />
-                  </lineSegments>
-                  <Stickers tint={tint} rings={face.rings} center={face.center} />
-                </group>
-              );
-            })
+          !tint.hidden && (
+            <group key={tint.id} position={[0, layer * 0.0005, 0]}>
+              {tint.outline && <TintOutline tint={tint} faces={faces} />}
+              {faces
+                .filter((face) => tint.territories.includes(face.id))
+                .map((face) => (
+                  <TintedTerritory key={face.id} tint={tint} face={face} shapes={geometries.get(face.id)!} />
+                ))}
+            </group>
+          )
       )}
     </group>
   );

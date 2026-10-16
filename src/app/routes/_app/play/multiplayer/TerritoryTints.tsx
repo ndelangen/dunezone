@@ -1,4 +1,4 @@
-import { ActionIcon, Button, ColorSwatch, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Button, ColorSwatch, Group, Popover, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { territoryId } from '@shared/boards/schema';
 import {
@@ -12,7 +12,7 @@ import {
 import type { TerritoryTint, TerritoryTintAction, TintStamp } from '@shared/play/territoryTints';
 import { Section } from '@ui/block/Section';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
-import { Brush, Eye, EyeOff } from 'lucide-react';
+import { Brush, Eye, EyeOff, Square, Sticker } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 
@@ -100,6 +100,56 @@ function SettingToggle({
   );
 }
 
+/** One button for a tint's stickers, opening a picker where each sticker switches on and off. */
+function StickerPicker({
+  tint,
+  enabled,
+  onToggle,
+}: Readonly<{ tint: TerritoryTint; enabled: boolean; onToggle: (stamp: TintStamp) => void }>) {
+  const count = tint.stamps?.length ?? 0;
+  const label = `Stickers on ${tint.name}`;
+  return (
+    <Popover position="bottom-end" shadow="md" withArrow>
+      <Popover.Target>
+        <Tooltip label={count ? `${label}: ${count}` : label}>
+          <ActionIcon
+            variant={count ? 'light' : 'subtle'}
+            color={count ? 'yellow' : 'gray'}
+            aria-label={label}
+            disabled={!enabled}
+          >
+            <Sticker size={18} />
+          </ActionIcon>
+        </Tooltip>
+      </Popover.Target>
+      <Popover.Dropdown aria-label={label}>
+        <Text size="xs" c="dimmed" mb={6}>
+          On every territory in {tint.name}
+        </Text>
+        <SimpleGrid cols={2} spacing={4} verticalSpacing={4}>
+          {TINT_STAMPS.map((stamp) => {
+            const on = tintSetting(tint, stamp);
+            return (
+              <Button
+                key={stamp}
+                size="compact-sm"
+                justify="flex-start"
+                variant={on ? 'light' : 'subtle'}
+                color={on ? 'yellow' : 'gray'}
+                aria-pressed={on}
+                leftSection={<StickerIcon stamp={stamp} />}
+                onClick={() => onToggle(stamp)}
+              >
+                {TINT_STICKERS[stamp].label}
+              </Button>
+            );
+          })}
+        </SimpleGrid>
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
 function TintRow({
   tint,
   painting,
@@ -150,17 +200,10 @@ function TintRow({
             {tint.hidden ? <EyeOff size={18} /> : <Eye size={18} />}
           </ActionIcon>
         </Tooltip>
-        {TINT_STAMPS.map((stamp) => (
-          <SettingToggle
-            key={stamp}
-            label={TINT_STICKERS[stamp].label}
-            on={tintSetting(tint, stamp)}
-            enabled={canEdit}
-            onToggle={toggle(stamp)}
-          >
-            <StickerIcon stamp={stamp} />
-          </SettingToggle>
-        ))}
+        <SettingToggle label="Outline only" on={!!tint.outline} enabled={canEdit} onToggle={toggle('outline')}>
+          <Square size={18} />
+        </SettingToggle>
+        <StickerPicker tint={tint} enabled={canEdit} onToggle={(stamp) => toggle(stamp)()} />
         <Tooltip label={painting ? 'Stop painting (Esc)' : `Paint ${tint.name}`}>
           <ActionIcon
             variant={painting ? 'filled' : 'subtle'}

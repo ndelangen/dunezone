@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
 import { applyTerritoryTint, isTerritoryTintAction } from '@shared/play/territoryTints';
-import { expect, userEvent, waitFor } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { openPanel } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand } from './game.stories.fixture';
@@ -51,7 +51,6 @@ function tintedSnapshot(): GameSnapshot {
         id: 'tint-shield',
         name: 'Shield Wall destroyed',
         color: '#1b1b1b',
-        stamps: ['atomics'],
         territories: ['shield_wall'],
       },
     ],
@@ -122,7 +121,6 @@ export const Preset = meta.story({
       expect(lastCommand()?.action).toMatchObject({
         kind: 'tint-create',
         name: 'Shield Wall destroyed',
-        stamps: ['atomics'],
         territories: ['shield_wall'],
       })
     );
@@ -130,7 +128,7 @@ export const Preset = meta.story({
   },
 });
 
-/** Hiding a tint and switching stickers on change the table for everyone, and the row follows. */
+/** Hiding a tint, outlining one and switching stickers on change the table for everyone, and the row follows. */
 export const Settings = meta.story({
   beforeEach: install(() => liveTransport(tintedSnapshot())),
   play: async ({ canvasElement }) => {
@@ -142,17 +140,19 @@ export const Settings = meta.story({
     );
     await waitFor(() => expect(shown).toHaveAttribute('aria-pressed', 'false'), { timeout: 10_000 });
     await expect(page.findByRole('button', { name: 'Paint Fremen deployment' })).resolves.toBeDisabled();
-    const [, cities] = await page.findAllByRole('button', { name: 'City stickers' });
-    await userEvent.click(cities);
+    const [, outlines] = await page.findAllByRole('button', { name: 'Outline only' });
+    await userEvent.click(outlines);
     await waitFor(() =>
-      expect(lastCommand()?.action).toEqual({
-        kind: 'tint-set',
-        tintId: 'tint-shield',
-        setting: 'city',
-        on: true,
-      })
+      expect(lastCommand()?.action).toEqual({ kind: 'tint-set', tintId: 'tint-shield', setting: 'outline', on: true })
     );
-    await waitFor(() => expect(cities).toHaveAttribute('aria-pressed', 'true'), { timeout: 10_000 });
+    await waitFor(() => expect(outlines).toHaveAttribute('aria-pressed', 'true'), { timeout: 10_000 });
+    await userEvent.click(await page.findByRole('button', { name: 'Stickers on Shield Wall destroyed' }));
+    const city = await within(canvasElement.ownerDocument.body).findByRole('button', { name: 'City' });
+    await userEvent.click(city);
+    await waitFor(() =>
+      expect(lastCommand()?.action).toEqual({ kind: 'tint-set', tintId: 'tint-shield', setting: 'city', on: true })
+    );
+    await waitFor(() => expect(city).toHaveAttribute('aria-pressed', 'true'), { timeout: 10_000 });
   },
 });
 

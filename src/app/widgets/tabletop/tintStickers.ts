@@ -1,17 +1,27 @@
+import { TINT_STAMP_NAMES } from '@shared/play/territoryTints';
 import type { TintStamp } from '@shared/play/territoryTints';
 
-import atomicsSvg from '../../../../media/vector/decal/atomics.svg?raw';
-import palaceSvg from '../../../../media/vector/decal/palace.svg?raw';
-import citySvg from '../../../../media/vector/icon/arrakis-city.svg?raw';
-import sietchSvg from '../../../../media/vector/icon/arrakis-sietch.svg?raw';
+import city from '../../../../media/vector/icon/city.svg?raw';
+import herb from '../../../../media/vector/icon/herb.svg?raw';
+import landscape from '../../../../media/vector/icon/landscape.svg?raw';
+import ornithopter from '../../../../media/vector/icon/ornithopter.svg?raw';
+import sietch from '../../../../media/vector/icon/seitch.svg?raw';
+import shaiHulud from '../../../../media/vector/icon/shai-hulud.svg?raw';
+import spiceMine from '../../../../media/vector/icon/spice-mine.svg?raw';
+import spice from '../../../../media/vector/icon/spice.svg?raw';
 
-/* The board's own glyphs carry an outline path for the board's halo; a sticker draws its own, so it is left out. */
-const withoutOutline = (svg: string) => svg.replace(/<path[^>]*data-decal-outline[^>]*\/>/g, '');
-
-/** Each sticker's artwork, with the label its switch on a tint's row carries, in the order they sit side by side. */
-export const TINT_STICKERS: Record<TintStamp, { label: string; svg: string }> = {
-  sietch: { label: 'Sietch stickers', svg: withoutOutline(sietchSvg) },
-  city: { label: 'City stickers', svg: withoutOutline(citySvg) },
-  palace: { label: 'Palace stickers', svg: palaceSvg },
-  atomics: { label: 'Explosion stickers', svg: atomicsSvg },
+const ART: Record<TintStamp, string> = {
+  sietch,
+  landscape,
+  city,
+  shai_hulud: shaiHulud,
+  spice_mine: spiceMine,
+  herb,
+  ornithopter,
+  spice,
 };
+
+/** Each sticker's artwork and name, in the order they sit side by side. */
+export const TINT_STICKERS = Object.fromEntries(
+  Object.entries(ART).map(([stamp, svg]) => [stamp, { label: TINT_STAMP_NAMES[stamp as TintStamp], svg }])
+) as Record<TintStamp, { label: string; svg: string }>;
