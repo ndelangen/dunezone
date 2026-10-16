@@ -27,13 +27,13 @@ function editDistance(a: string, b: string) {
   );
   for (let i = 1; i <= a.length; i++) {
     for (let j = 1; j <= b.length; j++) {
-      rows[i]![j] = cellDistance(rows, a, b, i, j);
+      rows[i]![j] = cellDistance(rows, [a, b], i, j);
     }
   }
   return rows[a.length]![b.length]!;
 }
 
-function cellDistance(rows: number[][], a: string, b: string, i: number, j: number) {
+function cellDistance(rows: number[][], [a, b]: readonly [string, string], i: number, j: number) {
   const cost = a[i - 1] === b[j - 1] ? 0 : 1;
   const best = Math.min(rows[i - 1]![j]! + 1, rows[i]![j - 1]! + 1, rows[i - 1]![j - 1]! + cost);
   const swapped = Math.min(i, j) > 1 && a.slice(i - 2, i) === `${b[j - 1]}${b[j - 2]}`;
