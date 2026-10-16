@@ -118,4 +118,12 @@ describe('offRim', () => {
       expect(Math.hypot(middle[0] - CENTER[0], middle[1] - CENTER[1])).toBeLessThan(RADIUS * 0.995);
     }
   });
+
+  it('keeps a straight border cut across the board from rim to rim', () => {
+    const diameter = [
+      [CENTER[0] - RADIUS, CENTER[1]],
+      [CENTER[0] + RADIUS, CENTER[1]],
+    ] as const;
+    expect(offRim([diameter], CENTER, RADIUS)).toEqual([diameter]);
+  });
 });

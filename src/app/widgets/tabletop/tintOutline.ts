@@ -27,13 +27,14 @@ export function outerSegments(territories: readonly (readonly (readonly Point[])
   return [...segments.values()].filter(({ count }) => count === 1).map(({ segment }) => segment);
 }
 
-/* Rim points sit on the board's circle to within a hair; the nearest inland corner is several percent in. */
-const RIM_TOLERANCE = 0.005;
+/* Rim points sit on the board's circle to within a hair (0.05%), and a rim segment is short enough that its middle does too; a straight border cut from rim to rim has its middle well inside. */
+const RIM_TOLERANCE = 0.002;
 
 /** Drops the segments that run along the board's rim: the board's own edge already closes the shape there. */
 export function offRim(segments: readonly Segment[], center: Point, radius: number): Segment[] {
   const onRim = ([x, y]: Point) => Math.hypot(x - center[0], y - center[1]) > radius * (1 - RIM_TOLERANCE);
-  return segments.filter(([a, b]) => !(onRim(a) && onRim(b)));
+  const middle = ([ax, ay]: Point, [bx, by]: Point): Point => [(ax + bx) / 2, (ay + by) / 2];
+  return segments.filter(([a, b]) => !(onRim(a) && onRim(b) && onRim(middle(a, b))));
 }
 
 export type OutlinePath = { points: Point[]; closed: boolean };
