@@ -284,13 +284,13 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.reload();
     await expect(field()).toHaveValue(name);
 
-    const previous = page.url();
+    const previousPublicUrl = page.url().replace(/\/edit$/, '');
     await field().fill(`${name} renamed`);
     await save().click();
     await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed/edit$`));
-    await page.goto(previous);
-    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed/edit$`));
-    await expect(field()).toHaveValue(`${name} renamed`);
+    await page.goto(previousPublicUrl);
+    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed/?$`));
+    await expect(page.getByRole('heading', { name: `${name} renamed`, exact: true })).toBeVisible();
 
     await page.goto(`/factions/${slug}`);
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
