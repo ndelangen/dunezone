@@ -32,11 +32,11 @@ export type BlogPostMeta = {
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'building-a-dune-sandbox': {
     slug: 'building-a-dune-sandbox',
-    title: "Why I'm building a Dune sandbox instead of contributing to Treachery.Online",
+    title: "Playing Dune online: why I'm building a sandbox for homebrew",
     date: '2026-10-16',
     author: 'Central419',
     summary:
-      'Why build my own instead of contributing to Treachery.Online? Because I want a sandbox. Why I love Treachery.Online, why my group still plays on Tabletop Simulator, and the gap I hope dune.zone can fill.',
+      'Why I love Treachery.Online, why my group still plays Dune on Tabletop Simulator, and why I want a sandbox in the browser with room for homebrew.',
     cover: {
       key: '/web/blog/building-a-dune-sandbox/game-table.jpg',
       alt: 'The dune.zone game table during the spice blow: the Dune board with troops, faction shields and the treachery deck',
