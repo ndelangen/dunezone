@@ -5,7 +5,7 @@ import type { RefObject } from 'react';
 
 import { cardWidthFor, TOKEN_SIZE_PX } from './faceSize';
 import { PieceArtwork } from './PieceArtwork';
-import { topFaceHref } from './pieceFaceHref';
+import { topFaceHref, topItem } from './pieceFaceHref';
 import { seatedHeaderOf } from './seatedHeader';
 import { useTabletopSelector } from './TabletopContext';
 import styles from './TabletopScene.module.css';
@@ -91,7 +91,8 @@ export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | 
     table.hoveredPieceId ? (table.renderedPieces.find((entry) => entry.id === table.hoveredPieceId) ?? null) : null
   );
   const href = piece ? topFaceHref(piece) : undefined;
-  if (!pointer.alt || !piece || !href) {
+  const top = piece ? topItem(piece) : undefined;
+  if (!pointer.alt || !piece || !href || !top) {
     return null;
   }
   const isCard = piece.kind === 'card';
@@ -103,7 +104,15 @@ export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | 
   const position = placeBeside(pointer, width, height + (count > 1 && !round ? 40 : 16), tableAreaBounds(area.current));
   return (
     <div className={styles.closeUp} data-round={round || undefined} style={position} aria-hidden>
-      <PieceArtwork piece={piece} src={href} name={piece.label} width={width} height={height} radius="10px" />
+      {/* Only the top item, so a stack of prediction cards that share one front shows the top card's prediction. */}
+      <PieceArtwork
+        piece={{ ...piece, items: [top] }}
+        src={href}
+        name={piece.label}
+        width={width}
+        height={height}
+        radius="10px"
+      />
       {count > 1 ? <div className={styles.closeUpCount}>×{count}</div> : null}
     </div>
   );

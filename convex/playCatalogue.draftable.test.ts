@@ -134,4 +134,35 @@ describe('the draft reads the catalogue', () => {
     expect(factions).toHaveLength(2);
     expect(factions.every((faction) => !faction.linked)).toBe(true);
   });
+
+  test('a ruleset faction created after the first 500 live factions is still listed', async () => {
+    const t = convexTest(schema, modules);
+    const { ruleset } = await t.run(seed);
+    const late = await t.run(async (ctx) => {
+      const owner = (await ctx.db.query('users').first())!._id;
+      const stamp = { created_at: '2026-09-19T00:00:00.000Z', updated_at: '2026-09-19T00:00:00.000Z' };
+      for (let index = 0; index < 500; index += 1) {
+        await ctx.db.insert('factions', {
+          owner_id: owner,
+          slug: `filler-${index}`,
+          data: { ...assetPublishingFaction, name: `Filler ${index}` },
+          group_id: null,
+          is_deleted: false,
+          ...stamp,
+        });
+      }
+      const id = await ctx.db.insert('factions', {
+        owner_id: owner,
+        slug: 'late',
+        data: { ...assetPublishingFaction, name: 'Late' },
+        group_id: null,
+        is_deleted: false,
+        ...stamp,
+      });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: id });
+      return id;
+    });
+    const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
+    expect(factions.find((faction) => faction.id === late)).toMatchObject({ linked: true });
+  });
 });

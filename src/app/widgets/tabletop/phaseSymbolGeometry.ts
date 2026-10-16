@@ -86,7 +86,10 @@ export function loadPhaseSymbolGeometry(
       onLoaded(ownedGeometry);
     })
     .catch(() => {
-      /* An unavailable symbol leaves its colored well visible instead of suspending the table. */
+      /* An unavailable symbol leaves its colored well visible instead of suspending the table, and says so, so a shared loader can ask again. */
+      if (!cancelled) {
+        onLoaded(null);
+      }
     })
     .finally(settle);
   return () => {
