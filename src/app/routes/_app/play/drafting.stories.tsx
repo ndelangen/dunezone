@@ -62,7 +62,13 @@ export const EighteenSeats = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('Waiting for 12 more players', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.__duneTable?.stations()).toHaveLength(18));
+    /*
+     * The stations are read off the scene, which mounts only once the renderer has started and the scene's assets have loaded.
+     * That takes about three seconds after the canvas appears on an idle machine, and more than the default wait's ten on a busy runner, so this wait takes the scene's own startup bound.
+     */
+    await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.__duneTable?.stations()).toHaveLength(18), {
+      timeout: 30_000,
+    });
     /* Ready is the header's, beside the gear, as in play. */
     const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
     await expect(within(header).getByRole('button', { name: 'Ready' })).toBeVisible();
