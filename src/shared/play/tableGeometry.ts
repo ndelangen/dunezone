@@ -19,7 +19,8 @@ export const TABLE_VISIBLE_RADIUS = 5.47;
 export const BOARD_SURFACE_Y = 0.132;
 export const BOARD_RIM_SURFACE_Y = 0.125;
 export const TABLE_SURFACE_Y = 0.005;
-export const CARRIED_BASE_Y = 0.38;
+/* Carried pieces glide above the tallest stack on the board: twenty troops show twelve layers and top out near 0.59. */
+export const CARRIED_BASE_Y = 0.62;
 export const CONTACT_SHADOW_EPSILON = 0.003;
 
 export const TROOP_LAYER_HEIGHT = 0.09 * 0.5;
@@ -153,7 +154,7 @@ function troopLayerCount(items: number): number {
 }
 
 export function visibleLayerCount(piece: TablePiece): number {
-  if (piece.kind === 'force' && !isSpicePiece(piece)) {
+  if (isTroopStack(piece)) {
     return Math.max(1, troopLayerCount(piece.items.length));
   }
   const maximum = isSpicePiece(piece) ? SPICE_MAX_VISIBLE_LAYERS : MAX_VISIBLE_LAYERS[piece.kind];
