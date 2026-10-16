@@ -8,7 +8,7 @@ import { factionSpecialRuleLabel } from '../src/shared/factions/specialRule';
 import { api } from './_generated/api';
 import { rulebookFixture } from './rulebooks.test.fixture';
 
-test('the special rule name round-trips as an optional override and reaches sheet publication', async () => {
+async function specialRuleFixture() {
   const { t, owner, ids } = await rulebookFixture();
   await t.run((ctx) =>
     ctx.db.insert('profiles', {
@@ -25,6 +25,11 @@ test('the special rule name round-trips as an optional override and reaches shee
     data: structuredClone(assetPublishingFaction),
     group_id: null,
   });
+  return { t, owner, created };
+}
+
+test('the special rule name round-trips as an optional override and reaches sheet publication', async () => {
+  const { t, owner, created } = await specialRuleFixture();
   const authoredRule = structuredClone(created.data.rules.fate);
   expect(authoredRule).not.toHaveProperty('label');
 

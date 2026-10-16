@@ -362,6 +362,22 @@ function FactionAdvantages({ advantages }: { advantages: FactionData['rules']['a
   );
 }
 
+function FactionSpecialRule({ rule }: { rule: FactionData['rules']['fate'] }) {
+  return (
+    <Card
+      icon={<TopicIcon topic={rule.label === 'fate' ? 'fate' : 'karama'} size={20} />}
+      title={factionSpecialRuleLabel(rule.label)}
+    >
+      {rule.title ? (
+        <Text size="sm" fw={700}>
+          {rule.title}
+        </Text>
+      ) : null}
+      <FormattedTextSource source={rule.text} size="sm" />
+    </Card>
+  );
+}
+
 function FactionDetailPage() {
   const { factionId } = Route.useParams();
   const loaderData = Route.useLoaderData();
@@ -576,17 +592,7 @@ function FactionDetailContent({
                 <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">
                   <FormattedTextSource source={data.rules.alliance.text} size="sm" />
                 </Card>
-                <Card
-                  icon={<TopicIcon topic={data.rules.fate.label === 'fate' ? 'fate' : 'karama'} size={20} />}
-                  title={factionSpecialRuleLabel(data.rules.fate.label)}
-                >
-                  {data.rules.fate.title ? (
-                    <Text size="sm" fw={700}>
-                      {data.rules.fate.title}
-                    </Text>
-                  ) : null}
-                  <FormattedTextSource source={data.rules.fate.text} size="sm" />
-                </Card>
+                <FactionSpecialRule rule={data.rules.fate} />
               </SimpleGrid>
             </Stack>
           </Box>
