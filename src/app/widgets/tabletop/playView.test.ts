@@ -148,16 +148,41 @@ describe('table views', () => {
     projected.forEach((point) => chips.forEach((chip) => expect(under(point, chip)).toBe(false)));
   });
 
-  /* A narrow canvas, as in the three-column layout's middle or a phone, where the frame's width meets the chips first. */
+  /*
+   * Narrow canvases, as in the three-column layout's middle or a phone, where the frame's width meets the chips first,
+   * and a short one with the phase and game chips stacked at the left, where a point the camera backs away for can slide under the lower chip.
+   */
   test.each([
-    [814, 900],
-    [390, 456],
-  ])('keeps the board out from under the chips over a %ipx canvas', (canvasWidth, canvasHeight) => {
+    [
+      814,
+      900,
+      [
+        [0, 0, 326, 110],
+        [448, 0, 814, 70],
+      ],
+    ],
+    [
+      390,
+      456,
+      [
+        [0, 0, 156, 110],
+        [215, 0, 390, 70],
+      ],
+    ],
+    [
+      500,
+      400,
+      [
+        [0, 0, 120, 60],
+        [0, 60, 180, 100],
+        [300, 0, 500, 60],
+      ],
+    ],
+  ] as const)('keeps the board out from under the chips over a %ipx canvas', (canvasWidth, canvasHeight, rects) => {
     const aspectRatio = canvasWidth / canvasHeight;
-    const chips = [
-      chipOn(canvasWidth, canvasHeight, 0, 0, canvasWidth * 0.4, 110),
-      chipOn(canvasWidth, canvasHeight, canvasWidth * 0.55, 0, canvasWidth, 70),
-    ];
+    const chips = rects.map(([left, top, right, bottom]) =>
+      chipOn(canvasWidth, canvasHeight, left, top, right, bottom)
+    );
     const frame = mapViewFramingPoints(trackerArcSlots(9));
     const projected = projectedFrame(cameraPoseFor('map', aspectRatio, frame, 0, chips), aspectRatio);
 

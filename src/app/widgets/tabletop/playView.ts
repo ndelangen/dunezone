@@ -97,8 +97,10 @@ const SIDE_VIEW_WIDE_ASPECT = 1;
 const SIDE_VIEW_ASPECT_COMPENSATION = 2.85;
 const SIDE_VIEW_MAX_TARGET_X = 6.1;
 const MAP_VIEW_TARGET_Z = 0.8;
-const MAP_VIEW_TARGET_SEARCH_RANGE = 12;
-const MAP_VIEW_TARGET_SEARCH_STEPS = 48;
+/* How far from the approved target the map view's centring looks, and how finely: a few millionths of a table unit. */
+const MAP_VIEW_TARGET_SEARCH_RANGE = 6;
+const MAP_VIEW_TARGET_SEARCH_STEPS = 22;
+const NO_SCREEN_RECTS: readonly ScreenRect[] = [];
 
 const TABLE_VIEW_TARGETS: Record<TableView, Vector3Tuple> = {
   map: [0, 0.1, MAP_VIEW_TARGET_Z],
@@ -146,38 +148,37 @@ function cameraBasisFor(tilt: number): CameraBasis {
   };
 }
 
-function dot(left: Vector3Tuple, right: Vector3Tuple): number {
-  return left[0] * right[0] + left[1] * right[1] + left[2] * right[2];
+/* The least reciprocal depth at which a coordinate c, seen at c * u on screen, lies within [min, max]; Infinity when it never does. */
+function reciprocalFrom(c: number, min: number, max: number): number {
+  if (c === 0) {
+    return min <= 0 && max >= 0 ? 0 : Number.POSITIVE_INFINITY;
+  }
+  return c > 0 ? min / c : max / c;
+}
+
+/* The greatest reciprocal depth at which the coordinate lies within [min, max]. */
+function reciprocalTo(c: number, min: number, max: number): number {
+  if (c === 0) {
+    return min <= 0 && max >= 0 ? Number.POSITIVE_INFINITY : 0;
+  }
+  return c > 0 ? max / c : min / c;
 }
 
 /*
- * The camera depths over which a point, seen at (x / depth, y / depth) on screen, lies inside a rectangle; null when it never does.
+ * The depth past which a point, seen at (x / depth, y / depth) on screen, has left a rectangle; `depth` itself when it is not inside there.
  * As the camera backs away every point slides straight toward the middle of the screen, so a rectangle clear of the middle
  * holds the point over one stretch of depths at most, and backing away past its end frees the point for good.
+ * In reciprocal depth u = 1 / depth the point sits at (x * u, y * u), so each side of the rectangle bounds u from one side.
  */
-function depthsInside(x: number, y: number, rect: ScreenRect): readonly [number, number] | null {
-  /* In reciprocal depth u = 1 / depth the point sits at (x * u, y * u), so each side of the rectangle bounds u from one side. */
-  let lowest = 0;
-  let highest = Number.POSITIVE_INFINITY;
-  for (const [coordinate, min, max] of [
-    [x, rect.left, rect.right],
-    [y, rect.bottom, rect.top],
-  ] as const) {
-    if (coordinate === 0) {
-      if (min > 0 || max < 0) {
-        return null;
-      }
-      continue;
-    }
-    const [from, to] = coordinate > 0 ? [min / coordinate, max / coordinate] : [max / coordinate, min / coordinate];
-    lowest = Math.max(lowest, from);
-    highest = Math.min(highest, to);
-  }
+function depthLeaving(x: number, y: number, depth: number, rect: ScreenRect): number {
+  const lowest = Math.max(0, reciprocalFrom(x, rect.left, rect.right), reciprocalFrom(y, rect.bottom, rect.top));
+  const highest = Math.min(reciprocalTo(x, rect.left, rect.right), reciprocalTo(y, rect.bottom, rect.top));
   /* A rectangle over the middle of the screen would hold the point however far the camera backed away, so it frames nothing. */
   if (lowest <= 0 || lowest >= highest) {
-    return null;
+    return depth;
   }
-  return [1 / highest, 1 / lowest];
+  const inside = depth >= 1 / highest && depth < 1 / lowest;
+  return inside ? 1 / lowest : depth;
 }
 
 /* The nearest depth, at or past `depth`, where the point lies under none of the rectangles. */
@@ -185,27 +186,18 @@ function depthClearOf(x: number, y: number, depth: number, obstacles: readonly S
   let clear = depth;
   /* Leaving one rectangle can land the point in another nearer the middle, so look again until a pass moves nothing. */
   for (let pass = 0; pass <= obstacles.length; pass++) {
-    let moved = false;
+    const before = clear;
     for (const rect of obstacles) {
-      const inside = depthsInside(x, y, rect);
-      if (inside && clear >= inside[0] && clear < inside[1]) {
-        clear = inside[1];
-        moved = true;
-      }
+      clear = depthLeaving(x, y, clear, rect);
     }
-    if (!moved) {
+    if (clear === before) {
       break;
     }
   }
   return clear;
 }
 
-/* Where a framing point lies relative to the target, along the camera's view and its screen's height. */
-function framingOffset(point: Vector3Tuple, target: Vector3Tuple, basis: CameraBasis) {
-  const relativePoint: Vector3Tuple = [point[0] - target[0], point[1] - target[1], point[2] - target[2]];
-  return { relativePoint, depthAtTarget: dot(relativePoint, basis.forward), viewHeight: dot(relativePoint, basis.up) };
-}
-
+/* The camera never turns sideways, so a point's depth and height on screen take only its height and depth on the table. */
 function cameraScaleForFraming(
   aspectRatio: number,
   framingPoints: readonly Vector3Tuple[],
@@ -213,24 +205,50 @@ function cameraScaleForFraming(
   basis: CameraBasis,
   target: Vector3Tuple = TABLE_VIEW_TARGETS.map,
   minimumScale = MAP_VIEW_MINIMUM_CAMERA_SCALE,
-  obstacles: readonly ScreenRect[] = []
+  obstacles: readonly ScreenRect[] = NO_SCREEN_RECTS
 ): number {
-  return framingPoints.reduce((requiredScale, point) => {
-    const { relativePoint, depthAtTarget, viewHeight } = framingOffset(point, target, basis);
-    const horizontalDepth = Math.abs(relativePoint[0]) / (CAMERA_TANGENT * MAP_VIEW_HORIZONTAL_LIMIT * aspectRatio);
+  const count = framingPoints.length;
+  const screenX = new Float64Array(count);
+  const screenY = new Float64Array(count);
+  const depthsAtTarget = new Float64Array(count);
+  let scale = minimumScale;
+  for (let index = 0; index < count; index++) {
+    const point = framingPoints[index];
+    const relativeX = point[0] - target[0];
+    const relativeY = point[1] - target[1];
+    const relativeZ = point[2] - target[2];
+    const depthAtTarget = relativeY * basis.forward[1] + relativeZ * basis.forward[2];
+    const viewHeight = relativeY * basis.up[1] + relativeZ * basis.up[2];
+    const horizontalDepth = Math.abs(relativeX) / (CAMERA_TANGENT * MAP_VIEW_HORIZONTAL_LIMIT * aspectRatio);
     const verticalDepth =
       viewHeight >= 0
         ? viewHeight / (CAMERA_TANGENT * topLimit)
         : -viewHeight / (CAMERA_TANGENT * MAP_VIEW_BOTTOM_LIMIT);
-    const depth = depthClearOf(
-      relativePoint[0] / (CAMERA_TANGENT * aspectRatio),
-      viewHeight / CAMERA_TANGENT,
-      Math.max(horizontalDepth, verticalDepth),
-      obstacles
-    );
-    const pointScale = (depth - depthAtTarget) / CAMERA_OFFSET_LENGTH;
-    return Math.max(requiredScale, pointScale);
-  }, minimumScale);
+    screenX[index] = relativeX / (CAMERA_TANGENT * aspectRatio);
+    screenY[index] = viewHeight / CAMERA_TANGENT;
+    depthsAtTarget[index] = depthAtTarget;
+    const depth = depthClearOf(screenX[index], screenY[index], Math.max(horizontalDepth, verticalDepth), obstacles);
+    scale = Math.max(scale, (depth - depthAtTarget) / CAMERA_OFFSET_LENGTH);
+  }
+  /*
+   * Another point may hold the camera further back than a point needs for itself, which can slide that point under a chip
+   * nearer the middle, so every point is looked at again at the shared distance until none lies under a chip.
+   */
+  for (let pass = 0; pass <= obstacles.length; pass++) {
+    let moved = false;
+    for (let index = 0; index < count; index++) {
+      const depth = scale * CAMERA_OFFSET_LENGTH + depthsAtTarget[index];
+      const clear = depthClearOf(screenX[index], screenY[index], depth, obstacles);
+      if (clear > depth) {
+        scale = Math.max(scale, (clear - depthsAtTarget[index]) / CAMERA_OFFSET_LENGTH);
+        moved = true;
+      }
+    }
+    if (!moved) {
+      break;
+    }
+  }
+  return scale;
 }
 
 /* How much more room the frame leaves above it than below it, on screen, with the camera at `scale`. */
@@ -244,7 +262,10 @@ function verticalImbalance(
   let highest = Number.NEGATIVE_INFINITY;
   let lowest = Number.POSITIVE_INFINITY;
   for (const point of framingPoints) {
-    const { depthAtTarget, viewHeight } = framingOffset(point, target, basis);
+    const relativeY = point[1] - target[1];
+    const relativeZ = point[2] - target[2];
+    const depthAtTarget = relativeY * basis.forward[1] + relativeZ * basis.forward[2];
+    const viewHeight = relativeY * basis.up[1] + relativeZ * basis.up[2];
     const screenY = viewHeight / (CAMERA_TANGENT * (scale * CAMERA_OFFSET_LENGTH + depthAtTarget));
     highest = Math.max(highest, screenY);
     lowest = Math.min(lowest, screenY);
@@ -308,6 +329,55 @@ function fixedViewTarget(view: Exclude<TableView, 'map'>, aspectRatio: number): 
 }
 
 /*
+ * The map view's centred targets already found, per frame and set of chips, by canvas shape and tilt.
+ * A close look asks for its view's pose several times a frame while it zooms or pans, turning as it closes in, so the target is
+ * looked for at the nearest of a few fixed tilts: the search runs once per step of tilt, and the camera's distance, worked out
+ * for the tilt itself, still keeps the frame in view. The approved angle and top-down are steps of their own.
+ */
+const MAP_TARGET_TILT_STEPS = 32;
+const MAP_TARGET_CACHE_SIZE = 64;
+const mapTargetCache = new WeakMap<
+  readonly Vector3Tuple[],
+  WeakMap<readonly ScreenRect[], Map<string, Vector3Tuple>>
+>();
+
+function cachedMapTarget(
+  aspectRatio: number,
+  framingPoints: readonly Vector3Tuple[],
+  tilt: number,
+  obstacles: readonly ScreenRect[]
+): Vector3Tuple {
+  const steppedTilt = Math.round(tilt * MAP_TARGET_TILT_STEPS) / MAP_TARGET_TILT_STEPS;
+  let byObstacles = mapTargetCache.get(framingPoints);
+  if (!byObstacles) {
+    byObstacles = new WeakMap();
+    mapTargetCache.set(framingPoints, byObstacles);
+  }
+  let targets = byObstacles.get(obstacles);
+  if (!targets) {
+    targets = new Map();
+    byObstacles.set(obstacles, targets);
+  }
+  const key = `${aspectRatio}:${steppedTilt}`;
+  const cached = targets.get(key);
+  if (cached) {
+    return cached;
+  }
+  const target = centredMapTarget(
+    aspectRatio,
+    framingPoints,
+    MAP_VIEW_TOP_LIMIT,
+    cameraBasisFor(steppedTilt),
+    obstacles
+  );
+  if (targets.size >= MAP_TARGET_CACHE_SIZE) {
+    targets.clear();
+  }
+  targets.set(key, target);
+  return target;
+}
+
+/*
  * The pose for a view. `mapObstacles` are the chips floating over the canvas: the map view keeps its frame out from under them
  * and otherwise runs to the canvas's edges, so the board takes the room between them.
  */
@@ -316,13 +386,13 @@ export function cameraPoseFor(
   aspectRatio = 1,
   mapFramingPoints: readonly Vector3Tuple[] = DEFAULT_MAP_VIEW_FRAMING_POINTS,
   tilt = 0,
-  mapObstacles: readonly ScreenRect[] = []
+  mapObstacles: readonly ScreenRect[] = NO_SCREEN_RECTS
 ): CameraPose {
   const basis = cameraBasisFor(tilt);
   const safeAspectRatio = Number.isFinite(aspectRatio) && aspectRatio > 0 ? aspectRatio : 1;
   const target: Vector3Tuple =
     view === 'map'
-      ? centredMapTarget(safeAspectRatio, mapFramingPoints, MAP_VIEW_TOP_LIMIT, basis, mapObstacles)
+      ? cachedMapTarget(safeAspectRatio, mapFramingPoints, clampCameraTilt(tilt), mapObstacles)
       : fixedViewTarget(view, safeAspectRatio);
   const cameraScale =
     view === 'map'
