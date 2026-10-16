@@ -1,0 +1,238 @@
+/*
+ * Ingredients on top, the faction in the middle, assets below, with curves behind the tiles joining them.
+ * The figure takes the wide figure column, like a row of figures does, and every tile wraps, so a phone gets the same diagram in more rows.
+ */
+.root {
+  --art-height: 4.5rem;
+  --output-height: 7.5rem;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xl);
+  align-self: center;
+  width: min(56rem, calc(100vw - 2 * var(--app-shell-inline-gutter, 20px)));
+  padding-block: var(--space-md);
+}
+
+@container blog-article (width < 36rem) {
+  .root {
+    --art-height: 3rem;
+    --output-height: 5.5rem;
+
+    gap: var(--space-lg);
+  }
+}
+
+.lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.line {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 1;
+  opacity: 0.18;
+  transition:
+    opacity 250ms ease,
+    stroke 250ms ease,
+    stroke-width 250ms ease;
+}
+
+.line.lit {
+  stroke: var(--color-brand);
+  stroke-width: 2;
+  opacity: 0.9;
+}
+
+.heading {
+  margin: 0;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.inputs,
+.outputs {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.outputs {
+  gap: var(--space-md);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-body);
+  color: var(--color-text);
+  transition:
+    opacity 250ms ease,
+    border-color 250ms ease;
+}
+
+.focused .tile {
+  opacity: 0.35;
+}
+
+.focused .tile.lit {
+  opacity: 1;
+  border-color: var(--color-brand);
+}
+
+.label {
+  font-size: var(--mantine-font-size-xs);
+  white-space: nowrap;
+}
+
+.inputArt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--art-height);
+  min-width: var(--art-height);
+}
+
+.outputArt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--output-height);
+}
+
+.name {
+  max-width: 7rem;
+  font-family: var(--mantine-font-family-headings);
+  font-size: var(--mantine-font-size-md);
+  line-height: 1.1;
+  text-align: center;
+}
+
+.glyph {
+  display: block;
+  width: calc(var(--art-height) * 0.8);
+  height: calc(var(--art-height) * 0.8);
+  background: currentColor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.texture {
+  display: block;
+  width: var(--art-height);
+  height: var(--art-height);
+  border-radius: var(--mantine-radius-sm);
+  object-fit: cover;
+}
+
+.swatches {
+  display: flex;
+  gap: 4px;
+}
+
+.swatch {
+  display: block;
+  width: calc(var(--art-height) * 0.5);
+  height: var(--art-height);
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.portraits {
+  display: flex;
+}
+
+.portraits .portrait + .portrait {
+  margin-inline-start: calc(var(--art-height) * -0.45);
+}
+
+.portrait {
+  display: block;
+  width: var(--art-height);
+  height: var(--art-height);
+  border: 2px solid var(--mantine-color-body);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 8%);
+  object-fit: cover;
+}
+
+.text {
+  display: -webkit-box;
+  max-width: 9rem;
+  overflow: hidden;
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.3;
+  text-align: start;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.hub {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--color-brand);
+  border-radius: 999px;
+  background: var(--mantine-color-body);
+  font-family: var(--mantine-font-family-headings);
+  font-size: var(--mantine-font-size-lg);
+
+  --art-height: 2rem;
+}
+
+.scaled {
+  --art-aspect: 1;
+
+  display: block;
+  height: var(--output-height);
+  aspect-ratio: var(--art-aspect);
+  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 45%));
+}
+
+.scaled.round {
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.sheet {
+  --art-aspect: 1;
+
+  display: block;
+  height: var(--output-height);
+  aspect-ratio: var(--art-aspect);
+  overflow: hidden;
+  border-radius: 2px;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 45%);
+}
+
+.stack,
+.fan {
+  display: flex;
+}
+
+.stack .scaled + .scaled {
+  margin-inline-start: calc(var(--output-height) * -0.55);
+}
+
+.fan .scaled + .scaled {
+  margin-inline-start: calc(var(--output-height) * -0.45);
+}

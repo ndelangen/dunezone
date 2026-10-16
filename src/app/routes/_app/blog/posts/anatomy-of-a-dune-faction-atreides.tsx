@@ -5,6 +5,7 @@ import { Surface } from '@ui/surface';
 import type { ReactNode } from 'react';
 
 import { Figure, Lead, Paragraph } from '../postContent';
+import { FactionRecipe } from './anatomy/FactionRecipe';
 
 /*
  * Outline only: each section says what it will cover, and each `Planned` box marks a figure still to be made.
@@ -54,13 +55,7 @@ export default function Post() {
           A small detail: the complexity rating is calculated from the faction&rsquo;s own rules, and the author can
           override it.
         </Paragraph>
-        <Planned>
-          each input shown on its own (the background, the row of leader portraits, the logo, the advantages, the
-          colours) flowing together into House Atreides, with the finished assets coming out the other side: sheet,
-          leader tokens, traitor cards, troop tokens, alliance card and shield. Drawn with the site&rsquo;s own
-          components, so the outputs are real. While scrolling, one input lights up at a time to show where it lands:
-          the logo on everything, the advantages only on the sheet.
-        </Planned>
+        <FactionRecipe />
       </Section>
       <Section title="Adding your own cards and tokens">
         <Paragraph>
