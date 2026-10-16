@@ -127,6 +127,14 @@ function initialState(src: string | null, priority: boolean): State {
   return { ...base, phase: 'loading' };
 }
 
+/** What an image the browser has finished with settles to: a broken one has failed, and a drawn one is decoded unless it already moved on. */
+function completeImageAction(img: HTMLImageElement, phase: Phase): Action | null {
+  if (img.naturalWidth === 0) {
+    return phase === 'loading' || phase === 'shown' ? { type: 'failed' } : null;
+  }
+  return phase === 'loading' ? { type: 'decoded' } : null;
+}
+
 function inFetchRange(element: HTMLElement) {
   const rect = element.getBoundingClientRect();
   return rect.bottom >= -FETCH_MARGIN_PX && rect.top <= window.innerHeight + FETCH_MARGIN_PX;
@@ -183,16 +191,12 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
    */
   useLayoutEffect(() => {
     const img = imgRef.current;
-    if (!fetching || !src || !img?.complete) {
-      return;
+    const settled = fetching && src && img?.complete ? completeImageAction(img, phase) : null;
+    if (settled?.type === 'decoded') {
+      markDecoded(src!);
     }
-    if (img.naturalWidth === 0) {
-      if (phase === 'loading' || phase === 'shown') {
-        dispatch({ type: 'failed' });
-      }
-    } else if (phase === 'loading') {
-      markDecoded(src);
-      dispatch({ type: 'decoded' });
+    if (settled) {
+      dispatch(settled);
     }
   }, [fetching, phase, src]);
 
