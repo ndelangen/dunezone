@@ -87,8 +87,8 @@ type Carry = Identity & {
   seq: number;
   beginPayload: string;
   takes: Map<string, string>;
-  /* What rode the carried plate when it was picked up; nothing for any other piece. */
-  riders?: ReadonlySet<string>;
+  /* What rode the carried plate when it was picked up, by id, to the handle pages knew it by then; nothing for any other piece. */
+  riders?: ReadonlyMap<string, string | undefined>;
 };
 type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
@@ -317,11 +317,27 @@ export class Room {
     return draft;
   }
 
-  private ridersOn(identity: Identity, pieceId: string): ReadonlySet<string> | undefined {
+  private ridersOn(identity: Identity, pieceId: string): ReadonlyMap<string, string | undefined> | undefined {
     /* A piece another player holds is locked here, as on the drop, so it never counts as riding. */
     const { pieces } = this.table(identity);
     const plate = pieces.find((piece) => piece.id === pieceId);
-    return plate && isPointerToken(plate) ? new Set(pointerRiders(pieces, plate).map((rider) => rider.id)) : undefined;
+    if (!plate || !isPointerToken(plate)) {
+      return undefined;
+    }
+    return new Map(pointerRiders(pieces, plate).map((rider) => [rider.id, this.snapshot.pieceHandles[rider.id]]));
+  }
+
+  /*
+   * A rider whose handle the room has since retired, as when a card went into a hand and came back face down, is a new piece to everyone else:
+   * naming it as a rider would tie it to what it was, so it no longer counts as one.
+   */
+  private retireRiders(snapshot: StoredSnapshot) {
+    for (const carry of this.carries.values()) {
+      const riders = carry.riders;
+      if (riders && [...riders].some(([id, handle]) => snapshot.pieceHandles[id] !== handle)) {
+        carry.riders = new Map([...riders].filter(([id, handle]) => snapshot.pieceHandles[id] === handle));
+      }
+    }
   }
 
   /*
@@ -982,6 +998,7 @@ export class Room {
     this.snapshot = snapshot;
     this.settledRevision = snapshot.revision;
     this.invalidateChangedCarries(snapshot);
+    this.retireRiders(snapshot);
     if (clearAll) {
       for (const id of this.carries.keys()) {
         this.remove(id);
@@ -1128,7 +1145,7 @@ export class Room {
         held,
         withdrawnCounts: this.withdrawnCounts(carry),
         reservedIds: [...carry.versions.keys()],
-        ...(carry.riders ? { riderIds: [...carry.riders] } : {}),
+        ...(carry.riders ? { riderIds: [...carry.riders.keys()] } : {}),
         expiresAt: carry.lastSeen + 8000,
         sourceSeq: carry.seq,
       },

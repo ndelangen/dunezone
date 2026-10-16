@@ -784,6 +784,55 @@ describe('a pointer token carrying riders', () => {
     expect(piece(troop.id).position).toEqual(landed.position);
   });
 
+  test('stops naming a card as a rider once it has been in a hand, so its face-down return is not tied to what it was', () => {
+    const initial = { ...initialSnapshot(), roster: hostedFixturePlan.roster };
+    const card = initial.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+    const loose = initial.table.pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
+    const plate = {
+      ...loose,
+      id: 'hms',
+      stackKey: 'token:hms',
+      items: [
+        {
+          id: 'hms-item',
+          faceUp: true,
+          artwork: { back: 'https://dune.zone/hms.jpg', name: 'HMS', type: POINTER_TOKEN_TYPE },
+        },
+      ],
+      position: restingPositionAt(card.position, { kind: 'force', orientation: 0 }),
+      orientation: 0,
+    };
+    const factions: Record<string, string> = { [alice.userId]: 'harkonnen', [bob.userId]: 'atreides' };
+    const room = new Room(
+      {
+        ...initial,
+        table: { ...initial.table, pieces: [...initial.table.pieces, plate] },
+        versions: { ...initial.versions, hms: initial.revision },
+      },
+      seated,
+      (id) => factions[id]
+    );
+    const riders = () => {
+      const [carry] = new RoomProjection('secret').carries(room.publicCarries(), room.snapshot);
+      return carry.riderIds ?? [];
+    };
+    room.begin(alice, {
+      carryId: 'alice-moves-plate',
+      sourcePieceId: 'hms',
+      expectedVersion: initial.revision,
+      pickup: 'whole',
+    });
+    expect(riders()).toContain(room.snapshot.pieceHandles[card.id] ?? card.id);
+    room.accept(room.command(bob, { kind: 'hand-take', pieceId: card.id }, room.snapshot.revision));
+    const inHand = room.snapshot.factionInventories.atreides!.find((piece) => piece.items[0].id === card.items[0].id)!;
+    room.accept(
+      room.command(bob, { kind: 'hand-play', pieceId: inHand.id, position: card.position }, room.snapshot.revision)
+    );
+    const played = room.snapshot.table.pieces.find((piece) => piece.items[0]?.id === card.items[0].id)!;
+    expect(riders()).not.toContain(room.snapshot.pieceHandles[played.id] ?? played.id);
+    expect(riders()).toEqual([]);
+  });
+
   test('names its riders by the handles pages know them by', () => {
     const { room, troop, begin } = plateRoom([0, 0, 1], 'rider-item');
     begin(alice, 'alice-moves-plate', 'hms');
