@@ -8,7 +8,13 @@ import { composeTurn } from '../../src/shared/play/phases';
 import { factionSupply, piece, place } from '../../src/shared/play/setupSupply';
 import { stackPreviewPositionFor } from '../../src/shared/play/tableGeometry';
 import { applyDraftToState } from '../../src/shared/play/tableState';
-import { RoomProjection, storedSnapshotSchema, withKnownCardFaces } from './state';
+import {
+  RoomProjection,
+  storedSnapshotSchema,
+  validatedSnapshot,
+  withKnownCardFaces,
+  withUnchangedParts,
+} from './state';
 
 const TRAITOR_BACK = 'https://table.test/published/cardback-presets/traitor/cardback.jpg';
 
@@ -316,4 +322,85 @@ test('every viewer is sent the same sorted card faces, and a card taken out of t
   expect(projection.snapshot(withKnownCardFaces(stored, withoutCards)).cardFaces).toEqual(faces);
   /* A step stored before the list existed is sent the live game's list, so no two steps differ by a removed card. */
   expect(new RoomProjection('secret').snapshot(withoutCards, undefined, stored).cardFaces).toEqual(faces);
+});
+
+test('a validated command keeps every piece it left alone as the same object, and only those', () => {
+  const previous = storedSnapshotSchema.parse(initialSnapshot());
+  const [moved, ...untouched] = previous.table.pieces;
+  /* A command's result rebuilt from scratch, as a serialized copy is, with one piece moved and one more added. */
+  const added = { ...structuredClone(moved!), id: 'added-piece' };
+  const next = structuredClone({
+    ...previous,
+    revision: previous.revision + 1,
+    table: {
+      ...previous.table,
+      pieces: [added, { ...moved!, position: [1, moved!.position[1], 1] }, ...untouched],
+    },
+  });
+
+  const validated = validatedSnapshot(previous, next);
+  const pieces = new Map(validated.table.pieces.map((piece) => [piece.id, piece]));
+
+  expect(validated).toEqual(storedSnapshotSchema.parse(next));
+  for (const piece of untouched) {
+    expect(pieces.get(piece.id)).toBe(piece);
+  }
+  expect(pieces.get(moved!.id)).not.toBe(moved);
+  expect(pieces.get(moved!.id)!.items).toBe(moved!.items);
+  expect(validated.table).not.toBe(previous.table);
+  expect(validated.factionArtwork).toBe(previous.factionArtwork);
+  /* The projection's per-piece cache then answers for the untouched card pieces in the next delivery. */
+  const projection = new RoomProjection('secret');
+  const before = new Map(projection.snapshot(previous).table.pieces.map((piece) => [piece.id, piece]));
+  const after = projection.snapshot(validated).table.pieces;
+  for (const piece of after.filter((candidate) => candidate.id !== moved!.id && candidate.id !== 'added-piece')) {
+    expect(piece).toBe(before.get(piece.id));
+  }
+});
+
+test('a validated snapshot that changed nothing is the previous snapshot itself', () => {
+  const previous = storedSnapshotSchema.parse(initialSnapshot());
+
+  expect(validatedSnapshot(previous, structuredClone(previous))).toBe(previous);
+});
+
+test('every audience shares the parts of a projection no faction changes, and an unchanged part outlives its snapshot', () => {
+  const stored = storedSnapshotSchema.parse(initialSnapshot());
+  const projection = new RoomProjection('secret');
+  const everyone = projection.snapshot(stored);
+  const atreides = projection.snapshot(stored, 'atreides');
+
+  expect(atreides.table).toBe(everyone.table);
+  expect(atreides.versions).toBe(everyone.versions);
+  expect(atreides.battleResults).toBe(everyone.battleResults);
+  expect(projection.snapshot({ ...stored, revision: stored.revision + 1 }, 'atreides').table).toBe(everyone.table);
+});
+
+test('keeping unchanged parts never changes a value, its key order or which parts are shared', () => {
+  let seed = 11;
+  const random = () => (seed = (seed * 1_103_515_245 + 12_345) % 2 ** 31) / 2 ** 31;
+  const below = (count: number) => Math.floor(random() * count);
+  /* Small JSON values whose lists often hold entries with ids, so matching by id and by index both get exercised. */
+  function value(depth: number): unknown {
+    const roll = random();
+    if (depth === 0 || roll < 0.3) {
+      return [null, true, 1, 'text', below(3)][below(5)];
+    }
+    if (roll < 0.6) {
+      return Array.from({ length: below(5) }, () =>
+        random() < 0.5 ? { id: `e${below(4)}`, value: value(depth - 1) } : value(depth - 1)
+      );
+    }
+    return Object.fromEntries(Array.from({ length: below(4) }, () => [`k${below(4)}`, value(depth - 1)]));
+  }
+  for (let round = 0; round < 2000; round++) {
+    const previous = value(4);
+    const next = random() < 0.3 ? structuredClone(previous) : value(4);
+    const kept = withUnchangedParts(previous, structuredClone(next));
+
+    expect(JSON.stringify(kept)).toBe(JSON.stringify(next));
+    if (JSON.stringify(previous) === JSON.stringify(next) && typeof previous === 'object' && previous !== null) {
+      expect(kept).toBe(previous);
+    }
+  }
 });
