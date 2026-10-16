@@ -318,7 +318,8 @@ export class Room {
   }
 
   private ridersOn(identity: Identity, pieceId: string): ReadonlySet<string> | undefined {
-    const pieces = tableForViewer(this.snapshot, identity.viewerSeat).pieces;
+    /* A piece another player holds is locked here, as on the drop, so it never counts as riding. */
+    const { pieces } = this.table(identity);
     const plate = pieces.find((piece) => piece.id === pieceId);
     return plate && isPointerToken(plate) ? new Set(pointerRiders(pieces, plate).map((rider) => rider.id)) : undefined;
   }

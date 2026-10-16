@@ -10,7 +10,7 @@ import type { Affordance, DraftMove, TablePiece, TableState, Vector3Tuple } from
 import { isSeatAction } from '@shared/play/participation';
 import { rearrangeable } from '@shared/play/peeking';
 import type { Peek } from '@shared/play/peeking';
-import { piecesOnPlates, ridersOf } from '@shared/play/pointerRiders';
+import { piecesOnPlates, pointerRiders, ridersOf } from '@shared/play/pointerRiders';
 import { carryPieceId, TABLE_PING_INTERVAL_MS, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
@@ -81,9 +81,11 @@ function lateRiders(
   inHand: ReadonlySet<string>,
   pickupRiders: ReadonlyMap<string, ReadonlySet<string>>
 ): string[] {
-  return [...ridersOf(rested, inHand)]
-    .filter(([riderId, plateId]) => pickupRiders.get(plateId)?.has(riderId) === false)
-    .map(([riderId]) => riderId);
+  /* Each plate on its own, as the room drops it: a piece under two carried plates is held if either picked it up without it. */
+  return rested
+    .filter((plate) => inHand.has(plate.id) && pickupRiders.has(plate.id))
+    .flatMap((plate) => pointerRiders(rested, plate).filter((rider) => !pickupRiders.get(plate.id)!.has(rider.id)))
+    .map((rider) => rider.id);
 }
 
 /* What rode each carried plate when it was picked up, by the plate's id, as the room says in each carry. */

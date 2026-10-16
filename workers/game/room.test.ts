@@ -770,6 +770,20 @@ describe('a pointer token carrying riders', () => {
     expect(after.locked).toBe(landed.locked);
   });
 
+  test('leaves behind a troop another player held at pickup and set back where it lay', () => {
+    const { room, troop, begin, piece } = plateRoom([0, 0, 1], 'rider-item');
+    begin(bob, 'bob-takes-rider', troop.id);
+    begin(alice, 'alice-moves-plate', 'hms');
+    expect(room.publicCarries().find((carry) => carry.id === 'alice-moves-plate')?.riderIds).toEqual([]);
+    room.accept(room.drop(bob, 'bob-takes-rider', { position: [0, 0.38, 1], orientation: 0 }), 'bob-takes-rider');
+    const landed = piece(troop.id);
+    room.accept(
+      room.drop(alice, 'alice-moves-plate', { position: [-1.5, 0.38, -1.5], orientation: 0 }),
+      'alice-moves-plate'
+    );
+    expect(piece(troop.id).position).toEqual(landed.position);
+  });
+
   test('names its riders by the handles pages know them by', () => {
     const { room, troop, begin } = plateRoom([0, 0, 1], 'rider-item');
     begin(alice, 'alice-moves-plate', 'hms');
