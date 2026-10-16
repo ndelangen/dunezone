@@ -1,10 +1,37 @@
 import { execFileSync } from 'node:child_process';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 
 import type { FullConfig } from '@playwright/test';
 import { chromium } from '@playwright/test';
+
+/**
+ * The storage states a CI shard's spec files name, or null to log in every session.
+ * A shard runs only its files from e2e/shards.json, and each session costs a browser login, about two seconds and run one after another for the same user, so a shard that logged in all of them spent half a minute on sessions it never loads.
+ */
+async function shardStorageStates(): Promise<Set<string> | null> {
+  const shard = process.env.E2E_SHARD;
+  if (!shard) {
+    return null;
+  }
+  const shards: Record<string, string[]> = JSON.parse(await readFile('e2e/shards.json', 'utf8'));
+  const files = shards[shard];
+  if (!files) {
+    throw new Error(`No shard ${shard} in e2e/shards.json`);
+  }
+  /*
+   * One session per account always runs, because the first login is what creates the account on a fresh backend: the baseline seed needs user A and the disposable account, and the Rulebook seeds need both users.
+   * The accounts log in in parallel, so only user A's chain sets the wait; its session here is also the project default.
+   */
+  const needed = new Set(['.playwright/user-a.json', '.playwright/user-b.json', '.playwright/account-delete.json']);
+  for (const file of files) {
+    for (const [path] of (await readFile(file, 'utf8')).matchAll(/\.playwright\/[\w-]+\.json/g)) {
+      needed.add(path);
+    }
+  }
+  return needed;
+}
 
 type Credentials = {
   email: string;
@@ -178,8 +205,9 @@ export default async function globalSetup(config: FullConfig) {
    * their chains run in parallel. (The dev server's transform latency used to stagger this race
    * away; the old first-login-alone warmup went with it.)
    */
+  const needed = await shardStorageStates();
   const byUser = new Map<string, Credentials[]>();
-  for (const session of sessions) {
+  for (const session of sessions.filter((candidate) => !needed || needed.has(candidate.storageStatePath))) {
     byUser.set(session.email, [...(byUser.get(session.email) ?? []), session]);
   }
   await Promise.all(

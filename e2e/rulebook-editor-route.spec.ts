@@ -580,6 +580,11 @@ test('rail add and Page-details disclosure controls keep their accepted action s
   await expect(collapse).toHaveAttribute('style', /--mantine-color-gray-light-hover/);
 
   await drag(detailText, detailMovement, page, false);
+  /* The drag is proven live first: a resting colour read before it starts says nothing about the drag. */
+  await expect(page.getByRole('region', { name: 'Column 1', exact: true })).toHaveAttribute(
+    'data-drop-eligibility',
+    'compatible'
+  );
   await expect
     .poll(() => detailMovementRow.evaluate((element) => getComputedStyle(element).borderColor))
     .toBe(restingBorderColor);

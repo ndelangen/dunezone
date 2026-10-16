@@ -19,14 +19,31 @@ test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, new
   });
   const questionUrl = page.url();
 
-  const userB = await newUserPage({ storageState: '.playwright/user-b-faq.json' });
-  const userBPage = userB.page;
+  const answerer = await newUserPage({ storageState: '.playwright/user-b-faq.json' });
+  const userBPage = answerer.page;
 
+  /*
+   * The answerer's count before this run's acceptance, so the profile check reads the change rather than an absolute
+   * that only a fresh database satisfies; a local re-run against the same backend failed on "1 picked answer".
+   */
+  const pickedAnswers = /^(\d+) picked answers?$/;
+  let pickedBefore = Number.NaN;
+  let answererHref = '';
   await test.step('another member answers', async () => {
     await userBPage.goto(questionUrl);
     await userBPage.getByPlaceholder('Your answer...').fill(answerText);
     await userBPage.getByRole('button', { name: 'Add answer' }).click();
     await expect(userBPage.getByText(answerText)).toBeVisible();
+
+    /* Waited for, not read once: the answer's text renders before its author link does. */
+    const answererLink = userBPage.locator(`main a[href^="/profiles/"]:not([href$="/${userA.slug}"])`);
+    await expect(answererLink).toBeVisible();
+    answererHref = (await answererLink.getAttribute('href')) ?? '';
+    await userBPage.goto(answererHref);
+    const pickedStat = userBPage.getByText(pickedAnswers);
+    await expect(pickedStat).toBeAttached();
+    pickedBefore = Number(pickedAnswers.exec((await pickedStat.textContent()) ?? '')?.[1]);
+    expect(pickedBefore).not.toBeNaN();
   });
 
   await test.step('asker accepts the answer through the live subscription', async () => {
@@ -37,16 +54,14 @@ test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, new
   });
 
   await test.step('the answer and its acceptance appear on the answerer profile', async () => {
-    const hrefs = await page
-      .locator('main a[href^="/profiles/"]')
-      .evaluateAll((els) => els.map((el) => el.getAttribute('href') ?? ''));
-    const answererHref = hrefs.find((href) => href && !href.endsWith(`/${userA.slug}`));
-    expect(answererHref).toBeTruthy();
-    await page.goto(answererHref!);
+    await page.goto(answererHref);
     await expect(page.getByText(questionText)).toBeVisible();
     /* The stat's phrase is what it promises a reader; its markup is the Stats component's own. */
-    await expect(page.getByText('1 picked answer', { exact: true })).toBeAttached();
+    const pickedAfter = pickedBefore + 1;
+    await expect(
+      page.getByText(`${pickedAfter} ${pickedAfter === 1 ? 'picked answer' : 'picked answers'}`, { exact: true })
+    ).toBeAttached();
   });
 
-  await userB.close();
+  await answerer.close();
 });
