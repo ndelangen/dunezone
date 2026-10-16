@@ -19,7 +19,7 @@ import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPub
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-import { useFactionNameField } from './factionNameField';
+import { factionNameField } from './factionNameField';
 
 export const Route = createFileRoute('/_app/factions/create')({
   head: () => pageHead('Create faction'),
@@ -55,13 +55,9 @@ function CreateFactionPage() {
       });
     },
   });
-  const { nameField, conflictWarnings } = useFactionNameField({
-    /* The viewer is this faction's owner-to-be, so there is nobody to lock out. */
-    canRename: true,
-  });
-  const allWarnings = [...authoring.editing.warnings, ...conflictWarnings];
+  const nameField = factionNameField(true);
   const validationHeader = useEditPageHeader({
-    warnings: allWarnings,
+    warnings: authoring.editing.warnings,
     onFocusWarning: (warning) => viewRef.current?.focusWarning(warning),
   });
 
@@ -122,7 +118,7 @@ function CreateFactionPage() {
           form={authoring.form}
           errors={authoring.persistence.errors}
           isNameBlank={authoring.editing.isNameBlank}
-          warnings={allWarnings}
+          warnings={authoring.editing.warnings}
           onSettle={validationHeader.settle}
           backgroundModeMemory={authoring.backgroundModeMemory}
           onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
