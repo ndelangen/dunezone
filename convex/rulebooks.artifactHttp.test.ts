@@ -185,11 +185,12 @@ const recordedExchanges = [
     status: 400,
     answer: '{"error":"Invalid publisher request"}',
   },
+  /* Without an Edition the PDF body asks for the newest, which delivery reads to let only that Edition into search. */
   {
     route: 'rulebook-pdf/resolve-delivery',
     request: '{"schemaVersion":1,"rulebookId":"{rulebookId}"}',
-    status: 400,
-    answer: '{"error":"Invalid publisher request"}',
+    status: 200,
+    answer: '{"ok":true,"status":"found","editionNumber":1,"key":"rulebooks/{rulebookId}/editions/1/rulebook.pdf"}',
   },
   {
     route: 'rulebook-html/take-work',
