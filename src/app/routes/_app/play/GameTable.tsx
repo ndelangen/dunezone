@@ -49,10 +49,12 @@ import {
   paneLimits,
 } from './controlPanelLayout';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
+import { Held, HeldSlot, useHeldNode } from './HeldContent';
 import { TableLabelsContext } from './tableLabels';
 import type { TableLabels } from './tableLabels';
 import {
   controlsColumnLimits,
+  controlsColumnLimitsWithoutPlayers,
   playersColumnLimits,
   setControlsColumnPercent,
   setPlayersColumnPercent,
@@ -779,7 +781,12 @@ function measureDock(node: HTMLElement | null) {
     observer.observe(element);
   }
   update();
-  return () => observer.disconnect();
+  /* A layout without the dock leaves nothing behind for the dial's rules to read. */
+  return () => {
+    observer.disconnect();
+    shell.style.removeProperty('--play-dock-top');
+    delete shell.dataset.cameraDocked;
+  };
 }
 
 export function GameTable({
@@ -848,6 +855,9 @@ export function GameTable({
   }, [handleSceneReady]);
 
   const columns = useTableLayout() === 'columns' && columnsFit;
+  const sceneNode = useHeldNode();
+  const controlsNode = useHeldNode();
+  const playersNode = useHeldNode();
   const scene = (
     <>
       <TableKeyboardContext value={tableKeyboard}>
@@ -940,11 +950,17 @@ export function GameTable({
                 </div>
               </header>
 
+              <Held node={sceneNode}>{scene}</Held>
+              <Held node={controlsNode}>{controls}</Held>
+              {playerPanel && <Held node={playersNode}>{playerPanel}</Held>}
+
+              {/* Each layout is keyed, so neither inherits the other's separator size. */}
               {columns ? (
                 <SplitPanels
+                  key="columns"
                   orientation="vertical"
                   defaultSize={controlsColumnPercent}
-                  limits={controlsColumnLimits}
+                  limits={playerPanel ? controlsColumnLimits : controlsColumnLimitsWithoutPlayers}
                   step={KEYBOARD_STEP_PERCENT}
                   pageStep={KEYBOARD_PAGE_STEP_PERCENT}
                   label="Resize controls column"
@@ -952,7 +968,7 @@ export function GameTable({
                 >
                   <SplitPanels.First>
                     <div className="seated-controls-panel seated-controls-panel--column" inert={overlaysInert}>
-                      {controls}
+                      <HeldSlot node={controlsNode} />
                     </div>
                   </SplitPanels.First>
                   <SplitPanels.Second>
@@ -968,25 +984,30 @@ export function GameTable({
                         onSizeChange={setPlayersColumnPercent}
                       >
                         <SplitPanels.First>
-                          {scene}
-                          <div className="seated-column-camera">{camera}</div>
+                          <HeldSlot node={sceneNode} />
+                          <div className="seated-column-camera" inert={overlaysInert}>
+                            {camera}
+                          </div>
                         </SplitPanels.First>
                         <SplitPanels.Second>
                           <div className="seated-controls-panel seated-controls-panel--column" inert={overlaysInert}>
-                            {playerPanel}
+                            <HeldSlot node={playersNode} />
                           </div>
                         </SplitPanels.Second>
                       </SplitPanels>
                     ) : (
                       <>
-                        {scene}
-                        <div className="seated-column-camera">{camera}</div>
+                        <HeldSlot node={sceneNode} />
+                        <div className="seated-column-camera" inert={overlaysInert}>
+                          {camera}
+                        </div>
                       </>
                     )}
                   </SplitPanels.Second>
                 </SplitPanels>
               ) : (
                 <SplitPanels
+                  key="stacked"
                   orientation="horizontal"
                   primary="second"
                   defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
@@ -996,11 +1017,15 @@ export function GameTable({
                   label="Resize controls panel"
                   valueText={controlsPanelValueText}
                 >
-                  <SplitPanels.First>{scene}</SplitPanels.First>
+                  <SplitPanels.First>
+                    <HeldSlot node={sceneNode} />
+                  </SplitPanels.First>
                   <SplitPanels.Second>
                     <div ref={measureDock} className="seated-controls-panel" inert={overlaysInert}>
                       {camera}
-                      <PanelPanes secondary={playerPanel}>{controls}</PanelPanes>
+                      <PanelPanes secondary={playerPanel && <HeldSlot node={playersNode} />}>
+                        <HeldSlot node={controlsNode} />
+                      </PanelPanes>
                     </div>
                   </SplitPanels.Second>
                 </SplitPanels>

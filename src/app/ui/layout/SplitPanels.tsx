@@ -50,7 +50,8 @@ type SplitPanelsProps = PropsWithChildren<{
 
 type Orientation = SplitPanelsProps['orientation'];
 
-type SplitState = Readonly<{ size: number; limits: SplitLimits; pointerId: number | null }>;
+/* `settled` counts the sizes the reader chose, a drag let go or a key pressed; a clamp to new limits is not one. */
+type SplitState = Readonly<{ size: number; limits: SplitLimits; pointerId: number | null; settled: number }>;
 
 type SplitEvent =
   | { type: 'limit.changed'; limits: SplitLimits }
@@ -88,9 +89,9 @@ function reduceSplit(state: SplitState, event: SplitEvent): SplitState {
       if (state.pointerId !== event.pointerId) {
         return state;
       }
-      return { ...state, pointerId: null };
+      return { ...state, pointerId: null, settled: state.settled + 1 };
     case 'key.pressed':
-      return { ...state, size: clamp(event.size, state.limits) };
+      return { ...state, size: clamp(event.size, state.limits), settled: state.settled + 1 };
   }
 }
 
@@ -163,6 +164,7 @@ function SplitPanelsBase({
     size: defaultSize,
     limits: { min: 0, max: 100 },
     pointerId: null,
+    settled: 0,
   });
 
   /* The room both panels share is the one thing the split learns from outside React: a ResizeObserver reports it, and the caller turns it into limits. */
@@ -184,15 +186,16 @@ function SplitPanelsBase({
     return () => observer.disconnect();
   }, [limits, orientation]);
 
-  /* Only a size the reader settled is reported: none while a drag is under way, and none for the default. */
-  const reportedSize = useRef(defaultSize);
-  const settled = state.pointerId === null;
+  /* Only a size the reader settled is reported: none while a drag is under way, none for the default, and none when new limits clamp it, so a caller remembers what the reader chose rather than what a narrow window allowed. */
+  const reportSize = useRef(onSizeChange);
+  reportSize.current = onSizeChange;
   useEffect(() => {
-    if (settled && state.size !== reportedSize.current) {
-      reportedSize.current = state.size;
-      onSizeChange?.(state.size);
+    if (state.settled > 0) {
+      reportSize.current?.(state.size);
     }
-  }, [settled, state.size, onSizeChange]);
+    // Only a new settlement reports; the size it reports is the one it settled on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.settled]);
 
   /* A separator concealed while it holds focus gives it up: not every browser moves focus off a hidden element. */
   useEffect(() => {

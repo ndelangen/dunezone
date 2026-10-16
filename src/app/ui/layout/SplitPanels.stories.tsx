@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 import { SplitPanels } from './SplitPanels';
@@ -161,5 +161,35 @@ export const NarrowContainer = meta.story({
   globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).queryByRole('separator')).toBeNull();
+  },
+});
+
+/**
+ * A caller hears only the sizes the reader settles: a key press, or a drag once it lets go.
+ * A default the limits clamp is not one, so a caller that remembers the size keeps what the reader chose rather than what a narrow window allowed.
+ */
+export const ReportsSettledSizes = meta.story({
+  args: {
+    orientation: 'vertical',
+    defaultSize: 90,
+    limits: evenLimits,
+    label: 'Resize the two panels',
+    onSizeChange: fn(),
+  },
+  globals: { viewport: { value: 'region' } },
+  play: async ({ args, canvasElement }) => {
+    const separator = separatorOf(canvasElement);
+    await waitFor(() => expect(sizeOf(separator)).toBe(EVEN_LIMITS.max));
+    await expect(args.onSizeChange).not.toHaveBeenCalled();
+    separator.focus();
+    await userEvent.keyboard('{ArrowLeft}');
+    await expect(args.onSizeChange).toHaveBeenLastCalledWith(EVEN_LIMITS.max - 2);
+    await pointer(separator, 'pointerdown', {});
+    await pointer(separator, 'pointermove', { clientX: separator.getBoundingClientRect().left - 40 });
+    await expect(args.onSizeChange).toHaveBeenCalledTimes(1);
+    await pointer(separator, 'pointerup', { buttons: 0 });
+    await expect(args.onSizeChange).toHaveBeenCalledTimes(2);
+    /* The separator reports its size in tenths; the caller hears the exact size. */
+    await expect((args.onSizeChange as ReturnType<typeof fn>).mock.lastCall?.[0]).toBeCloseTo(sizeOf(separator), 1);
   },
 });

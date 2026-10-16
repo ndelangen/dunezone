@@ -31,7 +31,11 @@ export const setControlsColumnPercent = controlsWidth.set;
 export const usePlayersColumnPercent = playersWidth.use;
 export const setPlayersColumnPercent = playersWidth.set;
 
-/* The least each column keeps, in rem: room for the dock's rail and a form, for the table to stay a table, and for the players' names. */
+/*
+ * The least each column keeps, in rem: room for the dock's rail and a form, for the table to stay a table, and for the players' names.
+ * The table and the players together stay wider than the kit split's 40.75rem stacking width (SplitPanels.module.css),
+ * so the split between them never stacks.
+ */
 const CONTROLS_MIN_REM = 18;
 const SCENE_MIN_REM = 26;
 const PLAYERS_MIN_REM = 16;
@@ -60,22 +64,36 @@ export function controlsColumnLimits(room: number, remPx = rootFontSize()): Spli
   return percentLimits(room, CONTROLS_MIN_REM * remPx, (SCENE_MIN_REM + PLAYERS_MIN_REM + 0.5) * remPx);
 }
 
+/** Without a players column, the controls column leaves only the table its floor. */
+export function controlsColumnLimitsWithoutPlayers(room: number, remPx = rootFontSize()): SplitLimits {
+  return percentLimits(room, CONTROLS_MIN_REM * remPx, SCENE_MIN_REM * remPx);
+}
+
 /** The players column keeps its floor and leaves the table its own. */
 export function playersColumnLimits(room: number, remPx = rootFontSize()): SplitLimits {
   return percentLimits(room, PLAYERS_MIN_REM * remPx, SCENE_MIN_REM * remPx);
 }
 
+const COLUMNS_QUERY = `(min-width: ${COLUMNS_MIN_WIDTH_REM}rem)`;
+let columnsQuery: MediaQueryList | null | undefined;
+
+/* One query list for every reader; an environment without the media-query API (jsdom) has room for the columns. */
+function widthQuery(): MediaQueryList | null {
+  columnsQuery ??= typeof window.matchMedia === 'function' ? window.matchMedia(COLUMNS_QUERY) : null;
+  return columnsQuery;
+}
+
 function subscribeToWidth(onChange: () => void) {
-  const query = window.matchMedia(`(min-width: ${COLUMNS_MIN_WIDTH_REM}rem)`);
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
+  const query = widthQuery();
+  query?.addEventListener('change', onChange);
+  return () => query?.removeEventListener('change', onChange);
 }
 
 /** Whether the window is wide enough for the three columns. */
 export function useColumnsFit(): boolean {
   return useSyncExternalStore(
     subscribeToWidth,
-    () => window.matchMedia(`(min-width: ${COLUMNS_MIN_WIDTH_REM}rem)`).matches,
+    () => widthQuery()?.matches ?? true,
     () => true
   );
 }

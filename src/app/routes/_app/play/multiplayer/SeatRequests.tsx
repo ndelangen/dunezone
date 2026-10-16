@@ -1,4 +1,4 @@
-import { Button, Group, Menu, Popover, Radio, Select, Slider, Stack, Text } from '@mantine/core';
+import { Button, Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
 import { idleBidding } from '@shared/play/bidding';
 import type { PublicControls } from '@shared/play/inventory';
 import { seatLabel, seatSubject } from '@shared/play/participation';
@@ -300,27 +300,29 @@ export function requestedSeats(table: TableProjection): ReadonlySet<string> {
 }
 
 /* Where this viewer's controls and players sit around the table; it stays in this browser and never reaches the game. */
-function TableLayoutChoice() {
+function TableLayoutItems() {
   const layout = useTableLayout();
   const fits = useColumnsFit();
-  const labelId = useId();
   return (
-    <Stack role="group" aria-labelledby={labelId} gap={6} px="sm" py="xs" miw={200}>
-      <Text id={labelId} size="sm">
-        Table layout
-      </Text>
-      <Radio.Group value={layout} onChange={(value) => setTableLayout(value as TableLayout)}>
-        <Stack gap={6}>
-          <Radio size="xs" value="stacked" label="Board on top" />
-          <Radio size="xs" value="columns" label="Three columns" />
-        </Stack>
-      </Radio.Group>
-      {layout === 'columns' && !fits && (
-        <Text size="xs" c="dimmed">
-          Widen the window to see the columns.
-        </Text>
-      )}
-    </Stack>
+    <>
+      <Menu.Label>Table layout</Menu.Label>
+      <Menu.RadioGroup value={layout} onChange={(value) => setTableLayout(value as TableLayout)}>
+        <Menu.RadioItem value="stacked">Board on top</Menu.RadioItem>
+        <Menu.RadioItem
+          value="columns"
+          rightSection={
+            fits ? undefined : (
+              <Text size="xs" c="dimmed">
+                wider window
+              </Text>
+            )
+          }
+        >
+          Three columns
+        </Menu.RadioItem>
+      </Menu.RadioGroup>
+      <Menu.Divider />
+    </>
   );
 }
 
@@ -432,7 +434,7 @@ export function GameMenu({
       <Menu.Dropdown>
         {sharing}
         <Menu.Divider />
-        <TableLayoutChoice />
+        <TableLayoutItems />
         <TableLightingSlider />
         <TablePanSpeedSlider />
         <TableLabelItems />
