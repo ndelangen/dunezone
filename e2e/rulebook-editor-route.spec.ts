@@ -124,9 +124,9 @@ test('the URL owns Page, Control-region, and Block navigation', async ({ page })
   /* Control regions live on a Cover, so the journey adds one and reaches its footer region by URL. */
   await structure.getByRole('button', { name: 'Add Page', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Cover', exact: true }).click();
-  const coverHash = new URL(page.url()).hash;
-  expect(coverHash).toMatch(/^#[A-Z0-9]{4}\/details$/);
-  const coverId = coverHash.slice(1, 5);
+  /* Waited for, and RULE excluded: the starting #RULE/details fits a bare four-character pattern, so an unwaited read could take the old Page for the Cover. */
+  await expect(page).toHaveURL(/#(?!RULE\/)[2-9A-HJ-NP-Z]{4}\/details$/);
+  const coverId = new URL(page.url()).hash.slice(1, 5);
   await structure.getByRole('link', { name: 'Cover footer' }).click();
   await expect(page).toHaveURL(new RegExp(`#${coverId}/footer$`));
   await expect(page.getByRole('switch', { name: 'Show cover footer' })).toBeVisible();
@@ -738,7 +738,8 @@ test('an empty compatible rail region accepts a Block and Page-details regions r
   const structure = rulebookStructure(page);
   await structure.getByRole('button', { name: 'Add Page' }).click();
   await page.getByRole('menuitem', { name: 'Two equal columns' }).click();
-  await expect(page).toHaveURL(/#[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}\/details$/);
+  /* RULE is excluded because the starting #RULE/details fits the id alphabet too, which let this wait pass before the new Page opened. */
+  await expect(page).toHaveURL(/#(?!RULE\/)[2-9A-HJ-NP-Z]{4}\/details$/);
 
   await structure.getByRole('button', { name: 'Add Block' }).click();
   await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
