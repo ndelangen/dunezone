@@ -58,8 +58,11 @@ function outlineGeometry(rings: Point[][]) {
   return geometry;
 }
 
+/* Between the map (-3) and the storm's sector (-2), so the storm lies over the tints. */
+const TINT_ORDER = { fill: -2.8, line: -2.6, stickerOutline: -2.4, stickerInk: -2.2 };
+
 /* How wide an outline-only tint's line is, in table units. */
-const RIBBON_WIDTH = 0.045;
+const RIBBON_WIDTH = 0.03;
 
 /** A flat band along each segment, a little past both ends so the corners between them close. */
 function ribbonGeometry(segments: readonly (readonly [Readonly<Point>, Readonly<Point>])[]) {
@@ -97,15 +100,15 @@ function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: rea
   }, [faces, key]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
-    <mesh geometry={geometry} raycast={ignoreRaycast} renderOrder={3}>
+    <mesh geometry={geometry} raycast={ignoreRaycast} renderOrder={TINT_ORDER.line}>
       <meshBasicMaterial color={tint.color} transparent depthWrite={false} side={DoubleSide} />
     </mesh>
   );
 }
 
 /* The largest a sticker gets, in table units, and the smallest it shrinks to in a cramped territory. */
-const STICKER_LARGEST = 0.4;
-const STICKER_SMALLEST = 0.18;
+const STICKER_LARGEST = 0.3;
+const STICKER_SMALLEST = 0.14;
 /* The board's glyph colours: near-black ink inside a pale outline. */
 const STICKER_INK = '#1a0b00';
 const STICKER_OUTLINE = '#fffed8';
@@ -175,10 +178,10 @@ function Stickers({ tint, rings, center }: Readonly<{ tint: TerritoryTint; rings
     const { ink, outline } = stickerGeometry(stamp);
     return (
       <group key={stamp} position={[x, 0.004, z]} rotation={[Math.PI / 2, 0, 0]} scale={size}>
-        <mesh geometry={outline} raycast={ignoreRaycast} renderOrder={4}>
+        <mesh geometry={outline} raycast={ignoreRaycast} renderOrder={TINT_ORDER.stickerOutline}>
           <meshBasicMaterial color={STICKER_OUTLINE} transparent depthWrite={false} side={DoubleSide} />
         </mesh>
-        <mesh geometry={ink} raycast={ignoreRaycast} renderOrder={5}>
+        <mesh geometry={ink} raycast={ignoreRaycast} renderOrder={TINT_ORDER.stickerInk}>
           <meshBasicMaterial color={STICKER_INK} transparent depthWrite={false} side={DoubleSide} />
         </mesh>
       </group>
@@ -196,10 +199,10 @@ function TintedTerritory({
     <>
       {!tint.outline && (
         <>
-          <mesh geometry={shapes.fill} raycast={ignoreRaycast} renderOrder={2}>
+          <mesh geometry={shapes.fill} raycast={ignoreRaycast} renderOrder={TINT_ORDER.fill}>
             <meshBasicMaterial color={tint.color} transparent opacity={0.5} depthWrite={false} side={DoubleSide} />
           </mesh>
-          <lineSegments geometry={shapes.line} raycast={ignoreRaycast} renderOrder={3}>
+          <lineSegments geometry={shapes.line} raycast={ignoreRaycast} renderOrder={TINT_ORDER.line}>
             <lineBasicMaterial color={tint.color} transparent opacity={0.95} depthWrite={false} />
           </lineSegments>
         </>

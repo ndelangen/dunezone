@@ -93,6 +93,8 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'media/vector/icon/shai-hulud.svg',
   'media/vector/icon/spice-mine.svg',
   'media/vector/icon/herb.svg',
+  'media/vector/decal/block.svg',
+  'media/vector/decal/atomics.svg',
 ];
 
 /** Files no hosted flow can observe wherever they sit: tests, stories, prose. */

@@ -1,6 +1,8 @@
 import { TINT_STAMP_NAMES } from '@shared/play/territoryTints';
 import type { TintStamp } from '@shared/play/territoryTints';
 
+import explode from '../../../../media/vector/decal/atomics.svg?raw';
+import block from '../../../../media/vector/decal/block.svg?raw';
 import city from '../../../../media/vector/icon/city.svg?raw';
 import herb from '../../../../media/vector/icon/herb.svg?raw';
 import landscape from '../../../../media/vector/icon/landscape.svg?raw';
@@ -19,6 +21,8 @@ const ART: Record<TintStamp, string> = {
   herb,
   ornithopter,
   spice,
+  explode,
+  block,
 };
 
 /** Each sticker's artwork and name, in the order they sit side by side. */

@@ -29,6 +29,7 @@ test('the Arrakis board offers the Fremen deployment zone and the Shield Wall', 
   expect(shieldWall).toEqual({
     name: 'Shield Wall destroyed',
     color: '#1b1b1b',
+    stamps: ['explode'],
     territories: ['shield_wall'],
   });
 });

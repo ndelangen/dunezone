@@ -121,6 +121,7 @@ export const Preset = meta.story({
       expect(lastCommand()?.action).toMatchObject({
         kind: 'tint-create',
         name: 'Shield Wall destroyed',
+        stamps: ['explode'],
         territories: ['shield_wall'],
       })
     );

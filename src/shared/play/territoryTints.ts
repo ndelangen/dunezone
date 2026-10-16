@@ -27,6 +27,8 @@ export const TINT_STAMPS = [
   'herb',
   'ornithopter',
   'spice',
+  'explode',
+  'block',
 ] as const;
 export type TintStamp = (typeof TINT_STAMPS)[number];
 /* The switches that are not stickers: whether a tint shows, and whether it is drawn as one outline round its territories. */
@@ -141,6 +143,8 @@ export const TINT_STAMP_NAMES: Record<TintStamp, string> = {
   herb: 'Herb',
   ornithopter: 'Ornithopter',
   spice: 'Spice',
+  explode: 'Explode',
+  block: 'Block',
 };
 
 const isFlag = (setting: TintFlag | TintStamp): setting is TintFlag =>
