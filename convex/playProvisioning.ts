@@ -12,7 +12,7 @@ import {
   playTestStartStageSchema,
 } from '../src/shared/play/admission';
 import { internal } from './_generated/api';
-import type { Doc } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { internalAction, internalQuery } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
@@ -178,34 +178,37 @@ export const failProvisioning = mutation({
   },
 });
 
+/**
+ * Only the creator is routed to a game that was never ready, since no ticket can be redeemed before then.
+ * No room will ever acknowledge a deletion for it, so its routing goes and a deletion already queued for it is settled.
+ */
+async function settleNeverReadyGame(ctx: MutationCtx, gameId: Id<'play_games'>) {
+  const routings = await ctx.db
+    .query('play_game_accounts')
+    .withIndex('by_game_id_user_id', (q) => q.eq('game_id', gameId))
+    .take(8);
+  for (const routing of routings) {
+    await ctx.db.delete(routing._id);
+  }
+  const deletions = await ctx.db
+    .query('play_account_deletions')
+    .withIndex('by_game_id_operation_id', (q) => q.eq('game_id', gameId))
+    .take(16);
+  for (const deletion of deletions.filter((row) => row.state === 'pending')) {
+    await ctx.db.patch(deletion._id, { state: 'acknowledged' });
+  }
+}
+
 export const expireProvisioning = internalMutation({
   args: { gameId: v.id('play_games') },
   returns: v.null(),
   handler: async (ctx, args) => {
     const game = await ctx.db.get(args.gameId);
-    if (game?.state === 'pending' && Date.now() >= game.provision_expires_at) {
-      await ctx.db.patch(game._id, { state: 'expired' });
-      /*
-       * Only the creator is routed to a game that was never ready, since no ticket can be redeemed before then.
-       * No room will ever acknowledge a deletion for it, so its routing goes and a deletion already queued for it is settled.
-       */
-      const routings = await ctx.db
-        .query('play_game_accounts')
-        .withIndex('by_game_id_user_id', (q) => q.eq('game_id', game._id))
-        .take(8);
-      for (const routing of routings) {
-        await ctx.db.delete(routing._id);
-      }
-      const deletions = await ctx.db
-        .query('play_account_deletions')
-        .withIndex('by_game_id_operation_id', (q) => q.eq('game_id', game._id))
-        .take(16);
-      for (const deletion of deletions) {
-        if (deletion.state === 'pending') {
-          await ctx.db.patch(deletion._id, { state: 'acknowledged' });
-        }
-      }
+    if (game?.state !== 'pending' || Date.now() < game.provision_expires_at) {
+      return null;
     }
+    await ctx.db.patch(game._id, { state: 'expired' });
+    await settleNeverReadyGame(ctx, game._id);
     return null;
   },
 });
