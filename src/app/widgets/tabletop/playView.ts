@@ -57,6 +57,9 @@ export type CameraPose = Readonly<{
   target: Vector3Tuple;
 }>;
 
+/** A rectangle on the canvas in normalised device coordinates (x to the right, y up, -1 to 1 edge to edge), such as a chip floating over the table. */
+export type ScreenRect = Readonly<{ left: number; right: number; bottom: number; top: number }>;
+
 type CameraFogRange = Readonly<{
   near: number;
   far: number;
@@ -67,13 +70,11 @@ export const TABLE_CAMERA_FIELD_OF_VIEW = 42;
 export const TABLE_CAMERA_NEAR = 0.1;
 export const TABLE_CAMERA_FAR = 100;
 export const MAP_VIEW_HORIZONTAL_LIMIT = 0.92;
-export const MAP_VIEW_TOP_LIMIT = 0.68;
+/* The header has no bar of its own: the map view runs as close to the canvas's top as to its bottom, and frames around the chips floating over it instead. */
+export const MAP_VIEW_TOP_LIMIT = 0.9;
 export const MAP_VIEW_BOTTOM_LIMIT = 0.9;
-export const MAP_VIEW_MINIMUM_CAMERA_SCALE = 0.8;
-const MAP_VIEW_HEADER_PADDING_PX = 12;
-const MAP_VIEW_MINIMUM_TOP_LIMIT = 0.08;
-/* Where the header covers this much of the canvas's upper half, the map view looks wholly at the balanced target. */
-const MAP_VIEW_BALANCED_TOP_LIMIT = 0.38;
+/* The closest the map view comes, so a canvas with room to spare keeps the side card wells in frame instead of filling up with the board alone. */
+export const MAP_VIEW_MINIMUM_CAMERA_SCALE = 0.65;
 
 const CAMERA_OFFSET: Vector3Tuple = [0, 9.4, 11.2];
 const CAMERA_OFFSET_LENGTH = Math.hypot(...CAMERA_OFFSET);
@@ -96,8 +97,10 @@ const SIDE_VIEW_WIDE_ASPECT = 1;
 const SIDE_VIEW_ASPECT_COMPENSATION = 2.85;
 const SIDE_VIEW_MAX_TARGET_X = 6.1;
 const MAP_VIEW_TARGET_Z = 0.8;
-const MAP_VIEW_TARGET_SEARCH_RANGE = 12;
-const MAP_VIEW_TARGET_SEARCH_STEPS = 48;
+/* How far from the approved target the map view's centring looks, and how finely: a few millionths of a table unit. */
+const MAP_VIEW_TARGET_SEARCH_RANGE = 6;
+const MAP_VIEW_TARGET_SEARCH_STEPS = 22;
+const NO_SCREEN_RECTS: readonly ScreenRect[] = [];
 
 const TABLE_VIEW_TARGETS: Record<TableView, Vector3Tuple> = {
   map: [0, 0.1, MAP_VIEW_TARGET_Z],
@@ -145,86 +148,173 @@ function cameraBasisFor(tilt: number): CameraBasis {
   };
 }
 
-function dot(left: Vector3Tuple, right: Vector3Tuple): number {
-  return left[0] * right[0] + left[1] * right[1] + left[2] * right[2];
+/* The least reciprocal depth at which a coordinate c, seen at c * u on screen, lies within [min, max]; Infinity when it never does. */
+function reciprocalFrom(c: number, min: number, max: number): number {
+  if (c === 0) {
+    return min <= 0 && max >= 0 ? 0 : Number.POSITIVE_INFINITY;
+  }
+  return c > 0 ? min / c : max / c;
 }
 
+/* The greatest reciprocal depth at which the coordinate lies within [min, max]. */
+function reciprocalTo(c: number, min: number, max: number): number {
+  if (c === 0) {
+    return min <= 0 && max >= 0 ? Number.POSITIVE_INFINITY : 0;
+  }
+  return c > 0 ? max / c : min / c;
+}
+
+/*
+ * The depth past which a point, seen at (x / depth, y / depth) on screen, has left a rectangle; `depth` itself when it is not inside there.
+ * As the camera backs away every point slides straight toward the middle of the screen, so a rectangle clear of the middle
+ * holds the point over one stretch of depths at most, and backing away past its end frees the point for good.
+ * In reciprocal depth u = 1 / depth the point sits at (x * u, y * u), so each side of the rectangle bounds u from one side.
+ */
+function depthLeaving(x: number, y: number, depth: number, rect: ScreenRect): number {
+  const lowest = Math.max(0, reciprocalFrom(x, rect.left, rect.right), reciprocalFrom(y, rect.bottom, rect.top));
+  const highest = Math.min(reciprocalTo(x, rect.left, rect.right), reciprocalTo(y, rect.bottom, rect.top));
+  /* A rectangle over the middle of the screen would hold the point however far the camera backed away, so it frames nothing. */
+  if (lowest <= 0 || lowest >= highest) {
+    return depth;
+  }
+  const inside = depth >= 1 / highest && depth < 1 / lowest;
+  return inside ? 1 / lowest : depth;
+}
+
+/* The nearest depth, at or past `depth`, where the point lies under none of the rectangles. */
+function depthClearOf(x: number, y: number, depth: number, obstacles: readonly ScreenRect[]): number {
+  let clear = depth;
+  /* Leaving one rectangle can land the point in another nearer the middle, so look again until a pass moves nothing. */
+  for (let pass = 0; pass <= obstacles.length; pass++) {
+    const before = clear;
+    for (const rect of obstacles) {
+      clear = depthLeaving(x, y, clear, rect);
+    }
+    if (clear === before) {
+      break;
+    }
+  }
+  return clear;
+}
+
+/* The camera never turns sideways, so a point's depth and height on screen take only its height and depth on the table. */
 function cameraScaleForFraming(
   aspectRatio: number,
   framingPoints: readonly Vector3Tuple[],
   topLimit: number,
   basis: CameraBasis,
   target: Vector3Tuple = TABLE_VIEW_TARGETS.map,
-  minimumScale = MAP_VIEW_MINIMUM_CAMERA_SCALE
+  minimumScale = MAP_VIEW_MINIMUM_CAMERA_SCALE,
+  obstacles: readonly ScreenRect[] = NO_SCREEN_RECTS
 ): number {
-  return framingPoints.reduce((requiredScale, point) => {
-    const relativePoint: Vector3Tuple = [point[0] - target[0], point[1] - target[1], point[2] - target[2]];
-    const depthAtTarget = dot(relativePoint, basis.forward);
-    const viewHeight = dot(relativePoint, basis.up);
-    const horizontalDepth = Math.abs(relativePoint[0]) / (CAMERA_TANGENT * MAP_VIEW_HORIZONTAL_LIMIT * aspectRatio);
+  const count = framingPoints.length;
+  const screenX = new Float64Array(count);
+  const screenY = new Float64Array(count);
+  const depthsAtTarget = new Float64Array(count);
+  let scale = minimumScale;
+  for (let index = 0; index < count; index++) {
+    const point = framingPoints[index];
+    const relativeX = point[0] - target[0];
+    const relativeY = point[1] - target[1];
+    const relativeZ = point[2] - target[2];
+    const depthAtTarget = relativeY * basis.forward[1] + relativeZ * basis.forward[2];
+    const viewHeight = relativeY * basis.up[1] + relativeZ * basis.up[2];
+    const horizontalDepth = Math.abs(relativeX) / (CAMERA_TANGENT * MAP_VIEW_HORIZONTAL_LIMIT * aspectRatio);
     const verticalDepth =
       viewHeight >= 0
         ? viewHeight / (CAMERA_TANGENT * topLimit)
         : -viewHeight / (CAMERA_TANGENT * MAP_VIEW_BOTTOM_LIMIT);
-    const pointScale = (Math.max(horizontalDepth, verticalDepth) - depthAtTarget) / CAMERA_OFFSET_LENGTH;
-    return Math.max(requiredScale, pointScale);
-  }, minimumScale);
+    screenX[index] = relativeX / (CAMERA_TANGENT * aspectRatio);
+    screenY[index] = viewHeight / CAMERA_TANGENT;
+    depthsAtTarget[index] = depthAtTarget;
+    const depth = depthClearOf(screenX[index], screenY[index], Math.max(horizontalDepth, verticalDepth), obstacles);
+    scale = Math.max(scale, (depth - depthAtTarget) / CAMERA_OFFSET_LENGTH);
+  }
+  /*
+   * Another point may hold the camera further back than a point needs for itself, which can slide that point under a chip
+   * nearer the middle, so every point is looked at again at the shared distance until none lies under a chip.
+   */
+  for (let pass = 0; pass <= obstacles.length; pass++) {
+    let moved = false;
+    for (let index = 0; index < count; index++) {
+      const depth = scale * CAMERA_OFFSET_LENGTH + depthsAtTarget[index];
+      const clear = depthClearOf(screenX[index], screenY[index], depth, obstacles);
+      if (clear > depth) {
+        scale = Math.max(scale, (clear - depthsAtTarget[index]) / CAMERA_OFFSET_LENGTH);
+        moved = true;
+      }
+    }
+    if (!moved) {
+      break;
+    }
+  }
+  return scale;
+}
+
+/* How much more room the frame leaves above it than below it, on screen, with the camera at `scale`. */
+function verticalImbalance(
+  framingPoints: readonly Vector3Tuple[],
+  topLimit: number,
+  basis: CameraBasis,
+  target: Vector3Tuple,
+  scale: number
+): number {
+  let highest = Number.NEGATIVE_INFINITY;
+  let lowest = Number.POSITIVE_INFINITY;
+  for (const point of framingPoints) {
+    const relativeY = point[1] - target[1];
+    const relativeZ = point[2] - target[2];
+    const depthAtTarget = relativeY * basis.forward[1] + relativeZ * basis.forward[2];
+    const viewHeight = relativeY * basis.up[1] + relativeZ * basis.up[2];
+    const screenY = viewHeight / (CAMERA_TANGENT * (scale * CAMERA_OFFSET_LENGTH + depthAtTarget));
+    highest = Math.max(highest, screenY);
+    lowest = Math.min(lowest, screenY);
+  }
+  return topLimit - highest - (lowest + MAP_VIEW_BOTTOM_LIMIT);
 }
 
 /*
- * Where along the table's depth the tilted map view looks, so the frame sits between header and dock with the camera closest.
- * The required scale is the maximum of functions linear in the target's depth, so it is convex there and a ternary search finds its floor.
- * The approved angle keeps its approved target; a tilt blends toward this one so the map grows as it turns, instead of drifting toward the header.
- * A header that covers much of the canvas blends toward it too: a phone's header can take most of the canvas's upper half,
- * and the approved target, at the canvas's middle, would then push the camera far back and leave the lower half empty.
+ * Where along the table's depth the map view looks: where the frame sits midway between the canvas's top and bottom.
+ * Where the frame fills the canvas's height that is also where the camera comes closest, and where the width or the closest
+ * the camera comes holds it back first, the board stays centred instead of drifting toward an edge.
+ * Moving the target toward the viewer raises the frame on screen, so a bisection over the depth finds the middle.
  */
-function tiltedMapTarget(
+function centredMapTarget(
   aspectRatio: number,
   framingPoints: readonly Vector3Tuple[],
   topLimit: number,
   basis: CameraBasis,
-  tilt: number
+  obstacles: readonly ScreenRect[]
 ): Vector3Tuple {
   const approved = TABLE_VIEW_TARGETS.map;
-  const headerShare = Math.max(
-    0,
-    Math.min(1, (MAP_VIEW_TOP_LIMIT - topLimit) / (MAP_VIEW_TOP_LIMIT - MAP_VIEW_BALANCED_TOP_LIMIT))
-  );
-  const blend = Math.max(tilt, headerShare);
-  if (blend <= 0) {
-    return [...approved];
-  }
-  const scaleAt = (depth: number) =>
-    cameraScaleForFraming(aspectRatio, framingPoints, topLimit, basis, [approved[0], approved[1], depth]);
+  const targetAt = (depth: number): Vector3Tuple => [approved[0], approved[1], depth];
+  const imbalanceAt = (depth: number) =>
+    verticalImbalance(
+      framingPoints,
+      topLimit,
+      basis,
+      targetAt(depth),
+      cameraScaleForFraming(
+        aspectRatio,
+        framingPoints,
+        topLimit,
+        basis,
+        targetAt(depth),
+        MAP_VIEW_MINIMUM_CAMERA_SCALE,
+        obstacles
+      )
+    );
   let near = approved[2] - MAP_VIEW_TARGET_SEARCH_RANGE;
   let far = approved[2] + MAP_VIEW_TARGET_SEARCH_RANGE;
   for (let step = 0; step < MAP_VIEW_TARGET_SEARCH_STEPS; step++) {
-    const lower = near + (far - near) / 3;
-    const upper = far - (far - near) / 3;
-    if (scaleAt(lower) <= scaleAt(upper)) {
-      far = upper;
+    const middle = (near + far) / 2;
+    if (imbalanceAt(middle) > 0) {
+      near = middle;
     } else {
-      near = lower;
+      far = middle;
     }
   }
-  const balanced = (near + far) / 2;
-  return [approved[0], approved[1], approved[2] + (balanced - approved[2]) * blend];
-}
-
-export function mapViewTopLimitForViewport(
-  canvasHeight: number,
-  headerHeight: number,
-  padding = MAP_VIEW_HEADER_PADDING_PX
-): number {
-  if (!Number.isFinite(canvasHeight) || canvasHeight <= 0) {
-    return MAP_VIEW_TOP_LIMIT;
-  }
-  if (!Number.isFinite(headerHeight) || headerHeight <= 0) {
-    return MAP_VIEW_TOP_LIMIT;
-  }
-  const safePadding = Number.isFinite(padding) ? Math.max(0, padding) : 0;
-  const unobscuredTop = 1 - (2 * (headerHeight + safePadding)) / canvasHeight;
-  return Math.max(MAP_VIEW_MINIMUM_TOP_LIMIT, Math.min(MAP_VIEW_TOP_LIMIT, unobscuredTop));
+  return targetAt((near + far) / 2);
 }
 
 /* Where a side or bottom view looks; a narrow canvas moves a side view further out, so its card well stays in frame. */
@@ -238,24 +328,105 @@ function fixedViewTarget(view: Exclude<TableView, 'map'>, aspectRatio: number): 
   return [view === 'left' ? -sideTargetX : sideTargetX, baseTarget[1], baseTarget[2]];
 }
 
+/*
+ * The map view's centred targets already found, per frame and set of chips, by canvas shape and tilt.
+ * A close look asks for its view's pose several times a frame while it zooms or pans, turning as it closes in, so the target is
+ * looked for only at a few fixed tilts and blended between the two either side, which keeps a turning camera gliding rather
+ * than stepping. The camera's distance, worked out for the tilt itself, still keeps the frame in view.
+ */
+const MAP_TARGET_TILT_STEPS = 32;
+const MAP_TARGET_CACHE_SIZE = 64;
+const mapTargetCache = new WeakMap<
+  readonly Vector3Tuple[],
+  WeakMap<readonly ScreenRect[], Map<string, Vector3Tuple>>
+>();
+
+function mapTargetsFor(framingPoints: readonly Vector3Tuple[], obstacles: readonly ScreenRect[]) {
+  let byObstacles = mapTargetCache.get(framingPoints);
+  if (!byObstacles) {
+    byObstacles = new WeakMap();
+    mapTargetCache.set(framingPoints, byObstacles);
+  }
+  let targets = byObstacles.get(obstacles);
+  if (!targets) {
+    targets = new Map();
+    byObstacles.set(obstacles, targets);
+  }
+  return targets;
+}
+
+function steppedMapTarget(
+  targets: Map<string, Vector3Tuple>,
+  aspectRatio: number,
+  framingPoints: readonly Vector3Tuple[],
+  step: number,
+  obstacles: readonly ScreenRect[]
+): Vector3Tuple {
+  const key = `${aspectRatio}:${step}`;
+  const cached = targets.get(key);
+  if (cached) {
+    return cached;
+  }
+  const target = centredMapTarget(
+    aspectRatio,
+    framingPoints,
+    MAP_VIEW_TOP_LIMIT,
+    cameraBasisFor(step / MAP_TARGET_TILT_STEPS),
+    obstacles
+  );
+  if (targets.size >= MAP_TARGET_CACHE_SIZE) {
+    targets.clear();
+  }
+  targets.set(key, target);
+  return target;
+}
+
+function cachedMapTarget(
+  aspectRatio: number,
+  framingPoints: readonly Vector3Tuple[],
+  tilt: number,
+  obstacles: readonly ScreenRect[]
+): Vector3Tuple {
+  const targets = mapTargetsFor(framingPoints, obstacles);
+  const position = tilt * MAP_TARGET_TILT_STEPS;
+  const below = Math.floor(position);
+  const blend = position - below;
+  const low = steppedMapTarget(targets, aspectRatio, framingPoints, below, obstacles);
+  if (blend < 1e-9) {
+    return [...low];
+  }
+  const high = steppedMapTarget(targets, aspectRatio, framingPoints, below + 1, obstacles);
+  return [0, 1, 2].map((axis) => low[axis] + (high[axis] - low[axis]) * blend) as Vector3Tuple;
+}
+
+/*
+ * The pose for a view. `mapObstacles` are the chips floating over the canvas: the map view keeps its frame out from under them
+ * and otherwise runs to the canvas's edges, so the board takes the room between them.
+ */
 export function cameraPoseFor(
   view: TableView,
   aspectRatio = 1,
   mapFramingPoints: readonly Vector3Tuple[] = DEFAULT_MAP_VIEW_FRAMING_POINTS,
-  mapTopLimit = MAP_VIEW_TOP_LIMIT,
-  tilt = 0
+  tilt = 0,
+  mapObstacles: readonly ScreenRect[] = NO_SCREEN_RECTS
 ): CameraPose {
   const basis = cameraBasisFor(tilt);
   const safeAspectRatio = Number.isFinite(aspectRatio) && aspectRatio > 0 ? aspectRatio : 1;
-  const safeMapTopLimit =
-    Number.isFinite(mapTopLimit) && mapTopLimit > 0 ? Math.min(MAP_VIEW_TOP_LIMIT, mapTopLimit) : MAP_VIEW_TOP_LIMIT;
   const target: Vector3Tuple =
     view === 'map'
-      ? tiltedMapTarget(safeAspectRatio, mapFramingPoints, safeMapTopLimit, basis, clampCameraTilt(tilt))
+      ? cachedMapTarget(safeAspectRatio, mapFramingPoints, clampCameraTilt(tilt), mapObstacles)
       : fixedViewTarget(view, safeAspectRatio);
   const cameraScale =
     view === 'map'
-      ? cameraScaleForFraming(safeAspectRatio, mapFramingPoints, safeMapTopLimit, basis, target)
+      ? cameraScaleForFraming(
+          safeAspectRatio,
+          mapFramingPoints,
+          MAP_VIEW_TOP_LIMIT,
+          basis,
+          target,
+          MAP_VIEW_MINIMUM_CAMERA_SCALE,
+          mapObstacles
+        )
       : view === 'bottom'
         ? cameraScaleForFraming(
             safeAspectRatio,

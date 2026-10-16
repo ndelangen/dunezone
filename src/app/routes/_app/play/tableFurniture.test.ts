@@ -276,7 +276,7 @@ describe('table furniture', () => {
   test.each(
     [1440 / 695, 1, 0.75, 390 / 844].flatMap((aspectRatio) => [0, 0.5, 1].map((tilt) => ({ aspectRatio, tilt })))
   )('frames the complete Tanks shelf at aspect $aspectRatio and tilt $tilt', ({ aspectRatio, tilt }) => {
-    const camera = tableCamera(cameraPoseFor('bottom', aspectRatio, undefined, undefined, tilt), aspectRatio);
+    const camera = tableCamera(cameraPoseFor('bottom', aspectRatio, undefined, tilt), aspectRatio);
 
     for (const xDirection of [-1, 1]) {
       for (const zDirection of [-1, 1]) {
