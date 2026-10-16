@@ -143,18 +143,18 @@ export function AssetSelect({
   }
   const activeCollection = groups.has(browse.collection) ? browse.collection : '';
   const terms = searchTerms(browse.search);
-  /* Near misses sort after options that contain every typed word, keeping the supplied order within each. */
+  /* Near misses sort after options that contain every typed word, within and across collections, keeping the supplied order otherwise. */
   const visibleGroups = [...groups]
     .filter(([name]) => !activeCollection || activeCollection === name)
-    .map(([name, items]) => ({
-      name,
-      items: items
+    .map(([name, items]) => {
+      const ranked = items
         .map((option) => ({ option, match: matchAsset(terms, option, name) }))
         .filter(({ match }) => match > 0)
-        .sort((a, b) => b.match - a.match)
-        .map(({ option }) => option),
-    }))
-    .filter(({ items }) => items.length > 0);
+        .sort((a, b) => b.match - a.match);
+      return { name, best: ranked[0]?.match ?? 0, items: ranked.map(({ option }) => option) };
+    })
+    .filter(({ items }) => items.length > 0)
+    .sort((a, b) => b.best - a.best);
   const collections = [
     { value: '', label: 'All collections', count: data.length },
     ...[...groups].map(([name, items]) => ({ value: name, label: name, count: items.length })),

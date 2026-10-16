@@ -120,6 +120,9 @@ export const LeaderPortraitSearch = meta.story({
     await userEvent.click(field);
     await userEvent.type(field, 'nafud');
     await expect(screen.getByRole('option', { name: 'Nefud' })).toBeVisible();
+    await userEvent.clear(field);
+    await userEvent.type(field, 'bain');
+    await expect(screen.getAllByRole('option')[0]).toHaveAccessibleName('Bain');
   },
 });
 
