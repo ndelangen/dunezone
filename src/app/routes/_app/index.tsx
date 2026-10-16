@@ -93,7 +93,7 @@ function IndexPage() {
       <PageLayout.Header size="hero">
         <Stack align="center" gap="lg">
           <PageTitle
-            eyebrow="A first look at our next chapter"
+            eyebrow="Custom factions and Rulebooks for the Dune board game"
             title="Dune Play is coming soon"
             subtitle="Soon, your next game of Dune will be right here."
           />
