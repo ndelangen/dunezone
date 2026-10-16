@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
+import type { Vector3Tuple } from '../../src/shared/play/model';
 import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
 import { POINTER_TOKEN_TYPE } from '../../src/shared/play/pointerToken';
 import { clientMessageSchema, gameSnapshotSchema } from '../../src/shared/play/protocol';
@@ -693,111 +694,76 @@ describe('server-owned tabletop carries', () => {
   });
 });
 
+/** A room with an HMS plate on the table and an Atreides troop at `troopAt`. */
+function plateRoom(troopAt: Vector3Tuple, itemId: string) {
+  const initial = initialSnapshot();
+  const loose = initial.table.pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
+  const plate = {
+    ...loose,
+    id: 'hms',
+    label: 'HMS',
+    stackKey: 'token:hms',
+    items: [
+      {
+        id: 'hms-item',
+        faceUp: true,
+        artwork: { back: 'https://dune.zone/hms.jpg', name: 'HMS', type: POINTER_TOKEN_TYPE },
+      },
+    ],
+    position: restingPositionAt([0, 0, 1], { kind: 'force', orientation: 0 }),
+    orientation: 0,
+  };
+  const troop = {
+    ...loose,
+    owner: 'atreides',
+    items: [{ id: itemId, faceUp: true }],
+    position: restingPositionAt(troopAt, loose),
+  };
+  const room = new Room(
+    {
+      ...initial,
+      table: { ...initial.table, pieces: [plate, troop] },
+      versions: { hms: initial.revision, [troop.id]: initial.revision },
+    },
+    seated
+  );
+  const begin = (who: typeof alice | typeof bob, carryId: string, sourcePieceId: string) =>
+    room.begin(who, {
+      carryId,
+      sourcePieceId,
+      expectedVersion: room.snapshot.versions[sourcePieceId],
+      pickup: 'whole',
+    });
+  const piece = (id: string) => room.snapshot.table.pieces.find((candidate) => candidate.id === id)!;
+  return { room, troop, begin, piece };
+}
+
 describe('a pointer token carrying riders', () => {
   test('leaves behind a troop another player is carrying off it', () => {
-    const initial = initialSnapshot();
-    const loose = initial.table.pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
-    const plate = {
-      ...loose,
-      id: 'hms',
-      label: 'HMS',
-      stackKey: 'token:hms',
-      items: [
-        {
-          id: 'hms-item',
-          faceUp: true,
-          artwork: { back: 'https://dune.zone/hms.jpg', name: 'HMS', type: POINTER_TOKEN_TYPE },
-        },
-      ],
-      position: restingPositionAt([0, 0, 1], { kind: 'force', orientation: 0 }),
-      orientation: 0,
-    };
-    const troop = {
-      ...loose,
-      owner: 'atreides',
-      items: [{ id: 'rider-item', faceUp: true }],
-      position: restingPositionAt([0, 0, 1], loose),
-    };
-    const room = new Room(
-      {
-        ...initial,
-        table: { ...initial.table, pieces: [plate, troop] },
-        versions: { hms: initial.revision, [troop.id]: initial.revision },
-      },
-      seated
-    );
-    room.begin(bob, {
-      carryId: 'bob-takes-rider',
-      sourcePieceId: troop.id,
-      expectedVersion: room.snapshot.versions[troop.id],
-      pickup: 'whole',
-    });
-    room.begin(alice, {
-      carryId: 'alice-moves-plate',
-      sourcePieceId: 'hms',
-      expectedVersion: room.snapshot.versions.hms,
-      pickup: 'whole',
-    });
+    const { room, troop, begin, piece } = plateRoom([0, 0, 1], 'rider-item');
+    begin(bob, 'bob-takes-rider', troop.id);
+    begin(alice, 'alice-moves-plate', 'hms');
     room.accept(
       room.drop(alice, 'alice-moves-plate', { position: [-1.5, 0.38, -1.5], orientation: 0 }),
       'alice-moves-plate'
     );
-    const rider = room.snapshot.table.pieces.find((piece) => piece.id === troop.id)!;
+    const rider = piece(troop.id);
     expect(rider.position).toEqual(troop.position);
     expect(rider.locked).toBe(troop.locked);
     expect(room.publicCarries().map((carry) => carry.id)).toContain('bob-takes-rider');
   });
+
   test('leaves behind a troop set down where it lay while it was carried', () => {
-    const initial = initialSnapshot();
-    const loose = initial.table.pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
-    const plate = {
-      ...loose,
-      id: 'hms',
-      label: 'HMS',
-      stackKey: 'token:hms',
-      items: [
-        {
-          id: 'hms-item',
-          faceUp: true,
-          artwork: { back: 'https://dune.zone/hms.jpg', name: 'HMS', type: POINTER_TOKEN_TYPE },
-        },
-      ],
-      position: restingPositionAt([0, 0, 1], { kind: 'force', orientation: 0 }),
-      orientation: 0,
-    };
-    const troop = {
-      ...loose,
-      owner: 'atreides',
-      items: [{ id: 'late-item', faceUp: true }],
-      position: restingPositionAt([1.5, 0, -1], loose),
-    };
-    const room = new Room(
-      {
-        ...initial,
-        table: { ...initial.table, pieces: [plate, troop] },
-        versions: { hms: initial.revision, [troop.id]: initial.revision },
-      },
-      seated
-    );
-    room.begin(alice, {
-      carryId: 'alice-moves-plate',
-      sourcePieceId: 'hms',
-      expectedVersion: room.snapshot.versions.hms,
-      pickup: 'whole',
-    });
-    room.begin(bob, {
-      carryId: 'bob-moves-troop',
-      sourcePieceId: troop.id,
-      expectedVersion: room.snapshot.versions[troop.id],
-      pickup: 'whole',
-    });
+    const { room, troop, begin, piece } = plateRoom([1.5, 0, -1], 'late-item');
+    begin(alice, 'alice-moves-plate', 'hms');
+    begin(bob, 'bob-moves-troop', troop.id);
     room.accept(room.drop(bob, 'bob-moves-troop', { position: [0, 0.38, 1], orientation: 0 }), 'bob-moves-troop');
-    const landed = room.snapshot.table.pieces.find((piece) => piece.id === troop.id)!;
+    const landed = piece(troop.id);
     room.accept(
       room.drop(alice, 'alice-moves-plate', { position: [-1.5, 0.38, -1.5], orientation: 0 }),
       'alice-moves-plate'
     );
-    const after = room.snapshot.table.pieces.find((piece) => piece.id === troop.id)!;
+    const after = piece(troop.id);
     expect(after.position).toEqual(landed.position);
     expect(after.locked).toBe(landed.locked);
   });
