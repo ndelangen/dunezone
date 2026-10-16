@@ -1,6 +1,11 @@
 import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { rulebookEditionArtifactKey } from '../../src/shared/rulebooks/editionArtifacts';
+import type { RulebookEditionArtifactKind } from '../../src/shared/rulebooks/editionArtifacts';
+import type {
+  RulebookArtifactDeliveryResolution,
+  RulebookArtifactRoute,
+} from '../../src/shared/rulebooks/editionArtifactWork';
 import { handlePublicAssetRequest } from './delivery';
 import { handleRulebookPdfRequest } from './rulebook-pdf-delivery';
 import { fakeR2Object } from './test-helpers';
@@ -30,18 +35,23 @@ function dependencies(status: 'found' | 'missing' = 'found', newest: number | Er
       get: vi.fn(async () => objectBody()),
     },
     client: {
-      resolveRulebookArtifactDelivery: vi.fn(async (_kind: 'pdf', route: { editionNumber?: number }) => {
-        if (status === 'missing') {
-          return { ok: true as const, status: 'missing' as const };
+      resolveRulebookArtifactDelivery: vi.fn(
+        async (
+          _kind: RulebookEditionArtifactKind,
+          route: RulebookArtifactRoute<'pdf'>
+        ): Promise<RulebookArtifactDeliveryResolution> => {
+          if (status === 'missing') {
+            return { ok: true as const, status: 'missing' as const };
+          }
+          if ('editionNumber' in route) {
+            return { ok: true as const, status: 'found' as const, editionNumber: 4, key: KEY };
+          }
+          if (newest instanceof Error) {
+            throw newest;
+          }
+          return { ok: true as const, status: 'found' as const, editionNumber: newest, key: KEY };
         }
-        if (route.editionNumber !== undefined) {
-          return { ok: true as const, status: 'found' as const, editionNumber: 4, key: KEY };
-        }
-        if (newest instanceof Error) {
-          throw newest;
-        }
-        return { ok: true as const, status: 'found' as const, editionNumber: newest, key: KEY };
-      }),
+      ),
     },
   };
 }
