@@ -140,3 +140,199 @@
     animation: none;
   }
 }
+
+/* The copier takes share the drawing's hand: labels, paper sheets, flowing paper paths and the arrows that file images back. */
+.machine {
+  --arrow: none;
+}
+
+.tag,
+.address,
+.pageLabel,
+.drawerLabel,
+.plateTitle {
+  fill: var(--blueprint-ink);
+  stroke: none;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+.tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.address {
+  font-size: 3.6px;
+  opacity: 0.8;
+}
+
+.drawerLabel {
+  font-size: 6.5px;
+  letter-spacing: 0.14em;
+}
+
+.plateTitle {
+  font-size: 10px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.page {
+  fill: var(--blueprint-paper);
+  stroke-width: 0.9;
+}
+
+.pageLabel {
+  font-size: 6px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.sheetOutLeft {
+  animation: sheet-left 2.6s ease-in-out infinite;
+}
+
+.sheetOutDown {
+  animation: sheet-down 2.6s ease-in-out infinite;
+}
+
+.returnPath {
+  stroke-width: 0.9;
+  stroke-dasharray: 3 2.5;
+  marker-end: var(--arrow);
+}
+
+.flow {
+  stroke-width: 1.6;
+  stroke-dasharray: 5 4;
+  animation: flow 0.8s linear infinite;
+}
+
+.scan {
+  fill: var(--blueprint-ink);
+  stroke: none;
+  animation: scan 2.6s ease-in-out infinite alternate;
+}
+
+.scanLine {
+  stroke-width: 2;
+  animation: scan-short 2.6s ease-in-out infinite alternate;
+}
+
+.beam {
+  stroke-width: 0.8;
+  stroke-dasharray: 2 2;
+  animation: blink 0.5s steps(1) infinite;
+}
+
+.runner {
+  fill: var(--blueprint-ink);
+  stroke: none;
+}
+
+.stationFill,
+.face {
+  fill: var(--blueprint-paper);
+  stroke: none;
+}
+
+.face {
+  stroke: var(--blueprint-ink);
+}
+
+.slab {
+  animation: bob 3.2s ease-in-out infinite alternate;
+}
+
+.slab:nth-of-type(2) {
+  animation-delay: 0.3s;
+}
+
+.slab:nth-of-type(3) {
+  animation-delay: 0.6s;
+}
+
+.slab:nth-of-type(4) {
+  animation-delay: 0.9s;
+}
+
+.slab:nth-of-type(5) {
+  animation-delay: 1.2s;
+}
+
+@keyframes sheet-left {
+  0% {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+
+  30%,
+  80% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+}
+
+@keyframes sheet-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+
+  30%,
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes flow {
+  to {
+    stroke-dashoffset: -9;
+  }
+}
+
+@keyframes scan {
+  to {
+    transform: translateX(222px);
+  }
+}
+
+@keyframes scan-short {
+  to {
+    transform: translateX(40px);
+  }
+}
+
+@keyframes bob {
+  to {
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheetOutLeft,
+  .sheetOutDown,
+  .flow,
+  .scan,
+  .scanLine,
+  .beam,
+  .slab {
+    animation: none;
+  }
+
+  .runner {
+    display: none;
+  }
+}

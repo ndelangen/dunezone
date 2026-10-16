@@ -18,7 +18,7 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { card, disc, page, shield } from '@game/data/sizes';
 
 import styles from './FactionRecipe.module.css';
-import { Machine } from './Machine';
+import { MACHINE_OPTIONS } from './MachineOptions';
 
 /*
  * The post's main figure, in three bands: what an author enters and picks in the faction editor, the one faction record the database keeps, and the assets the site draws from that record.
@@ -61,11 +61,12 @@ const USES: Record<OutputId, readonly InputId[]> = {
   shield: ['name', 'factionLeader', 'texture', 'colours', 'logo'],
 };
 
-/** The ingredients by kind: typed in, picked from the vector library, or picked from the image library. */
+/** The ingredients by kind: typed in, the colouring, picked from the vector library, or picked from the image library. */
 const GROUPS: readonly { title: string; inputs: readonly InputId[] }[] = [
-  { title: 'Typed in', inputs: ['name', 'colours', 'theme', 'rules', 'alliance'] },
+  { title: 'Typed in', inputs: ['name', 'rules', 'alliance'] },
+  { title: 'Colouring', inputs: ['colours', 'theme', 'texture'] },
   { title: 'Vectors', inputs: ['logo', 'troop'] },
-  { title: 'Images', inputs: ['texture', 'leaders', 'factionLeader'] },
+  { title: 'Images', inputs: ['leaders', 'factionLeader'] },
 ];
 
 const INPUT_ORDER: readonly InputId[] = GROUPS.flatMap((group) => group.inputs);
@@ -143,8 +144,8 @@ const INPUTS: Record<InputId, { label: string; zoom?: number; art: () => ReactNo
     label: 'Alliance',
     art: () => <span className={styles.text}>{FACTION.rules.alliance.text}</span>,
   },
-  logo: { label: 'Logo', zoom: 1.25, art: () => <Glyph src={FACTION.logo} /> },
-  troop: { label: 'Troop', zoom: 1.05, art: () => <Glyph src={FACTION.troops[0]?.image ?? ''} /> },
+  logo: { label: 'Logo', zoom: 2.5, art: () => <Glyph src={FACTION.logo} /> },
+  troop: { label: 'Troop', zoom: 2.1, art: () => <Glyph src={FACTION.troops[0]?.image ?? ''} /> },
   texture: {
     label: 'Texture',
     zoom: 1.15,
@@ -294,7 +295,15 @@ function measureLines(root: HTMLElement): Line[] {
     }
     const busX = bus.left + bus.width / 2 - box.left;
     const busY = bus.top - box.top;
-    const trunk = curve(busX, busY, hubX, hub.top - box.top).slice(`M ${busX} ${busY}`.length);
+    /* A cluster with another cluster below it, as in a phone's top row, turns its trunk into the middle first and runs straight down the gap. */
+    const groupRect = group.getBoundingClientRect();
+    const above = [...root.querySelectorAll<HTMLElement>('[data-group]')].some(
+      (other) => other.getBoundingClientRect().top > groupRect.bottom
+    );
+    const hubTop = hub.top - box.top;
+    const trunk = above
+      ? ` C ${busX} ${busY + 24}, ${hubX} ${busY + 8}, ${hubX} ${busY + 32} V ${hubTop}`
+      : curve(busX, busY, hubX, hubTop).slice(`M ${busX} ${busY}`.length);
     const tiles = [...group.querySelectorAll<HTMLElement>('[data-input]')];
     const lowest = Math.max(...tiles.map((element) => element.getBoundingClientRect().bottom));
     for (const element of tiles) {
@@ -347,6 +356,15 @@ function useTour(rootRef: RefObject<HTMLElement | null>, paused: boolean) {
     };
   }, [rootRef, paused]);
   return step < 0 ? null : (INPUT_ORDER[step] ?? null);
+}
+
+/* While Norbert picks one of the five machines, `?machine=1` to `?machine=5` on the page shows each; the first is the default. */
+function ChosenMachine(props: { title: string; subtitle: string }) {
+  const [choice] = useState(() =>
+    typeof window === 'undefined' ? 0 : Number(new URLSearchParams(window.location.search).get('machine') ?? 1) - 1
+  );
+  const Chosen = MACHINE_OPTIONS[choice] ?? MACHINE_OPTIONS[0];
+  return <Chosen {...props} />;
 }
 
 export function FactionRecipe() {
@@ -446,7 +464,7 @@ export function FactionRecipe() {
         ))}
       </div>
       <div className={styles.hub} data-hub>
-        <Machine title={`House ${FACTION.name}`} subtitle="Faction record" />
+        <ChosenMachine title={`House ${FACTION.name}`} subtitle="Faction record" />
       </div>
       <div className={styles.outputs}>
         {OUTPUT_ORDER.map((id) => (

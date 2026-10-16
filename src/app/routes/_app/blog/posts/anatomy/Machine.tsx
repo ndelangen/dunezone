@@ -29,7 +29,7 @@ function gearPath(cx: number, cy: number, outer: number, inner: number, teeth: n
   return `M ${points.join(' L ')} Z`;
 }
 
-function Gear({
+export function Gear({
   cx,
   cy,
   outer,
@@ -56,7 +56,7 @@ function Gear({
 }
 
 /** A label off to the side, joined to the part it names by a leader line ending in a dot. */
-function Callout({
+export function Callout({
   from,
   to,
   text,
