@@ -1,4 +1,5 @@
 import type { Vector3Tuple } from '@shared/play/model';
+import { SUPPLY_RESERVE_REACH } from '@shared/play/setupLayout';
 import {
   BOTTOM_SHELF_POSITION,
   BOTTOM_SHELF_SIZE,
@@ -71,6 +72,17 @@ export function mapViewFramingPoints(
       points,
       [Math.cos(angle) * PLAYER_RING_RADIUS, BOARD_RIM_SURFACE_Y + 0.001, Math.sin(angle) * PLAYER_RING_RADIUS],
       PLAYER_STATION_RADIUS,
+      48
+    );
+    /* The troop reserves right behind each faction token, so the view never cuts a seat's supply off at the canvas's edge. */
+    appendCircleBoundary(
+      points,
+      [
+        Math.cos(angle) * SUPPLY_RESERVE_REACH.radius,
+        BOARD_RIM_SURFACE_Y + 0.001,
+        Math.sin(angle) * SUPPLY_RESERVE_REACH.radius,
+      ],
+      SUPPLY_RESERVE_REACH.halfWidth,
       48
     );
   });

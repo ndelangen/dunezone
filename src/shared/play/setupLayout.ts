@@ -7,6 +7,9 @@ const RESERVE_RADIUS = PLAYER_RING_RADIUS + TROOP_FOOTPRINT_RADIUS * (FACTION_TO
 
 const RESERVE_SPACING = 0.4;
 
+/** How far a seat's troop reserves reach from its station, along the ring and away from the board, for framing the table around them. */
+export const SUPPLY_RESERVE_REACH = { radius: RESERVE_RADIUS, halfWidth: RESERVE_SPACING + TROOP_FOOTPRINT_RADIUS } as const;
+
 function polar(angle: number, radius: number): Vector3Tuple {
   return [Math.cos(angle) * radius, 0, Math.sin(angle) * radius];
 }

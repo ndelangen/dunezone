@@ -9,7 +9,8 @@ import { Vector3 } from 'three';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { cameraPoseFor, mapViewTopLimitForViewport, tableCamera } from '../../../widgets/tabletop/playView';
+import { cameraPoseFor, tableCamera } from '../../../widgets/tabletop/playView';
+import { tableOverlayRects } from '../../../widgets/tabletop/seatedHeader';
 import { mapViewFramingPoints } from '../../../widgets/tabletop/tablePlateGeometry';
 import { openControl } from './controls.stories.fixture';
 import { productTransport, playingSnapshot as initialSnapshot, SIX, factions } from './product.stories.fixture';
@@ -179,13 +180,13 @@ export function mapViewPoint(document: Document, point: readonly [number, number
     throw new TypeError('The table scene is missing.');
   }
   const sceneBounds = scene.getBoundingClientRect();
-  const headerHeight = document.querySelector<HTMLElement>('.seated-header')?.getBoundingClientRect().height ?? 0;
   const aspectRatio = sceneBounds.width / sceneBounds.height;
   const pose = cameraPoseFor(
     'map',
     aspectRatio,
     mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), DEFAULT_TABLE_SEAT_COUNT),
-    mapViewTopLimitForViewport(sceneBounds.height, headerHeight)
+    0,
+    tableOverlayRects(scene)
   );
   const projected = new Vector3(...point).project(tableCamera(pose, aspectRatio));
   return [
