@@ -1,10 +1,12 @@
 /*
- * Ingredients on top, the faction in the middle, assets below, with curves behind the tiles joining them.
- * The figure takes the wide figure column, like a row of figures does, and every tile wraps, so a phone gets the same diagram in more rows.
+ * Three bands: the editor's ingredients grouped by kind, the database record, and the assets drawn from it, with curves behind joining them.
+ * The figure takes the wide figure column, like a row of figures does, and everything wraps, so a phone gets the same diagram in more rows.
  */
 .root {
-  --art-height: 3.25rem;
+  --art-height: 2.875rem;
   --output-height: 7.5rem;
+  /* One round of pulses, as long as the figure's own tour lingers on an ingredient (`TOUR_MS`). */
+  --pulse-duration: 2600ms;
 
   position: relative;
   display: flex;
@@ -18,7 +20,7 @@
 
 @container blog-article (width < 36rem) {
   .root {
-    --art-height: 3rem;
+    --art-height: 2.75rem;
     --output-height: 5.5rem;
 
     gap: var(--space-lg);
@@ -47,16 +49,113 @@
 
 .line.lit {
   stroke: var(--color-brand);
-  stroke-width: 2;
-  opacity: 0.9;
+  stroke-width: 1.5;
+  opacity: 0.6;
 }
 
-.heading {
+/*
+ * A short bright dash runs along each lit line: first from the editor into the record, then out of the record to the assets.
+ * `pathLength="1"` makes the dash and its travel fractions of the line, whatever its drawn length.
+ */
+.pulse {
+  fill: none;
+  stroke: var(--color-brand);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 0.06 1;
+  stroke-dashoffset: 0.06;
+  opacity: 0;
+  filter: drop-shadow(0 0 4px var(--color-brand));
+  animation: var(--pulse-duration) linear infinite;
+}
+
+.pulseIn {
+  animation-name: pulse-in;
+}
+
+.pulseOut {
+  animation-name: pulse-out;
+}
+
+@keyframes pulse-in {
+  0% {
+    stroke-dashoffset: 0.06;
+    opacity: 1;
+  }
+
+  45% {
+    stroke-dashoffset: -1;
+    opacity: 1;
+  }
+
+  46%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-out {
+  0%,
+  45% {
+    stroke-dashoffset: 0.06;
+    opacity: 0;
+  }
+
+  46% {
+    opacity: 1;
+  }
+
+  90% {
+    stroke-dashoffset: -1;
+    opacity: 1;
+  }
+
+  91%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    display: none;
+  }
+}
+
+.band {
   margin: 0;
   color: var(--mantine-color-dimmed);
   font-size: var(--mantine-font-size-xs);
   letter-spacing: 0.12em;
+  text-align: center;
   text-transform: uppercase;
+}
+
+.groups {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+/* A group is named by a title over a thin rule as wide as the group, with no box around it. */
+.group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-xs);
+}
+
+.groupTitle {
+  margin: 0;
+  padding-block-end: var(--space-xs);
+  border-block-end: 1px solid rgb(255 255 255 / 25%);
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  text-align: center;
+  text-shadow: 0 0 3px rgb(0 0 0 / 90%);
 }
 
 .inputs,
@@ -65,6 +164,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: flex-end;
   gap: var(--space-xs);
 }
 
@@ -77,7 +177,7 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-xs);
-  padding: var(--space-xs);
+  padding: 4px;
   color: var(--color-text);
   /* Without a box behind it, the text sits on the page artwork, which is light in places. */
   text-shadow:
@@ -113,13 +213,13 @@
 
 .outputArt {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  height: var(--output-height);
+  height: calc(var(--output-height) * 1.15);
 }
 
 .name {
-  max-width: 6rem;
+  max-width: 4.5rem;
   font-family: var(--mantine-font-family-headings);
   font-size: var(--mantine-font-size-md);
   line-height: 1.1;
@@ -162,7 +262,7 @@
 }
 
 .portraits .portrait + .portrait {
-  margin-inline-start: calc(var(--art-height) * -0.45);
+  margin-inline-start: calc(var(--art-height) * -0.6);
 }
 
 .portrait {
@@ -177,7 +277,7 @@
 
 .text {
   display: -webkit-box;
-  max-width: 7.5rem;
+  max-width: 5rem;
   overflow: hidden;
   font-size: var(--mantine-font-size-xs);
   line-height: 1.3;
@@ -186,23 +286,59 @@
   -webkit-line-clamp: 3;
 }
 
+/* The record: a database drum with the faction's name on it. */
 .hub {
+  --art-height: 2rem;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 17rem;
+  height: 8.5rem;
+  margin-block: var(--space-lg);
+  padding-block-start: var(--space-md);
+}
+
+.cylinder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.cylinder path,
+.cylinder ellipse {
+  fill: var(--mantine-color-body);
+  stroke: var(--color-brand);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.hubName {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-xs) var(--space-md);
+  gap: var(--space-xs);
   font-family: var(--mantine-font-family-headings);
-  font-size: var(--mantine-font-size-xl);
+  font-size: var(--mantine-font-size-lg);
+}
 
-  --art-height: 2.5rem;
+.hubNote {
+  position: relative;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
 }
 
 .scaled {
   --art-aspect: 1;
+  --art-scale: 1;
 
   display: block;
-  height: var(--output-height);
+  height: calc(var(--output-height) * var(--art-scale));
   aspect-ratio: var(--art-aspect);
   filter: drop-shadow(0 4px 8px rgb(0 0 0 / 45%));
 }
@@ -212,15 +348,12 @@
   border-radius: 50%;
 }
 
+/* The sheet's own preview frame, at the page's native size inside its scaled canvas. */
 .sheet {
-  --art-aspect: 1;
-
   display: block;
-  height: var(--output-height);
-  aspect-ratio: var(--art-aspect);
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  border-radius: 2px;
-  box-shadow: 0 4px 8px rgb(0 0 0 / 45%);
 }
 
 .stack,
@@ -229,7 +362,7 @@
 }
 
 .stack .scaled + .scaled {
-  margin-inline-start: calc(var(--output-height) * -0.55);
+  margin-inline-start: calc(var(--output-height) * -0.42);
 }
 
 .fan .scaled + .scaled {

@@ -1,11 +1,12 @@
 import { UnstyledButton } from '@mantine/core';
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { FactionRender } from '@shared/factions/schema';
+import type { FactionInput } from '@shared/factions/schema';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import clsx from 'clsx';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, ReactNode, RefObject } from 'react';
 
 import { FactionSheetPagePreview } from '@app/widgets/faction-editor/FactionSheetPagePreview';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
@@ -19,24 +20,32 @@ import { card, disc, page, shield } from '@game/data/sizes';
 import styles from './FactionRecipe.module.css';
 
 /*
- * The post's main figure: House Atreides' ingredients on top, the faction they make in the middle, and the assets drawn from it below.
- * Picking an ingredient lights the assets that use it, and picking an asset lights its ingredients.
+ * The post's main figure, in three bands: what an author enters and picks in the faction editor, the one faction record the database keeps, and the assets the site draws from that record.
+ * Picking an ingredient lights the assets that use it, and picking an asset lights its ingredients; pulses run along the lit lines from the editor, through the record, to the assets.
  * The outputs are the site's own renderers fed through `FactionRender`, so the figure draws what the site draws.
  */
 
-const FACTION = assetPublishingFaction;
+/** The sample Atreides the asset publisher is tested with, led by Paul as on the faction page. */
+const FACTION: FactionInput = {
+  ...assetPublishingFaction,
+  factionLeader: {
+    ...assetPublishingFaction.factionLeader,
+    name: 'Paul Atreides',
+    image: '/image/leader/official/paul.jpg',
+  },
+};
 
 type InputId =
   | 'name'
-  | 'logo'
-  | 'texture'
   | 'colours'
   | 'theme'
-  | 'leaders'
-  | 'factionLeader'
-  | 'troop'
   | 'rules'
-  | 'alliance';
+  | 'alliance'
+  | 'logo'
+  | 'troop'
+  | 'texture'
+  | 'leaders'
+  | 'factionLeader';
 
 type OutputId = 'sheet' | 'leaderTokens' | 'traitors' | 'troopToken' | 'token' | 'alliance' | 'shield';
 
@@ -51,20 +60,14 @@ const USES: Record<OutputId, readonly InputId[]> = {
   shield: ['name', 'factionLeader', 'texture', 'colours', 'logo'],
 };
 
-type Pick = { kind: 'input'; id: InputId } | { kind: 'output'; id: OutputId } | null;
-
-const INPUT_ORDER: readonly InputId[] = [
-  'name',
-  'logo',
-  'texture',
-  'colours',
-  'theme',
-  'leaders',
-  'factionLeader',
-  'troop',
-  'rules',
-  'alliance',
+/** The ingredients by kind: typed in, picked from the vector library, or picked from the image library. */
+const GROUPS: readonly { title: string; inputs: readonly InputId[] }[] = [
+  { title: 'Typed in', inputs: ['name', 'colours', 'theme', 'rules', 'alliance'] },
+  { title: 'Vectors', inputs: ['logo', 'troop'] },
+  { title: 'Images', inputs: ['texture', 'leaders', 'factionLeader'] },
 ];
+
+const INPUT_ORDER: readonly InputId[] = GROUPS.flatMap((group) => group.inputs);
 
 const OUTPUT_ORDER: readonly OutputId[] = [
   'sheet',
@@ -75,6 +78,11 @@ const OUTPUT_ORDER: readonly OutputId[] = [
   'alliance',
   'shield',
 ];
+
+/** How often the figure moves on to the next ingredient by itself; the stylesheet's `--pulse-duration` matches it. */
+const TOUR_MS = 2600;
+
+type Pick = { kind: 'input'; id: InputId } | { kind: 'output'; id: OutputId } | null;
 
 function litSets(pick: Pick): { inputs: ReadonlySet<InputId>; outputs: ReadonlySet<OutputId> } | null {
   if (!pick) {
@@ -101,13 +109,9 @@ function Portrait({ src }: { src: string }) {
   return <img className={styles.portrait} src={resolveAsset(src, 'small')} alt="" />;
 }
 
+/* Art is built when the figure renders, not when the module loads, so the media resolver sees every key a render asks for. */
 const INPUTS: Record<InputId, { label: string; art: () => ReactNode }> = {
   name: { label: 'Name', art: () => <span className={styles.name}>{FACTION.name}</span> },
-  logo: { label: 'Logo', art: () => <Glyph src={FACTION.logo} /> },
-  texture: {
-    label: 'Texture',
-    art: () => <img className={styles.texture} src={resolveAsset(FACTION.background.image, 'small')} alt="" />,
-  },
   colours: {
     label: 'Colours',
     art: () => (
@@ -119,18 +123,6 @@ const INPUTS: Record<InputId, { label: string; art: () => ReactNode }> = {
     ),
   },
   theme: { label: 'Theme colour', art: () => <Swatch color={FACTION.themeColor} /> },
-  leaders: {
-    label: 'Leaders',
-    art: () => (
-      <span className={styles.portraits}>
-        {FACTION.leaders.map((leader) => (
-          <Portrait key={leader.name} src={leader.image} />
-        ))}
-      </span>
-    ),
-  },
-  factionLeader: { label: 'Faction leader', art: () => <Portrait src={FACTION.factionLeader.image} /> },
-  troop: { label: 'Troop', art: () => <Glyph src={FACTION.troops[0]?.image ?? ''} /> },
   rules: {
     label: 'Rules',
     art: () => (
@@ -148,22 +140,44 @@ const INPUTS: Record<InputId, { label: string; art: () => ReactNode }> = {
     label: 'Alliance',
     art: () => <span className={styles.text}>{FACTION.rules.alliance.text}</span>,
   },
+  logo: { label: 'Logo', art: () => <Glyph src={FACTION.logo} /> },
+  troop: { label: 'Troop', art: () => <Glyph src={FACTION.troops[0]?.image ?? ''} /> },
+  texture: {
+    label: 'Texture',
+    art: () => <img className={styles.texture} src={resolveAsset(FACTION.background.image, 'small')} alt="" />,
+  },
+  leaders: {
+    label: 'Leaders',
+    art: () => (
+      <span className={styles.portraits}>
+        {FACTION.leaders.map((leader) => (
+          <Portrait key={leader.name} src={leader.image} />
+        ))}
+      </span>
+    ),
+  },
+  factionLeader: { label: 'Faction leader', art: () => <Portrait src={FACTION.factionLeader.image} /> },
 };
 
-/** A renderer drawn at its native canvas size and scaled to `width`, a CSS length the stylesheet's art height sets. */
+/**
+ * A renderer drawn at its native canvas size and scaled to the output row's height times `scale`.
+ * The scales keep the assets roughly in the sizes they have on the table, relative to each other.
+ */
 function Scaled({
   size,
+  scale = 1,
   round = false,
   children,
 }: {
   size: { width: number; height: number };
+  scale?: number;
   round?: boolean;
   children: ReactNode;
 }) {
   return (
     <span
       className={clsx(styles.scaled, round && styles.round)}
-      style={{ '--art-aspect': size.width / size.height } as CSSProperties}
+      style={{ '--art-aspect': size.width / size.height, '--art-scale': scale } as CSSProperties}
     >
       <CanvasScale canvasWidth={size.width} canvasHeight={size.height}>
         {children}
@@ -180,9 +194,11 @@ const OUTPUTS: Record<OutputId, { label: string; art: () => ReactNode }> = {
   sheet: {
     label: 'Faction sheet',
     art: () => (
-      <span className={styles.sheet} style={{ '--art-aspect': page.width / page.height } as CSSProperties}>
-        <FactionSheetPagePreview faction={FACTION} pageNumber={1} />
-      </span>
+      <Scaled size={page} scale={1.15}>
+        <span className={styles.sheet}>
+          <FactionSheetPagePreview faction={FACTION} pageNumber={1} />
+        </span>
+      </Scaled>
     ),
   },
   leaderTokens: {
@@ -190,7 +206,7 @@ const OUTPUTS: Record<OutputId, { label: string; art: () => ReactNode }> = {
     art: () => (
       <span className={styles.stack}>
         {leaders.map((leader) => (
-          <Scaled key={leader.name} size={disc} round>
+          <Scaled key={leader.name} size={disc} scale={0.75} round>
             <LeaderToken {...leader} />
           </Scaled>
         ))}
@@ -213,7 +229,7 @@ const OUTPUTS: Record<OutputId, { label: string; art: () => ReactNode }> = {
     label: 'Troop token',
     art: () =>
       troops[0] ? (
-        <Scaled size={disc} round>
+        <Scaled size={disc} scale={0.5} round>
           <TroopToken {...troops[0]} />
         </Scaled>
       ) : null,
@@ -221,7 +237,7 @@ const OUTPUTS: Record<OutputId, { label: string; art: () => ReactNode }> = {
   token: {
     label: 'Faction token',
     art: () => (
-      <Scaled size={disc} round>
+      <Scaled size={disc} scale={1.05} round>
         <Token {...FactionRender.token.parse(FACTION)} />
       </Scaled>
     ),
@@ -246,7 +262,7 @@ const OUTPUTS: Record<OutputId, { label: string; art: () => ReactNode }> = {
 
 type Line = { key: string; d: string; input?: InputId; output?: OutputId };
 
-/** Curves from each ingredient down into the faction, and from the faction down to each asset, measured from the laid-out tiles. */
+/** Curves from each ingredient's art down into the record, and from the record down to each asset, measured from the laid-out figure. */
 function measureLines(root: HTMLElement): Line[] {
   const box = root.getBoundingClientRect();
   const hub = root.querySelector<HTMLElement>('[data-hub]')?.getBoundingClientRect();
@@ -281,7 +297,7 @@ function measureLines(root: HTMLElement): Line[] {
 }
 
 /** While nobody has picked anything, the figure steps through the ingredients on its own, as long as it is on screen. */
-function useTour(rootRef: React.RefObject<HTMLElement | null>, paused: boolean) {
+function useTour(rootRef: RefObject<HTMLElement | null>, paused: boolean) {
   const [step, setStep] = useState(-1);
   useEffect(() => {
     const root = rootRef.current;
@@ -292,7 +308,8 @@ function useTour(rootRef: React.RefObject<HTMLElement | null>, paused: boolean) 
     const observer = new IntersectionObserver(([entry]) => {
       clearInterval(timer);
       if (entry?.isIntersecting) {
-        timer = setInterval(() => setStep((current) => (current + 1) % INPUT_ORDER.length), 2200);
+        setStep((current) => (current < 0 ? 0 : current));
+        timer = setInterval(() => setStep((current) => (current + 1) % INPUT_ORDER.length), TOUR_MS);
       }
     });
     observer.observe(root);
@@ -304,6 +321,23 @@ function useTour(rootRef: React.RefObject<HTMLElement | null>, paused: boolean) 
   return step < 0 ? null : (INPUT_ORDER[step] ?? null);
 }
 
+/** The database the record lives in, drawn as the usual stack of disks. */
+function Record() {
+  return (
+    <div className={styles.hub} data-hub>
+      <svg className={styles.cylinder} viewBox="0 0 240 120" preserveAspectRatio="none" aria-hidden>
+        <path d="M 2 18 V 102 A 118 16 0 0 0 238 102 V 18" />
+        <ellipse cx="120" cy="18" rx="118" ry="16" />
+      </svg>
+      <span className={styles.hubName}>
+        <Glyph src={FACTION.logo} />
+        House {FACTION.name}
+      </span>
+      <span className={styles.hubNote}>one faction record in the database</span>
+    </div>
+  );
+}
+
 export function FactionRecipe() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [lines, setLines] = useState<Line[]>([]);
@@ -311,7 +345,10 @@ export function FactionRecipe() {
   const [hover, setHover] = useState<Pick>(null);
   const [touched, setTouched] = useState(false);
   const touring = useTour(rootRef, touched);
-  const lit = litSets(hover ?? pick ?? (touring ? { kind: 'input', id: touring } : null));
+  const active = hover ?? pick ?? (touring ? { kind: 'input' as const, id: touring } : null);
+  const lit = litSets(active);
+  /* Changing the key restarts the pulses, so every new pick starts its round from the editor. */
+  const pulseRound = active ? `${active.kind}-${active.id}` : 'none';
 
   const remeasure = useCallback(() => {
     if (rootRef.current) {
@@ -341,56 +378,65 @@ export function FactionRecipe() {
   const lineLit = (line: Line) =>
     lit !== null && ((line.input && lit.inputs.has(line.input)) || (line.output && lit.outputs.has(line.output)));
 
+  const tile = (kind: 'input' | 'output', id: InputId | OutputId, label: string, art: ReactNode) => {
+    const next = { kind, id } as Pick;
+    const isLit = kind === 'input' ? lit?.inputs.has(id as InputId) : lit?.outputs.has(id as OutputId);
+    return (
+      <UnstyledButton
+        key={id}
+        {...{ [`data-${kind}`]: id }}
+        className={clsx(styles.tile, isLit && styles.lit)}
+        aria-pressed={pick?.kind === kind && pick.id === id}
+        onClick={() => choose(next)}
+        onMouseEnter={() => {
+          setTouched(true);
+          setHover(next);
+        }}
+        onMouseLeave={() => setHover(null)}
+      >
+        <span className={kind === 'input' ? styles.inputArt : styles.outputArt}>{art}</span>
+        <span className={styles.label}>{label}</span>
+      </UnstyledButton>
+    );
+  };
+
   return (
     <div ref={rootRef} className={clsx(styles.root, lit && styles.focused)}>
       <svg className={styles.lines} aria-hidden>
         {lines.map((line) => (
           <path key={line.key} d={line.d} className={clsx(styles.line, lineLit(line) && styles.lit)} />
         ))}
+        <g key={pulseRound}>
+          {lines.filter(lineLit).map((line) => (
+            <path
+              key={line.key}
+              d={line.d}
+              pathLength={1}
+              className={clsx(styles.pulse, line.output ? styles.pulseOut : styles.pulseIn)}
+            />
+          ))}
+        </g>
       </svg>
-      <p className={styles.heading}>Ingredients</p>
-      <div className={styles.inputs}>
-        {INPUT_ORDER.map((id) => (
-          <UnstyledButton
-            key={id}
-            data-input={id}
-            className={clsx(styles.tile, lit?.inputs.has(id) && styles.lit)}
-            aria-pressed={pick?.kind === 'input' && pick.id === id}
-            onClick={() => choose({ kind: 'input', id })}
-            onMouseEnter={() => {
-              setTouched(true);
-              setHover({ kind: 'input', id });
-            }}
-            onMouseLeave={() => setHover(null)}
-          >
-            <span className={styles.inputArt}>{INPUTS[id].art()}</span>
-            <span className={styles.label}>{INPUTS[id].label}</span>
-          </UnstyledButton>
+      <p className={styles.band}>Entered and picked in the faction editor</p>
+      <div className={styles.groups}>
+        {GROUPS.map((group) => (
+          <div key={group.title} className={styles.group}>
+            <p className={styles.groupTitle}>{group.title}</p>
+            <div className={styles.inputs}>
+              {group.inputs.map((id) => (
+                <Fragment key={id}>{tile('input', id, INPUTS[id].label, INPUTS[id].art())}</Fragment>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
-      <div className={styles.hub} data-hub>
-        <Glyph src={FACTION.logo} />
-        <span>House {FACTION.name}</span>
-      </div>
+      <Record />
       <div className={styles.outputs}>
         {OUTPUT_ORDER.map((id) => (
-          <UnstyledButton
-            key={id}
-            data-output={id}
-            className={clsx(styles.tile, lit?.outputs.has(id) && styles.lit)}
-            aria-pressed={pick?.kind === 'output' && pick.id === id}
-            onClick={() => choose({ kind: 'output', id })}
-            onMouseEnter={() => {
-              setTouched(true);
-              setHover({ kind: 'output', id });
-            }}
-            onMouseLeave={() => setHover(null)}
-          >
-            <span className={styles.outputArt}>{OUTPUTS[id].art()}</span>
-            <span className={styles.label}>{OUTPUTS[id].label}</span>
-          </UnstyledButton>
+          <Fragment key={id}>{tile('output', id, OUTPUTS[id].label, OUTPUTS[id].art())}</Fragment>
         ))}
       </div>
+      <p className={styles.band}>Drawn from that record, live, in your browser</p>
     </div>
   );
 }
