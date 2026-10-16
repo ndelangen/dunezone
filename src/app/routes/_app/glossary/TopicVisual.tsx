@@ -49,6 +49,7 @@ const DEMONSTRATED_BY: Record<string, readonly string[]> = {
   spice: ['spice-bank', 'spice-reserve'],
   deal: ['bribe'],
   'binding-deal': ['bribe'],
+  'tleilaxu-tanks': ['troop', 'elite-troop', 'leader'],
 };
 
 function demonstrates(term: string | null, anchor: string) {
@@ -60,6 +61,7 @@ function Piece({
   anchor,
   extra = false,
   captionHidden = false,
+  lit,
   children,
 }: {
   caption: string;
@@ -67,14 +69,17 @@ function Piece({
   extra?: boolean;
   /** For art that already prints its own name, such as a card: the caption still names the link. */
   captionHidden?: boolean;
+  /** Set by a picture that steps through its own sequence, overriding which term lights the piece. */
+  lit?: boolean;
   children: ReactNode;
 }) {
   const term = useTeachingTerm();
+  const demonstrating = lit ?? demonstrates(term, anchor);
   return (
     <a
       className={clsx(styles.piece, extra && styles.extra)}
       href={`#${anchor}`}
-      data-demonstrating={demonstrates(term, anchor) || undefined}
+      data-demonstrating={demonstrating || undefined}
     >
       <span className={styles.art} aria-hidden="true">
         {children}
@@ -285,14 +290,22 @@ function Wheel() {
   );
 }
 
+/* A battle plan is put together piece by piece: the leader, the weapon and defense, the dialed troops, their support, then the whole wheel. */
+const PLAN_ORDER = ['leader', 'cards', 'dialed', 'supported', 'wheel'] as const;
+
 function BattleVisual() {
+  const term = useTeachingTerm();
+  const planning = term === 'battle-plan';
+  const step = useTeachingStep(planning, PLAN_ORDER.length + 1, 900);
+  const built = PLAN_ORDER.slice(0, Math.min(step, PLAN_ORDER.length - 1) + 1);
+  const planLit = (piece: (typeof PLAN_ORDER)[number]) => (planning ? built.includes(piece) : undefined);
   return (
     <div className={styles.column}>
-      <Piece caption="Battle wheel" anchor="battle-wheel">
+      <Piece caption="Battle wheel" anchor="battle-wheel" lit={planLit('wheel')}>
         <Wheel />
       </Piece>
       <div className={clsx(styles.grid, styles.extra)}>
-        <Piece caption="Dialed troops" anchor="dialed">
+        <Piece caption="Dialed troops" anchor="dialed" lit={planLit('dialed')}>
           <span className={styles.troopStack}>
             {[0, 1, 2].map((index) => (
               <Disc key={index} troop>
@@ -301,15 +314,15 @@ function BattleVisual() {
             ))}
           </span>
         </Piece>
-        <Piece caption="Supported with 3 spice" anchor="supported">
+        <Piece caption="Supported with 3 spice" anchor="supported" lit={planLit('supported')}>
           <SpicePile count={3} arriving />
         </Piece>
-        <Piece caption="Battle plan: leader" anchor="battle-plan">
+        <Piece caption="Battle plan: leader" anchor="battle-plan" lit={planLit('leader')}>
           <Disc>
             <DuncanIdaho />
           </Disc>
         </Piece>
-        <Piece caption="Battle plan: weapon and defense" anchor="battle-plan">
+        <Piece caption="Battle plan: weapon and defense" anchor="battle-plan" lit={planLit('cards')}>
           <span className={styles.pair}>
             <GameCard>
               <TreacheryCard {...treacheryCardFixtures.maulaPistol} />
@@ -367,30 +380,61 @@ function SpiceVisual() {
   );
 }
 
-function CardsVisual() {
+/* The top of the spice blow pile: a spice card, which Shai-Hulud's demonstration turns over to reveal the worm. */
+function SpiceBlowPile() {
+  const revealed = useTeachingStep(useTeachingTerm() === 'shai-hulud', 2, 1400) === 1;
   return (
-    <div className={styles.fan}>
-      <Piece captionHidden caption="Treachery card" anchor="treachery-card">
+    <span className={styles.flip} data-flipped={revealed || undefined}>
+      <span className={styles.face}>
         <GameCard>
-          <TreacheryCard {...treacheryCardFixtures.lasgun} />
+          <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" highlights={['arsunt']} amount={3} />
         </GameCard>
-      </Piece>
-      <Piece captionHidden caption="Karama" anchor="karama">
+      </span>
+      <span className={clsx(styles.face, styles.back)}>
         <GameCard>
-          <TreacheryCard {...treacheryCardFixtures.karama} />
+          <TreacheryCard {...treacheryCardFixtures.shaiHulud} />
         </GameCard>
-      </Piece>
-      <Piece captionHidden caption="Traitor card" anchor="traitor-card">
-        <GameCard>
-          <TraitorCard
-            background={atreides.background}
-            image="/image/leader/official/gurney.png"
-            logo="/vector/logo/atreides.svg"
-            name="Gurney Halleck"
-            strength="4"
-            owner="Atreides"
-          />
-        </GameCard>
+      </span>
+    </span>
+  );
+}
+
+function CardsVisual() {
+  const term = useTeachingTerm();
+  return (
+    <div className={styles.column}>
+      <div className={styles.fan}>
+        <Piece captionHidden caption="Treachery card" anchor="treachery-card">
+          <GameCard>
+            <TreacheryCard {...treacheryCardFixtures.lasgun} />
+          </GameCard>
+        </Piece>
+        <Piece captionHidden caption="Karama" anchor="karama">
+          <GameCard>
+            <TreacheryCard {...treacheryCardFixtures.karama} />
+          </GameCard>
+        </Piece>
+        <Piece captionHidden caption="Traitor card" anchor="traitor-card">
+          <GameCard>
+            <TraitorCard
+              background={atreides.background}
+              image="/image/leader/official/gurney.png"
+              logo="/vector/logo/atreides.svg"
+              name="Gurney Halleck"
+              strength="4"
+              owner="Atreides"
+            />
+          </GameCard>
+        </Piece>
+      </div>
+      <Piece
+        captionHidden
+        caption="Spice card, and Shai-Hulud beneath it"
+        anchor="spice-card"
+        lit={term === 'spice-card' || term === 'shai-hulud' ? true : undefined}
+        extra
+      >
+        <SpiceBlowPile />
       </Piece>
     </div>
   );
@@ -456,8 +500,9 @@ const VISUALS: Record<GlossaryTopic, () => ReactNode> = {
 /** The picture beside one glossary topic, drawn with the game's own artwork and sized to fill its column. */
 export function TopicVisual({ topic }: { topic: GlossaryTopic }) {
   const Visual = VISUALS[topic];
+  const term = useTeachingTerm();
   return (
-    <div className={styles.stage}>
+    <div className={styles.stage} data-term={term ?? undefined}>
       <Visual />
     </div>
   );

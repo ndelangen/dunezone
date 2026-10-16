@@ -288,6 +288,12 @@
   color: var(--color-brand, var(--color-text));
 }
 
+/* Troops and leaders that go to the Tleilaxu Tanks fade and sink out of play. */
+.stage[data-term="tleilaxu-tanks"] .piece[data-demonstrating] .art {
+  transform: translateY(6px) scale(0.92);
+  filter: grayscale(1) brightness(0.6);
+}
+
 /* An alliance draws its two factions together. */
 .factions[data-allied] .faction[data-lit]:nth-child(1) {
   transform: translateX(25%) scale(1.04);
