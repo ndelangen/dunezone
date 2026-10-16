@@ -449,8 +449,12 @@ const ALLIES = new Set(['atreides', 'fremen']);
 function FactionsVisual() {
   const term = useTeachingTerm();
   const step = useTeachingStep(term === 'faction', BASE_FACTIONS.length, 700);
-  const lit = (faction: (typeof BASE_FACTIONS)[number], index: number) =>
-    term === 'faction' ? index === step : term === 'alliance' ? ALLIES.has(faction) : false;
+  const lit = (faction: (typeof BASE_FACTIONS)[number], index: number) => {
+    if (term === 'faction') {
+      return index === step;
+    }
+    return term === 'alliance' && ALLIES.has(faction);
+  };
   return (
     <div
       className={styles.factions}

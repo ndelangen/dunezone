@@ -125,6 +125,10 @@
   font-size: var(--mantine-font-size-md);
   font-weight: 600;
   color: var(--color-text);
+  justify-self: start;
+  border-radius: 999px;
+  padding-inline: var(--space-xs) var(--space-md);
+  transform-origin: left center;
 }
 
 .phase a {
@@ -287,15 +291,8 @@
 }
 
 /* A lit phase steps out of the list in the same spice gold as the glow on lit pieces. */
-.phase {
-  justify-self: start;
-  border-radius: 999px;
-  padding-inline: var(--space-xs) var(--space-md);
-  transform-origin: left center;
-}
-
 .phase[data-lit] {
-  color: rgb(150 92 18);
+  color: rgb(100 58 8);
   background: rgb(240 180 80 / 22%);
   box-shadow: 0 0 18px rgb(240 180 80 / 45%);
   transform: scale(1.08);

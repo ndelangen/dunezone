@@ -115,7 +115,7 @@ function TermBody({ term }: { term: GlossaryTerm }) {
 }
 
 /* Pointing at or focusing a term asks its topic's picture to demonstrate it. */
-function TermSection({ term, onTeach }: { term: GlossaryTerm; onTeach: (term: string | null) => void }) {
+function TermSection({ term, onTeach }: Readonly<{ term: GlossaryTerm; onTeach: (term: string | null) => void }>) {
   return (
     <div
       className={styles.teachable}
@@ -143,7 +143,9 @@ type TopicProps = { topic: GlossaryTopic; terms: GlossaryTerm[]; flip: boolean }
 function TopicPane({ topic, terms, flip }: TopicProps) {
   const [teaching, setTeaching] = useState<{ term: string | null; run: number }>({ term: null, run: 0 });
   const teach = (term: string | null) =>
-    setTeaching((current) => (current.term === term ? current : { term, run: Math.random() }));
+    setTeaching((current) =>
+      current.term === term ? current : { term, run: crypto.getRandomValues(new Uint32Array(1))[0]! }
+    );
   return (
     <Surface padding="lg">
       <AsymmetricSplitLayout narrowSide={flip ? 'end' : 'start'} narrowFallback="hide">

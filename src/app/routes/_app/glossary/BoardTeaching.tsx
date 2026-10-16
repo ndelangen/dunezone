@@ -61,7 +61,7 @@ const COLOR = {
 
 /* The same seed always shuffles the same way, so each new pointing gets its own order and keeps it while it plays. */
 function shuffled<T>(items: readonly T[], seed: number) {
-  let state = Math.floor(seed * 2 ** 32) >>> 0;
+  let state = seed >>> 0;
   const random = () => {
     state = (state + 0x6d_2b_79_f5) >>> 0;
     let value = Math.imul(state ^ (state >>> 15), 1 | state);
@@ -145,9 +145,9 @@ const IDLE: Demonstration = { steps: 1, frames: () => ({ lit: [] }) };
 
 function PartPaths({ partKey, ...props }: { partKey: string } & SVGProps<SVGPathElement>) {
   const part = parts.find(({ key }) => key === partKey);
-  return part?.highlight?.paths.map((path, index) => (
+  return part?.highlight?.paths.map((path) => (
     <path
-      key={index}
+      key={path.d}
       d={path.d}
       transform={path.transform ? `matrix(${path.transform.join(' ')})` : undefined}
       {...props}
@@ -156,7 +156,7 @@ function PartPaths({ partKey, ...props }: { partKey: string } & SVGProps<SVGPath
 }
 
 /* The storm's wedge and marker, turned counterclockwise around the board's centre; the move between positions eases in and out. */
-function Storm({ moves }: { moves: number }) {
+function Storm({ moves }: Readonly<{ moves: number }>) {
   return (
     <g className={styles.storm} style={{ transform: `rotate(${-moves * 3 * SECTOR_DEGREES}deg)` }}>
       <path d={sectorPath(0)} className={styles.stormWedge} />
@@ -172,7 +172,7 @@ function Storm({ moves }: { moves: number }) {
  * What the demonstration lights is drawn above the board: the rest of the map darkens,
  * and each lit piece gets a bright fill and a light edge so it reads at a glance.
  */
-function Spotlight({ frame }: { frame: Frame }) {
+function Spotlight({ frame }: Readonly<{ frame: Frame }>) {
   const strong = frame.lit.filter((lit) => !lit.faint);
   const mask = useId().replaceAll(':', '');
   return (
