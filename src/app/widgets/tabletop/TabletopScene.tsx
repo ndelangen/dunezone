@@ -90,6 +90,7 @@ import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
 import { SpiceBankInteraction } from './SpiceBank';
 import { SpiceStackIcon } from './SpiceStackIcon';
+import { loadPieceBadge, loadPlayCamera, loadScenePings, loadScenePresence, loadTabletopTools } from './tableChunks';
 import { useTableFraming } from './tableFraming';
 import { isPublicTablePoint } from './tablePointerPoint';
 import { TabletopBoard } from './TabletopBoard';
@@ -161,14 +162,14 @@ function paintClick(
   }
 }
 
-const PieceBadge = lazy(() => import('./PieceBadge').then((module) => ({ default: module.PieceBadge })));
-const ScenePresence = lazy(() => import('./ScenePresence').then((module) => ({ default: module.ScenePresence })));
-const ScenePings = lazy(() => import('./ScenePings').then((module) => ({ default: module.ScenePings })));
+const PieceBadge = lazy(() => loadPieceBadge().then((module) => ({ default: module.PieceBadge })));
+const ScenePresence = lazy(() => loadScenePresence().then((module) => ({ default: module.ScenePresence })));
+const ScenePings = lazy(() => loadScenePings().then((module) => ({ default: module.ScenePings })));
 const PredictionOverlay = lazy(() =>
   import('./prediction/PredictionOverlay').then((module) => ({ default: module.PredictionOverlay }))
 );
-const TabletopTools = lazy(() => import('./TabletopTools').then((module) => ({ default: module.TabletopTools })));
-const PlayCamera = lazy(() => import('./PlayCamera').then((module) => ({ default: module.PlayCamera })));
+const TabletopTools = lazy(() => loadTabletopTools().then((module) => ({ default: module.TabletopTools })));
+const PlayCamera = lazy(() => loadPlayCamera().then((module) => ({ default: module.PlayCamera })));
 
 const DEFAULT_CAMERA_VIEW: CameraViewCommand = { view: 'map', revision: 0 };
 const PHYSICAL_OBJECT_RENDER_ORDER = 2;

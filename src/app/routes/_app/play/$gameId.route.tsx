@@ -18,7 +18,17 @@ import { GameRuntimeContext } from './multiplayer/gameRuntime';
 import { TableWait } from './TableWait';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
-const loadHostedTable = () => import('./multiplayer/HostedTable');
+/*
+ * The table's own lazy parts start alongside its bundle, so they do not wait for it to render.
+ * Their list is fetched too, rather than imported, since this route's loader is part of every page's entry.
+ */
+const loadHostedTable = () => {
+  import('@app/widgets/tabletop/tableChunks').then(
+    ({ preloadTableChunks }) => preloadTableChunks(),
+    () => {}
+  );
+  return import('./multiplayer/HostedTable');
+};
 const HostedTable = lazy(loadHostedTable);
 
 /*
