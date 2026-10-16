@@ -253,11 +253,11 @@ function upwardFace(a: Point, b: Point, c: Point): Point[] {
  * The map's geometry on the board's top, centred on the table's middle with the source's top toward the far side, as the picture lay.
  * Each triangle faces up, whatever winding the source gave it.
  */
-export function boardMapGeometry(svg: string, radius: number): BufferGeometry {
-  const key = `${radius}:${svg}`;
+export function boardMapGeometry(svg: string, radius: number, groupId?: string): BufferGeometry {
+  const key = `${radius}:${groupId ?? ''}:${svg}`;
   let arrays = builtMaps.get(key);
   if (!arrays) {
-    arrays = boardMapArrays(svg, radius);
+    arrays = boardMapArrays(svg, radius, groupId);
     builtMaps.set(key, arrays);
   }
   /* Each geometry gets its own attributes, so disposing one table's map never touches another's; only the CPU arrays are shared. */
@@ -273,12 +273,18 @@ type BoardMapArrays = { positions: Float32Array; colors: Float32Array; normals: 
 /* The map is one constant drawing, so it is parsed and triangulated once for the page, not on every mount of the board. */
 const builtMaps = new Map<string, BoardMapArrays>();
 
-function boardMapArrays(svg: string, radius: number): BoardMapArrays {
+/* With a group id, only the paths drawn inside that group of the source. */
+function inGroup(path: ShapePath, groupId: string | undefined) {
+  return !groupId || Boolean((path.userData?.node as Element | undefined)?.closest?.(`#${groupId}`));
+}
+
+function boardMapArrays(svg: string, radius: number, groupId?: string): BoardMapArrays {
   const data = new SVGLoader().parse(svg);
   const frame = frameOf(data.xml, radius);
   const positionValues: number[] = [];
   const colorValues: number[] = [];
-  for (const { positions: source, paint } of data.paths.flatMap(pathLayers)) {
+  const paths = data.paths.filter((path) => inGroup(path, groupId));
+  for (const { positions: source, paint } of paths.flatMap(pathLayers)) {
     for (let triangle = 0; triangle < source.length; triangle += 9) {
       const polygon = boardPolygon(source, triangle, frame);
       for (let fan = 1; fan + 1 < polygon.length; fan++) {
