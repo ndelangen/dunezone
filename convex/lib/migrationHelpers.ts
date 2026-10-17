@@ -5,77 +5,74 @@ import { slugify } from './utils';
 
 /* Helpers the data migrations in `convex/migrations.ts` share; the migrations themselves stay there so their ids stay put. */
 
-export async function resolveUniqueGroupSlug(ctx: QueryCtx | MutationCtx, name: string, groupId?: Id<'groups'>) {
-  const baseSlug = slugify(name) || 'group';
-  let candidate = baseSlug;
-  let suffix = 1;
-  while (true) {
-    const existing = await ctx.db
-      .query('groups')
-      .withIndex('by_slug', (q) => q.eq('slug', candidate))
-      .unique();
-    if (!existing || (groupId && existing._id === groupId)) {
-      return candidate;
-    }
-    suffix += 1;
-    candidate = `${baseSlug}-${suffix}`;
+/** `base`, then `base-2`, `base-3` and on, until one is free. */
+async function firstFreeSlug(base: string, isTaken: (slug: string) => Promise<boolean>) {
+  let candidate = base;
+  for (let suffix = 2; await isTaken(candidate); suffix += 1) {
+    candidate = `${base}-${suffix}`;
   }
+  return candidate;
+}
+
+/** A slug only another row holds is taken; the row's own slug is free for it. */
+function heldByOther(holder: { _id: string } | null, self: string | undefined) {
+  return holder !== null && holder._id !== self;
+}
+
+export async function resolveUniqueGroupSlug(ctx: QueryCtx | MutationCtx, name: string, groupId?: Id<'groups'>) {
+  return await firstFreeSlug(slugify(name) || 'group', async (slug) =>
+    heldByOther(
+      await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', slug))
+        .unique(),
+      groupId
+    )
+  );
 }
 
 export async function resolveUniqueRulesetSlug(ctx: QueryCtx | MutationCtx, name: string, rulesetId?: Id<'rulesets'>) {
-  const baseSlug = slugify(name) || 'ruleset';
-  let candidate = baseSlug;
-  let suffix = 1;
-  while (true) {
-    const existing = await ctx.db
-      .query('rulesets')
-      .withIndex('by_slug', (q) => q.eq('slug', candidate))
-      .unique();
-    if (!existing || (rulesetId && existing._id === rulesetId)) {
-      return candidate;
-    }
-    suffix += 1;
-    candidate = `${baseSlug}-${suffix}`;
-  }
+  return await firstFreeSlug(slugify(name) || 'ruleset', async (slug) =>
+    heldByOther(
+      await ctx.db
+        .query('rulesets')
+        .withIndex('by_slug', (q) => q.eq('slug', slug))
+        .unique(),
+      rulesetId
+    )
+  );
 }
 
 export function missingSlug(value: unknown): boolean {
   return typeof value !== 'string' || value.trim().length === 0;
 }
 
-export async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets'>): Promise<string> {
-  const counterKey = `faq_item_slug:${rulesetId}`;
-  let counter = await ctx.db
+async function faqSlugCounter(ctx: MutationCtx, key: string) {
+  const counter = await ctx.db
     .query('counters')
-    .withIndex('by_key', (q) => q.eq('key', counterKey))
+    .withIndex('by_key', (q) => q.eq('key', key))
     .unique();
-
-  if (!counter) {
-    const inserted = await ctx.db.insert('counters', {
-      key: counterKey,
-      value: 0,
-    });
-    counter = { _id: inserted, _creationTime: 0, key: counterKey, value: 0 };
-  }
-
-  let candidate = counter.value + 1;
-  while (true) {
-    const slug = String(candidate);
-    const existing = await ctx.db
-      .query('faq_items')
-      .withIndex('by_ruleset_slug', (q) => q.eq('ruleset_id', rulesetId).eq('slug', slug))
-      .unique();
-    if (!existing) {
-      await ctx.db.patch(counter._id, { value: candidate });
-      return slug;
-    }
-    candidate += 1;
-  }
+  return counter ?? { _id: await ctx.db.insert('counters', { key, value: 0 }), value: 0 };
 }
 
-export type StoredTroopFace = { combat?: unknown; back?: StoredTroopFace };
+export async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets'>): Promise<string> {
+  const counter = await faqSlugCounter(ctx, `faq_item_slug:${rulesetId}`);
+  let candidate = counter.value + 1;
+  const isTaken = async (slug: string) =>
+    (await ctx.db
+      .query('faq_items')
+      .withIndex('by_ruleset_slug', (q) => q.eq('ruleset_id', rulesetId).eq('slug', slug))
+      .unique()) !== null;
+  while (await isTaken(String(candidate))) {
+    candidate += 1;
+  }
+  await ctx.db.patch(counter._id, { value: candidate });
+  return String(candidate);
+}
 
-export function hasLegacySupportNames(combat: unknown): boolean {
+type StoredTroopFace = { combat?: unknown; back?: StoredTroopFace };
+
+function hasLegacySupportNames(combat: unknown): boolean {
   return typeof combat === 'object' && combat !== null && ('fundedStrength' in combat || 'fundingCost' in combat);
 }
 
@@ -84,17 +81,17 @@ export function troopHasLegacySupportNames(troop: unknown): boolean {
   return hasLegacySupportNames(face?.combat) || hasLegacySupportNames(face?.back?.combat);
 }
 
+/** A face with its `combat` renamed, if it has one; every other field stays as stored. */
+function faceWithSupportNames(face: StoredTroopFace): StoredTroopFace {
+  return face.combat === undefined ? face : { ...face, combat: withSupportNames(face.combat) };
+}
+
 /* Only `combat` is rewritten, on the front and on an authored back; every other troop field stays as stored. */
 export function troopWithSupportNames(troop: unknown): unknown {
   if (typeof troop !== 'object' || troop === null) {
     return troop;
   }
-  const face = troop as StoredTroopFace;
-  return {
-    ...face,
-    ...(face.combat !== undefined && { combat: withSupportNames(face.combat) }),
-    ...(face.back && typeof face.back === 'object' && face.back.combat !== undefined
-      ? { back: { ...face.back, combat: withSupportNames(face.back.combat) } }
-      : {}),
-  };
+  const face = faceWithSupportNames(troop as StoredTroopFace);
+  const back = face.back && typeof face.back === 'object' ? faceWithSupportNames(face.back) : face.back;
+  return back === face.back ? face : { ...face, back };
 }
