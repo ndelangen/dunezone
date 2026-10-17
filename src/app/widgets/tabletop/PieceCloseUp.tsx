@@ -1,7 +1,8 @@
 import { pieceCount } from '@shared/play/model';
 import { tokenBoxRatio } from '@shared/play/tableGeometry';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
+import { createPortal } from 'react-dom';
 
 import { cardWidthFor, TOKEN_SIZE_PX } from './faceSize';
 import { PieceArtwork } from './PieceArtwork';
@@ -14,29 +15,29 @@ const CARD_HEIGHT_PX = 380;
 const CURSOR_GAP_PX = 28;
 const EDGE_PX = 12;
 
-type Pointer = Readonly<{ x: number; y: number; alt: boolean }>;
+type Point = { x: number; y: number };
 
-/* Where the pointer is and whether Alt is held; a lost window or hidden page lets go of Alt. */
-function useAltPointer(): Pointer {
-  const [pointer, setPointer] = useState<Pointer>({ x: 0, y: 0, alt: false });
-  /* The pointer is followed without rendering while Alt is up, so pressing Alt places the close-up where the pointer already is. */
-  const last = useRef({ x: 0, y: 0 });
+/*
+ * Whether Alt is held, and a ref to where the pointer is; a lost window or hidden page lets go of Alt.
+ * Only Alt renders: the pointer is followed in a ref, so moving it costs no React render.
+ */
+function useAltPointer(): Readonly<{ alt: boolean; pointer: RefObject<Point> }> {
+  const [alt, setAlt] = useState(false);
+  const pointer = useRef<Point>({ x: 0, y: 0 });
 
   useEffect(() => {
     const onPointer = (event: PointerEvent) => {
-      last.current = { x: event.clientX, y: event.clientY };
-      setPointer((current) =>
-        current.alt || event.altKey ? { x: event.clientX, y: event.clientY, alt: event.altKey } : current
-      );
+      pointer.current = { x: event.clientX, y: event.clientY };
+      setAlt(event.altKey);
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Alt') {
         /* Alt alone would otherwise focus the browser's menu bar on Windows and Linux. */
         event.preventDefault();
       }
-      setPointer((current) => (current.alt === event.altKey ? current : { ...last.current, alt: event.altKey }));
+      setAlt(event.altKey);
     };
-    const release = () => setPointer((current) => (current.alt ? { ...current, alt: false } : current));
+    const release = () => setAlt(false);
     const hidden = () => {
       if (document.visibilityState === 'hidden') {
         release();
@@ -58,27 +59,64 @@ function useAltPointer(): Pointer {
     };
   }, []);
 
-  return pointer;
+  return { alt, pointer };
 }
 
 type Bounds = Readonly<{ left: number; top: number; right: number; bottom: number }>;
 
-/** The close-up's box beside the pointer within the table's area, turned to the pointer's other side where the area would cut it off. */
-function placeBeside(pointer: Pointer, width: number, height: number, bounds: Bounds) {
+/** The close-up's box beside the pointer within the bounds, turned to the pointer's other side where the area would cut it off. */
+function placeBeside(pointer: Point, width: number, height: number, bounds: Bounds) {
   const right = pointer.x + CURSOR_GAP_PX;
   const left = right + width + EDGE_PX > bounds.right ? pointer.x - CURSOR_GAP_PX - width : right;
   const top = Math.min(pointer.y - height / 2, bounds.bottom - height - EDGE_PX);
   return { left: Math.max(bounds.left + EDGE_PX, left), top: Math.max(bounds.top + EDGE_PX, top) };
 }
 
-/* The table's area below the seated header, which lies over the canvas's top, rather than the window: the dock covers the rest. */
-function tableAreaBounds(area: HTMLElement | null): Bounds {
-  if (!area) {
-    return { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
-  }
-  const rect = area.getBoundingClientRect();
-  const header = seatedHeaderOf(area)?.getBoundingClientRect();
-  return { left: rect.left, top: Math.max(rect.top, header?.bottom ?? 0), right: rect.right, bottom: rect.bottom };
+/*
+ * The window below the seated header, which lies over the canvas's top: the close-up may spill over the controls panel and the dock
+ * when the table's own area is too small to hold it beside the pointer.
+ */
+function closeUpBounds(area: HTMLElement | null): Bounds {
+  const header = area ? seatedHeaderOf(area)?.getBoundingClientRect() : undefined;
+  return { left: 0, top: Math.max(0, header?.bottom ?? 0), right: window.innerWidth, bottom: window.innerHeight };
+}
+
+/*
+ * Keeps the close-up beside the pointer: each pointer move asks for one placement on the next frame, written as a transform so the
+ * browser moves the box on the compositor without laying out or repainting it, however often the pointer reports.
+ */
+function useFollowPointer(
+  box: RefObject<HTMLDivElement | null>,
+  pointer: RefObject<Point>,
+  area: RefObject<HTMLElement | null>,
+  size: Readonly<{ width: number; height: number }> | null
+) {
+  const width = size?.width;
+  const height = size?.height;
+  useLayoutEffect(() => {
+    if (width == null || height == null) {
+      return;
+    }
+    const place = () => {
+      const position = placeBeside(pointer.current, width, height, closeUpBounds(area.current));
+      box.current?.style.setProperty('transform', `translate3d(${position.left}px, ${position.top}px, 0)`);
+    };
+    place();
+    let frame = 0;
+    const onPointer = () => {
+      if (!frame) {
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          place();
+        });
+      }
+    };
+    window.addEventListener('pointermove', onPointer);
+    return () => {
+      window.removeEventListener('pointermove', onPointer);
+      cancelAnimationFrame(frame);
+    };
+  }, [box, pointer, area, width, height]);
 }
 
 /*
@@ -86,34 +124,38 @@ function tableAreaBounds(area: HTMLElement | null): Bounds {
  * It shows the face the table shows, so a face-down card shows its back.
  */
 export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | null> }>) {
-  const pointer = useAltPointer();
+  const { alt, pointer } = useAltPointer();
+  const box = useRef<HTMLDivElement>(null);
   const piece = useTabletopSelector((table) =>
     table.hoveredPieceId ? (table.renderedPieces.find((entry) => entry.id === table.hoveredPieceId) ?? null) : null
   );
   const href = piece ? topFaceHref(piece) : undefined;
   const top = piece ? topItem(piece) : undefined;
-  if (!pointer.alt || !piece || !href || !top) {
-    return null;
-  }
-  const isCard = piece.kind === 'card';
+  const shown = alt && piece && href && top ? piece : null;
+  const isCard = shown?.kind === 'card';
   /* A disc token stays a disc, as it lies on the table. */
-  const round = !isCard && tokenBoxRatio(piece) == null;
+  const round = shown != null && !isCard && tokenBoxRatio(shown) == null;
   const width = isCard ? cardWidthFor(CARD_HEIGHT_PX) : TOKEN_SIZE_PX;
   const height = isCard ? CARD_HEIGHT_PX : TOKEN_SIZE_PX;
-  const count = pieceCount(piece);
-  const position = placeBeside(pointer, width, height + (count > 1 && !round ? 40 : 16), tableAreaBounds(area.current));
-  return (
-    <div className={styles.closeUp} data-round={round || undefined} style={position} aria-hidden>
+  const count = shown ? pieceCount(shown) : 0;
+  useFollowPointer(box, pointer, area, shown ? { width, height: height + (count > 1 && !round ? 40 : 16) } : null);
+  if (!shown || !href || !top) {
+    return null;
+  }
+  /* On the page's body, so the table's own stacking cannot slide it under a panel it spills over. */
+  return createPortal(
+    <div ref={box} className={styles.closeUp} data-round={round || undefined} aria-hidden>
       {/* Only the top item, so a stack of prediction cards that share one front shows the top card's prediction. */}
       <PieceArtwork
-        piece={{ ...piece, items: [top] }}
+        piece={{ ...shown, items: [top] }}
         src={href}
-        name={piece.label}
+        name={shown.label}
         width={width}
         height={height}
         radius="10px"
       />
       {count > 1 ? <div className={styles.closeUpCount}>×{count}</div> : null}
-    </div>
+    </div>,
+    document.body
   );
 }
