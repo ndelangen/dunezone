@@ -6,7 +6,7 @@ export const rulebookCoverPresetCatalogue = (
     ['stone-circle', 'Stone circle'],
     ['worm-cavern', 'Shai-Hulud cavern'],
     ['sandworm', 'Shai-Hulud'],
-    ['sandworm-riding', 'Riding Shai-Hulud'],
+    ['sandworm-riding', 'Shai-Hulud riding'],
     ['warm-sand-desert', 'Warm sand desert'],
     ['military-assembly', 'Military assembly'],
     ['dreamrules-rainbow', 'Dreamrules rainbow'],

@@ -62,9 +62,9 @@ const effects = [
     symbol: 'fremen',
     colors: ['#D3961B', '#946013'],
     betrayal:
-      "Prevent Fremen from 'riding Shai-Hulud' this turn, or prevent Fremen from moving 2 territories during Shipment and Movement.",
+      "Prevent Fremen from 'riding the worm' this turn, or prevent Fremen from moving 2 territories during Shipment and Movement.",
     cunning:
-      "If Shai-Hulud appears in a territory with no troops, any troops you have in one sand territory may 'ride Shai-Hulud' to any territory subject to storm and occupancy rules.",
+      "If Shai-Hulud appears in a territory with no troops, any troops you have in one sand territory may 'ride the worm' to any territory subject to storm and occupancy rules.",
     secretAlly:
       'You may either avoid losing troops to Shai-Hulud, or revive a total of 3 of your troops for free during Revival.',
   },
