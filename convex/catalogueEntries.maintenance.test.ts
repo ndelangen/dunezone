@@ -9,7 +9,7 @@ import { catalogueFactionData, CATALOGUE_STAMP } from './factions.catalogue.test
 import { factionAuthor, factionTest } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
-const noDrift = { missing: [], stale: [], duplicated: [], orphaned: [] };
+const noDrift = { missing: [], stale: [], duplicated: [], unordered: [], orphaned: [] };
 
 async function world() {
   const t = factionTest();
@@ -112,5 +112,31 @@ describe('catalogue entry maintenance', () => {
     await t.run((rawCtx) => applicationTriggers.wrapDB(rawCtx).db.delete(factionId));
     expect(await entries()).toEqual([]);
     expect(await drift()).toMatchObject(noDrift);
+  });
+
+  test('the backfill restores order items a raw write left out, and the prune drops ones a raw delete left behind', async () => {
+    const { t, author, drift, names } = await world();
+    const fremen = await author.mutation(api.factions.create, { data: catalogueFactionData({ name: 'Fremen' }) });
+    await author.mutation(api.factions.create, { data: catalogueFactionData({ name: 'Atreides' }) });
+
+    /* A raw copy of an entry has no aggregate items; a raw delete of the original leaves its items behind. */
+    await t.run(async (ctx) => {
+      const entry = (await ctx.db.query('catalogue_entries').collect()).find((row) => row.source_id === fremen._id)!;
+      const { _id, _creationTime, ...fields } = entry;
+      await ctx.db.delete(_id);
+      await ctx.db.insert('catalogue_entries', fields);
+    });
+    expect((await drift()).unordered).toEqual([fremen._id]);
+
+    await t.mutation(internal.migrations.catalogue_entries_factions_v1, {});
+    await t.finishAllScheduledFunctions(() => undefined);
+    expect(await drift()).toMatchObject(noDrift);
+    /* The ghost of the deleted original still counts until the prune runs. */
+    expect((await t.query(api.factions.catalogue, {})).catalogueTotal).toBe(3);
+
+    await t.mutation(internal.migrations.catalogue_order_prune, {});
+    await t.finishAllScheduledFunctions(() => undefined);
+    expect(await t.query(api.factions.catalogue, {})).toMatchObject({ catalogueTotal: 2, total: 2 });
+    expect(await names()).toEqual(['Atreides', 'Fremen']);
   });
 });

@@ -6,11 +6,9 @@ import type { DataModel, Doc } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 
 /*
- * The catalogue's ordered access, the Convex way: `@convex-dev/aggregate` counts and finds the entry at any offset in O(log n),
- * and an indexed read from that entry fills the page.
+ * The catalogue's ordered access, the Convex way: `@convex-dev/aggregate` counts a list, finds the entry at any offset in O(log n), and walks the page on from it.
  * One aggregate instance holds every kind; a namespace is `[kind, sort, partition]`, so no two lists share a tree node.
- * An item's key is the entry's sort fields then `_creationTime`, exactly the order of the entry index for that sort,
- * which is what lets the aggregate's position hand over to the index.
+ * An item's key is the entry's sort fields then `_creationTime`, its id the entry's id; the page reads its entries by those ids.
  */
 
 export const CATALOGUE_SORTS = ['name', 'created', 'updated', 'complexity'] as const;
@@ -25,22 +23,22 @@ export const CATALOGUE_BOUNDED_READ = 1024;
 
 type Entry = Doc<'catalogue_entries'>;
 type OrderKey = (string | number)[];
-type OrderNamespace = [string, CatalogueSort, string];
+export type OrderNamespace = [string, CatalogueSort, string];
 
 const catalogueOrder = new DirectAggregate<{ Namespace: OrderNamespace; Key: OrderKey; Id: string }>(
   components.catalogueOrder
 );
 
-/** The index each sort reads, and its fields after `kind` and `partition`, in key order. */
-const SORT_INDEX = {
-  name: { index: 'by_kind_partition_name', fields: ['name_key'] },
-  created: { index: 'by_kind_partition_created', fields: ['created_at'] },
-  updated: { index: 'by_kind_partition_updated', fields: ['updated_at'] },
-  complexity: { index: 'by_kind_partition_complexity', fields: ['complexity_score', 'complexity'] },
-} as const satisfies Record<CatalogueSort, { index: string; fields: readonly (keyof Entry)[] }>;
+/** The entry fields each sort orders by, in key order. */
+const SORT_FIELDS = {
+  name: ['name_key'],
+  created: ['created_at'],
+  updated: ['updated_at'],
+  complexity: ['complexity_score', 'complexity'],
+} as const satisfies Record<CatalogueSort, readonly (keyof Entry)[]>;
 
 function sortValues(entry: Entry, sort: CatalogueSort): (string | number)[] {
-  return SORT_INDEX[sort].fields.map((field) => (entry[field] as string | number | undefined) ?? 0);
+  return SORT_FIELDS[sort].map((field) => entry[field]);
 }
 
 function orderItem(entry: Entry, sort: CatalogueSort) {
@@ -51,7 +49,7 @@ function orderItem(entry: Entry, sort: CatalogueSort) {
   };
 }
 
-function sameItem(left: ReturnType<typeof orderItem>, right: ReturnType<typeof orderItem>) {
+function sameItem(left: OrderItem, right: OrderItem) {
   return (
     left.namespace.every((part, index) => part === right.namespace[index]) &&
     left.key.length === right.key.length &&
@@ -67,26 +65,71 @@ export function registerCatalogueOrderTriggers(
   triggers.register('catalogue_entries', async (ctx, change) => {
     const kind = change.newDoc?.kind ?? change.oldDoc?.kind;
     for (const sort of kind ? sortsOf(kind) : []) {
-      const before = change.oldDoc ? orderItem(change.oldDoc, sort) : null;
-      const after = change.newDoc ? orderItem(change.newDoc, sort) : null;
-      if (before && after) {
-        if (!sameItem(before, after)) {
-          await catalogueOrder.replaceOrInsert(ctx, before, after);
-        }
-      } else if (before) {
-        await catalogueOrder.deleteIfExists(ctx, before);
-      } else if (after) {
-        await catalogueOrder.insertIfDoesNotExist(ctx, after);
-      }
+      await moveOrderItem(
+        ctx,
+        change.oldDoc ? orderItem(change.oldDoc, sort) : null,
+        change.newDoc ? orderItem(change.newDoc, sort) : null
+      );
     }
   });
 }
 
-/** Repair: puts back any item an entry should have; the backfill's entries reach the aggregate through the trigger instead. */
+type OrderItem = ReturnType<typeof orderItem>;
+
+async function moveOrderItem(ctx: MutationCtx, before: OrderItem | null, after: OrderItem | null) {
+  if (before && after) {
+    if (!sameItem(before, after)) {
+      await catalogueOrder.replaceOrInsert(ctx, before, after);
+    }
+  } else if (before) {
+    await catalogueOrder.deleteIfExists(ctx, before);
+  } else if (after) {
+    await catalogueOrder.insertIfDoesNotExist(ctx, after);
+  }
+}
+
+/** Puts back any item an entry should have, which an entry written without its trigger lacks. */
 export async function insertMissingOrderItems(ctx: MutationCtx, entry: Entry, sorts: readonly CatalogueSort[]) {
   for (const sort of sorts) {
     await catalogueOrder.insertIfDoesNotExist(ctx, orderItem(entry, sort));
   }
+}
+
+/**
+ * Removes the items of one namespace page whose entry is gone or now keyed elsewhere, which only an entry removed without its trigger leaves.
+ * Returns where to continue;
+ * the caller walks every namespace.
+ */
+export async function pruneOrderItems(
+  ctx: MutationCtx,
+  namespace: OrderNamespace,
+  cursor: string | undefined,
+  pageSize: number
+) {
+  const page = await catalogueOrder.paginate(ctx, { namespace, cursor, pageSize });
+  let pruned = 0;
+  for (const item of page.page) {
+    const id = ctx.db.normalizeId('catalogue_entries', item.id);
+    const entry = id ? await ctx.db.get('catalogue_entries', id) : null;
+    if (!entry || !sameItem(orderItem(entry, namespace[1]), { namespace, key: item.key, id: item.id })) {
+      await catalogueOrder.deleteIfExists(ctx, { namespace, key: item.key, id: item.id });
+      pruned += 1;
+    }
+  }
+  return { cursor: page.cursor, isDone: page.isDone, pruned };
+}
+
+export async function listOrderNamespaces(ctx: QueryCtx) {
+  const namespaces: OrderNamespace[] = [];
+  for await (const namespace of catalogueOrder.iterNamespaces(ctx)) {
+    namespaces.push(namespace);
+  }
+  return namespaces;
+}
+
+/** How many items the aggregate holds for one list in one order; the drift check compares it with the entries. */
+export async function countOrderItems(ctx: QueryCtx, namespace: OrderNamespace) {
+  return await catalogueOrder.count(ctx, { namespace });
 }
 
 /** The sorts whose aggregate item for this entry is missing; the drift check's view of the aggregate. */
@@ -112,72 +155,6 @@ export async function countCataloguePartitions(ctx: QueryCtx, kind: string, part
   );
 }
 
-/* The index range builder is typed per index; the seek below walks any of the four sort indexes, hence this one narrow view of it. */
-type IndexRange = {
-  eq: (field: string, value: unknown) => IndexRange;
-  gt: (field: string, value: unknown) => IndexRange;
-  gte: (field: string, value: unknown) => IndexRange;
-  lt: (field: string, value: unknown) => IndexRange;
-  lte: (field: string, value: unknown) => IndexRange;
-};
-type OrderedRead = { take: (n: number) => Promise<Entry[]> };
-
-function orderedEntries(
-  ctx: QueryCtx,
-  sort: CatalogueSort,
-  direction: CatalogueDirection,
-  range: (q: IndexRange) => IndexRange
-): OrderedRead {
-  const table = ctx.db.query('catalogue_entries') as unknown as {
-    withIndex: (
-      index: string,
-      range: (q: IndexRange) => IndexRange
-    ) => { order: (o: CatalogueDirection) => OrderedRead };
-  };
-  return table.withIndex(SORT_INDEX[sort].index, range).order(direction);
-}
-
-/**
- * Up to `limit` entries from the one at `start` onward, in index order.
- * The key is the sort fields then `_creationTime`, so "from here on" is one range per key position, deepest first: the rest of the exact tie, then each shorter prefix with the next field strictly past.
- * `stop` caps the first sort field (a complexity range's far edge on the complexity sort).
- */
-async function seek(
-  ctx: QueryCtx,
-  scope: { kind: string; partition: string; sort: CatalogueSort; direction: CatalogueDirection },
-  start: OrderKey,
-  limit: number,
-  stop?: number
-) {
-  const { kind, partition, sort, direction } = scope;
-  const fields: string[] = [...SORT_INDEX[sort].fields, '_creationTime'];
-  const entries: Entry[] = [];
-  for (let depth = fields.length - 1; depth >= 0 && entries.length < limit; depth -= 1) {
-    const read = await orderedEntries(ctx, sort, direction, (q) => {
-      let range = q.eq('kind', kind).eq('partition', partition);
-      for (let index = 0; index < depth; index += 1) {
-        range = range.eq(fields[index]!, start[index]);
-      }
-      const field = fields[depth]!;
-      const inclusive = depth === fields.length - 1;
-      range =
-        direction === 'asc'
-          ? inclusive
-            ? range.gte(field, start[depth])
-            : range.gt(field, start[depth])
-          : inclusive
-            ? range.lte(field, start[depth])
-            : range.lt(field, start[depth]);
-      if (depth === 0 && stop !== undefined) {
-        range = direction === 'asc' ? range.lte(field, stop) : range.gte(field, stop);
-      }
-      return range;
-    }).take(limit - entries.length);
-    entries.push(...read);
-  }
-  return entries;
-}
-
 export type CataloguePageRequest = {
   kind: string;
   partition: string;
@@ -188,7 +165,7 @@ export type CataloguePageRequest = {
   pageSize: number;
   /** Text search; the hits keep Convex's relevance order unless `relevance` is false. */
   search?: { text: string; relevance: boolean };
-  /** An inclusive range of `complexity_score`. */
+  /** An inclusive range of `complexity_score`, 0 to 10. */
   complexity?: [number, number];
 };
 
@@ -213,42 +190,52 @@ function compareBy(sort: CatalogueSort, direction: CatalogueDirection) {
   };
 }
 
+/* Complexity values sit in [0, 1] and creation times are positive, so these keys bracket every item of the score range. */
+function complexityBounds(range: [number, number]) {
+  return {
+    lower: { key: [range[0], -1, -1], inclusive: true },
+    upper: { key: [range[1], 2, Number.MAX_VALUE], inclusive: true },
+  };
+}
+
 /**
- * One page of one list, exact at any size whenever the aggregate can count it: no search and no complexity range, or a complexity range on the complexity sort.
- * A search, or a complexity range on another sort, reads at most `CATALOGUE_BOUNDED_READ` matches and pages over them in memory.
+ * The aggregate counts the list, names the entry at the offset, and walks on from it for the rest of the page;
+ * the page's entries are then read by id, so the page is exactly the aggregate's order and never the index's.
  */
-export async function selectCataloguePage(
-  ctx: QueryCtx,
-  request: CataloguePageRequest
-): Promise<CataloguePageSelection> {
-  const { kind, partition, sort, direction, pageSize } = request;
-  const offset = (Math.max(1, Math.floor(request.page)) - 1) * pageSize;
-  const range = request.complexity;
-
-  if (!request.search && (!range || sort === 'complexity')) {
-    const namespace: OrderNamespace = [kind, sort, partition];
-    /* Complexity values sit in [0, 1] and creation times are positive, so these keys bracket every item of the score range. */
-    const bounds = range
-      ? {
-          lower: { key: [range[0], -1, -1], inclusive: true },
-          upper: { key: [range[1], 2, Number.MAX_VALUE], inclusive: true },
-        }
-      : undefined;
-    const total = await catalogueOrder.count(ctx, { namespace, bounds });
-    if (offset >= total) {
-      return { entries: [], total, exact: true };
-    }
-    const item = await catalogueOrder.at(ctx, direction === 'asc' ? offset : -offset - 1, { namespace, bounds });
-    const stop = range ? (direction === 'asc' ? range[1] : range[0]) : undefined;
-    const entries = await seek(ctx, { kind, partition, sort, direction }, item.key, pageSize, stop);
-    return { entries, total, exact: true };
+async function aggregatePage(ctx: QueryCtx, request: CataloguePageRequest, offset: number) {
+  const { kind, partition, sort, direction, pageSize, complexity: range } = request;
+  const namespace: OrderNamespace = [kind, sort, partition];
+  const bounds = range ? complexityBounds(range) : {};
+  const total = await catalogueOrder.count(ctx, { namespace, bounds });
+  if (offset >= total) {
+    return { entries: [], total, exact: true };
   }
+  const first = await catalogueOrder.at(ctx, direction === 'asc' ? offset : -offset - 1, { namespace, bounds });
+  const from = { key: first.key, id: first.id, inclusive: true };
+  const { page } = await catalogueOrder.paginate(ctx, {
+    namespace,
+    bounds: direction === 'asc' ? { ...bounds, lower: from } : { ...bounds, upper: from },
+    order: direction,
+    pageSize,
+  });
+  const entries = await Promise.all(
+    page.map(async (item) => {
+      const id = ctx.db.normalizeId('catalogue_entries', item.id);
+      return id ? await ctx.db.get('catalogue_entries', id) : null;
+    })
+  );
+  return { entries: entries.filter((entry) => entry !== null), total, exact: true };
+}
 
-  const read = request.search
+/** At most `CATALOGUE_BOUNDED_READ` matches, from the search index or the complexity index, ordered and paged in memory. */
+async function boundedPage(ctx: QueryCtx, request: CataloguePageRequest, offset: number) {
+  const { kind, partition, sort, direction, pageSize, search } = request;
+  const range = request.complexity ?? [0, 10];
+  const read = search
     ? await ctx.db
         .query('catalogue_entries')
         .withSearchIndex('search_text', (q) =>
-          q.search('search_text', request.search!.text).eq('kind', kind).eq('partition', partition)
+          q.search('search_text', search.text).eq('kind', kind).eq('partition', partition)
         )
         .take(CATALOGUE_BOUNDED_READ)
     : await ctx.db
@@ -257,16 +244,30 @@ export async function selectCataloguePage(
           q
             .eq('kind', kind)
             .eq('partition', partition)
-            .gte('complexity_score', range![0])
-            .lte('complexity_score', range![1])
+            .gte('complexity_score', range[0])
+            .lte('complexity_score', range[1])
         )
         .take(CATALOGUE_BOUNDED_READ);
-  const exact = read.length < CATALOGUE_BOUNDED_READ;
-  const matches = range
-    ? read.filter((entry) => (entry.complexity_score ?? 0) >= range[0] && (entry.complexity_score ?? 0) <= range[1])
-    : read;
-  if (!request.search?.relevance) {
+  const matches = read.filter((entry) => entry.complexity_score >= range[0] && entry.complexity_score <= range[1]);
+  if (!search?.relevance) {
     matches.sort(compareBy(sort, direction));
   }
-  return { entries: matches.slice(offset, offset + pageSize), total: matches.length, exact };
+  return {
+    entries: matches.slice(offset, offset + pageSize),
+    total: matches.length,
+    exact: read.length < CATALOGUE_BOUNDED_READ,
+  };
+}
+
+/**
+ * One page of one list, exact at any size whenever the aggregate can count it: no search and no complexity range, or a complexity range on the complexity sort.
+ * A search, or a complexity range on another sort, reads at most `CATALOGUE_BOUNDED_READ` matches and pages over them in memory.
+ */
+export async function selectCataloguePage(
+  ctx: QueryCtx,
+  request: CataloguePageRequest
+): Promise<CataloguePageSelection> {
+  const offset = (Math.max(1, Math.floor(request.page)) - 1) * request.pageSize;
+  const countable = !request.search && (!request.complexity || request.sort === 'complexity');
+  return countable ? await aggregatePage(ctx, request, offset) : await boundedPage(ctx, request, offset);
 }

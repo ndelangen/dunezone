@@ -4,7 +4,12 @@ import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
 import type { CatalogueEntryFields, CatalogueKind } from './catalogueEntryShape';
-import { ALL_PARTITION, missingOrderItems, registerCatalogueOrderTriggers } from './catalogueOrder';
+import {
+  ALL_PARTITION,
+  insertMissingOrderItems,
+  missingOrderItems,
+  registerCatalogueOrderTriggers,
+} from './catalogueOrder';
 import { factionCatalogueKind } from './factionCatalogue';
 
 /**
@@ -80,6 +85,14 @@ export async function reconcileCatalogueEntry(ctx: MutationCtx, kind: CatalogueK
     if (!kept.has(partition)) {
       await ctx.db.insert('catalogue_entries', want);
     }
+  }
+}
+
+/** Reconciles a source, then puts back any aggregate item its entries lack, which only a write that skipped the triggers leaves out. */
+export async function repairCatalogueEntry(ctx: MutationCtx, kind: CatalogueKindName, sourceId: string) {
+  await reconcileCatalogueEntry(ctx, kind, sourceId);
+  for (const entry of await entriesFor(ctx, kind, sourceId)) {
+    await insertMissingOrderItems(ctx, entry, CATALOGUE_KINDS[kind].sorts);
   }
 }
 

@@ -11,7 +11,7 @@ import type { FactionCatalogueSearch, FactionCatalogueSort } from '../../src/sha
 import { complexityOutOfTen, effectiveComplexity } from '../../src/shared/factions/complexity';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
-import { catalogueNameKey, catalogueSearchText, catalogueTimestamp } from './catalogueEntryShape';
+import { catalogueEditedAt, catalogueNameKey, catalogueSearchText, catalogueTimestamp } from './catalogueEntryShape';
 import type { CatalogueKind } from './catalogueEntryShape';
 import { ALL_PARTITION, countCataloguePartitions, selectCataloguePage } from './catalogueOrder';
 import type { CatalogueDirection, CatalogueSort } from './catalogueOrder';
@@ -290,6 +290,9 @@ export const factionCatalogueKind: CatalogueKind = {
       .query('ruleset_factions')
       .withIndex('by_faction', (q) => q.eq('faction_id', faction._id))
       .take(FACTION_LINK_LIMIT);
+    if (links.length === FACTION_LINK_LIMIT) {
+      console.warn(`Faction ${faction._id} has ${FACTION_LINK_LIMIT} or more ruleset links; the catalogue lists it under the first ${FACTION_LINK_LIMIT}.`);
+    }
     const { name, names, complexity } = factionSearchFields(faction.data);
     return {
       kind: 'faction',
@@ -299,6 +302,7 @@ export const factionCatalogueKind: CatalogueKind = {
       name_key: catalogueNameKey(name),
       created_at: catalogueTimestamp(faction.created_at),
       updated_at: catalogueTimestamp(faction.updated_at),
+      edited_at: catalogueEditedAt(faction.created_at, faction.updated_at),
       complexity,
       complexity_score: complexityOutOfTen(complexity),
       facets: [...new Set(links.map((link) => link.ruleset_id))].sort(compareCodeUnits),
@@ -335,28 +339,21 @@ function catalogueOrderOf(sort: FactionCatalogueSort | undefined): {
   }
 }
 
-/** The newest dated entry, and the most recently updated one that changed since it was created and is not that arrival. */
+/** The newest dated entry, and the most recently edited one that is not that arrival. */
 async function selectSpotlightEntries(ctx: QueryCtx) {
-  const [newArrival] = await ctx.db
-    .query('catalogue_entries')
-    .withIndex('by_kind_partition_created', (q) =>
-      q.eq('kind', 'faction').eq('partition', ALL_PARTITION).gt('created_at', 0)
-    )
-    .order('desc')
-    .take(1);
-  /* Freshly updated means touched after creation; the few newest updates hold one unless every recent save was a brand-new faction. */
-  const recentlyUpdated = await ctx.db
-    .query('catalogue_entries')
-    .withIndex('by_kind_partition_updated', (q) => q.eq('kind', 'faction').eq('partition', ALL_PARTITION))
-    .order('desc')
-    .take(SPOTLIGHT_UPDATE_SCAN);
-  const freshlyUpdated = recentlyUpdated.find(
-    (entry) => entry.source_id !== newArrival?.source_id && entry.created_at > 0 && entry.updated_at > entry.created_at
-  );
+  const list = (index: 'by_kind_partition_created' | 'by_kind_partition_edited', field: 'created_at' | 'edited_at') =>
+    ctx.db
+      .query('catalogue_entries')
+      .withIndex(index, (q) => q.eq('kind', 'faction').eq('partition', ALL_PARTITION).gt(field, 0))
+      .order('desc')
+      .take(2);
+  const [[newArrival], edited] = await Promise.all([
+    list('by_kind_partition_created', 'created_at'),
+    list('by_kind_partition_edited', 'edited_at'),
+  ]);
+  const freshlyUpdated = edited.find((entry) => entry.source_id !== newArrival?.source_id);
   return { newArrival: newArrival ?? null, freshlyUpdated: freshlyUpdated ?? null };
 }
-
-const SPOTLIGHT_UPDATE_SCAN = 16;
 
 /**
  * One page of the Faction catalogue, the same for every viewer.
@@ -398,6 +395,10 @@ export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCata
           .unique()
       : null;
     if (!entry || !row || row.is_deleted) {
+      /* A listed entry without a live card is drift: the page comes up one card short until the card backfill or the next save. */
+      if (entry) {
+        console.warn(`Catalogue entry for faction ${entry.source_id} has no live card.`);
+      }
       return null;
     }
     return await catalogueFactionFromCard(

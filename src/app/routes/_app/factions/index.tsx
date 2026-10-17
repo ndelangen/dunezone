@@ -115,7 +115,7 @@ function FactionsPage() {
       <PageLayout.Content>
         {hasFactions ? (
           data.total === 0 ? (
-            <FilteredEmptyState onReset={session.reset} />
+            <FilteredEmptyState complete={data.complete} onReset={session.reset} />
           ) : data.cards.length === 0 ? (
             <PastTheEnd pageCount={data.pageCount} />
           ) : (
@@ -484,12 +484,13 @@ function CatalogueToolbar({
   );
 }
 
-function FilteredEmptyState({ onReset }: { onReset: () => void }) {
+function FilteredEmptyState({ complete, onReset }: { complete: boolean; onReset: () => void }) {
   return (
     <Surface padding="xl">
       <Stack gap="sm" align="center">
         <Title order={2}>No factions found</Title>
         <Text c="dimmed">Try another search or reset the catalogue filters.</Text>
+        {complete ? null : <IncompleteNotice />}
         <Button variant="default" onClick={onReset}>
           Reset filters &amp; search
         </Button>
@@ -508,7 +509,7 @@ function pageSearch(page: number) {
 
 /**
  * Where the reader is in the results, and real links to the other pages, so a page can be opened, shared and crawled.
- * Nothing to page through on a single page.
+ * Nothing to page through on a single page, though an incomplete search still says so.
  */
 function CataloguePager({
   data,
@@ -516,7 +517,7 @@ function CataloguePager({
   data: Pick<FactionCataloguePageData, 'page' | 'pageCount' | 'pageSize' | 'total' | 'complete'>;
 }) {
   if (data.pageCount <= 1) {
-    return null;
+    return data.complete ? null : <IncompleteNotice />;
   }
   const first = (data.page - 1) * data.pageSize + 1;
   const last = Math.min(data.page * data.pageSize, data.total);
@@ -542,7 +543,17 @@ function CataloguePager({
       <Text size="xs" c="dimmed">
         {`${first}–${last} of ${countLabel(data.total, data.complete)} factions`}
       </Text>
+      {data.complete ? null : <IncompleteNotice />}
     </Stack>
+  );
+}
+
+/** A search reads a capped number of matches, so its results can stop short of every faction that matches. */
+function IncompleteNotice() {
+  return (
+    <Text size="xs" c="dimmed" ta="center">
+      This search matched more factions than can be checked at once. Add a word to narrow it.
+    </Text>
   );
 }
 

@@ -159,26 +159,52 @@ describe('faction catalogue query', () => {
     const { page, seeded } = await catalogueWith(factions, [{ slug: 'classic', name: 'Classic' }]);
     const idsWhere = (keep: (index: number) => boolean) => new Set(seeded.factionIds.filter((_, index) => keep(index)));
 
+    const range = (low: number, high: number) => (index: number) => index % 11 >= low && index % 11 <= high;
+    /* Every case spans more than one page, so page N is read from the aggregate's offset and from the in-memory slice alike. */
     const cases: [CatalogueArgs, Set<string>][] = [
       [{ ruleset: 'classic' }, idsWhere((index) => index % 2 === 0)],
+      [{ ruleset: 'classic', sort: 'updated' }, idsWhere((index) => index % 2 === 0)],
       /* The complexity sort counts a score range in the aggregate; any other sort reads the range and pages it in memory. */
-      [{ complexity: '3-6', sort: 'complexity-asc' }, idsWhere((index) => index % 11 >= 3 && index % 11 <= 6)],
-      [{ complexity: '3-6', sort: 'complexity-desc' }, idsWhere((index) => index % 11 >= 3 && index % 11 <= 6)],
-      [{ complexity: '3-6' }, idsWhere((index) => index % 11 >= 3 && index % 11 <= 6)],
-      [
-        { complexity: '0-4', ruleset: 'classic', sort: 'created' },
-        idsWhere((index) => index % 2 === 0 && index % 11 <= 4),
-      ],
-      [{ q: 'shaddam' }, idsWhere((index) => index % 3 === 0)],
-      [{ q: 'shaddam', sort: 'name' }, idsWhere((index) => index % 3 === 0)],
+      [{ complexity: '0-6', sort: 'complexity-asc' }, idsWhere(range(0, 6))],
+      [{ complexity: '2-9', sort: 'complexity-desc' }, idsWhere(range(2, 9))],
+      [{ complexity: '0-6' }, idsWhere(range(0, 6))],
+      [{ complexity: '1-8', sort: 'created' }, idsWhere(range(1, 8))],
+      [{ q: 'irulan' }, idsWhere((index) => index % 3 !== 0)],
+      [{ q: 'irulan', sort: 'name' }, idsWhere((index) => index % 3 !== 0)],
     ];
     for (const [args, expected] of cases) {
+      expect(expected.size).toBeGreaterThan(FACTION_CATALOGUE_PAGE_SIZE);
       const ids = await allPages(page, args);
       expect(ids).toHaveLength(expected.size);
       expect(new Set(ids)).toEqual(expected);
       expect(await page(args)).toMatchObject({ total: expected.size, complete: true });
     }
   }, 60_000);
+
+  test('pages names past the Basic Multilingual Plane exactly once, in one order across pages', async () => {
+    /* UTF-16 code units and code points order these differently, so a page cut by one order and walked by another would skip or repeat. */
+    const marks = ['\u{1F600}', '\uFF5A', 'a', '\u00E9', '\u{10400}', 'Z'];
+    const count = FACTION_CATALOGUE_PAGE_SIZE + 4;
+    const { page, seeded } = await catalogueWith(
+      Array.from({ length: count }, (_, index) => ({ name: `${marks[index % marks.length]} ${index}` }))
+    );
+    const ids = await allPages(page, { sort: 'name' });
+    expect(ids).toHaveLength(count);
+    expect(new Set(ids)).toEqual(new Set(seeded.factionIds));
+  });
+
+  test('finds the freshly updated faction behind any number of newer, never edited ones', async () => {
+    const { page } = await catalogueWith([
+      { name: 'Edited', created: '2026-06-01T00:00:00.000Z', updated: '2026-06-15T00:00:00.000Z' },
+      ...Array.from({ length: 20 }, (_, index) => ({
+        name: `Arrival ${index}`,
+        created: `2026-07-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`,
+      })),
+    ]);
+    const { spotlights } = await page();
+    expect(spotlights.newArrival?.data.name).toBe('Arrival 19');
+    expect(spotlights.freshlyUpdated?.data.name).toBe('Edited');
+  });
 
   test('spotlights the newest arrival and a different, freshly updated faction', async () => {
     const { page } = await catalogueWith([

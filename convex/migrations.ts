@@ -18,6 +18,7 @@ import {
   factionTroopsHaveIds,
   FactionTroopIdSchema,
 } from '../src/shared/factions/troopIdentity';
+import { compareCodeUnits } from '../src/shared/compareText';
 import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
@@ -32,8 +33,9 @@ import {
   catalogueDrift as catalogueDriftOf,
   catalogueSourceDrift,
   isCatalogueKindName,
-  reconcileCatalogueEntry,
+  repairCatalogueEntry,
 } from './lib/catalogueEntries';
+import { listOrderNamespaces, pruneOrderItems } from './lib/catalogueOrder';
 import { syncFactionCard } from './lib/factionCards';
 import { requireAdminUserId } from './lib/policy';
 import {
@@ -1411,7 +1413,7 @@ export const catalogue_entries_factions_v1 = migrations.define({
   /* Faction text has no length cap and each reconcile rereads the faction, so a batch stays small, like `faction_cards_v1`. */
   batchSize: 10,
   migrateOne: async (ctx, row) => {
-    await reconcileCatalogueEntry(ctx, 'faction', row._id);
+    await repairCatalogueEntry(ctx, 'faction', row._id);
   },
 });
 
@@ -1422,7 +1424,7 @@ export const catalogue_entries_prune_v1 = migrations.define({
   batchSize: 10,
   migrateOne: async (ctx, entry) => {
     if (isCatalogueKindName(entry.kind)) {
-      await reconcileCatalogueEntry(ctx, entry.kind, entry.source_id);
+      await repairCatalogueEntry(ctx, entry.kind, entry.source_id);
     } else {
       await ctx.db.delete(entry._id);
     }
@@ -1454,6 +1456,34 @@ export const catalogue_entries_verify_v2 = migrations.define({
     if (drift.length > 0) {
       throw new Error(`Faction ${row._id} catalogue entries are ${drift.join(' and ')}.`);
     }
+  },
+});
+
+/**
+ * Removes aggregate items whose entry is gone or keyed elsewhere, one namespace page per run, scheduling itself until every namespace is walked.
+ * Only an entry deleted or edited without its trigger leaves one, so this is a repair to run by hand, never part of a deploy.
+ */
+export const catalogue_order_prune = internalMutation({
+  args: { after: v.optional(v.string()), current: v.optional(v.string()), cursor: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    /* Namespaces are walked in their JSON order, by value, so one emptied by the prune shifts nothing. */
+    const namespaces = (await listOrderNamespaces(ctx))
+      .map((namespace) => ({ namespace, name: JSON.stringify(namespace) }))
+      .sort((left, right) => compareCodeUnits(left.name, right.name));
+    const current = args.current ? namespaces.find(({ name }) => name === args.current) : undefined;
+    const from = args.current ?? args.after;
+    const next = current ?? namespaces.find(({ name }) => from === undefined || compareCodeUnits(name, from) > 0);
+    const cursor = current ? args.cursor : undefined;
+    if (!next) {
+      return { done: true, pruned: 0 };
+    }
+    const page = await pruneOrderItems(ctx, next.namespace, cursor, 100);
+    await ctx.scheduler.runAfter(
+      0,
+      internal.migrations.catalogue_order_prune,
+      page.isDone ? { after: next.name } : { current: next.name, cursor: page.cursor }
+    );
+    return { done: false, pruned: page.pruned };
   },
 });
 

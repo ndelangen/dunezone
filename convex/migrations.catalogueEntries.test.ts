@@ -58,6 +58,9 @@ async function unmaintained() {
         name_key: name,
         created_at: 0,
         updated_at: 0,
+        edited_at: 0,
+        complexity: 0,
+        complexity_score: 0,
         facets: [],
       });
     /* A stale entry, its duplicate, one for a deleted faction and one of a kind nothing defines. */
@@ -84,6 +87,9 @@ describe('catalogue entries backfill', () => {
           name_key: 'copy',
           created_at: 0,
           updated_at: 0,
+          edited_at: 0,
+          complexity: 0,
+          complexity_score: 0,
           facets: [],
         });
       }

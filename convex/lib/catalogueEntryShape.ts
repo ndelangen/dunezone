@@ -28,7 +28,11 @@ export function catalogueSearchText(names: readonly string[]) {
     .join('\n');
 }
 
-/** The name the default order compares: trimmed and case-folded, so "atreides" and "Atreides" sort together. */
+/**
+ * The name the default order compares: trimmed and case-folded, so "atreides" and "Atreides" sort together.
+ * The aggregate compares strings by UTF-16 code unit and the index by code point;
+ * they differ only for characters past U+FFFF against U+E000–U+FFFF, where a page edge could repeat or skip one name.
+ */
 export function catalogueNameKey(name: string) {
   return name.trim().toLocaleLowerCase('en');
 }
@@ -37,4 +41,11 @@ export function catalogueNameKey(name: string) {
 export function catalogueTimestamp(value: string) {
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+/** When a source was last edited after its creation, in epoch milliseconds; 0 when it never was or either date does not parse. */
+export function catalogueEditedAt(createdAt: string, updatedAt: string) {
+  const created = catalogueTimestamp(createdAt);
+  const updated = catalogueTimestamp(updatedAt);
+  return created > 0 && updated > created ? updated : 0;
 }
