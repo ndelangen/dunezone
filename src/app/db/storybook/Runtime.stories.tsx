@@ -77,7 +77,7 @@ export const Conformance = meta.story({
     /* The button appears only once the provider's worker has booted, so this wait is the boot's. */
     await userEvent.click(await page.findByRole('button', { name: 'Run foundation checks' }, { timeout: 30_000 }));
     /*
-     * The 20 resets behind this text each start and retire a worker, and in a full suite run that costs 48 to 54 seconds against the 4 seconds it costs alone.
+     * The 20 resets behind this text each reseed a pooled worker. Before workers were pooled each one booted a fresh worker, which cost 48 to 54 seconds in a full suite run against the 4 seconds it costs alone; the budget below was sized for that and is kept as headroom.
      * Both numbers this assertion used to sit between were 45_000: its own budget, and `testTimeout` in `vitest.storybook.config.ts`.
      * So the work was over its budget and over the kill at the same time, and the kill was due first, which is why a failure arrived as a bare timeout that never named the text it was waiting for.
      * The budget is now larger than the measured cost and the kill is larger than everything before it: the boot may spend its full 30s above, and 30 plus 75 lands at 105, fifteen seconds clear of the 120s kill.
