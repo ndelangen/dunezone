@@ -2,7 +2,10 @@
 import { CENTER, RADIUS } from '@shared/boards/geometry';
 import type { Board, Point } from '@shared/boards/schema';
 import { territoryId } from '@shared/boards/schema';
+import { placeStickers } from '@shared/boards/stickerPlacement';
 import { boardTerritories, boardTerritoryAt } from '@shared/boards/territories';
+import type { OutlinePath } from '@shared/boards/tintOutline';
+import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { TerritoryTint, TintStamp } from '@shared/play/territoryTints';
 import { tintPaint } from '@shared/play/territoryTints';
@@ -12,9 +15,6 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 import { ignoreRaycast } from './ignoreRaycast';
-import { placeStickers } from '@shared/boards/stickerPlacement';
-import type { OutlinePath } from '@shared/boards/tintOutline';
-import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { TINT_STICKERS } from './tintStickers';
 
 /* Board drawing units run across the board's circle; the table's board disc is BOARD_RADIUS wide. */

@@ -5,9 +5,11 @@ import { CENTER, RADIUS, derive } from '@shared/boards/geometry';
 import type { Board, Face, Point } from '@shared/boards/geometry';
 import { territoryId } from '@shared/boards/schema';
 import { placeStickers } from '@shared/boards/stickerPlacement';
+import { boardTerritoryAt } from '@shared/boards/territories';
 import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { TINT_STICKER_ARTWORK, tintPaint } from '@shared/boards/tints';
-import { useId } from 'react';
+import { useId, useRef } from 'react';
+import type { PointerEvent } from 'react';
 import type { z } from 'zod';
 
 import { BOARD_ARTWORK } from '../board/artwork';
@@ -143,15 +145,18 @@ function TintLayer({
 function PlacedToken({
   token,
   asset,
+  selected,
 }: {
   token: Placement;
   asset: NonNullable<z.infer<typeof CustomCardTokens>[string]>;
+  selected: boolean;
 }) {
   const percent = (value: number) => `${(value / SPICE_BOARD_SIZE) * 100}%`;
   return (
     <div
       className={unique.mapToken}
       data-token-instance={token.layerId}
+      data-selected={selected ? '' : undefined}
       style={{
         left: percent(token.x),
         top: percent(token.y),
@@ -165,17 +170,105 @@ function PlacedToken({
   );
 }
 
+/**
+ * What an editor does with the card's map: a brush that adds or removes the territory clicked, and tokens dragged into place.
+ * Only the editor's live proof passes it;
+ * a published card draws nothing interactive.
+ */
+export type SpiceMapEditing = {
+  /** Set while a tint's brush is on: called with the territory ID under the click. */
+  onTerritory?: (territory: string) => void;
+  onTokenMove?: (layerId: string, x: number, y: number) => void;
+  /** The placed token the editor has open, drawn with a ring. */
+  selectedToken?: string | null;
+  onSelectToken?: (layerId: string) => void;
+};
+
+const clampBoard = (value: number) => Math.min(SPICE_BOARD_SIZE, Math.max(0, Math.round(value * 10) / 10));
+
+/** A surface over the whole map that turns pointer input into board coordinates: a drag on a token moves it, a click elsewhere paints. */
+function EditSurface({
+  board,
+  tokens,
+  editing,
+}: {
+  board: Board;
+  tokens: readonly Placement[];
+  editing: SpiceMapEditing;
+}) {
+  const drag = useRef<{ layerId: string; dx: number; dy: number; pointerId: number } | null>(null);
+  const toBoard = (event: PointerEvent<HTMLDivElement>): [number, number] => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return [
+      ((event.clientX - rect.left) / rect.width) * SPICE_BOARD_SIZE,
+      ((event.clientY - rect.top) / rect.height) * SPICE_BOARD_SIZE,
+    ];
+  };
+  /* The topmost token under the point, the last drawn first. */
+  const tokenAt = ([x, y]: [number, number]) =>
+    editing.onTokenMove
+      ? tokens.findLast((token) => Math.hypot(token.x - x, token.y - y) <= token.size / 2)
+      : undefined;
+  return (
+    <div
+      className={unique.mapEdit}
+      data-brush={editing.onTerritory ? '' : undefined}
+      onPointerDown={(event) => {
+        const point = toBoard(event);
+        const token = tokenAt(point);
+        if (token) {
+          /* Capture keeps the drag when the pointer outruns the map; a synthetic pointer has nothing to capture. */
+          try {
+            event.currentTarget.setPointerCapture(event.pointerId);
+          } catch {
+            /* The drag still follows moves over the map. */
+          }
+          drag.current = {
+            layerId: token.layerId,
+            dx: token.x - point[0],
+            dy: token.y - point[1],
+            pointerId: event.pointerId,
+          };
+          editing.onSelectToken?.(token.layerId);
+          return;
+        }
+        if (editing.onTerritory) {
+          const property = boardTerritoryAt(board, point);
+          if (property) {
+            editing.onTerritory(territoryId(property.name));
+          }
+        }
+      }}
+      onPointerMove={(event) => {
+        const held = drag.current;
+        if (held?.pointerId === event.pointerId) {
+          const [x, y] = toBoard(event);
+          editing.onTokenMove?.(held.layerId, clampBoard(x + held.dx), clampBoard(y + held.dy));
+        }
+      }}
+      onPointerUp={() => {
+        drag.current = null;
+      }}
+      onPointerCancel={() => {
+        drag.current = null;
+      }}
+    />
+  );
+}
+
 /** A Spice card's map drawn from its linked board: the board's own artwork, its tints oldest first, then its placed tokens. */
 export function SpiceBoardMap({
   board,
   tints,
   tokens = [],
   tokenAssets = {},
+  editing,
 }: {
   board: Board;
   tints: readonly Tint[];
   tokens?: readonly Placement[];
   tokenAssets?: z.infer<typeof CustomCardTokens>;
+  editing?: SpiceMapEditing;
 }) {
   const stickerFilter = `${useId().replaceAll(':', '')}-sticker`;
   const territories = boardTerritoryList(board);
@@ -213,9 +306,17 @@ export function SpiceBoardMap({
       <div className={unique.mapTokens}>
         {tokens.map((token) => {
           const asset = tokenAssets[token.asset_id];
-          return asset ? <PlacedToken key={token.layerId} token={token} asset={asset} /> : null;
+          return asset ? (
+            <PlacedToken
+              key={token.layerId}
+              token={token}
+              asset={asset}
+              selected={editing?.selectedToken === token.layerId}
+            />
+          ) : null;
         })}
       </div>
+      {editing ? <EditSurface board={board} tokens={tokens} editing={editing} /> : null}
     </>
   );
 }

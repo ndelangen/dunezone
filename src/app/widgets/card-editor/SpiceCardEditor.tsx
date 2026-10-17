@@ -6,7 +6,7 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Map as MapIcon, ScrollText } from 'lucide-react';
-import { useReducer } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -17,6 +17,8 @@ import type { SpiceAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
 import styles from './CardEditor.module.css';
+import { SpiceBoardFields } from './SpiceBoardFields';
+import type { AssetPick, SpiceBoardRead, SpiceMapFocus } from './SpiceBoardFields';
 
 /*
  * The draft IS the stored shape: the same SpiceAsset zod validates on save and drives the renderer live.
@@ -82,8 +84,37 @@ const HIGHLIGHT_OPTIONS = [
 
 type Patch = (update: Partial<SpiceDraft>) => void;
 
-/* The rail proof, at the renderer's own 900 by 1263. */
-function FillCard({ draft }: { draft: SpiceDraft }) {
+/** The draft's link with one tint's territory added or taken away, or one token moved: what the proof's brush and drag ask for. */
+function paintTerritory(link: NonNullable<SpiceDraft['board']>, tintId: string, territory: string) {
+  return {
+    ...link,
+    tints: link.tints.map((tint) =>
+      tint.id === tintId
+        ? {
+            ...tint,
+            territories: tint.territories.includes(territory)
+              ? tint.territories.filter((id) => id !== territory)
+              : [...tint.territories, territory],
+          }
+        : tint
+    ),
+  };
+}
+
+/* The rail proof, at the renderer's own 900 by 1263. On a saved board it is also where tints are painted and tokens dragged. */
+function FillCard({
+  draft,
+  patch,
+  read,
+  focus,
+}: {
+  draft: SpiceDraft;
+  patch: Patch;
+  read: SpiceBoardRead;
+  focus: SpiceMapFocus;
+}) {
+  const link = draft.board;
+  const brush = focus.brush;
   return (
     <CanvasScale
       rounded
@@ -91,7 +122,29 @@ function FillCard({ draft }: { draft: SpiceDraft }) {
       canvasHeight={CARD_SIZE.height}
       frameClassName={styles.proofFrame}
     >
-      <SpiceCard {...draft} />
+      <SpiceCard
+        {...draft}
+        boardDefinition={read?.board}
+        boardTokens={read?.tokens}
+        mapEditing={
+          link
+            ? {
+                onTerritory: brush
+                  ? (territory) => patch({ board: paintTerritory(link, brush, territory) })
+                  : undefined,
+                onTokenMove: (layerId, x, y) =>
+                  patch({
+                    board: {
+                      ...link,
+                      tokens: link.tokens.map((token) => (token.layerId === layerId ? { ...token, x, y } : token)),
+                    },
+                  }),
+                selectedToken: focus.token,
+                onSelectToken: focus.setToken,
+              }
+            : undefined
+        }
+      />
     </CanvasScale>
   );
 }
@@ -133,8 +186,8 @@ function HeadFields({ draft, patch, nameField }: { draft: SpiceDraft; patch: Pat
   );
 }
 
-/* The territories the card's map highlights. */
-function MapFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
+/* The territories the classic map highlights. */
+function ClassicHighlights({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
   return (
     <ControlBlock
       title="Highlighted territories"
@@ -215,7 +268,7 @@ export function spiceDraftWarnings(draft: SpiceDraft): SpiceDraftWarning[] {
   if (!draft.subName.trim()) {
     warnings.push({ source: 'Head', missing: 'a type', chapter: 'head' });
   }
-  if (draft.highlights.length === 0) {
+  if (!draft.board && draft.highlights.length === 0) {
     warnings.push({ source: 'Map', missing: 'a highlighted territory', chapter: 'map' });
   }
   return warnings;
@@ -235,8 +288,16 @@ export function SpiceCardEditor({
   chapter,
   onChapterChange,
   onSettle,
+  boardRead,
+  boardPicker,
+  tokenPicker,
 }: {
   draft: SpiceDraft;
+  /** The linked board and token fronts, read by the route while the draft links a board. */
+  boardRead?: SpiceBoardRead;
+  /** Pickers for a board and a token asset; fetching controls are Pickers the routes own. */
+  boardPicker: AssetPick;
+  tokenPicker: AssetPick;
   /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
   nameField: ReactNode;
   patch: Patch;
@@ -245,6 +306,24 @@ export function SpiceCardEditor({
   /** Fired on field blur and chapter switches, the signals that let an emptied warning list close the validation header. */
   onSettle: () => void;
 }) {
+  const [brush, setBrush] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const focus: SpiceMapFocus = { brush, setBrush, token, setToken };
+  /* The brush is for the Map chapter and a tint that still exists; Escape puts it down. */
+  const brushing = chapter === 'map' && !!draft.board?.tints.some((tint) => tint.id === brush) && !!boardRead?.board;
+  useEffect(() => {
+    if (!brushing) {
+      return;
+    }
+    const stop = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setBrush(null);
+      }
+    };
+    window.addEventListener('keydown', stop);
+    return () => window.removeEventListener('keydown', stop);
+  }, [brushing]);
+  const proofFocus: SpiceMapFocus = { ...focus, brush: brushing ? brush : null };
   return (
     <WorkbenchLayout.Workbench>
       <WorkbenchLayout.Chapters>
@@ -268,7 +347,17 @@ export function SpiceCardEditor({
                 value: 'map',
                 label: 'Map',
                 icon: <MapIcon size={21} aria-hidden />,
-                panel: panel(<MapFields draft={draft} patch={patch} />),
+                panel: panel(
+                  <SpiceBoardFields
+                    draft={draft}
+                    onLink={(board) => patch({ board })}
+                    read={boardRead}
+                    focus={proofFocus}
+                    boardPicker={boardPicker}
+                    tokenPicker={tokenPicker}
+                    classic={<ClassicHighlights draft={draft} patch={patch} />}
+                  />
+                ),
               },
               {
                 value: 'body',
@@ -282,7 +371,7 @@ export function SpiceCardEditor({
         </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
-        <FillCard draft={draft} />
+        <FillCard draft={draft} patch={patch} read={boardRead} focus={proofFocus} />
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>
   );

@@ -1,10 +1,10 @@
 import { CENTER, RADIUS, retainedArrakisBoard } from '@shared/boards/geometry';
 import { territoryId } from '@shared/boards/schema';
 import { boardTerritories } from '@shared/boards/territories';
+import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { describe, expect, it } from 'vitest';
 
 import { territoryTintPresets } from '../../routes/_app/play/multiplayer/territoryTintPresets';
-import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 
 type Point = readonly [number, number];
 

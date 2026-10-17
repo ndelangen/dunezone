@@ -7,6 +7,8 @@ import type { SpiceChapter, SpiceDraft } from '@app/widgets/card-editor/SpiceCar
 import { SpiceAsset } from '@game/data/objects';
 
 import { assetNameField } from '../../assetEditorStates';
+import { layeredCardTokenPicker } from '../../layeredCardTokenPicker';
+import { SpiceBoardRead, spiceBoardPicker } from '../../spiceCardBoard';
 import { CardCreateFrame, useCardCreate } from './cardCreatePage';
 
 /**
@@ -72,13 +74,21 @@ export function SpiceCreatePage() {
       }}
       saveError={saving.error}
     >
-      <SpiceCardEditor
-        nameField={nameField}
+      <SpiceBoardRead
         draft={state.data}
-        patch={patch}
-        chapter={chapter}
-        onChapterChange={setChapter}
-        onSettle={header.settle}
+        render={(boardRead) => (
+          <SpiceCardEditor
+            nameField={nameField}
+            draft={state.data}
+            patch={patch}
+            chapter={chapter}
+            onChapterChange={setChapter}
+            onSettle={header.settle}
+            boardRead={boardRead}
+            boardPicker={spiceBoardPicker}
+            tokenPicker={layeredCardTokenPicker}
+          />
+        )}
       />
     </CardCreateFrame>
   );

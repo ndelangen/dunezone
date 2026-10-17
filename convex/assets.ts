@@ -1151,10 +1151,15 @@ export const spiceCardBoard = publicQuery({
   args: { boardId: v.optional(v.id('assets')), tokenIds: v.array(v.id('assets')) },
   returns: v.object({
     board: v.union(zodToConvex(HistoricalBoardDefinition), v.null()),
+    boardName: v.union(v.string(), v.null()),
     tokens: zodToConvex(CustomCardTokens),
     error: v.union(v.string(), v.null()),
   }),
-  handler: async (ctx, args) => await resolveSpiceCardBoard(ctx, args.boardId, args.tokenIds),
+  handler: async (ctx, args) => {
+    const resolved = await resolveSpiceCardBoard(ctx, args.boardId, args.tokenIds);
+    const row = resolved.board && args.boardId ? await ctx.db.get('assets', args.boardId) : null;
+    return { ...resolved, boardName: row ? nameOf(row) : null };
+  },
 });
 
 /** The create page's live token resolution, held only while its draft embeds tokens. */

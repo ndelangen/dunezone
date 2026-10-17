@@ -137,3 +137,26 @@
   position: absolute;
   filter: drop-shadow(0 4px 6px #000a);
 }
+
+/* An editor's own outline on the token it has open. */
+.mapToken[data-selected] {
+  outline: 6px solid #ffd43b;
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+
+/* The editor's input surface, over the map and its tokens; a scaled proof turns pointer input off for everything else. */
+.mapEdit {
+  pointer-events: auto;
+  position: absolute;
+  top: 235px;
+  height: 700px;
+  width: 700px;
+  left: 95px;
+  border-radius: 50%;
+  touch-action: none;
+}
+
+.mapEdit[data-brush] {
+  cursor: crosshair;
+}

@@ -8,6 +8,8 @@ import type { SpiceChapter, SpiceDraft } from '@app/widgets/card-editor/SpiceCar
 import { SpiceAsset } from '@game/data/objects';
 
 import { assetNameField } from '../../../assetEditorStates';
+import { layeredCardTokenPicker } from '../../../layeredCardTokenPicker';
+import { SpiceBoardRead, spiceBoardPicker } from '../../../spiceCardBoard';
 import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
@@ -81,13 +83,21 @@ function CardEditSession({ asset, initialDraft, access }: CardEditSessionProps<S
       load={{ schema: SpiceAsset, header, dispatch, afterLoad: () => setChapter('head') }}
       saveError={saving.error}
     >
-      <SpiceCardEditor
-        nameField={nameField}
+      <SpiceBoardRead
         draft={state.data}
-        patch={patch}
-        chapter={chapter}
-        onChapterChange={setChapter}
-        onSettle={header.settle}
+        render={(boardRead) => (
+          <SpiceCardEditor
+            nameField={nameField}
+            draft={state.data}
+            patch={patch}
+            chapter={chapter}
+            onChapterChange={setChapter}
+            onSettle={header.settle}
+            boardRead={boardRead}
+            boardPicker={spiceBoardPicker}
+            tokenPicker={layeredCardTokenPicker}
+          />
+        )}
       />
     </CardEditFrame>
   );

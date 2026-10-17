@@ -155,3 +155,11 @@ export function useConvertTreacheryToCustom() {
     api.assets.convertTreacheryToCustom
   );
 }
+
+/** A Spice card editor holds this read while its draft links a board: the board, its name and the placed tokens' fronts. */
+export function useSpiceCardBoard(boardId: string, tokenIds: string[]) {
+  return useQuery(api.assets.spiceCardBoard, {
+    boardId: boardId as AssetListEntry['id'],
+    tokenIds: tokenIds as AssetListEntry['id'][],
+  });
+}

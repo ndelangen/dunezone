@@ -13,6 +13,7 @@ import { FormattedText } from '../utils/FormattedText';
 import styles from './Card.module.css';
 import unique from './Spice.module.css';
 import { SpiceBoardMap } from './SpiceBoardMap';
+import type { SpiceMapEditing } from './SpiceBoardMap';
 
 const edgeColor = '#000';
 const foreGroundColor = '#F8F6E2';
@@ -24,8 +25,13 @@ const highLightColor = '#9E5F00';
  * cards without a link keep the legacy map until Stage 1.5 migrates them.
  */
 export const SpiceCard: FC<
-  z.infer<typeof Spice> & { boardDefinition?: Board | null; boardTokens?: z.infer<typeof CustomCardTokens> }
-> = ({ name, subName, icon, text, amount, highlights, overlays, board, boardDefinition, boardTokens }) => {
+  z.infer<typeof Spice> & {
+    boardDefinition?: Board | null;
+    boardTokens?: z.infer<typeof CustomCardTokens>;
+    /** The editor's brush and token dragging on the linked board's map. */
+    mapEditing?: SpiceMapEditing;
+  }
+> = ({ name, subName, icon, text, amount, highlights, overlays, board, boardDefinition, boardTokens, mapEditing }) => {
   const resolveOverlay = useAssetResolver();
   const prefix = useId();
   const decalsFilter = `${prefix}decals-filter`;
@@ -44,7 +50,13 @@ export const SpiceCard: FC<
 
       {board ? (
         boardDefinition ? (
-          <SpiceBoardMap board={boardDefinition} tints={board.tints} tokens={board.tokens} tokenAssets={boardTokens} />
+          <SpiceBoardMap
+            board={boardDefinition}
+            tints={board.tints}
+            tokens={board.tokens}
+            tokenAssets={boardTokens}
+            editing={mapEditing}
+          />
         ) : (
           <div className={unique.map} data-missing-board />
         )
