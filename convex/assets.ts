@@ -11,6 +11,11 @@ import {
 } from '../src/shared/asset-publishing/publicationTargets';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
 import { cardFrontPresetSchema, cardFrontAssetTypeSchema } from '../src/shared/assets/cardFrontPresets';
+import {
+  ASSET_CATALOGUE_PAGE_SIZE,
+  ASSET_CATALOGUE_QUERY_LIMIT,
+  ASSET_CATALOGUE_SORTS,
+} from '../src/shared/assets/catalogueSearch';
 import { GF9_LEADER_SKILLS, GF9_LEADER_SKILL_DECK } from '../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
@@ -40,10 +45,12 @@ import {
   ownPublishedFace,
   tokenBackOf,
 } from './lib/assetBacks';
+import { assetCatalogueOrderOf } from './lib/assetCatalogue';
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
 import { listCardbackPresets, presetFromKey, storeCardbackPreset } from './lib/cardbackPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import { listCardFrontPresets } from './lib/cardFrontPresets';
+import { countCataloguePartitions, selectCataloguePage } from './lib/catalogueOrder';
 import {
   assignedGroupSummary,
   requireAssetSoftDelete,
@@ -984,7 +991,8 @@ function memberPreviewKind(type: string): string | null {
  * Everything `/assets/{type}` draws, in one read.
  *
  * The route holds one page query (see docs/technical/ui-design-decisions.md), and `listByTypes` cannot become that query because `AssetPicker` shares it and would inherit a per-row index scan it has no use for.
- * Search and the sorts run on the client against this bounded set: `name` lives inside an untyped blob and `updated_at` has no index, so moving one of them server-side would fork the subscription to buy consistency in a single case.
+ * Superseded by `catalogue`;
+ * kept for one release so a bundle still asking for it keeps working while the new one deploys.
  *
  * `truncated` exists so a full page says so rather than quietly under-reporting its own total.
  */
@@ -1019,6 +1027,79 @@ export const browsePage = publicQuery({
     }
 
     return { entries, truncated };
+  },
+});
+
+/**
+ * One page of one asset type, the same for every viewer: the route's search parameters in, the visible tiles and the counts out.
+ * The aggregate counts the type's list and finds the page's first entry;
+ * a search uses Convex's search index over the asset's name and its owner's.
+ * Only the page's own assets are read, so a page costs the same however many assets the type holds.
+ * Replaces `browsePage`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
+ */
+export const catalogue = publicQuery({
+  args: {
+    type: v.string(),
+    q: v.optional(v.string()),
+    sort: v.optional(v.union(...ASSET_CATALOGUE_SORTS.map((sort) => v.literal(sort)))),
+    page: v.optional(v.number()),
+  },
+  returns: v.object({
+    entries: v.array(assetBrowseEntryValidator),
+    /** Assets matching the search, across every page. */
+    total: v.number(),
+    /** Live assets of this type, before any search. */
+    typeTotal: v.number(),
+    /** False when a search matched more entries than one query reads, so `total` is a floor. */
+    complete: v.boolean(),
+    /** The page these tiles are, which may lie past `pageCount`, with no tiles. */
+    page: v.number(),
+    pageCount: v.number(),
+    pageSize: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const text = args.q?.slice(0, ASSET_CATALOGUE_QUERY_LIMIT).trim() ?? '';
+    const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
+    const [selection, [typeCount = 0]] = await Promise.all([
+      selectCataloguePage(ctx, {
+        kind: 'asset',
+        partition: args.type,
+        ...assetCatalogueOrderOf(args.sort),
+        page,
+        pageSize: ASSET_CATALOGUE_PAGE_SIZE,
+        search: text ? { text, relevance: !args.sort } : undefined,
+      }),
+      /* Without a search the page's own count is the type's, so only a search counts again. */
+      text ? countCataloguePartitions(ctx, 'asset', [args.type]) : Promise.resolve([]),
+    ]);
+    const typeTotal = text ? typeCount : selection.total;
+
+    const previewKind = memberPreviewKind(args.type);
+    const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
+    const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
+    const presets: CardbackPresetMemo = new Map();
+    const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
+    for (const entry of selection.entries) {
+      const assetId = ctx.db.normalizeId('assets', entry.source_id);
+      const row = assetId ? await ctx.db.get('assets', assetId) : null;
+      if (!row || row.is_deleted) {
+        /* Drift: the page comes up one tile short until the backfill or the asset's next save. */
+        console.warn(`Catalogue entry for asset ${entry.source_id} has no live asset.`);
+        continue;
+      }
+      const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
+      entries.push({ ...(await toListEntry(ctx, row, { owners, presets }, { deckBacks: decks })), members });
+    }
+
+    return {
+      entries,
+      total: selection.total,
+      typeTotal,
+      complete: selection.exact,
+      page,
+      pageCount: Math.max(1, Math.ceil(selection.total / ASSET_CATALOGUE_PAGE_SIZE)),
+      pageSize: ASSET_CATALOGUE_PAGE_SIZE,
+    };
   },
 });
 

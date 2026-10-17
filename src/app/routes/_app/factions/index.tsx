@@ -1,16 +1,4 @@
-import {
-  Badge,
-  Button,
-  Group,
-  InputBase,
-  Pagination,
-  Popover,
-  RangeSlider,
-  Select,
-  Stack,
-  Text,
-  Title,
-} from '@mantine/core';
+import { Badge, Button, Group, InputBase, Popover, RangeSlider, Select, Stack, Text, Title } from '@mantine/core';
 import {
   complexityRangeSearchValue,
   parseComplexityRange,
@@ -27,6 +15,7 @@ import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { formatStableDate } from '@ui/content/dates';
 import { errorMessage } from '@ui/content/errorMessage';
 import { CallToAction } from '@ui/control/CallToAction';
+import { CataloguePager, catalogueCountLabel } from '@ui/control/CataloguePager';
 import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -121,7 +110,16 @@ function FactionsPage() {
           ) : (
             <Stack gap="lg" aria-busy={catalogue.isPending}>
               <FactionList factions={data.cards} selectedRulesetSlug={session.search.ruleset} />
-              <CataloguePager data={data} />
+              <CataloguePager
+                page={data.page}
+                pageCount={data.pageCount}
+                pageSize={data.pageSize}
+                total={data.total}
+                complete={data.complete}
+                noun="factions"
+                label="Faction catalogue pages"
+                pageLinkProps={(page) => ({ component: Link, to: '/factions', search: pageSearch(page) })}
+              />
             </Stack>
           )
         ) : (
@@ -338,7 +336,7 @@ function CatalogueRefine({
               <Text size="xs" c="dimmed">
                 {visibleCount === totalCount
                   ? `${totalCount} factions`
-                  : `${countLabel(visibleCount, visibleCountComplete)} of ${totalCount} factions`}
+                  : `${catalogueCountLabel(visibleCount, visibleCountComplete)} of ${totalCount} factions`}
               </Text>
               {activeCount > 0 ? (
                 <Button
@@ -509,61 +507,6 @@ function pageSearch(page: number) {
     ...previous,
     page: page > 1 ? page : undefined,
   });
-}
-
-/**
- * Where the reader is in the results, and real links to the other pages, so a page can be opened, shared and crawled.
- * Nothing to page through on a single page, though an incomplete search still says so.
- */
-function CataloguePager({
-  data,
-}: {
-  data: Pick<FactionCataloguePageData, 'page' | 'pageCount' | 'pageSize' | 'total' | 'complete'>;
-}) {
-  if (data.pageCount <= 1) {
-    return data.complete ? null : <IncompleteNotice />;
-  }
-  const first = (data.page - 1) * data.pageSize + 1;
-  const last = Math.min(data.page * data.pageSize, data.total);
-  /* Clamped, so an edge control at the end of the range links to the page already shown rather than past it. */
-  const clamp = (page: number) => Math.min(Math.max(page, 1), data.pageCount);
-  const target = { first: 1, previous: clamp(data.page - 1), next: clamp(data.page + 1), last: data.pageCount };
-  const label = { first: 'First page', previous: 'Previous page', next: 'Next page', last: 'Last page' };
-  return (
-    <Stack gap="xs" align="center">
-      <Pagination
-        value={data.page}
-        total={data.pageCount}
-        withEdges
-        aria-label="Faction catalogue pages"
-        getItemProps={(page) => ({ component: Link, to: '/factions', search: pageSearch(page) })}
-        getControlProps={(control) => ({
-          component: Link,
-          to: '/factions',
-          search: pageSearch(target[control]),
-          'aria-label': label[control],
-        })}
-      />
-      <Text size="xs" c="dimmed">
-        {`${first}–${last} of ${countLabel(data.total, data.complete)} factions`}
-      </Text>
-      {data.complete ? null : <IncompleteNotice />}
-    </Stack>
-  );
-}
-
-/** A search reads a capped number of matches, so its results can stop short of every faction that matches. */
-function IncompleteNotice() {
-  return (
-    <Text size="xs" c="dimmed" ta="center">
-      This search matched more factions than can be checked at once. Add a word to narrow it.
-    </Text>
-  );
-}
-
-/** A count drawn from a capped read is a floor, and reads as one. */
-function countLabel(count: number, complete: boolean) {
-  return complete ? String(count) : `${count}+`;
 }
 
 /** A page past the end, from an old link or a catalogue that shrank: say where the results end and link there. */
