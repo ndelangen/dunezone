@@ -119,12 +119,10 @@ export async function pruneOrderItems(
   return { cursor: page.cursor, isDone: page.isDone, pruned };
 }
 
-export async function listOrderNamespaces(ctx: QueryCtx) {
-  const namespaces: OrderNamespace[] = [];
-  for await (const namespace of catalogueOrder.iterNamespaces(ctx)) {
-    namespaces.push(namespace);
-  }
-  return namespaces;
+/** The namespace after `cursor`, one per call, so a walk over every list reads one namespace a step however many lists there are. */
+export async function nextOrderNamespace(ctx: QueryCtx, cursor: string | undefined) {
+  const { page, cursor: next, isDone } = await catalogueOrder.paginateNamespaces(ctx, cursor, 1);
+  return { namespace: page[0], cursor: next, isDone };
 }
 
 /** How many items the aggregate holds for one list in one order; the drift report compares it with the entries to find leftovers. */
