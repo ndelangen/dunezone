@@ -56,6 +56,7 @@ import type * as lib_groupAssignPicker from "../lib/groupAssignPicker.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_ingestTokens from "../lib/ingestTokens.js";
 import type * as lib_isolatedBackend from "../lib/isolatedBackend.js";
+import type * as lib_memoised from "../lib/memoised.js";
 import type * as lib_playAuthorization from "../lib/playAuthorization.js";
 import type * as lib_playGameAddresses from "../lib/playGameAddresses.js";
 import type * as lib_playGameNameChecks from "../lib/playGameNameChecks.js";
@@ -183,6 +184,7 @@ const fullApi: ApiFromModules<{
   "lib/ids": typeof lib_ids;
   "lib/ingestTokens": typeof lib_ingestTokens;
   "lib/isolatedBackend": typeof lib_isolatedBackend;
+  "lib/memoised": typeof lib_memoised;
   "lib/playAuthorization": typeof lib_playAuthorization;
   "lib/playGameAddresses": typeof lib_playGameAddresses;
   "lib/playGameNameChecks": typeof lib_playGameNameChecks;

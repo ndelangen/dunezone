@@ -1,6 +1,6 @@
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
-import { profileSummary } from './profileSummary';
+import { profileSummaryReader } from './profileSummary';
 
 /** FAQ list projection used by ruleset views. */
 export async function loadFaqItemsForRuleset(ctx: QueryCtx | MutationCtx, rulesetId: Id<'rulesets'>) {
@@ -21,7 +21,8 @@ export async function loadFaqItemsForRuleset(ctx: QueryCtx | MutationCtx, rulese
         .take(50)
     )
   );
-  const askers = await Promise.all(sorted.map((item) => profileSummary(ctx, item.asked_by)));
+  const summaryOf = profileSummaryReader(ctx);
+  const askers = await Promise.all(sorted.map((item) => summaryOf(item.asked_by)));
 
   return sorted.map((item, index) => ({
     ...item,
