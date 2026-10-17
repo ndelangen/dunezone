@@ -70,6 +70,10 @@ function LiveEditor({ initial, ...props }: ComponentProps<typeof SpiceCardEditor
 }
 
 /** The point on screen over a territory's centre on the proof's map. */
+/** The rail proof: the one card the editing surface sits on, not the look choice's previews. */
+const proofOf = (canvasElement: HTMLElement) =>
+  canvasElement.querySelector<HTMLElement>('[class*="mapEdit"]')!.parentElement!;
+
 function territoryOnScreen(canvasElement: HTMLElement, id: string) {
   const surface = canvasElement.querySelector('[data-brush]')!.getBoundingClientRect();
   const face = boardTerritoryList(BOARD).find((territory) => territory.id === id)!.face;
@@ -137,16 +141,35 @@ export const SavedBoard = meta.story({
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('Arrakis')).toBeVisible();
-    await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g')).toHaveLength(1);
+    await expect(proofOf(canvasElement).querySelectorAll('[data-tint="blow"] > g')).toHaveLength(1);
     await userEvent.click(canvas.getByRole('button', { name: 'Paint Spice blow' }));
     await expect(canvas.getByText('Painting: click territories on the card')).toBeVisible();
     const { x, y } = territoryOnScreen(canvasElement, 'the_minor_erg');
     const surface = canvasElement.querySelector('[data-brush]')!;
     await userEvent.pointer({ keys: '[MouseLeft]', target: surface, coords: { clientX: x, clientY: y } });
-    await waitFor(() => expect(canvasElement.querySelectorAll('[data-tint="blow"] > g')).toHaveLength(2));
+    await waitFor(() => expect(proofOf(canvasElement).querySelectorAll('[data-tint="blow"] > g')).toHaveLength(2));
     await expect(args.patch).toHaveBeenCalled();
     await userEvent.keyboard('{Escape}');
     await expect(canvas.queryByText('Painting: click territories on the card')).toBeNull();
+  },
+});
+
+/** Each look is drawn on the card itself; picking one sets it on the link, and the strength slider shows for every look but Plain. */
+export const BoardLook = meta.story({
+  args: { chapter: 'map' as const, draft: onBoard },
+  render: (args) => <LiveEditor {...args} initial={onBoard} />,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const looks = canvas.getByRole('radiogroup', { name: 'Board look' });
+    await expect(within(looks).getAllByRole('radio')).toHaveLength(3);
+    await expect(canvas.getByRole('slider', { name: 'Look strength' })).toBeVisible();
+    await userEvent.click(within(looks).getByRole('radio', { name: 'Sepia' }));
+    await expect(args.patch).toHaveBeenLastCalledWith({
+      board: { ...onBoard.board, look: { style: 'sepia', strength: 1 } },
+    });
+    await waitFor(() => expect(canvasElement.querySelectorAll('svg[data-look="sepia"]').length).toBeGreaterThan(0));
+    await userEvent.click(within(looks).getByRole('radio', { name: 'Plain' }));
+    await expect(canvas.queryByRole('slider', { name: 'Look strength' })).toBeNull();
   },
 });
 
@@ -158,8 +181,8 @@ export const PlacedTokens = meta.story({
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: 'Add a token' }));
     await userEvent.click(canvas.getByRole('button', { name: 'Pick the spice token' }));
-    await expect(canvasElement.querySelectorAll('[data-token-instance]')).toHaveLength(5);
-    await expect(canvasElement.querySelector('[data-selected]')).not.toBeNull();
+    await expect(proofOf(canvasElement).querySelectorAll('[data-token-instance]')).toHaveLength(5);
+    await expect(proofOf(canvasElement).querySelector('[data-selected]')).not.toBeNull();
     await expect(canvas.getByRole('slider', { name: 'Size' })).toBeVisible();
     /* Dragging the spice mine token on the card moves it, keeping where on the token it was held. */
     const surface = canvasElement.querySelector<HTMLElement>('[class*="mapEdit"]')!;
@@ -175,9 +198,11 @@ export const PlacedTokens = meta.story({
     ]);
     const moved = onBoard.board!.tokens.find((token) => token.layerId === 't4')!;
     await waitFor(() =>
-      expect(canvasElement.querySelector(`[data-token-instance="${moved.layerId}"]`)).toHaveAttribute('data-selected')
+      expect(proofOf(canvasElement).querySelector(`[data-token-instance="${moved.layerId}"]`)).toHaveAttribute(
+        'data-selected'
+      )
     );
-    const style = canvasElement.querySelector<HTMLElement>(`[data-token-instance="${moved.layerId}"]`)!.style;
+    const style = proofOf(canvasElement).querySelector<HTMLElement>(`[data-token-instance="${moved.layerId}"]`)!.style;
     await expect(Number.parseFloat(style.left)).toBeCloseTo((300 / 487.06) * 100, 0);
   },
 });

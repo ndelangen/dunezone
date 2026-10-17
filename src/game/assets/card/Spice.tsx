@@ -54,6 +54,7 @@ export const SpiceCard: FC<
             tints={board.tints}
             tokens={board.tokens}
             tokenAssets={boardTokens}
+            look={board.look}
             editing={mapEditing}
           />
         ) : (

@@ -72,9 +72,21 @@ div.shape {
   filter: saturate(0.1);
 }
 
-.map[data-board] {
-  /* A saved board brings its own colours and its tints' colours; burnt into the parchment like the classic vector, they would not match the table. */
+.map[data-look] {
   mix-blend-mode: normal;
+  filter: none;
+}
+
+/* The classic map's look, its colour drained by the strength. */
+.map[data-look="burnt"] {
+  mix-blend-mode: color-burn;
+  filter: saturate(calc(1 - 0.9 * var(--look-strength)));
+}
+
+/* Toned brown and laid into the parchment's own grain. */
+.map[data-look="sepia"] {
+  mix-blend-mode: multiply;
+  filter: sepia(var(--look-strength)) contrast(calc(1 + 0.15 * var(--look-strength)));
 }
 
 .map_overlay {

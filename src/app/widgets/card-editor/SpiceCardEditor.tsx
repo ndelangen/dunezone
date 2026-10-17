@@ -355,6 +355,17 @@ export function SpiceCardEditor({
                     focus={proofFocus}
                     boardPicker={boardPicker}
                     tokenPicker={tokenPicker}
+                    lookPreview={{
+                      canvas: CARD_SIZE,
+                      render: (look) => (
+                        <SpiceCard
+                          {...draft}
+                          board={draft.board && { ...draft.board, look }}
+                          boardDefinition={boardRead?.board}
+                          boardTokens={boardRead?.tokens}
+                        />
+                      ),
+                    }}
                     classic={<ClassicHighlights draft={draft} patch={patch} />}
                   />
                 ),

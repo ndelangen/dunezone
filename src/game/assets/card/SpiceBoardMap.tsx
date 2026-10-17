@@ -1,5 +1,5 @@
 /* oxlint-disable jsx-a11y/alt-text -- Static decorative game-card layers, not content images. */
-import type { CustomCardTokens, SpiceTint, SpiceTokenPlacement } from '@shared/assets/schema';
+import type { CustomCardTokens, SpiceBoardLook, SpiceTint, SpiceTokenPlacement } from '@shared/assets/schema';
 import { SPICE_BOARD_SIZE } from '@shared/assets/schema';
 import { CENTER, RADIUS, derive } from '@shared/boards/geometry';
 import type { Board, Face, Point } from '@shared/boards/geometry';
@@ -9,7 +9,7 @@ import { boardTerritoryAt } from '@shared/boards/territories';
 import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { TINT_STICKER_ARTWORK, tintPaint } from '@shared/boards/tints';
 import { useId, useRef } from 'react';
-import type { PointerEvent } from 'react';
+import type { CSSProperties, PointerEvent } from 'react';
 import type { z } from 'zod';
 
 import { BOARD_ARTWORK } from '../board/artwork';
@@ -19,6 +19,10 @@ import unique from './Spice.module.css';
 
 type Tint = z.infer<typeof SpiceTint>;
 type Placement = z.infer<typeof SpiceTokenPlacement>;
+type Look = z.infer<typeof SpiceBoardLook>;
+
+/* A card without a look burns its board into the parchment as fully as the classic map is. */
+const DEFAULT_LOOK: Look = { style: 'burnt', strength: 1 };
 type Territory = { id: string; face: Face };
 type ReadonlyPoint = readonly [number, number];
 
@@ -259,16 +263,18 @@ function EditSurface({
   );
 }
 
-/** A Spice card's map drawn from its linked board: the board's own artwork, its tints oldest first, then its placed tokens. */
+/** A Spice card's map drawn from its linked board: the board's own artwork in the card's look, its tints oldest first over it in their own colours, then its placed tokens. */
 export function SpiceBoardMap({
   board,
   tints,
   tokens = [],
   tokenAssets = {},
+  look = DEFAULT_LOOK,
   editing,
 }: {
   board: Board;
   tints: readonly Tint[];
+  look?: Look;
   tokens?: readonly Placement[];
   tokenAssets?: z.infer<typeof CustomCardTokens>;
   editing?: SpiceMapEditing;
@@ -279,7 +285,14 @@ export function SpiceBoardMap({
 
   return (
     <>
-      <svg className={unique.map} data-board viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
+      <svg
+        className={unique.map}
+        data-look={look.style}
+        style={{ '--look-strength': look.strength } as CSSProperties}
+        viewBox={viewBox}
+        fillRule="evenodd"
+        clipRule="evenodd"
+      >
         <BoardArtwork board={board} faces={territories.map(({ face }) => face)} artwork={BOARD_ARTWORK} />
       </svg>
       <svg className={unique.map_overlay} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">

@@ -62,11 +62,21 @@ export const SpiceTokenPlacement = z.strictObject({
   rotation: z.number().min(-360).max(360),
 });
 
+/** How a linked board's artwork sits in the card's parchment: burnt in like the classic map, toned sepia, or drawn as it is. */
+export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain'] as const;
+
+/** A board's look and how strongly it applies, 0 to 1; a card without one is burnt in fully, as the classic map is. */
+export const SpiceBoardLook = z.strictObject({
+  style: z.enum(SPICE_BOARD_LOOKS),
+  strength: z.number().min(0).max(1),
+});
+
 /** A linked board Asset with the card's tints and tokens; a card without one still draws the legacy Arrakis map. */
 export const SpiceBoardLink = z.strictObject({
   asset_id: z.string().min(1),
   tints: z.array(SpiceTint).max(SPICE_MAX_TINTS),
   tokens: z.array(SpiceTokenPlacement).max(SPICE_MAX_TOKENS),
+  look: SpiceBoardLook.optional(),
 });
 
 /**

@@ -1,5 +1,5 @@
 import { Alert, Button, Group, Slider, Stack, Text, UnstyledButton } from '@mantine/core';
-import { SPICE_BOARD_SIZE, SPICE_MAX_TINTS, SPICE_MAX_TOKENS } from '@shared/assets/schema';
+import { SPICE_BOARD_LOOKS, SPICE_BOARD_SIZE, SPICE_MAX_TINTS, SPICE_MAX_TOKENS } from '@shared/assets/schema';
 import type {
   SPICE_TERRITORY_TYPES,
   CustomCardTokens,
@@ -14,6 +14,7 @@ import { TINT_STAMPS } from '@shared/boards/tints';
 import type { TintStamp } from '@shared/boards/tints';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -28,9 +29,16 @@ import type { CardTokenPicker } from './CustomCardLayers';
 type Link = z.infer<typeof SpiceBoardLink>;
 type Tint = z.infer<typeof SpiceTint>;
 type Placement = z.infer<typeof SpiceTokenPlacement>;
+type Look = NonNullable<Link['look']>;
 /** A placed token's front as the page read it: null when the asset is gone, undefined while loading. */
 type Token = z.infer<typeof CustomCardTokens>[string] | undefined;
 type TerritoryType = (typeof SPICE_TERRITORY_TYPES)[number];
+
+/** The card drawn in a given look, at its own canvas size, for the look choice's tiles. */
+export type SpiceLookPreview = {
+  render: (look: Look) => ReactNode;
+  canvas: { width: number; height: number };
+};
 
 /** Opens a picker for one asset, reporting the ID picked. */
 export type AssetPick = CardTokenPicker;
@@ -334,6 +342,57 @@ function boardLabel(link: Link | undefined, read: SpiceBoardRead) {
   return read.boardName ?? 'This board is no longer available. Choose another.';
 }
 
+const LOOK_LABELS: Record<Look['style'], string> = { burnt: 'Burnt in', sepia: 'Sepia', plain: 'Plain' };
+const DEFAULT_LOOK: Look = { style: 'burnt', strength: 1 };
+
+/** How the board sits in the card's parchment, each look drawn on the card itself, and how strongly it applies. */
+function LookChoice({
+  look,
+  preview,
+  onLook,
+}: Readonly<{ look: Look; preview: SpiceLookPreview; onLook: (look: Look) => void }>) {
+  return (
+    <>
+      <ControlBlock
+        title="Look"
+        description="How the board sits in the card's parchment. Tints and tokens keep their own colours."
+        input={
+          <PreviewChoice
+            label="Board look"
+            value={look.style}
+            onChange={(style) => onLook({ ...look, style })}
+            aspectRatio={String(preview.canvas.width / preview.canvas.height)}
+            options={SPICE_BOARD_LOOKS.map((style) => ({
+              value: style,
+              label: LOOK_LABELS[style],
+              preview: preview.render({ ...look, style }),
+              canvas: preview.canvas,
+            }))}
+          />
+        }
+      />
+      {look.style === 'plain' ? null : (
+        <ControlBlock
+          title="Strength"
+          description="How far the look pulls the board's colours towards the parchment."
+          input={
+            <Slider
+              aria-label="Look strength"
+              thumbLabel="Look strength"
+              min={0}
+              max={1}
+              step={0.05}
+              value={look.strength}
+              label={(value) => `${Math.round(value * 100)}%`}
+              onChange={(strength) => onLook({ ...look, strength })}
+            />
+          }
+        />
+      )}
+    </>
+  );
+}
+
 /** The saved board the card draws, and the way back to the classic map. */
 function BoardChoice({
   link,
@@ -392,6 +451,7 @@ export function SpiceBoardFields({
   focus,
   boardPicker,
   tokenPicker,
+  lookPreview,
   classic,
 }: Readonly<{
   draft: { board?: Link; highlights: Parameters<typeof legacyHighlightTint>[0]; subName: string };
@@ -400,6 +460,7 @@ export function SpiceBoardFields({
   focus: SpiceMapFocus;
   boardPicker: AssetPick;
   tokenPicker: AssetPick;
+  lookPreview: SpiceLookPreview;
   classic: ReactNode;
 }>) {
   const [pickingToken, setPickingToken] = useState(false);
@@ -455,6 +516,7 @@ export function SpiceBoardFields({
           {missing.join(', ')}. These stay on the card and show again on a board that has them.
         </Alert>
       ) : null}
+      <LookChoice look={link.look ?? DEFAULT_LOOK} preview={lookPreview} onLook={(look) => onLink({ ...link, look })} />
       <ControlBlock
         title="Tints"
         description="Turn on a tint's paintbrush, then click territories on the card to add or remove them. Escape stops painting."
