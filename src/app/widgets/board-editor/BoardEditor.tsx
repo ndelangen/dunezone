@@ -29,6 +29,7 @@ import {
 import type { Board, Point, Face, Properties, Decal } from '@shared/boards/geometry';
 import { territoryId, territoryNameError } from '@shared/boards/schema';
 import { Section } from '@ui/block/Section';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -57,6 +58,7 @@ import {
   Radar,
   Magnet,
   Scan,
+  ImageIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
@@ -68,6 +70,7 @@ import { BoardArtwork, DecalArtwork } from '@game/assets/board/Board';
 import styles from './BoardEditor.module.css';
 import { drawingComplete, drawingEdge } from './drawing';
 import type { BoardEditorState, BoardEditorEvent } from './state';
+import { TracingImageControls, TracingImageLayer, useTracingImage } from './TracingImage';
 const artworkOptions = stockAssetOptions(
   ALL.options
     .flatMap((category) => category.options)
@@ -101,6 +104,8 @@ export function BoardEditor({
   const rootRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null),
     panStart = useRef<{ cursor: Point; pan: Point } | null>(null);
+  const tracingControls = useTracingImage();
+  const { tracing } = tracingControls;
   const drawBoard = useMemo(() => {
     if (!state.dragNode || !state.dragPoint) {
       return state.board;
@@ -398,6 +403,7 @@ export function BoardEditor({
   );
   const viewTools = (
     <Group gap="xs">
+      <TracingImageControls controls={tracingControls} />
       <IconAction
         label="18-sector guide"
         tooltip="18-sector guide · G"
@@ -830,6 +836,7 @@ export function BoardEditor({
             artwork={BOARD_ARTWORK}
             sectorGuide={!state.compare && state.guide}
           />
+          {!state.compare && tracing?.visible && <TracingImageLayer tracing={tracing} />}
           {!state.compare && selectedFace && (
             <path d={selectedFace.path} fill="none" stroke="#386c8e" strokeWidth="2.5" pointerEvents="none" />
           )}
@@ -904,6 +911,11 @@ export function BoardEditor({
           )}
         </g>
       </svg>
+      {!state.compare && tracing?.visible && (
+        <span className={styles.tracingNotice}>
+          <StatusBadge icon={<ImageIcon size={12} aria-hidden />}>Tracing image · not part of your board</StatusBadge>
+        </span>
+      )}
     </div>
   );
   return (
