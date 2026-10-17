@@ -186,6 +186,27 @@ export type SpiceMapEditing = {
 
 const clampBoard = (value: number) => Math.min(SPICE_BOARD_SIZE, Math.max(0, Math.round(value * 10) / 10));
 
+/** A pointer's place on the map, in board coordinates. */
+function toBoard(event: PointerEvent<HTMLDivElement>): [number, number] {
+  const rect = event.currentTarget.getBoundingClientRect();
+  return [
+    ((event.clientX - rect.left) / rect.width) * SPICE_BOARD_SIZE,
+    ((event.clientY - rect.top) / rect.height) * SPICE_BOARD_SIZE,
+  ];
+}
+
+/** The topmost token under the point, the last drawn first. */
+function topTokenAt(tokens: readonly Placement[], [x, y]: [number, number]) {
+  return tokens.findLast((token) => Math.hypot(token.x - x, token.y - y) <= token.size / 2);
+}
+
+function paintTerritoryAt(board: Board, editing: SpiceMapEditing, point: [number, number]) {
+  const property = editing.onTerritory ? boardTerritoryAt(board, point) : undefined;
+  if (property) {
+    editing.onTerritory?.(territoryId(property.name));
+  }
+}
+
 /** A surface over the whole map that turns pointer input into board coordinates: a drag on a token moves it, a click elsewhere paints. */
 function EditSurface({
   board,
@@ -197,18 +218,7 @@ function EditSurface({
   editing: SpiceMapEditing;
 }) {
   const drag = useRef<{ layerId: string; dx: number; dy: number; pointerId: number } | null>(null);
-  const toBoard = (event: PointerEvent<HTMLDivElement>): [number, number] => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    return [
-      ((event.clientX - rect.left) / rect.width) * SPICE_BOARD_SIZE,
-      ((event.clientY - rect.top) / rect.height) * SPICE_BOARD_SIZE,
-    ];
-  };
-  /* The topmost token under the point, the last drawn first. */
-  const tokenAt = ([x, y]: [number, number]) =>
-    editing.onTokenMove
-      ? tokens.findLast((token) => Math.hypot(token.x - x, token.y - y) <= token.size / 2)
-      : undefined;
+  const tokenAt = (point: [number, number]) => (editing.onTokenMove ? topTokenAt(tokens, point) : undefined);
   const grab = (event: PointerEvent<HTMLDivElement>, token: Placement, [x, y]: [number, number]) => {
     /* Capture keeps the drag when the pointer outruns the map; a synthetic pointer has nothing to capture. */
     try {
@@ -219,12 +229,7 @@ function EditSurface({
     drag.current = { layerId: token.layerId, dx: token.x - x, dy: token.y - y, pointerId: event.pointerId };
     editing.onSelectToken?.(token.layerId);
   };
-  const paint = (point: [number, number]) => {
-    const property = editing.onTerritory ? boardTerritoryAt(board, point) : undefined;
-    if (property) {
-      editing.onTerritory?.(territoryId(property.name));
-    }
-  };
+  const paint = (point: [number, number]) => paintTerritoryAt(board, editing, point);
   const release = () => {
     drag.current = null;
   };

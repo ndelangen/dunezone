@@ -86,19 +86,18 @@ export function spiceCardPublicationError(data: unknown, resolved: SpiceCardBoar
 function linkError(
   data: unknown,
   previous: unknown,
-  link: z.infer<typeof SpiceBoardLink>,
-  tokenIds: readonly string[],
+  { asset_id }: z.infer<typeof SpiceBoardLink>,
   resolved: SpiceCardBoardResolution
 ) {
   const publication = spiceCardPublicationError(data, resolved);
   if (publication) {
     return publication;
   }
-  if (!resolved.board && spiceCardBoardLink(previous)?.asset_id !== link.asset_id) {
+  if (!resolved.board && spiceCardBoardLink(previous)?.asset_id !== asset_id) {
     return 'Choose an available board for this card';
   }
   const carried = new Set(spiceCardTokenIds(previous));
-  return tokenIds.some((id) => !resolved.tokens[id] && !carried.has(id))
+  return spiceCardTokenIds(data).some((id) => !resolved.tokens[id] && !carried.has(id))
     ? 'Choose an available token asset for every placed token'
     : null;
 }
@@ -110,7 +109,7 @@ export async function validateSpiceCardBoard(ctx: MutationCtx, data: unknown, pr
     return;
   }
   const tokenIds = spiceCardTokenIds(data);
-  const error = linkError(data, previous, link, tokenIds, await resolveSpiceCardBoard(ctx, link.asset_id, tokenIds));
+  const error = linkError(data, previous, link, await resolveSpiceCardBoard(ctx, link.asset_id, tokenIds));
   if (error) {
     throw new ConvexError(error);
   }
