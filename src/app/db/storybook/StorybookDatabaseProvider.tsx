@@ -7,6 +7,7 @@ import { api } from '../../../../convex/_generated/api';
 import { db as applicationDb } from '../core';
 import type { DatabaseDefinition } from './database';
 import type { WorkerIdentity } from './protocol';
+import type { ConvexStorybookWorker } from './runtime';
 import {
   ConvexStorybookWorkerClient,
   ConvexStorybookWorkerContext,
@@ -33,14 +34,14 @@ const StorybookDatabaseContext = createContext<StorybookDatabaseSession | null>(
 /*
  * Booting a worker loads every Convex module and costs most of a second, while reseeding one costs a fraction of that.
  * So a retired worker waits here for the next story, which reseeds it with its own database.
- * The worker answers in order, so that reseed runs only after whatever the previous story still had in flight.
+ * Each story gets a fresh session on the worker and the last story's session is revoked, so a late call from it fails instead of reaching the next story's database.
  * Stories shown together, as on a docs page, each take a worker of their own.
  */
-const idleWorkers: ConvexStorybookWorkerClient[] = [];
+const idleWorkers: ConvexStorybookWorker[] = [];
 const IDLE_WORKER_LIMIT = 2;
 
 async function startWorker(database: DatabaseDefinition) {
-  const client = idleWorkers.pop() ?? new ConvexStorybookWorkerClient();
+  const client = new ConvexStorybookWorkerClient(idleWorkers.shift());
   try {
     await client.reset(database.create());
     return client;
@@ -50,15 +51,25 @@ async function startWorker(database: DatabaseDefinition) {
   }
 }
 
+/* A worker still busy after this long, such as one stuck on an action that never answers, would stall the next story's reseed, so it is stopped instead. */
+const RETIRE_IDLE_MS = 2000;
+
 function retireWorker(client: ConvexStorybookWorkerClient | null) {
   if (!client) {
     return;
   }
-  if (idleWorkers.length < IDLE_WORKER_LIMIT) {
-    idleWorkers.push(client);
-  } else {
-    client.terminate();
-  }
+  const worker = client.retire();
+  const timeout = new Promise<false>((resolve) => setTimeout(() => resolve(false), RETIRE_IDLE_MS));
+  void Promise.race([worker.request({ operation: 'ping' }).then(() => true), timeout]).then(
+    (idle) => {
+      if (idle && worker.healthy && idleWorkers.length < IDLE_WORKER_LIMIT) {
+        idleWorkers.push(worker);
+      } else {
+        worker.terminate();
+      }
+    },
+    () => worker.terminate()
+  );
 }
 
 export function StorybookDatabaseProvider({
@@ -70,37 +81,43 @@ export function StorybookDatabaseProvider({
   database: DatabaseDefinition;
   identity?: WorkerIdentity;
 }>) {
-  const activeClient = useRef<ConvexStorybookWorkerClient | null>(null);
-  const mounted = useRef(true);
+  /* Bumped by every start and every unmount, so a startup that a newer one overtook retires its worker instead of replacing the newer database. */
+  const generation = useRef(0);
   const [state, setState] = useState<WorkerState>({ status: 'loading' });
 
   const reset = useCallback(async () => {
+    generation.current += 1;
+    const started = generation.current;
     const nextClient = await startWorker(database);
-    if (!mounted.current) {
+    if (started !== generation.current) {
       retireWorker(nextClient);
-      throw new Error('The story stopped before its replacement database started.');
+      throw new Error('The story stopped or restarted before this database started.');
     }
-    retireWorker(activeClient.current);
-    activeClient.current = nextClient;
     setState({ status: 'success', client: nextClient });
     return nextClient;
   }, [database]);
 
   useEffect(() => {
-    mounted.current = true;
+    const started = generation.current + 1;
     void (async () => {
       try {
         await reset();
       } catch (error: unknown) {
-        setState({ status: 'error', message: error instanceof Error ? error.message : String(error) });
+        if (started === generation.current) {
+          setState({ status: 'error', message: error instanceof Error ? error.message : String(error) });
+        }
       }
     })();
     return () => {
-      mounted.current = false;
-      retireWorker(activeClient.current);
-      activeClient.current = null;
+      generation.current += 1;
     };
   }, [reset]);
+
+  /* The previous client is retired only once the tree has moved off it, so no rendered query is left asking a worker that another story may already be reseeding. */
+  const client = state.status === 'success' ? state.client : null;
+  useEffect(() => {
+    return () => retireWorker(client);
+  }, [client]);
 
   if (state.status === 'loading') {
     return <div role="status">Starting the browser-local Convex database…</div>;

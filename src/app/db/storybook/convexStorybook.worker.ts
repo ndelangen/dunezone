@@ -429,6 +429,11 @@ self.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {
         error: error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error),
       };
     }
-    self.postMessage(response);
+    try {
+      self.postMessage(response);
+    } catch (error) {
+      /* A result the browser cannot clone must still answer, or the caller waits forever. */
+      self.postMessage({ id: request.id, ok: false, error: error instanceof Error ? error.message : String(error) });
+    }
   });
 });
