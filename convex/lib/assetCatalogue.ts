@@ -61,10 +61,13 @@ export const assetCatalogueKind: CatalogueKind = {
   },
 };
 
+/* Asset data has no size cap, and the reconcile reads each asset again, so a page stops well short of half a transaction's read limit. */
+const OWNER_PAGE_BYTES = 4 * 1024 * 1024;
+
 /** One owner's live assets, a page at a time, for the walk that carries a rename into their entries. */
 export async function ownerAssetPage(ctx: QueryCtx, ownerId: Id<'users'>, cursor: string | null, numItems: number) {
   return await ctx.db
     .query('assets')
     .withIndex('by_owner_deleted', (q) => q.eq('owner_id', ownerId).eq('is_deleted', false))
-    .paginate({ cursor, numItems });
+    .paginate({ cursor, numItems, maximumBytesRead: OWNER_PAGE_BYTES });
 }

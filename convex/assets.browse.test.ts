@@ -133,6 +133,19 @@ describe('the asset type catalogue', () => {
     expect(names(await search('stilgar'))).toEqual([]);
   });
 
+  test('answers a search of more words than the search index takes, rather than failing the page', async () => {
+    const t = applicationTest();
+    const ownerId = await seedOwner(t, 'Chani');
+    const words = Array.from({ length: 18 }, (_, index) => `w${index}`);
+    await createTokens(t, ownerId, [words.join(' '), 'Shield']);
+
+    const found = await t.query(api.assets.catalogue, { type: 'token-disc', q: words.join(' ') });
+    expect(names(found)).toEqual([words.join(' ')]);
+    expect(await t.query(api.assets.catalogue, { type: 'token-disc', q: `${words.join(' ')} missing` })).toMatchObject({
+      total: 0,
+    });
+  });
+
   test('drops a deleted asset from its list and its count', async () => {
     const t = applicationTest();
     const ownerId = await seedOwner(t, 'Chani');
