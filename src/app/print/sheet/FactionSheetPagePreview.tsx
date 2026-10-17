@@ -2,9 +2,9 @@ import { useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { Faction } from '@db/factions';
-import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 
 import styles from './FactionSheetPagePreview.module.css';
+import { FactionSheetView } from './FactionSheetView';
 
 /**
  * The draft as the renderers parse it: a blank name is the editor's one blocking field they must still accept, so it is represented invisibly.

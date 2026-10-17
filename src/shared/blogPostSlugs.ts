@@ -9,7 +9,12 @@
  * The posts themselves are code in `src/app/routes/_app/blog/posts`;
  * this list repeats their slugs so the sitemap can name them without loading the app, and a test keeps the two equal.
  */
-export const BLOG_POST_SLUGS = ['all-in-one-dune-board-game-webapp', 'tabletop-simulator', 'why-dune'] as const;
+export const BLOG_POST_SLUGS = [
+  'anatomy-of-a-dune-faction-atreides',
+  'all-in-one-dune-board-game-webapp',
+  'tabletop-simulator',
+  'why-dune',
+] as const;
 
 export type BlogPostSlug = (typeof BLOG_POST_SLUGS)[number];
 
