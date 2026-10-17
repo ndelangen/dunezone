@@ -6,7 +6,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { lazy, Suspense, useContext, useEffect, useMemo, useReducer, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
-import { useGameAccess } from '@db/play';
+import { rememberSeatPass, useGameAccess } from '@db/play';
 import { forgetStoredPlayTable } from '@db/playTables';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
@@ -80,6 +80,14 @@ function GamePage() {
   const readStored = useMemo(() => storedGameReader(runtime.tables, address), [runtime, address]);
   const stored = useSyncExternalStore(noSubscription, readStored, () => null);
   const refused = data !== undefined && data.status !== 'ready' && data.status !== 'preparing';
+  /* The game's seat pass rides on the access answer and renews with it; a deployment that sends none leaves the browser on tickets. */
+  const seatPass = data?.status === 'ready' ? ('pass' in data ? (data.pass ?? null) : undefined) : null;
+  const passGameId = data?.status === 'ready' ? data.gameId : null;
+  useEffect(() => {
+    if (passGameId) {
+      rememberSeatPass(passGameId, seatPass);
+    }
+  }, [passGameId, seatPass]);
   useEffect(() => {
     const forget = (gameId: string) => {
       forgetStoredPlayTable(gameId);

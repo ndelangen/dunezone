@@ -148,6 +148,7 @@ export const snapshotPolicy = {
   play_auth_registrations: { drop: 'Play sign-in registrations' },
   play_game_accounts: { drop: 'Play account links' },
   play_account_deletions: { drop: 'Play account deletions' },
+  play_session_cutoffs: { drop: 'Play session cutoffs' },
   user_image_ingest_tokens: { drop: 'image ingest credentials' },
   account_connections: { drop: 'sign-in connection credentials' },
   account_merge_operations: { drop: 'account merge audit records' },

@@ -16,7 +16,7 @@ import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
-import { requestPlayTicket } from '@db/play';
+import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
@@ -1130,7 +1130,7 @@ export default function HostedTable({
   const runtime = useContext(GameRuntimeContext);
   const here = useLocation({ select: (location) => location.href });
   const [client] = useState(
-    () => new TableSession(gameId, new GameSubscription(gameId, requestPlayTicket, runtime), runtime)
+    () => new TableSession(gameId, new GameSubscription(gameId, requestPlayAdmission, runtime, watchSeatPass), runtime)
   );
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);

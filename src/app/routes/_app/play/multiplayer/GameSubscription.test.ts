@@ -11,6 +11,7 @@ import {
   KEEPALIVE_PONG,
   TICKET_EXPIRED_CLOSE_CODE,
 } from '@shared/play/protocol';
+import { signSeatPass } from '@shared/play/seatPass';
 import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
@@ -528,4 +529,74 @@ test('a refusal that arrives only as the close code still says why', async () =>
     type: 'connection',
     error: 'This login can no longer access the table.',
   });
+});
+
+function seatPass(exp: number) {
+  return signSeatPass('a'.repeat(64), {
+    v: 1,
+    gameId: 'game',
+    actorId: 'user',
+    principalId: 'user',
+    sessionId: 'session',
+    sessionCreatedAt: 0,
+    issuedAt: Date.now(),
+    exp,
+    displayName: 'Player',
+    avatarUrl: null,
+    profileSlug: null,
+  });
+}
+
+test('a seat pass admits, hands a fresher one to the open socket and renews before it ends or when the room says it ran out', async () => {
+  const first = await seatPass(Date.now() + 60 * 60_000);
+  const fresher = await seatPass(Date.now() + 2 * 60 * 60_000);
+  const requestTicket = vi.fn(async (_gameId: string, _options?: { renew?: boolean }) => ({
+    ok: true as const,
+    pass: first,
+  }));
+  let handOver: ((pass: string) => void) | undefined;
+  const watchPass = vi.fn((_gameId: string, listener: (pass: string) => void) => {
+    handOver = listener;
+    return () => true;
+  });
+  const subscription = new GameSubscription('game', requestTicket, runtime, watchPass);
+  stops.push(subscription.subscribe(vi.fn()));
+  await vi.advanceTimersByTimeAsync(0);
+  const socket = Socket.instances.at(-1)!;
+  socket.open();
+  expect(socket.sent).toEqual([{ type: 'admit', supportsBoard: true, pass: first }]);
+  socket.deliver(initial());
+  expect(subscription.status).toBe('authorized');
+
+  handOver!(fresher);
+  expect(socket.sent.at(-1)).toEqual({ type: 'pass', pass: fresher });
+
+  /* The room calling the pass expired asks Convex for a fresh one, whatever this browser's clock says. */
+  const before = requestTicket.mock.calls.length;
+  socket.deliver({ type: 'admission', status: 'pass-expired' });
+  expect(subscription.status).toBe('suspended');
+  await vi.advanceTimersByTimeAsync(0);
+  expect(requestTicket).toHaveBeenCalledTimes(before + 1);
+  expect(requestTicket.mock.lastCall?.[1]).toEqual({ renew: true });
+
+  /* Without a fresher pass arriving, the page renews five minutes before the held one ends. */
+  const renewals = requestTicket.mock.calls.length;
+  await vi.advanceTimersByTimeAsync(2 * 60 * 60_000 - 5 * 60_000 - 1000);
+  expect(requestTicket).toHaveBeenCalledTimes(renewals);
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(requestTicket).toHaveBeenCalledTimes(renewals + 1);
+  expect(Socket.instances).toHaveLength(1);
+});
+
+test('a socket closed for an expired pass reconnects with a renewed one', async () => {
+  const pass = await seatPass(Date.now() + 60 * 60_000);
+  const requestTicket = vi.fn(async (_gameId: string, _options?: { renew?: boolean }) => ({ ok: true as const, pass }));
+  const subscription = new GameSubscription('game', requestTicket, runtime, () => () => true);
+  stops.push(subscription.subscribe(vi.fn()));
+  await vi.advanceTimersByTimeAsync(0);
+  Socket.instances.at(-1)!.open();
+  Socket.instances.at(-1)!.close(TICKET_EXPIRED_CLOSE_CODE);
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(requestTicket).toHaveBeenCalledTimes(2);
+  expect(requestTicket.mock.lastCall?.[1]).toEqual({ renew: true });
 });

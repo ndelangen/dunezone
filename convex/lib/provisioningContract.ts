@@ -38,6 +38,7 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'play_auth_registrations',
     'play_game_accounts',
     'play_account_deletions',
+    'play_session_cutoffs',
     'user_image_ingest_tokens',
     'account_connections',
     'account_merge_operations',

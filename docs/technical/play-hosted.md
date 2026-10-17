@@ -128,6 +128,47 @@ re-provisioning.
 
 ## Connection lifetime
 
+### Seat passes
+
+A browser enters a game with a seat pass: the account's own proof of who it is at that game,
+signed by Convex with the game's server-only secret (HMAC-SHA256) and checked by the room alone, so
+an admitted player's room never asks Convex about them again (decided with Norbert on 2026-10-17).
+
+1. The game page's query (`playGames.getGameByAddress`) carries the pass, so a reload has one
+   without another round trip. A query cannot read the clock, so its pass counts from the session's
+   newest refresh token. An account that has never opened the game gets `pass: null` and enrols
+   once with `playAdmission.enrolPlayer`, which writes its routing row, the row deletion fan-out,
+   merges and seat counting follow, in the same transaction that checks the account may play.
+2. A pass names the game, the game actor it seats, the signed-in account, the Auth session and that
+   session's creation time, and ends at the earlier of the Auth expiry and one hour after signing
+   (`PLAY_SEAT_PASS_TTL_MS`). The browser keeps it in memory and sends it in its first socket
+   message in place of a ticket.
+3. The room checks the signature, the game, its own clock and the cutoffs Convex pushed. A forged
+   pass, or one for another game, is refused. An expired pass closes with code 4410 as an expired
+   ticket does, and the browser reconnects with a renewed one. Until the room has read the
+   account's seat count (`playAdmission.seatLimitReached`), the player counts as at the seat limit.
+4. Five minutes before a pass ends, timed on the room's clock, the page renews it with
+   `playAdmission.renewSeatPass` unless the query already brought a fresher one, and hands it to the
+   open socket in a `pass` message. A room that finds a pass expired first pauses the table with a
+   `pass-expired` admission and resumes on the renewal, with no reconnect.
+5. A pass is identity, never a seat. The room owns seats, so giving one up ends it at once.
+6. Revoking every session of an account (disconnecting a sign-in method does) and merging it push a session cutoff to every game the account is
+   enrolled in (`convex/playSessionCutoffs.ts`). A cutoff ends every pass whose session was created
+   at or before it. The room stores the cutoff in SQLite, keeping the higher of two, before it
+   acknowledges it. The push retries until acknowledged, backing off to one minute, and stops once
+   every pass it could end has expired. Account deletion keeps its own durable push; a deletion for
+   an account the room has never seen leaves a `[deleted user]` row that keeps a later pass out.
+
+Accepted trade-offs: a single tab's sign-out, which revokes no other session, does not reach the
+room, so a pass copied out of that tab stays usable until it expires. A lost cutoff push is bounded
+the same way. A pass can be replayed by whoever holds it for its lifetime, as a bearer token is.
+
+### Tickets (older pages)
+
+A page that predates passes, or a deployment whose query sends no `pass`, still enters with a
+ticket. The room keeps the ticket path, its account lease and reconciliation for those connections
+only; a room whose players all hold passes never runs them.
+
 1. The signed-in browser requests a single-use opaque ticket from Convex. Convex resolves the
    current user and Auth session itself; the browser cannot select another identity.
 2. The browser opens the same-origin game socket and sends that ticket in its first message.

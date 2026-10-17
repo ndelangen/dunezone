@@ -1,6 +1,7 @@
 import { internal } from '../_generated/api';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { queueAccountCutoffs } from './playSessionCutoffQueue';
 
 const TOKEN_BATCH = 32;
 const SESSION_BATCH = 8;
@@ -44,8 +45,12 @@ export async function removeSessionTokens(ctx: MutationCtx, sessionId: Id<'authS
   }
 }
 
-/** A single user write revokes every existing session before bounded cleanup starts. */
+/**
+ * A single user write revokes every existing session before bounded cleanup starts.
+ * Game rooms learn of it by a durable push, queued even when no session remains, since a seat pass outlives the session that signed it.
+ */
 export async function revokeAccountSessions(ctx: MutationCtx, userId: Id<'users'>) {
+  await queueAccountCutoffs(ctx, userId, Date.now());
   const newest = await ctx.db
     .query('authSessions')
     .withIndex('userId', (q) => q.eq('userId', userId))
