@@ -441,6 +441,7 @@ export class AuthorizationWatch {
       },
       (error) => {
         if (batch.generation === this.generation) {
+          this.observeConvex?.({ path: `${LIVE_WATCH_PATH} (live)`, durationMs: 0, ok: false });
           this.diagnostics?.report('authorization-watch', error);
           this.suspend();
         }

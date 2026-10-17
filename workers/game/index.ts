@@ -1240,16 +1240,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!message) {
       return;
     }
-    if (message.type === 'telemetry') {
-      this.receiveTelemetry(connection, message);
-      return;
-    }
     if (message.type === 'admit') {
       await this.admit(socket, connection, message);
       return;
     }
-    if (message.type === 'pointer' || message.type === 'pose') {
-      this.receiveMotion(socket, connection, message);
+    if (this.receiveUnsaved(socket, connection, message)) {
       return;
     }
     if (this.reconcileViewers()) {
@@ -1282,7 +1277,24 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  /* A browser's account of how the table felt is only logged, so it skips every upkeep a command needs. */
+  /* Motion and telemetry are never saved, so they skip every upkeep a command needs; true when the message was one of them. */
+  private receiveUnsaved(
+    socket: WebSocket,
+    connection: Connection,
+    message: ClientMessage
+  ): message is Extract<ClientMessage, { type: 'telemetry' | 'pointer' | 'pose' }> {
+    if (message.type === 'telemetry') {
+      this.receiveTelemetry(connection, message);
+      return true;
+    }
+    if (message.type === 'pointer' || message.type === 'pose') {
+      this.receiveMotion(socket, connection, message);
+      return true;
+    }
+    return false;
+  }
+
+  /* A browser's account of how the table felt is only logged. */
   private receiveTelemetry(connection: Connection, message: Extract<ClientMessage, { type: 'telemetry' }>) {
     if (connection.viewer) {
       this.summary.client(connection.connectionId, message);
