@@ -71,6 +71,11 @@
   filter: saturate(0.1);
 }
 
+.map[data-board] {
+  /* A saved board brings its own colours; burnt into the card's frame art like the classic vector, the frame's dark panel shows through it. */
+  mix-blend-mode: normal;
+}
+
 .map_overlay {
   position: absolute;
   top: 235px;

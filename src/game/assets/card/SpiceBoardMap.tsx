@@ -279,7 +279,7 @@ export function SpiceBoardMap({
 
   return (
     <>
-      <svg className={unique.map} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
+      <svg className={unique.map} data-board viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
         <BoardArtwork board={board} faces={territories.map(({ face }) => face)} artwork={BOARD_ARTWORK} />
       </svg>
       <svg className={unique.map_overlay} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
