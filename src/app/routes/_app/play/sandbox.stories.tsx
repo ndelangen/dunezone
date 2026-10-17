@@ -421,6 +421,12 @@ export const ThreeColumns = meta.story({
     if (fits) {
       await expect(page.getByRole('separator', { name: 'Resize controls column' })).toBeVisible();
       await expect(page.getByRole('separator', { name: 'Resize players column' })).toBeVisible();
+      /* The header's chips float over the table's column only, between the two separators, and the side columns run to the top. */
+      const header = body.querySelector<HTMLElement>('.seated-header')!.getBoundingClientRect();
+      const controlsEdge = page.getByRole('separator', { name: 'Resize controls column' }).getBoundingClientRect();
+      const playersEdge = page.getByRole('separator', { name: 'Resize players column' }).getBoundingClientRect();
+      await expect(header.left).toBeGreaterThanOrEqual(controlsEdge.right);
+      await expect(header.right).toBeLessThanOrEqual(playersEdge.left);
     }
     const canvas = body.querySelector('canvas');
     const message = (await page.findByPlaceholderText('Message')) as HTMLTextAreaElement;
