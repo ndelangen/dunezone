@@ -40,7 +40,7 @@ const meta = preview.meta({
     return install(() => journeyTransport(Number(args.step ?? 1) - 1, String(args.seat ?? 'seat-1')))();
   },
   decorators: [...gameMeta.decorators, journeyDecorator],
-  /* The stories load the table chunk before they render, as Play/Playing explains. */
+  /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
       await import('./multiplayer/HostedTable');

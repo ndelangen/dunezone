@@ -1,7 +1,9 @@
-import { waitForFrame } from '@sb/storyWaits';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { emptyBattlePlan } from '@shared/play/battle';
+import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { stackTopHeight } from '@shared/play/tableGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -265,4 +267,75 @@ export async function expectBattleCalloutPlacement(
     }
     await expect(closestDistance).toBeLessThan(6);
   }, SETTLE);
+}
+
+export async function tablePage(canvasElement: HTMLElement, phaseLabel: string = TABLE_PHASES[0].label) {
+  const page = within(canvasElement.ownerDocument.body);
+  const viewControls = await page.findByRole('group', { name: 'Table view' }, { timeout: 30_000 });
+  const document = canvasElement.ownerDocument;
+  await waitFor(
+    async () => {
+      await expect(viewControls).toBeVisible();
+      const canvas = document.querySelector('.dune-play-shell canvas');
+      await expect(canvas).toBeVisible();
+      await expect(canvas?.getBoundingClientRect().height).toBeGreaterThan(100);
+      await expect(document.querySelector('[data-piece-id="treachery-deck"]')).toHaveTextContent('10');
+      await expect(
+        Array.from(document.fonts).some(
+          (font) => font.family.replaceAll('"', '') === 'Dune Play Table Label' && font.status === 'loaded'
+        )
+      ).toBe(true);
+    },
+    { timeout: 30_000 }
+  );
+  const shell = document.querySelector<HTMLElement>('.dune-play-shell');
+  if (!shell) {
+    throw new Error('The Play route did not mount its table.');
+  }
+  await waitForPlayCamera(document);
+  await expect(document.querySelector('[data-page-layout-height="fullscreen"]')).not.toBeNull();
+  const header = shell.querySelector('header');
+  if (!header) {
+    throw new Error('The table header is missing.');
+  }
+  /* The table runs to the top: no brand mark, only the floating phase and game chips. */
+  await expect(within(header).queryByRole('img', { name: 'Dune' })).toBeNull();
+  await expect(within(header).getByText(phaseLabel)).toBeVisible();
+  await expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
+  await expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
+  await expect(page.queryByRole('link', { name: /^(Dune )?Play$/ })).toBeNull();
+  return { page, shell, document };
+}
+
+/**
+ * Right-clicks a piece on the table, in the map view, until its menu opens.
+ * The right-click is a pointerdown and then a `contextmenu` PointerEvent with the same pointer id, because the scene fires a click on an object only when the pointerdown with that id hit it;
+ * user-event's `[MouseRight]` sends its `contextmenu` without a pointer id, and no menu opens.
+ * The events go to the canvas `mapViewPoint` projects against, the document's first.
+ * The menu is found by the name a screen reader announces.
+ */
+export async function openPieceMenu(document: Document, piece: TablePiece, name: string) {
+  const page = within(document.body);
+  const [clientX, clientY] = mapViewPoint(document, [
+    piece.position[0],
+    piece.position[1] + stackTopHeight(piece),
+    piece.position[2],
+  ]);
+  const press = { clientX, clientY, bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 2 };
+  /* The menu enters the DOM only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1443). */
+  return waitForFrame(
+    async () => {
+      const scene = document.querySelector('canvas');
+      if (scene && !page.queryByRole('menu')) {
+        scene.dispatchEvent(new PointerEvent('pointerdown', { ...press, buttons: 2 }));
+        scene.dispatchEvent(new PointerEvent('contextmenu', { ...press, buttons: 2 }));
+        scene.dispatchEvent(new PointerEvent('pointerup', { ...press, buttons: 0 }));
+      }
+      const menu = page.getByRole('menu');
+      await expect(finishTransitions(menu)).toBeVisible();
+      await expect(menu).toHaveAccessibleName(name);
+      return menu;
+    },
+    { timeout: 30_000 }
+  );
 }
