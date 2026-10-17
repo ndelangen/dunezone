@@ -304,6 +304,82 @@ function TokenRow({
   );
 }
 
+/** One of the card's tints, with Play's controls and a switch for each territory type. */
+function CardTintRow({
+  tint,
+  painting,
+  enabled,
+  names,
+  onBrush,
+  onChange,
+  onRemove,
+}: Readonly<{
+  tint: Tint;
+  painting: boolean;
+  enabled: boolean;
+  names: ReadonlyMap<string, string>;
+  onBrush: (on: boolean) => void;
+  onChange: (update: (tint: Tint) => Tint) => void;
+  onRemove: () => void;
+}>) {
+  return (
+    <TintRow
+      tint={tint}
+      summary={tintSummary(tint, painting, names)}
+      painting={painting}
+      enabled={enabled}
+      onBrush={() => onBrush(!painting)}
+      onOutline={() => onChange(({ outline, ...rest }) => (outline ? rest : { ...rest, outline: true }))}
+      onStamp={(stamp: TintStamp) =>
+        onChange((current) => {
+          const stamps = toggled(current.stamps, stamp, TINT_STAMPS);
+          const { stamps: _, ...rest } = current;
+          return stamps.length ? { ...rest, stamps } : rest;
+        })
+      }
+      onColor={(color) => onChange((current) => ({ ...current, color }))}
+      before={
+        <TypePicker
+          tint={tint}
+          onToggle={(type) =>
+            onChange((current) => {
+              const types = toggled(current.types, type, SPICE_TERRITORY_TYPES);
+              const { types: _, ...rest } = current;
+              return types.length ? { ...rest, types } : rest;
+            })
+          }
+        />
+      }
+      after={
+        <ConfirmDeleteAction
+          label={`Remove ${tint.name}`}
+          verb="remove"
+          size="sm"
+          pending={false}
+          disabled={false}
+          onConfirm={() => {
+            if (painting) {
+              onBrush(false);
+            }
+            onRemove();
+          }}
+        />
+      }
+    />
+  );
+}
+
+/** What the card's map draws from: the classic map, or the linked board by name once it has loaded. */
+function boardLabel(link: Link | undefined, read: SpiceBoardRead) {
+  if (!link) {
+    return 'The classic Arrakis map';
+  }
+  if (!read) {
+    return 'Loading board...';
+  }
+  return read.boardName ?? 'This board is no longer available. Choose another.';
+}
+
 /** The saved board the card draws, and the way back to the classic map. */
 function BoardChoice({
   link,
@@ -319,21 +395,13 @@ function BoardChoice({
   onUnlink: () => void;
 }>) {
   const [picking, setPicking] = useState(false);
-  let current: string;
-  if (!link) {
-    current = 'The classic Arrakis map';
-  } else if (!read) {
-    current = 'Loading board...';
-  } else {
-    current = read.boardName ?? 'This board is no longer available. Choose another.';
-  }
   return (
     <ControlBlock
       title="Board"
       description="The saved board the card's map draws. Saving that board redraws this card."
       input={
         <Stack gap="xs">
-          <Text size="sm">{current}</Text>
+          <Text size="sm">{boardLabel(link, read)}</Text>
           <Group gap="xs">
             <Button variant="default" size="compact-sm" onClick={() => setPicking(true)}>
               {link ? 'Replace board' : 'Use a saved board'}
@@ -438,57 +506,18 @@ export function SpiceBoardFields({
         description="Turn on a tint's paintbrush, then click territories on the card to add or remove them. Escape stops painting."
         input={
           <Stack gap="xs">
-            {link.tints.map((tint) => {
-              const painting = focus.brush === tint.id;
-              return (
-                <TintRow
-                  key={tint.id}
-                  tint={tint}
-                  summary={tintSummary(tint, painting, names)}
-                  painting={painting}
-                  enabled={!!board}
-                  onBrush={() => focus.setBrush(painting ? null : tint.id)}
-                  onOutline={() =>
-                    setTint(tint.id, ({ outline, ...rest }) => (outline ? rest : { ...rest, outline: true }))
-                  }
-                  onStamp={(stamp: TintStamp) =>
-                    setTint(tint.id, (current) => {
-                      const stamps = toggled(current.stamps, stamp, TINT_STAMPS);
-                      const { stamps: _, ...rest } = current;
-                      return stamps.length ? { ...rest, stamps } : rest;
-                    })
-                  }
-                  onColor={(color) => setTint(tint.id, (current) => ({ ...current, color }))}
-                  before={
-                    <TypePicker
-                      tint={tint}
-                      onToggle={(type) =>
-                        setTint(tint.id, (current) => {
-                          const types = toggled(current.types, type, SPICE_TERRITORY_TYPES);
-                          const { types: _, ...rest } = current;
-                          return types.length ? { ...rest, types } : rest;
-                        })
-                      }
-                    />
-                  }
-                  after={
-                    <ConfirmDeleteAction
-                      label={`Remove ${tint.name}`}
-                      verb="remove"
-                      size="sm"
-                      pending={false}
-                      disabled={false}
-                      onConfirm={() => {
-                        if (painting) {
-                          focus.setBrush(null);
-                        }
-                        onLink({ ...link, tints: link.tints.filter((candidate) => candidate.id !== tint.id) });
-                      }}
-                    />
-                  }
-                />
-              );
-            })}
+            {link.tints.map((tint) => (
+              <CardTintRow
+                key={tint.id}
+                tint={tint}
+                painting={focus.brush === tint.id}
+                enabled={!!board}
+                names={names}
+                onBrush={(on) => focus.setBrush(on ? tint.id : null)}
+                onChange={(update) => setTint(tint.id, update)}
+                onRemove={() => onLink({ ...link, tints: link.tints.filter((candidate) => candidate.id !== tint.id) })}
+              />
+            ))}
             <NewTints
               tints={link.tints}
               enabled={!!board && link.tints.length < SPICE_MAX_TINTS}
