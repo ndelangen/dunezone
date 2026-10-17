@@ -30,8 +30,17 @@ type StorybookDatabaseSession = {
 
 const StorybookDatabaseContext = createContext<StorybookDatabaseSession | null>(null);
 
+/*
+ * Booting a worker loads every Convex module and costs most of a second, while reseeding one costs a fraction of that.
+ * So a retired worker waits here for the next story, which reseeds it with its own database.
+ * The worker answers in order, so that reseed runs only after whatever the previous story still had in flight.
+ * Stories shown together, as on a docs page, each take a worker of their own.
+ */
+const idleWorkers: ConvexStorybookWorkerClient[] = [];
+const IDLE_WORKER_LIMIT = 2;
+
 async function startWorker(database: DatabaseDefinition) {
-  const client = new ConvexStorybookWorkerClient();
+  const client = idleWorkers.pop() ?? new ConvexStorybookWorkerClient();
   try {
     await client.reset(database.create());
     return client;
@@ -41,12 +50,15 @@ async function startWorker(database: DatabaseDefinition) {
   }
 }
 
-async function retireWorker(client: ConvexStorybookWorkerClient | null) {
+function retireWorker(client: ConvexStorybookWorkerClient | null) {
   if (!client) {
     return;
   }
-  await client.waitForIdle();
-  client.terminate();
+  if (idleWorkers.length < IDLE_WORKER_LIMIT) {
+    idleWorkers.push(client);
+  } else {
+    client.terminate();
+  }
 }
 
 export function StorybookDatabaseProvider({
@@ -65,10 +77,10 @@ export function StorybookDatabaseProvider({
   const reset = useCallback(async () => {
     const nextClient = await startWorker(database);
     if (!mounted.current) {
-      nextClient.terminate();
+      retireWorker(nextClient);
       throw new Error('The story stopped before its replacement database started.');
     }
-    await retireWorker(activeClient.current);
+    retireWorker(activeClient.current);
     activeClient.current = nextClient;
     setState({ status: 'success', client: nextClient });
     return nextClient;
@@ -85,7 +97,7 @@ export function StorybookDatabaseProvider({
     })();
     return () => {
       mounted.current = false;
-      activeClient.current?.terminate();
+      retireWorker(activeClient.current);
       activeClient.current = null;
     };
   }, [reset]);
