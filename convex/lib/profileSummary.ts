@@ -1,6 +1,7 @@
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 import { isActiveProfile } from './accountLifecycle';
+import { memoised } from './memoised';
 
 /** Public profile chip shape for FAQ and group member lists. */
 export async function profileSummary(ctx: QueryCtx | MutationCtx, userId: Id<'users'>) {
@@ -22,13 +23,5 @@ export async function profileSummary(ctx: QueryCtx | MutationCtx, userId: Id<'us
 
 /** `profileSummary` that reads each profile once across one request's lists, where the same person recurs. */
 export function profileSummaryReader(ctx: QueryCtx | MutationCtx) {
-  const summaries = new Map<Id<'users'>, ReturnType<typeof profileSummary>>();
-  return (userId: Id<'users'>) => {
-    let summary = summaries.get(userId);
-    if (!summary) {
-      summary = profileSummary(ctx, userId);
-      summaries.set(userId, summary);
-    }
-    return summary;
-  };
+  return memoised((userId: Id<'users'>) => profileSummary(ctx, userId));
 }

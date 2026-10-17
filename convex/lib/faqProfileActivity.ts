@@ -1,20 +1,8 @@
 import { rulesetCoverThumbUrl } from '../../src/shared/rulesets/cover';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
+import { memoised } from './memoised';
 import { profileSummaryReader } from './profileSummary';
-
-/* One profile's activity mostly sits in a few rulesets and threads, so each document is read once per request. */
-function documentReader<Table extends 'rulesets' | 'faq_items'>(ctx: QueryCtx, table: Table) {
-  const reads = new Map<Id<Table>, Promise<Doc<Table> | null>>();
-  return (id: Id<Table>) => {
-    let pending = reads.get(id);
-    if (!pending) {
-      pending = ctx.db.get(table, id);
-      reads.set(id, pending);
-    }
-    return pending;
-  };
-}
 
 /*
  * A ruleset as a citation: flat, with the cover already folded, the way `profileSummary` folds an avatar.
@@ -35,7 +23,8 @@ export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'user
     .withIndex('by_asked_by_created', (q) => q.eq('asked_by', profileId))
     .order('desc')
     .take(200);
-  const rulesetOf = documentReader(ctx, 'rulesets');
+  /* One profile's activity mostly sits in a few rulesets and threads, so each document is read once per request. */
+  const rulesetOf = memoised((id: Id<'rulesets'>) => ctx.db.get('rulesets', id));
   const listed = await Promise.all(
     rows.map(async (item) => {
       const ruleset = await rulesetOf(item.ruleset_id);
@@ -64,8 +53,8 @@ export async function loadFaqAnswersGivenBy(ctx: QueryCtx, profileId: Id<'users'
     .withIndex('by_answered_by_created', (q) => q.eq('answered_by', profileId))
     .order('desc')
     .take(200);
-  const itemOf = documentReader(ctx, 'faq_items');
-  const rulesetOf = documentReader(ctx, 'rulesets');
+  const itemOf = memoised((id: Id<'faq_items'>) => ctx.db.get('faq_items', id));
+  const rulesetOf = memoised((id: Id<'rulesets'>) => ctx.db.get('rulesets', id));
   const summaryOf = profileSummaryReader(ctx);
   const listed = await Promise.all(
     answers.map(async (answer) => {

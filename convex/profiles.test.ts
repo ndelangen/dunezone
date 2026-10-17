@@ -87,20 +87,50 @@ test('profile list includes activity counts', async () => {
       created_at: '2026-07-19T00:00:00.000Z',
     });
 
-    return { profileId };
+    /* Activity counts per person: a quiet member counts zero, and a deleted account's activity lands on nobody listed. */
+    const quietUserId = await ctx.db.insert('users', {});
+    const quietProfileId = await ctx.db.insert('profiles', {
+      user_id: quietUserId,
+      username: 'Quiet',
+      avatar_url: null,
+      account_state: 'active',
+      slug: 'quiet',
+      created_at: '2026-07-19T00:00:00.000Z',
+      updated_at: '2026-07-19T00:00:00.000Z',
+    });
+    const goneUserId = await ctx.db.insert('users', {});
+    await ctx.db.insert('profiles', {
+      user_id: goneUserId,
+      username: 'Gone',
+      avatar_url: null,
+      account_state: 'deleted',
+      slug: 'gone',
+      created_at: '2026-07-19T00:00:00.000Z',
+      updated_at: '2026-07-19T00:00:00.000Z',
+    });
+    await ctx.db.insert('faq_answers', {
+      faq_item_id: questionId,
+      answer: 'Pain.',
+      answered_by: goneUserId,
+      created_at: '2026-07-19T00:00:00.000Z',
+    });
+
+    return { profileId, quietProfileId };
   });
 
   const profiles = await t.query(api.profiles.list, {});
 
-  expect(profiles).toHaveLength(1);
-  expect(profiles[0]).toMatchObject({
-    _id: ids.profileId,
+  expect(profiles).toHaveLength(2);
+  expect(profiles.find((profile) => profile._id === ids.profileId)).toMatchObject({
     activity: {
       groupCount: 1,
       factionCount: 1,
       questionCount: 1,
       answerCount: 1,
     },
+  });
+  expect(profiles.find((profile) => profile._id === ids.quietProfileId)).toMatchObject({
+    activity: { groupCount: 0, factionCount: 0, questionCount: 0, answerCount: 0 },
   });
 });
 
