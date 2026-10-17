@@ -1,0 +1,167 @@
+/*
+ * A paper slip on the dark page: the faction's lines in typewriter ink, a tick and its rule beside each, and a rubber stamp once all have passed.
+ * The ticks and the stamp land in turn once the figure is on screen.
+ */
+.root {
+  --paper: #efe6d2;
+  --paper-ink: #2b2418;
+  --stamp: #b3261e;
+  --step: 320ms;
+
+  display: flex;
+  justify-content: center;
+  align-self: center;
+  width: min(34rem, calc(100vw - 2 * var(--app-shell-inline-gutter, 20px)));
+  padding-block: var(--space-lg);
+}
+
+.slip {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: 2px;
+  background: var(--paper);
+  box-shadow:
+    0 1px 0 rgb(0 0 0 / 20%),
+    0 12px 30px rgb(0 0 0 / 45%);
+  color: var(--paper-ink);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  transform: rotate(-1deg);
+}
+
+.heading {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 var(--space-sm);
+  padding-block-end: var(--space-xs);
+  border-block-end: 1px dashed rgb(43 36 24 / 50%);
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.line {
+  --line: 0;
+
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) 1.25rem;
+  grid-template-areas:
+    "field value tick"
+    ". rule rule";
+  column-gap: var(--space-sm);
+  font-size: 0.75rem;
+}
+
+.field {
+  grid-area: field;
+  opacity: 0.6;
+}
+
+.value {
+  grid-area: value;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tick,
+.rule {
+  opacity: 0;
+  transition: opacity 300ms ease calc(var(--line) * var(--step));
+}
+
+.tick {
+  grid-area: tick;
+  color: #2f6b2a;
+  font-weight: 700;
+  text-align: center;
+}
+
+.rule {
+  grid-area: rule;
+  font-family: var(--mantine-font-family);
+  font-size: 0.7rem;
+  font-style: italic;
+}
+
+.seen .tick {
+  opacity: 1;
+}
+
+.seen .rule {
+  opacity: 0.7;
+}
+
+/* The stamp thumps down at an angle once the last line has passed. */
+.stamp {
+  --line: 0;
+
+  display: flex;
+  align-self: flex-end;
+  flex-direction: column;
+  align-items: center;
+  margin: var(--space-sm) 0 0;
+  padding: 0.2rem 0.6rem;
+  border: 2px solid var(--stamp);
+  border-radius: 4px;
+  color: var(--stamp);
+  text-transform: uppercase;
+  opacity: 0;
+  transform: rotate(-8deg) scale(1.6);
+  transition:
+    opacity 200ms ease calc(var(--line) * var(--step) + 200ms),
+    transform 260ms cubic-bezier(0.3, 1.4, 0.5, 1) calc(var(--line) * var(--step) + 200ms);
+}
+
+.seen .stamp {
+  opacity: 0.85;
+  transform: rotate(-8deg);
+}
+
+.stampTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+
+.stampSub {
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tick,
+  .rule,
+  .stamp {
+    transition: none;
+  }
+}
+
+@container blog-article (width < 36rem) {
+  /* The article column runs a few pixels past a phone's edge, so the slip keeps clear of it. */
+  .root {
+    box-sizing: border-box;
+    width: 100%;
+    padding-inline-end: var(--space-sm);
+  }
+
+  .slip {
+    padding-inline: var(--space-md);
+    transform: none;
+  }
+
+  .line {
+    grid-template-columns: 5.5rem minmax(0, 1fr) 1rem;
+  }
+}

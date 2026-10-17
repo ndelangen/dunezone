@@ -1,31 +1,26 @@
 import { Anchor } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
-import { Surface } from '@ui/surface';
 import type { ReactNode } from 'react';
 
-import { Figure, Lead, Paragraph } from '../postContent';
+import { Lead, Paragraph } from '../postContent';
 import { FactionExtras } from './anatomy/FactionExtras';
 import { FactionRecipe } from './anatomy/FactionRecipe';
-
-/*
- * Outline only: each section says what it will cover, and each `Planned` box marks a figure still to be made.
- * The closing figure is a stand-in borrowed from the previous post until this post's own is made.
- */
-
-function Planned({ children }: { children: ReactNode }) {
-  return (
-    <Surface padding="lg">
-      <Paragraph>
-        <strong>Figure to come:</strong> {children}
-      </Paragraph>
-    </Surface>
-  );
-}
+import { FiveYears } from './anatomy/FiveYears';
+import { SavedCheck } from './anatomy/SavedCheck';
+import { TableSpread } from './anatomy/TableSpread';
 
 function PostLink({ slug, children }: { slug: string; children: ReactNode }) {
   return (
     <Anchor renderRoot={(props) => <Link {...props} to="/blog/$postSlug" params={{ postSlug: slug }} />} inherit>
+      {children}
+    </Anchor>
+  );
+}
+
+function FactionLink({ slug, children }: { slug: string; children: ReactNode }) {
+  return (
+    <Anchor renderRoot={(props) => <Link {...props} to="/factions/$factionId" params={{ factionId: slug }} />} inherit>
       {children}
     </Anchor>
   );
@@ -41,72 +36,88 @@ export default function Post() {
       </Lead>
       <Section title="The ingredients">
         <Paragraph>
-          What House Atreides is made of, one ingredient at a time, in plain words: its name, logo, background texture
-          and two colours, the leader portraits, the troops with their backs and battle values, decals, and the rules
-          (start, revival, spice, advantages, fate and alliance). For each, a line on where you meet it in the game.
+          Open <FactionLink slug="house-atreides">House Atreides</FactionLink> on dune.zone and you see a finished
+          faction. Underneath, it is a short list of things someone typed in or picked from a library.
+        </Paragraph>
+        <Paragraph>
+          There is the name, which also becomes the page&rsquo;s web address. There is a logo, a background texture with
+          two colours laid over it, and a theme colour. Paul is the faction leader, and five more leaders each bring a
+          portrait and a strength. The troops have their own icon and a count of twenty.
+        </Paragraph>
+        <Paragraph>
+          Then there are the rules: ten forces in Arrakeen and ten in reserve at the start, two free revivals, ten
+          spice, six advantages with their Karama effects, the alliance ability and the fate card.
         </Paragraph>
       </Section>
       <Section title="Everything is drawn from it">
         <Paragraph>
-          None of the pictures are stored. The faction sheet, leader tokens, traitor cards, troop tokens, the alliance
-          card and the shield are all drawn from those ingredients. Change the logo once and every one of them follows.
-          How the drawing itself works is in the post about drawing tokens and cards.
+          None of the pieces you see on the site are stored as pictures. The faction sheet, the leader tokens, the
+          traitor cards, the troop token, the faction token, the alliance card and the shield are all drawn from those
+          ingredients, right in your browser. Change the logo once and every piece follows.
         </Paragraph>
         <Paragraph>
-          A small detail: the complexity rating is calculated from the faction&rsquo;s own rules, and the author can
-          override it.
+          When a printable PDF or an image file is needed, a cloud worker opens the same pages in a browser of its own
+          and saves what it draws, so the files always match the site. Pick an ingredient in the figure to see where it
+          ends up, or pick a piece to see what it is made of.
         </Paragraph>
         <FactionRecipe />
+        <Paragraph>
+          A small detail I like: the complexity rating on the faction page is worked out from the faction&rsquo;s own
+          rules, and the author can still override it.
+        </Paragraph>
       </Section>
       <Section title="Adding your own cards and tokens">
         <Paragraph>
-          Not everything a faction brings is drawn from its ingredients. A faction can bring its own deck or a set of
-          special tokens. Those are made as assets of their own, and the faction lists them. At setup, they come along
-          with it.
+          Not everything a faction brings can be drawn from its ingredients. Some factions come with a deck of their
+          own, or a handful of special tokens. Those are made as assets of their own, and the faction links to them.
+          When a game is set up, they come along with the faction.
         </Paragraph>
         <FactionExtras />
       </Section>
       <Section title="It took five years to get this shape">
         <Paragraph>
-          The same faction, in the shape each earlier project gave it. In 2021 a faction was just a name on a game
-          result. In 2023 a Faction finally existed, but every card kept its own copy of its data. In 2024 the pictures
-          came first, and each one carried its own logo, colours and background, so changing a logo meant changing it
-          everywhere. In 2026 there is one faction, and everything is drawn from it. The stories behind those projects
-          are in <PostLink slug="all-in-one-dune-board-game-webapp">the earlier post</PostLink>; this section only shows
-          their shapes.
+          Getting here took five years and four projects. Their stories are in{' '}
+          <PostLink slug="all-in-one-dune-board-game-webapp">the earlier post</PostLink>, so here is only the shape the
+          faction had in each.
         </Paragraph>
-        <Planned>
-          the input-to-output diagram redrawn for each era: no inputs at all in 2021, a copy of the logo and colours on
-          every output in 2023 and 2024, and every line running from one faction in 2026.
-        </Planned>
+        <Paragraph>
+          In 2021, dune.games stored game results, and a faction was a name on one. In 2023, dune-app had a real
+          faction, but every card and token kept its own copy of the data. In 2024, dune-assets turned it around: the
+          pictures came first, and each one carried its own logo, colours and background, so changing a logo meant
+          changing it in every picture. Today there is one faction, and every piece is drawn from it.
+        </Paragraph>
+        <FiveYears />
       </Section>
       <Section title="Where it lives now">
         <Paragraph>
-          The bit technical part, kept light. The whole faction sits in one box, and it is checked against one set of
-          rules before it&rsquo;s saved. One line each on the databases: it lived on Supabase for 17 days in March 2026,
-          then moved to Convex, where the data and the server code live together and pages update live.
+          Now for the slightly technical part, kept short. The whole faction lives in one document in a factions table,
+          with everything above inside it. Before anything is saved, the server checks it against one set of rules, the
+          same rules the faction editor uses while you work.
+        </Paragraph>
+        <SavedCheck />
+        <Paragraph>
+          For 17 days in March 2026 that table lived on Supabase. Then it moved to Convex, where the data and the server
+          code live side by side, and a page updates by itself when the data behind it changes.
         </Paragraph>
         <Paragraph>
-          A nice bit of continuity: some of today&rsquo;s rules, like the ones for decals and rule text, are the 2024
-          versions almost unchanged.
+          Some of those rules are older than the site. The ones for decals and for rule text are the 2024 versions from
+          dune-assets, almost unchanged. It is nice to see something from an earlier attempt carry on.
         </Paragraph>
-        <Planned>the faction passing a check on its way into its one box.</Planned>
       </Section>
       <Section title="Why the shape matters for homebrew">
         <Paragraph>
-          Because a faction is one thing, anyone who makes a homebrew faction gets every card, token and sheet for free:
-          ready for the table, for print and play, and for the rulebook. Close warmly, pointing at the faction creator.
+          Because a faction is one thing, whoever makes a homebrew faction gets the whole set with it: every card, token
+          and sheet, ready for the table, for print and play, and for the rulebook.
         </Paragraph>
-        <Planned>
-          a community homebrew faction shown as its finished set: sheet, tokens and cards together. Until it&rsquo;s
-          made, the picture below stands in.
-        </Planned>
-        <Figure
-          imageKey="/web/blog/running-from-databases/then-and-now.jpg"
-          alt="The Atreides faction sheet from the 2023 prototype next to the House Atreides page on dune.zone"
-          aspect={823 / 2048}
-          caption="Stand-in closing picture."
-        />
+        <Paragraph>
+          <FactionLink slug="smugglers">Smugglers</FactionLink> by Argelius is a good example. Below is its set, drawn
+          the same way as Atreides. If you have a faction of your own in mind,{' '}
+          <Anchor renderRoot={(props) => <Link {...props} to="/factions/create" />} inherit>
+            the faction creator
+          </Anchor>{' '}
+          is where it starts.
+        </Paragraph>
+        <TableSpread />
       </Section>
     </>
   );

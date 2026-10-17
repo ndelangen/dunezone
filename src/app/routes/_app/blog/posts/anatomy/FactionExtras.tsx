@@ -2,7 +2,7 @@ import { publishingCustomCard } from '@shared/assets/fixtures/publishingCustomCa
 import { publishingDeckCardback } from '@shared/assets/fixtures/publishingDeckCardback';
 import { publishingTokenFace } from '@shared/assets/fixtures/publishingTokenFace';
 import clsx from 'clsx';
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useRef } from 'react';
 
 import { CardBack } from '@game/assets/card/Back';
 import { CustomCard } from '@game/assets/card/Custom';
@@ -11,6 +11,7 @@ import { card, disc } from '@game/data/sizes';
 
 import styles from './FactionExtras.module.css';
 import { FACTION, OUTPUTS, Scaled } from './FactionRecipe';
+import { useSeen } from './useSeen';
 
 /*
  * The figure for a faction's extras: the whole Atreides set laid out in one compact tray, and a custom deck and token bundle from the asset catalogue slotting in beside it.
@@ -29,30 +30,6 @@ const BUNDLE_TOKENS = [
   { ...publishingTokenFace, top: 'PRESCIENCE', image: '/vector/icon/ambassador.svg' },
   { ...publishingTokenFace, top: 'SPICE', image: '/vector/icon/projectile.svg' },
 ] as const;
-
-/** Whether the figure has been on screen, so the extras slide in when the reader gets there rather than on page load. */
-function useSeen(rootRef: React.RefObject<HTMLElement | null>) {
-  const [seen, setSeen] = useState(false);
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root || typeof IntersectionObserver === 'undefined') {
-      setSeen(true);
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
-          setSeen(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.6 }
-    );
-    observer.observe(root);
-    return () => observer.disconnect();
-  }, [rootRef]);
-  return seen;
-}
 
 export function FactionExtras() {
   const rootRef = useRef<HTMLDivElement>(null);

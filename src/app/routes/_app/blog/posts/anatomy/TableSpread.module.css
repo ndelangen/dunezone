@@ -1,0 +1,103 @@
+/*
+ * A game table seen from above, with a faction's pieces laid down on it at slight angles.
+ * The cloth is drawn with gradients, so the figure needs no photo; the pieces sit in named grid areas, which a phone rearranges.
+ */
+.root {
+  --output-height: 4.75rem;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-self: center;
+  width: min(52rem, calc(100vw - 2 * var(--app-shell-inline-gutter, 20px)));
+  margin: 0;
+}
+
+.table {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  justify-content: center;
+  grid-template-areas:
+    "sheet shield shield"
+    "sheet traitors alliance"
+    "sheet leaders leaders"
+    "token troops troops";
+  place-items: center;
+  gap: var(--space-md) var(--space-lg);
+  padding: var(--space-xl) var(--space-lg);
+  border-radius: var(--mantine-radius-md);
+  background:
+    radial-gradient(ellipse at 30% 20%, rgb(255 255 255 / 6%), transparent 60%),
+    repeating-linear-gradient(45deg, rgb(0 0 0 / 6%) 0 2px, transparent 2px 5px),
+    linear-gradient(160deg, #3b2a1d, #22170f);
+  box-shadow: inset 0 0 60px rgb(0 0 0 / 60%);
+}
+
+.placed {
+  --tilt: 0deg;
+
+  display: block;
+  transform: rotate(var(--tilt));
+}
+
+.sheet {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* The leaders lie in a loose row, each a little off the line. */
+.leaders {
+  display: flex;
+  gap: calc(var(--output-height) * 0.12);
+}
+
+.leader {
+  --index: 0;
+
+  transform: translateY(calc((var(--index) - 2) * (var(--index) - 2) * 0.12rem))
+    rotate(calc(var(--index) * 7deg - 14deg));
+}
+
+.fan {
+  display: flex;
+}
+
+.fan > * + * {
+  margin-inline-start: calc(var(--output-height) * -0.85);
+  transform: rotate(7deg);
+  transform-origin: bottom left;
+}
+
+.troops {
+  display: flex;
+  gap: calc(var(--output-height) * 0.1);
+}
+
+.caption {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+  text-align: center;
+}
+
+/* On a phone the sheet takes the top of the table and the rest gathers beneath it. */
+@container blog-article (width < 36rem) {
+  .root {
+    --output-height: 2.6rem;
+
+    width: 100%;
+  }
+
+  .table {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      "sheet sheet"
+      "shield shield"
+      "traitors alliance"
+      "leaders leaders"
+      "token troops";
+    padding: var(--space-lg) var(--space-sm);
+    border-radius: 0;
+  }
+}
