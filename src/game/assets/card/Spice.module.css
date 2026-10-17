@@ -1,4 +1,5 @@
-.shape {
+/* Card.module.css's .shape sets the decal frame with the `background` shorthand. On a tie the sheet a page loads last wins, which in the card editor is that one, so this selector outranks it. */
+div.shape {
   background-image: url("/image/card/base-full-large.webp");
 }
 
@@ -72,7 +73,7 @@
 }
 
 .map[data-board] {
-  /* A saved board brings its own colours; burnt into the card's frame art like the classic vector, the frame's dark panel shows through it. */
+  /* A saved board brings its own colours and its tints' colours; burnt into the parchment like the classic vector, they would not match the table. */
   mix-blend-mode: normal;
 }
 
