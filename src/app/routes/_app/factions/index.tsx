@@ -490,7 +490,11 @@ function FilteredEmptyState({ complete, onReset }: { complete: boolean; onReset:
       <Stack gap="sm" align="center">
         <Title order={2}>No factions found</Title>
         <Text c="dimmed">Try another search or reset the catalogue filters.</Text>
-        {complete ? null : <IncompleteNotice />}
+        {complete ? null : (
+          <Text size="xs" c="dimmed" ta="center">
+            Only the first matches of this search were checked. Add a word to narrow it.
+          </Text>
+        )}
         <Button variant="default" onClick={onReset}>
           Reset filters &amp; search
         </Button>

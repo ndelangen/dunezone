@@ -9,7 +9,7 @@ import { catalogueFactionData, CATALOGUE_STAMP } from './factions.catalogue.test
 import { factionAuthor, factionTest } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
-const noDrift = { missing: [], stale: [], duplicated: [], unordered: [], orphaned: [] };
+const noDrift = { missing: [], stale: [], duplicated: [], unordered: [], orphaned: [], overcounted: [] };
 
 async function world() {
   const t = factionTest();
@@ -130,13 +130,14 @@ describe('catalogue entry maintenance', () => {
 
     await t.mutation(internal.migrations.catalogue_entries_factions_v1, {});
     await t.finishAllScheduledFunctions(() => undefined);
-    expect(await drift()).toMatchObject(noDrift);
-    /* The ghost of the deleted original still counts until the prune runs. */
+    /* The ghost of the deleted original still counts until the prune runs, and the drift report says so. */
+    expect(await drift()).toMatchObject({ ...noDrift, overcounted: ['name', 'created', 'updated', 'complexity'] });
     expect((await t.query(api.factions.catalogue, {})).catalogueTotal).toBe(3);
 
     await t.mutation(internal.catalogueMaintenance.catalogue_order_prune, {});
     await t.finishAllScheduledFunctions(() => undefined);
     expect(await t.query(api.factions.catalogue, {})).toMatchObject({ catalogueTotal: 2, total: 2 });
     expect(await names()).toEqual(['Atreides', 'Fremen']);
+    expect(await drift()).toMatchObject(noDrift);
   });
 });

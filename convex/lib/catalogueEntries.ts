@@ -6,6 +6,7 @@ import { canonicalJson } from './canonicalJson';
 import type { CatalogueEntryFields, CatalogueKind } from './catalogueEntryShape';
 import {
   ALL_PARTITION,
+  countOrderItems,
   insertMissingOrderItems,
   missingOrderItems,
   registerCatalogueOrderTriggers,
@@ -170,6 +171,8 @@ export type CatalogueDrift = {
   unordered: string[];
   /** An entry whose source should not be in that list. */
   orphaned: Id<'catalogue_entries'>[];
+  /** A sort whose whole-catalogue order holds more items than there are entries, which a delete without its trigger leaves; checked only when the scan read every entry. */
+  overcounted: string[];
 };
 
 async function recordSourceDrift(ctx: QueryCtx, kind: CatalogueKindName, sourceIds: string[], drift: CatalogueDrift) {
@@ -193,6 +196,17 @@ async function orphanedEntries(ctx: QueryCtx, kind: CatalogueKindName, entries: 
   return orphaned;
 }
 
+async function overcountedSorts(ctx: QueryCtx, kind: CatalogueKindName, entries: Doc<'catalogue_entries'>[]) {
+  const listed = entries.filter((entry) => entry.partition === ALL_PARTITION).length;
+  const overcounted: string[] = [];
+  for (const sort of CATALOGUE_KINDS[kind].sorts) {
+    if ((await countOrderItems(ctx, [kind, sort, ALL_PARTITION])) > listed) {
+      overcounted.push(sort);
+    }
+  }
+  return overcounted;
+}
+
 /**
  * Compares one kind's entries with the canonical rows, both ways, within one bounded scan of each.
  * Every sampled source and every sampled entry is checked by its own source id, so the two scans need not cover the same rows.
@@ -212,8 +226,12 @@ export async function catalogueDrift(ctx: QueryCtx, kind: CatalogueKindName, lim
     duplicated: [],
     unordered: [],
     orphaned: [],
+    overcounted: [],
   };
   await recordSourceDrift(ctx, kind, sourceIds, drift);
   drift.orphaned = await orphanedEntries(ctx, kind, entries);
+  if (entries.length < limit) {
+    drift.overcounted = await overcountedSorts(ctx, kind, entries);
+  }
   return drift;
 }

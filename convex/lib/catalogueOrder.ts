@@ -127,7 +127,7 @@ export async function listOrderNamespaces(ctx: QueryCtx) {
   return namespaces;
 }
 
-/** How many items the aggregate holds for one list in one order; the drift check compares it with the entries. */
+/** How many items the aggregate holds for one list in one order; the drift report compares it with the entries to find leftovers. */
 export async function countOrderItems(ctx: QueryCtx, namespace: OrderNamespace) {
   return await catalogueOrder.count(ctx, { namespace });
 }
@@ -230,7 +230,7 @@ async function aggregatePage(ctx: QueryCtx, request: CataloguePageRequest, offse
 /** At most `CATALOGUE_BOUNDED_READ` matches, from the search index or the complexity index, ordered and paged in memory. */
 async function boundedPage(ctx: QueryCtx, request: CataloguePageRequest, offset: number) {
   const { kind, partition, sort, direction, pageSize, search } = request;
-  const range = request.complexity ?? [0, 10];
+  const range = request.complexity;
   const read = search
     ? await ctx.db
         .query('catalogue_entries')
@@ -244,11 +244,13 @@ async function boundedPage(ctx: QueryCtx, request: CataloguePageRequest, offset:
           q
             .eq('kind', kind)
             .eq('partition', partition)
-            .gte('complexity_score', range[0])
-            .lte('complexity_score', range[1])
+            .gte('complexity_score', range?.[0] ?? 0)
+            .lte('complexity_score', range?.[1] ?? 10)
         )
         .take(CATALOGUE_BOUNDED_READ);
-  const matches = read.filter((entry) => entry.complexity_score >= range[0] && entry.complexity_score <= range[1]);
+  const matches = range
+    ? read.filter((entry) => entry.complexity_score >= range[0] && entry.complexity_score <= range[1])
+    : read;
   if (!search?.relevance) {
     matches.sort(compareBy(sort, direction));
   }
