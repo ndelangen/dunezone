@@ -20,6 +20,19 @@ export const Login = meta.story({
     await expect(page.getAllByRole('button', { name: /^Continue with / })).toHaveLength(2);
   },
 });
+export const LoginAfterUnfinishedSignIn = meta.story({
+  args: { path: '/auth/login?redirect=%2Ffactions%2Fcreate&failed=unfinished' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const alert = await page.findByRole('alert', {}, { timeout: 30_000 });
+    await expect(alert).toHaveTextContent('You are not signed in');
+    await expect(alert).toHaveTextContent('The sign-in did not finish.');
+    await expect(
+      page.findByRole('button', { name: 'Continue with Google' }, { timeout: 30_000 })
+    ).resolves.toBeInTheDocument();
+  },
+});
 export const OAuthError = meta.story({
   args: { path: '/auth/error?error=oauth_failed' },
   parameters: { identity: null },
