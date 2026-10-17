@@ -7,7 +7,7 @@ import { ImagePlus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const BOARD_SIZE = 487.06;
-export const TRACING_SCALE = { min: 0.1, max: 4 } as const;
+const TRACING_SCALE = { min: 0.1, max: 4 } as const;
 
 /**
  * A picture the author traces over while drawing territories.
@@ -86,7 +86,7 @@ export function useTracingImage() {
   };
 }
 
-export function tracingBox(tracing: TracingImage) {
+function tracingBox(tracing: TracingImage) {
   const fit = (BOARD_SIZE / Math.max(tracing.width, tracing.height)) * tracing.scale;
   const width = tracing.width * fit,
     height = tracing.height * fit;
