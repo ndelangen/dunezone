@@ -107,6 +107,27 @@ describe('AssetExplainer annotation projection', () => {
     );
   });
 
+  it('names a source not yet chosen and leaves every entry unplaced on a default square', () => {
+    const projection = projectRulebookAssetExplainerAnnotations({ ...block(), source: { status: 'unselected' } });
+    expect(projection).toMatchObject({
+      sourceStatus: 'unselected',
+      sourceName: 'No source selected',
+      width: 1000,
+      height: 1000,
+    });
+    expect(projection.sourceKind).toBeUndefined();
+    expect(projection.sourceShadow).toBeUndefined();
+    expect(projection.entries.map(({ id, status, marker }) => ({ id, status, marker }))).toEqual([
+      { id: 'NAME', status: 'unselected', marker: undefined },
+      { id: 'MARK', status: 'unselected', marker: undefined },
+    ]);
+    const empty = projectRulebookAssetExplainerAnnotations({ ...block(), source: { status: 'unselected' }, items: [] });
+    expect(empty.entries).toEqual([]);
+    const svg = composeRulebookAssetExplainerSvg({ projection: empty, imageDataUrl: 'data:image/jpeg;base64,AAAA' });
+    expect(svg).toContain('<title>No source selected</title>');
+    expect(svg).not.toContain('<image');
+  });
+
   it('rejects unsafe geometry without rendering its paths', () => {
     const original = block();
     if (original.source.status !== 'ready') {

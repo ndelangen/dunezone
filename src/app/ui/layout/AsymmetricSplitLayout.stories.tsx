@@ -3,7 +3,12 @@ import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
 import { AsymmetricSplitLayout } from './AsymmetricSplitLayout';
-import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
+import {
+  expectSideBySideSlots,
+  expectStackedSlots,
+  expectStressColumnKeepsItsTrack,
+  LayoutSlotPlaceholder,
+} from './LayoutSlotPlaceholder.stories.fixture';
 
 const meta = preview.meta({
   component: AsymmetricSplitLayout,
@@ -31,6 +36,9 @@ export const TwoColumns = meta.story({
     </AsymmetricSplitLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    await expectSideBySideSlots(canvasElement, ['wide', 'narrow']);
+  },
 });
 
 /** Below it: one reading column, wide first. Driven by the container, not the viewport. */
@@ -44,6 +52,9 @@ export const Stacked = meta.story({
     </AsymmetricSplitLayout>
   ),
   globals: { viewport: { value: 'appConstrained' } },
+  play: async ({ canvasElement }) => {
+    await expectStackedSlots(canvasElement, ['wide', 'narrow']);
+  },
 });
 
 /** The narrow column on the leading side, for alternating a picture from one pane to the next. */
@@ -116,6 +127,9 @@ export const IntrinsicSizingStress = meta.story({
     </AsymmetricSplitLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    await expectStressColumnKeepsItsTrack(canvasElement);
+  },
 });
 
 /** `narrowFallback="hide"` keeps the columns side by side where the default would stack them. */

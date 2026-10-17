@@ -5,6 +5,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
 
+import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -12,7 +13,17 @@ const meta = preview.meta({
   ...pageStoryMeta,
 });
 
-export const Directory = meta.story({ args: { path: '/profiles' } });
+export const Directory = meta.story({
+  args: { path: '/profiles' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    await expect(main.findByRole('link', { name: /storybook-viewer/ }, { timeout: 30_000 })).resolves.toHaveAttribute(
+      'href',
+      '/profiles/storybook-viewer'
+    );
+  },
+});
 /**
  * A contributor page, whose FAQ activity cites rulesets by their covers.
  *
@@ -56,6 +67,7 @@ export const DetailTablet = meta.story({
 });
 export const Settings = meta.story({
   args: { path: '/profiles/storybook-viewer/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Display name', 'storybook-viewer'),
 });
 
 export const BoardGameGeekLink = meta.story({
@@ -155,16 +167,37 @@ export const SettingsSignedOut = meta.story({
     await expect(page.queryByRole('button', { name: 'Save profile' })).toBeNull();
   },
 });
+/** The deletion page once loaded, with its delete control held back until the outcome is acknowledged. */
+async function findDeletionPage(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  await expect(
+    page.findByRole('heading', { name: 'Delete account', level: 1 }, { timeout: 30_000 })
+  ).resolves.toBeVisible();
+  await expect(page.findByRole('button', { name: 'Delete account' }, { timeout: 30_000 })).resolves.toBeDisabled();
+  return page;
+}
+
 export const DeleteAccount = meta.story({
   args: { path: '/profiles/storybook-viewer/delete' },
+  play: async ({ canvasElement }) => {
+    const page = await findDeletionPage(canvasElement);
+    await expect(page.getByRole('button', { name: 'Choose a replacement owner' })).toBeVisible();
+  },
 });
 
+/** With nobody to hand ownership to, the page says what will be soft-deleted and still waits for the acknowledgement. */
 export const DeleteAccountReplacementPicker = meta.story({
   args: { path: '/profiles/storybook-viewer/delete' },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Choose a replacement owner' }, { timeout: 30_000 }));
+    const page = await findDeletionPage(canvasElement);
+    const ownership = within(page.getByRole('list'));
+    for (const kind of ['Groups', 'Factions', 'Rulesets', 'Assets']) {
+      await expect(ownership.getByText(new RegExp(`^${kind}: active ownership`))).toBeVisible();
+    }
+    await userEvent.click(page.getByRole('button', { name: 'Choose a replacement owner' }));
     await waitForFrame(() => page.getByText('No other active profiles are available.'), { timeout: 30_000 });
+    await expect(page.getByText('No replacement selected')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Delete account' })).toBeDisabled();
   },
 });
 

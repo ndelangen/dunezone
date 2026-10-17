@@ -289,7 +289,15 @@ export const HiddenZone = meta.story({
 });
 
 /** The battle beacon at the Battle phase: pick the acrylic disc up over the tracker's Battle disc and drop it on a territory; it lies flat and fades as the battle shows. */
-export const BattleBeacon = meta.story({ args: { step: chapter('Battle') } });
+export const BattleBeacon = meta.story({
+  args: { step: chapter('Battle') },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('button', { name: 'Drag battle marker onto territory' }, { timeout: 30_000 })
+    ).resolves.toBeInTheDocument();
+  },
+});
 
 /** An HMS plate for seat 1's faction, set down on the board where nothing stands. */
 function withHms(stored: StoredSnapshot): StoredSnapshot {

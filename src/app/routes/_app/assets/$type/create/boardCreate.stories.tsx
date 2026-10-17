@@ -8,7 +8,15 @@ import { loadAssetPage } from '@db/assets';
 import { pageStoryMeta } from '../../../../storybookConfig';
 
 const meta = preview.meta({ ...pageStoryMeta, title: 'Assets/Board editor', args: { path: '/assets/board/create' } });
-export const Blank = meta.story({});
+/** The blank editor at rest: an unnamed board whose disc is still one undivided territory. */
+export const Blank = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('textbox', { name: 'Board name' }, { timeout: 30_000 })).resolves.toHaveValue('');
+    const territories = within(page.getByRole('tablist', { name: 'Territories' }));
+    await expect(territories.getAllByRole('tab')).toHaveLength(1);
+  },
+});
 export const Arrakis = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -21,11 +29,19 @@ export const Arrakis = meta.story({
 export const SaveAndReopen = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Load existing board' }));
+    const load = await page.findByRole('button', { name: 'Load existing board' });
+    await userEvent.click(load);
     await userEvent.click(await page.findByRole('button', { name: /^Arrakis$/ }));
     await userEvent.click(await page.findByRole('button', { name: 'Load board' }));
-    await userEvent.clear(page.getByRole('textbox', { name: 'Board name' }));
-    await userEvent.type(page.getByRole('textbox', { name: 'Board name' }), 'Authored Arrakis');
+    /*
+     * Closing the popover hands focus back to its trigger on the next animation frame.
+     * Typing before that frame lands loses the rest of the name to the trigger, and the board then saves under another slug.
+     */
+    await waitFor(() => expect(load).toHaveFocus());
+    const name = page.getByRole('textbox', { name: 'Board name' });
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Authored Arrakis');
+    await expect(name).toHaveValue('Authored Arrakis');
     await userEvent.click(page.getByRole('button', { name: 'Add sietch icon' }));
     const handle = page.getByRole('button', { name: 'Reorder decal 2' });
     handle.scrollIntoView({ block: 'center' });

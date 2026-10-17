@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, fn } from 'storybook/test';
+import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { SectionedSurface } from './SectionedSurface';
 import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
@@ -27,10 +27,20 @@ export const SingleRow = meta.story({
   args: { children: rows(1) },
 });
 
+const activations = [fn(), fn(), fn()];
+
 /** Activatable rows: the whole row is the target. Tab to one and press Enter. */
 export const ActivatableRows = meta.story({
   args: {
-    children: rows(3, (index) => ({ onActivate: fn(), ariaLabel: `Open row ${index + 1}` })),
+    children: rows(3, (index) => ({ onActivate: activations[index], ariaLabel: `Open row ${index + 1}` })),
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.tab();
+    await userEvent.tab();
+    await expect(within(canvasElement).getByRole('link', { name: 'Open row 2' })).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
+    await expect(activations[1]).toHaveBeenCalledOnce();
+    await expect(activations[0]).not.toHaveBeenCalled();
   },
 });
 
@@ -62,4 +72,9 @@ export const WideContentIsContained = meta.story({
     ),
   },
   globals: { viewport: { value: 'contentNarrow' } },
+  play: async ({ canvas, canvasElement }) => {
+    /* The pane is the surface round the table; the table itself is wider and clipped by it. */
+    const pane = canvas.getByRole('table').parentElement!.getBoundingClientRect();
+    await expect(pane.right).toBeLessThanOrEqual(canvasElement.getBoundingClientRect().right);
+  },
 });

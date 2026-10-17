@@ -14,6 +14,18 @@ const CARD_PRESETS = [
   { key: 'worthless', label: 'Worthless', background: backgroundPresets.worthless },
 ];
 
+/* Exactly one tile is chosen: the named one is checked and every other radio is not. */
+async function expectOnlyChecked(canvasElement: HTMLElement, name: string) {
+  const canvas = within(canvasElement);
+  const chosen = canvas.getByRole('radio', { name });
+  await expect(chosen).toBeChecked();
+  const others = canvas.getAllByRole('radio').filter((choice) => choice !== chosen);
+  await expect(others.length).toBeGreaterThan(0);
+  for (const other of others) {
+    await expect(other).not.toBeChecked();
+  }
+}
+
 const meta = preview.meta({
   title: 'Background Preset Control',
   component: BackgroundPresetControl,
@@ -66,6 +78,7 @@ export const Custom = meta.story({
   args: {
     value: backgroundPresets.harkonnen,
   },
+  play: async ({ canvasElement }) => expectOnlyChecked(canvasElement, 'Custom'),
 });
 
 /**
@@ -78,6 +91,7 @@ export const DeclaredCustomOverAMatchingValue = meta.story({
     value: backgroundPresets.weapon,
     declaredCustom: true,
   },
+  play: async ({ canvasElement }) => expectOnlyChecked(canvasElement, 'Custom'),
 });
 
 /** A gradient preset, the case reference equality used to miss and value equality now catches. */
@@ -89,4 +103,5 @@ export const GradientPreset = meta.story({
     ],
     value: backgroundPresets.stripedWeapon,
   },
+  play: async ({ canvasElement }) => expectOnlyChecked(canvasElement, 'Striped'),
 });

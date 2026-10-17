@@ -50,6 +50,13 @@ export const CenterOnly = meta.story({
   args: {
     children: [<Toolbar.Center key="center">{wideControl}</Toolbar.Center>],
   },
+  play: async ({ canvasElement }) => {
+    const filler = canvasElement.querySelector('[aria-hidden]')!;
+    /* The filler sits in the centre slot, inside the toolbar's row. */
+    const toolbar = filler.parentElement!.parentElement!.getBoundingClientRect();
+    const centre = filler.getBoundingClientRect();
+    await expect(Math.abs(centre.left + centre.width / 2 - (toolbar.left + toolbar.width / 2))).toBeLessThanOrEqual(1);
+  },
 });
 
 /** Runs of actions stand in the kit's order whatever order the page hands them over in, with a wider gap between kinds and one thin divider before commit: content, access, discard, then commit at the edge. */
@@ -60,15 +67,23 @@ export const Clusters = meta.story({
         {control}
       </Toolbar.Left>,
       <Toolbar.Right key="right" label="Actions">
-        <Toolbar.Cluster kind="commit">{control}</Toolbar.Cluster>
-        <Toolbar.Cluster kind="discard">{control}</Toolbar.Cluster>
+        <Toolbar.Cluster kind="commit">{action('Save')}</Toolbar.Cluster>
+        <Toolbar.Cluster kind="discard">{action('Delete')}</Toolbar.Cluster>
         <Toolbar.Cluster kind="content">
-          {control}
-          {control}
+          {action('Create')}
+          {action('Open')}
         </Toolbar.Cluster>
-        <Toolbar.Cluster kind="access">{control}</Toolbar.Cluster>
+        <Toolbar.Cluster kind="access">{action('Assign')}</Toolbar.Cluster>
       </Toolbar.Right>,
     ],
+  },
+  play: async ({ canvasElement }) => {
+    const actions = within(canvasElement).getByRole('group', { name: 'Actions' });
+    await expect(
+      within(actions)
+        .getAllByRole('button')
+        .map((button) => button.getAttribute('aria-label'))
+    ).toEqual(['Create', 'Open', 'Assign', 'Delete', 'Save']);
   },
 });
 

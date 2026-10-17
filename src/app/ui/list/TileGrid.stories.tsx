@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { expect, within } from 'storybook/test';
 
 import { OpenableTile } from '../block/OpenableTile';
 import { TileGrid } from './TileGrid';
@@ -29,4 +30,10 @@ export const Default = meta.story({
       ))}
     </TileGrid>
   ),
+  play: async ({ canvasElement }) => {
+    const links = within(canvasElement).getAllByRole('link');
+    await expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual(
+      [1, 2, 3, 4, 5].map((index) => [`Tile ${index}`, `#tile-${index}`])
+    );
+  },
 });

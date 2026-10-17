@@ -35,4 +35,7 @@ export const WithAvatar = meta.story({
 /** For tight contexts: an avatar group, a table cell. `title` keeps the name reachable. */
 export const AvatarOnly = meta.story({
   args: { image: '/web/logo.svg', showName: false, title: 'Central' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('link', { name: 'Central' })).toHaveAttribute('title', 'Central');
+  },
 });

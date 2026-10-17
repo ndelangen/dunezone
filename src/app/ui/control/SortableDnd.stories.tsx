@@ -8,6 +8,7 @@ import {
 } from '@dnd-kit/sortable';
 import preview from '@sb/preview';
 import { useState } from 'react';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { SortableItem } from './SortableItem';
 import { SortableReorderHandle } from './SortableReorderHandle';
@@ -68,6 +69,26 @@ function SortableListDemo({ silent = false }: { silent?: boolean }) {
 
 export const VerticalList = meta.story({
   render: () => <SortableListDemo />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const portal = within(canvasElement.ownerDocument.body);
+    const handle = canvas.getByRole('button', { name: 'Reorder Alpha' });
+    handle.focus();
+    await userEvent.keyboard('[Space]');
+    await waitFor(() => expect(handle).toHaveAttribute('aria-pressed', 'true'));
+    await userEvent.keyboard('[ArrowDown]');
+    await waitFor(() =>
+      expect(portal.getByText('Draggable item Alpha was moved over droppable area Bravo.')).toBeInTheDocument()
+    );
+    await userEvent.keyboard('[Space]');
+    await waitFor(() =>
+      expect(canvas.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+        '1. Bravo',
+        '2. Alpha',
+        '3. Charlie',
+      ])
+    );
+  },
 });
 
 export const SilentHandles = meta.story({

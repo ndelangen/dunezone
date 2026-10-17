@@ -171,6 +171,17 @@ export const ContentDrivenHeight = meta.story({
       },
     },
   },
+  play: async ({ canvasElement }) => {
+    /* The rail ends with its last tab; the list itself stretches with the surface. */
+    const lastTab = within(canvasElement).getAllByRole('tab').at(-1)!.getBoundingClientRect();
+    await waitFor(async () => {
+      const surface = canvasElement.querySelector('[class*="glassSurface"]')!.getBoundingClientRect();
+      const contour = canvasElement.querySelector('svg[class*="geometryContour"] path')!.getBoundingClientRect();
+      await expect(surface.bottom).toBeGreaterThan(lastTab.bottom + 100);
+      /* The contour is drawn round the whole surface, not just the rail. */
+      await expect(contour.bottom).toBeCloseTo(surface.bottom, -1);
+    });
+  },
 });
 
 export const ResizeDrivenGeometry = meta.story({

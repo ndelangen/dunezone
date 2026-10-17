@@ -35,6 +35,8 @@ const revealedArgs = {
   troops: [troop],
 } satisfies ComponentProps<typeof BattleWheel>;
 
+const wheelCards = [treacheryCardFixtures.maulaPistol, treacheryCardFixtures.shield];
+
 const meta = preview.meta({
   component: BattleWheel,
   parameters: { layout: 'centered' },
@@ -73,7 +75,7 @@ export const WithLeader = meta.story({
 export const WithCards = meta.story({
   args: {
     ...revealedArgs,
-    cards: [treacheryCardFixtures.maulaPistol, treacheryCardFixtures.shield].map((front) => (
+    cards: wheelCards.map((front) => (
       <div key={front.name} style={{ width: 60, height: (60 * card.height) / card.width }}>
         <div
           style={{
@@ -89,6 +91,14 @@ export const WithCards = meta.story({
     )),
     adjustment: 1.5,
     strength: 3 * 1 + 2 * 0.5 + 1.5,
+  },
+  /* Both played cards sit above the wheel, and a positive adjustment reads as a signed bonus. */
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const { name } of wheelCards) {
+      await expect(canvas.getByText(name)).toBeInTheDocument();
+    }
+    await expect(canvas.getByLabelText('Strength adjustment plus 1.5')).toHaveTextContent('+1.5');
   },
 });
 export const MultipleTroopFaces = meta.story({

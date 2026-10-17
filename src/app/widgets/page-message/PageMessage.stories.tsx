@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { expect, within } from 'storybook/test';
 
 import { LoginGate } from './LoginGate';
 import { PageMessage } from './PageMessage';
@@ -52,5 +53,10 @@ export const NoWayBack = meta.story({
     title: 'Factions',
     back: undefined,
     children: <LoadPending title="Loading factions">The faction catalogue is still loading.</LoadPending>,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('heading', { name: 'Factions' })).toBeVisible();
+    await expect(canvas.queryByRole('link')).toBeNull();
   },
 });

@@ -163,10 +163,20 @@ export const AfterAWin = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const startAt = await page.findByRole('group', { name: 'Start new bidding starting at' }, { timeout: 30_000 });
     await expect(within(startAt).getByRole('button', { name: /Harkonnen/ })).toBeEnabled();
+    await expect(page.getByText('House Harkonnen wins with 5')).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Reset bidder' }));
     await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-reset' }));
   },
 });
+
+/** How opaque an element is drawn, its own opacity times every ancestor's. */
+function drawnOpacity(element: Element) {
+  let opacity = 1;
+  for (let node: Element | null = element; node; node = node.parentElement) {
+    opacity *= Number(getComputedStyle(node).opacity);
+  }
+  return opacity;
+}
 
 export const Faded = meta.story({
   beforeEach: biddingSetup({
@@ -181,8 +191,10 @@ export const Faded = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     /* The bidder's face draws with the table, after the top bar, so the story waits for it before fading. */
     const bidder = await page.findByRole('button', { name: /Raise the bid to 4/ }, { timeout: 30_000 });
+    await expect(drawnOpacity(bidder)).toBe(1);
     await userEvent.click(page.getByRole('button', { name: 'Fade bidder' }));
     await expect(page.getByRole('button', { name: 'Show bidder' })).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => expect(drawnOpacity(bidder)).toBeLessThan(0.5));
     /* A faded bidder still takes the raise. */
     await userEvent.click(bidder);
     await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-raise', round: 1 }));
@@ -202,6 +214,13 @@ export const HandCounts = meta.story({
     snapshot.handCounts = Object.fromEntries(factions.map((id, index) => [id, [0, 1, 2, 4, 3, 8][index % 6]!]));
     return productTransport('seat-2', snapshot);
   }),
+  /* The counts are painted into the table's canvas, so the story can only wait for the bidding phase they belong to. */
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('group', { name: 'Start new bidding starting at' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+  },
 });
 
 export const Timed = meta.story({ beforeEach: clockSetup(true) });

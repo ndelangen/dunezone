@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { parseFormattedText } from '@shared/formattedText';
+import { expect, within } from 'storybook/test';
 
 import { FormattedText, FormattedTextSource, InlineFormattedTextSource } from './FormattedText';
 import type { FormattedTextBlocks } from './FormattedText';
@@ -49,6 +50,12 @@ export const NestedMarks = meta.story({
 export const StoredSource = meta.story({
   args: { blocks: [] },
   render: () => <FormattedTextSource source={'A *formatted* paragraph.\n\n- First point\n- Second point'} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('formatted').tagName).toBe('STRONG');
+    const items = within(canvas.getByRole('list')).getAllByRole('listitem');
+    await expect(items.map((item) => item.textContent)).toEqual(['First point', 'Second point']);
+  },
 });
 
 export const InlineSource = meta.story({

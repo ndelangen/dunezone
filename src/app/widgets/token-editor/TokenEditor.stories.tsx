@@ -96,6 +96,12 @@ export const BackFromAnotherToken = meta.story({
 /** Chosen but not yet picked, which is the state the draft holds between the tile and the pick. */
 export const BackReferenceNotYetPicked = meta.story({
   args: { draft: discDraftWith({ mode: 'reference', asset_id: null }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('radio', { name: "Another token's back" })).toBeChecked();
+    await expect(canvas.getByText('No token chosen')).toBeVisible();
+    await expect(canvas.getByText('Choose a token…')).toBeVisible();
+  },
 });
 
 /** Raster illustrations stay in card editors while token symbols use SVG fragments. */

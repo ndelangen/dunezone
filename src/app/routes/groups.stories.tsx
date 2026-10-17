@@ -3,6 +3,7 @@ import { expect, waitFor, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
 
+import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -93,7 +94,11 @@ export const DetailNotAMember = meta.story({
     await expect(page.findByRole('button', { name: 'Request membership' })).resolves.toBeVisible();
   },
 });
-export const Create = meta.story({ args: { path: '/groups/create' } });
+/** A group editor at rest is mounted once its Name field reads what the page loaded. */
+export const Create = meta.story({
+  args: { path: '/groups/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Group name', ''),
+});
 
 /**
  * The create page reached by a reader who is not signed in: the gate frame, not the form.
@@ -111,6 +116,7 @@ export const CreateSignedOut = meta.story({
 });
 export const Edit = meta.story({
   args: { path: '/groups/arrakeen-rules-council/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Group name', 'Arrakeen Rules Council'),
 });
 
 /**

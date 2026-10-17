@@ -210,13 +210,17 @@ export const SettingsKeepLabelsOn = meta.story({
   },
 });
 
-/* Eight shared slots holding the published traitor deck, a treachery deck, a card and five tokens. */
+/* The pieces the eight shared slots hold, in slot order: the published traitor deck, a treachery deck, a card and five tokens. */
+function sharedSlotPieces(snapshot: ReturnType<typeof playingSnapshot>) {
+  const cards = snapshot.table.pieces.filter((piece) => piece.kind === 'card');
+  const troops = snapshot.table.pieces.filter((piece) => piece.kind === 'force' && !piece.inventory).slice(0, 5);
+  return [...cards, ...troops];
+}
+
 export const SharedItemSlots = meta.story({
   beforeEach: install(() => {
     const snapshot = playingSnapshot();
-    const cards = snapshot.table.pieces.filter((piece) => piece.kind === 'card');
-    const troops = snapshot.table.pieces.filter((piece) => piece.kind === 'force' && !piece.inventory).slice(0, 5);
-    [...cards, ...troops].forEach((piece, index) => {
+    sharedSlotPieces(snapshot).forEach((piece, index) => {
       piece.orientation = 0;
       piece.position = restingPositionAt(SHARED_ITEM_PLACEMENT_ANCHORS[index]!.position, piece);
       piece.zoneId = null;
@@ -228,6 +232,24 @@ export const SharedItemSlots = meta.story({
     await userEvent.click(page.getByRole('button', { name: /^Focus on bottom/ }));
     await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'bottom'));
     await waitForPlayCamera(document);
+    /* The scene mounts a count tag for every piece it draws, so each of the eight slots' pieces is on the table. */
+    const pieces = sharedSlotPieces(playingSnapshot());
+    await expect(pieces).toHaveLength(SHARED_ITEM_PLACEMENT_ANCHORS.length);
+    for (const { id } of pieces) {
+      await waitFor(() => expect(shell.querySelector(`[data-piece-id="${id}"]`)).toBeInTheDocument());
+    }
+    /* The slots are two rows of four along the bottom edge: each row's tags run left to right in slot order, and the second row sits nearer the viewer. */
+    const centers = pieces.map(({ id }) => {
+      const rect = shell.querySelector(`[data-piece-id="${id}"]`)!.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    });
+    const [far, near] = [centers.slice(0, 4), centers.slice(4)];
+    for (const row of [far, near]) {
+      for (let slot = 1; slot < row.length; slot += 1) {
+        await expect(row[slot]!.x).toBeGreaterThan(row[slot - 1]!.x);
+      }
+    }
+    await expect(Math.min(...near.map(({ y }) => y))).toBeGreaterThan(Math.max(...far.map(({ y }) => y)));
   },
 });
 
@@ -244,7 +266,8 @@ export const SpiceMenuName = meta.story({
     await waitFor(() => expect(document.querySelector('[data-scene-ready="true"] canvas')).not.toBeNull(), {
       timeout: 30_000,
     });
-    await openPieceMenu(document, spice, 'Spice actions');
+    const menu = await openPieceMenu(document, spice, 'Spice actions');
+    await expect(within(menu).getByRole('menuitem', { name: 'Take into spice reserve' })).toBeEnabled();
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(within(document.body).queryByRole('menu')).toBeNull());
   },

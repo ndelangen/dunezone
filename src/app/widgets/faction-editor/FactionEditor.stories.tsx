@@ -128,4 +128,9 @@ export const Problems = meta.story({
     faction: problematicFaction,
     errors: ['The faction could not be saved. Try again without losing this draft.'],
   },
+  play: async ({ args, canvasElement }) => {
+    const alert = within(canvasElement).getByRole('alert');
+    await expect(alert).toHaveTextContent('Could not save');
+    await expect(alert).toHaveTextContent(args.errors[0]!);
+  },
 });

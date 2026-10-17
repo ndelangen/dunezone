@@ -15,4 +15,9 @@ describe('nameDiscColor', () => {
     const colours = ['Arrakeen Rules Council', 'Spacing Guild', 'House Atreides', 'Fremen Council'].map(nameDiscColor);
     expect(new Set(colours).size).toBe(colours.length);
   });
+
+  it('mixes blue with a little red between 240 and 300 degrees', () => {
+    /* The Landsraad hashes to hue 245, where red rises from the floor while green stays on it. */
+    expect(nameDiscColor('The Landsraad')).toBe('#474280');
+  });
 });
