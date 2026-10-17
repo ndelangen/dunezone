@@ -13,7 +13,7 @@ const MAX_PATH_LENGTH = 20_000;
 const TYPE_GROUPS = { stronghold: 'strongholds', rock: 'rock', sand: 'sand', polar: 'polar' } as const;
 
 /** The maintained Arrakis part key for a territory: Play's territory ID spelled with hyphens. */
-export const boardPartKey = (name: string) => territoryId(name).replaceAll('_', '-');
+const boardPartKey = (name: string) => territoryId(name).replaceAll('_', '-');
 
 const round = (value: number) => Math.round(value * 100) / 100;
 const roundPath = (d: string) => d.replace(/-?\d+\.\d+(?:e-?\d+)?/g, (value) => String(round(Number(value))));

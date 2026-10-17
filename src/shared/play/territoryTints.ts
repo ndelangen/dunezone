@@ -14,14 +14,7 @@ import { CLIENT_MESSAGE_LIMIT } from './messageLimit';
 import { GameRejection } from './rejection';
 import { tableIdSchema as id } from './schema';
 
-export {
-  TINT_COLORS,
-  TINT_COLOR_NAMES,
-  TINT_STAMPS,
-  TINT_STAMP_NAMES,
-  tintPaint,
-  withFillOpacity,
-} from '../boards/tints';
+export { TINT_STAMP_NAMES, tintPaint } from '../boards/tints';
 export type { TintStamp } from '../boards/tints';
 
 /* The switches that are not stickers: whether a tint shows, and whether it is drawn as one outline round its territories. */

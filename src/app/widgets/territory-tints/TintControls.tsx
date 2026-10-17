@@ -38,7 +38,7 @@ function StickerIcon({ stamp }: Readonly<{ stamp: TintStamp }>) {
 }
 
 /** "Blue tint", or "Blue tint 2" when there already is one by that name. */
-export function freshTintName(color: (typeof TINT_COLORS)[number], tints: readonly TintLike[]) {
+function freshTintName(color: (typeof TINT_COLORS)[number], tints: readonly TintLike[]) {
   const base = `${TINT_COLOR_NAMES[color]} tint`;
   const names = new Set(tints.map((tint) => tint.name));
   let name = base;
@@ -49,7 +49,7 @@ export function freshTintName(color: (typeof TINT_COLORS)[number], tints: readon
 }
 
 /** A switch on a tint's row: the button looks pressed while the setting is on. */
-export function SettingToggle({
+function SettingToggle({
   label,
   on,
   enabled,

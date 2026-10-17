@@ -14,7 +14,7 @@ const LEGACY_REGIONS: Partial<Record<LegacyHighlight, (typeof SPICE_TERRITORY_TY
 const LEGACY_TERRITORIES: Partial<Record<LegacyHighlight, string>> = { polar: 'polar_sink' };
 
 /** The colour the legacy Arrakis map highlights with, as a tint keeps it. */
-export const LEGACY_HIGHLIGHT_COLOR = '#9e5f00';
+const LEGACY_HIGHLIGHT_COLOR = '#9e5f00';
 
 /**
  * A legacy card's highlights as one tint on a saved board: its regions become territory types, its territories Play's territory IDs.

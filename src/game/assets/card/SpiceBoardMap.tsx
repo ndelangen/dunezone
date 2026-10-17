@@ -37,7 +37,7 @@ export function boardTerritoryList(board: Board): Territory[] {
 }
 
 /** The board's territories a tint covers: those it names, and every current one of a type it names. */
-export function tintTerritories(board: Board, territories: readonly Territory[], tint: Tint) {
+function tintTerritories(board: Board, territories: readonly Territory[], tint: Tint) {
   const named = new Set(tint.territories);
   const types = new Set<string>(tint.types ?? []);
   return territories.filter(({ id, face }) => named.has(id) || types.has(board.properties[face.key].type));
