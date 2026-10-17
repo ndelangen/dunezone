@@ -10,7 +10,7 @@ import type { CatalogueFactionData } from '@shared/factions/schema';
 import type { FactionInput } from '@shared/factions/schema';
 import { useQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { db } from '@db/core';
 import { loadPublicPage } from '@db/core/publicPage';
@@ -206,25 +206,15 @@ export function useFactionPageSlug(id: string) {
 
 /**
  * One live catalogue page, taking `loadFactionCataloguePage`'s result for the same arguments as `initialData`.
- * The route loader answers for the new arguments before the page renders them, so its result comes first;
- * without one, the previous answer stays on screen until the new one arrives, and `isPending` says it is not yet the one asked for.
+ * A searched page is not held warm after it is left: every committed search is its own subscription, and holding each would keep re-running them on every faction write.
  */
 export function useFactionCataloguePage(
   args: FactionCatalogueArgs,
   options?: { initialData?: FactionCataloguePageData }
 ) {
-  const liveData = useLiveQuery(api.factions.catalogue, args);
-  const [shown, setShown] = useState<FactionCatalogueRaw | undefined>(undefined);
-  /* Set during render, the documented way to remember the last answer without an effect. */
-  if (liveData !== undefined && liveData !== shown) {
-    setShown(liveData);
-  }
-  const normalized = useMemo(() => (shown ? toFactionCataloguePageData(shown) : undefined), [shown]);
-  const result = toLiveQueryResult(
-    liveData === undefined ? undefined : normalized,
-    () => options?.initialData ?? normalized
-  );
-  return result;
+  const liveData = useLiveQuery(api.factions.catalogue, args, { hold: !args.q });
+  const normalized = useMemo(() => (liveData ? toFactionCataloguePageData(liveData) : undefined), [liveData]);
+  return toLiveQueryResult(normalized, () => options?.initialData);
 }
 
 /** Normalized row from `api.factions.listForLoadPicker` (group label + owner username resolved server-side). */

@@ -1,8 +1,13 @@
 import type { Infer } from 'convex/values';
 import Fuse from 'fuse.js';
 
-import { FACTION_CATALOGUE_PAGE_SIZE, parseComplexityRange } from '../../src/shared/factions/catalogueSearch';
-import type { FactionCatalogueSort } from '../../src/shared/factions/catalogueSearch';
+import {
+  FACTION_CATALOGUE_PAGE_SIZE,
+  FACTION_CATALOGUE_QUERY_LIMIT,
+  parseCataloguePage,
+  parseComplexityRange,
+} from '../../src/shared/factions/catalogueSearch';
+import type { FactionCatalogueSearch, FactionCatalogueSort } from '../../src/shared/factions/catalogueSearch';
 import { complexityOutOfTen, effectiveComplexity } from '../../src/shared/factions/complexity';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
@@ -270,13 +275,7 @@ export const factionCatalogueKind: CatalogueKind = {
  */
 const CATALOGUE_ENTRY_LIMIT = 10_000;
 
-export type FactionCatalogueQuery = {
-  q?: string;
-  ruleset?: string;
-  complexity?: string;
-  sort?: FactionCatalogueSort;
-  page?: number;
-};
+export type FactionCatalogueQuery = FactionCatalogueSearch;
 
 type Ranked = { entry: CatalogueEntryFields; score: number };
 
@@ -345,10 +344,6 @@ function selectSpotlightEntries(entries: CatalogueEntryFields[]) {
   return { newArrival, freshlyUpdated };
 }
 
-function normalizedPage(page: number | undefined) {
-  return page != null && Number.isSafeInteger(page) && page > 0 ? page : 1;
-}
-
 /**
  * One page of the Faction catalogue, the same for every viewer.
  * Filters, search and order run over the slim entries;
@@ -363,6 +358,12 @@ export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCata
       .take(CATALOGUE_ENTRY_LIMIT),
     listActiveRulesetSummaries(ctx),
   ]);
+  if (entries.length === CATALOGUE_ENTRY_LIMIT) {
+    /* Past the bound the totals and the last pages are short; the catalogue is due its move to ordered indexes. */
+    console.error(
+      `Faction catalogue read its ${CATALOGUE_ENTRY_LIMIT}-entry bound; totals and later pages are incomplete.`
+    );
+  }
   const activeRulesetById = new Map<string, FactionRulesetSummary>(rulesets.map((ruleset) => [ruleset.id, ruleset]));
 
   const factionCountByRuleset = new Map<string, number>();
@@ -383,13 +384,13 @@ export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCata
     return score >= low && score <= high;
   });
 
-  const text = query.q?.trim() ?? '';
+  const text = query.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim() ?? '';
   const ranked = text ? searchEntries(filtered, text) : filtered.map((entry) => ({ entry, score: 0 }));
   ranked.sort(comparatorFor(query.sort ?? (text ? 'relevance' : 'name')));
 
   const total = ranked.length;
   const pageCount = Math.max(1, Math.ceil(total / FACTION_CATALOGUE_PAGE_SIZE));
-  const page = normalizedPage(query.page);
+  const page = parseCataloguePage(query.page) ?? 1;
   const visible = ranked.slice((page - 1) * FACTION_CATALOGUE_PAGE_SIZE, page * FACTION_CATALOGUE_PAGE_SIZE);
 
   const card = async (entry: CatalogueEntryFields | null) => {

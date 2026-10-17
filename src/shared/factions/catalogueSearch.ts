@@ -14,6 +14,9 @@ export type FactionCatalogueSort = (typeof FACTION_CATALOGUE_SORTS)[number];
 /** How many cards one catalogue page holds. */
 export const FACTION_CATALOGUE_PAGE_SIZE = 24;
 
+/** The longest search the catalogue runs; anything past it is cut, since fuzzy matching works in short slices and no name is this long. */
+export const FACTION_CATALOGUE_QUERY_LIMIT = 100;
+
 /** The complexity filter as it round-trips through the URL: `"min-max"` on the x/10 scale. */
 export type FactionComplexityRange = [number, number];
 
@@ -48,13 +51,13 @@ export function complexityRangeSearchValue(range: FactionComplexityRange): strin
 }
 
 /** A page number as the URL may carry it: a whole number from 2 up, or nothing, which means the first page. */
-function parseCataloguePage(value: unknown): number | undefined {
+export function parseCataloguePage(value: unknown): number | undefined {
   const page = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
   return typeof page === 'number' && Number.isSafeInteger(page) && page > 1 ? page : undefined;
 }
 
 export function parseFactionCatalogueSearch(params: Record<string, unknown>): FactionCatalogueSearch {
-  const q = cleanSearchValue(params.q);
+  const q = cleanSearchValue(params.q)?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim();
   const ruleset = cleanSearchValue(params.ruleset);
   const sort = isFactionCatalogueSort(params.sort) ? params.sort : undefined;
   const complexity = complexityRangeSearchValue(parseComplexityRange(cleanSearchValue(params.complexity)));

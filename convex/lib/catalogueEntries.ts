@@ -2,6 +2,7 @@ import type { Triggers } from 'convex-helpers/server/triggers';
 
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { canonicalJson } from './canonicalJson';
 import type { CatalogueEntryFields, CatalogueKind } from './catalogueEntryShape';
 import { factionCatalogueKind } from './factionCatalogue';
 
@@ -23,22 +24,12 @@ export function isCatalogueKindName(kind: string): kind is CatalogueKindName {
 /* More than one entry per source is drift; a reconcile removes the extras it can see. */
 const DUPLICATE_ENTRY_LIMIT = 8;
 
+/** Field for field, through `canonicalJson`, so a field added to the entry is compared without touching this. */
 export function sameCatalogueEntry(entry: CatalogueEntryFields | null, expected: CatalogueEntryFields | null) {
   if (!entry || !expected) {
     return entry === expected;
   }
-  return (
-    entry.kind === expected.kind &&
-    entry.source_id === expected.source_id &&
-    entry.slug === expected.slug &&
-    entry.search_text === expected.search_text &&
-    entry.name_key === expected.name_key &&
-    entry.created_at === expected.created_at &&
-    entry.updated_at === expected.updated_at &&
-    entry.complexity === expected.complexity &&
-    entry.facets.length === expected.facets.length &&
-    entry.facets.every((facet, index) => facet === expected.facets[index])
-  );
+  return canonicalJson(entry) === canonicalJson(expected);
 }
 
 function entryFields({ _id, _creationTime, ...fields }: Doc<'catalogue_entries'>): CatalogueEntryFields {

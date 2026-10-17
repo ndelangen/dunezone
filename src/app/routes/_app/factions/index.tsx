@@ -53,7 +53,7 @@ export const Route = createFileRoute('/_app/factions/')({
   loader: async ({ deps }) => {
     const data = await loadFactionCataloguePage(deps);
     /* A page past the end is an address that does not exist, so it answers 404 and points at the last page. */
-    if (data.page > data.pageCount) {
+    if (data.total > 0 && data.page > data.pageCount) {
       throw notFound({ data: { pageCount: data.pageCount } });
     }
     return data;
@@ -510,7 +510,10 @@ function CataloguePager({
   }
   const first = (data.page - 1) * data.pageSize + 1;
   const last = Math.min(data.page * data.pageSize, data.total);
-  const target = { first: 1, previous: data.page - 1, next: data.page + 1, last: data.pageCount };
+  /* Clamped, so an edge control at the end of the range links to the page already shown rather than past it. */
+  const clamp = (page: number) => Math.min(Math.max(page, 1), data.pageCount);
+  const target = { first: 1, previous: clamp(data.page - 1), next: clamp(data.page + 1), last: data.pageCount };
+  const label = { first: 'First page', previous: 'Previous page', next: 'Next page', last: 'Last page' };
   return (
     <Stack gap="xs" align="center">
       <Pagination
@@ -519,7 +522,12 @@ function CataloguePager({
         withEdges
         aria-label="Faction catalogue pages"
         getItemProps={(page) => ({ component: Link, to: '/factions', search: pageSearch(page) })}
-        getControlProps={(control) => ({ component: Link, to: '/factions', search: pageSearch(target[control]) })}
+        getControlProps={(control) => ({
+          component: Link,
+          to: '/factions',
+          search: pageSearch(target[control]),
+          'aria-label': label[control],
+        })}
       />
       <Text size="xs" c="dimmed">
         {`${first}–${last} of ${data.total} factions`}
