@@ -83,10 +83,9 @@ const recordTableContexts = () => {
   const getContext = nativeGetContext();
   HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
     const context = Reflect.apply(getContext.value, this, [kind, ...rest]);
-    if (kind === 'webgl2' && context && this.closest('.dune-play-shell')) {
-      if (!tableContexts.some((entry) => entry.context === context)) {
-        tableContexts.push({ context, canvas: this });
-      }
+    const tableContext = kind === 'webgl2' && this.closest('.dune-play-shell') ? context : null;
+    if (tableContext && !tableContexts.some((entry) => entry.context === tableContext)) {
+      tableContexts.push({ context: tableContext, canvas: this });
     }
     return context;
   } as HTMLCanvasElement['getContext'];
