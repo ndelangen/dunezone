@@ -159,6 +159,7 @@ function CardEditSession<Draft extends LayeredCardDraft>({
       status={{ isDirty, isNameBlank: !state.data.name.trim(), saveState: saving.saveState, invalid }}
       onSave={save}
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
+      load={{ schema: config.schema, header, dispatch, afterLoad: () => setChapter('head') }}
       saveError={saving.error}
     >
       <Editor

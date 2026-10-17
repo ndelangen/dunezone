@@ -577,16 +577,50 @@ async function createOwnedAsset(ctx: MutationCtx, userId: Id<'users'>, type: str
 }
 
 export const create = mutation({
-  args: { type: v.string(), data: v.any() },
+  args: {
+    type: v.string(),
+    data: v.any(),
+    /** A deck or bundle loaded as this one's starting point: its members are copied onto the new container. */
+    members_from: v.optional(v.id('assets')),
+  },
   returns: v.object({ id: v.id('assets'), slug: v.string() }),
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     if (args.type === 'card-nexus' && !parseNexusCardInput(args.data).factionLink) {
       throw new ConvexError('Choose a faction before creating this Nexus card');
     }
-    return await createOwnedAsset(ctx, userId, args.type, args.data);
+    const created = await createOwnedAsset(ctx, userId, args.type, args.data);
+    if (args.members_from) {
+      await copyMembers(ctx, args.members_from, created.id, args.type);
+    }
+    return created;
   },
 });
+
+/**
+ * Copies a container's members onto a new container of the same type, for a deck or bundle created from a loaded one.
+ * Members are relation rows rather than data, so they cannot ride the draft and are copied here, inside the same write as the create.
+ * Every Asset is readable by everyone, so any live container of the same type is a valid source;
+ * soft-deleted members are left behind, as every read of them already does.
+ */
+async function copyMembers(ctx: MutationCtx, sourceId: Id<'assets'>, targetId: Id<'assets'>, type: string) {
+  const rules = CONTAINER_KINDS[type];
+  if (!rules) {
+    throw new ConvexError(`A ${type} has no members to copy`);
+  }
+  const source = await ctx.db.get('assets', sourceId);
+  if (!source || source.is_deleted || source.type !== type) {
+    throw new ConvexError(`The ${type} to copy from no longer exists`);
+  }
+  const { entries, truncated } = await membersOf(ctx, sourceId, rules.kind);
+  /* A partial copy would save as a success with members missing, so a source past the read limit is refused whole. */
+  if (truncated) {
+    throw new ConvexError(`This ${type} has too many members to copy`);
+  }
+  for (const { row, count } of entries) {
+    await ctx.db.insert('asset_relations', { from_asset_id: targetId, to_asset_id: row._id, kind: rules.kind, count });
+  }
+}
 
 export const update = mutation({
   args: { id: v.id('assets'), data: v.any() },

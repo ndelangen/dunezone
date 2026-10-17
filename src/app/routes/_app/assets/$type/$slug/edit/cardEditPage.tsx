@@ -13,7 +13,9 @@ import type { z } from 'zod';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
+import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import type { EditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 
 import {
   AssetEditorMessage,
@@ -171,7 +173,7 @@ export function useCardSave(type: CardType, asset: CardAsset) {
 }
 
 /** The page around a card workbench: the warnings header, the toolbar, and the save, delete and group errors. */
-export function CardEditFrame({
+export function CardEditFrame<Draft extends { name: string }>({
   type,
   asset,
   access,
@@ -179,6 +181,7 @@ export function CardEditFrame({
   status,
   onSave,
   onReset,
+  load,
   saveError,
   children,
 }: {
@@ -189,6 +192,14 @@ export function CardEditFrame({
   status: { isDirty: boolean; isNameBlank: boolean; saveState: AuthoringSaveState; invalid?: string };
   onSave: () => void;
   onReset: () => void;
+  /** Loading another card of this type into the draft; the card being edited is left out of the choices and keeps its name. */
+  load: {
+    schema: z.ZodType<Draft>;
+    header: Pick<EditPageHeader, 'releasing'>;
+    dispatch: (action: { kind: 'replace'; data: Draft }) => void;
+    /** What the page does once the loaded draft is in, such as opening its first chapter. */
+    afterLoad: () => void;
+  };
   saveError: Error | null;
   children: ReactNode;
 }) {
@@ -200,6 +211,17 @@ export function CardEditFrame({
       {headerSlot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          load={assetLoad({
+            noun: type === 'board' ? 'board' : 'card',
+            type,
+            schema: load.schema,
+            editing: asset,
+            disabled: status.saveState === 'saving',
+            onLoaded: load.header.releasing((loaded) => {
+              load.dispatch({ kind: 'replace', data: loaded.data });
+              load.afterLoad();
+            }),
+          })}
           status={status}
           copy={{
             saveLabel: 'Save card',
