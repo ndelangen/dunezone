@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { compareCodeUnits } from '../compareText';
 import { CanonicalFactionStoredObject, TroopArtwork } from '../factions/schema';
 import type { RulebookBattleSideValue } from './battleStep';
+import { resolveRulebookBoardDefinition } from './boardDefinitions';
 import { getRulebookCoverFooter } from './contents';
 import type { RulebookContentsDraftV1 } from './contents';
 import type { RulebookBoardSceneValue } from './illustratedScenes';
@@ -41,6 +42,9 @@ export function collectRulebookReferenceIds(
     if (source?.kind === 'asset') {
       assetIds.add(source.assetId);
     }
+    if (source?.kind === 'board' && !resolveRulebookBoardDefinition(source.boardId)) {
+      assetIds.add(source.boardId);
+    }
     if (source?.kind === 'faction' || source?.kind === 'faction-member' || source?.kind === 'faction-troop') {
       factionIds.add(source.factionId);
     }
@@ -56,6 +60,10 @@ export function collectRulebookReferenceIds(
     }
   };
   const collectBoard = (board: RulebookBoardSceneValue) => {
+    /* A board ID the maintained definitions do not have names a saved board asset. */
+    if (!resolveRulebookBoardDefinition(board.boardId)) {
+      assetIds.add(board.boardId);
+    }
     for (const item of [...board.players, ...board.troops]) {
       if (item.factionId) {
         factionIds.add(item.factionId);

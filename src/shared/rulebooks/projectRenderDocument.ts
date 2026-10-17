@@ -73,6 +73,22 @@ export function projectRulebookSource(
   if (artwork) {
     return artwork;
   }
+  if (reference.kind === 'board') {
+    /* A saved board resolves like any asset, and only as a board. */
+    const board = assetsById[reference.boardId];
+    return board?.type === 'board' && board.imageUrl && board.geometry
+      ? {
+          status: 'ready',
+          reference,
+          name: board.name,
+          imageUrl: board.imageUrl,
+          width: board.geometry.width,
+          height: board.geometry.height,
+          geometry: board.geometry,
+          publicationRevision: board.publicationRevision,
+        }
+      : { status: 'unavailable', reference };
+  }
   if (reference.kind === 'asset') {
     const asset = assetsById[reference.assetId];
     return asset?.imageUrl

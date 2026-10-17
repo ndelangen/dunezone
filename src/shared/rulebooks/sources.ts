@@ -84,7 +84,7 @@ export function rulebookArtworkName(path: string): string {
     .replaceAll('_', ' ');
 }
 
-/** Maintained artwork resolves locally; database-backed sources resolve in the owning route query. */
+/** Maintained artwork resolves locally; database-backed sources, saved boards among them, resolve in the owning route query. */
 export function resolveRulebookArtworkSource(reference: RulebookSourceReference): RulebookResolvedSource | null {
   if (reference.kind === 'stock') {
     return stockArtworkIds.has(reference.artworkId)
@@ -104,7 +104,7 @@ export function resolveRulebookArtworkSource(reference: RulebookSourceReference)
           geometry: board.geometry,
           publicationRevision: board.revision,
         }
-      : { status: 'unavailable', reference };
+      : null;
   }
   return null;
 }

@@ -5,6 +5,8 @@ import {
   publishedHref,
   resolvePublicationCapture,
 } from '../../src/shared/asset-publishing/publicationTargets';
+import { parseBoardData } from '../../src/shared/assets/validation';
+import { boardComponentGeometry } from '../../src/shared/boards/componentGeometry';
 import { CanonicalFactionStoredSchema, TroopArtwork } from '../../src/shared/factions/schema';
 import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
 import type {
@@ -18,6 +20,19 @@ import { assetDisplayName } from './assetInput';
 import { resolveRulebookTroopSource, rulebookTroopReferences } from './rulebookTroopSources';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
+
+/**
+ * A saved board publishes only its image, so a Rulebook reads the territories it highlights from the board's own data, in that image's frame.
+ * While a new save is still being captured the two can briefly differ;
+ * the next publication brings the image level.
+ */
+function savedBoardGeometry(data: unknown, widthPx: number, heightPx: number) {
+  try {
+    return boardComponentGeometry(parseBoardData(data).board, widthPx, heightPx);
+  } catch {
+    return null;
+  }
+}
 
 /** Resolves only the live sources this Contents references, for both the reader and publication. */
 export async function resolveRulebookReferences(
@@ -40,8 +55,12 @@ export async function resolveRulebookReferences(
               .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', asset.type).eq('asset_id', assetId))
               .unique()
           : null;
-        const geometry = componentGeometrySchema.safeParse(publication?.component_geometry);
         const capture = isPublicationAssetType(asset.type) ? resolvePublicationCapture(asset.type) : null;
+        const geometry = componentGeometrySchema.safeParse(
+          asset.type === 'board' && publication && capture?.output === 'image'
+            ? savedBoardGeometry(asset.data, capture.widthPx, capture.heightPx)
+            : publication?.component_geometry
+        );
         return [
           assetId,
           {
