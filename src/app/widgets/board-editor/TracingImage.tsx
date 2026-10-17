@@ -9,6 +9,8 @@ import { Eye, EyeOff, ImagePlus, RotateCcw, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { overflowMenuButton } from '@app/widgets/authoring/LoadExisting';
+
 const BOARD_SIZE = 487.06;
 const TRACING_SCALE = { min: 0.1, max: 4 } as const;
 
@@ -201,6 +203,19 @@ export function TracingImagePanel({
   children: ReactNode;
 }) {
   const { tracing, error, input, pick, patch, remove } = controls;
+  const toolbar = useRef<HTMLDivElement>(null);
+  const change = (next: boolean) => {
+    onChange(next);
+    if (!next) {
+      /* The trigger may have lived in the closed overflow menu, so focus falls back to that menu's button rather than the page. */
+      requestAnimationFrame(() =>
+        (
+          toolbar.current?.querySelector<HTMLButtonElement>('[data-tracing-trigger] button') ??
+          overflowMenuButton(toolbar.current)
+        )?.focus()
+      );
+    }
+  };
   const sliders = tracing
     ? ([
         [
@@ -248,16 +263,18 @@ export function TracingImagePanel({
   return (
     <Popover
       opened={opened}
-      onChange={onChange}
+      onChange={change}
       position="bottom-end"
       width={320}
       shadow="md"
       withArrow
       withRoles={false}
       trapFocus
+      returnFocus={false}
     >
       <Popover.Target>
         <div
+          ref={toolbar}
           onClickCapture={(event) => {
             /* Any other toolbar button closes the panel, so two of the toolbar's layers are never open at once. */
             const button = event.target instanceof Element ? event.target.closest('button') : null;

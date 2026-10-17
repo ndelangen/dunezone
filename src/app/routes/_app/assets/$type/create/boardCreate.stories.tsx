@@ -102,6 +102,10 @@ export const TracingImage = meta.story({
     await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-tracing-image]')).toBeNull());
     await userEvent.upload(input, new File([arrakisMapSvg], 'arrakis-map.svg', { type: 'image/svg+xml' }));
     await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-tracing-image]')).not.toBeNull());
+    /* Escape closes the panel and hands focus back to its trigger. */
+    (await dialog.findByRole('slider', { name: 'Tracing image x' })).focus();
+    await userEvent.keyboard('[Escape]');
+    await waitFor(() => expect(page.getByRole('button', { name: 'Tracing image' })).toHaveFocus());
   },
 });
 
