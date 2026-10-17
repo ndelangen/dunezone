@@ -33,60 +33,67 @@ function fixProse(text: string) {
   );
 }
 
-/* Only the faction's prose: names, ids and image paths keep their spelling. */
+type Field = [holder: Record<string, any> | undefined, key: string, path: string];
+
+const listed = (items: unknown): Record<string, any>[] => (Array.isArray(items) ? items : []);
+
+/* Where a faction keeps its prose: names, ids and image paths keep their spelling. */
+function proseFields(data: Record<string, any>): Field[] {
+  const rules = data.rules;
+  return [
+    [rules, 'startText', 'rules.startText'],
+    [rules, 'revivalText', 'rules.revivalText'],
+    ...listed(rules?.advantages).flatMap((rule, index): Field[] =>
+      ['title', 'text', 'karama'].map((key) => [rule, key, `rules.advantages[${index}].${key}`])
+    ),
+    [rules?.fate, 'title', 'rules.fate.title'],
+    [rules?.fate, 'text', 'rules.fate.text'],
+    [rules?.alliance, 'text', 'rules.alliance.text'],
+    ...listed(data.troops).flatMap((troop, index): Field[] => [
+      [troop, 'description', `troops[${index}].description`],
+      [troop.back, 'description', `troops[${index}].back.description`],
+    ]),
+    ...listed(data.planet).map((planet, index): Field => [planet, 'description', `planet[${index}].description`]),
+    [data, 'about', 'about'],
+  ];
+}
+
 function fixFactionProse(data: Record<string, any>) {
-  const changes: Change[] = [];
   const next = structuredClone(data);
-  const fix = (holder: Record<string, any> | undefined, key: string, path: string) => {
+  const changes: Change[] = [];
+  for (const [holder, key, path] of proseFields(next)) {
     const before = holder?.[key];
-    if (typeof before !== 'string') {
-      return;
-    }
-    const after = fixProse(before);
+    const after = typeof before === 'string' ? fixProse(before) : before;
     if (after !== before) {
       holder![key] = after;
       changes.push({ path, before, after });
     }
-  };
-  const rules = next.rules;
-  fix(rules, 'startText', 'rules.startText');
-  fix(rules, 'revivalText', 'rules.revivalText');
-  (rules?.advantages ?? []).forEach((rule: Record<string, any>, index: number) => {
-    fix(rule, 'title', `rules.advantages[${index}].title`);
-    fix(rule, 'text', `rules.advantages[${index}].text`);
-    fix(rule, 'karama', `rules.advantages[${index}].karama`);
-  });
-  fix(rules?.fate, 'title', 'rules.fate.title');
-  fix(rules?.fate, 'text', 'rules.fate.text');
-  fix(rules?.alliance, 'text', 'rules.alliance.text');
-  (next.troops ?? []).forEach((troop: Record<string, any>, index: number) => {
-    fix(troop, 'description', `troops[${index}].description`);
-    fix(troop.back, 'description', `troops[${index}].back.description`);
-  });
-  (next.planet ?? []).forEach((planet: Record<string, any>, index: number) => {
-    fix(planet, 'description', `planet[${index}].description`);
-  });
-  fix(next, 'about', 'about');
+  }
   return { next, changes };
+}
+
+function fixSeedString(value: string, path: string, changes: Change[]) {
+  const after = GF9_SEED_WORDING.get(value) ?? value;
+  if (after !== value) {
+    changes.push({ path, before: value, after });
+  }
+  return after;
 }
 
 /* Replaces every string that still reads exactly as the old GF9 seed text. */
 function fixSeedStrings(value: unknown, path: string, changes: Change[]): unknown {
   if (typeof value === 'string') {
-    const after = GF9_SEED_WORDING.get(value);
-    if (after === undefined) {
-      return value;
-    }
-    changes.push({ path, before: value, after });
-    return after;
+    return fixSeedString(value, path, changes);
   }
   if (Array.isArray(value)) {
     return value.map((item, index) => fixSeedStrings(item, `${path}[${index}]`, changes));
   }
   if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, fixSeedStrings(item, path ? `${path}.${key}` : key, changes)])
-    );
+    const entries = Object.entries(value).map(([key, item]) => [
+      key,
+      fixSeedStrings(item, path ? `${path}.${key}` : key, changes),
+    ]);
+    return Object.fromEntries(entries);
   }
   return value;
 }
