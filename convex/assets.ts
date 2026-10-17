@@ -612,7 +612,11 @@ async function copyMembers(ctx: MutationCtx, sourceId: Id<'assets'>, targetId: I
   if (!source || source.is_deleted || source.type !== type) {
     throw new ConvexError(`The ${type} to copy from no longer exists`);
   }
-  const { entries } = await membersOf(ctx, sourceId, rules.kind);
+  const { entries, truncated } = await membersOf(ctx, sourceId, rules.kind);
+  /* A partial copy would save as a success with members missing, so a source past the read limit is refused whole. */
+  if (truncated) {
+    throw new ConvexError(`This ${type} has too many members to copy`);
+  }
   for (const { row, count } of entries) {
     await ctx.db.insert('asset_relations', { from_asset_id: targetId, to_asset_id: row._id, kind: rules.kind, count });
   }

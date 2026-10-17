@@ -482,6 +482,28 @@ describe('creating a container from a loaded one', () => {
       owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl'), members_from: deck.id })
     ).rejects.toThrow('has no members to copy');
   });
+
+  test('refuses a source past the membership read limit rather than copying part of it', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
+    /* Relation rows written directly, since only a row count past the limit matters here. */
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 501; index += 1) {
+        await ctx.db.insert('asset_relations', {
+          from_asset_id: source.id,
+          to_asset_id: created.id,
+          kind: 'deck-card',
+          count: 1,
+        });
+      }
+    });
+
+    await expect(
+      owner.mutation(api.assets.create, { type: 'deck', data: deckData('Copy'), members_from: source.id })
+    ).rejects.toThrow('has too many members to copy');
+  });
 });
 
 describe('asset page bundle', () => {

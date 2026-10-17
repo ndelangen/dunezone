@@ -76,13 +76,25 @@ const UNUSABLE = { kind: 'error', message: 'This one could not be loaded. Choose
 async function readChoice<Data>(
   type: AssetType,
   slug: string,
-  schema: z.ZodType<Data>
+  schema: z.ZodType<Data>,
+  excludeId: string | undefined
 ): Promise<LoadChoice<LoadedAsset<Data>>> {
   const page = await loadAssetPage(type, slug).catch(() => null);
   const parsed = page ? schema.safeParse(page.asset.data) : null;
-  return page && parsed?.success
-    ? { kind: 'chosen', name: page.asset.name, draft: { data: parsed.data, source: page } }
-    : UNUSABLE;
+  if (!page || !parsed?.success) {
+    return UNUSABLE;
+  }
+  /*
+   * A choice that wears the edited Asset's back would leave the draft pointing at itself, which the save refuses.
+   * Leaving the edited Asset out of the list does not catch this, so the choice says why before it can replace the draft.
+   */
+  if (excludeId && (page.backToken?.id === excludeId || page.backDeck?.id === excludeId)) {
+    return {
+      kind: 'error',
+      message: `${page.asset.name} wears the back of the one you are editing, so loading it would point this one at itself.`,
+    };
+  }
+  return { kind: 'chosen', name: page.asset.name, draft: { data: parsed.data, source: page } };
 }
 
 function AssetLoadChoices<Data>({
@@ -132,7 +144,7 @@ function AssetLoadChoices<Data>({
         onPick={(picked) => {
           const ticket = ++latest.current;
           report({ kind: 'pending' });
-          void readChoice(type, picked.slug, schema).then((choice) => {
+          void readChoice(type, picked.slug, schema, excludeId).then((choice) => {
             if (ticket === latest.current) {
               report(choice);
             }
