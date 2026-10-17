@@ -12,7 +12,8 @@ import type { TableProgress } from './tableTrackers';
 export function useTableFraming(
   stage: GameSnapshot['stage'],
   providedProgress: TableProgress | undefined,
-  seatCount: TableSeatCount
+  seatCount: TableSeatCount,
+  troopKinds?: number
 ) {
   const { trackers } = boardFurnitureFor(stage);
   const tableProgress = trackers === 'none' ? undefined : providedProgress;
@@ -21,7 +22,10 @@ export function useTableFraming(
     const slots = phaseCount === null ? [] : trackerArcSlots(phaseCount);
     return trackers === 'spice' ? slots.filter((slot) => slot.kind === 'spice') : slots;
   }, [phaseCount, trackers]);
-  const mapFramingPoints = useMemo(() => mapViewFramingPoints(trackerSlots, seatCount), [seatCount, trackerSlots]);
+  const mapFramingPoints = useMemo(
+    () => mapViewFramingPoints(trackerSlots, seatCount, troopKinds),
+    [seatCount, trackerSlots, troopKinds]
+  );
   const camera = useMemo(
     () => ({
       position: cameraPoseFor('map', 1, mapFramingPoints).position,

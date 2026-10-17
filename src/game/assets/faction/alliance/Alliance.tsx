@@ -1,5 +1,4 @@
 import type { FactionRender } from '@shared/factions/schema';
-/* oxlint-disable jsx-a11y/alt-text -- Decorative game-card layers. */
 import { useId, useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
@@ -69,8 +68,8 @@ export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
       <div className={styles.head_shade} />
       <div className={styles.shape} />
       <BackgroundRenderer className={`${styles.type} ${unique.type}`} background={backgroundPresets.stripedAlliance}>
-        <img src="/vector/icon/alliance.svg" className={unique.typeOverlay} />
-        <img src="/vector/icon/alliance.svg" className={unique.typeShade} />
+        <img src="/vector/icon/alliance.svg" alt="" className={unique.typeOverlay} />
+        <img src="/vector/icon/alliance.svg" alt="" className={unique.typeShade} />
       </BackgroundRenderer>
       <div className={styles.title}>{title}</div>
       <div className={styles.subtitle}>Alliance</div>
