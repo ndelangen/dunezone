@@ -1,4 +1,4 @@
-import { CanvasTexture, TextureLoader } from 'three';
+import { CanvasTexture, ImageLoader, TextureLoader } from 'three';
 import type { Texture } from 'three';
 
 /**
@@ -43,13 +43,16 @@ function drawn(from: CanvasImageSource, width: number, height: number) {
   return canvas;
 }
 
+/* Loads the image the way the texture loader and the card face preload do, so a preloaded face comes from the memory cache. */
+function cachedImage(href: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    new ImageLoader().setCrossOrigin('anonymous').load(href, resolve, undefined, reject);
+  });
+}
+
 async function tableCardFace(href: string) {
-  const response = await fetch(href);
-  if (!response.ok) {
-    throw new Error(`The card face ${href} answered ${response.status}.`);
-  }
-  /* The image decodes off the main thread; only the scaling draws run on it. */
-  const image = await createImageBitmap(await response.blob());
+  /* The bitmap decodes off the main thread; only the scaling draws run on it. */
+  const image = await createImageBitmap(await cachedImage(href));
   try {
     if (image.width <= TABLE_CARD_FACE_WIDTH) {
       return drawn(image, image.width, image.height);
@@ -77,5 +80,9 @@ export function loadFaceTexture(key: string, onLoad: (texture: Texture) => void,
     new TextureLoader().load(href, onLoad, undefined, onError);
     return;
   }
-  tableCardFace(href).then((canvas) => onLoad(new CanvasTexture(canvas)), onError);
+  /* A browser that cannot scale here after all (no 2D context, or out of canvas memory) draws the published image instead. */
+  tableCardFace(href).then(
+    (canvas) => onLoad(new CanvasTexture(canvas)),
+    () => new TextureLoader().load(href, onLoad, undefined, onError)
+  );
 }

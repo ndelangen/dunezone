@@ -289,6 +289,12 @@ function usePublishedFaceReady(href: string | undefined): boolean {
   return usePublishedFace(href) !== undefined || !href;
 }
 
+/* The key a piece's top face loads under, so a flip waits for the same image the face draws. */
+function topFaceKey(piece: TablePiece) {
+  const href = topFaceHref(piece);
+  return href && piece.kind === 'card' ? tableCardFaceKey(href) : href;
+}
+
 /* A card turned face up in hand shows its face only once the room has sent it, so its flip waits for that too. */
 function faceStillHidden(piece: TablePiece) {
   const shownLayers = visibleLayerCount(piece);
@@ -1023,10 +1029,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
     plateId: isPointerToken(piece) ? piece.id : undefined,
     follows: ridingPlateId,
   });
-  const topHref = topFaceHref(piece);
-  const faceReady =
-    usePublishedFaceReady(topHref && piece.kind === 'card' ? tableCardFaceKey(topHref) : topHref) &&
-    !faceStillHidden(piece);
+  const faceReady = usePublishedFaceReady(topFaceKey(piece)) && !faceStillHidden(piece);
   /* A held piece turns over in hand too, so only an emptied projection cuts a flip short. */
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
     piece,
