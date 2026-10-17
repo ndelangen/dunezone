@@ -8,6 +8,7 @@
   /* One round of pulses, as long as the figure's own tour lingers on an ingredient (`TOUR_MS`). */
   --pulse-duration: 2600ms;
 
+  container: faction-recipe / inline-size;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -159,7 +160,8 @@
   }
 }
 
-@container blog-article (width >= 36rem) {
+/* The four clusters stand side by side only once the figure itself is wide enough to hold them, whatever the article column measures. */
+@container faction-recipe (width >= 54rem) {
   .groups {
     grid-template-columns: auto auto auto auto;
     gap: var(--space-md);

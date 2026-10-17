@@ -13,6 +13,8 @@
   align-self: center;
   width: min(34rem, calc(100vw - 2 * var(--app-shell-inline-gutter, 20px)));
   padding-block: var(--space-lg);
+  /* The stamp waits enlarged before it lands, so its box must not widen the page. */
+  overflow-x: clip;
 }
 
 .slip {
