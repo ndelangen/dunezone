@@ -18,7 +18,7 @@
   grid-template-columns: auto auto auto;
   justify-content: center;
   grid-template-areas:
-    "sheet shield shield"
+    "shield shield shield"
     "sheet traitors alliance"
     "sheet leaders leaders"
     "token troops troops";

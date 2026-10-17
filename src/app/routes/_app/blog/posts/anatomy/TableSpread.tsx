@@ -53,7 +53,7 @@ export function TableSpread() {
           </span>
         </Placed>
         <Placed area="shield" tilt={1.5}>
-          <Scaled size={shield} scale={1.3}>
+          <Scaled size={shield} scale={3.9}>
             <ShieldCutout>
               <Shield {...FactionRender.shield.parse(FACTION)} />
             </ShieldCutout>
