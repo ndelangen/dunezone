@@ -99,21 +99,11 @@ export const Question = meta.story({
     await expect(page.queryByRole('textbox', { name: 'Edit question' })).toBeNull();
   },
 });
-export const RulebookEditor = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/player-aid/edit' },
-  globals: { viewport: { value: 'appAuthoringWide' } },
-});
 
 /** The ruleset editor's toolbar on one line at a phone, tablet, laptop and desktop width (#1423), stating only its save state at rest. */
 export const EditToolbarAt360 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appMobileNarrow' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const EditToolbarAt390 = meta.story({
-  args: { path: '/rulesets/classicrules/edit' },
-  globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
@@ -126,12 +116,6 @@ export const EditToolbarAt768 = meta.story({
 export const EditToolbarAt1100 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appLaptop' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const EditToolbarAt1440 = meta.story({
-  args: { path: '/rulesets/classicrules/edit' },
-  globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });

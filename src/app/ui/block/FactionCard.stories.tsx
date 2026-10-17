@@ -59,19 +59,6 @@ export const MultipleRulesets = meta.story({
   },
 });
 
-export const SelectedRulesetPriority = meta.story({
-  args: {
-    faction: {
-      ...baseFaction,
-      rulesets: [
-        { id: 'ruleset-advanced', slug: 'advanced', name: 'Advanced Dune' },
-        { id: 'ruleset-classic', slug: 'classic', name: 'Classic Dune' },
-      ],
-    } as FactionCatalogueEntry,
-    selectedRulesetSlug: 'classic',
-  },
-});
-
 export const ContentStress = meta.story({
   args: {
     faction: {

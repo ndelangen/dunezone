@@ -1,3 +1,4 @@
+import { Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { Link } from '@tanstack/react-router';
 
@@ -21,14 +22,17 @@ export const Borderless = meta.story({
   args: { withBorder: false },
 });
 
-/** For content that needs a gutter, the common case for prose and controls. */
-export const PaddingMd = meta.story({
-  args: { padding: 'md' },
-});
-
-/** A tighter gutter, for toolbars and single-line rows. */
-export const PaddingSm = meta.story({
-  args: { padding: 'sm' },
+/**
+ * The gutters side by side: none for children that manage their own insets, sm for toolbars and single-line rows, md for prose and controls, the common case.
+ */
+export const Padding = meta.story({
+  render: (args) => (
+    <Stack gap="md">
+      <Surface {...args} padding="none" />
+      <Surface {...args} padding="sm" />
+      <Surface {...args} padding="md" />
+    </Stack>
+  ),
 });
 
 /** Hover and focus it: lifts and brightens. Only for a pane that is itself the click target. */
@@ -42,18 +46,4 @@ export const Interactive = meta.story({
       </Link>
     ),
   },
-});
-
-/** Tall content: the pane grows with it rather than scrolling or clipping. */
-export const TallContent = meta.story({
-  args: {
-    padding: 'md',
-    children: <SurfaceFiller height={352} />,
-  },
-});
-
-/** The pane holds its treatment when squeezed; the radius and border do not scale away. */
-export const Narrow = meta.story({
-  args: { padding: 'md' },
-  globals: { viewport: { value: 'contentNarrow' } },
 });

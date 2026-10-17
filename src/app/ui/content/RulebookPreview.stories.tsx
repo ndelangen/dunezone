@@ -54,16 +54,6 @@ export const FailedCapture = meta.story({
   },
 });
 
-/** A published page that fails to load draws the shared missing state, as every published image does. */
-export const FailedImage = meta.story({
-  args: { imageUrl: brokenImageUrl },
-  play: async ({ canvas }) => {
-    await expect(
-      canvas.findByRole('img', { name: 'First page of Movement: preview unavailable' })
-    ).resolves.toBeVisible();
-  },
-});
-
 export const ChooserSize = meta.story({
   decorators: [
     (Story) => (

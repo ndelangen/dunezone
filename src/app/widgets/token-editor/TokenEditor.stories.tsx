@@ -108,14 +108,6 @@ export const FrontSymbols = meta.story({
   },
 });
 
-/**
- * A pointer token, such as the HMS: a circle with a point that rides the table as a plate.
- * One symbol and the background sit on the round end's centre, the ring follows the teardrop, and there are no labels.
- */
-export const PointerToken = meta.story({
-  args: { type: 'token-pointer', draft: pointerDraft },
-});
-
 /** The pointer's rim chapter is the ring alone: a shape with no label lines offers no label fields. */
 export const PointerTokenRim = meta.story({
   args: { type: 'token-pointer', draft: pointerDraft, chapter: 'front-rim' },

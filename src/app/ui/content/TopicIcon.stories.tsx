@@ -14,10 +14,6 @@ const meta = preview.meta({
   },
 });
 
-export const Default = meta.story({
-  args: { topic: 'identity' },
-});
-
 export const Catalogue = meta.story({
   args: { topic: 'identity' },
   render: (args) => (

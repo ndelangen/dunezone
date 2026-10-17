@@ -27,10 +27,6 @@ export const SingleRow = meta.story({
   args: { children: rows(1) },
 });
 
-export const ManyRows = meta.story({
-  args: { children: rows(8) },
-});
-
 /** Activatable rows: the whole row is the target. Tab to one and press Enter. */
 export const ActivatableRows = meta.story({
   args: {

@@ -90,11 +90,6 @@ function renderInDocument(args: StoryFixtureProps) {
   );
 }
 
-/** Use the Controls panel to cross every allocation seam. */
-export const Playground = meta.story({
-  globals: { viewport: { value: 'appAuthoringWide' } },
-});
-
 /** The A4 Preview targets the viewport height. Sidebar receives the remaining width. */
 export const WideFitHeight = meta.story({
   args: { fit: 'height', sidebarContentHeight: 540 },
@@ -153,12 +148,6 @@ export const BothTallerThanViewport = meta.story({
   args: { ratio: A4_RATIO, fit: 'width', sidebarContentHeight: 1480 },
   globals: { viewport: { value: 'appAuthoringWide' } },
   render: renderInDocument,
-});
-
-/** A ratio of 1 produces a square Preview. */
-export const SquarePreview = meta.story({
-  args: { ratio: 1, sidebarContentHeight: 520 },
-  globals: { viewport: { value: 'appAuthoringWide' } },
 });
 
 /** A wide ratio produces a landscape Preview without changing the public membrane. */

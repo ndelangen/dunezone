@@ -213,12 +213,6 @@ export const WrittenRuleEditor = meta.story({
   parameters: { database: db(withFinalRulebooks) },
 });
 
-export const WrittenRuleEditorDark = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
-  parameters: { database: db(withFinalRulebooks) },
-  globals: { colorScheme: 'dark' },
-});
-
 function withLiveReferenceRulebook(baseline: StorybookDatabase) {
   withFinalRulebooks(baseline);
   const faction = baseline.factions.find((row) => row.$key === 'faction:house-atreides')!;
@@ -271,12 +265,6 @@ export const LiveReferenceEditor = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Save' }));
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
   },
-});
-
-export const InventoryEditor = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/NVNT' },
-  parameters: { database: db(withLiveReferenceRulebook) },
-  globals: { colorScheme: 'dark' },
 });
 
 export const FactionIntroductionEditor = meta.story({

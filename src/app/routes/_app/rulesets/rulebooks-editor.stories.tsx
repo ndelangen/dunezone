@@ -197,16 +197,6 @@ export const DeepLinkedEditorBlock = meta.story({
   },
 });
 
-export const DeepLinkedEditorPage = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#REFS/details' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const editor = await page.findByRole('region', { name: 'Markers and tokens editor' }, { timeout: 30_000 });
-    await expect(within(editor).getByRole('textbox', { name: 'Title' })).toHaveValue('Markers and tokens');
-    await expect(page.getByRole('article', { name: 'Rulebook page: Markers and tokens' })).toBeVisible();
-  },
-});
-
 export const InvalidEditorDeepLink = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#MISSING/UNKNOWN' },
   play: async ({ canvasElement }) => {

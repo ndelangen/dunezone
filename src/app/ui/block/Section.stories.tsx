@@ -31,16 +31,6 @@ const meta = preview.meta({
 /** A name over content that carries its own panes. */
 export const Default = meta.story({});
 
-/** What kind of thing this part of the page is. */
-export const WithEyebrow = meta.story({
-  args: { eyebrow: 'From the catalogue' },
-});
-
-/** One line saying what the part is for. Its presence moves the action to the top. */
-export const WithDescription = meta.story({
-  args: { description: 'Every faction published against this ruleset.' },
-});
-
 /** The one control that belongs beside the name, usually a link onward. */
 export const WithAction = meta.story({
   args: {

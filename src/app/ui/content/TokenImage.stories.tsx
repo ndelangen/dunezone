@@ -21,14 +21,6 @@ const meta = preview.meta({
   args: { src: face(600, 600), name: 'Disc token', shape: 'round' as const },
 });
 
-export const Disc = meta.story({
-  render: (args) => (
-    <div style={{ width: 160 }}>
-      <TokenImage {...args} />
-    </div>
-  ),
-});
-
 /** Every shape from the same kind of opaque face, side by side. */
 export const Shapes = meta.story({
   render: () => (

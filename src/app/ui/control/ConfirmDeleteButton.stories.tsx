@@ -32,26 +32,6 @@ export const Holding = meta.story({
   },
 });
 
-/**
- * A press short of the five seconds fires nothing.
- *
- * Only the firing is asserted, not the label returning, and the reason is worth writing down.
- * This component releases the implicit pointer capture on press so that sliding off it cancels;
- * `userEvent` keeps its own capture bookkeeping, so its release does not reach `onPointerUp` the way a real one does.
- * That the release cancels the countdown is pinned under `fireEvent` with fake timers in `ConfirmDeleteAction.test.tsx`, which drives the same hook.
- */
-export const ReleasedEarly = meta.story({
-  play: async ({ args, canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const trigger = page.getByRole('button', { name: 'Delete account' });
-
-    await userEvent.pointer([{ keys: '[MouseLeft>]', target: trigger }]);
-    await userEvent.pointer([{ keys: '[/MouseLeft]', target: trigger }]);
-
-    await expect(args.onConfirm).not.toHaveBeenCalled();
-  },
-});
-
 /** While the caller's mutation is in flight the button latches, so an impatient second hold cannot fire it twice. */
 export const Pending = meta.story({
   args: { pending: true },

@@ -131,16 +131,6 @@ export const LoadingPublication = meta.story({
   },
 });
 
-export const FailedPublication = meta.story({
-  args: { href: failedImage },
-  play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement).findByRole('img', { name: 'Lasgun: preview unavailable' })
-    ).resolves.toBeVisible();
-    await expect(canvasElement.querySelectorAll('img, svg pattern')).toHaveLength(0);
-  },
-});
-
 function ReplacementPublication() {
   const [href, setHref] = useState(failedImage);
   return (
@@ -157,7 +147,9 @@ export const PublicationAfterFailure = meta.story({
   render: () => <ReplacementPublication />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await canvas.findByRole('img', { name: 'Treachery: preview unavailable' });
+    /* A publication that fails to load draws the missing state, with no image or artwork pattern behind it. */
+    await expect(canvas.findByRole('img', { name: 'Treachery: preview unavailable' })).resolves.toBeVisible();
+    await expect(canvasElement.querySelectorAll('img, svg pattern')).toHaveLength(0);
     await userEvent.click(canvas.getByRole('button', { name: 'Use new publication' }));
     await waitFor(() => expect(canvasElement.querySelector('img')?.naturalWidth).toBe(900));
     await expect(canvasElement.querySelectorAll('svg pattern')).toHaveLength(0);

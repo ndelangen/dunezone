@@ -83,12 +83,6 @@ export const DropdownOpen = meta.story({
   },
 });
 
-export const Disabled = meta.story({
-  args: {
-    disabled: true,
-  },
-});
-
 export const FactionEmblems = meta.story({
   args: {
     'aria-label': 'Faction emblem',

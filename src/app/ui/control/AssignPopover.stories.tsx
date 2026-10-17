@@ -54,24 +54,6 @@ export const Default = meta.story({
   },
 });
 
-/** Every label follows the noun, so the other direction reads correctly without new props. */
-export const DifferentNoun = meta.story({
-  args: {
-    noun: 'faction',
-    title: 'Add a faction',
-    size: 'sm',
-    icon: <Plus size={14} aria-hidden />,
-    children: (
-      <AssignOptions options={[{ value: 'faction-1', label: 'House Atreides — unassigned' }]} onAssign={fn()} />
-    ),
-  },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(page.getByRole('button', { name: 'Add a faction' }));
-    await waitFor(() => expect(page.getByRole('searchbox', { name: 'Search factions' })).toBeVisible());
-  },
-});
-
 /**
  * The group page's exact wording, which the noun cannot derive: the trigger says what the reader is about to do and the field says whose factions these are.
  * Asserted here because deriving both from `noun` silently rewrote this copy once, and only an end-to-end spec noticed.

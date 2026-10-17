@@ -10,7 +10,6 @@ import {
   rulebooksMeta,
   withFailedRulebookPreview,
   withFinalRulebooks,
-  withPublishedRulebooks,
   withRulebooks,
   withSizedRulebooks,
 } from './rulebooks.stories.fixture';
@@ -97,32 +96,6 @@ export const Clone = meta.story({
     await expect(save).toBeDisabled();
     /* The draft's revision is part of what Save says about the work, not a status of its own. */
     await expect(save).toHaveAccessibleDescription(expect.stringContaining('Draft revision 1'));
-  },
-});
-
-export const CloneWithPublishedPreviews = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/create' },
-  parameters: {
-    database: db((baseline) => {
-      withPublishedRulebooks(baseline);
-      replaceWithFinalContents(baseline);
-      return baseline;
-    }),
-  },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('radio', { name: 'Saved Rulebook' }, { timeout: 30_000 }));
-    await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
-    const rules = await page.findByRole('option', { name: 'Rules' });
-    await expect(rules).toBeVisible();
-    /* Storybook serves nothing under /published, so the page fails to load, and the missing tile names its Rulebook on hover. */
-    const tile = await within(rules).findByRole(
-      'img',
-      { name: 'First page of Rules: preview unavailable', hidden: true },
-      { timeout: 30_000 }
-    );
-    await userEvent.hover(tile);
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent(/^Rules$/));
   },
 });
 

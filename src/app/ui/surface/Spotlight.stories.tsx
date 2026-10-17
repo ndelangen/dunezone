@@ -32,8 +32,3 @@ export const WithoutEyebrow = meta.story({
 export const LongTitle = meta.story({
   args: { title: 'The Combined Honored Matres and Bene Gesserit Reverend Mother Council' },
 });
-
-/** The narrow end of the range: the title truncates sooner. */
-export const InANarrowColumn = meta.story({
-  globals: { viewport: { value: 'contentNarrow' } },
-});

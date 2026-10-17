@@ -32,11 +32,18 @@ const meta = preview.meta({
   },
 });
 
-/** A stored value matching a preset selects that preset's tile. */
+/**
+ * A stored value matching a preset selects that preset's tile.
+ * Five tiles is the count that made the row wrap before it became a shared `1fr` grid, so the equal-size check guards it.
+ */
 export const OnAPreset = meta.story({
+  args: {
+    presets: [...CARD_PRESETS, { key: 'fate', label: 'Fate', background: backgroundPresets.fate }],
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const choices = canvas.getAllByRole('radio');
+    await expect(choices.length).toBeGreaterThanOrEqual(5);
     const bounds = choices.map((choice) => choice.parentElement!.getBoundingClientRect());
     for (const box of bounds) {
       await expect(Math.abs(box.width - bounds[0].width)).toBeLessThan(1);
@@ -51,13 +58,6 @@ export const OnAPreset = meta.story({
     const border = Number.parseFloat(getComputedStyle(frame).borderLeftWidth);
     await expect(art.left).toBeGreaterThanOrEqual(edge.left + border - 0.1);
     await expect(art.right).toBeLessThanOrEqual(edge.right - border + 0.1);
-  },
-});
-
-/** Five tiles, the count that made the row wrap before it became a shared `1fr` grid. */
-export const FiveTiles = meta.story({
-  args: {
-    presets: [...CARD_PRESETS, { key: 'fate', label: 'Fate', background: backgroundPresets.fate }],
   },
 });
 

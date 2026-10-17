@@ -18,8 +18,3 @@ const meta = preview.meta({
  * a picker that opens rather than appends wants only this half.
  */
 export const Default = meta.story({});
-
-/** At the collection's ceiling. The affordance stays visible so the limit reads as a limit rather than a missing control. */
-export const Disabled = meta.story({
-  args: { label: 'Add a leader (maximum reached)', disabled: true },
-});

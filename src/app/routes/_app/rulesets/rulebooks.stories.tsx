@@ -10,7 +10,6 @@ import type { StorybookDatabase } from '@db/storybook';
 import {
   rulebooksMeta,
   withFailedRulebookPreview,
-  withPublishedRulebooks,
   withRulebooks,
   withSizedRulebooks,
 } from './rulebooks.stories.fixture';
@@ -124,15 +123,6 @@ export const Owner = meta.story({
     await expect(within(list).queryByRole('menuitem')).toBeNull();
     await closeMenuWithEscape(page, actions);
   },
-});
-
-/*
- * The card wiring, not the rendered image: Storybook serves nothing under /published, so each preview falls to the
- * missing state once the request fails.
- * `RulebookPreview.stories.tsx` covers the loaded image, every publication state, and replacement after a failure.
- */
-export const PublishedPreviews = meta.story({
-  parameters: { database: db(withPublishedRulebooks) },
 });
 
 export const FailedPreview = meta.story({
@@ -299,8 +289,6 @@ export const Manage = meta.story({
 });
 
 export const Empty = meta.story({ parameters: { database: db((baseline) => baseline) } });
-
-export const Narrow = meta.story({ globals: { viewport: { value: 'contentNarrow' } } });
 
 export const MixedSizes = meta.story({ parameters: { database: db(withSizedRulebooks) } });
 

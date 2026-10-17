@@ -1,7 +1,7 @@
 import { Anchor } from '@mantine/core';
 import preview from '@sb/preview';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { ArrowRight, Gamepad2, ListChecks, Printer, Search, Trophy } from 'lucide-react';
+import { ArrowRight, Gamepad2, Printer, Trophy } from 'lucide-react';
 
 import { Bullets } from './Bullets';
 
@@ -21,31 +21,6 @@ const meta = preview.meta({
 
 /** A plain list: one line per item, medallion centred on the title. */
 export const Default = meta.story({});
-
-/** With detail lines. The extra line switches each row to top alignment. */
-export const WithDetail = meta.story({
-  args: {
-    children: (
-      <>
-        <Bullets.Item
-          icon={<TopicIcon topic="rules" size={20} />}
-          title="Faithful editions"
-          detail="Preserve the books people know."
-        />
-        <Bullets.Item
-          icon={<Search size={20} />}
-          title="Find an answer"
-          detail="Search rules without stopping the game."
-        />
-        <Bullets.Item
-          icon={<ListChecks size={20} />}
-          title="Compare editions"
-          detail="See which rule belongs to which game."
-        />
-      </>
-    ),
-  },
-});
 
 /** Three columns, for a row of capabilities beneath a heading. */
 export const InColumns = meta.story({

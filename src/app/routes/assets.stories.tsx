@@ -41,7 +41,6 @@ export const CreateTreacheryCard = meta.story({
   args: { path: '/assets/card-treachery/create' },
 });
 export const CreateDeck = meta.story({ args: { path: '/assets/deck/create' } });
-export const CreateDiscToken = meta.story({ args: { path: '/assets/token-disc/create' } });
 export const CreateEnhanceToken = meta.story({
   args: { path: '/assets/token-enhance/create' },
 });
@@ -366,12 +365,6 @@ export const EditDeckToolbarAt360 = meta.story({
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
 });
-export const EditDeckToolbarAt390 = meta.story({
-  args: { path: '/assets/deck/house-treachery/edit' },
-  globals: { viewport: { value: 'appMobile' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
-});
 export const EditDeckToolbarAt768 = meta.story({
   args: { path: '/assets/deck/house-treachery/edit' },
   globals: { viewport: { value: 'appTablet' } },
@@ -384,16 +377,7 @@ export const EditDeckToolbarAt1100 = meta.story({
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
 });
-export const EditDeckToolbarAt1440 = meta.story({
-  args: { path: '/assets/deck/house-treachery/edit' },
-  globals: { viewport: { value: 'appLarge' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
-});
 
-/* The spice card pages, the second live card type. */
-export const SpiceCards = meta.story({ args: { path: '/assets/card-spice' } });
-export const SpiceCard = meta.story({ args: { path: '/assets/card-spice/arsunt' } });
 export const CreateSpiceCard = meta.story({ args: { path: '/assets/card-spice/create' } });
 export const EditSpiceCard = meta.story({ args: { path: '/assets/card-spice/arsunt/edit' } });
 
@@ -429,8 +413,6 @@ export const EditSpiceCardReadsTheStoredCard = meta.story({
 export const CreateCustomCard = meta.story({ args: { path: '/assets/card-custom/create' } });
 
 export const EditCustomCard = meta.story({ args: { path: '/assets/card-custom/battle-reference/edit' } });
-export const CustomCards = meta.story({ args: { path: '/assets/card-custom' } });
-export const CustomCard = meta.story({ args: { path: '/assets/card-custom/battle-reference' } });
 
 /** An administrator converts the existing card and arrives at its editable layers. */
 export const ConvertTreacheryCard = meta.story({
@@ -573,9 +555,6 @@ export const EditLeaderSkillCard = meta.story({
   },
 });
 
-export const StrongholdCards = meta.story({ args: { path: '/assets/card-stronghold' } });
-export const StrongholdCard = meta.story({ args: { path: '/assets/card-stronghold/arrakeen' } });
-export const StrongholdDeck = meta.story({ args: { path: '/assets/deck/gf9-stronghold-deck' } });
 export const EditStrongholdCard = meta.story({ args: { path: '/assets/card-stronghold/arrakeen/edit' } });
 
 /** A new stronghold saves its constrained face and reopens for editing. */

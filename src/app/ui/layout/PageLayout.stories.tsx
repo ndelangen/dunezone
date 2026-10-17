@@ -94,22 +94,6 @@ export const NoHeader = meta.story({
 });
 
 /**
- * The toolbar slot adds nothing around what it is given.
- */
-export const WithToolbar = meta.story({
-  render: () => (
-    <PageLayout>
-      <PageLayout.Header>{headerSlot}</PageLayout.Header>
-      <PageLayout.Toolbar>
-        <LayoutSlotPlaceholder name="toolbar slot" tone="toolbar" minHeight={72} />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>{contentSlot}</PageLayout.Content>
-    </PageLayout>
-  ),
-  globals: { viewport: { value: 'appDesktop' } },
-});
-
-/**
  * The header and toolbar keep the shell's normal measure.
  * Only the content reaches from one shell gutter to the other.
  */
