@@ -407,6 +407,16 @@
       "requires": ["catalogue_entries_factions_v1", "catalogue_entries_prune_v1"]
     },
     {
+      "id": "catalogue_entries_assets_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_assets_verify_v1",
+      "phase": "widen",
+      "requires": ["catalogue_entries_assets_v1"]
+    },
+    {
       "id": "faction_cards_v1",
       "phase": "widen",
       "requires": []

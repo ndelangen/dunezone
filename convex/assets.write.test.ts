@@ -843,7 +843,7 @@ describe('bundles', () => {
     /* The first member goes, so what follows proves the read looks past a deleted row rather than stopping three rows in. */
     await owner.mutation(api.assets.softDelete, { id: tokens[0]!.id });
 
-    const bundles = await t.query(api.assets.browsePage, { type: 'bundle' });
+    const bundles = await t.query(api.assets.catalogue, { type: 'bundle' });
     const members = bundles.entries[0]!.members;
     expect(members.map((member) => member.name)).toEqual(['Shield', 'Lasgun', 'Snooper']);
     /* `type` and `data` are the whole point of this shape: without both, a tile can name a member but not draw it. */
@@ -851,7 +851,7 @@ describe('bundles', () => {
     expect(members.every((member) => member.data.front)).toBe(true);
 
     /* A card holds nothing, so its page skips the relation pass rather than reading it once per row to learn zero. */
-    const cards = await t.query(api.assets.browsePage, { type: 'card-treachery' });
+    const cards = await t.query(api.assets.catalogue, { type: 'card-treachery' });
     expect(cards.entries.every((entry) => entry.members.length === 0)).toBe(true);
   });
 

@@ -36,6 +36,7 @@ import type * as lib_accountMerge from "../lib/accountMerge.js";
 import type * as lib_accountMethods from "../lib/accountMethods.js";
 import type * as lib_applicationTriggers from "../lib/applicationTriggers.js";
 import type * as lib_assetBacks from "../lib/assetBacks.js";
+import type * as lib_assetCatalogue from "../lib/assetCatalogue.js";
 import type * as lib_assetInput from "../lib/assetInput.js";
 import type * as lib_authSessionLifecycle from "../lib/authSessionLifecycle.js";
 import type * as lib_boardReadiness from "../lib/boardReadiness.js";
@@ -173,6 +174,7 @@ const fullApi: ApiFromModules<{
   "lib/accountMethods": typeof lib_accountMethods;
   "lib/applicationTriggers": typeof lib_applicationTriggers;
   "lib/assetBacks": typeof lib_assetBacks;
+  "lib/assetCatalogue": typeof lib_assetCatalogue;
   "lib/assetInput": typeof lib_assetInput;
   "lib/authSessionLifecycle": typeof lib_authSessionLifecycle;
   "lib/boardReadiness": typeof lib_boardReadiness;

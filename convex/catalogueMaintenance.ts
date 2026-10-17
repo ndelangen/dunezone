@@ -3,11 +3,32 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
-import { catalogueDrift as catalogueDriftOf } from './lib/catalogueEntries';
+import { ownerAssetPage } from './lib/assetCatalogue';
+import { catalogueDrift as catalogueDriftOf, reconcileCatalogueEntry } from './lib/catalogueEntries';
 import { nextOrderNamespace, pruneOrderItems } from './lib/catalogueOrder';
 
 /* The bounded scan the drift report reads on each side. */
 const AUDIT_SCAN_LIMIT = 4096;
+
+/* Each reconcile rereads the asset and its owner, so a page stays well inside one transaction. */
+const OWNER_ASSET_PAGE = 50;
+
+/** Carries an owner's new name, or their profile leaving or rejoining, into every one of their asset entries, a page per run. */
+export const reconcileOwnerAssets = internalMutation({
+  args: { ownerId: v.id('users'), cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, args) => {
+    const page = await ownerAssetPage(ctx, args.ownerId, args.cursor, OWNER_ASSET_PAGE);
+    for (const asset of page.page) {
+      await reconcileCatalogueEntry(ctx, 'asset', asset._id);
+    }
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.catalogueMaintenance.reconcileOwnerAssets, {
+        ownerId: args.ownerId,
+        cursor: page.continueCursor,
+      });
+    }
+  },
+});
 
 /**
  * Removes aggregate items whose entry is gone or keyed elsewhere, one page of one namespace per run, scheduling itself until every namespace is walked.
@@ -44,6 +65,6 @@ export const catalogue_order_prune = internalMutation({
 
 /** Read-only drift report for one catalogue kind, both ways, within one bounded scan of each side. */
 export const catalogueDrift = internalQuery({
-  args: { kind: v.literal('faction'), limit: v.optional(v.number()) },
+  args: { kind: v.union(v.literal('faction'), v.literal('asset')), limit: v.optional(v.number()) },
   handler: async (ctx, args) => await catalogueDriftOf(ctx, args.kind, args.limit ?? AUDIT_SCAN_LIMIT),
 });
