@@ -1,8 +1,9 @@
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { TABLE_PHASES } from '@shared/play/phases';
+import { item, piece, place } from '@shared/play/setupSupply';
 import { spiceBankSlot, createSpiceStack } from '@shared/play/spiceBank';
-import { SHARED_ITEM_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
+import { cardBaySlotPositions, SHARED_ITEM_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
 import { BOARD_RADIUS, BOARD_SURFACE_Y, restingPositionAt, stackTopHeight } from '@shared/play/tableGeometry';
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -10,6 +11,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { mapViewPoint, openTab, tablePage, waitForPlayCamera, openPieceMenu } from './playing.stories.fixture';
 import {
+  cardBack,
   factions,
   playingSnapshot,
   productTransport,
@@ -210,13 +212,17 @@ export const SettingsKeepLabelsOn = meta.story({
   },
 });
 
-/* Eight shared slots holding the published traitor deck, a treachery deck, a card and five tokens. */
+/* The pieces the eight shared slots hold, in slot order: the published traitor deck, a treachery deck, a card and five tokens. */
+function sharedSlotPieces(snapshot: ReturnType<typeof playingSnapshot>) {
+  const cards = snapshot.table.pieces.filter((piece) => piece.kind === 'card');
+  const troops = snapshot.table.pieces.filter((piece) => piece.kind === 'force' && !piece.inventory).slice(0, 5);
+  return [...cards, ...troops];
+}
+
 export const SharedItemSlots = meta.story({
   beforeEach: install(() => {
     const snapshot = playingSnapshot();
-    const cards = snapshot.table.pieces.filter((piece) => piece.kind === 'card');
-    const troops = snapshot.table.pieces.filter((piece) => piece.kind === 'force' && !piece.inventory).slice(0, 5);
-    [...cards, ...troops].forEach((piece, index) => {
+    sharedSlotPieces(snapshot).forEach((piece, index) => {
       piece.orientation = 0;
       piece.position = restingPositionAt(SHARED_ITEM_PLACEMENT_ANCHORS[index]!.position, piece);
       piece.zoneId = null;
@@ -228,6 +234,24 @@ export const SharedItemSlots = meta.story({
     await userEvent.click(page.getByRole('button', { name: /^Focus on bottom/ }));
     await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'bottom'));
     await waitForPlayCamera(document);
+    /* The scene mounts a count tag for every piece it draws, so each of the eight slots' pieces is on the table. */
+    const pieces = sharedSlotPieces(playingSnapshot());
+    await expect(pieces).toHaveLength(SHARED_ITEM_PLACEMENT_ANCHORS.length);
+    for (const { id } of pieces) {
+      await waitFor(() => expect(shell.querySelector(`[data-piece-id="${id}"]`)).toBeInTheDocument());
+    }
+    /* The slots are two rows of four along the bottom edge: each row's tags run left to right in slot order, and the second row sits nearer the viewer. */
+    const centers = pieces.map(({ id }) => {
+      const rect = shell.querySelector(`[data-piece-id="${id}"]`)!.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    });
+    const [far, near] = [centers.slice(0, 4), centers.slice(4)];
+    for (const row of [far, near]) {
+      for (let slot = 1; slot < row.length; slot += 1) {
+        await expect(row[slot]!.x).toBeGreaterThan(row[slot - 1]!.x);
+      }
+    }
+    await expect(Math.min(...near.map(({ y }) => y))).toBeGreaterThan(Math.max(...far.map(({ y }) => y)));
   },
 });
 
@@ -244,7 +268,8 @@ export const SpiceMenuName = meta.story({
     await waitFor(() => expect(document.querySelector('[data-scene-ready="true"] canvas')).not.toBeNull(), {
       timeout: 30_000,
     });
-    await openPieceMenu(document, spice, 'Spice actions');
+    const menu = await openPieceMenu(document, spice, 'Spice actions');
+    await expect(within(menu).getByRole('menuitem', { name: 'Take into spice reserve' })).toBeEnabled();
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(within(document.body).queryByRole('menu')).toBeNull());
   },
@@ -663,4 +688,35 @@ export const LongPressOnTheDeckOpensItsMenu = meta.story({
     await userEvent.click(page.getByRole('menuitem', { name: 'Shuffle' }));
     await theDeckShuffled();
   },
+});
+
+const READABLE_CARDS: [string, string][] = [
+  ['Snooper', '/play-fixtures/dreamrules/snooper.jpg'],
+  ['Broken Land', '/play-fixtures/dreamrules/broken-land.jpg'],
+  ['Atreides Traitor', '/play-fixtures/product/house-atreides-traitor-0.jpg'],
+  ['Atreides Traitor', '/play-fixtures/product/house-atreides-traitor-1.jpg'],
+  ['Harkonnen Traitor', '/play-fixtures/product/house-harkonnen-traitor-0.jpg'],
+];
+
+/* Cards with small print face up in the left card bay: their table faces are scaled to 512 px, which read sharper than the published size in a blind comparison. */
+function readableCardsSnapshot() {
+  const snapshot = playingSnapshot('seat-2');
+  READABLE_CARDS.forEach(([name, path], index) => {
+    const front = new URL(path, location.origin).href;
+    snapshot.table.pieces.push(
+      place(
+        {
+          ...piece(`readable-card-${index}`, name, 'shared', '#ad8a45', 'card', `readable:${index}`),
+          items: [item(`readable-item-${index}`, name, front, cardBack(), 'card-treachery', true, 'Treachery')],
+        },
+        cardBaySlotPositions('left')[index]!
+      )
+    );
+  });
+  snapshot.versions = Object.fromEntries(snapshot.table.pieces.map((entry) => [entry.id, snapshot.revision]));
+  return snapshot;
+}
+
+export const ReadableCards = meta.story({
+  beforeEach: install(() => productTransport('seat-2', readableCardsSnapshot())),
 });

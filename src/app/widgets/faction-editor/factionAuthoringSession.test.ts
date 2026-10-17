@@ -119,7 +119,7 @@ describe('faction authoring session', () => {
   });
 
   test('a save refuses the same Extra listed twice', async () => {
-    const { session, savedEntries } = makeHarness();
+    const { session, savedEntries, errorsLog } = makeHarness();
     const extras = [
       { type: 'deck' as const, slug: 'omens' },
       { type: 'deck' as const, slug: 'omens' },
@@ -128,6 +128,7 @@ describe('faction authoring session', () => {
     await session.persistDraft({ ...structuredClone(assetPublishingFaction), extras });
 
     expect(savedEntries).toHaveLength(0);
+    expect(errorsLog.at(-1)).toEqual(['extras.1: This Extra is already listed.']);
   });
 
   test('switching source replaces both baselines without saving the previous draft', () => {

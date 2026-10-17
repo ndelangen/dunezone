@@ -96,7 +96,7 @@ type ValidationRequest = AuthorizationObservation & {
   requestStartedAt: number;
 };
 /** Production values come from the shared constants; tests pass shorter lifetimes. */
-type WatchDurations = { leaseMs: number; renewalMs: number };
+type WatchDurations = { leaseMs: number; renewalMs: number; recoveryMs: number };
 const watch = api.playAdmission.watchAuthorizations;
 
 function samePrincipal(left: Principal, right: Pick<AuthorizationValue, 'userId' | 'sessionId'>) {
@@ -219,6 +219,7 @@ export class AuthorizationWatch {
   private readonly entries = new Map<string, AuthorizationGrant>();
   private readonly leaseMs: number;
   private readonly renewalMs: number;
+  private readonly recoveryMs: number;
   private client: ConvexClient | undefined;
   private unsubscribe: (() => void) | undefined;
   private unsubscribeConnection: (() => void) | undefined;
@@ -248,6 +249,7 @@ export class AuthorizationWatch {
   ) {
     this.leaseMs = durations.leaseMs ?? PLAY_AUTH_LEASE_MS;
     this.renewalMs = durations.renewalMs ?? PLAY_AUTH_RENEWAL_MS;
+    this.recoveryMs = durations.recoveryMs ?? PLAY_AUTH_RECOVERY_MS;
   }
 
   add(registrationId: string, principal: Principal) {
@@ -336,7 +338,7 @@ export class AuthorizationWatch {
     if (this.recovery || this.disposed || !this.connected || !this.entries.size) {
       return;
     }
-    const delay = Math.min(this.renewalMs, PLAY_AUTH_RECOVERY_MS * 2 ** this.recoveryAttempts);
+    const delay = Math.min(this.renewalMs, this.recoveryMs * 2 ** this.recoveryAttempts);
     this.recovery = setTimeout(() => {
       this.recovery = undefined;
       if (this.needsFreshWatch && this.canRenew()) {
@@ -464,7 +466,7 @@ export class AuthorizationWatch {
     this.expiry = setTimeout(() => {
       this.expiry = undefined;
       void this.renew();
-    }, remaining + PLAY_AUTH_RECOVERY_MS);
+    }, remaining + this.recoveryMs);
   }
 
   private clearExpiryCheck() {

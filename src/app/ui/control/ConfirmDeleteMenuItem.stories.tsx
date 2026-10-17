@@ -1,6 +1,7 @@
 import { Button, Menu } from '@mantine/core';
 import preview from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
+import { install } from '@sinonjs/fake-timers';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { ConfirmDeleteMenuItem } from './ConfirmDeleteMenuItem';
@@ -45,4 +46,25 @@ export const Holding = meta.story({
 });
 
 /** A disabled item, for a piece that cannot be deleted right now. */
-export const Disabled = meta.story({ args: { disabled: true } });
+export const Disabled = meta.story({
+  args: { disabled: true },
+  play: async ({ args, canvasElement }) => {
+    const page = within(canvasElement);
+    const item = page.getByRole('menuitem', { name: 'Hold to delete permanently' });
+    await expect(item).toBeDisabled();
+
+    /* The whole five-second hold passes on a fake clock: an enabled item would have fired, a disabled one still reads its resting words. */
+    const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
+    try {
+      await userEvent.pointer([{ keys: '[MouseLeft>]', target: item }], { pointerEventsCheck: 0 });
+      await clock.tickAsync(5000);
+      await expect(args.onConfirm).not.toHaveBeenCalled();
+      await expect(page.getByText('Deleting in 5..')).not.toBeVisible();
+      await expect(page.getByRole('menuitem', { name: 'Hold to delete permanently' })).toBeVisible();
+    } finally {
+      await userEvent.pointer([{ keys: '[/MouseLeft]', target: item }], { pointerEventsCheck: 0 });
+      clock.uninstall();
+    }
+    await expect(args.onConfirm).not.toHaveBeenCalled();
+  },
+});

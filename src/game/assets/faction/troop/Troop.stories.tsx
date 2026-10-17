@@ -282,50 +282,6 @@ export const NewSilhouettes = meta.story({
     ),
 });
 
-export const SecondWave = meta.story({
-  globals: { viewport: { value: undefined } },
-  parameters: { layout: 'fullscreen' },
-  render: () =>
-    renderGallery(
-      secondWave,
-      'Six more ways to build an army',
-      'The second set. Below each: regular, striped, and elite tokens at 64 px.'
-    ),
-});
-
-export const ThirdWave = meta.story({
-  globals: { viewport: { value: undefined } },
-  parameters: { layout: 'fullscreen' },
-  render: () =>
-    renderGallery(
-      thirdWave,
-      'Specialists of the Imperium',
-      'The third set. Below each: regular, striped, and elite tokens at 64 px.'
-    ),
-});
-
-export const FourthWave = meta.story({
-  globals: { viewport: { value: undefined } },
-  parameters: { layout: 'fullscreen' },
-  render: () =>
-    renderGallery(
-      fourthWave,
-      'Armour and strange weapons',
-      'The fourth set. Below each: regular, striped, and elite tokens at 64 px.'
-    ),
-});
-
-export const RevisedSilhouettes = meta.story({
-  globals: { viewport: { value: undefined } },
-  parameters: { layout: 'fullscreen' },
-  render: () =>
-    renderGallery(
-      [troops.ResonanceAdept, troops.ShieldRammer, troops.HookClimber],
-      'Three revised silhouettes',
-      'A plain hood for the adept, plus new rammer and climber designs. Tokens below are 64 px.'
-    ),
-});
-
 export const AtTokenSize = meta.story({
   globals: { viewport: { value: undefined } },
   parameters: { layout: 'fullscreen' },
@@ -356,31 +312,3 @@ export const AtTokenSize = meta.story({
     </div>
   ),
 });
-
-export const DesertPathfinder = meta.story({ args: { ...token, image: troops.DesertPathfinder.image } });
-export const HouseBulwark = meta.story({ args: { ...token, image: troops.HouseBulwark.image } });
-export const CourtDuelist = meta.story({ args: { ...token, image: troops.CourtDuelist.image } });
-export const SalvageWarden = meta.story({ args: { ...token, image: troops.SalvageWarden.image } });
-export const VeiledAdept = meta.story({ args: { ...token, image: troops.VeiledAdept.image } });
-export const SiegeGunner = meta.story({ args: { ...token, image: troops.SiegeGunner.image } });
-export const BannerMarshal = meta.story({ args: { ...token, image: troops.BannerMarshal.image } });
-export const WaterKeeper = meta.story({ args: { ...token, image: troops.WaterKeeper.image } });
-export const SuspensorLancer = meta.story({ args: { ...token, image: troops.SuspensorLancer.image } });
-export const MaskedSaboteur = meta.story({ args: { ...token, image: troops.MaskedSaboteur.image } });
-export const CrescentExecutioner = meta.story({ args: { ...token, image: troops.CrescentExecutioner.image } });
-export const GeneForgedBrute = meta.story({ args: { ...token, image: troops.GeneForgedBrute.image } });
-export const RaptorKeeper = meta.story({ args: { ...token, image: troops.RaptorKeeper.image } });
-export const WireHunter = meta.story({ args: { ...token, image: troops.WireHunter.image } });
-export const VoidWalker = meta.story({ args: { ...token, image: troops.VoidWalker.image } });
-export const SpiceDriller = meta.story({ args: { ...token, image: troops.SpiceDriller.image } });
-export const BladeDancer = meta.story({ args: { ...token, image: troops.BladeDancer.image } });
-export const DrumHerald = meta.story({ args: { ...token, image: troops.DrumHerald.image } });
-
-export const ShieldRammer = meta.story({ args: { ...token, image: troops.ShieldRammer.image } });
-export const HookClimber = meta.story({ args: { ...token, image: troops.HookClimber.image } });
-export const ResonanceAdept = meta.story({ args: { ...token, image: troops.ResonanceAdept.image } });
-export const NeedleSniper = meta.story({ args: { ...token, image: troops.NeedleSniper.image } });
-export const FurnaceBearer = meta.story({ args: { ...token, image: troops.FurnaceBearer.image } });
-export const MantisGuard = meta.story({ args: { ...token, image: troops.MantisGuard.image } });
-
-export const SwordBearer = meta.story({ args: { ...token, image: troops.SwordBearer.image } });

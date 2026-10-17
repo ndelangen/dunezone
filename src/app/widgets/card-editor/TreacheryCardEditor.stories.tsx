@@ -35,15 +35,6 @@ export const Category = meta.story({
     });
   },
 });
-export const SymbolChoice = meta.story({
-  args: { chapter: 'icon' as const },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByRole('combobox', { name: 'Icon' })).toBeVisible();
-    await expect(canvas.queryByText('Icon background')).toBeNull();
-    await expect(canvas.queryByRole('spinbutton')).toBeNull();
-  },
-});
 
 export const ExistingLogoSymbol = meta.story({
   args: { chapter: 'icon' as const, draft: { ...INITIAL_TREACHERY_DRAFT, ...treacheryCardFixtures.richeseKarama } },
@@ -52,6 +43,9 @@ export const ExistingLogoSymbol = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const symbol = canvas.getByRole('combobox', { name: 'Icon' });
     await expect(symbol).toHaveValue('Richese');
+    /* The icon chapter offers the symbol alone: no background or size controls. */
+    await expect(canvas.queryByText('Icon background')).toBeNull();
+    await expect(canvas.queryByRole('spinbutton')).toBeNull();
     await expect(args.patch).not.toHaveBeenCalled();
     await userEvent.click(symbol);
     await userEvent.type(symbol, 'shield');

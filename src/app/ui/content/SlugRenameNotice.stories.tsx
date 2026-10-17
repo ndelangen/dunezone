@@ -14,10 +14,6 @@ const meta = preview.meta({
 /** As it appears under a name field. */
 export const Default = meta.story({});
 
-export const Group = meta.story({
-  args: { noun: 'group', url: '…/groups/spice-cartel' },
-});
-
 /**
  * A profile's address is derived from the display name rather than equal to it, so the rule needs one more clause than the sentence gives by default.
  */

@@ -161,8 +161,11 @@ function texturedFaces(path: string) {
       const mesh = object as Mesh;
       const material = mesh.material as MeshBasicMaterial | undefined;
       const image: unknown = material?.map?.image;
-      const source = image instanceof HTMLImageElement ? image.src : undefined;
-      if (source && new URL(source).pathname === path) {
+      /* A table card scales its face onto a canvas and names the published image it came from. */
+      const scaledFrom: unknown = material?.map?.userData.publishedHref;
+      const source =
+        image instanceof HTMLImageElement ? image.src : typeof scaledFrom === 'string' ? scaledFrom : undefined;
+      if (source && new URL(source, location.href).pathname === path) {
         count += 1;
       }
     });

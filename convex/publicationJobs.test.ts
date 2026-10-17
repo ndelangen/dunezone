@@ -4,7 +4,7 @@
 import { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
-import { takeWorkResultSchema } from '../src/shared/asset-publishing/publication';
+import { PUBLICATION_MAX_PICKUP, takeWorkResultSchema } from '../src/shared/asset-publishing/publication';
 import { ensureFactionComponentIds } from '../src/shared/factions/componentIdentity';
 import { assetPublishingFaction as legacyFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
@@ -538,11 +538,15 @@ describe('Publication pickup read budget', () => {
       ]).flat()
     );
     const first = await t.mutation(internal.publicationJobs.takeWork, {});
+    /* Twenty expired captures fit the pickup cap, so stopping short of it proves the read headroom ended the call. */
     expect(first.recovered).toBeGreaterThan(0);
+    expect(first.recovered).toBeLessThan(PUBLICATION_MAX_PICKUP);
     /* Later calls finish the recovery the first one left for want of headroom. */
-    for (let call = 0; call < 20; call += 1) {
-      await t.mutation(internal.publicationJobs.takeWork, {});
+    let recovered = first.recovered;
+    for (let call = 0; call < 20 && recovered < 20; call += 1) {
+      recovered += (await t.mutation(internal.publicationJobs.takeWork, {})).recovered;
     }
+    expect(recovered).toBe(20);
     const left = await t.run(async (ctx) =>
       ctx.db
         .query('publication_jobs')

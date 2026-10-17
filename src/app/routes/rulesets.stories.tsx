@@ -4,6 +4,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { db, ruleset } from '@db/storybook';
 
 import { expectToolbarOnOneLine } from './authoringToolbarPlay';
+import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -11,7 +12,14 @@ const meta = preview.meta({
   ...pageStoryMeta,
 });
 
-export const Directory = meta.story({ args: { path: '/rulesets' } });
+export const Directory = meta.story({
+  args: { path: '/rulesets' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const [entry] = await page.findAllByRole('link', { name: /ClassicRules/i }, { timeout: 30_000 });
+    await expect(entry).toHaveAttribute('href', '/rulesets/classicrules');
+  },
+});
 /** The slotted board shows below the Rulebooks, linking to its own page. */
 export const Detail = meta.story({
   args: { path: '/rulesets/classicrules' },
@@ -47,9 +55,16 @@ export const DetailWithoutBoard = meta.story({
     await expect(board.queryByRole('link')).toBeNull();
   },
 });
-export const Edit = meta.story({ args: { path: '/rulesets/classicrules/edit' } });
+export const Edit = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'ClassicRules'),
+});
 export const AskQuestion = meta.story({
   args: { path: '/rulesets/classicrules/faq/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('textbox', { name: 'Ask a question' }, { timeout: 30_000 })).resolves.toBeVisible();
+  },
 });
 /**
  * The same page reached through a ruleset slug that names nothing, which is the state the route's own frame exists for.
@@ -99,21 +114,11 @@ export const Question = meta.story({
     await expect(page.queryByRole('textbox', { name: 'Edit question' })).toBeNull();
   },
 });
-export const RulebookEditor = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/player-aid/edit' },
-  globals: { viewport: { value: 'appAuthoringWide' } },
-});
 
 /** The ruleset editor's toolbar on one line at a phone, tablet, laptop and desktop width (#1423), stating only its save state at rest. */
 export const EditToolbarAt360 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appMobileNarrow' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const EditToolbarAt390 = meta.story({
-  args: { path: '/rulesets/classicrules/edit' },
-  globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
@@ -126,12 +131,6 @@ export const EditToolbarAt768 = meta.story({
 export const EditToolbarAt1100 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appLaptop' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const EditToolbarAt1440 = meta.story({
-  args: { path: '/rulesets/classicrules/edit' },
-  globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });

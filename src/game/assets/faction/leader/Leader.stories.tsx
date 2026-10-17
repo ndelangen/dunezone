@@ -47,22 +47,25 @@ const hiverToken = {
   strength: '5',
 } satisfies Pick<ComponentProps<typeof LeaderToken>, 'background' | 'logo' | 'strength'>;
 
-export const HiverAmberPendant = meta.story({
-  args: { ...hiverToken, image: '/image/leader/hivers/hiver-amber-pendant.png', name: 'Amber Pendant' },
-});
+const HIVER_COURT: Pick<ComponentProps<typeof LeaderToken>, 'image' | 'name'>[] = [
+  { image: '/image/leader/hivers/hiver-amber-pendant.png', name: 'Amber Pendant' },
+  { image: '/image/leader/hivers/hiver-fur-mantle.png', name: 'Fur Mantle' },
+  { image: '/image/leader/hivers/hiver-high-crown.png', name: 'High Crown' },
+  { image: '/image/leader/hivers/hiver-horned-mask.png', name: 'Horned Mask' },
+  { image: '/image/leader/hivers/hiver-black-ruff.png', name: 'Black Ruff' },
+];
 
-export const HiverFurMantle = meta.story({
-  args: { ...hiverToken, image: '/image/leader/hivers/hiver-fur-mantle.png', name: 'Fur Mantle' },
-});
-
-export const HiverHighCrown = meta.story({
-  args: { ...hiverToken, image: '/image/leader/hivers/hiver-high-crown.png', name: 'High Crown' },
-});
-
-export const HiverHornedMask = meta.story({
-  args: { ...hiverToken, image: '/image/leader/hivers/hiver-horned-mask.png', name: 'Horned Mask' },
-});
-
-export const HiverBlackRuff = meta.story({
-  args: { ...hiverToken, image: '/image/leader/hivers/hiver-black-ruff.png', name: 'Black Ruff' },
+/** The Hiver court's portrait art at token size, side by side. */
+export const HiverCourt = meta.story({
+  globals: { viewport: { value: undefined } },
+  parameters: { layout: 'padded' },
+  render: () => (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+      {HIVER_COURT.map(({ image, name }) => (
+        <div key={image} style={{ width: 200, height: 200 }}>
+          <LeaderToken {...hiverToken} image={image} name={name} />
+        </div>
+      ))}
+    </div>
+  ),
 });

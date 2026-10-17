@@ -24,6 +24,11 @@ describe('table columns', () => {
   it("lets the controls take the players column's room when there are no players", () => {
     const room = 1600;
     expect(controlsColumnLimitsWithoutPlayers(room, REM).max).toBeGreaterThan(controlsColumnLimits(room, REM).max);
+    /* In a narrow shell the controls keep their 18rem floor and may take everything but the table's 26rem floor. */
+    const narrow = 50 * REM;
+    const limits = controlsColumnLimitsWithoutPlayers(narrow, REM);
+    expect(((limits.min / 100) * narrow) / REM).toBeCloseTo(18);
+    expect((narrow * (1 - limits.max / 100)) / REM).toBeCloseTo(26);
   });
 
   it('never lets a column take more than 60% of a wide shell', () => {

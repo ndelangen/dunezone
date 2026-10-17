@@ -23,6 +23,8 @@ const baseFaction = {
   rulesets: [{ id: 'ruleset-advanced', slug: 'advanced', name: 'Advanced Dune' }],
 } as unknown as FactionCatalogueEntry;
 
+const longName = 'The Very Long and Distinguished House of Atreides Expeditionary Council';
+
 const meta = preview.meta({
   component: FactionCard,
   parameters: { layout: 'centered' },
@@ -57,18 +59,8 @@ export const MultipleRulesets = meta.story({
       ],
     } as FactionCatalogueEntry,
   },
-});
-
-export const SelectedRulesetPriority = meta.story({
-  args: {
-    faction: {
-      ...baseFaction,
-      rulesets: [
-        { id: 'ruleset-advanced', slug: 'advanced', name: 'Advanced Dune' },
-        { id: 'ruleset-classic', slug: 'classic', name: 'Classic Dune' },
-      ],
-    } as FactionCatalogueEntry,
-    selectedRulesetSlug: 'classic',
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText('Advanced Dune +2')).toBeVisible();
   },
 });
 
@@ -78,7 +70,7 @@ export const ContentStress = meta.story({
       ...baseFaction,
       data: {
         ...assetPublishingFaction,
-        name: 'The Very Long and Distinguished House of Atreides Expeditionary Council',
+        name: longName,
         leaders: assetPublishingFaction.leaders.slice(0, 3),
       },
       rulesets: [],
@@ -91,6 +83,16 @@ export const ContentStress = meta.story({
       </div>
     ),
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    /* The link's name is the caption alone, so no ruleset label renders. */
+    const card = canvas
+      .getByRole('link', { name: `${longName} Novice complexity, 2 out of 10` })
+      .getBoundingClientRect();
+    const name = canvas.getByText(longName).getBoundingClientRect();
+    await expect(name.left).toBeGreaterThanOrEqual(card.left);
+    await expect(name.right).toBeLessThanOrEqual(card.right);
+  },
 });
 
 /** With an adornment: a control that acts on the faction where it is listed, top-left because the other corners are taken. */

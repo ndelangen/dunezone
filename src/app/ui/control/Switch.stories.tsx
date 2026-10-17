@@ -21,9 +21,3 @@ export const Checked = meta.story({
     defaultChecked: true,
   },
 });
-
-export const Disabled = meta.story({
-  args: {
-    disabled: true,
-  },
-});

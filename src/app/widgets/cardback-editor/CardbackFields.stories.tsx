@@ -17,7 +17,6 @@ const meta = preview.meta({
     onModeMemoryChange: fn(),
   },
 });
-export const Traitor = meta.story({});
 export const EmblemBackground = meta.story({
   args: {
     cardback: { ...INITIAL_CARDBACK_PRESETS[2]!.cardback, emblemBackground: { color: '#4466aa', intensity: 0.35 } },
@@ -36,14 +35,6 @@ export const EmblemBackground = meta.story({
     });
   },
 });
-export const Stronghold = meta.story({
-  args: { cardback: GF9_STRONGHOLD_DECK.cardback },
-  play: async ({ canvasElement }) => {
-    const scale = within(canvasElement).getByRole('slider', { name: 'Emblem scale' });
-    await expect(scale).toHaveAttribute('aria-valuenow', '1.3');
-    await expect(scale).toHaveAttribute('aria-valuemax', '2');
-  },
-});
 
 export const LegacyLabelSettings = meta.story({
   args: { cardback: { ...GF9_STRONGHOLD_DECK.cardback, nameFont: 'C_Busorama_Bold', nameScale: 2 } },
@@ -52,5 +43,8 @@ export const LegacyLabelSettings = meta.story({
     await expect(canvas.queryByRole('combobox', { name: 'Label weight' })).toBeNull();
     await expect(canvas.queryByRole('slider', { name: 'Label size' })).toBeNull();
     await expect(canvas.getByRole('textbox', { name: 'Label' })).toHaveValue('Stronghold');
+    const scale = canvas.getByRole('slider', { name: 'Emblem scale' });
+    await expect(scale).toHaveAttribute('aria-valuenow', '1.3');
+    await expect(scale).toHaveAttribute('aria-valuemax', '2');
   },
 });

@@ -21,15 +21,3 @@ const meta = preview.meta({
  * The badge is the whole component: without it, prose describing a feature that does not exist reads as a statement about the record on screen.
  */
 export const Default = meta.story({});
-
-/** The label carries the reason, so it can name what the region is waiting on. */
-export const NamesWhatIsMissing = meta.story({
-  args: {
-    label: 'Proposed content · awaiting publication pipeline',
-    children: (
-      <Text size="sm" c="dimmed">
-        Published sheet downloads will be listed here once capture is scheduled per faction.
-      </Text>
-    ),
-  },
-});

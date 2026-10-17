@@ -159,6 +159,27 @@ test('Discord connection requires both proofs and a fresh second session, then c
   expect(await t.query(api.accounts.connection, { token: intent.token })).toBeNull();
 });
 
+test("a self-service connection never carries the source account's admin rights", async () => {
+  const provider = 'discord';
+  const t = setup();
+  const target = await account(t, 'requester', 'google');
+  const source = await account(t, 'administrator', provider, true);
+  const intent = await t
+    .withIdentity({ subject: `${target.userId}|${target.sessionId}` })
+    .mutation(api.accounts.beginConnection, { provider });
+  const secondSession = await t.run(
+    async (ctx) => await ctx.db.insert('authSessions', { userId: source.userId, expirationTime: Date.now() + 600_000 })
+  );
+  await t
+    .withIdentity({ subject: `${source.userId}|${secondSession}` })
+    .mutation(api.accounts.confirmConnection, { token: intent.token });
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  await t.run(async (ctx) => {
+    expect((await ctx.db.get(source.authId))?.userId).toBe(target.userId);
+    expect((await ctx.db.get(target.userId))?.isAdmin).toBeFalsy();
+  });
+});
+
 test('a source player survives game reconciliation before and after routing transfer while old sessions lose access', async () => {
   const t = setup();
   const source = await account(t, 'player', 'discord');
@@ -353,6 +374,15 @@ test('two retained answers to one question remain readable and do not allow a th
   const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
   await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
   await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  await t.run(async (ctx) => {
+    /* The merge moves the question and the source's answer to the target, so both answers now belong to one account. */
+    await expect(ctx.db.get('faq_items', questionId)).resolves.toMatchObject({ asked_by: target.userId });
+    const answers = await ctx.db
+      .query('faq_answers')
+      .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', questionId))
+      .collect();
+    expect(answers.map((answer) => answer.answered_by)).toEqual([target.userId, target.userId]);
+  });
   const page = await admin.query(api.faq.question, { rulesetSlug: 'rules', questionSlug: '1' });
   expect(page).not.toBeNull();
   await expect(

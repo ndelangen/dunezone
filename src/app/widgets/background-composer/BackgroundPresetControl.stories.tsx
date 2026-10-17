@@ -14,6 +14,18 @@ const CARD_PRESETS = [
   { key: 'worthless', label: 'Worthless', background: backgroundPresets.worthless },
 ];
 
+/* Exactly one tile is chosen: the named one is checked and every other radio is not. */
+async function expectOnlyChecked(canvasElement: HTMLElement, name: string) {
+  const canvas = within(canvasElement);
+  const chosen = canvas.getByRole('radio', { name });
+  await expect(chosen).toBeChecked();
+  const others = canvas.getAllByRole('radio').filter((choice) => choice !== chosen);
+  await expect(others.length).toBeGreaterThan(0);
+  for (const other of others) {
+    await expect(other).not.toBeChecked();
+  }
+}
+
 const meta = preview.meta({
   title: 'Background Preset Control',
   component: BackgroundPresetControl,
@@ -32,11 +44,18 @@ const meta = preview.meta({
   },
 });
 
-/** A stored value matching a preset selects that preset's tile. */
+/**
+ * A stored value matching a preset selects that preset's tile.
+ * Five tiles is the count that made the row wrap before it became a shared `1fr` grid, so the equal-size check guards it.
+ */
 export const OnAPreset = meta.story({
+  args: {
+    presets: [...CARD_PRESETS, { key: 'fate', label: 'Fate', background: backgroundPresets.fate }],
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const choices = canvas.getAllByRole('radio');
+    await expect(choices.length).toBeGreaterThanOrEqual(5);
     const bounds = choices.map((choice) => choice.parentElement!.getBoundingClientRect());
     for (const box of bounds) {
       await expect(Math.abs(box.width - bounds[0].width)).toBeLessThan(1);
@@ -54,18 +73,12 @@ export const OnAPreset = meta.story({
   },
 });
 
-/** Five tiles, the count that made the row wrap before it became a shared `1fr` grid. */
-export const FiveTiles = meta.story({
-  args: {
-    presets: [...CARD_PRESETS, { key: 'fate', label: 'Fate', background: backgroundPresets.fate }],
-  },
-});
-
 /** A value matching no preset selects Custom, which paints the value rather than the dashed spot. */
 export const Custom = meta.story({
   args: {
     value: backgroundPresets.harkonnen,
   },
+  play: async ({ canvasElement }) => expectOnlyChecked(canvasElement, 'Custom'),
 });
 
 /**
@@ -78,6 +91,7 @@ export const DeclaredCustomOverAMatchingValue = meta.story({
     value: backgroundPresets.weapon,
     declaredCustom: true,
   },
+  play: async ({ canvasElement }) => expectOnlyChecked(canvasElement, 'Custom'),
 });
 
 /** A gradient preset, the case reference equality used to miss and value equality now catches. */
@@ -89,4 +103,5 @@ export const GradientPreset = meta.story({
     ],
     value: backgroundPresets.stripedWeapon,
   },
+  play: async ({ canvasElement }) => expectOnlyChecked(canvasElement, 'Striped'),
 });

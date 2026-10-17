@@ -96,6 +96,12 @@ export const BackFromAnotherToken = meta.story({
 /** Chosen but not yet picked, which is the state the draft holds between the tile and the pick. */
 export const BackReferenceNotYetPicked = meta.story({
   args: { draft: discDraftWith({ mode: 'reference', asset_id: null }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('radio', { name: "Another token's back" })).toBeChecked();
+    await expect(canvas.getByText('No token chosen')).toBeVisible();
+    await expect(canvas.getByText('Choose a token…')).toBeVisible();
+  },
 });
 
 /** Raster illustrations stay in card editors while token symbols use SVG fragments. */
@@ -106,14 +112,6 @@ export const FrontSymbols = meta.story({
     await expect(screen.getByRole('group', { name: 'Decals / Custom stronghold illustrations' })).toBeVisible();
     await expect(screen.queryByRole('group', { name: 'Decals / GF9 Stronghold cards' })).toBeNull();
   },
-});
-
-/**
- * A pointer token, such as the HMS: a circle with a point that rides the table as a plate.
- * One symbol and the background sit on the round end's centre, the ring follows the teardrop, and there are no labels.
- */
-export const PointerToken = meta.story({
-  args: { type: 'token-pointer', draft: pointerDraft },
 });
 
 /** The pointer's rim chapter is the ring alone: a shape with no label lines offers no label fields. */

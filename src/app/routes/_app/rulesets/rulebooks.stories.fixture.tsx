@@ -85,19 +85,6 @@ export function withRulebooks(baseline: StorybookDatabase, names = ['Rules', 'Qu
   return baseline;
 }
 
-export function withPublishedRulebooks(baseline: StorybookDatabase) {
-  withRulebooks(baseline);
-  for (const order of [0, 1]) {
-    baseline.publication_assets.push({
-      asset_type: 'rulebook-first-page',
-      asset_id: publicationRef(`rulebook-edition:${order}`),
-      cache_token: `storybook-edition-${order}`,
-      published_at: Date.parse('2026-08-31T01:00:00.000Z'),
-    });
-  }
-  return baseline;
-}
-
 export function withSizedRulebooks(baseline: StorybookDatabase) {
   withRulebooks(baseline);
   const settings: RulebookSettings[] = [

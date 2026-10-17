@@ -1,7 +1,6 @@
 import preview from '@sb/preview';
 import { GF9_LEADER_SKILL_DECK_BACK } from '@shared/assets/gf9LeaderSkills';
 import { GF9_STRONGHOLD_DECK } from '@shared/assets/gf9StrongholdDeck';
-import { NEXUS_HEAD } from '@shared/assets/nexusTemplate';
 import { STANDARD_STORM_CARDBACK } from '@shared/assets/standardStormDeck';
 import { expect, waitFor } from 'storybook/test';
 
@@ -27,36 +26,6 @@ export const Icon = meta.story({
   },
 });
 
-export const FactionLogo = meta.story({
-  args: {
-    name: 'Prescience',
-    background: backgroundPresets.atreides,
-    image: '/vector/logo/atreides.svg',
-    imageOffset: [0, 5],
-    imageScale: 1.1,
-  },
-});
-
-export const CompactSymbol = meta.story({
-  args: {
-    name: 'Storm',
-    background: backgroundPresets.storm,
-    image: '/vector/icon/storrm_standalone.svg',
-    imageOffset: [0, 5],
-    imageScale: 0.8,
-  },
-});
-
-export const OversizedSymbol = meta.story({
-  args: {
-    name: 'Alliance',
-    background: backgroundPresets.alliance,
-    image: '/vector/icon/alliance.svg',
-    imageOffset: [-5, 20],
-    imageScale: 1.35,
-  },
-});
-
 export const EnlargedNexusEmblem = meta.story({
   args: {
     name: 'Nexus',
@@ -73,7 +42,6 @@ export const ShiftedMulticolorEmblem = meta.story({
   play: verifyEmblemWindow,
 });
 
-export const LeaderSkillDeck = meta.story({ args: GF9_LEADER_SKILL_DECK_BACK });
 async function verifyLabelPaint({ canvasElement }: { canvasElement: HTMLElement }) {
   await document.fonts.load('90px C_Busorama', 'STORM');
   const label = canvasElement.querySelector<SVGTextElement>('text')!.ownerSVGElement!;
@@ -111,6 +79,8 @@ export const LegacyLabelSize = meta.story({
     await verifyLabelPaint(context);
     for (const text of context.canvasElement.querySelectorAll('text')) {
       await expect(getComputedStyle(text).fontSize).toBe('90px');
+      /* The legacy bold font renders as regular C_Busorama. */
+      await expect(getComputedStyle(text).fontFamily).toBe('C_Busorama');
     }
   },
 });
@@ -145,27 +115,6 @@ export const StrongholdDeck = meta.story({
     await expect(getComputedStyle(image).mixBlendMode).toBe('normal');
     await expect(image.getBoundingClientRect().height).toBe(286);
   },
-});
-
-export const LegacyBoldLabel = meta.story({
-  args: { ...GF9_LEADER_SKILL_DECK_BACK, nameFont: 'C_Busorama_Bold' },
-  play: async ({ canvasElement }) => {
-    for (const text of canvasElement.querySelectorAll('text')) {
-      await expect(getComputedStyle(text).fontFamily).toBe('C_Busorama');
-    }
-  },
-});
-
-export const EmblemStaysInsideDisc = meta.story({
-  args: {
-    ...STANDARD_STORM_CARDBACK,
-    name: 'Nexus',
-    image: '/vector/icon/nexus.svg',
-    background: NEXUS_HEAD,
-    imageScale: 1.49,
-    imageOffset: [0, 9],
-  },
-  play: verifyEmblemWindow,
 });
 
 async function verifyEmblemWindow({ canvasElement }: { canvasElement: HTMLElement }) {

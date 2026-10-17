@@ -26,7 +26,7 @@ import {
   distance,
   movePoint,
 } from '@shared/boards/geometry';
-import type { Board, Point, Face, Properties, Decal, Edge } from '@shared/boards/geometry';
+import type { Board, Point, Face, Properties, Decal } from '@shared/boards/geometry';
 import { territoryId, territoryNameError } from '@shared/boards/schema';
 import { Section } from '@ui/block/Section';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
@@ -66,6 +66,7 @@ import { BOARD_ARTWORK } from '@game/assets/board/artwork';
 import { BoardArtwork, DecalArtwork } from '@game/assets/board/Board';
 
 import styles from './BoardEditor.module.css';
+import { drawingComplete, drawingEdge } from './drawing';
 import type { BoardEditorState, BoardEditorEvent } from './state';
 const artworkOptions = stockAssetOptions(
   ALL.options
@@ -83,66 +84,6 @@ const TOOL_SHORTCUTS: Record<string, BoardEditorState['tool']> = {
   x: 'remove-edge',
   h: 'pan',
 };
-
-type DrawingPoints = BoardEditorState['points'];
-function drawingComplete(tool: BoardEditorState['tool'], points: DrawingPoints) {
-  switch (tool) {
-    case 'cubic':
-      return points.length === 4;
-    case 'arc':
-      return points.length === 3;
-    case 'line':
-      return points.length > 2 && points.at(-1)!.node === points[0].node;
-    default:
-      return false;
-  }
-}
-function circularEdge(points: DrawingPoints): Edge {
-  const [a, m, b] = points.map((p) => p.point);
-  const ab = distance(a, b),
-    am = distance(a, m),
-    mb = distance(m, b);
-  const cross = (m[0] - a[0]) * (b[1] - a[1]) - (m[1] - a[1]) * (b[0] - a[0]);
-  if (Math.abs(cross) < 0.001) {
-    throw new Error('Choose a bend away from the straight line');
-  }
-  const radius = (ab * am * mb) / (2 * Math.abs(cross));
-  const dot = (a[0] - m[0]) * (b[0] - m[0]) + (a[1] - m[1]) * (b[1] - m[1]);
-  return {
-    id: `arc-${crypto.randomUUID()}`,
-    a: points[0].node!,
-    b: points[2].node!,
-    kind: 'arc',
-    arc: [radius, radius, 0, dot > 0 ? 1 : 0, cross > 0 ? 1 : 0],
-  };
-}
-function drawingEdge(tool: BoardEditorState['tool'], points: DrawingPoints): Edge | null {
-  switch (tool) {
-    case 'line': {
-      if (points.length < 2) {
-        return null;
-      }
-      const a = points.at(-2)!.node!,
-        b = points.at(-1)!.node!;
-      return a === b ? null : { id: `cut-${crypto.randomUUID()}`, a, b, kind: 'line' };
-    }
-    case 'cubic':
-      return points.length === 4
-        ? {
-            id: `curve-${crypto.randomUUID()}`,
-            a: points[0].node!,
-            b: points[3].node!,
-            kind: 'cubic',
-            c1: points[1].point,
-            c2: points[2].point,
-          }
-        : null;
-    case 'arc':
-      return points.length === 3 ? circularEdge(points) : null;
-    default:
-      return null;
-  }
-}
 
 export function BoardEditor({
   state,

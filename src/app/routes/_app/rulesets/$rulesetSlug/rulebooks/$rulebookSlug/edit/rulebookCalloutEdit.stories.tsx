@@ -9,24 +9,21 @@ const meta = preview.meta({
   parameters: { layout: 'fullscreen' },
 });
 
+/** A note callout's title is its own field, and an edit to it reaches both the change and the preview. */
 export const NoteCallout = meta.story({
   render: () => (
     <CalloutStory
       initialValue={{ variant: 'note', title: 'Occupancy limit', text: 'Two factions can occupy the same stronghold.' }}
     />
   ),
-});
-
-export const ExampleCallout = meta.story({
-  render: () => (
-    <CalloutStory
-      initialValue={{
-        variant: 'example',
-        title: 'A shipment',
-        text: 'Shipping three troops to a stronghold costs three spice.',
-      }}
-    />
-  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    calloutChange.mockClear();
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Title' }), ' reached');
+    await expect(calloutChange.mock.lastCall?.[0].title).toBe('Occupancy limit reached');
+    const preview = within(canvasElement.querySelector<HTMLElement>('[data-rulebook-block-canvas]')!);
+    await expect(preview.getByText('Occupancy limit reached')).toBeVisible();
+  },
 });
 
 export const QuotationCallout = meta.story({

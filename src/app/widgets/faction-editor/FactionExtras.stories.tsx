@@ -60,23 +60,6 @@ export const Empty = meta.story({
   },
 });
 
-/** Listed Extras show their catalogue address and kind, beside the setup proof. */
-export const Listed = meta.story({
-  args: {
-    faction: factionWith([
-      { type: 'deck', slug: 'house-treachery' },
-      { type: 'token-disc', slug: 'karama' },
-    ]),
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = await openExtras(canvasElement);
-    await expect(listedSlugs(canvasElement)).toEqual(['house-treachery', 'karama']);
-    const proof = within(canvas.getByRole('region', { name: 'Starting Extras' }));
-    await expect(proof.getByText('Decks')).toBeVisible();
-    await expect(proof.getByText('Disc tokens')).toBeVisible();
-  },
-});
-
 /** Adding from the picker appends the reference and offers each asset once; the save carries only type and slug. */
 export const AddFromCatalogue = meta.story({
   args: { faction: factionWith([{ type: 'deck', slug: 'house-treachery' }]) },
@@ -101,7 +84,7 @@ export const AddFromCatalogue = meta.story({
   },
 });
 
-/** Removing a row drops it from the list and the proof. */
+/** A populated list, then removing a row drops it from the list and the proof. */
 export const Remove = meta.story({
   args: {
     faction: factionWith([
@@ -111,9 +94,13 @@ export const Remove = meta.story({
   },
   play: async ({ canvasElement }) => {
     const canvas = await openExtras(canvasElement);
+    /* A populated list shows each reference and groups the proof under its kind. */
+    await expect(listedSlugs(canvasElement)).toEqual(['house-treachery', 'atreides-tokens']);
+    const proof = within(canvas.getByRole('region', { name: 'Starting Extras' }));
+    await expect(proof.getByText('Decks')).toBeVisible();
+    await expect(proof.getByText('Bundles')).toBeVisible();
     await userEvent.click(canvas.getByRole('button', { name: 'Remove house-treachery' }));
     await expect(listedSlugs(canvasElement)).toEqual(['atreides-tokens']);
-    const proof = within(canvas.getByRole('region', { name: 'Starting Extras' }));
     await expect(proof.queryByText('house-treachery')).toBeNull();
   },
 });

@@ -16,16 +16,3 @@ const meta = preview.meta({
 });
 
 export const Default = meta.story({});
-
-export const Bounded = meta.story({
-  args: {
-    min: 0,
-    max: 20,
-  },
-});
-
-export const Disabled = meta.story({
-  args: {
-    disabled: true,
-  },
-});
