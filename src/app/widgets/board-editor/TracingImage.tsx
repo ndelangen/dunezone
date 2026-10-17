@@ -4,8 +4,10 @@ import type { Point } from '@shared/boards/geometry';
 import { FormError } from '@ui/block/FormError';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { useDismissToolbarOverflow } from '@ui/surface/Toolbar';
 import { Eye, EyeOff, ImagePlus, RotateCcw, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 const BOARD_SIZE = 487.06;
 const TRACING_SCALE = { min: 0.1, max: 4 } as const;
@@ -50,6 +52,20 @@ function readImage(file: File): Promise<TracingImage> {
   });
 }
 
+/** Loads a picked file, keeping the result only while it is still the latest pick; a discarded image's URL is revoked. */
+function loadLatest(
+  file: File,
+  id: number,
+  latest: () => number,
+  onImage: (image: TracingImage) => void,
+  onError: (message: string) => void
+) {
+  readImage(file).then(
+    (image) => (id === latest() ? onImage(image) : URL.revokeObjectURL(image.url)),
+    (reason: Error) => id === latest() && onError(reason.message)
+  );
+}
+
 /**
  * Holds the tracing image and frees its object URL when it is replaced, removed or the editor closes.
  * Each pick is numbered, so a slow load that finishes after a newer pick, a removal or unmount is discarded and its URL revoked.
@@ -83,15 +99,10 @@ export function useTracingImage() {
     pick: (file: File | null) => {
       /* Clearing the input lets the same file be picked again after a removal. */
       input.current?.();
-      if (!file) {
-        return;
+      if (file) {
+        setError(null);
+        loadLatest(file, ++request.current, () => request.current, replace, setError);
       }
-      const id = ++request.current;
-      setError(null);
-      readImage(file).then(
-        (next) => (id === request.current ? replace(next) : URL.revokeObjectURL(next.url)),
-        (reason: Error) => id === request.current && setError(reason.message)
-      );
     },
     patch: (patch: Partial<TracingImage>) => setTracing((current) => (current ? { ...current, ...patch } : current)),
     remove: () => {
@@ -153,8 +164,43 @@ function TracingImageActions({
   );
 }
 
-export function TracingImageControls({ controls }: { controls: ReturnType<typeof useTracingImage> }) {
-  const [opened, setOpened] = useState(false);
+/**
+ * The trigger for the tracing image panel, placed among the toolbar's map settings.
+ * When those settings have folded into More actions, it closes that menu first, so only one floating pane is ever open.
+ */
+export function TracingImageTrigger({ pressed, onToggle }: { pressed: boolean; onToggle: () => void }) {
+  const dismissOverflow = useDismissToolbarOverflow();
+  return (
+    <span data-tracing-trigger>
+      <IconAction
+        label="Tracing image"
+        icon={<ImagePlus size={17} />}
+        emphasis="standard"
+        pressed={pressed}
+        onClick={() => {
+          dismissOverflow?.();
+          onToggle();
+        }}
+      />
+    </span>
+  );
+}
+
+/**
+ * The tracing image panel, anchored to the whole toolbar rather than its trigger, like LoadExisting.
+ * The trigger may live in the toolbar's overflow menu, and the panel must not open inside that menu's pane.
+ */
+export function TracingImagePanel({
+  controls,
+  opened,
+  onChange,
+  children,
+}: {
+  controls: ReturnType<typeof useTracingImage>;
+  opened: boolean;
+  onChange: (opened: boolean) => void;
+  children: ReactNode;
+}) {
   const { tracing, error, input, pick, patch, remove } = controls;
   const sliders = tracing
     ? ([
@@ -203,7 +249,7 @@ export function TracingImageControls({ controls }: { controls: ReturnType<typeof
   return (
     <Popover
       opened={opened}
-      onChange={setOpened}
+      onChange={onChange}
       position="bottom-end"
       width={320}
       shadow="md"
@@ -212,14 +258,16 @@ export function TracingImageControls({ controls }: { controls: ReturnType<typeof
       trapFocus
     >
       <Popover.Target>
-        <div>
-          <IconAction
-            label="Tracing image"
-            icon={<ImagePlus size={17} />}
-            emphasis="standard"
-            pressed={Boolean(tracing?.visible)}
-            onClick={() => setOpened((was) => !was)}
-          />
+        <div
+          onClickCapture={(event) => {
+            /* Any other toolbar button closes the panel, so two of the toolbar's layers are never open at once. */
+            const button = event.target instanceof Element ? event.target.closest('button') : null;
+            if (button && !button.closest('[data-tracing-trigger]')) {
+              onChange(false);
+            }
+          }}
+        >
+          {children}
         </div>
       </Popover.Target>
       <Popover.Dropdown role="dialog" aria-label="Tracing image">
