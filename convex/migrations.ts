@@ -74,6 +74,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_factions_v1: internal.migrations.catalogue_entries_factions_v1,
   catalogue_entries_assets_v1: internal.migrations.catalogue_entries_assets_v1,
   catalogue_entries_assets_verify_v1: internal.migrations.catalogue_entries_assets_verify_v1,
+  catalogue_entries_profiles_v1: internal.migrations.catalogue_entries_profiles_v1,
+  catalogue_entries_profiles_verify_v1: internal.migrations.catalogue_entries_profiles_verify_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
   catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,
@@ -1389,6 +1391,22 @@ export const catalogue_entries_assets_verify_v1 = migrations.define({
   batchSize: 10,
   migrateOne: async (ctx, row) => {
     await assertCatalogueSourceExact(ctx, 'asset', row._id);
+  },
+});
+
+/** Builds the profile directory's entries from canonical profiles, while live writes keep them current through triggers. */
+export const catalogue_entries_profiles_v1 = migrations.define({
+  table: 'profiles',
+  migrateOne: async (ctx, row) => {
+    await repairCatalogueEntry(ctx, 'profile', row._id);
+  },
+});
+
+/** Proves every public profile is in the directory exactly once, so an empty or partial directory cannot pass. */
+export const catalogue_entries_profiles_verify_v1 = migrations.define({
+  table: 'profiles',
+  migrateOne: async (ctx, row) => {
+    await assertCatalogueSourceExact(ctx, 'profile', row._id);
   },
 });
 
