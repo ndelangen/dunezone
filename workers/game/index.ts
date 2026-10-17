@@ -1241,9 +1241,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     if (message.type === 'telemetry') {
-      if (connection.viewer) {
-        this.summary.client(connection.connectionId, message);
-      }
+      this.receiveTelemetry(connection, message);
       return;
     }
     if (message.type === 'admit') {
@@ -1281,6 +1279,13 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.disconnect(socket);
         socket.close(1012, 'Reconnect to the table.');
       }
+    }
+  }
+
+  /* A browser's account of how the table felt is only logged, so it skips every upkeep a command needs. */
+  private receiveTelemetry(connection: Connection, message: Extract<ClientMessage, { type: 'telemetry' }>) {
+    if (connection.viewer) {
+      this.summary.client(connection.connectionId, message);
     }
   }
 

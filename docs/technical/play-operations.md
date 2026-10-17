@@ -335,8 +335,7 @@ each connection into its next line. No account, seat, faction or game content is
 To watch a session from a machine with a Wrangler login, run `bun run play:watch`. It runs the
 read-only `wrangler tail dunezone-game --format json`, keeps the summary, failure, recovery and
 refusal records in `play-watch-<date>.jsonl`, and prints one line per record. Failures start with
-`ALERT`. `--say` speaks a failure on macOS at most once every ten minutes; `--out <file>` picks the
-file. Cloudflare may sample a tail under heavy load, so the Workers Logs view stays the complete
+`ALERT`, so a watcher can grep for them; `--out <file>` picks the file. Cloudflare may sample a tail under heavy load, so the Workers Logs view stays the complete
 record. To find a session's cost, compare the Convex usage page and the `dunezone-game` metrics just
 before and just after it.
 

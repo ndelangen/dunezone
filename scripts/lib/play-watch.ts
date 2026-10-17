@@ -13,51 +13,52 @@ const WATCHED = new Set([
 
 export type PlayRecord = { event: string; at: number } & Record<string, unknown>;
 
-/** Splits a stream of concatenated JSON values, pretty-printed or not, into whole values as they complete. */
+/** Splits a stream of concatenated JSON objects, pretty-printed or not, into whole values as they complete. */
 export class JsonStream {
   private buffer = '';
   private depth = 0;
   private inString = false;
   private escaped = false;
-  private start = -1;
 
   push(chunk: string): unknown[] {
     const values: unknown[] = [];
-    const offset = this.buffer.length;
-    this.buffer += chunk;
-    for (let index = offset; index < this.buffer.length; index++) {
-      const character = this.buffer[index];
-      if (this.inString) {
-        if (this.escaped) {
-          this.escaped = false;
-        } else if (character === '\\') {
-          this.escaped = true;
-        } else if (character === '"') {
-          this.inString = false;
-        }
+    for (const character of chunk) {
+      /* Text between objects, such as Wrangler's banner, is skipped. */
+      if (this.depth === 0 && character !== '{') {
         continue;
       }
-      if (character === '"' && this.depth > 0) {
-        this.inString = true;
-      } else if (character === '{') {
-        if (this.depth++ === 0) {
-          this.start = index;
-        }
-      } else if (character === '}' && this.depth > 0 && --this.depth === 0) {
-        try {
-          values.push(JSON.parse(this.buffer.slice(this.start, index + 1)));
-        } catch {
-          /* A torn or non-JSON banner line is skipped; the next object starts clean. */
-        }
-        this.buffer = this.buffer.slice(index + 1);
-        index = -1;
-        this.start = -1;
+      this.buffer += character;
+      if (this.inString) {
+        this.readString(character);
+        continue;
+      }
+      this.depth += character === '{' ? 1 : character === '}' ? -1 : 0;
+      this.inString = character === '"';
+      if (this.depth === 0) {
+        values.push(...this.take());
       }
     }
-    if (this.depth === 0) {
-      this.buffer = '';
-    }
     return values;
+  }
+
+  private readString(character: string) {
+    if (this.escaped) {
+      this.escaped = false;
+    } else if (character === '\\') {
+      this.escaped = true;
+    } else if (character === '"') {
+      this.inString = false;
+    }
+  }
+
+  private take(): unknown[] {
+    const text = this.buffer;
+    this.buffer = '';
+    try {
+      return [JSON.parse(text)];
+    } catch {
+      return [];
+    }
   }
 }
 
@@ -69,11 +70,15 @@ export function playRecords(event: unknown): PlayRecord[] {
   }
   return logs.flatMap((log: { message?: unknown; timestamp?: unknown }) => {
     const first: unknown = Array.isArray(log?.message) ? log.message[0] : undefined;
-    if (!first || typeof first !== 'object' || !WATCHED.has(String((first as { event?: unknown }).event))) {
+    if (!isWatched(first)) {
       return [];
     }
-    return [{ ...(first as Record<string, unknown>), at: typeof log.timestamp === 'number' ? log.timestamp : Date.now() } as PlayRecord];
+    return [{ ...first, at: typeof log.timestamp === 'number' ? log.timestamp : Date.now() } as PlayRecord];
   });
+}
+
+function isWatched(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && WATCHED.has(String((value as { event?: unknown }).event));
 }
 
 function short(roomId: unknown) {
