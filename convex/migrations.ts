@@ -31,6 +31,7 @@ import { syncBoardReadiness } from './lib/boardReadiness';
 import {
   CATALOGUE_KINDS,
   catalogueDrift as catalogueDriftOf,
+  catalogueSourceDrift,
   isCatalogueKindName,
   reconcileCatalogueEntry,
   sameCatalogueEntry,
@@ -70,6 +71,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_factions_v1: internal.migrations.catalogue_entries_factions_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
+  catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,
   faction_member_ids_v1: internal.migrations.faction_member_ids_v1,
   faction_member_ids_verify_v1: internal.migrations.faction_member_ids_verify_v1,
   groups_slug_v1: internal.migrations.groups_slug_v1,
@@ -1386,7 +1388,8 @@ export const board_readiness_v1 = migrations.define({
  */
 export const catalogue_entries_factions_v1 = migrations.define({
   table: 'factions',
-  batchSize: 50,
+  /* Faction text has no length cap and each reconcile rereads the faction, so a batch stays small, like `faction_cards_v1`. */
+  batchSize: 10,
   migrateOne: async (ctx, row) => {
     await reconcileCatalogueEntry(ctx, 'faction', row._id);
   },
@@ -1395,7 +1398,8 @@ export const catalogue_entries_factions_v1 = migrations.define({
 /** Removes entries whose source is gone or unlisted, and duplicates, which a pass over the sources cannot see. */
 export const catalogue_entries_prune_v1 = migrations.define({
   table: 'catalogue_entries',
-  batchSize: 50,
+  /* Each entry rereads its whole faction. */
+  batchSize: 10,
   migrateOne: async (ctx, entry) => {
     if (isCatalogueKindName(entry.kind)) {
       await reconcileCatalogueEntry(ctx, entry.kind, entry.source_id);
@@ -1408,7 +1412,8 @@ export const catalogue_entries_prune_v1 = migrations.define({
 /** Proves every entry equals what its canonical rows say now, so none has drifted or outlived its source. */
 export const catalogue_entries_verify_v1 = migrations.define({
   table: 'catalogue_entries',
-  batchSize: 50,
+  /* Each entry rereads its whole faction. */
+  batchSize: 10,
   migrateOne: async (ctx, entry) => {
     if (!isCatalogueKindName(entry.kind)) {
       throw new Error(`Catalogue entry ${entry._id} has the unknown kind ${entry.kind}.`);
@@ -1416,6 +1421,18 @@ export const catalogue_entries_verify_v1 = migrations.define({
     const { _id, _creationTime, ...fields } = entry;
     if (!sameCatalogueEntry(fields, await CATALOGUE_KINDS[entry.kind].expected(ctx, entry.source_id))) {
       throw new Error(`Catalogue entry ${entry._id} for ${entry.kind} ${entry.source_id} has drifted from its source.`);
+    }
+  },
+});
+
+/** Proves the other direction: every live faction has exactly one entry, and it is exact, so an empty or partial catalogue cannot pass. */
+export const catalogue_entries_verify_v2 = migrations.define({
+  table: 'factions',
+  batchSize: 10,
+  migrateOne: async (ctx, row) => {
+    const drift = await catalogueSourceDrift(ctx, 'faction', row._id);
+    if (drift.length > 0) {
+      throw new Error(`Faction ${row._id} catalogue entry is ${drift.join(' and ')}.`);
     }
   },
 });

@@ -7,7 +7,12 @@ import { api, internal } from './_generated/api';
 import { CATALOGUE_STAMP, catalogueFactionData } from './factions.catalogue.test.fixture';
 import { factionTest } from './factions.test.fixture';
 
-const ids = ['catalogue_entries_factions_v1', 'catalogue_entries_prune_v1', 'catalogue_entries_verify_v1'];
+const ids = [
+  'catalogue_entries_factions_v1',
+  'catalogue_entries_prune_v1',
+  'catalogue_entries_verify_v1',
+  'catalogue_entries_verify_v2',
+];
 
 /* Rows written through the raw database, as an import writes them: no trigger runs, so the catalogue starts out of step. */
 async function unmaintained() {
@@ -64,6 +69,48 @@ async function unmaintained() {
 }
 
 describe('catalogue entries backfill', () => {
+  test('one repair removes every duplicate, however many there are', async () => {
+    const { t, live } = await unmaintained();
+    await t.run(async (ctx) => {
+      for (let copy = 0; copy < 12; copy += 1) {
+        await ctx.db.insert('catalogue_entries', {
+          kind: 'faction',
+          source_id: live,
+          slug: 'copy',
+          search_text: 'copy',
+          name_key: 'copy',
+          created_at: 0,
+          updated_at: 0,
+          facets: [],
+        });
+      }
+    });
+    await t.mutation(internal.migrations.catalogue_entries_factions_v1, {});
+    await t.finishAllScheduledFunctions(() => undefined);
+    const copies = await t.run(async (ctx) =>
+      (await ctx.db.query('catalogue_entries').collect()).filter((entry) => entry.source_id === live)
+    );
+    expect(copies).toHaveLength(1);
+  });
+
+  test('an empty catalogue passes the entry-side check but not the source-side one', async () => {
+    const { t } = await unmaintained();
+    await t.run(async (ctx) => {
+      for (const entry of await ctx.db.query('catalogue_entries').collect()) {
+        await ctx.db.delete(entry._id);
+      }
+    });
+    await t.mutation(internal.migrations.catalogue_entries_verify_v1, {});
+    await t.mutation(internal.migrations.catalogue_entries_verify_v2, {});
+    await t.finishAllScheduledFunctions(() => undefined);
+    await expect(
+      t.query(internal.migrations.assertReadyForNarrow, { required: ['catalogue_entries_verify_v1'] })
+    ).resolves.toMatchObject({ ok: true });
+    await expect(
+      t.query(internal.migrations.assertReadyForNarrow, { required: ['catalogue_entries_verify_v2'] })
+    ).rejects.toThrow(/catalogue_entries_verify_v2\(failed/);
+  });
+
   test('verification refuses a catalogue that has drifted from its sources', async () => {
     const { t } = await unmaintained();
     await expect(t.query(internal.migrations.catalogueDrift, { kind: 'faction' })).resolves.toMatchObject({

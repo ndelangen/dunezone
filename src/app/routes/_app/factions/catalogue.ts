@@ -1,6 +1,6 @@
 import { parseFactionCatalogueSearch } from '@shared/factions/catalogueSearch';
 import type { FactionCatalogueSearch } from '@shared/factions/catalogueSearch';
-import { getRouteApi, useLocation } from '@tanstack/react-router';
+import { getRouteApi, useLocation, useRouter } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
 import type { FactionCatalogueArgs, FactionCatalogueRuleset } from '@db/factions';
@@ -42,17 +42,6 @@ function normalizeFactionCatalogueSearch(
   };
 }
 
-function factionCatalogueSearchParams(search: FactionCatalogueSearch) {
-  const params = new URLSearchParams();
-  for (const key of ['q', 'ruleset', 'sort', 'complexity', 'page'] as const) {
-    const value = search[key];
-    if (value != null) {
-      params.set(key, String(value));
-    }
-  }
-  return params;
-}
-
 /**
  * Param order must not count as a difference: the router treats an order-only navigate as a structural no-op, so an order-sensitive mismatch would re-fire the canonicalizing effect forever (deep links write params in any order).
  */
@@ -67,6 +56,7 @@ function nextSearch(previous: Record<string, unknown>, patch: Partial<Record<key
 
 export function useFactionCatalogueSession(rulesets: FactionCatalogueRuleset[] | undefined) {
   const navigate = factionCatalogueRoute.useNavigate();
+  const router = useRouter();
   const location = useLocation();
   const search = parseFactionCatalogueSearch(location.search ?? {});
   const rawSearch = location.searchStr;
@@ -85,12 +75,13 @@ export function useFactionCatalogueSession(rulesets: FactionCatalogueRuleset[] |
       return;
     }
     const canonical = normalizeFactionCatalogueSearch(search, rulesets);
-    const expected = orderIndependentSearchString(factionCatalogueSearchParams(canonical));
+    /* Written by the router's own serializer, so a value it quotes (a search for "123") compares as the address it writes. */
+    const expected = orderIndependentSearchString(new URLSearchParams(router.options.stringifySearch(canonical)));
     const current = orderIndependentSearchString(new URLSearchParams(rawSearch));
     if (current !== expected) {
       void navigate({ to: '.', search: canonical, replace: true });
     }
-  }, [rulesets, navigate, rawSearch, search]);
+  }, [rulesets, navigate, rawSearch, search, router]);
 
   const changeSearch = (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => {
     void navigate({ to: '.', search: (previous) => nextSearch(previous, patch), replace: true });

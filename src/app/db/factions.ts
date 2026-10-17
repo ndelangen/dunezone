@@ -167,9 +167,9 @@ function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageDa
   };
 }
 
-/** The catalogue route's loader, paired with `useFactionCataloguePage` the same way. */
+/** The catalogue route's loader, paired with `useFactionCataloguePage` the same way; a searched page is not held, for the same reason. */
 export async function loadFactionCataloguePage(args: FactionCatalogueArgs): Promise<FactionCataloguePageData> {
-  const raw = await db.query(api.factions.catalogue, args);
+  const raw = await db.query(api.factions.catalogue, args, { hold: !args.q });
   return toFactionCataloguePageData(raw);
 }
 

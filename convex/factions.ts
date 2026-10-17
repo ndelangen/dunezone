@@ -221,6 +221,8 @@ export const catalogue = publicQuery({
     total: v.number(),
     /** Live factions in the catalogue, before any search or filter. */
     catalogueTotal: v.number(),
+    /** False once the catalogue outgrows the entries one query reads; totals and the last pages are then short. */
+    complete: v.boolean(),
     /** The page these cards are, which may lie past `pageCount`, with no cards. */
     page: v.number(),
     pageCount: v.number(),

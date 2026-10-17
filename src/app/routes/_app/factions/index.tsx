@@ -53,7 +53,7 @@ export const Route = createFileRoute('/_app/factions/')({
   loader: async ({ deps }) => {
     const data = await loadFactionCataloguePage(deps);
     /* A page past the end is an address that does not exist, so it answers 404 and points at the last page. */
-    if (data.total > 0 && data.page > data.pageCount) {
+    if (data.page > data.pageCount) {
       throw notFound({ data: { pageCount: data.pageCount } });
     }
     return data;

@@ -352,19 +352,21 @@ function selectSpotlightEntries(entries: CatalogueEntryFields[]) {
  * A page past the end answers with no cards and the real page count, so the reader can be told where the catalogue ends.
  */
 export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCatalogueQuery) {
-  const [entries, rulesets] = await Promise.all([
+  const [scanned, rulesets] = await Promise.all([
     ctx.db
       .query('catalogue_entries')
       .withIndex('by_kind', (q) => q.eq('kind', 'faction'))
-      .take(CATALOGUE_ENTRY_LIMIT),
+      .take(CATALOGUE_ENTRY_LIMIT + 1),
     listActiveRulesetSummaries(ctx),
   ]);
-  if (entries.length === CATALOGUE_ENTRY_LIMIT) {
-    /* Past the bound the totals and the last pages are short; the catalogue is due its move to ordered indexes. */
+  /* Past the bound the totals and the last pages are short, and the answer says so; the catalogue is then due its move to ordered indexes. */
+  const complete = scanned.length <= CATALOGUE_ENTRY_LIMIT;
+  if (!complete) {
     console.error(
-      `Faction catalogue read its ${CATALOGUE_ENTRY_LIMIT}-entry bound; totals and later pages are incomplete.`
+      `Faction catalogue passed its ${CATALOGUE_ENTRY_LIMIT}-entry bound; totals and later pages are incomplete.`
     );
   }
+  const entries = scanned.slice(0, CATALOGUE_ENTRY_LIMIT);
   const activeRulesetById = new Map<string, FactionRulesetSummary>(rulesets.map((ruleset) => [ruleset.id, ruleset]));
 
   const factionCountByRuleset = new Map<string, number>();
@@ -419,6 +421,7 @@ export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCata
     cards: cards.filter((faction) => faction != null),
     total,
     catalogueTotal: entries.length,
+    complete,
     page,
     pageCount,
     pageSize: FACTION_CATALOGUE_PAGE_SIZE,

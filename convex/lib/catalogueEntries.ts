@@ -48,14 +48,19 @@ async function entriesFor(ctx: QueryCtx, kind: CatalogueKindName, sourceId: stri
  * Idempotent and order-free, so the triggers, the backfill and any repair all call it.
  */
 export async function reconcileCatalogueEntry(ctx: MutationCtx, kind: CatalogueKindName, sourceId: string) {
-  const [expected, entries] = await Promise.all([
-    CATALOGUE_KINDS[kind].expected(ctx, sourceId),
-    entriesFor(ctx, kind, sourceId),
-  ]);
-  const [kept, ...extras] = entries;
-  for (const stale of expected ? extras : entries) {
-    await ctx.db.delete(stale._id);
+  const expected = await CATALOGUE_KINDS[kind].expected(ctx, sourceId);
+  let entries = await entriesFor(ctx, kind, sourceId);
+  /* Duplicates are drift; a full window may hide more behind it, so the window is re-read until it holds at most the one entry kept. */
+  for (;;) {
+    for (const stale of expected ? entries.slice(1) : entries) {
+      await ctx.db.delete(stale._id);
+    }
+    if (entries.length < DUPLICATE_ENTRY_LIMIT) {
+      break;
+    }
+    entries = await entriesFor(ctx, kind, sourceId);
   }
+  const kept = expected ? entries[0] : undefined;
   if (!expected) {
     return;
   }
@@ -64,6 +69,29 @@ export async function reconcileCatalogueEntry(ctx: MutationCtx, kind: CatalogueK
   } else if (!sameCatalogueEntry(entryFields(kept), expected)) {
     await ctx.db.replace(kept._id, expected);
   }
+}
+
+type SourceDrift = 'missing' | 'duplicated' | 'stale' | 'orphaned';
+
+/** Every way one source's entries differ from what its canonical rows say; empty when they are exact. */
+export async function catalogueSourceDrift(
+  ctx: QueryCtx,
+  kind: CatalogueKindName,
+  sourceId: string
+): Promise<SourceDrift[]> {
+  const [expected, entries] = await Promise.all([
+    CATALOGUE_KINDS[kind].expected(ctx, sourceId),
+    entriesFor(ctx, kind, sourceId),
+  ]);
+  const [first] = entries;
+  if (!expected) {
+    return first ? ['orphaned'] : [];
+  }
+  if (!first) {
+    return ['missing'];
+  }
+  const drift: SourceDrift[] = entries.length > 1 ? ['duplicated'] : [];
+  return sameCatalogueEntry(entryFields(first), expected) ? drift : [...drift, 'stale'];
 }
 
 /**
@@ -96,20 +124,18 @@ export type CatalogueDrift = {
   orphaned: Id<'catalogue_entries'>[];
 };
 
-/** Compares one kind's entries with the canonical rows, both ways, within one bounded scan of each. */
+/**
+ * Compares one kind's entries with the canonical rows, both ways, within one bounded scan of each.
+ * Every sampled source and every sampled entry is checked by its own source id, so the two scans need not cover the same rows.
+ */
 export async function catalogueDrift(ctx: QueryCtx, kind: CatalogueKindName, limit: number): Promise<CatalogueDrift> {
-  const definition = CATALOGUE_KINDS[kind];
   const [sourceIds, entries] = await Promise.all([
-    definition.listedSourceIds(ctx, limit),
+    CATALOGUE_KINDS[kind].listedSourceIds(ctx, limit),
     ctx.db
       .query('catalogue_entries')
       .withIndex('by_kind', (q) => q.eq('kind', kind))
       .take(limit),
   ]);
-  const entriesBySource = new Map<string, Doc<'catalogue_entries'>[]>();
-  for (const entry of entries) {
-    entriesBySource.set(entry.source_id, [...(entriesBySource.get(entry.source_id) ?? []), entry]);
-  }
   const drift: CatalogueDrift = {
     scanned: { sources: sourceIds.length, entries: entries.length },
     missing: [],
@@ -117,23 +143,15 @@ export async function catalogueDrift(ctx: QueryCtx, kind: CatalogueKindName, lim
     duplicated: [],
     orphaned: [],
   };
-  const listed = new Set(sourceIds);
   for (const sourceId of sourceIds) {
-    const [first, ...rest] = entriesBySource.get(sourceId) ?? [];
-    if (!first) {
-      drift.missing.push(sourceId);
-      continue;
-    }
-    if (rest.length > 0) {
-      drift.duplicated.push(sourceId);
-    }
-    if (!sameCatalogueEntry(entryFields(first), await definition.expected(ctx, sourceId))) {
-      drift.stale.push(sourceId);
+    for (const found of await catalogueSourceDrift(ctx, kind, sourceId)) {
+      if (found !== 'orphaned') {
+        drift[found].push(sourceId);
+      }
     }
   }
   for (const entry of entries) {
-    /* A listed source past the scan bound is not an orphan, so an unlisted id is checked against its source. */
-    if (!listed.has(entry.source_id) && !(await definition.expected(ctx, entry.source_id))) {
+    if ((await catalogueSourceDrift(ctx, kind, entry.source_id)).includes('orphaned')) {
       drift.orphaned.push(entry._id);
     }
   }
