@@ -36,9 +36,14 @@ export function signInReturnFrom(href: unknown): SignInReturn {
     return {};
   }
   const destination = safeAuthDestination(href);
-  const pathname = new URL(destination, 'https://dune.zone').pathname;
-  if (pathname === '/' || pathname === '/auth' || pathname.startsWith('/auth/')) {
+  if (needsNoReturn(new URL(destination, 'https://dune.zone').pathname)) {
     return {};
   }
   return { redirect: destination };
+}
+
+const NO_RETURN_PATHS = new Set(['/', '/auth']);
+
+function needsNoReturn(pathname: string): boolean {
+  return NO_RETURN_PATHS.has(pathname) || pathname.startsWith('/auth/');
 }
