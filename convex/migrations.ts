@@ -4,7 +4,6 @@ import { v } from 'convex/values';
 import { z } from 'zod';
 
 import { DeckAsset, RectangleTokenAsset, TokenAsset } from '../src/shared/assets/schema';
-import { compareCodeUnits } from '../src/shared/compareText';
 import { factionExtrasSchema, isLegacyFactionExtra } from '../src/shared/factions/extras';
 import {
   assertUniqueFactionMemberIds,
@@ -12,7 +11,6 @@ import {
   FactionMemberIdSchema,
   factionMembersHaveIds,
 } from '../src/shared/factions/memberIdentity';
-import { withSupportNames } from '../src/shared/factions/schema';
 import {
   assertUniqueFactionTroopIds,
   ensureFactionTroopIds,
@@ -29,14 +27,16 @@ import { accountStateOf } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { syncBoardReadiness } from './lib/boardReadiness';
-import {
-  catalogueDrift as catalogueDriftOf,
-  catalogueSourceDrift,
-  isCatalogueKindName,
-  repairCatalogueEntry,
-} from './lib/catalogueEntries';
-import { listOrderNamespaces, pruneOrderItems } from './lib/catalogueOrder';
+import { catalogueSourceDrift, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
 import { syncFactionCard } from './lib/factionCards';
+import {
+  allocateNextFaqItemSlug,
+  missingSlug,
+  resolveUniqueGroupSlug,
+  resolveUniqueRulesetSlug,
+  troopHasLegacySupportNames,
+  troopWithSupportNames,
+} from './lib/migrationHelpers';
 import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
@@ -61,10 +61,10 @@ import {
   reconcileQuestionStatistics,
   reconcileRulesetStatistics,
 } from './lib/statistics';
-import { nowIso, slugify } from './lib/utils';
+import { nowIso } from './lib/utils';
 import { retireHostedFixture } from './playDeletion';
 import schema from './schema';
-import type { MutationCtx, QueryCtx } from './types';
+import type { MutationCtx } from './types';
 
 type MigrationRef = FunctionReference<'mutation', 'internal'>;
 
@@ -145,40 +145,6 @@ const migrations = new Migrations(components.migrations, {
   schema,
 });
 
-async function resolveUniqueGroupSlug(ctx: QueryCtx | MutationCtx, name: string, groupId?: Id<'groups'>) {
-  const baseSlug = slugify(name) || 'group';
-  let candidate = baseSlug;
-  let suffix = 1;
-  while (true) {
-    const existing = await ctx.db
-      .query('groups')
-      .withIndex('by_slug', (q) => q.eq('slug', candidate))
-      .unique();
-    if (!existing || (groupId && existing._id === groupId)) {
-      return candidate;
-    }
-    suffix += 1;
-    candidate = `${baseSlug}-${suffix}`;
-  }
-}
-
-async function resolveUniqueRulesetSlug(ctx: QueryCtx | MutationCtx, name: string, rulesetId?: Id<'rulesets'>) {
-  const baseSlug = slugify(name) || 'ruleset';
-  let candidate = baseSlug;
-  let suffix = 1;
-  while (true) {
-    const existing = await ctx.db
-      .query('rulesets')
-      .withIndex('by_slug', (q) => q.eq('slug', candidate))
-      .unique();
-    if (!existing || (rulesetId && existing._id === rulesetId)) {
-      return candidate;
-    }
-    suffix += 1;
-    candidate = `${baseSlug}-${suffix}`;
-  }
-}
-
 function migrationRefsFor(ids: string[]): MigrationRef[] {
   return ids.map((id) => {
     if (!(id in MIGRATION_IDS)) {
@@ -186,40 +152,6 @@ function migrationRefsFor(ids: string[]): MigrationRef[] {
     }
     return MIGRATION_IDS[id as MigrationId];
   });
-}
-
-function missingSlug(value: unknown): boolean {
-  return typeof value !== 'string' || value.trim().length === 0;
-}
-
-async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets'>): Promise<string> {
-  const counterKey = `faq_item_slug:${rulesetId}`;
-  let counter = await ctx.db
-    .query('counters')
-    .withIndex('by_key', (q) => q.eq('key', counterKey))
-    .unique();
-
-  if (!counter) {
-    const inserted = await ctx.db.insert('counters', {
-      key: counterKey,
-      value: 0,
-    });
-    counter = { _id: inserted, _creationTime: 0, key: counterKey, value: 0 };
-  }
-
-  let candidate = counter.value + 1;
-  while (true) {
-    const slug = String(candidate);
-    const existing = await ctx.db
-      .query('faq_items')
-      .withIndex('by_ruleset_slug', (q) => q.eq('ruleset_id', rulesetId).eq('slug', slug))
-      .unique();
-    if (!existing) {
-      await ctx.db.patch(counter._id, { value: candidate });
-      return slug;
-    }
-    candidate += 1;
-  }
 }
 
 function toMigrationId(name: string): string {
@@ -1260,32 +1192,6 @@ export const faction_troop_ids_verify_v1 = migrations.define({
   },
 });
 
-type StoredTroopFace = { combat?: unknown; back?: StoredTroopFace };
-
-function hasLegacySupportNames(combat: unknown): boolean {
-  return typeof combat === 'object' && combat !== null && ('fundedStrength' in combat || 'fundingCost' in combat);
-}
-
-function troopHasLegacySupportNames(troop: unknown): boolean {
-  const face = troop as StoredTroopFace | null;
-  return hasLegacySupportNames(face?.combat) || hasLegacySupportNames(face?.back?.combat);
-}
-
-/* Only `combat` is rewritten, on the front and on an authored back; every other troop field stays as stored. */
-function troopWithSupportNames(troop: unknown): unknown {
-  if (typeof troop !== 'object' || troop === null) {
-    return troop;
-  }
-  const face = troop as StoredTroopFace;
-  return {
-    ...face,
-    ...(face.combat !== undefined && { combat: withSupportNames(face.combat) }),
-    ...(face.back && typeof face.back === 'object' && face.back.combat !== undefined
-      ? { back: { ...face.back, combat: withSupportNames(face.back.combat) } }
-      : {}),
-  };
-}
-
 /**
  * Renames each troop face's `fundedStrength` and `fundingCost` to `supportedStrength` and `supportCost`, without changing the faction's edit timestamp.
  * Troops paid for with spice in battle are supported, not funded.
@@ -1459,39 +1365,6 @@ export const catalogue_entries_verify_v2 = migrations.define({
   },
 });
 
-/**
- * Removes aggregate items whose entry is gone or keyed elsewhere, one namespace page per run, scheduling itself until every namespace is walked.
- * Only an entry deleted or edited without its trigger leaves one, so this is a repair to run by hand, never part of a deploy.
- */
-export const catalogue_order_prune = internalMutation({
-  args: { after: v.optional(v.string()), current: v.optional(v.string()), cursor: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    /* Namespaces are walked in their JSON order, by value, so one emptied by the prune shifts nothing. */
-    const namespaces = (await listOrderNamespaces(ctx))
-      .map((namespace) => ({ namespace, name: JSON.stringify(namespace) }))
-      .sort((left, right) => compareCodeUnits(left.name, right.name));
-    const current = args.current ? namespaces.find(({ name }) => name === args.current) : undefined;
-    const from = args.current ?? args.after;
-    const next = current ?? namespaces.find(({ name }) => from === undefined || compareCodeUnits(name, from) > 0);
-    const cursor = current ? args.cursor : undefined;
-    if (!next) {
-      return { done: true, pruned: 0 };
-    }
-    const page = await pruneOrderItems(ctx, next.namespace, cursor, 100);
-    await ctx.scheduler.runAfter(
-      0,
-      internal.migrations.catalogue_order_prune,
-      page.isDone ? { after: next.name } : { current: next.name, cursor: page.cursor }
-    );
-    return { done: false, pruned: page.pruned };
-  },
-});
-
-/** Read-only drift report for one catalogue kind, both ways, within one bounded scan of each side. */
-export const catalogueDrift = internalQuery({
-  args: { kind: v.literal('faction'), limit: v.optional(v.number()) },
-  handler: async (ctx, args) => await catalogueDriftOf(ctx, args.kind, args.limit ?? AUDIT_SCAN_LIMIT),
-});
 /** Existing boards gain the listing fields new asset writes already carry; rerunning it writes nothing. */
 export const board_readiness_listing_v1 = migrations.define({
   table: 'assets',

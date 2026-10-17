@@ -32,7 +32,7 @@ async function world() {
     return { classic: await ruleset('classic'), advanced: await ruleset('advanced') };
   });
   const entries = () => t.run((ctx) => ctx.db.query('catalogue_entries').collect());
-  const drift = () => t.query(internal.migrations.catalogueDrift, { kind: 'faction' });
+  const drift = () => t.query(internal.catalogueMaintenance.catalogueDrift, { kind: 'faction' });
   const names = async (args = {}) => (await t.query(api.factions.catalogue, args)).cards.map((card) => card.data.name);
   return { t, author, rulesetIds, entries, drift, names };
 }
@@ -134,7 +134,7 @@ describe('catalogue entry maintenance', () => {
     /* The ghost of the deleted original still counts until the prune runs. */
     expect((await t.query(api.factions.catalogue, {})).catalogueTotal).toBe(3);
 
-    await t.mutation(internal.migrations.catalogue_order_prune, {});
+    await t.mutation(internal.catalogueMaintenance.catalogue_order_prune, {});
     await t.finishAllScheduledFunctions(() => undefined);
     expect(await t.query(api.factions.catalogue, {})).toMatchObject({ catalogueTotal: 2, total: 2 });
     expect(await names()).toEqual(['Atreides', 'Fremen']);

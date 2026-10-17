@@ -60,6 +60,23 @@ async function expectedEntries(ctx: QueryCtx, kind: CatalogueKindName, sourceId:
   return expected;
 }
 
+/** Keeps the first row of each wanted list, rewritten only if it differs, and deletes every other row. */
+async function keepOrDeleteEntry(
+  ctx: MutationCtx,
+  entry: Doc<'catalogue_entries'>,
+  want: CatalogueEntryFields | undefined,
+  kept: Set<string>
+) {
+  if (!want || kept.has(entry.partition)) {
+    await ctx.db.delete(entry._id);
+    return;
+  }
+  kept.add(entry.partition);
+  if (!sameCatalogueEntry(entryFields(entry), want)) {
+    await ctx.db.replace(entry._id, want);
+  }
+}
+
 /**
  * Brings one source's rows in line with its canonical rows: insert, replace or delete per list, writing only what differs.
  * Idempotent and order-free, so the triggers, the backfill and any repair all call it.
@@ -71,15 +88,7 @@ export async function reconcileCatalogueEntry(ctx: MutationCtx, kind: CatalogueK
   ]);
   const kept = new Set<string>();
   for (const entry of existing) {
-    const want = expected.get(entry.partition);
-    if (!want || kept.has(entry.partition)) {
-      await ctx.db.delete(entry._id);
-    } else {
-      kept.add(entry.partition);
-      if (!sameCatalogueEntry(entryFields(entry), want)) {
-        await ctx.db.replace(entry._id, want);
-      }
-    }
+    await keepOrDeleteEntry(ctx, entry, expected.get(entry.partition), kept);
   }
   for (const [partition, want] of expected) {
     if (!kept.has(partition)) {

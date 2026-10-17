@@ -124,7 +124,7 @@ describe('catalogue entries backfill', () => {
 
   test('verification refuses a catalogue that has drifted from its sources', async () => {
     const { t } = await unmaintained();
-    await expect(t.query(internal.migrations.catalogueDrift, { kind: 'faction' })).resolves.toMatchObject({
+    await expect(t.query(internal.catalogueMaintenance.catalogueDrift, { kind: 'faction' })).resolves.toMatchObject({
       missing: [expect.any(String)],
       stale: [expect.any(String)],
       duplicated: [expect.any(String)],
@@ -158,7 +158,7 @@ describe('catalogue entries backfill', () => {
         [renamed, 'all', 'fremen', []],
       ].sort(byList)
     );
-    await expect(t.query(internal.migrations.catalogueDrift, { kind: 'faction' })).resolves.toMatchObject({
+    await expect(t.query(internal.catalogueMaintenance.catalogueDrift, { kind: 'faction' })).resolves.toMatchObject({
       missing: [],
       stale: [],
       duplicated: [],
