@@ -462,5 +462,8 @@ export const ThreeColumns = meta.story({
     await expect(focusChanges).toEqual([]);
     message.removeEventListener('focus', count);
     message.removeEventListener('blur', count);
+    /* The story rests in the layout it is named for. */
+    setTableLayout('columns');
+    await waitFor(() => expect(shell().dataset.tableLayout).toBe(fits ? 'columns' : 'stacked'));
   },
 });
