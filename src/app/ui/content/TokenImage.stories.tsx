@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import type { TokenShape } from '@shared/assets/tokenOutline';
-import { expect, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { TokenImage } from './TokenImage';
 
@@ -34,8 +34,10 @@ export const Shapes = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
+    /* A cold first load lands the images after they mount, so each check waits for its face to show. */
     for (const { name } of SHAPES) {
-      await expect(page.findByRole('img', { name })).resolves.toBeVisible();
+      const image = await page.findByRole('img', { name });
+      await waitFor(() => expect(image).toBeVisible());
     }
   },
 });
