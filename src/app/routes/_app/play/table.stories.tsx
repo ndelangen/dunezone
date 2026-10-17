@@ -1,8 +1,9 @@
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { TABLE_PHASES } from '@shared/play/phases';
+import { item, piece, place } from '@shared/play/setupSupply';
 import { spiceBankSlot, createSpiceStack } from '@shared/play/spiceBank';
-import { SHARED_ITEM_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
+import { cardBaySlotPositions, SHARED_ITEM_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
 import { BOARD_RADIUS, BOARD_SURFACE_Y, restingPositionAt, stackTopHeight } from '@shared/play/tableGeometry';
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -10,6 +11,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { mapViewPoint, openTab, tablePage, waitForPlayCamera, openPieceMenu } from './playing.stories.fixture';
 import {
+  cardBack,
   factions,
   playingSnapshot,
   productTransport,
@@ -686,4 +688,35 @@ export const LongPressOnTheDeckOpensItsMenu = meta.story({
     await userEvent.click(page.getByRole('menuitem', { name: 'Shuffle' }));
     await theDeckShuffled();
   },
+});
+
+const READABLE_CARDS: [string, string][] = [
+  ['Snooper', '/play-fixtures/dreamrules/snooper.jpg'],
+  ['Broken Land', '/play-fixtures/dreamrules/broken-land.jpg'],
+  ['Atreides Traitor', '/play-fixtures/product/house-atreides-traitor-0.jpg'],
+  ['Atreides Traitor', '/play-fixtures/product/house-atreides-traitor-1.jpg'],
+  ['Harkonnen Traitor', '/play-fixtures/product/house-harkonnen-traitor-0.jpg'],
+];
+
+/* Cards with small print face up in the left card bay: their table faces are scaled to 512 px, which read sharper than the published size in a blind comparison. */
+function readableCardsSnapshot() {
+  const snapshot = playingSnapshot('seat-2');
+  READABLE_CARDS.forEach(([name, path], index) => {
+    const front = new URL(path, location.origin).href;
+    snapshot.table.pieces.push(
+      place(
+        {
+          ...piece(`readable-card-${index}`, name, 'shared', '#ad8a45', 'card', `readable:${index}`),
+          items: [item(`readable-item-${index}`, name, front, cardBack(), 'card-treachery', true, 'Treachery')],
+        },
+        cardBaySlotPositions('left')[index]!
+      )
+    );
+  });
+  snapshot.versions = Object.fromEntries(snapshot.table.pieces.map((entry) => [entry.id, snapshot.revision]));
+  return snapshot;
+}
+
+export const ReadableCards = meta.story({
+  beforeEach: install(() => productTransport('seat-2', readableCardsSnapshot())),
 });
