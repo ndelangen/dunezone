@@ -21,7 +21,6 @@ import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
 import { AuthoringToolbar, groupAccessStatus } from '@app/widgets/authoring/AuthoringToolbar';
-import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
@@ -167,80 +166,76 @@ function FactionEditPage() {
     <PageLayout>
       {validationHeader.slot}
       <PageLayout.Toolbar>
-        <LoadExisting
-          noun="faction"
-          mode="replace"
-          disabled={updateFaction.isPending}
-          source={factionLoadSource(faction.slug)}
-          onLoaded={validationHeader.releasing(authoring.actions.loadDraft)}
-        >
-          {(loadAction) => (
-            <AuthoringToolbar
-              status={{
-                isDirty: authoring.editing.isDirty,
-                isNameBlank: authoring.editing.isNameBlank,
-                invalid: authoring.editing.invalid,
-                saveState: authoring.persistence.saveState,
-              }}
-              copy={{
-                saveLabel: 'Save faction',
-                nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
-              }}
-              actions={{
-                onSave: authoring.actions.submit,
-                onReset: validationHeader.releasing(authoring.actions.reset),
-                onBack: () =>
-                  navigate({
-                    to: '/factions/$factionId',
-                    params: { factionId },
-                  }),
-              }}
-              review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
-              centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
-              auxiliaryActions={loadAction}
-              accessActions={
-                <>
-                  {canAssignGroup && !assignedGroup ? (
-                    <FactionGroupPopover
-                      disabled={setFactionGroup.isPending}
-                      assignableGroups={assignableGroups}
-                      onAssignGroup={async (nextGroupId) => {
-                        await setFactionGroup.mutateAsync({
-                          id: faction._id,
-                          groupId: nextGroupId,
-                        });
-                      }}
-                    />
-                  ) : null}
-                  {canAssignGroup && assignedGroup ? (
-                    <IconAction
-                      label="Remove group"
-                      tooltip={`Remove group access (${assignedGroup.name})`}
-                      emphasis="standard"
-                      intent="neutral"
-                      size="lg"
-                      disabled={setFactionGroup.isPending}
-                      onClick={() => void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })}
-                      icon={<UserRoundMinus size={17} aria-hidden />}
-                    />
-                  ) : null}
-                </>
-              }
-              statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
-              destructiveActions={
-                canDelete ? (
-                  <ConfirmDeleteAction
-                    label="Delete faction"
-                    pending={deleteFaction.isPending}
-                    onConfirm={() =>
-                      deleteFaction.mutate({ id: faction._id }, { onSuccess: () => void navigate({ to: '/factions' }) })
-                    }
-                  />
-                ) : null
-              }
-            />
-          )}
-        </LoadExisting>
+        <AuthoringToolbar
+          load={{
+            noun: 'faction',
+            mode: 'replace',
+            disabled: updateFaction.isPending,
+            source: factionLoadSource(faction.slug),
+            onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
+          }}
+          status={{
+            isDirty: authoring.editing.isDirty,
+            isNameBlank: authoring.editing.isNameBlank,
+            invalid: authoring.editing.invalid,
+            saveState: authoring.persistence.saveState,
+          }}
+          copy={{
+            saveLabel: 'Save faction',
+            nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
+          }}
+          actions={{
+            onSave: authoring.actions.submit,
+            onReset: validationHeader.releasing(authoring.actions.reset),
+            onBack: () =>
+              navigate({
+                to: '/factions/$factionId',
+                params: { factionId },
+              }),
+          }}
+          review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
+          centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
+          accessActions={
+            <>
+              {canAssignGroup && !assignedGroup ? (
+                <FactionGroupPopover
+                  disabled={setFactionGroup.isPending}
+                  assignableGroups={assignableGroups}
+                  onAssignGroup={async (nextGroupId) => {
+                    await setFactionGroup.mutateAsync({
+                      id: faction._id,
+                      groupId: nextGroupId,
+                    });
+                  }}
+                />
+              ) : null}
+              {canAssignGroup && assignedGroup ? (
+                <IconAction
+                  label="Remove group"
+                  tooltip={`Remove group access (${assignedGroup.name})`}
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  disabled={setFactionGroup.isPending}
+                  onClick={() => void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })}
+                  icon={<UserRoundMinus size={17} aria-hidden />}
+                />
+              ) : null}
+            </>
+          }
+          statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
+          destructiveActions={
+            canDelete ? (
+              <ConfirmDeleteAction
+                label="Delete faction"
+                pending={deleteFaction.isPending}
+                onConfirm={() =>
+                  deleteFaction.mutate({ id: faction._id }, { onSuccess: () => void navigate({ to: '/factions' }) })
+                }
+              />
+            ) : null
+          }
+        />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="sm">

@@ -50,6 +50,12 @@ function overflowMenuButton(toolbar: HTMLElement | null) {
   return toolbar?.querySelector<HTMLButtonElement>(OVERFLOW_MENU_BUTTON) ?? null;
 }
 
+/** Whether a click landed on a toolbar button other than the one that controls this popover. */
+function isOtherButton(target: EventTarget, dropdownId: string) {
+  const button = target instanceof Element ? target.closest('button') : null;
+  return button != null && button.getAttribute('aria-controls') !== dropdownId;
+}
+
 /** The words for each mode, so the confirmation reads the same in every editor. */
 function loadCopy(noun: string, mode: 'create' | 'replace') {
   return mode === 'create'
@@ -97,8 +103,7 @@ export function LoadExisting<Draft>({ noun, mode, disabled, source, onLoaded, ch
           ref={toolbarTarget}
           onClickCapture={(event) => {
             /* Any other toolbar button closes the popover, so two of the toolbar's layers are never open at once. */
-            const button = event.target instanceof Element ? event.target.closest('button') : null;
-            if (button && button.getAttribute('aria-controls') !== dropdownId) {
+            if (isOtherButton(event.target, dropdownId)) {
               setOpened(false);
             }
           }}

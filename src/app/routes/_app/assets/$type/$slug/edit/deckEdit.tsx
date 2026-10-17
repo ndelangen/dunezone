@@ -22,7 +22,6 @@ import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
 import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import type {
   DeckChapter,
@@ -258,81 +257,77 @@ function DeckEditSession({
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
-        <LoadExisting
-          noun="deck"
-          mode="replace"
-          disabled={saveState === 'saving'}
-          source={loadSource}
-          onLoaded={header.releasing((loaded) =>
-            /* The edited asset keeps its name, so loading never moves it to another address. */
-            dispatch({
-              kind: 'replace',
-              data: { ...loaded.data, name: state.data.name },
-              pick: loaded.source?.backDeck ?? null,
-            })
-          )}
-        >
-          {(loadAction) => (
-            <AuthoringToolbar
-              status={{ isDirty, isNameBlank, saveState }}
-              copy={{
-                saveLabel: 'Save deck',
-                nameBlankMessage: 'Add a deck name before saving; it determines the deck URL.',
-              }}
-              actions={{
-                onSave: save,
-                onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: backDeck })),
-                onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type: 'deck', slug: asset.slug } }),
-              }}
-              auxiliaryActions={
-                <>
-                  {loadAction}
-                  {/*
-                   * Making a card leaves this page, so it belongs with the page-level actions rather than inside the
-                   * chapter it serves, and it stays disabled while there is anything to lose (Norbert, 2026-08-20).
-                   * `FilePlus2` rather than a plain plus: every other toolbar's plus creates one of the things the page
-                   * lists, and this one creates something else entirely.
-                   */}
-                  <Menu position="bottom-end" shadow="md" withinPortal disabled={isDirty}>
-                    <Menu.Target>
-                      <IconAction
-                        label="Create a new card"
-                        tooltip={
-                          isDirty
-                            ? 'Save your deck first, since creating a card leaves this page'
-                            : 'Create a new card, then come back and add it'
-                        }
-                        emphasis="standard"
-                        intent="positive"
-                        size="lg"
-                        disabled={isDirty}
-                        icon={<FilePlus2 size={17} aria-hidden />}
-                      />
-                    </Menu.Target>
-                    {/* One entry per live card type, so the choice grows with the registry rather than with this file. */}
-                    <Menu.Dropdown>
-                      {CREATABLE_CARD_TYPES.map((type) => (
-                        <Menu.Item
-                          key={type}
-                          onClick={() => void navigate({ to: '/assets/$type/create', params: { type } })}
-                        >
-                          {`${ASSET_TYPES[type].shortLabel} card`}
-                        </Menu.Item>
-                      ))}
-                    </Menu.Dropdown>
-                  </Menu>
-                </>
-              }
-              accessActions={groupActions.accessActions}
-              statuses={[groupActions.status]}
-              destructiveActions={
-                access.viewerAccess.capabilities.delete ? (
-                  <ConfirmDeleteAction label="Delete deck" pending={deletion.pending} onConfirm={deletion.confirm} />
-                ) : null
-              }
-            />
-          )}
-        </LoadExisting>
+        <AuthoringToolbar
+          load={{
+            noun: 'deck',
+            mode: 'replace',
+            disabled: saveState === 'saving',
+            source: loadSource,
+            onLoaded: header.releasing((loaded) =>
+              /* The edited asset keeps its name, so loading never moves it to another address. */
+              dispatch({
+                kind: 'replace',
+                data: { ...loaded.data, name: state.data.name },
+                pick: loaded.source?.backDeck ?? null,
+              })
+            ),
+          }}
+          status={{ isDirty, isNameBlank, saveState }}
+          copy={{
+            saveLabel: 'Save deck',
+            nameBlankMessage: 'Add a deck name before saving; it determines the deck URL.',
+          }}
+          actions={{
+            onSave: save,
+            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: backDeck })),
+            onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type: 'deck', slug: asset.slug } }),
+          }}
+          auxiliaryActions={
+            <>
+              {/*
+               * Making a card leaves this page, so it belongs with the page-level actions rather than inside the
+               * chapter it serves, and it stays disabled while there is anything to lose (Norbert, 2026-08-20).
+               * `FilePlus2` rather than a plain plus: every other toolbar's plus creates one of the things the page
+               * lists, and this one creates something else entirely.
+               */}
+              <Menu position="bottom-end" shadow="md" withinPortal disabled={isDirty}>
+                <Menu.Target>
+                  <IconAction
+                    label="Create a new card"
+                    tooltip={
+                      isDirty
+                        ? 'Save your deck first, since creating a card leaves this page'
+                        : 'Create a new card, then come back and add it'
+                    }
+                    emphasis="standard"
+                    intent="positive"
+                    size="lg"
+                    disabled={isDirty}
+                    icon={<FilePlus2 size={17} aria-hidden />}
+                  />
+                </Menu.Target>
+                {/* One entry per live card type, so the choice grows with the registry rather than with this file. */}
+                <Menu.Dropdown>
+                  {CREATABLE_CARD_TYPES.map((type) => (
+                    <Menu.Item
+                      key={type}
+                      onClick={() => void navigate({ to: '/assets/$type/create', params: { type } })}
+                    >
+                      {`${ASSET_TYPES[type].shortLabel} card`}
+                    </Menu.Item>
+                  ))}
+                </Menu.Dropdown>
+              </Menu>
+            </>
+          }
+          accessActions={groupActions.accessActions}
+          statuses={[groupActions.status]}
+          destructiveActions={
+            access.viewerAccess.capabilities.delete ? (
+              <ConfirmDeleteAction label="Delete deck" pending={deletion.pending} onConfirm={deletion.confirm} />
+            ) : null
+          }
+        />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">

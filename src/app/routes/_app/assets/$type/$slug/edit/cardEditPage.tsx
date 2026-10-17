@@ -15,7 +15,6 @@ import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { assetLoadSource } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 
 import {
   AssetEditorMessage,
@@ -205,36 +204,32 @@ export function CardEditFrame<Draft>({
     <PageLayout>
       {headerSlot}
       <PageLayout.Toolbar>
-        <LoadExisting
-          noun={type === 'board' ? 'board' : 'card'}
-          mode="replace"
-          disabled={status.saveState === 'saving'}
-          source={loadSource}
-          onLoaded={(loaded) => load.onLoaded(loaded.data)}
-        >
-          {(loadAction) => (
-            <AuthoringToolbar
-              status={status}
-              copy={{
-                saveLabel: 'Save card',
-                nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
-              }}
-              actions={{
-                onSave,
-                onReset,
-                onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type, slug: asset.slug } }),
-              }}
-              auxiliaryActions={loadAction}
-              accessActions={groupActions.accessActions}
-              statuses={[groupActions.status]}
-              destructiveActions={
-                access.viewerAccess.capabilities.delete ? (
-                  <ConfirmDeleteAction label="Delete card" pending={deletion.pending} onConfirm={deletion.confirm} />
-                ) : null
-              }
-            />
-          )}
-        </LoadExisting>
+        <AuthoringToolbar
+          load={{
+            noun: type === 'board' ? 'board' : 'card',
+            mode: 'replace',
+            disabled: status.saveState === 'saving',
+            source: loadSource,
+            onLoaded: (loaded) => load.onLoaded(loaded.data),
+          }}
+          status={status}
+          copy={{
+            saveLabel: 'Save card',
+            nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
+          }}
+          actions={{
+            onSave,
+            onReset,
+            onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type, slug: asset.slug } }),
+          }}
+          accessActions={groupActions.accessActions}
+          statuses={[groupActions.status]}
+          destructiveActions={
+            access.viewerAccess.capabilities.delete ? (
+              <ConfirmDeleteAction label="Delete card" pending={deletion.pending} onConfirm={deletion.confirm} />
+            ) : null
+          }
+        />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">

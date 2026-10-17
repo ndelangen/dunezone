@@ -13,7 +13,6 @@ import { useReducer, useMemo } from 'react';
 import { useCreateAsset } from '@db/assets';
 import { useSessionViewer } from '@db/profiles';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { BoardEditor } from '@app/widgets/board-editor/BoardEditor';
 import { boardLoadSource } from '@app/widgets/board-editor/boardLoadSource';
 import { boardEditorReducer, initialBoardEditorState } from '@app/widgets/board-editor/state';
@@ -104,52 +103,48 @@ export function BoardCreatePage() {
   return (
     <PageLayout>
       <PageLayout.Toolbar>
-        <LoadExisting
-          noun="board"
-          mode="create"
-          disabled={saving.isPending}
-          source={boardLoadSource()}
-          onLoaded={(loaded) => dispatch({ kind: 'replace', draft: loaded.data })}
-        >
-          {(loadAction) => (
-            <AuthoringToolbar
-              status={{
-                isDirty,
-                isNameBlank: !state.draft.name.trim(),
-                saveState: saving.isPending ? 'saving' : saving.error ? 'error' : saving.data ? 'saved' : 'idle',
-                invalid,
-              }}
-              copy={{ saveLabel: 'Save board', nameBlankMessage: 'Add a board name before saving.' }}
-              actions={{
-                onSave: save,
-                onReset: () => dispatch({ kind: 'replace', draft: state.baseline }),
-                onBack: () => void navigate({ to: '/assets/$type', params: { type: 'board' } }),
-              }}
-              auxiliaryActions={
-                <>
-                  {loadAction}
-                  <IconAction
-                    label="Undo"
-                    tooltip="Undo · ⌘Z / Ctrl+Z"
-                    emphasis="standard"
-                    size="lg"
-                    icon={<Undo2 size={17} />}
-                    disabled={!state.editor.past.length}
-                    onClick={() => dispatch({ kind: 'editor', event: { type: 'history.undo' } })}
-                  />
-                  <IconAction
-                    label="Redo"
-                    emphasis="standard"
-                    size="lg"
-                    icon={<Redo2 size={17} />}
-                    disabled={!state.editor.future.length}
-                    onClick={() => dispatch({ kind: 'editor', event: { type: 'history.redo' } })}
-                  />
-                </>
-              }
-            />
-          )}
-        </LoadExisting>
+        <AuthoringToolbar
+          load={{
+            noun: 'board',
+            mode: 'create',
+            disabled: saving.isPending,
+            source: boardLoadSource(),
+            onLoaded: (loaded) => dispatch({ kind: 'replace', draft: loaded.data }),
+          }}
+          status={{
+            isDirty,
+            isNameBlank: !state.draft.name.trim(),
+            saveState: saving.isPending ? 'saving' : saving.error ? 'error' : saving.data ? 'saved' : 'idle',
+            invalid,
+          }}
+          copy={{ saveLabel: 'Save board', nameBlankMessage: 'Add a board name before saving.' }}
+          actions={{
+            onSave: save,
+            onReset: () => dispatch({ kind: 'replace', draft: state.baseline }),
+            onBack: () => void navigate({ to: '/assets/$type', params: { type: 'board' } }),
+          }}
+          auxiliaryActions={
+            <>
+              <IconAction
+                label="Undo"
+                tooltip="Undo · ⌘Z / Ctrl+Z"
+                emphasis="standard"
+                size="lg"
+                icon={<Undo2 size={17} />}
+                disabled={!state.editor.past.length}
+                onClick={() => dispatch({ kind: 'editor', event: { type: 'history.undo' } })}
+              />
+              <IconAction
+                label="Redo"
+                emphasis="standard"
+                size="lg"
+                icon={<Redo2 size={17} />}
+                disabled={!state.editor.future.length}
+                onClick={() => dispatch({ kind: 'editor', event: { type: 'history.redo' } })}
+              />
+            </>
+          }
+        />
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
         <Stack gap="sm">

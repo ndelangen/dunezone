@@ -11,7 +11,6 @@ import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { assetLoadSource } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 
 import { AssetEditorMessage, SaveErrorAlert } from '../../assetEditorStates';
 
@@ -110,29 +109,25 @@ export function CardCreateFrame<Draft>({
     <PageLayout>
       {headerSlot}
       <PageLayout.Toolbar>
-        <LoadExisting
-          noun="card"
-          mode="create"
-          disabled={status.saveState === 'saving'}
-          source={loadSource}
-          onLoaded={(loaded) => load.onLoaded(loaded.data)}
-        >
-          {(loadAction) => (
-            <AuthoringToolbar
-              status={status}
-              copy={{
-                saveLabel: 'Save card',
-                nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
-              }}
-              actions={{
-                onSave,
-                onReset,
-                onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
-              }}
-              auxiliaryActions={loadAction}
-            />
-          )}
-        </LoadExisting>
+        <AuthoringToolbar
+          load={{
+            noun: 'card',
+            mode: 'create',
+            disabled: status.saveState === 'saving',
+            source: loadSource,
+            onLoaded: (loaded) => load.onLoaded(loaded.data),
+          }}
+          status={status}
+          copy={{
+            saveLabel: 'Save card',
+            nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
+          }}
+          actions={{
+            onSave,
+            onReset,
+            onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
+          }}
+        />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">

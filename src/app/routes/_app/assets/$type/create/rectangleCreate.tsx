@@ -13,7 +13,6 @@ import { useCreateAsset } from '@app/db/assets';
 import { assetLoadSource } from '@app/pickers/assetLoadSource';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   INITIAL_RECTANGLE_DRAFT,
@@ -149,35 +148,31 @@ export function RectangleCreatePage() {
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
-        <LoadExisting
-          noun="token"
-          mode="create"
-          disabled={saveState === 'saving'}
-          source={loadSource}
-          onLoaded={header.releasing((loaded) =>
-            dispatch({
-              kind: 'replace',
-              data: loaded.data,
-              pick: loaded.source?.backToken ?? null,
-            })
-          )}
-        >
-          {(loadAction) => (
-            <AuthoringToolbar
-              status={{ isDirty, isNameBlank, saveState }}
-              copy={{
-                saveLabel: 'Save token',
-                nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
-              }}
-              actions={{
-                onSave: save,
-                onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: null })),
-                onBack: () => void navigate({ to: '/assets/$type', params: { type: TYPE } }),
-              }}
-              auxiliaryActions={loadAction}
-            />
-          )}
-        </LoadExisting>
+        <AuthoringToolbar
+          load={{
+            noun: 'token',
+            mode: 'create',
+            disabled: saveState === 'saving',
+            source: loadSource,
+            onLoaded: header.releasing((loaded) =>
+              dispatch({
+                kind: 'replace',
+                data: loaded.data,
+                pick: loaded.source?.backToken ?? null,
+              })
+            ),
+          }}
+          status={{ isDirty, isNameBlank, saveState }}
+          copy={{
+            saveLabel: 'Save token',
+            nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
+          }}
+          actions={{
+            onSave: save,
+            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: null })),
+            onBack: () => void navigate({ to: '/assets/$type', params: { type: TYPE } }),
+          }}
+        />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">

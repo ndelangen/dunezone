@@ -13,7 +13,6 @@ import { assetLoadSource, clonedMembersOf } from '@app/pickers/assetLoadSource';
 import type { ClonedMembers } from '@app/pickers/assetLoadSource';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   bundleDraftWarnings,
@@ -134,32 +133,28 @@ export function BundleCreatePage() {
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
-        <LoadExisting
-          noun="bundle"
-          mode="create"
-          disabled={saveState === 'saving'}
-          source={loadSource}
-          onLoaded={header.releasing((loaded) =>
-            dispatch({ kind: 'replace', data: loaded.data, clonedFrom: clonedMembersOf(loaded) })
-          )}
-        >
-          {(loadAction) => (
-            <AuthoringToolbar
-              status={{ isDirty, isNameBlank, saveState }}
-              copy={{
-                saveLabel: 'Save bundle',
-                nameBlankMessage: 'Add a bundle name before saving; it determines the bundle URL.',
-                /* No publication copy anywhere on this page: a bundle publishes nothing, and its members publish themselves. */
-              }}
-              actions={{
-                onSave: save,
-                onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, clonedFrom: null })),
-                onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
-              }}
-              auxiliaryActions={loadAction}
-            />
-          )}
-        </LoadExisting>
+        <AuthoringToolbar
+          load={{
+            noun: 'bundle',
+            mode: 'create',
+            disabled: saveState === 'saving',
+            source: loadSource,
+            onLoaded: header.releasing((loaded) =>
+              dispatch({ kind: 'replace', data: loaded.data, clonedFrom: clonedMembersOf(loaded) })
+            ),
+          }}
+          status={{ isDirty, isNameBlank, saveState }}
+          copy={{
+            saveLabel: 'Save bundle',
+            nameBlankMessage: 'Add a bundle name before saving; it determines the bundle URL.',
+            /* No publication copy anywhere on this page: a bundle publishes nothing, and its members publish themselves. */
+          }}
+          actions={{
+            onSave: save,
+            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, clonedFrom: null })),
+            onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
+          }}
+        />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
