@@ -771,15 +771,10 @@ describe('collaborative access moderation commands', () => {
       'Not authorized'
     );
     await expect(member.mutation(api.factions.softDelete, { id: ids.factionId })).rejects.toThrow('Not authorized');
-  });
 
-  test('the faction owner still renames, and the slug moves with the name', async () => {
-    const { t, ids } = await groupAccessFixture();
-    const assetOwner = t.withIdentity({ subject: ids.assetOwnerId });
-
-    const renamed = await assetOwner.mutation(api.factions.update, {
+    const renamed = await t.withIdentity({ subject: ids.assetOwnerId }).mutation(api.factions.update, {
       id: ids.factionId,
-      data: { ...structuredClone(assetPublishingFaction), name: 'Owner Renamed Faction' },
+      data: { ...stored, name: 'Owner Renamed Faction' },
     });
     expect(renamed).toMatchObject({ slug: 'owner-renamed-faction' });
   });

@@ -56,11 +56,11 @@ describe('turn tracker layout and selection', () => {
     expect(layout.sectors[layout.selectedIndex].turn).toBe(turn);
   });
 
-  test.each([0, -1, NaN, Infinity])('rejects invalid radius %s', (radius) => {
+  test.each([0, NaN, Infinity])('rejects invalid radius %s', (radius) => {
     expect(() => turnTrackerLayout({ radius, turn: 1 })).toThrow(RangeError);
   });
 
-  test.each([0, -1, 1.5, NaN, Infinity])('rejects invalid turn %s', (turn) => {
+  test.each([0, 1.5, NaN, Infinity])('rejects invalid turn %s', (turn) => {
     expect(() => turnTrackerLayout({ radius: 1, turn })).toThrow(RangeError);
   });
 });

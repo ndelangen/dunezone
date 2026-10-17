@@ -119,17 +119,6 @@ describe('FAQ question page projection (api.faq.question)', () => {
     }
   });
 
-  test('the accepted answer sorts first regardless of age', async () => {
-    const t = convexTest(schema, modules);
-    const seed = await seedQuestionPage(t);
-
-    const page = await faqQuestionPageAs(t, locator);
-
-    expect(page.answers[0]?.id).toBe(seed.acceptedAnswerId);
-    expect(page.answers[0]?.accepted).toBe(true);
-    expect(page.answers.slice(1).every((answer) => !answer.accepted)).toBe(true);
-  });
-
   test('the page shows the newest answers, and the accepted one leads even when older than them', async () => {
     const t = convexTest(schema, modules);
     const seed = await seedQuestionPage(t);

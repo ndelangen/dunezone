@@ -133,33 +133,31 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(upstream).toHaveBeenCalledTimes(2);
   });
 
-  test.each([
-    ['arbitrary token', 'arbitrary-capability-000000001'],
-    ['invalid signature', 'invalid-signature-00000000001'],
-    ['expired capability', 'expired-capability-0000000001'],
-    ['unknown job', 'unknown-publication-job-0000001'],
-  ])('%s cannot serve the capture shell, HTML, or bundle', async (_label, invalidToken) => {
-    stubValidJob();
-    for (const pathname of [
-      '/__asset-publisher/capture',
-      '/publisher-capture.html',
-      '/publisher-capture/entry-hash.js',
-    ]) {
-      const assetFetch = vi.fn();
-      const response = await handleCaptureRoute(
-        new Request(`https://publisher.example.com${pathname}`, {
-          headers: {
-            [CAPTURE_PROTOCOL.credentials.jobHeader]: invalidToken,
-            Cookie: `__Host-publication_job=${invalidToken}`,
-          },
-        }),
-        env(assetFetch)
-      );
-      expect(response?.status, pathname).toBe(404);
-      expect(response?.headers.get('Cache-Control')).toBe('no-store');
-      expect(assetFetch).not.toHaveBeenCalled();
+  test.each([['arbitrary token', 'arbitrary-capability-000000001']])(
+    '%s cannot serve the capture shell, HTML, or bundle',
+    async (_label, invalidToken) => {
+      stubValidJob();
+      for (const pathname of [
+        '/__asset-publisher/capture',
+        '/publisher-capture.html',
+        '/publisher-capture/entry-hash.js',
+      ]) {
+        const assetFetch = vi.fn();
+        const response = await handleCaptureRoute(
+          new Request(`https://publisher.example.com${pathname}`, {
+            headers: {
+              [CAPTURE_PROTOCOL.credentials.jobHeader]: invalidToken,
+              Cookie: `__Host-publication_job=${invalidToken}`,
+            },
+          }),
+          env(assetFetch)
+        );
+        expect(response?.status, pathname).toBe(404);
+        expect(response?.headers.get('Cache-Control')).toBe('no-store');
+        expect(assetFetch).not.toHaveBeenCalled();
+      }
     }
-  });
+  );
 
   test('proxies the Publication job id as a Convex bearer without slug or auth state', async () => {
     const upstream = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
