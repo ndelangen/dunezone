@@ -128,6 +128,7 @@ async function insertDocuments(world: World, documents: SeedDocument[], delay = 
   await world.test.run(async (ctx) => {
     /* Seeds go in raw, so the catalogue read models the triggers would keep are built here from what was seeded. */
     const factionIds = new Set<string>();
+    const assetIds = new Set<string>();
     for (const document of documents) {
       const id = await insertDocument(ctx.db, document, world.references);
       if (document.key) {
@@ -138,6 +139,8 @@ async function insertDocuments(world: World, documents: SeedDocument[], delay = 
         const factionId = id as Id<'factions'>;
         await syncFactionCard(ctx, factionId, await ctx.db.get('factions', factionId));
         factionIds.add(id);
+      } else if (document.table === 'assets') {
+        assetIds.add(id);
       } else if (document.table === 'ruleset_factions') {
         factionIds.add((await ctx.db.get('ruleset_factions', id as Id<'ruleset_factions'>))!.faction_id);
       }
@@ -146,6 +149,9 @@ async function insertDocuments(world: World, documents: SeedDocument[], delay = 
     const wrapped = applicationTriggers.wrapDB(ctx as unknown as MutationCtx);
     for (const factionId of factionIds) {
       await reconcileCatalogueEntry(wrapped, 'faction', factionId);
+    }
+    for (const assetId of assetIds) {
+      await reconcileCatalogueEntry(wrapped, 'asset', assetId);
     }
   });
 }

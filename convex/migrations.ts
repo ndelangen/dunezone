@@ -71,6 +71,8 @@ type MigrationRef = FunctionReference<'mutation', 'internal'>;
 const MIGRATION_IDS: Record<string, MigrationRef> = {
   board_readiness_v1: internal.migrations.board_readiness_v1,
   catalogue_entries_factions_v1: internal.migrations.catalogue_entries_factions_v1,
+  catalogue_entries_assets_v1: internal.migrations.catalogue_entries_assets_v1,
+  catalogue_entries_assets_verify_v1: internal.migrations.catalogue_entries_assets_verify_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
   catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,
@@ -1361,6 +1363,31 @@ export const catalogue_entries_verify_v2 = migrations.define({
     const drift = await catalogueSourceDrift(ctx, 'faction', row._id);
     if (drift.length > 0) {
       throw new Error(`Faction ${row._id} catalogue entries are ${drift.join(' and ')}.`);
+    }
+  },
+});
+
+/**
+ * Builds the asset catalogue's entries from canonical assets, while live writes keep them current through triggers.
+ * Reconciling is idempotent, so every snapshot load can replay it over a catalogue that is already exact.
+ */
+export const catalogue_entries_assets_v1 = migrations.define({
+  table: 'assets',
+  /* Asset data has no length cap and each reconcile rereads the asset and its owner. */
+  batchSize: 10,
+  migrateOne: async (ctx, row) => {
+    await repairCatalogueEntry(ctx, 'asset', row._id);
+  },
+});
+
+/** Proves every live asset is in its type's list and the whole list exactly once, so an empty or partial asset catalogue cannot pass. */
+export const catalogue_entries_assets_verify_v1 = migrations.define({
+  table: 'assets',
+  batchSize: 10,
+  migrateOne: async (ctx, row) => {
+    const drift = await catalogueSourceDrift(ctx, 'asset', row._id);
+    if (drift.length > 0) {
+      throw new Error(`Asset ${row._id} catalogue entries are ${drift.join(' and ')}.`);
     }
   },
 });
