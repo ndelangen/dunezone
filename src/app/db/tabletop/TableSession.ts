@@ -877,7 +877,7 @@ export class TableSession {
    * The controls that depend on nothing read the table as it is when they are used.
    */
   private readonly spiceReserveControls: NonNullable<TableProjection['spiceReserveControls']> = {
-    canCollect: (pieceId) => !this.table?.reservedPieceIds.has(pieceId),
+    canCollect: (pieceId) => this.table !== null && !this.table.reservedPieceIds.has(pieceId),
     collect: (pieceId) => this.command({ kind: 'bank-collect', pieceId }),
   };
   private readonly peekControls: NonNullable<TableProjection['peekControls']> = {
@@ -1034,7 +1034,9 @@ export class TableSession {
     if (panelsChanged) {
       notify(this.listeners);
     }
-    if (tableChanged && coalesce && !panelsChanged) {
+    /* Only a held piece's own moves wait for the next frame; anything the panels show goes out at once. */
+    const waitsForFrame = tableChanged && coalesce && !panelsChanged;
+    if (waitsForFrame) {
       this.cancelTableFrame ??= onNextFrame(this.flushTable);
     } else if (tableChanged || this.cancelTableFrame) {
       this.flushTable();
@@ -1240,8 +1242,10 @@ export class TableSession {
   }
   /* A page arrives for the cursor it was asked with; one the panel has since moved past is dropped. */
   private receiveLogPage(message: LogPage) {
+    const asked = message.before === this.logHistoryBefore[message.tab];
     const shown = this.logHistory[message.tab];
-    if (message.before === this.logHistoryBefore[message.tab] && !(shown && sameLogPage(shown, message))) {
+    const alreadyShown = shown !== undefined && sameLogPage(shown, message);
+    if (asked && !alreadyShown) {
       this.logHistory = { ...this.logHistory, [message.tab]: message };
     }
   }

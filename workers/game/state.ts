@@ -138,7 +138,7 @@ function listWithUnchangedParts(previous: readonly unknown[], next: readonly unk
     }
     const kept = withUnchangedParts(before, entry);
     /* Every entry before the first one that changed is the previous list's own. */
-    entries ??= kept === previous[index] ? undefined : previous.slice(0, index);
+    entries ??= index < previous.length && kept === previous[index] ? undefined : previous.slice(0, index);
     entries?.push(kept);
   }
   return entries ?? (previous.length === next.length ? previous : previous.slice(0, next.length));

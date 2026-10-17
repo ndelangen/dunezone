@@ -175,29 +175,33 @@ export class SessionHistory {
    * such a chain is replayed by reading each step through the schema, as every restore once did.
    */
   private replay(checkpoint: HistoryRow, rows: HistoryRow[]): StoredSnapshot {
-    let snapshot = storedSnapshotSchema.parse(JSON.parse(checkpoint.data));
     try {
-      for (const row of rows) {
-        if (row.base_revision !== snapshot.revision) {
-          throw new Error('History is incomplete.');
-        }
-        /* The parsed checkpoint and the freshly read rows belong to this restore alone, so they change in place. */
-        snapshot = applyPatchInPlace(snapshot, JSON.parse(row.data) as Patch[]);
-        if (snapshot.revision !== row.revision) {
-          throw new Error('History is incomplete.');
-        }
-      }
-      return storedSnapshotSchema.parse(snapshot);
+      return this.replayInPlace(checkpoint, rows);
     } catch {
-      snapshot = storedSnapshotSchema.parse(JSON.parse(checkpoint.data));
-      for (const row of rows) {
-        if (row.base_revision !== snapshot.revision) {
-          throw new Error('History is incomplete.');
-        }
-        snapshot = this.restorePatch(snapshot, row);
-      }
-      return snapshot;
+      return this.replayPerStep(checkpoint, rows);
     }
+  }
+
+  private replayInPlace(checkpoint: HistoryRow, rows: HistoryRow[]): StoredSnapshot {
+    let snapshot = storedSnapshotSchema.parse(JSON.parse(checkpoint.data));
+    for (const row of rows) {
+      assertBase(snapshot, row);
+      /* The parsed checkpoint and the freshly read rows belong to this restore alone, so they change in place. */
+      snapshot = applyPatchInPlace(snapshot, JSON.parse(row.data) as Patch[]);
+      if (snapshot.revision !== row.revision) {
+        throw new Error('History is incomplete.');
+      }
+    }
+    return storedSnapshotSchema.parse(snapshot);
+  }
+
+  private replayPerStep(checkpoint: HistoryRow, rows: HistoryRow[]): StoredSnapshot {
+    let snapshot = storedSnapshotSchema.parse(JSON.parse(checkpoint.data));
+    for (const row of rows) {
+      assertBase(snapshot, row);
+      snapshot = this.restorePatch(snapshot, row);
+    }
+    return snapshot;
   }
 
   private restorePatch(snapshot: StoredSnapshot, row: HistoryRow): StoredSnapshot {
@@ -206,5 +210,11 @@ export class SessionHistory {
       throw new Error('History is incomplete.');
     }
     return next;
+  }
+}
+
+function assertBase(snapshot: StoredSnapshot, row: HistoryRow) {
+  if (row.base_revision !== snapshot.revision) {
+    throw new Error('History is incomplete.');
   }
 }

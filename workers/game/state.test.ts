@@ -404,3 +404,9 @@ test('keeping unchanged parts never changes a value, its key order or which part
     }
   }
 });
+
+test('a list that grows by an empty entry keeps its new length', () => {
+  const first = { id: 'a' };
+
+  expect(withUnchangedParts([first], [first, undefined])).toEqual([first, undefined]);
+});
