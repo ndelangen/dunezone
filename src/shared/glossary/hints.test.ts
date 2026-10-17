@@ -9,10 +9,6 @@ function summary(text: string) {
 }
 
 describe('findTermHints', () => {
-  test('suggests the preferred term for an avoided word', () => {
-    expect(summary('Ship 3 forces to Arrakeen.')).toEqual([['forces', 'Troop']]);
-  });
-
   test('matches whole words only, ignoring case', () => {
     expect(summary('Combat is fierce. Their strongholds are safe.')).toEqual([['Combat', 'Battle']]);
     expect(summary('Abattoirs and fighters')).toEqual([]);

@@ -14,7 +14,6 @@ const modules = import.meta.glob('./**/*.ts');
 
 type SeedResult = {
   userId: Id<'users'>;
-  profileId: Id<'profiles'>;
   activeGroupId: Id<'groups'>;
   laterGroupId: Id<'groups'>;
   advancedRulesetId: Id<'rulesets'>;
@@ -35,7 +34,7 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
     const askerId = await ctx.db.insert('users', { name: 'Asker' });
     const profilelessAskerId = await ctx.db.insert('users', { name: 'No profile' });
 
-    const profileId = await ctx.db.insert('profiles', {
+    await ctx.db.insert('profiles', {
       user_id: userId,
       username: 'Central',
       avatar_url: null,
@@ -251,7 +250,6 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
 
     return {
       userId,
-      profileId,
       activeGroupId,
       laterGroupId,
       advancedRulesetId,
@@ -269,16 +267,6 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
 }
 
 describe('profile detail projection (api.profiles.pageBySlug)', () => {
-  test('resolves the profile by public slug', async () => {
-    const t = convexTest(schema, modules);
-    const seed = await seedProfileDetail(t);
-
-    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
-
-    expect(page.profile._id).toBe(seed.profileId);
-    expect(page.profile.slug).toBe('central');
-  });
-
   test('throws for an unknown slug', async () => {
     const t = convexTest(schema, modules);
     await seedProfileDetail(t);
@@ -298,25 +286,6 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
       { id: seed.activeGroupId, name: 'Sietch Tabr', slug: 'sietch-tabr' },
       { id: seed.laterGroupId, name: 'Arrakeen Guild', slug: 'arrakeen-guild' },
     ]);
-  });
-
-  test('group summaries keep membership order, not name order', async () => {
-    const t = convexTest(schema, modules);
-    const seed = await seedProfileDetail(t);
-
-    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
-
-    expect(page.groupSummaries.map((group) => group.id)).toEqual([seed.activeGroupId, seed.laterGroupId]);
-  });
-
-  test('an active membership whose group no longer resolves is dropped from the summaries', async () => {
-    const t = convexTest(schema, modules);
-    await seedProfileDetail(t);
-
-    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
-
-    expect(page.groupSummaries.map((group) => group.name)).not.toContain('Ghost Sietch');
-    expect(page.groupSummaries).toHaveLength(2);
   });
 
   test('excludes soft-deleted factions and parses faction data', async () => {

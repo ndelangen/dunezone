@@ -18,15 +18,14 @@ import {
 const swiftShader = 'ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)';
 const metal = 'ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)';
 
-test.each(rendererKinds)('--expect-renderer accepts %s', (kind) => {
-  expect(parseExpectedRenderer(kind)).toBe(kind);
-});
-
 test('without --expect-renderer no renderer is expected', () => {
   expect(parseExpectedRenderer(undefined)).toBeUndefined();
 });
 
 test('--expect-renderer refuses a value outside its set and names the set', () => {
+  for (const kind of rendererKinds) {
+    expect(parseExpectedRenderer(kind)).toBe(kind);
+  }
   expect(() => parseExpectedRenderer('webgl2')).toThrow(
     '--expect-renderer must be one of webgpu, webgl2-swiftshader, webgl2-other, not webgl2.'
   );

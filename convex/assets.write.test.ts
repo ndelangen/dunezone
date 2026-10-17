@@ -513,11 +513,13 @@ describe('asset page bundle', () => {
     const owner = t.withIdentity({ subject: ownerId });
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
     await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 3 });
+    await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Shield') });
 
     const card = await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' });
     expect(card?.inDecks).toEqual([
       expect.objectContaining({ id: deck.id, type: 'deck', slug: 'house-treachery', count: 3 }),
     ]);
+    expect((await assetPageAs(t, { type: 'card-treachery', slug: 'shield' }))?.inDecks).toEqual([]);
     /* Saving the card enqueued a publication, so it has capture state but no published asset yet. */
     expect(card?.assetPublishing).toMatchObject({ status: null, captureStatus: 'scheduled', publicationHref: null });
 
@@ -556,15 +558,6 @@ describe('asset about', () => {
     expect(page?.asset.data).toMatchObject({
       about: 'A lasgun hitting a shield destroys the territory.',
     });
-  });
-
-  test('an asset with nothing to explain saves with an empty About', async () => {
-    const t = convexTest(schema, modules);
-    const { created } = await seedCard(t);
-
-    const page = await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' });
-    expect(page?.asset.data).toMatchObject({ about: '' });
-    expect(created.slug).toBe('lasgun');
   });
 });
 

@@ -82,18 +82,12 @@ describe('useAssetAccess', () => {
 });
 
 describe('useGroupAccess', () => {
-  test('is resolved on the first membership answer', () => {
-    const { result } = renderHook(() => useGroupAccess(groupRow('group-a')));
-    expect(result.current.resolved).toBe(true);
-    expect(result.current.viewerAccess.viewer).toEqual({ kind: 'authenticated', membership: 'active' });
-    expect(result.current.viewerAccess.capabilities.addMember).toBe(true);
-  });
-
   test("never shows one Group's membership on another while the second Group's membership loads", () => {
     const { result, rerender } = renderHook(({ group }) => useGroupAccess(group), {
       initialProps: { group: groupRow('group-a') },
     });
     expect(result.current.resolved).toBe(true);
+    expect(result.current.viewerAccess.viewer).toEqual({ kind: 'authenticated', membership: 'active' });
     expect(result.current.viewerAccess.capabilities.addMember).toBe(true);
 
     /* The viewer navigates to Group B without a remount; its membership has not been asked for yet. */

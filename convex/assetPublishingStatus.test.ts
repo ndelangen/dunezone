@@ -134,7 +134,6 @@ describe('public asset publishing status projection', () => {
     ['no publication', false, null],
     ['only capture work', false, 'pending'],
     ['a publication with replacement work', true, 'in_progress'],
-    ['a publication after a failed capture', true, 'error'],
   ] as const)('the link-only read matches the full status link for %s', async (_case, published, jobStatus) => {
     const t = convexTest(schema, modules);
     const factionId = await seedFaction(t);

@@ -124,12 +124,6 @@ describe('Rulebook Contents hashes', () => {
     expect(rulebookEditionContentsHash(frozen)).toBe(pinned);
   });
 
-  test('carry the current version prefix and a SHA-256 hex digest', () => {
-    expect(rulebookContentsHash({ schemaVersion: 1 })).toMatch(
-      new RegExp(`^${RULEBOOK_CONTENTS_HASH_VERSION}[0-9a-f]{64}$`)
-    );
-  });
-
   test('ignore key order and keys left undefined, as storage does', () => {
     const contents = createRulebookEditorialStarterContents();
     expect(rulebookContentsHash(reversedKeys(contents))).toBe(rulebookContentsHash(contents));

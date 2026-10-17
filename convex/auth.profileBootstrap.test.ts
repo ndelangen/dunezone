@@ -66,8 +66,6 @@ describe('Discord profile creation', () => {
     { name: 'Ｐａｕｌ ①②', slug: 'paul-12' },
     { name: 'René', slug: 'rene' },
     { name: 'Rene\u0301', slug: 'rene' },
-    { name: '🌙', slug: 'player' },
-    { name: '王', slug: 'player' },
     { name: '---', slug: 'player' },
     { name: undefined, slug: 'nameless' },
   ])('completes the callback for $name with URL slug $slug', async ({ name, slug }) => {

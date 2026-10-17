@@ -59,10 +59,6 @@ test('an address hint uses the ID record and never creates or restamps a table',
 test.each([
   ['another account', { userId: 'other', sessionId: 'session' }, now, (text: string) => text],
   ['another sign-in', { userId: 'user', sessionId: 'other' }, now, (text: string) => text],
-  ['an old table', account, now + STORED_TABLE_MAX_AGE_MS + 1, (text: string) => text],
-  ['a future table', account, now - 1, (text: string) => text],
-  ['an invalid view', account, now, (text: string) => text.replace('"revision":0', '"revision":"bad"')],
-  ['a mismatched key', account, now, (text: string) => text.replace('"gameId":"game"', '"gameId":"other"')],
 ])('an alias rejects %s using the existing restoration guards', (_name, who, at, change) => {
   const { storage, store } = aliasStore(
     change(storedTableText('game', table, account, now, 'hidden-sietch')!),

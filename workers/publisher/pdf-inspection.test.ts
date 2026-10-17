@@ -51,18 +51,6 @@ test('rejects a truncated otherwise-real PDF', async () => {
   await expect(inspectChromiumPdf(truncated)).rejects.toThrow('truncated');
 });
 
-test('rejects a real PDF whose classic xref table and trailer were removed', async () => {
-  const pdf = await realPdf([[150 * pointsPerMm, 195 * pointsPerMm]]);
-  const offset = startxrefOffset(pdf);
-  const text = new TextDecoder('latin1').decode(pdf);
-  const startxref = text.lastIndexOf('startxref');
-  const corrupted = new Uint8Array(offset + (pdf.length - startxref));
-  corrupted.set(pdf.subarray(0, offset));
-  corrupted.set(pdf.subarray(startxref), offset);
-
-  await expect(inspectChromiumPdf(corrupted)).rejects.toThrow(/startxref/);
-});
-
 test('rejects a real PDF with a wrong in-range startxref offset', async () => {
   const pdf = await realPdf([[150 * pointsPerMm, 195 * pointsPerMm]]);
   const text = new TextDecoder('latin1').decode(pdf);

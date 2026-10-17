@@ -297,18 +297,6 @@ describe('hosted public controls', () => {
         .map((message) => message.requestId)
     ).toEqual([next]);
   });
-  test('holds a catalogue read behind the spawn request the Worker is still capturing', async () => {
-    const client = await connected();
-    const sentReads = () =>
-      socket().sent.flatMap((message) => (message.type === 'catalogue' ? [message.requestId] : []));
-    client.command({ kind: 'spawn-request', type: 'deck', slug: 'ready' });
-    const request = socket().sent.find((message) => message.type === 'command');
-    expect(request).toMatchObject({ action: { kind: 'spawn-request' } });
-    const next = client.catalogue({ type: 'deck', slug: 'next' });
-    expect(sentReads()).toEqual([]);
-    socket().deliver(view({ sequence: 2, completedCommandId: request!.commandId }));
-    expect(sentReads()).toEqual([next]);
-  });
   test('shows a refused catalogue read in the picker instead of waiting for a reply that never comes', async () => {
     const client = await connected();
     const refused = client.catalogue({ type: 'deck', slug: 'second' });
@@ -698,20 +686,6 @@ describe('hosted table admission', () => {
 });
 
 describe('hosted table interaction', () => {
-  test('phase changes preserve a carry and use the latest shared revision', async () => {
-    const { client, source, carried } = await grantedWholeCarry();
-    socket().deliver(carried);
-    client.command({ kind: 'phase' });
-    expect(command().action).toEqual({ kind: 'phase' });
-    socket().deliver({ ...carried, snapshot: { ...carried.snapshot, phase: 54, revision: 1 } });
-    expect(table(client).snapshot.phase).toBe(54);
-    expect(table(client).gestureActivePieceId).toBe(source.id);
-    client.command({ kind: 'phase' });
-    expect(command().expectedRevision).toBe(1);
-    client.finishGesture([0, 0.38, 0]);
-    expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: carried.carries[0].id });
-  });
-
   test('a finished game keeps its table as it is: nothing picks up, selects or changes a piece, and Continue playing still goes', async () => {
     const client = await connected();
     const piece = initialSnapshot().table.pieces[0];

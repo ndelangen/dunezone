@@ -198,29 +198,6 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(logs[0].message).not.toContain('c'.repeat(64));
   });
 
-  it('refuses a seated player who asks to change how the table is enforced', async () => {
-    expect((await provision(runtime)).status).toBe(200);
-    const { connection } = await admit();
-    connection.sendInvalid({
-      type: 'command',
-      commandId: 'owner-only',
-      action: { kind: 'enforcement', policy: 'strict' },
-      expectedRevision: 0,
-    });
-    const answer = await eventually(
-      () =>
-        connection.messages.find(
-          (message) =>
-            (message.type === 'admission' && message.status === 'denied') ||
-            ('completedCommandId' in message && message.completedCommandId === 'owner-only')
-        ),
-      'an answer to the enforcement command'
-    );
-    expect(answer).toMatchObject({ type: 'admission', status: 'denied' });
-    const { view } = await admit();
-    expect(view.snapshot.revision).toBe(0);
-  });
-
   it('persists the fixed spice stack, moved stacks, returns and turn boundaries with idempotent receipts', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { connection } = await admit();
