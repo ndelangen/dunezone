@@ -6764,7 +6764,7 @@
       {
         "id": "evt-041",
         "command": "traitors-gather",
-        "message": "Tabletop traitors gathered below the tanks. Private hands are unchanged.",
+        "message": "Tabletop traitors gathered below the Tleilaxu Tanks. Private hands are unchanged.",
         "status": "accepted"
       },
       {
@@ -8118,7 +8118,7 @@
       {
         "id": "evt-041",
         "command": "traitors-gather",
-        "message": "Tabletop traitors gathered below the tanks. Private hands are unchanged.",
+        "message": "Tabletop traitors gathered below the Tleilaxu Tanks. Private hands are unchanged.",
         "status": "accepted"
       },
       {
@@ -9024,7 +9024,7 @@
       {
         "id": "evt-041",
         "command": "traitors-gather",
-        "message": "Tabletop traitors gathered below the tanks. Private hands are unchanged.",
+        "message": "Tabletop traitors gathered below the Tleilaxu Tanks. Private hands are unchanged.",
         "status": "accepted"
       }
     ],

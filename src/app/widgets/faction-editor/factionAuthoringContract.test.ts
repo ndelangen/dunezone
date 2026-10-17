@@ -111,8 +111,8 @@ describe('faction authoring contract', () => {
     ];
     faction.rules = {
       ...faction.rules,
-      startText: 'Place forces on World Alpha.',
-      revivalText: 'Revive one force normally.',
+      startText: 'Place troops on World Alpha.',
+      revivalText: 'Revive one troop normally.',
       spiceCount: 7,
       fate: {
         text: 'Fate without a title remains valid.',

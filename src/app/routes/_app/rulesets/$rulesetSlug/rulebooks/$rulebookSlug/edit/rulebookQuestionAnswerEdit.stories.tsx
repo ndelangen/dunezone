@@ -14,7 +14,7 @@ export const QuestionAndAnswer = meta.story({
     <QuestionAnswerStory
       initialValue={{
         topic: 'Movement',
-        question: 'Can a force cross the storm?',
+        question: 'Can a troop cross the storm?',
         answer: 'It cannot move into or through the storm.',
       }}
     />

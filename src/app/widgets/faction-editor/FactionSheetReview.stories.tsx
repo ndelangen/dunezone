@@ -17,7 +17,7 @@ function EditorChapter({ index }: { index: number }) {
         Chapter {String(index).padStart(2, '0')}
       </Text>
       <Title order={2}>
-        {['Identity & Appearance', 'Leaders', 'Alliance', 'Troops & Planets', 'Rules & Advantages'][index - 1]}
+        {['Identity & Appearance', 'Leaders', 'Alliance', 'Planets & Troops', 'Rules & Advantages'][index - 1]}
       </Title>
       <Text c="dimmed" mt="sm">
         Representative editor content preserves this plane&apos;s width and height while review is open.
