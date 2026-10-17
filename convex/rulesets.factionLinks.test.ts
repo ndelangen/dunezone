@@ -7,6 +7,7 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
+import { syncSeededFactionCards } from './factions.test.fixture';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -25,7 +26,7 @@ function linkTest() {
  * An owner with a group, an active member of that group, and an outsider, plus a ruleset assigned to the group and a faction to link.
  * The permission the mutations enforce is the ruleset's `edit`: its owner, or an active member of its maintaining group.
  */
-async function linkFixture() {
+async function linkFixture({ cards = true }: { cards?: boolean } = {}) {
   const t = linkTest();
   const ids = await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Ruleset owner' });
@@ -59,6 +60,9 @@ async function linkFixture() {
     });
     return { ownerId, memberId, outsiderId, groupId, factionId };
   });
+  if (cards) {
+    await t.run(syncSeededFactionCards);
+  }
 
   const owner = t.withIdentity({ subject: ids.ownerId });
   const ruleset = await owner.mutation(api.rulesets.create, {
@@ -138,5 +142,43 @@ describe('ruleset faction links', () => {
 
     await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual(['linkable-faction']);
     await expect(linkedSlugs(t, second.slug)).resolves.toEqual(['linkable-faction']);
+  });
+
+  test('the page draws a linked faction from its card', async () => {
+    const { t, ids, owner, ruleset } = await linkFixture();
+    await owner.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: ids.factionId });
+    await t.run(async (ctx) => {
+      const card = await ctx.db
+        .query('faction_cards')
+        .withIndex('by_faction', (q) => q.eq('faction_id', ids.factionId))
+        .unique();
+      await ctx.db.patch('faction_cards', card!._id, { data: { ...card!.data, name: 'From the card' } });
+    });
+
+    const page = await t.query(api.rulesets.detailPage, { slug: ruleset.slug });
+
+    expect(page?.factions.map((faction) => faction.data.name)).toEqual(['From the card']);
+  });
+
+  test('a soft-deleted card drops its faction from the page', async () => {
+    const { t, ids, owner, ruleset } = await linkFixture();
+    await owner.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: ids.factionId });
+    await t.run(async (ctx) => {
+      const card = await ctx.db
+        .query('faction_cards')
+        .withIndex('by_faction', (q) => q.eq('faction_id', ids.factionId))
+        .unique();
+      await ctx.db.patch('faction_cards', card!._id, { is_deleted: true });
+    });
+
+    await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual([]);
+  });
+
+  test('a linked faction the card backfill has not reached is read from the faction', async () => {
+    const { t, ids, owner, ruleset } = await linkFixture({ cards: false });
+
+    await owner.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: ids.factionId });
+
+    await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual(['linkable-faction']);
   });
 });

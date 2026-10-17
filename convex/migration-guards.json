@@ -380,6 +380,11 @@
       "id": "faction_cards_v1",
       "phase": "widen",
       "requires": []
+    },
+    {
+      "id": "faction_cards_narrow",
+      "phase": "narrow",
+      "requires": ["faction_cards_v1"]
     }
   ]
 }
