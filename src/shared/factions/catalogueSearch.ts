@@ -14,7 +14,7 @@ export type FactionCatalogueSort = (typeof FACTION_CATALOGUE_SORTS)[number];
 /** How many cards one catalogue page holds. */
 export const FACTION_CATALOGUE_PAGE_SIZE = 24;
 
-/** The longest search the catalogue runs; anything past it is cut, since fuzzy matching works in short slices and no name is this long. */
+/** The longest search the catalogue runs; anything past it is cut, since no name is this long. */
 export const FACTION_CATALOGUE_QUERY_LIMIT = 100;
 
 /** The complexity filter as it round-trips through the URL: `"min-max"` on the x/10 scale. */

@@ -3,6 +3,7 @@
 
 import { describe, expect, test } from 'vitest';
 
+import { compareCodeUnits } from '../src/shared/compareText';
 import { api, internal } from './_generated/api';
 import { CATALOGUE_STAMP, catalogueFactionData } from './factions.catalogue.test.fixture';
 import { factionTest } from './factions.test.fixture';
@@ -51,6 +52,7 @@ async function unmaintained() {
       ctx.db.insert('catalogue_entries', {
         kind,
         source_id: sourceId,
+        partition: 'all',
         slug: name,
         search_text: name,
         name_key: name,
@@ -76,6 +78,7 @@ describe('catalogue entries backfill', () => {
         await ctx.db.insert('catalogue_entries', {
           kind: 'faction',
           source_id: live,
+          partition: 'all',
           slug: 'copy',
           search_text: 'copy',
           name_key: 'copy',
@@ -88,7 +91,9 @@ describe('catalogue entries backfill', () => {
     await t.mutation(internal.migrations.catalogue_entries_factions_v1, {});
     await t.finishAllScheduledFunctions(() => undefined);
     const copies = await t.run(async (ctx) =>
-      (await ctx.db.query('catalogue_entries').collect()).filter((entry) => entry.source_id === live)
+      (await ctx.db.query('catalogue_entries').collect()).filter(
+        (entry) => entry.source_id === live && entry.partition === 'all'
+      )
     );
     expect(copies).toHaveLength(1);
   });
@@ -126,26 +131,32 @@ describe('catalogue entries backfill', () => {
     ).rejects.toThrow(/catalogue_entries_verify_v1\(failed/);
   });
 
-  test('rebuilds one exact entry per live faction, removes the rest, and replays without change', async () => {
+  test('rebuilds one exact entry per live faction per list, removes the rest, and replays without change', async () => {
     const { t, live, renamed, rulesetId } = await unmaintained();
 
-    await t.mutation(internal.migrations.runRequired, { ids });
+    /* The page draws its cards from `faction_cards`, which raw rows skip as well. */
+    await t.mutation(internal.migrations.runRequired, { ids: [...ids, 'faction_cards_v1'] });
     await t.finishAllScheduledFunctions(() => undefined);
     await expect(t.query(internal.migrations.assertReadyForNarrow, { required: ids })).resolves.toMatchObject({
       ok: true,
     });
     const rebuilt = await t.run((ctx) => ctx.db.query('catalogue_entries').collect());
-    const bySource = (left: unknown[], right: unknown[]) => String(left[0]).localeCompare(String(right[0]));
-    expect(rebuilt.map((entry) => [entry.source_id, entry.name_key, entry.facets]).sort(bySource)).toEqual(
+    const byList = (left: unknown[], right: unknown[]) =>
+      compareCodeUnits(`${String(left[0])} ${String(left[1])}`, `${String(right[0])} ${String(right[1])}`);
+    expect(
+      rebuilt.map((entry) => [entry.source_id, entry.partition, entry.name_key, entry.facets]).sort(byList)
+    ).toEqual(
       [
-        [live, 'atreides', [rulesetId]],
-        [renamed, 'fremen', []],
-      ].sort(bySource)
+        [live, 'all', 'atreides', [rulesetId]],
+        [live, rulesetId, 'atreides', [rulesetId]],
+        [renamed, 'all', 'fremen', []],
+      ].sort(byList)
     );
     await expect(t.query(internal.migrations.catalogueDrift, { kind: 'faction' })).resolves.toMatchObject({
       missing: [],
       stale: [],
       duplicated: [],
+      unordered: [],
       orphaned: [],
     });
     expect((await t.query(api.factions.catalogue, { ruleset: 'classic' })).cards.map((card) => card._id)).toEqual([

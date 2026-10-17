@@ -327,6 +327,7 @@ export const installedComponents = {
   statistics: 'derived counts and the ids they count, which the loaders rebuild',
   profileDiscovery: 'a derived index, which the loaders rebuild',
   profileActivity: 'derived counts per user and the ids they count, which the loaders rebuild',
+  catalogueOrder: 'derived catalogue order, which the catalogue backfill rebuilds',
 } satisfies { [Name in keyof typeof components]: string };
 
 /**

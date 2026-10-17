@@ -40,6 +40,9 @@ import type * as lib_boardReadiness from "../lib/boardReadiness.js";
 import type * as lib_canonicalJson from "../lib/canonicalJson.js";
 import type * as lib_cardFrontPresets from "../lib/cardFrontPresets.js";
 import type * as lib_cardbackPresets from "../lib/cardbackPresets.js";
+import type * as lib_catalogueEntries from "../lib/catalogueEntries.js";
+import type * as lib_catalogueEntryShape from "../lib/catalogueEntryShape.js";
+import type * as lib_catalogueOrder from "../lib/catalogueOrder.js";
 import type * as lib_collaborativeAccess from "../lib/collaborativeAccess.js";
 import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAccessValidators.js";
 import type * as lib_customCardTokens from "../lib/customCardTokens.js";
@@ -170,6 +173,9 @@ const fullApi: ApiFromModules<{
   "lib/canonicalJson": typeof lib_canonicalJson;
   "lib/cardFrontPresets": typeof lib_cardFrontPresets;
   "lib/cardbackPresets": typeof lib_cardbackPresets;
+  "lib/catalogueEntries": typeof lib_catalogueEntries;
+  "lib/catalogueEntryShape": typeof lib_catalogueEntryShape;
+  "lib/catalogueOrder": typeof lib_catalogueOrder;
   "lib/collaborativeAccess": typeof lib_collaborativeAccess;
   "lib/collaborativeAccessValidators": typeof lib_collaborativeAccessValidators;
   "lib/customCardTokens": typeof lib_customCardTokens;
@@ -293,4 +299,5 @@ export const components = componentsGeneric() as unknown as {
   statistics: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"statistics">;
   profileDiscovery: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileDiscovery">;
   profileActivity: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileActivity">;
+  catalogueOrder: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"catalogueOrder">;
 };

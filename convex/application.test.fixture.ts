@@ -14,6 +14,7 @@ const AGGREGATE_COMPONENTS = [
   'statistics',
   'profileDiscovery',
   'profileActivity',
+  'catalogueOrder',
 ] as const satisfies readonly (keyof typeof components)[];
 
 type ApplicationTestOptions = Omit<Parameters<typeof convexTest>[0], 'schema'>;

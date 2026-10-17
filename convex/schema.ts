@@ -290,26 +290,34 @@ export default defineSchema({
     .index('by_owner_deleted_created', ['owner_id', 'is_deleted', 'faction_creation_time'])
     .index('by_group_deleted_created', ['group_id', 'is_deleted', 'faction_creation_time']),
   /**
-   * Catalogue read models: one small row per listed entity, holding only what a catalogue page filters, searches and sorts on.
+   * Catalogue read models: one small row per listed entity per list it is in, holding only what a catalogue page filters, searches and sorts on.
    * Derived, never authored: each kind has one reconcile function, run by triggers on its source tables in the writing transaction and by a backfill that rebuilds it from the canonical rows.
-   * `kind` names the catalogue (`faction` today), `source_id` the canonical row, and `facets` the equality filters (a faction's linked ruleset ids).
-   * `search_text` holds one searchable name per line;
+   * `kind` names the catalogue (`faction` today), `source_id` the canonical row, `partition` the list (`'all'`, or a facet such as a linked ruleset id), and `facets` every facet of the source.
+   * Each row has one item per sort in the `catalogueOrder` aggregate, keyed exactly as the sort's index orders it, so a page is counted and found there and read from here.
+   * `search_text` holds the searchable names;
    * `name_key` is the name the default order compares.
-   * The dates are epoch milliseconds, 0 when the source date does not parse.
+   * The dates are epoch milliseconds, 0 when the source date does not parse;
+   * `complexity_score` is the x/10 score the filter compares.
    */
   catalogue_entries: defineTable({
     kind: v.string(),
     source_id: v.string(),
+    partition: v.string(),
     slug: v.string(),
     search_text: v.string(),
     name_key: v.string(),
     created_at: v.number(),
     updated_at: v.number(),
     complexity: v.optional(v.number()),
+    complexity_score: v.optional(v.number()),
     facets: v.array(v.string()),
   })
-    .index('by_kind', ['kind'])
-    .index('by_kind_source', ['kind', 'source_id']),
+    .index('by_kind_source', ['kind', 'source_id', 'partition'])
+    .index('by_kind_partition_name', ['kind', 'partition', 'name_key'])
+    .index('by_kind_partition_created', ['kind', 'partition', 'created_at'])
+    .index('by_kind_partition_updated', ['kind', 'partition', 'updated_at'])
+    .index('by_kind_partition_complexity', ['kind', 'partition', 'complexity_score', 'complexity'])
+    .searchIndex('search_text', { searchField: 'search_text', filterFields: ['kind', 'partition'] }),
   leader_skill_stock_sets: defineTable({
     key: v.literal('gf9-leader-skills'),
     owner_id: v.id('users'),

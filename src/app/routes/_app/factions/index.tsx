@@ -106,6 +106,7 @@ function FactionsPage() {
             search={session.search}
             rulesets={data.rulesets}
             visibleCount={data.total}
+            visibleCountComplete={data.complete}
             totalCount={data.catalogueTotal}
             onSearchChange={session.changeSearch}
           />
@@ -251,6 +252,7 @@ function CatalogueRefine({
   rulesetOptions,
   rulesets,
   visibleCount,
+  visibleCountComplete,
   totalCount,
   onSearchChange,
 }: {
@@ -258,6 +260,8 @@ function CatalogueRefine({
   rulesetOptions: { value: string; label: string }[];
   rulesets: FactionCatalogueRuleset[];
   visibleCount: number;
+  /** False when a search matched more than one read can hold, so `visibleCount` is a lower bound. */
+  visibleCountComplete: boolean;
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
 }) {
@@ -332,7 +336,9 @@ function CatalogueRefine({
 
             <Group gap="xs" justify="space-between">
               <Text size="xs" c="dimmed">
-                {visibleCount === totalCount ? `${totalCount} factions` : `${visibleCount} of ${totalCount} factions`}
+                {visibleCount === totalCount
+                  ? `${totalCount} factions`
+                  : `${countLabel(visibleCount, visibleCountComplete)} of ${totalCount} factions`}
               </Text>
               {activeCount > 0 ? (
                 <Button
@@ -359,6 +365,7 @@ function CatalogueToolbar({
   search,
   rulesets,
   visibleCount,
+  visibleCountComplete,
   totalCount,
   onSearchChange,
 }: {
@@ -368,6 +375,8 @@ function CatalogueToolbar({
   search: FactionCatalogueSearch;
   rulesets: FactionCatalogueRuleset[];
   visibleCount: number;
+  /** False when a search matched more than one read can hold, so `visibleCount` is a lower bound. */
+  visibleCountComplete: boolean;
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
 }) {
@@ -454,6 +463,7 @@ function CatalogueToolbar({
             rulesetOptions={rulesetOptions}
             rulesets={rulesets}
             visibleCount={visibleCount}
+            visibleCountComplete={visibleCountComplete}
             totalCount={totalCount}
             onSearchChange={onSearchChange}
           />
@@ -503,7 +513,7 @@ function pageSearch(page: number) {
 function CataloguePager({
   data,
 }: {
-  data: Pick<FactionCataloguePageData, 'page' | 'pageCount' | 'pageSize' | 'total'>;
+  data: Pick<FactionCataloguePageData, 'page' | 'pageCount' | 'pageSize' | 'total' | 'complete'>;
 }) {
   if (data.pageCount <= 1) {
     return null;
@@ -530,10 +540,15 @@ function CataloguePager({
         })}
       />
       <Text size="xs" c="dimmed">
-        {`${first}–${last} of ${data.total} factions`}
+        {`${first}–${last} of ${countLabel(data.total, data.complete)} factions`}
       </Text>
     </Stack>
   );
+}
+
+/** A count drawn from a capped read is a floor, and reads as one. */
+function countLabel(count: number, complete: boolean) {
+  return complete ? String(count) : `${count}+`;
 }
 
 /** A page past the end, from an old link or a catalogue that shrank: say where the results end and link there. */

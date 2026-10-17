@@ -4,12 +4,14 @@ import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
 import type { CatalogueEntryFields, CatalogueKind } from './catalogueEntryShape';
+import { ALL_PARTITION, missingOrderItems, registerCatalogueOrderTriggers } from './catalogueOrder';
 import { factionCatalogueKind } from './factionCatalogue';
 
 /**
- * Catalogue read models (`catalogue_entries`): one slim row per listed entity, rebuilt from the canonical rows at will.
+ * Catalogue read models (`catalogue_entries`): one slim row per listed entity per list it is in, rebuilt from the canonical rows at will.
+ * A source is in the `'all'` list and in one list per facet (a faction per linked ruleset), so a filtered list is counted and paged like the whole one.
  * A kind is one `CatalogueKind` here plus its trigger registration below;
- * the reconcile, the backfill and the drift check are shared.
+ * the reconcile, the backfill, the drift check and the aggregate order (`catalogueOrder.ts`) are shared.
  */
 export const CATALOGUE_KINDS = {
   faction: factionCatalogueKind,
@@ -21,8 +23,8 @@ export function isCatalogueKindName(kind: string): kind is CatalogueKindName {
   return Object.hasOwn(CATALOGUE_KINDS, kind);
 }
 
-/* More than one entry per source is drift; a reconcile removes the extras it can see. */
-const DUPLICATE_ENTRY_LIMIT = 8;
+/* A source's rows: one per list, so this bounds its facets; a faction's ruleset links are capped lower than this when written. */
+const SOURCE_ENTRY_LIMIT = 1024;
 
 /** Field for field, through `canonicalJson`, so a field added to the entry is compared without touching this. */
 export function sameCatalogueEntry(entry: CatalogueEntryFields | null, expected: CatalogueEntryFields | null) {
@@ -40,69 +42,84 @@ async function entriesFor(ctx: QueryCtx, kind: CatalogueKindName, sourceId: stri
   return await ctx.db
     .query('catalogue_entries')
     .withIndex('by_kind_source', (q) => q.eq('kind', kind).eq('source_id', sourceId))
-    .take(DUPLICATE_ENTRY_LIMIT);
+    .take(SOURCE_ENTRY_LIMIT);
 }
 
-/**
- * Deletes every entry of a source beyond the one kept (all of them when `keep` is false) and returns the kept one.
- * Duplicates are drift;
- * a full window may hide more behind it, so the window is re-read until it is not full.
- */
-async function removeExtraEntries(ctx: MutationCtx, kind: CatalogueKindName, sourceId: string, keep: boolean) {
-  for (;;) {
-    const entries = await entriesFor(ctx, kind, sourceId);
-    for (const stale of keep ? entries.slice(1) : entries) {
-      await ctx.db.delete(stale._id);
-    }
-    if (entries.length < DUPLICATE_ENTRY_LIMIT) {
-      return keep ? entries[0] : undefined;
-    }
+/** The rows a source should have, keyed by list. */
+async function expectedEntries(ctx: QueryCtx, kind: CatalogueKindName, sourceId: string) {
+  const source = await CATALOGUE_KINDS[kind].expected(ctx, sourceId);
+  const expected = new Map<string, CatalogueEntryFields>();
+  for (const partition of source ? [ALL_PARTITION, ...source.facets] : []) {
+    expected.set(partition, { ...source!, partition });
   }
+  return expected;
 }
 
 /**
- * Brings one source's entry in line with its canonical rows: insert, replace or delete, writing only when something differs.
+ * Brings one source's rows in line with its canonical rows: insert, replace or delete per list, writing only what differs.
  * Idempotent and order-free, so the triggers, the backfill and any repair all call it.
  */
 export async function reconcileCatalogueEntry(ctx: MutationCtx, kind: CatalogueKindName, sourceId: string) {
-  const expected = await CATALOGUE_KINDS[kind].expected(ctx, sourceId);
-  const kept = await removeExtraEntries(ctx, kind, sourceId, expected !== null);
-  if (!expected) {
-    return;
+  const [expected, existing] = await Promise.all([
+    expectedEntries(ctx, kind, sourceId),
+    entriesFor(ctx, kind, sourceId),
+  ]);
+  const kept = new Set<string>();
+  for (const entry of existing) {
+    const want = expected.get(entry.partition);
+    if (!want || kept.has(entry.partition)) {
+      await ctx.db.delete(entry._id);
+    } else {
+      kept.add(entry.partition);
+      if (!sameCatalogueEntry(entryFields(entry), want)) {
+        await ctx.db.replace(entry._id, want);
+      }
+    }
   }
-  if (!kept) {
-    await ctx.db.insert('catalogue_entries', expected);
-  } else if (!sameCatalogueEntry(entryFields(kept), expected)) {
-    await ctx.db.replace(kept._id, expected);
+  for (const [partition, want] of expected) {
+    if (!kept.has(partition)) {
+      await ctx.db.insert('catalogue_entries', want);
+    }
   }
 }
 
-type SourceDrift = 'missing' | 'duplicated' | 'stale' | 'orphaned';
+type SourceDrift = 'missing' | 'duplicated' | 'stale' | 'orphaned' | 'unordered';
 
-/** Every way one source's entries differ from what its canonical rows say; empty when they are exact. */
+/** Every way one source's rows, and their aggregate items, differ from what its canonical rows say; empty when they are exact. */
 export async function catalogueSourceDrift(
   ctx: QueryCtx,
   kind: CatalogueKindName,
   sourceId: string
 ): Promise<SourceDrift[]> {
-  const [expected, entries] = await Promise.all([
-    CATALOGUE_KINDS[kind].expected(ctx, sourceId),
+  const [expected, existing] = await Promise.all([
+    expectedEntries(ctx, kind, sourceId),
     entriesFor(ctx, kind, sourceId),
   ]);
-  const [first] = entries;
-  if (!expected) {
-    return first ? ['orphaned'] : [];
+  const drift = new Set<SourceDrift>();
+  const seen = new Set<string>();
+  for (const entry of existing) {
+    const want = expected.get(entry.partition);
+    if (!want) {
+      drift.add('orphaned');
+    } else if (seen.has(entry.partition)) {
+      drift.add('duplicated');
+    } else if (!sameCatalogueEntry(entryFields(entry), want)) {
+      drift.add('stale');
+    }
+    seen.add(entry.partition);
+    if ((await missingOrderItems(ctx, entry, CATALOGUE_KINDS[kind].sorts)).length > 0) {
+      drift.add('unordered');
+    }
   }
-  if (!first) {
-    return ['missing'];
+  if ([...expected.keys()].some((partition) => !seen.has(partition))) {
+    drift.add('missing');
   }
-  const drift: SourceDrift[] = entries.length > 1 ? ['duplicated'] : [];
-  return sameCatalogueEntry(entryFields(first), expected) ? drift : [...drift, 'stale'];
+  return [...drift];
 }
 
 /**
- * Every writer of a kind's source tables keeps its entries exact in its own transaction.
- * A faction's entry reads the faction and its links;
+ * Every writer of a kind's source tables keeps its entries exact in its own transaction, and every entry write keeps the aggregate order exact in turn.
+ * A faction's entries read the faction and its links;
  * which linked rulesets are live is resolved when the catalogue is read, so a ruleset's own writes reach no entry.
  */
 export function registerCatalogueTriggers(triggers: Triggers<DataModel, MutationCtx>) {
@@ -116,17 +133,20 @@ export function registerCatalogueTriggers(triggers: Triggers<DataModel, Mutation
       }
     }
   });
+  registerCatalogueOrderTriggers(triggers, (kind) => (isCatalogueKindName(kind) ? CATALOGUE_KINDS[kind].sorts : []));
 }
 
 export type CatalogueDrift = {
   scanned: { sources: number; entries: number };
-  /** A listed source without an entry. */
+  /** A listed source missing from one of its lists. */
   missing: string[];
   /** An entry that differs from what its source says now. */
   stale: string[];
-  /** A source with more than one entry. */
+  /** A source listed twice in one list. */
   duplicated: string[];
-  /** An entry whose source should not be listed. */
+  /** An entry missing from the aggregate order of one of its sorts. */
+  unordered: string[];
+  /** An entry whose source should not be in that list. */
   orphaned: Id<'catalogue_entries'>[];
 };
 
@@ -143,7 +163,8 @@ async function recordSourceDrift(ctx: QueryCtx, kind: CatalogueKindName, sourceI
 async function orphanedEntries(ctx: QueryCtx, kind: CatalogueKindName, entries: Doc<'catalogue_entries'>[]) {
   const orphaned: Id<'catalogue_entries'>[] = [];
   for (const entry of entries) {
-    if ((await catalogueSourceDrift(ctx, kind, entry.source_id)).includes('orphaned')) {
+    const expected = await expectedEntries(ctx, kind, entry.source_id);
+    if (!expected.has(entry.partition)) {
       orphaned.push(entry._id);
     }
   }
@@ -159,7 +180,7 @@ export async function catalogueDrift(ctx: QueryCtx, kind: CatalogueKindName, lim
     CATALOGUE_KINDS[kind].listedSourceIds(ctx, limit),
     ctx.db
       .query('catalogue_entries')
-      .withIndex('by_kind', (q) => q.eq('kind', kind))
+      .withIndex('by_kind_source', (q) => q.eq('kind', kind))
       .take(limit),
   ]);
   const drift: CatalogueDrift = {
@@ -167,6 +188,7 @@ export async function catalogueDrift(ctx: QueryCtx, kind: CatalogueKindName, lim
     missing: [],
     stale: [],
     duplicated: [],
+    unordered: [],
     orphaned: [],
   };
   await recordSourceDrift(ctx, kind, sourceIds, drift);

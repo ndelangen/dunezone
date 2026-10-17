@@ -71,7 +71,7 @@ describe('faction catalogue query', () => {
     ]);
   });
 
-  test('searches faction, Faction leader and leader names with typo tolerance, best match first', async () => {
+  test('searches faction, Faction leader and leader names by word, the last word as a prefix', async () => {
     const { names } = await catalogueWith(
       [
         { name: 'Atreides', factionLeader: 'Duke Leto', rulesets: ['classic'] },
@@ -82,7 +82,9 @@ describe('faction catalogue query', () => {
       [{ slug: 'classic', name: 'Classic' }]
     );
 
-    expect(await names({ q: 'Atredes' })).toEqual(['Atreides', 'House Atreides Remnant']);
+    expect((await names({ q: 'Atreides' })).sort(compareCodeUnits)).toEqual(['Atreides', 'House Atreides Remnant']);
+    expect((await names({ q: 'atre' })).sort(compareCodeUnits)).toEqual(['Atreides', 'House Atreides Remnant']);
+    expect(await names({ q: 'Atredes' })).toEqual([]);
     expect(await names({ q: 'Leto' })).toEqual(['Atreides']);
     expect(await names({ q: 'Stilgar' })).toEqual(['Fremen']);
     expect(await names({ q: 'Chani', ruleset: 'classic' })).toEqual([]);
@@ -90,7 +92,7 @@ describe('faction catalogue query', () => {
     expect(await names({ q: '   ' })).toEqual(['Atreides', 'Fremen', 'Harkonnen', 'House Atreides Remnant']);
   });
 
-  test('orders by every sort, breaking ties by name then id, with undated factions last', async () => {
+  test('orders by every sort, breaking ties by creation order, with undated factions last', async () => {
     const { names, page, seeded } = await catalogueWith([
       { name: 'beta', created: '2026-07-20T00:00:00.000Z', updated: '2026-07-22T00:00:00.000Z', complexity: 0.5 },
       { name: 'Broken', created: 'not-a-date', updated: 'not-a-date', complexity: 0.1 },
@@ -99,16 +101,17 @@ describe('faction catalogue query', () => {
       { name: 'Twin', created: '2026-07-01T00:00:00.000Z', complexity: 0.5 },
       { name: 'Twin', created: '2026-07-01T00:00:00.000Z', complexity: 0.5 },
     ]);
-    const [twinA, twinB] = [seeded.factionIds[4]!, seeded.factionIds[5]!].sort(compareCodeUnits);
+    const [twinA, twinB] = [seeded.factionIds[4]!, seeded.factionIds[5]!];
 
     expect(await names()).toEqual(['Alpha', 'beta', 'Broken', 'Newest', 'Twin', 'Twin']);
     expect(await names({ sort: 'created' })).toEqual(['Newest', 'Alpha', 'beta', 'Twin', 'Twin', 'Broken']);
     expect(await names({ sort: 'updated' })).toEqual(['Alpha', 'beta', 'Newest', 'Twin', 'Twin', 'Broken']);
-    expect(await names({ sort: 'complexity-asc' })).toEqual(['Broken', 'Alpha', 'beta', 'Twin', 'Twin', 'Newest']);
-    expect(await names({ sort: 'complexity-desc' })).toEqual(['Newest', 'Alpha', 'beta', 'Twin', 'Twin', 'Broken']);
+    expect(await names({ sort: 'complexity-asc' })).toEqual(['Broken', 'beta', 'Alpha', 'Twin', 'Twin', 'Newest']);
+    expect(await names({ sort: 'complexity-desc' })).toEqual(['Newest', 'Twin', 'Twin', 'Alpha', 'beta', 'Broken']);
+    /* A name order runs oldest first among equals; a newest-first or descending order runs newest first. */
     for (const sort of FACTION_CATALOGUE_SORTS) {
       const twins = (await page({ sort })).cards.filter((card) => card.data.name === 'Twin').map((card) => card._id);
-      expect(twins).toEqual([twinA, twinB]);
+      expect(twins).toEqual(sort === 'name' || sort === 'complexity-asc' ? [twinA, twinB] : [twinB, twinA]);
     }
   });
 
@@ -143,6 +146,38 @@ describe('faction catalogue query', () => {
     const searched = await page({ q: 'Leader 1', page: 1 });
     expect(searched.total).toBeGreaterThan(0);
     expect(searched.pageCount).toBe(Math.max(1, Math.ceil(searched.total / FACTION_CATALOGUE_PAGE_SIZE)));
+  }, 60_000);
+
+  test('pages every filtered list exactly once, from the aggregate or from the bounded read', async () => {
+    const count = FACTION_CATALOGUE_PAGE_SIZE * 2 + 3;
+    const factions = Array.from({ length: count }, (_, index) => ({
+      name: `Faction ${String(index).padStart(2, '0')}`,
+      complexity: (index % 11) / 10,
+      rulesets: index % 2 === 0 ? ['classic'] : [],
+      leaders: [index % 3 === 0 ? 'Shaddam' : 'Irulan'],
+    }));
+    const { page, seeded } = await catalogueWith(factions, [{ slug: 'classic', name: 'Classic' }]);
+    const idsWhere = (keep: (index: number) => boolean) => new Set(seeded.factionIds.filter((_, index) => keep(index)));
+
+    const cases: [CatalogueArgs, Set<string>][] = [
+      [{ ruleset: 'classic' }, idsWhere((index) => index % 2 === 0)],
+      /* The complexity sort counts a score range in the aggregate; any other sort reads the range and pages it in memory. */
+      [{ complexity: '3-6', sort: 'complexity-asc' }, idsWhere((index) => index % 11 >= 3 && index % 11 <= 6)],
+      [{ complexity: '3-6', sort: 'complexity-desc' }, idsWhere((index) => index % 11 >= 3 && index % 11 <= 6)],
+      [{ complexity: '3-6' }, idsWhere((index) => index % 11 >= 3 && index % 11 <= 6)],
+      [
+        { complexity: '0-4', ruleset: 'classic', sort: 'created' },
+        idsWhere((index) => index % 2 === 0 && index % 11 <= 4),
+      ],
+      [{ q: 'shaddam' }, idsWhere((index) => index % 3 === 0)],
+      [{ q: 'shaddam', sort: 'name' }, idsWhere((index) => index % 3 === 0)],
+    ];
+    for (const [args, expected] of cases) {
+      const ids = await allPages(page, args);
+      expect(ids).toHaveLength(expected.size);
+      expect(new Set(ids)).toEqual(expected);
+      expect(await page(args)).toMatchObject({ total: expected.size, complete: true });
+    }
   }, 60_000);
 
   test('spotlights the newest arrival and a different, freshly updated faction', async () => {

@@ -29,12 +29,10 @@ import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBack
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { syncBoardReadiness } from './lib/boardReadiness';
 import {
-  CATALOGUE_KINDS,
   catalogueDrift as catalogueDriftOf,
   catalogueSourceDrift,
   isCatalogueKindName,
   reconcileCatalogueEntry,
-  sameCatalogueEntry,
 } from './lib/catalogueEntries';
 import { syncFactionCard } from './lib/factionCards';
 import { requireAdminUserId } from './lib/policy';
@@ -1431,7 +1429,7 @@ export const catalogue_entries_prune_v1 = migrations.define({
   },
 });
 
-/** Proves every entry equals what its canonical rows say now, so none has drifted or outlived its source. */
+/** Proves every entry, and its aggregate order, equals what its canonical rows say now, so none has drifted or outlived its source. */
 export const catalogue_entries_verify_v1 = migrations.define({
   table: 'catalogue_entries',
   /* Each entry rereads its whole faction. */
@@ -1440,21 +1438,21 @@ export const catalogue_entries_verify_v1 = migrations.define({
     if (!isCatalogueKindName(entry.kind)) {
       throw new Error(`Catalogue entry ${entry._id} has the unknown kind ${entry.kind}.`);
     }
-    const { _id, _creationTime, ...fields } = entry;
-    if (!sameCatalogueEntry(fields, await CATALOGUE_KINDS[entry.kind].expected(ctx, entry.source_id))) {
-      throw new Error(`Catalogue entry ${entry._id} for ${entry.kind} ${entry.source_id} has drifted from its source.`);
+    const drift = await catalogueSourceDrift(ctx, entry.kind, entry.source_id);
+    if (drift.length > 0) {
+      throw new Error(`Catalogue entries for ${entry.kind} ${entry.source_id} are ${drift.join(' and ')}.`);
     }
   },
 });
 
-/** Proves the other direction: every live faction has exactly one entry, and it is exact, so an empty or partial catalogue cannot pass. */
+/** Proves the other direction: every live faction is in each of its lists exactly once, exactly, so an empty or partial catalogue cannot pass. */
 export const catalogue_entries_verify_v2 = migrations.define({
   table: 'factions',
   batchSize: 10,
   migrateOne: async (ctx, row) => {
     const drift = await catalogueSourceDrift(ctx, 'faction', row._id);
     if (drift.length > 0) {
-      throw new Error(`Faction ${row._id} catalogue entry is ${drift.join(' and ')}.`);
+      throw new Error(`Faction ${row._id} catalogue entries are ${drift.join(' and ')}.`);
     }
   },
 });

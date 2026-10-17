@@ -8,6 +8,7 @@ import type { WithoutSystemFields } from 'convex/server';
 
 import type { Doc, Id, TableNames } from '../../../../convex/_generated/dataModel';
 import type { DatabaseWriter, MutationCtx } from '../../../../convex/_generated/server';
+import { applicationTriggers } from '../../../../convex/lib/applicationTriggers';
 import { reconcileCatalogueEntry } from '../../../../convex/lib/catalogueEntries';
 import { syncFactionCard } from '../../../../convex/lib/factionCards';
 import schema from '../../../../convex/schema';
@@ -141,8 +142,10 @@ async function insertDocuments(world: World, documents: SeedDocument[], delay = 
         factionIds.add((await ctx.db.get('ruleset_factions', id as Id<'ruleset_factions'>))!.faction_id);
       }
     }
+    /* Wrapped, so each entry written here also lands in the catalogue's aggregate order, as an entry trigger would put it. */
+    const wrapped = applicationTriggers.wrapDB(ctx as unknown as MutationCtx);
     for (const factionId of factionIds) {
-      await reconcileCatalogueEntry(ctx as unknown as MutationCtx, 'faction', factionId);
+      await reconcileCatalogueEntry(wrapped, 'faction', factionId);
     }
   });
 }
@@ -152,6 +155,7 @@ async function createWorld(seed: SeedDocument[]): Promise<World> {
   world.test.registerComponent('statistics', aggregateSchema, aggregateModules);
   world.test.registerComponent('profileActivity', aggregateSchema, aggregateModules);
   world.test.registerComponent('profileDiscovery', aggregateSchema, aggregateModules);
+  world.test.registerComponent('catalogueOrder', aggregateSchema, aggregateModules);
   world.test.registerComponent('migrations', migrationsSchema, migrationsModules);
   world.test.registerComponent('rateLimiter', rateLimiterSchema, rateLimiterModules);
   await insertDocuments(world, seed);
