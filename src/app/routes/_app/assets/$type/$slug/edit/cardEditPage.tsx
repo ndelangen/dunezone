@@ -15,6 +15,7 @@ import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import type { EditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 
 import {
   AssetEditorMessage,
@@ -192,7 +193,13 @@ export function CardEditFrame<Draft extends { name: string }>({
   onSave: () => void;
   onReset: () => void;
   /** Loading another card of this type into the draft; the card being edited is left out of the choices and keeps its name. */
-  load: { schema: z.ZodType<Draft>; onLoaded: (draft: Draft) => void };
+  load: {
+    schema: z.ZodType<Draft>;
+    header: Pick<EditPageHeader, 'releasing'>;
+    dispatch: (action: { kind: 'replace'; data: Draft }) => void;
+    /** What the page does once the loaded draft is in, such as opening its first chapter. */
+    afterLoad: () => void;
+  };
   saveError: Error | null;
   children: ReactNode;
 }) {
@@ -210,7 +217,10 @@ export function CardEditFrame<Draft extends { name: string }>({
             schema: load.schema,
             editing: asset,
             disabled: status.saveState === 'saving',
-            onLoaded: (loaded) => load.onLoaded(loaded.data),
+            onLoaded: load.header.releasing((loaded) => {
+              load.dispatch({ kind: 'replace', data: loaded.data });
+              load.afterLoad();
+            }),
           })}
           status={status}
           copy={{

@@ -73,13 +73,7 @@ function CardEditSession({
       }}
       onSave={save}
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
-      load={{
-        schema: LeaderSkillAsset,
-        onLoaded: header.releasing((data) => {
-          dispatch({ kind: 'replace', data });
-          setChapter('head');
-        }),
-      }}
+      load={{ schema: LeaderSkillAsset, header, dispatch, afterLoad: () => setChapter('head') }}
       saveError={saving.error}
     >
       <LeaderSkillCardEditor

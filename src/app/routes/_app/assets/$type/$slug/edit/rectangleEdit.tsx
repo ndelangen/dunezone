@@ -11,7 +11,6 @@ import { useReducer, useState } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
-import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
@@ -38,9 +37,9 @@ import {
   assetNameField,
   AssetEditorViewerPending,
 } from '../../../assetEditorStates';
-import { LoadedRectangleDraft } from '../../../loadedDrafts';
+import { LoadedRectangleDraft, tokenLoad } from '../../../loadedDrafts';
 import { referencedRectangleBackFace } from './referencedBackFace';
-import { ReferencedBackProof } from './ReferencedBackProof';
+import { referencedBackProof } from './ReferencedBackProof';
 
 export function RectangleEditPage({
   type,
@@ -203,7 +202,6 @@ function RectangleEditSession({
       : []),
   ];
   /* The proof draws what was picked, which is the target's authored back, never its front; the shared reader carries the distrust. */
-  const referencedBack = state.memory.pickedBack ? referencedRectangleBackFace(state.memory.pickedBack.data) : null;
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
   const isNameBlank = !state.data.name.trim();
@@ -250,15 +248,13 @@ function RectangleEditSession({
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={assetLoad({
-            noun: 'token',
+          load={tokenLoad({
             type: 'token-enhance',
             schema: LoadedRectangleDraft,
             editing: asset,
-            disabled: saveState === 'saving',
-            onLoaded: header.releasing((loaded) =>
-              dispatch({ kind: 'replace', data: loaded.data, pick: loaded.source?.backToken ?? null })
-            ),
+            saveState,
+            header,
+            dispatch,
           })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
@@ -344,14 +340,9 @@ function RectangleEditSession({
                 </Popover>
               </Group>
             )}
-            backProof={
-              state.memory.pickedBack ? (
-                <ReferencedBackProof
-                  from={state.memory.pickedBack.name}
-                  proof={referencedBack ? <RectangleProof face={referencedBack} /> : null}
-                />
-              ) : null
-            }
+            backProof={referencedBackProof(state.memory.pickedBack, referencedRectangleBackFace, (face) => (
+              <RectangleProof face={face} />
+            ))}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

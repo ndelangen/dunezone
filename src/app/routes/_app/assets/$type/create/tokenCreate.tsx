@@ -1,4 +1,4 @@
-import { Alert, Text } from '@mantine/core';
+import { Alert } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
@@ -12,7 +12,6 @@ import { useReducer, useState } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
-import { assetLoad } from '@app/pickers/assetLoadSource';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -26,9 +25,9 @@ import {
 import type { TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
 
 import { referencedTokenBackFace } from '../$slug/edit/referencedBackFace';
-import { ReferencedBackProof } from '../$slug/edit/ReferencedBackProof';
+import { CreateBackNote, referencedBackProof } from '../$slug/edit/ReferencedBackProof';
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
-import { LoadedTokenDraft } from '../../loadedDrafts';
+import { LoadedTokenDraft, tokenLoad } from '../../loadedDrafts';
 
 /**
  * This page's authoring state, and the four things that happen to it.
@@ -91,7 +90,6 @@ export function TokenCreatePage({ type }: { type: AssetType }) {
   )[] = [...tokenDraftWarnings(state.data, type)];
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
-  const referencedBack = state.memory.pickedBack ? referencedTokenBackFace(state.memory.pickedBack.data) : null;
   const isNameBlank = !state.data.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
     ? 'saving'
@@ -148,15 +146,7 @@ export function TokenCreatePage({ type }: { type: AssetType }) {
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={assetLoad({
-            noun: 'token',
-            type,
-            schema: LoadedTokenDraft,
-            disabled: saveState === 'saving',
-            onLoaded: header.releasing((loaded) =>
-              dispatch({ kind: 'replace', data: loaded.data, pick: loaded.source?.backToken ?? null })
-            ),
-          })}
+          load={tokenLoad({ type, schema: LoadedTokenDraft, saveState, header, dispatch })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save token',
@@ -187,21 +177,10 @@ export function TokenCreatePage({ type }: { type: AssetType }) {
             chapter={chapter}
             onChapterChange={setChapter}
             onSettle={header.settle}
-            backPicker={() => (
-              <Text size="xs" c="dimmed">
-                {state.memory.pickedBack
-                  ? `Wears the back of ${state.memory.pickedBack.name}. Choose another after saving.`
-                  : 'A token can point at an existing token only once it has been saved.'}
-              </Text>
-            )}
-            backProof={
-              state.memory.pickedBack ? (
-                <ReferencedBackProof
-                  from={state.memory.pickedBack.name}
-                  proof={referencedBack ? <TokenProof face={referencedBack} type={type} /> : null}
-                />
-              ) : null
-            }
+            backPicker={() => <CreateBackNote picked={state.memory.pickedBack} />}
+            backProof={referencedBackProof(state.memory.pickedBack, referencedTokenBackFace, (face) => (
+              <TokenProof face={face} type={type} />
+            ))}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

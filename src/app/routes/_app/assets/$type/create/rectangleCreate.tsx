@@ -1,4 +1,4 @@
-import { Alert, Text } from '@mantine/core';
+import { Alert } from '@mantine/core';
 import { RectangleTokenAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
@@ -10,7 +10,6 @@ import { useReducer, useState } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
-import { assetLoad } from '@app/pickers/assetLoadSource';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -24,9 +23,9 @@ import {
 import type { RectangleChapter, RectangleDraft, RectangleMemory } from '@app/widgets/token-editor/RectangleTokenEditor';
 
 import { referencedRectangleBackFace } from '../$slug/edit/referencedBackFace';
-import { ReferencedBackProof } from '../$slug/edit/ReferencedBackProof';
+import { CreateBackNote, referencedBackProof } from '../$slug/edit/ReferencedBackProof';
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
-import { LoadedRectangleDraft } from '../../loadedDrafts';
+import { LoadedRectangleDraft, tokenLoad } from '../../loadedDrafts';
 
 const TYPE = 'token-enhance';
 
@@ -95,7 +94,6 @@ export function RectangleCreatePage() {
   )[] = [...rectangleDraftWarnings(state.data)];
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
-  const referencedBack = state.memory.pickedBack ? referencedRectangleBackFace(state.memory.pickedBack.data) : null;
   const isNameBlank = !state.data.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
     ? 'saving'
@@ -148,15 +146,7 @@ export function RectangleCreatePage() {
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={assetLoad({
-            noun: 'token',
-            type: TYPE,
-            schema: LoadedRectangleDraft,
-            disabled: saveState === 'saving',
-            onLoaded: header.releasing((loaded) =>
-              dispatch({ kind: 'replace', data: loaded.data, pick: loaded.source?.backToken ?? null })
-            ),
-          })}
+          load={tokenLoad({ type: TYPE, schema: LoadedRectangleDraft, saveState, header, dispatch })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save token',
@@ -186,21 +176,10 @@ export function RectangleCreatePage() {
             chapter={chapter}
             onChapterChange={setChapter}
             onSettle={header.settle}
-            backPicker={() => (
-              <Text size="xs" c="dimmed">
-                {state.memory.pickedBack
-                  ? `Wears the back of ${state.memory.pickedBack.name}. Choose another after saving.`
-                  : 'A token can point at an existing token only once it has been saved.'}
-              </Text>
-            )}
-            backProof={
-              state.memory.pickedBack ? (
-                <ReferencedBackProof
-                  from={state.memory.pickedBack.name}
-                  proof={referencedBack ? <RectangleProof face={referencedBack} /> : null}
-                />
-              ) : null
-            }
+            backPicker={() => <CreateBackNote picked={state.memory.pickedBack} />}
+            backProof={referencedBackProof(state.memory.pickedBack, referencedRectangleBackFace, (face) => (
+              <RectangleProof face={face} />
+            ))}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

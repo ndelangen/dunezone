@@ -13,7 +13,6 @@ import { useReducer, useState } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
-import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
@@ -30,9 +29,9 @@ import {
   assetNameField,
   AssetEditorViewerPending,
 } from '../../../assetEditorStates';
-import { LoadedTokenDraft } from '../../../loadedDrafts';
+import { LoadedTokenDraft, tokenLoad } from '../../../loadedDrafts';
 import { referencedTokenBackFace } from './referencedBackFace';
-import { ReferencedBackProof } from './ReferencedBackProof';
+import { referencedBackProof } from './ReferencedBackProof';
 
 export function TokenEditPage({
   type,
@@ -191,7 +190,6 @@ function TokenEditSession({
       : []),
   ];
   /* The proof draws what was picked, which is the target's authored back, never its front; the shared reader carries the distrust. */
-  const referencedBack = state.memory.pickedBack ? referencedTokenBackFace(state.memory.pickedBack.data) : null;
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
   const isNameBlank = !state.data.name.trim();
@@ -238,16 +236,7 @@ function TokenEditSession({
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={assetLoad({
-            noun: 'token',
-            type,
-            schema: LoadedTokenDraft,
-            editing: asset,
-            disabled: saveState === 'saving',
-            onLoaded: header.releasing((loaded) =>
-              dispatch({ kind: 'replace', data: loaded.data, pick: loaded.source?.backToken ?? null })
-            ),
-          })}
+          load={tokenLoad({ type, schema: LoadedTokenDraft, editing: asset, saveState, header, dispatch })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save token',
@@ -333,14 +322,9 @@ function TokenEditSession({
                 </Popover>
               </Group>
             )}
-            backProof={
-              state.memory.pickedBack ? (
-                <ReferencedBackProof
-                  from={state.memory.pickedBack.name}
-                  proof={referencedBack ? <TokenProof face={referencedBack} type={type} /> : null}
-                />
-              ) : null
-            }
+            backProof={referencedBackProof(state.memory.pickedBack, referencedTokenBackFace, (face) => (
+              <TokenProof face={face} type={type} />
+            ))}
           />
         </WorkbenchLayout>
       </PageLayout.Content>
