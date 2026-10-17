@@ -14,7 +14,6 @@ import { SpiceCard } from '@game/assets/card/Spice';
 import { SPICE_HIGHLIGHT_DEFAULT, resolveSpiceHighlights } from '@game/assets/card/SpiceBoardMap';
 import type {
   SpiceHighlight,
-  SpiceHighlightTreatment,
   SpiceTokenPlacement,
   TerritoryType,
 } from '@game/assets/card/SpiceBoardMap';
@@ -105,7 +104,6 @@ function targetValue(target: SpiceHighlight['target']) {
 
 function HighlightStudy() {
   const [boardKey, setBoardKey] = useState('arrakis');
-  const [treatment, setTreatment] = useState<SpiceHighlightTreatment>('outlined');
   const [highlights, setHighlights] = useState(INITIAL_HIGHLIGHTS);
   const [tokens, setTokens] = useState(INITIAL_TOKENS);
   const board = useMemo(() => BOARDS[boardKey].board(), [boardKey]);
@@ -131,16 +129,6 @@ function HighlightStudy() {
           allowDeselect={false}
           data={Object.entries(BOARDS).map(([value, { label }]) => ({ value, label }))}
           onChange={(value) => value && setBoardKey(value)}
-        />
-        <Select
-          label="Highlight style"
-          value={treatment}
-          allowDeselect={false}
-          onChange={(value) => value && setTreatment(value as SpiceHighlightTreatment)}
-          data={[
-            { value: 'outlined', label: 'A: Outlined (current card look)' },
-            { value: 'tinted', label: 'B: Tinted, map shows through' },
-          ]}
         />
         <Group justify="space-between">
           <Title order={5}>Highlights</Title>
@@ -268,7 +256,7 @@ function HighlightStudy() {
             highlights={[]}
             amount={6}
             text={`**Smuggler token** on Pasty Mesa\n+\n**6 spice** on Funeral Plain`}
-            boardMap={{ board, highlights, tokens, tokenAssets: TOKENS, treatment }}
+            boardMap={{ board, highlights, tokens, tokenAssets: TOKENS }}
           />
         </div>
         {missing.length ? (
@@ -301,43 +289,35 @@ export const Playground = meta.story({
   },
 });
 
-/** Low, intermediate and full opacity for both styles, with a type-wide selection under an individual one. */
+/** Low, intermediate and full opacity, with a type-wide selection under an individual one. */
 export const OpacityComparison = meta.story({
   render: () => {
     const board = arrakisBoard();
     return (
-      <Stack p="md" gap="md">
-        {(['outlined', 'tinted'] as const).map((treatment) => (
-          <Group key={treatment} gap="md" wrap="nowrap" align="flex-start">
-            <Text w={90} fw={600}>
-              {treatment === 'outlined' ? 'A: Outlined' : 'B: Tinted'}
-            </Text>
-            {[0.25, 0.6, 1].map((opacity) => (
-              <Stack key={opacity} gap={4} align="center">
-                <div style={{ width: 900, height: 1263, zoom: 0.3 }}>
-                  <SpiceCard
-                    name="Funeral Plain"
-                    subName="Spice blow"
-                    icon="spice"
-                    highlights={[]}
-                    amount={6}
-                    boardMap={{
-                      board,
-                      treatment,
-                      highlights: [
-                        { target: { type: 'rock' }, color: '#2F5F6B', opacity },
-                        { target: { territory: 'funeral_plain' }, color: '#9E5F00', opacity },
-                        { target: { territory: 'pasty_mesa' }, color: '#9E5F00', opacity },
-                      ],
-                    }}
-                  />
-                </div>
-                <Text size="sm">Opacity {Math.round(opacity * 100)}%</Text>
-              </Stack>
-            ))}
-          </Group>
+      <Group p="md" gap="md" wrap="nowrap" align="flex-start">
+        {[0.25, 0.6, 1].map((opacity) => (
+          <Stack key={opacity} gap={4} align="center">
+            <div style={{ width: 900, height: 1263, zoom: 0.3 }}>
+              <SpiceCard
+                name="Funeral Plain"
+                subName="Spice blow"
+                icon="spice"
+                highlights={[]}
+                amount={6}
+                boardMap={{
+                  board,
+                  highlights: [
+                    { target: { type: 'rock' }, color: '#2F5F6B', opacity },
+                    { target: { territory: 'funeral_plain' }, color: '#9E5F00', opacity },
+                    { target: { territory: 'pasty_mesa' }, color: '#9E5F00', opacity },
+                  ],
+                }}
+              />
+            </div>
+            <Text size="sm">Opacity {Math.round(opacity * 100)}%</Text>
+          </Stack>
         ))}
-      </Stack>
+      </Group>
     );
   },
 });

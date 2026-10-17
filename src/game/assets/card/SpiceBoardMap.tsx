@@ -2,7 +2,6 @@
 import type { CustomCardToken } from '@shared/assets/schema';
 import { derive } from '@shared/boards/geometry';
 import type { Board, Face, Properties } from '@shared/boards/geometry';
-import { useId } from 'react';
 import type { z } from 'zod';
 
 import { BOARD_ARTWORK } from '../board/artwork';
@@ -12,8 +11,8 @@ import unique from './Spice.module.css';
 
 /** The saved board's coordinate frame; card highlights and token positions share it, so they survive a board switch. */
 const BOARD_SIZE = 487.06;
-/* The legacy filter radii were tuned in the 100-unit map frame. */
-const FRAME = BOARD_SIZE / 100;
+/* The legacy card outline was 0.62 units wide in the 100-unit map frame. */
+const EDGE_WIDTH = (0.62 * BOARD_SIZE) / 100;
 
 export type TerritoryType = Properties['type'];
 
@@ -33,9 +32,6 @@ export type SpiceTokenPlacement = Readonly<{
   size: number;
   rotation: number;
 }>;
-
-/** How the highlight effect is drawn; the study compares these before one becomes the default. */
-export type SpiceHighlightTreatment = 'outlined' | 'tinted';
 
 export const SPICE_HIGHLIGHT_DEFAULT = { color: '#9E5F00', opacity: 1 } as const;
 
@@ -61,15 +57,12 @@ export function SpiceBoardMap({
   highlights,
   tokens = [],
   tokenAssets = {},
-  treatment = 'outlined',
 }: {
   board: Board;
   highlights: readonly SpiceHighlight[];
   tokens?: readonly SpiceTokenPlacement[];
   tokenAssets?: Record<string, z.infer<typeof CustomCardToken> | null>;
-  treatment?: SpiceHighlightTreatment;
 }) {
-  const prefix = useId().replaceAll(':', '');
   const { faces } = derive(board);
   const { resolved } = resolveSpiceHighlights(board, faces, highlights);
   const viewBox = `0 0 ${BOARD_SIZE} ${BOARD_SIZE}`;
@@ -84,11 +77,9 @@ export function SpiceBoardMap({
           matched.length ? (
             <HighlightLayer
               key={index}
-              id={`${prefix}-h${index}`}
               paths={matched.map((face) => face.path)}
               color={highlight.color}
               opacity={highlight.opacity}
-              treatment={treatment}
             />
           ) : null
         )}
@@ -118,63 +109,13 @@ export function SpiceBoardMap({
   );
 }
 
-function HighlightLayer({
-  id,
-  paths,
-  color,
-  opacity,
-  treatment,
-}: {
-  id: string;
-  paths: string[];
-  color: string;
-  opacity: number;
-  treatment: SpiceHighlightTreatment;
-}) {
-  if (treatment === 'tinted') {
-    return (
-      <g data-highlight opacity={opacity}>
-        {paths.map((d, i) => (
-          <path key={i} d={d} fill={color} fillOpacity={0.75} stroke="#000" strokeWidth={0.62 * FRAME} />
-        ))}
-      </g>
-    );
-  }
-  /* The alpha contrast turns any coverage into a solid mask, so opacity is applied to the finished group instead of the mask. */
+/* Norbert chose a see-through tint over the legacy outlined filter (#1969): the map shows through, and opacity fades the whole layer. */
+function HighlightLayer({ paths, color, opacity }: { paths: string[]; color: string; opacity: number }) {
   return (
     <g data-highlight opacity={opacity}>
-      <defs>
-        <filter id={`${id}-filter`} x="-10%" y="-10%" width="120%" height="120%">
-          <feColorMatrix
-            result="CONTRASTED"
-            in="SourceAlpha"
-            type="matrix"
-            values="1 0 0 0 0
-              0 1 0 0 0
-              0 0 1 0 0
-              0 0 0 34 0"
-          />
-          <feMorphology in="CONTRASTED" result="DILATED0" operator="dilate" radius={1.03 * FRAME} />
-          <feMorphology in="CONTRASTED" result="DILATED1" operator="dilate" radius={0.62 * FRAME} />
-          <feMorphology in="CONTRASTED" result="DILATED2" operator="dilate" radius={0.21 * FRAME} />
-          <feFlood floodColor="#F8F6E2" result="CREAM" />
-          <feFlood floodColor="#000" result="EDGE" />
-          <feFlood floodColor={color} result="FILL" />
-          <feComposite in="CREAM" in2="DILATED0" operator="in" result="OUTLINE0" />
-          <feComposite in="EDGE" in2="DILATED1" operator="in" result="OUTLINE1" />
-          <feComposite in="FILL" in2="DILATED2" operator="in" result="OUTLINE2" />
-          <feMerge>
-            <feMergeNode in="OUTLINE0" />
-            <feMergeNode in="OUTLINE1" />
-            <feMergeNode in="OUTLINE2" />
-          </feMerge>
-        </filter>
-      </defs>
-      <g filter={`url(#${id}-filter)`}>
-        {paths.map((d, i) => (
-          <path key={i} d={d} fill="#000" />
-        ))}
-      </g>
+      {paths.map((d, i) => (
+        <path key={i} d={d} fill={color} fillOpacity={0.75} stroke="#000" strokeWidth={EDGE_WIDTH} />
+      ))}
     </g>
   );
 }
