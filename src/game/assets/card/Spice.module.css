@@ -86,7 +86,8 @@ div.shape {
 /* Toned brown and laid into the parchment's own grain. */
 .map[data-look="sepia"] {
   mix-blend-mode: multiply;
-  filter: sepia(var(--look-strength)) contrast(calc(1 + 0.15 * var(--look-strength)));
+  filter: sepia(var(--look-strength)) contrast(calc(1 - 0.3 * var(--look-strength)))
+    brightness(calc(1 + 0.1 * var(--look-strength)));
 }
 
 .map_overlay {
