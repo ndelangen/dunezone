@@ -6,7 +6,7 @@ import { toCatalogueFaction } from './factionCatalogue';
 import { loadFaqItemsForRuleset } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
 import { listRulesetRulebooks } from './rulebookList';
-import { listRulesetAssetSlots } from './rulesetSlots';
+import { readRulesetAssetSlots } from './rulesetSlots';
 
 const RULESET_FACTION_LIMIT = 500;
 
@@ -58,13 +58,9 @@ export async function loadRulesetPageBySlug(ctx: QueryCtx, slug: string) {
  * The slotted board as the detail page draws it: its slot entry plus its face, addressed the way the board's own page addresses it.
  * Null when the slot is empty, which the page draws as a placeholder.
  */
-async function rulesetBoardFace(ctx: QueryCtx, slots: Awaited<ReturnType<typeof listRulesetAssetSlots>>) {
+function rulesetBoardFace(slots: Awaited<ReturnType<typeof readRulesetAssetSlots>>) {
   const entry = slots.find((slot) => slot.slot === 'board');
-  if (!entry) {
-    return null;
-  }
-  const asset = await ctx.db.get('assets', entry.asset.id);
-  return { ...entry.asset, previewHref: asset ? ownPublishedFace(asset) : null };
+  return entry ? { ...entry.asset, previewHref: ownPublishedFace(entry.doc) } : null;
 }
 
 /** The ruleset detail page, the same for every viewer: behind `api.rulesets.detailPage`. Null for an unknown slug. */
@@ -73,15 +69,15 @@ export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: str
   if (!row) {
     return null;
   }
-  const assetSlots = await listRulesetAssetSlots(ctx, row._id);
+  const slots = await readRulesetAssetSlots(ctx, row._id);
   return {
     ruleset: row,
     factions: await listPublicRulesetFactions(ctx, row._id),
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
     faqItems: await loadFaqItemsForRuleset(ctx, row._id),
     owner: await profileSummary(ctx, row.owner_id),
-    assetSlots,
-    board: await rulesetBoardFace(ctx, assetSlots),
+    assetSlots: slots.map(({ slot, asset }) => ({ slot, asset })),
+    board: rulesetBoardFace(slots),
     rulebooks: await listRulesetRulebooks(ctx, row._id),
   };
 }

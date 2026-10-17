@@ -9,6 +9,9 @@ export const PROFILE_ACTIVITY_METRICS = ['groups', 'factions', 'questions', 'ans
 
 export type ProfileActivityMetric = (typeof PROFILE_ACTIVITY_METRICS)[number];
 
+/* Large enough that today's metrics each come back in one page. */
+const ACTIVITY_PAGE_SIZE = 1000;
+
 type ActivityItem = {
   namespace: ProfileActivityMetric;
   key: [string];
@@ -102,26 +105,35 @@ export type ProfileActivityCounts = {
   answerCount: number;
 };
 
-/** Per-user activity counts in one batched aggregate read. */
+/**
+ * Per-user activity counts, from one pass over each metric's items.
+ * A per-user `countBatch` walks the tree from its root once per user and metric, so a full directory re-read the same nodes thousands of times;
+ * one ordered pass reads each node once and grows with the activity recorded, not with the profiles listed.
+ */
 export async function loadProfileActivityCounts(
   ctx: QueryCtx,
   userIds: Id<'users'>[]
 ): Promise<ProfileActivityCounts[]> {
-  const counts = await profileActivity.countBatch(
-    ctx,
-    userIds.flatMap((userId) =>
-      PROFILE_ACTIVITY_METRICS.map((namespace) => ({
-        namespace,
-        bounds: { prefix: [userId] as [string] },
-      }))
-    )
+  const counts = new Map<string, Record<ProfileActivityMetric, number>>(
+    userIds.map((userId) => [userId, { groups: 0, factions: 0, questions: 0, answers: 0 }])
   );
-  return userIds.map((_, index) => ({
-    groupCount: counts[index * 4] ?? 0,
-    factionCount: counts[index * 4 + 1] ?? 0,
-    questionCount: counts[index * 4 + 2] ?? 0,
-    answerCount: counts[index * 4 + 3] ?? 0,
-  }));
+  for (const namespace of PROFILE_ACTIVITY_METRICS) {
+    for await (const item of profileActivity.iter(ctx, { namespace, pageSize: ACTIVITY_PAGE_SIZE })) {
+      const entry = counts.get(item.key[0]);
+      if (entry) {
+        entry[namespace] += 1;
+      }
+    }
+  }
+  return userIds.map((userId) => {
+    const entry = counts.get(userId)!;
+    return {
+      groupCount: entry.groups,
+      factionCount: entry.factions,
+      questionCount: entry.questions,
+      answerCount: entry.answers,
+    };
+  });
 }
 
 export async function clearProfileActivity(ctx: MutationCtx) {

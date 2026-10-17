@@ -66,7 +66,7 @@ export const rulesetSupply = publicQuery({
     return {
       ruleset: { id: row._id, slug: row.slug, name: row.name },
       /* Older Workers accept only deck and bundle slots during the additive rollout. */
-      slots: (await listRulesetAssetSlots(ctx, row._id)).filter((entry) => entry.slot !== 'board'),
+      slots: await listRulesetAssetSlots(ctx, row._id, { skipBoard: true }),
       board: await rulesetBoard(ctx, row._id),
     };
   },

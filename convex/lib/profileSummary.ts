@@ -19,3 +19,16 @@ export async function profileSummary(ctx: QueryCtx | MutationCtx, userId: Id<'us
     avatar_url: profile.avatar?.url ?? profile.avatar_url ?? null,
   };
 }
+
+/** `profileSummary` that reads each profile once across one request's lists, where the same person recurs. */
+export function profileSummaryReader(ctx: QueryCtx | MutationCtx) {
+  const summaries = new Map<Id<'users'>, ReturnType<typeof profileSummary>>();
+  return (userId: Id<'users'>) => {
+    let summary = summaries.get(userId);
+    if (!summary) {
+      summary = profileSummary(ctx, userId);
+      summaries.set(userId, summary);
+    }
+    return summary;
+  };
+}

@@ -19,7 +19,20 @@ const RULESET_SLOT_LIMIT = Object.values(RULESET_ASSET_SLOTS).reduce(
  * Reads `by_ruleset` only.
  * Two readers: the ruleset detail page, and the capture a game makes of a ruleset's supply.
  */
-export async function listRulesetAssetSlots(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+export async function listRulesetAssetSlots(
+  ctx: QueryCtx,
+  rulesetId: Id<'rulesets'>,
+  options: { skipBoard?: boolean } = {}
+) {
+  return (await readRulesetAssetSlots(ctx, rulesetId, options)).map(({ slot, asset }) => ({ slot, asset }));
+}
+
+/** The slot entries with each live asset document, for a caller that needs more of a slotted asset than its name without reading it twice. */
+export async function readRulesetAssetSlots(
+  ctx: QueryCtx,
+  rulesetId: Id<'rulesets'>,
+  { skipBoard = false }: { skipBoard?: boolean } = {}
+) {
   const rows = await ctx.db
     .query('ruleset_asset_slots')
     .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
@@ -27,6 +40,10 @@ export async function listRulesetAssetSlots(ctx: QueryCtx, rulesetId: Id<'rulese
 
   const entries = [];
   for (const row of rows) {
+    /* A board row is the whole board definition, hundreds of kilobytes; a caller that resolves the board its own way skips it. */
+    if (skipBoard && row.slot === 'board') {
+      continue;
+    }
     const asset = await ctx.db.get('assets', row.asset_id);
     if (asset && !asset.is_deleted) {
       entries.push({
@@ -37,6 +54,7 @@ export async function listRulesetAssetSlots(ctx: QueryCtx, rulesetId: Id<'rulese
           slug: asset.slug,
           name: assetDisplayName(asset),
         },
+        doc: asset,
       });
     }
   }
