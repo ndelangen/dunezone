@@ -10,8 +10,8 @@ import type { Doc } from './_generated/dataModel';
 import { factionAuthor, factionTest, insertStoredFactions } from './factions.test.fixture';
 import { assetDisplayName } from './lib/assetInput';
 import { syncBoardReadiness } from './lib/boardReadiness';
-import { FACTION_CARD_PROJECTION, syncFactionCard } from './lib/factionCards';
-import { toCatalogueFaction } from './lib/factionCatalogue';
+import { syncFactionCard } from './lib/factionCards';
+import { FACTION_CARD_PROJECTION, toCatalogueFaction } from './lib/factionCatalogue';
 
 type FactionTest = ReturnType<typeof factionTest>;
 
@@ -148,5 +148,28 @@ describe('faction cards and board listings', () => {
       }
     });
     await assertInSync(t);
+  });
+
+  test('the catalogue reads cards, and falls back to the faction for a card of another projection', async () => {
+    const t = factionTest();
+    const author = await factionAuthor(t, 'Card Reader');
+    const faction = await author.mutation(api.factions.create, {
+      data: { ...assetPublishingFaction, name: 'Harkonnen' },
+    });
+    const cardId = await t.run(async (ctx) => {
+      const card = await ctx.db
+        .query('faction_cards')
+        .withIndex('by_faction', (q) => q.eq('faction_id', faction._id))
+        .unique();
+      await ctx.db.patch(card!._id, { data: { ...card!.data, name: 'From the card' } });
+      return card!._id;
+    });
+    const names = async () => (await t.query(api.factions.cataloguePage, {})).factions.map((row) => row.data.name);
+
+    expect(await names()).toEqual(['From the card']);
+    await t.run(async (ctx) => {
+      await ctx.db.patch(cardId, { projection: FACTION_CARD_PROJECTION - 1 });
+    });
+    expect(await names()).toEqual(['Harkonnen']);
   });
 });
