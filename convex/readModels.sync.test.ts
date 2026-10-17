@@ -9,6 +9,8 @@ import { api, internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { factionAuthor, factionTest, insertStoredFactions } from './factions.test.fixture';
 import { assetDisplayName } from './lib/assetInput';
+import { syncBoardReadiness } from './lib/boardReadiness';
+import { FACTION_CARD_PROJECTION, syncFactionCard } from './lib/factionCards';
 import { toCatalogueFaction } from './lib/factionCatalogue';
 
 type FactionTest = ReturnType<typeof factionTest>;
@@ -24,6 +26,7 @@ function expectedCard(faction: Doc<'factions'>) {
     updated_at: faction.updated_at,
     is_deleted: faction.is_deleted,
     faction_creation_time: faction._creationTime,
+    projection: FACTION_CARD_PROJECTION,
     data: toCatalogueFaction(faction, []).data,
   };
 }
@@ -125,11 +128,25 @@ describe('faction cards and board listings', () => {
     await t.mutation(internal.migrations.board_readiness_listing_v1, {});
     await assertInSync(t);
 
-    const before = await readModels(t);
-    await t.mutation(internal.migrations.faction_cards_v1, { reset: true });
-    await t.mutation(internal.migrations.board_readiness_listing_v1, { reset: true });
-    const after = await readModels(t);
-    expect(after.cards).toEqual(before.cards);
-    expect(after.readiness).toEqual(before.readiness);
+    /* A rerun goes through a database that refuses every write, so an unconditional rewrite fails here. */
+    await t.run(async (ctx) => {
+      const refuse = () => {
+        throw new Error('a rerun wrote to the database');
+      };
+      const db = new Proxy(ctx.db, {
+        get: (target, key) =>
+          ['insert', 'patch', 'replace', 'delete'].includes(String(key))
+            ? refuse
+            : (Reflect.get(target, key, target).bind?.(target) ?? Reflect.get(target, key, target)),
+      });
+      const readOnly = { ...ctx, db };
+      for (const faction of await ctx.db.query('factions').collect()) {
+        await syncFactionCard(readOnly, faction._id, faction);
+      }
+      for (const asset of await ctx.db.query('assets').collect()) {
+        await syncBoardReadiness(readOnly, asset._id, asset);
+      }
+    });
+    await assertInSync(t);
   });
 });

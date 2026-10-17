@@ -1384,7 +1384,8 @@ export const board_readiness_listing_v1 = migrations.define({
 /** Existing factions receive the card new faction writes already keep; rerunning it writes nothing. */
 export const faction_cards_v1 = migrations.define({
   table: 'factions',
-  batchSize: 25,
+  /* Faction text has no length cap, and a rerun reads each faction and its card, so a batch stays small. */
+  batchSize: 10,
   migrateOne: async (ctx, faction) => {
     await syncFactionCard(ctx, faction._id, faction);
   },

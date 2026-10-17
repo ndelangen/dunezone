@@ -1,4 +1,5 @@
 import type { Triggers } from 'convex-helpers/server/triggers';
+import { z } from 'zod';
 
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
@@ -7,14 +8,25 @@ import { toCatalogueFaction } from './factionCatalogue';
 import type { CatalogueFaction } from './factionCatalogue';
 
 /*
+ * The version of the projection a card was written with.
+ * Production never reruns a finished migration, so a change to what `toCatalogueFaction` outputs leaves every existing card stale until its faction is saved again.
+ * Such a change bumps this number and ships a new `faction_cards_v*` migration id that rewrites every card; a reader treats a card of another version as missing.
+ */
+export const FACTION_CARD_PROJECTION = 1;
+
+/*
  * The card a faction list draws, derived at the faction write in the same transaction by the catalogue's own projection.
  * A row whose stored data no longer parses keeps `data: null`, so a broken legacy faction never blocks its own write.
+ * Today such a faction makes the whole catalogue throw; a card reader drops it from lists instead.
  */
 export function factionCardData(faction: Doc<'factions'>): CatalogueFaction['data'] | null {
   try {
     return toCatalogueFaction(faction, []).data;
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -28,6 +40,7 @@ function cardFields(faction: Doc<'factions'>) {
     updated_at: faction.updated_at,
     is_deleted: faction.is_deleted,
     faction_creation_time: faction._creationTime,
+    projection: FACTION_CARD_PROJECTION,
     data: factionCardData(faction),
   };
 }

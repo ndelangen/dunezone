@@ -270,7 +270,7 @@ export default defineSchema({
     .index('by_deleted_created', ['is_deleted', 'asset_creation_time']),
   /*
    * One card-sized row per faction, kept by a trigger on every faction write, so list pages never read the authored blob.
-   * `data` is the catalogue projection of the faction, or null while the stored faction fails to parse.
+   * `data` is the catalogue projection of the faction at version `projection` (see `FACTION_CARD_PROJECTION`), or null while the stored faction fails to parse.
    * Indexes end in the faction's own creation time, so a list reads cards in the order it read factions.
    */
   faction_cards: defineTable({
@@ -282,6 +282,7 @@ export default defineSchema({
     updated_at: v.string(),
     is_deleted: v.boolean(),
     faction_creation_time: v.number(),
+    projection: v.number(),
     data: v.any(),
   })
     .index('by_faction', ['faction_id'])

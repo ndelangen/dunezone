@@ -123,6 +123,7 @@ export const snapshotPolicy = {
       updated_at: 'keep',
       is_deleted: 'keep',
       faction_creation_time: 'keep',
+      projection: 'keep',
       data: 'keep',
     },
     rows: notDeleted,
