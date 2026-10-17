@@ -69,13 +69,13 @@ import {
   Raycaster,
   RingGeometry,
   SRGBColorSpace,
-  TextureLoader,
   Vector2,
   Vector3,
 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { loadFaceTexture, tableCardFaceKey } from './cardFaceTexture';
 import { ignoreRaycast } from './ignoreRaycast';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
@@ -197,7 +197,7 @@ function PieceFace({ height, underside, children }: { height: number; underside:
 
 /* Every piece and every stack layer that shows the same published image draws one shared texture, so the image is uploaded once rather than once per face. */
 const subscribePublishedFace = sharedPublishedFaces<Texture>({
-  load: (href, onLoad, onError) => new TextureLoader().load(href, onLoad, undefined, onError),
+  load: loadFaceTexture,
   prepare: (value) => {
     value.colorSpace = SRGBColorSpace;
     value.anisotropy = 8;
@@ -437,7 +437,7 @@ function CardFace({
   const href = artwork?.[faceUp ? 'front' : 'back'];
   return (
     <PieceFace height={CARD_LAYER_HEIGHT} underside={underside}>
-      {href && <PublishedFace href={href} card />}
+      {href && <PublishedFace href={tableCardFaceKey(href)} card />}
       {faceUp && artwork?.prediction && (
         <Suspense fallback={null}>
           <PredictionOverlay prediction={artwork.prediction} />
@@ -1023,7 +1023,10 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
     plateId: isPointerToken(piece) ? piece.id : undefined,
     follows: ridingPlateId,
   });
-  const faceReady = usePublishedFaceReady(topFaceHref(piece)) && !faceStillHidden(piece);
+  const topHref = topFaceHref(piece);
+  const faceReady =
+    usePublishedFaceReady(topHref && piece.kind === 'card' ? tableCardFaceKey(topHref) : topHref) &&
+    !faceStillHidden(piece);
   /* A held piece turns over in hand too, so only an emptied projection cuts a flip short. */
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
     piece,
