@@ -63,7 +63,7 @@ export const CoverPresets = meta.story({
     await expect(canvas.queryByRole('textbox', { name: 'Background image URL' })).not.toBeInTheDocument();
     const page = within(canvasElement.ownerDocument.body);
     const preset = canvas.getByRole('combobox', { name: 'Cover preset' });
-    await expect(preset).toHaveValue('Sandworm');
+    await expect(preset).toHaveValue('Shai-Hulud');
     await userEvent.click(preset);
     const option = await page.findByRole('option', { name: 'Dreamrules rainbow' });
     await userEvent.hover(within(option).getByText('Dreamrules rainbow'));
@@ -73,7 +73,7 @@ export const CoverPresets = meta.story({
       '/image/rulebook-cover/dreamrules-rainbow-small.jpg'
     );
     await userEvent.keyboard('{Escape}');
-    await expect(preset).toHaveValue('Sandworm');
+    await expect(preset).toHaveValue('Shai-Hulud');
     await userEvent.click(preset);
     await userEvent.click(await page.findByRole('option', { name: 'Dreamrules rainbow' }));
     await expect(preset).toHaveValue('Dreamrules rainbow');

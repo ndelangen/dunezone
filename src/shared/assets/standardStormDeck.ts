@@ -47,7 +47,7 @@ export function standardStormCard(sectors: number): z.infer<typeof StormCardAsse
         kind: 'text',
         layerId: '30000000-3000-4000-8000-300000000002',
         content:
-          'All spice & forces in sectors passed over or covered by the storm in sand territories will be destroyed.',
+          'All spice & troops in sectors passed over or covered by the storm in sand territories will be destroyed.',
         offset: [-370, 197],
         width: 734,
         height: 245,

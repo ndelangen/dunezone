@@ -601,7 +601,7 @@ export class Room {
   private applyCommand(identity: Identity, action: RoomAction, expectedRevision: number, now: number): StoredSnapshot {
     this.assertActionStage(action);
     this.assertCommand(identity, action, expectedRevision);
-    /* The turn moves only through the phases, so Mentat pause always asks everyone to be ready (#1683); an older client may still send this. */
+    /* The turn moves only through the phases, so Mentat Pause always asks everyone to be ready (#1683); an older client may still send this. */
     if (action.kind === 'turn') {
       throw new GameRejection(TURN_SELECT_REFUSAL);
     }
@@ -860,7 +860,7 @@ export class Room {
 
   private setReadiness(identity: Identity, ready: boolean, controls: StoredControls): string {
     if (!phaseAt(this.snapshot.phase, this.phases()).allPlayersMustBeReady) {
-      throw new GameRejection('Ready applies only during a phase where everyone must be ready, such as Mentat pause.');
+      throw new GameRejection('Ready applies only during a phase where everyone must be ready, such as Mentat Pause.');
     }
     controls.ready = controls.ready.filter((seat) => seat !== identity.viewerSeat);
     if (ready) {

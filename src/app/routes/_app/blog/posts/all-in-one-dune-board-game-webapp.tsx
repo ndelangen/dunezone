@@ -84,7 +84,7 @@ function DuneAppSection() {
     <Section title="dune-app: a creator for everything">
       <Paragraph>
         Our homebrew looked homemade. The very first Dreamrules &ldquo;logo&rdquo; was the GF9 box with a rainbow pasted
-        behind the worm. I wanted our cards and sheets to look as official as the real ones.
+        behind Shai-Hulud. I wanted our cards and sheets to look as official as the real ones.
       </Paragraph>
       <Paragraph>
         That became <Anchor href="https://dune-app.vercel.app">dune-app</Anchor>. It started small: in September 2021,
@@ -131,8 +131,9 @@ function StackBlitzSection() {
       <Paragraph>
         So in September 2023 I tried the opposite: no database whatsoever. The{' '}
         <Anchor href="https://dune.stackblitz.io/">Dune Online Generator</Anchor> on StackBlitz keeps every faction as a
-        code file. From those files it draws full faction sheets with advantages, alliance and fate abilities, Karama
-        effects and a Q&amp;A, plus faction, leader and force tokens, and the start of a paged rulebook laid out for A4.
+        code file. From those files it draws full faction sheets with advantages, alliance advantages, fate rules,
+        Karama effects and a Q&amp;A, plus faction, leader and troop tokens, and the start of a paged rulebook laid out
+        for A4.
       </Paragraph>
       <Paragraph>
         Some of the Q&amp;A sections still say &ldquo;LALALA?&rdquo;. It was a prototype, after all.

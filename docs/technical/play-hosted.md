@@ -336,9 +336,9 @@ signed-in browser processes and a spectator, and it retains received game frames
 `decks-frames.json`.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow results` for the end
-of a real game. Two players step to Mentat pause, one opens Determine winner and declares a faction,
+of a real game. Two players step to Mentat Pause, one opens Determine winner and declares a faction,
 and a spectator watches. It checks each panel's Result tab, the result in the header, a reload into the
-finished game, the lobby's Past entry with its winner, and Continue playing back to Mentat pause and the Ongoing list.
+finished game, the lobby's Past entry with its winner, and Continue playing back to Mentat Pause and the Ongoing list.
 
 ### Real-game journeys
 
@@ -351,7 +351,7 @@ proves one rule; these prove the rules still hold when one game passes through a
   the owed summary, the socket drops right after a withdrawal and its identical retries debit once,
   a player reconnects, and the room restarts cold in play and again while finished.
 - Eighteen accounts are each dealt a distinct faction, station and spice reserve, finish as an alliance,
-  restart cold and continue at Mentat pause. A spectator holds no spice reserve and cannot end the game.
+  restart cold and continue at Mentat Pause. A spectator holds no spice reserve and cannot end the game.
 - In a running game a player leaves and a spectator takes the seat with its faction and spice reserve. The
   replacement declares a result and then deletes their account. The result, log and stored history
   name `[deleted user]` through a restart, and the last departure discards the game.

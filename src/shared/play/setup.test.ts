@@ -30,7 +30,7 @@ const setupAt = (index: number): SetupState => ({
 const locked = { 'prediction-0-0': { factionId: 'a', lockedAt: 1, revealedAt: null } };
 
 describe('the phase-advance gate', () => {
-  it('asks for readiness only at Mentat pause during play', () => {
+  it('asks for readiness only at Mentat Pause during play', () => {
     const play = { stage: 'play' as const, roster, seats: ['s1', 's2'] };
     expect(phaseGate({ ...play, phase: 0, ready: [] })).toEqual({ needsReady: false, refusal: null });
     expect(phaseGate({ ...play, phase: MENTAT_PAUSE, ready: ['s1'] })).toEqual({
