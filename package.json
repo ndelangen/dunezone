@@ -67,6 +67,7 @@
     "migrations:static-check": "bun run ./scripts/migration-guards.ts static-check",
     "play:local": "bun run scripts/play-local.ts",
     "play:record": "RECORD_JOURNEY=1 vp test run workers/game/journey.record.native.test.ts && vp fmt src/app/routes/_app/play/journey.recording/journey.json",
+    "play:watch": "bun --no-env-file scripts/play-watch.ts",
     "provision": "bun run ./scripts/provision.ts",
     "publisher:application-runtime:verify": "node --experimental-strip-types ./scripts/verify-application-runtime.ts",
     "publisher:assets": "bun run app:build && vp build --config workers/publisher/vite.config.ts && vp build --config workers/publisher/rulebook-html-renderer.vite.config.ts && bun run publisher:rulebook-html-runtime:verify && bun run ./scripts/assemble-publisher-assets.ts",

@@ -265,6 +265,12 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('faction'), factionId: id }),
   z.strictObject({ type: z.literal('metrics') }),
   z.strictObject({ type: z.literal('sync') }),
+  /* A browser's periodic account of how the table felt, in whole milliseconds; the room only logs it. */
+  z.strictObject({
+    type: z.literal('telemetry'),
+    actions: z.strictObject({ count, p50Ms: count, p95Ms: count, maxMs: count }),
+    longTasks: z.strictObject({ count, worstMs: count }),
+  }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
 /** A message that changes the table: a command or a drop, each answered with a receipt. */
