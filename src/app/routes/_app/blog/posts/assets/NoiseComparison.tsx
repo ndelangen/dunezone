@@ -192,13 +192,13 @@ export function NoiseComparison() {
             <ColorInput
               size="xs"
               label="Colour one"
-              value={String(texture.colors[0])}
+              value={plainColour(texture.colors[0])}
               onChange={(value) => dispatch({ type: 'colour', index: 0, value })}
             />
             <ColorInput
               size="xs"
               label="Colour two"
-              value={String(texture.colors[1])}
+              value={plainColour(texture.colors[1])}
               onChange={(value) => dispatch({ type: 'colour', index: 1, value })}
             />
             <Switch
@@ -211,6 +211,11 @@ export function NoiseComparison() {
       </SimpleGrid>
     </WideFigure>
   );
+}
+
+/* A background colour may be a gradient; the colour inputs here only edit plain colours, and show a gradient as empty. */
+function plainColour(colour: TextureState['colors'][number]): string {
+  return typeof colour === 'string' ? colour : '';
 }
 
 function Setting({ label, value, children }: Readonly<{ label: string; value: ReactNode; children: ReactNode }>) {
