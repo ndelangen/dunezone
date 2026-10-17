@@ -66,7 +66,8 @@ export const Route = createFileRoute('/_app/factions/')({
     /* Only the plain listing's pages are worth a search engine's time; a search, filter or order is the same factions again. */
     const refined = search.q != null || search.ruleset != null || search.complexity != null || search.sort != null;
     const head = publicPageHead({
-      name: search.page && !refined
+      name:
+        search.page && !refined
           ? `Custom Dune board game factions, page ${search.page}`
           : 'Custom Dune board game factions',
       pathname: search.page && !refined ? `/factions?page=${search.page}` : '/factions',

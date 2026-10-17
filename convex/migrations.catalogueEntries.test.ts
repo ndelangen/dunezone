@@ -88,11 +88,12 @@ describe('catalogue entries backfill', () => {
       ok: true,
     });
     const rebuilt = await t.run((ctx) => ctx.db.query('catalogue_entries').collect());
-    expect(rebuilt.map((entry) => [entry.source_id, entry.name_key, entry.facets]).sort()).toEqual(
+    const bySource = (left: unknown[], right: unknown[]) => String(left[0]).localeCompare(String(right[0]));
+    expect(rebuilt.map((entry) => [entry.source_id, entry.name_key, entry.facets]).sort(bySource)).toEqual(
       [
         [live, 'atreides', [rulesetId]],
         [renamed, 'fremen', []],
-      ].sort()
+      ].sort(bySource)
     );
     await expect(t.query(internal.migrations.catalogueDrift, { kind: 'faction' })).resolves.toMatchObject({
       missing: [],
