@@ -60,7 +60,7 @@ export function FactionExtras() {
 
   return (
     <div ref={rootRef} className={clsx(styles.root, seen && styles.seen)}>
-      <p className={styles.title}>House {FACTION.name}: the full set</p>
+      <p className={styles.title}>{FACTION.name}: the full set</p>
       <div className={styles.tray}>
         <div className={styles.own}>
           {SET_ORDER.map((id) => (

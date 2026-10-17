@@ -1,5 +1,4 @@
 import { UnstyledButton } from '@mantine/core';
-import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { FactionRender } from '@shared/factions/schema';
 import type { FactionInput } from '@shared/factions/schema';
 import { resolveAsset } from '@shared/media/resolveAsset';
@@ -18,6 +17,7 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { card, disc, page, shield } from '@game/data/sizes';
 
 import styles from './FactionRecipe.module.css';
+import { HOUSE_ATREIDES } from './houseAtreides';
 import { Machine } from './Machine';
 
 /*
@@ -26,15 +26,8 @@ import { Machine } from './Machine';
  * The outputs are the site's own renderers fed through `FactionRender`, so the figure draws what the site draws.
  */
 
-/** The sample Atreides the asset publisher is tested with, led by Paul as on the faction page. */
-export const FACTION: FactionInput = {
-  ...assetPublishingFaction,
-  factionLeader: {
-    ...assetPublishingFaction.factionLeader,
-    name: 'Paul Atreides',
-    image: '/image/leader/official/paul.jpg',
-  },
-};
+/** House Atreides as the faction page shows it, led by Paul. */
+export const FACTION: FactionInput = HOUSE_ATREIDES;
 
 type InputId =
   | 'name'
@@ -455,7 +448,7 @@ export function FactionRecipe() {
         ))}
       </div>
       <div className={styles.hub} data-hub>
-        <Machine title={`House ${FACTION.name}`} subtitle="Faction record" />
+        <Machine title={FACTION.name} subtitle="Faction record" />
       </div>
       <div className={styles.outputs}>
         {OUTPUT_ORDER.map((id) => (
