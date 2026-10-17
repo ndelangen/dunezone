@@ -6,7 +6,7 @@ import type { CustomCardTokens, SpiceBoardLink } from '../../src/shared/assets/s
 import { parseBoardData } from '../../src/shared/assets/validation';
 import type { Board } from '../../src/shared/boards/schema';
 import { compareCodeUnits } from '../../src/shared/compareText';
-import type { Id } from '../_generated/dataModel';
+import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 import { resolveCustomCardTokens } from './customCardTokens';
 
@@ -33,11 +33,14 @@ export function spiceCardTokenIds(data: unknown): string[] {
   return link ? [...new Set(link.tokens.map((token) => token.asset_id))].sort(compareCodeUnits) : [];
 }
 
+const isLiveBoard = (row: Doc<'assets'> | null): row is Doc<'assets'> =>
+  row !== null && !row.is_deleted && row.type === 'board';
+
 /** The live board behind an ID, or null when it is gone, not a board, or no longer draws. */
 export async function readLinkedBoard(ctx: Pick<QueryCtx, 'db'>, raw: string): Promise<Board | null> {
   const id = ctx.db.normalizeId('assets', raw);
   const row = id ? await ctx.db.get('assets', id) : null;
-  if (!row || row.is_deleted || row.type !== 'board') {
+  if (!isLiveBoard(row)) {
     return null;
   }
   try {
@@ -79,25 +82,37 @@ export function spiceCardPublicationError(data: unknown, resolved: SpiceCardBoar
   );
 }
 
+/** The first link problem of a card: a payload too large, a new board that is gone, or a new token that is. */
+function linkError(
+  data: unknown,
+  previous: unknown,
+  link: z.infer<typeof SpiceBoardLink>,
+  tokenIds: readonly string[],
+  resolved: SpiceCardBoardResolution
+) {
+  const publication = spiceCardPublicationError(data, resolved);
+  if (publication) {
+    return publication;
+  }
+  if (!resolved.board && spiceCardBoardLink(previous)?.asset_id !== link.asset_id) {
+    return 'Choose an available board for this card';
+  }
+  const carried = new Set(spiceCardTokenIds(previous));
+  return tokenIds.some((id) => !resolved.tokens[id] && !carried.has(id))
+    ? 'Choose an available token asset for every placed token'
+    : null;
+}
+
 /** A new link must resolve; a board or token the card already used may have been deleted since, and stays as it is. */
 export async function validateSpiceCardBoard(ctx: MutationCtx, data: unknown, previous?: unknown) {
   const link = spiceCardBoardLink(data);
   if (!link) {
     return;
   }
-  const before = spiceCardBoardLink(previous);
   const tokenIds = spiceCardTokenIds(data);
-  const resolved = await resolveSpiceCardBoard(ctx, link.asset_id, tokenIds);
-  const error = spiceCardPublicationError(data, resolved);
+  const error = linkError(data, previous, link, tokenIds, await resolveSpiceCardBoard(ctx, link.asset_id, tokenIds));
   if (error) {
     throw new ConvexError(error);
-  }
-  if (!resolved.board && before?.asset_id !== link.asset_id) {
-    throw new ConvexError('Choose an available board for this card');
-  }
-  const carried = new Set(spiceCardTokenIds(previous));
-  if (tokenIds.some((id) => !resolved.tokens[id] && !carried.has(id))) {
-    throw new ConvexError('Choose an available token asset for every placed token');
   }
 }
 
@@ -106,17 +121,16 @@ async function syncRelation(ctx: MutationCtx, cardId: Id<'assets'>, kind: SpiceC
     .query('asset_relations')
     .withIndex('by_from_kind', (q) => q.eq('from_asset_id', cardId).eq('kind', kind))
     .take(SPICE_MAX_TOKENS + 1);
-  for (const relation of current) {
-    if (!wanted.delete(relation.to_asset_id)) {
-      await ctx.db.delete(relation._id);
-    }
-  }
-  for (const raw of wanted) {
-    const id = ctx.db.normalizeId('assets', raw);
-    if (id) {
-      await ctx.db.insert('asset_relations', { from_asset_id: cardId, to_asset_id: id, kind, count: 1 });
-    }
-  }
+  const kept = new Set<string>(current.map((relation) => relation.to_asset_id));
+  const stale = current.filter((relation) => !wanted.has(relation.to_asset_id));
+  const added = [...wanted]
+    .filter((raw) => !kept.has(raw))
+    .map((raw) => ctx.db.normalizeId('assets', raw))
+    .filter((id): id is Id<'assets'> => id !== null);
+  await Promise.all(stale.map((relation) => ctx.db.delete(relation._id)));
+  await Promise.all(
+    added.map((id) => ctx.db.insert('asset_relations', { from_asset_id: cardId, to_asset_id: id, kind, count: 1 }))
+  );
 }
 
 /** The card's data owns the link; reverse rows only index its current board and tokens. */

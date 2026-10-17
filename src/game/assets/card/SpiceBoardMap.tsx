@@ -209,6 +209,25 @@ function EditSurface({
     editing.onTokenMove
       ? tokens.findLast((token) => Math.hypot(token.x - x, token.y - y) <= token.size / 2)
       : undefined;
+  const grab = (event: PointerEvent<HTMLDivElement>, token: Placement, [x, y]: [number, number]) => {
+    /* Capture keeps the drag when the pointer outruns the map; a synthetic pointer has nothing to capture. */
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      /* The drag still follows moves over the map. */
+    }
+    drag.current = { layerId: token.layerId, dx: token.x - x, dy: token.y - y, pointerId: event.pointerId };
+    editing.onSelectToken?.(token.layerId);
+  };
+  const paint = (point: [number, number]) => {
+    const property = editing.onTerritory ? boardTerritoryAt(board, point) : undefined;
+    if (property) {
+      editing.onTerritory?.(territoryId(property.name));
+    }
+  };
+  const release = () => {
+    drag.current = null;
+  };
   return (
     <div
       className={unique.mapEdit}
@@ -217,26 +236,9 @@ function EditSurface({
         const point = toBoard(event);
         const token = tokenAt(point);
         if (token) {
-          /* Capture keeps the drag when the pointer outruns the map; a synthetic pointer has nothing to capture. */
-          try {
-            event.currentTarget.setPointerCapture(event.pointerId);
-          } catch {
-            /* The drag still follows moves over the map. */
-          }
-          drag.current = {
-            layerId: token.layerId,
-            dx: token.x - point[0],
-            dy: token.y - point[1],
-            pointerId: event.pointerId,
-          };
-          editing.onSelectToken?.(token.layerId);
-          return;
-        }
-        if (editing.onTerritory) {
-          const property = boardTerritoryAt(board, point);
-          if (property) {
-            editing.onTerritory(territoryId(property.name));
-          }
+          grab(event, token, point);
+        } else {
+          paint(point);
         }
       }}
       onPointerMove={(event) => {
@@ -246,12 +248,8 @@ function EditSurface({
           editing.onTokenMove?.(held.layerId, clampBoard(x + held.dx), clampBoard(y + held.dy));
         }
       }}
-      onPointerUp={() => {
-        drag.current = null;
-      }}
-      onPointerCancel={() => {
-        drag.current = null;
-      }}
+      onPointerUp={release}
+      onPointerCancel={release}
     />
   );
 }
