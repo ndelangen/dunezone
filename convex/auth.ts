@@ -2,8 +2,11 @@ import Discord from '@auth/core/providers/discord';
 import Google from '@auth/core/providers/google';
 import { Password } from '@convex-dev/auth/providers/Password';
 import { convexAuth } from '@convex-dev/auth/server';
+import { ConvexError } from 'convex/values';
 
+import { INACTIVE_ACCOUNT_SIGN_IN } from '../src/shared/authDestination';
 import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { accountStateOf } from './lib/accountLifecycle';
 import { applicationTriggers } from './lib/applicationTriggers';
@@ -103,7 +106,8 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     async beforeSessionCreation(ctx, { userId }) {
       const user = await ctx.db.get(userId);
       if (!user || accountStateOf(user) !== 'active') {
-        throw new Error('This account is no longer active.');
+        /* A ConvexError keeps its words in production, so the browser can tell the reader why sign-in stopped. */
+        throw new ConvexError(INACTIVE_ACCOUNT_SIGN_IN);
       }
       /* Auth's callback keeps the data model generic; this deployment uses our schema. */
       const sessionCtx = ctx as MutationCtx;
@@ -138,13 +142,26 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       }
       return site.toString();
     },
-    async afterUserCreatedOrUpdated(ctx, { userId }) {
-      const triggerCtx = applicationTriggers.wrapDB(ctx);
-      const user = await triggerCtx.db.get(userId);
-      if (!user) {
-        return;
+    /*
+     * Replaces the library's default, which would keep signing a deleted account's login into that deleted account.
+     * A sign-in whose login belongs to a deleted account starts a new account, and the library then moves the login onto it.
+     * No provider here returns a verified email or phone, so, as before, nothing links by email or phone.
+     */
+    async createOrUpdateUser(ctx, { existingUserId, type, profile }) {
+      const triggerCtx = applicationTriggers.wrapDB(ctx as MutationCtx);
+      const { emailVerified: _emailVerified, phoneVerified: _phoneVerified, ...details } = profile;
+      const userData = { ...(type === 'oauth' ? { emailVerificationTime: Date.now() } : null), ...details };
+      const existing = existingUserId ? await triggerCtx.db.get(existingUserId as Id<'users'>) : null;
+      let userId: Id<'users'>;
+      if (existing && accountStateOf(existing) !== 'deleted') {
+        userId = existing._id;
+        await triggerCtx.db.patch(userId, userData);
+      } else {
+        userId = await triggerCtx.db.insert('users', userData);
       }
+      const user = (await triggerCtx.db.get(userId))!;
       await ensureProfileForUser(triggerCtx, userId, profileSourcesFromUserDoc(user));
+      return userId;
     },
   },
 });

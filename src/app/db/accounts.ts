@@ -1,4 +1,6 @@
+import { INACTIVE_ACCOUNT_SIGN_IN } from '@shared/authDestination';
 import { useMutation, useQuery } from 'convex/react';
+import { ConvexError } from 'convex/values';
 import { useState, useSyncExternalStore } from 'react';
 
 import { api } from '../../../convex/_generated/api';
@@ -67,4 +69,9 @@ export function useAuthConnection(token: string) {
 }
 export function useConfirmAuthConnection() {
   return useMutation(api.accounts.confirmConnection);
+}
+
+/** Whether a sign-in was refused because its account is being deleted or merged. */
+export function refusedAsInactiveAccount(error: unknown): boolean {
+  return error instanceof ConvexError && error.data === INACTIVE_ACCOUNT_SIGN_IN;
 }
