@@ -1,9 +1,9 @@
 import preview from '@sb/preview';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 
+import { LoginGate } from './LoginGate';
 import { PageMessage } from './PageMessage';
 
 const meta = preview.meta({

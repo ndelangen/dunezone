@@ -1,7 +1,6 @@
 import { Alert, Text } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -24,6 +23,7 @@ import {
   deckDraftWarnings,
   initialDeckMemory,
 } from '@app/widgets/deck-editor/DeckEditor';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';

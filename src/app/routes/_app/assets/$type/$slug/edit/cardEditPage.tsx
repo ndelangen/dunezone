@@ -1,7 +1,6 @@
 import { Alert } from '@mantine/core';
 import type { CardFrontPreset } from '@shared/assets/cardFrontPresets';
 import { useNavigate } from '@tanstack/react-router';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -16,6 +15,7 @@ import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import type { EditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 
 import {
   AssetEditorMessage,
