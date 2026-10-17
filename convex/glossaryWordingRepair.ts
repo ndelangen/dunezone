@@ -12,6 +12,7 @@ import { internalMutation } from './functions';
 import { GF9_SEED_WORDING } from './lib/glossaryStockWording';
 import { enqueueAssetPublication, enqueueFactionFaces, enqueueFactionSheetPublication } from './lib/publication';
 import { nowIso } from './lib/utils';
+import type { MutationCtx } from './types';
 
 /* A typo in the stock Atreides text that the glossary hints do not catch. */
 const EXTRA_FIXES: readonly [RegExp, string][] = [[/\bKwiatz Haderach\b/g, 'Kwisatz Haderach']];
@@ -90,6 +91,45 @@ function fixSeedStrings(value: unknown, path: string, changes: Change[]): unknow
   return value;
 }
 
+async function repairFaction(ctx: MutationCtx, slug: string, dryRun: boolean) {
+  const row = await ctx.db
+    .query('factions')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .unique();
+  if (!row || row.is_deleted) {
+    return 'missing' as const;
+  }
+  const { next, changes } = fixFactionProse(row.data);
+  if (changes.length > 0 && !dryRun) {
+    await ctx.db.patch('factions', row._id, { data: next, updated_at: nowIso() });
+    const updated = { ...row, data: next };
+    await enqueueFactionSheetPublication(ctx, updated);
+    await enqueueFactionFaces(ctx, updated, row.data);
+  }
+  return changes;
+}
+
+async function repairStockCards(ctx: MutationCtx, type: string, ownerId: Id<'users'>, dryRun: boolean) {
+  const rows = await ctx.db
+    .query('assets')
+    .withIndex('by_type_deleted', (q) => q.eq('type', type).eq('is_deleted', false))
+    .collect();
+  const repaired: { id: Id<'assets'>; type: string; slug: string; changes: Change[] }[] = [];
+  for (const row of rows.filter((candidate) => candidate.owner_id === ownerId)) {
+    const changes: Change[] = [];
+    const data = fixSeedStrings(row.data, '', changes);
+    if (changes.length === 0) {
+      continue;
+    }
+    repaired.push({ id: row._id, type, slug: row.slug, changes });
+    if (!dryRun) {
+      await ctx.db.patch('assets', row._id, { data, updated_at: nowIso() });
+      await enqueueAssetPublication(ctx, { ...row, data });
+    }
+  }
+  return repaired;
+}
+
 const changeValidator = v.object({ path: v.string(), before: v.string(), after: v.string() });
 
 /*
@@ -114,45 +154,16 @@ export const run = internalMutation({
     const factions = [];
     const missingFactions = [];
     for (const slug of args.factionSlugs) {
-      const row = await ctx.db
-        .query('factions')
-        .withIndex('by_slug', (q) => q.eq('slug', slug))
-        .unique();
-      if (!row || row.is_deleted) {
+      const changes = await repairFaction(ctx, slug, args.dryRun);
+      if (changes === 'missing') {
         missingFactions.push(slug);
-        continue;
-      }
-      const { next, changes } = fixFactionProse(row.data);
-      if (changes.length === 0) {
-        continue;
-      }
-      factions.push({ slug, changes });
-      if (!args.dryRun) {
-        await ctx.db.patch('factions', row._id, { data: next, updated_at: nowIso() });
-        const updated = { ...row, data: next };
-        await enqueueFactionSheetPublication(ctx, updated);
-        await enqueueFactionFaces(ctx, updated, row.data);
+      } else if (changes.length > 0) {
+        factions.push({ slug, changes });
       }
     }
-
-    const assets: { id: Id<'assets'>; type: string; slug: string; changes: Change[] }[] = [];
+    const assets = [];
     for (const type of STOCK_CARD_TYPES) {
-      const rows = await ctx.db
-        .query('assets')
-        .withIndex('by_type_deleted', (q) => q.eq('type', type).eq('is_deleted', false))
-        .collect();
-      for (const row of rows.filter((candidate) => candidate.owner_id === args.ownerId)) {
-        const changes: Change[] = [];
-        const data = fixSeedStrings(row.data, '', changes);
-        if (changes.length === 0) {
-          continue;
-        }
-        assets.push({ id: row._id, type, slug: row.slug, changes });
-        if (!args.dryRun) {
-          await ctx.db.patch('assets', row._id, { data, updated_at: nowIso() });
-          await enqueueAssetPublication(ctx, { ...row, data });
-        }
-      }
+      assets.push(...(await repairStockCards(ctx, type, args.ownerId, args.dryRun)));
     }
     return { factions, assets, missingFactions };
   },
