@@ -97,6 +97,11 @@ export const TracingImage = meta.story({
     thumb.focus();
     await userEvent.keyboard('[ArrowRight]');
     await waitFor(() => expect(Number(image.getAttribute('x'))).toBeGreaterThan(x));
+    /* Removing and picking the same file again brings the image back. */
+    await userEvent.click(dialog.getByRole('button', { name: 'Remove tracing image' }));
+    await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-tracing-image]')).toBeNull());
+    await userEvent.upload(input, new File([arrakisMapSvg], 'arrakis-map.svg', { type: 'image/svg+xml' }));
+    await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-tracing-image]')).not.toBeNull());
   },
 });
 

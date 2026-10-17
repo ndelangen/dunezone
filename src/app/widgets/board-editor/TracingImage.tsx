@@ -50,12 +50,25 @@ function readImage(file: File): Promise<TracingImage> {
   });
 }
 
-/** Holds the tracing image and frees its object URL when it is replaced, removed or the editor closes. */
+/**
+ * Holds the tracing image and frees its object URL when it is replaced, removed or the editor closes.
+ * Each pick is numbered, so a slow load that finishes after a newer pick, a removal or unmount is discarded and its URL revoked.
+ */
 export function useTracingImage() {
   const [tracing, setTracing] = useState<TracingImage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const url = useRef<string | null>(null);
-  useEffect(() => () => void (url.current && URL.revokeObjectURL(url.current)), []);
+  const request = useRef(0);
+  const input = useRef<() => void>(null);
+  useEffect(
+    () => () => {
+      request.current += 1;
+      if (url.current) {
+        URL.revokeObjectURL(url.current);
+      }
+    },
+    []
+  );
   const replace = (next: TracingImage | null) => {
     if (url.current && url.current !== next?.url) {
       URL.revokeObjectURL(url.current);
@@ -66,15 +79,25 @@ export function useTracingImage() {
   return {
     tracing,
     error,
+    input,
     pick: (file: File | null) => {
+      /* Clearing the input lets the same file be picked again after a removal. */
+      input.current?.();
       if (!file) {
         return;
       }
+      const id = ++request.current;
       setError(null);
-      readImage(file).then(replace, (reason: Error) => setError(reason.message));
+      readImage(file).then(
+        (next) => (id === request.current ? replace(next) : URL.revokeObjectURL(next.url)),
+        (reason: Error) => id === request.current && setError(reason.message)
+      );
     },
     patch: (patch: Partial<TracingImage>) => setTracing((current) => (current ? { ...current, ...patch } : current)),
-    remove: () => replace(null),
+    remove: () => {
+      request.current += 1;
+      replace(null);
+    },
   };
 }
 
@@ -132,7 +155,7 @@ function TracingImageActions({
 
 export function TracingImageControls({ controls }: { controls: ReturnType<typeof useTracingImage> }) {
   const [opened, setOpened] = useState(false);
-  const { tracing, error, pick, patch, remove } = controls;
+  const { tracing, error, input, pick, patch, remove } = controls;
   const sliders = tracing
     ? ([
         [
@@ -207,7 +230,7 @@ export function TracingImageControls({ controls }: { controls: ReturnType<typeof
             tool={tracing && <TracingImageActions tracing={tracing} patch={patch} remove={remove} />}
             input={
               <Stack gap={4}>
-                <FileButton onChange={pick} accept="image/*">
+                <FileButton onChange={pick} accept="image/*" resetRef={input}>
                   {(props) => (
                     <Button {...props} variant="default">
                       {tracing ? 'Replace image…' : 'Choose image…'}
