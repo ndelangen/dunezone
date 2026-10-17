@@ -255,6 +255,27 @@ export default defineSchema({
     asset_id: v.id('assets'),
     usable: v.boolean(),
   }).index('by_asset', ['asset_id']),
+  /**
+   * Catalogue read models: one small row per listed entity, holding only what a catalogue page filters, searches and sorts on.
+   * Derived, never authored: each kind has one reconcile function, run by triggers on its source tables in the writing transaction and by a backfill that rebuilds it from the canonical rows.
+   * `kind` names the catalogue (`faction` today), `source_id` the canonical row, and `facets` the equality filters (a faction's linked ruleset ids).
+   * `search_text` holds one searchable name per line;
+   * `name_key` is the name the default order compares.
+   * The dates are epoch milliseconds, 0 when the source date does not parse.
+   */
+  catalogue_entries: defineTable({
+    kind: v.string(),
+    source_id: v.string(),
+    slug: v.string(),
+    search_text: v.string(),
+    name_key: v.string(),
+    created_at: v.number(),
+    updated_at: v.number(),
+    complexity: v.optional(v.number()),
+    facets: v.array(v.string()),
+  })
+    .index('by_kind', ['kind'])
+    .index('by_kind_source', ['kind', 'source_id']),
   leader_skill_stock_sets: defineTable({
     key: v.literal('gf9-leader-skills'),
     owner_id: v.id('users'),

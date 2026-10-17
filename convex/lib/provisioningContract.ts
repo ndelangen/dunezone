@@ -52,6 +52,7 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'counters',
     'former_slugs',
     'migration_runs',
+    'catalogue_entries',
   ],
   seeded: ['rulebook_drafts'],
   required: ['factions'],

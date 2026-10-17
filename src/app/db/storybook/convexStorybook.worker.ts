@@ -6,8 +6,9 @@ import { convexTest } from 'convex-test';
 import { createFunctionHandle, makeFunctionReference } from 'convex/server';
 import type { WithoutSystemFields } from 'convex/server';
 
-import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
-import type { DatabaseWriter } from '../../../../convex/_generated/server';
+import type { Doc, Id, TableNames } from '../../../../convex/_generated/dataModel';
+import type { DatabaseWriter, MutationCtx } from '../../../../convex/_generated/server';
+import { reconcileCatalogueEntry } from '../../../../convex/lib/catalogueEntries';
 import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
@@ -123,11 +124,21 @@ async function insertDocument<TableName extends TableNames>(
 async function insertDocuments(world: World, documents: SeedDocument[], delay = 0) {
   await new Promise((resolve) => setTimeout(resolve, delay));
   await world.test.run(async (ctx) => {
+    /* Seeds go in raw, so the catalogue read models the triggers would keep are built here from what was seeded. */
+    const factionIds = new Set<string>();
     for (const document of documents) {
       const id = await insertDocument(ctx.db, document, world.references);
       if (document.key) {
         world.references.set(document.key, id);
       }
+      if (document.table === 'factions') {
+        factionIds.add(id);
+      } else if (document.table === 'ruleset_factions') {
+        factionIds.add((await ctx.db.get('ruleset_factions', id as Id<'ruleset_factions'>))!.faction_id);
+      }
+    }
+    for (const factionId of factionIds) {
+      await reconcileCatalogueEntry(ctx as unknown as MutationCtx, 'faction', factionId);
     }
   });
 }
