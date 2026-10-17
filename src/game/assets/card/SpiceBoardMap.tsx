@@ -22,11 +22,11 @@ type Placement = z.infer<typeof SpiceTokenPlacement>;
 type Territory = { id: string; face: Face };
 type ReadonlyPoint = readonly [number, number];
 
-/* The table draws tints in table units over a board 3.98 wide; these are its sizes in board units, so a tint looks the same on a card as on the table. */
+/* The table draws tints in table units over a board 3.98 wide; these are its sizes in board units, so a tint's fill and stickers look the same on a card as on the table. A card is read small, so its outline is drawn much heavier than the table's. */
 const TABLE_UNIT = RADIUS / 3.98;
 const EDGE_WIDTH = 0.012 * TABLE_UNIT;
-const DOUBLE_LINE_WIDTH = 0.012 * TABLE_UNIT;
-const DOUBLE_LINE_GAP = 0.012 * TABLE_UNIT;
+const DOUBLE_LINE_WIDTH = 0.1 * TABLE_UNIT;
+const DOUBLE_LINE_GAP = 0.05 * TABLE_UNIT;
 const STICKER_LARGEST = 0.3 * TABLE_UNIT;
 const STICKER_SMALLEST = 0.14 * TABLE_UNIT;
 const STICKER_INK = '#1a0b00';

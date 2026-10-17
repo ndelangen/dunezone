@@ -1,6 +1,12 @@
-import { ActionIcon, Alert, Button, Group, Popover, Slider, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
-import { SPICE_BOARD_SIZE, SPICE_MAX_TINTS, SPICE_MAX_TOKENS, SPICE_TERRITORY_TYPES } from '@shared/assets/schema';
-import type { CustomCardTokens, SpiceBoardLink, SpiceTint, SpiceTokenPlacement } from '@shared/assets/schema';
+import { Alert, Button, Group, Slider, Stack, Text, UnstyledButton } from '@mantine/core';
+import { SPICE_BOARD_SIZE, SPICE_MAX_TINTS, SPICE_MAX_TOKENS } from '@shared/assets/schema';
+import type {
+  SPICE_TERRITORY_TYPES,
+  CustomCardTokens,
+  SpiceBoardLink,
+  SpiceTint,
+  SpiceTokenPlacement,
+} from '@shared/assets/schema';
 import type { Board } from '@shared/boards/schema';
 import { territoryId } from '@shared/boards/schema';
 import { legacyHighlightTint } from '@shared/boards/spiceHighlights';
@@ -8,7 +14,7 @@ import { TINT_STAMPS } from '@shared/boards/tints';
 import type { TintStamp } from '@shared/boards/tints';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import { ChevronDown, ChevronUp, Layers } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
@@ -81,46 +87,6 @@ function tintSummary(tint: Tint, painting: boolean, names: ReadonlyMap<string, s
     parts.push(`${tint.territories.length} territories`);
   }
   return parts.join(' · ');
-}
-
-/** The switches that make a tint cover every territory of a type, whatever the board has now or gets later. */
-function TypePicker({ tint, onToggle }: Readonly<{ tint: Tint; onToggle: (type: TerritoryType) => void }>) {
-  const count = tint.types?.length ?? 0;
-  const label = `Territory types in ${tint.name}`;
-  return (
-    <Popover position="bottom-end" shadow="md" withArrow>
-      <Popover.Target>
-        <Tooltip label={label}>
-          <ActionIcon variant={count ? 'light' : 'subtle'} color={count ? 'yellow' : 'gray'} aria-label={label}>
-            <Layers size={18} />
-          </ActionIcon>
-        </Tooltip>
-      </Popover.Target>
-      <Popover.Dropdown aria-label={label}>
-        <Text size="xs" c="dimmed" mb={6}>
-          Every territory of a type, on whichever board
-        </Text>
-        <Stack gap={4}>
-          {SPICE_TERRITORY_TYPES.map((type) => {
-            const on = !!tint.types?.includes(type);
-            return (
-              <Button
-                key={type}
-                size="compact-sm"
-                justify="flex-start"
-                variant={on ? 'light' : 'subtle'}
-                color={on ? 'yellow' : 'gray'}
-                aria-pressed={on}
-                onClick={() => onToggle(type)}
-              >
-                {TYPE_LABELS[type]}
-              </Button>
-            );
-          })}
-        </Stack>
-      </Popover.Dropdown>
-    </Popover>
-  );
 }
 
 /** The percentage along the map's width or height a board coordinate sits at, which reads better than the board's own 487-unit scale. */
@@ -338,18 +304,6 @@ function CardTintRow({
         })
       }
       onColor={(color) => onChange((current) => ({ ...current, color }))}
-      before={
-        <TypePicker
-          tint={tint}
-          onToggle={(type) =>
-            onChange((current) => {
-              const types = toggled(current.types, type, SPICE_TERRITORY_TYPES);
-              const { types: _, ...rest } = current;
-              return types.length ? { ...rest, types } : rest;
-            })
-          }
-        />
-      }
       after={
         <ConfirmDeleteAction
           label={`Remove ${tint.name}`}

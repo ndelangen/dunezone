@@ -128,7 +128,7 @@ export const Blank = meta.story({
 const onBoard: SpiceDraft = { ...publishingSpiceCard, name: 'Funeral Plain', board: spiceBoardLink };
 
 /**
- * A card on a saved board: Play's tint rows with a territory-type switch, and placed tokens with sliders.
+ * A card on a saved board: Play's tint rows and placed tokens with sliders.
  * Turning on a tint's brush and clicking a territory on the card adds it to the tint.
  */
 export const SavedBoard = meta.story({
