@@ -533,6 +533,29 @@ export default defineSchema({
   })
     .index('by_operation_kind_entity', ['operation_id', 'kind', 'entity_id'])
     .index('by_operation_state', ['operation_id', 'state']),
+  /**
+   * PROTOTYPE (approach B): the Faction catalogue's server-side read model.
+   * One slim row per live faction per partition: `partition` is `'all'` or a ruleset id the faction is linked to.
+   * Maintained only by triggers (`convex/lib/factionCatalogueIndex.ts`) from `factions` and `ruleset_factions`;
+   * never written directly.
+   * Each row also has one item per sort order in the `factionCatalogueOrder` aggregate.
+   */
+  faction_catalogue_entries: defineTable({
+    faction_id: v.id('factions'),
+    partition: v.string(),
+    slug: v.string(),
+    name_key: v.string(),
+    search_text: v.string(),
+    complexity: v.number(),
+    created_at: v.string(),
+    updated_at: v.string(),
+  })
+    .index('by_faction_partition', ['faction_id', 'partition'])
+    .index('by_partition_name_key', ['partition', 'name_key'])
+    .index('by_partition_created_at', ['partition', 'created_at'])
+    .index('by_partition_updated_at', ['partition', 'updated_at'])
+    .index('by_partition_complexity', ['partition', 'complexity'])
+    .searchIndex('search_search_text', { searchField: 'search_text', filterFields: ['partition'] }),
   ruleset_factions: defineTable({
     ruleset_id: v.id('rulesets'),
     faction_id: v.id('factions'),

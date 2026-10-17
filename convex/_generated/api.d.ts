@@ -19,6 +19,7 @@ import type * as cardbackPresets from "../cardbackPresets.js";
 import type * as componentPublication from "../componentPublication.js";
 import type * as crons from "../crons.js";
 import type * as e2e from "../e2e.js";
+import type * as factionCatalogueIndex from "../factionCatalogueIndex.js";
 import type * as factions from "../factions.js";
 import type * as faq from "../faq.js";
 import type * as formerAddresses from "../formerAddresses.js";
@@ -45,6 +46,7 @@ import type * as lib_customCardTokens from "../lib/customCardTokens.js";
 import type * as lib_defaultGroupPreference from "../lib/defaultGroupPreference.js";
 import type * as lib_directOwnership from "../lib/directOwnership.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
+import type * as lib_factionCatalogueIndex from "../lib/factionCatalogueIndex.js";
 import type * as lib_factionData from "../lib/factionData.js";
 import type * as lib_factionInput from "../lib/factionInput.js";
 import type * as lib_faqProfileActivity from "../lib/faqProfileActivity.js";
@@ -145,6 +147,7 @@ declare const fullApi: ApiFromModules<{
   componentPublication: typeof componentPublication;
   crons: typeof crons;
   e2e: typeof e2e;
+  factionCatalogueIndex: typeof factionCatalogueIndex;
   factions: typeof factions;
   faq: typeof faq;
   formerAddresses: typeof formerAddresses;
@@ -171,6 +174,7 @@ declare const fullApi: ApiFromModules<{
   "lib/defaultGroupPreference": typeof lib_defaultGroupPreference;
   "lib/directOwnership": typeof lib_directOwnership;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
+  "lib/factionCatalogueIndex": typeof lib_factionCatalogueIndex;
   "lib/factionData": typeof lib_factionData;
   "lib/factionInput": typeof lib_factionInput;
   "lib/faqProfileActivity": typeof lib_faqProfileActivity;
@@ -286,4 +290,5 @@ export declare const components: {
   statistics: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"statistics">;
   profileDiscovery: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileDiscovery">;
   profileActivity: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileActivity">;
+  factionCatalogueOrder: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"factionCatalogueOrder">;
 };

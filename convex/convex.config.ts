@@ -10,5 +10,7 @@ app.use(rateLimiter);
 app.use(aggregate, { name: 'statistics' });
 app.use(aggregate, { name: 'profileDiscovery' });
 app.use(aggregate, { name: 'profileActivity' });
+/* PROTOTYPE (approach B): one instance serves every Faction catalogue sort order, namespaced by [sort, partition]. */
+app.use(aggregate, { name: 'factionCatalogueOrder' });
 
 export default app;

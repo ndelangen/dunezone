@@ -198,6 +198,7 @@ describe('faction authoring full-field round trip', () => {
   test('rejects retired legacy writes while trusting grouped client calculations', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'factionCatalogueOrder');
     aggregateTest.register(t, 'profileActivity');
     aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction transition proof user' }));
@@ -269,6 +270,7 @@ describe('faction authoring full-field round trip', () => {
   test('creates, schedules, reloads, edits, and shares every admitted field without loss', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'factionCatalogueOrder');
     aggregateTest.register(t, 'profileActivity');
     aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction authoring proof user' }));
@@ -424,6 +426,7 @@ describe('faction authoring full-field round trip', () => {
   test('an added Extra must name a live catalogue asset, and one already listed survives its removal', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'factionCatalogueOrder');
     aggregateTest.register(t, 'profileActivity');
     aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction extras proof user' }));

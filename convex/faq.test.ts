@@ -21,6 +21,7 @@ function faqTest(
 ) {
   const t = transactionLimits ? convexTest({ schema, modules, transactionLimits }) : convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   return t;

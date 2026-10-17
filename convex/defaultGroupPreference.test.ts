@@ -16,6 +16,7 @@ const ABOUT = 'A test ruleset with About text long enough to satisfy the fifty c
 async function defaultGroupFixture() {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   const ids = await t.run(async (ctx) => {

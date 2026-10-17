@@ -19,6 +19,7 @@ function setup() {
   const t = convexTest(schema, modules);
   migrationsTest.register(t);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileDiscovery');
   aggregateTest.register(t, 'profileActivity');
   return t;

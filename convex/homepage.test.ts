@@ -18,6 +18,7 @@ describe('homepage page data', () => {
   test('serves exact Statistics totals without migration readiness', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'factionCatalogueOrder');
     aggregateTest.register(t, 'profileActivity');
     aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Homepage maker' }));
@@ -88,6 +89,7 @@ describe('homepage page data', () => {
   test('reuses discoverable profiles in the homepage with exact eligibility and ordering', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'factionCatalogueOrder');
     aggregateTest.register(t, 'profileActivity');
     aggregateTest.register(t, 'profileDiscovery');
     migrationsTest.register(t);

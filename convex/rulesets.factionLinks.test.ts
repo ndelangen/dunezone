@@ -16,6 +16,7 @@ const DESCRIPTION = 'A house ruleset used to prove faction links attach and deta
 function linkTest() {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   return t;

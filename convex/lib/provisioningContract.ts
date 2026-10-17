@@ -50,6 +50,7 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'publication_assets',
     'admin_settings',
     'counters',
+    'faction_catalogue_entries',
     'former_slugs',
     'migration_runs',
   ],

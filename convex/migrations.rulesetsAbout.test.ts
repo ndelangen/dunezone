@@ -19,6 +19,7 @@ function rulesetMigrationTest() {
   const t = convexTest(schema, modules);
   migrationsTest.register(t);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   return t;
 }
 

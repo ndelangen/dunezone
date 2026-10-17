@@ -30,6 +30,7 @@ export function stubIsolatedBackend() {
 export function accountsBackend() {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   return t;

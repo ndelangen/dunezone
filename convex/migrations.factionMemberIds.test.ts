@@ -21,6 +21,7 @@ const required = ['faction_member_ids_v1', 'faction_member_ids_verify_v1'];
 function migrationTest() {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   migrationsTest.register(t);
@@ -62,6 +63,7 @@ describe('faction member identity migration', () => {
   test('backfills existing active and deleted rosters and verifies persisted identities', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'factionCatalogueOrder');
     aggregateTest.register(t, 'profileActivity');
     aggregateTest.register(t, 'profileDiscovery');
     migrationsTest.register(t);

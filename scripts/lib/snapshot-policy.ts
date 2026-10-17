@@ -131,6 +131,9 @@ export const snapshotPolicy = {
   publication_assets: { drop: 'publication records, which must never be acted on outside production' },
   admin_settings: { drop: 'operational settings, not content' },
   counters: { drop: 'slug counters, which the allocators rebuild' },
+  faction_catalogue_entries: {
+    drop: 'PROTOTYPE: derived catalogue read model, which factionCatalogueIndex.rebuild recreates',
+  },
   former_slugs: { drop: 'addresses renames left behind, which only old production links need' },
   migration_runs: { drop: 'migration status, which the local migration guard writes again' },
   card_front_presets: {
@@ -294,6 +297,7 @@ export const installedComponents = {
   statistics: 'derived counts and the ids they count, which the loaders rebuild',
   profileDiscovery: 'a derived index, which the loaders rebuild',
   profileActivity: 'derived counts per user and the ids they count, which the loaders rebuild',
+  factionCatalogueOrder: 'PROTOTYPE: derived catalogue order, which factionCatalogueIndex.rebuild recreates',
 } satisfies { [Name in keyof typeof components]: string };
 
 /**

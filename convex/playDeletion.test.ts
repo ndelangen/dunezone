@@ -19,6 +19,7 @@ async function fixture() {
   rateLimiterTest.register(t);
   migrationsTest.register(t);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileDiscovery');
   aggregateTest.register(t, 'profileActivity');
   const { userId, sessionId } = await t.run(async (ctx) => {

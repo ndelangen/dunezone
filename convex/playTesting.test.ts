@@ -72,6 +72,7 @@ describe('isolated Play test controls', () => {
     const { t } = await fixture();
     /* Inserting catalogue rows updates the statistics aggregate. */
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'factionCatalogueOrder');
     aggregateTest.register(t, 'profileActivity');
     const first = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const second = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
@@ -101,6 +102,7 @@ describe('isolated Play test controls', () => {
   test('fills each required deck with complete, published cards of its own type', async () => {
     const { t } = await fixture();
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'factionCatalogueOrder');
     aggregateTest.register(t, 'profileActivity');
     const { rulesetId, publications } = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const supply = await t.query(api.playCatalogue.rulesetSupply, { rulesetId });
@@ -124,6 +126,7 @@ describe('isolated Play test controls', () => {
   test('one faction supplies an Extra and declares phases', async () => {
     const { t } = await fixture();
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'factionCatalogueOrder');
     aggregateTest.register(t, 'profileActivity');
     const { rulesetId, publications } = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const factionIds = await t.run(async (ctx) =>

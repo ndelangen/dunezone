@@ -13,6 +13,7 @@ export const VALID_ABOUT = 'A house ruleset that rebalances spice income and sho
 export function rulesetTest() {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   return t;

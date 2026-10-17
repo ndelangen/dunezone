@@ -25,6 +25,7 @@ const STORED_COVER = {
 async function coverFixture() {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   const ids = await t.run(async (ctx) => {

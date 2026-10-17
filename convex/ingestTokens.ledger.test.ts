@@ -24,6 +24,7 @@ const RESULT = {
 async function ledgerFixture() {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Ledger owner' }));
@@ -52,6 +53,7 @@ const AVATAR_RESULT = {
 async function avatarLedgerFixture() {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   const now = new Date().toISOString();

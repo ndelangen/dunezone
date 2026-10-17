@@ -13,6 +13,7 @@ const modules = import.meta.glob('./**/*.ts');
 test('profile list includes activity counts', async () => {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileDiscovery');
   aggregateTest.register(t, 'profileActivity');
   const ids = await t.run(async (rawCtx) => {
@@ -162,6 +163,7 @@ test('profile detail returns the newest bounded FAQ activity', async () => {
 test('the profile list and lookup by id skip deleted profiles, however many there are', async () => {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'factionCatalogueOrder');
   aggregateTest.register(t, 'profileDiscovery');
   aggregateTest.register(t, 'profileActivity');
   const { liveId, deletedId } = await t.run(async (rawCtx) => {
