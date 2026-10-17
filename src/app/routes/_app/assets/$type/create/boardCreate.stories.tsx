@@ -76,7 +76,7 @@ export const SaveAndReopen = meta.story({
 });
 
 /**
- * A picked picture sits under the drawing as a tracing guide.
+ * A picked picture sits over the drawing as a tracing guide, placed and sized with sliders.
  * It is held as a local object URL, so it is never uploaded or saved, and the canvas says it is not part of the board.
  */
 export const TracingImage = meta.story({
@@ -87,12 +87,16 @@ export const TracingImage = meta.story({
     const input = canvasElement.ownerDocument.querySelector<HTMLInputElement>('input[type="file"][accept="image/*"]')!;
     await userEvent.upload(input, new File([arrakisMapSvg], 'arrakis-map.svg', { type: 'image/svg+xml' }));
     await waitFor(() => expect(dialog.getByText('arrakis-map.svg')).toBeVisible());
-    await expect(page.findByText(/guide only, not part of your board/)).resolves.toBeVisible();
+    await expect(page.findByText('Tracing image · not part of your board')).resolves.toBeVisible();
     await expect(canvasElement.ownerDocument.querySelector('[data-tracing-image]')?.getAttribute('href')).toMatch(
       /^blob:/
     );
-    await userEvent.click(dialog.getByRole('button', { name: 'Move image' }));
-    await expect(page.getByRole('button', { name: 'Move tracing image' })).toHaveAttribute('aria-pressed', 'true');
+    const image = canvasElement.ownerDocument.querySelector('[data-tracing-image]')!;
+    const x = Number(image.getAttribute('x'));
+    const thumb = dialog.getByRole('slider', { name: 'Tracing image x' });
+    thumb.focus();
+    await userEvent.keyboard('[ArrowRight]');
+    await waitFor(() => expect(Number(image.getAttribute('x'))).toBeGreaterThan(x));
   },
 });
 

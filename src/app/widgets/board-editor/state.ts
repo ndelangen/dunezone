@@ -1,5 +1,5 @@
 import type { Board, Point } from '@shared/boards/schema';
-type Tool = 'select' | 'line' | 'cubic' | 'arc' | 'pan' | 'add-point' | 'remove-point' | 'remove-edge' | 'move-tracing';
+type Tool = 'select' | 'line' | 'cubic' | 'arc' | 'pan' | 'add-point' | 'remove-point' | 'remove-edge';
 export type BoardEditorState = {
   board: Board;
   past: Board[];

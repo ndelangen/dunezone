@@ -1,9 +1,10 @@
-import { Button, FileButton, Group, Popover, Slider, Stack, Switch, Text } from '@mantine/core';
+import { Button, FileButton, Group, Popover, Slider, Stack, Text } from '@mantine/core';
 import { CENTER } from '@shared/boards/geometry';
 import type { Point } from '@shared/boards/geometry';
+import { FormError } from '@ui/block/FormError';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
-import { ImagePlus } from 'lucide-react';
+import { Eye, EyeOff, ImagePlus, RotateCcw, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const BOARD_SIZE = 487.06;
@@ -73,15 +74,6 @@ export function useTracingImage() {
       readImage(file).then(replace, (reason: Error) => setError(reason.message));
     },
     patch: (patch: Partial<TracingImage>) => setTracing((current) => (current ? { ...current, ...patch } : current)),
-    resize: (factor: number) =>
-      setTracing((current) =>
-        current
-          ? {
-              ...current,
-              scale: Math.max(TRACING_SCALE.min, Math.min(TRACING_SCALE.max, current.scale * factor)),
-            }
-          : current
-      ),
     remove: () => replace(null),
   };
 }
@@ -107,15 +99,53 @@ export function TracingImageLayer({ tracing }: { tracing: TracingImage }) {
   );
 }
 
-export function TracingImageControls({
-  controls,
-  onMove,
-}: {
-  controls: ReturnType<typeof useTracingImage>;
-  onMove: () => void;
-}) {
+export function TracingImageControls({ controls }: { controls: ReturnType<typeof useTracingImage> }) {
   const [opened, setOpened] = useState(false);
   const { tracing, error, pick, patch, remove } = controls;
+  const sliders = tracing
+    ? ([
+        [
+          'Opacity',
+          'Tracing image opacity',
+          0.1,
+          1,
+          0.05,
+          tracing.opacity,
+          `${Math.round(tracing.opacity * 100)}%`,
+          (opacity: number) => patch({ opacity }),
+        ],
+        [
+          'Size',
+          'Tracing image size',
+          TRACING_SCALE.min,
+          TRACING_SCALE.max,
+          0.01,
+          tracing.scale,
+          `${Math.round(tracing.scale * 100)}%`,
+          (scale: number) => patch({ scale }),
+        ],
+        [
+          'X',
+          'Tracing image x',
+          -BOARD_SIZE / 2,
+          BOARD_SIZE * 1.5,
+          0.5,
+          tracing.center[0],
+          tracing.center[0].toFixed(1),
+          (x: number) => patch({ center: [x, tracing.center[1]] }),
+        ],
+        [
+          'Y',
+          'Tracing image y',
+          -BOARD_SIZE / 2,
+          BOARD_SIZE * 1.5,
+          0.5,
+          tracing.center[1],
+          tracing.center[1].toFixed(1),
+          (y: number) => patch({ center: [tracing.center[0], y] }),
+        ],
+      ] as const)
+    : [];
   return (
     <Popover
       opened={opened}
@@ -140,84 +170,57 @@ export function TracingImageControls({
       </Popover.Target>
       <Popover.Dropdown role="dialog" aria-label="Tracing image">
         <Stack gap="sm">
-          <Text size="sm">
-            Pick a picture of a map to trace over. It is a drawing guide only: it stays on this device, is never
-            uploaded or saved, and is not part of your board.
-          </Text>
-          <FileButton onChange={pick} accept="image/*">
-            {(props) => (
-              <Button {...props} variant="default">
-                {tracing ? 'Replace image…' : 'Choose image…'}
-              </Button>
-            )}
-          </FileButton>
-          {error && (
-            <Text size="sm" c="red">
-              {error}
-            </Text>
-          )}
-          {tracing && (
-            <>
-              <Text size="xs" c="dimmed" truncate>
-                {tracing.name}
-              </Text>
-              <Switch
-                label="Show tracing image"
-                checked={tracing.visible}
-                onChange={(event) => patch({ visible: event.currentTarget.checked })}
-              />
-              <ControlBlock
-                title="Opacity"
-                tool={<Text size="xs">{Math.round(tracing.opacity * 100)}%</Text>}
-                input={
-                  <Slider
-                    thumbLabel="Tracing image opacity"
-                    min={0.1}
-                    max={1}
-                    step={0.05}
-                    value={tracing.opacity}
-                    onChange={(opacity) => patch({ opacity })}
+          <ControlBlock
+            title={tracing ? tracing.name : 'Tracing image'}
+            description="A picture to trace over while you draw. It stays on this device, is never uploaded or saved, and is not part of your board."
+            tool={
+              tracing && (
+                <Group gap="xs" wrap="nowrap">
+                  <IconAction
+                    label={tracing.visible ? 'Hide tracing image' : 'Show tracing image'}
+                    icon={tracing.visible ? <Eye size={17} /> : <EyeOff size={17} />}
+                    emphasis="standard"
+                    pressed={tracing.visible}
+                    onClick={() => patch({ visible: !tracing.visible })}
                   />
-                }
-              />
-              <ControlBlock
-                title="Size"
-                tool={<Text size="xs">{Math.round(tracing.scale * 100)}%</Text>}
-                input={
-                  <Slider
-                    thumbLabel="Tracing image size"
-                    min={TRACING_SCALE.min}
-                    max={TRACING_SCALE.max}
-                    step={0.01}
-                    value={tracing.scale}
-                    onChange={(scale) => patch({ scale })}
+                  <IconAction
+                    label="Reset tracing image size and position"
+                    icon={<RotateCcw size={17} />}
+                    emphasis="standard"
+                    onClick={() => patch({ center: [...CENTER], scale: 1 })}
                   />
-                }
-              />
-              <Text size="xs" c="dimmed">
-                With the move tool, drag the image to place it and scroll to resize it.
-              </Text>
-              <Group gap="xs">
-                <Button
-                  size="xs"
-                  variant="default"
-                  onClick={() => {
-                    patch({ visible: true });
-                    onMove();
-                    setOpened(false);
-                  }}
-                >
-                  Move image
-                </Button>
-                <Button size="xs" variant="default" onClick={() => patch({ center: [...CENTER], scale: 1 })}>
-                  Reset
-                </Button>
-                <Button size="xs" variant="default" onClick={remove}>
-                  Remove
-                </Button>
-              </Group>
-            </>
-          )}
+                  <IconAction
+                    label="Remove tracing image"
+                    icon={<X size={17} />}
+                    emphasis="standard"
+                    onClick={remove}
+                  />
+                </Group>
+              )
+            }
+            input={
+              <Stack gap={4}>
+                <FileButton onChange={pick} accept="image/*">
+                  {(props) => (
+                    <Button {...props} variant="default">
+                      {tracing ? 'Replace image…' : 'Choose image…'}
+                    </Button>
+                  )}
+                </FileButton>
+                {error && <FormError title="Image could not be opened">{error}</FormError>}
+              </Stack>
+            }
+          />
+          {sliders.map(([title, thumbLabel, min, max, step, value, shown, onChange]) => (
+            <ControlBlock
+              key={title}
+              title={title}
+              tool={<Text size="xs">{shown}</Text>}
+              input={
+                <Slider thumbLabel={thumbLabel} min={min} max={max} step={step} value={value} onChange={onChange} />
+              }
+            />
+          ))}
         </Stack>
       </Popover.Dropdown>
     </Popover>

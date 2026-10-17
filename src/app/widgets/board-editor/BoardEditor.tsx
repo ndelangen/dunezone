@@ -5,7 +5,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Badge, Group, Stack, Text, Select, TextInput, Switch, Slider, Divider, VisuallyHidden } from '@mantine/core';
+import { Group, Stack, Text, Select, TextInput, Switch, Slider, Divider, VisuallyHidden } from '@mantine/core';
 import { ALL } from '@shared/assetIds';
 import {
   derive,
@@ -29,6 +29,7 @@ import {
 import type { Board, Point, Face, Properties, Decal } from '@shared/boards/geometry';
 import { territoryId, territoryNameError } from '@shared/boards/schema';
 import { Section } from '@ui/block/Section';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -57,7 +58,6 @@ import {
   Radar,
   Magnet,
   Scan,
-  Move,
   ImageIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
@@ -86,7 +86,6 @@ const TOOL_SHORTCUTS: Record<string, BoardEditorState['tool']> = {
   d: 'remove-point',
   x: 'remove-edge',
   h: 'pan',
-  m: 'move-tracing',
 };
 
 export function BoardEditor({
@@ -104,26 +103,9 @@ export function BoardEditor({
   );
   const rootRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null),
-    panStart = useRef<{ cursor: Point; pan: Point } | null>(null),
-    tracingStart = useRef<{ cursor: Point; center: Point } | null>(null);
+    panStart = useRef<{ cursor: Point; pan: Point } | null>(null);
   const tracingControls = useTracingImage();
   const { tracing } = tracingControls;
-  const tracingWheel = useRef<((delta: number) => boolean) | null>(null);
-  useEffect(() => {
-    /* With the move tool, the wheel resizes the tracing image instead of zooming the board. */
-    tracingWheel.current = (delta) => {
-      if (state.tool !== 'move-tracing' || !tracing) {
-        return false;
-      }
-      tracingControls.resize(Math.exp(-delta * 0.002));
-      return true;
-    };
-  });
-  useEffect(() => {
-    if (!tracing && state.tool === 'move-tracing') {
-      dispatch({ type: 'view.changed', patch: { tool: 'select' } });
-    }
-  }, [tracing, state.tool, dispatch]);
   const drawBoard = useMemo(() => {
     if (!state.dragNode || !state.dragPoint) {
       return state.board;
@@ -218,9 +200,6 @@ export function BoardEditor({
         return;
       }
       const tool = TOOL_SHORTCUTS[key];
-      if (tool === 'move-tracing' && !tracing) {
-        return;
-      }
       if (tool) {
         event.preventDefault();
         view({ tool, points: [], edge: null });
@@ -255,9 +234,6 @@ export function BoardEditor({
     let frame = 0;
     const wheel = (event: WheelEvent) => {
       event.preventDefault();
-      if (tracingWheel.current?.(event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 400 : 1))) {
-        return;
-      }
       const factor = 487.06 / svg.getBoundingClientRect().width;
       const pixelGesture =
         event.deltaMode === 0 &&
@@ -377,7 +353,6 @@ export function BoardEditor({
     'add-point': 'Click a boundary to insert a point without changing its shape.',
     'remove-point': 'Click a point to remove it. Its neighbors reconnect; curved joins become straight.',
     'remove-edge': 'Click a connection to remove it and keep both points.',
-    'move-tracing': 'Drag the tracing image to place it. Scroll to resize it.',
   };
 
   const tools = (
@@ -392,7 +367,6 @@ export function BoardEditor({
           ['remove-point', Minus, 'Remove boundary point'],
           ['remove-edge', Unlink, 'Remove connection'],
           ['pan', Hand, 'Pan'],
-          ...(tracing ? ([['move-tracing', Move, 'Move tracing image']] as const) : []),
         ] as const
       ).map(([tool, Icon, label]) => (
         <IconAction
@@ -429,10 +403,7 @@ export function BoardEditor({
   );
   const viewTools = (
     <Group gap="xs">
-      <TracingImageControls
-        controls={tracingControls}
-        onMove={() => view({ tool: 'move-tracing', points: [], edge: null, message: toolHelp['move-tracing'] })}
-      />
+      <TracingImageControls controls={tracingControls} />
       <IconAction
         label="18-sector guide"
         tooltip="18-sector guide · G"
@@ -750,13 +721,6 @@ export function BoardEditor({
             panStart.current = { cursor: [event.clientX, event.clientY], pan: state.pan };
             return;
           }
-          if (state.tool === 'move-tracing') {
-            if (tracing) {
-              event.currentTarget.setPointerCapture(event.pointerId);
-              tracingStart.current = { cursor: point, center: tracing.center };
-            }
-            return;
-          }
           const clickedNode = target.getAttribute('data-node');
           const clickedEdge = target.getAttribute('data-edge');
           if (state.tool === 'remove-edge') {
@@ -819,12 +783,6 @@ export function BoardEditor({
           }
         }}
         onPointerMove={(event) => {
-          if (tracingStart.current) {
-            const point = canvasPoint(event),
-              { cursor, center } = tracingStart.current;
-            tracingControls.patch({ center: [center[0] + point[0] - cursor[0], center[1] + point[1] - cursor[1]] });
-            return;
-          }
           if (panStart.current) {
             const rect = event.currentTarget.getBoundingClientRect(),
               ratio = 487.06 / rect.width;
@@ -849,7 +807,6 @@ export function BoardEditor({
         }}
         onPointerUp={() => {
           panStart.current = null;
-          tracingStart.current = null;
           if (state.dragNode) {
             const start = state.dragHandle
               ? state.board.edges.find((edge) => edge.id === state.dragNode)![state.dragHandle]!
@@ -867,7 +824,6 @@ export function BoardEditor({
         }}
         onPointerCancel={() => {
           panStart.current = null;
-          tracingStart.current = null;
           view({ dragNode: null, dragPoint: null });
         }}
       >
@@ -950,20 +906,15 @@ export function BoardEditor({
               pointerEvents="none"
             />
           )}
-          {!state.compare && state.hover && state.tool !== 'select' && state.tool !== 'move-tracing' && (
+          {!state.compare && state.hover && state.tool !== 'select' && (
             <circle cx={state.hover[0]} cy={state.hover[1]} r="4" fill="none" stroke="#386c8e" pointerEvents="none" />
           )}
         </g>
       </svg>
       {!state.compare && tracing?.visible && (
-        <Badge
-          className={styles.tracingNotice}
-          variant="default"
-          leftSection={<ImageIcon size={12} aria-hidden />}
-          title="The tracing image is only a guide while you draw. It is not saved and is not part of your board."
-        >
-          Tracing image · guide only, not part of your board
-        </Badge>
+        <span className={styles.tracingNotice}>
+          <StatusBadge icon={<ImageIcon size={12} aria-hidden />}>Tracing image · not part of your board</StatusBadge>
+        </span>
       )}
     </div>
   );
