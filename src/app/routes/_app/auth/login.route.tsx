@@ -80,12 +80,17 @@ function SignInPanel({ providers, returnTo }: { providers: ReturnType<typeof use
   const socialLogin = async (provider: AuthProvider) => {
     dispatch({ kind: 'started', provider });
     try {
-      await signIn(provider, { redirectTo: returnTo });
+      const { redirect } = await signIn(provider, { redirectTo: returnTo });
+      /* The browser is already leaving for the provider, and a second click would replace this sign-in's verifier.
+         The buttons come back only if the back button restores this page from the browser's cache. */
+      if (redirect) {
+        window.addEventListener('pageshow', () => dispatch({ kind: 'settled' }), { once: true });
+        return;
+      }
     } catch (error) {
       dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'Sign-in could not start.' });
-    } finally {
-      dispatch({ kind: 'settled' });
     }
+    dispatch({ kind: 'settled' });
   };
   const localLogin = async (event: React.FormEvent) => {
     event.preventDefault();

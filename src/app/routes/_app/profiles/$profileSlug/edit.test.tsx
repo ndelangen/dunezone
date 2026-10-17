@@ -258,9 +258,8 @@ describe('profile settings page', () => {
       fireEvent.click(view.getByRole('button', { name: 'Connect Discord' }));
     });
     expect(mocks.beginConnection).toHaveBeenCalledWith({ provider: 'discord' });
-    expect(mocks.signIn).toHaveBeenCalledWith('discord', {
-      redirectTo: '/profiles/owner-profile/connect?connection=connection-token',
-    });
+    expect(mocks.signIn).toHaveBeenCalledWith('discord', { redirectTo: '/profiles/owner-profile/connect' });
+    expect(sessionStorage.getItem('dunezone-account-connection')).toBe('connection-token');
     expect(mocks.mutate).not.toHaveBeenCalled();
     expect(view.getByRole('button', { name: 'Connect Discord' })).toHaveProperty('disabled', false);
     await chooseTab(view, 'Profile');

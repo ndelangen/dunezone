@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from 'convex/react';
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
@@ -39,6 +39,29 @@ export function useBeginAuthConnection() {
 export function useDisconnectAuthMethod() {
   return useMutation(api.accounts.disconnect);
 }
+/* The tab that starts a connection holds its token; an address never carries it, so a shared or leaked link cannot confirm someone else's connection. */
+const HELD_CONNECTION_KEY = 'dunezone-account-connection';
+
+/** Keeps the token `beginConnection` returned for this tab's sign-in round trip; throws when the browser refuses storage, since the connection could not finish. */
+export function holdAuthConnection(token: string) {
+  sessionStorage.setItem(HELD_CONNECTION_KEY, token);
+}
+
+function heldConnection(): string {
+  try {
+    return sessionStorage.getItem(HELD_CONNECTION_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+const subscribeToNothing = () => () => {};
+
+/** The connection this tab started, `''` when it started none, or `undefined` while the page renders on the server. */
+export function useHeldAuthConnection(): string | undefined {
+  return useSyncExternalStore(subscribeToNothing, heldConnection, () => undefined);
+}
+
 export function useAuthConnection(token: string) {
   return useQuery(api.accounts.connection, { token });
 }

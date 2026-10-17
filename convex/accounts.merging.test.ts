@@ -159,6 +159,27 @@ test('Discord connection requires both proofs and a fresh second session, then c
   expect(await t.query(api.accounts.connection, { token: intent.token })).toBeNull();
 });
 
+test("a self-service connection never carries the source account's admin rights", async () => {
+  const provider = 'discord';
+  const t = setup();
+  const target = await account(t, 'requester', 'google');
+  const source = await account(t, 'administrator', provider, true);
+  const intent = await t
+    .withIdentity({ subject: `${target.userId}|${target.sessionId}` })
+    .mutation(api.accounts.beginConnection, { provider });
+  const secondSession = await t.run(
+    async (ctx) => await ctx.db.insert('authSessions', { userId: source.userId, expirationTime: Date.now() + 600_000 })
+  );
+  await t
+    .withIdentity({ subject: `${source.userId}|${secondSession}` })
+    .mutation(api.accounts.confirmConnection, { token: intent.token });
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  await t.run(async (ctx) => {
+    expect((await ctx.db.get(source.authId))?.userId).toBe(target.userId);
+    expect((await ctx.db.get(target.userId))?.isAdmin).toBeFalsy();
+  });
+});
+
 test('a source player survives game reconciliation before and after routing transfer while old sessions lose access', async () => {
   const t = setup();
   const source = await account(t, 'player', 'discord');

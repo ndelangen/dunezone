@@ -7,11 +7,12 @@ import { internal } from './_generated/api';
 import type { MutationCtx } from './_generated/server';
 import { accountStateOf } from './lib/accountLifecycle';
 import { applicationTriggers } from './lib/applicationTriggers';
-import { syntheticIdentity } from './lib/playSynthetic';
+import { isSyntheticBackend, syntheticIdentity } from './lib/playSynthetic';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { pbkdf2PasswordCrypto } from './lib/syntheticPasswords';
 
-const localE2eAuthEnabled = process.env.E2E_LOCAL_AUTH === 'true';
+/* Password sign-in also lets anyone sign up, so one variable alone cannot turn it on: it needs the same test backend every other test control does. */
+const localE2eAuthEnabled = process.env.E2E_LOCAL_AUTH === 'true' && isSyntheticBackend();
 
 function decodeBase64Ascii(value: string): string {
   const atobFn = (globalThis as { atob?: (input: string) => string }).atob;
