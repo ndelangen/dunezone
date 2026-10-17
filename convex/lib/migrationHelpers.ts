@@ -19,29 +19,32 @@ function heldByOther(holder: { _id: string } | null, self: string | undefined) {
   return holder !== null && holder._id !== self;
 }
 
-export async function resolveUniqueGroupSlug(ctx: QueryCtx | MutationCtx, name: string, groupId?: Id<'groups'>) {
-  return await firstFreeSlug(slugify(name) || 'group', async (slug) =>
-    heldByOther(
-      await ctx.db
-        .query('groups')
-        .withIndex('by_slug', (q) => q.eq('slug', slug))
-        .unique(),
-      groupId
-    )
-  );
+/** The first free slug for a group or ruleset named `name`, keeping the row's own slug free for it. */
+async function resolveUniqueSlug(
+  ctx: QueryCtx | MutationCtx,
+  table: 'groups' | 'rulesets',
+  name: string,
+  self: string | undefined
+) {
+  const holderOf = (slug: string) =>
+    table === 'groups'
+      ? ctx.db
+          .query('groups')
+          .withIndex('by_slug', (q) => q.eq('slug', slug))
+          .unique()
+      : ctx.db
+          .query('rulesets')
+          .withIndex('by_slug', (q) => q.eq('slug', slug))
+          .unique();
+  const fallback = table === 'groups' ? 'group' : 'ruleset';
+  return await firstFreeSlug(slugify(name) || fallback, async (slug) => heldByOther(await holderOf(slug), self));
 }
 
-export async function resolveUniqueRulesetSlug(ctx: QueryCtx | MutationCtx, name: string, rulesetId?: Id<'rulesets'>) {
-  return await firstFreeSlug(slugify(name) || 'ruleset', async (slug) =>
-    heldByOther(
-      await ctx.db
-        .query('rulesets')
-        .withIndex('by_slug', (q) => q.eq('slug', slug))
-        .unique(),
-      rulesetId
-    )
-  );
-}
+export const resolveUniqueGroupSlug = (ctx: QueryCtx | MutationCtx, name: string, groupId?: Id<'groups'>) =>
+  resolveUniqueSlug(ctx, 'groups', name, groupId);
+
+export const resolveUniqueRulesetSlug = (ctx: QueryCtx | MutationCtx, name: string, rulesetId?: Id<'rulesets'>) =>
+  resolveUniqueSlug(ctx, 'rulesets', name, rulesetId);
 
 export function missingSlug(value: unknown): boolean {
   return typeof value !== 'string' || value.trim().length === 0;
