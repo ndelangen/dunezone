@@ -19,8 +19,8 @@ export type TracingImage = {
   name: string;
   width: number;
   height: number;
-  /** The image's centre in board coordinates. */
-  center: Point;
+  /** How far the image's centre sits from the board's centre, in board units; 0,0 is centred. */
+  offset: Point;
   /** 1 fits the whole image inside the board's square. */
   scale: number;
   opacity: number;
@@ -37,7 +37,7 @@ function readImage(file: File): Promise<TracingImage> {
         name: file.name,
         width: image.naturalWidth || BOARD_SIZE,
         height: image.naturalHeight || BOARD_SIZE,
-        center: [...CENTER],
+        offset: [0, 0],
         scale: 1,
         opacity: 0.5,
         visible: true,
@@ -82,7 +82,12 @@ function tracingBox(tracing: TracingImage) {
   const fit = (BOARD_SIZE / Math.max(tracing.width, tracing.height)) * tracing.scale;
   const width = tracing.width * fit,
     height = tracing.height * fit;
-  return { x: tracing.center[0] - width / 2, y: tracing.center[1] - height / 2, width, height };
+  return {
+    x: CENTER[0] + tracing.offset[0] - width / 2,
+    y: CENTER[1] + tracing.offset[1] - height / 2,
+    width,
+    height,
+  };
 }
 
 /** The image itself, drawn inside the board's zoomed group; it never takes the pointer. */
@@ -118,7 +123,7 @@ function TracingImageActions({
         label="Reset tracing image size and position"
         icon={<RotateCcw size={17} />}
         emphasis="standard"
-        onClick={() => patch({ center: [...CENTER], scale: 1 })}
+        onClick={() => patch({ offset: [0, 0], scale: 1 })}
       />
       <IconAction label="Remove tracing image" icon={<X size={17} />} emphasis="standard" onClick={remove} />
     </Group>
@@ -153,22 +158,22 @@ export function TracingImageControls({ controls }: { controls: ReturnType<typeof
         [
           'X',
           'Tracing image x',
-          -BOARD_SIZE / 2,
-          BOARD_SIZE * 1.5,
+          -BOARD_SIZE,
+          BOARD_SIZE,
           0.5,
-          tracing.center[0],
-          tracing.center[0].toFixed(1),
-          (x: number) => patch({ center: [x, tracing.center[1]] }),
+          tracing.offset[0],
+          tracing.offset[0].toFixed(1),
+          (x: number) => patch({ offset: [x, tracing.offset[1]] }),
         ],
         [
           'Y',
           'Tracing image y',
-          -BOARD_SIZE / 2,
-          BOARD_SIZE * 1.5,
+          -BOARD_SIZE,
+          BOARD_SIZE,
           0.5,
-          tracing.center[1],
-          tracing.center[1].toFixed(1),
-          (y: number) => patch({ center: [tracing.center[0], y] }),
+          tracing.offset[1],
+          tracing.offset[1].toFixed(1),
+          (y: number) => patch({ offset: [tracing.offset[0], y] }),
         ],
       ] as const)
     : [];
