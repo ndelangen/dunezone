@@ -1,6 +1,5 @@
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { LoginGate } from '@ui/block/LoginGate';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useRef } from 'react';
@@ -17,6 +16,7 @@ import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/Fac
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
 import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPublicationStatus';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { factionNameField } from './factionNameField';

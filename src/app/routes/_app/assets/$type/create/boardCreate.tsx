@@ -4,7 +4,6 @@ import { BoardAsset } from '@shared/boards/schema';
 import type { BoardAssetData } from '@shared/boards/schema';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Undo2, Redo2 } from 'lucide-react';
@@ -17,6 +16,7 @@ import { BoardEditor } from '@app/widgets/board-editor/BoardEditor';
 import { BoardLoad } from '@app/widgets/board-editor/BoardLoad';
 import { boardEditorReducer, initialBoardEditorState } from '@app/widgets/board-editor/state';
 import type { BoardEditorState, BoardEditorEvent } from '@app/widgets/board-editor/state';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 
 import { AssetEditorMessage } from '../../assetEditorStates';
 

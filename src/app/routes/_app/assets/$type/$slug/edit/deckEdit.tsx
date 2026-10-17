@@ -2,7 +2,6 @@ import { Alert, Menu, Popover } from '@mantine/core';
 import { DeckAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -30,6 +29,7 @@ import type {
   DeckWarning,
 } from '@app/widgets/deck-editor/DeckEditor';
 import { deckDraftWarnings, DeckEditor, initialDeckMemory } from '@app/widgets/deck-editor/DeckEditor';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import {

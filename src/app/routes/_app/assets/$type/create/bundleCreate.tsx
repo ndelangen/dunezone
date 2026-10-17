@@ -1,7 +1,6 @@
 import { Text } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -19,6 +18,7 @@ import {
   INITIAL_BUNDLE_MEMORY,
 } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft, BundleMemory } from '@app/widgets/bundle-editor/BundleEditor';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { BundleAsset } from '@game/data/objects';
 
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';

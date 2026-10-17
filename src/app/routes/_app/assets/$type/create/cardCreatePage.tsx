@@ -1,7 +1,6 @@
 import { Alert, Button, Group, Popover, Stack, Text } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -16,6 +15,7 @@ import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 
 import { AssetEditorMessage, SaveErrorAlert } from '../../assetEditorStates';
 
