@@ -1,6 +1,7 @@
-import { Alert, Text } from '@mantine/core';
+import { Alert } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import type { AssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
@@ -18,11 +19,15 @@ import {
   initialTokenMemory,
   initialTokenDraft,
   TokenEditor,
+  TokenProof,
   tokenDraftWarnings,
 } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
 
+import { referencedTokenBackFace } from '../$slug/edit/referencedBackFace';
+import { CreateBackNote, referencedBackProof } from '../$slug/edit/ReferencedBackProof';
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
+import { LoadedTokenDraft, tokenLoad } from '../../loadedDrafts';
 
 /**
  * This page's authoring state, and the four things that happen to it.
@@ -63,7 +68,7 @@ function reduce(state: PageState, event: PageEvent): PageState {
  * The create page for every token shape.
  * A referenced backside cannot be set here: the relation needs an asset id, and there is none until the first save, so creation always starts from a custom back and the edit page offers the choice.
  */
-export function TokenCreatePage({ type }: { type: string }) {
+export function TokenCreatePage({ type }: { type: AssetType }) {
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
@@ -141,6 +146,7 @@ export function TokenCreatePage({ type }: { type: string }) {
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          load={tokenLoad({ type, schema: LoadedTokenDraft, saveState, header, dispatch })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save token',
@@ -171,12 +177,10 @@ export function TokenCreatePage({ type }: { type: string }) {
             chapter={chapter}
             onChapterChange={setChapter}
             onSettle={header.settle}
-            backPicker={() => (
-              <Text size="xs" c="dimmed">
-                A token can point at an existing token only once it has been saved.
-              </Text>
-            )}
-            backProof={null}
+            backPicker={() => <CreateBackNote picked={state.memory.pickedBack} />}
+            backProof={referencedBackProof(state.memory.pickedBack, referencedTokenBackFace, (face) => (
+              <TokenProof face={face} type={type} />
+            ))}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

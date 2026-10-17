@@ -10,6 +10,8 @@ import { useReducer, useState } from 'react';
 import { useCardbackPresets } from '@db/cardbackPresets';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
+import { assetLoad, clonedMembersOf } from '@app/pickers/assetLoadSource';
+import type { ClonedMembers } from '@app/pickers/assetLoadSource';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
 import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
@@ -25,6 +27,7 @@ import {
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
+import { LoadedDeckDraft } from '../../loadedDrafts';
 
 /**
  * This page's authoring state, and the four things that happen to it.
@@ -33,20 +36,29 @@ import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetE
  * `memory` is what the session needs and the stored deck has no room for (D3): the declared Custom intents, the composition kept across mode flips, the picked deck the tile draws, and whether a save has already complained.
  * `baseline` is what a reset returns to.
  */
-type DeckPageMemory = DeckMemory & { pickedBackDeck: PickedBackDeck | null; pickBlocked: boolean };
+type DeckPageMemory = DeckMemory & {
+  pickedBackDeck: PickedBackDeck | null;
+  pickBlocked: boolean;
+  clonedFrom: ClonedMembers | null;
+};
 
 type DeckState = { data: DeckDraft; memory: DeckPageMemory; baseline: DeckDraft };
 
 type DeckEvent =
   | { kind: 'patch'; update: Partial<DeckDraft> }
   | { kind: 'remember'; update: Partial<DeckPageMemory> }
-  | { kind: 'replace'; data: DeckDraft; pick: PickedBackDeck | null }
+  | { kind: 'replace'; data: DeckDraft; pick: PickedBackDeck | null; clonedFrom: ClonedMembers | null }
   | { kind: 'saved'; data: DeckDraft };
 
-function openingState(data: DeckDraft, baseline: DeckDraft, pick: PickedBackDeck | null): DeckState {
+function openingState(
+  data: DeckDraft,
+  baseline: DeckDraft,
+  pick: PickedBackDeck | null,
+  clonedFrom: ClonedMembers | null
+): DeckState {
   return {
     data,
-    memory: { ...initialDeckMemory(data.cardback), pickedBackDeck: pick, pickBlocked: false },
+    memory: { ...initialDeckMemory(data.cardback), pickedBackDeck: pick, pickBlocked: false, clonedFrom },
     baseline,
   };
 }
@@ -59,7 +71,7 @@ function reduce(state: DeckState, event: DeckEvent): DeckState {
       return { ...state, memory: { ...state.memory, ...event.update } };
     /* A reset rebuilds the whole state rather than assigning a field at a time, so a piece added here later cannot be the one a reset forgets; the seed pick rides on the event because the reducer holds no closure. */
     case 'replace':
-      return openingState(event.data, state.baseline, event.pick);
+      return openingState(event.data, state.baseline, event.pick, event.clonedFrom);
     case 'saved':
       return { ...state, baseline: event.data };
   }
@@ -77,7 +89,7 @@ export function DeckCreatePage() {
   const createAsset = useCreateAsset();
   const [chapter, setChapter] = useState<DeckChapter>('identity');
   const [state, dispatch] = useReducer(reduce, undefined, () =>
-    openingState(INITIAL_DECK_DRAFT, INITIAL_DECK_DRAFT, null)
+    openingState(INITIAL_DECK_DRAFT, INITIAL_DECK_DRAFT, null, null)
   );
   const patch = (update: Partial<DeckDraft>) => dispatch({ kind: 'patch', update });
   const pickless = state.data.cardback.mode === 'reference' && state.data.cardback.asset_id === null;
@@ -135,7 +147,7 @@ export function DeckCreatePage() {
     const payload = postedPayload(DeckAssetSchema, state.data);
     createAsset.mutate(
       /* The draft carries its mode, so the save writes it through; the strict stored union is the one truth («The stored shape of three back modes»). */
-      { type: 'deck', data: payload },
+      { type: 'deck', data: payload, members_from: state.memory.clonedFrom?.id },
       {
         onSuccess: ({ slug }) => {
           dispatch({ kind: 'saved', data: payload });
@@ -150,6 +162,20 @@ export function DeckCreatePage() {
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          load={assetLoad({
+            noun: 'deck',
+            type: 'deck',
+            schema: LoadedDeckDraft,
+            disabled: saveState === 'saving',
+            onLoaded: header.releasing((loaded) =>
+              dispatch({
+                kind: 'replace',
+                data: loaded.data,
+                pick: loaded.source?.backDeck ?? null,
+                clonedFrom: clonedMembersOf(loaded),
+              })
+            ),
+          })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save deck',
@@ -157,7 +183,9 @@ export function DeckCreatePage() {
           }}
           actions={{
             onSave: save,
-            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: null })),
+            onReset: header.releasing(() =>
+              dispatch({ kind: 'replace', data: state.baseline, pick: null, clonedFrom: null })
+            ),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
           }}
         />
@@ -180,11 +208,16 @@ export function DeckCreatePage() {
             chapter={chapter}
             onChapterChange={setChapter}
             onSettle={header.settle}
-            members={[]}
+            members={(state.memory.clonedFrom?.members ?? []).map((entry) => ({
+              card: entry.member,
+              count: entry.count,
+            }))}
             onCountChange={null}
             cardPicker={
               <Text size="xs" c="dimmed">
-                Cards can be added once the deck has been saved.
+                {state.memory.clonedFrom
+                  ? `These cards are copied from ${state.memory.clonedFrom.name} when you save. Change them after saving.`
+                  : 'Cards can be added once the deck has been saved.'}
               </Text>
             }
             backPicker={

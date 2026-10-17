@@ -55,7 +55,10 @@ export function useAssetBrowsePage(type: string, options?: { initialData?: Asset
  * The authoritative parse is the Convex handler's, per the validation standard in `docs/data-layer.md`, so a draft the schema rejects fails at the round trip rather than at this call.
  */
 export function useCreateAsset() {
-  return useLiveMutation<{ type: string; data: unknown }, { id: string; slug: string }>(api.assets.create);
+  return useLiveMutation<
+    { type: string; data: unknown; members_from?: AssetListEntry['id'] },
+    { id: string; slug: string }
+  >(api.assets.create);
 }
 
 /** What `api.assets.page` gives a route: the same for every viewer, and what its loader seeds the live page with. */
