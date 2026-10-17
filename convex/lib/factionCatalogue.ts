@@ -24,6 +24,7 @@ export type CatalogueFaction = Infer<typeof catalogueFactionValidator>;
  * The single narrowing site (#642): every catalogue-shaped surface builds its rows here.
  * Stored data is parsed in full first, because the parse is the read-time correctness check;
  * only what the surfaces draw survives onto the wire.
+ * `faction_cards` stores this output, so a change to it bumps `FACTION_CARD_PROJECTION` and ships a migration that rewrites the cards.
  */
 export function toCatalogueFaction(row: Doc<'factions'>, rulesets: FactionRulesetSummary[]): CatalogueFaction {
   const { name, logo, background, factionLeader, leaders, complexity } = parseStoredFactionForRead(row.data);

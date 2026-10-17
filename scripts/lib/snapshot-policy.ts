@@ -97,7 +97,37 @@ const readerEditionContents: Projection = {
 };
 
 export const snapshotPolicy = {
-  board_readiness: { fields: { asset_id: { parent: 'assets' }, usable: 'keep' }, rows: 'all' },
+  board_readiness: {
+    fields: {
+      asset_id: { parent: 'assets' },
+      usable: 'keep',
+      name: 'keep',
+      slug: 'keep',
+      owner_id: 'owner',
+      group_id: { orNull: 'groups' },
+      created_at: 'keep',
+      updated_at: 'keep',
+      is_deleted: 'keep',
+      asset_creation_time: 'keep',
+    },
+    /* A row written before `board_readiness_listing_v1` has no `is_deleted` and is left out; the load's replay of that migration writes it again. */
+    rows: notDeleted,
+  },
+  faction_cards: {
+    fields: {
+      faction_id: { parent: 'factions' },
+      owner_id: 'owner',
+      group_id: { orNull: 'groups' },
+      slug: 'keep',
+      created_at: 'keep',
+      updated_at: 'keep',
+      is_deleted: 'keep',
+      faction_creation_time: 'keep',
+      projection: 'keep',
+      data: 'keep',
+    },
+    rows: notDeleted,
+  },
   authAccounts: { drop: 'sign-in accounts' },
   authSessions: { drop: 'sign-in sessions' },
   authRefreshTokens: { drop: 'sign-in tokens' },

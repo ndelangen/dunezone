@@ -4,6 +4,7 @@ import type { DataModel } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { registerBoardReadinessTriggers } from './boardReadiness';
 import { registerCatalogueTriggers } from './catalogueEntries';
+import { registerFactionCardTriggers } from './factionCards';
 import { registerProfileActivityTriggers } from './profileActivity';
 import { registerProfileDiscoveryTriggers } from './profileDiscovery';
 import { registerStatisticsTriggers } from './statistics';
@@ -16,3 +17,4 @@ registerProfileDiscoveryTriggers(applicationTriggers);
 
 registerBoardReadinessTriggers(applicationTriggers);
 registerCatalogueTriggers(applicationTriggers);
+registerFactionCardTriggers(applicationTriggers);

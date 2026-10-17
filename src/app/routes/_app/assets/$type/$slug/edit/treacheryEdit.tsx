@@ -95,6 +95,7 @@ function CardEditSession({ frontPresets, asset, initialDraft, access }: CardEdit
       status={{ isDirty, isNameBlank: !state.data.name.trim(), saveState: saving.saveState }}
       onSave={save}
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
+      load={{ schema: TreacheryAsset, header, dispatch, afterLoad: () => setChapter('head') }}
       saveError={saving.error}
     >
       <TreacheryCardEditor

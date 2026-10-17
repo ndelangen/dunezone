@@ -35,6 +35,7 @@ import {
   reconcileCatalogueEntry,
   sameCatalogueEntry,
 } from './lib/catalogueEntries';
+import { syncFactionCard } from './lib/factionCards';
 import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
@@ -126,6 +127,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   play_hosted_fixture_retire_v1: internal.migrations.play_hosted_fixture_retire_v1,
   account_connections_expire_v1: internal.migrations.account_connections_expire_v1,
   auth_session_expiry_jobs_v1: internal.migrations.auth_session_expiry_jobs_v1,
+  board_readiness_listing_v1: internal.migrations.board_readiness_listing_v1,
+  faction_cards_v1: internal.migrations.faction_cards_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -1421,4 +1424,24 @@ export const catalogue_entries_verify_v1 = migrations.define({
 export const catalogueDrift = internalQuery({
   args: { kind: v.literal('faction'), limit: v.optional(v.number()) },
   handler: async (ctx, args) => await catalogueDriftOf(ctx, args.kind, args.limit ?? AUDIT_SCAN_LIMIT),
+});
+/** Existing boards gain the listing fields new asset writes already carry; rerunning it writes nothing. */
+export const board_readiness_listing_v1 = migrations.define({
+  table: 'assets',
+  batchSize: 10,
+  migrateOne: async (ctx, asset) => {
+    if (asset.type === 'board') {
+      await syncBoardReadiness(ctx, asset._id, asset);
+    }
+  },
+});
+
+/** Existing factions receive the card new faction writes already keep; rerunning it writes nothing. */
+export const faction_cards_v1 = migrations.define({
+  table: 'factions',
+  /* Faction text has no length cap, and a rerun reads each faction and its card, so a batch stays small. */
+  batchSize: 10,
+  migrateOne: async (ctx, faction) => {
+    await syncFactionCard(ctx, faction._id, faction);
+  },
 });
