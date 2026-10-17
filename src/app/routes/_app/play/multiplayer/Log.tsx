@@ -35,9 +35,8 @@ export function LogEntries({
 }: Readonly<{ client: TableSession; table: TableProjection; tab: LogTab }>) {
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const page = view.logHistory[tab];
-  useEffect(() => {
-    client.readLogHistory(tab);
-  }, [client, tab, table.liveRevision, table.reconnecting]);
+  /* No update says whether the log grew, so a changed table reads the page again; a burst of changes reads it once more at its end. */
+  useEffect(() => client.refreshLogHistory(tab), [client, tab, table.liveRevision, table.reconnecting]);
   return (
     <Section hiddenHeading title={TITLES[tab]}>
       <Stack gap="md">

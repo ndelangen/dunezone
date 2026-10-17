@@ -41,6 +41,31 @@ import type { StoredTable } from './storedTable';
 import { isReadRequest } from './TableSubscription';
 import type { TableSubscription, TableSubscriptionEvent } from './TableSubscription';
 
+/*
+ * How soon after one read of a log tab a changed table may read it again. Changes inside the wait are read together at its end,
+ * so a burst of commands costs one read at each end of it and a single command is read at once.
+ */
+const LOG_REFRESH_INTERVAL_MS = 500;
+
+/* The same page with the same entries, so a read that found nothing new leaves the panel as it is. */
+function sameLogPage(previous: LogPage, next: LogPage) {
+  return (
+    previous.before === next.before &&
+    previous.more === next.more &&
+    previous.entries.length === next.entries.length &&
+    previous.entries.every((entry, index) => {
+      const other = next.entries[index]!;
+      return (
+        entry.sequence === other.sequence &&
+        entry.class === other.class &&
+        entry.text === other.text &&
+        entry.context === other.context &&
+        entry.at === other.at
+      );
+    })
+  );
+}
+
 /* Both tabs open on their newest page. */
 function latestLogPages(): Record<LogTab, number> {
   return { game: Number.MAX_SAFE_INTEGER, audit: Number.MAX_SAFE_INTEGER };
@@ -174,7 +199,6 @@ export type TableProjection = {
   /* How many of this viewer's own Traitor gathers the table has completed, so the camera can follow the pile they made. */
   traitorsGathered: number;
   phaseCooling: boolean;
-  battleCountdownSeconds: number;
   state: TableState;
   renderedPieces: TablePiece[];
   selectedPiece: TablePiece | null;
@@ -294,7 +318,6 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     previous.seatCommandPending === next.seatCommandPending &&
     previous.traitorsGathered === next.traitorsGathered &&
     previous.phaseCooling === next.phaseCooling &&
-    previous.battleCountdownSeconds === next.battleCountdownSeconds &&
     previous.serverNow === next.serverNow &&
     previous.state.selectedPieceId === next.state.selectedPieceId &&
     previous.state.draftMove?.pieceId === next.state.draftMove?.pieceId &&
@@ -355,6 +378,24 @@ function notify(listeners: ReadonlySet<() => void>) {
   }
 }
 
+/* Runs `callback` when the page next draws, or a frame's time later where nothing draws; the returned function cancels it. */
+function onNextFrame(callback: () => void): () => void {
+  if (typeof requestAnimationFrame === 'function') {
+    const frame = requestAnimationFrame(callback);
+    return () => cancelAnimationFrame(frame);
+  }
+  const timer = setTimeout(callback, 16);
+  return () => clearTimeout(timer);
+}
+
+/* A value built from some keys, kept while every key stays the same, so whoever holds it sees no new identity. */
+type Cached<T> = { keys: readonly unknown[]; value: T };
+
+function cachedBy<T>(cached: Cached<T> | undefined, keys: readonly unknown[], build: () => T): Cached<T> {
+  const same = cached && cached.keys.length === keys.length && cached.keys.every((key, at) => key === keys[at]);
+  return same ? cached : { keys, value: build() };
+}
+
 /* How often a live table whose saved copy is otherwise unchanged stamps that copy as live again. */
 const LIVE_RESTAMP_INTERVAL_MS = 5000;
 
@@ -378,7 +419,6 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
     seatCommandPending: false,
     traitorsGathered: 0,
     phaseCooling: false,
-    battleCountdownSeconds: 0,
     state,
     renderedPieces: piecesOnPlates(renderedPiecesFor(state), state.pieces),
     selectedPiece: null,
@@ -407,11 +447,15 @@ export class TableSession {
   /* When this page last pinged, by its monotonic clock; -Infinity before the first. */
   private pingedAt = Number.NEGATIVE_INFINITY;
   private readonly tableListeners = new Set<() => void>();
+  private readonly countdownListeners = new Set<() => void>();
+  private shownCountdown = 0;
   /* The table as the last update derived it, which the session itself and the scene read. */
   private table: TableProjection | null = null;
   /* The last table there was, which the scene keeps reading while its parent takes it off the page. */
   private shownTable: TableProjection | null = null;
   private shownPointers: PublicPointer[] = [];
+  /* Cancels the frame at which the scene hears of a held piece's latest move; set only while one is waiting. */
+  private cancelTableFrame: (() => void) | undefined;
   private tickTimer: ReturnType<typeof setInterval> | undefined;
   private poseTimer: ReturnType<typeof setTimeout> | undefined;
   private pointerTimer: ReturnType<typeof setTimeout> | undefined;
@@ -492,6 +536,9 @@ export class TableSession {
   /* Reads sent and not yet answered; a dropped connection or a refusal forgets them, so the panel can ask again. */
   private factionRequests = new Set<string>();
   private logHistoryBefore: Record<LogTab, number> = latestLogPages();
+  /* When each log tab was last read, by the monotonic clock, and the read a changed table still has waiting for it. */
+  private logReadAt: Partial<Record<LogTab, number>> = {};
+  private readonly logRefreshes: Partial<Record<LogTab, ReturnType<typeof setTimeout>>> = {};
 
   constructor(
     readonly game: string,
@@ -533,6 +580,8 @@ export class TableSession {
       ...(stored.liveAt === undefined ? {} : { liveAt: stored.liveAt }),
     };
     this.lastLive = { table: storedProjection(stored), serverNow: () => stored.serverNow };
+    /* A table kept from a reload has no countdown running. */
+    this.setCountdown(0);
   }
   /*
    * Saves the table a reload of this tab shows. A carry, a hover or a pointer emits many times a second without changing
@@ -625,6 +674,28 @@ export class TableSession {
     return () => this.pointerListeners.delete(listener);
   };
   getPointers = () => this.shownPointers;
+  /*
+   * The battle countdown's whole seconds, apart from the table: they change every second while it runs, and only the number shows it,
+   * so the panels around it render again only when the battle does.
+   */
+  subscribeBattleCountdown = (listener: () => void) => {
+    this.countdownListeners.add(listener);
+    return () => this.countdownListeners.delete(listener);
+  };
+  getBattleCountdownSeconds = () => this.shownCountdown;
+  /* A live table, or one looked back on, counts down; a lost connection holds the number where it stopped until the table is live again. */
+  private showCountdown() {
+    if (!this.table || this.table.reconnecting) {
+      return;
+    }
+    this.setCountdown(this.battleCountdownSeconds());
+  }
+  private setCountdown(seconds: number) {
+    if (seconds !== this.shownCountdown) {
+      this.shownCountdown = seconds;
+      notify(this.countdownListeners);
+    }
+  }
   /* Each ping as it happens, this page's own included: nothing keeps them, so a listener hears only what comes after it subscribes. */
   subscribePings = (listener: (ping: TablePing) => void) => {
     this.pingListeners.add(listener);
@@ -688,7 +759,7 @@ export class TableSession {
       listener();
     }
   }
-  /* An update that moved only pointers: the room, the carries and every countdown the table shows are as the last frame left them. */
+  /* An update that moved only pointers: the room, the carries and the phase cooldown are as the last frame left them; the battle countdown keeps its own listeners. */
   private movesOnlyPointers(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
     const table = this.table;
     return (
@@ -699,8 +770,7 @@ export class TableSession {
       !table.reconnecting &&
       message.epoch === this.epoch &&
       message.carries === this.carries &&
-      table.phaseCooling === this.phaseCooling() &&
-      table.battleCountdownSeconds === this.battleCountdownSeconds()
+      table.phaseCooling === this.phaseCooling()
     );
   }
   private phaseCooling() {
@@ -802,44 +872,21 @@ export class TableSession {
       seatCommandPending: this.seatCommandInFlight !== null,
       traitorsGathered: this.traitorsGathered,
       phaseCooling: this.phaseCooling(),
-      battleCountdownSeconds: this.battleCountdownSeconds(),
       state,
       renderedPieces,
       selectedPiece: renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
       affordances: affordancesFor({ ...state, pieces: renderedPieces }),
-      spiceReserveControls:
-        canHandleTable && displayed.bank
-          ? {
-              canCollect: (pieceId) => !reservedPieceIds.has(pieceId),
-              collect: (pieceId) => this.command({ kind: 'bank-collect', pieceId }),
-            }
-          : undefined,
+      spiceReserveControls: canHandleTable && displayed.bank ? this.spiceReserveControls : undefined,
       deckControls:
-        canHandleTable && this.subscription.supportsCommand('deck-draw')
-          ? {
-              recipients: dealRecipients(displayed),
-              draw: (pieceId, recipient) => this.command({ kind: 'deck-draw', pieceId, recipient }),
-              shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
-            }
-          : undefined,
+        canHandleTable && this.subscription.supportsCommand('deck-draw') ? this.deckControls(displayed) : undefined,
       deleteControls: this.deleteControls(canHandleTable),
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
       peek:
         this.history || displayed.peek?.piece.id === this.closedPeek?.pieceId
           ? null
           : this.arrangedPeek(displayed.peek ?? null),
-      peekControls:
-        canHandleTable && displayed.bank
-          ? {
-              peek: (pieceId) => {
-                this.closedPeek = null;
-                this.command({ kind: 'peek', pieceId });
-              },
-              arrange: this.arrange,
-              pull: this.pull,
-            }
-          : undefined,
-      closePeek: canInteract && displayed.peek ? () => this.closePeek(displayed.peek!.piece.id) : undefined,
+      peekControls: canHandleTable && displayed.bank ? this.peekControls : undefined,
+      closePeek: canInteract && displayed.peek ? this.peekCloser(displayed.peek.piece.id) : undefined,
       ...remoteIds,
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
@@ -851,10 +898,47 @@ export class TableSession {
   private clockForView() {
     return this.history ? this.historyClock! : this.subscription.serverNow;
   }
+  /*
+   * The piece menu's controls keep their identity from one table to the next while what they offer is the same,
+   * so a carry moving many times a second leaves the open menu, a peeked deck and its rows as they are.
+   * The controls that depend on nothing read the table as it is when they are used.
+   */
+  private readonly spiceReserveControls: NonNullable<TableProjection['spiceReserveControls']> = {
+    canCollect: (pieceId) => this.table !== null && !this.table.reservedPieceIds.has(pieceId),
+    collect: (pieceId) => this.command({ kind: 'bank-collect', pieceId }),
+  };
+  private readonly peekControls: NonNullable<TableProjection['peekControls']> = {
+    peek: (pieceId) => {
+      this.closedPeek = null;
+      this.command({ kind: 'peek', pieceId });
+    },
+    arrange: (pieceId, order) => this.arrange(pieceId, order),
+    pull: (pieceId, index) => this.pull(pieceId, index),
+  };
+  private readonly removal: NonNullable<TableProjection['deleteControls']> = {
+    remove: (pieceId) => this.command({ kind: 'delete', pieceId }),
+  };
+  private dealing: Cached<NonNullable<TableProjection['deckControls']>> | undefined;
+  private peekClosing: Cached<() => void> | undefined;
+  /* The deal ring names the factions as the snapshot labels them and shows their art, so it is rebuilt only when those change. */
+  private deckControls(displayed: GameSnapshot): TableProjection['deckControls'] {
+    this.dealing = cachedBy(
+      this.dealing,
+      [displayed.roster, displayed.controls?.players, displayed.factionArtwork],
+      () => ({
+        recipients: dealRecipients(displayed),
+        draw: (pieceId, recipient) => this.command({ kind: 'deck-draw', pieceId, recipient }),
+        shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
+      })
+    );
+    return this.dealing.value;
+  }
+  private peekCloser(pieceId: string) {
+    this.peekClosing = cachedBy(this.peekClosing, [pieceId], () => () => this.closePeek(pieceId));
+    return this.peekClosing.value;
+  }
   private deleteControls(canHandleTable: boolean): TableProjection['deleteControls'] {
-    return canHandleTable && this.subscription.supportsCommand('delete')
-      ? { remove: (pieceId) => this.command({ kind: 'delete', pieceId }) }
-      : undefined;
+    return canHandleTable && this.subscription.supportsCommand('delete') ? this.removal : undefined;
   }
   /* Whether the peeked deck still shows the order this viewer asked for: the room has neither refused it nor sent the deck again. */
   private arrangementShown(peek: Peek | null) {
@@ -962,21 +1046,37 @@ export class TableSession {
     const turns = this.history ? 0 : this.turnsOf(piece.id);
     return turns && this.turnablePiece(piece.id) ? (rotatedPiece(state, piece, turns) ?? piece) : piece;
   }
-  private emit() {
+  /*
+   * `coalesce` is for a held piece's moves: the table is derived at once, but the scene hears of it at most once per drawn frame.
+   * Any other emit, a drop or a cancel among them, tells the scene straight away, a move still waiting included, so it never hears out of order.
+   */
+  private emit(coalesce = false) {
     this.keep();
     const table = this.derive();
     this.table = table;
     const panelsChanged = this.showPanels(table);
     const tableChanged = table !== null && table !== this.shownTable;
     this.shownTable = table ?? this.shownTable;
+    /* The countdown is settled first, so a panel that starts showing it reads the seconds this table has. */
+    this.showCountdown();
     if (panelsChanged) {
       notify(this.listeners);
     }
-    if (tableChanged) {
-      notify(this.tableListeners);
+    /* Only a held piece's own moves wait for the next frame; anything the panels show goes out at once. */
+    const waitsForFrame = tableChanged && coalesce && !panelsChanged;
+    if (waitsForFrame) {
+      this.cancelTableFrame ??= onNextFrame(this.flushTable);
+    } else if (tableChanged || this.cancelTableFrame) {
+      this.flushTable();
     }
     this.emitPointers();
   }
+  /* Tells the scene of the table as it is now, and drops any frame still waiting to. */
+  private readonly flushTable = () => {
+    this.cancelTableFrame?.();
+    this.cancelTableFrame = undefined;
+    notify(this.tableListeners);
+  };
   /* Replaces the panels' view only when something they show changed, and says whether it did. */
   private showPanels(table: TableProjection | null) {
     const previous = this.cached;
@@ -1032,6 +1132,7 @@ export class TableSession {
         if (!historyMoved && this.movesOnlyPointers(message)) {
           this.pointers = message.pointers;
           this.emitPointers();
+          this.showCountdown();
           this.keep();
           return;
         }
@@ -1169,7 +1270,10 @@ export class TableSession {
   }
   /* A page arrives for the cursor it was asked with; one the panel has since moved past is dropped. */
   private receiveLogPage(message: LogPage) {
-    if (message.before === this.logHistoryBefore[message.tab]) {
+    const asked = message.before === this.logHistoryBefore[message.tab];
+    const shown = this.logHistory[message.tab];
+    const alreadyShown = shown !== undefined && sameLogPage(shown, message);
+    if (asked && !alreadyShown) {
       this.logHistory = { ...this.logHistory, [message.tab]: message };
     }
   }
@@ -1319,6 +1423,10 @@ export class TableSession {
     this.factionRequests.clear();
     this.logHistory = {};
     this.logHistoryBefore = latestLogPages();
+    this.logReadAt = {};
+    for (const tab of Object.keys(this.logRefreshes) as LogTab[]) {
+      this.cancelLogRefresh(tab);
+    }
     /* The Worker holds a capture for the connection, not the seat, so a seat change keeps it and a disconnect frees it. */
     this.captureInFlight = null;
     /* A catalogue read still unanswered goes again on the fresh connection, so the picker that stays on screen is not left checking. */
@@ -1359,9 +1467,31 @@ export class TableSession {
   }
   /* Each tab keeps the page it asked for through live updates; the newest page is the default and the reset. */
   readLogHistory = (tab: LogTab, before = this.logHistoryBefore[tab]) => {
+    this.cancelLogRefresh(tab);
     this.logHistoryBefore = { ...this.logHistoryBefore, [tab]: before };
-    this.send({ type: 'log-history', tab, before });
+    if (this.send({ type: 'log-history', tab, before })) {
+      this.logReadAt = { ...this.logReadAt, [tab]: this.runtime.monotonicNow() };
+    }
   };
+  /**
+   * Reads a log tab's page again for a table that changed, at once unless the tab was read within the interval;
+   * then the read waits out the rest of it.
+   * The returned function drops a read still waiting.
+   */
+  refreshLogHistory = (tab: LogTab) => {
+    const wait =
+      (this.logReadAt[tab] ?? Number.NEGATIVE_INFINITY) + LOG_REFRESH_INTERVAL_MS - this.runtime.monotonicNow();
+    if (wait <= 0) {
+      this.readLogHistory(tab);
+    } else {
+      this.logRefreshes[tab] ??= setTimeout(() => this.readLogHistory(tab), wait);
+    }
+    return () => this.cancelLogRefresh(tab);
+  };
+  private cancelLogRefresh(tab: LogTab) {
+    clearTimeout(this.logRefreshes[tab]);
+    delete this.logRefreshes[tab];
+  }
   /* Asks once for a seated faction's captured sheet; a read that was never answered can be asked again. */
   readFaction = (factionId: string) => {
     const known = factionId in this.factions || this.factionRequests.has(factionId);
@@ -1386,8 +1516,10 @@ export class TableSession {
     if (this.pointer !== null && this.canAct()) {
       this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
     }
-    if (this.table?.snapshot.battle?.stage === 'countdown' || (this.table?.phaseCooling && !this.phaseCooling())) {
+    if (this.table?.phaseCooling && !this.phaseCooling()) {
       this.emit();
+    } else if (this.table?.snapshot.battle?.stage === 'countdown') {
+      this.showCountdown();
     }
   };
   connect = () => {
@@ -1518,7 +1650,8 @@ export class TableSession {
     if (!this.poseTimer) {
       this.poseTimer = setTimeout(this.flushPose, 50);
     }
-    this.emit();
+    /* A mouse can report several moves a frame, and the scene only draws the last of them. */
+    this.emit(true);
   };
   finishGesture = (position: Vector3Tuple) => {
     if (!this.carry || this.carry.pendingDrop) {

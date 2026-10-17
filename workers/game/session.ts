@@ -74,6 +74,7 @@ import {
   RoomProjection,
   seatedFaction,
   storedSnapshotSchema,
+  validatedSnapshot,
   withKnownCardFaces,
 } from './state';
 import { Swapping } from './swapping';
@@ -856,7 +857,7 @@ export class GameSession {
     const next = withKnownCardFaces(
       room.snapshot,
       revealPlacedPredictions(
-        this.withRoster(storedSnapshotSchema.parse(this.nextTableSnapshot(viewer, message, contents))),
+        this.withRoster(validatedSnapshot(room.snapshot, this.nextTableSnapshot(viewer, message, contents))),
         Date.now()
       )
     );
