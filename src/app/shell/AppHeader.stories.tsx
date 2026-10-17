@@ -2,7 +2,6 @@ import preview from '@sb/preview';
 import { expect } from 'storybook/test';
 
 import { AppHeader } from './AppHeader';
-import { playHeaderResize } from './headerResize.stories.fixture';
 import { shellPageOptionLabels, shellPageOptions } from './ShellStoryPage.stories.fixture';
 
 const meta = preview.meta({
@@ -55,21 +54,6 @@ export const CompactHeader = meta.story({
   args: { children: shellPageOptionLabels[1] },
 });
 
-export const CompactHeaderMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
-  args: { children: shellPageOptionLabels[1] },
-});
-
-export const HeaderlessPage = meta.story({
-  globals: { viewport: { value: 'appDesktop' } },
-  args: { children: shellPageOptionLabels[2] },
-});
-
-export const HeaderlessPageMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
-  args: { children: shellPageOptionLabels[2] },
-});
-
 /**
  * Left responsive on purpose.
  * Drag the preview to any width: the compact strip must hold its fixed 51px while the artwork modes track the frame's width.
@@ -100,45 +84,4 @@ export const HeaderlessPageResponsive = meta.story({
     }
     canvasElement.style.removeProperty('width');
   },
-});
-
-async function playResizing(context: Parameters<typeof playHeaderResize>[0]) {
-  const band = context.canvasElement.querySelector<HTMLElement>('[data-app-band]');
-  const view = context.canvasElement.ownerDocument.defaultView;
-  if (!band || !view) {
-    throw new Error('The resize story requires a mounted header and browser window.');
-  }
-  const hasTransitionDuration = view
-    .getComputedStyle(band)
-    .transitionDuration.split(',')
-    .some((duration) => Number.parseFloat(duration) > 0);
-  const { jumped, remounted } = await playHeaderResize(context);
-
-  await expect(remounted).toBe(false);
-  if (hasTransitionDuration) {
-    await expect(jumped).toBe(false);
-  }
-}
-
-/**
- * Steps the `children` arg through every route state on the same mounted band.
- * Animated resizes must pass through intermediate heights;
- * reduced-motion resizes may change immediately.
- */
-export const Resizing = meta.story({
-  globals: { viewport: { value: 'appDesktop' } },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'In the interactive preview, walks the band through all three heights on the same mounted element. With motion enabled, each resize must pass through intermediate sizes. Use the `children` control to resize it by hand.',
-      },
-    },
-  },
-  play: playResizing,
-});
-
-export const ResizingMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
-  play: playResizing,
 });

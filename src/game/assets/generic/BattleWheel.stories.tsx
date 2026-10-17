@@ -53,14 +53,6 @@ const meta = preview.meta({
 });
 
 export const Revealed = meta.story({ args: revealedArgs });
-export const HighStrength = meta.story({
-  args: {
-    ...revealedArgs,
-    troops: [{ ...troop, dialed: 17, undialed: 1 }],
-    strength: 17 * 1 + 1 * 0.5,
-    spice: 17,
-  },
-});
 export const Empty = meta.story({ args: { ...revealedArgs, strength: 0, spice: 0, troops: [] } });
 export const WithLeader = meta.story({
   args: {
@@ -132,23 +124,6 @@ export const MultipleTroopFaces = meta.story({
     spice: 12,
     adjustment: -0.5,
     strength: 10 * 1 + 2 * 0.5 + 1 * 2 + 1 * 1 - 0.5,
-  },
-});
-export const CustomArtwork = meta.story({
-  args: {
-    ...revealedArgs,
-    label: 'Harkonnen battle plan',
-    background: factionTokenFixtures.harkonnen.background,
-    troops: [
-      {
-        ...troop,
-        artwork: {
-          ...troop.artwork,
-          background: factionTokenFixtures.harkonnen.background,
-          image: '/vector/troop/harkonnen.svg',
-        },
-      },
-    ],
   },
 });
 

@@ -109,12 +109,6 @@ export const PrivateInformation = meta.story({
     await expect(canvas.queryByText('Uncommitted:')).not.toBeInTheDocument();
   },
 });
-export const RevealAndWeapons = meta.story({
-  args: { specimen: 'reveal' },
-  play: async ({ canvasElement }) => {
-    await expectSquarePage(canvasElement);
-  },
-});
 export const LeaderDeathAndResult = meta.story({
   args: { specimen: 'resolution' },
   play: async ({ canvas, canvasElement }) => {

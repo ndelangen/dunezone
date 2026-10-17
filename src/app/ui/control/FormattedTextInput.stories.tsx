@@ -55,18 +55,6 @@ export const CrossedMark = meta.story({
   },
 });
 
-export const EmptyListItem = meta.story({
-  args: {
-    value: '- ',
-  },
-});
-
-export const EmptyMark = meta.story({
-  args: {
-    value: '**',
-  },
-});
-
 export const UnclosedMark = meta.story({
   args: {
     value: 'An *unfinished draft',

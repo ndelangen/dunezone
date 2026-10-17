@@ -58,15 +58,6 @@ export const ChosenOptionCarriesAControl = meta.story({
   },
 });
 
-/** Card-shaped tiles, to show the caller owning the aspect ratio. */
-export const CardShaped = meta.story({
-  args: {
-    label: 'Cardback',
-    aspectRatio: '5 / 7',
-    value: 'reference',
-  },
-});
-
 /** A fixed-canvas preview drawn at 900 pixels: the `canvas` option scales it to fit the tile instead of cropping a native-size corner. The inner border touching all four tile edges is the proof. */
 export const FixedCanvasPreview = meta.story({
   args: {

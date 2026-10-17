@@ -13,7 +13,7 @@ function validBlocks(source: string): FormattedTextBlocks {
 }
 
 const mixedBlocks = validBlocks(
-  'Plans survive *first contact* until the Guild calls.\nAdjust without losing the _-*intent*-_.\n\n- Gather the spice\n- Guard the shipment\n- Pay the Guild'
+  'Plans survive *first contact* until the Guild calls.\nAdjust without losing the _-*intent*-_.\n\nA blank line starts a new thought.\n\n- Gather the spice\n- Guard the shipment\n- Pay the Guild'
 );
 
 const meta = preview.meta({
@@ -40,29 +40,9 @@ export const Dark = meta.story({
   },
 });
 
-export const ParagraphsAndLineBreaks = meta.story({
-  args: {
-    blocks: validBlocks(
-      'Plans survive first contact.\nAdjust without losing the intent.\n\nA blank line starts a new thought.'
-    ),
-  },
-});
-
-export const List = meta.story({
-  args: {
-    blocks: validBlocks('- Gather the spice\n- Guard the shipment\n- Pay the Guild'),
-  },
-});
-
 export const NestedMarks = meta.story({
   args: {
     blocks: validBlocks('Every _-*layer*-_ stays legible, including *bold*, -italic-, and _underlined_ words.'),
-  },
-});
-
-export const Empty = meta.story({
-  args: {
-    blocks: [],
   },
 });
 

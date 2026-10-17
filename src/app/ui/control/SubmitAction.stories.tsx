@@ -1,3 +1,4 @@
+import { Group } from '@mantine/core';
 import preview from '@sb/preview';
 import { expect } from 'storybook/test';
 
@@ -20,20 +21,21 @@ export const Default = meta.story({});
  */
 export const Pending = meta.story({
   args: { pending: true },
+  /* Beside it, a caller's own label for where "Saving…" would misdescribe the work. */
+  render: (args) => (
+    <Group gap="xs">
+      <SubmitAction {...args} />
+      <SubmitAction {...args} pendingLabel="Publishing…">
+        Publish faction
+      </SubmitAction>
+    </Group>
+  ),
   play: async ({ canvasElement }) => {
-    const button = canvasElement.querySelector('button');
+    const [saving, publishing] = canvasElement.querySelectorAll('button');
 
-    await expect(button).toBeDisabled();
-    await expect(button?.textContent).toContain('Saving…');
+    await expect(saving).toBeDisabled();
+    await expect(saving?.textContent).toContain('Saving…');
+    await expect(publishing).toBeDisabled();
+    await expect(publishing?.textContent).toContain('Publishing…');
   },
-});
-
-/** Blocked by the form's own rule, a required field still empty. */
-export const Disabled = meta.story({
-  args: { disabled: true },
-});
-
-/** Where "Saving…" would misdescribe the work. */
-export const CustomPendingLabel = meta.story({
-  args: { children: 'Publish faction', pending: true, pendingLabel: 'Publishing…' },
 });

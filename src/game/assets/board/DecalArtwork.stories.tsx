@@ -66,7 +66,6 @@ const meta = preview.meta({
 });
 
 export const PresetOutline = meta.story({ args: { decal, svg: preset } });
-export const VectorOutline = meta.story({ args: { decal, svg: BOARD_ARTWORK['/vector/icon/ornithopter.svg'] } });
 export const ImageOutline = meta.story({
   args: {
     svg: '',

@@ -48,18 +48,6 @@ export const SolidSoftSubtle = meta.story({
   },
 });
 
-export const SolidCrispStrongInverted = meta.story({
-  args: {
-    background: {
-      image: '/image/texture/038.jpg',
-      colors: ['#1b1717', '#bb4435'],
-      invert: true,
-      definition: 1,
-      influence: 1,
-    },
-  },
-});
-
 export const LinearLayers = meta.story({
   args: {
     background: {

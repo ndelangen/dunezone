@@ -11,8 +11,3 @@ export const FactionSheet = meta.story({
   args: { path: '/preview/sheet/house-atreides?mode=db' },
   globals: { viewport: { value: 'page' } },
 });
-
-export const LiveFactionSheet = meta.story({
-  args: { path: '/preview/sheet/live-preview?mode=live' },
-  globals: { viewport: { value: 'page' } },
-});

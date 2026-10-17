@@ -3,6 +3,7 @@ import { standardStormCard } from '@shared/assets/standardStormDeck';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { expect, within } from 'storybook/test';
 
+import { CardGallery, GalleryCard } from './CardGallery.stories.fixture';
 import { StormCard } from './Storm';
 
 const meta = preview.meta({
@@ -10,12 +11,20 @@ const meta = preview.meta({
   globals: { viewport: { value: 'card' } },
   args: standardStormCard(1),
 });
-export const One = meta.story({});
-export const Two = meta.story({ args: standardStormCard(2) });
-export const Three = meta.story({ args: standardStormCard(3) });
-export const Four = meta.story({ args: standardStormCard(4) });
-export const Five = meta.story({ args: standardStormCard(5) });
-export const Six = meta.story({ args: standardStormCard(6) });
+/** The six stock faces of the shipped deck in one view, singular and plural sector text included. */
+export const StandardStormDeck = meta.story({
+  globals: { viewport: { value: undefined } },
+  parameters: { layout: 'fullscreen' },
+  render: () => (
+    <CardGallery>
+      {[1, 2, 3, 4, 5, 6].map((sectors) => (
+        <GalleryCard key={sectors} label={`${sectors} sector storm card`}>
+          <StormCard {...standardStormCard(sectors)} />
+        </GalleryCard>
+      ))}
+    </CardGallery>
+  ),
+});
 
 /* Saved backgrounds from the former editor cannot change the fixed Storm head or symbol. */
 export const FixedIdentity = meta.story({

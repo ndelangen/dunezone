@@ -151,10 +151,3 @@ export const CrowdedPhone = meta.story({
     await expect(page.getByRole('button', { name: 'Save faction' })).toBeVisible();
   },
 });
-
-export const WithReviewAction = meta.story({
-  args: {
-    ...cleanToolbar,
-    review: { label: 'Review faction sheet', onOpen: () => undefined },
-  },
-});

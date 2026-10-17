@@ -31,8 +31,3 @@ export const AtMinimum = meta.story({
 export const AtMaximum = meta.story({
   args: { value: 20 },
 });
-
-/** While the container it belongs to is read-only to this viewer. */
-export const Disabled = meta.story({
-  args: { disabled: true },
-});

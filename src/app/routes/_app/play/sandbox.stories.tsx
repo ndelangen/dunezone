@@ -366,20 +366,11 @@ const hmsSandbox = {
 };
 
 /**
- * The HMS: a teardrop plate that carries whatever stands on it.
- * Seat 1 has set two of its troop stacks on it.
- * Drag the plate and both stacks ride along;
+ * Seat 1 moves the HMS across the board with two troop stacks on it: both ride along, each keeping its place on the plate.
+ * By hand: drag the plate and both stacks ride along;
  * drag a stack off and it stays behind;
  * Q or E turns the plate with its troops.
  */
-export const Hms = meta.story({
-  ...hmsSandbox,
-  play: async ({ canvasElement }) => {
-    await boardHms(canvasElement);
-  },
-});
-
-/** Seat 1 moves the HMS across the board with two troop stacks on it: both ride along, each keeping its place on the plate. */
 export const HmsCarriesItsTroops = meta.story({
   ...hmsSandbox,
   play: async ({ canvasElement }) => {

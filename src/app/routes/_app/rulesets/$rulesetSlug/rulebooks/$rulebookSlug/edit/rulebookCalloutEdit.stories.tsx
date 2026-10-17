@@ -17,18 +17,6 @@ export const NoteCallout = meta.story({
   ),
 });
 
-export const ExampleCallout = meta.story({
-  render: () => (
-    <CalloutStory
-      initialValue={{
-        variant: 'example',
-        title: 'A shipment',
-        text: 'Shipping three troops to a stronghold costs three spice.',
-      }}
-    />
-  ),
-});
-
 export const QuotationCallout = meta.story({
   render: () => (
     <CalloutStory

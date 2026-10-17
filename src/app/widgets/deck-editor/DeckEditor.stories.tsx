@@ -32,12 +32,6 @@ const meta = preview.meta({
   },
 });
 
-/**
- * A stock back, which is where every new deck starts.
- * The tile carries the select naming which stock one, since choosing Stock does not finish the job.
- */
-export const CardbackFromStock = meta.story({});
-
 /** A composed back exposes its background and emblem chapters. */
 export const CardbackComposedHere = meta.story({
   args: {
@@ -61,11 +55,6 @@ export const TintedCardbackComposedHere = meta.story({
 /** Worn from another deck: the only tile that is a different union member. */
 export const CardbackFromAnotherDeck = meta.story({
   args: { draft: draftWith({ mode: 'reference', asset_id: 'another-deck' }) },
-});
-
-/** Chosen but not yet picked, the state the reference-without-target warning reads. */
-export const CardbackReferenceNotYetPicked = meta.story({
-  args: { draft: draftWith({ mode: 'reference', asset_id: null }) },
 });
 
 export const Identity = meta.story({

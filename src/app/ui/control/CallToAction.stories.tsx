@@ -27,10 +27,6 @@ export const Small = meta.story({
   args: { size: 'sm' },
 });
 
-export const SmallForward = meta.story({
-  args: { size: 'sm', direction: 'forward', children: 'Start creating' },
-});
-
 /**
  * Pulses every five seconds.
  * Watch for a moment, and note it stops entirely under `prefers-reduced-motion`.

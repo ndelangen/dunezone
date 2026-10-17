@@ -25,9 +25,3 @@ export const WithMarks = meta.story({
     mb: 'md',
   },
 });
-
-export const Disabled = meta.story({
-  args: {
-    disabled: true,
-  },
-});

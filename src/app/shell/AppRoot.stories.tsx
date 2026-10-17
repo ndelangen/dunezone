@@ -88,11 +88,6 @@ export const HeaderlessPage = meta.story({
   args: { children: shellPageOptionLabels[2] },
 });
 
-export const HeaderlessPageMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
-  args: { children: shellPageOptionLabels[2] },
-});
-
 function HeaderResizePage() {
   const [showHeader, setShowHeader] = useState(false);
 
@@ -278,12 +273,6 @@ async function playFullscreenHeight({ canvasElement }: { canvasElement: HTMLElem
   scroller.scrollTop = 0;
 }
 
-export const FullscreenHeight = meta.story({
-  globals: { viewport: { value: 'appLarge' } },
-  args: { children: <FullscreenShellPage /> },
-  play: playFullscreenHeight,
-});
-
 export const FullscreenHeightMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
   args: { children: <FullscreenShellPage /> },
@@ -365,10 +354,5 @@ export const ScrollingBackground = meta.story({
       },
     },
   },
-  play: playBackgroundPan,
-});
-
-export const ScrollingBackgroundMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
   play: playBackgroundPan,
 });

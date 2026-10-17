@@ -6,7 +6,6 @@ import { PublishedImage } from './PublishedImage';
 
 /* A self-contained image lands inside the grace window, which is how a cached publication behaves. */
 const decodedImage = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><circle cx="300" cy="300" r="300" fill="#4b4c0d"/><circle cx="300" cy="300" r="285" fill="none" stroke="#e3dbb3" stroke-width="8"/><text x="300" y="340" text-anchor="middle" font-family="serif" font-size="120" fill="#e3dbb3">AT</text></svg>')}`;
-const brokenImage = 'data:image/png;base64,not-an-image';
 
 /* The slot fades in over 240 ms, a reduced-motion arrival is a 160 ms fade, and the develop runs 450 ms. */
 function animationDurations(canvasElement: HTMLElement) {
@@ -57,18 +56,7 @@ export const Missing = meta.story({
   },
 });
 
-/** A publication that fails to load is missing too. */
-export const FailedLoad = meta.story({
-  args: { src: brokenImage },
-  play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement).findByRole('img', { name: 'Atreides: preview unavailable' })
-    ).resolves.toBeVisible();
-    await expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
-  },
-});
-
-/** A publication that fails once is fetched again out of sight after 5 s, and replaces the missing state when it lands. */
+/** A publication that fails to load is missing too; it is fetched again out of sight after 5 s, and replaces the missing state when it lands. */
 export const RecoversAfterFailedLoad = meta.story({
   /* Each render gets a URL of its own, so a rerun fails once again instead of showing the image decoded last time. */
   loaders: [async () => ({ ...(await serveStoryImages()), src: imageFailingOnce(`recovers-${crypto.randomUUID()}`) })],
@@ -76,6 +64,8 @@ export const RecoversAfterFailedLoad = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.findByRole('img', { name: 'Atreides: preview unavailable' })).resolves.toBeVisible();
+    /* A publication that fails to load is missing too, with no img left behind. */
+    await expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
     /*
      * The first retry waits 5 s and the next two 10 s and 20 s.
      * The worker forgets which paths failed if the browser stops it while idle, so the wait covers a first retry answered with another 503.

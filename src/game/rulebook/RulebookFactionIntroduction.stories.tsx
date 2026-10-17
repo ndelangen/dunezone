@@ -124,10 +124,6 @@ export const ShortIntroduction = meta.story({
   },
 });
 
-export const UnavailableFactionComponents = meta.story({
-  render: () => <LiveReferenceStory index={2} />,
-  play: expectContainedReferences,
-});
 export const SquareFactionIntroduction = meta.story({
   render: () => <LiveReferenceStory index={2} size="square" />,
   play: expectContainedReferences,

@@ -71,7 +71,6 @@ export const LowestWindow = meta.story({
     ],
   },
 });
-export const PlainIgnoresWindowPosition = meta.story({ args: { format: 'plain', windowOffsetY: 200 } });
 export const LongTitle = meta.story({ args: { name: 'A very long custom card title that must fit inside the Head' } });
 
 export const TokenLayers = meta.story({

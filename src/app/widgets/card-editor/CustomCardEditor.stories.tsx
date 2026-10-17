@@ -1,10 +1,7 @@
 import { Button, TextInput } from '@mantine/core';
 import preview from '@sb/preview';
 import { publishingCustomCard } from '@shared/assets/fixtures/publishingCustomCard';
-import {
-  publishingCustomCardTokens,
-  publishingCustomCardTokenLayers,
-} from '@shared/assets/fixtures/publishingCustomCardTokens';
+import { publishingCustomCardTokens } from '@shared/assets/fixtures/publishingCustomCardTokens';
 import { publishingTokenFace } from '@shared/assets/fixtures/publishingTokenFace';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
@@ -80,9 +77,6 @@ const meta = preview.meta({
   args: { preset: 'treachery' },
 });
 export const Treachery = meta.story({});
-export const FullText = meta.story({
-  args: { preset: 'full-text', name: 'Battle reference', layers: [publishingCustomCard.layers[0]] },
-});
 export const Layered = meta.story({
   args: { preset: 'full-text', name: publishingCustomCard.name, layers: publishingCustomCard.layers },
 });
@@ -186,10 +180,6 @@ export const TokenLayer = meta.story({
     await userEvent.keyboard('{ArrowRight}');
     await expect(canvas.getByRole('textbox', { name: 'Rotation for layer 2' })).toHaveValue('1');
   },
-});
-
-export const TokenShapes = meta.story({
-  args: { preset: 'full-text', name: 'Linked token reference', layers: publishingCustomCardTokenLayers },
 });
 
 export const BehindFrame = meta.story({

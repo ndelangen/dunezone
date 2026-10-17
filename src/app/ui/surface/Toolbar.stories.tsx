@@ -52,31 +52,6 @@ export const CenterOnly = meta.story({
   },
 });
 
-/** A single edge, for a page whose toolbar only goes back. */
-export const LeftOnly = meta.story({
-  args: {
-    children: [<Toolbar.Left key="left">{control}</Toolbar.Left>],
-  },
-});
-
-/** A crowded edge keeps its controls on one line. */
-export const ManyControls = meta.story({
-  args: {
-    children: [
-      <Toolbar.Left key="left">
-        {control}
-        {control}
-      </Toolbar.Left>,
-      <Toolbar.Right key="right">
-        {control}
-        {control}
-        {control}
-        {wideControl}
-      </Toolbar.Right>,
-    ],
-  },
-});
-
 /** Runs of actions stand in the kit's order whatever order the page hands them over in, with a wider gap between kinds and one thin divider before commit: content, access, discard, then commit at the edge. */
 export const Clusters = meta.story({
   args: {

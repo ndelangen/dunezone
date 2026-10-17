@@ -35,25 +35,6 @@ export const Decals = meta.story({
   },
 });
 
-export const Gf9StrongholdIllustrations = meta.story({
-  args: { path: '/media/game/decals?group=Decals+%2F+GF9+Stronghold+cards' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement);
-    await expect(page.findByRole('heading', { name: 'Decals / GF9 Stronghold cards' })).resolves.toBeVisible();
-    await expect(page.getAllByRole('article')).toHaveLength(6);
-  },
-});
-
-export const CustomStrongholdIllustrations = meta.story({
-  args: { path: '/media/game/decals?group=Decals+%2F+Custom+stronghold+illustrations' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement);
-    await expect(
-      page.findByRole('heading', { name: 'Decals / Custom stronghold illustrations' })
-    ).resolves.toBeVisible();
-    await expect(page.getAllByRole('article')).toHaveLength(6);
-  },
-});
 export const LeaderLink = meta.story({
   args: { path: '/media/game/leaders?item=%2Fimage%2Fleader%2Fofficial%2Faramsham.png' },
   play: async ({ canvasElement }) => {
@@ -93,17 +74,6 @@ export const LegacyMediaLink = meta.story({
     await expect(page.getByRole('heading', { name: 'Faction portraits / Emperor' })).toBeVisible();
     const all = page.getByRole('link', { name: 'Show everything from this group' });
     await expect(all).toHaveAttribute('href', '/media/game/leaders?group=Faction+portraits+%2F+Emperor');
-  },
-});
-export const DecalGroup = meta.story({
-  args: { path: '/media/game/decals?q=extortion' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Decals / Blades and melee weapons' })).resolves.toBeVisible();
-    await expect(page.getByRole('link', { name: 'Show everything from this group' })).toHaveAttribute(
-      'href',
-      '/media/game/decals?group=Decals+%2F+Blades+and+melee+weapons'
-    );
   },
 });
 

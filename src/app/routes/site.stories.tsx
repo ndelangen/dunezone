@@ -27,7 +27,6 @@ export const NotFound = meta.story({
     await expect(back.closest('main')).toBeNull();
   },
 });
-export const Icons = meta.story({ args: { path: '/__icons' } });
 /** The job queue for an administrator: the session says so, and only then does the page ask for the admin-only listing. */
 export const PublicationJobs = meta.story({
   args: { path: '/_admin/jobs' },
@@ -186,4 +185,3 @@ export const Accounts = meta.story({
     await expect(page.getByText('This merge cannot be undone. The other profile will be signed out.')).toBeVisible();
   },
 });
-export const AccountsSignedOut = meta.story({ args: { path: '/_admin/accounts' }, parameters: { identity: null } });
