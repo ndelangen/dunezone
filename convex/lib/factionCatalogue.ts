@@ -291,7 +291,9 @@ export const factionCatalogueKind: CatalogueKind = {
       .withIndex('by_faction', (q) => q.eq('faction_id', faction._id))
       .take(FACTION_LINK_LIMIT);
     if (links.length === FACTION_LINK_LIMIT) {
-      console.warn(`Faction ${faction._id} has ${FACTION_LINK_LIMIT} or more ruleset links; the catalogue lists it under the first ${FACTION_LINK_LIMIT}.`);
+      console.warn(
+        `Faction ${faction._id} has ${FACTION_LINK_LIMIT} or more ruleset links; the catalogue lists it under the first ${FACTION_LINK_LIMIT}.`
+      );
     }
     const { name, names, complexity } = factionSearchFields(faction.data);
     return {

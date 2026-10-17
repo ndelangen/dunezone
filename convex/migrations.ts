@@ -4,6 +4,7 @@ import { v } from 'convex/values';
 import { z } from 'zod';
 
 import { DeckAsset, RectangleTokenAsset, TokenAsset } from '../src/shared/assets/schema';
+import { compareCodeUnits } from '../src/shared/compareText';
 import { factionExtrasSchema, isLegacyFactionExtra } from '../src/shared/factions/extras';
 import {
   assertUniqueFactionMemberIds,
@@ -18,7 +19,6 @@ import {
   factionTroopsHaveIds,
   FactionTroopIdSchema,
 } from '../src/shared/factions/troopIdentity';
-import { compareCodeUnits } from '../src/shared/compareText';
 import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
