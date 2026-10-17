@@ -21,8 +21,8 @@ import {
 
 type WorkerState =
   | { status: 'loading' }
-  | { status: 'success'; client: ConvexStorybookWorkerClient }
-  | { status: 'error'; message: string };
+  | { status: 'success'; client: ConvexStorybookWorkerClient; database: DatabaseDefinition }
+  | { status: 'error'; message: string; database: DatabaseDefinition };
 
 type StorybookDatabaseSession = {
   client: ConvexStorybookWorkerClient;
@@ -93,7 +93,7 @@ export function StorybookDatabaseProvider({
       retireWorker(nextClient);
       throw new Error('The story stopped or restarted before this database started.');
     }
-    setState({ status: 'success', client: nextClient });
+    setState({ status: 'success', client: nextClient, database });
     return nextClient;
   }, [database]);
 
@@ -104,14 +104,14 @@ export function StorybookDatabaseProvider({
         await reset();
       } catch (error: unknown) {
         if (started === generation.current) {
-          setState({ status: 'error', message: error instanceof Error ? error.message : String(error) });
+          setState({ status: 'error', message: error instanceof Error ? error.message : String(error), database });
         }
       }
     })();
     return () => {
       generation.current += 1;
     };
-  }, [reset]);
+  }, [database, reset]);
 
   /* The previous client is retired only once the tree has moved off it, so no rendered query is left asking a worker that another story may already be reseeding. */
   const client = state.status === 'success' ? state.client : null;
@@ -119,7 +119,8 @@ export function StorybookDatabaseProvider({
     return () => retireWorker(client);
   }, [client]);
 
-  if (state.status === 'loading') {
+  /* A story switched in place keeps this provider, so until its own database is ready the previous story's client must not answer it. */
+  if (state.status === 'loading' || state.database !== database) {
     return <div role="status">Starting the browser-local Convex database…</div>;
   }
   if (state.status === 'error') {
