@@ -3,6 +3,8 @@
 
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { syncFactionCard } from './lib/factionCards';
+import type { MutationCtx } from './types';
 
 const STAMP = '2026-09-28T00:00:00.000Z';
 
@@ -57,4 +59,11 @@ export async function insertStoredFactions(
 
 export async function storedFactionData(t: FactionTest, ids: Id<'factions'>[]) {
   return await t.run(async (ctx) => Promise.all(ids.map(async (id) => (await ctx.db.get('factions', id))!)));
+}
+
+/** Gives factions seeded through the raw database the cards their triggers would have written, the way the card backfill does. */
+export async function syncSeededFactionCards(ctx: MutationCtx) {
+  for (const faction of await ctx.db.query('factions').collect()) {
+    await syncFactionCard(ctx, faction._id, faction);
+  }
 }
