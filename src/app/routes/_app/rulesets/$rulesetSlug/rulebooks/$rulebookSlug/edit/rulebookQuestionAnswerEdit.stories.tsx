@@ -21,7 +21,7 @@ export const QuestionAndAnswer = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.type(canvas.getByRole('textbox', { name: 'Answer' }), ' Faction abilities can change this.');
-    await expect(questionAnswerChange.mock.lastCall?.[0].answer).toContain('Faction abilities can change this.');
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Answer' }), ' Faction advantages can change this.');
+    await expect(questionAnswerChange.mock.lastCall?.[0].answer).toContain('Faction advantages can change this.');
   },
 });

@@ -241,7 +241,7 @@ function withLiveReferenceRulebook(baseline: StorybookDatabase) {
         MAPA: {
           id: 'MAPA',
           source: { kind: 'board', boardId: 'arrakis' },
-          text: 'Place forces on the territories.',
+          text: 'Place troops on the territories.',
           quantity: 1,
         },
       },

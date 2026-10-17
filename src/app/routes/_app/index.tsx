@@ -429,7 +429,7 @@ function VectorCopy() {
   return (
     <Section alignment="center" eyebrow="New vectors, ready to use" title="An army of possibilities.">
       <Text size="lg">
-        Blade dancers, gene-forged brutes and water keepers. Pick the forces that belong in your world.
+        Blade dancers, gene-forged brutes and water keepers. Pick the troops that belong in your world.
       </Text>
       <Text>Combine the artwork with your faction's colours to make tokens of your own.</Text>
       <Button className={styles.centerAction} w="fit-content" renderRoot={(props) => <Link {...props} to="/media" />}>

@@ -137,7 +137,7 @@ test('the URL owns Page, Control-region, and Block navigation', async ({ page })
   await structure.getByRole('link', { name: 'Movement sequence' }).click();
   await expect(page).toHaveURL(/#RULE\/MVVE$/);
   await expect(page.getByRole('textbox', { name: 'Content' })).toHaveValue(
-    'Choose a force, choose an adjacent destination, then resolve the move.'
+    'Choose a troop, choose an adjacent destination, then resolve the move.'
   );
 
   await page.reload();

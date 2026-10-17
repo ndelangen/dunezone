@@ -227,14 +227,14 @@ describe('Rulebook editor state manager', () => {
     const result = ready(
       manager.dispatch(
         replaceDraft(manager.result, (draft) => {
-          draftBlock(draft, 'RULE', 'TEXT', 'text').text = 'Choose a force, then **move it**.';
+          draftBlock(draft, 'RULE', 'TEXT', 'text').text = 'Choose a troop, then **move it**.';
         })
       )
     );
 
     expect(result.draft.pagesById.RULE).toMatchObject({ title: 'Movement phase' });
     expect(result.draft.pagesById.RULE?.blocksById.TEXT).toMatchObject({
-      text: 'Choose a force, then **move it**.',
+      text: 'Choose a troop, then **move it**.',
     });
     expect(result.rebasedPatch.sets).toEqual(
       expect.arrayContaining([

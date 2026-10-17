@@ -155,7 +155,7 @@ function CracksSection() {
           },
           {
             imageKey: '/web/blog/why-dune/avalon-hill-set.jpg',
-            alt: 'An early Print and Play edition of Dune laid out on a table: board, shields, leader discs, combat wheels and cards',
+            alt: 'An early Print and Play edition of Dune laid out on a table: board, shields, leader discs, battle wheels and cards',
             aspect: 562 / 798,
             caption: "A Print & Play version of Ilya's art before GF9 published their edition.",
           },

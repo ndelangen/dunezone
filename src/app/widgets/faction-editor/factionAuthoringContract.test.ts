@@ -73,7 +73,7 @@ describe('faction authoring contract', () => {
     expect(parsed.rules.alliance.text).toBe('');
   });
 
-  it('round-trips the complete Forces and Worlds and Rules and Advantages contract', () => {
+  it('round-trips the complete Troops and Planets and Rules and Advantages contract', () => {
     const faction = structuredClone(defaultFaction);
     faction.troops = [
       {
