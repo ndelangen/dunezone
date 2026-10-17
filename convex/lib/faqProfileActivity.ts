@@ -1,7 +1,8 @@
 import { rulesetCoverThumbUrl } from '../../src/shared/rulesets/cover';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
-import { profileSummary } from './profileSummary';
+import { memoised } from './memoised';
+import { profileSummaryReader } from './profileSummary';
 
 /*
  * A ruleset as a citation: flat, with the cover already folded, the way `profileSummary` folds an avatar.
@@ -22,9 +23,11 @@ export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'user
     .withIndex('by_asked_by_created', (q) => q.eq('asked_by', profileId))
     .order('desc')
     .take(200);
+  /* One profile's activity mostly sits in a few rulesets and threads, so each document is read once per request. */
+  const rulesetOf = memoised((id: Id<'rulesets'>) => ctx.db.get('rulesets', id));
   const listed = await Promise.all(
     rows.map(async (item) => {
-      const ruleset = await ctx.db.get(item.ruleset_id);
+      const ruleset = await rulesetOf(item.ruleset_id);
       if (!ruleset) {
         throw new Error(`Ruleset ${item.ruleset_id} missing for FAQ item ${item._id}`);
       }
@@ -50,13 +53,16 @@ export async function loadFaqAnswersGivenBy(ctx: QueryCtx, profileId: Id<'users'
     .withIndex('by_answered_by_created', (q) => q.eq('answered_by', profileId))
     .order('desc')
     .take(200);
+  const itemOf = memoised((id: Id<'faq_items'>) => ctx.db.get('faq_items', id));
+  const rulesetOf = memoised((id: Id<'rulesets'>) => ctx.db.get('rulesets', id));
+  const summaryOf = profileSummaryReader(ctx);
   const listed = await Promise.all(
     answers.map(async (answer) => {
-      const item = await ctx.db.get(answer.faq_item_id);
+      const item = await itemOf(answer.faq_item_id);
       if (!item) {
         throw new Error(`FAQ item ${answer.faq_item_id} missing for answer ${answer._id}`);
       }
-      const ruleset = await ctx.db.get(item.ruleset_id);
+      const ruleset = await rulesetOf(item.ruleset_id);
       if (!ruleset) {
         throw new Error(`Ruleset ${item.ruleset_id} missing for FAQ item ${item._id}`);
       }
@@ -73,7 +79,7 @@ export async function loadFaqAnswersGivenBy(ctx: QueryCtx, profileId: Id<'users'
           asked_by: item.asked_by,
           accepted_answer_id: item.accepted_answer_id ?? null,
         },
-        asker_profile: await profileSummary(ctx, item.asked_by),
+        asker_profile: await summaryOf(item.asked_by),
         ruleset: rulesetCitation(ruleset),
       };
     })

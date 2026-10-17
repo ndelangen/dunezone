@@ -10,6 +10,13 @@ import { db } from '@db/storybook';
 import { expectToolbarOnOneLine } from '../../../../authoringToolbarPlay';
 import { pageStoryMeta } from '../../../../storybookConfig';
 
+/* The choice is read from its own page before it can be loaded, so Load waits for that read. */
+async function enabledLoadButton(page: ReturnType<typeof within>) {
+  const load = page.getByRole('button', { name: /^Load card$/ });
+  await waitFor(() => expect(load).toBeEnabled());
+  return load;
+}
+
 const meta = preview.meta({
   ...pageStoryMeta,
   title: 'Assets/Load card',
@@ -41,7 +48,7 @@ export const CustomCardCopy = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
     await userEvent.click(await waitForFrame(() => page.getByRole('option', { name: /Battle reference/ })));
     await expect(name).toHaveValue('Unsaved card');
-    await userEvent.click(page.getByRole('button', { name: /^Load card$/ }));
+    await userEvent.click(await enabledLoadButton(page));
     const loadedName = page.getByRole('textbox', { name: 'Name' });
     await expect(loadedName).toHaveValue('Battle reference');
     await expect(page.getByRole('tab', { name: '4. Token' })).toBeVisible();
@@ -69,7 +76,7 @@ export const CancelAndReset = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
     await waitForFrame(() => expect(page.getByRole('button', { name: /^Load card$/ })).toBeDisabled());
     await userEvent.click(page.getByRole('option', { name: /Battle reference/ }));
-    await userEvent.click(page.getByRole('button', { name: /^Load card$/ }));
+    await userEvent.click(await enabledLoadButton(page));
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
     await expect(name).toHaveValue('');
     await expect(page.queryByRole('tab', { name: '1. Text' })).toBeNull();
@@ -84,7 +91,7 @@ export const TreacheryCardCopy = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
     await userEvent.click(await waitForFrame(() => page.getByRole('option', { name: /Lasgun/ })));
     await expect(page.queryByRole('option', { name: /Arsunt|Battle reference/ })).toBeNull();
-    await userEvent.click(page.getByRole('button', { name: /^Load card$/ }));
+    await userEvent.click(await enabledLoadButton(page));
     await expect(name).toHaveValue('Lasgun');
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await expect(page.findByRole('button', { name: 'Delete card' })).resolves.toBeVisible();
@@ -101,7 +108,7 @@ export const SpiceCardCopy = meta.story({
     const name = await page.findByRole('textbox', { name: 'Name' });
     await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
     await userEvent.click(await waitForFrame(() => page.getByRole('option', { name: /Arsunt/ })));
-    await userEvent.click(page.getByRole('button', { name: /^Load card$/ }));
+    await userEvent.click(await enabledLoadButton(page));
     await expect(name).toHaveValue('Arsunt');
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await expect(page.findByRole('button', { name: 'Delete card' })).resolves.toBeVisible();
@@ -116,7 +123,7 @@ export const StormCardCopy = meta.story({
     const name = await page.findByRole('textbox', { name: 'Name' });
     await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
     await userEvent.click(await waitForFrame(() => page.getByRole('option', { name: /3 Sectors/ })));
-    await userEvent.click(page.getByRole('button', { name: /^Load card$/ }));
+    await userEvent.click(await enabledLoadButton(page));
     await expect(name).toHaveValue('3 Sectors');
     await expect(page.getByText('Move the storm 3 sectors counter-clockwise.')).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
@@ -144,7 +151,7 @@ export const EmptyCatalogue = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Load existing card' }));
-    await waitForFrame(() => expect(page.getByText('No cards of this type are available to load yet.')).toBeVisible());
+    await waitForFrame(() => expect(page.getByText('No custom cards are available to load yet.')).toBeVisible());
     await expect(page.getByRole('button', { name: /^Load card$/ })).toBeDisabled();
   },
 });
@@ -162,7 +169,7 @@ export const NarrowToolbar = meta.story({
     }
     await waitForFrame(() => expect(page.getByRole('button', { name: 'Load existing card' })).toBeVisible());
     await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
-    const search = await waitForFrame(() => page.getByRole('searchbox', { name: 'Search cards' }));
+    const search = await waitForFrame(() => page.getByRole('searchbox', { name: 'Search custom cards' }));
     await waitFor(() => expect(search).toBeVisible());
     const box = search.getBoundingClientRect();
     await expect(box.left).toBeGreaterThanOrEqual(0);
@@ -188,7 +195,7 @@ export const OverflowHandoff = meta.story({
       within(page.getByRole('group', { name: 'More actions' })).getByRole('button', { name: 'Load existing card' })
     );
     await userEvent.click(load);
-    const search = await waitForFrame(() => page.getByRole('searchbox', { name: 'Search cards' }));
+    const search = await waitForFrame(() => page.getByRole('searchbox', { name: 'Search custom cards' }));
     await expect(finishTransitions(search)).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Load existing card' })).toBeVisible();
     await waitForFrame(() => expect(more).toHaveAttribute('aria-expanded', 'false'));
@@ -197,13 +204,13 @@ export const OverflowHandoff = meta.story({
     await waitForFrame(() => expect(more).toHaveFocus());
     await userEvent.click(more);
     await userEvent.click(await waitForFrame(() => page.getByRole('button', { name: 'Load existing card' })));
-    await waitForFrame(() => page.getByRole('searchbox', { name: 'Search cards' }));
+    await waitForFrame(() => page.getByRole('searchbox', { name: 'Search custom cards' }));
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(more).toHaveFocus());
     await expect(more).toHaveAttribute('aria-expanded', 'false');
     await userEvent.click(more);
     await userEvent.click(await waitForFrame(() => page.getByRole('button', { name: 'Load existing card' })));
-    await waitForFrame(() => expect(page.getByRole('searchbox', { name: 'Search cards' })).toHaveFocus());
+    await waitForFrame(() => expect(page.getByRole('searchbox', { name: 'Search custom cards' })).toHaveFocus());
     await userEvent.click(more);
     await waitForFrame(() => expect(page.queryByRole('dialog', { name: 'Load existing card' })).toBeNull());
     await expect(more).toHaveAttribute('aria-expanded', 'true');

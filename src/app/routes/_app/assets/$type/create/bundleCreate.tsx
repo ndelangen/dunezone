@@ -8,6 +8,8 @@ import { useReducer, useState } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
+import { assetLoad, clonedMembersOf } from '@app/pickers/assetLoadSource';
+import type { ClonedMembers } from '@app/pickers/assetLoadSource';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -28,17 +30,18 @@ import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetE
  *
  * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design, because the generic version cost more than the duplication it removed.
  * `memory` is what the session needs and the stored bundle has no room for (D3), and `baseline` is what a reset returns to.
+ * `clonedFrom` is the bundle loaded as this one's starting point, whose tokens the save copies.
  */
-type BundleState = { data: BundleDraft; memory: BundleMemory; baseline: BundleDraft };
+type BundleState = { data: BundleDraft; memory: BundleMemory; baseline: BundleDraft; clonedFrom: ClonedMembers | null };
 
 type BundleEvent =
   | { kind: 'patch'; update: Partial<BundleDraft> }
   | { kind: 'remember'; update: Partial<BundleMemory> }
-  | { kind: 'replace'; data: BundleDraft }
+  | { kind: 'replace'; data: BundleDraft; clonedFrom: ClonedMembers | null }
   | { kind: 'saved'; data: BundleDraft };
 
-function openingState(data: BundleDraft, baseline: BundleDraft): BundleState {
-  return { data, memory: INITIAL_BUNDLE_MEMORY, baseline };
+function openingState(data: BundleDraft, baseline: BundleDraft, clonedFrom: ClonedMembers | null): BundleState {
+  return { data, memory: INITIAL_BUNDLE_MEMORY, baseline, clonedFrom };
 }
 
 function reduce(state: BundleState, event: BundleEvent): BundleState {
@@ -49,7 +52,7 @@ function reduce(state: BundleState, event: BundleEvent): BundleState {
       return { ...state, memory: { ...state.memory, ...event.update } };
     /* A reset rebuilds the whole state rather than assigning a field at a time, so a piece added here later cannot be the one a reset forgets. */
     case 'replace':
-      return openingState(event.data, state.baseline);
+      return openingState(event.data, state.baseline, event.clonedFrom);
     case 'saved':
       return { ...state, baseline: event.data };
   }
@@ -66,7 +69,7 @@ export function BundleCreatePage() {
   const createAsset = useCreateAsset();
   const [chapter, setChapter] = useState<BundleChapter>('identity');
   const [state, dispatch] = useReducer(reduce, undefined, () =>
-    openingState(INITIAL_BUNDLE_DRAFT, INITIAL_BUNDLE_DRAFT)
+    openingState(INITIAL_BUNDLE_DRAFT, INITIAL_BUNDLE_DRAFT, null)
   );
   const patch = (update: Partial<BundleDraft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({
@@ -115,7 +118,7 @@ export function BundleCreatePage() {
     /* The stored schema's own keys decide what is posted, so the session's memory can never ride along (D3). */
     const payload = postedPayload(BundleAsset, state.data);
     createAsset.mutate(
-      { type: 'bundle', data: payload },
+      { type: 'bundle', data: payload, members_from: state.clonedFrom?.id },
       {
         onSuccess: ({ slug }) => {
           dispatch({ kind: 'saved', data: payload });
@@ -130,6 +133,15 @@ export function BundleCreatePage() {
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          load={assetLoad({
+            noun: 'bundle',
+            type: 'bundle',
+            schema: BundleAsset,
+            disabled: saveState === 'saving',
+            onLoaded: header.releasing((loaded) =>
+              dispatch({ kind: 'replace', data: loaded.data, clonedFrom: clonedMembersOf(loaded) })
+            ),
+          })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save bundle',
@@ -138,7 +150,7 @@ export function BundleCreatePage() {
           }}
           actions={{
             onSave: save,
-            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline })),
+            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, clonedFrom: null })),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
           }}
         />
@@ -155,11 +167,13 @@ export function BundleCreatePage() {
             chapter={chapter}
             onChapterChange={setChapter}
             onSettle={header.settle}
-            members={[]}
+            members={(state.clonedFrom?.members ?? []).map((entry) => ({ token: entry.member, count: entry.count }))}
             onCountChange={null}
             tokenPicker={
               <Text size="xs" c="dimmed">
-                Tokens can be added once the bundle has been saved.
+                {state.clonedFrom
+                  ? `These tokens are copied from ${state.clonedFrom.name} when you save. Change them after saving.`
+                  : 'Tokens can be added once the bundle has been saved.'}
               </Text>
             }
           />

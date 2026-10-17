@@ -13,7 +13,7 @@ import { useCreateAsset } from '@db/assets';
 import { useSessionViewer } from '@db/profiles';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { BoardEditor } from '@app/widgets/board-editor/BoardEditor';
-import { BoardLoad } from '@app/widgets/board-editor/BoardLoad';
+import { boardLoadSource } from '@app/widgets/board-editor/boardLoadSource';
 import { boardEditorReducer, initialBoardEditorState } from '@app/widgets/board-editor/state';
 import type { BoardEditorState, BoardEditorEvent } from '@app/widgets/board-editor/state';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
@@ -104,6 +104,13 @@ export function BoardCreatePage() {
     <PageLayout>
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          load={{
+            noun: 'board',
+            mode: 'create',
+            disabled: saving.isPending,
+            source: boardLoadSource(),
+            onLoaded: (loaded) => dispatch({ kind: 'replace', draft: loaded.data }),
+          }}
           status={{
             isDirty,
             isNameBlank: !state.draft.name.trim(),
@@ -116,9 +123,6 @@ export function BoardCreatePage() {
             onReset: () => dispatch({ kind: 'replace', draft: state.baseline }),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'board' } }),
           }}
-          navigationActions={
-            <BoardLoad disabled={saving.isPending} onLoad={(draft) => dispatch({ kind: 'replace', draft })} />
-          }
           auxiliaryActions={
             <>
               <IconAction

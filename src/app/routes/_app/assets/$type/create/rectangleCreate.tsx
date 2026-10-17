@@ -1,4 +1,4 @@
-import { Alert, Text } from '@mantine/core';
+import { Alert } from '@mantine/core';
 import { RectangleTokenAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
@@ -15,13 +15,17 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import {
   INITIAL_RECTANGLE_DRAFT,
+  RectangleProof,
   RectangleTokenEditor,
   rectangleDraftWarnings,
   initialRectangleMemory,
 } from '@app/widgets/token-editor/RectangleTokenEditor';
 import type { RectangleChapter, RectangleDraft, RectangleMemory } from '@app/widgets/token-editor/RectangleTokenEditor';
 
+import { referencedRectangleBackFace } from '../$slug/edit/referencedBackFace';
+import { CreateBackNote, referencedBackProof } from '../$slug/edit/ReferencedBackProof';
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
+import { LoadedRectangleDraft, tokenLoad } from '../../loadedDrafts';
 
 const TYPE = 'token-enhance';
 
@@ -142,6 +146,7 @@ export function RectangleCreatePage() {
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          load={tokenLoad({ type: TYPE, schema: LoadedRectangleDraft, saveState, header, dispatch })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save token',
@@ -171,12 +176,10 @@ export function RectangleCreatePage() {
             chapter={chapter}
             onChapterChange={setChapter}
             onSettle={header.settle}
-            backPicker={() => (
-              <Text size="xs" c="dimmed">
-                A token can point at an existing token only once it has been saved.
-              </Text>
-            )}
-            backProof={null}
+            backPicker={() => <CreateBackNote picked={state.memory.pickedBack} />}
+            backProof={referencedBackProof(state.memory.pickedBack, referencedRectangleBackFace, (face) => (
+              <RectangleProof face={face} />
+            ))}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

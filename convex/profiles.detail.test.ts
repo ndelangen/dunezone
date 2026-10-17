@@ -7,6 +7,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import { syncSeededFactionCards } from './factions.test.fixture';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -29,7 +30,7 @@ type SeedResult = {
 const at = (day: number) => `2026-07-${String(day).padStart(2, '0')}T00:00:00.000Z`;
 
 async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<SeedResult> {
-  return await t.run(async (ctx) => {
+  const seeded = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { name: 'Central' });
     const askerId = await ctx.db.insert('users', { name: 'Asker' });
     const profilelessAskerId = await ctx.db.insert('users', { name: 'No profile' });
@@ -263,6 +264,8 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
       askerProfileId,
     };
   });
+  await t.run(syncSeededFactionCards);
+  return seeded;
 }
 
 describe('profile detail projection (api.profiles.pageBySlug)', () => {
@@ -363,6 +366,7 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
       });
     });
 
+    await t.run(syncSeededFactionCards);
     await expect(t.query(api.profiles.pageBySlug, { slug: 'malformed' })).rejects.toThrow();
   });
 

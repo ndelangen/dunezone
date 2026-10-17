@@ -37,6 +37,7 @@ import type * as lib_assetBacks from "../lib/assetBacks.js";
 import type * as lib_assetInput from "../lib/assetInput.js";
 import type * as lib_authSessionLifecycle from "../lib/authSessionLifecycle.js";
 import type * as lib_boardReadiness from "../lib/boardReadiness.js";
+import type * as lib_canonicalJson from "../lib/canonicalJson.js";
 import type * as lib_cardFrontPresets from "../lib/cardFrontPresets.js";
 import type * as lib_cardbackPresets from "../lib/cardbackPresets.js";
 import type * as lib_collaborativeAccess from "../lib/collaborativeAccess.js";
@@ -44,6 +45,7 @@ import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAcc
 import type * as lib_customCardTokens from "../lib/customCardTokens.js";
 import type * as lib_defaultGroupPreference from "../lib/defaultGroupPreference.js";
 import type * as lib_directOwnership from "../lib/directOwnership.js";
+import type * as lib_factionCards from "../lib/factionCards.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionData from "../lib/factionData.js";
 import type * as lib_factionInput from "../lib/factionInput.js";
@@ -56,6 +58,7 @@ import type * as lib_groupAssignPicker from "../lib/groupAssignPicker.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_ingestTokens from "../lib/ingestTokens.js";
 import type * as lib_isolatedBackend from "../lib/isolatedBackend.js";
+import type * as lib_memoised from "../lib/memoised.js";
 import type * as lib_playAuthorization from "../lib/playAuthorization.js";
 import type * as lib_playGameAddresses from "../lib/playGameAddresses.js";
 import type * as lib_playGameNameChecks from "../lib/playGameNameChecks.js";
@@ -164,6 +167,7 @@ const fullApi: ApiFromModules<{
   "lib/assetInput": typeof lib_assetInput;
   "lib/authSessionLifecycle": typeof lib_authSessionLifecycle;
   "lib/boardReadiness": typeof lib_boardReadiness;
+  "lib/canonicalJson": typeof lib_canonicalJson;
   "lib/cardFrontPresets": typeof lib_cardFrontPresets;
   "lib/cardbackPresets": typeof lib_cardbackPresets;
   "lib/collaborativeAccess": typeof lib_collaborativeAccess;
@@ -171,6 +175,7 @@ const fullApi: ApiFromModules<{
   "lib/customCardTokens": typeof lib_customCardTokens;
   "lib/defaultGroupPreference": typeof lib_defaultGroupPreference;
   "lib/directOwnership": typeof lib_directOwnership;
+  "lib/factionCards": typeof lib_factionCards;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionData": typeof lib_factionData;
   "lib/factionInput": typeof lib_factionInput;
@@ -183,6 +188,7 @@ const fullApi: ApiFromModules<{
   "lib/ids": typeof lib_ids;
   "lib/ingestTokens": typeof lib_ingestTokens;
   "lib/isolatedBackend": typeof lib_isolatedBackend;
+  "lib/memoised": typeof lib_memoised;
   "lib/playAuthorization": typeof lib_playAuthorization;
   "lib/playGameAddresses": typeof lib_playGameAddresses;
   "lib/playGameNameChecks": typeof lib_playGameNameChecks;

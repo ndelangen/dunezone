@@ -6,8 +6,9 @@ import { convexTest } from 'convex-test';
 import { createFunctionHandle, makeFunctionReference } from 'convex/server';
 import type { WithoutSystemFields } from 'convex/server';
 
-import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
+import type { Doc, Id, TableNames } from '../../../../convex/_generated/dataModel';
 import type { DatabaseWriter } from '../../../../convex/_generated/server';
+import { syncFactionCard } from '../../../../convex/lib/factionCards';
 import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
@@ -127,6 +128,11 @@ async function insertDocuments(world: World, documents: SeedDocument[], delay = 
       const id = await insertDocument(ctx.db, document, world.references);
       if (document.key) {
         world.references.set(document.key, id);
+      }
+      /* A seed insert skips the write triggers, so the card a faction list reads is derived here as a faction write would derive it. */
+      if (document.table === 'factions') {
+        const factionId = id as Id<'factions'>;
+        await syncFactionCard(ctx, factionId, await ctx.db.get('factions', factionId));
       }
     }
   });

@@ -63,6 +63,7 @@ function CardEditSession({ frontPresets, asset, initialDraft, access }: Readonly
       status={{ isDirty, isNameBlank: !state.data.name.trim(), saveState: saving.saveState, invalid }}
       onSave={save}
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
+      load={{ schema: NexusCardAssetInput, header, dispatch, afterLoad: () => setChapter('head') }}
       saveError={saving.error}
     >
       <NexusCardEditor

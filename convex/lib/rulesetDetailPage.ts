@@ -2,11 +2,11 @@ import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { ownPublishedFace } from './assetBacks';
 import { assignedGroupSummary } from './collaborativeAccess';
-import { toCatalogueFaction } from './factionCatalogue';
+import { catalogueFactionFromCard, toCatalogueFaction } from './factionCatalogue';
 import { loadFaqItemsForRuleset } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
 import { listRulesetRulebooks } from './rulebookList';
-import { listRulesetAssetSlots } from './rulesetSlots';
+import { readRulesetAssetSlots } from './rulesetSlots';
 
 const RULESET_FACTION_LIMIT = 500;
 
@@ -35,14 +35,21 @@ async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'
     .query('ruleset_factions')
     .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
     .take(RULESET_FACTION_LIMIT);
-  const factions = await Promise.all(links.map((link) => ctx.db.get('factions', link.faction_id)));
+  const factions = await Promise.all(links.map((link) => linkedCatalogueFaction(ctx, link.faction_id)));
+  return factions.filter((faction) => faction !== null);
+}
 
-  return factions.flatMap((faction) => {
-    if (!faction || faction.is_deleted) {
-      return [];
-    }
-    return [toCatalogueFaction(faction, [])];
-  });
+/* A linked faction read from its card; the faction itself is read only when the card is missing, as for a link the card backfill has not reached. */
+async function linkedCatalogueFaction(ctx: QueryCtx, factionId: Id<'factions'>) {
+  const card = await ctx.db
+    .query('faction_cards')
+    .withIndex('by_faction', (q) => q.eq('faction_id', factionId))
+    .unique();
+  if (card) {
+    return card.is_deleted ? null : await catalogueFactionFromCard(ctx, card, []);
+  }
+  const faction = await ctx.db.get('factions', factionId);
+  return faction && !faction.is_deleted ? toCatalogueFaction(faction, []) : null;
 }
 
 /** The ruleset and its factions, the same for every viewer: behind `api.rulesets.page`. Throws for an unknown slug. */
@@ -58,13 +65,9 @@ export async function loadRulesetPageBySlug(ctx: QueryCtx, slug: string) {
  * The slotted board as the detail page draws it: its slot entry plus its face, addressed the way the board's own page addresses it.
  * Null when the slot is empty, which the page draws as a placeholder.
  */
-async function rulesetBoardFace(ctx: QueryCtx, slots: Awaited<ReturnType<typeof listRulesetAssetSlots>>) {
+function rulesetBoardFace(slots: Awaited<ReturnType<typeof readRulesetAssetSlots>>) {
   const entry = slots.find((slot) => slot.slot === 'board');
-  if (!entry) {
-    return null;
-  }
-  const asset = await ctx.db.get('assets', entry.asset.id);
-  return { ...entry.asset, previewHref: asset ? ownPublishedFace(asset) : null };
+  return entry ? { ...entry.asset, previewHref: ownPublishedFace(entry.doc) } : null;
 }
 
 /** The ruleset detail page, the same for every viewer: behind `api.rulesets.detailPage`. Null for an unknown slug. */
@@ -73,15 +76,15 @@ export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: str
   if (!row) {
     return null;
   }
-  const assetSlots = await listRulesetAssetSlots(ctx, row._id);
+  const slots = await readRulesetAssetSlots(ctx, row._id);
   return {
     ruleset: row,
     factions: await listPublicRulesetFactions(ctx, row._id),
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
     faqItems: await loadFaqItemsForRuleset(ctx, row._id),
     owner: await profileSummary(ctx, row.owner_id),
-    assetSlots,
-    board: await rulesetBoardFace(ctx, assetSlots),
+    assetSlots: slots.map(({ slot, asset }) => ({ slot, asset })),
+    board: rulesetBoardFace(slots),
     rulebooks: await listRulesetRulebooks(ctx, row._id),
   };
 }
