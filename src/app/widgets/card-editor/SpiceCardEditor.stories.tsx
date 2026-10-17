@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import { publishingSpiceCard } from '@shared/assets/fixtures/publishingSpiceCard';
 import { spiceBoardLink, spiceBoardTokens } from '@shared/assets/fixtures/spiceBoardCard';
 import { arrakisBoard } from '@shared/boards/geometry';
+import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 import type { ComponentProps } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
@@ -27,6 +28,14 @@ const boardRead = { board: BOARD, boardName: 'Arrakis', tokens: spiceBoardTokens
 const meta = preview.meta({
   title: 'Spice Card Editor',
   component: SpiceCardEditor,
+  parameters: { layout: 'padded' },
+  globals: { colorScheme: 'dark' },
+  /* The page's workbench frame gives the editor its reading column; without it the proof and the chapters collapse to their content. */
+  render: (args) => (
+    <WorkbenchLayout>
+      <SpiceCardEditor {...args} />
+    </WorkbenchLayout>
+  ),
   args: {
     nameField: <input aria-label="Name" readOnly value="Arsunt" />,
     draft: publishingSpiceCard,
@@ -44,17 +53,19 @@ function LiveEditor({ initial, ...props }: ComponentProps<typeof SpiceCardEditor
   const [draft, setDraft] = useState(initial);
   const [chapter, setChapter] = useState<SpiceChapter>(props.chapter);
   return (
-    <SpiceCardEditor
-      {...props}
-      draft={draft}
-      chapter={chapter}
-      onChapterChange={setChapter}
-      patch={(update) => {
-        props.patch(update);
-        setDraft((current) => ({ ...current, ...update }));
-      }}
-      boardRead={draft.board ? boardRead : undefined}
-    />
+    <WorkbenchLayout>
+      <SpiceCardEditor
+        {...props}
+        draft={draft}
+        chapter={chapter}
+        onChapterChange={setChapter}
+        patch={(update) => {
+          props.patch(update);
+          setDraft((current) => ({ ...current, ...update }));
+        }}
+        boardRead={draft.board ? boardRead : undefined}
+      />
+    </WorkbenchLayout>
   );
 }
 

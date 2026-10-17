@@ -8,12 +8,13 @@ import { TINT_STAMPS } from '@shared/boards/tints';
 import type { TintStamp } from '@shared/boards/tints';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import { Layers } from 'lucide-react';
+import { ChevronDown, ChevronUp, Layers } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
-import { NewTints, TintRow } from '@app/widgets/territory-tints/TintControls';
+import { NewTints, TintRow } from '@app/widgets/tabletop/TintControls';
+import { CardToken } from '@game/assets/card/CardToken';
 import { missingTintTerritories } from '@game/assets/card/SpiceBoardMap';
 
 import type { CardTokenPicker } from './CustomCardLayers';
@@ -21,6 +22,8 @@ import type { CardTokenPicker } from './CustomCardLayers';
 type Link = z.infer<typeof SpiceBoardLink>;
 type Tint = z.infer<typeof SpiceTint>;
 type Placement = z.infer<typeof SpiceTokenPlacement>;
+/** A placed token's front as the page read it: null when the asset is gone, undefined while loading. */
+type Token = z.infer<typeof CustomCardTokens>[string] | undefined;
 type TerritoryType = (typeof SPICE_TERRITORY_TYPES)[number];
 
 /** Opens a picker for one asset, reporting the ID picked. */
@@ -120,12 +123,18 @@ function TypePicker({ tint, onToggle }: Readonly<{ tint: Tint; onToggle: (type: 
   );
 }
 
+/** The percentage along the map's width or height a board coordinate sits at, which reads better than the board's own 487-unit scale. */
+const acrossMap = (value: number) => `${Math.round((value / SPICE_BOARD_SIZE) * 100)}%`;
+
+const degrees = (value: number) => `${Math.round(value)}°`;
+
 function TokenSlider({
   label,
   value,
   min,
   max,
   step,
+  format = (current) => String(Math.round(current)),
   onChange,
 }: Readonly<{
   label: string;
@@ -133,42 +142,83 @@ function TokenSlider({
   min: number;
   max: number;
   step: number;
+  /** How the value reads beside the slider and on its thumb, the same way the row's summary says it. */
+  format?: (value: number) => string;
   onChange: (value: number) => void;
 }>) {
   return (
     <Group gap="sm" wrap="nowrap">
-      <Text size="xs" c="dimmed" w={56}>
+      <Text size="xs" c="dimmed" w={48} style={{ flexShrink: 0 }}>
         {label}
       </Text>
       <Slider
         flex={1}
+        miw={0}
         aria-label={label}
         thumbLabel={label}
+        label={format}
         min={min}
         max={max}
         step={step}
         value={value}
         onChange={onChange}
       />
+      <Text size="xs" c="dimmed" w={40} ta="right" style={{ flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+        {format(value)}
+      </Text>
     </Group>
   );
 }
 
+/** What a token's row says under its name: where it sits on the map and how big it is drawn. */
+function tokenSummary(token: Placement) {
+  const parts = [`${acrossMap(token.x)} across`, `${acrossMap(token.y)} down`, `size ${Math.round(token.size)}`];
+  if (token.rotation) {
+    parts.push(`turned ${degrees(token.rotation)}`);
+  }
+  return parts.join(' · ');
+}
+
+/** The token's front at swatch size, so a row is told apart from the next one of the same kind at a glance. */
+function TokenThumb({ asset }: Readonly<{ asset: Token }>) {
+  const rectangle = asset?.type === 'token-enhance';
+  return (
+    <div
+      aria-hidden
+      style={{
+        width: 26,
+        height: rectangle ? 16 : 26,
+        flexShrink: 0,
+        borderRadius: asset ? undefined : '50%',
+        border: asset ? undefined : '1px dashed var(--mantine-color-dimmed)',
+      }}
+    >
+      {asset ? <CardToken token={asset} /> : null}
+    </div>
+  );
+}
+
+/**
+ * One placed token's row, in the tint rows' shape: the front, its name and where it is, then the removal.
+ * The row opens on its sliders;
+ * open, it wears the same ring the proof draws round the token.
+ */
 function TokenRow({
   token,
-  name,
+  asset,
   open,
   onOpen,
   onChange,
   onRemove,
 }: Readonly<{
   token: Placement;
-  name: string;
+  asset: Token;
   open: boolean;
   onOpen: () => void;
   onChange: (update: Partial<Placement>) => void;
   onRemove: () => void;
 }>) {
+  const name = asset?.name ?? (asset === null ? 'Unavailable token' : 'Loading token...');
   return (
     <Stack
       gap={6}
@@ -179,11 +229,28 @@ function TokenRow({
         border: `1px solid ${open ? 'var(--mantine-color-yellow-5)' : 'var(--mantine-color-default-border)'}`,
       }}
     >
-      <Group justify="space-between" wrap="nowrap">
-        <UnstyledButton onClick={onOpen} aria-expanded={open} style={{ flex: 1 }}>
-          <Text size="sm" fw={600}>
-            {name}
-          </Text>
+      <Group justify="space-between" gap="xs" wrap="nowrap">
+        <UnstyledButton
+          onClick={onOpen}
+          aria-expanded={open}
+          aria-label={`${open ? 'Close' : 'Open'} ${name}`}
+          miw={0}
+          flex={1}
+        >
+          <Group gap="sm" wrap="nowrap" miw={0}>
+            <TokenThumb asset={asset} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <Text size="sm" fw={600}>
+                {name}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {tokenSummary(token)}
+              </Text>
+            </div>
+            <Text component="span" c={open ? 'yellow' : 'dimmed'} lh={0} aria-hidden>
+              {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </Text>
+          </Group>
         </UnstyledButton>
         <ConfirmDeleteAction
           label={`Remove ${name}`}
@@ -195,13 +262,14 @@ function TokenRow({
         />
       </Group>
       {open ? (
-        <Stack gap={4}>
+        <Stack gap={4} pt={2}>
           <TokenSlider
             label="Across"
             value={token.x}
             min={0}
             max={SPICE_BOARD_SIZE}
             step={0.5}
+            format={acrossMap}
             onChange={(x) => onChange({ x })}
           />
           <TokenSlider
@@ -210,6 +278,7 @@ function TokenRow({
             min={0}
             max={SPICE_BOARD_SIZE}
             step={0.5}
+            format={acrossMap}
             onChange={(y) => onChange({ y })}
           />
           <TokenSlider
@@ -226,6 +295,7 @@ function TokenRow({
             min={-180}
             max={180}
             step={1}
+            format={degrees}
             onChange={(rotation) => onChange({ rotation })}
           />
         </Stack>
@@ -438,13 +508,11 @@ export function SpiceBoardFields({
           <Stack gap="xs">
             {read?.error ? <Alert color="red">{read.error}</Alert> : null}
             {link.tokens.map((token) => {
-              const asset = read?.tokens[token.asset_id];
-              const name = asset?.name ?? (asset === null ? 'Unavailable token' : 'Loading token...');
               return (
                 <TokenRow
                   key={token.layerId}
                   token={token}
-                  name={name}
+                  asset={read?.tokens[token.asset_id]}
                   open={focus.token === token.layerId}
                   onOpen={() => focus.setToken(focus.token === token.layerId ? null : token.layerId)}
                   onChange={(update) => setToken(token.layerId, update)}

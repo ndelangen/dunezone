@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import type { TerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
 import { setTerritoryBrush, territoryBrush, useTerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
-import { NewTints, TintRow } from '../../../../widgets/territory-tints/TintControls';
+import { NewTints, TintRow } from '../../../../widgets/tabletop/TintControls';
 import { territoryTintPresets } from './territoryTintPresets';
 
 type Props = { client: TableSession; table: TableProjection };

@@ -5,7 +5,7 @@ import { Brush, Square, Sticker } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { TINT_STICKERS } from '../tabletop/tintStickers';
+import { TINT_STICKERS } from './tintStickers';
 
 /*
  * The controls a territory tint is edited with, shared by the Play table's tints and a Spice card's.
@@ -196,17 +196,21 @@ export function TintRow({
   before?: ReactNode;
   after?: ReactNode;
 }>) {
+  /*
+   * The name and summary claim a readable column first;
+   * the buttons drop under them when the panel is too narrow for both, rather than squeezing the words to one per line.
+   */
   return (
     <Group
       justify="space-between"
-      wrap="nowrap"
+      gap="xs"
       px="sm"
       py={6}
       style={{ borderRadius: 8, border: `1px solid ${painting ? tint.color : 'var(--mantine-color-default-border)'}` }}
     >
-      <Group gap="sm" wrap="nowrap" style={{ opacity: tint.hidden ? 0.5 : 1 }}>
+      <Group gap="sm" wrap="nowrap" miw={0} flex="1 1 9rem" style={{ opacity: tint.hidden ? 0.5 : 1 }}>
         <TintColor tint={tint} enabled={enabled} onColor={onColor} />
-        <div>
+        <div style={{ minWidth: 0 }}>
           <Text size="sm" fw={600}>
             {tint.name}
           </Text>
@@ -215,7 +219,7 @@ export function TintRow({
           </Text>
         </div>
       </Group>
-      <Group gap={4} wrap="nowrap">
+      <Group gap={4} wrap="nowrap" ml="auto">
         {before}
         <SettingToggle label="Outline only" on={!!tint.outline} enabled={enabled} onToggle={onOutline}>
           <Square size={18} />
