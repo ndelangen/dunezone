@@ -1,6 +1,7 @@
 import { Anchor, SimpleGrid, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { ArrowRight, Layers3 } from 'lucide-react';
+import { expect, within } from 'storybook/test';
 
 import { Card } from '../surface/Card';
 import { Surface } from '../surface/Surface';
@@ -84,6 +85,17 @@ export const ExpertControls = meta.story({
     title: 'Spice reserve',
     description: 'Only you see this balance. Withdraw spice onto the table.',
     hiddenHeading: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole('region', { name: 'Spice reserve' });
+    await expect(region).toHaveAccessibleDescription('Only you see this balance. Withdraw spice onto the table.');
+    /* Present for assistive technology, yet inside a box clipped to a single pixel on screen. */
+    const heading = canvas.getByRole('heading', { name: 'Spice reserve' });
+    const clip = region.firstElementChild?.getBoundingClientRect();
+    await expect(region.firstElementChild?.contains(heading)).toBe(true);
+    await expect(clip?.width).toBeLessThanOrEqual(1);
+    await expect(clip?.height).toBeLessThanOrEqual(1);
   },
 });
 

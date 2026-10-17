@@ -95,6 +95,10 @@ export const Hivers = meta.story({
       ],
     },
   },
+  /* A faction with no alliance decals, which the alliance section answers with a notice rather than an empty list. */
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText('No alliance decals')).toBeVisible();
+  },
 });
 
 export const AdvisoryBlanks = meta.story({
@@ -110,6 +114,14 @@ export const AdvisoryBlanks = meta.story({
         alliance: { text: '' },
       },
     },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText(/^The alliance advantage is empty\./)).toHaveAttribute('role', 'status');
+    await expect(canvas.getByText(/^The faction leader name is empty\./)).toHaveAttribute('role', 'status');
+    await expect(
+      canvas.getByText(/Most factions use five supporting leaders; this roster is still valid\./)
+    ).toBeVisible();
   },
 });
 

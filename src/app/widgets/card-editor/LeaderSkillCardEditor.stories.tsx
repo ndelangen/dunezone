@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
-import { expect, fn, within } from 'storybook/test';
+import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { LeaderSkillCardEditor, INITIAL_LEADER_SKILL_MEMORY } from './LeaderSkillCardEditor';
 
@@ -35,7 +35,20 @@ export const Head = meta.story({
   },
 });
 
-export const Artwork = meta.story({ args: { chapter: 'decals' as const } });
+/** The decal chapter lists the skill's one decal; adding a row and flipping a switch each patch the draft's decals. */
+export const Artwork = meta.story({
+  args: { chapter: 'decals' as const },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('Decal 1')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Add decal' }));
+    await expect(args.patch).toHaveBeenLastCalledWith({
+      decals: [args.draft.decals[0], expect.objectContaining({ muted: false, offset: [0, 0] })],
+    });
+    await userEvent.click(canvas.getByRole('switch', { name: 'Muted treatment for decal 1' }));
+    await expect(args.patch).toHaveBeenLastCalledWith({ decals: [{ ...args.draft.decals[0], muted: true }] });
+  },
+});
 export const Abilities = meta.story({
   args: { chapter: 'abilities' as const },
   play: async ({ canvasElement }) => {
@@ -44,4 +57,11 @@ export const Abilities = meta.story({
     await expect(canvas.getByRole('textbox', { name: 'General ability' })).toBeVisible();
   },
 });
-export const About = meta.story({ args: { chapter: 'about' as const } });
+export const About = meta.story({
+  args: { chapter: 'about' as const },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('textbox', { name: 'About' })).toHaveValue(args.draft.about);
+    await expect(canvas.queryByRole('textbox', { name: 'Type' })).toBeNull();
+  },
+});

@@ -1,6 +1,7 @@
 import { Group } from '@mantine/core';
 import preview from '@sb/preview';
 import { Crown } from 'lucide-react';
+import { expect, within } from 'storybook/test';
 
 import { StatusBadge } from './StatusBadge';
 
@@ -38,6 +39,11 @@ export const Tones = meta.story({
 /** For statuses that change without the reader acting, announced politely to assistive tech. */
 export const Live = meta.story({
   args: { tone: 'progress', live: true, children: 'In progress' },
+  play: async ({ canvasElement }) => {
+    const status = within(canvasElement).getByRole('status');
+    await expect(status).toHaveAttribute('aria-live', 'polite');
+    await expect(status).toHaveTextContent('In progress');
+  },
 });
 
 export const LongLabel = meta.story({

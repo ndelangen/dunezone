@@ -1,6 +1,7 @@
 import { Avatar } from '@mantine/core';
 import preview from '@sb/preview';
 import { Link } from '@tanstack/react-router';
+import { expect, within } from 'storybook/test';
 
 import { Spotlight } from './Spotlight';
 
@@ -31,4 +32,14 @@ export const WithoutEyebrow = meta.story({
 /** The title truncates rather than reflowing the row or pushing the chevron out. */
 export const LongTitle = meta.story({
   args: { title: 'The Combined Honored Matres and Bene Gesserit Reverend Mother Council' },
+  globals: { viewport: { value: 'contentNarrow' } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const title = canvas.getByText('The Combined Honored Matres and Bene Gesserit Reverend Mother Council');
+    await expect(title.scrollWidth).toBeGreaterThan(title.clientWidth);
+    /* The chevron is the row's last glyph, and it stays on the surface. */
+    const surface = canvas.getByRole('link');
+    const chevron = [...surface.querySelectorAll('svg')].at(-1)!.getBoundingClientRect();
+    await expect(chevron.right).toBeLessThanOrEqual(surface.getBoundingClientRect().right);
+  },
 });

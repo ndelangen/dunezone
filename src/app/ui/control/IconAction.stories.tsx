@@ -1,7 +1,8 @@
 import { Group } from '@mantine/core';
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { ArrowLeft, Check, Copy, Download, Pencil, Send, Trash2 } from 'lucide-react';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { IconAction } from './IconAction';
 
@@ -37,6 +38,13 @@ export const LongerTooltip = meta.story({
     label: 'Sync migration status',
     tooltip: 'Sync status snapshot to migration_runs table',
     icon: <Check size={17} aria-hidden />,
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.hover(page.getByRole('button', { name: 'Sync migration status' }));
+    await expect(
+      await waitForFrame(() => page.getByRole('tooltip', { name: 'Sync status snapshot to migration_runs table' }))
+    ).toBeInTheDocument();
   },
 });
 

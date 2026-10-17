@@ -4,6 +4,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { loadAssetPage } from '@db/assets';
 
+import { findSave } from '../../../../authoringToolbarPlay';
 import { pageStoryMeta } from '../../../../storybookConfig';
 
 /*
@@ -86,6 +87,12 @@ export const BundleCopyWithTokens = meta.story({
     await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Atreides Tokens');
     await userEvent.click(page.getByRole('button', { name: 'Save bundle' }));
     await expect(page.findByRole('button', { name: 'Delete bundle' })).resolves.toBeVisible();
+    /* The edit page the save lands on lists the copied members and holds nothing unsaved. */
+    await userEvent.click(page.getByRole('tab', { name: 'Tokens' }));
+    for (const name of ['Karama', 'Kwisatz Haderach']) {
+      await expect(page.findByRole('textbox', { name: `How many ${name}` })).resolves.toHaveValue('1');
+    }
+    await expect(findSave(canvasElement)).resolves.toHaveAccessibleDescription(/^No unsaved changes/);
     await waitFor(async () =>
       expect((await loadAssetPage('bundle', 'atreides-tokens-1'))?.members.map((entry) => entry.member.name)).toEqual(
         expect.arrayContaining(['Karama', 'Kwisatz Haderach'])

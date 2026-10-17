@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { expect, within } from 'storybook/test';
 
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
@@ -24,4 +25,10 @@ const meta = preview.meta({
   },
 });
 
-export const Default = meta.story({});
+export const Default = meta.story({
+  play: async ({ canvasElement }) => {
+    const link = within(canvasElement).getByRole('link', { name: 'New arrival House Ecaz Created Jul 27, 2026' });
+    await expect(link).toHaveAttribute('href', '/factions/house-ecaz');
+    await expect(link.querySelector('use')).toHaveAttribute('xlink:href', '/vector/logo/ecaz.svg#root');
+  },
+});

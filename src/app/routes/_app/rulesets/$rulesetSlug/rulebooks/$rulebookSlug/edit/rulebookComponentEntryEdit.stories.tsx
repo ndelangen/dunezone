@@ -24,4 +24,16 @@ export const CardEntry = meta.story({
   },
 });
 
-export const StockArtwork = meta.story({ render: () => <StockComponentStory /> });
+/** A stock artwork source: the editor names it, and the page draws it beside the entry's heading. */
+export const StockArtwork = meta.story({
+  render: () => <StockComponentStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      within(canvas.getByRole('group', { name: 'Source' })).getByRole('button', { name: 'shield' })
+    ).toBeVisible();
+    const page = within(canvas.getByRole('article', { name: 'Rulebook page: Cards and tokens' }));
+    await expect(page.getByRole('heading', { name: 'Shield' })).toBeVisible();
+    await expect(page.getByRole('img', { name: 'shield' })).toHaveAttribute('src', '/vector/decal/shield.svg');
+  },
+});

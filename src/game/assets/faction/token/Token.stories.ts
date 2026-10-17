@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { expect } from 'storybook/test';
 
 import { Token } from './Token';
 
@@ -27,4 +28,9 @@ export const Default = meta.story({
 /** The reverse of the same token (#1228). */
 export const Blocked = meta.story({
   args: { ...Default.input.args, blocked: true },
+  play: async ({ canvasElement }) => {
+    const faces = canvasElement.querySelectorAll('[data-token-face="blocked"]');
+    await expect(faces).toHaveLength(1);
+    await expect(faces[0]!.querySelector('use[*|href="/vector/decal/block.svg#root"]')).not.toBeNull();
+  },
 });

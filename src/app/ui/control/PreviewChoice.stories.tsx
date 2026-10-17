@@ -1,6 +1,6 @@
 import { Select } from '@mantine/core';
 import preview from '@sb/preview';
-import { fn } from 'storybook/test';
+import { expect, fn, within } from 'storybook/test';
 
 import { PreviewChoice } from './PreviewChoice';
 
@@ -89,5 +89,14 @@ export const FixedCanvasPreview = meta.story({
       },
       { value: 'reference', label: 'Reference', emptyHint: <span>Nothing yet</span> },
     ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement).getByText('900px');
+    const drawn = canvas.getBoundingClientRect();
+    const tile = canvas.closest('[aria-hidden]')!.getBoundingClientRect();
+    /* Scaled to fit, the canvas covers the tile edge to edge rather than overflowing it. */
+    for (const edge of ['left', 'top', 'right', 'bottom'] as const) {
+      await expect(Math.abs(drawn[edge] - tile[edge])).toBeLessThanOrEqual(1);
+    }
   },
 });

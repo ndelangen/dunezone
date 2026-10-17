@@ -127,9 +127,14 @@ export const SaveFailed = meta.story({
   },
 });
 
-/** Saved: Save shows a check. */
+/** Saved: Save shows a check, and its description and the live region say so. */
 export const Saved = meta.story({
   args: { ...cleanToolbar, status: { ...cleanStatus, saveState: 'saved' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.getByRole('button', { name: 'Save faction' })).toHaveAccessibleDescription('Saved');
+    await expect(page.getByRole('status')).toHaveTextContent('Saved');
+  },
 });
 
 /**

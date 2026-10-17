@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import type { RulebookRenderBlockV1 } from '@shared/rulebooks/renderDocument';
-import { expect, waitFor } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { RulebookBlockRenderer } from './RulebookBlockRenderer';
 import { factionIntroductionFixture } from './RulebookFactionIntroduction.stories.fixture';
@@ -102,6 +102,11 @@ export const UnavailableToken = meta.story({
           ? { ...unavailableTokenBlock.faction, tokenImageUrl: undefined }
           : unavailableTokenBlock.faction,
     },
+  },
+  /* The layout holds with the token gone, and its slot names the gap. */
+  play: async (context) => {
+    await expectResponsiveFaction(context);
+    await expect(within(context.canvasElement).getByRole('img', { name: 'Faction token unavailable' })).toBeVisible();
   },
 });
 

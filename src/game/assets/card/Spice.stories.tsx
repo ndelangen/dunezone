@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { resolveAsset } from '@shared/media/resolveAsset';
 import type { ComponentProps } from 'react';
 import { expect } from 'storybook/test';
 
@@ -110,6 +111,17 @@ export const DiscoveryWindPassNorth = meta.story({
         scale: 6.2,
       },
     ],
+  },
+  /* The overlay draws once on the map, at its authored offset and scale. */
+  play: async ({ canvasElement }) => {
+    const href = resolveAsset('/image/texture/052.jpg', 'large');
+    const overlays = Array.from(canvasElement.querySelectorAll('svg image')).filter(
+      (image) => image.getAttribute('href') === href
+    );
+    await expect(overlays).toHaveLength(1);
+    await expect(overlays[0]).toHaveAttribute('x', '21.6');
+    await expect(overlays[0]).toHaveAttribute('y', '16.4');
+    await expect(overlays[0]).toHaveAttribute('width', '6.2');
   },
 });
 

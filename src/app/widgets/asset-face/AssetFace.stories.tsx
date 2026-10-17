@@ -7,7 +7,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { backgroundPresets } from '@game/data/backgrounds';
 import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
 
-import { AssetFace } from './AssetFace';
+import { AssetFace, assetFaceAspect } from './AssetFace';
 import type { AssetFaceMember } from './AssetFace';
 
 /*
@@ -72,6 +72,15 @@ const meta = preview.meta({
   args: { type: 'card-treachery', data: TREACHERY, name: 'Lasgun', href: publishedImage },
 });
 
+/** Waits until every published face in the story has decoded at the renderers' 900px width. */
+async function expectFacesLoaded(canvasElement: HTMLElement, count: number) {
+  await waitFor(async () => {
+    const images = canvasElement.querySelectorAll('img');
+    await expect(images).toHaveLength(count);
+    await expect([...images].every((image) => image.naturalWidth === 900)).toBe(true);
+  });
+}
+
 /** Four real widths from the app: a picker row, a landing pile, a browse tile, and the detail page's hero. */
 const WIDTHS = [44, 96, 220, 340];
 
@@ -97,11 +106,7 @@ function acrossWidths(args: Parameters<typeof AssetFace>[0]) {
 export const PublishedCard = meta.story({
   render: acrossWidths,
   play: async ({ canvasElement }) => {
-    await waitFor(async () => {
-      const images = canvasElement.querySelectorAll('img');
-      await expect(images).toHaveLength(WIDTHS.length);
-      await expect([...images].every((image) => image.naturalWidth === 900)).toBe(true);
-    });
+    await expectFacesLoaded(canvasElement, WIDTHS.length);
     await expect(canvasElement.querySelectorAll('svg pattern')).toHaveLength(0);
   },
 });
@@ -156,16 +161,28 @@ export const PublicationAfterFailure = meta.story({
   },
 });
 
+const TOKEN_TYPES = ['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance'];
+
+/** Each token type's face keeps its own shape's ratio, so its height over its width is that shape's aspect. */
 export const PublishedTokenShapes = meta.story({
   render: () => (
     <Group align="start">
-      {['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance'].map((type) => (
+      {TOKEN_TYPES.map((type) => (
         <Box key={type} w={96}>
           <AssetFace type={type} data={DISC} name={type} href={publishedImage} />
         </Box>
       ))}
     </Group>
   ),
+  play: async ({ canvasElement }) => {
+    await expectFacesLoaded(canvasElement, TOKEN_TYPES.length);
+    const canvas = within(canvasElement);
+    for (const type of TOKEN_TYPES) {
+      const face = canvas.getByRole('img', { name: type }).closest('[data-phase]');
+      const box = face?.getBoundingClientRect();
+      await expect(box && box.height / box.width).toBeCloseTo(assetFaceAspect(type), 1);
+    }
+  },
 });
 
 /** A bundle publishes nothing, so its row carries no href and its container is drawn from its band. */
@@ -187,6 +204,11 @@ export const BundleWithMembers = meta.story({
 /** A band that will not read draws the missing state at the container's ratio rather than crashing a page. */
 export const UnreadableBundle = meta.story({
   args: { type: 'bundle', data: { nothing: 'usable' }, name: 'Missing Band', href: null },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).findByRole('img', { name: 'Missing Band: preview unavailable' })
+    ).resolves.toBeVisible();
+  },
 });
 
 /**
@@ -196,4 +218,19 @@ export const UnreadableBundle = meta.story({
 export const BundleAtAnyWidth = meta.story({
   args: { type: 'bundle', data: BUNDLE, name: 'Weapons', href: null, members: MEMBERS },
   render: acrossWidths,
+  play: async ({ canvasElement }) => {
+    await expectFacesLoaded(canvasElement, WIDTHS.length * MEMBERS.length);
+    const canvas = within(canvasElement);
+    for (const width of WIDTHS) {
+      /* The parent box is the block's top edge; no tilted member's corner may rise past it. */
+      const parent = canvas.getByText(`${width}px parent`).previousElementSibling;
+      if (!(parent instanceof HTMLElement)) {
+        throw new Error(`No ${width}px parent box`);
+      }
+      const { top } = parent.getBoundingClientRect();
+      for (const member of within(parent).getAllByRole('img')) {
+        await expect(member.getBoundingClientRect().top).toBeGreaterThanOrEqual(top - 0.5);
+      }
+    }
+  },
 });

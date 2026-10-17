@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import type { ComponentProps } from 'react';
+import { expect, within } from 'storybook/test';
 
 import { Token } from '../token/Token';
 
@@ -120,7 +121,23 @@ function Emblem({ logo, size }: { logo: Logo; size: number }) {
   );
 }
 
+/**
+ * Every emblem on a token and at 32 and 48 pixels.
+ * A `<use>` whose target is missing draws nothing and reports nothing, so the play fetches each file and looks for the `root` it points at.
+ */
 export const NewEmblems = meta.story({
+  play: async ({ canvasElement }) => {
+    const entries = Object.values(emblems);
+    await expect(within(canvasElement).getAllByRole('article')).toHaveLength(entries.length);
+    const broken = await Promise.all(
+      entries.map(async ({ logo }) => {
+        const response = await fetch(logo);
+        const source = await response.text();
+        return response.ok && source.includes('id="root"') ? null : `${logo} ${response.status} ${source.slice(0, 80)}`;
+      })
+    );
+    await expect(broken.filter(Boolean)).toEqual([]);
+  },
   globals: { viewport: { value: undefined } },
   parameters: { layout: 'fullscreen' },
   render: () => (

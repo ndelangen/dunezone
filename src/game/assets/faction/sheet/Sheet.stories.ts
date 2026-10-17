@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { FactionRender } from '@shared/factions/schema';
+import { expect, within } from 'storybook/test';
 
 import { FactionSheet } from './Sheet';
 
@@ -117,6 +118,18 @@ export const Default = meta.story({
         strength: '5',
       },
     ],
+  },
+  /* The name and all five leaders render, and the advantages fit page one's two columns without spilling into a third. */
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await document.fonts.ready;
+    await expect(canvas.getByText(args.name)).toBeVisible();
+    for (const leader of args.leaders) {
+      await expect(canvas.getByLabelText(leader.name)).toBeInTheDocument();
+    }
+    const rules = canvas.getByText('Advantages').parentElement!;
+    await expect(rules.scrollWidth).toBeLessThanOrEqual(rules.clientWidth + 1);
+    await expect(rules.scrollHeight).toBeLessThanOrEqual(rules.clientHeight + 1);
   },
 });
 
