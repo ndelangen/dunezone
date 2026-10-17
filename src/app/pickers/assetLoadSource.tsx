@@ -42,6 +42,21 @@ export function assetLoadSource<Data>({
   );
 }
 
+const UNUSABLE = { kind: 'error', message: 'This one could not be loaded. Choose another.' } as const;
+
+/** Reads a picked Asset's own page and parses its stored data; anything missing or unparsable is one unusable choice. */
+async function readChoice<Data>(
+  type: AssetType,
+  slug: string,
+  schema: z.ZodType<Data>
+): Promise<LoadChoice<LoadedAsset<Data>>> {
+  const page = await loadAssetPage(type, slug).catch(() => null);
+  const parsed = page ? schema.safeParse(page.asset.data) : null;
+  return page && parsed?.success
+    ? { kind: 'chosen', name: page.asset.name, draft: { data: parsed.data, source: page } }
+    : UNUSABLE;
+}
+
 function AssetLoadChoices<Data>({
   type,
   schema,
@@ -57,7 +72,6 @@ function AssetLoadChoices<Data>({
 }) {
   /* Only the latest pick may report, so a slow read cannot overwrite a quicker later choice. */
   const latest = useRef(0);
-  const unusable = { kind: 'error', message: 'This one could not be loaded. Choose another.' } as const;
   return (
     <Stack gap="sm">
       {presets?.length ? (
@@ -90,24 +104,11 @@ function AssetLoadChoices<Data>({
         onPick={(picked) => {
           const ticket = ++latest.current;
           report({ kind: 'pending' });
-          void loadAssetPage(type, picked.slug).then(
-            (page) => {
-              if (ticket !== latest.current) {
-                return;
-              }
-              const parsed = page ? schema.safeParse(page.asset.data) : null;
-              report(
-                parsed?.success && page
-                  ? { kind: 'chosen', name: page.asset.name, draft: { data: parsed.data, source: page } }
-                  : unusable
-              );
-            },
-            () => {
-              if (ticket === latest.current) {
-                report(unusable);
-              }
+          void readChoice(type, picked.slug, schema).then((choice) => {
+            if (ticket === latest.current) {
+              report(choice);
             }
-          );
+          });
         }}
       />
     </Stack>

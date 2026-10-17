@@ -1,4 +1,4 @@
-import { Alert, Stack, Text } from '@mantine/core';
+import { Alert, Text } from '@mantine/core';
 import { RectangleTokenAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
@@ -25,6 +25,7 @@ import {
 import type { RectangleChapter, RectangleDraft, RectangleMemory } from '@app/widgets/token-editor/RectangleTokenEditor';
 
 import { referencedRectangleBackFace } from '../$slug/edit/referencedBackFace';
+import { ReferencedBackProof } from '../$slug/edit/ReferencedBackProof';
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
 import { LoadedRectangleDraft } from '../../loadedDrafts';
 
@@ -204,18 +205,10 @@ export function RectangleCreatePage() {
             )}
             backProof={
               state.memory.pickedBack ? (
-                <Stack gap={4} align="center" w="100%">
-                  {referencedBack ? (
-                    <RectangleProof face={referencedBack} />
-                  ) : (
-                    <Text size="xs" c="dimmed">
-                      Its stored back can no longer be read as an authored back, so it cannot be shown here.
-                    </Text>
-                  )}
-                  <Text size="xs" c="dimmed">
-                    Back, from {state.memory.pickedBack.name}
-                  </Text>
-                </Stack>
+                <ReferencedBackProof
+                  from={state.memory.pickedBack.name}
+                  proof={referencedBack ? <RectangleProof face={referencedBack} /> : null}
+                />
               ) : null
             }
           />

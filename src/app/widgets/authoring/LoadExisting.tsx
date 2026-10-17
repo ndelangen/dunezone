@@ -43,6 +43,26 @@ export interface LoadExistingProps<Draft> {
  *
  * The popover wraps the whole toolbar rather than the trigger, because a trigger may move into the toolbar's overflow menu and the popover must survive that handoff.
  */
+const OVERFLOW_MENU_BUTTON = 'button[aria-label="More actions"]';
+
+/** The toolbar's overflow menu button, where focus returns when the trigger that opened the popover lived in that menu. */
+function overflowMenuButton(toolbar: HTMLElement | null) {
+  return toolbar?.querySelector<HTMLButtonElement>(OVERFLOW_MENU_BUTTON) ?? null;
+}
+
+/** The words for each mode, so the confirmation reads the same in every editor. */
+function loadCopy(noun: string, mode: 'create' | 'replace') {
+  return mode === 'create'
+    ? {
+        intro: `Choose a ${noun} to use as the starting point for this new ${noun}.`,
+        note: `Loading replaces every unsaved change. Saving creates a separate ${noun}.`,
+      }
+    : {
+        intro: `Choose a ${noun} to load into this draft.`,
+        note: 'Loading replaces every unsaved change. Saving is still a separate action.',
+      };
+}
+
 export function LoadExisting<Draft>({ noun, mode, disabled, source, onLoaded, children }: LoadExistingProps<Draft>) {
   const [opened, setOpened] = useState(false);
   const loadId = useId();
@@ -53,9 +73,8 @@ export function LoadExisting<Draft>({ noun, mode, disabled, source, onLoaded, ch
   const close = () => {
     setOpened(false);
     requestAnimationFrame(() => {
-      const fallback = toolbarTarget.current?.querySelector<HTMLButtonElement>('button[aria-label="More actions"]');
       const trigger = returnTarget.current;
-      (trigger?.isConnected ? trigger : fallback)?.focus();
+      (trigger?.isConnected ? trigger : overflowMenuButton(toolbarTarget.current))?.focus();
     });
   };
 
@@ -77,8 +96,9 @@ export function LoadExisting<Draft>({ noun, mode, disabled, source, onLoaded, ch
         <div
           ref={toolbarTarget}
           onClickCapture={(event) => {
+            /* Any other toolbar button closes the popover, so two of the toolbar's layers are never open at once. */
             const button = event.target instanceof Element ? event.target.closest('button') : null;
-            if (opened && button && button.getAttribute('aria-controls') !== dropdownId) {
+            if (button && button.getAttribute('aria-controls') !== dropdownId) {
               setOpened(false);
             }
           }}
@@ -90,10 +110,8 @@ export function LoadExisting<Draft>({ noun, mode, disabled, source, onLoaded, ch
               opened={opened}
               dropdownId={dropdownId}
               onOpen={(trigger) => {
-                returnTarget.current = trigger.closest('[role="group"][aria-label="More actions"]')
-                  ? (toolbarTarget.current?.querySelector<HTMLButtonElement>('button[aria-label="More actions"]') ??
-                    null)
-                  : trigger;
+                const inOverflow = trigger.closest('[role="group"][aria-label="More actions"]');
+                returnTarget.current = inOverflow ? overflowMenuButton(toolbarTarget.current) : trigger;
                 setOpened((was) => !was);
               }}
             />
@@ -167,37 +185,13 @@ function LoadConfirm<Draft>({
   onClose: () => void;
 }) {
   const [choice, report] = useReducer((_: LoadChoice<Draft> | null, next: LoadChoice<Draft>) => next, null);
-  const chosen = choice?.kind === 'chosen' ? choice : null;
+  const copy = loadCopy(noun, mode);
+  const loadable = choice?.kind === 'chosen' && !disabled ? choice : null;
   return (
     <Stack gap="md">
-      <Text size="sm">
-        {mode === 'create'
-          ? `Choose a ${noun} to use as the starting point for this new ${noun}.`
-          : `Choose a ${noun} to load into this draft.`}
-      </Text>
+      <Text size="sm">{copy.intro}</Text>
       {source(report)}
-      {choice?.kind === 'error' ? (
-        <Alert color="red" role="alert">
-          {choice.message}
-        </Alert>
-      ) : null}
-      {choice?.kind === 'pending' ? (
-        <Center>
-          <Loader size="sm" aria-label={`Loading the chosen ${noun}`} />
-        </Center>
-      ) : null}
-      {chosen ? (
-        <Stack gap="xs">
-          <Text size="sm" fw={700}>
-            Load {chosen.name || `this ${noun}`}?
-          </Text>
-          <Text size="sm" c="dimmed">
-            {mode === 'create'
-              ? `Loading replaces every unsaved change. Saving creates a separate ${noun}.`
-              : `Loading replaces every unsaved change. Saving is still a separate action.`}
-          </Text>
-        </Stack>
-      ) : null}
+      {choice ? <ChoiceState choice={choice} noun={noun} note={copy.note} /> : null}
       <Group justify="flex-end">
         <Button type="button" variant="default" size="compact-sm" onClick={onClose}>
           Cancel
@@ -206,13 +200,12 @@ function LoadConfirm<Draft>({
           type="button"
           color="orange"
           size="compact-sm"
-          disabled={!chosen || disabled}
+          disabled={!loadable}
           onClick={() => {
-            if (!chosen || disabled) {
-              return;
+            if (loadable) {
+              onLoaded(structuredClone(loadable.draft));
+              onClose();
             }
-            onLoaded(structuredClone(chosen.draft));
-            onClose();
           }}
         >
           Load {noun}
@@ -220,4 +213,33 @@ function LoadConfirm<Draft>({
       </Group>
     </Stack>
   );
+}
+
+/** What the latest choice amounts to: still being read, unusable, or ready to confirm. */
+function ChoiceState<Draft>({ choice, noun, note }: { choice: LoadChoice<Draft>; noun: string; note: string }) {
+  switch (choice.kind) {
+    case 'pending':
+      return (
+        <Center>
+          <Loader size="sm" aria-label={`Loading the chosen ${noun}`} />
+        </Center>
+      );
+    case 'error':
+      return (
+        <Alert color="red" role="alert">
+          {choice.message}
+        </Alert>
+      );
+    case 'chosen':
+      return (
+        <Stack gap="xs">
+          <Text size="sm" fw={700}>
+            Load {choice.name || `this ${noun}`}?
+          </Text>
+          <Text size="sm" c="dimmed">
+            {note}
+          </Text>
+        </Stack>
+      );
+  }
 }

@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Popover, Stack, Text } from '@mantine/core';
+import { Alert, Button, Group, Popover, Text } from '@mantine/core';
 import { RectangleTokenAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
 import { LoginGate } from '@ui/block/LoginGate';
@@ -41,6 +41,7 @@ import {
 } from '../../../assetEditorStates';
 import { LoadedRectangleDraft } from '../../../loadedDrafts';
 import { referencedRectangleBackFace } from './referencedBackFace';
+import { ReferencedBackProof } from './ReferencedBackProof';
 
 export function RectangleEditPage({
   type,
@@ -355,18 +356,10 @@ function RectangleEditSession({
             )}
             backProof={
               state.memory.pickedBack ? (
-                <Stack gap={4} align="center" w="100%">
-                  {referencedBack ? (
-                    <RectangleProof face={referencedBack} />
-                  ) : (
-                    <Text size="xs" c="dimmed">
-                      Its stored back can no longer be read as an authored back, so it cannot be shown here.
-                    </Text>
-                  )}
-                  <Text size="xs" c="dimmed">
-                    Back, from {state.memory.pickedBack.name}
-                  </Text>
-                </Stack>
+                <ReferencedBackProof
+                  from={state.memory.pickedBack.name}
+                  proof={referencedBack ? <RectangleProof face={referencedBack} /> : null}
+                />
               ) : null
             }
           />

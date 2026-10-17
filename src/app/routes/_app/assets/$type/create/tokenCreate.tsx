@@ -1,4 +1,4 @@
-import { Alert, Stack, Text } from '@mantine/core';
+import { Alert, Text } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
@@ -27,6 +27,7 @@ import {
 import type { TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
 
 import { referencedTokenBackFace } from '../$slug/edit/referencedBackFace';
+import { ReferencedBackProof } from '../$slug/edit/ReferencedBackProof';
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
 import { LoadedTokenDraft } from '../../loadedDrafts';
 
@@ -205,18 +206,10 @@ export function TokenCreatePage({ type }: { type: AssetType }) {
             )}
             backProof={
               state.memory.pickedBack ? (
-                <Stack gap={4} align="center" w="100%">
-                  {referencedBack ? (
-                    <TokenProof face={referencedBack} type={type} />
-                  ) : (
-                    <Text size="xs" c="dimmed">
-                      Its stored back can no longer be read as an authored back, so it cannot be shown here.
-                    </Text>
-                  )}
-                  <Text size="xs" c="dimmed">
-                    Back, from {state.memory.pickedBack.name}
-                  </Text>
-                </Stack>
+                <ReferencedBackProof
+                  from={state.memory.pickedBack.name}
+                  proof={referencedBack ? <TokenProof face={referencedBack} type={type} /> : null}
+                />
               ) : null
             }
           />
