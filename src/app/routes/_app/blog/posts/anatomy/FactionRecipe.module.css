@@ -344,39 +344,3 @@
   width: min(40rem, 100%);
   margin-block: var(--space-xl) var(--space-md);
 }
-
-.scaled {
-  --art-aspect: 1;
-  --art-scale: 1;
-
-  display: block;
-  height: calc(var(--output-height) * var(--art-scale));
-  aspect-ratio: var(--art-aspect);
-  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 45%));
-}
-
-.scaled.round {
-  overflow: hidden;
-  border-radius: 50%;
-}
-
-/* The sheet's own preview frame, at the page's native size inside its scaled canvas. */
-.sheet {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.stack,
-.fan {
-  display: flex;
-}
-
-.stack .scaled + .scaled {
-  margin-inline-start: calc(var(--output-height) * -0.42);
-}
-
-.fan .scaled + .scaled {
-  margin-inline-start: calc(var(--output-height) * -0.45);
-}

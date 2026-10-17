@@ -28,6 +28,7 @@ export type BlogPostMeta = {
  * Publishing a post is adding its slug to `BLOG_POST_SLUGS`, its metadata here, and its body to `postBodies.ts`;
  * the types refuse a slug that is missing from either, and `postBodies.test.tsx` refuses a body that does not end on a picture.
  * A body file under `posts/` is named for its slug, never `index.tsx` or `*.route.tsx`, which the router would read as a page.
+ * A folder beside it, like `posts/anatomy/`, holds that post's own figures and follows the same naming rule.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'anatomy-of-a-dune-faction-atreides': {
@@ -94,10 +95,7 @@ export function findBlogPost(slug: string): BlogPostMeta | undefined {
 /** Only verified author profiles become links; another author keeps their written byline. */
 const AUTHOR_PROFILES = new Map([['Central419', 'central']]);
 
-export function blogPostAuthor(meta: BlogPostMeta): {
-  name: string;
-  profileSlug?: string;
-} {
+export function blogPostAuthor(meta: BlogPostMeta): { name: string; profileSlug?: string } {
   return { name: meta.author, profileSlug: AUTHOR_PROFILES.get(meta.author) };
 }
 

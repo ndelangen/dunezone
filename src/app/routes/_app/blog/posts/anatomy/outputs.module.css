@@ -1,0 +1,13 @@
+/* Several pieces of one kind overlapping, as a stack of tokens or a fan of cards. */
+.stack,
+.fan {
+  display: flex;
+}
+
+.stack > * + * {
+  margin-inline-start: calc(var(--output-height) * -0.42);
+}
+
+.fan > * + * {
+  margin-inline-start: calc(var(--output-height) * -0.45);
+}

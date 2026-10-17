@@ -12,7 +12,7 @@ import { TraitorCard } from '@game/assets/faction/traitor/Traitor';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { card, disc, page, shield } from '@game/data/sizes';
 
-import { Scaled } from './FactionRecipe';
+import { Scaled, SheetFrame } from './Scaled';
 import { SMUGGLERS } from './smugglers';
 import styles from './TableSpread.module.css';
 
@@ -43,9 +43,9 @@ export function TableSpread() {
       <div className={styles.table}>
         <Placed area="sheet" tilt={-3}>
           <Scaled size={page} scale={2.6}>
-            <span className={styles.sheet}>
+            <SheetFrame>
               <FactionSheetPagePreview faction={FACTION} pageNumber={1} />
-            </span>
+            </SheetFrame>
           </Scaled>
         </Placed>
         <Placed area="shield" tilt={1.5}>

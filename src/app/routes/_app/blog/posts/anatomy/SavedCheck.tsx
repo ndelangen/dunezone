@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { useRef } from 'react';
 import type { CSSProperties } from 'react';
 
-import { FACTION } from './FactionRecipe';
+import { HOUSE_ATREIDES as FACTION } from './houseAtreides';
 import styles from './SavedCheck.module.css';
 import { useSeen } from './useSeen';
 
@@ -35,7 +35,12 @@ export function SavedCheck() {
   const seen = useSeen(rootRef, 0.5);
 
   return (
-    <div ref={rootRef} className={clsx(styles.root, seen && styles.seen)}>
+    <div
+      ref={rootRef}
+      className={clsx(styles.root, seen && styles.seen)}
+      role="group"
+      aria-label={`${FACTION.name}, checked against the save rules`}
+    >
       <div className={styles.slip}>
         <p className={styles.heading}>
           <span>Faction</span>

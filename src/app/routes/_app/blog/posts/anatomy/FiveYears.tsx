@@ -2,8 +2,8 @@ import clsx from 'clsx';
 import { useRef } from 'react';
 import type { CSSProperties } from 'react';
 
-import { FACTION } from './FactionRecipe';
 import styles from './FiveYears.module.css';
+import { HOUSE_ATREIDES as FACTION } from './houseAtreides';
 import { useSeen } from './useSeen';
 
 /*
@@ -137,7 +137,12 @@ export function FiveYears() {
   const seen = useSeen(rootRef, 0.4);
 
   return (
-    <div ref={rootRef} className={clsx(styles.root, seen && styles.seen)}>
+    <div
+      ref={rootRef}
+      className={clsx(styles.root, seen && styles.seen)}
+      role="group"
+      aria-label={`What ${FACTION.name} was in each project, from 2021 to 2026`}
+    >
       <p className={styles.title}>{FACTION.name}, four times</p>
       <ol className={styles.ledger}>
         {ERAS.map((era, index) => (

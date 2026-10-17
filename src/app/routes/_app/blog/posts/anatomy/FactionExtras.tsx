@@ -10,7 +10,9 @@ import { CustomToken } from '@game/assets/token/Custom';
 import { card, disc } from '@game/data/sizes';
 
 import styles from './FactionExtras.module.css';
-import { FACTION, OUTPUTS, Scaled } from './FactionRecipe';
+import { HOUSE_ATREIDES } from './houseAtreides';
+import { outputsFor } from './outputs';
+import { Scaled } from './Scaled';
 import { useSeen } from './useSeen';
 
 /*
@@ -19,6 +21,8 @@ import { useSeen } from './useSeen';
  * The extras slide in once the figure scrolls into view, and stay put under reduced motion.
  */
 
+const FACTION = HOUSE_ATREIDES;
+const OUTPUTS = outputsFor(FACTION);
 const { about: _about, ...cardFace } = publishingCustomCard;
 
 /** The set in two rows: the paper pieces first, then the shield with the tokens beside it. */
@@ -36,7 +40,12 @@ export function FactionExtras() {
   const seen = useSeen(rootRef);
 
   return (
-    <div ref={rootRef} className={clsx(styles.root, seen && styles.seen)}>
+    <div
+      ref={rootRef}
+      className={clsx(styles.root, seen && styles.seen)}
+      role="group"
+      aria-label={`${FACTION.name}'s full set, with custom assets linked in`}
+    >
       <p className={styles.title}>{FACTION.name}: the full set</p>
       <div className={styles.tray}>
         <div className={styles.own}>

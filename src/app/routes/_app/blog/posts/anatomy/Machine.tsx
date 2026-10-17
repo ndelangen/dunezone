@@ -15,7 +15,19 @@ const WIDTH = 520;
 const HEIGHT = 258;
 
 /** A gear outline: `teeth` flat-topped teeth between radius `inner` and `outer`, as one closed path around (`cx`, `cy`). */
-function gearPath(cx: number, cy: number, outer: number, inner: number, teeth: number): string {
+function gearPath({
+  cx,
+  cy,
+  outer,
+  inner,
+  teeth,
+}: {
+  cx: number;
+  cy: number;
+  outer: number;
+  inner: number;
+  teeth: number;
+}): string {
   const step = (Math.PI * 2) / teeth;
   const points: string[] = [];
   for (let tooth = 0; tooth < teeth; tooth += 1) {
@@ -48,7 +60,7 @@ function Gear({
 }) {
   return (
     <g className={reverse ? styles.gearReverse : styles.gear} style={{ transformOrigin: `${cx}px ${cy}px` }}>
-      <path d={gearPath(cx, cy, outer, outer - Math.min(5, outer * 0.3), teeth)} />
+      <path d={gearPath({ cx, cy, outer, inner: outer - Math.min(5, outer * 0.3), teeth })} />
       <circle cx={cx} cy={cy} r={outer * 0.45} className={styles.thin} />
       <circle cx={cx} cy={cy} r={outer * 0.14} />
       <path
