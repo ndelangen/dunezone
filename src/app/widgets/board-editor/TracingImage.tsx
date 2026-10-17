@@ -57,8 +57,7 @@ function loadLatest(
   file: File,
   id: number,
   latest: () => number,
-  onImage: (image: TracingImage) => void,
-  onError: (message: string) => void
+  { onImage, onError }: { onImage: (image: TracingImage) => void; onError: (message: string) => void }
 ) {
   readImage(file).then(
     (image) => (id === latest() ? onImage(image) : URL.revokeObjectURL(image.url)),
@@ -101,7 +100,7 @@ export function useTracingImage() {
       input.current?.();
       if (file) {
         setError(null);
-        loadLatest(file, ++request.current, () => request.current, replace, setError);
+        loadLatest(file, ++request.current, () => request.current, { onImage: replace, onError: setError });
       }
     },
     patch: (patch: Partial<TracingImage>) => setTracing((current) => (current ? { ...current, ...patch } : current)),
