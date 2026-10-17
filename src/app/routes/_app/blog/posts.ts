@@ -39,9 +39,9 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
     summary:
       'House Atreides, taken apart: the logo, colours, leaders and rules it is made of, and how dune.zone draws every card, token and sheet from that one faction.',
     cover: {
-      key: '/web/blog/running-from-databases/then-and-now.jpg',
-      alt: 'The Atreides faction sheet from the 2023 prototype next to the House Atreides page on dune.zone',
-      aspect: 823 / 2048,
+      key: '/web/blog/anatomy-of-a-dune-faction-atreides/atreides-table-spread.jpg',
+      alt: 'House Atreides laid out on a table: its shield, both faction sheet pages, five traitor cards, the alliance card, leader tokens, faction token and troops',
+      aspect: 1189 / 1331,
     },
   },
   'all-in-one-dune-board-game-webapp': {

@@ -7649,6 +7649,15 @@
     "isOpaque": true,
     "color": "#080808"
   },
+  "/web/blog/anatomy-of-a-dune-faction-atreides/atreides-table-spread.jpg": {
+    "sha256": "13f00b3582d81614dc5682b39a0961cbc4b49c3c8455ddb091e54f0f5dd86a24",
+    "bytes": 227171,
+    "width": 1331,
+    "height": 1189,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#281818"
+  },
   "/web/blog/running-from-databases/dune-app-creator.jpg": {
     "sha256": "647e14f574719d3e29fcc293ecd4b889ab00028f7aac5c06b817c7614b0bd030",
     "bytes": 531791,

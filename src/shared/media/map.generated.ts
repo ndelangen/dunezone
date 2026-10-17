@@ -943,6 +943,7 @@ export const MEDIA_MAP: Readonly<Record<string, MediaMapEntry>> = {
   '/image/texture/080.jpg': ['3e191cb33b94605cb8bd', '#f8f8f8'],
   '/image/texture/081.jpg': ['a2ce280b7acc39f54d70', '#080808'],
   '/image/texture/082.jpg': ['4e47f3e5fc4284ed21ac', '#080808'],
+  '/web/blog/anatomy-of-a-dune-faction-atreides/atreides-table-spread.jpg': ['13f00b3582d81614dc56', '#281818'],
   '/web/blog/running-from-databases/dune-app-creator.jpg': ['647e14f574719d3e29fc', '#f8f8f8'],
   '/web/blog/running-from-databases/dune-app-leader-card.jpg': ['e9c600befebfa7c52e78', '#e8e8e8'],
   '/web/blog/running-from-databases/dune-assets.jpg': ['9087e9601c9160f238ae', '#f8e8e8'],
