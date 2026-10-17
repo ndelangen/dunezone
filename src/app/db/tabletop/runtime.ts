@@ -13,6 +13,8 @@ export type GameRuntime = {
   onOnline(listener: () => void): () => void;
   /* A tab coming back to the foreground, whose socket may have died while its timers were frozen. */
   onVisible(listener: () => void): () => void;
+  /* Main-thread work that held the page for 50 ms or more, where the browser reports it. */
+  onLongTask?(listener: (durationMs: number) => void): () => void;
   /* Where a tab keeps its last table for a reload; a runtime without one starts every load at the connecting frame. */
   tables?: TableStore;
 };

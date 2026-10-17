@@ -35,6 +35,19 @@ export const browserGameRuntime: GameRuntime = {
     document.addEventListener('visibilitychange', changed);
     return () => document.removeEventListener('visibilitychange', changed);
   },
+  onLongTask(listener) {
+    /* Chromium reports long tasks; elsewhere the page reports none, which the room reads as no measurement. */
+    if (typeof PerformanceObserver === 'undefined' || !PerformanceObserver.supportedEntryTypes?.includes('longtask')) {
+      return () => undefined;
+    }
+    const observer = new PerformanceObserver((entries) => {
+      for (const entry of entries.getEntries()) {
+        listener(entry.duration);
+      }
+    });
+    observer.observe({ type: 'longtask', buffered: false });
+    return () => observer.disconnect();
+  },
   tables:
     typeof window === 'undefined'
       ? undefined

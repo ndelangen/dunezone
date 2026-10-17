@@ -25,6 +25,7 @@ import type { TableSubscriptionEvent, TableConnectionStatus } from '@db/tabletop
 
 import { browserGameRuntime } from './gameRuntime';
 import type { GameRuntime, GameSocket } from './gameRuntime';
+import { TableTelemetry, TELEMETRY_REPORT_MS } from './tableTelemetry';
 
 const UNREACHABLE = 'The table could not be reached. Reconnecting...';
 
@@ -66,12 +67,17 @@ export class GameSubscription {
   private admissionRetries = 0;
   /** Why the last attempt failed before a table showed, kept on screen through the retries so a table that never answers never reads as still connecting. */
   private retryReason: string | null = null;
+  private readonly telemetry: TableTelemetry;
+  private telemetryTimer: ReturnType<typeof setInterval> | undefined;
+  private stopLongTasks: (() => void) | undefined;
 
   constructor(
     private readonly gameId: string,
     private readonly requestTicket: typeof requestPlayTicket,
     private readonly runtime: GameRuntime = browserGameRuntime
-  ) {}
+  ) {
+    this.telemetry = new TableTelemetry(runtime.monotonicNow);
+  }
 
   get status() {
     return this.connectionStatus;
@@ -91,6 +97,8 @@ export class GameSubscription {
     this.stopOnline = this.runtime.onOnline(() => this.networkReturned());
     /* A tab frozen in the background would otherwise find a dead socket only after two keepalive intervals. */
     this.stopVisible = this.runtime.onVisible(() => this.networkReturned());
+    this.stopLongTasks = this.runtime.onLongTask?.((durationMs) => this.telemetry.longTask(durationMs));
+    this.telemetryTimer = setInterval(() => this.sendTelemetry(), TELEMETRY_REPORT_MS);
     void this.open();
     let stopped = false;
     return () => {
@@ -108,6 +116,9 @@ export class GameSubscription {
     this.stopOnline = undefined;
     this.stopVisible?.();
     this.stopVisible = undefined;
+    this.stopLongTasks?.();
+    this.stopLongTasks = undefined;
+    clearInterval(this.telemetryTimer);
     ++this.generation;
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = undefined;
@@ -140,7 +151,18 @@ export class GameSubscription {
       return false;
     }
     this.socket.send(JSON.stringify(message));
+    if (message.type === 'command' || message.type === 'drop') {
+      this.telemetry.sent(message.commandId);
+    }
     return true;
+  }
+
+  /* A report that cannot go out now is dropped with its interval, so a long disconnection never sends a backlog. */
+  private sendTelemetry() {
+    const report = this.telemetry.report();
+    if (report && this.status === 'authorized' && this.socket?.readyState === 1) {
+      this.socket.send(JSON.stringify(report));
+    }
   }
 
   private changeStatus(status: TableConnectionStatus, error: string | null = null) {
@@ -440,6 +462,9 @@ export class GameSubscription {
       this.receiveUpdate(message);
       return;
     }
+    if (message.type === 'rejected') {
+      this.telemetry.rejected(message.requestId);
+    }
     this.listener?.(message);
   }
 
@@ -465,6 +490,7 @@ export class GameSubscription {
 
   private receiveView(message: RoomView) {
     this.sawView = true;
+    this.telemetry.completed(message.completedCommandId);
     this.connectionId = message.viewer.connectionId;
     this.admissionRetries = 0;
     this.retryReason = null;
@@ -487,6 +513,7 @@ export class GameSubscription {
   }
 
   private receiveUpdate(message: Extract<ServerMessage, { type: 'update' }>) {
+    this.telemetry.completed(message.completedCommandId);
     const view = this.resyncing ? null : applyRoomUpdate(this.wireView ?? undefined, message);
     if (!view) {
       this.requestFreshView(message.completedCommandId);
