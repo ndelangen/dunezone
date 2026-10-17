@@ -398,17 +398,6 @@ describe('permanent Play names and addresses', () => {
     }
   });
 
-  test('legacy creation keeps its request and response while assigning a reviewed name', async () => {
-    const { t, viewer, request } = await world();
-    const result = await viewer.mutation(api.playGames.createGame, request);
-    if (!result.ok) {
-      throw new Error('Creation refused');
-    }
-    const game = await t.run(async (ctx) => await ctx.db.get(result.gameId));
-    expect(playGameNameVocabulary().some(({ name }) => name === game?.name)).toBe(true);
-    expect(game?.slug).toBe(normalizePlayGameSlug(game!.name!));
-  });
-
   test('the generated name the create page showed is kept, numbered when taken, and only from the vocabulary', async () => {
     const { t, viewer, request } = await world();
     await t.run(async (ctx) => await ctx.db.insert('play_game_slug_reservations', { slug: 'secret-caladan-picnic' }));

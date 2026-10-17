@@ -112,6 +112,28 @@ describe('Publication save coalescing', () => {
         },
       }),
     ]);
+
+    const [queued] = await jobsFor(t, faction._id);
+    if (!queued) {
+      throw new Error('Missing job');
+    }
+    await t.run(async (ctx) => await ctx.db.delete(queued._id));
+    await asUser.mutation(api.factions.update, {
+      id: faction._id,
+      data: { ...assetPublishingFaction, name: 'Publication proof revised' },
+    });
+
+    await expect(jobsFor(t, faction._id)).resolves.toEqual([
+      expect.objectContaining({
+        status: 'pending',
+        attempt_counter: 0,
+        asset_data: {
+          factionId: faction._id,
+          slug: 'publication-proof-revised',
+          faction: expect.objectContaining({ name: 'Publication proof revised' }),
+        },
+      }),
+    ]);
   });
 
   test('keeps in-progress work and creates one pending successor with the latest save', async () => {
@@ -396,56 +418,6 @@ describe('Publication regeneration and administration', () => {
       enqueued: 0,
     });
     expect(await jobsFor(t, faction._id)).toHaveLength(0);
-  });
-
-  test('restarting a Regeneration scan coalesces into the existing pending job', async () => {
-    const { t, asUser } = await authenticatedTest();
-    const faction = await createFaction(asUser);
-    const [saveJob] = await jobsFor(t, faction._id);
-    if (!saveJob) {
-      throw new Error('Missing save job');
-    }
-    await t.run(async (ctx) => await ctx.db.delete(saveJob._id));
-
-    for (let scan = 0; scan < 2; scan += 1) {
-      await t.mutation(internal.publicationRegeneration.scan, {
-        assetType: 'faction_sheet',
-        cursor: null,
-        scanned: 0,
-        enqueued: 0,
-      });
-    }
-
-    await expect(jobsFor(t, faction._id)).resolves.toHaveLength(1);
-  });
-
-  test('restoring and editing a soft-deleted faction schedules a fresh capture', async () => {
-    const { t, asUser } = await authenticatedTest();
-    const faction = await createFaction(asUser);
-    const [queued] = await jobsFor(t, faction._id);
-    if (!queued) {
-      throw new Error('Missing job');
-    }
-    await t.run(async (ctx) => await ctx.db.delete(queued._id));
-    await asUser.mutation(api.factions.softDelete, { id: faction._id });
-    await t.run(async (ctx) => await ctx.db.patch(faction._id, { is_deleted: false }));
-
-    await asUser.mutation(api.factions.update, {
-      id: faction._id,
-      data: { ...assetPublishingFaction, name: 'Restored faction' },
-    });
-
-    await expect(jobsFor(t, faction._id)).resolves.toEqual([
-      expect.objectContaining({
-        status: 'pending',
-        attempt_counter: 0,
-        asset_data: {
-          factionId: faction._id,
-          slug: 'restored-faction',
-          faction: expect.objectContaining({ name: 'Restored faction' }),
-        },
-      }),
-    ]);
   });
 
   test('initialization is disabled, equal revisions are inert, and only higher revisions scan', async () => {

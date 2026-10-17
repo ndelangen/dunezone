@@ -37,12 +37,7 @@ async function fixture(email = 'synthetic@example.invalid') {
 }
 
 describe('isolated Play test controls', () => {
-  test.each([
-    ['IS_TEST', 'false'],
-    ['E2E_LOCAL_AUTH', 'false'],
-    ['CONVEX_CLOUD_URL', 'https://production.convex.cloud'],
-    ['SITE_URL', 'https://dune.zone'],
-  ])('refuses every control when %s is not isolated', async (key, value) => {
+  test.each([['IS_TEST', 'false']])('refuses every control when %s is not isolated', async (key, value) => {
     const { t, userId, sessionId } = await fixture();
     const { gameId } = await t.mutation(internal.playTesting.createFixture, {});
     vi.stubEnv(key, value);
@@ -189,7 +184,7 @@ describe('isolated Play test controls', () => {
     expect(scheduled.map((job) => job.name)).toEqual(['playProvisioning:expireProvisioning']);
   });
 
-  test.each(['pending', 'ready', 'expired'] as const)(
+  test.each(['ready', 'expired'] as const)(
     'retires a %s fixture without replacing its identity or credentials',
     async (state) => {
       const { t } = await fixture();

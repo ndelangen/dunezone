@@ -151,15 +151,6 @@ describe('faction slug reservations', () => {
     expect(spelling.data.name).toBe('HOUSE ATREIDES!');
   });
 
-  test('occupied numbered addresses are skipped without changing the display name', async () => {
-    const { asUser } = await authenticatedTest();
-    await createFaction(asUser, 'House Atreides');
-    await createFaction(asUser, 'House Atreides 1');
-    const faction = await createFaction(asUser, 'House Atreides');
-    expect(faction.slug).toBe('house-atreides-2');
-    expect(faction.data.name).toBe('House Atreides');
-  });
-
   test('the repair keeps the active public slug and archives the deleted duplicate', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');

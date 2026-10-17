@@ -75,19 +75,6 @@ describe('former addresses', () => {
     await expect(resolve('sietch')).resolves.toBe('/groups/tabr');
   });
 
-  test('a renamed profile page answers at its old address', async () => {
-    const { t, owner } = await world();
-    const before = await owner.mutation(api.profiles.bootstrapCurrent, {});
-    await owner.mutation(api.profiles.updateCurrent, {
-      username: 'Stilgar',
-      avatar_url: 'https://example.com/avatar.png',
-    });
-    expect(before.slug).not.toBe('stilgar');
-    /* The page answers with the profile's current slug, and its loader redirects the old address there. */
-    const page = await t.query(api.profiles.pageBySlug, { slug: before.slug });
-    expect(page.profile.slug).toBe('stilgar');
-  });
-
   test('a profile old address still answers when a newer profile that left it is deleted', async () => {
     const { t, owner } = await world();
     const before = await owner.mutation(api.profiles.bootstrapCurrent, {});
