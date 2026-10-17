@@ -173,7 +173,8 @@ export function registerCatalogueTriggers(triggers: Triggers<DataModel, Mutation
   triggers.register('profiles', async (ctx, change) => {
     const before = change.oldDoc;
     const after = change.newDoc;
-    if (before?.user_id === after?.user_id && ownerSearchName(before) === ownerSearchName(after)) {
+    /* A new profile's owner holds no assets yet: a user cannot create one before their profile exists. */
+    if (!before || (before.user_id === after?.user_id && ownerSearchName(before) === ownerSearchName(after))) {
       return;
     }
     for (const ownerId of new Set([before?.user_id, after?.user_id])) {

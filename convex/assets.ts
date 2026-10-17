@@ -1060,7 +1060,7 @@ export const catalogue = publicQuery({
   handler: async (ctx, args) => {
     const text = args.q?.slice(0, ASSET_CATALOGUE_QUERY_LIMIT).trim() ?? '';
     const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
-    const [selection, [typeTotal = 0]] = await Promise.all([
+    const [selection, [typeCount = 0]] = await Promise.all([
       selectCataloguePage(ctx, {
         kind: 'asset',
         partition: args.type,
@@ -1069,8 +1069,10 @@ export const catalogue = publicQuery({
         pageSize: ASSET_CATALOGUE_PAGE_SIZE,
         search: text ? { text, relevance: !args.sort } : undefined,
       }),
-      countCataloguePartitions(ctx, 'asset', [args.type]),
+      /* Without a search the page's own count is the type's, so only a search counts again. */
+      text ? countCataloguePartitions(ctx, 'asset', [args.type]) : Promise.resolve([]),
     ]);
+    const typeTotal = text ? typeCount : selection.total;
 
     const previewKind = memberPreviewKind(args.type);
     const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();

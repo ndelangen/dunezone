@@ -62,6 +62,7 @@ function pageSearch(page: number) {
 
 export const Route = createFileRoute('/_app/assets/$type/')({
   ssr: true,
+  codeSplitGroupings: [['component', 'notFoundComponent']],
   validateSearch: parseAssetCatalogueSearch,
   loaderDeps: ({ search }) => browseDeps(search),
   loader: async ({ params, deps }) => {
