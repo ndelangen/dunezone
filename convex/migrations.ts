@@ -28,6 +28,7 @@ import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBack
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { syncBoardReadiness } from './lib/boardReadiness';
 import { catalogueSourceDrift, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
+import type { CatalogueKindName } from './lib/catalogueEntries';
 import { syncFactionCard } from './lib/factionCards';
 import {
   allocateNextFaqItemSlug,
@@ -1348,22 +1349,24 @@ export const catalogue_entries_verify_v1 = migrations.define({
     if (!isCatalogueKindName(entry.kind)) {
       throw new Error(`Catalogue entry ${entry._id} has the unknown kind ${entry.kind}.`);
     }
-    const drift = await catalogueSourceDrift(ctx, entry.kind, entry.source_id);
-    if (drift.length > 0) {
-      throw new Error(`Catalogue entries for ${entry.kind} ${entry.source_id} are ${drift.join(' and ')}.`);
-    }
+    await assertCatalogueSourceExact(ctx, entry.kind, entry.source_id);
   },
 });
+
+/** Throws unless one source's catalogue entries, and their aggregate order, are exactly what its canonical rows say. */
+async function assertCatalogueSourceExact(ctx: MutationCtx, kind: CatalogueKindName, sourceId: string) {
+  const drift = await catalogueSourceDrift(ctx, kind, sourceId);
+  if (drift.length > 0) {
+    throw new Error(`Catalogue entries for ${kind} ${sourceId} are ${drift.join(' and ')}.`);
+  }
+}
 
 /** Proves the other direction: every live faction is in each of its lists exactly once, exactly, so an empty or partial catalogue cannot pass. */
 export const catalogue_entries_verify_v2 = migrations.define({
   table: 'factions',
   batchSize: 10,
   migrateOne: async (ctx, row) => {
-    const drift = await catalogueSourceDrift(ctx, 'faction', row._id);
-    if (drift.length > 0) {
-      throw new Error(`Faction ${row._id} catalogue entries are ${drift.join(' and ')}.`);
-    }
+    await assertCatalogueSourceExact(ctx, 'faction', row._id);
   },
 });
 
@@ -1385,10 +1388,7 @@ export const catalogue_entries_assets_verify_v1 = migrations.define({
   table: 'assets',
   batchSize: 10,
   migrateOne: async (ctx, row) => {
-    const drift = await catalogueSourceDrift(ctx, 'asset', row._id);
-    if (drift.length > 0) {
-      throw new Error(`Asset ${row._id} catalogue entries are ${drift.join(' and ')}.`);
-    }
+    await assertCatalogueSourceExact(ctx, 'asset', row._id);
   },
 });
 
