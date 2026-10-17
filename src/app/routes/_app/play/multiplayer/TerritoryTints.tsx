@@ -255,12 +255,12 @@ function TintRow({
   canEdit: boolean;
   names: ReadonlyMap<string, string>;
   onBrush: () => void;
-  onSet: (setting: TintSetting, on: boolean) => void;
+  onSet: (setting: TintSetting) => void;
   onColor: (color: string) => void;
   client: TableSession;
 }>) {
   const removal = useTintRemoval(client, tint.id);
-  const toggle = (setting: TintSetting) => () => onSet(setting, !tintSetting(tint, setting));
+  const toggle = (setting: TintSetting) => () => onSet(setting);
   return (
     <Group
       justify="space-between"
@@ -383,8 +383,29 @@ function Presets({
   );
 }
 
+type Pending = ReturnType<typeof usePending>;
+
+/**
+ * The switches this page has asked the table to flip and is still waiting on.
+ * A second click before the answer, such as a double click, is dropped: sent too, it would ask for the same change again and be refused.
+ */
+function usePending(client: TableSession) {
+  const asked = useRef(new Map<string, string>());
+  return {
+    waiting: (key: string) => {
+      const commandId = asked.current.get(key);
+      return commandId !== undefined && client.awaiting(commandId);
+    },
+    sent: (key: string, commandId: string | undefined) => {
+      if (commandId !== undefined) {
+        asked.current.set(key, commandId);
+      }
+    },
+  };
+}
+
 /** The paintbrush for this panel's tints: on for one tint at a time, and put down when it no longer applies. */
-function useTintBrush(client: TableSession, canEdit: boolean, tints: readonly TerritoryTint[]) {
+function useTintBrush(client: TableSession, canEdit: boolean, tints: readonly TerritoryTint[], pending: Pending) {
   const brush = useTerritoryBrush();
   const seen = useRef(new Set<string>());
   /* The create command of each tint this page made, so a brush on a tint the table refused is put down. */
@@ -414,10 +435,11 @@ function useTintBrush(client: TableSession, canEdit: boolean, tints: readonly Te
           }
           return;
         }
+        const key = `${tintId} ${territory.id}`;
         const painted = !tint.territories.includes(territory.id);
         const action = { kind: 'tint-paint', tintId, territory: territory.id, name: territory.name, painted } as const;
-        if (fitsTintCommand(action)) {
-          client.command(action);
+        if (!pending.waiting(key) && fitsTintCommand(action)) {
+          pending.sent(key, client.command(action));
         }
       },
     });
@@ -443,7 +465,17 @@ export function TerritoryTints({ client, table }: Props) {
     [board]
   );
   const canEdit = table.canInteract && !!table.snapshot.bank;
-  const { brush, create, toggle } = useTintBrush(client, canEdit, tints);
+  const pending = usePending(client);
+  const { brush, create, toggle } = useTintBrush(client, canEdit, tints, pending);
+  const setTint = (tint: TerritoryTint, setting: TintSetting) => {
+    const key = `${tint.id} ${setting}`;
+    if (!pending.waiting(key)) {
+      pending.sent(
+        key,
+        client.command({ kind: 'tint-set', tintId: tint.id, setting, on: !tintSetting(tint, setting) })
+      );
+    }
+  };
   const canCreate = canEdit && tints.length < MAX_TINTS;
 
   return (
@@ -460,7 +492,7 @@ export function TerritoryTints({ client, table }: Props) {
             canEdit={canEdit}
             names={names}
             onBrush={() => toggle(tint.id)}
-            onSet={(setting, on) => client.command({ kind: 'tint-set', tintId: tint.id, setting, on })}
+            onSet={(setting) => setTint(tint, setting)}
             onColor={(color) => client.command({ kind: 'tint-color', tintId: tint.id, color })}
             client={client}
           />

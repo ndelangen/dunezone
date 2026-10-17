@@ -112,6 +112,7 @@ export class TableKeyboard {
     binding.events.addEventListener('blur', this.releasePan);
     binding.events.addEventListener('blur', this.releasePing);
     binding.events.addEventListener('blur', this.releaseRotation);
+    binding.events.addEventListener('focusin', this.focusIn);
     return () => {
       if (this.binding === binding) {
         this.release();
@@ -171,6 +172,7 @@ export class TableKeyboard {
     binding.events.removeEventListener('blur', this.releasePan);
     binding.events.removeEventListener('blur', this.releasePing);
     binding.events.removeEventListener('blur', this.releaseRotation);
+    binding.events.removeEventListener('focusin', this.focusIn);
     binding.events.removeEventListener('keydown', this.keyDown);
     binding.events.removeEventListener('keyup', this.keyUp);
     binding.events.removeEventListener('blur', this.cancelDraw);
@@ -184,6 +186,10 @@ export class TableKeyboard {
       this.cancelDraw();
       this.releasePing();
       this.releaseRotation();
+    }
+    /* Shift hands a held Tab back to the page at once, as a text field taking the focus does, so its rumble is let go before the next repeat. */
+    if (event.key === 'Shift') {
+      this.releasePing();
     }
     const controls = this.binding?.read();
     /* A key a control already answered, such as an arrow moving a peeked card, is not the table's. */
@@ -227,7 +233,9 @@ export class TableKeyboard {
    * With the cursor off the table there is nowhere to ping, so Tab moves the focus as usual.
    */
   private pingKey(event: KeyboardEvent, controls: Controls) {
+    /* Shift, or a text field taking the focus mid-hold, hands Tab back to the page, and a rumble on its way is let go with it. */
     if (event.shiftKey || focusKeepsKey(event.target, 'spiceBank')) {
+      this.releasePing();
       return;
     }
     if (!event.repeat) {
@@ -244,6 +252,12 @@ export class TableKeyboard {
       event.preventDefault();
     }
   }
+
+  private focusIn = (event: FocusEvent) => {
+    if (focusKeepsKey(event.target, 'spiceBank')) {
+      this.releasePing();
+    }
+  };
 
   /* A Tab let go while the page had no focus never comes up here, so leaving the page lets it go. */
   private releasePing = () => {

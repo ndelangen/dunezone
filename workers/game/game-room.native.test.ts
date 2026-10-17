@@ -855,6 +855,14 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     holder.send({ type: 'ping', position: [4, 0.38, 0], sound: 'fart' });
     const { ping: rumble } = await watcher.message('ping', (message) => message.ping.position[0] === 4);
     expect(rumble.sound).toBe('fart');
+    await runtime.clock(3000);
+    holder.send({ type: 'ping', position: [5, 0.38, 0], sound: 'fart' });
+    const { ping: early } = await watcher.message('ping', (message) => message.ping.position[0] === 5);
+    expect(early.sound).toBeUndefined();
+    await runtime.clock(5000);
+    holder.send({ type: 'ping', position: [6, 0.38, 0], sound: 'fart' });
+    const { ping: later } = await watcher.message('ping', (message) => message.ping.position[0] === 6);
+    expect(later.sound).toBe('fart');
     expect((await syncView(watcher)).pointers).toEqual([]);
   });
 

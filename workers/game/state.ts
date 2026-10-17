@@ -98,6 +98,104 @@ export const storedSnapshotSchema = gameSnapshotSchema
   });
 export type StoredSnapshot = z.infer<typeof storedSnapshotSchema>;
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value) as unknown;
+  return prototype === Object.prototype || prototype === null;
+}
+
+function idOf(entry: unknown) {
+  const id = isPlainObject(entry) ? entry.id : undefined;
+  return typeof id === 'string' ? id : undefined;
+}
+
+/* The entries by id when every entry carries a distinct one, so an entry that moved in its list is still found. */
+function entriesById(entries: readonly unknown[]): Map<string, unknown> | undefined {
+  const byId = new Map<string, unknown>();
+  for (const entry of entries) {
+    const id = idOf(entry);
+    if (id === undefined || byId.has(id)) {
+      return undefined;
+    }
+    byId.set(id, entry);
+  }
+  return byId;
+}
+
+/* A list with each entry matched to the previous entry at its index, or to the previous entry with its id when that one has moved. */
+function listWithUnchangedParts(previous: readonly unknown[], next: readonly unknown[]): readonly unknown[] {
+  let byId: Map<string, unknown> | undefined | null;
+  let entries: unknown[] | undefined;
+  for (let index = 0; index < next.length; index++) {
+    const entry = next[index];
+    let before = previous[index];
+    const id = idOf(entry);
+    if (id !== undefined && idOf(before) !== id) {
+      byId ??= entriesById(previous) ?? null;
+      before = byId?.get(id);
+    }
+    const kept = withUnchangedParts(before, entry);
+    /* Every entry before the first one that changed is the previous list's own. */
+    entries ??= index < previous.length && kept === previous[index] ? undefined : previous.slice(0, index);
+    entries?.push(kept);
+  }
+  return entries ?? (previous.length === next.length ? previous : previous.slice(0, next.length));
+}
+
+/* An object whose keys come in the order `next` has them, each part kept from `previous` where it deep-equals. */
+function objectWithUnchangedParts(previous: Record<string, unknown>, next: Record<string, unknown>) {
+  const keys = Object.keys(next);
+  const previousKeys = Object.keys(previous);
+  let parts: Record<string, unknown> | undefined;
+  for (let index = 0; index < keys.length; index++) {
+    const key = keys[index]!;
+    const kept = Object.hasOwn(previous, key) ? withUnchangedParts(previous[key], next[key]) : next[key];
+    if (!parts && (previousKeys[index] !== key || kept !== previous[key])) {
+      parts = {};
+      for (const earlier of keys.slice(0, index)) {
+        parts[earlier] = previous[earlier];
+      }
+    }
+    if (parts) {
+      parts[key] = kept;
+    }
+  }
+  if (parts || keys.length === previousKeys.length) {
+    return parts ?? previous;
+  }
+  return Object.fromEntries(keys.map((key) => [key, previous[key]]));
+}
+
+/**
+ * `next` with every part that deep-equals the matching part of `previous` replaced by that part, so it stays the same object.
+ * Projection caches and the delta's identity check then see an unchanged part as unchanged, however it was rebuilt.
+ * Objects match by key, with key order and keys set to undefined counted.
+ * Lists match by index, or by id for an entry that moved.
+ */
+export function withUnchangedParts<T>(previous: unknown, next: T): T {
+  if (Object.is(previous, next)) {
+    return next;
+  }
+  if (Array.isArray(previous) && Array.isArray(next)) {
+    return listWithUnchangedParts(previous, next) as T;
+  }
+  /* A key named `__proto__` would set the copy's prototype instead of a property, so such an object is left as it is. */
+  if (!isPlainObject(previous) || !isPlainObject(next) || Object.hasOwn(next, '__proto__')) {
+    return next;
+  }
+  return objectWithUnchangedParts(previous, next) as T;
+}
+
+/**
+ * A command's next snapshot, validated, with every part the command left alone still the object the previous snapshot held.
+ * The parse rebuilds every object, so without this an untouched piece would miss the projection's cache and look changed to every delta.
+ */
+export function validatedSnapshot(previous: StoredSnapshot, next: unknown): StoredSnapshot {
+  return withUnchangedParts(previous, storedSnapshotSchema.parse(next));
+}
+
 /** The next revision of a snapshot whose table changed at most in its pieces, with no event of its own. */
 export function revised(snapshot: StoredSnapshot, pieces = snapshot.table.pieces): StoredSnapshot {
   return nextSnapshot(snapshot, { ...tableForViewer(snapshot, SPECTATOR_SEAT), pieces });
@@ -222,6 +320,9 @@ export function withKnownCardFaces(before: StoredSnapshot, next: StoredSnapshot)
 export class RoomProjection {
   private readonly snapshots = new WeakMap<StoredSnapshot, Map<string | undefined, GameSnapshot>>();
   private readonly pieces = new WeakMap<TablePiece, Map<string, TablePiece>>();
+  private readonly shared = new WeakMap<StoredSnapshot, SharedProjection>();
+  /* The audience-independent parts last projected, kept so a part a command left alone stays the same object for every delta. */
+  private lastShared: SharedProjection | undefined;
   /* The last list of card faces sent, kept so an unchanged list is the same array and a delta leaves it out. */
   private knownFaces: string[] = [];
 
@@ -295,6 +396,7 @@ export class RoomProjection {
       ...carry,
       held: this.piece(carry.held, false, snapshot.cardHandles, snapshot.pieceHandles),
       reservedIds: carry.reservedIds.map(id),
+      ...(carry.riderIds ? { riderIds: carry.riderIds.map(id) } : {}),
       withdrawnCounts: Object.fromEntries(
         Object.entries(carry.withdrawnCounts).map(([key, count]) => [id(key), count])
       ),
@@ -337,15 +439,48 @@ export class RoomProjection {
     return projected;
   }
 
+  /**
+   * The parts of a projection no audience changes, built once for each stored snapshot so every audience shares them.
+   * Each part that deep-equals the one projected last is that object again, so a delta finds it unchanged at once.
+   */
+  private sharedParts(snapshot: StoredSnapshot): SharedProjection {
+    let parts = this.shared.get(snapshot);
+    if (!parts) {
+      const { table, versions, controls, roster } = snapshot;
+      parts = withUnchangedParts<SharedProjection>(this.lastShared, {
+        battle: snapshot.battleState ? this.battle(snapshot, snapshot.battleState) : null,
+        handCounts: roster ? treacheryHandCounts(heldCards(snapshot), rosterFactionIds(roster)) : undefined,
+        battleResults: snapshot.battleResults.map((result) => ({
+          ...result,
+          plans: [this.plan(snapshot, result.plans[0], result.id)!, this.plan(snapshot, result.plans[1], result.id)!],
+        })),
+        table: {
+          ...table,
+          pieces: table.pieces.map((piece) => this.piece(piece, false, snapshot.cardHandles, snapshot.pieceHandles)),
+        },
+        versions: Object.fromEntries(
+          Object.entries(versions).map(([id, version]) => [snapshot.pieceHandles[id] ?? id, version])
+        ),
+        controls: controls && {
+          ...controls,
+          requests: controls.requests.map((request) => ({ ...request, contents: this.contents(request.contents) })),
+        },
+      });
+      this.lastShared = parts;
+      this.shared.set(snapshot, parts);
+    }
+    return parts;
+  }
+
   private project(snapshot: StoredSnapshot, factionId: string | undefined, faces: StoredSnapshot): GameSnapshot {
-    const { revision, table, versions, phase, phases, roster, stage, draft, swapping, controls, spiceTransfers } =
-      snapshot;
+    const { revision, phase, phases, roster, stage, draft, swapping, spiceTransfers } = snapshot;
     const battle = snapshot.battleState;
+    const shared = this.sharedParts(snapshot);
     /* An empty side has no faction, so a viewer without one must not match it. */
     const ownSide =
       factionId === undefined ? -1 : (battle?.sides.findIndex((side) => side?.factionId === factionId) ?? -1);
     return {
-      battle: battle ? this.battle(snapshot, battle) : null,
+      battle: shared.battle,
       battlePlan:
         ownSide >= 0
           ? this.plan(snapshot, battle!.plans[ownSide], battle!.stage === 'revealed' ? battle!.id : undefined)
@@ -357,29 +492,17 @@ export class RoomProjection {
             ),
           }
         : {}),
-      ...(roster
-        ? {
-            handCounts: treacheryHandCounts(heldCards(snapshot), rosterFactionIds(roster)),
-          }
-        : {}),
+      ...(shared.handCounts ? { handCounts: shared.handCounts } : {}),
       ...(factionId ? { peek: this.peek(snapshot, factionId) } : {}),
       ...(snapshot.setup ? { setup: snapshot.setup } : {}),
       ...(snapshot.setup ? { predictions: predictionsFor(snapshot, factionId) } : {}),
       factionArtwork: snapshot.factionArtwork,
       cardFaces: this.cardFaces(faces),
       combatFaces: snapshot.combatFaces,
-      battleResults: snapshot.battleResults.map((result) => ({
-        ...result,
-        plans: [this.plan(snapshot, result.plans[0], result.id)!, this.plan(snapshot, result.plans[1], result.id)!],
-      })),
+      battleResults: shared.battleResults,
       revision,
-      table: {
-        ...table,
-        pieces: table.pieces.map((piece) => this.piece(piece, false, snapshot.cardHandles, snapshot.pieceHandles)),
-      },
-      versions: Object.fromEntries(
-        Object.entries(versions).map(([id, version]) => [snapshot.pieceHandles[id] ?? id, version])
-      ),
+      table: shared.table,
+      versions: shared.versions,
       phase,
       ...(phases ? { phases } : {}),
       ...(roster ? { roster } : {}),
@@ -390,10 +513,7 @@ export class RoomProjection {
       ...(snapshot.alliances ? { alliances: snapshot.alliances } : {}),
       ...(snapshot.lastTurn ? { lastTurn: snapshot.lastTurn } : {}),
       ...(snapshot.tints?.length ? { tints: snapshot.tints } : {}),
-      controls: controls && {
-        ...controls,
-        requests: controls.requests.map((request) => ({ ...request, contents: this.contents(request.contents) })),
-      },
+      controls: shared.controls,
       ...(spiceTransfers ? { spiceTransfers } : {}),
       ...(snapshot.ending ? { ending: { ...snapshot.ending, by: publicActor(snapshot.ending.by) } } : {}),
       ...(snapshot.result ? { result: { ...snapshot.result, by: publicActor(snapshot.result.by) } } : {}),
@@ -487,6 +607,10 @@ export class RoomProjection {
 
 type BattleState = NonNullable<StoredSnapshot['battleState']>;
 type BattlePlan = BattleState['plans'][number];
+type SharedProjection = Pick<
+  GameSnapshot,
+  'battle' | 'handCounts' | 'battleResults' | 'table' | 'versions' | 'controls'
+>;
 
 /** Each prediction in full for its own faction or once revealed; everyone else sees it without its choice. */
 function predictionsFor(snapshot: StoredSnapshot, factionId: string | undefined) {
