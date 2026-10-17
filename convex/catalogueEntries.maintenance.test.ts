@@ -3,6 +3,7 @@
 
 import { describe, expect, test } from 'vitest';
 
+import { compareCodeUnits } from '../src/shared/compareText';
 import { api, internal } from './_generated/api';
 import { catalogueFactionData, CATALOGUE_STAMP } from './factions.catalogue.test.fixture';
 import { factionAuthor, factionTest } from './factions.test.fixture';
@@ -62,7 +63,7 @@ describe('catalogue entry maintenance', () => {
 
     await author.mutation(api.rulesets.addFaction, { ruleset_id: rulesetIds.classic, faction_id: created._id });
     await author.mutation(api.rulesets.addFaction, { ruleset_id: rulesetIds.advanced, faction_id: created._id });
-    expect((await entries())[0]?.facets).toEqual([rulesetIds.classic, rulesetIds.advanced].sort());
+    expect((await entries())[0]?.facets).toEqual([rulesetIds.classic, rulesetIds.advanced].sort(compareCodeUnits));
     expect(await names({ ruleset: 'classic' })).toEqual(['House Atreides']);
 
     await author.mutation(api.rulesets.removeFaction, { ruleset_id: rulesetIds.classic, faction_id: created._id });

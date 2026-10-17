@@ -1,6 +1,7 @@
 import type { Infer } from 'convex/values';
 import Fuse from 'fuse.js';
 
+import { compareCodeUnits } from '../../src/shared/compareText';
 import {
   FACTION_CATALOGUE_PAGE_SIZE,
   FACTION_CATALOGUE_QUERY_LIMIT,
@@ -257,7 +258,7 @@ export const factionCatalogueKind: CatalogueKind = {
       created_at: catalogueTimestamp(faction.created_at),
       updated_at: catalogueTimestamp(faction.updated_at),
       complexity,
-      facets: [...new Set(links.map((link) => link.ruleset_id))].sort(),
+      facets: [...new Set(links.map((link) => link.ruleset_id))].sort(compareCodeUnits),
     };
   },
   listedSourceIds: async (ctx, limit) => {

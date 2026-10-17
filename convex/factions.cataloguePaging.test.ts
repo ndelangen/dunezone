@@ -4,6 +4,7 @@
 import type { FunctionArgs } from 'convex/server';
 import { describe, expect, test } from 'vitest';
 
+import { compareCodeUnits } from '../src/shared/compareText';
 import { FACTION_CATALOGUE_PAGE_SIZE, FACTION_CATALOGUE_SORTS } from '../src/shared/factions/catalogueSearch';
 import { api } from './_generated/api';
 import { seedCatalogue } from './factions.catalogue.test.fixture';
@@ -98,7 +99,7 @@ describe('faction catalogue query', () => {
       { name: 'Twin', created: '2026-07-01T00:00:00.000Z', complexity: 0.5 },
       { name: 'Twin', created: '2026-07-01T00:00:00.000Z', complexity: 0.5 },
     ]);
-    const [twinA, twinB] = [seeded.factionIds[4]!, seeded.factionIds[5]!].sort();
+    const [twinA, twinB] = [seeded.factionIds[4]!, seeded.factionIds[5]!].sort(compareCodeUnits);
 
     expect(await names()).toEqual(['Alpha', 'beta', 'Broken', 'Newest', 'Twin', 'Twin']);
     expect(await names({ sort: 'created' })).toEqual(['Newest', 'Alpha', 'beta', 'Twin', 'Twin', 'Broken']);
@@ -161,8 +162,15 @@ describe('faction catalogue query', () => {
     const { page } = await catalogueWith([{ name: 'Full blob' }]);
     const [card] = (await page()).cards;
 
-    expect(Object.keys(card ?? {}).sort()).toEqual(['_id', 'created_at', 'data', 'rulesets', 'slug', 'updated_at']);
-    expect(Object.keys(card?.data ?? {}).sort()).toEqual([
+    expect(Object.keys(card ?? {}).sort(compareCodeUnits)).toEqual([
+      '_id',
+      'created_at',
+      'data',
+      'rulesets',
+      'slug',
+      'updated_at',
+    ]);
+    expect(Object.keys(card?.data ?? {}).sort(compareCodeUnits)).toEqual([
       'background',
       'complexity',
       'factionLeader',
