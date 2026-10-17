@@ -1,16 +1,14 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
+import type { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { publicationFaceId } from '../src/shared/asset-publishing/publicationTargets';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
-
-const modules = import.meta.glob('./**/*.ts');
 
 const cardData = (name: string) => ({
   name,
@@ -51,7 +49,7 @@ async function seedCard(t: ReturnType<typeof convexTest>) {
 
 describe('asset update', () => {
   test('the owner updates content, and a rename moves the slug', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
 
     const renamed = await t
@@ -65,7 +63,7 @@ describe('asset update', () => {
   });
 
   test('a viewer without edit capability cannot update, and anonymous viewers get read-only access facts', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { outsiderId, created } = await seedCard(t);
 
     await expect(
@@ -78,7 +76,7 @@ describe('asset update', () => {
   });
 
   test('a rename keeps the requested name and allocates an available slug', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
     await t
       .withIdentity({ subject: ownerId })
@@ -94,7 +92,7 @@ describe('asset update', () => {
 
 describe('asset soft delete', () => {
   test('the owner retires a card: it leaves the catalogue, and its slug stays reserved', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
 
     await t.withIdentity({ subject: ownerId }).mutation(api.assets.softDelete, { id: created.id });
@@ -109,7 +107,7 @@ describe('asset soft delete', () => {
   });
 
   test('a collaborator edits a community Asset but cannot rename or delete it', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, outsiderId, created } = await seedCard(t);
     /* A group member may edit a community Asset. Renaming and retiring it both stay with the owner (#605). */
     await t.run(async (ctx) => {
@@ -158,7 +156,7 @@ describe('asset soft delete', () => {
 
 describe('asset group assignment', () => {
   test('the owner hands a card to a group they help run, and the group member gains edit', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, outsiderId, created } = await seedCard(t);
     const groupId = await t.run(async (ctx) => {
       const now = '2026-01-01T00:00:00.000Z';
@@ -196,7 +194,7 @@ describe('asset group assignment', () => {
   });
 
   test('the asset page is the same answer for every viewer', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, outsiderId } = await seedCard(t);
     const address = { type: 'card-treachery', slug: 'lasgun' };
     const anonymous = await t.query(api.assets.page, address);
@@ -206,7 +204,7 @@ describe('asset group assignment', () => {
   });
 
   test('a group the viewer cannot add members to is not a valid target', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, outsiderId, created } = await seedCard(t);
     const strangersGroup = await t.run(
       async (ctx) =>
@@ -256,7 +254,7 @@ const withReference = (name: string, targetId: string) => ({
 
 describe('token backsides', () => {
   test('a token points at another token of its own shape, in data rather than in a relation row', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const front = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
@@ -288,7 +286,7 @@ describe('token backsides', () => {
   });
 
   test('the backside must be the same shape with an authored back, and never the token itself', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const round = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
@@ -314,7 +312,7 @@ describe('token backsides', () => {
   });
 
   test('a soft-deleted backside stops resolving at read time', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const front = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
@@ -331,7 +329,7 @@ describe('token backsides', () => {
   });
 
   test('an ordinary save preserves the picked reference the draft cannot carry', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const front = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
@@ -349,7 +347,7 @@ describe('token backsides', () => {
   });
 
   test('leaving custom mode supersedes the pending back job and schedules no new one', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const front = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
@@ -392,7 +390,7 @@ const deckData = (name: string) => ({
 
 describe('deck composition', () => {
   test('a count is the duplicate mechanism: one row per card, zero removes it', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
@@ -414,7 +412,7 @@ describe('deck composition', () => {
   });
 
   test('a container holds only its own kind, and counts are bounded', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
@@ -432,7 +430,7 @@ describe('deck composition', () => {
   });
 
   test('a soft-deleted member leaves the composition without its relation being touched', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
@@ -449,7 +447,7 @@ describe('deck composition', () => {
 
 describe('creating a container from a loaded one', () => {
   test('copies the source members with their counts and leaves the source untouched', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
@@ -470,7 +468,7 @@ describe('creating a container from a loaded one', () => {
   });
 
   test('refuses a source of another type, and a type that holds nothing', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
@@ -484,7 +482,7 @@ describe('creating a container from a loaded one', () => {
   });
 
   test('refuses a source past the membership read limit rather than copying part of it', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
@@ -508,7 +506,7 @@ describe('creating a container from a loaded one', () => {
 
 describe('asset page bundle', () => {
   test('a card reports the decks holding it, a deck reports none, and both report their publication', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
@@ -528,7 +526,7 @@ describe('asset page bundle', () => {
   });
 
   test('a deck holding a soft-deleted card stops being reported by that card', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
@@ -544,7 +542,7 @@ describe('asset page bundle', () => {
 
 describe('asset about', () => {
   test('About round-trips through a save, and whitespace never stores', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
 
     await t.withIdentity({ subject: ownerId }).mutation(api.assets.update, {
@@ -559,7 +557,7 @@ describe('asset about', () => {
   });
 
   test('an asset with nothing to explain saves with an empty About', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { created } = await seedCard(t);
 
     const page = await assetPageAs(t, { type: 'card-treachery', slug: 'lasgun' });
@@ -570,7 +568,7 @@ describe('asset about', () => {
 
 describe('asset publication', () => {
   test('saving a card schedules its publication, and a second save coalesces onto the same job', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
 
     const afterCreate = await t.run(
@@ -603,7 +601,7 @@ describe('asset publication', () => {
   });
 
   test('saving a spice card schedules its publication under its own type, and an incomplete one is refused', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Spice owner' }));
     const owner = t.withIdentity({ subject: ownerId });
     const created = await owner.mutation(api.assets.create, { type: 'card-spice', data: publishingSpiceCard });
@@ -630,7 +628,7 @@ describe('asset publication', () => {
   });
 
   test('a spice card overlay may name a bundled image but not an outside address', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Spice owner' }));
     const owner = t.withIdentity({ subject: ownerId });
     const overlay = { offset: [20, 16] as [number, number], scale: 0.5 };
@@ -654,7 +652,7 @@ describe('asset publication', () => {
   });
 
   test('saving a deck schedules its Cardback, and the payload is the Cardback alone', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
     const deck = await t
       .withIdentity({ subject: ownerId })
@@ -677,7 +675,7 @@ describe('asset publication', () => {
   });
 
   test('saving a token schedules both faces, the back under a qualified id', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
     const token = await t
       .withIdentity({ subject: ownerId })
@@ -694,7 +692,7 @@ describe('asset publication', () => {
   });
 
   test('a token whose back is a reference publishes only its front', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
     const token = await t.withIdentity({ subject: ownerId }).mutation(api.assets.create, {
       type: 'token-disc',
@@ -737,7 +735,7 @@ const rectangleData = (name: string) => ({
 
 describe('a token page reports both of its faces', () => {
   test('an authored back has a publication of its own, a referenced back has none, and a card has no second face at all', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
 
@@ -766,7 +764,7 @@ describe('a token page reports both of its faces', () => {
 
 describe('enhance tokens', () => {
   test('a free composition round-trips through a save, placed elements and all', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
     const created = await t
       .withIdentity({ subject: ownerId })
@@ -778,7 +776,7 @@ describe('enhance tokens', () => {
   });
 
   test('an unknown font is refused, so a face can never store one the project does not ship', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
     const data = rectangleData('Bad Font');
     data.front.texts[0]!.font = 'Comic Sans';
@@ -806,7 +804,7 @@ describe('bundles', () => {
   });
 
   test('a bundle holds tokens of mixed shapes, and a deck refuses them', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const bundle = await owner.mutation(api.assets.create, { type: 'bundle', data: bundleData('Tech Tokens') });
@@ -827,7 +825,7 @@ describe('bundles', () => {
   });
 
   test('a browse tile carries the faces of the first three live members, and a type that holds nothing carries none', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const bundle = await owner.mutation(api.assets.create, { type: 'bundle', data: bundleData('Tech Tokens') });
@@ -854,7 +852,7 @@ describe('bundles', () => {
   });
 
   test('a bundle publishes nothing, unlike every other live type', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Bundle owner' }));
     await t.withIdentity({ subject: ownerId }).mutation(api.assets.create, {
       type: 'bundle',
@@ -869,7 +867,7 @@ describe('bundles', () => {
 
 describe('deck cardback references', () => {
   test("a deck may wear another deck's authored cardback, publishing nothing of its own", async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
     const owner = t.withIdentity({ subject: ownerId });
     const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('Source') });
@@ -893,7 +891,7 @@ describe('deck cardback references', () => {
   });
 
   test('the page query returns the stored reference, never the presented composition', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
     const owner = t.withIdentity({ subject: ownerId });
     const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('Source') });
@@ -912,7 +910,7 @@ describe('deck cardback references', () => {
   });
 
   test('a wrapped custom cardback saves, presents its fields, and is referenceable', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
     const owner = t.withIdentity({ subject: ownerId });
     const deck = deckData('Wrapped');
@@ -939,7 +937,7 @@ describe('deck cardback references', () => {
   });
 
   test('a reference must name a deck whose cardback is authored', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
     const owner = t.withIdentity({ subject: ownerId });
     const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('Source') });
@@ -957,7 +955,7 @@ describe('deck cardback references', () => {
   });
 
   test('a dangling deck reference presents no composition and resolves to the static fallback', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
     const owner = t.withIdentity({ subject: ownerId });
     const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('Source') });
@@ -980,7 +978,7 @@ describe('deck cardback references', () => {
 
 describe('slug allocation', () => {
   test('repeated names and normalized collisions skip occupied suffixes and keep content saves stable', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun 1') });
@@ -1001,7 +999,7 @@ describe('slug allocation', () => {
   });
 
   test('many large copies allocate without rescanning their contents, and crowded legacy suffixes remain usable', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const large = { ...cardData('Reference'), text: `${'x'.repeat(1000)}\n\n`.repeat(245) };
@@ -1030,7 +1028,7 @@ describe('slug allocation', () => {
   });
 
   test('reserved creation paths and legacy addresses stay usable across spelling and genuine renames', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const reserved = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Create') });
@@ -1046,7 +1044,7 @@ describe('slug allocation', () => {
   });
 
   test('existing Asset counters keep their consumed ordinal while new suffixes use base 36', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun 10') });
@@ -1063,7 +1061,7 @@ describe('slug allocation', () => {
   });
 
   test('different asset types may use the same slug and tokens accept repeated names', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const token = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Lasgun') });

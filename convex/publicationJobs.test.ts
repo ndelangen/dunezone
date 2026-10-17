@@ -1,7 +1,6 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
@@ -10,6 +9,7 @@ import { ensureFactionComponentIds } from '../src/shared/factions/componentIdent
 import { assetPublishingFaction as legacyFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import { applicationTest } from './application.test.fixture';
 import schema from './schema';
 
 const assetPublishingFaction = ensureFactionComponentIds(legacyFaction);
@@ -18,10 +18,7 @@ const modules = import.meta.glob('./**/*.ts');
 const CACHE_TOKEN = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
 
 async function authenticatedTest(options: { admin?: boolean } = {}) {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const userId = await t.run(
     async (ctx) =>
       await ctx.db.insert('users', {
@@ -56,7 +53,7 @@ afterEach(() => {
 
 describe('Publication save coalescing', () => {
   test('takeWork output parses against the shared executor wire schema', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const empty = await t.mutation(internal.publicationJobs.takeWork, {});
     expect(() => takeWorkResultSchema.parse(empty)).not.toThrow();
   });

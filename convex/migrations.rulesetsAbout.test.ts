@@ -1,24 +1,19 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
+import type { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { internal } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-23T00:00:00.000Z';
 const prose = 'A house ruleset that rebalances spice income and shortens the endgame considerably.';
 const completedAboutIds = ['rulesets_about_v1', 'rulesets_about_verify_v1'];
 const retirementIds = ['rulesets_description_retire_v1', 'rulesets_description_retire_verify_v1'];
 
 function rulesetMigrationTest() {
-  const t = convexTest(schema, modules);
-  migrationsTest.register(t);
-  aggregateTest.register(t, 'statistics');
+  const t = applicationTest();
   return t;
 }
 

@@ -1,14 +1,11 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
+import type { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 const ABOUT = 'A test ruleset with a description long enough to satisfy the fifty character floor.';
 const SOURCE_URL = 'https://images.example/cover.png';
@@ -23,10 +20,7 @@ const STORED_COVER = {
 };
 
 async function coverFixture() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const ids = await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Cover owner' });
     const strangerId = await ctx.db.insert('users', { name: 'Cover stranger' });

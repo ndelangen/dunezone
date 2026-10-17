@@ -1,8 +1,6 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { parsePublicationAssetData } from '../src/shared/asset-publishing/publication';
@@ -17,15 +15,10 @@ import {
 } from '../src/shared/factions/memberIdentity';
 import { IdentifiedFactionStoredSchema, toStoredHeroKey } from '../src/shared/factions/schema';
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 async function authoringTest() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const userId = await t.run(async (ctx) => {
     const id = await ctx.db.insert('users', { name: 'Member identity owner' });
     await ctx.db.insert('profiles', {

@@ -116,6 +116,16 @@
       "requires": []
     },
     {
+      "id": "statistics_groups_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "statistics_assets_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
       "id": "profile_discovery_profiles_v1",
       "phase": "widen",
       "requires": []

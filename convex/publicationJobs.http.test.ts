@@ -1,13 +1,11 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
+import { applicationTest } from './application.test.fixture';
 import { projectPublicAssetPublishingStatus } from './assetPublishingStatus';
-import schema from './schema';
 
-const modules = import.meta.glob('./**/*.ts');
 const assetId = 'k1'.repeat(12);
 const legacyToken = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
 const executorSecret = 'executor-secret';
@@ -23,7 +21,7 @@ afterEach(() => {
 });
 
 async function publicationFixture() {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ids = await t.run(async (ctx) => ({
     publicationId: await ctx.db.insert('publication_assets', {
       asset_type: 'faction_sheet',
@@ -111,7 +109,7 @@ describe('Publication completion HTTP compatibility', () => {
   });
 
   test('activation and executor credentials remain separate', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const revisions = { schemaVersion: 1, operation: 'read' };
     expect((await t.fetch('/asset-publishing/revisions', post(revisions, executorSecret))).status).toBe(404);
     expect((await t.fetch('/asset-publishing/revisions', post(revisions, activationSecret))).status).toBe(200);

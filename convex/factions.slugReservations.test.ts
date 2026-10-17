@@ -1,22 +1,14 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 async function authenticatedTest() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const userId = await t.run(
     async (ctx) => await ctx.db.insert('users', { name: 'Faction slug reservation test user' })
   );
@@ -161,11 +153,7 @@ describe('faction slug reservations', () => {
   });
 
   test('the repair keeps the active public slug and archives the deleted duplicate', async () => {
-    const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
-    aggregateTest.register(t, 'profileDiscovery');
-    migrationsTest.register(t);
+    const t = applicationTest();
     const { activeId, deletedId } = await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Faction slug migration owner' });
       await ctx.db.insert('profiles', {

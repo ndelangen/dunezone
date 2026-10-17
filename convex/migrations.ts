@@ -54,7 +54,9 @@ import {
 } from './lib/rulebookEditionContents';
 import {
   reconcileAnswerStatistics,
+  reconcileAssetStatistics,
   reconcileFactionStatistics,
+  reconcileGroupStatistics,
   reconcileProfileStatistics,
   reconcileQuestionStatistics,
   reconcileRulesetStatistics,
@@ -92,6 +94,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   statistics_rulesets_v1: internal.migrations.statistics_rulesets_v1,
   statistics_questions_v1: internal.migrations.statistics_questions_v1,
   statistics_answers_v1: internal.migrations.statistics_answers_v1,
+  statistics_groups_v1: internal.migrations.statistics_groups_v1,
+  statistics_assets_v1: internal.migrations.statistics_assets_v1,
   profile_discovery_profiles_v1: internal.migrations.profile_discovery_profiles_v1,
   profile_activity_memberships_v1: internal.migrations.profile_activity_memberships_v1,
   profile_activity_factions_v1: internal.migrations.profile_activity_factions_v1,
@@ -500,6 +504,24 @@ export const statistics_answers_v1 = migrations.define({
   batchSize: 50,
   migrateOne: async (ctx, row) => {
     await reconcileAnswerStatistics(ctx, row);
+  },
+});
+
+/** Populates Statistics from canonical groups, excluding soft-deleted rows. */
+export const statistics_groups_v1 = migrations.define({
+  table: 'groups',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileGroupStatistics(ctx, row);
+  },
+});
+
+/** Populates per-type asset Statistics, excluding soft-deleted rows; small batches because boards carry their geometry. */
+export const statistics_assets_v1 = migrations.define({
+  table: 'assets',
+  batchSize: 8,
+  migrateOne: async (ctx, row) => {
+    await reconcileAssetStatistics(ctx, row);
   },
 });
 

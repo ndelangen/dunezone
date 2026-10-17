@@ -1,18 +1,15 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
-
-const modules = import.meta.glob('./**/*.ts');
 
 describe('asset catalogue', () => {
   test('lists newest-first non-deleted assets with per-type counts and name fallback', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Asset owner' });
       await ctx.db.insert('profiles', {
@@ -76,7 +73,7 @@ describe('asset catalogue', () => {
 
 describe('deck cardback reference on the page', () => {
   test('a valid reference names the target deck, and a dangling one resolves as such with no target', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const composition = {
       name: 'Treachery',
       image: '/vector/decal/amal.svg',
@@ -148,7 +145,7 @@ describe('deck cardback reference on the page', () => {
 
 describe('deck membership', () => {
   test('a card reports the decks holding it and how many copies each holds, and a card in none reports an empty list', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { treachery } = await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Asset owner' });
       const base = { owner_id: ownerId, group_id: null, is_deleted: false };
@@ -192,7 +189,7 @@ describe('deck membership', () => {
   });
 
   test('a soft-deleted deck stops holding its cards, without its relation being touched', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Asset owner' });
       const base = { owner_id: ownerId, group_id: null, is_deleted: false };
@@ -230,7 +227,7 @@ describe('deck membership', () => {
 
 describe('browse page', () => {
   test('lists the page newest first and owns up to a full page, without deriving membership', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Asset owner' });
       const base = { owner_id: ownerId, group_id: null, is_deleted: false };

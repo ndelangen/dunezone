@@ -1,15 +1,12 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
 import { expect, test, vi } from 'vite-plus/test';
 
 import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCustomCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
-
-const modules = import.meta.glob('./**/*.ts');
 
 function tokenLayer(asset_id: string) {
   return {
@@ -26,7 +23,7 @@ function tokenLayer(asset_id: string) {
 test('linked token layers resolve current fronts and refresh immutable card captures', async () => {
   vi.useFakeTimers();
   try {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
     const owner = t.withIdentity({ subject: ownerId });
     const tokenData = { name: 'Linked Karama', about: '', front: publishingTokenFace, back: { mode: 'same' } };
@@ -90,7 +87,7 @@ test('linked token layers resolve current fronts and refresh immutable card capt
 });
 
 test('token layers reject non-token assets and invalid identities before saving', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
   const card = await owner.mutation(api.assets.create, { type: 'card-custom', data: publishingCustomCard });
@@ -123,7 +120,7 @@ test('token layers reject non-token assets and invalid identities before saving'
 test('oversized linked artwork reports an error while other dependent cards keep refreshing', async () => {
   vi.useFakeTimers();
   try {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
     const owner = t.withIdentity({ subject: ownerId });
     const tokenData = { name: 'Growing token', about: '', front: publishingTokenFace, back: { mode: 'same' } };

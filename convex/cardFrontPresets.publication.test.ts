@@ -1,6 +1,5 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { CARD_FRONT_PUBLICATION_REVISIONS, INITIAL_CARD_FRONT_PRESETS } from '../src/shared/assets/cardFrontPresets';
@@ -11,13 +10,12 @@ import { standardStormCard } from '../src/shared/assets/standardStormDeck';
 import { TREACHERY_STYLES } from '../src/shared/assets/treacheryStyles';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 afterEach(() => vi.useRealTimers());
 const stronghold = INITIAL_CARD_FRONT_PRESETS.find((preset) => preset.key === 'stronghold')!;
 async function fixture(revisions: Record<string, number> = CARD_FRONT_PUBLICATION_REVISIONS) {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ids = await t.run(async (ctx) => ({
     admin: await ctx.db.insert('users', { isAdmin: true }),
     author: await ctx.db.insert('users', {}),

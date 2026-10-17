@@ -1,19 +1,16 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
+import { applicationTest } from './application.test.fixture';
 import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 const at = (day: number) => `2026-07-${String(day).padStart(2, '0')}T00:00:00.000Z`;
 
 describe('FAQ list on the ruleset page', () => {
   test('a ruleset with more questions than the list shows keeps its newest ones', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const listed = await t.run(async (ctx) => {
       const askerId = await ctx.db.insert('users', { name: 'Asker' });
       const rulesetId = await ctx.db.insert('rulesets', {

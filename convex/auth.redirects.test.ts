@@ -1,12 +1,9 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 beforeEach(() => {
   vi.stubEnv('AUTH_DISCORD_ID', 'test-discord-client');
@@ -20,7 +17,7 @@ afterEach(() => {
 });
 
 async function callback(redirectTo: string) {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   /* An unsuccessful provider callback still uses the same redirect boundary as a completed sign-in. */
   return await t.fetch('/api/auth/callback/discord?error=access_denied', {
     headers: { Cookie: `__Host-discordRedirectTo=${encodeURIComponent(redirectTo)}` },

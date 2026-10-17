@@ -6,7 +6,15 @@ import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { isActiveProfile } from './accountLifecycle';
 
-export const STATISTICS_METRICS = ['users', 'factions', 'rulesets', 'questions', 'answers'] as const;
+export const STATISTICS_METRICS = [
+  'users',
+  'factions',
+  'rulesets',
+  'questions',
+  'answers',
+  'groups',
+  'assets',
+] as const;
 
 export type StatisticsMetric = (typeof STATISTICS_METRICS)[number];
 
@@ -24,7 +32,7 @@ const statistics = new DirectAggregate<{
   Id: string;
 }>(components.statistics);
 
-function globalItem(namespace: 'users' | 'factions' | 'rulesets', id: string): StatisticsItem {
+function globalItem(namespace: 'users' | 'factions' | 'rulesets' | 'groups', id: string): StatisticsItem {
   return { namespace, key: [GLOBAL_KEY], id };
 }
 
@@ -38,6 +46,15 @@ function factionItem(faction: Doc<'factions'>): StatisticsItem | null {
 
 function rulesetItem(ruleset: Doc<'rulesets'>): StatisticsItem | null {
   return ruleset.is_deleted ? null : globalItem('rulesets', ruleset._id);
+}
+
+function groupItem(group: Doc<'groups'>): StatisticsItem | null {
+  return group.is_deleted ? null : globalItem('groups', group._id);
+}
+
+/** Keyed by type, so one namespace answers both the total and each type's own list. */
+function assetItem(asset: Doc<'assets'>): StatisticsItem | null {
+  return asset.is_deleted ? null : { namespace: 'assets', key: [asset.type], id: asset._id };
 }
 
 function questionItem(question: Doc<'faq_items'>): StatisticsItem {
@@ -109,6 +126,22 @@ export function registerStatisticsTriggers(triggers: Triggers<DataModel, Mutatio
     );
   });
 
+  triggers.register('groups', async (ctx, change) => {
+    await applyTransition(
+      ctx,
+      change.oldDoc ? groupItem(change.oldDoc) : null,
+      change.newDoc ? groupItem(change.newDoc) : null
+    );
+  });
+
+  triggers.register('assets', async (ctx, change) => {
+    await applyTransition(
+      ctx,
+      change.oldDoc ? assetItem(change.oldDoc) : null,
+      change.newDoc ? assetItem(change.newDoc) : null
+    );
+  });
+
   triggers.register('faq_items', async (ctx, change) => {
     await applyTransition(
       ctx,
@@ -127,14 +160,21 @@ export function registerStatisticsTriggers(triggers: Triggers<DataModel, Mutatio
 }
 
 export async function loadGlobalStatisticsTotals(ctx: QueryCtx) {
-  const [users, factions, rulesets, questions, answers] = await statistics.countBatch(ctx, [
+  const [users, factions, rulesets, questions, answers, groups, assets] = await statistics.countBatch(ctx, [
     { namespace: 'users' },
     { namespace: 'factions' },
     { namespace: 'rulesets' },
     { namespace: 'questions' },
     { namespace: 'answers' },
+    { namespace: 'groups' },
+    { namespace: 'assets' },
   ]);
-  return { users, factions, rulesets, questions, answers };
+  return { users, factions, rulesets, questions, answers, groups, assets };
+}
+
+/** Live, non-deleted assets of one type: the total a per-type list pages over. */
+export async function loadAssetTypeStatisticsTotal(ctx: QueryCtx, type: string) {
+  return await statistics.count(ctx, { namespace: 'assets', bounds: { prefix: [type] } });
 }
 
 export async function loadRulesetStatisticsTotals(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
@@ -183,4 +223,22 @@ export async function reconcileQuestionStatistics(ctx: MutationCtx, question: Do
 
 export async function reconcileAnswerStatistics(ctx: MutationCtx, answer: Doc<'faq_answers'>) {
   await statistics.insertIfDoesNotExist(ctx, await answerItem(ctx, answer));
+}
+
+export async function reconcileGroupStatistics(ctx: MutationCtx, group: Doc<'groups'>) {
+  const item = globalItem('groups', group._id);
+  if (group.is_deleted) {
+    await statistics.deleteIfExists(ctx, item);
+  } else {
+    await statistics.insertIfDoesNotExist(ctx, item);
+  }
+}
+
+export async function reconcileAssetStatistics(ctx: MutationCtx, asset: Doc<'assets'>) {
+  const item: StatisticsItem = { namespace: 'assets', key: [asset.type], id: asset._id };
+  if (asset.is_deleted) {
+    await statistics.deleteIfExists(ctx, item);
+  } else {
+    await statistics.insertIfDoesNotExist(ctx, item);
+  }
 }
