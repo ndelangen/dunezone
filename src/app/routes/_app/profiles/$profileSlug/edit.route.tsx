@@ -17,7 +17,7 @@ import { ArrowLeft, CircleUserRound, Link2, Palette, Save, Trash2, Unlink, Users
 import { useId, useReducer, useRef, useState } from 'react';
 
 import { authProviderNames } from '@db/accounts';
-import { useBeginAuthConnection, useDisconnectAuthMethod } from '@db/accounts';
+import { holdAuthConnection, useBeginAuthConnection, useDisconnectAuthMethod } from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
 import { useProfileSettings, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
 import type { CurrentProfileEntry, ProfileSettingsData, ProfileUserEditInput } from '@db/profiles';
@@ -634,9 +634,8 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
     dispatch({ kind: 'started', provider });
     try {
       const intent = await begin({ provider });
-      await signIn(provider, {
-        redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect?connection=${intent.token}`,
-      });
+      holdAuthConnection(intent.token);
+      await signIn(provider, { redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect` });
     } catch (error) {
       dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'The sign-in could not start.' });
     } finally {

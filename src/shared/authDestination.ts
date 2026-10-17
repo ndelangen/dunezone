@@ -47,3 +47,6 @@ const NO_RETURN_PATHS = new Set(['/', '/auth']);
 function needsNoReturn(pathname: string): boolean {
   return NO_RETURN_PATHS.has(pathname) || pathname.startsWith('/auth/');
 }
+
+/** What the backend refuses a sign-in with while the account is being deleted or merged. */
+export const INACTIVE_ACCOUNT_SIGN_IN = 'This account is no longer active.';

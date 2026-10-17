@@ -104,7 +104,11 @@ function FaqCreatePage() {
   if (!profile?.data?._id) {
     return (
       <PageMessage title="Ask a question" back={backToRuleset}>
-        <LoginGate action="ask a question" />
+        {profile.data === undefined ? (
+          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+        ) : (
+          <LoginGate action="ask a question" />
+        )}
       </PageMessage>
     );
   }
