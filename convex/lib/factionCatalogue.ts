@@ -18,7 +18,7 @@ export type CatalogueFaction = Infer<typeof catalogueFactionValidator>;
  * The single narrowing site (#642): every catalogue-shaped surface builds its rows here.
  * Stored data is parsed in full first, because the parse is the read-time correctness check;
  * only what the surfaces draw survives onto the wire.
- * `faction_cards` stores this output, so a change to it bumps `FACTION_CARD_PROJECTION` and ships a migration that rewrites the cards.
+ * `faction_cards` stores this output, so a change to it, or to what the stored data must be to parse, bumps `FACTION_CARD_PROJECTION` below and ships a migration that rewrites the cards.
  */
 export function toCatalogueFaction(row: Doc<'factions'>, rulesets: FactionRulesetSummary[]): CatalogueFaction {
   const { name, logo, background, factionLeader, leaders, complexity } = parseStoredFactionForRead(row.data);
@@ -30,6 +30,40 @@ export function toCatalogueFaction(row: Doc<'factions'>, rulesets: FactionRulese
     data: { name, logo, background, factionLeader, leaders, complexity },
     rulesets,
   };
+}
+
+/*
+ * The version of `toCatalogueFaction`'s output that `faction_cards` stores.
+ * Production never reruns a finished migration, so a change to that output leaves every existing card stale until its faction is saved again.
+ * Such a change bumps this number and ships a new `faction_cards_v*` migration id that rewrites every card; until then a reader falls back to the faction for a card of another version.
+ */
+export const FACTION_CARD_PROJECTION = 1;
+
+/**
+ * The catalogue row a card stands for, read without the faction's authored blob.
+ * A card from another projection version, or one whose faction did not parse when it was written, falls back to the faction itself, which is parsed afresh and throws as the catalogue always has.
+ * A card of the current version is trusted as written, which is why a stricter parse also bumps the version.
+ */
+export async function catalogueFactionFromCard(
+  ctx: QueryCtx,
+  card: Doc<'faction_cards'>,
+  rulesets: FactionRulesetSummary[]
+): Promise<CatalogueFaction> {
+  if (card.projection === FACTION_CARD_PROJECTION && card.data !== null) {
+    return {
+      _id: card.faction_id,
+      slug: card.slug,
+      created_at: card.created_at,
+      updated_at: card.updated_at,
+      data: card.data as CatalogueFaction['data'],
+      rulesets,
+    };
+  }
+  const faction = await ctx.db.get('factions', card.faction_id);
+  if (!faction) {
+    throw new Error(`Faction ${card.faction_id} missing for its card ${card._id}`);
+  }
+  return toCatalogueFaction(faction, rulesets);
 }
 
 const FACTION_LIMIT = 500;
@@ -56,42 +90,46 @@ export async function loadFactionCatalogue(
   options: { ownerId?: Id<'users'> } = {}
 ): Promise<{ factions: CatalogueFaction[]; rulesets: FactionRulesetSummary[] }> {
   const { ownerId } = options;
-  const rows = ownerId
+  const cards = ownerId
     ? await ctx.db
-        .query('factions')
-        .withIndex('by_owner_deleted', (q) => q.eq('owner_id', ownerId).eq('is_deleted', false))
+        .query('faction_cards')
+        .withIndex('by_owner_deleted_created', (q) => q.eq('owner_id', ownerId).eq('is_deleted', false))
         .take(FACTION_LIMIT)
     : await ctx.db
-        .query('factions')
-        .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+        .query('faction_cards')
+        .withIndex('by_deleted_created', (q) => q.eq('is_deleted', false))
         .take(FACTION_LIMIT);
   const rulesets = await listActiveRulesetSummaries(ctx);
-  const linksByFaction = ownerId ? await factionLinksByIndexedReads(ctx, rows) : await factionLinksByScan(ctx);
+  const factionIds = cards.map((card) => card.faction_id);
+  const linksByFaction = ownerId ? await factionLinksByIndexedReads(ctx, factionIds) : await factionLinksByScan(ctx);
   const activeRulesetById = new Map(rulesets.map((ruleset) => [ruleset.id, ruleset]));
 
-  const factions = rows.map((row) =>
-    toCatalogueFaction(
-      row,
-      (linksByFaction.get(row._id) ?? [])
-        .map((rulesetId) => activeRulesetById.get(rulesetId))
-        .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
-        .sort(compareRulesets)
+  const factions = await Promise.all(
+    cards.map((card) =>
+      catalogueFactionFromCard(
+        ctx,
+        card,
+        (linksByFaction.get(card.faction_id) ?? [])
+          .map((rulesetId) => activeRulesetById.get(rulesetId))
+          .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
+          .sort(compareRulesets)
+      )
     )
   );
 
   return { factions, rulesets };
 }
 
-async function factionLinksByIndexedReads(ctx: QueryCtx, rows: Doc<'factions'>[]) {
+async function factionLinksByIndexedReads(ctx: QueryCtx, factionIds: Id<'factions'>[]) {
   const linksByFaction = new Map<Id<'factions'>, Id<'rulesets'>[]>();
   await Promise.all(
-    rows.map(async (row) => {
+    factionIds.map(async (factionId) => {
       const links = await ctx.db
         .query('ruleset_factions')
-        .withIndex('by_faction', (q) => q.eq('faction_id', row._id))
+        .withIndex('by_faction', (q) => q.eq('faction_id', factionId))
         .take(500);
       linksByFaction.set(
-        row._id,
+        factionId,
         links.map((link) => link.ruleset_id)
       );
     })
@@ -115,30 +153,32 @@ async function factionLinksByScan(ctx: QueryCtx) {
 
 /** Homepage spotlights omit ruleset enrichment because they only render faction identity. */
 export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
-  const rows = await ctx.db
-    .query('factions')
-    .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+  const cards = await ctx.db
+    .query('faction_cards')
+    .withIndex('by_deleted_created', (q) => q.eq('is_deleted', false))
     .take(FACTION_LIMIT);
-  const selected = selectFactionCatalogueSpotlights(rows);
-  const preview = (row: Doc<'factions'> | null) => {
-    if (!row) {
+  const selected = selectFactionCatalogueSpotlights(cards.map((card) => ({ ...card, _id: card.faction_id })));
+  const preview = async (card: Doc<'faction_cards'> | undefined) => {
+    if (!card) {
       return null;
     }
-    const faction = parseStoredFactionForRead(row.data);
+    const faction = await catalogueFactionFromCard(ctx, card, []);
     return {
-      slug: row.slug,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
+      slug: faction.slug,
+      created_at: faction.created_at,
+      updated_at: faction.updated_at,
       data: {
-        name: faction.name,
-        logo: faction.logo,
-        background: faction.background,
+        name: faction.data.name,
+        logo: faction.data.logo,
+        background: faction.data.background,
       },
     };
   };
+  const cardOf = (selection: { faction_id: Id<'factions'> } | null) =>
+    selection ? cards.find((card) => card.faction_id === selection.faction_id) : undefined;
   return {
-    newArrival: preview(selected.newArrival),
-    freshlyUpdated: preview(selected.freshlyUpdated),
+    newArrival: await preview(cardOf(selected.newArrival)),
+    freshlyUpdated: await preview(cardOf(selected.freshlyUpdated)),
   };
 }
 
