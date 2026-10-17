@@ -99,6 +99,32 @@ export function TracingImageLayer({ tracing }: { tracing: TracingImage }) {
   );
 }
 
+/** Show, reset and remove, beside the picked image's name. */
+function TracingImageActions({
+  tracing,
+  patch,
+  remove,
+}: { tracing: TracingImage } & Pick<ReturnType<typeof useTracingImage>, 'patch' | 'remove'>) {
+  return (
+    <Group gap="xs" wrap="nowrap">
+      <IconAction
+        label={tracing.visible ? 'Hide tracing image' : 'Show tracing image'}
+        icon={tracing.visible ? <Eye size={17} /> : <EyeOff size={17} />}
+        emphasis="standard"
+        pressed={tracing.visible}
+        onClick={() => patch({ visible: !tracing.visible })}
+      />
+      <IconAction
+        label="Reset tracing image size and position"
+        icon={<RotateCcw size={17} />}
+        emphasis="standard"
+        onClick={() => patch({ center: [...CENTER], scale: 1 })}
+      />
+      <IconAction label="Remove tracing image" icon={<X size={17} />} emphasis="standard" onClick={remove} />
+    </Group>
+  );
+}
+
 export function TracingImageControls({ controls }: { controls: ReturnType<typeof useTracingImage> }) {
   const [opened, setOpened] = useState(false);
   const { tracing, error, pick, patch, remove } = controls;
@@ -173,31 +199,7 @@ export function TracingImageControls({ controls }: { controls: ReturnType<typeof
           <ControlBlock
             title={tracing ? tracing.name : 'Tracing image'}
             description="A picture to trace over while you draw. It stays on this device, is never uploaded or saved, and is not part of your board."
-            tool={
-              tracing && (
-                <Group gap="xs" wrap="nowrap">
-                  <IconAction
-                    label={tracing.visible ? 'Hide tracing image' : 'Show tracing image'}
-                    icon={tracing.visible ? <Eye size={17} /> : <EyeOff size={17} />}
-                    emphasis="standard"
-                    pressed={tracing.visible}
-                    onClick={() => patch({ visible: !tracing.visible })}
-                  />
-                  <IconAction
-                    label="Reset tracing image size and position"
-                    icon={<RotateCcw size={17} />}
-                    emphasis="standard"
-                    onClick={() => patch({ center: [...CENTER], scale: 1 })}
-                  />
-                  <IconAction
-                    label="Remove tracing image"
-                    icon={<X size={17} />}
-                    emphasis="standard"
-                    onClick={remove}
-                  />
-                </Group>
-              )
-            }
+            tool={tracing && <TracingImageActions tracing={tracing} patch={patch} remove={remove} />}
             input={
               <Stack gap={4}>
                 <FileButton onChange={pick} accept="image/*">
