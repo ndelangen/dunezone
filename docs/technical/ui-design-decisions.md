@@ -128,8 +128,8 @@ description, resting 1.8 s swaps in the full help, and keyboard focus opens the 
 panels have no help button. Play is desktop-only for the beta, so a touch path to that guidance is
 out of scope until touch is.
 
-*Guarded in part: `check:css-orphans` reads route stylesheets, and the `PanelSchemeIsland` story in
-[`playing.stories.tsx`](../../src/app/routes/_app/play/playing.stories.tsx) holds the island and
+*Guarded in part: `check:css-orphans` reads route stylesheets, and the `SchemeIsland` story in
+[`panel.layout.stories.tsx`](../../src/app/routes/_app/play/panel.layout.stories.tsx) holds the island and
 a piece menu and a tab's tooltip opened on it, painted with the island's raised tooltip surface; the
 `TabGuidance` story in [`NestedTabs.stories.tsx`](../../src/app/ui/surface/NestedTabs.stories.tsx)
 holds a tab's description, its rested help and its accessible description. The vocabulary on the panel, the parts ledger and the

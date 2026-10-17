@@ -6,7 +6,7 @@ import { productTransport, swappingSnapshot } from './product.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Swapping',
+  title: 'Play/Trading',
 });
 
 export const Swapping = meta.story({
@@ -26,7 +26,7 @@ export const Swapping = meta.story({
   },
 });
 
-export const TradingOffers = meta.story({
+export const Offers = meta.story({
   beforeEach: install(() => {
     const snapshot = swappingSnapshot();
     snapshot.swapping!.offers = [
@@ -50,7 +50,7 @@ export const TradingOffers = meta.story({
   },
 });
 
-export const TradingEndedWithVacancy = meta.story({
+export const EndedWithVacancy = meta.story({
   beforeEach: install(() => {
     const snapshot = swappingSnapshot();
     snapshot.swapping!.closed = true;

@@ -35,7 +35,7 @@ const meta = preview.meta({
   beforeEach: ({ args }) =>
     install(() => sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1') }))(),
   decorators: [...gameMeta.decorators, sandboxDecorator],
-  /* The stories load the table chunk before they render, as Play/Playing explains. */
+  /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
       await import('./multiplayer/HostedTable');
