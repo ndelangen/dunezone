@@ -1,26 +1,19 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { GF9_LEADER_SKILLS } from '../src/shared/assets/gf9LeaderSkills';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { internal } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { GF9_SEED_WORDING } from './lib/glossaryStockWording';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 const [oldSeed, newSeed] = [...GF9_SEED_WORDING][0]!;
 const seededCard = GF9_LEADER_SKILLS.find((card) => card.battleText === newSeed)!;
 const oldCard = (battleText: string) => ({ ...seededCard, battleText });
 
 async function seed() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Stock owner', isAdmin: true }));
   const otherId = await t.run((ctx) => ctx.db.insert('users', { name: 'Someone else' }));
   const row = (owner: typeof ownerId, slug: string, data: unknown) =>
