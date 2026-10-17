@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { componentGeometrySchema } from '../asset-publishing/componentGeometry';
 import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
-import { GEAR_CLIP } from '../assets/tokenOutline';
+import { GEAR_CLIP, POINTER_CLIP } from '../assets/tokenOutline';
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
 import { FactionTroopIdSchema } from '../factions/troopIdentity';
 import { RULEBOOK_BOARD_DEFINITIONS } from './boardDefinitions';
@@ -123,6 +123,9 @@ export function rulebookSourceClipPath(source: RulebookResolvedSource): string |
   }
   if (source.assetType === 'token-tech') {
     return GEAR_CLIP;
+  }
+  if (source.assetType === 'token-pointer') {
+    return POINTER_CLIP;
   }
   return undefined;
 }

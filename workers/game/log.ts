@@ -373,7 +373,7 @@ function resultEntries(
       class: 'phase',
       template,
       people,
-      /* A declaration happened in Mentat pause; the finished stage is where it left the game. */
+      /* A declaration happened in Mentat Pause; the finished stage is where it left the game. */
       context: logContext(action.kind === 'result-declare' ? before : next),
     },
   ];

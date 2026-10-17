@@ -8,14 +8,27 @@ import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './faqProfileActi
 
 const PROFILE_DETAIL_LIMIT = 500;
 
+/* Renames away from one address that a lookup follows, newest first, as `formerAddresses` does for the other kinds. */
+const FORMER_HOLDERS_READ = 8;
+
+/** The newest public profile a rename moved away from this address; a deleted former holder no longer answers for it. */
 async function formerProfile(ctx: QueryCtx, slug: string) {
-  const row = await ctx.db
+  const rows = await ctx.db
     .query('former_slugs')
     .withIndex('by_kind_and_scope_and_slug', (q) => q.eq('kind', 'profile').eq('scope', '').eq('slug', slug))
     .order('desc')
-    .first();
-  const id = row && ctx.db.normalizeId('profiles', row.record_id);
-  return id ? await ctx.db.get('profiles', id) : null;
+    .take(FORMER_HOLDERS_READ);
+  for (const row of rows) {
+    const id = ctx.db.normalizeId('profiles', row.record_id);
+    let profile = id ? await ctx.db.get('profiles', id) : null;
+    for (let depth = 0; profile?.merged_into_profile_id && depth < 16; depth += 1) {
+      profile = await ctx.db.get(profile.merged_into_profile_id);
+    }
+    if (profile && isPublicProfile(profile)) {
+      return profile;
+    }
+  }
+  return null;
 }
 
 /**

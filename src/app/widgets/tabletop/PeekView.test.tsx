@@ -4,18 +4,36 @@ import { MantineProvider } from '@mantine/core';
 import { initialSnapshot } from '@shared/play/commands';
 import type { TablePiece } from '@shared/play/model';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
+import type * as Peeking from '@shared/play/peeking';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import type { TableProjection, TableSession } from '../../db/tabletop/TableSession';
 import { stubMatchMedia } from '../../routes/_app/play/multiplayer/jsdom.test.fixture';
 import { PeekView } from './PeekView';
 import { TabletopSessionProvider } from './TabletopContext';
 
+/** While set, the deck limit is this small one, so a deck over it renders a handful of cards rather than hundreds. */
+const smallLimit = vi.hoisted((): { value?: number } => ({}));
+vi.mock('@shared/play/peeking', async (importOriginal) => {
+  const actual = await importOriginal<typeof Peeking>();
+  return {
+    ...actual,
+    get PEEK_DECK_LIMIT() {
+      return smallLimit.value ?? actual.PEEK_DECK_LIMIT;
+    },
+    rearrangeable: (piece: { items: readonly unknown[] }) =>
+      smallLimit.value === undefined ? actual.rearrangeable(piece) : piece.items.length <= smallLimit.value,
+  };
+});
+
 stubMatchMedia();
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  smallLimit.value = undefined;
+});
 
 const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck') as TablePiece;
 
@@ -40,7 +58,7 @@ function liveTable(piece: TablePiece) {
   );
   return {
     controls,
-    show(next: TablePiece) {
+    show: (next: TablePiece) => {
       table = { ...table, peek: { piece: next } } as TableProjection;
       act(() => listeners.forEach((listener) => listener()));
     },
@@ -77,6 +95,7 @@ test('a locked deck can be looked through, but offers no move and no pull', () =
 });
 
 test('a deck over the limit can only be looked through', () => {
+  smallLimit.value = 3;
   const items = Array.from({ length: PEEK_DECK_LIMIT + 1 }, (_, index) => ({ ...deck.items[0]!, id: `card-${index}` }));
   const { controls } = liveTable({ ...deck, items });
   expect(screen.getByText(/can only be looked through/)).toBeTruthy();

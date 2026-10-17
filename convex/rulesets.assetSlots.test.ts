@@ -1,16 +1,14 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
+import { blankBoard } from '../src/shared/boards/geometry';
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import { api } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import schema from './schema';
 import { assetPageAs } from './viewerAccess.test.fixture';
-
-const modules = import.meta.glob('./**/*.ts');
 
 const DESCRIPTION = 'A house ruleset used to prove asset slots fill, swap and clear under the right permissions.';
 
@@ -33,10 +31,7 @@ const deckData = (name: string) => ({
 });
 
 async function slotFixture() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
 
   const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Ruleset owner' }));
   const owner = t.withIdentity({ subject: ownerId });
@@ -106,6 +101,27 @@ describe('ruleset asset slots', () => {
     ).rejects.toThrow('holds a token bundle');
   });
 
+  test('the detail page carries the slotted board with its face, and null once the slot is empty', async () => {
+    const { t, owner, ruleset } = await slotFixture();
+    const board = await owner.mutation(api.assets.create, {
+      type: 'board',
+      data: { name: 'Blank Board', about: '', board: blankBoard() },
+    });
+    const boardOf = async () => (await t.query(api.rulesets.detailPage, { slug: ruleset.slug }))?.board;
+
+    await expect(boardOf()).resolves.toBeNull();
+    await owner.mutation(api.rulesets.setAssetSlot, { ruleset_id: ruleset._id, asset_id: board.id, slot: 'board' });
+    await expect(boardOf()).resolves.toMatchObject({
+      id: board.id,
+      type: 'board',
+      slug: board.slug,
+      name: 'Blank Board',
+      previewHref: expect.stringMatching(new RegExp(`^/published/boards/${board.id}/board\\.jpg\\?v=`)),
+    });
+    await owner.mutation(api.assets.softDelete, { id: board.id });
+    await expect(boardOf()).resolves.toBeNull();
+  });
+
   test('a soft-deleted asset presents its slot as empty without its row being touched', async () => {
     const { t, owner, ruleset, first, slotted } = await slotFixture();
 
@@ -142,6 +158,23 @@ describe('ruleset asset slots', () => {
     expect(orphaned?.linkingRulesets).toEqual([]);
     const rows = await t.run(async (ctx) => await ctx.db.query('ruleset_asset_slots').collect());
     expect(rows).toHaveLength(1);
+  });
+
+  test('a ruleset with both many-asset slots full still presents a single slot set last', async () => {
+    const { t, owner, ruleset, first, second, slotted } = await slotFixture();
+    await t.run(async (ctx) => {
+      for (const slot of ['custom', 'customTokens'] as const) {
+        for (let index = 0; index < 100; index += 1) {
+          await ctx.db.insert('ruleset_asset_slots', { ruleset_id: ruleset._id, asset_id: first.id, slot });
+        }
+      }
+    });
+    await owner.mutation(api.rulesets.setAssetSlot, {
+      ruleset_id: ruleset._id,
+      asset_id: second.id,
+      slot: 'treachery',
+    });
+    expect(await slotted()).toContainEqual(['treachery', 'House Spice']);
   });
 
   test('the schema lists exactly the slots the shared table defines', () => {

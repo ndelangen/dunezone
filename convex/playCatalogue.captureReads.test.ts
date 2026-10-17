@@ -1,8 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
@@ -11,13 +10,11 @@ import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishin
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { toStoredHeroKey } from '../src/shared/factions/schema';
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 describe('the catalogue reads Play captures from', () => {
   test('a faction reads with its token and leader faces, keeping a face whose replacement is still pending', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { factionId, deletedId } = await t.run(async (ctx) => {
       const owner = await ctx.db.insert('users', { email: 'author@example.invalid' });
       const stamp = new Date().toISOString();
@@ -99,7 +96,7 @@ describe('the catalogue reads Play captures from', () => {
   });
 
   test('a ruleset reads its slotted assets by slot, without soft-deleted assets', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { rulesetId, deletedRulesetId } = await t.run(async (ctx) => {
       const owner = await ctx.db.insert('users', { email: 'curator@example.invalid' });
       const stamp = new Date().toISOString();
@@ -155,7 +152,7 @@ describe('the catalogue reads Play captures from', () => {
   });
 
   test('a deck reads in one query with its cardback and each live member front, which is null until published', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { deckId, publishedId } = await t.run(async (ctx) => {
       const owner = await ctx.db.insert('users', { email: 'curator@example.invalid' });
       const stamp = new Date().toISOString();

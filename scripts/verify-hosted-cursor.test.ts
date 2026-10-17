@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
-import { afterAll, beforeAll, expect, onTestFinished, test } from 'vitest';
+import { afterAll, beforeAll, expect, onTestFinished, test } from 'vite-plus/test';
 
 import { cursorBounds } from './verify-hosted-cursor.ts';
 

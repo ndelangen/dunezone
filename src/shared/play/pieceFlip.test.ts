@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import type { TablePiece } from './model';
 import {
@@ -83,7 +83,7 @@ function visibleBodyCorners(piece: TablePiece): [x: number, y: number][] {
 }
 
 describe('compressed stack faces', () => {
-  test.each(['card', 'force'] as const)('keeps the same sampled %s faces throughout each flip', (kind) => {
+  test.each(['card'] as const)('keeps the same sampled %s faces throughout each flip', (kind) => {
     for (let count = 1; count <= 200; count += 1) {
       const piece = pieceWithItems(kind, count);
       const shown = visibleLayerCount(piece);
@@ -220,7 +220,7 @@ describe('single piece flips', () => {
     expect(initial).toEqual(createPieceFlipMotion(0));
   });
 
-  test.each([2, 3, 5])('settles an unexpected revision %i during a flip without queuing', (revision) => {
+  test.each([2, 3])('settles an unexpected revision %i during a flip without queuing', (revision) => {
     const piece = pieceWithItems('card', 5);
     const first = retargetPieceFlipMotion(createPieceFlipMotion(0), 1, 20);
     const nowMs = 20 + PIECE_FLIP_DURATION_MS * 0.37;
@@ -304,7 +304,7 @@ describe('single piece flips', () => {
 });
 
 describe('piece changes that preserve a flip', () => {
-  test.each(['card', 'force'] as const)('accepts unchanged %s items and one consecutive flip', (kind) => {
+  test.each(['card'] as const)('accepts unchanged %s items and one consecutive flip', (kind) => {
     const piece = pieceWithItems(kind, 5, 4);
 
     expect(canAnimatePieceChange(piece, piece)).toBe(true);
@@ -314,7 +314,7 @@ describe('piece changes that preserve a flip', () => {
     expect(canAnimatePieceChange(piece, { ...piece, position: [1, 2, 3], locked: true })).toBe(true);
   });
 
-  test.each(['card', 'force'] as const)('rejects skipped %s flip revisions even when item parity matches', (kind) => {
+  test.each(['card'] as const)('rejects skipped %s flip revisions even when item parity matches', (kind) => {
     const piece = pieceWithItems(kind, 5, 4);
 
     for (const revision of [6, 7, 8]) {

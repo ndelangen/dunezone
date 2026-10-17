@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import lockJson from '../media/raster.lock.json';
 import { legacyVariant } from '../src/shared/media/legacyVariant';

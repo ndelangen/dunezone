@@ -1,4 +1,4 @@
-import { afterEach, assert, expect, test, vi } from 'vitest';
+import { afterEach, assert, expect, test, vi } from 'vite-plus/test';
 
 import { handleAuthRequest } from './auth';
 

@@ -1,22 +1,14 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 async function authenticatedTest() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const userId = await t.run(
     async (ctx) => await ctx.db.insert('users', { name: 'Faction slug reservation test user' })
   );
@@ -87,10 +79,6 @@ describe('faction slug reservations', () => {
     );
   });
 
-  /*
-   * The editor's warning and the save guard's refusal read one predicate, so this pins all three answers the query can give.
-   * Without it the two surfaces can drift and only a reader typing a taken name would notice.
-   */
   test('slugTaken answers live, deleted, and free', async () => {
     const { asUser } = await authenticatedTest();
     expect(await asUser.query(api.factions.slugTaken, { slug: 'reserved-faction' })).toBe(null);
@@ -102,45 +90,61 @@ describe('faction slug reservations', () => {
     expect(await asUser.query(api.factions.slugTaken, { slug: 'reserved-faction' })).toBe('deleted');
   });
 
-  test('a live faction refuses a colliding name in its own words', async () => {
+  test('repeated names keep their display text and receive distinct addresses', async () => {
     const { asUser } = await authenticatedTest();
-    await createFaction(asUser, 'Reserved Faction');
-
-    await expect(createFaction(asUser, 'Reserved Faction')).rejects.toThrow(
-      'another faction already lives at "reserved-faction"'
-    );
+    const factions = [];
+    for (let i = 0; i < 3; i += 1) {
+      factions.push(await createFaction(asUser, 'House Atreides'));
+    }
+    expect(factions.map((faction) => faction.slug)).toEqual(['house-atreides', 'house-atreides-1', 'house-atreides-2']);
+    for (const faction of factions) {
+      const page = await asUser.query(api.factions.pageBySlug, { slug: faction.slug });
+      expect(page.faction._id).toBe(faction._id);
+      expect(page.faction.data.name).toBe('House Atreides');
+    }
   });
 
-  test('a soft-deleted faction keeps its slug reserved for create', async () => {
-    const { asUser } = await authenticatedTest();
-    const faction = await createFaction(asUser, 'Reserved Faction');
-    await asUser.mutation(api.factions.softDelete, { id: faction._id });
-
-    await expect(createFaction(asUser, 'Reserved Faction')).rejects.toThrow(
-      '"reserved-faction" stays reserved by a deleted faction'
-    );
-  });
-
-  test('a soft-deleted faction keeps its slug reserved for rename', async () => {
+  test('a deleted faction reserves its address while its name can be reused on create and rename', async () => {
     const { asUser } = await authenticatedTest();
     const reserved = await createFaction(asUser, 'Reserved Faction');
     await asUser.mutation(api.factions.softDelete, { id: reserved._id });
+    const created = await createFaction(asUser, 'Reserved Faction');
+    expect(created.slug).toBe('reserved-faction-1');
     const active = await createFaction(asUser, 'Active Faction');
-
+    const renamed = await asUser.mutation(api.factions.update, {
+      id: active._id,
+      data: { ...active.data, name: 'Reserved Faction' },
+    });
+    expect(renamed.slug).toBe('reserved-faction-2');
+    expect(renamed.data.name).toBe('Reserved Faction');
     await expect(
-      asUser.mutation(api.factions.update, {
-        id: active._id,
-        data: { ...active.data, name: 'Reserved Faction' },
+      asUser.query(api.formerAddresses.resolve, {
+        address: { kind: 'faction', slug: active.slug },
       })
-    ).rejects.toThrow('"reserved-faction" stays reserved by a deleted faction');
+    ).resolves.toBe('/factions/reserved-faction-2');
+    expect(await asUser.query(api.factions.slugTaken, { slug: reserved.slug })).toBe('deleted');
+  });
+
+  test('ordinary saves and spelling-only changes retain a suffix after the base becomes free', async () => {
+    const { asUser } = await authenticatedTest();
+    const first = await createFaction(asUser, 'House Atreides');
+    const second = await createFaction(asUser, 'House Atreides');
+    await asUser.mutation(api.factions.update, { id: first._id, data: { ...first.data, name: 'House Corrino' } });
+    const saved = await asUser.mutation(api.factions.update, {
+      id: second._id,
+      data: { ...second.data, logo: first.data.logo },
+    });
+    expect(saved.slug).toBe(second.slug);
+    const spelling = await asUser.mutation(api.factions.update, {
+      id: second._id,
+      data: { ...second.data, name: 'HOUSE ATREIDES!' },
+    });
+    expect(spelling.slug).toBe(second.slug);
+    expect(spelling.data.name).toBe('HOUSE ATREIDES!');
   });
 
   test('the repair keeps the active public slug and archives the deleted duplicate', async () => {
-    const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
-    aggregateTest.register(t, 'profileDiscovery');
-    migrationsTest.register(t);
+    const t = applicationTest();
     const { activeId, deletedId } = await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Faction slug migration owner' });
       await ctx.db.insert('profiles', {

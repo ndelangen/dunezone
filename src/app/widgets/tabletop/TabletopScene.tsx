@@ -1,17 +1,21 @@
 /* @jsxImportSource ./three-jsx */
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
+import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { peekersOf } from '@shared/play/peeking';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
+import { isPointerToken } from '@shared/play/pointerToken';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { widestTroopSupply } from '@shared/play/setupLayout';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import {
   CARD_DEPTH,
+  CARD_CORNER_RADIUS,
   CARD_LAYER_HEIGHT,
   CARD_LAYER_PITCH,
   CARD_WIDTH,
@@ -34,12 +38,14 @@ import {
   MARKER_TOP_RADIUS,
   stackTopHeight,
   visibleLayerCount,
+  BOARD_SURFACE_Y,
 } from '@shared/play/tableGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import { isTroopStack } from '@shared/play/troop';
+import clsx from 'clsx';
 import {
   createContext,
   memo,
@@ -54,21 +60,23 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import type { ReactNode } from 'react';
-import type { Texture } from 'three';
+import type { CSSProperties, ReactNode } from 'react';
+import type { Ray, Texture } from 'three';
 import {
   DoubleSide,
   Mesh,
   MeshBasicMaterial,
+  Plane,
   Raycaster,
   RingGeometry,
   SRGBColorSpace,
-  TextureLoader,
   Vector2,
+  Vector3,
 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { loadFaceTexture, tableCardFaceKey } from './cardFaceTexture';
 import { ignoreRaycast } from './ignoreRaycast';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
@@ -77,11 +85,13 @@ import { topFaceHref } from './pieceFaceHref';
 import { pieceHasMenu } from './pieceMenu';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
+import { POINTER_SELECTION_RING, PointerTokenPlate } from './PointerTokenPlate';
 import { sharedPublishedFaces } from './publishedFaceRetry';
 import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
 import { SpiceBankInteraction } from './SpiceBank';
 import { SpiceStackIcon } from './SpiceStackIcon';
+import { loadPieceBadge, loadPlayCamera, loadScenePings, loadScenePresence, loadTabletopTools } from './tableChunks';
 import { useTableFraming } from './tableFraming';
 import { isPublicTablePoint } from './tablePointerPoint';
 import { TabletopBoard } from './TabletopBoard';
@@ -91,35 +101,76 @@ import type { TabletopContextValue } from './TabletopContext';
 import styles from './TabletopScene.module.css';
 import type { PieceMenuAnchor } from './TabletopTools';
 import type { TableProgress } from './tableTrackers';
+import { BRUSH_CURSOR, territoryBrush, useTerritoryBrush } from './territoryBrush';
+import { territoryAtTablePoint } from './TerritoryTints';
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
-import { useTablePose } from './useTablePose';
+import { PlatePosesProvider, useTablePose } from './useTablePose';
 
 type TabletopSceneProps = {
   children?: ReactNode;
   className?: string;
   cameraView?: CameraViewCommand;
-  onInteractionActiveChange?(active: boolean): void;
+  onInteractionActiveChange?: (active: boolean) => void;
   seatCount?: TableSeatCount;
   tableProgress?: TableProgress;
   /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
-  onSceneReady?(): void;
-  onSceneUnavailable?(): void;
+  onSceneReady?: () => void;
+  onSceneUnavailable?: () => void;
   presentation?: 'play' | 'preview';
   /* Absent on the fixture, which has no lifecycle. */
   stage?: GameSnapshot['stage'];
   mapVisible?: boolean;
 };
 
-const PieceBadge = lazy(() => import('./PieceBadge').then((module) => ({ default: module.PieceBadge })));
-const ScenePresence = lazy(() => import('./ScenePresence').then((module) => ({ default: module.ScenePresence })));
-const ScenePings = lazy(() => import('./ScenePings').then((module) => ({ default: module.ScenePings })));
+/** The play area's class and style: the paintbrush cursor while the brush is on. */
+function usePaintingArea(className: string | undefined) {
+  const brush = useTerritoryBrush();
+  return brush
+    ? { className: clsx(className, styles.painting), style: { '--brush-cursor': BRUSH_CURSOR } as CSSProperties }
+    : { className };
+}
+
+/** With the paintbrush on, a click on the map adds the territory under it to the brush's tint, or takes it out. */
+/* The board's face, where a paint click lands whatever piece the pointer passed through first. */
+const BOARD_PLANE = new Plane(new Vector3(0, 1, 0), -BOARD_SURFACE_Y);
+
+function paintTerritory(
+  board: GameSnapshot['board'],
+  { stage, mapVisible }: Readonly<{ stage: GameSnapshot['stage']; mapVisible?: boolean }>,
+  ray: Ray
+) {
+  const brush = territoryBrush();
+  /* Setup keeps the map off the table until it is shown, and nothing can be painted on a map that is not there. */
+  const mapShown = stage !== 'setup' || !!mapVisible;
+  const point = brush && mapShown && ray.intersectPlane(BOARD_PLANE, new Vector3());
+  const territory = point && territoryAtTablePoint(board?.definition ?? retainedArrakisBoard(), point.x, point.z);
+  if (brush && territory) {
+    brush.paint(territory);
+  }
+}
+
+/** A click reaches the scene once for each mesh the pointer passed through; the paintbrush takes the first, and paints on the board's face. */
+function paintClick(
+  event: ThreeEvent<MouseEvent>,
+  board: GameSnapshot['board'],
+  view: Readonly<{ stage: GameSnapshot['stage']; mapVisible?: boolean }>
+) {
+  if (territoryBrush()) {
+    event.stopPropagation();
+    paintTerritory(board, view, event.ray);
+  }
+}
+
+const PieceBadge = lazy(() => loadPieceBadge().then((module) => ({ default: module.PieceBadge })));
+const ScenePresence = lazy(() => loadScenePresence().then((module) => ({ default: module.ScenePresence })));
+const ScenePings = lazy(() => loadScenePings().then((module) => ({ default: module.ScenePings })));
 const PredictionOverlay = lazy(() =>
   import('./prediction/PredictionOverlay').then((module) => ({ default: module.PredictionOverlay }))
 );
-const TabletopTools = lazy(() => import('./TabletopTools').then((module) => ({ default: module.TabletopTools })));
-const PlayCamera = lazy(() => import('./PlayCamera').then((module) => ({ default: module.PlayCamera })));
+const TabletopTools = lazy(() => loadTabletopTools().then((module) => ({ default: module.TabletopTools })));
+const PlayCamera = lazy(() => loadPlayCamera().then((module) => ({ default: module.PlayCamera })));
 
 const DEFAULT_CAMERA_VIEW: CameraViewCommand = { view: 'map', revision: 0 };
 const PHYSICAL_OBJECT_RENDER_ORDER = 2;
@@ -147,7 +198,7 @@ function PieceFace({ height, underside, children }: { height: number; underside:
 
 /* Every piece and every stack layer that shows the same published image draws one shared texture, so the image is uploaded once rather than once per face. */
 const subscribePublishedFace = sharedPublishedFaces<Texture>({
-  load: (href, onLoad, onError) => new TextureLoader().load(href, onLoad, undefined, onError),
+  load: loadFaceTexture,
   prepare: (value) => {
     value.colorSpace = SRGBColorSpace;
     value.anisotropy = 8;
@@ -216,7 +267,9 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
     <mesh
       position={[0, 0, 0.002]}
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-      geometry={card ? meshes.plane(CARD_WIDTH, CARD_DEPTH) : tokenFaceGeometry(meshes, ratio)}
+      geometry={
+        card ? meshes.roundedPlane(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS) : tokenFaceGeometry(meshes, ratio)
+      }
     >
       {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
       {texture ? (
@@ -235,6 +288,12 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
 /* Holds the image a piece shows on top and says whether it is loaded, so a flip can wait for a card's revealed face instead of turning up a placeholder. */
 function usePublishedFaceReady(href: string | undefined): boolean {
   return usePublishedFace(href) !== undefined || !href;
+}
+
+/* The key a piece's top face loads under, so a flip waits for the same image the face draws. */
+function topFaceKey(piece: TablePiece) {
+  const href = topFaceHref(piece);
+  return href && piece.kind === 'card' ? tableCardFaceKey(href) : href;
 }
 
 /* A card turned face up in hand shows its face only once the room has sent it, so its flip waits for that too. */
@@ -267,6 +326,14 @@ function SittingOutSign() {
   );
 }
 
+/* Under printed art the plain face wears the piece's own colour: the art's anti-aliased rim lets it through where the disc's corners reach the image's edge, and a light accent there drew a dotted ring. */
+function plainTokenFaceColor(piece: TablePiece, faceUp: boolean, printed: boolean) {
+  if (printed) {
+    return piece.color;
+  }
+  return faceUp ? piece.accent : '#261c18';
+}
+
 function TokenFace({
   piece,
   faceUp,
@@ -288,7 +355,7 @@ function TokenFace({
       {href && <PublishedFace href={href} card={false} ratio={ratio} />}
       {blocked && <SittingOutSign />}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={tokenFaceGeometry(meshes, ratio)}>
-        <meshStandardMaterial color={faceUp ? piece.accent : '#261c18'} roughness={0.5} metalness={0.08} />
+        <meshStandardMaterial color={plainTokenFaceColor(piece, faceUp, !!href)} roughness={0.5} metalness={0.08} />
       </mesh>
       {!faceUp && !piece.items[itemIndex]?.artwork ? (
         <mesh
@@ -317,8 +384,10 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
         const itemIndex = layerItemIndex(piece, index, shownLayers);
+        const [offsetX, offsetZ, yaw] =
+          index === shownLayers - 1 ? [0, 0, 0] : handStackedOffset(piece.items[itemIndex]?.id ?? `${index}`);
         return (
-          <group key={index} position={[0, index * TROOP_LAYER_PITCH, 0]}>
+          <group key={index} position={[offsetX, index * TROOP_LAYER_PITCH, offsetZ]} rotation={[0, yaw, 0]}>
             <mesh
               position={[0, TROOP_LAYER_HEIGHT / 2, 0]}
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
@@ -340,6 +409,22 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
+/* How far a hand-stacked layer may sit off the one above it, and how far it may turn. */
+const HAND_STACK_SHIFT = TROOP_TOP_RADIUS * 0.12;
+const HAND_STACK_TURN = (5 * Math.PI) / 180;
+
+/* The same small, steady shift and turn for an item wherever it lies, so a stack does not shuffle as it changes. */
+function handStackedOffset(id: string): [number, number, number] {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < id.length; index++) {
+    hash = Math.imul(hash ^ id.charCodeAt(index), 16_777_619);
+  }
+  const unit = (shift: number) => (((hash >>> shift) & 0xff) / 255) * 2 - 1;
+  const angle = unit(0) * Math.PI;
+  const distance = Math.abs(unit(8)) * HAND_STACK_SHIFT;
+  return [Math.cos(angle) * distance, Math.sin(angle) * distance, unit(16) * HAND_STACK_TURN];
+}
+
 function CardFace({
   piece,
   faceUp,
@@ -359,13 +444,16 @@ function CardFace({
   const href = artwork?.[faceUp ? 'front' : 'back'];
   return (
     <PieceFace height={CARD_LAYER_HEIGHT} underside={underside}>
-      {href && <PublishedFace href={href} card />}
+      {href && <PublishedFace href={tableCardFaceKey(href)} card />}
       {faceUp && artwork?.prediction && (
         <Suspense fallback={null}>
           <PredictionOverlay prediction={artwork.prediction} />
         </Suspense>
       )}
-      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={meshes.plane(CARD_WIDTH, CARD_DEPTH)}>
+      <mesh
+        renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
+        geometry={meshes.roundedPlane(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS)}
+      >
         <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
       </mesh>
       {covered ? null : (
@@ -397,7 +485,7 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
             <mesh
               position={[0, CARD_LAYER_HEIGHT / 2, 0]}
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-              geometry={meshes.box(CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH)}
+              geometry={meshes.roundedSlab(CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH, CARD_CORNER_RADIUS)}
             >
               <meshStandardMaterial color="#ead9bb" roughness={0.68} metalness={0.03} />
             </mesh>
@@ -497,6 +585,8 @@ export type PieceSceneState = {
   stackTargeted: boolean;
   drafted: boolean;
   remoteCarried: boolean;
+  /* The plate in someone's hand that this piece rides, which it follows as the plate is shown. */
+  ridingPlateId: string | undefined;
   locallyCarried: boolean;
   reserved: boolean;
   interactionBlocked: boolean;
@@ -517,10 +607,11 @@ function pieceSceneState(
     gestureActivePieceId,
     canHandleTable,
     remoteCarriedIds,
+    plateRiders,
     reservedPieceIds,
   }: Pick<
     TabletopContextValue,
-    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'reservedPieceIds'
+    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'plateRiders' | 'reservedPieceIds'
   >
 ): PieceSceneState {
   const drafted = state.draftMove?.pieceId === piece.id;
@@ -532,6 +623,7 @@ function pieceSceneState(
     stackTargeted: state.draftMove?.targetPieceId === piece.id,
     drafted,
     remoteCarried,
+    ridingPlateId: plateRiders.get(piece.id),
     locallyCarried: drafted && gestureActivePieceId !== null,
     reserved,
     interactionBlocked: !canHandleTable || remoteCarried || (reserved && !localSource),
@@ -686,6 +778,21 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
   const hasMenu = !carrying && pieceHasMenu(piece);
   const stopLongPress = useRef<(() => void) | null>(null);
   useEffect(() => () => stopLongPress.current?.(), []);
+  /* Only a left press handles a piece, and none does while the table blocks it or the paintbrush is on. */
+  const ignoresPress = (event: ThreeEvent<PointerEvent>) => {
+    const notLeftOrBlocked = event.button !== 0 || interactionBlocked;
+    return notLeftOrBlocked || territoryBrush() !== null;
+  };
+  /* A piece that leaves the table under a still cursor hears no pointer leave, so its hover would keep the keys aimed at a piece that is gone. */
+  const hovered = useRef(false);
+  useEffect(
+    () => () => {
+      if (hovered.current) {
+        setHoveredPiece(null);
+      }
+    },
+    [setHoveredPiece]
+  );
 
   return {
     onContextMenu: (event: ThreeEvent<MouseEvent>) => {
@@ -697,11 +804,14 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
         openPieceMenu(piece.id, clientX, clientY, touch);
       }
     },
+    /* While the paintbrush is on, a click on a piece paints the territory under it, and the piece is neither picked up nor selected. */
     onClick: (event: ThreeEvent<MouseEvent>) => {
-      event.stopPropagation();
+      if (!territoryBrush()) {
+        event.stopPropagation();
+      }
     },
     onPointerDown: (event: ThreeEvent<PointerEvent>) => {
-      if (event.button !== 0 || interactionBlocked) {
+      if (ignoresPress(event)) {
         return;
       }
       event.stopPropagation();
@@ -743,6 +853,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
         return;
       }
       if (!interactionBlocked) {
+        hovered.current = true;
         setHoveredPiece(piece.id);
       }
       get().renderer.domElement.style.cursor = pieceHoverCursor(
@@ -752,6 +863,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
       );
     },
     onPointerLeave: () => {
+      hovered.current = false;
       setHoveredPiece(null);
       if (!pointerSession.isDragging(piece.id)) {
         get().renderer.domElement.style.cursor = 'default';
@@ -776,6 +888,14 @@ function selectionRadii(piece: TablePiece): [number, number, number] {
   return [inner * scale, outer * scale, segments];
 }
 
+/* A plate's ring follows its teardrop; every other piece's is round. */
+function selectionRingGeometry(meshes: ReturnType<typeof useSharedMeshes>, piece: TablePiece) {
+  if (isPointerToken(piece)) {
+    return POINTER_SELECTION_RING;
+  }
+  return meshes.ring(...(isSpicePiece(piece) ? SPICE_SELECTION_RADII : selectionRadii(piece)));
+}
+
 function PieceSelectionRing({
   piece,
   shadowLocalY,
@@ -793,7 +913,7 @@ function PieceSelectionRing({
       position={[0, shadowLocalY + CONTACT_SHADOW_EPSILON, 0]}
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       rotation={[-Math.PI / 2, 0, 0]}
-      geometry={meshes.ring(...(isSpicePiece(piece) ? SPICE_SELECTION_RADII : selectionRadii(piece)))}
+      geometry={selectionRingGeometry(meshes, piece)}
     >
       <meshBasicMaterial
         color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
@@ -825,7 +945,19 @@ function SelectionRingWarmup() {
   return null;
 }
 
+/* A pointer token shows the face it lies on: its front face up, its back face down. */
+function PointerTokenLayers({ piece }: { piece: TablePiece }) {
+  const item = piece.items[0];
+  const front = usePublishedFace(item?.artwork?.front);
+  const back = usePublishedFace(item?.artwork?.back);
+  const [face, under] = item?.faceUp ? [front, back] : [back, front];
+  return <PointerTokenPlate piece={piece} face={face} under={under} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />;
+}
+
 export function TabletopPieceLayers({ piece }: { readonly piece: TablePiece }) {
+  if (isPointerToken(piece)) {
+    return <PointerTokenLayers piece={piece} />;
+  }
   if (piece.kind === 'marker') {
     return <MarkerLayers piece={piece} />;
   }
@@ -877,14 +1009,28 @@ const PIECE_BADGE_CLASS_NAMES = {
 
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
   const meshes = useSharedMeshes();
-  const { piece, drafted, remoteCarried, locallyCarried, reserved, selected, stackTargeted, owner, peeked } = props;
+  const {
+    piece,
+    drafted,
+    remoteCarried,
+    ridingPlateId,
+    locallyCarried,
+    reserved,
+    selected,
+    stackTargeted,
+    owner,
+    peeked,
+  } = props;
   const { finishPieceFlip } = useTabletopActions();
   const pointerEvents = usePiecePointerEvents(props);
   const displayedCount = pieceCount(piece);
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
-  const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried);
-  const faceReady = usePublishedFaceReady(topFaceHref(piece)) && !faceStillHidden(piece);
+  const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried, {
+    plateId: isPointerToken(piece) ? piece.id : undefined,
+    follows: ridingPlateId,
+  });
+  const faceReady = usePublishedFaceReady(topFaceKey(piece)) && !faceStillHidden(piece);
   /* A held piece turns over in hand too, so only an emptied projection cuts a flip short. */
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
     piece,
@@ -1019,6 +1165,7 @@ function SceneContents({
 }) {
   const table = useTabletop();
   const board = useTabletopSelector((value) => value.snapshot.board);
+  const tints = useTabletopSelector((value) => value.snapshot.tints);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
@@ -1039,10 +1186,16 @@ function SceneContents({
           <ScenePings />
         </Suspense>
       )}
-      <group onClick={() => selectPiece(null)}>
+      <group
+        onClick={(event) => {
+          paintClick(event, board, { stage, mapVisible });
+          selectPiece(null);
+        }}
+      >
         {drawBoard && (
           <TabletopBoard
             board={board}
+            tints={tints}
             seatCount={seatCount}
             interactive
             stormSectorIndex={state.stormSectorIndex}
@@ -1052,18 +1205,20 @@ function SceneContents({
             trackerSlots={trackerSlots}
           />
         )}
-        {renderedPieces
-          /* Troop reserves arrive with the board: setup keeps them off the table until the map shows. */
-          .filter((piece) => !piece.battleOverlay && (stage !== 'setup' || mapVisible || !isTroopStack(piece)))
-          .map((piece, index) => (
-            <TablePieceMesh
-              showLabels={presentation !== 'preview'}
-              arrivalDelay={presentation === 'preview' ? Math.min(index * 32, 320) : undefined}
-              key={piece.id}
-              piece={piece}
-              {...pieceSceneState(piece, table)}
-            />
-          ))}
+        <PlatePosesProvider>
+          {renderedPieces
+            /* Troop reserves arrive with the board: setup keeps them off the table until the map shows. */
+            .filter((piece) => !piece.battleOverlay && (stage !== 'setup' || mapVisible || !isTroopStack(piece)))
+            .map((piece, index) => (
+              <TablePieceMesh
+                showLabels={presentation !== 'preview'}
+                arrivalDelay={presentation === 'preview' ? Math.min(index * 32, 320) : undefined}
+                key={piece.id}
+                piece={piece}
+                {...pieceSceneState(piece, table)}
+              />
+            ))}
+        </PlatePosesProvider>
       </group>
       {presentation === 'preview' ? (
         <MapPreviewCamera mapFramingPoints={mapFramingPoints} />
@@ -1109,13 +1264,21 @@ export function TabletopScene({
       })),
     []
   );
-  const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(stage, providedProgress, seatCount);
+  /* A custom faction with four or more troop kinds spreads its reserves wider than the stock framing reaches. */
+  const troopKinds = useTabletopSelector((table) => widestTroopSupply(table.state.pieces));
+  const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(
+    stage,
+    providedProgress,
+    seatCount,
+    troopKinds
+  );
   const areaRef = useRef<HTMLDivElement>(null);
+  const painting = usePaintingArea(className);
 
   return (
     <div
       ref={areaRef}
-      className={className}
+      {...painting}
       onContextMenu={(event) => {
         event.preventDefault();
         if (hasDraft) {

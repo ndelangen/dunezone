@@ -21,6 +21,7 @@ const EVERY_JOB: readonly string[] = [
   'package.json',
   'bun.lock',
   'bunfig.toml',
+  '.nvmrc',
   'patches/**',
   'tsconfig.json',
   'vite.config.ts',
@@ -49,7 +50,13 @@ interface JobInputs {
 export const JOB_INPUTS = {
   /* The game Worker's types, typecheck, tests, dry run and startup check. */
   game_release: {
-    include: ['workers/game/**', 'src/shared/**', 'convex/_generated/**'],
+    /* The journey recording fixture parses the Storybook factions fixture at import, and the game suite loads it on every run. */
+    include: [
+      'workers/game/**',
+      'src/shared/**',
+      'convex/_generated/**',
+      'src/app/routes/_app/play/product.stories.fixture/factions.json',
+    ],
     exclude: [],
   },
   /* Builds the whole application for the publisher's assets, so everything counts but what no build or publisher check reads. */

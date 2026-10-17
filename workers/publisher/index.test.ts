@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { playCallbackOperations } from '../../src/shared/play/callbacks';
 import { rendererManifest } from './renderer-manifest.generated';
-import { fakeR2Object } from './test-helpers';
+import { fakeR2Object, requestUrl } from './test-helpers';
 
 const browserMocks = vi.hoisted(() => ({ open: vi.fn() }));
 
@@ -209,7 +209,7 @@ describe('publisher Worker Publication flow', () => {
   });
 
   /* The retired /play/demo and /play/hosted pages stay application paths: the game route redirects them to the lobby. */
-  test.each(['/play', '/play/create', '/play/demo', '/play/hosted', '/__playground'])(
+  test.each(['/play', '/play/demo', '/play/hosted', '/__playground'])(
     'keeps %s in the application',
     async (pathname) => {
       const currentEnv = publisherEnv();
@@ -261,7 +261,10 @@ describe('publisher Worker Publication flow', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
-        if (String(input).endsWith('/rulebook-html/take-work') || String(input).endsWith('/rulebook-pdf/take-work')) {
+        if (
+          requestUrl(input).endsWith('/rulebook-html/take-work') ||
+          requestUrl(input).endsWith('/rulebook-pdf/take-work')
+        ) {
           return Response.json({ ok: true, schemaVersion: 1, items: [] });
         }
         return Response.json({
@@ -285,7 +288,7 @@ describe('publisher Worker Publication flow', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
-        const url = String(input);
+        const url = requestUrl(input);
         if (url.endsWith('/rulebook-html/take-work') || url.endsWith('/rulebook-pdf/take-work')) {
           return Response.json({ ok: true, schemaVersion: 1, items: [] });
         }

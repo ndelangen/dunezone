@@ -18,7 +18,7 @@ export const Credits = meta.story({
       [...canvasElement.querySelectorAll('[data-rulebook-block-canvas] li')].map((item) =>
         item.getAttribute('data-rulebook-item-id')
       );
-    expect(rendered()).toEqual(['EBER', 'KITT', 'OLOT', 'ILLU', 'TYPE', 'EDIT']);
+    await expect(rendered()).toEqual(['EBER', 'KITT', 'OLOT', 'ILLU', 'TYPE', 'EDIT']);
 
     /* Moving a group carries its contributors with it. */
     const handle = canvas.getByRole('button', { name: 'Reorder group 1' });
@@ -42,11 +42,11 @@ export const Credits = meta.story({
         'Norbert de LangenPublication'
       )
     );
-    expect(rendered()).toHaveLength(7);
+    await expect(rendered()).toHaveLength(7);
 
     /* Removing a group removes its contributors and nothing else. */
     await userEvent.click(canvas.getByRole('button', { name: 'Remove group 1' }));
     await waitFor(() => expect(rendered()).toHaveLength(5));
-    expect(rendered().slice(0, 3)).toEqual(['EBER', 'KITT', 'OLOT']);
+    await expect(rendered().slice(0, 3)).toEqual(['EBER', 'KITT', 'OLOT']);
   },
 });

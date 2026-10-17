@@ -69,8 +69,8 @@ function CommunityModSection() {
         ]}
       />
       <Paragraph>
-        I also scripted the storm, so each storm card moves it the right number of sectors; spice blow cards that spawn
-        their own spice in the right territory; and personal spice reserves and the spice bank&rsquo;s stacks.
+        I also scripted the storm, so each storm card moves it the right number of sectors; spice cards that spawn their
+        own spice in the right territory; and personal spice reserves and the Spice Bank&rsquo;s stacks.
       </Paragraph>
       <Figure
         imageKey="/web/blog/tabletop-simulator/storm-cards.jpg"
@@ -81,7 +81,7 @@ function CommunityModSection() {
       <Paragraph>
         And I modelled a lot of the 3D objects in <Anchor href="https://www.blender.org/">Blender</Anchor> that are
         still on the table today: the bidder, the table and the board, the phase icons and some of the ships. I also
-        converted the Shai-Hulud sandworm and the Ixians&rsquo; HMS.
+        converted Shai-Hulud and the Ixians&rsquo; HMS.
       </Paragraph>
       <Figure
         imageKey="/web/blog/tabletop-simulator/blender-models.jpg"
@@ -162,8 +162,8 @@ function ToolsSection() {
       />
       <Paragraph>
         It started with the assets. Our group played a custom rule set that we kept playtesting and improving; new metas
-        developed and new strategies were found, so the changes never stopped. Every time a faction ability changed, its
-        sheet had to change too. I redrew the vectors and icons, and worked in{' '}
+        developed and new strategies were found, so the changes never stopped. Every time a faction advantage changed,
+        its sheet had to change too. I redrew the vectors and icons, and worked in{' '}
         <Anchor href="https://www.gimp.org/">GIMP</Anchor>, stacking layers and overlaying text, to stay as close as I
         could to the original art.
       </Paragraph>
@@ -181,7 +181,7 @@ function ToolsSection() {
           },
           {
             imageKey: '/web/blog/tabletop-simulator/rainbow-troops.jpg',
-            alt: 'Force tokens on the Imperial Basin, one stack painted in rainbow colours',
+            alt: 'Troop tokens on the Imperial Basin, one stack painted in rainbow colours',
             aspect: 895 / 1830,
             caption: 'Hand-painted troops on the Imperial Basin, June 2020.',
           },

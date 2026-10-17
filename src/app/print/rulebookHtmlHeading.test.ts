@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, test } from 'vite-plus/test';
 
 import { rulebookContentsV1Schema } from '../../shared/rulebooks/contents';
 import { createRulebookStarterContents } from '../../shared/rulebooks/fixtures';

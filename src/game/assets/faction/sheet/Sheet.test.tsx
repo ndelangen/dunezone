@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { render } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('../leader/Leader', () => ({
   LeaderToken: () => <div data-test-leader-token />,
@@ -23,7 +23,22 @@ function factionSheetProps() {
 }
 
 describe('FactionSheet', () => {
-  it.each([1, 10, 99])('renders starting spice %i as structured At start information', (spiceCount) => {
+  it.each([
+    [undefined, 'Faction Special Karama'],
+    ['karama', 'Faction Special Karama'],
+    ['fate', 'Fate'],
+  ] as const)('renders section label %s without changing the authored ability', (label, expected) => {
+    const props = factionSheetProps();
+    props.rules.fate = { ...props.rules.fate, label };
+
+    const { container } = render(<FactionSheetPage1 {...props} />);
+
+    expect(container.textContent).toContain(expected);
+    expect(container.textContent).toContain(props.rules.fate.title);
+    expect(container.textContent).toContain(props.rules.fate.text);
+  });
+
+  it.each([1])('renders starting spice %i as structured At start information', (spiceCount) => {
     const props = factionSheetProps();
     props.rules.spiceCount = spiceCount;
     props.rules.startText = 'Keep this authored instruction separate.';

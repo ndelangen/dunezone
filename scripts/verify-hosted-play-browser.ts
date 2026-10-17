@@ -712,11 +712,12 @@ async function createGame(who: HostedPeer) {
   assert.equal(who.sockets.length, 1, 'Canonical creation opens exactly one ID socket.');
   await who.page.getByRole('heading', { name: created.name, level: 1, exact: true }).waitFor();
   const header = who.page.locator('.seated-header');
-  /* Drafting names the ruleset in its chip's heading; from play on it has a chip of its own. */
-  await header
-    .getByText(flow.startsInPlay ? /^Ruleset: / : /^ · /u)
-    .first()
-    .waitFor();
+  /* Drafting names the ruleset in its chip's heading; from play on the header leaves it out. */
+  if (flow.startsInPlay) {
+    await header.getByText(/^Ruleset: /).waitFor({ state: 'hidden' });
+  } else {
+    await header.getByText(/^ · /u).first().waitFor();
+  }
   await header.getByText(created.name, { exact: true }).waitFor({ state: 'hidden' });
   await who.page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await who.page.getByRole('button', { name: 'Game menu', exact: true }).click();
@@ -968,7 +969,7 @@ const TAB_GROUPS: Record<string, string> = {
 /** Shows the group holding a dock tab until the tab stays, outlasting a phase opening its own tab. */
 async function revealTab(who: HostedPeer, name: string, tab: Locator) {
   /*
-   * The dock opens a phase's own tab once as the phase begins (Spice for Spice collection, Hand for Bidding), and that
+   * The dock opens a phase's own tab once as the phase begins (Spice for Spice Collection, Hand for Bidding), and that
    * can land just after this looks, moving the dock to another group. So the group is clicked again until the tab stays.
    */
   const deadline = Date.now() + 30_000;
@@ -1032,28 +1033,65 @@ async function tableInstalled(who: HostedPeer) {
     });
   await installed.dispose();
 }
+/*
+ * The camera's view transition and wheel glide both run on elapsed time, under a second together, so a slower renderer settles them in fewer frames.
+ * A projection still changing after this many frames therefore comes from a camera that never stops, however fast the page draws.
+ */
+const SETTLE_FRAME_LIMIT = 300;
+/*
+ * A homepage frame on CI's software renderer took up to 5.8 s for the member and 17 s for the observer (runs 38781866071, 38784395719 and 38816593150).
+ * A wall-clock budget of 10 s then covered as few as four frames, and the member's camera, which had not moved, failed to settle.
+ * So the wait is counted in frames, and time bounds only a page that stops drawing.
+ */
+const STALLED_FRAME_MS = 60_000;
 /**
  * In the page: the projection once three reads, each two frames apart, agree;
  * `remounted` when the table uninstalled `window.__duneTable` meanwhile;
- * `null` when the camera kept moving until `timeoutMs`.
- * The camera eases to a newly focused view over several frames, and a software renderer draws them slowly.
+ * otherwise why it gave up (`moving` after `frameLimit` frames, or `stalled` when two frames took `stalledMs`), with the frames drawn and the last reads and the page's scroll.
+ * A failure then shows whether the camera moved, the page scrolled or the page stopped drawing.
  */
-async function settledProjection({ value, timeoutMs }: { value: Vector3Tuple; timeoutMs: number }) {
-  const deadline = performance.now() + timeoutMs;
+async function settledProjection({
+  value,
+  frameLimit,
+  stalledMs,
+}: {
+  value: Vector3Tuple;
+  frameLimit: number;
+  stalledMs: number;
+}) {
   const read = () => window.__duneTable?.worldToScreen(value);
   const agree = (a: Point, b: Point) => Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5;
+  const twoFrames = () =>
+    new Promise<boolean>((resolve) => {
+      const stall = setTimeout(() => resolve(false), stalledMs);
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          clearTimeout(stall);
+          resolve(true);
+        })
+      );
+    });
   let previous = read();
   let agreeing = 0;
-  while (previous && agreeing < 2 && performance.now() < deadline) {
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  let frames = 0;
+  const recent: { x: number; y: number; scrollY: number }[] = [];
+  while (previous && agreeing < 2 && frames < frameLimit) {
+    if (!(await twoFrames())) {
+      return { reason: 'stalled' as const, frames, recent };
+    }
+    frames += 2;
     const current = read();
     agreeing = current && agree(current, previous) ? agreeing + 1 : 0;
     previous = current;
+    if (current) {
+      recent.push({ x: current.x, y: current.y, scrollY: window.scrollY });
+      recent.splice(0, recent.length - 4);
+    }
   }
   if (!previous) {
     return 'remounted';
   }
-  return agreeing === 2 ? previous : null;
+  return agreeing === 2 ? previous : { reason: 'moving' as const, frames, recent };
 }
 /**
  * The page coordinates of a table position, projected through the camera the page renders once that camera has settled.
@@ -1062,15 +1100,24 @@ async function settledProjection({ value, timeoutMs }: { value: Vector3Tuple; ti
 async function point(who: HostedPeer, position: Vector3Tuple) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     await tableInstalled(who);
-    const settled = await who.page.evaluate(settledProjection, { value: position, timeoutMs: 10_000 });
-    if (settled === null) {
+    const settled = await who.page.evaluate(settledProjection, {
+      value: position,
+      frameLimit: SETTLE_FRAME_LIMIT,
+      stalledMs: STALLED_FRAME_MS,
+    });
+    if (settled === 'remounted') {
+      continue;
+    }
+    if ('reason' in settled) {
+      const cause =
+        settled.reason === 'moving'
+          ? `${who.label}'s camera kept moving for ${settled.frames} frames`
+          : `${who.label}'s page drew no two frames within ${STALLED_FRAME_MS / 1000} s after ${settled.frames} frames`;
       throw new Error(
-        `${who.label}'s camera did not settle within 10 s, so the table position has no stable page point.`
+        `${cause}, so the table position has no stable page point; last reads ${JSON.stringify(settled.recent)}.`
       );
     }
-    if (settled !== 'remounted') {
-      return settled;
-    }
+    return settled;
   }
   throw new Error(`${who.label}'s table remounted during three projections in a row.`);
 }
@@ -1921,7 +1968,7 @@ async function verifyRegular() {
 
   await sharedPhaseFlow(a, b);
   await sharedTrackerFlow(a, b);
-  /* The live table sits at Mentat pause, whose advance is gated on readiness (#1139); readiness
+  /* The live table sits at Mentat Pause, whose advance is gated on readiness (#1139); readiness
      is declared before the other player enters read-only playback, where Ready is disabled. */
   await readyBeforeAdvance(a, b);
   const beforePlayback = await verifyCheckpointPlayback(a, b);

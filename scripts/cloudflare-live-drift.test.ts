@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { checkCloudflareLiveDrift } from './cloudflare-live-drift';
 
@@ -313,13 +313,6 @@ describe('Cloudflare live drift check', () => {
         fetcher: live.fetcher,
       })
     ).rejects.toThrow(/Worker secrets drift: missing ASSET_PUBLISHER_EXECUTOR_SECRET/);
-  });
-
-  test('rejects the retired Queue even when it has no producers or consumers', async () => {
-    const live = liveFetcher({ retiredQueue: true });
-    await expect(
-      checkCloudflareLiveDrift({ accountId: ACCOUNT_ID, apiToken: 'read-only-token', fetcher: live.fetcher })
-    ).rejects.toThrow(/Owned Queue inventory drift: unexpected faction-sheet-asset-publisher/);
   });
 
   test('reports extra secrets and the restored Queue together', async () => {

@@ -1,7 +1,9 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
-import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import { PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '../../src/shared/play/phases';
+import type { GameSnapshot } from '../../src/shared/play/protocol';
+import type { SetupState } from '../../src/shared/play/setup';
 import { hostedFixturePlan } from './fixture';
 import { Room } from './room';
 import { openPeek, RoomProjection } from './state';
@@ -24,9 +26,9 @@ const DECK = 'treachery-deck';
 const LOOSE = 'treachery-card-loose';
 const LATER = Date.now() + 10 * PHASE_CHANGE_COOLDOWN_MS;
 
-function peekedRoom() {
+function peekedRoom(stage: Partial<GameSnapshot> = {}) {
   const room = new Room(
-    { ...initialSnapshot(), roster: hostedFixturePlan.roster },
+    { ...initialSnapshot(), roster: hostedFixturePlan.roster, ...stage },
     () => ['harkonnen', 'atreides'],
     (id) => FACTIONS[id]
   );
@@ -54,9 +56,8 @@ const battleId = (room: Room) => room.snapshot.battleState?.id ?? 'battle';
  * The record is keyed by every kind the room takes, so a new command fails to compile until it is listed here.
  */
 const STEPS: Record<Kind, (room: Room) => Step[]> = {
-  'battle-start': (room) => [
-    [bob, { kind: 'battle-start', anchor: deck(room)?.position ?? [0, 0, 0], territory: 'Arrakeen' }],
-  ],
+  /* The marker goes on the board: the deck lies off it, where a battle cannot start. */
+  'battle-start': () => [[bob, { kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' }]],
   'battle-claim': (room) => [[bob, { kind: 'battle-claim', battleId: battleId(room), side: 0 }]],
   'battle-plan': (room) => [
     [
@@ -89,7 +90,30 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   'alliance-decline': () => [[bob, { kind: 'alliance-decline', factionId: 'harkonnen', offer: 0 }]],
   'alliance-break': () => [[bob, { kind: 'alliance-break', factionId: 'harkonnen' }]],
   'last-turn': () => [[bob, { kind: 'last-turn', turn: 8 }]],
-  'hand-take': () => [[bob, { kind: 'hand-take', pieceId: DECK }]],
+  'tint-create': () => [
+    [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: ['carthag'] }],
+  ],
+  'tint-paint': () => [
+    [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: [] }],
+    [bob, { kind: 'tint-paint', tintId: 'tint-a', territory: 'carthag', name: 'Carthag', painted: true }],
+  ],
+  'tint-set': () => [
+    [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: [] }],
+    [bob, { kind: 'tint-set', tintId: 'tint-a', setting: 'hidden', on: true }],
+  ],
+  'tint-color': () => [
+    [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: [] }],
+    [bob, { kind: 'tint-color', tintId: 'tint-a', color: '#1b1b1b' }],
+  ],
+  'tint-remove': () => [
+    [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: [] }],
+    [bob, { kind: 'tint-remove', tintId: 'tint-a' }],
+  ],
+  /* The whole deck is no single card, so it stays on the table; the loose card goes into hand. */
+  'hand-take': () => [
+    [bob, { kind: 'hand-take', pieceId: DECK }],
+    [bob, { kind: 'hand-take', pieceId: LOOSE }],
+  ],
   /* A card from a hand played onto the deck. */
   'hand-play': (room) => [
     [bob, { kind: 'hand-take', pieceId: LOOSE }],
@@ -123,7 +147,10 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   'prediction-lock': () => [
     [bob, { kind: 'prediction-lock', stepId: 'step', choice: { factionId: 'harkonnen', turn: 1 } }],
   ],
-  'prediction-reveal': () => [[bob, { kind: 'prediction-reveal', stepId: 'step' }]],
+  'prediction-reveal': () => [
+    [bob, { kind: 'prediction-lock', stepId: 'step', choice: { factionId: 'harkonnen', turn: 1 } }],
+    [bob, { kind: 'prediction-reveal', stepId: 'step' }],
+  ],
   'traitors-gather': () => [[bob, { kind: 'traitors-gather' }]],
   'storm-random': () => [[bob, { kind: 'storm-random' }]],
   split: () => [[bob, { kind: 'split', pieceId: DECK, count: 1 }]],
@@ -145,25 +172,116 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   'peek-pull': () => [[alice, { kind: 'peek-pull', pieceId: DECK, index: 0 }]],
 };
 
+/* A setup whose current step is the second player's prediction. */
+const PREDICTION_SETUP: SetupState = {
+  steps: [
+    { id: 'step', kind: 'prediction', factionId: 'atreides', title: 'Prediction', instructions: '', symbol: '' },
+    { id: 'forces', kind: 'forces', title: 'Starting troops', instructions: '', symbol: '' },
+  ],
+  index: 0,
+  visit: 1,
+  mapRevealed: false,
+  completed: [],
+  instructions: [],
+};
+const BATTLE_PHASE = TABLE_PHASES.findIndex((phase) => phase.id === 'battle');
+const MENTAT_PAUSE = TABLE_PHASES.findIndex((phase) => phase.id === 'mentat-pause');
+
+type Staged = {
+  /** The room the command needs, set before the deck is peeked. */
+  stage?: Partial<GameSnapshot>;
+  /** Whether each step takes effect, the second player's steps first, then the peeker's. */
+  accepted: readonly boolean[];
+  /** What the command changed, so the leak check is known to have seen it applied. */
+  effect: (room: Room) => void;
+};
+
+/*
+ * Commands the fixture room as it stands would refuse, each run in a room set up for it.
+ * A refusal the sweep swallows would leave nothing for the leak check to see, so each records which steps took effect and what they did.
+ */
+const STAGED: Partial<Record<Kind, Staged>> = {
+  'battle-start': {
+    stage: { phase: BATTLE_PHASE },
+    accepted: [true, false],
+    effect: (room) => expect(room.snapshot.battleState?.territory).toBe('Arrakeen'),
+  },
+  'bid-seconds': {
+    accepted: [true, true],
+    effect: (room) => expect(room.snapshot.bidding?.seconds).toBe(30),
+  },
+  'hand-take': {
+    accepted: [false, true, false, false],
+    effect: (room) => expect(room.snapshot.factionInventories.atreides?.map((piece) => piece.id)).toEqual([LOOSE]),
+  },
+  'prediction-lock': {
+    stage: { stage: 'setup', setup: PREDICTION_SETUP },
+    accepted: [true, false],
+    effect: (room) => expect(room.snapshot.privatePredictions.step).toMatchObject({ factionId: 'atreides' }),
+  },
+  'prediction-reveal': {
+    stage: { stage: 'setup', setup: PREDICTION_SETUP },
+    accepted: [true, true, false, false],
+    effect: (room) => expect(room.snapshot.privatePredictions.step?.revealedAt).toBe(LATER),
+  },
+  ready: {
+    stage: { phase: MENTAT_PAUSE },
+    accepted: [true, true],
+    effect: (room) => expect(room.snapshot.controls?.ready).toEqual(['atreides', 'harkonnen']),
+  },
+  'storm-random': {
+    stage: { stage: 'play' },
+    accepted: [true, true],
+    effect: (room) =>
+      expect(room.snapshot.table.events.filter((event) => event.command === 'storm-random')).toHaveLength(2),
+  },
+  /* The peeked deck is a traitor deck here, so the gather moves the very deck held open. */
+  'traitors-gather': {
+    stage: {
+      stage: 'setup',
+      setup: PREDICTION_SETUP,
+      table: {
+        ...initialSnapshot().table,
+        pieces: initialSnapshot().table.pieces.map((piece) =>
+          piece.id === DECK ? { ...piece, stackKey: 'cards:traitor' } : piece
+        ),
+      },
+    },
+    accepted: [true, true],
+    effect: (room) =>
+      expect(deck(room)?.position).not.toEqual(
+        initialSnapshot().table.pieces.find((piece) => piece.id === DECK)?.position
+      ),
+  },
+};
+
 describe('an open peek never shows a card it was not granted', () => {
   test.each(Object.keys(STEPS) as Kind[])('%s', (kind) => {
-    const { room, granted } = peekedRoom();
+    const staged = STAGED[kind];
+    const { room, granted } = peekedRoom(staged?.stage);
     let expected = [...granted];
+    const accepted: boolean[] = [];
     for (const actor of [bob, alice]) {
       for (const [, action] of STEPS[kind](room)) {
         try {
           room.accept(room.command(actor, action, room.snapshot.revision, LATER));
+          accepted.push(true);
           /* The peeker's own change to the deck it holds open renews the grant on the deck as it then stands. */
           if (actor === alice && action.kind.startsWith('peek-')) {
             expected = deck(room)?.items.map((item) => item.id) ?? [];
           }
         } catch {
           /* A refusal changes nothing; the peek is checked all the same. */
+          accepted.push(false);
         }
         /* The peeker sees the deck exactly as granted, in that order, or nothing at all. */
         const seen = shown(room);
         expect(seen.length === 0 ? [] : expected).toEqual(seen);
       }
+    }
+    if (staged) {
+      expect(accepted).toEqual(staged.accepted);
+      staged.effect(room);
     }
   });
 

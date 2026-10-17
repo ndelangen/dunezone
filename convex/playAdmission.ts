@@ -256,6 +256,10 @@ function routedAccountState(routing: Doc<'play_game_accounts'>, user: Doc<'users
   if (routing.deletion_operation_id || !user) {
     return 'deleted' as const;
   }
+  return playAccountState(user);
+}
+
+function playAccountState(user: Doc<'users'>) {
   return accountStateOf(user) === 'merge_pending'
     ? ('active' as const)
     : accountStateOf(user) === 'deleted'
@@ -265,7 +269,8 @@ function routedAccountState(routing: Doc<'play_game_accounts'>, user: Doc<'users
         : ('active' as const);
 }
 
-async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: string) {
+async function accountEntry(ctx: QueryCtx, game: Doc<'play_games'>, userId: string) {
+  const gameId = game._id;
   /*
    * A synthetic backend vouches for the placeholders that took its provisioned games to Turn 1 (#1594).
    * No other backend has any.
@@ -290,6 +295,19 @@ async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: str
       : null;
   const effectiveRouting = sourceRouting ?? routing;
   if (!effectiveRouting || !id || (!sourceRouting && id !== user?._id && !routing?.actor_user_ids?.includes(id))) {
+    /*
+     * The Worker seats the creator when it provisions the game, before any ticket of theirs creates routing,
+     * and a merge into an account already routed here leaves no row naming them until the transfer runs.
+     * Answering `unknown` for them would have the Worker unseat them at the next reconciliation.
+     * Deletion fan-out follows routing, so an unrouted creator learns of a deletion only at that reconciliation.
+     */
+    if (id && user && id === (game.creator_actor_id ?? game.creator_id)) {
+      return {
+        userId,
+        state: routing ? routedAccountState(routing, user) : playAccountState(user),
+        deletionOperationId: routing?.deletion_operation_id ?? user.account_deletion_operation_id ?? null,
+      };
+    }
     return { userId, state: 'unknown' as const, deletionOperationId: null };
   }
   const deletionOperationId = effectiveRouting.deletion_operation_id ?? user?.account_deletion_operation_id ?? null;
@@ -306,7 +324,7 @@ export const reconcileAccounts = readyGameQuery({
   schema: playReconcileAccountsRequestSchema,
   handler: async (ctx, { game, args }) => ({
     ok: true as const,
-    accounts: await Promise.all(args.userIds.map((id) => accountEntry(ctx, game._id, id))),
+    accounts: await Promise.all(args.userIds.map((id) => accountEntry(ctx, game, id))),
   }),
 });
 

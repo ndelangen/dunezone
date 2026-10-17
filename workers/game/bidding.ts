@@ -16,7 +16,7 @@ import type { StoredSnapshot } from './state';
 function context(snapshot: StoredSnapshot, now: number) {
   const { stormSectorIndex, pieces } = snapshot.table;
   return {
-    order: stormOrder(stormSectorIndex, snapshot.roster),
+    order: stormOrder(stormSectorIndex, snapshot.roster, pieces),
     eligible: biddingFactions(stormSectorIndex, snapshot.roster, pieces),
     now,
   };

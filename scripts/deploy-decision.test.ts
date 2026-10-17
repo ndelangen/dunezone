@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vite-plus/test';
 
 import type { GitHub, Reading } from './deploy-decision';
 import { decide, position } from './deploy-decision';
@@ -179,6 +179,16 @@ describe('where production sits in git history', () => {
     expect(position(child, child, repository)).toBe('same');
     expect(position(parent, child, repository)).toBe('newer');
     expect(position(child, parent, repository)).toBe('older');
+  });
+
+  test('hands the dev rebuild the older commit when a failed run left the Workers on two earlier ones', async () => {
+    const split: Reading[] = [
+      { endpoint: GAME, sha: child, position: 'older' },
+      { endpoint: PUBLISHER, sha: parent, position: 'older' },
+    ];
+    expect(await decide(split, 1, listing(), repository)).toMatchObject({ deploy: true, base: parent });
+    const unplaced: Reading[] = [split[0], { endpoint: PUBLISHER, sha: '1'.repeat(40), position: 'older' }];
+    expect(await decide(unplaced, 1, listing(), repository)).toMatchObject({ deploy: true, base: '' });
   });
 
   test('leaves a commit git does not have unknown', () => {

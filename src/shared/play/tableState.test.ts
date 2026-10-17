@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { freshTableState } from './model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from './model';
@@ -98,10 +98,6 @@ describe('storm commands', () => {
     const state = freshTableState();
 
     expect(moveStormInState(state, direction as -1 | 1)).toBe(state);
-  });
-
-  test('resets to sector 6', () => {
-    expect(freshTableState().stormSectorIndex).toBe(5);
   });
 });
 

@@ -4,13 +4,15 @@ import { fileURLToPath } from 'node:url';
 
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react';
-import type { PluginOption } from 'vite';
-import { configDefaults, defineConfig } from 'vitest/config';
+import type { PluginOption, UserConfig } from 'vite-plus';
+import { configDefaults, defineConfig } from 'vite-plus';
 
 import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
+import { readJsonc } from './scripts/lib/jsonc.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scripts/lib/threeRendererStack.ts';
+import { unsyncedMediaPreview } from './scripts/lib/unsyncedMediaPreview.ts';
 
 /**
  * Codecov's bundle-report normalizer wildcards from the first `-` to the next `.`, so a dash or dot inside a base name either collapses distinct files into one normalized name (lato-latin-300-normal -> lato-*) or leaves the hash un-wildcarded (floating-ui.react-dom-<hash>).
@@ -57,6 +59,9 @@ function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] 
 }
 
 const config = defineConfig({
+  /* Oxfmt and Oxlint keep their own config files, which scripts and docs read; Vite+ takes them from here. */
+  fmt: readJsonc(fileURLToPath(new URL('./.oxfmtrc.json', import.meta.url))) as UserConfig['fmt'],
+  lint: readJsonc(fileURLToPath(new URL('./.oxlintrc.json', import.meta.url))) as UserConfig['lint'],
   server: {
     proxy: process.env.PLAY_WORKER_URL ? { '/__play': { target: process.env.PLAY_WORKER_URL, ws: true } } : undefined,
   },
@@ -97,9 +102,8 @@ const config = defineConfig({
   publicDir: 'public',
   /* The dev server's prebundled fiber and drei run the same code as the build. */
   optimizeDeps: { rolldownOptions: { plugins: [threeRendererStackTreeShaking()] } },
-  // Typings in the current Vite package lag behind docs/runtime support.
   resolve: {
-    ...({ tsconfigPaths: true } as Record<string, unknown>),
+    tsconfigPaths: true,
     alias: [
       {
         find: 'application-ssr-runtime',
@@ -116,6 +120,7 @@ const config = defineConfig({
   },
   plugins: withoutRouteSplittingInVitest([
     // devtools(),
+    unsyncedMediaPreview(fileURLToPath(new URL('.', import.meta.url))),
     tanstackStart({
       srcDirectory: './src/app',
       start: { entry: './routes/start.ts' },

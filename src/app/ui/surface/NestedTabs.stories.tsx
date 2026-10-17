@@ -393,14 +393,6 @@ export const FlushContentPanel = meta.story({
   },
 });
 
-export const LevelWithoutTools = meta.story({
-  render: () => (
-    <main className={styles.stage}>
-      <HierarchyFixture initialPath={[ROOT_TWO, NESTED_ONE]} tools={false} />
-    </main>
-  ),
-});
-
 const TAB_ROOTS = [
   { key: ROOT_ONE, label: 'Root tab A', icon: <Triangle /> },
   { key: ROOT_TWO, label: 'Root tab B', icon: <Hexagon /> },

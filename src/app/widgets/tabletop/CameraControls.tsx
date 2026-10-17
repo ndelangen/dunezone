@@ -19,13 +19,12 @@ import {
   cameraPanMotionAfter,
   cameraZoomAfterPanMotion,
   cameraZoomAfterWheelAt,
-  mapViewTopLimitForViewport,
   NO_CAMERA_ZOOM,
   zoomedCameraPose,
 } from './playView';
-import type { CameraPanMotion, CameraPose, CameraViewCommand, CameraZoom } from './playView';
+import type { CameraPanMotion, CameraPose, CameraViewCommand, CameraZoom, ScreenRect } from './playView';
 import { usePointerSession } from './PointerSessionContext';
-import { seatedHeaderOf } from './seatedHeader';
+import { seatedHeaderOf, tableOverlayRects, tableOverlaysOf } from './seatedHeader';
 import { TableKeyboardContext } from './TableKeyboardContext';
 import { readTablePanSpeed } from './tablePanSpeed';
 import { watchTwoFingerTilt } from './twoFingerTilt';
@@ -71,11 +70,11 @@ function cameraDestinationFor(
   command: CameraViewCommand,
   aspectRatio: number,
   mapFramingPoints: readonly Vector3Tuple[],
-  mapTopLimit: number,
+  mapObstacles: readonly ScreenRect[],
   tilt: number,
   zoom: CameraZoom
 ): CameraDestination {
-  const pose = zoomedCameraPose(cameraPoseFor(command.view, aspectRatio, mapFramingPoints, mapTopLimit, tilt), zoom);
+  const pose = zoomedCameraPose(cameraPoseFor(command.view, aspectRatio, mapFramingPoints, tilt, mapObstacles), zoom);
   return {
     commandKey: `${command.view}:${command.revision}`,
     signature: [
@@ -327,31 +326,71 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
 }
 
 /*
- * The seated header's height, kept current as it grows or shrinks (a status row appearing, a phase's copy wrapping),
- * so the map view reframes below it without waiting for a resize or a view command.
+ * The chips and dial floating over the canvas, kept current as they grow, shrink or move (a status appearing, a phase's copy
+ * changing, the dial moving into the dock), so the map view reframes around them without waiting for a view command.
  */
-function useSeatedHeaderHeight(canvas: HTMLCanvasElement): number {
-  const [measured, setMeasured] = useState({ canvas, height: 0 });
+function useTableOverlayRects(canvas: HTMLCanvasElement): readonly ScreenRect[] {
+  const [measured, setMeasured] = useState<{ canvas: HTMLCanvasElement; key: string; rects: readonly ScreenRect[] }>({
+    canvas,
+    key: '',
+    rects: [],
+  });
   if (measured.canvas !== canvas) {
-    setMeasured({ canvas, height: 0 });
+    setMeasured({ canvas, key: '', rects: [] });
   }
 
   useLayoutEffect(() => {
-    const header = seatedHeaderOf(canvas);
-    if (!header) {
-      return;
-    }
-    const measure = () => setMeasured({ canvas, height: header.getBoundingClientRect().height });
+    const measure = () => {
+      const rects = tableOverlayRects(canvas);
+      const key = rects
+        .map((rect) => [rect.left, rect.right, rect.bottom, rect.top].map((v) => v.toFixed(4)))
+        .join(';');
+      setMeasured((current) => (current.canvas === canvas && current.key === key ? current : { canvas, key, rects }));
+    };
     measure();
     if (typeof ResizeObserver === 'undefined') {
       return;
     }
-    const observer = new ResizeObserver(measure);
-    observer.observe(header);
-    return () => observer.disconnect();
+    let frame = 0;
+    /* The dial moves into the dock a moment after the canvas shrinks, so a change is measured again once it has settled. */
+    const observer = new ResizeObserver(() => {
+      measure();
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    });
+    const observeOverlays = () => {
+      for (const element of [canvas, seatedHeaderOf(canvas), ...tableOverlaysOf(canvas)]) {
+        if (element) {
+          observer.observe(element);
+        }
+      }
+    };
+    observeOverlays();
+    /* The dial mounts after drafting ends and a chip can appear later, so new overlays are observed and measured too. */
+    const shell = canvas.closest('.dune-play-shell');
+    let mutationFrame = 0;
+    const mutations =
+      shell && typeof MutationObserver !== 'undefined'
+        ? new MutationObserver(() => {
+            cancelAnimationFrame(mutationFrame);
+            mutationFrame = requestAnimationFrame(() => {
+              observeOverlays();
+              measure();
+            });
+          })
+        : null;
+    if (shell) {
+      mutations?.observe(shell, { childList: true, subtree: true });
+    }
+    return () => {
+      cancelAnimationFrame(frame);
+      cancelAnimationFrame(mutationFrame);
+      observer.disconnect();
+      mutations?.disconnect();
+    };
   }, [canvas]);
 
-  return measured.height;
+  return measured.rects;
 }
 
 type SeatedCameraProps = {
@@ -387,22 +426,25 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
     }
   });
 
-  const headerHeight = useSeatedHeaderHeight(renderer.domElement);
+  const measuredOverlays = useTableOverlayRects(renderer.domElement);
+  /* While a piece is carried the chips may come and go, but the board holds still under the drop until the carry ends. */
+  const [overlays, setOverlays] = useState(measuredOverlays);
+  if (enabled && overlays !== measuredOverlays) {
+    setOverlays(measuredOverlays);
+  }
 
   /* The view's pose at a tilt changes only with the view and the canvas, so a close look's frames reuse it. */
   useLayoutEffect(() => {
-    const mapTopLimit = mapViewTopLimitForViewport(size.height, headerHeight);
-    poseAt.current = (atTilt) => cameraPoseFor(command.view, aspectRatio, mapFramingPoints, mapTopLimit, atTilt);
-  }, [aspectRatio, command.view, headerHeight, mapFramingPoints, size.height]);
+    poseAt.current = (atTilt) => cameraPoseFor(command.view, aspectRatio, mapFramingPoints, atTilt, overlays);
+  }, [aspectRatio, command.view, mapFramingPoints, overlays]);
 
   useLayoutEffect(() => {
     const controls = controlsRef.current;
-    const mapTopLimit = mapViewTopLimitForViewport(size.height, headerHeight);
     const destination = cameraDestinationFor(
       { view: command.view, revision: command.revision },
       aspectRatio,
       mapFramingPoints,
-      mapTopLimit,
+      overlays,
       tilt,
       zoom
     );
@@ -431,11 +473,10 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
     command.revision,
     command.view,
     enabled,
-    headerHeight,
     invalidate,
     mapFramingPoints,
+    overlays,
     pointerSession,
-    size.height,
     tilt,
     zoom,
     zoomRevision,

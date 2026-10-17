@@ -222,6 +222,7 @@ function emptyOutlineShape(
   switch (type) {
     case 'token-disc':
     case 'token-tech':
+    case 'token-pointer':
       return { width: TOKEN_PILE_FACE, height: TOKEN_PILE_FACE * assetFaceAspect(type), borderRadius: '50%' };
     case 'token-plate':
       return { width: TOKEN_PILE_FACE, height: TOKEN_PILE_FACE * assetFaceAspect(type), borderRadius: 8 };

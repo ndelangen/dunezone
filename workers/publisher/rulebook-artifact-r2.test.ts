@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
 import { putImmutableRulebookArtifact } from './rulebook-artifact-r2';

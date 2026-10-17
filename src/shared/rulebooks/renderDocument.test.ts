@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { rulebookBlockKinds } from './contents';
 import { renderBlockSchema, rulebookRenderDocumentV1Schema } from './renderDocument';

@@ -2,7 +2,12 @@ import { Image, Stack, Text } from '@mantine/core';
 import preview from '@sb/preview';
 
 import { ColumnsWithRailLayout } from './ColumnsWithRailLayout';
-import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
+import {
+  expectSideBySideSlots,
+  expectStackedSlots,
+  expectStressColumnKeepsItsTrack,
+  LayoutSlotPlaceholder,
+} from './LayoutSlotPlaceholder.stories.fixture';
 
 const meta = preview.meta({
   component: ColumnsWithRailLayout,
@@ -31,6 +36,9 @@ export const ThreeColumns = meta.story({
     </ColumnsWithRailLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    await expectSideBySideSlots(canvasElement, ['primary', 'secondary', 'rail']);
+  },
 });
 
 /** The middle stage: the reading columns stack into one, with the rail still alongside them. */
@@ -43,6 +51,10 @@ export const ReadingColumnsStacked = meta.story({
     </ColumnsWithRailLayout>
   ),
   globals: { viewport: { value: 'appConstrained' } },
+  play: async ({ canvasElement }) => {
+    await expectStackedSlots(canvasElement, ['primary', 'secondary']);
+    await expectSideBySideSlots(canvasElement, ['primary', 'rail']);
+  },
 });
 
 /** Narrowest: one reading column, primary first and the rail last. Driven by the container, not the viewport. */
@@ -55,6 +67,9 @@ export const Stacked = meta.story({
     </ColumnsWithRailLayout>
   ),
   globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    await expectStackedSlots(canvasElement, ['primary', 'secondary', 'rail']);
+  },
 });
 
 /** An unbreakable word and an oversized image must both respect the column they are given. */
@@ -72,4 +87,7 @@ export const IntrinsicSizingStress = meta.story({
     </ColumnsWithRailLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    await expectStressColumnKeepsItsTrack(canvasElement);
+  },
 });

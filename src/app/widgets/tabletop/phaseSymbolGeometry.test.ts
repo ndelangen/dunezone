@@ -10,7 +10,7 @@ import { Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import type { BufferGeometry } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import type { SVGResult } from 'three/examples/jsm/loaders/SVGLoader.js';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { unsettledArtworkLoads } from './artworkLoads';
 import {
@@ -209,9 +209,7 @@ describe('phase symbol loading lifetime', () => {
     vi.spyOn(SVGLoader.prototype, 'loadAsync').mockRejectedValue(new Error('Image unavailable'));
     const receive = vi.fn();
     const release = loadPhaseSymbolGeometry('/vector/icon/missing.svg', PHASE_TRACKER_RADIUS, receive);
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(receive).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(receive).toHaveBeenCalledWith(null));
     release();
   });
 

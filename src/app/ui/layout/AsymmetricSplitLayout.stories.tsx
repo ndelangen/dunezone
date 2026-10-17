@@ -3,7 +3,12 @@ import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
 import { AsymmetricSplitLayout } from './AsymmetricSplitLayout';
-import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
+import {
+  expectSideBySideSlots,
+  expectStackedSlots,
+  expectStressColumnKeepsItsTrack,
+  LayoutSlotPlaceholder,
+} from './LayoutSlotPlaceholder.stories.fixture';
 
 const meta = preview.meta({
   component: AsymmetricSplitLayout,
@@ -31,6 +36,9 @@ export const TwoColumns = meta.story({
     </AsymmetricSplitLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    await expectSideBySideSlots(canvasElement, ['wide', 'narrow']);
+  },
 });
 
 /** Below it: one reading column, wide first. Driven by the container, not the viewport. */
@@ -44,6 +52,9 @@ export const Stacked = meta.story({
     </AsymmetricSplitLayout>
   ),
   globals: { viewport: { value: 'appConstrained' } },
+  play: async ({ canvasElement }) => {
+    await expectStackedSlots(canvasElement, ['wide', 'narrow']);
+  },
 });
 
 /** The narrow column on the leading side, for alternating a picture from one pane to the next. */
@@ -116,20 +127,9 @@ export const IntrinsicSizingStress = meta.story({
     </AsymmetricSplitLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
-});
-
-/** The slim variant: the wide column is the page's matter, and the rail is a band for a preview and a few cards. */
-export const SlimRail = meta.story({
-  render: () => (
-    <AsymmetricSplitLayout rail="slim">
-      <AsymmetricSplitLayout.Wide>
-        <LayoutSlotPlaceholder name="wide" tone="primary" minHeight={280} />
-      </AsymmetricSplitLayout.Wide>
-      <AsymmetricSplitLayout.Narrow>
-        <LayoutSlotPlaceholder name="narrow" tone="secondary" minHeight={280} />
-      </AsymmetricSplitLayout.Narrow>
-    </AsymmetricSplitLayout>
-  ),
+  play: async ({ canvasElement }) => {
+    await expectStressColumnKeepsItsTrack(canvasElement);
+  },
 });
 
 /** `narrowFallback="hide"` keeps the columns side by side where the default would stack them. */

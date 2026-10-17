@@ -128,8 +128,8 @@ description, resting 1.8 s swaps in the full help, and keyboard focus opens the 
 panels have no help button. Play is desktop-only for the beta, so a touch path to that guidance is
 out of scope until touch is.
 
-*Guarded in part: `check:css-orphans` reads route stylesheets, and the `PanelSchemeIsland` story in
-[`playing.stories.tsx`](../../src/app/routes/_app/play/playing.stories.tsx) holds the island and
+*Guarded in part: `check:css-orphans` reads route stylesheets, and the `SchemeIsland` story in
+[`panel.layout.stories.tsx`](../../src/app/routes/_app/play/panel.layout.stories.tsx) holds the island and
 a piece menu and a tab's tooltip opened on it, painted with the island's raised tooltip surface; the
 `TabGuidance` story in [`NestedTabs.stories.tsx`](../../src/app/ui/surface/NestedTabs.stories.tsx)
 holds a tab's description, its rested help and its accessible description. The vocabulary on the panel, the parts ledger and the
@@ -533,7 +533,7 @@ renderer and editor support. An isolated block story may exercise the component 
 story may not substitute its own page body. Examples use the example callout block.
 
 A chapter teaching a game phase uses the phase name as its opening page title, such as
-"Shipment and movement". Put its introduction between that title and the first subsections.
+"Shipment and Movement". Put its introduction between that title and the first subsections.
 Later pages may use descriptive titles for the part of the phase they explain.
 
 This follows the rejected combat prototypes, which ran in Storybook but used their own page bodies,

@@ -33,7 +33,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'drawing-dune-tokens-and-cards': {
     slug: 'drawing-dune-tokens-and-cards',
     title: 'Recreating Dune board game art, layer by layer',
-    date: '2026-10-15',
+    date: '2026-10-18',
     author: 'Central419',
     summary:
       'How the leader tokens and cards on dune.zone are drawn, layer by layer, from GIMP files I made in 2021 to SVG masks and photo textures, traced through the git history of my old projects.',
@@ -43,10 +43,23 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
       aspect: 1800 / 2400,
     },
   },
+  'all-in-one-dune-board-game-webapp': {
+    slug: 'all-in-one-dune-board-game-webapp',
+    title: 'My earlier attempts at building an all-in-one webapp for the Dune board game',
+    date: '2026-10-16',
+    author: 'Central419',
+    summary:
+      'Long before this site, I built a stats dashboard, a card creator, a database-free prototype and a repository that drew its own images. Each was a different answer to the same two questions: where does the data live, and who turns it into images?',
+    cover: {
+      key: '/web/blog/running-from-databases/dune-assets.jpg',
+      alt: 'Generated Dune cards and tokens: a Duncan Idaho traitor card, Crysknife, an Atreides alliance card, a spice card and faction tokens',
+      aspect: 1062 / 2048,
+    },
+  },
   'tabletop-simulator': {
     slug: 'tabletop-simulator',
     title: 'Building Dune on Tabletop Simulator',
-    date: '2026-10-14',
+    date: '2026-10-15',
     author: 'Central419',
     summary:
       "Before dune.zone there was Tabletop Simulator: the scripts and models I added to the community's Dune mod, the mods I built on my own, and how the tedium of making assets by hand led me to the fundamentals.",

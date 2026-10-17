@@ -1,5 +1,6 @@
 import { isFactionToken } from './factionToken';
 import type { TablePiece, Vector3Tuple } from './model';
+import { POINTER_BODY_RADIUS, POINTER_HEIGHT, isPointerToken, pointerCovers, pointerDistanceTo } from './pointerToken';
 import {
   isSpicePiece,
   SPICE_FOOTPRINT_RADIUS,
@@ -9,7 +10,8 @@ import {
 } from './spice';
 import { isTroopStack } from './troop';
 
-type PieceFootprint = Pick<TablePiece, 'kind' | 'orientation'> & Partial<Pick<TablePiece, 'owner' | 'stackKey'>>;
+type PieceFootprint = Pick<TablePiece, 'kind' | 'orientation'> &
+  Partial<Pick<TablePiece, 'owner' | 'stackKey' | 'items'>>;
 
 export const BOARD_RADIUS = 3.98;
 export const BOARD_RIM_RADIUS = 4.23;
@@ -17,7 +19,8 @@ export const TABLE_VISIBLE_RADIUS = 5.47;
 export const BOARD_SURFACE_Y = 0.132;
 export const BOARD_RIM_SURFACE_Y = 0.125;
 export const TABLE_SURFACE_Y = 0.005;
-export const CARRIED_BASE_Y = 0.38;
+/* Carried pieces glide above the tallest stack on the board: twenty troops show twelve layers and top out near 0.59. */
+export const CARRIED_BASE_Y = 0.62;
 export const CONTACT_SHADOW_EPSILON = 0.003;
 
 export const TROOP_LAYER_HEIGHT = 0.09 * 0.5;
@@ -33,8 +36,10 @@ const LEADER_SCALE = 2;
 export const FACTION_TOKEN_SCALE = 0.42 / TROOP_TOP_RADIUS;
 export const CARD_WIDTH = 0.86;
 export const CARD_DEPTH = 1.18;
-export const CARD_LAYER_HEIGHT = 0.055;
-export const CARD_LAYER_PITCH = 0.043;
+/* Cards have rounded corners, a little tighter than the wells they sit in. */
+export const CARD_CORNER_RADIUS = 0.05;
+export const CARD_LAYER_HEIGHT = 0.028;
+export const CARD_LAYER_PITCH = 0.022;
 export const CARD_FOOTPRINT_HALF_X = 0.49;
 export const CARD_FOOTPRINT_HALF_Z = 0.65;
 export const MARKER_BASE_HEIGHT = 0.14;
@@ -99,10 +104,17 @@ export function circleFootprintRadius(piece: PieceFootprint): number {
   if (isSpicePiece(piece)) {
     return SPICE_FOOTPRINT_RADIUS;
   }
+  if (isPointerToken(piece)) {
+    return POINTER_BODY_RADIUS;
+  }
   return piece.kind === 'marker' ? MARKER_FOOTPRINT_RADIUS : TROOP_FOOTPRINT_RADIUS * troopScale(piece);
 }
 
 function minimumFootprintRadius(position: Vector3Tuple, piece: PieceFootprint): number {
+  /* A pointer's point reaches well past its round end, so its whole outline decides what it rests on. */
+  if (isPointerToken(piece)) {
+    return pointerDistanceTo({ position, orientation: piece.orientation }, [0, 0, 0]);
+  }
   if (piece.kind !== 'card') {
     return Math.max(0, Math.hypot(position[0], position[2]) - circleFootprintRadius(piece));
   }
@@ -118,6 +130,9 @@ function minimumFootprintRadius(position: Vector3Tuple, piece: PieceFootprint): 
 
 /** Whether a point on the table, relative to the piece's centre, lies over the piece's footprint. */
 export function pieceFootprintContains(offset: Vector3Tuple, piece: PieceFootprint): boolean {
+  if (isPointerToken(piece)) {
+    return pointerCovers({ position: [0, 0, 0], orientation: piece.orientation }, offset);
+  }
   return minimumFootprintRadius(offset, piece) === 0;
 }
 
@@ -129,12 +144,27 @@ export function restingPositionAt(position: Vector3Tuple, piece: PieceFootprint)
   return [position[0], supportHeightAt(position, piece), position[2]];
 }
 
+/* A troop stack shows one layer per item while it is short, then grows more slowly, so its height still tells a big stack from a bigger one. */
+const TROOP_EXACT_LAYERS = 8;
+
+function troopLayerCount(items: number): number {
+  return items <= TROOP_EXACT_LAYERS
+    ? items
+    : Math.round(TROOP_EXACT_LAYERS + 1.2 * Math.sqrt(items - TROOP_EXACT_LAYERS));
+}
+
 export function visibleLayerCount(piece: TablePiece): number {
+  if (isTroopStack(piece)) {
+    return Math.max(1, troopLayerCount(piece.items.length));
+  }
   const maximum = isSpicePiece(piece) ? SPICE_MAX_VISIBLE_LAYERS : MAX_VISIBLE_LAYERS[piece.kind];
   return Math.min(maximum, Math.max(1, piece.items.length));
 }
 
 export function stackTopHeight(piece: TablePiece): number {
+  if (isPointerToken(piece)) {
+    return POINTER_HEIGHT;
+  }
   const layers = visibleLayerCount(piece);
   if (isSpicePiece(piece)) {
     return SPICE_LAYER_HEIGHT + (layers - 1) * SPICE_LAYER_PITCH;
@@ -159,6 +189,10 @@ export function pieceLabelHeight(piece: TablePiece): number {
 function contactShadowBase(piece: TablePiece | TablePiece['kind']): [number, number] {
   if (typeof piece !== 'string' && isSpicePiece(piece)) {
     const diameter = SPICE_FOOTPRINT_RADIUS * 2 + 0.04;
+    return [diameter, diameter];
+  }
+  if (typeof piece !== 'string' && isPointerToken(piece)) {
+    const diameter = POINTER_BODY_RADIUS * 2 + 0.04;
     return [diameter, diameter];
   }
   const kind = typeof piece === 'string' ? piece : piece.kind;

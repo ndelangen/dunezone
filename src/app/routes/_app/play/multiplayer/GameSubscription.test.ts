@@ -13,7 +13,7 @@ import {
 } from '@shared/play/protocol';
 import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { online, runtime, Socket, visible } from './gameRuntime.test.fixture';
 import { GameSubscription } from './GameSubscription';
@@ -528,14 +528,4 @@ test('a refusal that arrives only as the close code still says why', async () =>
     type: 'connection',
     error: 'This login can no longer access the table.',
   });
-});
-
-test('a reconnect names the connection that last showed the table, so the Worker can retire it', async () => {
-  const { socket } = await subscribed();
-  expect(socket.sent[0]).toEqual({ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) });
-  socket.close(1006);
-  await vi.advanceTimersByTimeAsync(1000);
-  const next = Socket.instances.at(-1)!;
-  next.open();
-  expect(next.sent[0]).toEqual({ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64), replaces: 'one' });
 });

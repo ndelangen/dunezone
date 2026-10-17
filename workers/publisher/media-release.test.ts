@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { handleMediaReleaseRequest, mediaReleaseKey, mediaReleaseMarkerKey } from './media-release';
 import type { MediaReleaseEnv, MediaReleaseRecord } from './media-release';

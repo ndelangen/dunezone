@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 
 import type { RasterLock } from '@shared/media/rasterLock';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import rasterLock from '../../../../../media/raster.lock.json';
 import metadata from './media-index.json';

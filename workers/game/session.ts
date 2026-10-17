@@ -19,7 +19,7 @@ import {
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
-import { composeTurn, lobbyPhaseIndex } from '../../src/shared/play/phases';
+import { composeTurn, lobbyPhaseIndex, recomposedTurn } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
 import { rosterFactionIds } from '../../src/shared/play/protocol';
 import type { ClientMessage, CommitMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
@@ -74,6 +74,7 @@ import {
   RoomProjection,
   seatedFaction,
   storedSnapshotSchema,
+  validatedSnapshot,
   withKnownCardFaces,
 } from './state';
 import { Swapping } from './swapping';
@@ -248,7 +249,13 @@ export class GameSession {
   private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
     const settled = settleEnding(snapshot, () => new Set(this.actors.seated().map((occupant) => occupant.userId)));
     const roster = this.actors.roster(this.seatCount());
-    return { ...settled, roster, phases: this.composedTurn(roster, settled.table.stormSectorIndex) };
+    const composed = this.composedTurn(roster, settled.table);
+    /* Before play no phase has been played, so the turn takes the order as it stands, and the first turn plays it. */
+    const playing = inPlay(settled.stage) && (!this.room || inPlay(this.room.snapshot.stage));
+    const phases = playing
+      ? recomposedTurn(settled.phase, this.room?.snapshot.phase, settled.phases, composed)
+      : composed;
+    return { ...settled, roster, phases };
   }
 
   /**
@@ -256,7 +263,7 @@ export class GameSession {
    * Recomposed with every snapshot the room accepts, so a storm move reorders the entries after Storm and nothing stores an order.
    * A game whose seated factions declare nothing (a fixture, one still drafting, or plain factions) plays the standard turn and carries no list.
    */
-  private composedTurn(roster: TableRoster, stormSectorIndex: number): PhaseEntry[] | undefined {
+  private composedTurn(roster: TableRoster, table: StoredSnapshot['table']): PhaseEntry[] | undefined {
     const seated = new Set(rosterFactionIds(roster));
     const factions = this.captures
       .phaseDeclarations()
@@ -264,7 +271,7 @@ export class GameSession {
     if (!factions.length) {
       return undefined;
     }
-    return composeTurn(factions, stormOrder(stormSectorIndex, roster));
+    return composeTurn(factions, stormOrder(table.stormSectorIndex, roster, table.pieces));
   }
 
   /** A drafting roster that outgrew its stations fixes a larger count, inside the caller's transaction. */
@@ -371,7 +378,12 @@ export class GameSession {
     }
     const next = {
       ...room.snapshot,
-      setup: initialSetup(this.captures.factions(), room.snapshot.roster, room.snapshot.table.stormSectorIndex),
+      setup: initialSetup(
+        this.captures.factions(),
+        room.snapshot.roster,
+        room.snapshot.table.stormSectorIndex,
+        room.snapshot.table.pieces
+      ),
       controls: { ...(room.snapshot.controls ?? emptyPublicControls()), ready: [] },
     };
     this.writeState(next);
@@ -845,7 +857,7 @@ export class GameSession {
     const next = withKnownCardFaces(
       room.snapshot,
       revealPlacedPredictions(
-        this.withRoster(storedSnapshotSchema.parse(this.nextTableSnapshot(viewer, message, contents))),
+        this.withRoster(validatedSnapshot(room.snapshot, this.nextTableSnapshot(viewer, message, contents))),
         Date.now()
       )
     );
@@ -1320,4 +1332,9 @@ export class GameSession {
     this.finishSetupCleanup();
     return true;
   }
+}
+
+/* A fixture carries no stage and plays its phases from the start. */
+function inPlay(stage: StoredSnapshot['stage']) {
+  return stage === undefined || stage === 'play';
 }

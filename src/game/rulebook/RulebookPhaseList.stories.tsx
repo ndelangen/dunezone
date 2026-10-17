@@ -21,14 +21,14 @@ export const PhaseList = meta.story({
     const page = within(canvasElement).getByRole('article', { name: 'Rulebook page: A turn and the Nexus' });
     await document.fonts.ready;
     const icons = [...page.querySelectorAll<HTMLImageElement>('.rulebookListIcon img')];
-    expect(icons).toHaveLength(10);
+    await expect(icons).toHaveLength(10);
     await waitFor(() => expect(icons.every((icon) => icon.complete && icon.naturalWidth > 0)).toBe(true));
     const items = within(page).getAllByRole('listitem');
-    expect(items).toHaveLength(10);
+    await expect(items).toHaveLength(10);
     for (const region of page.querySelectorAll<HTMLElement>('[data-rulebook-region]')) {
-      expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
+      await expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
     }
-    expect(within(page).getByRole('complementary')).toHaveTextContent('Example: turn three');
+    await expect(within(page).getByRole('complementary')).toHaveTextContent('Example: turn three');
   },
   render: () => (
     <RulebookPageRenderer

@@ -1,17 +1,15 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { blankBoard } from '../src/shared/boards/geometry';
 import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import { api, internal } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { playTest, playPerson, playRuleset } from './play.test.fixture';
-import schema from './schema';
 
-const modules = import.meta.glob('./**/*.ts');
 async function setup() {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ids = await t.run(async (ctx) => {
     const owner = await ctx.db.insert('users', { name: 'Owner' });
     const fields = {

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '../../src/shared/play/phases';
 import type { PieceAction } from '../../src/shared/play/protocol';
@@ -115,7 +115,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     }
   }
 
-  it('is offered only during Mentat pause and only to seated players', async () => {
+  it('is offered only during Mentat Pause and only to seated players', async () => {
     const { owner, observer } = await inPlay();
     expect(await rejected(owner, { kind: 'result-open' })).toBe(true);
     await toMentat(owner);
@@ -160,7 +160,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     }
   });
 
-  it('finishes on one declaration and continues at Mentat pause of the same turn with the table untouched', async () => {
+  it('finishes on one declaration and continues at Mentat Pause of the same turn with the table untouched', async () => {
     const { owner, other, observer, stepId } = await inPlay();
     await toMentat(owner);
     const before = (await syncView(owner)).snapshot;
@@ -192,14 +192,14 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       'Atreides revealed its prediction: Harkonnen, turn 4.',
       `${declarer} declared the result: Atreides won.`,
       `${declarer} started determining the winner.`,
-      'Mentat pause began.',
+      'Mentat Pause began.',
     ]);
     expect(game.slice(0, 5).every((entry) => ['phase', 'prediction'].includes(entry.class))).toBe(true);
     expect(game.map((entry) => entry.context).slice(0, 4)).toEqual([
-      'Turn 1, Mentat pause',
+      'Turn 1, Mentat Pause',
       'Finished',
-      'Turn 1, Mentat pause',
-      'Turn 1, Mentat pause',
+      'Turn 1, Mentat Pause',
+      'Turn 1, Mentat Pause',
     ]);
   });
 
@@ -369,7 +369,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       expect(snapshot.result).toEqual(result);
     }
 
-    /* Continuing returns to the same Mentat pause, where the game can be decided again. */
+    /* Continuing returns to the same Mentat Pause, where the game can be decided again. */
     const continued = await accepted(player, { kind: 'result-continue' });
     expect(continued.snapshot.stage).toBe('play');
     expect(continued.snapshot.phase).toBe(declared.snapshot.phase);

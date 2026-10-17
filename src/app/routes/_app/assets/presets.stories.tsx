@@ -125,12 +125,6 @@ export const ToolbarAt360 = meta.story({
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
-export const ToolbarAt390 = meta.story({
-  parameters: { database: administratorDatabase },
-  globals: { viewport: { value: 'appMobile' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
 export const ToolbarAt768 = meta.story({
   parameters: { database: administratorDatabase },
   globals: { viewport: { value: 'appTablet' } },
@@ -140,12 +134,6 @@ export const ToolbarAt768 = meta.story({
 export const ToolbarAt1100 = meta.story({
   parameters: { database: administratorDatabase },
   globals: { viewport: { value: 'appLaptop' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const ToolbarAt1440 = meta.story({
-  parameters: { database: administratorDatabase },
-  globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
@@ -166,6 +154,6 @@ export const FrontAt360 = meta.story({
     const builder = page.getByRole('region', { name: 'Background builder' });
     await expect(builder).toBeVisible();
     const document = canvasElement.ownerDocument;
-    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.defaultView!.innerWidth);
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.defaultView!.innerWidth);
   },
 });

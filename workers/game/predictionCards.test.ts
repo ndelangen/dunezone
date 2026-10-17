@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { hostedFixturePlan } from './fixture';
 import { dealPredictionCard, holdsPredictionCard, revealPlacedPredictions } from './predictionCards';
@@ -38,10 +38,6 @@ test('a locked prediction deals its card into the hand on the shared base and th
     type: 'card-prediction',
     prediction: { stepId: 'faction-step-1', factionId: 'harkonnen', turn: 4 },
   });
-});
-
-test('a game that captured no prediction faces deals no card', () => {
-  expect(dealPredictionCard(locked({}), 'faction-step-1').factionInventories.atreides).toEqual([]);
 });
 
 test('another seat sees a prediction card in a hand or face down only by its back', () => {
@@ -94,6 +90,7 @@ test('a game whose prediction card front is unpublished deals no card rather tha
     dealPredictionCard(locked({ atreides: { front: null, back: FACES.back } }), 'faction-step-1').factionInventories
       .atreides
   ).toEqual([]);
+  expect(dealPredictionCard(locked({}), 'faction-step-1').factionInventories.atreides).toEqual([]);
 });
 
 test('a prediction card is never a battle card', () => {

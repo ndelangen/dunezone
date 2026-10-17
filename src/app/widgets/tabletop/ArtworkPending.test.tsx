@@ -2,7 +2,7 @@
 
 import { act, cleanup, render } from '@testing-library/react';
 import { Suspense } from 'react';
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vite-plus/test';
 
 import { unsettledArtworkLoads } from './artworkLoads';
 import { ArtworkPending } from './ArtworkPending';

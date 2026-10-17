@@ -41,7 +41,7 @@ const testStarter = rulebookContentsV1Schema.parse({
           id: 'MVVE',
           kind: 'text',
           name: 'Movement sequence',
-          text: 'Choose a force, choose an adjacent destination, then resolve the move.',
+          text: 'Choose a troop, choose an adjacent destination, then resolve the move.',
         },
         TEXT: {
           id: 'TEXT',

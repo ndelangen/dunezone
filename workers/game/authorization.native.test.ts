@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import {
   PLAY_AUTH_LEASE_MS,
@@ -12,6 +12,8 @@ import { createPeer, createRuntime, eventually } from './native-runtime.fixture.
 
 /* Test lifetimes, not the production defaults; the lease assertions below are written against them. */
 const testLifetimes = '/start?leaseMs=10000&renewalMs=3000';
+/* A recovery base a fifth of the production one, so the backoff tests keep its doubling without waiting out whole seconds. */
+const testRecoveryMs = 200;
 
 describe('the shared authorization limits', () => {
   it('give a healthy renewal room to land before the previous lease ends', () => {
@@ -263,7 +265,7 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
   it('recovers from a failed subscription while connected, with backoff, before any renewal tick', async () => {
     /* A 30 second cadence puts the tick outside every window below; only the recovery timer can act. */
     await runtime.request('/stop');
-    await runtime.request('/start?leaseMs=10000&renewalMs=30000');
+    await runtime.request(`/start?leaseMs=10000&renewalMs=30000&recoveryMs=${testRecoveryMs}`);
     const first = await peer.query(({ connection }) => connection === peer.connections.at(-1));
     peer.answer(first);
     await waitStatus('authorized');
@@ -272,11 +274,11 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     await waitStatus('suspended');
     const second = await peer.query(({ query }) => query.args[0].generation !== first.query.args[0].generation);
     const secondAt = Date.now();
-    expect(secondAt - failedAt).toBeLessThan(2500);
+    expect(secondAt - failedAt).toBeLessThan(2.5 * testRecoveryMs);
     expect(second.connection).toBe(first.connection);
     peer.fail(second);
     const third = await peer.query(({ query }) => query.args[0].generation !== second.query.args[0].generation);
-    expect(Date.now() - secondAt).toBeGreaterThanOrEqual(1900);
+    expect(Date.now() - secondAt).toBeGreaterThanOrEqual(1.9 * testRecoveryMs);
     peer.answer(third);
     await waitStatus('authorized');
   });
@@ -345,7 +347,7 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
 
   it('backs off while validations fail although the subscription keeps answering', async () => {
     await runtime.request('/stop');
-    await runtime.request('/start?leaseMs=10000&renewalMs=30000');
+    await runtime.request(`/start?leaseMs=10000&renewalMs=30000&recoveryMs=${testRecoveryMs}`);
     const query = await peer.query(({ connection }) => connection === peer.connections.at(-1));
     peer.answer(query);
     await waitStatus('authorized');
@@ -364,13 +366,13 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
       return [...first.values()];
     };
     peer.answer(query);
-    await eventually(() => generationStarts().length >= 4, 'four failing generations', 12_000);
+    await eventually(() => generationStarts().length >= 4, 'four failing generations');
     const starts = generationStarts();
     const gaps = starts.slice(1).map((start, index) => start - starts[index]);
     expect(gaps[1]).toBeGreaterThan(gaps[0] * 1.7);
     expect(gaps[2]).toBeGreaterThan(gaps[1] * 1.7);
     expect(await status()).toBe('suspended');
-  }, 15_000);
+  }, 10_000);
 
   it('catches a revocation the subscription missed at the next renewal', async () => {
     await runtime.request('/stop');

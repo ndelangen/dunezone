@@ -64,13 +64,13 @@ export const TextBlockStory = createBlockEditorStory(rulebookBlockEditors.text, 
   ...value,
 }));
 
-export function expectBlockOnlyPreview(canvasElement: HTMLElement) {
+export async function expectBlockOnlyPreview(canvasElement: HTMLElement) {
   const blockCanvas = canvasElement.querySelector<HTMLElement>('[data-rulebook-block-canvas]');
-  expect(blockCanvas).not.toBeNull();
-  expect(canvasElement.querySelector('[data-rulebook-page]')).toBeNull();
+  await expect(blockCanvas).not.toBeNull();
+  await expect(canvasElement.querySelector('[data-rulebook-page]')).toBeNull();
 
   const bounds = blockCanvas!.getBoundingClientRect();
-  expect(bounds.width / bounds.height).toBeCloseTo(4 / 3, 1);
+  await expect(bounds.width / bounds.height).toBeCloseTo(4 / 3, 1);
 }
 
 export const sectionHeadingChange = fn();

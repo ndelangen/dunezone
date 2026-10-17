@@ -57,7 +57,7 @@ function TextBlockEdit({ value, onChange, references }: RulebookBlockEditorProps
     : [];
   const selected = (value.references ?? []).map((target) => `${target.pageId}/${target.blockId ?? ''}`);
   const options = targets.map((target) => ({
-    value: `${target.pageId}/${'blockId' in target ? target.blockId : ''}`,
+    value: `${target.pageId}/${target.blockId ?? ''}`,
     label: `${target.label} (page ${target.pageNumber})`,
   }));
   for (const id of selected) {

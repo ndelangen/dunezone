@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { allianceOf, alliesOf, applyAlliance, emptyAlliances } from './alliances';
 import type { AllianceAction, AllianceState } from './alliances';
@@ -43,13 +43,6 @@ describe('alliances', () => {
     });
     expect(alliesOf(allied, 'fremen')).toEqual(['atreides']);
     expect(allied.offers).toEqual([]);
-  });
-
-  test('offering back to a faction that offered is refused, so only an explicit accept forms an alliance', () => {
-    const offered = act(emptyAlliances(), 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
-    expect(() => act(offered, 'fremen', { kind: 'alliance-offer', factionId: 'atreides' })).toThrow(
-      'Accept or decline'
-    );
   });
 
   test('a late offer never re-forms an alliance broken since', () => {

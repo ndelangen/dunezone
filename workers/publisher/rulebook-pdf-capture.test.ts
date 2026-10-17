@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
 import {
@@ -9,9 +9,10 @@ import {
 } from './rulebook-pdf-capture';
 import type { RulebookPdfCaptureBucket } from './rulebook-pdf-capture';
 import { fakeR2Object } from './test-helpers';
+import type { FakeR2Object } from './test-helpers';
 
 function memoryBucket(): RulebookPdfCaptureBucket {
-  const objects = new Map<string, { bytes: Uint8Array; metadata: R2Object }>();
+  const objects = new Map<string, { bytes: Uint8Array; metadata: FakeR2Object }>();
   return {
     async put(key, value, options) {
       if (objects.has(key)) {

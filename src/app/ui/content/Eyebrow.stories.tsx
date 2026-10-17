@@ -18,11 +18,6 @@ export const Accent = meta.story({
   args: { tone: 'accent' },
 });
 
-/** For dark hero artwork, where both other tones would disappear. */
-export const Inverse = meta.story({
-  args: { tone: 'inverse' },
-});
-
 /** Letter-spacing makes long labels wrap early; they stay left aligned when they do. */
 export const LongLabelWraps = meta.story({
   args: { tone: 'accent', children: 'Proposed content · page query required before launch' },

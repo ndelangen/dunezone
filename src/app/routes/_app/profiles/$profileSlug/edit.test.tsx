@@ -6,7 +6,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { appContentTheme } from '@ui/theme';
 import type { AnchorHTMLAttributes, ComponentType } from 'react';
 import { useSyncExternalStore } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import type * as Accounts from '@db/accounts';
 
@@ -258,9 +258,8 @@ describe('profile settings page', () => {
       fireEvent.click(view.getByRole('button', { name: 'Connect Discord' }));
     });
     expect(mocks.beginConnection).toHaveBeenCalledWith({ provider: 'discord' });
-    expect(mocks.signIn).toHaveBeenCalledWith('discord', {
-      redirectTo: '/profiles/owner-profile/connect?connection=connection-token',
-    });
+    expect(mocks.signIn).toHaveBeenCalledWith('discord', { redirectTo: '/profiles/owner-profile/connect' });
+    expect(sessionStorage.getItem('dunezone-account-connection')).toBe('connection-token');
     expect(mocks.mutate).not.toHaveBeenCalled();
     expect(view.getByRole('button', { name: 'Connect Discord' })).toHaveProperty('disabled', false);
     await chooseTab(view, 'Profile');

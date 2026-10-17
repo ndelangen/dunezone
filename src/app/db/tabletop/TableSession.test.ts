@@ -3,12 +3,13 @@ import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
 import type { Disclosure } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
+import type { TablePiece } from '@shared/play/model';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
 import type { ActivityChange, GameSnapshot, ServerMessage, TablePing, Viewer } from '@shared/play/protocol';
 import { flipPieceInState, heldPieceFor } from '@shared/play/tableState';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 
@@ -221,6 +222,50 @@ describe('hosted public controls', () => {
       expect(socket().sent.at(-1)).toEqual({ type: 'log-history', tab, before: Number.MAX_SAFE_INTEGER });
     }
   });
+  test('a changed table reads the log page again at once, and a burst of changes once more at its end', async () => {
+    const client = await connected();
+    const reads = () => socket().sent.filter((message) => message.type === 'log-history').length;
+    client.refreshLogHistory('game');
+    expect(reads()).toBe(1);
+    client.refreshLogHistory('game');
+    client.refreshLogHistory('game');
+    expect(reads()).toBe(1);
+    vi.advanceTimersByTime(500);
+    expect(reads()).toBe(2);
+    vi.advanceTimersByTime(1000);
+    expect(reads()).toBe(2);
+    client.refreshLogHistory('game');
+    expect(reads()).toBe(3);
+    /* A read still waiting is dropped with the panel that asked for it. */
+    const stop = client.refreshLogHistory('game');
+    stop();
+    vi.advanceTimersByTime(1000);
+    expect(reads()).toBe(3);
+    /* Each tab keeps its own wait. */
+    client.refreshLogHistory('audit');
+    expect(reads()).toBe(4);
+  });
+  test('a log page read again with nothing new leaves the panels as they are', async () => {
+    const client = await connected();
+    const entry = { sequence: 1, class: 'phase' as const, text: 'Storm began.', context: 'Turn 1', at: 1 };
+    const page = (entries: (typeof entry)[]) =>
+      socket().deliver({ type: 'log-history', tab: 'game', before: Number.MAX_SAFE_INTEGER, entries, more: false });
+    client.readLogHistory('game');
+    page([entry]);
+    const shown = client.getSnapshot();
+    const panelListener = vi.fn();
+    client.subscribe(panelListener);
+
+    client.readLogHistory('game');
+    page([{ ...entry }]);
+    expect(client.getSnapshot()).toBe(shown);
+    expect(panelListener).not.toHaveBeenCalled();
+
+    client.readLogHistory('game');
+    page([{ ...entry, sequence: 2, text: 'Spice blew.' }, entry]);
+    expect(client.getSnapshot().logHistory.game?.entries).toHaveLength(2);
+    expect(panelListener).toHaveBeenCalledTimes(1);
+  });
   test('releases the capture on a completion the tab could not apply', async () => {
     const client = await connected();
     const sentReads = () =>
@@ -251,18 +296,6 @@ describe('hosted public controls', () => {
         .sent.filter((message) => message.type === 'catalogue')
         .map((message) => message.requestId)
     ).toEqual([next]);
-  });
-  test('holds a catalogue read behind the spawn request the Worker is still capturing', async () => {
-    const client = await connected();
-    const sentReads = () =>
-      socket().sent.flatMap((message) => (message.type === 'catalogue' ? [message.requestId] : []));
-    client.command({ kind: 'spawn-request', type: 'deck', slug: 'ready' });
-    const request = socket().sent.find((message) => message.type === 'command');
-    expect(request).toMatchObject({ action: { kind: 'spawn-request' } });
-    const next = client.catalogue({ type: 'deck', slug: 'next' });
-    expect(sentReads()).toEqual([]);
-    socket().deliver(view({ sequence: 2, completedCommandId: request!.commandId }));
-    expect(sentReads()).toEqual([next]);
   });
   test('shows a refused catalogue read in the picker instead of waiting for a reply that never comes', async () => {
     const client = await connected();
@@ -653,20 +686,6 @@ describe('hosted table admission', () => {
 });
 
 describe('hosted table interaction', () => {
-  test('phase changes preserve a carry and use the latest shared revision', async () => {
-    const { client, source, carried } = await grantedWholeCarry();
-    socket().deliver(carried);
-    client.command({ kind: 'phase' });
-    expect(command().action).toEqual({ kind: 'phase' });
-    socket().deliver({ ...carried, snapshot: { ...carried.snapshot, phase: 54, revision: 1 } });
-    expect(table(client).snapshot.phase).toBe(54);
-    expect(table(client).gestureActivePieceId).toBe(source.id);
-    client.command({ kind: 'phase' });
-    expect(command().expectedRevision).toBe(1);
-    client.finishGesture([0, 0.38, 0]);
-    expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: carried.carries[0].id });
-  });
-
   test('a finished game keeps its table as it is: nothing picks up, selects or changes a piece, and Continue playing still goes', async () => {
     const client = await connected();
     const piece = initialSnapshot().table.pieces[0];
@@ -1505,6 +1524,43 @@ function battleTable() {
   return { plan, snapshot };
 }
 
+test('the battle countdown ticks its own seconds and leaves the panels and the scene alone', async () => {
+  const client = await connected();
+  const { snapshot } = battleTable();
+  const counting = { ...snapshot, battle: { ...snapshot.battle!, stage: 'countdown' as const } };
+  socket().deliver({ ...view({ snapshot: counting }), battleCountdownMs: 3000 });
+  expect(client.getBattleCountdownSeconds()).toBe(3);
+  const panelListener = vi.fn();
+  const sceneListener = vi.fn();
+  const countdownListener = vi.fn();
+  client.subscribe(panelListener);
+  client.subscribeTable(sceneListener);
+  client.subscribeBattleCountdown(countdownListener);
+
+  vi.advanceTimersByTime(1000);
+  expect(client.getBattleCountdownSeconds()).toBe(2);
+  expect(countdownListener).toHaveBeenCalledTimes(1);
+  vi.advanceTimersByTime(2000);
+  expect(client.getBattleCountdownSeconds()).toBe(0);
+  expect(countdownListener).toHaveBeenCalledTimes(3);
+  vi.advanceTimersByTime(1000);
+  expect(countdownListener).toHaveBeenCalledTimes(3);
+  expect(panelListener).not.toHaveBeenCalled();
+  expect(sceneListener).not.toHaveBeenCalled();
+});
+
+test('a lost connection holds the battle countdown where it stopped', async () => {
+  const client = await connected();
+  const { snapshot } = battleTable();
+  const counting = { ...snapshot, battle: { ...snapshot.battle!, stage: 'countdown' as const } };
+  socket().deliver({ ...view({ snapshot: counting }), battleCountdownMs: 3000 });
+  vi.advanceTimersByTime(1000);
+  socket().close();
+  vi.advanceTimersByTime(1000);
+  expect(table(client).reconnecting).toBe(true);
+  expect(client.getBattleCountdownSeconds()).toBe(2);
+});
+
 test('serializes quick private plan edits and waits for their acknowledgment before Ready', async () => {
   const client = await connected();
   const { plan, snapshot } = battleTable();
@@ -1809,14 +1865,23 @@ describe('pointer moves', () => {
     expect(client.ping()).toBe(true);
     await vi.advanceTimersByTimeAsync(400);
     client.ping();
+    await vi.advanceTimersByTimeAsync(400);
+    client.ping('fart');
 
     expect(socket().sent.filter((message) => message.type === 'ping')).toEqual([
       { type: 'ping', position: [1, 0.132, 1] },
       { type: 'ping', position: [1, 0.132, 1] },
+      { type: 'ping', position: [1, 0.132, 1], sound: 'fart' },
     ]);
-    expect(pings).toHaveBeenCalledTimes(2);
+    expect(pings).toHaveBeenCalledTimes(3);
+    expect(pings).toHaveBeenNthCalledWith(2, expect.not.objectContaining({ sound: expect.anything() }));
     expect(pings).toHaveBeenLastCalledWith(
-      expect.objectContaining({ connectionId: viewer.connectionId, color: viewer.color, position: [1, 0.132, 1] })
+      expect.objectContaining({
+        connectionId: viewer.connectionId,
+        color: viewer.color,
+        position: [1, 0.132, 1],
+        sound: 'fart',
+      })
     );
   });
 
@@ -1979,6 +2044,79 @@ describe('pointer moves', () => {
     vi.advanceTimersByTime(1600);
     pointerUpdate(3, { pointerMoves: [{ connectionId: 'other', position: [2, 0, 0], updatedAt: 2 }] });
     expect(table(client).phaseCooling).toBe(false);
+  });
+
+  test("the piece menu's controls keep their identity while another player's carry moves", async () => {
+    const client = await connected();
+    socket().deliver(
+      view({ sequence: 1, snapshot: { ...initialSnapshot(), bank: { factionId: 'harkonnen', balance: 20 } } })
+    );
+    const { source, carry } = otherCarry(client);
+    pointerUpdate(2, { carries: [carry] });
+    const before = table(client);
+    expect(
+      before.spiceReserveControls && before.deckControls && before.deleteControls && before.peekControls
+    ).toBeTruthy();
+
+    pointerUpdate(3, {
+      carryMoves: [{ id: 'other-carry', position: [2, 0.38, 2], orientation: 0, expiresAt: Date.now() + 8000 }],
+    });
+
+    const after = table(client);
+    expect(after).not.toBe(before);
+    for (const key of ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls'] as const) {
+      expect(after[key]).toBe(before[key]);
+    }
+    /* The reserve reads the table as it is when asked, so the kept control still knows the stack is in a hand. */
+    expect(after.spiceReserveControls!.canCollect(source.id)).toBe(false);
+    pointerUpdate(4, { removedCarries: ['other-carry'] });
+    expect(table(client).spiceReserveControls).toBe(before.spiceReserveControls);
+    expect(table(client).spiceReserveControls!.canCollect(source.id)).toBe(true);
+  });
+
+  test("this page's own carry tells the scene once a frame, and a drop tells it at once", async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    client.beginGesture('harkonnen-force-stack', 'whole');
+    const panelListener = vi.fn();
+    const sceneListener = vi.fn();
+    client.subscribe(panelListener);
+    client.subscribeTable(sceneListener);
+
+    client.updateGesture([0.2, 0.38, 0.2]);
+    client.updateGesture([0.4, 0.38, 0.4]);
+
+    /* The table follows every move at once; only the scene's notice waits for the frame. */
+    expect(table(client).state.draftMove?.position).toEqual([0.4, 0.38, 0.4]);
+    expect(sceneListener).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(16);
+    expect(sceneListener).toHaveBeenCalledTimes(1);
+
+    client.updateGesture([0.45, 0.38, 0.45]);
+    client.finishGesture(dropPosition);
+
+    expect(sceneListener).toHaveBeenCalledTimes(2);
+    expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', position: dropPosition });
+    vi.advanceTimersByTime(16);
+    expect(sceneListener).toHaveBeenCalledTimes(2);
+    expect(panelListener).toHaveBeenCalled();
+  });
+
+  test('a cancelled carry tells the scene at once, with the move still waiting for its frame', async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    client.beginGesture('harkonnen-force-stack', 'whole');
+    const sceneListener = vi.fn();
+    client.subscribeTable(sceneListener);
+
+    client.updateGesture([0.2, 0.38, 0.2]);
+    expect(sceneListener).not.toHaveBeenCalled();
+    client.cancelDraft();
+
+    expect(sceneListener).toHaveBeenCalledTimes(1);
+    expect(table(client).state.draftMove).toBeNull();
+    vi.advanceTimersByTime(16);
+    expect(sceneListener).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -2304,5 +2442,149 @@ describe('unanswered commands', () => {
     socket().deliver({ type: 'rejected', requestId: commands()[0]!.commandId, message: 'The table changed.' });
     client.moveStormBy(1);
     expect(commands()).toHaveLength(5);
+  });
+});
+
+describe('a plate another player carries', () => {
+  const plateItem = {
+    id: 'hms-item',
+    faceUp: true,
+    artwork: {
+      front: 'https://dune.zone/hms.jpg',
+      back: 'https://dune.zone/hms.jpg',
+      name: 'HMS',
+      type: 'token-pointer',
+    },
+  };
+  const withPlate = (): GameSnapshot => {
+    const snapshot = initialSnapshot();
+    const troop = snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
+    const at = (x: number): TablePiece['position'] => [x, 0.132, 1];
+    const pieces: TablePiece[] = [
+      {
+        ...troop,
+        id: 'hms',
+        items: [plateItem],
+        stackKey: 'token:hms',
+        position: at(0),
+        orientation: 0,
+        locked: false,
+      },
+      { ...troop, id: 'free', items: [{ id: 'free-item', faceUp: true }], position: at(-0.2), locked: false },
+      {
+        ...troop,
+        id: 'held-from',
+        items: [
+          { id: 'held-a', faceUp: true },
+          { id: 'held-b', faceUp: true },
+        ],
+        position: at(0.2),
+        locked: false,
+      },
+    ];
+    return { ...snapshot, table: { ...snapshot.table, pieces } };
+  };
+  const carry = (id: string, held: TablePiece, reservedIds: string[]) => ({
+    ...viewer,
+    connectionId: id,
+    id,
+    held,
+    withdrawnCounts: {},
+    reservedIds,
+    expiresAt: Date.now() + 8000,
+  });
+
+  test('takes its riders along on this page, but not a stack someone else is taking from', async () => {
+    const client = await connected();
+    const snapshot = withPlate();
+    const plate = snapshot.table.pieces.find((piece) => piece.id === 'hms')!;
+    const heldFrom = snapshot.table.pieces.find((piece) => piece.id === 'held-from')!;
+    socket().deliver(
+      view({
+        snapshot,
+        carries: [
+          carry('alice', { ...plate, position: [-2, 0.38, -1] }, ['hms']),
+          carry('bob', { ...heldFrom, id: 'bob-held', items: heldFrom.items.slice(0, 1) }, ['held-from']),
+        ],
+      })
+    );
+    expect(renderedPiece(client, 'free')?.position).toEqual(
+      [-2.2, 0.38 + 0.05, -1].map((value) => expect.closeTo(value))
+    );
+    expect(renderedPiece(client, 'held-from')?.position).toEqual(heldFrom.position);
+    expect([...table(client).plateRiders]).toEqual([['free', 'hms']]);
+  });
+
+  test('leaves behind a troop set down where the plate lay after it was picked up, as the room does', async () => {
+    const client = await connected();
+    const snapshot = withPlate();
+    const plate = snapshot.table.pieces.find((piece) => piece.id === 'hms')!;
+    const free = snapshot.table.pieces.find((piece) => piece.id === 'free')!;
+    /* The room says what rode the plate when it was picked up; a page that joins later learns it from the carry. */
+    const carried = [
+      { ...carry('alice', { ...plate, position: [-2, 0.38, -1] }, ['hms']), riderIds: ['free', 'held-from'] },
+    ];
+    const late: TablePiece = {
+      ...free,
+      id: 'late',
+      items: [{ id: 'late-item', faceUp: true }],
+      position: [-0.1, 0.132, 1],
+    };
+    const later = {
+      ...snapshot,
+      revision: snapshot.revision + 1,
+      table: { ...snapshot.table, pieces: [...snapshot.table.pieces, late] },
+    };
+    socket().deliver(view({ snapshot: later, carries: carried }));
+    expect(table(client).plateRiders.has('free')).toBe(true);
+    expect(table(client).plateRiders.has('late')).toBe(false);
+    const left = renderedPiece(client, 'late')!;
+    expect([left.position[0], left.position[2]]).toEqual([late.position[0], late.position[2]]);
+  });
+
+  test('holds a piece one carried plate picked up without, though another carried plate it rode covers it too', async () => {
+    const client = await connected();
+    const snapshot = withPlate();
+    const plate = snapshot.table.pieces.find((piece) => piece.id === 'hms')!;
+    const other: TablePiece = { ...plate, id: 'hms-2', items: [{ ...plateItem, id: 'hms-2-item' }] };
+    const both = { ...snapshot, table: { ...snapshot.table, pieces: [...snapshot.table.pieces, other] } };
+    socket().deliver(
+      view({
+        snapshot: both,
+        carries: [
+          { ...carry('alice', { ...plate, position: [-2, 0.38, -1] }, ['hms']), riderIds: [] },
+          { ...carry('bob', { ...other, position: [2, 0.38, -1] }, ['hms-2']), riderIds: ['free', 'held-from'] },
+        ],
+      })
+    );
+    expect(table(client).plateRiders.has('free')).toBe(false);
+    const left = renderedPiece(client, 'free')!;
+    const free = snapshot.table.pieces.find((piece) => piece.id === 'free')!;
+    expect([left.position[0], left.position[2]]).toEqual([free.position[0], free.position[2]]);
+  });
+
+  test('leaves the stack this page is taking from behind', async () => {
+    const client = await connected();
+    const snapshot = withPlate();
+    const plate = snapshot.table.pieces.find((piece) => piece.id === 'hms')!;
+    const heldFrom = snapshot.table.pieces.find((piece) => piece.id === 'held-from')!;
+    socket().deliver(view({ snapshot }));
+    client.beginGesture('held-from', 'top');
+    expect(table(client).state.draftMove?.sourcePieceId).toBe('held-from');
+    socket().deliver(view({ snapshot, carries: [carry('alice', { ...plate, position: [-2, 0.38, -1] }, ['hms'])] }));
+    const left = renderedPiece(client, 'held-from')!;
+    expect([left.position[0], left.position[2]]).toEqual([heldFrom.position[0], heldFrom.position[2]]);
+    expect([...table(client).plateRiders]).toEqual([['free', 'hms']]);
+  });
+
+  test("names the riders of a plate in this page's own hand too, so they keep up with it", async () => {
+    const client = await connected();
+    socket().deliver(view({ snapshot: withPlate() }));
+    expect(table(client).plateRiders.size).toBe(0);
+    client.beginGesture('hms', 'whole');
+    expect([...table(client).plateRiders]).toEqual([
+      ['free', 'hms'],
+      ['held-from', 'hms'],
+    ]);
   });
 });

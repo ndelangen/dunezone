@@ -47,6 +47,17 @@
 }
 
 /*
+ * An immersive header lays the name over the dark left of a window-filling band, left aligned and very large.
+ * It keeps the band's own heading face, so the name reads as the same masthead title grown up rather than a new voice.
+ */
+:global([data-page-layout-header-size="immersive"]) .title {
+  color: white;
+  font-size: clamp(2.75rem, 6.5vw, 4.75rem);
+  line-height: 1;
+  text-shadow: 0 4px 30px rgb(0 0 0 / 50%);
+}
+
+/*
  * The subtitle is framed between two thin gilt rules in widely spaced small caps, like a title card.
  * On a narrow band the rules shorten and the letters close up, and a long subtitle wraps between its rules.
  */

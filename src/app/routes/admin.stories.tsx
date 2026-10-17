@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { expectRefused, withoutAdmins } from './adminPages.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
@@ -14,9 +14,19 @@ export const Migrations = meta.story({
   args: { path: '/admin/migrations' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByRole('button', { name: 'Sync migration status' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
+    const sync = await page.findByRole('button', { name: 'Sync migration status' }, { timeout: 30_000 });
+    const [live, recorded] = page.getAllByRole('table').map((table) => within(table));
+    const headers = (table: typeof live) => table!.getAllByRole('columnheader').map((header) => header.textContent);
+    await expect(headers(live)).toEqual(['Migration', 'State', 'Done', 'Processed', 'Started', 'Ended', 'Error']);
+    await expect(headers(recorded)).toEqual(['Migration ID', 'State', 'Done', 'Processed', 'Updated', 'Error']);
+    /*
+     * The button holds disabled while the mutation is in flight, so seeing it disabled and then enabled again proves the sync ran and settled.
+     * The Storybook backend runs no migrations, so both tables stay empty and no row can show the result.
+     */
+    await userEvent.click(sync);
+    await waitFor(() => expect(sync).toBeDisabled());
+    await waitFor(() => expect(sync).toBeEnabled());
+    await expect(page.getAllByRole('table')).toHaveLength(2);
   },
 });
 
@@ -30,7 +40,7 @@ export const MigrationsSignedOut = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Sync migration status' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Sync migration status' })).toBeNull();
   },
 });
 

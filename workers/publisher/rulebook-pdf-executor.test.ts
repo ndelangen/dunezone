@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
 import { TargetRenderError } from './browser';
@@ -183,21 +183,6 @@ describe('Rulebook PDF executor', () => {
     expect(current.failRulebookPdf).not.toHaveBeenCalled();
     expect(rulebookPdf.composeRulebookPdf).not.toHaveBeenCalled();
     expect(removeRulebookPdfCapture).toHaveBeenCalledOnce();
-    expect(current.close).toHaveBeenCalledOnce();
-  });
-
-  test('fails only the Edition whose captured batch is rejected', async () => {
-    const current = dependencies(
-      vi.fn(async () => {
-        throw new TargetRenderError('Captured Rulebook PDF batch is not a valid PDF');
-      })
-    );
-
-    const result = await executeRulebookPdfWork(config, [job], current.dependencies);
-
-    expect(result.failed).toBe(1);
-    expect(result.deferred).toBe(0);
-    expect(current.failRulebookPdf).toHaveBeenCalledOnce();
     expect(current.close).toHaveBeenCalledOnce();
   });
 

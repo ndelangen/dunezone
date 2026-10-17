@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import type { PieceAction } from '../../src/shared/play/protocol';
@@ -20,6 +20,11 @@ import {
 } from './native-runtime.fixture.ts';
 
 /** A definition a real game deals: every face published, and the fighting troop face carries authored values. */
+/* Seat order is not under test, so the dealt faction ids are compared in name order. */
+function byFactionId(first: string | undefined, second: string | undefined) {
+  return (first ?? '').localeCompare(second ?? '');
+}
+
 function ready(id: string, name: string) {
   const base = definition(id, name);
   const troops = required(base.data).troops.map((troop) => ({
@@ -123,12 +128,12 @@ describe('Drafting and public assignment on a real game', () => {
     expect(required(dealt.snapshot.roster).seatCount).toBe(2);
     const factions = required(dealt.snapshot.roster)
       .seats.map((seat) => seat.faction?.id)
-      .sort();
+      .sort(byFactionId);
     expect(factions).toEqual(['fremen', 'harkonnen']);
     expect(
       required(dealt.snapshot.roster)
         .seats.map((seat) => seat.position)
-        .sort()
+        .sort((a, b) => a - b)
     ).toEqual([0, 1]);
     expect(
       required(dealt.snapshot.roster).seats.every((seat) => seat.faction?.color === assetPublishingFaction.themeColor)
@@ -159,7 +164,7 @@ describe('Drafting and public assignment on a real game', () => {
     expect(
       required(restored.snapshot.roster)
         .seats.map((seat) => seat.faction?.id)
-        .sort()
+        .sort(byFactionId)
     ).toEqual(['fremen', 'harkonnen']);
     expect(await runtime.exec("SELECT COUNT(*) AS count FROM captures WHERE kind='faction'")).toEqual([{ count: 2 }]);
   });
@@ -284,7 +289,7 @@ describe('Drafting and public assignment on a real game', () => {
     expect(
       required(required(await syncView(a)).snapshot.roster)
         .seats.map((seat) => seat.faction?.id)
-        .sort()
+        .sort(byFactionId)
     ).toEqual(['atreides', 'harkonnen']);
   });
 
@@ -345,6 +350,9 @@ describe('Drafting and public assignment on a real game', () => {
       'Fremen cannot be dealt yet: This faction is not available.'
     );
     await eventually(async () => !('fremen' in (await setAside(a))), 'fremen judged again');
+    const returned = await syncView(a);
+    expect(required(returned.snapshot.draft).ready).toEqual([]);
+    expect(required(returned.snapshot.draft).failure).toBeNull();
     await accepted(a, { kind: 'draft-ready', ready: true });
     await accepted(b, { kind: 'draft-ready', ready: true });
     await eventually(async () => (await stage(a)) === 'swapping', 'assignment once it can be captured');
@@ -352,20 +360,8 @@ describe('Drafting and public assignment on a real game', () => {
     expect(
       required(dealt.snapshot.roster)
         .seats.map((seat) => seat.faction?.id)
-        .sort()
+        .sort(byFactionId)
     ).toEqual(['fremen', 'harkonnen']);
-  });
-
-  it('drops the set-aside notice once a refresh brings the faction back, before anyone readies again', async () => {
-    const { a, b } = await fremenRefusedAtDeal();
-
-    /* The refused pick reads the stale catalogue again, which finds Fremen; nobody has readied since. */
-    peer.factions.set('fremen', definition('fremen', 'Fremen'));
-    await rejected(b, { kind: 'draft-pick', factionId: 'fremen' });
-    await eventually(async () => !('fremen' in (await setAside(a))), 'fremen back in the draft');
-    const returned = await syncView(a);
-    expect(required(returned.snapshot.draft).ready).toEqual([]);
-    expect(required(returned.snapshot.draft).failure).toBeNull();
   });
 
   /** Closes the fixture's isolated game and provisions a real one from the peer as `prepare` leaves it. */
@@ -453,7 +449,7 @@ describe('Drafting and public assignment on a real game', () => {
     expect(
       required(dealt.snapshot.roster)
         .seats.map((seat) => seat.faction?.id)
-        .sort()
+        .sort(byFactionId)
     ).toEqual(['fremen', 'harkonnen']);
     expect((await runtime.captures()).factions.every((capture) => capture.readiness.ready)).toBe(true);
   });
@@ -587,7 +583,7 @@ describe('Drafting and public assignment on a real game', () => {
     expect(
       required(dealt.snapshot.roster)
         .seats.map((seat) => seat.faction?.id)
-        .sort()
+        .sort(byFactionId)
     ).toEqual(['emperor', 'harkonnen']);
   });
 

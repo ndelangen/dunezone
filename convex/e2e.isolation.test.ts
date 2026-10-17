@@ -1,13 +1,10 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 beforeEach(() => {
   vi.stubEnv('IS_TEST', 'true');
@@ -28,7 +25,7 @@ describe('E2E environment isolation', () => {
     ['SITE_URL', 'https://dune.zone'],
   ])('refuses every helper when %s is not isolated', async (key, value) => {
     vi.stubEnv(key, value);
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const counter = await t.run((ctx) => ctx.db.insert('counters', { key: 'security-sentinel', value: 1 }));
     await expect(t.query(api.e2e.status, {})).rejects.toThrow('isolated loopback');
     await expect(t.mutation(api.e2e.clearAll, {})).rejects.toThrow('isolated loopback');
@@ -46,7 +43,7 @@ describe('E2E environment isolation', () => {
   });
 
   test('allows a disposable local backend to reset its fixtures', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const counter = await t.run((ctx) => ctx.db.insert('counters', { key: 'security-sentinel', value: 1 }));
     expect(await t.query(api.e2e.status, {})).toMatchObject({ isTest: true });
     expect(await t.mutation(api.e2e.clearAll, {})).toEqual({ ok: true });

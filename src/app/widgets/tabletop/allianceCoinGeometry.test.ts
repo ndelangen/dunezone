@@ -1,5 +1,5 @@
 import { BOARD_RIM_SURFACE_Y, TABLE_SURFACE_Y } from '@shared/play/tableGeometry';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { ALLIANCE_TOKEN_RADIUS, COIN_BAND, coinRadius, coinTop } from './allianceCoinGeometry';
 

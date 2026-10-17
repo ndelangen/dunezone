@@ -216,6 +216,16 @@ export const rulesetPublicDetailPageValidator = v.union(
     faqItems: v.array(faqListItemValidator),
     owner: v.union(profileSummaryValidator, v.null()),
     assetSlots: v.array(rulesetAssetSlotValidator),
+    board: v.union(
+      v.object({
+        id: v.id('assets'),
+        type: v.string(),
+        slug: v.string(),
+        name: v.string(),
+        previewHref: v.union(v.string(), v.null()),
+      }),
+      v.null()
+    ),
     rulebooks: v.array(rulebookListEntryValidator),
   }),
   v.null()

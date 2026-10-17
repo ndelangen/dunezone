@@ -1,10 +1,15 @@
 import preview from '@sb/preview';
+import { POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
+import { restingPositionAt } from '@shared/play/tableGeometry';
+import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
 import { sandbox, sandboxDecorator, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
+import { COLUMNS_MIN_WIDTH_REM, setTableLayout } from './tableLayout';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -30,7 +35,7 @@ const meta = preview.meta({
   beforeEach: ({ args }) =>
     install(() => sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1') }))(),
   decorators: [...gameMeta.decorators, sandboxDecorator],
-  /* The stories load the table chunk before they render, as Play/Playing explains. */
+  /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
       await import('./multiplayer/HostedTable');
@@ -69,9 +74,9 @@ export const Sandbox = meta.story({
       expectedRevision: room.snapshot.revision,
       action: { kind: 'deck-draw', pieceId: deck.id, recipient: faction },
     });
-    expect(table.refusal).toBeUndefined();
-    expect(shown().hand).toHaveLength(handSize + 1);
-    expect(piece((candidate) => candidate.stackKey === 'deck:treachery-deck').items).toHaveLength(
+    await expect(table.refusal).toBeUndefined();
+    await expect(shown().hand).toHaveLength(handSize + 1);
+    await expect(piece((candidate) => candidate.stackKey === 'deck:treachery-deck').items).toHaveLength(
       deck.items.length - 1
     );
 
@@ -95,11 +100,11 @@ export const Sandbox = meta.story({
       position: target,
       orientation: 0,
     });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
     const moved = shown().table.pieces.find((candidate) => candidate.id === troop.id)!;
-    expect(moved.position).not.toEqual(troop.position);
-    expect(shown().versions[troop.id]).toBeGreaterThan(versionBefore);
-    expect(room.carries.size).toBe(0);
+    await expect(moved.position).not.toEqual(troop.position);
+    await expect(shown().versions[troop.id]).toBeGreaterThan(versionBefore);
+    await expect(room.carries.size).toBe(0);
 
     /* The page's own Next phase reaches the room, which moves from Bidding to Revival. */
     const { controls, waitForPhase } = phaseControls(canvasElement);
@@ -112,8 +117,8 @@ export const Sandbox = meta.story({
     /* Restart puts the table back at Bidding. */
     await userEvent.click(page.getByRole('button', { name: 'Restart' }));
     await waitForPhase(() => expectHeaderPhase(canvasElement, 3));
-    expect(sandbox.table).not.toBe(table);
-    expect(shown().hand ?? []).toHaveLength(handSize);
+    await expect(sandbox.table).not.toBe(table);
+    await expect(shown().hand ?? []).toHaveLength(handSize);
   },
 });
 
@@ -134,16 +139,16 @@ export const PeekAtTheDeck = meta.story({
       expectedRevision: table.room.snapshot.revision,
       action: { kind: 'peek', pieceId: deck.id },
     });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
     const view = await page.findByRole('dialog', { name: /^Peeking at / }, { timeout: 30_000 });
-    expect(within(view).getAllByRole('button', { name: 'Pull out' })).toHaveLength(deck.items.length);
+    await expect(within(view).getAllByRole('button', { name: 'Pull out' })).toHaveLength(deck.items.length);
 
     const other = journeyViewers().find((seat) => seat !== table.seat)!;
     const seen = table.frame(other).snapshot;
-    expect(seen.peek ?? null).toBeNull();
+    await expect(seen.peek ?? null).toBeNull();
     const otherDeck = seen.table.pieces.find((candidate) => candidate.id === deck.id)!;
-    expect(otherDeck.items.every((item) => !item.artwork || !('front' in item.artwork))).toBe(true);
-    expect(otherDeck.items.every((item) => item.peekedBy?.includes(faction))).toBe(true);
+    await expect(otherDeck.items.every((item) => !item.artwork || !('front' in item.artwork))).toBe(true);
+    await expect(otherDeck.items.every((item) => item.peekedBy?.includes(faction))).toBe(true);
   },
 });
 
@@ -165,9 +170,9 @@ export const PeekAtACard = meta.story({
     command('sandbox-close', { kind: 'peek-close' });
     const pulled = shown().table.pieces.find((candidate) => candidate.id.startsWith('pulled-'))!;
     command('sandbox-peek-card', { kind: 'peek', pieceId: pulled.id });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
     const view = await page.findByRole('dialog', { name: /^Peeking at / }, { timeout: 30_000 });
-    expect(within(view).queryByRole('button', { name: 'Pull out' })).toBeNull();
+    await expect(within(view).queryByRole('button', { name: 'Pull out' })).toBeNull();
   },
 });
 
@@ -189,15 +194,15 @@ export const DeleteACard = meta.story({
     const before = new Set(shown().table.pieces.map((candidate) => candidate.id));
     command('sandbox-split', { kind: 'split', pieceId: deck.id, count: 1 });
     const card = shown().table.pieces.find((candidate) => !before.has(candidate.id))!;
-    expect(card.kind).toBe('card');
+    await expect(card.kind).toBe('card');
     command('sandbox-flip', { kind: 'flip', pieceId: card.id });
     command('sandbox-delete', { kind: 'delete', pieceId: card.id });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
     const other = journeyViewers().find((seat) => seat !== table.seat)!;
     for (const seat of [table.seat, other]) {
-      expect(table.frame(seat).snapshot.table.pieces.some((candidate) => candidate.id === card.id)).toBe(false);
+      await expect(table.frame(seat).snapshot.table.pieces.some((candidate) => candidate.id === card.id)).toBe(false);
     }
-    expect(shown().table.events[0]?.message).toMatch(/deleted .* card from the game\.$/);
+    await expect(shown().table.events[0]?.message).toMatch(/deleted .* card from the game\.$/);
   },
 });
 
@@ -223,9 +228,9 @@ export const FlipWhileCarrying = meta.story({
     });
     table.receive({ type: 'pose', carryId: 'sandbox-flip', seq: 1, position, orientation: 0 });
     table.receive({ type: 'flip', carryId: 'sandbox-flip', flips: 1 });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
     const held = table.frame(other).carries[0]!.held;
-    expect(held.items[0]).toMatchObject({ faceUp: true, artwork: { front: expect.any(String) } });
+    await expect(held.items[0]).toMatchObject({ faceUp: true, artwork: { front: expect.any(String) } });
 
     table.receive({
       type: 'drop',
@@ -235,12 +240,12 @@ export const FlipWhileCarrying = meta.story({
       orientation: 0,
       flips: 1,
     });
-    expect(table.refusal).toBeUndefined();
+    await expect(table.refusal).toBeUndefined();
     const landed = table
       .frame(other)
       .snapshot.table.pieces.find((candidate) => candidate.items[0]?.id === held.items[0]!.id)!;
-    expect(landed.items[0]?.faceUp).toBe(true);
-    expect(
+    await expect(landed.items[0]?.faceUp).toBe(true);
+    await expect(
       shown()
         .table.events.slice(0, 2)
         .map((event) => event.command)
@@ -272,10 +277,10 @@ export const HiddenZone = meta.story({
     stored.items[0]!.artwork = { ...stored.items[0]!.artwork!, size: 0.35 };
     command('sandbox-zone-card', { kind: 'hand-zone', pieceId: card.id, at: { x: 0.3, y: 0.5 } });
     command('sandbox-zone-leader', { kind: 'hand-zone', pieceId: leader.id, at: { x: 0.316, y: 0.36 } });
-    expect(table.refusal).toBeUndefined();
-    expect(shown().hand!.filter((candidate) => candidate.hiddenZone)).toHaveLength(2);
+    await expect(table.refusal).toBeUndefined();
+    await expect(shown().hand!.filter((candidate) => candidate.hiddenZone)).toHaveLength(2);
     const other = journeyViewers().find((seat) => seat !== table.seat)!;
-    expect(JSON.stringify(table.frame(other).snapshot)).not.toContain('hiddenZone');
+    await expect(JSON.stringify(table.frame(other).snapshot)).not.toContain('hiddenZone');
     await openTab(page, 'Hidden zone');
     await expect(page.findAllByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 })).resolves.toHaveLength(
       2
@@ -284,4 +289,180 @@ export const HiddenZone = meta.story({
 });
 
 /** The battle beacon at the Battle phase: pick the acrylic disc up over the tracker's Battle disc and drop it on a territory; it lies flat and fades as the battle shows. */
-export const BattleBeacon = meta.story({ args: { step: chapter('Battle') } });
+export const BattleBeacon = meta.story({
+  args: { step: chapter('Battle') },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('button', { name: 'Drag battle marker onto territory' }, { timeout: 30_000 })
+    ).resolves.toBeInTheDocument();
+  },
+});
+
+/** An HMS plate for seat 1's faction, set down on the board where nothing stands. */
+function withHms(stored: StoredSnapshot): StoredSnapshot {
+  const seat = stored.roster!.seats.find((entry) => entry.id === 'seat-1')!;
+  /* The faction's own token art stands in for a pointer token's face. */
+  const art = stored.table.pieces.find((candidate) => candidate.stackKey === `faction-token:${seat.faction!.id}`)!
+    .items[0]!.artwork!;
+  const plate: StoredSnapshot['table']['pieces'][number] = {
+    id: 'sandbox-hms',
+    label: 'HMS',
+    owner: seat.faction!.id,
+    color: seat.faction!.color,
+    accent: '#ead9bb',
+    items: [
+      {
+        id: 'sandbox-hms-plate',
+        faceUp: true,
+        artwork: { front: art.front, back: art.back, name: 'HMS', type: POINTER_TOKEN_TYPE },
+      },
+    ],
+    stackKey: 'token:sandbox-hms',
+    position: [0, 0, 0],
+    orientation: 0.5,
+    zoneId: null,
+    locked: false,
+    kind: 'force',
+  };
+  const spot = nearestCollisionFreePosition(plate, [0.6, 0, 1.6], stored.table.pieces)!;
+  plate.position = restingPositionAt(spot, plate);
+  return {
+    ...stored,
+    table: { ...stored.table, pieces: [...stored.table.pieces, plate] },
+    versions: { ...stored.versions, [plate.id]: stored.revision },
+  };
+}
+
+/** Seat 1 sets two of its troop stacks on the HMS; answers the stacks and the plate as the page sees them. */
+async function boardHms(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
+  const table = sandbox.table!;
+  const faction = shown().bank!.factionId;
+  const plate = () => piece((candidate) => candidate.stackKey === 'token:sandbox-hms');
+  const carry = async (id: string, pieceId: string, position: [number, number, number], orientation = 0) => {
+    table.receive({
+      type: 'begin',
+      carryId: id,
+      sourcePieceId: pieceId,
+      expectedVersion: shown().versions[pieceId]!,
+      pickup: 'whole',
+    });
+    table.receive({ type: 'drop', commandId: `${id}-drop`, carryId: id, position, orientation });
+    await expect(table.refusal).toBeUndefined();
+  };
+  const stacks = shown()
+    .table.pieces.filter(
+      (candidate) =>
+        !candidate.inventory && candidate.kind === 'force' && !!candidate.stackKey?.startsWith(`troops:${faction}:`)
+    )
+    .slice(0, 2);
+  const [x, , z] = plate().position;
+  await carry('hms-first', stacks[0]!.id, [x - 0.2, 0.4, z + 0.1]);
+  await carry('hms-second', stacks[1]!.id, [x + 0.2, 0.4, z - 0.1]);
+  const riding = () => shown().table.pieces.filter((candidate) => stacks.some((stack) => stack.id === candidate.id));
+  return { plate, carry, riding };
+}
+
+const hmsSandbox = {
+  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+    install(() =>
+      sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1'), prepare: withHms })
+    )(),
+};
+
+/**
+ * Seat 1 moves the HMS across the board with two troop stacks on it: both ride along, each keeping its place on the plate.
+ * By hand: drag the plate and both stacks ride along;
+ * drag a stack off and it stays behind;
+ * Q or E turns the plate with its troops.
+ */
+export const HmsCarriesItsTroops = meta.story({
+  ...hmsSandbox,
+  play: async ({ canvasElement }) => {
+    const { plate, carry, riding } = await boardHms(canvasElement);
+    const [x, , z] = plate().position;
+    const before = riding().map((stack) => [stack.position[0] - x, stack.position[2] - z]);
+    await carry('hms-plate', plate().id, [x - 1.6, 0.4, z - 1.2], plate().orientation);
+    const [nextX, , nextZ] = plate().position;
+    for (const [index, stack] of riding().entries()) {
+      await expect(stack.position[0] - nextX).toBeCloseTo(before[index]![0]!);
+      await expect(stack.position[2] - nextZ).toBeCloseTo(before[index]![1]!);
+    }
+  },
+});
+
+/**
+ * The table between the controls and the players, the layout a viewer picks in the game menu;
+ * the separators either side of the table resize the columns.
+ * A window too narrow for the columns keeps the board on top.
+ * Switching back and forth keeps the table's renderer and a half-typed message: the layouts move the same content, they never mount it afresh.
+ */
+export const ThreeColumns = meta.story({
+  beforeEach: () => {
+    setTableLayout('columns');
+    return () => setTableLayout('stacked');
+  },
+  play: async ({ canvasElement }) => {
+    const body = canvasElement.ownerDocument.body;
+    const page = within(body);
+    await expect(
+      page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    const shell = () => body.querySelector<HTMLElement>('.dune-play-shell')!;
+    await waitFor(() => expect(body.querySelector('.dune-play-stage[data-scene-ready="true"] canvas')).not.toBeNull(), {
+      timeout: 30_000,
+    });
+    const fits = window.matchMedia(`(min-width: ${COLUMNS_MIN_WIDTH_REM}rem)`).matches;
+    await expect(shell().dataset.tableLayout).toBe(fits ? 'columns' : 'stacked');
+    if (fits) {
+      await expect(page.getByRole('separator', { name: 'Resize controls column' })).toBeVisible();
+      await expect(page.getByRole('separator', { name: 'Resize players column' })).toBeVisible();
+      /* The header's chips float over the table's column only, between the two separators, and the side columns run to the top. */
+      const header = body.querySelector<HTMLElement>('.seated-header')!.getBoundingClientRect();
+      const controlsEdge = page.getByRole('separator', { name: 'Resize controls column' }).getBoundingClientRect();
+      const playersEdge = page.getByRole('separator', { name: 'Resize players column' }).getBoundingClientRect();
+      await expect(header.left).toBeGreaterThanOrEqual(controlsEdge.right);
+      await expect(header.right).toBeLessThanOrEqual(playersEdge.left);
+    }
+    const canvas = body.querySelector('canvas');
+    const message = (await page.findByPlaceholderText('Message')) as HTMLTextAreaElement;
+    await userEvent.type(message, 'half typed');
+
+    for (const [choice, layout] of [
+      ['Board on top', 'stacked'],
+      ['Three columns', fits ? 'columns' : 'stacked'],
+    ] as const) {
+      await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
+      await userEvent.click(await page.findByRole('menuitemradio', { name: choice }));
+      await userEvent.keyboard('{Escape}');
+      await waitFor(() => expect(shell().dataset.tableLayout).toBe(layout));
+      await expect(body.querySelector('canvas')).toBe(canvas);
+      await expect(page.getByPlaceholderText('Message')).toHaveValue('half typed');
+    }
+
+    /* A layout change while typing, as when the window crosses the columns' width, moves the composer without blurring or refocusing it. */
+    message.focus();
+    message.setSelectionRange(2, 6, 'backward');
+    const focusChanges: string[] = [];
+    const count = (event: FocusEvent) => focusChanges.push(event.type);
+    message.addEventListener('focus', count);
+    message.addEventListener('blur', count);
+    setTableLayout('stacked');
+    await waitFor(() => expect(shell().dataset.tableLayout).toBe('stacked'));
+    await expect(body.ownerDocument.activeElement).toBe(message);
+    await expect([message.selectionStart, message.selectionEnd, message.selectionDirection]).toEqual([
+      2,
+      6,
+      'backward',
+    ]);
+    await expect(focusChanges).toEqual([]);
+    message.removeEventListener('focus', count);
+    message.removeEventListener('blur', count);
+    /* The story rests in the layout it is named for. */
+    setTableLayout('columns');
+    await waitFor(() => expect(shell().dataset.tableLayout).toBe(fits ? 'columns' : 'stacked'));
+  },
+});

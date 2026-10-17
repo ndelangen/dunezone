@@ -4,7 +4,15 @@ import { PLAY_PROFILE_SLUG_MAX_LENGTH } from './admission';
 import { seatRequestSchema } from './participation';
 import { storedPieceSchema, tableCountSchema, tableIdSchema, tablePieceSchema, tableSeatSchema } from './schema';
 
-export const SPAWN_TYPES = ['deck', 'bundle', 'token-disc', 'token-tech', 'token-plate', 'token-enhance'] as const;
+export const SPAWN_TYPES = [
+  'deck',
+  'bundle',
+  'token-disc',
+  'token-tech',
+  'token-plate',
+  'token-pointer',
+  'token-enhance',
+] as const;
 export const spawnSelectionSchema = z.object({ type: z.enum(SPAWN_TYPES), slug: z.string().min(1).max(160) });
 export const spawnContentsSchema = z.object({
   assetId: tableIdSchema,

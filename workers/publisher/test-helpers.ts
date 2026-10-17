@@ -1,12 +1,23 @@
 import type { MediaCache, MediaServing } from './media-response';
 
+/** The URL a stubbed `fetch` was asked for, which a `Request` carries in `url` rather than in its string form. */
+export function requestUrl(input: RequestInfo | URL): string {
+  return input instanceof Request ? input.url : input.toString();
+}
+
+/*
+ * The fields of an R2 object as a plain object type.
+ * Workers types declare `R2Object` as a class, so spreading one reads as losing a prototype, while these fakes are object literals whose fields all spread.
+ */
+export type FakeR2Object = { [K in keyof R2Object]: R2Object[K] };
+
 export function fakeR2Object(options: {
   key?: string;
   etag: string;
   size: number;
   uploaded: Date;
   customMetadata?: Record<string, string>;
-}): R2Object {
+}): FakeR2Object {
   return {
     key: options.key ?? 'factions/faction/sheet.pdf',
     version: 'version',
@@ -23,7 +34,7 @@ export function fakeR2Object(options: {
 
 export type StoredR2Entry = { bytes: Uint8Array; options: R2PutOptions };
 
-function storedR2Object(key: string, entry: StoredR2Entry): R2Object {
+function storedR2Object(key: string, entry: StoredR2Entry): FakeR2Object {
   const base = fakeR2Object({
     key,
     etag: `etag-${key.slice(-12)}`,
@@ -33,7 +44,6 @@ function storedR2Object(key: string, entry: StoredR2Entry): R2Object {
   });
   return {
     ...base,
-    writeHttpMetadata: base.writeHttpMetadata,
     httpMetadata: entry.options.httpMetadata as R2HTTPMetadata,
   };
 }

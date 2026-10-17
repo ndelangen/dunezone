@@ -9,7 +9,12 @@ test.use({ storageState: '.playwright/user-a-avatar-menu.json' });
  * This is the one navigation state Storybook cannot reach, since its Convex mocks are signed-out by design, so the contract lives here.
  */
 test('the avatar menu offers the profile routes and signs out', async ({ page }) => {
-  await page.goto('/');
+  /*
+   * Any page with the chrome carries the account slot; this one is light on purpose. The homepage's live 3D table
+   * starved a CI runner's frames so badly that the menu's opening transition stalled half-faded and the menu never
+   * counted as shown (run 38782779915).
+   */
+  await page.goto('/privacy');
   const nav = page.getByRole('navigation', { name: 'Primary navigation' });
   /* The avatar is labelled with the username, while the routes it offers are keyed by the slug. */
   const avatar = nav.getByRole('button', { name: userA.username });

@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { affordancesFor, freshTableState } from './model';
 import type { TablePiece, TableState } from './model';
@@ -16,72 +16,60 @@ function itemIds(state: TableState): string[] {
   return state.pieces.flatMap((piece) => piece.items.map((item) => item.id)).sort();
 }
 
-const flippablePieceIds = ['treachery-card-loose', 'treachery-deck', 'harkonnen-force-loose', 'harkonnen-force-stack'];
-
 describe('flipping cards and tokens', () => {
-  test('starts every piece with no recorded flips', () => {
-    expect(freshTableState().pieces.every((piece) => piece.flipRevision === 0)).toBe(true);
+  test.each(['treachery-card-loose'])('turns singleton %s over without moving it', (pieceId) => {
+    const state = freshTableState();
+    const original = pieceFor(state, pieceId);
+    const next = flipPieceInState(state, pieceId);
+    const flipped = pieceFor(next, pieceId);
+
+    expect(flipped.items).toEqual([{ ...original.items[0], faceUp: false }]);
+    expect(flipped).toEqual({
+      ...original,
+      items: flipped.items,
+      flipRevision: 1,
+    });
+    expect(original.items[0]?.faceUp).toBe(true);
+    expect(next.selectedPieceId).toBe(pieceId);
+    expect(next.events[0]).toEqual({
+      id: 'evt-002',
+      command: 'piece.flip',
+      message: `${original.label} flipped face down.`,
+      status: 'accepted',
+    });
+    expect(next.nextEventNumber).toBe(3);
+    expect(itemIds(next)).toEqual(itemIds(state));
+    for (const piece of state.pieces) {
+      if (piece.id !== pieceId) {
+        expect(pieceFor(next, piece.id)).toBe(piece);
+      }
+    }
   });
 
-  test.each(['treachery-card-loose', 'harkonnen-force-loose'])(
-    'turns singleton %s over without moving it',
-    (pieceId) => {
-      const state = freshTableState();
-      const original = pieceFor(state, pieceId);
-      const next = flipPieceInState(state, pieceId);
-      const flipped = pieceFor(next, pieceId);
+  test.each(['treachery-deck'])('flips every face and reverses physical bottom-to-top order for %s', (pieceId) => {
+    const state = freshTableState();
+    const original = pieceFor(state, pieceId);
+    original.items = original.items.map((item, index) => ({
+      ...item,
+      faceUp: index % 2 === 1,
+    }));
+    const originalItems = original.items.map((item) => ({ ...item }));
 
-      expect(flipped.items).toEqual([{ ...original.items[0], faceUp: false }]);
-      expect(flipped).toEqual({
-        ...original,
-        items: flipped.items,
-        flipRevision: 1,
-      });
-      expect(original.items[0]?.faceUp).toBe(true);
-      expect(next.selectedPieceId).toBe(pieceId);
-      expect(next.events[0]).toEqual({
-        id: 'evt-002',
-        command: 'piece.flip',
-        message: `${original.label} flipped face down.`,
-        status: 'accepted',
-      });
-      expect(next.nextEventNumber).toBe(3);
-      expect(itemIds(next)).toEqual(itemIds(state));
-      for (const piece of state.pieces) {
-        if (piece.id !== pieceId) {
-          expect(pieceFor(next, piece.id)).toBe(piece);
-        }
-      }
+    const next = flipPieceInState(state, pieceId);
+    const flipped = pieceFor(next, pieceId);
+
+    expect(flipped.items.map((item) => item.id)).toEqual(originalItems.map((item) => item.id).reverse());
+    for (const item of flipped.items) {
+      expect(item.faceUp).toBe(!originalItems.find((originalItem) => originalItem.id === item.id)?.faceUp);
     }
-  );
+    expect(flipped.items.at(-1)?.id).toBe(originalItems[0]?.id);
+    expect(original.items).toEqual(originalItems);
+    expect(flipped.flipRevision).toBe(1);
+    expect(itemIds(next)).toEqual(itemIds(state));
+    expect(next.events[0]?.message).toBe(`${original.label} flipped face up.`);
+  });
 
-  test.each(['treachery-deck', 'harkonnen-force-stack'])(
-    'flips every face and reverses physical bottom-to-top order for %s',
-    (pieceId) => {
-      const state = freshTableState();
-      const original = pieceFor(state, pieceId);
-      original.items = original.items.map((item, index) => ({
-        ...item,
-        faceUp: index % 2 === 1,
-      }));
-      const originalItems = original.items.map((item) => ({ ...item }));
-
-      const next = flipPieceInState(state, pieceId);
-      const flipped = pieceFor(next, pieceId);
-
-      expect(flipped.items.map((item) => item.id)).toEqual(originalItems.map((item) => item.id).reverse());
-      for (const item of flipped.items) {
-        expect(item.faceUp).toBe(!originalItems.find((originalItem) => originalItem.id === item.id)?.faceUp);
-      }
-      expect(flipped.items.at(-1)?.id).toBe(originalItems[0]?.id);
-      expect(original.items).toEqual(originalItems);
-      expect(flipped.flipRevision).toBe(1);
-      expect(itemIds(next)).toEqual(itemIds(state));
-      expect(next.events[0]?.message).toBe(`${original.label} flipped face up.`);
-    }
-  );
-
-  test.each(flippablePieceIds)(
+  test.each(['treachery-deck'])(
     'two flips restore the order and faces of %s while keeping both revisions',
     (pieceId) => {
       const state = freshTableState();
@@ -121,7 +109,7 @@ describe('flipping cards and tokens', () => {
     expect(flipPieceInState(state, 'missing-piece')).toBe(state);
   });
 
-  test.each(['card', 'force', 'marker'] as const)('ignores an empty %s piece', (kind) => {
+  test.each(['card'] as const)('ignores an empty %s piece', (kind) => {
     const state = freshTableState();
     const piece = pieceFor(state, 'treachery-deck');
     piece.kind = kind;
@@ -226,6 +214,12 @@ describe('flip affordances', () => {
       }
 
       expect(affordancesFor(state).some((affordance) => affordance.commandType === 'piece.flip')).toBe(false);
+      if (constraint === 'locked') {
+        /* A locked piece offers nothing but its unlock. */
+        expect(affordancesFor(state).map(({ commandType, label }) => ({ commandType, label }))).toEqual([
+          { commandType: 'piece.lock', label: 'Unlock piece' },
+        ]);
+      }
     }
   );
 });

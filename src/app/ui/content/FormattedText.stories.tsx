@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { parseFormattedText } from '@shared/formattedText';
+import { expect, within } from 'storybook/test';
 
 import { FormattedText, FormattedTextSource, InlineFormattedTextSource } from './FormattedText';
 import type { FormattedTextBlocks } from './FormattedText';
@@ -13,7 +14,7 @@ function validBlocks(source: string): FormattedTextBlocks {
 }
 
 const mixedBlocks = validBlocks(
-  'Plans survive *first contact* until the Guild calls.\nAdjust without losing the _-*intent*-_.\n\n- Gather the spice\n- Guard the shipment\n- Pay the Guild'
+  'Plans survive *first contact* until the Guild calls.\nAdjust without losing the _-*intent*-_.\n\nA blank line starts a new thought.\n\n- Gather the spice\n- Guard the shipment\n- Pay the Guild'
 );
 
 const meta = preview.meta({
@@ -40,35 +41,21 @@ export const Dark = meta.story({
   },
 });
 
-export const ParagraphsAndLineBreaks = meta.story({
-  args: {
-    blocks: validBlocks(
-      'Plans survive first contact.\nAdjust without losing the intent.\n\nA blank line starts a new thought.'
-    ),
-  },
-});
-
-export const List = meta.story({
-  args: {
-    blocks: validBlocks('- Gather the spice\n- Guard the shipment\n- Pay the Guild'),
-  },
-});
-
 export const NestedMarks = meta.story({
   args: {
     blocks: validBlocks('Every _-*layer*-_ stays legible, including *bold*, -italic-, and _underlined_ words.'),
   },
 });
 
-export const Empty = meta.story({
-  args: {
-    blocks: [],
-  },
-});
-
 export const StoredSource = meta.story({
   args: { blocks: [] },
   render: () => <FormattedTextSource source={'A *formatted* paragraph.\n\n- First point\n- Second point'} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('formatted').tagName).toBe('STRONG');
+    const items = within(canvas.getByRole('list')).getAllByRole('listitem');
+    await expect(items.map((item) => item.textContent)).toEqual(['First point', 'Second point']);
+  },
 });
 
 export const InlineSource = meta.story({

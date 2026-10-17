@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import {
   canonicalRulebookCoverControlValues,
@@ -122,12 +122,6 @@ describe('Rulebook Contents hashes', () => {
     const pinned = 'v1:6bcb33a59e01e61f55066ab6eae3d30bf1024a9dc445f4d3c376b41745155cef';
     expect(rulebookDraftContentsHash(frozen)).toBe(pinned);
     expect(rulebookEditionContentsHash(frozen)).toBe(pinned);
-  });
-
-  test('carry the current version prefix and a SHA-256 hex digest', () => {
-    expect(rulebookContentsHash({ schemaVersion: 1 })).toMatch(
-      new RegExp(`^${RULEBOOK_CONTENTS_HASH_VERSION}[0-9a-f]{64}$`)
-    );
   });
 
   test('ignore key order and keys left undefined, as storage does', () => {

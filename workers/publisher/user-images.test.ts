@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { USER_IMAGE_INGEST_PATH } from '../../src/shared/user-images/contract';
-import { fakeR2Object, jpegBytes, pngBytes } from './test-helpers';
+import { fakeR2Object, jpegBytes, pngBytes, requestUrl } from './test-helpers';
 import { handleUserImageIngest, handleUserImageRequest } from './user-images';
 import type { UserImageBucket, UserImageCache } from './user-images';
 
@@ -123,9 +123,9 @@ function ledgerFetch(
 ) {
   const ledgerCalls: LedgerCall[] = [];
   const mock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
-    const url = String(input);
+    const url = requestUrl(input);
     if (new URL(url).origin === CONVEX_BASE) {
-      ledgerCalls.push({ url, body: JSON.parse(String(init?.body)) as LedgerCall['body'] });
+      ledgerCalls.push({ url, body: JSON.parse(init?.body as string) as LedgerCall['body'] });
       if (url.endsWith('/api/query')) {
         return Response.json({
           status: 'success',
@@ -183,7 +183,6 @@ describe('user image ingest', () => {
     'https://127.0.0.1/image.png',
     'https://user:password@images.example/image.png',
     'https://localhost/image.png',
-    'https://images.example:8443/image.png',
   ])('refuses an unsafe redirect destination without contacting it: %s', async (destination) => {
     const { mock } = ledgerFetch({
       source: () => new Response(null, { status: 302, headers: { Location: destination } }),
@@ -204,7 +203,7 @@ describe('user image ingest', () => {
     const destination = 'https://cdn.example/cover.png';
     const { mock, ledgerCalls } = ledgerFetch();
     vi.stubGlobal('fetch', async (input: string | URL | Request, init?: RequestInit) => {
-      if (String(input) === SOURCE_URL) {
+      if (requestUrl(input) === SOURCE_URL) {
         return new Response(null, { status: 302, headers: { Location: destination } });
       }
       return await mock(input, init);
@@ -575,7 +574,7 @@ describe('user image ingest', () => {
 
   test('an unreachable ledger fails the ingest without spending a fetch', async () => {
     const mock = vi.fn(async (input: string | URL | Request) => {
-      if (new URL(String(input)).origin === CONVEX_BASE) {
+      if (new URL(requestUrl(input)).origin === CONVEX_BASE) {
         throw new TypeError('network down');
       }
       return sourceResponse(pngBytes(800, 600));

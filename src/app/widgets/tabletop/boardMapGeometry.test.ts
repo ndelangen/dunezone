@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 import { boardMapGeometry } from './boardMapGeometry';
 
@@ -56,5 +56,14 @@ describe('boardMapGeometry', () => {
     const colors = geometry.getAttribute('color');
     const alphas = new Set(Array.from({ length: colors.count }, (_, index) => colors.getW(index).toFixed(2)));
     expect(alphas).toContain('0.30');
+  });
+
+  it('draws only the Polar Sink, near the centre, when asked for its group', () => {
+    const polar = boardMapGeometry(svg, 4.25, 'polar').getAttribute('position');
+    expect(polar.count).toBeGreaterThan(0);
+    expect(polar.count).toBeLessThan(positions.count / 10);
+    for (let index = 0; index < polar.count; index++) {
+      expect(Math.hypot(polar.getX(index), polar.getZ(index))).toBeLessThan(1.2);
+    }
   });
 });

@@ -13,11 +13,7 @@ import { TtsColorsEditor } from './TtsColorsEditor';
 
 const logoSelectOptions = stockAssetOptions(logoOptions);
 
-/**
- * The control that renders in the name's place, supplied by the route.
- * A name field that checks its address is free has to fetch, and a widget never does, so the route hands one down the way the asset editors take their pickers.
- * The form binding stays in the section, so the caller supplies a control rather than learning this form's API.
- */
+/** The route supplies owner-only renaming; the section binds the control to its form. */
 export type FactionIdentityNameField = (props: {
   value: string;
   onChange: (name: string) => void;
@@ -60,7 +56,7 @@ export function FactionFormSectionIdentity({
           {(field) => (
             <ControlBlock
               title="Faction name"
-              description="Used on faction artifacts and to derive the canonical share URL."
+              description="Shown on faction artifacts. Names may repeat; each faction gets a unique share URL."
               input={
                 nameField ? (
                   nameField({

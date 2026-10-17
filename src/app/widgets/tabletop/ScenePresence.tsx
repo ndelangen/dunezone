@@ -8,10 +8,12 @@ import { CARRIED_BASE_Y, pointOnRayAtHeight } from '@shared/play/tableGeometry';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Raycaster, Vector2, Vector3 } from 'three';
+import { Matrix4, Raycaster, Vector2, Vector3 } from 'three';
 
 import { unsettledArtworkLoads } from './artworkLoads';
 import styles from './ScenePresence.module.css';
+import { TableHandOverlays } from './tableHandOverlays';
+import type { TableHandOverlay } from './tableHandOverlays';
 import { tablePlateOutline, tableSurfacePointOnRay } from './tablePlateGeometry';
 import { isCursorTablePoint } from './tablePointerPoint';
 import { useTabletopActions, useTabletopCommands, useTabletopSelector } from './TabletopContext';
@@ -25,6 +27,7 @@ const HAND_Z_RANGE = [6, 0];
 /*
  * A pointer moves many times a second while its label never changes, so the hand follows the position in the scene
  * and keeps one label element: drei's `Html` renders its own React root again whenever its children change.
+ * The homepage demo's hand rides a group its own animation moves, and that animation draws the scene anyway.
  */
 export const TableHand = memo(function TableHand({
   position,
@@ -46,6 +49,45 @@ export const TableHand = memo(function TableHand({
       </Html>
     </group>
   );
+});
+
+/*
+ * Another player's hand, placed over the canvas in its own frames: a pointer that moves at 20 Hz
+ * would otherwise draw the whole scene again in every frame while the hand glides.
+ */
+const RemoteHand = memo(function RemoteHand({
+  overlays,
+  position,
+  color,
+  displayName,
+  avatarUrl,
+}: Pick<PublicPointer, 'position' | 'color' | 'displayName' | 'avatarUrl'> & { overlays: TableHandOverlays }) {
+  const [positionX, positionY, positionZ] = position;
+  const hand = useRef<TableHandOverlay | null>(null);
+  const label = useMemo(
+    () => <HandLabel color={color} displayName={displayName} avatarUrl={avatarUrl} local={false} demo={false} />,
+    [color, displayName, avatarUrl]
+  );
+  /* Each effect names the overlays, so a new set takes the hand, then its label, then its place, in that order. */
+  useLayoutEffect(() => {
+    const added = overlays.add();
+    hand.current = added;
+    return () => {
+      hand.current = null;
+      overlays.remove(added);
+    };
+  }, [overlays]);
+  useLayoutEffect(() => {
+    if (hand.current) {
+      overlays.render(hand.current, label);
+    }
+  }, [overlays, label]);
+  useLayoutEffect(() => {
+    if (hand.current) {
+      overlays.moveTo(hand.current, positionX, positionY, positionZ);
+    }
+  }, [overlays, positionX, positionY, positionZ]);
+  return null;
 });
 
 function HandLabel({
@@ -181,6 +223,13 @@ export function ScenePresence({
   const camera = useThree((state) => state.camera);
   const renderer = useThree((state) => state.renderer);
   const scene = useThree((state) => state.scene);
+  const size = useThree((state) => state.size);
+  const eventTarget = useThree((state) => state.events.connected as Node | undefined);
+  const overlays = useMemo(() => new TableHandOverlays(), []);
+  useLayoutEffect(() => {
+    overlays.setView({ camera, size, container: eventTarget ?? renderer.domElement.parentNode });
+  }, [camera, eventTarget, overlays, renderer.domElement, size]);
+  useEffect(() => () => overlays.dispose(), [overlays]);
   const updateLocalCursor = useRef<(point: { x: number; y: number; touch: boolean } | null) => void>(() => {});
   useLayoutEffect(() => {
     if (!showLocal) {
@@ -228,7 +277,8 @@ export function ScenePresence({
   const raycaster = useMemo(() => new Raycaster(), []);
   const normalized = useMemo(() => new Vector2(), []);
   const lastScreenPoint = useRef<{ x: number; y: number; touch: boolean } | null>(null);
-  const lastCameraMatrix = useRef('');
+  /* The camera as the last frame showed it, compared in place rather than as a string of its 32 numbers. */
+  const lastCamera = useRef<{ world: Matrix4; projection: Matrix4 } | null>(null);
   const latestPointers = useRef(pointers);
   useLayoutEffect(() => {
     latestPointers.current = pointers;
@@ -311,9 +361,12 @@ export function ScenePresence({
     }
   }, [canInteract, publishPointer]);
   useFrame(() => {
-    const matrix = `${camera.matrixWorld.elements.join(',')}:${camera.projectionMatrix.elements.join(',')}`;
-    if (matrix !== lastCameraMatrix.current) {
-      lastCameraMatrix.current = matrix;
+    overlays.place();
+    const last = lastCamera.current;
+    if (!last || !last.world.equals(camera.matrixWorld) || !last.projection.equals(camera.projectionMatrix)) {
+      lastCamera.current = last ?? { world: new Matrix4(), projection: new Matrix4() };
+      lastCamera.current.world.copy(camera.matrixWorld);
+      lastCamera.current.projection.copy(camera.projectionMatrix);
       if (lastScreenPoint.current) {
         publish.current();
       }
@@ -379,8 +432,9 @@ export function ScenePresence({
       {pointers
         .filter((pointer) => pointer.viewerSeat !== SPECTATOR_SEAT)
         .map((pointer) => (
-          <TableHand
+          <RemoteHand
             key={pointer.connectionId}
+            overlays={overlays}
             position={pointer.position}
             color={pointer.color}
             avatarUrl={pointer.avatarUrl}

@@ -20,6 +20,12 @@ Convex agent skills for common tasks can be installed by running
   briefly) inside `src/app/db`, so there is no TanStack Query and no client cache to manage; see
   [`docs/state-management.md`](docs/state-management.md) for what Convex holds instead.
 - Non-obvious workflow: `bun run generate` refreshes generated game data outputs.
+- Vite+ (`vp`, package `vite-plus`) is the toolchain behind the `bun run` scripts.
+- Import from `vite-plus` and `vite-plus/test`, not `vite` or `vitest`.
+- Bump `vite`, `vitest`, `vite-plus`, Oxlint, `oxlint-tsgolint`, Oxfmt and the Vitest plugins together in the Bun
+  catalog under `workspaces.catalog` in `package.json`. Use the Oxlint, `oxlint-tsgolint` and Oxfmt versions
+  `vite-plus` pins, because `vp lint` runs its own copies.
+- Edit lint and format settings in `.oxlintrc.json` and `.oxfmtrc.json`; `vite.config.ts` reads them.
 - `bun run app:dev` connects to the configured online Convex deployment. Treat that deployment as a
   shared integration target. For branch work on Convex functions, schemas, or migrations, add
   `--local`; each launch then owns a disposable Docker-backed environment with local test auth and
@@ -238,9 +244,7 @@ Outside the kit:
     mounted already means the reader signalled intent (`FactionPicker` inside `FactionLoadPopover`
     is this case). Rendered inline with no such gate, a Picker instead defers its subscription to
     its own control's open, since its trigger must stay mounted to be clickable while its options
-    must not load until wanted. `UniqueNameInput` is the inline shape's first instance: a name field
-    whose read must not fire until the reader means the name, and for a typed control the settle is
-    the open.
+    must not load until wanted.
   - **Domain, not kit.** A Picker knows *what* it fetches, so it can never live in the domain-free
     kit; it renders *through* the kit (a `Select`, an `AssignPopover`). It is a peer of Widgets, not
     a seventh kit category.
@@ -544,7 +548,10 @@ and `public/web/**` is generated output (gitignored), apart from the committed f
 from the lock. `bun run media:sync` downloads every original the lock lists into `media/` at its
 asset path, and uploads new or changed originals through ingest with `MEDIA_UPLOAD_TOKEN` before it
 writes the lock and the map. `generate:images` also downloads any original it needs that is missing.
-A locked key is permanent: deleting its file locally changes nothing. Run
+A locked key is permanent: deleting its file locally changes nothing. Art not synced yet is a
+draft: the dev server previews it straight from `media/` (`scripts/lib/unsyncedMediaPreview.ts`),
+so it can be tried on a page and swapped without uploading (`generate:images` still refuses to run
+while one is present). A blog post using an unsynced image fails `postBodies.test.tsx` until it is synced. Run
 `bun run generate:images` after changing sources or `src/shared/assetRules.ts` (dev and Storybook
 need the generated files locally; CI produces the deployed bytes). `bun run verify:images` checks
 the output structurally. Renderer identity hashes the *ingredients* (locked source hashes + other media bytes + rules +

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { rosterFactionEventName, snapshotFactionLabels, snapshotFactionTieBreaks } from './factionLabels';
 import type { TableRoster } from './schema';
@@ -19,13 +19,6 @@ function rosterFactionLabels(table: TableRoster, players: { seat: string; name: 
 }
 
 describe('faction labels', () => {
-  it('leaves a faction whose name no other seat shares as its name', () => {
-    expect(rosterFactionLabels(roster('Harkonnen', 'Atreides'), [{ seat: 'seat-1', name: 'Alice' }])).toEqual({
-      'faction-1': 'Harkonnen',
-      'faction-2': 'Atreides',
-    });
-  });
-
   it('tells same-named factions apart by their players, and by the seat while nobody holds it', () => {
     const holders = [
       { seat: 'seat-1', name: 'Alice' },

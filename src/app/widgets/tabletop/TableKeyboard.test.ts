@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 import { freshTableState } from '@shared/play/model';
 import { draftForGesture } from '@shared/play/tableState';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { TableKeyboard } from './TableKeyboard';
 
@@ -361,6 +361,85 @@ describe('Tab pings', () => {
     expect(tab('keydown', { shiftKey: true }).defaultPrevented).toBe(false);
     expect(tab('keydown', {}, field).defaultPrevented).toBe(false);
     expect(controls.ping).not.toHaveBeenCalled();
+  });
+
+  test('held for three seconds pings once more, with the rumble', () => {
+    const { controls } = table();
+
+    tab('keydown');
+    vi.advanceTimersByTime(2999);
+    expect(controls.ping.mock.calls).toEqual([[]]);
+    vi.advanceTimersByTime(1);
+    vi.advanceTimersByTime(5000);
+    expect(controls.ping.mock.calls).toEqual([[], ['fart']]);
+  });
+
+  test('let go, or the page left, before three seconds, rumbles nothing', () => {
+    const { controls } = table();
+
+    tab('keydown');
+    vi.advanceTimersByTime(2000);
+    tab('keyup');
+    tab('keydown');
+    vi.advanceTimersByTime(2000);
+    window.dispatchEvent(new Event('blur'));
+    vi.advanceTimersByTime(5000);
+
+    expect(controls.ping.mock.calls).toEqual([[], []]);
+  });
+
+  test('Cmd pressed during the hold rumbles nothing, as macOS may never send the Tab keyup', () => {
+    const { controls } = table();
+
+    tab('keydown');
+    vi.advanceTimersByTime(1000);
+    key('keydown', { key: 'Meta', code: 'MetaLeft', metaKey: true });
+    vi.advanceTimersByTime(5000);
+
+    expect(controls.ping.mock.calls).toEqual([[]]);
+  });
+
+  test('Shift going down, or a text field taking the focus, lets a held rumble go before Tab repeats', () => {
+    const { controls } = table();
+    const field = document.body.appendChild(document.createElement('textarea'));
+
+    tab('keydown');
+    vi.advanceTimersByTime(1000);
+    key('keydown', { key: 'Shift', code: 'ShiftLeft', shiftKey: true });
+    vi.advanceTimersByTime(5000);
+    tab('keydown');
+    vi.advanceTimersByTime(1000);
+    field.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    vi.advanceTimersByTime(5000);
+
+    expect(controls.ping.mock.calls).toEqual([[], []]);
+    field.remove();
+  });
+
+  test('Shift pressed during the hold, or a text field taking the focus, rumbles nothing', () => {
+    const { controls } = table();
+    const field = document.body.appendChild(document.createElement('textarea'));
+
+    tab('keydown');
+    vi.advanceTimersByTime(1000);
+    tab('keydown', { repeat: true, shiftKey: true });
+    vi.advanceTimersByTime(5000);
+    tab('keydown');
+    vi.advanceTimersByTime(1000);
+    tab('keydown', { repeat: true }, field);
+    vi.advanceTimersByTime(5000);
+
+    expect(controls.ping.mock.calls).toEqual([[], []]);
+  });
+
+  test('a press off the table never rumbles', () => {
+    const { controls } = table();
+    controls.ping.mockReturnValue(false);
+
+    tab('keydown');
+    vi.advanceTimersByTime(5000);
+
+    expect(controls.ping).toHaveBeenCalledTimes(1);
   });
 
   test('pings over a button clicked a moment ago, which keeps the focus', () => {

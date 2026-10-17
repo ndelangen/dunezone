@@ -47,6 +47,12 @@ const meta = preview.meta({
 
 export const Default = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvasElement.querySelector('[data-app-band]')).toBeVisible();
+    await expect(canvas.getByRole('main')).toBeVisible();
+    await expect(within(canvas.getByRole('contentinfo')).getByRole('navigation', { name: 'Footer' })).toBeVisible();
+  },
 });
 
 export const DefaultMobile = meta.story({
@@ -88,11 +94,6 @@ export const HeaderlessPage = meta.story({
   args: { children: shellPageOptionLabels[2] },
 });
 
-export const HeaderlessPageMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
-  args: { children: shellPageOptionLabels[2] },
-});
-
 function HeaderResizePage() {
   const [showHeader, setShowHeader] = useState(false);
 
@@ -113,7 +114,7 @@ function HeaderResizePage() {
   );
 }
 
-/* The band's `transition: height 0.2s` in `AppHeader.module.css`. */
+/* The band's `height 0.2s` transition in `AppHeader.module.css`. */
 const BAND_TRANSITION_MS = 200;
 
 /**
@@ -159,9 +160,9 @@ async function playHeaderResize({ canvasElement }: { canvasElement: HTMLElement 
     throw new Error('The header resize story requires a browser window and a mounted band.');
   }
 
-  await waitFor(() => {
-    expect(root).toHaveAttribute('data-motion', motion);
-    expect(header.getBoundingClientRect().height).toBe(51);
+  await waitFor(async () => {
+    await expect(root).toHaveAttribute('data-motion', motion);
+    await expect(header.getBoundingClientRect().height).toBe(51);
   });
 
   for (const expanded of [true, false]) {
@@ -179,25 +180,27 @@ async function playHeaderResize({ canvasElement }: { canvasElement: HTMLElement 
     } finally {
       observer.disconnect();
     }
-    await expect(view.getComputedStyle(header).transitionDuration).toBe(motion === 'reduce' ? '0s' : '0.2s');
-    await waitFor(() => {
-      expect(canvasElement.querySelector('[data-app-band]')).toBe(header);
+    /* The band transitions its height alone; the immersive grow and shrink run as animations in bandMotion.ts. */
+    const durations = new Set(view.getComputedStyle(header).transitionDuration.split(', '));
+    await expect([...durations]).toEqual([motion === 'reduce' ? '0s' : '0.2s']);
+    await waitFor(async () => {
+      await expect(canvasElement.querySelector('[data-app-band]')).toBe(header);
       if (expanded) {
-        expect(header.getBoundingClientRect().height).toBeGreaterThan(51);
+        await expect(header.getBoundingClientRect().height).toBeGreaterThan(51);
       } else {
-        expect(header.getBoundingClientRect().height).toBe(51);
+        await expect(header.getBoundingClientRect().height).toBe(51);
       }
     });
     if (motion === 'reduce') {
-      expect(midway).toBeUndefined();
+      await expect(midway).toBeUndefined();
     } else {
-      expect(
+      await expect(
         midway,
         `The band's height started no transition when the page header was ${expanded ? 'shown' : 'hidden'}.`
       ).toBeDefined();
       const to = header.getBoundingClientRect().height;
-      expect(midway).toBeGreaterThan(Math.min(from, to));
-      expect(midway).toBeLessThan(Math.max(from, to));
+      await expect(midway).toBeGreaterThan(Math.min(from, to));
+      await expect(midway).toBeLessThan(Math.max(from, to));
     }
   }
 }
@@ -234,53 +237,47 @@ async function playFullscreenHeight({ canvasElement }: { canvasElement: HTMLElem
   const { root, view, navigation, content, scroller, footer, header } = fullscreenElements(canvasElement);
   const canvas = within(canvasElement);
 
-  await waitFor(() => {
+  await waitFor(async () => {
     const bounds = content.getBoundingClientRect();
-    expect(bounds.top).toBe(0);
-    expect(bounds.left).toBe(0);
-    expect(bounds.width).toBe(view.innerWidth);
-    expect(bounds.height).toBe(view.innerHeight);
-    expect(root.scrollHeight).toBeLessThanOrEqual(root.clientHeight + 1);
-    expect(root.scrollWidth).toBe(root.clientWidth);
-    expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight);
-    expect(canvas.queryByRole('navigation')).toBeNull();
-    expect(navigation).not.toBeVisible();
-    expect(footer).not.toBeVisible();
-    expect(canvas.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(header.getBoundingClientRect().width).toBe(1);
-    expect(header.getBoundingClientRect().height).toBe(1);
-    expect(view.getComputedStyle(header).clipPath).toBe('inset(50%)');
-    expect(view.getComputedStyle(root).backgroundImage).toBe('none');
-    expect(view.getComputedStyle(root, '::after').display).toBe('none');
+    await expect(bounds.top).toBe(0);
+    await expect(bounds.left).toBe(0);
+    await expect(bounds.width).toBe(view.innerWidth);
+    await expect(bounds.height).toBe(view.innerHeight);
+    await expect(root.scrollHeight).toBeLessThanOrEqual(root.clientHeight + 1);
+    await expect(root.scrollWidth).toBe(root.clientWidth);
+    await expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight);
+    await expect(canvas.queryByRole('navigation')).toBeNull();
+    await expect(navigation).not.toBeVisible();
+    await expect(footer).not.toBeVisible();
+    await expect(canvas.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    await expect(header.getBoundingClientRect().width).toBe(1);
+    await expect(header.getBoundingClientRect().height).toBe(1);
+    await expect(view.getComputedStyle(header).clipPath).toBe('inset(50%)');
+    await expect(view.getComputedStyle(root).backgroundImage).toBe('none');
+    await expect(view.getComputedStyle(root, '::after').display).toBe('none');
     /* The band is hidden, so its video never mounts and never downloads. */
-    expect(canvasElement.querySelector('video')).toBeNull();
+    await expect(canvasElement.querySelector('video')).toBeNull();
   });
 
   const exit = canvas.getByRole('button', { name: 'Exit fullscreen' });
   exit.focus();
   await userEvent.tab();
-  expect(canvasElement.ownerDocument.activeElement).toBe(canvasElement.ownerDocument.body);
+  await expect(canvasElement.ownerDocument.activeElement).toBe(canvasElement.ownerDocument.body);
   /* The skip link is the first stop, and the workspace's own control the next. */
   await userEvent.tab();
-  expect(canvas.getByRole('link', { name: 'Skip to content' })).toHaveFocus();
+  await expect(canvas.getByRole('link', { name: 'Skip to content' })).toHaveFocus();
   await userEvent.tab();
-  expect(exit).toHaveFocus();
+  await expect(exit).toHaveFocus();
 
   scroller.scrollTop = 100;
   view.scrollTo({ top: 100, left: 100 });
-  await waitFor(() => {
-    expect(scroller.scrollTop).toBe(100);
-    expect(view.scrollY).toBe(0);
-    expect(view.scrollX).toBe(0);
+  await waitFor(async () => {
+    await expect(scroller.scrollTop).toBe(100);
+    await expect(view.scrollY).toBe(0);
+    await expect(view.scrollX).toBe(0);
   });
   scroller.scrollTop = 0;
 }
-
-export const FullscreenHeight = meta.story({
-  globals: { viewport: { value: 'appLarge' } },
-  args: { children: <FullscreenShellPage /> },
-  play: playFullscreenHeight,
-});
 
 export const FullscreenHeightMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
@@ -296,15 +293,15 @@ export const FullscreenExitRestoresDocument = meta.story({
     const { root, view, navigation, content, footer } = fullscreenElements(canvasElement);
     await userEvent.click(within(canvasElement).getByRole('button', { name: 'Exit fullscreen' }));
 
-    await waitFor(() => {
-      expect(canvasElement.querySelector('[data-page-layout-height="fullscreen"]')).toBeNull();
-      expect(navigation).toBeVisible();
-      expect(footer).toBeVisible();
-      expect(root.scrollHeight).toBeGreaterThan(root.clientHeight);
-      expect(content.getBoundingClientRect().width).toBeLessThan(view.innerWidth);
-      expect(view.getComputedStyle(root).backgroundImage).not.toBe('none');
-      expect(view.getComputedStyle(root, '::after').display).not.toBe('none');
-      expect(view.getComputedStyle(root).scrollbarGutter).toBe('stable both-edges');
+    await waitFor(async () => {
+      await expect(canvasElement.querySelector('[data-page-layout-height="fullscreen"]')).toBeNull();
+      await expect(navigation).toBeVisible();
+      await expect(footer).toBeVisible();
+      await expect(root.scrollHeight).toBeGreaterThan(root.clientHeight);
+      await expect(content.getBoundingClientRect().width).toBeLessThan(view.innerWidth);
+      await expect(view.getComputedStyle(root).backgroundImage).not.toBe('none');
+      await expect(view.getComputedStyle(root, '::after').display).not.toBe('none');
+      await expect(view.getComputedStyle(root).scrollbarGutter).toBe('stable both-edges');
     });
 
     view.scrollTo({ top: 100 });
@@ -337,19 +334,19 @@ async function playBackgroundPan({ canvasElement }: { canvasElement: HTMLElement
   const readPercent = () => Number.parseFloat(root.style.getPropertyValue('--scroll-pct'));
 
   view.scrollTo({ top: 0 });
-  await waitFor(() => {
-    expect(view.scrollY).toBe(0);
-    expect(readPercent()).toBe(0);
+  await waitFor(async () => {
+    await expect(view.scrollY).toBe(0);
+    await expect(readPercent()).toBe(0);
   });
   const atTop = readPosition();
 
   view.scrollTo({ top: root.scrollHeight, behavior: 'smooth' });
-  await waitFor(() => {
-    expect(view.scrollY).toBeGreaterThan(0);
+  await waitFor(async () => {
+    await expect(view.scrollY).toBeGreaterThan(0);
     const pct = readPercent();
-    expect(pct).toBeGreaterThanOrEqual(99.5);
-    expect(pct).toBeLessThanOrEqual(100);
-    expect(readPosition()).not.toBe(atTop);
+    await expect(pct).toBeGreaterThanOrEqual(99.5);
+    await expect(pct).toBeLessThanOrEqual(100);
+    await expect(readPosition()).not.toBe(atTop);
   });
 }
 
@@ -363,10 +360,5 @@ export const ScrollingBackground = meta.story({
       },
     },
   },
-  play: playBackgroundPan,
-});
-
-export const ScrollingBackgroundMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
   play: playBackgroundPan,
 });

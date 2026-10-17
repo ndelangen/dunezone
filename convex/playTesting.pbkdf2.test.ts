@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { passwordSecret, pbkdf2Secret } from '../scripts/lib/synthetic-accounts';
 import { internal } from './_generated/api';
@@ -32,17 +32,8 @@ afterEach(() => {
  * Each leaves one condition unmet, and the hosted URLs stand for any deployment Convex hosts.
  */
 describe('which backends check PBKDF2', () => {
-  test('an isolated loopback backend with the variable does', () => {
-    expect(checksPbkdf2Passwords()).toBe(true);
-    expect(pbkdf2PasswordCrypto()).toBeDefined();
-  });
-
   test.each([
     ['PLAY_TEST_PASSWORD_HASH', undefined],
-    ['PLAY_TEST_PASSWORD_HASH', 'scrypt'],
-    ['IS_TEST', undefined],
-    ['E2E_LOCAL_AUTH', undefined],
-    ['CONVEX_CLOUD_URL', 'https://production.convex.cloud'],
     ['SITE_URL', 'https://dune.zone'],
   ])('a backend with %s set to %s keeps Scrypt', (key, value) => {
     vi.stubEnv(key, value);

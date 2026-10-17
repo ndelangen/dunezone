@@ -1,4 +1,4 @@
-import { expect, test, vi } from 'vitest';
+import { expect, test, vi } from 'vite-plus/test';
 
 import { BLOG_POST_PAGES } from '../../src/shared/blogPostSlugs';
 import { MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
@@ -75,6 +75,24 @@ test('a complete paginated result is escaped and shared by GET, HEAD and trackin
   const hit = await handlePublicDiscovery(request('/sitemap-factions.xml'), env, edge, load);
   expect(await hit!.text()).toBe(body);
   expect(load).toHaveBeenCalledTimes(2);
+});
+
+test('an asset page names the generated image it shows, beside the URL it belongs to', async () => {
+  const load = vi.fn().mockResolvedValueOnce({
+    entries: [
+      { pathname: '/assets/token-disc/spice', lastmod: null, image: '/published/round-tokens/abc/token.jpg?v=1&x' },
+      { pathname: '/assets/token-disc/bare', lastmod: null },
+    ],
+    cursor: null,
+  });
+  const result = await handlePublicDiscovery(request('/sitemap-token-disc.xml'), env, undefined, load);
+  const body = await result!.text();
+  expect(body).toContain('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"');
+  expect(body).toContain(
+    '<url><loc>https://dune.zone/assets/token-disc/spice</loc>' +
+      '<image:image><image:loc>https://dune.zone/published/round-tokens/abc/token.jpg?v=1&amp;x</image:loc></image:image></url>'
+  );
+  expect(body).toContain('<url><loc>https://dune.zone/assets/token-disc/bare</loc></url>');
 });
 
 test('failed and non-advancing scans return retryable errors without caching partial XML', async () => {

@@ -14,7 +14,7 @@ import { useAssetPage, useUpdateAsset } from '@db/assets';
 import type { AssetPublicPage } from '@db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { BoardEditor } from '@app/widgets/board-editor/BoardEditor';
-import { BoardLoad } from '@app/widgets/board-editor/BoardLoad';
+import { boardLoadSource } from '@app/widgets/board-editor/boardLoadSource';
 import { boardEditorReducer, initialBoardEditorState } from '@app/widgets/board-editor/state';
 import type { BoardEditorState, BoardEditorEvent } from '@app/widgets/board-editor/state';
 
@@ -111,6 +111,13 @@ function BoardSession({ asset, initialDraft, access }: CardEditSessionProps<Boar
     <PageLayout>
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          load={{
+            noun: 'board',
+            mode: 'replace',
+            disabled: saving.isPending,
+            source: boardLoadSource(asset.id),
+            onLoaded: (loaded) => dispatch({ kind: 'replace', draft: { ...loaded.data, name: state.draft.name } }),
+          }}
           status={{
             isDirty,
             isNameBlank: !state.draft.name.trim(),
@@ -123,12 +130,6 @@ function BoardSession({ asset, initialDraft, access }: CardEditSessionProps<Boar
             onReset: () => dispatch({ kind: 'replace', draft: state.baseline }),
             onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type: 'board', slug: asset.slug } }),
           }}
-          navigationActions={
-            <BoardLoad
-              disabled={saving.isPending}
-              onLoad={(draft) => dispatch({ kind: 'replace', draft: { ...draft, name: state.draft.name } })}
-            />
-          }
           auxiliaryActions={
             <>
               <IconAction

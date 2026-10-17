@@ -1,10 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { legacyAssetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import {
@@ -13,17 +10,12 @@ import {
   FactionMemberIdSchema,
 } from '../src/shared/factions/memberIdentity';
 import { internal } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 const required = ['faction_member_ids_v1', 'faction_member_ids_verify_v1'];
 
 function migrationTest() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
-  migrationsTest.register(t);
+  const t = applicationTest();
   return t;
 }
 
@@ -60,11 +52,7 @@ afterEach(() => vi.useRealTimers());
 
 describe('faction member identity migration', () => {
   test('backfills existing active and deleted rosters and verifies persisted identities', async () => {
-    const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
-    aggregateTest.register(t, 'profileDiscovery');
-    migrationsTest.register(t);
+    const t = applicationTest();
     const factionIds = await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Faction owner' });
       return await Promise.all(

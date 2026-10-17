@@ -1,6 +1,6 @@
 import { createRulebookRenderDocumentFixture } from '@shared/rulebooks/renderDocument.fixture';
 import { parseHTML } from 'linkedom/worker';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { renderRulebookHtmlDocument, rulebookRendererCss } from '@app/print/rulebookHtmlRuntime';
 import { rulebookHtmlSvg } from '@app/print/rulebookHtmlSvg';
@@ -88,7 +88,7 @@ describe('published Rulebook reading', () => {
             { kind: 'page', id: page.id },
             { kind: 'block', id: block.id },
           ],
-          exact: 'Movement sequence Choose a force, choose an adjacent destination, then resolve the move.',
+          exact: 'Movement sequence Choose a troop, choose an adjacent destination, then resolve the move.',
         },
       })
     ).toMatchObject({ status: 'matched' });

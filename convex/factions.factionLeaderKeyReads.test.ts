@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { toStoredHeroKey } from '../src/shared/factions/schema';
@@ -90,13 +90,18 @@ describe('faction reads across the Faction leader key rename', () => {
     expect(catalogue.factions).toHaveLength(2);
     catalogue.factions.forEach((row) => expectLeaderKey(row.slug, row.data));
 
+    const paged = await viewer.query(api.factions.catalogue, {});
+    expect(paged.cards).toHaveLength(2);
+    paged.cards.forEach((row) => expectLeaderKey(row.slug, row.data));
+
     const picker = await viewer.query(api.factions.listForLoadPicker, {});
     expect(picker.rows).toHaveLength(2);
     picker.rows.forEach((row) => expectLeaderKey(row.slug, row.data));
-  });
-
-  test('the homepage spotlights read both rows', async () => {
-    const { viewer } = await seed();
+    /* The picker labels each row with its group's name and its owner's username, read beside the faction data. */
+    expect(picker.rows.map((row) => ({ groupLabel: row.groupLabel, ownerUsername: row.ownerUsername }))).toEqual([
+      { groupLabel: 'Leaders Group', ownerUsername: 'Owner' },
+      { groupLabel: 'Leaders Group', ownerUsername: 'Owner' },
+    ]);
 
     const homepage = await viewer.query(api.homepage.get, {});
     expect(homepage.spotlights.newArrival?.data).not.toHaveProperty('hero');

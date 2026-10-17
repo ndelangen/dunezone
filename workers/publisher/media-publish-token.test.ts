@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { fetchMedia } from '../../scripts/lib/media-fetch';
 import { fetchMediaAfterTokenRotation, waitForMediaPublishToken } from '../../scripts/media-publish-token';
@@ -9,6 +9,32 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
+
+/**
+ * Fakes only the clock and setTimeout, so bearer checks that hash on a real macrotask still finish between sleeps.
+ */
+function useFakeSleeps() {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+}
+
+/**
+ * Settles a request by jumping the fake clock to each sleep the code reaches, and never past one it has not reached yet.
+ * The retry loop is sequential, so a pending timer means the code is sleeping and no real work is outstanding.
+ */
+async function settleWithFakeSleeps<T>(promise: Promise<T>): Promise<T> {
+  let settled = false;
+  promise.then(
+    () => (settled = true),
+    () => (settled = true)
+  );
+  while (!settled) {
+    await new Promise((resolve) => setImmediate(resolve));
+    if (!settled && vi.getTimerCount() > 0) {
+      await vi.advanceTimersToNextTimerAsync();
+    }
+  }
+  return await promise;
+}
 
 const settings = { origin: 'https://dune.zone', token: 'installed-token', release: `${'a'.repeat(40)}-123456` };
 
@@ -60,6 +86,7 @@ test('temporary service failures wait for authenticated validation', async () =>
 });
 
 test('a later write recovers when it reaches a stale bearer after successful readiness', async () => {
+  useFakeSleeps();
   const bucket = memoryR2Bucket();
   const source = 'a'.repeat(64);
   const record = {
@@ -84,18 +111,20 @@ test('a later write recovers when it reaches a stale bearer after successful rea
       MEDIA_PUBLISH_TOKEN: [1, 3].includes(attempts) ? 'previous-token' : settings.token,
     });
   });
-  const response = await fetchMediaAfterTokenRotation(
+  const publishing = fetchMediaAfterTokenRotation(
     { ...settings, deadline: Date.now() + 5000 },
     `${settings.origin}/__media/releases/${settings.release}`,
     { method: 'PUT', headers: { Authorization: `Bearer ${settings.token}` }, body: JSON.stringify(record) },
     { subject: 'test release', delaysMs: [] }
   );
+  const response = await settleWithFakeSleeps(publishing);
   expect(response.status).toBe(201);
+  expect(attempts).toBe(5);
   expect(bucket.objects.size).toBe(1);
 });
 
 test('successful probes do not cause rapid retries while writes keep reaching stale instances', async () => {
-  vi.useFakeTimers();
+  useFakeSleeps();
   const bucket = memoryR2Bucket();
   const attempts: number[] = [];
   vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
@@ -114,11 +143,8 @@ test('successful probes do not cause rapid retries while writes keep reaching st
     { method: 'PUT', headers: { Authorization: `Bearer ${settings.token}` }, body: '{}' },
     { subject: 'test release', delaysMs: [] }
   );
-  let response: Awaited<typeof publishing> | undefined;
-  void publishing.then((result) => {
-    response = result;
-  });
-  await vi.waitFor(() => expect(response?.status).toBe(401), { timeout: 2000, interval: 50 });
+  const response = await settleWithFakeSleeps(publishing);
+  expect(response.status).toBe(401);
   expect(attempts).toHaveLength(2);
   expect(attempts[1]! - attempts[0]!).toBeGreaterThanOrEqual(1000);
   expect(attempts[1]! - started).toBeLessThan(1250);

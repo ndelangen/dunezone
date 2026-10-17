@@ -1,26 +1,18 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
-import schema from './schema';
 
-const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-20T00:00:00.000Z';
 
 function setup() {
-  const t = convexTest(schema, modules);
-  migrationsTest.register(t);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileDiscovery');
-  aggregateTest.register(t, 'profileActivity');
+  const t = applicationTest();
   return t;
 }
 
@@ -254,6 +246,19 @@ describe('account deletion', () => {
       expect((await ctx.db.get('factions', rows.deletedFactionId))?.is_deleted).toBe(true);
       expect((await ctx.db.get('assets', rows.assetId))?.is_deleted).toBe(false);
       expect((await ctx.db.get('assets', rows.deletedAssetId))?.is_deleted).toBe(true);
+    });
+
+    /* A later deletion is undone only by its own operation, never by replaying the earlier one. */
+    const { operationId: secondId } = await asSource.mutation(api.accountDeletion.confirm, { replacementUserId: null });
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    await expect(
+      t.withIdentity({ subject: admin.subject }).mutation(api.accountDeletion.restore, { operationId })
+    ).rejects.toThrow('Deleted source account not found');
+    await t.withIdentity({ subject: admin.subject }).mutation(api.accountDeletion.restore, { operationId: secondId });
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    await t.run(async (ctx) => {
+      expect((await ctx.db.get('users', source.userId))?.account_state).toBe('active');
+      expect((await ctx.db.get('groups', rows.groupId))?.is_deleted).toBe(false);
     });
   });
 

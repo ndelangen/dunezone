@@ -1,7 +1,6 @@
-import { Alert, Button, Group, Popover, Stack, Text } from '@mantine/core';
+import { Alert, Button, Group, Popover, Text } from '@mantine/core';
 import { RectangleTokenAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -15,6 +14,7 @@ import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import {
   RectangleTokenEditor,
   RectangleProof,
@@ -37,7 +37,9 @@ import {
   assetNameField,
   AssetEditorViewerPending,
 } from '../../../assetEditorStates';
+import { LoadedRectangleDraft, tokenLoad } from '../../../loadedDrafts';
 import { referencedRectangleBackFace } from './referencedBackFace';
+import { referencedBackProof } from './ReferencedBackProof';
 
 export function RectangleEditPage({
   type,
@@ -200,7 +202,6 @@ function RectangleEditSession({
       : []),
   ];
   /* The proof draws what was picked, which is the target's authored back, never its front; the shared reader carries the distrust. */
-  const referencedBack = state.memory.pickedBack ? referencedRectangleBackFace(state.memory.pickedBack.data) : null;
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
   const isNameBlank = !state.data.name.trim();
@@ -247,6 +248,14 @@ function RectangleEditSession({
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          load={tokenLoad({
+            type: 'token-enhance',
+            schema: LoadedRectangleDraft,
+            editing: asset,
+            saveState,
+            header,
+            dispatch,
+          })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save token',
@@ -331,22 +340,9 @@ function RectangleEditSession({
                 </Popover>
               </Group>
             )}
-            backProof={
-              state.memory.pickedBack ? (
-                <Stack gap={4} align="center" w="100%">
-                  {referencedBack ? (
-                    <RectangleProof face={referencedBack} />
-                  ) : (
-                    <Text size="xs" c="dimmed">
-                      Its stored back can no longer be read as an authored back, so it cannot be shown here.
-                    </Text>
-                  )}
-                  <Text size="xs" c="dimmed">
-                    Back, from {state.memory.pickedBack.name}
-                  </Text>
-                </Stack>
-              ) : null
-            }
+            backProof={referencedBackProof(state.memory.pickedBack, referencedRectangleBackFace, (face) => (
+              <RectangleProof face={face} />
+            ))}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import type { PieceAction } from '../../src/shared/play/protocol';
@@ -244,7 +244,15 @@ describe('The command path refuses what a connection may not do', { timeout: 60_
     const { a } = await inPlay();
     const held = await revision(a);
     const command = (
-      action: { kind: string; direction?: number; seat?: string; amount?: number; pieceId?: string; count?: number },
+      action: {
+        kind: string;
+        direction?: number;
+        seat?: string;
+        amount?: number;
+        pieceId?: string;
+        count?: number;
+        policy?: string;
+      },
       commandId = 'malformed'
     ) => ({
       type: 'command',
@@ -261,6 +269,7 @@ describe('The command path refuses what a connection may not do', { timeout: 60_
       JSON.stringify(command({ kind: 'bank-withdraw', amount: -5 })),
       JSON.stringify(command({ kind: 'split', pieceId: 'piece', count: 1e9 })),
       JSON.stringify(command({ kind: 'storm', direction: 1 }, 'i'.repeat(5000))),
+      JSON.stringify(command({ kind: 'enforcement', policy: 'strict' })),
       new Uint8Array([1, 2, 3]),
     ];
     for (const [index, frame] of frames.entries()) {

@@ -85,9 +85,9 @@ function dropPoint(lifted: PointerEvent | null, canvas: HTMLCanvasElement, camer
 type Options = {
   canvas: HTMLCanvasElement;
   camera: Camera;
-  invalidate(): void;
+  invalidate: () => void;
   /** Called with the board point the beacon was dropped on; a drop off the board or a cancel calls nothing. */
-  onDrop(point: Vector3Tuple): void;
+  onDrop: (point: Vector3Tuple) => void;
 };
 
 /**

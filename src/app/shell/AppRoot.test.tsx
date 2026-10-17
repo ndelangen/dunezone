@@ -7,7 +7,7 @@ import { appContentTheme } from '@ui/theme';
 import { act } from 'react';
 import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { AppRoot } from './AppRoot';
 import { PRIMARY_LINKS } from './SiteNavigation';
@@ -18,11 +18,12 @@ function chrome(children: ReactNode) {
 }
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, ...rest }: { children: ReactNode; to: string }) => (
+  Link: ({ children, to, search: _search, ...rest }: { children: ReactNode; to: string; search?: unknown }) => (
     <a href={to} {...rest}>
       {children}
     </a>
   ),
+  useLocation: ({ select }: { select: (location: { href: string }) => unknown }) => select({ href: '/' }),
 }));
 
 vi.mock('@db/profiles', () => ({

@@ -12,7 +12,6 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { errorMessage } from '@ui/content/errorMessage';
@@ -27,6 +26,7 @@ import { loadRulebookCreationPage, useCreateRulebook, useRulebookCreationPage } 
 import type { RulebookCreateSource, RulebookCreationPageData } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
@@ -106,7 +106,7 @@ function examplePage(id: string, pageNumber: number): RulebookRenderPageV1 {
   return {
     id,
     anchor: id,
-    title: pageNumber === 2 ? 'Sequence of play' : 'Faction abilities',
+    title: pageNumber === 2 ? 'Sequence of play' : 'Faction advantages',
     layoutId: 'single-column',
     showHeading: true,
     controlValues: {},
@@ -129,7 +129,7 @@ function examplePage(id: string, pageNumber: number): RulebookRenderPageV1 {
             name: pageNumber === 2 ? 'During a phase' : 'Alliances',
             text:
               pageNumber === 2
-                ? 'Check the order of play, carry out the phase actions, and apply any relevant faction abilities.'
+                ? 'Check the order of play, carry out the phase actions, and apply any relevant faction advantages.'
                 : 'An alliance lets factions work together. Its benefits are described on the faction player sheets.',
           },
         ],

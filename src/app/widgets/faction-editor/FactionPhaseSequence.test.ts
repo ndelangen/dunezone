@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { phaseSequence } from './FactionPhaseSequence';
 
@@ -32,7 +32,7 @@ describe('phaseSequence', () => {
       row('omen', 'forces'),
     ]);
     expect(labels(setupGroups)).toEqual(['Traitors', 'Phase omen', 'Starting troops']);
-    expect(labels(turnGroups).slice(2, 6)).toEqual(['CHOAM charity', 'Phase early', 'Phase late', 'Bidding']);
+    expect(labels(turnGroups).slice(2, 6)).toEqual(['CHOAM Charity', 'Phase early', 'Phase late', 'Bidding']);
     const bidding = turnGroups.find((group) => group.step.label === 'Bidding')!;
     expect(bidding.placed.map((entry) => (entry.kind === 'faction' ? entry.rowIndex : -1))).toEqual([1, 0]);
   });

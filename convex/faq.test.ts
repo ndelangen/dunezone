@@ -1,15 +1,11 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { faqQuestionPageAs } from './viewerAccess.test.fixture';
-
-const modules = import.meta.glob('./**/*.ts');
 
 function faqTest(
   transactionLimits?:
@@ -19,10 +15,7 @@ function faqTest(
         bytesWritten: number;
       }
 ) {
-  const t = transactionLimits ? convexTest({ schema, modules, transactionLimits }) : convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest({ transactionLimits });
   return t;
 }
 
@@ -106,52 +99,6 @@ describe('FAQ lifecycle', () => {
     expect(withAnswerPage.answers).toHaveLength(1);
     expect(withAnswerPage.answers[0]).toMatchObject({
       text: 'Yes, in the same mutation.',
-    });
-  });
-
-  test('projects accepted-first answers and viewer capabilities on the server', async () => {
-    const { owner, answerer, outsider, ruleset } = await faqFixture();
-    const question = await owner.mutation(api.faq.createQuestion, {
-      rulesetId: ruleset._id,
-      question: 'Which answer should appear first?',
-      tags: ['rules'],
-    });
-    const first = await answerer.mutation(api.faq.createAnswer, {
-      faq_item_id: question.questionId,
-      answer: 'The earlier answer.',
-    });
-    const accepted = await outsider.mutation(api.faq.createAnswer, {
-      faq_item_id: question.questionId,
-      answer: 'The accepted answer.',
-    });
-    await owner.mutation(api.faq.setAcceptedAnswer, {
-      faq_item_id: question.questionId,
-      accepted_answer_id: accepted._id,
-    });
-
-    const ownerPage = await faqQuestionPageAs(owner, {
-      rulesetSlug: ruleset.slug,
-      questionSlug: question.questionSlug,
-    });
-    expect(ownerPage.question.capabilities).toEqual({
-      editQuestion: true,
-      deleteQuestion: true,
-    });
-    expect(ownerPage.answers.map((answer) => answer.id)).toEqual([accepted._id, first._id]);
-    expect(ownerPage.answers[0].capabilities).toMatchObject({
-      deleteAnswer: true,
-      acceptAnswer: false,
-      unacceptAnswer: true,
-    });
-
-    const answererPage = await faqQuestionPageAs(answerer, {
-      rulesetSlug: ruleset.slug,
-      questionSlug: question.questionSlug,
-    });
-    expect(answererPage.viewer.answerQuestion).toBe(false);
-    expect(answererPage.answers.find((answer) => answer.id === first._id)?.capabilities).toMatchObject({
-      editAnswer: true,
-      deleteAnswer: true,
     });
   });
 
@@ -373,8 +320,28 @@ describe('FAQ lifecycle', () => {
     ).toMatchObject({ answers: [{ id: answer._id, accepted: false }] });
   });
 
+  test('an answer on a deleted ruleset cannot be edited', async () => {
+    const { t, owner, answerer, ruleset } = await faqFixture();
+    const question = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
+      question: 'Does a deleted ruleset keep its answers?',
+      tags: ['rules'],
+    });
+    const answer = await answerer.mutation(api.faq.createAnswer, {
+      faq_item_id: question.questionId,
+      answer: 'They stay as they were until the ruleset is restored.',
+    });
+    await t.run(async (ctx) => await ctx.db.patch(ruleset._id, { is_deleted: true }));
+    await expect(
+      answerer.mutation(api.faq.editAnswer, {
+        answerId: answer._id,
+        input: { answer: 'Changed while it was deleted.' },
+      })
+    ).rejects.toThrow('Ruleset not found');
+  });
+
   test('clears acceptance when the accepted answer is deleted', async () => {
-    const { owner, answerer, ruleset } = await faqFixture();
+    const { t, owner, answerer, ruleset } = await faqFixture();
     const question = await owner.mutation(api.faq.createQuestion, {
       rulesetId: ruleset._id,
       question: 'What happens when the accepted answer is removed?',
@@ -388,6 +355,9 @@ describe('FAQ lifecycle', () => {
       faq_item_id: question.questionId,
       accepted_answer_id: answer._id,
     });
+    const acceptedAnswerId = async () =>
+      await t.run(async (ctx) => (await ctx.db.get('faq_items', question.questionId))?.accepted_answer_id);
+    expect(await acceptedAnswerId()).toBe(answer._id);
 
     await answerer.mutation(api.faq.deleteAnswer, { id: answer._id });
 
@@ -396,6 +366,8 @@ describe('FAQ lifecycle', () => {
       questionSlug: question.questionSlug,
     });
     expect(page.answers).toEqual([]);
+    /* The page cannot tell a dangling reference from a cleared one, so the stored question is read directly. */
+    expect(await acceptedAnswerId()).toBeNull();
   });
 
   test('deletes large answer sets in bounded aggregate-safe batches', async () => {

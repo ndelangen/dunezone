@@ -4,9 +4,9 @@ import { z } from 'zod';
 export const rulebookCoverPresetCatalogue = (
   [
     ['stone-circle', 'Stone circle'],
-    ['worm-cavern', 'Worm cavern'],
-    ['sandworm', 'Sandworm'],
-    ['sandworm-riding', 'Sandworm riding'],
+    ['worm-cavern', 'Shai-Hulud cavern'],
+    ['sandworm', 'Shai-Hulud'],
+    ['sandworm-riding', 'Shai-Hulud riding'],
     ['warm-sand-desert', 'Warm sand desert'],
     ['military-assembly', 'Military assembly'],
     ['dreamrules-rainbow', 'Dreamrules rainbow'],
@@ -17,7 +17,7 @@ export const rulebookCoverPresetCatalogue = (
     ['cavern', 'Cavern'],
     ['rock-passages', 'Rock passages'],
     ['shielded-city', 'Shielded city'],
-    ['worm-riders', 'Worm riders'],
+    ['worm-riders', 'Shai-Hulud riders'],
     ['spice-harvester', 'Spice harvester'],
   ] as const
 ).map(([id, label]) => ({

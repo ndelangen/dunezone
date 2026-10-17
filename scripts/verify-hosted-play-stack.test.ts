@@ -3,7 +3,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, wri
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 test('a backend startup failure retains diagnostics after removing its temporary runtime', () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'dunezone-backend-evidence-'));

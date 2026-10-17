@@ -1,95 +1,89 @@
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { TABLE_PHASES } from '@shared/play/phases';
-import { spiceBankSlot } from '@shared/play/spiceBank';
-import { SHARED_ITEM_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
+import { item, piece, place } from '@shared/play/setupSupply';
+import { spiceBankSlot, createSpiceStack } from '@shared/play/spiceBank';
+import { cardBaySlotPositions, SHARED_ITEM_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
 import { BOARD_RADIUS, BOARD_SURFACE_Y, restingPositionAt, stackTopHeight } from '@shared/play/tableGeometry';
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { resetTableGraphics, TABLE_GRAPHICS_UNAVAILABLE } from '../../../widgets/tabletop/useTableGraphics';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
-import { mapViewPoint, openTab, waitForPlayCamera } from './playing.stories.fixture';
-import { factions, playingSnapshot, productTransport } from './product.stories.fixture';
+import { mapViewPoint, openTab, tablePage, waitForPlayCamera, openPieceMenu } from './playing.stories.fixture';
+import {
+  cardBack,
+  factions,
+  playingSnapshot,
+  productTransport,
+  playingSnapshot as initialSnapshot,
+} from './product.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Playing',
+  title: 'Play/Table',
 });
-async function tablePage(canvasElement: HTMLElement, phaseLabel: string = TABLE_PHASES[0].label) {
-  const page = within(canvasElement.ownerDocument.body);
-  const viewControls = await page.findByRole('group', { name: 'Table view' }, { timeout: 30_000 });
-  const document = canvasElement.ownerDocument;
-  await waitFor(
-    () => {
-      expect(viewControls).toBeVisible();
-      const canvas = document.querySelector('.dune-play-shell canvas');
-      expect(canvas).toBeVisible();
-      expect(canvas?.getBoundingClientRect().height).toBeGreaterThan(100);
-      expect(document.querySelector('[data-piece-id="treachery-deck"]')).toHaveTextContent('10');
-      expect(
-        Array.from(document.fonts).some(
-          (font) => font.family.replaceAll('"', '') === 'Dune Play Table Label' && font.status === 'loaded'
-        )
-      ).toBe(true);
-    },
-    { timeout: 30_000 }
-  );
-  const shell = document.querySelector<HTMLElement>('.dune-play-shell');
-  if (!shell) {
-    throw new Error('The Play route did not mount its table.');
-  }
-  await waitForPlayCamera(document);
-  expect(document.querySelector('[data-page-layout-height="fullscreen"]')).not.toBeNull();
-  const header = shell.querySelector('header');
-  if (!header) {
-    throw new Error('The table header is missing.');
-  }
-  /* The table runs to the top: no brand mark, only the floating phase and game chips. */
-  expect(within(header).queryByRole('img', { name: 'Dune' })).toBeNull();
-  expect(within(header).getByText(phaseLabel)).toBeVisible();
-  expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
-  expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
-  expect(page.queryByRole('link', { name: /^(Dune )?Play$/ })).toBeNull();
-  return { page, shell, document };
+
+/* A tag's placement rounds to whole pixels, so a glide that settles a hair short of the pose can land one pixel off (#1957). */
+async function expectPlacementNear(actual: string | undefined, expected: string | undefined) {
+  const parse = async (transform: string | undefined) => {
+    const match = transform?.match(/^translate3d\((-?[\d.]+)px, (-?[\d.]+)px, (-?[\d.]+)px\)(.*)$/);
+    await expect(match, `an unexpected placement: ${transform}`).toBeTruthy();
+    return { x: Number(match![1]), y: Number(match![2]), rest: `${match![3]}${match![4]}` };
+  };
+  const [got, want] = [await parse(actual), await parse(expected)];
+  await expect(Math.abs(got.x - want.x), `${actual} against ${expected}`).toBeLessThanOrEqual(1);
+  await expect(Math.abs(got.y - want.y), `${actual} against ${expected}`).toBeLessThanOrEqual(1);
+  await expect(got.rest).toBe(want.rest);
 }
 
-/* The shell opens through an iris once the renderer is ready; until then it stays closed behind the stage's status line. */
-export const OpensThroughAnIris = meta.story({
-  beforeEach: install(() => productTransport()),
-  play: async ({ canvasElement }) => {
-    const { shell, document } = await tablePage(canvasElement);
-    const view = document.defaultView!;
-    /* The runner's headless renderer may never report; the stage then opens on the fallback clock. */
-    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
-    expect(view.getComputedStyle(shell).animationName).toBe('dune-play-enter');
-    expect(within(document.body).queryByText('Opening the table...')).toBeNull();
-  },
-});
-
-/*
- * The motion verdict keeps the shell open and still, before and after the renderer is ready.
- * It also stills the shell's transitions and smooth scrolling, whatever the OS hint says.
- */
-export const OpensStill = meta.story({
-  beforeEach: install(() => productTransport()),
-  globals: { motion: 'reduce' },
-  play: async ({ canvasElement }) => {
-    const { shell, document } = await tablePage(canvasElement);
-    const view = document.defaultView!;
-    const picker = within(shell).getByRole('group', { name: 'Table view' });
-    for (const element of [shell, within(picker).getAllByRole('button')[0]!]) {
-      expect(Number.parseFloat(view.getComputedStyle(element).transitionDuration)).toBeLessThan(0.001);
-      expect(view.getComputedStyle(element).scrollBehavior).toBe('auto');
+/* Each control of the camera dial and the header's toolbar takes the pointer at its top, middle and bottom. */
+async function expectControlsTakeThePointer(shell: HTMLElement) {
+  const header = shell.querySelector('header')!;
+  const picker = within(shell).getByRole('group', { name: 'Table view' });
+  const controls = [
+    ...within(picker).getAllByRole('button'),
+    ...within(header).getAllByRole('button', { name: /^(Game menu|More phase actions|Next phase)$/ }),
+  ];
+  for (const control of controls) {
+    const box = control.getBoundingClientRect();
+    for (const y of [box.top + 2, box.top + box.height / 2, box.bottom - 2]) {
+      const hit = shell.ownerDocument.elementFromPoint(box.left + box.width / 2, y);
+      await expect(
+        control.contains(hit),
+        `${control.textContent} at ${Math.round(y)} hits ${hit?.outerHTML.slice(0, 80)}`
+      ).toBe(true);
     }
-    expect(view.getComputedStyle(shell).clipPath).toBe('none');
-    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
-    expect(view.getComputedStyle(shell).animationName).toBe('none');
-    expect(view.getComputedStyle(shell).clipPath).toBe('none');
-  },
-});
+  }
+}
 
-export const TableControls = meta.story({
+/** Where the top of the treachery deck shows on the map view. */
+function deckPoint(document: Document) {
+  const deck = playingSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+  return mapViewPoint(document, [deck.position[0], deck.position[1] + stackTopHeight(deck), deck.position[2]]);
+}
+
+function touchAt(pointerId: number, clientX: number, clientY: number) {
+  return { bubbles: true, cancelable: true, pointerId, pointerType: 'touch', isPrimary: true, clientX, clientY };
+}
+
+function theDeckShuffled() {
+  return waitFor(() =>
+    expect(lastCommand()).toMatchObject({
+      type: 'command',
+      action: { kind: 'deck-shuffle', pieceId: 'treachery-deck' },
+    })
+  );
+}
+
+/** The pointer moves to the view picker, so a pointerleave reaches the canvas and each ancestor that does not contain the picker. */
+function leaveTheCanvas(page: ReturnType<typeof within>, scene: HTMLCanvasElement, pointer: PointerEventInit) {
+  const picker = page.getByRole('group', { name: 'Table view' });
+  for (let left: Element | null = scene; left && !left.contains(picker); left = left.parentElement) {
+    left.dispatchEvent(new PointerEvent('pointerleave', { ...pointer, bubbles: false }));
+  }
+}
+
+export const Controls = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell, document } = await tablePage(canvasElement);
@@ -98,8 +92,8 @@ export const TableControls = meta.story({
     for (const view of ['left', 'right', 'bottom', 'map']) {
       const button = viewButtons.getByRole('button', { name: new RegExp(`^Focus on ${view}`) });
       await userEvent.click(button);
-      expect(button).toHaveAttribute('aria-pressed', 'true');
-      expect(shell).toHaveAttribute('data-table-view', view);
+      await expect(button).toHaveAttribute('aria-pressed', 'true');
+      await expect(shell).toHaveAttribute('data-table-view', view);
     }
 
     /* The header's controls lead the Tab order: Tab from the page start reaches the header before the separator. The pointer rests on the view buttons, not the table, so Tab moves focus instead of pinging (#2043). */
@@ -113,32 +107,32 @@ export const TableControls = meta.story({
       await userEvent.tab();
       focused = document.activeElement;
     }
-    expect(header.contains(focused), `Tab reaches ${focused?.outerHTML.slice(0, 80)} first`).toBe(true);
+    await expect(header.contains(focused), `Tab reaches ${focused?.outerHTML.slice(0, 80)} first`).toBe(true);
 
     divider.focus();
     await userEvent.keyboard('{Home}');
-    expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemin'));
+    await expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemin'));
     const minimum = Number(divider.getAttribute('aria-valuenow'));
     await userEvent.keyboard('{ArrowUp}');
-    expect(Number(divider.getAttribute('aria-valuenow'))).toBeGreaterThan(minimum);
+    await expect(Number(divider.getAttribute('aria-valuenow'))).toBeGreaterThan(minimum);
     await userEvent.keyboard('{End}');
-    expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemax'));
+    await expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemax'));
     await userEvent.tab();
 
     const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count'));
-    expect(counters.length).toBeGreaterThan(0);
+    await expect(counters.length).toBeGreaterThan(0);
     for (const counter of counters) {
-      expect(counter).not.toBeVisible();
+      await expect(counter).not.toBeVisible();
     }
     await userEvent.keyboard('{Alt>}');
-    expect(shell).toHaveAttribute('data-show-counts', 'true');
+    await expect(shell).toHaveAttribute('data-show-counts', 'true');
     for (const counter of counters) {
-      expect(counter).toBeVisible();
+      await expect(counter).toBeVisible();
     }
     window.dispatchEvent(new Event('blur'));
     await waitFor(() => expect(shell).toHaveAttribute('data-show-counts', 'false'));
     for (const counter of counters) {
-      expect(counter).not.toBeVisible();
+      await expect(counter).not.toBeVisible();
     }
     await userEvent.keyboard('{/Alt}');
   },
@@ -166,31 +160,31 @@ export const PieceNames = meta.story({
     const deckName = nameOf('treachery-deck');
     const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count'));
 
-    expect(troopName).not.toBeVisible();
+    await expect(troopName).not.toBeVisible();
     await user.keyboard('{Control>}');
-    expect(shell).toHaveAttribute('data-show-names', 'true');
-    expect(shell).toHaveAttribute('data-show-counts', 'false');
-    expect(troopName).toBeVisible();
-    expect(within(troopName).getByText(troop.label)).toBeVisible();
-    expect(within(troopName).getByText(factions[0]!.data.name)).toBeVisible();
-    expect(deckName).toBeVisible();
-    expect(deckName.querySelector('.scene-piece-name__owner')).toBeNull();
+    await expect(shell).toHaveAttribute('data-show-names', 'true');
+    await expect(shell).toHaveAttribute('data-show-counts', 'false');
+    await expect(troopName).toBeVisible();
+    await expect(within(troopName).getByText(troop.label)).toBeVisible();
+    await expect(within(troopName).getByText(factions[0]!.data.name)).toBeVisible();
+    await expect(deckName).toBeVisible();
+    await expect(deckName.querySelector('.scene-piece-name__owner')).toBeNull();
     /* Control shows names only: the counts wait for Alt, and holding both shows both. */
     for (const counter of counters) {
-      expect(counter).not.toBeVisible();
+      await expect(counter).not.toBeVisible();
     }
     await user.keyboard('{Alt>}');
-    expect(shell).toHaveAttribute('data-show-counts', 'true');
-    expect(troopName).toBeVisible();
-    expect(counters[0]).toBeVisible();
+    await expect(shell).toHaveAttribute('data-show-counts', 'true');
+    await expect(troopName).toBeVisible();
+    await expect(counters[0]).toBeVisible();
     await user.keyboard('{/Alt}');
-    expect(counters[0]).not.toBeVisible();
-    expect(troopName).toBeVisible();
+    await expect(counters[0]).not.toBeVisible();
+    await expect(troopName).toBeVisible();
 
     await user.keyboard('{/Control}');
-    expect(shell).toHaveAttribute('data-show-names', 'false');
-    expect(troopName).not.toBeVisible();
-    expect(deckName).not.toBeVisible();
+    await expect(shell).toHaveAttribute('data-show-names', 'false');
+    await expect(troopName).not.toBeVisible();
+    await expect(deckName).not.toBeVisible();
   },
 });
 
@@ -202,34 +196,84 @@ export const SettingsKeepLabelsOn = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
     const counts = await page.findByRole('menuitemcheckbox', { name: /^Stack counts/ });
     const names = page.getByRole('menuitemcheckbox', { name: /^Piece names/ });
-    expect(shell).toHaveAttribute('data-show-counts', 'false');
-    expect(shell).toHaveAttribute('data-show-names', 'false');
+    await expect(shell).toHaveAttribute('data-show-counts', 'false');
+    await expect(shell).toHaveAttribute('data-show-names', 'false');
 
     /* Each toggle leaves the menu open, so both labels can be set in one visit. */
     await userEvent.click(counts);
-    expect(counts).toHaveAttribute('aria-checked', 'true');
-    expect(shell).toHaveAttribute('data-show-counts', 'true');
+    await expect(counts).toHaveAttribute('aria-checked', 'true');
+    await expect(shell).toHaveAttribute('data-show-counts', 'true');
     await userEvent.click(names);
-    expect(shell).toHaveAttribute('data-show-names', 'true');
+    await expect(shell).toHaveAttribute('data-show-names', 'true');
     await userEvent.click(counts);
-    expect(counts).toHaveAttribute('aria-checked', 'false');
-    expect(shell).toHaveAttribute('data-show-counts', 'false');
-    expect(shell).toHaveAttribute('data-show-names', 'true');
+    await expect(counts).toHaveAttribute('aria-checked', 'false');
+    await expect(shell).toHaveAttribute('data-show-counts', 'false');
+    await expect(shell).toHaveAttribute('data-show-names', 'true');
   },
 });
 
-/* A tag's placement rounds to whole pixels, so a glide that settles a hair short of the pose can land one pixel off (#1957). */
-function expectPlacementNear(actual: string | undefined, expected: string | undefined) {
-  const parse = (transform: string | undefined) => {
-    const match = transform?.match(/^translate3d\((-?[\d.]+)px, (-?[\d.]+)px, (-?[\d.]+)px\)(.*)$/);
-    expect(match, `an unexpected placement: ${transform}`).toBeTruthy();
-    return { x: Number(match![1]), y: Number(match![2]), rest: `${match![3]}${match![4]}` };
-  };
-  const [got, want] = [parse(actual), parse(expected)];
-  expect(Math.abs(got.x - want.x), `${actual} against ${expected}`).toBeLessThanOrEqual(1);
-  expect(Math.abs(got.y - want.y), `${actual} against ${expected}`).toBeLessThanOrEqual(1);
-  expect(got.rest).toBe(want.rest);
+/* The pieces the eight shared slots hold, in slot order: the published traitor deck, a treachery deck, a card and five tokens. */
+function sharedSlotPieces(snapshot: ReturnType<typeof playingSnapshot>) {
+  const cards = snapshot.table.pieces.filter((piece) => piece.kind === 'card');
+  const troops = snapshot.table.pieces.filter((piece) => piece.kind === 'force' && !piece.inventory).slice(0, 5);
+  return [...cards, ...troops];
 }
+
+export const SharedItemSlots = meta.story({
+  beforeEach: install(() => {
+    const snapshot = playingSnapshot();
+    sharedSlotPieces(snapshot).forEach((piece, index) => {
+      piece.orientation = 0;
+      piece.position = restingPositionAt(SHARED_ITEM_PLACEMENT_ANCHORS[index]!.position, piece);
+      piece.zoneId = null;
+    });
+    return productTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const { page, shell, document } = await tablePage(canvasElement);
+    await userEvent.click(page.getByRole('button', { name: /^Focus on bottom/ }));
+    await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'bottom'));
+    await waitForPlayCamera(document);
+    /* The scene mounts a count tag for every piece it draws, so each of the eight slots' pieces is on the table. */
+    const pieces = sharedSlotPieces(playingSnapshot());
+    await expect(pieces).toHaveLength(SHARED_ITEM_PLACEMENT_ANCHORS.length);
+    for (const { id } of pieces) {
+      await waitFor(() => expect(shell.querySelector(`[data-piece-id="${id}"]`)).toBeInTheDocument());
+    }
+    /* The slots are two rows of four along the bottom edge: each row's tags run left to right in slot order, and the second row sits nearer the viewer. */
+    const centers = pieces.map(({ id }) => {
+      const rect = shell.querySelector(`[data-piece-id="${id}"]`)!.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    });
+    const [far, near] = [centers.slice(0, 4), centers.slice(4)];
+    for (const row of [far, near]) {
+      for (let slot = 1; slot < row.length; slot += 1) {
+        await expect(row[slot]!.x).toBeGreaterThan(row[slot - 1]!.x);
+      }
+    }
+    await expect(Math.min(...near.map(({ y }) => y))).toBeGreaterThan(Math.max(...far.map(({ y }) => y)));
+  },
+});
+
+/** A spice stack's menu announces itself as spice actions; Play/Panels/Layout/SchemeIsland covers the deck's. */
+export const SpiceMenuName = meta.story({
+  beforeEach: install(() => {
+    const snapshot = initialSnapshot();
+    snapshot.table.pieces.push(createSpiceStack(snapshot.table.nextEventNumber, 3));
+    return productTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const spice = createSpiceStack(initialSnapshot().table.nextEventNumber, 3);
+    await waitFor(() => expect(document.querySelector('[data-scene-ready="true"] canvas')).not.toBeNull(), {
+      timeout: 30_000,
+    });
+    const menu = await openPieceMenu(document, spice, 'Spice actions');
+    await expect(within(menu).getByRole('menuitem', { name: 'Take into spice reserve' })).toBeEnabled();
+    await userEvent.keyboard('{Escape}');
+    await waitForFrame(() => expect(within(document.body).queryByRole('menu')).toBeNull());
+  },
+});
 
 /* The wheel over the board moves in for a close look and backs out to the view's own pose; Ctrl with the wheel stays the browser's zoom. */
 export const WheelTakesACloseLook = meta.story({
@@ -255,16 +299,16 @@ export const WheelTakesACloseLook = meta.story({
     };
     /* The tag is placed on a frame, so on a runner whose frames run seconds late the view's pose is read once a frame passes without moving it. */
     let previous = deckPlacement();
-    const approved = await waitForFrame(() => {
+    const approved = await waitForFrame(async () => {
       const placement = deckPlacement();
       const settled = placement === previous;
       previous = placement;
-      expect(settled && placement && !placement.includes('-9999px')).toBe(true);
+      await expect(settled && placement && !placement.includes('-9999px')).toBe(true);
       return placement!;
     });
 
-    expect(turnWheel(300, true)).toBe(false);
-    expect(turnWheel(300)).toBe(true);
+    await expect(turnWheel(300, true)).toBe(false);
+    await expect(turnWheel(300)).toBe(true);
     await waitForFrame(() => expect(deckPlacement()).not.toBe(approved));
     const closer = deckPlacement();
     turnWheel(300);
@@ -278,7 +322,7 @@ export const WheelTakesACloseLook = meta.story({
     await waitForFrame(() => expectPlacementNear(deckPlacement(), approved));
     turnWheel(-600);
     await new Promise((resolve) => setTimeout(resolve, 100));
-    expectPlacementNear(deckPlacement(), approved);
+    await expectPlacementNear(deckPlacement(), approved);
   },
 });
 
@@ -306,121 +350,13 @@ export const TwoFingersTiltTheCamera = meta.story({
       window.dispatchEvent(finger('pointerup', 12, x + 40, toY));
     };
     const approved = deckPlacement();
-    expect(approved).toBeTruthy();
+    await expect(approved).toBeTruthy();
 
     drag(box.bottom - 10, box.bottom - 10 - 600);
     await waitFor(() => expect(deckPlacement()).not.toBe(approved));
     drag(box.bottom - 10 - 600, box.bottom - 10);
     await waitFor(() => expect(deckPlacement()).toBe(approved));
   },
-});
-
-/**
- * On a short window the dock keeps its floor by growing up over the scene, to above the header's lower edge.
- * The header and the camera dial still paint above it there, so each of their controls takes the pointer at its top, middle and bottom.
- */
-export const ShortWindow = meta.story({
-  /* Still, so no iris clips the corners the controls sit in. */
-  globals: { viewport: { value: 'appShort' }, motion: 'reduce' },
-  beforeEach: install(() => productTransport()),
-  play: async ({ canvasElement }) => {
-    const { shell } = await tablePage(canvasElement);
-    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
-    const header = shell.querySelector('header')!;
-    const dock = shell.querySelector('.seated-controls-panel')!;
-    expect(dock.getBoundingClientRect().top).toBeLessThan(header.getBoundingClientRect().bottom);
-    /* The dock grows up over the scene here, so the fixed split draws no separator across it. */
-    expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).not.toBeVisible();
-    expectControlsTakeThePointer(shell);
-  },
-});
-
-/* Just above the height where the split is fixed, the scene above the dock is shorter than the dial: it slides down over the dock rather than under the header's chips. */
-export const LowWindow = meta.story({
-  globals: { viewport: { value: 'appLow' }, motion: 'reduce' },
-  beforeEach: install(() => productTransport()),
-  play: async ({ canvasElement }) => {
-    const { shell } = await tablePage(canvasElement);
-    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
-    expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).toBeVisible();
-    expectControlsTakeThePointer(shell);
-    /* Docked, the dial keeps a column of its own: the panes beside it stay clear of it. */
-    const camera = shell.querySelector('.seated-camera')!.getBoundingClientRect();
-    for (const pane of shell.querySelectorAll('.seated-controls-panel > :not(.seated-camera)')) {
-      expect(pane.getBoundingClientRect().right, `${pane.className} runs under the dial`).toBeLessThanOrEqual(
-        camera.left
-      );
-    }
-  },
-});
-
-/* Each control of the camera dial and the header's toolbar takes the pointer at its top, middle and bottom. */
-function expectControlsTakeThePointer(shell: HTMLElement) {
-  const header = shell.querySelector('header')!;
-  const picker = within(shell).getByRole('group', { name: 'Table view' });
-  const controls = [
-    ...within(picker).getAllByRole('button'),
-    ...within(header).getAllByRole('button', { name: /^(Game menu|More phase actions|Next phase)$/ }),
-  ];
-  for (const control of controls) {
-    const box = control.getBoundingClientRect();
-    for (const y of [box.top + 2, box.top + box.height / 2, box.bottom - 2]) {
-      const hit = shell.ownerDocument.elementFromPoint(box.left + box.width / 2, y);
-      expect(
-        control.contains(hit),
-        `${control.textContent} at ${Math.round(y)} hits ${hit?.outerHTML.slice(0, 80)}`
-      ).toBe(true);
-    }
-  }
-}
-
-/* Takes WebGL2 away and puts `gpu` in place of the browser's WebGPU, then restores both and the probe's answer. */
-const withoutGraphics = (gpu: unknown) => () => {
-  resetTableGraphics();
-  const getContext = HTMLCanvasElement.prototype.getContext;
-  HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
-    return kind === 'webgl2' ? null : Reflect.apply(getContext, this, [kind, ...rest]);
-  } as HTMLCanvasElement['getContext'];
-  Object.defineProperty(navigator, 'gpu', { configurable: true, value: gpu });
-  const uninstall = install(() => productTransport())();
-  return () => {
-    uninstall();
-    HTMLCanvasElement.prototype.getContext = getContext;
-    Reflect.deleteProperty(navigator, 'gpu');
-    resetTableGraphics();
-  };
-};
-
-async function expectGraphicsMessage(canvasElement: HTMLElement) {
-  const page = within(canvasElement.ownerDocument.body);
-  const message = await page.findByRole('alert', {}, { timeout: 30_000 });
-  expect(message).toHaveTextContent(TABLE_GRAPHICS_UNAVAILABLE);
-  const shell = canvasElement.ownerDocument.querySelector<HTMLElement>('.dune-play-shell')!;
-  await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'));
-  expect(shell.querySelector('canvas')).toBeNull();
-  expect(page.getByRole('button', { name: 'Game menu' })).toBeVisible();
-  expect(page.queryByText('Something went wrong!')).toBeNull();
-}
-
-/* A browser with neither WebGPU nor WebGL2 reads why the table is missing, and the shell around it still opens. */
-export const WithoutGraphics = meta.story({
-  beforeEach: withoutGraphics(undefined),
-  play: async ({ canvasElement }) => expectGraphicsMessage(canvasElement),
-});
-
-/* An adapter that answers but refuses its device sends the renderer to WebGL2, which is missing too; its failed start reads the same. */
-export const WithoutGraphicsDevice = meta.story({
-  beforeEach: withoutGraphics({
-    requestAdapter: async () => ({
-      features: new Set(),
-      limits: {},
-      requestDevice: async () => {
-        throw new Error('The story refuses the device.');
-      },
-    }),
-    getPreferredCanvasFormat: () => 'bgra8unorm',
-  }),
-  play: async ({ canvasElement }) => expectGraphicsMessage(canvasElement),
 });
 
 /**
@@ -432,19 +368,19 @@ export const PhaseViews = meta.story({
   play: async ({ canvasElement }) => {
     const { page, shell } = await tablePage(canvasElement, TABLE_PHASES[1].label);
     const views = within(page.getByRole('group', { name: 'Table view' }));
-    expect(views.getByRole('button', { name: 'Focus on right, recommended for this phase' })).toHaveAttribute(
+    await expect(views.getByRole('button', { name: 'Focus on right, recommended for this phase' })).toHaveAttribute(
       'aria-pressed',
       'false'
     );
-    expect(shell).toHaveAttribute('data-table-view', 'map');
+    await expect(shell).toHaveAttribute('data-table-view', 'map');
 
     session.transport.deliver(session.transport.view({ ...playingSnapshot(), phase: 2, revision: 1 }));
     await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'bottom'));
-    expect(views.getByRole('button', { name: 'Focus on bottom, recommended for this phase' })).toHaveAttribute(
+    await expect(views.getByRole('button', { name: 'Focus on bottom, recommended for this phase' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
-    expect(views.getByRole('button', { name: 'Focus on right' })).toHaveAttribute('aria-pressed', 'false');
+    await expect(views.getByRole('button', { name: 'Focus on right' })).toHaveAttribute('aria-pressed', 'false');
   },
 });
 
@@ -465,12 +401,12 @@ export const PhaseViewWaitsForTheDrop = meta.story({
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 0, clientY };
     await waitFor(
-      () => {
+      async () => {
         if (scene.style.cursor !== 'grabbing') {
           scene.dispatchEvent(new PointerEvent('pointerdown', { ...pointer, clientX, buttons: 1 }));
           scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 24, buttons: 1 }));
         }
-        expect(scene.style.cursor).toBe('grabbing');
+        await expect(scene.style.cursor).toBe('grabbing');
       },
       { timeout: 30_000 }
     );
@@ -480,11 +416,50 @@ export const PhaseViewWaitsForTheDrop = meta.story({
     await waitFor(() =>
       expect(views.getByRole('button', { name: 'Focus on right, recommended for this phase' })).toBeInTheDocument()
     );
-    expect(shell).toHaveAttribute('data-table-view', 'map');
-    expect(scene.style.cursor).toBe('grabbing');
+    await expect(shell).toHaveAttribute('data-table-view', 'map');
+    await expect(scene.style.cursor).toBe('grabbing');
 
     scene.dispatchEvent(new PointerEvent('pointerup', { ...pointer, clientX: clientX + 24, buttons: 0 }));
     await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'right'));
+  },
+});
+
+/**
+ * On a short window the dock keeps its floor by growing up over the scene, to above the header's lower edge.
+ * The header and the camera dial still paint above it there, so each of their controls takes the pointer at its top, middle and bottom.
+ */
+export const ShortWindow = meta.story({
+  /* Still, so no iris clips the corners the controls sit in. */
+  globals: { viewport: { value: 'appShort' }, motion: 'reduce' },
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { shell } = await tablePage(canvasElement);
+    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
+    const header = shell.querySelector('header')!;
+    const dock = shell.querySelector('.seated-controls-panel')!;
+    await expect(dock.getBoundingClientRect().top).toBeLessThan(header.getBoundingClientRect().bottom);
+    /* The dock grows up over the scene here, so the fixed split draws no separator across it. */
+    await expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).not.toBeVisible();
+    await expectControlsTakeThePointer(shell);
+  },
+});
+
+/* Just above the height where the split is fixed, the scene above the dock is shorter than the dial: it slides down over the dock rather than under the header's chips. */
+export const LowWindow = meta.story({
+  globals: { viewport: { value: 'appLow' }, motion: 'reduce' },
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { shell } = await tablePage(canvasElement);
+    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
+    await expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).toBeVisible();
+    await expectControlsTakeThePointer(shell);
+    /* Docked, the dial keeps a column of its own: the panes beside it stay clear of it. */
+    const camera = shell.querySelector('.seated-camera')!.getBoundingClientRect();
+    for (const pane of shell.querySelectorAll('.seated-controls-panel > :not(.seated-camera)')) {
+      await expect(pane.getBoundingClientRect().right, `${pane.className} runs under the dial`).toBeLessThanOrEqual(
+        camera.left
+      );
+    }
   },
 });
 
@@ -501,9 +476,9 @@ export const SpiceDiscAnswersOnReturn = meta.story({
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
     await waitFor(
-      () => {
+      async () => {
         scene.dispatchEvent(new PointerEvent('pointermove', pointer));
-        expect(scene.style.cursor).toBe('pointer');
+        await expect(scene.style.cursor).toBe('pointer');
       },
       { timeout: 30_000 }
     );
@@ -533,9 +508,9 @@ export const DeckShortcutsEndOffTheTable = meta.story({
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
     const hoverTheDeck = (offset: number) =>
       waitFor(
-        () => {
+        async () => {
           scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + offset }));
-          expect(scene.style.cursor).toBe('grab');
+          await expect(scene.style.cursor).toBe('grab');
         },
         { timeout: 30_000 }
       );
@@ -546,17 +521,61 @@ export const DeckShortcutsEndOffTheTable = meta.story({
     await waitFor(() => expect(scene.style.cursor).toBe('default'));
     const before = commands();
     await userEvent.keyboard('r');
-    expect(commands()).toBe(before);
+    await expect(commands()).toBe(before);
 
     await hoverTheDeck(1);
     document.defaultView!.dispatchEvent(new FocusEvent('blur'));
     await waitFor(() => expect(scene.style.cursor).toBe('default'));
     await userEvent.keyboard('r');
-    expect(commands()).toBe(before);
+    await expect(commands()).toBe(before);
 
     await hoverTheDeck(2);
     await userEvent.keyboard('r');
     await theDeckShuffled();
+  },
+});
+
+/**
+ * A canvas leave ends the disc's hover while the viewer cannot act, too.
+ * The pointer rests on the disc when playback starts and leaves the canvas during playback, so after Return to live the number keys send nothing until the pointer is back on the disc.
+ */
+export const SpiceDiscForgetsAPlaybackHover = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    await openTab(page, 'Replay');
+    const slot = spiceBankSlot();
+    const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
+    const scene = document.querySelector('canvas')!;
+    const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
+    await waitFor(
+      async () => {
+        scene.dispatchEvent(new PointerEvent('pointermove', pointer));
+        await expect(scene.style.cursor).toBe('pointer');
+      },
+      { timeout: 30_000 }
+    );
+
+    await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
+    session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: playingSnapshot() });
+    await waitFor(async () => {
+      await expect(page.getByRole('button', { name: 'Earlier phase' })).toBeVisible();
+      await expect(scene.style.cursor).toBe('default');
+    });
+    leaveTheCanvas(page, scene, pointer);
+
+    await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
+    await userEvent.keyboard('3');
+    await expect(scene.style.cursor).toBe('default');
+    await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
+
+    scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 1 }));
+    await waitFor(() => expect(scene.style.cursor).toBe('pointer'));
+    await userEvent.keyboard('3');
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 3 } })
+    );
   },
 });
 
@@ -585,7 +604,10 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
       async () => {
         tap(deckOnScreen);
         await userEvent.keyboard('l');
-        expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'lock', pieceId: 'treachery-deck' } });
+        await expect(lastCommand()).toMatchObject({
+          type: 'command',
+          action: { kind: 'lock', pieceId: 'treachery-deck' },
+        });
       },
       { timeout: 30_000 }
     );
@@ -593,7 +615,7 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
     tap(boardPoint);
     const before = commands();
     await userEvent.keyboard('l');
-    expect(commands()).toBe(before);
+    await expect(commands()).toBe(before);
   },
 });
 
@@ -625,7 +647,10 @@ export const TapJitterLeavesNoHover = meta.story({
       async () => {
         tap(deckOnScreen, 2);
         await userEvent.keyboard('l');
-        expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'lock', pieceId: 'treachery-deck' } });
+        await expect(lastCommand()).toMatchObject({
+          type: 'command',
+          action: { kind: 'lock', pieceId: 'treachery-deck' },
+        });
       },
       { timeout: 30_000 }
     );
@@ -633,7 +658,7 @@ export const TapJitterLeavesNoHover = meta.story({
     tap(boardPoint, 0);
     const before = commands();
     await userEvent.keyboard('l');
-    expect(commands()).toBe(before);
+    await expect(commands()).toBe(before);
   },
 });
 
@@ -665,146 +690,33 @@ export const LongPressOnTheDeckOpensItsMenu = meta.story({
   },
 });
 
-/** Where the top of the treachery deck shows on the map view. */
-function deckPoint(document: Document) {
-  const deck = playingSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
-  return mapViewPoint(document, [deck.position[0], deck.position[1] + stackTopHeight(deck), deck.position[2]]);
-}
+const READABLE_CARDS: [string, string][] = [
+  ['Snooper', '/play-fixtures/dreamrules/snooper.jpg'],
+  ['Broken Land', '/play-fixtures/dreamrules/broken-land.jpg'],
+  ['Atreides Traitor', '/play-fixtures/product/house-atreides-traitor-0.jpg'],
+  ['Atreides Traitor', '/play-fixtures/product/house-atreides-traitor-1.jpg'],
+  ['Harkonnen Traitor', '/play-fixtures/product/house-harkonnen-traitor-0.jpg'],
+];
 
-function touchAt(pointerId: number, clientX: number, clientY: number) {
-  return { bubbles: true, cancelable: true, pointerId, pointerType: 'touch', isPrimary: true, clientX, clientY };
-}
-
-function theDeckShuffled() {
-  return waitFor(() =>
-    expect(lastCommand()).toMatchObject({
-      type: 'command',
-      action: { kind: 'deck-shuffle', pieceId: 'treachery-deck' },
-    })
-  );
-}
-
-/** The pointer moves to the view picker, so a pointerleave reaches the canvas and each ancestor that does not contain the picker. */
-function leaveTheCanvas(page: ReturnType<typeof within>, scene: HTMLCanvasElement, pointer: PointerEventInit) {
-  const picker = page.getByRole('group', { name: 'Table view' });
-  for (let left: Element | null = scene; left && !left.contains(picker); left = left.parentElement) {
-    left.dispatchEvent(new PointerEvent('pointerleave', { ...pointer, bubbles: false }));
-  }
-}
-
-/**
- * A canvas leave ends the disc's hover while the viewer cannot act, too.
- * The pointer rests on the disc when playback starts and leaves the canvas during playback, so after Return to live the number keys send nothing until the pointer is back on the disc.
- */
-export const SpiceDiscForgetsAPlaybackHover = meta.story({
-  beforeEach: install(() => productTransport()),
-  play: async ({ canvasElement }) => {
-    const { page, document } = await tablePage(canvasElement);
-    await openTab(page, 'Replay');
-    const slot = spiceBankSlot();
-    const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
-    const scene = document.querySelector('canvas')!;
-    const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
-    await waitFor(
-      () => {
-        scene.dispatchEvent(new PointerEvent('pointermove', pointer));
-        expect(scene.style.cursor).toBe('pointer');
-      },
-      { timeout: 30_000 }
+/* Cards with small print face up in the left card bay: their table faces are scaled to 512 px, which read sharper than the published size in a blind comparison. */
+function readableCardsSnapshot() {
+  const snapshot = playingSnapshot('seat-2');
+  READABLE_CARDS.forEach(([name, path], index) => {
+    const front = new URL(path, location.origin).href;
+    snapshot.table.pieces.push(
+      place(
+        {
+          ...piece(`readable-card-${index}`, name, 'shared', '#ad8a45', 'card', `readable:${index}`),
+          items: [item(`readable-item-${index}`, name, front, cardBack(), 'card-treachery', true, 'Treachery')],
+        },
+        cardBaySlotPositions('left')[index]!
+      )
     );
+  });
+  snapshot.versions = Object.fromEntries(snapshot.table.pieces.map((entry) => [entry.id, snapshot.revision]));
+  return snapshot;
+}
 
-    await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
-    session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: playingSnapshot() });
-    await waitFor(() => {
-      expect(page.getByRole('button', { name: 'Earlier phase' })).toBeVisible();
-      expect(scene.style.cursor).toBe('default');
-    });
-    leaveTheCanvas(page, scene, pointer);
-
-    await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
-    await waitFor(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
-    await userEvent.keyboard('3');
-    expect(scene.style.cursor).toBe('default');
-    expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
-
-    scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 1 }));
-    await waitFor(() => expect(scene.style.cursor).toBe('pointer'));
-    await userEvent.keyboard('3');
-    await waitFor(() =>
-      expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 3 } })
-    );
-  },
-});
-
-/* The table canvases' WebGL2 contexts, in the order the renderer created them. */
-const tableContexts: { context: WebGL2RenderingContext; canvas: HTMLCanvasElement }[] = [];
-
-/* Records every WebGL2 context the table creates, then restores the browser's own lookup. */
-const recordTableContexts = () => {
-  tableContexts.length = 0;
-  const getContext = HTMLCanvasElement.prototype.getContext;
-  HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
-    const context = Reflect.apply(getContext, this, [kind, ...rest]);
-    if (kind === 'webgl2' && context && this.closest('.dune-play-shell')) {
-      if (!tableContexts.some((entry) => entry.context === context)) {
-        tableContexts.push({ context, canvas: this });
-      }
-    }
-    return context;
-  } as HTMLCanvasElement['getContext'];
-  const uninstall = install(() => productTransport())();
-  return () => {
-    uninstall();
-    HTMLCanvasElement.prototype.getContext = getContext;
-  };
-};
-
-/* A dropped socket keeps the table's renderer, since the locked table stays on screen through the reconnect; a table that leaves the page, as it does on a refusal, frees its renderer instead of holding a WebGL context per remount until the browser runs out of them. */
-export const ReleasesItsRendererOnRemount = meta.story({
-  beforeEach: recordTableContexts,
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await tablePage(canvasElement);
-    const first = await waitFor(
-      () => {
-        expect(tableContexts[0]).toBeDefined();
-        return tableContexts[0]!;
-      },
-      { timeout: 30_000 }
-    );
-    session.transport.disconnect();
-    await page.findByRole('status', { name: /^Reconnecting\./ });
-    expect(first.canvas.isConnected).toBe(true);
-    await waitFor(() => expect(page.queryByRole('status', { name: /^Reconnecting\./ })).toBeNull(), {
-      timeout: 30_000,
-    });
-    await tablePage(canvasElement);
-    expect(tableContexts.at(-1)).toBe(first);
-    expect(first.context.isContextLost()).toBe(false);
-
-    session.transport.deliver({ type: 'admission', status: 'denied' });
-    await waitFor(() => expect(first.canvas.isConnected).toBe(false), { timeout: 30_000 });
-    await waitFor(() => expect(first.context.isContextLost()).toBe(true), { timeout: 5000 });
-  },
-});
-
-/* Eight shared slots holding the published traitor deck, a treachery deck, a card and five tokens. */
-export const SharedItemSlots = meta.story({
-  beforeEach: install(() => {
-    const snapshot = playingSnapshot();
-    const cards = snapshot.table.pieces.filter((piece) => piece.kind === 'card');
-    const troops = snapshot.table.pieces.filter((piece) => piece.kind === 'force' && !piece.inventory).slice(0, 5);
-    [...cards, ...troops].forEach((piece, index) => {
-      piece.orientation = 0;
-      piece.position = restingPositionAt(SHARED_ITEM_PLACEMENT_ANCHORS[index]!.position, piece);
-      piece.zoneId = null;
-    });
-    return productTransport('seat-2', snapshot);
-  }),
-  play: async ({ canvasElement }) => {
-    const { page, shell, document } = await tablePage(canvasElement);
-    await userEvent.click(page.getByRole('button', { name: /^Focus on bottom/ }));
-    await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'bottom'));
-    await waitForPlayCamera(document);
-  },
+export const ReadableCards = meta.story({
+  beforeEach: install(() => productTransport('seat-2', readableCardsSnapshot())),
 });

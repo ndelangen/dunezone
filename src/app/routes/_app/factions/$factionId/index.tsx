@@ -1,5 +1,6 @@
 import { Alert, Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
+import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
 import type { TroopFaceBattleValues } from '@shared/factions/troopBattle';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
@@ -67,7 +68,7 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
       pathname: `/factions/${encodeURIComponent(loaderData?.faction.slug ?? params.factionId)}`,
       description: loaderData
         ? publicDescription(loaderData.faction.data.rules.advantages[0]?.text) ||
-          `${loaderData.faction.data.name} is a custom faction for Dune${loaderData.owner?.username ? ` by ${loaderData.owner.username}` : ''}, with its rules, leaders and troops.`
+          'Read its rules, leaders and troops, and print its faction sheet.'
         : '',
       image: loaderData ? publishedHref('faction-token', loaderData.faction._id, loaderData.faction.updated_at) : null,
       social: { shape: 'round' },
@@ -361,6 +362,23 @@ function FactionAdvantages({ advantages }: { advantages: FactionData['rules']['a
   );
 }
 
+function FactionSpecialRule({ rule }: { rule: FactionData['rules']['fate'] }) {
+  return (
+    <Card
+      icon={<TopicIcon topic={rule.label === 'fate' ? 'fate' : 'karama'} size={20} />}
+      title={factionSpecialRuleLabel(rule.label)}
+    >
+      {rule.title ? (
+        <Section title={rule.title}>
+          <FormattedTextSource source={rule.text} size="sm" />
+        </Section>
+      ) : (
+        <FormattedTextSource source={rule.text} size="sm" />
+      )}
+    </Card>
+  );
+}
+
 function FactionDetailPage() {
   const { factionId } = Route.useParams();
   const loaderData = Route.useLoaderData();
@@ -575,9 +593,7 @@ function FactionDetailContent({
                 <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">
                   <FormattedTextSource source={data.rules.alliance.text} size="sm" />
                 </Card>
-                <Card icon={<TopicIcon topic="fate" size={20} />} title={data.rules.fate.title || 'Fate'}>
-                  <FormattedTextSource source={data.rules.fate.text} size="sm" />
-                </Card>
+                <FactionSpecialRule rule={data.rules.fate} />
               </SimpleGrid>
             </Stack>
           </Box>

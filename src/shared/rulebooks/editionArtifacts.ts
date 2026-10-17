@@ -38,6 +38,8 @@ function assertRulebookId(rulebookId: string) {
  *
  * These paths sit under `/published/` but deliberately do not go through `PUBLICATION_TARGETS`.
  * That registry serves one file per collection under a cache token that changes on every publish, which is the opposite of what «Define the Rulebook publication lifecycle» accepted for Editions: a permanent URL that a rename never moves, `X-Robots-Tag: noindex` on every Edition-specific response, and one canonical latest-ready pointer beside them.
+ * The newest ready Edition's PDF has since been let into search, since there is no PDF pointer for it to defer to;
+ * earlier Editions keep `noindex`.
  *
  * The consequence is a handover, not a free choice.
  * `handlePublicAssetRequest` runs first in the publisher Worker and claims the whole `/published/` namespace, returning 404 for every path `matchPublishedPath` does not recognize, and it cannot recognize these.

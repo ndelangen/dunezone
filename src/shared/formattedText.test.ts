@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vite-plus/test';
 
 import type { NormalizedFormattedText } from './formattedText';
 import {
@@ -405,7 +405,7 @@ describe('formatted-text core', () => {
       const inner = Array.from({ length: 1 + next(3) }, () =>
         depth > 0 && next(2) === 0 ? wrap(depth - 1) : words[next(words.length)]
       ).join('');
-      return `${run}${inner}${[...run].reverse().join('')}`;
+      return `${run}${inner}${Array.from(run).reverse().join('')}`;
     };
     const piece = (): string => {
       switch (next(profile === 'prose' ? 6 : 4)) {

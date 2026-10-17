@@ -7,9 +7,13 @@ import {
   Color,
   ConeGeometry,
   CylinderGeometry,
+  ExtrudeGeometry,
   PlaneGeometry,
   RingGeometry,
+  ShapeGeometry,
 } from 'three';
+
+import { createRoundedRectangleShape } from './tablePlateGeometry';
 
 /*
  * The table shares its repeated shapes: a late-game table drew some 400 meshes, each with a geometry of its own, so
@@ -37,6 +41,28 @@ function sharedMeshes() {
     box: (width: number, height: number, depth: number) =>
       cached(`box:${width}:${height}:${depth}`, () => new BoxGeometry(width, height, depth)),
     plane: (width = 1, height = 1) => cached(`plane:${width}:${height}`, () => new PlaneGeometry(width, height)),
+    /* A flat rounded rectangle whose image coordinates span it edge to edge, like `plane`'s, so card art fills it. */
+    roundedPlane: (width: number, height: number, radius: number) =>
+      cached(`rounded-plane:${width}:${height}:${radius}`, () => {
+        const geometry = new ShapeGeometry(createRoundedRectangleShape(width, height, radius), 4);
+        const position = geometry.attributes.position;
+        const uv = geometry.attributes.uv;
+        for (let index = 0; index < uv.count; index++) {
+          uv.setXY(index, position.getX(index) / width + 0.5, position.getY(index) / height + 0.5);
+        }
+        return geometry;
+      }),
+    /* A rounded slab standing like `box`: `height` is its thickness along y, centred on the origin. */
+    roundedSlab: (width: number, height: number, depth: number, radius: number) =>
+      cached(`rounded-slab:${width}:${height}:${depth}:${radius}`, () =>
+        new ExtrudeGeometry(createRoundedRectangleShape(width, depth, radius), {
+          depth: height,
+          bevelEnabled: false,
+          curveSegments: 4,
+        })
+          .translate(0, 0, -height / 2)
+          .rotateX(-Math.PI / 2)
+      ),
     circle: (radius: number, segments: number) =>
       cached(`circle:${radius}:${segments}`, () => new CircleGeometry(radius, segments)),
     ring: (inner: number, outer: number, segments: number) =>

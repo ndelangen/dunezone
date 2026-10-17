@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { publishedR2Key } from '../../src/shared/asset-publishing/publicationTargets';
 import type { AssignedPublicationJob } from './convex';

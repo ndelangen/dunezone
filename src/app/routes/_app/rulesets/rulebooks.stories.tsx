@@ -7,10 +7,10 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { SEED_REF_TOKEN, db } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
+import { expectWithinWidth } from '../../pagePlay';
 import {
   rulebooksMeta,
   withFailedRulebookPreview,
-  withPublishedRulebooks,
   withRulebooks,
   withSizedRulebooks,
 } from './rulebooks.stories.fixture';
@@ -22,6 +22,13 @@ const meta = preview.meta({
 
 function withManyRulebooks(baseline: StorybookDatabase) {
   return withRulebooks(baseline, ['Rules', 'Quick reference', 'Deleted Rulebook', 'Battle reference', 'Appendices']);
+}
+
+/** The Rulebook cards once the list has loaded. */
+async function findCards(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
+  return within(list).getAllByRole('listitem');
 }
 
 function describeFocus(storyDocument: Document) {
@@ -69,28 +76,28 @@ export const Owner = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
-    expect(within(list).getAllByRole('listitem')).toHaveLength(2);
-    expect(within(list).queryByText('Deleted Rulebook')).toBeNull();
-    expect(within(list).getAllByRole('img', { name: /^First page of .+: preview unavailable$/ })).toHaveLength(2);
+    await expect(within(list).getAllByRole('listitem')).toHaveLength(2);
+    await expect(within(list).queryByText('Deleted Rulebook')).toBeNull();
+    await expect(within(list).getAllByRole('img', { name: /^First page of .+: preview unavailable$/ })).toHaveLength(2);
     const editions = within(list).getAllByRole('img', { name: 'Edition 1' });
-    expect(editions).toHaveLength(2);
+    await expect(editions).toHaveLength(2);
     for (const edition of editions) {
-      expect(edition).toHaveTextContent('v1');
+      await expect(edition).toHaveTextContent('v1');
     }
-    expect(within(list).queryByText('Edition 1')).toBeNull();
+    await expect(within(list).queryByText('Edition 1')).toBeNull();
     /* The toolbar follows the viewer, which the browser resolves after the shared page. */
     const add = await page.findByRole('link', { name: 'Add Rulebook' }, { timeout: 30_000 });
-    expect(add).toHaveAttribute('href', '/rulesets/classicrules/rulebooks/create');
-    expect(page.queryByRole('button', { name: /Move .* up/ })).toBeNull();
-    expect(page.queryByRole('button', { name: /Rename/ })).toBeNull();
-    expect(within(list).queryByRole('button', { name: /Delete/ })).toBeNull();
-    expect(within(list).queryByRole('button', { name: /View / })).toBeNull();
-    expect(within(list).queryByRole('link', { name: /Edit / })).toBeNull();
-    expect(within(list).getByRole('link', { name: 'Read Rules' })).toHaveAttribute(
+    await expect(add).toHaveAttribute('href', '/rulesets/classicrules/rulebooks/create');
+    await expect(page.queryByRole('button', { name: /Move .* up/ })).toBeNull();
+    await expect(page.queryByRole('button', { name: /Rename/ })).toBeNull();
+    await expect(within(list).queryByRole('button', { name: /Delete/ })).toBeNull();
+    await expect(within(list).queryByRole('button', { name: /View / })).toBeNull();
+    await expect(within(list).queryByRole('link', { name: /Edit / })).toBeNull();
+    await expect(within(list).getByRole('link', { name: 'Read Rules' })).toHaveAttribute(
       'href',
       '/rulesets/classicrules/rulebooks/book-0'
     );
-    expect(within(list).getByRole('link', { name: 'Read Quick reference' })).toHaveAttribute(
+    await expect(within(list).getByRole('link', { name: 'Read Quick reference' })).toHaveAttribute(
       'href',
       '/rulesets/classicrules/rulebooks/book-1'
     );
@@ -103,7 +110,7 @@ export const Owner = meta.story({
     await userEvent.unhover(editions[0]!);
     await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
     const actions = within(list).getByRole('button', { name: 'Actions for Rules' });
-    expect(actions.closest('a')).toBeNull();
+    await expect(actions.closest('a')).toBeNull();
     await userEvent.hover(actions);
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Actions for Rules'));
     await userEvent.unhover(actions);
@@ -114,25 +121,16 @@ export const Owner = meta.story({
       '/rulesets/classicrules/rulebooks/book-0/editions'
     );
     const html = page.getByRole('menuitem', { name: 'Open HTML' }).getAttribute('href') ?? '';
-    expect(html).toMatch(/^\/published\/rulebooks\/[^/]+\/editions\/1\/rulebook\.html$/);
-    expect(html).not.toContain(SEED_REF_TOKEN);
-    expect(page.queryByRole('menuitem', { name: 'Open PDF' })).toBeNull();
+    await expect(html).toMatch(/^\/published\/rulebooks\/[^/]+\/editions\/1\/rulebook\.html$/);
+    await expect(html).not.toContain(SEED_REF_TOKEN);
+    await expect(page.queryByRole('menuitem', { name: 'Open PDF' })).toBeNull();
     await expect(page.findByRole('menuitem', { name: 'Edit' })).resolves.toHaveAttribute(
       'href',
       '/rulesets/classicrules/rulebooks/book-0/edit'
     );
-    expect(within(list).queryByRole('menuitem')).toBeNull();
+    await expect(within(list).queryByRole('menuitem')).toBeNull();
     await closeMenuWithEscape(page, actions);
   },
-});
-
-/*
- * The card wiring, not the rendered image: Storybook serves nothing under /published, so each preview falls to the
- * missing state once the request fails.
- * `RulebookPreview.stories.tsx` covers the loaded image, every publication state, and replacement after a failure.
- */
-export const PublishedPreviews = meta.story({
-  parameters: { database: db(withPublishedRulebooks) },
 });
 
 export const FailedPreview = meta.story({
@@ -143,18 +141,37 @@ export const FailedPreview = meta.story({
       page.findByRole('img', { name: 'First-page preview failed for Rules' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Actions for Rules' }));
-    expect(await waitForFrame(() => page.getByRole('menuitem', { name: 'Retry preview' }))).toBeEnabled();
+    const retry = await waitForFrame(() => page.getByRole('menuitem', { name: 'Retry preview' }));
+    await expect(retry).toBeEnabled();
+    /* The retry schedules a new capture, and the tile reads its state back from the database. */
+    await userEvent.click(retry);
+    await expect(
+      page.findByRole('img', { name: 'First-page preview preparing for Rules' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.queryByRole('img', { name: 'First-page preview failed for Rules' })).toBeNull();
   },
 });
 
+/** Five Rulebooks, one deleted, so the grid holds four cards. */
 export const Grid = meta.story({
   parameters: { database: db(withManyRulebooks) },
   globals: { viewport: { value: 'appAuthoringWide' } },
+  play: async ({ canvasElement }) => {
+    await expect(findCards(canvasElement)).resolves.toHaveLength(4);
+  },
 });
 
+/** On a phone the four cards wrap onto more than one row and stay inside the width. */
 export const GridNarrow = meta.story({
   parameters: { database: db(withManyRulebooks) },
   globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const cards = await findCards(canvasElement);
+    await expect(cards).toHaveLength(4);
+    const rows = new Set(cards.map((card) => Math.round(card.getBoundingClientRect().top)));
+    await expect(rows.size).toBeGreaterThan(1);
+    await expectWithinWidth(canvasElement, cards);
+  },
 });
 
 export const UtilitiesMenu = meta.story({
@@ -177,8 +194,8 @@ export const FocusedCard = meta.story({
     await userEvent.click(page.getByRole('link', { name: 'Read Rules' }));
     await userEvent.tab();
     await userEvent.tab();
-    expect(card).toHaveFocus();
-    expect(getComputedStyle(card).outlineStyle).toBe('solid');
+    await expect(card).toHaveFocus();
+    await expect(getComputedStyle(card).outlineStyle).toBe('solid');
   },
 });
 
@@ -190,11 +207,11 @@ export const Viewer = meta.story({
     await expect(
       page.findByRole('region', { name: 'Quick reference contents' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.getByText('Edition 1', { exact: true })).toBeVisible();
-    expect(page.getAllByRole('article', { name: /Rulebook page:/ })).toHaveLength(3);
-    expect(page.queryByRole('button', { name: 'Save' })).toBeNull();
-    expect(page.queryByRole('button', { name: 'Delete Rulebook' })).toBeNull();
-    expect(page.queryByRole('link', { name: 'Edit Rulebook' })).toBeNull();
+    await expect(page.getByText('Edition 1', { exact: true })).toBeVisible();
+    await expect(page.getAllByRole('article', { name: /Rulebook page:/ })).toHaveLength(3);
+    await expect(page.queryByRole('button', { name: 'Save' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Delete Rulebook' })).toBeNull();
+    await expect(page.queryByRole('link', { name: 'Edit Rulebook' })).toBeNull();
   },
 });
 
@@ -203,7 +220,7 @@ export const EditFromReader = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const edit = await page.findByRole('link', { name: 'Edit Rulebook' }, { timeout: 30_000 });
-    expect(edit).toHaveAttribute('href', '/rulesets/classicrules/rulebooks/book-0/edit');
+    await expect(edit).toHaveAttribute('href', '/rulesets/classicrules/rulebooks/book-0/edit');
     await userEvent.hover(edit);
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Edit Rulebook'));
   },
@@ -226,8 +243,8 @@ export const DeleteFromReader = meta.story({
       }
     }
     const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
-    expect(within(list).queryByRole('link', { name: 'Read Rules' })).toBeNull();
-    expect(within(list).getByRole('link', { name: 'Read Quick reference' })).toBeVisible();
+    await expect(within(list).queryByRole('link', { name: 'Read Rules' })).toBeNull();
+    await expect(within(list).getByRole('link', { name: 'Read Quick reference' })).toBeVisible();
   },
 });
 
@@ -239,15 +256,21 @@ export const MemberReader = meta.story({
     await page.findByRole('region', { name: 'Rules contents' }, { timeout: 30_000 });
     /* The links follow the viewer, which the browser resolves after the shared page, so wait for them. */
     const edit = await page.findByRole('link', { name: 'Edit Rulebook' }, { timeout: 30_000 });
-    expect(edit).toHaveAttribute('href', '/rulesets/classicrules/rulebooks/book-0/edit');
-    expect(page.queryByRole('button', { name: 'Delete Rulebook' })).toBeNull();
+    await expect(edit).toHaveAttribute('href', '/rulesets/classicrules/rulebooks/book-0/edit');
+    await expect(page.queryByRole('button', { name: 'Delete Rulebook' })).toBeNull();
   },
 });
 
+/** The signed-out reader on a phone: every page fits the width. */
 export const ViewerNarrow = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0' },
   parameters: { identity: null },
   globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('region', { name: 'Rules contents' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expectWithinWidth(canvasElement, page.getAllByRole('article', { name: /Rulebook page:/ }));
+  },
 });
 
 export const EditionHistorySingle = meta.story({
@@ -255,11 +278,11 @@ export const EditionHistorySingle = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'Rules', level: 1 }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.getByText('1 Edition')).toBeVisible();
+    await expect(page.getByText('1 Edition')).toBeVisible();
     const list = within(page.getByRole('list', { name: 'Editions' }));
-    expect(list.getAllByRole('listitem')).toHaveLength(1);
-    expect(list.getByText('Current')).toBeVisible();
-    expect(list.getByRole('link', { name: 'Read Edition 1' })).toHaveAttribute(
+    await expect(list.getAllByRole('listitem')).toHaveLength(1);
+    await expect(list.getByText('Current')).toBeVisible();
+    await expect(list.getByRole('link', { name: 'Read Edition 1' })).toHaveAttribute(
       'href',
       '/rulesets/classicrules/rulebooks/book-0'
     );
@@ -271,7 +294,7 @@ export const EditionHistoryDeleted = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('Rulebook not found', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('list', { name: 'Editions' })).not.toBeInTheDocument();
+    await expect(page.queryByRole('list', { name: 'Editions' })).not.toBeInTheDocument();
   },
 });
 
@@ -281,7 +304,7 @@ export const ViewerDeleted = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('article', { name: /Rulebook page:/ })).toBeNull();
+    await expect(page.queryByRole('article', { name: /Rulebook page:/ })).toBeNull();
   },
 });
 
@@ -292,17 +315,41 @@ export const Manage = meta.story({
     const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
     await userEvent.click(page.getByRole('button', { name: 'Move Quick reference up' }));
     await waitFor(() => expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent('Quick reference'));
-    expect(page.getByRole('button', { name: 'Move Quick reference up' })).toBeDisabled();
-    expect(page.getByRole('button', { name: 'Delete Quick reference' })).toBeEnabled();
-    expect(page.queryByRole('button', { name: /Rename/ })).toBeNull();
+    await expect(page.getByRole('button', { name: 'Move Quick reference up' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Delete Quick reference' })).toBeEnabled();
+    await expect(page.queryByRole('button', { name: /Rename/ })).toBeNull();
   },
 });
 
-export const Empty = meta.story({ parameters: { database: db((baseline) => baseline) } });
+/** A ruleset with no Rulebooks says so, and its owner can still add one. */
+export const Empty = meta.story({
+  parameters: { database: db((baseline) => baseline) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByText('No Rulebooks yet. Add one from the toolbar.', {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'Add Rulebook' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('list', { name: 'Rulebooks' })).toBeNull();
+  },
+});
 
-export const Narrow = meta.story({ globals: { viewport: { value: 'contentNarrow' } } });
-
-export const MixedSizes = meta.story({ parameters: { database: db(withSizedRulebooks) } });
+/** A square Rulebook and a tall one: each card takes its own Rulebook's proportions. */
+export const MixedSizes = meta.story({
+  parameters: { database: db(withSizedRulebooks) },
+  play: async ({ canvasElement }) => {
+    await findCards(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
+    const ratio = (name: string) => {
+      const { width, height } = page
+        .getByRole('img', { name: `First page of ${name}: preview unavailable` })
+        .getBoundingClientRect();
+      return height / width;
+    };
+    await expect(ratio('Rules')).toBeCloseTo(1, 1);
+    await expect(ratio('Quick reference')).toBeCloseTo(297 / 105, 1);
+  },
+});
 
 export const SquareReader = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0' },
@@ -314,11 +361,11 @@ export const SquareReader = meta.story({
       { name: 'Rulebook page: Welcome to Arrakis' },
       { timeout: 30_000 }
     );
-    expect(opening).toHaveAttribute('data-rulebook-size', 'square');
-    expect(opening).toHaveAttribute('data-rulebook-design', 'illustrated');
+    await expect(opening).toHaveAttribute('data-rulebook-size', 'square');
+    await expect(opening).toHaveAttribute('data-rulebook-design', 'illustrated');
     const following = page.getByRole('article', { name: 'Rulebook page: Movement' });
-    expect(following).toHaveAttribute('data-rulebook-page-number', '2');
-    expect(following).toHaveAttribute('data-rulebook-page-side', 'left');
+    await expect(following).toHaveAttribute('data-rulebook-page-number', '2');
+    await expect(following).toHaveAttribute('data-rulebook-page-side', 'left');
   },
 });
 
@@ -330,9 +377,9 @@ export const ActiveMember = meta.story({
       'href',
       '/rulesets/classicrules/rulebooks/create'
     );
-    expect(page.queryByRole('button', { name: 'Move Quick reference up' })).toBeNull();
-    expect(page.queryByRole('button', { name: 'Rename Rules' })).toBeNull();
-    expect(page.queryByRole('button', { name: 'Delete Rules' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Move Quick reference up' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Rename Rules' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Delete Rules' })).toBeNull();
   },
 });
 
@@ -344,7 +391,8 @@ export const MemberManagement = meta.story({
     await expect(
       page.findByRole('button', { name: 'Move Quick reference up' }, { timeout: 30_000 })
     ).resolves.toBeEnabled();
-    expect(page.queryByRole('button', { name: 'Delete Rules' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Delete Rules' })).toBeNull();
+    await expect(page.getByText('Only the ruleset owner can rename it.')).toBeVisible();
   },
 });
 
@@ -353,20 +401,29 @@ export const Reader = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
-    expect(within(list).getAllByRole('listitem')).toHaveLength(2);
+    await expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     /* The history is a read path, so a signed-out reader gets the card menu too, minus the editing entries. */
-    expect(within(list).getAllByRole('button')).toHaveLength(2);
+    await expect(within(list).getAllByRole('button')).toHaveLength(2);
     await userEvent.click(within(list).getByRole('button', { name: 'Actions for Rules' }));
     await expect(waitForFrame(() => page.getByRole('menuitem', { name: 'Editions' }))).resolves.toHaveAttribute(
       'href',
       '/rulesets/classicrules/rulebooks/book-0/editions'
     );
-    expect(page.getByRole('menuitem', { name: 'Open HTML' })).toHaveAttribute('target', '_blank');
-    expect(page.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
+    await expect(page.getByRole('menuitem', { name: 'Open HTML' })).toHaveAttribute('target', '_blank');
+    await expect(page.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
   },
 });
 
+/** The manage list at 260 px keeps its reorder and delete controls inside the width. */
 export const ManageNarrow = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'contentNarrow' } },
+  play: async ({ canvasElement }) => {
+    const list = within(
+      await within(canvasElement.ownerDocument.body).findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 })
+    );
+    const controls = list.getAllByRole('button', { name: /^(Move|Delete) / });
+    await expect(controls.length).toBeGreaterThan(0);
+    await expectWithinWidth(canvasElement, controls);
+  },
 });

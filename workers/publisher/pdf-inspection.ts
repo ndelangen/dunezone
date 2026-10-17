@@ -265,7 +265,7 @@ async function inspectPdf(bytes: Uint8Array, allowObjectStreams: boolean): Promi
   for (const [ref] of document.context.enumerateIndirectObjects()) {
     const entry = xref.entries.get(ref.objectNumber);
     if (ref.objectNumber >= xref.size || !entry?.inUse || entry.generationNumber !== ref.generationNumber) {
-      throw new Error(`Parsed indirect object ${ref} has no exact in-use classic xref entry`);
+      throw new Error(`Parsed indirect object ${ref.toString()} has no exact in-use classic xref entry`);
     }
     parsedObjectNumbers.add(ref.objectNumber);
   }

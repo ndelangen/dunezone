@@ -223,7 +223,9 @@ export async function shareFilledPaths(document: PDFDocument): Promise<number> {
             key = name(key.decodeText() + 'x');
           }
           objects.set(key, reference.ref);
-          chunks.push(`q\n1 0 0 1 ${PDFNumber.of(part.bounds[0])} ${PDFNumber.of(part.bounds[1])} cm\n${key} Do\nQ`);
+          chunks.push(
+            `q\n1 0 0 1 ${PDFNumber.of(part.bounds[0]).toString()} ${PDFNumber.of(part.bounds[1]).toString()} cm\n${key.toString()} Do\nQ`
+          );
         } else {
           chunks.push(serialize(part.contours.flatMap((contour) => contour.operations)) + `\n${fill.operator}`);
         }

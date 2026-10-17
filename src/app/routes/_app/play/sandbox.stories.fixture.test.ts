@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 
 import { serverMessageSchema } from '@shared/play/protocol';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { journeySteps, journeyViewers, stepCode } from './journey.stories.fixture';
 import { SandboxTable, sandboxSteps } from './sandbox.stories.fixture';

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import reference from './arrakis.json';
 import { arrakisBoard, blankBoard, at, connectPoint, contourPath, derive, movePoint, reconcile } from './geometry';

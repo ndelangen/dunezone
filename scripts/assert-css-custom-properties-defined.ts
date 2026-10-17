@@ -28,10 +28,12 @@ const PROVIDED_ELSEWHERE = [
   ['--contain-fit-width', 'the contain-fit observer, via setProperty'],
   ['--contain-fit-height', 'the contain-fit observer, via setProperty'],
   ['--scroll-pct', 'the parallax scroll writer, via setProperty'],
+  ['--app-frame-left', 'AppHeader, via setProperty'],
   ['--pile-slot', 'the pile layout, via inline style'],
   ['--rulebook-aspect', 'RulesetRulebooks in routes/_app/rulesets/$rulesetSlug/index.tsx, via inline style'],
   ['--document-editor-', 'DocumentEditorLayout, via setProperty'],
   ['--editor-plane-width', 'the faction editor plane, via setProperty'],
+  ['--brush-cursor', 'TabletopScene while the territory paintbrush is on, via inline style'],
 ];
 
 const definitionsRoot = process.env.CSS_VAR_DEFINITIONS_ROOT ?? 'src';
@@ -48,7 +50,7 @@ const withoutCssComments = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, '
 
 const defined = new Set<string>();
 for (const file of filesUnder(definitionsRoot, ['.css'])) {
-  for (const match of withoutCssComments(readFileSync(file, 'utf8')).matchAll(/(--[a-zA-Z][\w-]*)\s*:/g)) {
+  for (const match of withoutCssComments(readFileSync(file, 'utf8')).matchAll(/(?<![\w-])(--[a-zA-Z][\w-]*)\s*:/g)) {
     defined.add(match[1]);
   }
 }
