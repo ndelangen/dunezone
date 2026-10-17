@@ -2,6 +2,7 @@ import { pieceCount } from '@shared/play/model';
 import { tokenBoxRatio } from '@shared/play/tableGeometry';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
+import { createPortal } from 'react-dom';
 
 import { cardWidthFor, TOKEN_SIZE_PX } from './faceSize';
 import { PieceArtwork } from './PieceArtwork';
@@ -63,7 +64,7 @@ function useAltPointer(): Readonly<{ alt: boolean; pointer: RefObject<Point> }> 
 
 type Bounds = Readonly<{ left: number; top: number; right: number; bottom: number }>;
 
-/** The close-up's box beside the pointer within the table's area, turned to the pointer's other side where the area would cut it off. */
+/** The close-up's box beside the pointer within the bounds, turned to the pointer's other side where the area would cut it off. */
 function placeBeside(pointer: Point, width: number, height: number, bounds: Bounds) {
   const right = pointer.x + CURSOR_GAP_PX;
   const left = right + width + EDGE_PX > bounds.right ? pointer.x - CURSOR_GAP_PX - width : right;
@@ -71,14 +72,13 @@ function placeBeside(pointer: Point, width: number, height: number, bounds: Boun
   return { left: Math.max(bounds.left + EDGE_PX, left), top: Math.max(bounds.top + EDGE_PX, top) };
 }
 
-/* The table's area below the seated header, which lies over the canvas's top, rather than the window: the dock covers the rest. */
-function tableAreaBounds(area: HTMLElement | null): Bounds {
-  if (!area) {
-    return { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
-  }
-  const rect = area.getBoundingClientRect();
-  const header = seatedHeaderOf(area)?.getBoundingClientRect();
-  return { left: rect.left, top: Math.max(rect.top, header?.bottom ?? 0), right: rect.right, bottom: rect.bottom };
+/*
+ * The window below the seated header, which lies over the canvas's top: the close-up may spill over the controls panel and the dock
+ * when the table's own area is too small to hold it beside the pointer.
+ */
+function closeUpBounds(area: HTMLElement | null): Bounds {
+  const header = area ? seatedHeaderOf(area)?.getBoundingClientRect() : undefined;
+  return { left: 0, top: Math.max(0, header?.bottom ?? 0), right: window.innerWidth, bottom: window.innerHeight };
 }
 
 /*
@@ -98,7 +98,7 @@ function useFollowPointer(
       return;
     }
     const place = () => {
-      const position = placeBeside(pointer.current, width, height, tableAreaBounds(area.current));
+      const position = placeBeside(pointer.current, width, height, closeUpBounds(area.current));
       box.current?.style.setProperty('transform', `translate3d(${position.left}px, ${position.top}px, 0)`);
     };
     place();
@@ -142,7 +142,8 @@ export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | 
   if (!shown || !href || !top) {
     return null;
   }
-  return (
+  /* On the page's body, so the table's own stacking cannot slide it under a panel it spills over. */
+  return createPortal(
     <div ref={box} className={styles.closeUp} data-round={round || undefined} aria-hidden>
       {/* Only the top item, so a stack of prediction cards that share one front shows the top card's prediction. */}
       <PieceArtwork
@@ -154,6 +155,7 @@ export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | 
         radius="10px"
       />
       {count > 1 ? <div className={styles.closeUpCount}>×{count}</div> : null}
-    </div>
+    </div>,
+    document.body
   );
 }
