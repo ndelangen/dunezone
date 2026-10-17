@@ -62,6 +62,7 @@ import { FactionPicker } from '@app/pickers/FactionPicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
+import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
@@ -231,6 +232,40 @@ function RulesetRulebooks({
           })}
         </Box>
       )}
+    </Section>
+  );
+}
+
+/**
+ * The board this ruleset plays on, drawn as its published face and linking to its page.
+ * An empty board slot draws the missing face as its placeholder, so the section keeps its shape whether or not a board was chosen.
+ */
+function RulesetBoard({
+  board,
+}: {
+  board: { type: string; slug: string; name: string; previewHref: string | null } | null;
+}) {
+  return (
+    <Section id="board" icon={<TopicIcon topic="assets" size={20} />} title="Board">
+      <Stack gap="xs" align="center">
+        {board ? (
+          <Link
+            to="/assets/$type/$slug"
+            params={{ type: board.type, slug: board.slug }}
+            className={styles.boardFace}
+            aria-label={board.name}
+          >
+            <AssetFace type="board" data={null} name={board.name} href={board.previewHref} />
+          </Link>
+        ) : (
+          <div className={styles.boardFace}>
+            <AssetFace type="board" data={null} name="No board chosen" href={null} />
+          </div>
+        )}
+        <Text size="sm" c={board ? undefined : 'dimmed'}>
+          {board ? board.name : 'This ruleset has no board yet.'}
+        </Text>
+      </Stack>
     </Section>
   );
 }
@@ -683,6 +718,8 @@ function RulesetDetailPage() {
                 rulesetSlug={r.slug}
                 canEdit={viewerAccess.capabilities.edit}
               />
+
+              <RulesetBoard board={page.board} />
             </Stack>
           </ColumnsWithRailLayout.Primary>
 

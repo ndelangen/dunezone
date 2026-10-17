@@ -91,7 +91,8 @@ function Bidder({ client, table, faded = false }: Props) {
   const halfWidth = faceHalfWidth(factions);
   const halfHeight = faceHalfHeight(factions);
   const placeFace = useMemo(() => faceOnCanvas(halfWidth, halfHeight), [halfWidth, halfHeight]);
-  const tick = useServerNow();
+  /* An untimed round shows no clock, so the tick leaves it alone. */
+  const tick = useServerNow(bidding.timed);
   /* The shared reading can be up to a second older than a new deadline, so a new deadline takes a fresh one and never opens a second high. */
   const serverClock = useContext(ServerClockContext);
   const reading = useMemo(() => (bidding.deadline === null ? 0 : serverClock()), [serverClock, bidding.deadline]);

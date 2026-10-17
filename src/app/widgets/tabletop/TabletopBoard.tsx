@@ -50,12 +50,13 @@ import { ignoreRaycast } from './ignoreRaycast';
 import { PhaseSymbol } from './PhaseSymbol';
 import { useSharedMeshes } from './sharedMeshes';
 import { SoftShadow } from './SoftShadow';
+import { loadSpiceBank } from './tableChunks';
 import { TableFurniture } from './TableFurniture';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
 import { TerritoryTints } from './TerritoryTints';
 import { TurnTracker } from './TurnTracker';
-const SpiceBank = lazy(() => import('./SpiceBank').then((module) => ({ default: module.SpiceBank })));
+const SpiceBank = lazy(() => loadSpiceBank().then((module) => ({ default: module.SpiceBank })));
 useTexture.preload(stormMarkerUrl);
 
 /* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */

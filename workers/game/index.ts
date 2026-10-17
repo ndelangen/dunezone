@@ -1,4 +1,6 @@
 export { HomepageRoom } from './homepage';
+import { Buffer } from 'node:buffer';
+
 import { DurableObject } from 'cloudflare:workers';
 
 import { api } from '../../convex/_generated/api';
@@ -33,6 +35,7 @@ import type {
   ClientMessage,
   CommitMessage,
   PieceAction,
+  PingSound,
   ServerClock,
   ServerMessage,
   Viewer,
@@ -94,6 +97,8 @@ type Connection = {
   pointerSeq: number;
   /* When this connection last pinged, by the room's clock. */
   pingedAt: number;
+  /* When this connection's last ping carried the rumble. */
+  rumbledAt: number;
   tokens: number;
   motionTokens: number;
   commandTokens: number;
@@ -117,6 +122,17 @@ const RATE_PER_SECOND = 60;
  */
 const COMMAND_BURST = 30;
 const COMMANDS_PER_SECOND = 10;
+/* A held Tab rumbles after three seconds, so one connection rumbles at most that often. */
+const RUMBLE_INTERVAL_MS = 3000;
+
+/* A page rumbles only after Tab is held for seconds, so a rumble sooner than that after the last goes out as a plain ping. */
+function pingSoundAllowed(connection: Pick<Connection, 'rumbledAt'>, sound: PingSound | undefined, now: number) {
+  if (!sound || now - connection.rumbledAt < RUMBLE_INTERVAL_MS) {
+    return undefined;
+  }
+  connection.rumbledAt = now;
+  return sound;
+}
 const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try again.';
 const SWEEP_MS = 1000;
 /** A sweep this late counts as a stall, and the room keeps the most recent ones. */
@@ -233,6 +249,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   protected readonly diagnostics: GameDiagnostics;
   private confirmationEpoch = 0;
   private readonly connections = new Map<WebSocket, Connection>();
+  /* The conversation summaries each socket last received, so a snapshot update that left them alone sends none. */
+  private readonly conversationsSent = new WeakMap<WebSocket, string>();
   private authorization: AuthorizationWatch | undefined;
   private readonly delivery = new RoomDelivery();
   private activityTimer: ReturnType<typeof setTimeout> | undefined;
@@ -639,6 +657,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       everAuthorized: false,
       pointerSeq: -1,
       pingedAt: 0,
+      rumbledAt: 0,
       tokens: RATE_BURST,
       motionTokens: RATE_BURST,
       commandTokens: COMMAND_BURST,
@@ -1279,6 +1298,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     connection.pingedAt = now;
+    const sound = pingSoundAllowed(connection, message.sound, now);
     const { connectionId, viewerSeat, displayName, color } = viewer;
     const ping = {
       connectionId,
@@ -1286,7 +1306,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       displayName,
       color,
       position: message.position,
-      ...(message.sound && { sound: message.sound }),
+      ...(sound && { sound }),
     };
     for (const [peer, other] of this.connections) {
       if (peer !== socket && other.viewer) {
@@ -1549,14 +1569,23 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private sendConversations(socket: WebSocket, viewer: Viewer) {
+  /** `ifChanged` holds back summaries the socket already has; a view and every conversation change send them regardless. */
+  private sendConversations(socket: WebSocket, viewer: Viewer, ifChanged = false) {
     if (!this.session.ready || !this.authorized(socket)) {
       return;
     }
     const message = this.session.conversationSummaries(viewer);
-    if (message) {
-      this.send(socket, message);
+    if (!message) {
+      this.conversationsSent.delete(socket);
+      return;
     }
+    /* The seat goes with them, because a page clears its summaries whenever its own faction changes. */
+    const summaries = JSON.stringify([viewer.viewerSeat, message]);
+    if (ifChanged && this.conversationsSent.get(socket) === summaries) {
+      return;
+    }
+    this.conversationsSent.set(socket, summaries);
+    this.send(socket, message);
   }
 
   private sendHistory(socket: WebSocket, step: number) {
@@ -2109,13 +2138,13 @@ export class GameRoom extends DurableObject<GameEnv> {
       );
       socket.send(data);
       if (message.type === 'view' || (message.type === 'update' && message.snapshot)) {
-        this.sendConversations(socket, this.connections.get(socket)!.viewer!);
+        this.sendConversations(socket, this.connections.get(socket)!.viewer!, message.type === 'update');
       }
       this.messagesSent++;
       if (message.type === 'update' && !message.snapshot) {
         this.activityDeliveries++;
       }
-      this.bytesSent += new TextEncoder().encode(data).byteLength;
+      this.bytesSent += Buffer.byteLength(data);
     } catch (error) {
       this.diagnostics.report('socket-send', error);
       this.ctx.waitUntil(Promise.resolve().then(() => this.disconnect(socket)));
@@ -2123,6 +2152,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private sendAdmission(socket: WebSocket, status: 'suspended' | 'denied' | 'refresh') {
+    /* A page that loses its admission drops its summaries, so whatever readmits it receives them again. */
+    this.conversationsSent.delete(socket);
     if (socket.readyState === WebSocket.OPEN) {
       try {
         socket.send(JSON.stringify({ type: 'admission', status } satisfies ServerMessage));

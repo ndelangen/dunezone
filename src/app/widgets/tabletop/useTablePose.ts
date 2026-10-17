@@ -5,15 +5,17 @@ import type { ReactNode } from 'react';
 import type { Group } from 'three';
 import { Vector3 } from 'three';
 
-type TablePose = { position: Vector3; orientation: number };
-type PoseSmoothing = { active: boolean; wasRemote: boolean };
+export type TablePose = { position: Vector3; orientation: number };
+export type PoseSmoothing = { active: boolean; wasRemote: boolean };
+/* Where a pose is shown: a scene group, or a hand the page places over the canvas itself. */
+export type ShownPose = { position: Vector3; rotation: { y: number } };
 
-function retargetPoseSmoothing(smoothing: PoseSmoothing, remote: boolean, immediate: boolean) {
+export function retargetPoseSmoothing(smoothing: PoseSmoothing, remote: boolean, immediate: boolean) {
   smoothing.active = !immediate && (remote || smoothing.wasRemote || smoothing.active);
   smoothing.wasRemote = remote;
 }
 
-function snapTablePose(group: Group, target: TablePose) {
+export function snapTablePose(group: ShownPose, target: TablePose) {
   group.position.copy(target.position);
   group.rotation.y = target.orientation;
 }
@@ -23,7 +25,7 @@ function snapTablePose(group: Group, target: TablePose) {
    The scheduler's `computeRootDelta`, not this cap, limits the first frame after an idle table. */
 const POSE_SMOOTHING_MAX_FRAME_SECONDS = 0.25;
 
-function advanceTablePose(group: Group, target: TablePose, delta: number): boolean {
+export function advanceTablePose(group: ShownPose, target: TablePose, delta: number): boolean {
   const rotationDelta = Math.atan2(
     Math.sin(target.orientation - group.rotation.y),
     Math.cos(target.orientation - group.rotation.y)

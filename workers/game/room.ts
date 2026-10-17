@@ -25,6 +25,8 @@ import {
   TURN_SELECT_REFUSAL,
 } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
+import { pointerRiders } from '../../src/shared/play/pointerRiders';
+import { isPointerToken } from '../../src/shared/play/pointerToken';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
 import type {
   ClientMessage,
@@ -85,6 +87,8 @@ type Carry = Identity & {
   seq: number;
   beginPayload: string;
   takes: Map<string, string>;
+  /* What rode the carried plate when it was picked up, by id, to the handle pages knew it by then; nothing for any other piece. */
+  riders?: ReadonlyMap<string, string | undefined>;
 };
 type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
@@ -296,6 +300,7 @@ export class Room {
       return existing.draft;
     }
     const draft = this.newCarryDraft(identity, input);
+    const riders = this.ridersOn(identity, sourceId);
     this.rememberCarryId(identity, input);
     this.reservations.set(sourceId, id);
     this.carries.set(id, {
@@ -307,8 +312,42 @@ export class Room {
       seq: -1,
       beginPayload: payload,
       takes: new Map(),
+      riders,
     });
     return draft;
+  }
+
+  private ridersOn(identity: Identity, pieceId: string): ReadonlyMap<string, string | undefined> | undefined {
+    /* A piece another player holds is locked here, as on the drop, so it never counts as riding. */
+    const { pieces } = this.table(identity);
+    const plate = pieces.find((piece) => piece.id === pieceId);
+    if (!plate || !isPointerToken(plate)) {
+      return undefined;
+    }
+    return new Map(pointerRiders(pieces, plate).map((rider) => [rider.id, this.snapshot.pieceHandles[rider.id]]));
+  }
+
+  /*
+   * A rider whose handle the room has since retired, as when a card went into a hand and came back face down, is a new piece to everyone else:
+   * naming it as a rider would tie it to what it was, so it no longer counts as one.
+   */
+  private retireRiders(snapshot: StoredSnapshot) {
+    for (const carry of this.carries.values()) {
+      const riders = carry.riders;
+      if (riders && [...riders].some(([id, handle]) => snapshot.pieceHandles[id] !== handle)) {
+        carry.riders = new Map([...riders].filter(([id, handle]) => snapshot.pieceHandles[id] === handle));
+      }
+    }
+  }
+
+  /*
+   * A piece another player set down where a carried plate lay, once nobody could see the plate there, never rode it:
+   * it is held in place, as a reserved piece is, so the plate's drop leaves it behind.
+   */
+  private lateRiders(state: TableState, carry: Carry): ReadonlySet<string> {
+    const plate = state.pieces.find((piece) => piece.id === carry.draft.sourcePieceId);
+    const riders = plate ? pointerRiders(state.pieces, plate) : [];
+    return new Set(riders.filter((rider) => !carry.riders?.has(rider.id)).map((rider) => rider.id));
   }
 
   private assertCarryHistory(identity: Identity, input: CarryInput<'begin'>) {
@@ -446,7 +485,12 @@ export class Room {
   drop(identity: Identity, id: string, landing: CarryLanding): StoredSnapshot {
     this.assertTableAvailable();
     const carry = this.carry(identity, id);
-    const guarded = this.table(identity, id);
+    const reserved = this.table(identity, id);
+    const late = this.lateRiders(reserved, carry);
+    const guarded = {
+      ...reserved,
+      pieces: reserved.pieces.map((piece) => (late.has(piece.id) ? { ...piece, locked: true } : piece)),
+    };
     const turns = canFlipInHand(heldPieceFor(guarded, carry.draft), this.unrevealedPrediction);
     const flips = turns ? carryFlips(carry.draft, landing.flips) : 0;
     const draft = { ...carry.draft, orientation: landing.orientation, flips };
@@ -461,7 +505,7 @@ export class Room {
     // Applied to the guarded table, so a plate leaves behind what another player is carrying off it;
     // the temporary reservation locks are then put back as stored, never persisted.
     const table = requireAccepted(guarded, applyDraftToState(guarded, settled, seatSubject(identity.viewerSeat)));
-    const next = nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table));
+    const next = nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late));
     /* A faction token flipped in hand turns its faction out of the bidding, the same as the flip command. */
     return { ...next, ...biddingAfterTable(this.snapshot, next, Date.now()) };
   }
@@ -921,12 +965,17 @@ export class Room {
     return this.snapshot.phases ?? STANDARD_PHASES;
   }
 
-  private restoreReservationLocks(raw: TableState, guardedNext: TableState): TableState {
+  private restoreReservationLocks(
+    raw: TableState,
+    guardedNext: TableState,
+    heldToo: ReadonlySet<string> = new Set()
+  ): TableState {
     const table = {
       ...guardedNext,
       pieces: guardedNext.pieces.map((piece) => {
         const original = raw.pieces.find((candidate) => candidate.id === piece.id);
-        return this.reservations.has(piece.id) && original ? { ...piece, locked: original.locked } : piece;
+        const held = this.reservations.has(piece.id) || heldToo.has(piece.id);
+        return held && original ? { ...piece, locked: original.locked } : piece;
       }),
     };
     return table;
@@ -949,6 +998,7 @@ export class Room {
     this.snapshot = snapshot;
     this.settledRevision = snapshot.revision;
     this.invalidateChangedCarries(snapshot);
+    this.retireRiders(snapshot);
     if (clearAll) {
       for (const id of this.carries.keys()) {
         this.remove(id);
@@ -1095,6 +1145,7 @@ export class Room {
         held,
         withdrawnCounts: this.withdrawnCounts(carry),
         reservedIds: [...carry.versions.keys()],
+        ...(carry.riders ? { riderIds: [...carry.riders.keys()] } : {}),
         expiresAt: carry.lastSeen + 8000,
         sourceSeq: carry.seq,
       },
