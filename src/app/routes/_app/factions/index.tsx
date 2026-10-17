@@ -41,7 +41,7 @@ export const Route = createFileRoute('/_app/factions/')({
       name: 'Custom Dune board game factions',
       pathname: '/factions',
       description:
-        "Browse homebrew factions for Gale Force Nine's Dune board game: custom abilities, leaders and printable faction sheets. Create and share your own faction.",
+        "Browse homebrew factions for Gale Force Nine's Dune board game: custom advantages, leaders and printable faction sheets. Create and share your own faction.",
     }),
   component: FactionsPage,
 });

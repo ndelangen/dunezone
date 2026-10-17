@@ -135,7 +135,7 @@ export function FactionFormSectionPlanets({
                     field.handleChange(remaining);
                     /* Delete sync: references to the removed planet re-pick the first
                        remaining planet; with none left every reference clears, which
-                       empties and disables the Forces select. */
+                       empties and disables the Troops select. */
                     const fallback = remaining.map((planet) => planet.name).find((name) => name.trim().length > 0);
                     form.state.values.troops.forEach((troop, troopIndex) => {
                       if (troop.planet == null) {

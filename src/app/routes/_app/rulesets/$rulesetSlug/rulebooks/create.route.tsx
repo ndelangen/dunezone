@@ -106,7 +106,7 @@ function examplePage(id: string, pageNumber: number): RulebookRenderPageV1 {
   return {
     id,
     anchor: id,
-    title: pageNumber === 2 ? 'Sequence of play' : 'Faction abilities',
+    title: pageNumber === 2 ? 'Sequence of play' : 'Faction advantages',
     layoutId: 'single-column',
     showHeading: true,
     controlValues: {},
@@ -129,7 +129,7 @@ function examplePage(id: string, pageNumber: number): RulebookRenderPageV1 {
             name: pageNumber === 2 ? 'During a phase' : 'Alliances',
             text:
               pageNumber === 2
-                ? 'Check the order of play, carry out the phase actions, and apply any relevant faction abilities.'
+                ? 'Check the order of play, carry out the phase actions, and apply any relevant faction advantages.'
                 : 'An alliance lets factions work together. Its benefits are described on the faction player sheets.',
           },
         ],

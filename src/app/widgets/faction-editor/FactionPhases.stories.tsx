@@ -16,7 +16,7 @@ const validPhase: Phase = {
   before: 'bidding',
   priority: 10,
   allPlayersMustBeReady: false,
-  instructions: 'Agree any shipment deals before the auction opens.',
+  instructions: 'Agree any shipment deals before bidding opens.',
 };
 
 function factionWith(phases: unknown[] | undefined): Faction {

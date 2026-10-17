@@ -312,7 +312,7 @@ describe('Rulebook renderer', () => {
     expect(
       [...container.querySelectorAll('ol > li')].map((item) => item.getAttribute('data-rulebook-item-id'))
     ).toEqual(['choose', 'move']);
-    expect(container.querySelector('[data-rulebook-block-id="TEXT"] h3')?.textContent).toBe('Moving your forces');
+    expect(container.querySelector('[data-rulebook-block-id="TEXT"] h3')?.textContent).toBe('Moving your troops');
     expect(container.querySelector('blockquote')?.textContent).toBe('Plans within plans.');
     expect(container.querySelector('[data-rulebook-block-id="QUTE"]')?.textContent).toContain('A Mentat reminder');
     expect(container.querySelector('[data-rulebook-block-id="QUES"]')?.textContent).toContain('Answer:');

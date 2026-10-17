@@ -532,7 +532,7 @@ describe('Final Rulebook reading order', () => {
               kind: 'list',
               style: 'numbered',
               itemOrder: ['entry'],
-              itemsById: { entry: { id: 'entry', name: 'Choose', text: 'Pick a force.' } },
+              itemsById: { entry: { id: 'entry', name: 'Choose', text: 'Pick a troop.' } },
             },
             NATE: {
               id: 'NATE',
@@ -545,7 +545,7 @@ describe('Final Rulebook reading order', () => {
             QUES: { id: 'QUES', kind: 'question-answer', topic: 'Travel', question: 'May I move?', answer: '*Yes*.' },
           },
         },
-        'Movement Storm Stop at the storm. Choose Pick a force. Remember Plans within plans. The Mentat Travel May I move? Answer: Yes.'
+        'Movement Storm Stop at the storm. Choose Pick a troop. Remember Plans within plans. The Mentat Travel May I move? Answer: Yes.'
       ).status
     ).toBe('matched');
   });
@@ -881,7 +881,7 @@ describe('Final Rulebook reading order', () => {
               columnsById: { FACT: { id: 'FACT', label: 'Faction' }, REVV: { id: 'REVV', label: 'Free revival' } },
               rowOrder: ['ATRE', 'FREM'],
               rowsById: {
-                ATRE: { id: 'ATRE', cellsByColumnId: { FACT: '*Atreides*', REVV: '2 forces' } },
+                ATRE: { id: 'ATRE', cellsByColumnId: { FACT: '*Atreides*', REVV: '2 troops' } },
                 FREM: { id: 'FREM', cellsByColumnId: { FACT: 'Fremen' } },
               },
               note: 'Revival happens after battle.',
@@ -910,10 +910,10 @@ describe('Final Rulebook reading order', () => {
     expect(
       resolve(
         [page, { kind: 'block', id: 'TABL' }],
-        'Faction Free revival Atreides 2 forces Fremen Revival happens after battle.'
+        'Faction Free revival Atreides 2 troops Fremen Revival happens after battle.'
       )
     ).toBe('matched');
-    expect(resolve([page, { kind: 'block', id: 'TABL' }, { kind: 'item', id: 'ATRE' }], 'Atreides 2 forces')).toBe(
+    expect(resolve([page, { kind: 'block', id: 'TABL' }, { kind: 'item', id: 'ATRE' }], 'Atreides 2 troops')).toBe(
       'matched'
     );
     expect(resolve([page, { kind: 'block', id: 'TABL' }, { kind: 'item', id: 'REVV' }], 'Free revival')).toBe(
@@ -942,7 +942,7 @@ const locator: RulebookTextLocator = {
     { kind: 'block', id: rule.id },
   ],
   exact: 'Movement sequence',
-  suffix: 'Choose a force',
+  suffix: 'Choose a troop',
 };
 
 function rawBase64(value: unknown) {
@@ -1210,7 +1210,7 @@ describe('Rulebook reader links', () => {
     /*
      * `prefix` and `suffix` are Range-derived at every scope, and a Range glues `<h3>` to the `<p>` after it.
      * These are the literal strings Chromium produces for a sweep of "an adjacent destination" inside MVVE:
-     * the context arrives as "Movement sequenceChoose a force, choose" while the Block text carries a space.
+     * the context arrives as "Movement sequenceChoose a troop, choose" while the Block text carries a space.
      */
     const midBlock: RulebookTextLocator = {
       v: 1,
@@ -1219,7 +1219,7 @@ describe('Rulebook reader links', () => {
         { kind: 'block', id: rule.id },
       ],
       exact: 'an adjacent destination',
-      prefix: 'Movement sequenceChoose a force, choose',
+      prefix: 'Movement sequenceChoose a troop, choose',
     };
     expect(resolveRulebookTextLocator(contents, renderDocument, { status: 'valid', locator: midBlock })).toMatchObject({
       status: 'matched',
@@ -1336,7 +1336,7 @@ describe('Rulebook reader links', () => {
           ...locator,
           exact: 'quence',
           prefix: 'Movement se',
-          suffix: 'Choose a force',
+          suffix: 'Choose a troop',
         },
       })
     ).toMatchObject({ status: 'matched', anchorId: movement.anchor });
@@ -1440,7 +1440,7 @@ describe('Rulebook reader links', () => {
   test('keeps native Text Fragment terms inside browser block containers', () => {
     const selection = selectRange(
       readerPage(
-        `<section data-rulebook-block-id="${rule.id}"><h3><span id="start">Movement sequence</span></h3><p><span id="end">Choose a force</span></p></section>`
+        `<section data-rulebook-block-id="${rule.id}"><h3><span id="start">Movement sequence</span></h3><p><span id="end">Choose a troop</span></p></section>`
       ),
       '#start',
       '#end'
@@ -1450,14 +1450,14 @@ describe('Rulebook reader links', () => {
       ok: true,
       textFragment: {
         start: 'Movement sequence',
-        end: 'Choose a force',
+        end: 'Choose a troop',
       },
     });
   });
 
   test('resolves Element-offset Range boundaries to their selected child blocks', () => {
     document.body.innerHTML = readerPage(
-      `<section data-rulebook-block-id="${rule.id}"><h3>Movement sequence</h3><p>Choose a force</p></section>`
+      `<section data-rulebook-block-id="${rule.id}"><h3>Movement sequence</h3><p>Choose a troop</p></section>`
     );
     const section = document.querySelector('section');
     const selection = window.getSelection();
@@ -1474,7 +1474,7 @@ describe('Rulebook reader links', () => {
       ok: true,
       textFragment: {
         start: 'Movement sequence',
-        end: 'Choose a force',
+        end: 'Choose a troop',
       },
     });
   });

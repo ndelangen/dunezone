@@ -88,7 +88,7 @@ describe('published Rulebook reading', () => {
             { kind: 'page', id: page.id },
             { kind: 'block', id: block.id },
           ],
-          exact: 'Movement sequence Choose a force, choose an adjacent destination, then resolve the move.',
+          exact: 'Movement sequence Choose a troop, choose an adjacent destination, then resolve the move.',
         },
       })
     ).toMatchObject({ status: 'matched' });

@@ -33,7 +33,7 @@ export const ReferenceTable = meta.story({
     );
     await userEvent.keyboard('[Space]');
     await waitFor(() =>
-      expect(renderedHeaders(canvasElement)).toEqual(['Starting spice', 'Faction', 'Forces on Dune', 'Free revival'])
+      expect(renderedHeaders(canvasElement)).toEqual(['Starting spice', 'Faction', 'Troops on Dune', 'Free revival'])
     );
     await expect(renderedRow(canvasElement, 'ATRE')).toEqual(['10', 'Atreides', '10 in Arrakeen', '2']);
 
@@ -51,7 +51,7 @@ export const ReferenceTable = meta.story({
     /* Removing the moved column takes only its cells; the other columns keep theirs. */
     await userEvent.click(canvas.getByRole('button', { name: 'Remove column 2' }));
     await waitFor(() =>
-      expect(renderedHeaders(canvasElement)).toEqual(['Starting spice', 'Forces on Dune', 'Free revival', 'Alliance'])
+      expect(renderedHeaders(canvasElement)).toEqual(['Starting spice', 'Troops on Dune', 'Free revival', 'Alliance'])
     );
     await expect(renderedRow(canvasElement, 'ATRE')).toEqual(['10', '10 in Arrakeen', '2', 'Any']);
 

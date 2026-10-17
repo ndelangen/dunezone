@@ -88,7 +88,7 @@ export const AuthorsTroopBattleValues = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    await userEvent.click(canvas.getByRole('tab', { name: /Forces/ }));
+    await userEvent.click(canvas.getByRole('tab', { name: /Troops/ }));
     const strength = canvas.getByRole('textbox', { name: 'Strength' });
     await expect(strength).toHaveValue('1');
     await expect(canvas.getByRole('textbox', { name: 'Support cost' })).toHaveValue('');

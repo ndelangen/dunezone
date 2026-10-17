@@ -39,7 +39,7 @@ function factionPhaseSnapshot(allPlayersMustBeReady: boolean): GameSnapshot {
             before: 'bidding',
             priority: 10,
             allPlayersMustBeReady,
-            instructions: 'Agree any shipment deals before the auction opens.',
+            instructions: 'Agree any shipment deals before bidding opens.',
           },
         ],
       },
@@ -143,7 +143,7 @@ export const FactionPhase = meta.story({
     );
     await userEvent.hover(phaseTab);
     await waitForFrame(() =>
-      expect(page.getByRole('tooltip')).toHaveTextContent('Agree any shipment deals before the auction opens.')
+      expect(page.getByRole('tooltip')).toHaveTextContent('Agree any shipment deals before bidding opens.')
     );
     const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
     await expect(within(header).getByText('Guild negotiations')).toBeVisible();
