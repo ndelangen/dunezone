@@ -66,7 +66,8 @@ export function gameHttpClient(url: string, observe?: ConvexObserver): ConvexHtt
         }
         /* Read inside the timeout, so a body that stalls counts as Convex not answering. */
         const body = await response.arrayBuffer();
-        settle(true);
+        /* A function failure (560) or a refused request reaches the caller as an error, so it counts as a failed call here too. */
+        settle(response.ok);
         return new Response(body, {
           status: response.status,
           statusText: response.statusText,

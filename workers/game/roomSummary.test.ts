@@ -100,3 +100,17 @@ test('a quiet interval writes nothing and still starts the next one', () => {
   expect(log).toHaveBeenCalledTimes(1);
   expect(summary.due(2 * ROOM_SUMMARY_MS + 1)).toBe(false);
 });
+
+test('the command count and maximum cover every command, beyond the kept timings', () => {
+  const log = vi.spyOn(console, 'info').mockImplementation(() => {});
+  const summary = new RoomSummary(() => ({}), 0);
+  summary.command(5000);
+  for (let index = 0; index < 3000; index++) {
+    summary.message();
+    summary.command(10);
+  }
+  summary.flush(counters(), 1, 'interval', ROOM_SUMMARY_MS);
+  expect(log).toHaveBeenCalledWith(
+    expect.objectContaining({ commands: { count: 3001, p50Ms: 10, p95Ms: 10, maxMs: 5000 } })
+  );
+});

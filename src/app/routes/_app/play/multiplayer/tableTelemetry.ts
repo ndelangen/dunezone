@@ -19,6 +19,8 @@ function percentile(sorted: number[], fraction: number) {
 export class TableTelemetry {
   private readonly pending = new Map<string, number>();
   private samples: number[] = [];
+  private actions = 0;
+  private worstActionMs = 0;
   private longTasks = 0;
   private worstLongTaskMs = 0;
 
@@ -38,7 +40,10 @@ export class TableTelemetry {
       return;
     }
     this.pending.delete(commandId!);
-    this.samples.push(Math.max(0, Math.round(this.now() - sentAt)));
+    const ms = Math.max(0, Math.round(this.now() - sentAt));
+    this.actions++;
+    this.worstActionMs = Math.max(this.worstActionMs, ms);
+    this.samples.push(ms);
     if (this.samples.length > SAMPLE_LIMIT) {
       this.samples.shift();
     }
@@ -55,21 +60,24 @@ export class TableTelemetry {
 
   /** The report since the last one, or nothing when the page neither acted nor stalled. */
   report(): TelemetryReport | null {
-    if (!this.samples.length && !this.longTasks) {
+    if (!this.actions && !this.longTasks) {
       return null;
     }
     const sorted = this.samples.toSorted((left, right) => left - right);
     const report: TelemetryReport = {
       type: 'telemetry',
       actions: {
-        count: sorted.length,
+        /* The count and maximum cover every action; the percentiles come from the kept samples. */
+        count: this.actions,
         p50Ms: percentile(sorted, 0.5),
         p95Ms: percentile(sorted, 0.95),
-        maxMs: sorted.at(-1) ?? 0,
+        maxMs: this.worstActionMs,
       },
       longTasks: { count: this.longTasks, worstMs: this.worstLongTaskMs },
     };
     this.samples = [];
+    this.actions = 0;
+    this.worstActionMs = 0;
     this.longTasks = 0;
     this.worstLongTaskMs = 0;
     return report;

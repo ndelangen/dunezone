@@ -22,13 +22,14 @@ function percentile(sorted: number[], fraction: number) {
   return sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(fraction * sorted.length))]! : 0;
 }
 
-function spread(samples: number[]) {
+/* The count and maximum cover every command; the percentiles come from the kept samples. */
+function spread(samples: number[], count: number, maxMs: number) {
   const sorted = samples.toSorted((left, right) => left - right);
   return {
-    count: sorted.length,
+    count,
     p50Ms: percentile(sorted, 0.5),
     p95Ms: percentile(sorted, 0.95),
-    maxMs: sorted.at(-1) ?? 0,
+    maxMs,
   };
 }
 
@@ -53,6 +54,8 @@ export class RoomSummary {
   private messagesIn = 0;
   private peakConnections = 0;
   private commandMs: number[] = [];
+  private commandCount = 0;
+  private commandMaxMs = 0;
   private stalls = 0;
   private worstStallMs = 0;
   private readonly convex = new Map<string, CallTotals>();
@@ -75,7 +78,10 @@ export class RoomSummary {
 
   /** How long a saved command took from the room starting it to its storage write being confirmed. */
   command(durableMs: number) {
-    this.commandMs.push(Math.max(0, durableMs));
+    const ms = Math.max(0, durableMs);
+    this.commandCount++;
+    this.commandMaxMs = Math.max(this.commandMaxMs, ms);
+    this.commandMs.push(ms);
     if (this.commandMs.length > COMMAND_SAMPLES) {
       this.commandMs.shift();
     }
@@ -121,7 +127,7 @@ export class RoomSummary {
         peakConnections: Math.max(this.peakConnections, connections),
         messagesIn: this.messagesIn,
         ...delta,
-        commands: spread(this.commandMs),
+        commands: spread(this.commandMs, this.commandCount, this.commandMaxMs),
         stalls: this.stalls,
         worstStallMs: this.worstStallMs,
         convex: Object.fromEntries(this.convex),
@@ -141,6 +147,8 @@ export class RoomSummary {
     this.messagesIn = 0;
     this.peakConnections = connections;
     this.commandMs = [];
+    this.commandCount = 0;
+    this.commandMaxMs = 0;
     this.stalls = 0;
     this.worstStallMs = 0;
     this.convex.clear();
