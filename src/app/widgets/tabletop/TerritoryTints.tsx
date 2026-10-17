@@ -12,9 +12,9 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 import { ignoreRaycast } from './ignoreRaycast';
-import { placeStickers } from './stickerPlacement';
-import type { OutlinePath } from './tintOutline';
-import { offRim, offsetPath, outerSegments, outlinePaths } from './tintOutline';
+import { placeStickers } from '@shared/boards/stickerPlacement';
+import type { OutlinePath } from '@shared/boards/tintOutline';
+import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { TINT_STICKERS } from './tintStickers';
 
 /* Board drawing units run across the board's circle; the table's board disc is BOARD_RADIUS wide. */

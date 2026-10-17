@@ -1,6 +1,8 @@
+import type { CustomCardTokens } from '@shared/assets/schema';
+import type { Board } from '@shared/boards/schema';
 /* oxlint-disable jsx-a11y/alt-text -- Static decorative game-card layers, not content images. */
 import { useId } from 'react';
-import type { ComponentProps, FC } from 'react';
+import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { backgroundPresets } from '../../data/backgrounds';
@@ -16,17 +18,14 @@ const edgeColor = '#000';
 const foreGroundColor = '#F8F6E2';
 const highLightColor = '#9E5F00';
 
-/** `boardMap` draws an authored board in place of the legacy Arrakis vector; legacy cards keep their path until Stage 1.5. */
-export const SpiceCard: FC<z.infer<typeof Spice> & { boardMap?: ComponentProps<typeof SpiceBoardMap> }> = ({
-  name,
-  subName,
-  icon,
-  text,
-  amount,
-  highlights,
-  overlays,
-  boardMap,
-}) => {
+/**
+ * A card with a `board` link draws that board, resolved by the caller into `boardDefinition` and `boardTokens`, in place of the legacy Arrakis vector.
+ * A link whose board is missing draws an empty map rather than the wrong one;
+ * cards without a link keep the legacy map until Stage 1.5 migrates them.
+ */
+export const SpiceCard: FC<
+  z.infer<typeof Spice> & { boardDefinition?: Board | null; boardTokens?: z.infer<typeof CustomCardTokens> }
+> = ({ name, subName, icon, text, amount, highlights, overlays, board, boardDefinition, boardTokens }) => {
   const resolveOverlay = useAssetResolver();
   const prefix = useId();
   const decalsFilter = `${prefix}decals-filter`;
@@ -43,8 +42,12 @@ export const SpiceCard: FC<z.infer<typeof Spice> & { boardMap?: ComponentProps<t
       <div className={styles.title}>{name}</div>
       <div className={styles.subtitle}>{subName}</div>
 
-      {boardMap ? (
-        <SpiceBoardMap {...boardMap} />
+      {board ? (
+        boardDefinition ? (
+          <SpiceBoardMap board={boardDefinition} tints={board.tints} tokens={board.tokens} tokenAssets={boardTokens} />
+        ) : (
+          <div className={unique.map} data-missing-board />
+        )
       ) : (
         <>
           <svg className={unique.map} viewBox="0 0 100 100" xmlSpace="preserve" fillRule="evenodd" clipRule="evenodd">

@@ -136,7 +136,14 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
         />
       );
     case 'card-spice':
-      return printedImage(snapshot.assetType, <SpiceCard {...snapshot.payload.card} />);
+      return printedImage(
+        snapshot.assetType,
+        <SpiceCard
+          {...snapshot.payload.card}
+          boardDefinition={snapshot.payload.board}
+          boardTokens={snapshot.payload.tokens}
+        />
+      );
     case 'faction-token':
       return printedImage(snapshot.assetType, <FactionToken {...snapshot.payload} />);
     case 'faction-troop':

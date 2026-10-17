@@ -33,13 +33,25 @@ import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/pu
 import { publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import { CARD_FRONT_PUBLICATION_REVISIONS, cardFrontAssetTypeSchema } from '../../src/shared/assets/cardFrontPresets';
-import { authoredCardback, DeckAsset, RectangleTokenAsset, TokenAsset } from '../../src/shared/assets/schema';
+import {
+  authoredCardback,
+  DeckAsset,
+  RectangleTokenAsset,
+  SPICE_BOARD_REVISION,
+  TokenAsset,
+} from '../../src/shared/assets/schema';
 import { BoardAsset } from '../../src/shared/boards/schema';
 import { HistoricalFactionPublicationSchema } from '../../src/shared/factions/schema';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { resolveCardFrontPreset } from './cardFrontPresets';
 import { customCardTokenIds, customCardPublicationError, resolveCustomCardTokens } from './customCardTokens';
+import {
+  resolveSpiceCardBoard,
+  spiceCardBoardLink,
+  spiceCardPublicationError,
+  spiceCardTokenIds,
+} from './spiceCardBoard';
 
 type PublicationReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 
@@ -224,10 +236,11 @@ export async function enqueueAssetPublication(
         assetData: { assetId: asset._id, slug: asset.slug, board: BoardAsset.parse(asset.data).board },
         now,
       });
+    case SPICE_CARD_ASSET_TYPE:
+      return await enqueueSpiceCardPublication(ctx, asset, now);
     case LEADER_SKILL_ASSET_TYPE:
     case NEXUS_CARD_ASSET_TYPE:
     case TREACHERY_CARD_ASSET_TYPE:
-    case SPICE_CARD_ASSET_TYPE:
     case STRONGHOLD_CARD_ASSET_TYPE:
       return await enqueuePublicationJob(ctx, {
         assetType: asset.type,
@@ -293,6 +306,47 @@ export async function enqueueAssetPublication(
     default:
       return null;
   }
+}
+
+/**
+ * A linked card resolves its board and tokens into the payload, so the capture draws exactly what was saved.
+ * Before the publisher runs the revision that draws boards, a linked card waits;
+ * activating that revision is its backfill.
+ */
+async function enqueueSpiceCardPublication(
+  ctx: MutationCtx,
+  asset: { _id: Id<'assets'>; type: string; slug: string; data: unknown },
+  now?: number
+) {
+  const link = spiceCardBoardLink(asset.data);
+  if (!link) {
+    return await enqueuePublicationJob(ctx, {
+      assetType: SPICE_CARD_ASSET_TYPE,
+      assetId: asset._id,
+      assetData: { assetId: asset._id, slug: asset.slug, card: asset.data },
+      now,
+    });
+  }
+  if (((await publicationSettings(ctx))?.renderer_revisions[SPICE_CARD_ASSET_TYPE] ?? 0) < SPICE_BOARD_REVISION) {
+    return null;
+  }
+  const resolved = await resolveSpiceCardBoard(ctx, link.asset_id, spiceCardTokenIds(asset.data));
+  const error = spiceCardPublicationError(asset.data, resolved);
+  if (error) {
+    return await recordCardPublicationError(ctx, asset, error, now);
+  }
+  return await enqueuePublicationJob(ctx, {
+    assetType: SPICE_CARD_ASSET_TYPE,
+    assetId: asset._id,
+    assetData: {
+      assetId: asset._id,
+      slug: asset.slug,
+      card: asset.data,
+      board: resolved.board,
+      tokens: resolved.tokens,
+    },
+    now,
+  });
 }
 
 /** A failed dependency keeps its diagnostic without replacing an active capture or publishing incomplete artwork. */

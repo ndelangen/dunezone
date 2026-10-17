@@ -1,6 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
-import { placeStickers } from './stickerPlacement';
+import { placeStickers } from '@shared/boards/stickerPlacement';
 
 const square = [
   [

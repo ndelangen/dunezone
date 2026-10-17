@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ALL, BACKGROUND, TEXTURE } from '../assetIds';
+import { tintColorSchema, tintStampsSchema, tintTerritorySchema } from '../boards/tints';
 import { Background, Decal } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
@@ -28,6 +29,45 @@ const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
 
 export { Decal };
 export { PHYSICAL_SIZE_MAX, PHYSICAL_SIZE_MIN, PhysicalSize } from './physicalSize';
+
+/** The board's coordinate frame, which placed tokens share so a board switch leaves them where the author put them. */
+export const SPICE_BOARD_SIZE = 487.06;
+/** The Spice renderer revision that draws a linked board; until the publisher runs it, linked cards wait rather than capture the legacy map. */
+export const SPICE_BOARD_REVISION = 2;
+export const SPICE_TERRITORY_TYPES = ['sand', 'rock', 'stronghold', 'polar'] as const;
+export const SPICE_MAX_TINTS = 12;
+export const SPICE_MAX_TOKENS = 64;
+
+/**
+ * A Play territory tint, as a Spice card keeps it: the same colour, stickers, outline-only look and territory IDs.
+ * `types` is what only cards need, every current territory of a type on the linked board, resolved when drawn rather than expanded on save.
+ */
+export const SpiceTint = z.strictObject({
+  id: z.string().min(1).max(64),
+  name: z.string().trim().min(1).max(48),
+  color: tintColorSchema,
+  stamps: tintStampsSchema.optional(),
+  outline: z.literal(true).optional(),
+  territories: z.array(tintTerritorySchema).max(128),
+  types: z.array(z.enum(SPICE_TERRITORY_TYPES)).max(SPICE_TERRITORY_TYPES.length).optional(),
+});
+
+/** A token Asset placed on the card's map, in board coordinates; nothing ties it to a territory. */
+export const SpiceTokenPlacement = z.strictObject({
+  layerId: z.string().min(1).max(64),
+  asset_id: z.string().min(1),
+  x: z.number().min(0).max(SPICE_BOARD_SIZE),
+  y: z.number().min(0).max(SPICE_BOARD_SIZE),
+  size: z.number().min(5).max(250),
+  rotation: z.number().min(-360).max(360),
+});
+
+/** A linked board Asset with the card's tints and tokens; a card without one still draws the legacy Arrakis map. */
+export const SpiceBoardLink = z.strictObject({
+  asset_id: z.string().min(1),
+  tints: z.array(SpiceTint).max(SPICE_MAX_TINTS),
+  tokens: z.array(SpiceTokenPlacement).max(SPICE_MAX_TOKENS),
+});
 
 /**
  * The spice-card renderer's props.
@@ -107,6 +147,7 @@ export const Spice = z.strictObject({
     .optional(),
   text: z.string().optional(),
   amount: z.number().int().positive(),
+  board: SpiceBoardLink.optional(),
 });
 
 export const CardHead = z.strictObject({

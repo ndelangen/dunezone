@@ -25,6 +25,7 @@ import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../src/shared/ass
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import { parseAssetDataForWrite, parseNexusCardInput } from '../src/shared/assets/validation';
+import { HistoricalBoardDefinition } from '../src/shared/boards/schema';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { publicationStatusFor } from './assetPublishingStatus';
@@ -64,6 +65,14 @@ import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { enqueueAssetPublication, supersedePendingPublication } from './lib/publication';
 import { allocateCounterSlug } from './lib/slugCounters';
+import {
+  SPICE_CARD_BOARD_RELATION,
+  SPICE_CARD_TOKEN_RELATION,
+  resolveSpiceCardBoard,
+  spiceCardDependsOn,
+  syncSpiceCardRelations,
+  validateSpiceCardBoard,
+} from './lib/spiceCardBoard';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -557,6 +566,9 @@ async function createOwnedAsset(ctx: MutationCtx, userId: Id<'users'>, type: str
   if (type === 'card-custom' || type === 'card-storm') {
     await validateCustomCardTokens(ctx, parsed.data);
   }
+  if (type === 'card-spice') {
+    await validateSpiceCardBoard(ctx, parsed.data);
+  }
   const slug = await allocateAssetSlug(ctx, type, slugify(parsed.name));
   const now = nowIso();
   const id = await ctx.db.insert('assets', {
@@ -571,6 +583,9 @@ async function createOwnedAsset(ctx: MutationCtx, userId: Id<'users'>, type: str
   });
   if (type === 'card-custom' || type === 'card-storm') {
     await syncCustomCardTokenRelations(ctx, id, parsed.data);
+  }
+  if (type === 'card-spice') {
+    await syncSpiceCardRelations(ctx, id, parsed.data);
   }
   await enqueueAssetPublication(ctx, { _id: id, type, slug, data: parsed.data });
   return { id, slug };
@@ -637,6 +652,9 @@ export const update = mutation({
     if (row.type === 'card-custom' || row.type === 'card-storm') {
       await validateCustomCardTokens(ctx, parsed.data, row.data);
     }
+    if (row.type === 'card-spice') {
+      await validateSpiceCardBoard(ctx, parsed.data, row.data);
+    }
     const slug =
       parsed.name === nameOf(row) ? row.slug : await allocateAssetSlug(ctx, row.type, slugify(parsed.name), row);
     if (slug !== row.slug) {
@@ -646,10 +664,11 @@ export const update = mutation({
     if (row.type === 'card-custom' || row.type === 'card-storm') {
       await syncCustomCardTokenRelations(ctx, args.id, parsed.data);
     }
-    await enqueueAssetPublication(ctx, { _id: args.id, type: row.type, slug, data: parsed.data });
-    if (TOKEN_TYPES.has(row.type)) {
-      await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: args.id, cursor: null });
+    if (row.type === 'card-spice') {
+      await syncSpiceCardRelations(ctx, args.id, parsed.data);
     }
+    await enqueueAssetPublication(ctx, { _id: args.id, type: row.type, slug, data: parsed.data });
+    await refreshDependentCards(ctx, row.type, args.id);
     return { id: args.id, slug };
   },
 });
@@ -697,11 +716,28 @@ export const softDelete = mutation({
       is_deleted: true,
       updated_at: nowIso(),
     });
-    if (TOKEN_TYPES.has(access.subject.type)) {
-      await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: args.id, cursor: null });
-    }
+    await refreshDependentCards(ctx, access.subject.type, args.id);
   },
 });
+
+/** Cards that draw a token or a board redraw when it is saved or deleted. */
+async function refreshDependentCards(ctx: MutationCtx, type: string, id: Id<'assets'>) {
+  if (TOKEN_TYPES.has(type)) {
+    await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: id, cursor: null });
+    await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCards, {
+      dependencyId: id,
+      kind: SPICE_CARD_TOKEN_RELATION,
+      cursor: null,
+    });
+  }
+  if (type === 'board') {
+    await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCards, {
+      dependencyId: id,
+      kind: SPICE_CARD_BOARD_RELATION,
+      cursor: null,
+    });
+  }
+}
 
 /**
  * Hands an Asset to a Group, or takes it back.
@@ -1064,6 +1100,61 @@ export const refreshEmbeddedCard = internalMutation({
     }
     return null;
   },
+});
+
+const spiceCardRelationValidator = v.union(v.literal(SPICE_CARD_BOARD_RELATION), v.literal(SPICE_CARD_TOKEN_RELATION));
+
+/** Redraws the Spice cards that use a board or token, in bounded batches like token-linked custom cards. */
+export const refreshSpiceCards = internalMutation({
+  args: { dependencyId: v.id('assets'), kind: spiceCardRelationValidator, cursor: v.union(v.string(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const page = await ctx.db
+      .query('asset_relations')
+      .withIndex('by_to_kind', (q) => q.eq('to_asset_id', args.dependencyId).eq('kind', args.kind))
+      .paginate({ cursor: args.cursor, numItems: 20 });
+    for (const relation of page.page) {
+      await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCard, {
+        dependencyId: args.dependencyId,
+        kind: args.kind,
+        cardId: relation.from_asset_id,
+      });
+    }
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCards, { ...args, cursor: page.continueCursor });
+    }
+    return null;
+  },
+});
+
+/** One card per transaction, so a card that fails cannot stop the others; its authored data is never touched. */
+export const refreshSpiceCard = internalMutation({
+  args: { dependencyId: v.id('assets'), kind: spiceCardRelationValidator, cardId: v.id('assets') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const card = await ctx.db.get('assets', args.cardId);
+    if (
+      card &&
+      !card.is_deleted &&
+      card.type === 'card-spice' &&
+      spiceCardDependsOn(card.data, args.kind, args.dependencyId)
+    ) {
+      await ctx.db.patch(card._id, { updated_at: nowIso() });
+      await enqueueAssetPublication(ctx, card);
+    }
+    return null;
+  },
+});
+
+/** A Spice card editor's live view of its linked board and placed tokens. */
+export const spiceCardBoard = publicQuery({
+  args: { boardId: v.optional(v.id('assets')), tokenIds: v.array(v.id('assets')) },
+  returns: v.object({
+    board: v.union(zodToConvex(HistoricalBoardDefinition), v.null()),
+    tokens: zodToConvex(CustomCardTokens),
+    error: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => await resolveSpiceCardBoard(ctx, args.boardId, args.tokenIds),
 });
 
 /** The create page's live token resolution, held only while its draft embeds tokens. */

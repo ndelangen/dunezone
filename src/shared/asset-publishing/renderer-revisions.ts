@@ -1,4 +1,5 @@
 import { CARD_FRONT_PUBLICATION_REVISIONS } from '../assets/cardFrontPresets';
+import { SPICE_BOARD_REVISION } from '../assets/schema';
 import {
   CUSTOM_CARD_ASSET_TYPE,
   LEADER_SKILL_ASSET_TYPE,
@@ -36,7 +37,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   // 1: cards join the pipeline (wayfinder #516). Activating this is also the backfill for cards that predate it.
   [TREACHERY_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[TREACHERY_CARD_ASSET_TYPE],
   // 1: spice cards join the pipeline with their editor (#1229).
-  [SPICE_CARD_ASSET_TYPE]: 1,
+  /* Revision 2 draws a linked board with its tints and placed tokens (#1973); unlinked cards draw as before. */
+  [SPICE_CARD_ASSET_TYPE]: SPICE_BOARD_REVISION,
   /* Revision 2 supports a movable decal window without changing existing layouts. */
   [CUSTOM_CARD_ASSET_TYPE]: 2,
   /* Revision 4 captures the shared Leader Skill front preset. */

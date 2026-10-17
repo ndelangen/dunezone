@@ -13,6 +13,7 @@ import { CUSTOM_CARD_TOKEN_RELATION } from './lib/customCardTokens';
 import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
+import { SPICE_CARD_BOARD_RELATION, SPICE_CARD_TOKEN_RELATION, spiceCardBoardLink } from './lib/spiceCardBoard';
 import { nowIso, slugify } from './lib/utils';
 
 const SNAPSHOT_BATCH_SIZE = 32;
@@ -387,11 +388,34 @@ async function ensureReplacementOwnerMembership(
 async function refreshTokenEmbeddings(ctx: MutationCtx, asset: Doc<'assets'>) {
   if (TOKEN_ASSET_TYPES.has(asset.type)) {
     await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: asset._id, cursor: null });
+    await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCards, {
+      dependencyId: asset._id,
+      kind: SPICE_CARD_TOKEN_RELATION,
+      cursor: null,
+    });
+  }
+  if (asset.type === 'board') {
+    await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCards, {
+      dependencyId: asset._id,
+      kind: SPICE_CARD_BOARD_RELATION,
+      cursor: null,
+    });
   }
 }
 
 /** A returning card missed every token change while it was deleted; one refresh republishes it with their current state. */
 async function refreshReturningCard(ctx: MutationCtx, card: Doc<'assets'>) {
+  if (card.type === 'card-spice') {
+    const boardId = ctx.db.normalizeId('assets', spiceCardBoardLink(card.data)?.asset_id ?? '');
+    if (boardId) {
+      await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCard, {
+        dependencyId: boardId,
+        kind: SPICE_CARD_BOARD_RELATION,
+        cardId: card._id,
+      });
+    }
+    return;
+  }
   if (card.type !== 'card-custom' && card.type !== 'card-storm') {
     return;
   }

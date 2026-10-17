@@ -1,7 +1,13 @@
 /* oxlint-disable jsx-a11y/alt-text -- Static decorative game-card layers, not content images. */
-import type { CustomCardToken } from '@shared/assets/schema';
-import { derive } from '@shared/boards/geometry';
-import type { Board, Face, Properties } from '@shared/boards/geometry';
+import type { CustomCardTokens, SpiceTint, SpiceTokenPlacement } from '@shared/assets/schema';
+import { SPICE_BOARD_SIZE } from '@shared/assets/schema';
+import { CENTER, RADIUS, derive } from '@shared/boards/geometry';
+import type { Board, Face, Point } from '@shared/boards/geometry';
+import { territoryId } from '@shared/boards/schema';
+import { placeStickers } from '@shared/boards/stickerPlacement';
+import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
+import { TINT_STICKER_ARTWORK, tintPaint } from '@shared/boards/tints';
+import { useId } from 'react';
 import type { z } from 'zod';
 
 import { BOARD_ARTWORK } from '../board/artwork';
@@ -9,113 +15,207 @@ import { BoardArtwork } from '../board/Board';
 import { CardToken } from './CardToken';
 import unique from './Spice.module.css';
 
-/** The saved board's coordinate frame; card highlights and token positions share it, so they survive a board switch. */
-const BOARD_SIZE = 487.06;
-/* The legacy card outline was 0.62 units wide in the 100-unit map frame. */
-const EDGE_WIDTH = (0.62 * BOARD_SIZE) / 100;
+type Tint = z.infer<typeof SpiceTint>;
+type Placement = z.infer<typeof SpiceTokenPlacement>;
+type Territory = { id: string; face: Face };
+type ReadonlyPoint = readonly [number, number];
 
-export type TerritoryType = Properties['type'];
+/* The table draws tints in table units over a board 3.98 wide; these are its sizes in board units, so a tint looks the same on a card as on the table. */
+const TABLE_UNIT = RADIUS / 3.98;
+const EDGE_WIDTH = 0.012 * TABLE_UNIT;
+const DOUBLE_LINE_WIDTH = 0.012 * TABLE_UNIT;
+const DOUBLE_LINE_GAP = 0.012 * TABLE_UNIT;
+const STICKER_LARGEST = 0.3 * TABLE_UNIT;
+const STICKER_SMALLEST = 0.14 * TABLE_UNIT;
+const STICKER_INK = '#1a0b00';
+const STICKER_OUTLINE = '#fffed8';
 
-/** One authored selection: a named territory, or every current territory of a type on the selected board. */
-export type SpiceHighlight = Readonly<{
-  target: { territory: string } | { type: TerritoryType };
-  color: string;
-  opacity: number;
-}>;
-
-/** A placed token instance, in board coordinates. The board never moves it. */
-export type SpiceTokenPlacement = Readonly<{
-  layerId: string;
-  asset_id: string;
-  x: number;
-  y: number;
-  size: number;
-  rotation: number;
-}>;
-
-export const SPICE_HIGHLIGHT_DEFAULT = { color: '#9E5F00', opacity: 1 } as const;
-
-/** Missing names stay stored and only drop out of the drawing; the editor shows the warning. */
-export function resolveSpiceHighlights(board: Board, faces: Face[], highlights: readonly SpiceHighlight[]) {
-  const missing: string[] = [];
-  const resolved = highlights.map((highlight) => {
-    const { target } = highlight;
-    const matched = faces.filter((face) => {
-      const property = board.properties[face.key];
-      return 'territory' in target ? property?.id === target.territory : property?.type === target.type;
-    });
-    if ('territory' in target && !matched.length) {
-      missing.push(target.territory);
-    }
-    return { highlight, faces: matched };
-  });
-  return { resolved, missing };
+export function boardTerritoryList(board: Board): Territory[] {
+  return derive(board).faces.map((face) => ({ id: territoryId(board.properties[face.key].name), face }));
 }
 
+/** The board's territories a tint covers: those it names, and every current one of a type it names. */
+export function tintTerritories(board: Board, territories: readonly Territory[], tint: Tint) {
+  const named = new Set(tint.territories);
+  const types = new Set<string>(tint.types ?? []);
+  return territories.filter(({ id, face }) => named.has(id) || types.has(board.properties[face.key].type));
+}
+
+/** Territory IDs the card keeps that the linked board does not have; they stay stored and only drop out of the drawing. */
+export function missingTintTerritories(board: Board, tints: readonly Tint[]) {
+  const known = new Set(Object.values(board.properties).map((property) => territoryId(property.name)));
+  return [...new Set(tints.flatMap((tint) => tint.territories))].filter((id) => !known.has(id));
+}
+
+const segmentPath = (segments: readonly (readonly [ReadonlyPoint, ReadonlyPoint])[]) =>
+  segments.map(([a, b]) => `M${a[0]} ${a[1]}L${b[0]} ${b[1]}`).join('');
+
+const polygon = (points: readonly ReadonlyPoint[]) => `M${points.map(([x, y]) => `${x} ${y}`).join('L')}Z`;
+
+/** One double line round the tint's territories taken together, the borders between them and the rim left out. */
+function TintOutline({ territories, color }: { territories: Territory[]; color: string }) {
+  const half = DOUBLE_LINE_GAP / 2;
+  const segments = offRim(outerSegments(territories.map(({ face }) => face.rings)), CENTER, RADIUS);
+  const d = outlinePaths(segments)
+    .flatMap((path) =>
+      [
+        [half, half + DOUBLE_LINE_WIDTH],
+        [-half, -half - DOUBLE_LINE_WIDTH],
+      ].flatMap(([near, far]) => {
+        const inner = offsetPath(path, near);
+        const outer = offsetPath(path, far);
+        const corners = path.closed ? inner.length : inner.length - 1;
+        return Array.from({ length: corners }, (_, i) => {
+          const j = (i + 1) % inner.length;
+          return polygon([inner[i], outer[i], outer[j], inner[j]]);
+        });
+      })
+    )
+    .join('');
+  return <path d={d} fill={color} fillRule="nonzero" />;
+}
+
+function Stickers({ tint, territory, filter }: { tint: Tint; territory: Territory; filter: string }) {
+  const stamps = tint.stamps ?? [];
+  if (!stamps.length) {
+    return null;
+  }
+  const { at, size: fitted } = placeStickers(territory.face.rings, stamps.length, STICKER_LARGEST);
+  const size = Math.max(STICKER_SMALLEST, fitted);
+  return stamps.map((stamp, index) => {
+    const [x, y] = at[index] ?? territory.face.center;
+    return (
+      <image
+        key={stamp}
+        data-tint-sticker={stamp}
+        href={TINT_STICKER_ARTWORK[stamp]}
+        x={x - size / 2}
+        y={y - size / 2}
+        width={size}
+        height={size}
+        filter={`url(#${filter})`}
+      />
+    );
+  });
+}
+
+/** A territory's own line, without the stretch along the board's rim. */
+function edgePath(face: Face) {
+  return segmentPath(
+    offRim(
+      face.rings.flatMap((ring) => ring.slice(1).map((to, i): [Point, Point] => [ring[i], to])),
+      CENTER,
+      RADIUS
+    )
+  );
+}
+
+/** A tint as the table draws it: a see-through fill with a line of its colour, or one double line round its territories, with stickers either way. */
+function TintLayer({
+  tint,
+  territories,
+  stickerFilter,
+}: {
+  tint: Tint;
+  territories: Territory[];
+  stickerFilter: string;
+}) {
+  const paint = tintPaint(tint.color);
+  return (
+    <g data-tint={tint.id}>
+      {tint.outline ? (
+        <TintOutline territories={territories} color={paint.color} />
+      ) : (
+        territories.map(({ id, face }) => (
+          <g key={id}>
+            <path d={face.path} fill={paint.color} fillOpacity={paint.opacity} fillRule="evenodd" />
+            <path d={edgePath(face)} fill="none" stroke={paint.color} strokeOpacity={0.95} strokeWidth={EDGE_WIDTH} />
+          </g>
+        ))
+      )}
+      {territories.map((territory) => (
+        <Stickers key={territory.id} tint={tint} territory={territory} filter={stickerFilter} />
+      ))}
+    </g>
+  );
+}
+
+function PlacedToken({
+  token,
+  asset,
+}: {
+  token: Placement;
+  asset: NonNullable<z.infer<typeof CustomCardTokens>[string]>;
+}) {
+  const percent = (value: number) => `${(value / SPICE_BOARD_SIZE) * 100}%`;
+  return (
+    <div
+      className={unique.mapToken}
+      data-token-instance={token.layerId}
+      style={{
+        left: percent(token.x),
+        top: percent(token.y),
+        width: percent(token.size),
+        height: percent((token.size * (asset.type === 'token-enhance' ? 186 : 300)) / 300),
+        transform: `translate(-50%, -50%) rotate(${token.rotation}deg)`,
+      }}
+    >
+      <CardToken token={asset} />
+    </div>
+  );
+}
+
+/** A Spice card's map drawn from its linked board: the board's own artwork, its tints oldest first, then its placed tokens. */
 export function SpiceBoardMap({
   board,
-  highlights,
+  tints,
   tokens = [],
   tokenAssets = {},
 }: {
   board: Board;
-  highlights: readonly SpiceHighlight[];
-  tokens?: readonly SpiceTokenPlacement[];
-  tokenAssets?: Record<string, z.infer<typeof CustomCardToken> | null>;
+  tints: readonly Tint[];
+  tokens?: readonly Placement[];
+  tokenAssets?: z.infer<typeof CustomCardTokens>;
 }) {
-  const { faces } = derive(board);
-  const { resolved } = resolveSpiceHighlights(board, faces, highlights);
-  const viewBox = `0 0 ${BOARD_SIZE} ${BOARD_SIZE}`;
+  const stickerFilter = `${useId().replaceAll(':', '')}-sticker`;
+  const territories = boardTerritoryList(board);
+  const viewBox = `0 0 ${SPICE_BOARD_SIZE} ${SPICE_BOARD_SIZE}`;
 
   return (
     <>
       <svg className={unique.map} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
-        <BoardArtwork board={board} faces={faces} artwork={BOARD_ARTWORK} />
+        <BoardArtwork board={board} faces={territories.map(({ face }) => face)} artwork={BOARD_ARTWORK} />
       </svg>
       <svg className={unique.map_overlay} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
-        {resolved.map(({ highlight, faces: matched }, index) =>
-          matched.length ? (
-            <HighlightLayer
-              key={index}
-              paths={matched.map((face) => face.path)}
-              color={highlight.color}
-              opacity={highlight.opacity}
-            />
-          ) : null
-        )}
+        <defs>
+          {/* The board's glyph colours: near-black ink inside a pale outline. */}
+          <filter id={stickerFilter} x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
+            <feMorphology in="SourceAlpha" operator="dilate" radius={1} result="WIDE" />
+            <feFlood floodColor={STICKER_OUTLINE} result="PALE" />
+            <feComposite in="PALE" in2="WIDE" operator="in" result="OUTLINE" />
+            <feFlood floodColor={STICKER_INK} result="DARK" />
+            <feComposite in="DARK" in2="SourceAlpha" operator="in" result="INK" />
+            <feMerge>
+              <feMergeNode in="OUTLINE" />
+              <feMergeNode in="INK" />
+            </feMerge>
+          </filter>
+        </defs>
+        {tints.map((tint) => (
+          <TintLayer
+            key={tint.id}
+            tint={tint}
+            territories={tintTerritories(board, territories, tint)}
+            stickerFilter={stickerFilter}
+          />
+        ))}
       </svg>
       <div className={unique.mapTokens}>
         {tokens.map((token) => {
           const asset = tokenAssets[token.asset_id];
-          return asset ? (
-            <div
-              key={token.layerId}
-              className={unique.mapToken}
-              data-token-instance={token.layerId}
-              style={{
-                left: `${(token.x / BOARD_SIZE) * 100}%`,
-                top: `${(token.y / BOARD_SIZE) * 100}%`,
-                width: `${(token.size / BOARD_SIZE) * 100}%`,
-                height: `${((token.size * (asset.type === 'token-enhance' ? 186 : 300)) / 300 / BOARD_SIZE) * 100}%`,
-                transform: `translate(-50%, -50%) rotate(${token.rotation}deg)`,
-              }}
-            >
-              <CardToken token={asset} />
-            </div>
-          ) : null;
+          return asset ? <PlacedToken key={token.layerId} token={token} asset={asset} /> : null;
         })}
       </div>
     </>
-  );
-}
-
-/* Norbert chose a see-through tint over the legacy outlined filter (#1969): the map shows through, and opacity fades the whole layer. */
-function HighlightLayer({ paths, color, opacity }: { paths: string[]; color: string; opacity: number }) {
-  return (
-    <g data-highlight opacity={opacity}>
-      {paths.map((d, i) => (
-        <path key={i} d={d} fill={color} fillOpacity={0.75} stroke="#000" strokeWidth={EDGE_WIDTH} />
-      ))}
-    </g>
   );
 }
