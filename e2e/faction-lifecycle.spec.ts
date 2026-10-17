@@ -205,9 +205,9 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     const search = page.getByRole('textbox', { name: 'Search factions' });
     await search.fill(importedLeaderName);
     await expect(updatedFaction).toBeVisible();
+    /* The search runs on the server, so the list narrows once typing settles into the address. */
     await expect(otherFaction).toBeHidden();
-    /* Polled like its positive twin below: a bare read passes on any URL write that has not landed yet, which is the same failure the draft/committed split is here to catch. */
-    await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBeNull();
+    await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(importedLeaderName);
 
     await search.press('Enter');
     await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(importedLeaderName);

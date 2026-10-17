@@ -1,18 +1,15 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 const created = '2026-07-01T00:00:00.000Z';
 
 test('a profile link carries the stored avatar, falls back to the legacy URL, and hides non-public profiles', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   await t.run(async (ctx) => {
     const base = { avatar_url: 'https://cdn.example/legacy.png', created_at: created, updated_at: created };
     await ctx.db.insert('profiles', {

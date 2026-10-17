@@ -1,18 +1,15 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCustomCard';
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
-
 test('custom cards save their ordered composition, publish it and join mixed decks', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
   const created = await owner.mutation(api.assets.create, { type: 'card-custom', data: publishingCustomCard });
@@ -59,7 +56,7 @@ test('custom cards save their ordered composition, publish it and join mixed dec
 });
 
 test('custom card writes enforce author access and reject invalid layer content', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const [ownerId, outsiderId] = await t.run(async (ctx) => [
     await ctx.db.insert('users', { name: 'Owner' }),
     await ctx.db.insert('users', { name: 'Other' }),
@@ -86,7 +83,7 @@ test('custom card writes enforce author access and reject invalid layer content'
 });
 
 test('custom card composition limits reject oversized saves without changing the asset', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
   const created = await owner.mutation(api.assets.create, { type: 'card-custom', data: publishingCustomCard });

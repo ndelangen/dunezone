@@ -1,16 +1,12 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { parseAssetDataForWrite } from '../src/shared/assets/validation';
 import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -26,7 +22,7 @@ afterEach(() => {
 });
 
 async function fixture(email = 'synthetic@example.invalid') {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const rows = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { email, isAdmin: true });
     const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 60_000 });
@@ -66,8 +62,6 @@ describe('isolated Play test controls', () => {
   test('seeds a real-game ruleset with both decks and two factions, distinct from an earlier seed', async () => {
     const { t } = await fixture();
     /* Inserting catalogue rows updates the statistics aggregate. */
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
     const first = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const second = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     /* Two decks with three cards each, the Extra's face, and both token faces per faction. */
@@ -95,8 +89,6 @@ describe('isolated Play test controls', () => {
 
   test('fills each required deck with complete, published cards of its own type', async () => {
     const { t } = await fixture();
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
     const { rulesetId, publications } = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const supply = await t.query(api.playCatalogue.rulesetSupply, { rulesetId });
     const decks = Object.fromEntries((supply?.slots ?? []).map(({ slot, asset }) => [slot, asset.slug]));
@@ -118,8 +110,6 @@ describe('isolated Play test controls', () => {
 
   test('one faction supplies an Extra and declares phases', async () => {
     const { t } = await fixture();
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
     const { rulesetId, publications } = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const factionIds = await t.run(async (ctx) =>
       (

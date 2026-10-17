@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
-const sources = ['profiles', 'factions', 'rulesets', 'faq_items', 'faq_answers'] as const;
+const sources = ['profiles', 'factions', 'rulesets', 'faq_items', 'faq_answers', 'groups', 'assets'] as const;
 type Source = (typeof sources)[number];
 
 const reconciliationItemSchema = z.object({
   id: z.string(),
   included: z.boolean(),
   rulesetId: z.string().nullable(),
+  assetType: z.string().optional(),
   parentExists: z.boolean(),
 });
 
@@ -22,6 +23,8 @@ const globalTotalsSchema = z.object({
   rulesets: z.number(),
   questions: z.number(),
   answers: z.number(),
+  groups: z.number(),
+  assets: z.number(),
 });
 
 const rulesetTotalsSchema = z.object({ questions: z.number(), answers: z.number() });
@@ -49,7 +52,7 @@ async function loadSource(source: Source, useProd: boolean) {
     const page = reconciliationPageSchema.parse(
       runConvex(
         'statistics:getCanonicalReconciliationPage',
-        { source, paginationOpts: { cursor, numItems: 64 } },
+        { source, paginationOpts: { cursor, numItems: source === 'assets' ? 8 : 64 } },
         useProd
       )
     );
@@ -77,7 +80,21 @@ async function verify(useProd: boolean) {
     rulesets: pages.get('rulesets')?.filter((item) => item.included).length ?? 0,
     questions: pages.get('faq_items')?.filter((item) => item.included).length ?? 0,
     answers: pages.get('faq_answers')?.filter((item) => item.included).length ?? 0,
+    groups: pages.get('groups')?.filter((item) => item.included).length ?? 0,
+    assets: pages.get('assets')?.filter((item) => item.included).length ?? 0,
   };
+
+  const perAssetType = new Map<string, number>();
+  for (const item of pages.get('assets') ?? []) {
+    if (item.assetType) {
+      perAssetType.set(item.assetType, (perAssetType.get(item.assetType) ?? 0) + (item.included ? 1 : 0));
+    }
+  }
+  const assetTypes = [];
+  for (const [type, expected] of perAssetType) {
+    const actual = z.number().parse(runConvex('statistics:getAssetTypeTotal', { type }, useProd));
+    assetTypes.push({ type, canonical: expected, statistics: actual, matches: expected === actual });
+  }
 
   const perRuleset = new Map<string, { questions: number; answers: number }>();
   for (const item of pages.get('rulesets') ?? []) {
@@ -121,8 +138,14 @@ async function verify(useProd: boolean) {
     validatedCanonical.factions === statistics.factions &&
     validatedCanonical.rulesets === statistics.rulesets &&
     validatedCanonical.questions === statistics.questions &&
-    validatedCanonical.answers === statistics.answers;
-  const matches = globalMatches && rulesets.every((ruleset) => ruleset.matches) && orphaned.length === 0;
+    validatedCanonical.answers === statistics.answers &&
+    validatedCanonical.groups === statistics.groups &&
+    validatedCanonical.assets === statistics.assets;
+  const matches =
+    globalMatches &&
+    rulesets.every((ruleset) => ruleset.matches) &&
+    assetTypes.every((assetType) => assetType.matches) &&
+    orphaned.length === 0;
 
   const report = {
     environment: useProd ? 'production' : 'development',
@@ -132,6 +155,10 @@ async function verify(useProd: boolean) {
     perRuleset: {
       checked: rulesets.length,
       mismatches: rulesets.filter((ruleset) => !ruleset.matches),
+    },
+    perAssetType: {
+      checked: assetTypes.length,
+      mismatches: assetTypes.filter((assetType) => !assetType.matches),
     },
     orphaned,
     matches,

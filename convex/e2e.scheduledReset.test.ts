@@ -1,13 +1,11 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
-import schema from './schema';
 
-const modules = import.meta.glob('./**/*.ts');
 beforeEach(() => {
   vi.useFakeTimers();
   vi.stubEnv('IS_TEST', 'true');
@@ -22,7 +20,7 @@ afterEach(() => {
 });
 
 test('fixture reset ignores completed jobs and preserves retained session expiry', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const rows = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { account_state: 'active' });
     const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 1000 });

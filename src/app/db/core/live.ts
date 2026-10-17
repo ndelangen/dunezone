@@ -54,14 +54,15 @@ export function toLiveQueryResult<TData>(
 
 /**
  * A page query's live subscription that stays warm for a while after the page lets go of it, so going back to the page, or a loader for it, answers from the browser instead of the server.
- * Use plain `useQuery` for probes whose arguments change as someone types;
+ * Use plain `useQuery`, or `hold: false`, for arguments that change as someone types;
  * each value would otherwise stay subscribed.
  */
 export function useLiveQuery<Query extends FunctionReference<'query'>>(
   query: Query,
-  args: FunctionArgs<Query>
+  args: FunctionArgs<Query>,
+  options?: { hold?: boolean }
 ): FunctionReturnType<Query> | undefined {
-  useWarmHold(query, args);
+  useWarmHold(query, args, options?.hold ?? true);
   return useQuery(query, args);
 }
 
@@ -95,15 +96,18 @@ export function useHeldLiveQuery<Query extends FunctionReference<'query'>>(
 }
 
 /** Holds a page query warm after its page lets go of it, and returns the key naming the query and its arguments. */
-function useWarmHold<Query extends FunctionReference<'query'>>(query: Query, args: FunctionArgs<Query>) {
+function useWarmHold<Query extends FunctionReference<'query'>>(query: Query, args: FunctionArgs<Query>, hold = true) {
   const client = useConvex();
   const key = JSON.stringify([getFunctionName(query), convexToJson(args)]);
   /* This effect must stay above the subscription: its cleanup takes the hold before the subscription lets go, so the query is never dropped and re-added. */
   useEffect(() => {
+    if (!hold) {
+      return;
+    }
     keepWarm(client, query, args, PAGE_HOLD_MS);
     return () => keepWarm(client, query, args, PAGE_HOLD_MS);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` already covers the query and its arguments, which arrive as new objects each render.
-  }, [key]);
+  }, [key, hold]);
   return key;
 }
 

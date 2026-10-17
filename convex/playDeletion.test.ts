@@ -1,27 +1,16 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import migrationsTest from '@convex-dev/migrations/test';
-import rateLimiterTest from '@convex-dev/rate-limiter/test';
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 /* A confirmed game the player created, before any ticket of theirs is redeemed. */
 async function createdGame() {
-  const t = convexTest(schema, modules);
-  rateLimiterTest.register(t);
-  migrationsTest.register(t);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileDiscovery');
-  aggregateTest.register(t, 'profileActivity');
+  const t = applicationTest();
   const { userId, sessionId } = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { account_state: 'active' });
     const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 3_600_000 });

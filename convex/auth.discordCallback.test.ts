@@ -1,14 +1,10 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 beforeEach(() => {
   vi.stubEnv('AUTH_DISCORD_ID', 'test-discord-client');
@@ -26,10 +22,7 @@ async function discordCallback(
   issuer: string,
   expectedCallback = 'https://backend.convex.site/api/auth/callback/discord'
 ) {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const providerFetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     if (url === 'https://discord.com/api/oauth2/token') {

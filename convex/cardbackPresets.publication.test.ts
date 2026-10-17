@@ -1,17 +1,15 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { INITIAL_CARDBACK_PRESETS } from '../src/shared/assets/cardbackPresets';
 import { api, internal } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 const cardback = INITIAL_CARDBACK_PRESETS.find((preset) => preset.key === 'traitor')!.cardback;
 async function fixture() {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ids = await t.run(async (ctx) => ({
     admin: await ctx.db.insert('users', { isAdmin: true }),
     author: await ctx.db.insert('users', {}),

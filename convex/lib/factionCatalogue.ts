@@ -1,7 +1,20 @@
 import type { Infer } from 'convex/values';
 
+import { compareCodeUnits } from '../../src/shared/compareText';
+import {
+  FACTION_CATALOGUE_PAGE_SIZE,
+  FACTION_CATALOGUE_QUERY_LIMIT,
+  parseCataloguePage,
+  parseComplexityRange,
+} from '../../src/shared/factions/catalogueSearch';
+import type { FactionCatalogueSearch, FactionCatalogueSort } from '../../src/shared/factions/catalogueSearch';
+import { complexityOutOfTen, effectiveComplexity } from '../../src/shared/factions/complexity';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
+import { catalogueEditedAt, catalogueNameKey, catalogueSearchText, catalogueTimestamp } from './catalogueEntryShape';
+import type { CatalogueKind } from './catalogueEntryShape';
+import { ALL_PARTITION, countCataloguePartitions, selectCataloguePage } from './catalogueOrder';
+import type { CatalogueDirection, CatalogueSort } from './catalogueOrder';
 import type { catalogueFactionValidator } from './collaborativeAccessValidators';
 import { parseStoredFactionForRead } from './factionInput';
 
@@ -236,4 +249,184 @@ function compareFactionIdentity(left: Pick<Doc<'factions'>, '_id'>, right: Pick<
 function parseTimestamp(value: string) {
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+/* A faction's links are curated by hand; this bound is a ceiling on nonsense, the same one the detail page reads with. */
+const FACTION_LINK_LIMIT = 500;
+
+/**
+ * What the catalogue searches and sorts on, read from the authored blob.
+ * A blob the full read refuses still lists under its raw name, so a legacy row never fails the save that touched it.
+ * The catalogue page that shows such a row fails loudly, as the unpaged catalogue did.
+ */
+function factionSearchFields(data: unknown) {
+  try {
+    const faction = parseStoredFactionForRead(data);
+    return {
+      name: faction.name,
+      names: [faction.name, faction.factionLeader.name, ...faction.leaders.map((leader) => leader.name)],
+      complexity: effectiveComplexity(faction.complexity),
+    };
+  } catch {
+    const raw = (data ?? {}) as { name?: unknown };
+    const name = typeof raw.name === 'string' ? raw.name : '';
+    return { name, names: [name], complexity: 0 };
+  }
+}
+
+/**
+ * The faction kind of `catalogue_entries`: one entry per live faction, faceted by every ruleset it is linked to.
+ * Which of those rulesets are live is resolved when the catalogue is read, so deleting a ruleset rewrites no entry.
+ */
+export const factionCatalogueKind: CatalogueKind = {
+  sorts: ['name', 'created', 'updated', 'complexity'],
+  expected: async (ctx, sourceId) => {
+    const factionId = ctx.db.normalizeId('factions', sourceId);
+    const faction = factionId ? await ctx.db.get('factions', factionId) : null;
+    if (!faction || faction.is_deleted) {
+      return null;
+    }
+    const links = await ctx.db
+      .query('ruleset_factions')
+      .withIndex('by_faction', (q) => q.eq('faction_id', faction._id))
+      .take(FACTION_LINK_LIMIT);
+    if (links.length === FACTION_LINK_LIMIT) {
+      console.warn(
+        `Faction ${faction._id} has ${FACTION_LINK_LIMIT} or more ruleset links; the catalogue lists it under the first ${FACTION_LINK_LIMIT}.`
+      );
+    }
+    const { name, names, complexity } = factionSearchFields(faction.data);
+    return {
+      kind: 'faction',
+      source_id: faction._id,
+      slug: faction.slug,
+      search_text: catalogueSearchText(names),
+      name_key: catalogueNameKey(name),
+      created_at: catalogueTimestamp(faction.created_at),
+      updated_at: catalogueTimestamp(faction.updated_at),
+      edited_at: catalogueEditedAt(faction.created_at, faction.updated_at),
+      complexity,
+      complexity_score: complexityOutOfTen(complexity),
+      facets: [...new Set(links.map((link) => link.ruleset_id))].sort(compareCodeUnits),
+    };
+  },
+  listedSourceIds: async (ctx, limit) => {
+    const rows = await ctx.db
+      .query('factions')
+      .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+      .take(limit);
+    return rows.map((row) => row._id);
+  },
+};
+
+export type FactionCatalogueQuery = FactionCatalogueSearch;
+
+/** A reader's sort as the aggregate orders it: names A to Z, dates newest first. */
+function catalogueOrderOf(sort: FactionCatalogueSort | undefined): {
+  sort: CatalogueSort;
+  direction: CatalogueDirection;
+} {
+  switch (sort) {
+    case 'created':
+      return { sort: 'created', direction: 'desc' };
+    case 'updated':
+      return { sort: 'updated', direction: 'desc' };
+    case 'complexity-asc':
+      return { sort: 'complexity', direction: 'asc' };
+    case 'complexity-desc':
+      return { sort: 'complexity', direction: 'desc' };
+    case 'name':
+    case undefined:
+      return { sort: 'name', direction: 'asc' };
+  }
+}
+
+/** The newest dated entry, and the most recently edited one that is not that arrival. */
+async function selectSpotlightEntries(ctx: QueryCtx) {
+  const list = (index: 'by_kind_partition_created' | 'by_kind_partition_edited', field: 'created_at' | 'edited_at') =>
+    ctx.db
+      .query('catalogue_entries')
+      .withIndex(index, (q) => q.eq('kind', 'faction').eq('partition', ALL_PARTITION).gt(field, 0))
+      .order('desc')
+      .take(2);
+  const [[newArrival], edited] = await Promise.all([
+    list('by_kind_partition_created', 'created_at'),
+    list('by_kind_partition_edited', 'edited_at'),
+  ]);
+  const freshlyUpdated = edited.find((entry) => entry.source_id !== newArrival?.source_id);
+  return { newArrival: newArrival ?? null, freshlyUpdated: freshlyUpdated ?? null };
+}
+
+/**
+ * One page of the Faction catalogue, the same for every viewer.
+ * The aggregate counts the list and finds the page's first entry;
+ * a search uses Convex's search index over the same entries.
+ * Only the visible cards and the two spotlights read card rows.
+ * A page past the end answers with no cards and the real page count, so the reader can be told where the catalogue ends.
+ */
+export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCatalogueQuery) {
+  const rulesets = await listActiveRulesetSummaries(ctx);
+  const activeRulesetById = new Map<string, FactionRulesetSummary>(rulesets.map((ruleset) => [ruleset.id, ruleset]));
+  /* An unknown or deleted ruleset narrows nothing; the route drops it from the address. */
+  const partition = rulesets.find((ruleset) => ruleset.slug === query.ruleset)?.id ?? ALL_PARTITION;
+  const complexity = query.complexity ? parseComplexityRange(query.complexity) : undefined;
+  const text = query.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim() ?? '';
+  const page = parseCataloguePage(query.page) ?? 1;
+
+  const [selection, counts, spotlightEntries] = await Promise.all([
+    selectCataloguePage(ctx, {
+      kind: 'faction',
+      partition,
+      ...catalogueOrderOf(query.sort),
+      page,
+      pageSize: FACTION_CATALOGUE_PAGE_SIZE,
+      search: text ? { text, relevance: !query.sort } : undefined,
+      complexity,
+    }),
+    countCataloguePartitions(ctx, 'faction', [ALL_PARTITION, ...rulesets.map((ruleset) => ruleset.id)]),
+    selectSpotlightEntries(ctx),
+  ]);
+  const [catalogueTotal = 0, ...rulesetCounts] = counts;
+
+  const card = async (entry: { source_id: string; facets: string[] } | null) => {
+    const factionId = entry ? ctx.db.normalizeId('factions', entry.source_id) : null;
+    const row = factionId
+      ? await ctx.db
+          .query('faction_cards')
+          .withIndex('by_faction', (q) => q.eq('faction_id', factionId))
+          .unique()
+      : null;
+    if (!entry || !row || row.is_deleted) {
+      /* A listed entry without a live card is drift: the page comes up one card short until the card backfill or the next save. */
+      if (entry) {
+        console.warn(`Catalogue entry for faction ${entry.source_id} has no live card.`);
+      }
+      return null;
+    }
+    return await catalogueFactionFromCard(
+      ctx,
+      row,
+      entry.facets
+        .map((facet) => activeRulesetById.get(facet))
+        .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
+        .sort(compareRulesets)
+    );
+  };
+  const [cards, newArrival, freshlyUpdated] = await Promise.all([
+    Promise.all(selection.entries.map((entry) => card(entry))),
+    card(spotlightEntries.newArrival),
+    card(spotlightEntries.freshlyUpdated),
+  ]);
+
+  return {
+    cards: cards.filter((faction) => faction != null),
+    total: selection.total,
+    catalogueTotal,
+    complete: selection.exact,
+    page,
+    pageCount: Math.max(1, Math.ceil(selection.total / FACTION_CATALOGUE_PAGE_SIZE)),
+    pageSize: FACTION_CATALOGUE_PAGE_SIZE,
+    rulesets: rulesets.map((ruleset, index) => ({ ...ruleset, factionCount: rulesetCounts[index] ?? 0 })),
+    spotlights: { newArrival, freshlyUpdated },
+  };
 }

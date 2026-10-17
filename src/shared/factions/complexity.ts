@@ -83,3 +83,8 @@ export function recalculateFactionComplexity<T extends { rules: FactionRules; co
 export function effectiveComplexity(complexity: FactionComplexity): number {
   return complexity.manual ?? complexity.calculated;
 }
+
+/** The display form: 0..1 rounded onto the x/10 scale, the scale the catalogue's complexity filter speaks. */
+export function complexityOutOfTen(score: number): number {
+  return Math.round(score * 10);
+}

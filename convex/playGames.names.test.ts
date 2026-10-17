@@ -1,8 +1,6 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import rateLimiterTest from '@convex-dev/rate-limiter/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
@@ -10,15 +8,12 @@ import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/gameNames';
 import { playGameNameVocabulary } from '../src/shared/play/generatedGameNames';
 import { api, internal } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
 import { playRateLimiter } from './lib/playRateLimits';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 async function world() {
-  const t = convexTest(schema, modules);
-  rateLimiterTest.register(t);
+  const t = applicationTest();
   const seeded = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { name: 'Name allocator', account_state: 'active' });
     const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 3_600_000 });

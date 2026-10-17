@@ -1,16 +1,14 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
+import type { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import { applicationTest } from './application.test.fixture';
 import { publicationHrefFor, publicationStatusFor } from './assetPublishingStatus';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 async function seedFaction(t: ReturnType<typeof convexTest>) {
   return await t.run(async (ctx) => {
@@ -71,7 +69,7 @@ async function publicStatus(t: ReturnType<typeof convexTest>, factionId: Id<'fac
 
 describe('public asset publishing status projection', () => {
   test('returns no link until a publication asset exists', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const factionId = await seedFaction(t);
 
     expect(await publicStatus(t, factionId)).toEqual({
@@ -87,7 +85,7 @@ describe('public asset publishing status projection', () => {
     ['in_progress', 'in_progress'],
     ['error', 'error'],
   ] as const)('projects %s job state as %s capture state', async (status, captureStatus) => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const factionId = await seedFaction(t);
     await t.run(async (ctx) => await ctx.db.insert('publication_jobs', publicationJob(factionId, status, 1)));
 
@@ -100,7 +98,7 @@ describe('public asset publishing status projection', () => {
   });
 
   test('keeps the stable public link while replacement work exists', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const factionId = await seedFaction(t);
     await t.run(async (ctx) => {
       await ctx.db.insert('publication_assets', currentSheet(factionId, 'private-cache-token'));
@@ -119,7 +117,7 @@ describe('public asset publishing status projection', () => {
     ['in_progress', 'pending', 'in_progress'],
     ['pending', 'error', 'scheduled'],
   ] as const)('shows %s work ahead of %s work', async (ahead, behind, captureStatus) => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const factionId = await seedFaction(t);
     await t.run(async (ctx) => {
       for (const [index, status] of [behind, ahead].entries()) {
@@ -135,7 +133,7 @@ describe('public asset publishing status projection', () => {
     ['only capture work', false, 'pending'],
     ['a publication with replacement work', true, 'in_progress'],
   ] as const)('the link-only read matches the full status link for %s', async (_case, published, jobStatus) => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const factionId = await seedFaction(t);
     const [href, status] = await t.run(async (ctx) => {
       if (published) {

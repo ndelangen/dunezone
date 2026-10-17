@@ -1,20 +1,15 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { rulebookEditionArtifactPath } from '../src/shared/rulebooks/editionArtifacts';
 import { internal } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 describe('the Rulebook Edition artifact migration', () => {
   test('backfills each historical Edition exactly once', async () => {
-    const t = convexTest(schema, modules);
-    migrationsTest.register(t);
+    const t = applicationTest();
     const ids = await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Edition owner' });
       const rulesetId = await ctx.db.insert('rulesets', {
