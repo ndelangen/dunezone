@@ -5,6 +5,7 @@ import { Surface } from '@ui/surface';
 import type { ReactNode } from 'react';
 
 import { Figure, Lead, Paragraph } from '../postContent';
+import { FactionExtras } from './anatomy/FactionExtras';
 import { FactionRecipe } from './anatomy/FactionRecipe';
 
 /*
@@ -63,10 +64,7 @@ export default function Post() {
           special tokens. Those are made as assets of their own, and the faction lists them. At setup, they come along
           with it.
         </Paragraph>
-        <Planned>
-          the same diagram, with a second lane joining from the side: a custom deck and a token bundle from the
-          catalogue, linked into the faction and appearing among its outputs.
-        </Planned>
+        <FactionExtras />
       </Section>
       <Section title="It took five years to get this shape">
         <Paragraph>

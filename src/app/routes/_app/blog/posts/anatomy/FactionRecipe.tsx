@@ -27,7 +27,7 @@ import { Machine } from './Machine';
  */
 
 /** The sample Atreides the asset publisher is tested with, led by Paul as on the faction page. */
-const FACTION: FactionInput = {
+export const FACTION: FactionInput = {
   ...assetPublishingFaction,
   factionLeader: {
     ...assetPublishingFaction.factionLeader,
@@ -169,7 +169,7 @@ const INPUTS: Record<InputId, { label: string; zoom?: number; art: () => ReactNo
  * A renderer drawn at its native canvas size and scaled to the output row's height times `scale`.
  * The scales keep the assets roughly in the sizes they have on the table, relative to each other.
  */
-function Scaled({
+export function Scaled({
   size,
   scale = 1,
   round = false,
