@@ -72,6 +72,25 @@ describe('nextHiddenZoneSpot', () => {
       expect(clampHiddenZoneSpot(spot)).toEqual(spot);
     }
   });
+
+  it('keeps the cascade apart inside a zone narrower than the standard patch', () => {
+    const { extent } = hiddenZoneView(220, 400);
+    expect(extent.x).toBeLessThan(0.5);
+    const hand: ReturnType<typeof piece>[] = [];
+    const spots = Array.from({ length: 7 }, (_, index) => {
+      const spot = nextHiddenZoneSpot(hand, extent);
+      hand.push(piece(`laid-${index}`, 'force', { hiddenZone: spot }));
+      return spot;
+    });
+    for (const spot of spots) {
+      expect(clampHiddenZoneSpot(spot, extent)).toEqual(spot);
+    }
+    expect(new Set(spots.map((spot) => spot.x)).size).toBe(7);
+  });
+
+  it('cascades as before in a zone the standard patch fits', () => {
+    expect(nextHiddenZoneSpot([], { x: 1.6, y: 1.2 })).toEqual(nextHiddenZoneSpot([]));
+  });
 });
 
 describe('clampHiddenZoneSpot', () => {
