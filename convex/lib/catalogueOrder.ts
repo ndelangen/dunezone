@@ -246,36 +246,42 @@ function matchesEveryWord(query: string) {
   };
 }
 
-/** At most `CATALOGUE_BOUNDED_READ` matches, from the search index or the complexity index, ordered and paged in memory. */
-async function boundedPage(ctx: QueryCtx, request: CataloguePageRequest, offset: number) {
-  const { kind, partition, sort, direction, pageSize, search } = request;
-  const range = request.complexity;
-  const read = search
-    ? await ctx.db
-        .query('catalogue_entries')
+/** At most `CATALOGUE_BOUNDED_READ` candidates, from the search index or else the complexity index. */
+async function readBounded(ctx: QueryCtx, request: CataloguePageRequest) {
+  const { kind, partition, search } = request;
+  const [low, high] = request.complexity ?? [0, 10];
+  const query = ctx.db.query('catalogue_entries');
+  return search
+    ? await query
         .withSearchIndex('search_text', (q) =>
           q.search('search_text', search.text).eq('kind', kind).eq('partition', partition)
         )
         .take(CATALOGUE_BOUNDED_READ)
-    : await ctx.db
-        .query('catalogue_entries')
+    : await query
         .withIndex('by_kind_partition_complexity', (q) =>
-          q
-            .eq('kind', kind)
-            .eq('partition', partition)
-            .gte('complexity_score', range?.[0] ?? 0)
-            .lte('complexity_score', range?.[1] ?? 10)
+          q.eq('kind', kind).eq('partition', partition).gte('complexity_score', low).lte('complexity_score', high)
         )
         .take(CATALOGUE_BOUNDED_READ);
+}
+
+/** The candidates in the complexity range, if one is asked for, that match every word of the search, if there is one. */
+function boundedMatches(read: Entry[], request: CataloguePageRequest) {
+  const range = request.complexity;
   const inRange = range
     ? read.filter((entry) => entry.complexity_score >= range[0] && entry.complexity_score <= range[1])
     : read;
-  const matches = search ? inRange.filter(matchesEveryWord(search.text)) : inRange;
-  if (!search?.relevance) {
-    matches.sort(compareBy(sort, direction));
+  return request.search ? inRange.filter(matchesEveryWord(request.search.text)) : inRange;
+}
+
+/** At most `CATALOGUE_BOUNDED_READ` matches, ordered and paged in memory. */
+async function boundedPage(ctx: QueryCtx, request: CataloguePageRequest, offset: number) {
+  const read = await readBounded(ctx, request);
+  const matches = boundedMatches(read, request);
+  if (!request.search?.relevance) {
+    matches.sort(compareBy(request.sort, request.direction));
   }
   return {
-    entries: matches.slice(offset, offset + pageSize),
+    entries: matches.slice(offset, offset + request.pageSize),
     total: matches.length,
     exact: read.length < CATALOGUE_BOUNDED_READ,
   };
