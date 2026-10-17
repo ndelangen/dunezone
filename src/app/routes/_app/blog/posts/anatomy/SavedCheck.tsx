@@ -17,7 +17,7 @@ const LINES: readonly { field: string; value: string; rule: string }[] = [
   { field: 'name', value: FACTION.name, rule: 'has a letter or number, for its web address' },
   { field: 'logo', value: FACTION.logo.split('/').at(-1) ?? FACTION.logo, rule: 'is one of the library’s logos' },
   { field: 'theme colour', value: FACTION.themeColor, rule: 'is a hex colour' },
-  { field: 'colours', value: FACTION.colors.join(', '), rule: 'are Tabletop Simulator colours' },
+  { field: 'table colours', value: FACTION.colors.join(', '), rule: 'are Tabletop Simulator player colours' },
   {
     field: 'leaders',
     value: `${FACTION.factionLeader.name} + ${FACTION.leaders.length}`,
@@ -32,12 +32,12 @@ const LINES: readonly { field: string; value: string; rule: string }[] = [
 
 export function SavedCheck() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const seen = useSeen(rootRef, 0.5);
+  const { armed, seen } = useSeen(rootRef);
 
   return (
     <div
       ref={rootRef}
-      className={clsx(styles.root, seen && styles.seen)}
+      className={clsx(styles.root, armed && !seen && styles.waiting)}
       role="group"
       aria-label={`${FACTION.name}, checked against the save rules`}
     >

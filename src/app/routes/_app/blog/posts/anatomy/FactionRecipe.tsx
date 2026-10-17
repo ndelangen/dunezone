@@ -35,7 +35,7 @@ type InputId =
 
 /** Which ingredients each asset reads, as `FactionRender` in `@shared/factions/schema` picks them. */
 const USES: Record<OutputId, readonly InputId[]> = {
-  sheet: ['name', 'theme', 'logo', 'texture', 'colours', 'leaders', 'troop', 'rules'],
+  sheet: ['name', 'theme', 'logo', 'texture', 'colours', 'leaders', 'troop', 'rules', 'alliance'],
   leaderTokens: ['leaders', 'texture', 'colours', 'logo'],
   traitors: ['leaders', 'logo', 'texture', 'colours', 'name'],
   troopToken: ['troop', 'texture', 'colours'],
@@ -238,15 +238,20 @@ function prefersReducedMotion() {
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+/** The tour runs only on a figure that is mounted, untouched, observable, and shown to a reader who welcomes motion. */
+function canTour(root: HTMLElement | null, paused: boolean): root is HTMLElement {
+  if (paused || !root) {
+    return false;
+  }
+  return typeof IntersectionObserver !== 'undefined' && !prefersReducedMotion();
+}
+
 /** While nobody has picked anything, the figure steps through the ingredients on its own, as long as it is on screen; under reduced motion it waits for a pick. */
 function useTour(rootRef: RefObject<HTMLElement | null>, paused: boolean) {
   const [step, setStep] = useState(-1);
   useEffect(() => {
     const root = rootRef.current;
-    if (paused || !root || typeof IntersectionObserver === 'undefined') {
-      return;
-    }
-    if (prefersReducedMotion()) {
+    if (!canTour(root, paused)) {
       return;
     }
     let timer: ReturnType<typeof setInterval> | undefined;
@@ -263,7 +268,14 @@ function useTour(rootRef: RefObject<HTMLElement | null>, paused: boolean) {
       clearInterval(timer);
     };
   }, [rootRef, paused]);
-  return step < 0 ? null : (INPUT_ORDER[step] ?? null);
+  return paused || step < 0 ? null : (INPUT_ORDER[step] ?? null);
+}
+
+function isLineLit(line: Line, lit: ReturnType<typeof litSets>) {
+  if (!lit) {
+    return false;
+  }
+  return line.input ? lit.inputs.has(line.input) : Boolean(line.output && lit.outputs.has(line.output));
 }
 
 function same(a: Selection, b: Selection) {
@@ -322,7 +334,9 @@ function Tile({
       onMouseEnter={() => onPoint(selection)}
       onMouseLeave={() => onPoint(null)}
     >
-      <span className={isInput ? styles.inputArt : styles.outputArt}>{art}</span>
+      <span className={isInput ? styles.inputArt : styles.outputArt} aria-hidden="true">
+        {art}
+      </span>
       <span className={styles.label}>{label}</span>
     </UnstyledButton>
   );
@@ -335,8 +349,7 @@ export function FactionRecipe() {
   const lit = litSets(active);
   /* Changing the key restarts the pulses, so every new pick starts its round from the editor. */
   const pulseRound = active ? `${active.kind}-${active.id}` : 'none';
-  const lineLit = (line: Line) =>
-    Boolean(lit && ((line.input && lit.inputs.has(line.input)) || (line.output && lit.outputs.has(line.output))));
+  const lineLit = (line: Line) => isLineLit(line, lit);
   const tileProps = (selection: NonNullable<Selection>) => ({
     selection,
     pressed: same(pick, selection),
@@ -379,7 +392,7 @@ export function FactionRecipe() {
                   label={INPUTS[id].label}
                   art={INPUTS[id].art()}
                   zoom={INPUTS[id].zoom}
-                  lit={Boolean(lit?.inputs.has(id))}
+                  lit={lit?.inputs.has(id) === true}
                 />
               ))}
             </div>
@@ -397,7 +410,7 @@ export function FactionRecipe() {
             {...tileProps({ kind: 'output', id })}
             label={OUTPUTS[id].label}
             art={OUTPUTS[id].art()}
-            lit={Boolean(lit?.outputs.has(id))}
+            lit={lit?.outputs.has(id) === true}
           />
         ))}
       </div>

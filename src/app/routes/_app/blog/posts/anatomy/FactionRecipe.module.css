@@ -18,11 +18,13 @@
   padding-block: var(--space-md);
 }
 
+/* On a phone the article column is the whole width, so the figure keeps to it rather than to the viewport. */
 @container blog-article (width < 36rem) {
   .root {
     --base-art: 2.25rem;
     --output-height: 5.5rem;
 
+    width: 100%;
     gap: var(--space-lg);
   }
 }

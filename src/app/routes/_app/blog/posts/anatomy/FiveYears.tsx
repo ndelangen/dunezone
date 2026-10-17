@@ -134,12 +134,12 @@ function Plan({ plan }: { plan: Era['plan'] }) {
 
 export function FiveYears() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const seen = useSeen(rootRef, 0.4);
+  const { armed, seen } = useSeen(rootRef);
 
   return (
     <div
       ref={rootRef}
-      className={clsx(styles.root, seen && styles.seen)}
+      className={clsx(styles.root, armed && !seen && styles.waiting)}
       role="group"
       aria-label={`What ${FACTION.name} was in each project, from 2021 to 2026`}
     >

@@ -3,7 +3,7 @@ import { FactionRender } from '@shared/factions/schema';
 import { Link } from '@tanstack/react-router';
 import type { CSSProperties, ReactNode } from 'react';
 
-import { FactionSheetPagePreview } from '@app/widgets/faction-editor/FactionSheetPagePreview';
+import { FactionSheetPagePreview } from '@app/print/sheet/FactionSheetPagePreview';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Shield } from '@game/assets/faction/shield/Shield';
@@ -102,8 +102,8 @@ export function TableSpread() {
         >
           Smugglers
         </Anchor>
-        , a homebrew faction by Argelius, with its sheet, shield, leaders, traitors, alliance card and troops all drawn
-        from the one faction.
+        , a homebrew faction by Argelius, with its sheet, shield, leaders, traitors, alliance card, faction token and
+        troops all drawn from the one faction.
       </figcaption>
     </figure>
   );

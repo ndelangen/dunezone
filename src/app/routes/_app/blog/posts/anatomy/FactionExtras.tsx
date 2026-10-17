@@ -37,12 +37,12 @@ const BUNDLE_TOKENS = [
 
 export function FactionExtras() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const seen = useSeen(rootRef);
+  const { armed, seen } = useSeen(rootRef);
 
   return (
     <div
       ref={rootRef}
-      className={clsx(styles.root, seen && styles.seen)}
+      className={clsx(styles.root, armed && !seen && styles.waiting)}
       role="group"
       aria-label={`${FACTION.name}'s full set, with custom assets linked in`}
     >

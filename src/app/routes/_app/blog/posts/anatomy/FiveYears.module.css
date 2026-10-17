@@ -42,7 +42,7 @@
   list-style: none;
 }
 
-/* Each row arrives in turn once the figure is on screen, oldest first. */
+/* Each row arrives in turn once the figure is on screen, oldest first; until scripts run, every row simply shows. */
 .row {
   --row: 0;
 
@@ -52,22 +52,18 @@
   gap: var(--space-md);
   padding-block: var(--space-md);
   border-block-end: 1px solid rgb(228 240 255 / 45%);
-  opacity: 0;
-  transform: translateY(0.5rem);
   transition:
     opacity 600ms ease calc(var(--row) * 350ms),
     transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--row) * 350ms);
 }
 
-.seen .row {
-  opacity: 1;
-  transform: none;
+.waiting .row {
+  opacity: 0;
+  transform: translateY(0.5rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .row {
-    opacity: 1;
-    transform: none;
     transition: none;
   }
 }

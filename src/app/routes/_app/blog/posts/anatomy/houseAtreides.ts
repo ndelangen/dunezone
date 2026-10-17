@@ -6,7 +6,7 @@ import type { FactionInput } from '@shared/factions/schema';
  * House Atreides as dune.zone shows it at /factions/house-atreides, copied on 2026-10-17, so the post's figures match the faction page.
  * It is a copy rather than a live read, because a blog post is a fixed piece of writing and should not change when the faction does.
  * Images are the media pipeline's source keys for the files the page serves; the rule text keeps the page's own wording, typos included.
- * The page does not show the background's invert, definition and influence, so those are the editor's defaults.
+ * The background's invert, definition and influence, the theme colour and the troop's description come from the stored faction, which the page does not show.
  */
 export const HOUSE_ATREIDES: FactionInput = FactionInputSchema.parse(
   recalculateFactionComplexity({
@@ -16,11 +16,11 @@ export const HOUSE_ATREIDES: FactionInput = FactionInputSchema.parse(
     background: {
       image: '/image/texture/082.jpg',
       colors: ['#393d05', '#5c5d10'],
-      invert: false,
-      definition: 1,
-      influence: 0.5,
+      invert: true,
+      definition: 0.5,
+      influence: 1,
     },
-    themeColor: '#778042',
+    themeColor: '#4a4c08',
     factionLeader: { name: 'Paul Atreides', image: '/image/leader/official/paul.jpg' },
     leaders: [
       { name: 'Lady Jessica', image: '/image/leader/official/jessica.png', strength: '5' },
@@ -30,7 +30,14 @@ export const HOUSE_ATREIDES: FactionInput = FactionInputSchema.parse(
       { name: 'Doctor Yueh', image: '/image/leader/official/dryeuh.png', strength: '1' },
     ],
     decals: [],
-    troops: [{ name: 'Normal troop', image: '/vector/troop/atreides.svg', description: '', count: 20 }],
+    troops: [
+      {
+        name: 'Normal troop',
+        image: '/vector/troop/atreides.svg',
+        description: '0.5 strength when undialed, 1 strength when dialed',
+        count: 20,
+      },
+    ],
     rules: {
       startText: '10 forces in Arrakeen and 10 in reserves. Start with 10 spice.',
       revivalText: '2 forces.',

@@ -77,7 +77,6 @@
 
 .tick,
 .rule {
-  opacity: 0;
   transition: opacity 300ms ease calc(var(--line) * var(--step));
 }
 
@@ -93,14 +92,12 @@
   font-family: var(--mantine-font-family);
   font-size: 0.7rem;
   font-style: italic;
-}
-
-.seen .tick {
-  opacity: 1;
-}
-
-.seen .rule {
   opacity: 0.7;
+}
+
+.waiting .tick,
+.waiting .rule {
+  opacity: 0;
 }
 
 /* The stamp thumps down at an angle once the last line has passed. */
@@ -117,16 +114,16 @@
   border-radius: 4px;
   color: var(--stamp);
   text-transform: uppercase;
-  opacity: 0;
-  transform: rotate(-8deg) scale(1.6);
+  opacity: 0.85;
+  transform: rotate(-8deg);
   transition:
     opacity 200ms ease calc(var(--line) * var(--step) + 200ms),
     transform 260ms cubic-bezier(0.3, 1.4, 0.5, 1) calc(var(--line) * var(--step) + 200ms);
 }
 
-.seen .stamp {
-  opacity: 0.85;
-  transform: rotate(-8deg);
+.waiting .stamp {
+  opacity: 0;
+  transform: rotate(-8deg) scale(1.6);
 }
 
 .stampTitle {

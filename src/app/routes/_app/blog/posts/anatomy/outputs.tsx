@@ -2,7 +2,7 @@ import { FactionRender } from '@shared/factions/schema';
 import type { FactionInput } from '@shared/factions/schema';
 import type { ReactNode } from 'react';
 
-import { FactionSheetPagePreview } from '@app/widgets/faction-editor/FactionSheetPagePreview';
+import { FactionSheetPagePreview } from '@app/print/sheet/FactionSheetPagePreview';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Shield } from '@game/assets/faction/shield/Shield';
