@@ -5,6 +5,7 @@ import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
+import { blankBoard } from '../src/shared/boards/geometry';
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import { api } from './_generated/api';
 import schema from './schema';
@@ -104,6 +105,27 @@ describe('ruleset asset slots', () => {
         slot: 'techToken',
       })
     ).rejects.toThrow('holds a token bundle');
+  });
+
+  test('the detail page carries the slotted board with its face, and null once the slot is empty', async () => {
+    const { t, owner, ruleset } = await slotFixture();
+    const board = await owner.mutation(api.assets.create, {
+      type: 'board',
+      data: { name: 'Blank Board', about: '', board: blankBoard() },
+    });
+    const boardOf = async () => (await t.query(api.rulesets.detailPage, { slug: ruleset.slug }))?.board;
+
+    await expect(boardOf()).resolves.toBeNull();
+    await owner.mutation(api.rulesets.setAssetSlot, { ruleset_id: ruleset._id, asset_id: board.id, slot: 'board' });
+    await expect(boardOf()).resolves.toMatchObject({
+      id: board.id,
+      type: 'board',
+      slug: board.slug,
+      name: 'Blank Board',
+      previewHref: expect.stringMatching(new RegExp(`^/published/boards/${board.id}/board\\.jpg\\?v=`)),
+    });
+    await owner.mutation(api.assets.softDelete, { id: board.id });
+    await expect(boardOf()).resolves.toBeNull();
   });
 
   test('a soft-deleted asset presents its slot as empty without its row being touched', async () => {

@@ -12,7 +12,41 @@ const meta = preview.meta({
 });
 
 export const Directory = meta.story({ args: { path: '/rulesets' } });
-export const Detail = meta.story({ args: { path: '/rulesets/classicrules' } });
+/** The slotted board shows below the Rulebooks, linking to its own page. */
+export const Detail = meta.story({
+  args: { path: '/rulesets/classicrules' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const board = within(await page.findByRole('region', { name: 'Board' }, { timeout: 30_000 }));
+    await expect(board.getByRole('link', { name: 'Arrakis Official' })).toHaveAttribute(
+      'href',
+      '/assets/board/arrakis-official'
+    );
+    /* The face itself, not only the link: a missing publication would still render the link around the matte placeholder. */
+    const face = await board.findByRole('img', { name: 'Arrakis Official' }, { timeout: 30_000 });
+    await waitFor(() => expect((face as HTMLImageElement).naturalWidth).toBeGreaterThan(0), { timeout: 30_000 });
+  },
+});
+/** A ruleset with no board keeps the section, drawn as the missing face with a line saying so. */
+export const DetailWithoutBoard = meta.story({
+  args: { path: '/rulesets/classicrules' },
+  parameters: {
+    database: db((baseline) => {
+      const slots = baseline.ruleset_asset_slots;
+      slots.splice(
+        slots.findIndex((row) => row.slot === 'board'),
+        1
+      );
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const board = within(await page.findByRole('region', { name: 'Board' }, { timeout: 30_000 }));
+    await expect(board.getByText('This ruleset has no board yet.')).toBeVisible();
+    await expect(board.queryByRole('link')).toBeNull();
+  },
+});
 export const Edit = meta.story({ args: { path: '/rulesets/classicrules/edit' } });
 export const AskQuestion = meta.story({
   args: { path: '/rulesets/classicrules/faq/create' },

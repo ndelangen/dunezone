@@ -1,5 +1,6 @@
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
+import { ownPublishedFace } from './assetBacks';
 import { assignedGroupSummary } from './collaborativeAccess';
 import { toCatalogueFaction } from './factionCatalogue';
 import { loadFaqItemsForRuleset } from './faqRulesetList';
@@ -53,19 +54,34 @@ export async function loadRulesetPageBySlug(ctx: QueryCtx, slug: string) {
   return { ruleset: row, factions: await listPublicRulesetFactions(ctx, row._id) };
 }
 
+/**
+ * The slotted board as the detail page draws it: its slot entry plus its face, addressed the way the board's own page addresses it.
+ * Null when the slot is empty, which the page draws as a placeholder.
+ */
+async function rulesetBoardFace(ctx: QueryCtx, slots: Awaited<ReturnType<typeof listRulesetAssetSlots>>) {
+  const entry = slots.find((slot) => slot.slot === 'board');
+  if (!entry) {
+    return null;
+  }
+  const asset = await ctx.db.get('assets', entry.asset.id);
+  return { ...entry.asset, previewHref: asset ? ownPublishedFace(asset) : null };
+}
+
 /** The ruleset detail page, the same for every viewer: behind `api.rulesets.detailPage`. Null for an unknown slug. */
 export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: string) {
   const row = await loadPublicRulesetBySlug(ctx, slug);
   if (!row) {
     return null;
   }
+  const assetSlots = await listRulesetAssetSlots(ctx, row._id);
   return {
     ruleset: row,
     factions: await listPublicRulesetFactions(ctx, row._id),
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
     faqItems: await loadFaqItemsForRuleset(ctx, row._id),
     owner: await profileSummary(ctx, row.owner_id),
-    assetSlots: await listRulesetAssetSlots(ctx, row._id),
+    assetSlots,
+    board: await rulesetBoardFace(ctx, assetSlots),
     rulebooks: await listRulesetRulebooks(ctx, row._id),
   };
 }
