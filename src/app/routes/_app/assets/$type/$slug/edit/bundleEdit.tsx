@@ -13,9 +13,11 @@ import { useReducer, useState } from 'react';
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
+import { assetLoadSource } from '@app/pickers/assetLoadSource';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_MEMORY } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft, BundleMemory } from '@app/widgets/bundle-editor/BundleEditor';
@@ -191,30 +193,46 @@ function BundleEditSession({
     );
   };
 
+  const loadSource = assetLoadSource({ type: 'bundle', schema: BundleAsset, excludeId: asset.id });
   return (
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
-        <AuthoringToolbar
-          status={{ isDirty, isNameBlank, saveState }}
-          copy={{
-            saveLabel: 'Save bundle',
-            nameBlankMessage: 'Add a bundle name before saving; it determines the bundle URL.',
-            /* A bundle publishes nothing, so this page adds no publication status to the toolbar. */
-          }}
-          actions={{
-            onSave: save,
-            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline })),
-            onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type: 'bundle', slug: asset.slug } }),
-          }}
-          accessActions={groupActions.accessActions}
-          statuses={[groupActions.status]}
-          destructiveActions={
-            access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete bundle" pending={deletion.pending} onConfirm={deletion.confirm} />
-            ) : null
-          }
-        />
+        <LoadExisting
+          noun="bundle"
+          mode="replace"
+          disabled={saveState === 'saving'}
+          source={loadSource}
+          onLoaded={header.releasing((loaded) =>
+            /* The edited asset keeps its name, so loading never moves it to another address. */
+            dispatch({ kind: 'replace', data: { ...loaded.data, name: state.data.name } })
+          )}
+        >
+          {(loadAction) => (
+            <AuthoringToolbar
+              status={{ isDirty, isNameBlank, saveState }}
+              copy={{
+                saveLabel: 'Save bundle',
+                nameBlankMessage: 'Add a bundle name before saving; it determines the bundle URL.',
+                /* A bundle publishes nothing, so this page adds no publication status to the toolbar. */
+              }}
+              actions={{
+                onSave: save,
+                onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline })),
+                onBack: () =>
+                  void navigate({ to: '/assets/$type/$slug', params: { type: 'bundle', slug: asset.slug } }),
+              }}
+              auxiliaryActions={loadAction}
+              accessActions={groupActions.accessActions}
+              statuses={[groupActions.status]}
+              destructiveActions={
+                access.viewerAccess.capabilities.delete ? (
+                  <ConfirmDeleteAction label="Delete bundle" pending={deletion.pending} onConfirm={deletion.confirm} />
+                ) : null
+              }
+            />
+          )}
+        </LoadExisting>
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">

@@ -28,12 +28,7 @@ import type { TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-e
 
 import { referencedTokenBackFace } from '../$slug/edit/referencedBackFace';
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
-
-/* A loaded token as a draft: the draft models a reference with no target as an explicit null, which the stored optional cannot say. */
-const LoadedTokenDraft = TokenAsset.transform((token): TokenDraft => ({
-  ...token,
-  back: token.back.mode === 'reference' ? { mode: 'reference', asset_id: token.back.asset_id ?? null } : token.back,
-}));
+import { LoadedTokenDraft } from '../../loadedDrafts';
 
 /**
  * This page's authoring state, and the four things that happen to it.

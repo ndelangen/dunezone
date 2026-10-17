@@ -7,8 +7,8 @@ import { loadAssetPage } from '@db/assets';
 import { pageStoryMeta } from '../../../../storybookConfig';
 
 /*
- * Every Asset create page loads an existing Asset of its own type through the same control as the card pages (see `Assets/Load card`).
- * These cover the types beyond cards: tokens, and the containers whose members are copied by the save.
+ * Every Asset create and edit page loads an existing Asset of its own type through the same control as the card pages (see `Assets/Load card`).
+ * These cover the types beyond cards (tokens, and the containers whose members are copied by the save) and the edit pages.
  */
 const meta = preview.meta({
   ...pageStoryMeta,
@@ -27,31 +27,25 @@ async function loadExisting(canvasElement: HTMLElement, noun: string, option: Re
   return page;
 }
 
-/** The disc token page offers disc tokens only, and the copy saves as a separate token with the same data. */
-export const DiscTokenCopy = meta.story({
-  play: async ({ canvasElement }) => {
-    const page = await loadExisting(canvasElement, 'token', /Karama/);
-    await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Karama');
-    await userEvent.click(page.getByRole('button', { name: 'Save token' }));
-    await expect(page.findByRole('button', { name: 'Delete token' })).resolves.toBeVisible();
-    await expect((await loadAssetPage('token-disc', 'karama-1'))?.asset.data).toEqual(
-      (await loadAssetPage('token-disc', 'karama'))?.asset.data
-    );
-  },
-});
+/** A token copy saves as a separate token with the same data, whichever token type the page edits. */
+function tokenCopy(type: string, name: string, slug: string) {
+  return meta.story({
+    args: { path: `/assets/${type}/create` },
+    play: async ({ canvasElement }) => {
+      const page = await loadExisting(canvasElement, 'token', new RegExp(name));
+      await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue(name);
+      await userEvent.click(page.getByRole('button', { name: 'Save token' }));
+      await expect(page.findByRole('button', { name: 'Delete token' })).resolves.toBeVisible();
+      await expect((await loadAssetPage(type, `${slug}-1`))?.asset.data).toEqual(
+        (await loadAssetPage(type, slug))?.asset.data
+      );
+    },
+  });
+}
 
-export const EnhanceTokenCopy = meta.story({
-  args: { path: '/assets/token-enhance/create' },
-  play: async ({ canvasElement }) => {
-    const page = await loadExisting(canvasElement, 'token', /Kwisatz Haderach/);
-    await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Kwisatz Haderach');
-    await userEvent.click(page.getByRole('button', { name: 'Save token' }));
-    await expect(page.findByRole('button', { name: 'Delete token' })).resolves.toBeVisible();
-    await expect((await loadAssetPage('token-enhance', 'kwisatz-haderach-1'))?.asset.data).toEqual(
-      (await loadAssetPage('token-enhance', 'kwisatz-haderach'))?.asset.data
-    );
-  },
-});
+export const DiscTokenCopy = tokenCopy('token-disc', 'Karama', 'karama');
+
+export const EnhanceTokenCopy = tokenCopy('token-enhance', 'Kwisatz Haderach', 'kwisatz-haderach');
 
 /** A deck brings its cards: they show on the create page, and the save copies them onto the new deck. */
 export const DeckCopyWithCards = meta.story({
@@ -97,5 +91,36 @@ export const BundleCopyWithTokens = meta.story({
         expect.arrayContaining(['Karama', 'Kwisatz Haderach'])
       )
     );
+  },
+});
+
+/** An edit page loads another asset's content but keeps its own name, and leaves itself out of the choices. */
+export const CardEditLoad = meta.story({
+  args: { path: '/assets/card-storm/3-sectors/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Load existing card' }));
+    await waitForFrame(() => page.getByRole('option', { name: /5 Sectors/ }));
+    await expect(page.queryByRole('option', { name: /3 Sectors/ })).toBeNull();
+    await userEvent.click(page.getByRole('option', { name: /5 Sectors/ }));
+    const load = page.getByRole('button', { name: /^Load card$/ });
+    await waitFor(() => expect(load).toBeEnabled());
+    await userEvent.click(load);
+    await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('3 Sectors');
+    await expect(page.getByText('Move the storm 5 sectors counter-clockwise.')).toBeVisible();
+  },
+});
+
+/** A deck edit page loads another deck's cardback and texts; its own cards stay as they are. */
+export const DeckEditLoad = meta.story({
+  args: { path: '/assets/deck/house-treachery/edit' },
+  play: async ({ canvasElement }) => {
+    const page = await loadExisting(canvasElement, 'deck', /Standard Storm Deck/);
+    await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('House Treachery');
+    await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Save deck' })).toHaveAccessibleDescription(/Saved/));
+    const saved = await loadAssetPage('deck', 'house-treachery');
+    await expect(saved?.asset.data).toMatchObject({ cardback: { mode: 'preset', key: 'storm' } });
+    await expect(saved?.members.map((entry) => entry.count)).toEqual([3]);
   },
 });

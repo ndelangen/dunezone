@@ -26,12 +26,7 @@ import type { RectangleChapter, RectangleDraft, RectangleMemory } from '@app/wid
 
 import { referencedRectangleBackFace } from '../$slug/edit/referencedBackFace';
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
-
-/* A loaded token as a draft: the draft models a reference with no target as an explicit null, which the stored optional cannot say. */
-const LoadedRectangleDraft = RectangleTokenAsset.transform((token): RectangleDraft => ({
-  ...token,
-  back: token.back.mode === 'reference' ? { mode: 'reference', asset_id: token.back.asset_id ?? null } : token.back,
-}));
+import { LoadedRectangleDraft } from '../../loadedDrafts';
 
 const TYPE = 'token-enhance';
 

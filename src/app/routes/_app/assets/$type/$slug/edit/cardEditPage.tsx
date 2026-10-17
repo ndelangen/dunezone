@@ -13,7 +13,9 @@ import type { z } from 'zod';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
+import { assetLoadSource } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 
 import {
   AssetEditorMessage,
@@ -171,7 +173,7 @@ export function useCardSave(type: CardType, asset: CardAsset) {
 }
 
 /** The page around a card workbench: the warnings header, the toolbar, and the save, delete and group errors. */
-export function CardEditFrame({
+export function CardEditFrame<Draft>({
   type,
   asset,
   access,
@@ -179,6 +181,7 @@ export function CardEditFrame({
   status,
   onSave,
   onReset,
+  load,
   saveError,
   children,
 }: {
@@ -189,35 +192,49 @@ export function CardEditFrame({
   status: { isDirty: boolean; isNameBlank: boolean; saveState: AuthoringSaveState; invalid?: string };
   onSave: () => void;
   onReset: () => void;
+  /** Loading another card of this type into the draft; the card being edited is left out of the choices. */
+  load: { schema: z.ZodType<Draft>; onLoaded: (draft: Draft) => void };
   saveError: Error | null;
   children: ReactNode;
 }) {
   const navigate = useNavigate();
   const deletion = useAssetDeletion(asset);
+  const loadSource = assetLoadSource({ type, schema: load.schema, excludeId: asset.id });
   const groupActions = useAssetGroupActions({ asset, access });
   return (
     <PageLayout>
       {headerSlot}
       <PageLayout.Toolbar>
-        <AuthoringToolbar
-          status={status}
-          copy={{
-            saveLabel: 'Save card',
-            nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
-          }}
-          actions={{
-            onSave,
-            onReset,
-            onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type, slug: asset.slug } }),
-          }}
-          accessActions={groupActions.accessActions}
-          statuses={[groupActions.status]}
-          destructiveActions={
-            access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete card" pending={deletion.pending} onConfirm={deletion.confirm} />
-            ) : null
-          }
-        />
+        <LoadExisting
+          noun={type === 'board' ? 'board' : 'card'}
+          mode="replace"
+          disabled={status.saveState === 'saving'}
+          source={loadSource}
+          onLoaded={(loaded) => load.onLoaded(loaded.data)}
+        >
+          {(loadAction) => (
+            <AuthoringToolbar
+              status={status}
+              copy={{
+                saveLabel: 'Save card',
+                nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
+              }}
+              actions={{
+                onSave,
+                onReset,
+                onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type, slug: asset.slug } }),
+              }}
+              auxiliaryActions={loadAction}
+              accessActions={groupActions.accessActions}
+              statuses={[groupActions.status]}
+              destructiveActions={
+                access.viewerAccess.capabilities.delete ? (
+                  <ConfirmDeleteAction label="Delete card" pending={deletion.pending} onConfirm={deletion.confirm} />
+                ) : null
+              }
+            />
+          )}
+        </LoadExisting>
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">

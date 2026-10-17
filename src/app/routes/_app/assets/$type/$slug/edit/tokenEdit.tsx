@@ -1,6 +1,7 @@
 import { Alert, Button, Group, Popover, Stack, Text } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import type { AssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
@@ -12,9 +13,11 @@ import { useReducer, useState } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
+import { assetLoadSource } from '@app/pickers/assetLoadSource';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { initialTokenMemory, TokenEditor, TokenProof, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenWarning, TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
@@ -28,9 +31,18 @@ import {
   assetNameField,
   AssetEditorViewerPending,
 } from '../../../assetEditorStates';
+import { LoadedTokenDraft } from '../../../loadedDrafts';
 import { referencedTokenBackFace } from './referencedBackFace';
 
-export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: string; loaderData: AssetPublicPage }) {
+export function TokenEditPage({
+  type,
+  slug,
+  loaderData,
+}: {
+  type: AssetType;
+  slug: string;
+  loaderData: AssetPublicPage;
+}) {
   const query = useAssetPage(type, slug, { initialData: loaderData });
   const data = query.data;
   const label = isAssetType(type) ? ASSET_TYPES[type].shortLabel.toLowerCase() : 'token';
@@ -142,7 +154,7 @@ function TokenEditSession({
     viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
     assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
   };
-  type: string;
+  type: AssetType;
   asset: NonNullable<AssetPageData>['asset'];
   backToken: NonNullable<AssetPageData>['backToken'];
   /** The server judged the stored reference dangling; the routes only relay the complaint. */
@@ -221,29 +233,48 @@ function TokenEditSession({
     );
   };
 
+  const loadSource = assetLoadSource({ type, schema: LoadedTokenDraft, excludeId: asset.id });
   return (
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
-        <AuthoringToolbar
-          status={{ isDirty, isNameBlank, saveState }}
-          copy={{
-            saveLabel: 'Save token',
-            nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
-          }}
-          actions={{
-            onSave: save,
-            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: backToken })),
-            onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type, slug: asset.slug } }),
-          }}
-          accessActions={groupActions.accessActions}
-          statuses={[groupActions.status]}
-          destructiveActions={
-            access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete token" pending={deletion.pending} onConfirm={deletion.confirm} />
-            ) : null
-          }
-        />
+        <LoadExisting
+          noun="token"
+          mode="replace"
+          disabled={saveState === 'saving'}
+          source={loadSource}
+          onLoaded={header.releasing((loaded) =>
+            /* The edited asset keeps its name, so loading never moves it to another address. */
+            dispatch({
+              kind: 'replace',
+              data: { ...loaded.data, name: state.data.name },
+              pick: loaded.source?.backToken ?? null,
+            })
+          )}
+        >
+          {(loadAction) => (
+            <AuthoringToolbar
+              status={{ isDirty, isNameBlank, saveState }}
+              copy={{
+                saveLabel: 'Save token',
+                nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
+              }}
+              actions={{
+                onSave: save,
+                onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: backToken })),
+                onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type, slug: asset.slug } }),
+              }}
+              auxiliaryActions={loadAction}
+              accessActions={groupActions.accessActions}
+              statuses={[groupActions.status]}
+              destructiveActions={
+                access.viewerAccess.capabilities.delete ? (
+                  <ConfirmDeleteAction label="Delete token" pending={deletion.pending} onConfirm={deletion.confirm} />
+                ) : null
+              }
+            />
+          )}
+        </LoadExisting>
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">

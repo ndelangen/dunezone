@@ -73,6 +73,14 @@ function CardEditSession({
       }}
       onSave={save}
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
+      load={{
+        schema: LeaderSkillAsset,
+        /* The edited card keeps its name, so loading never moves it to another address. */
+        onLoaded: header.releasing((data) => {
+          dispatch({ kind: 'replace', data: { ...data, name: state.data.name } });
+          setChapter('head');
+        }),
+      }}
       saveError={saving.error}
     >
       <LeaderSkillCardEditor

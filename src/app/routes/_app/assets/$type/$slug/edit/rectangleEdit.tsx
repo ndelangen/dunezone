@@ -11,9 +11,11 @@ import { useReducer, useState } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
+import { assetLoadSource } from '@app/pickers/assetLoadSource';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   RectangleTokenEditor,
@@ -37,6 +39,7 @@ import {
   assetNameField,
   AssetEditorViewerPending,
 } from '../../../assetEditorStates';
+import { LoadedRectangleDraft } from '../../../loadedDrafts';
 import { referencedRectangleBackFace } from './referencedBackFace';
 
 export function RectangleEditPage({
@@ -242,29 +245,48 @@ function RectangleEditSession({
     );
   };
 
+  const loadSource = assetLoadSource({ type: 'token-enhance', schema: LoadedRectangleDraft, excludeId: asset.id });
   return (
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
-        <AuthoringToolbar
-          status={{ isDirty, isNameBlank, saveState }}
-          copy={{
-            saveLabel: 'Save token',
-            nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
-          }}
-          actions={{
-            onSave: save,
-            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: backToken })),
-            onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type, slug: asset.slug } }),
-          }}
-          accessActions={groupActions.accessActions}
-          statuses={[groupActions.status]}
-          destructiveActions={
-            access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete token" pending={deletion.pending} onConfirm={deletion.confirm} />
-            ) : null
-          }
-        />
+        <LoadExisting
+          noun="token"
+          mode="replace"
+          disabled={saveState === 'saving'}
+          source={loadSource}
+          onLoaded={header.releasing((loaded) =>
+            /* The edited asset keeps its name, so loading never moves it to another address. */
+            dispatch({
+              kind: 'replace',
+              data: { ...loaded.data, name: state.data.name },
+              pick: loaded.source?.backToken ?? null,
+            })
+          )}
+        >
+          {(loadAction) => (
+            <AuthoringToolbar
+              status={{ isDirty, isNameBlank, saveState }}
+              copy={{
+                saveLabel: 'Save token',
+                nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
+              }}
+              actions={{
+                onSave: save,
+                onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: backToken })),
+                onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type, slug: asset.slug } }),
+              }}
+              auxiliaryActions={loadAction}
+              accessActions={groupActions.accessActions}
+              statuses={[groupActions.status]}
+              destructiveActions={
+                access.viewerAccess.capabilities.delete ? (
+                  <ConfirmDeleteAction label="Delete token" pending={deletion.pending} onConfirm={deletion.confirm} />
+                ) : null
+              }
+            />
+          )}
+        </LoadExisting>
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">

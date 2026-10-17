@@ -28,15 +28,7 @@ import {
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
-
-/*
- * A loaded deck as a draft: the stored shape with its transitional bare cardback re-tagged as custom, the same flattening the edit page does at its parse boundary.
- */
-const LoadedDeckDraft = DeckAssetSchema.transform((deck): DeckDraft => ({
-  ...deck,
-  cardback:
-    'mode' in deck.cardback && deck.cardback.mode !== 'custom' ? deck.cardback : { ...deck.cardback, mode: 'custom' },
-}));
+import { LoadedDeckDraft } from '../../loadedDrafts';
 
 /**
  * This page's authoring state, and the four things that happen to it.
