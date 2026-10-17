@@ -98,7 +98,6 @@ type GameTableProps = {
   tableGuidance?: Pick<PanelTab, 'description' | 'help'>;
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
-  gameIdentity?: ReactNode;
   toolbarControl?: ReactNode;
   /** The connection's state, beside the logo where the bar has room, present only while the table is not live. */
   connectionStatus?: ReactNode;
@@ -738,9 +737,13 @@ function controlsPanelValueText(percent: number) {
   return `${Math.round(percent)}% of the window for controls`;
 }
 
-/* Names and controls wrap independently; the stage overlay starts below the rendered header. */
-function measureHeader(node: HTMLElement | null) {
-  const shell = node?.closest<HTMLElement>('.dune-play-shell');
+/*
+ * Names and controls wrap independently; the stage overlay starts below the rendered header.
+ * The header is held, so it is measured from the slot a layout shows it in: by then the slot holds it, inside the shell.
+ */
+function measureHeader(slot: HTMLElement | null) {
+  const shell = slot?.closest<HTMLElement>('.dune-play-shell');
+  const node = slot?.querySelector<HTMLElement>('.seated-header');
   if (!node || !shell) {
     return;
   }
@@ -792,18 +795,32 @@ function measureDock(node: HTMLElement | null) {
 
 type LayoutProps = Readonly<{
   /** The held scene, controls and players; no players node when the stage has no players panel. */
-  nodes: Readonly<{ scene: HeldNode; controls: HeldNode; players: HeldNode | null }>;
+  nodes: Readonly<{ header: HeldNode; scene: HeldNode; controls: HeldNode; players: HeldNode | null }>;
   camera: ReactNode;
   inert: boolean;
 }>;
 
-/* The controls, the table and the players side by side; the separators either side of the table resize the columns and are remembered. */
+/* Where a layout shows the header; the wrapper's ref runs after the slot's, so the header is in place when it is measured. */
+function HeaderSlot({ node }: Readonly<{ node: HeldNode }>) {
+  return (
+    <div ref={measureHeader} className="seated-held">
+      <HeldSlot node={node} />
+    </div>
+  );
+}
+
+/*
+ * The controls, the table and the players side by side; the separators either side of the table resize the columns and are remembered.
+ * A window this wide has room to spare across and little up and down, so the header's chips float over the table's column
+ * and the side columns run to the top.
+ */
 function ColumnsLayout({ nodes, camera, inert }: LayoutProps) {
   const controlsPercent = useControlsColumnPercent();
   const playersPercent = usePlayersColumnPercent();
   const scene = (
     <>
       <HeldSlot node={nodes.scene} />
+      <HeaderSlot node={nodes.header} />
       <div className="seated-column-camera" inert={inert}>
         {camera}
       </div>
@@ -854,28 +871,32 @@ function ColumnsLayout({ nodes, camera, inert }: LayoutProps) {
 /* The table above the dock, whose two panes hold the controls and the players. */
 function StackedLayout({ nodes, camera, inert }: LayoutProps) {
   return (
-    <SplitPanels
-      orientation="horizontal"
-      primary="second"
-      defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
-      limits={controlsPanelLimits}
-      step={KEYBOARD_STEP_PERCENT}
-      pageStep={KEYBOARD_PAGE_STEP_PERCENT}
-      label="Resize controls panel"
-      valueText={controlsPanelValueText}
-    >
-      <SplitPanels.First>
-        <HeldSlot node={nodes.scene} />
-      </SplitPanels.First>
-      <SplitPanels.Second>
-        <div ref={measureDock} className="seated-controls-panel" inert={inert}>
-          {camera}
-          <PanelPanes secondary={nodes.players && <HeldSlot node={nodes.players} />}>
-            <HeldSlot node={nodes.controls} />
-          </PanelPanes>
-        </div>
-      </SplitPanels.Second>
-    </SplitPanels>
+    <>
+      {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
+      <HeaderSlot node={nodes.header} />
+      <SplitPanels
+        orientation="horizontal"
+        primary="second"
+        defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
+        limits={controlsPanelLimits}
+        step={KEYBOARD_STEP_PERCENT}
+        pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+        label="Resize controls panel"
+        valueText={controlsPanelValueText}
+      >
+        <SplitPanels.First>
+          <HeldSlot node={nodes.scene} />
+        </SplitPanels.First>
+        <SplitPanels.Second>
+          <div ref={measureDock} className="seated-controls-panel" inert={inert}>
+            {camera}
+            <PanelPanes secondary={nodes.players && <HeldSlot node={nodes.players} />}>
+              <HeldSlot node={nodes.controls} />
+            </PanelPanes>
+          </div>
+        </SplitPanels.Second>
+      </SplitPanels>
+    </>
   );
 }
 
@@ -886,18 +907,27 @@ function StackedLayout({ nodes, camera, inert }: LayoutProps) {
  */
 function TableLayouts({
   layout,
+  header,
   scene,
   controls,
   players,
   ...props
 }: Omit<LayoutProps, 'nodes'> &
-  Readonly<{ layout: TableLayout; scene: ReactNode; controls: ReactNode; players: ReactNode | undefined }>) {
+  Readonly<{
+    layout: TableLayout;
+    header: ReactNode;
+    scene: ReactNode;
+    controls: ReactNode;
+    players: ReactNode | undefined;
+  }>) {
+  const headerNode = useHeldNode();
   const sceneNode = useHeldNode();
   const controlsNode = useHeldNode();
   const playersNode = useHeldNode();
-  const nodes = { scene: sceneNode, controls: controlsNode, players: players ? playersNode : null };
+  const nodes = { header: headerNode, scene: sceneNode, controls: controlsNode, players: players ? playersNode : null };
   return (
     <>
+      <Held node={headerNode}>{header}</Held>
       <Held node={sceneNode}>{scene}</Held>
       <Held node={controlsNode}>{controls}</Held>
       {players && <Held node={playersNode}>{players}</Held>}
@@ -918,7 +948,6 @@ export function GameTable({
   tableControls,
   tableGuidance,
   gameMenu,
-  gameIdentity,
   stageStatus,
   stage,
   mapVisible,
@@ -1005,6 +1034,35 @@ export function GameTable({
       onSelect={(view) => dispatchView({ type: 'view.selected', view })}
     />
   );
+  /* No bar of its own: the table runs to the top, and the phase, the game and the controls float over it as chips. Only the chips hide the cursor, so pointing at the table between them still shows to the others. */
+  const header = (
+    <header className="seated-header" inert={overlaysInert}>
+      <div className="seated-header__start">
+        <div className="seated-chip seated-phase-status" data-hides-cursor>
+          <div className="seated-phase-status__live" aria-live="polite">
+            {activePhase?.symbol && !frame.word ? <PhaseDisc symbol={activePhase.symbol} /> : null}
+            {stageStatus ?? (
+              <PhaseCopy
+                word={frame.word}
+                caption={turnCaption(tableProgress.turn, tableProgress.lastTurn)}
+                label={activePhase?.label}
+              />
+            )}
+          </div>
+          {/* The connection status is its own status region, so it stays outside the phase's live region and is announced once. */}
+          {connectionStatus}
+        </div>
+        <div className="seated-chip seated-chip--game" data-hides-cursor>
+          {alliances}
+        </div>
+      </div>
+
+      <div className="seated-chip seated-toolbar" data-hides-cursor>
+        {toolbarControl}
+        <span className="seated-toolbar__settings">{gameMenu}</span>
+      </div>
+    </header>
+  );
   const controls = (
     <TableControlsPanel
       panelTabs={panelTabs}
@@ -1035,38 +1093,9 @@ export function GameTable({
               data-show-counts={heldOverlays.counts || tableLabels.pinned.counts}
               data-show-names={heldOverlays.names || tableLabels.pinned.names}
             >
-              {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order.
-                It has no bar of its own: the table runs to the top, and the phase, the game and the controls float over it as chips. Only the chips hide the cursor, so pointing at the table between them still shows to the others. */}
-              <header ref={measureHeader} className="seated-header" inert={overlaysInert}>
-                <div className="seated-header__start">
-                  <div className="seated-chip seated-phase-status" data-hides-cursor>
-                    <div className="seated-phase-status__live" aria-live="polite">
-                      {activePhase?.symbol && !frame.word ? <PhaseDisc symbol={activePhase.symbol} /> : null}
-                      {stageStatus ?? (
-                        <PhaseCopy
-                          word={frame.word}
-                          caption={turnCaption(tableProgress.turn, tableProgress.lastTurn)}
-                          label={activePhase?.label}
-                        />
-                      )}
-                    </div>
-                    {/* The connection status is its own status region, so it stays outside the phase's live region and is announced once. */}
-                    {connectionStatus}
-                  </div>
-                  <div className="seated-chip seated-chip--game" data-hides-cursor>
-                    {gameIdentity}
-                    {alliances}
-                  </div>
-                </div>
-
-                <div className="seated-chip seated-toolbar" data-hides-cursor>
-                  {toolbarControl}
-                  <span className="seated-toolbar__settings">{gameMenu}</span>
-                </div>
-              </header>
-
               <TableLayouts
                 layout={layout}
+                header={header}
                 scene={scene}
                 controls={controls}
                 players={playerPanel}

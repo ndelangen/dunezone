@@ -1056,14 +1056,6 @@ function ConnectedTable({
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
-            gameIdentity={
-              /* While drafting the ruleset heads the drafting chip, so it is not said twice. */
-              identity.rulesetName && stage !== 'drafting' ? (
-                <Text size="xs" c="dimmed">
-                  Ruleset: {identity.rulesetName}
-                </Text>
-              ) : null
-            }
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
             stage={stage}

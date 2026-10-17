@@ -712,11 +712,12 @@ async function createGame(who: HostedPeer) {
   assert.equal(who.sockets.length, 1, 'Canonical creation opens exactly one ID socket.');
   await who.page.getByRole('heading', { name: created.name, level: 1, exact: true }).waitFor();
   const header = who.page.locator('.seated-header');
-  /* Drafting names the ruleset in its chip's heading; from play on it has a chip of its own. */
-  await header
-    .getByText(flow.startsInPlay ? /^Ruleset: / : /^ · /u)
-    .first()
-    .waitFor();
+  /* Drafting names the ruleset in its chip's heading; from play on the header leaves it out. */
+  if (flow.startsInPlay) {
+    await header.getByText(/^Ruleset: /).waitFor({ state: 'hidden' });
+  } else {
+    await header.getByText(/^ · /u).first().waitFor();
+  }
   await header.getByText(created.name, { exact: true }).waitFor({ state: 'hidden' });
   await who.page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await who.page.getByRole('button', { name: 'Game menu', exact: true }).click();
