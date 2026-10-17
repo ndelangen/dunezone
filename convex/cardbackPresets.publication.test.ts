@@ -145,27 +145,11 @@ test('failed replacements keep the previous shared publication until a retry suc
   expect((await page('second-deck')).resolvedBack?.href).toContain('?v=second');
 });
 
-test('publisher activation seeds once and regeneration keeps saved definitions', async () => {
-  const { t, admin } = await fixture();
-  const scan = { assetType: 'cardback-preset', cursor: null, scanned: 0, enqueued: 0 };
-  await t.mutation(internal.publicationRegeneration.scan, scan);
-  const presets = await t.query(api.cardbackPresets.list, {});
-  expect(presets).toHaveLength(INITIAL_CARDBACK_PRESETS.length);
-  await admin.mutation(api.cardbackPresets.save, {
-    key: 'traitor',
-    cardback: { ...cardback, name: 'Saved design' },
-    revision: 1,
-  });
-  await t.mutation(internal.publicationRegeneration.scan, scan);
-  expect((await t.query(api.cardbackPresets.list, {})).find((entry) => entry.key === 'traitor')?.cardback.name).toBe(
-    'Saved design'
-  );
-});
-
 test('a preset added after activation is seeded by the next scan, beside saved designs', async () => {
   const { t, admin } = await fixture();
   const scan = { assetType: 'cardback-preset', cursor: null, scanned: 0, enqueued: 0 };
   await t.mutation(internal.publicationRegeneration.scan, scan);
+  expect(await t.query(api.cardbackPresets.list, {})).toHaveLength(INITIAL_CARDBACK_PRESETS.length);
   await t.run(async (ctx) => {
     const row = await ctx.db
       .query('cardback_presets')

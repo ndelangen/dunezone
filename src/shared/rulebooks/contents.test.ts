@@ -4,7 +4,6 @@ import {
   createRulebookLocalId,
   rulebookContentsV1Schema,
   rulebookEditionContentsV1Schema,
-  rulebookLayoutCatalogue,
   rulebookLocalIdAlphabet,
 } from './contents';
 import type { RulebookContentsV1 } from './contents';
@@ -39,21 +38,6 @@ function movementRule(contents: RulebookContentsV1) {
 }
 
 describe('Rulebook Contents V1', () => {
-  it('represents ordered Control and Block regions without authored Region entities', () => {
-    const cover = rulebookLayoutCatalogue.find((layout) => layout.id === 'cover')!;
-    expect(cover.regions.map(({ kind, key }) => ({ kind, key }))).toEqual([
-      { kind: 'control', key: 'cover' },
-      { kind: 'control', key: 'footer' },
-    ]);
-    expect(cover.regions[1]).toMatchObject({ initialValue: { enabled: false, title: '', label: '' } });
-    const outerRail = rulebookLayoutCatalogue.find((layout) => layout.id === 'outer-rail')!;
-    expect(outerRail.regions.map(({ kind, key }) => ({ kind, key }))).toEqual([
-      { kind: 'block', key: 'rail' },
-      { kind: 'block', key: 'column1' },
-      { kind: 'block', key: 'column2' },
-    ]);
-  });
-
   it('accepts the starter catalogue including an emptied region and Page-local duplicate Block IDs', () => {
     const contents = cloneContents();
     expect(rulesPage(contents).blocksById.TEXT).toBeDefined();

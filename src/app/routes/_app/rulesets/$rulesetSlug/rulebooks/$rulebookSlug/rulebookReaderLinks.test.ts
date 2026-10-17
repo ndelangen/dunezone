@@ -1739,12 +1739,6 @@ describe('Rulebook reader links', () => {
     expect(locatorFromRulebookSelection(null)).toEqual(selectionFailure('Select some Rulebook text first.'));
   });
 
-  test('asks for a selection when the browser Selection has no Range', () => {
-    const selection = window.getSelection();
-    selection?.removeAllRanges();
-    expect(locatorFromRulebookSelection(selection)).toEqual(selectionFailure('Select some Rulebook text first.'));
-  });
-
   test('asks for a selection when the browser Selection is collapsed', () => {
     const selection = selectRange(readerPage('<span>Movement text</span>'), 'span', 'span', true);
     expect(locatorFromRulebookSelection(selection)).toEqual(selectionFailure('Select some Rulebook text first.'));

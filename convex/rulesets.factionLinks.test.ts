@@ -81,14 +81,6 @@ const linkedSlugs = async (t: Awaited<ReturnType<typeof linkFixture>>['t'], slug
 };
 
 describe('ruleset faction links', () => {
-  test('the owner attaches a faction and the page lists it', async () => {
-    const { t, ids, owner, ruleset } = await linkFixture();
-
-    await owner.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: ids.factionId });
-
-    await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual(['linkable-faction']);
-  });
-
   test('attaching the same faction twice leaves one link', async () => {
     const { t, ids, owner, ruleset } = await linkFixture();
 

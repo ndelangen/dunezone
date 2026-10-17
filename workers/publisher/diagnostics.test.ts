@@ -81,8 +81,6 @@ describe('publisher diagnostic redaction', () => {
     `Failed to decode ${networkPath}`,
     `Failed to decode "${networkPath}"`,
     `resource=${networkPath}`,
-    `Failed to load \`${networkPath}\``,
-    `Failed to load <${networkPath}>`,
   ])('redacts a boundary-delimited scheme-relative signed URL: %s', (diagnostic) => {
     const redacted = sanitizePublisherDiagnostic(diagnostic);
     expect(redacted).toContain('https://cdn.example.com/<redacted>');

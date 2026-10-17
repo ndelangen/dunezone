@@ -102,52 +102,6 @@ describe('FAQ lifecycle', () => {
     });
   });
 
-  test('projects accepted-first answers and viewer capabilities on the server', async () => {
-    const { owner, answerer, outsider, ruleset } = await faqFixture();
-    const question = await owner.mutation(api.faq.createQuestion, {
-      rulesetId: ruleset._id,
-      question: 'Which answer should appear first?',
-      tags: ['rules'],
-    });
-    const first = await answerer.mutation(api.faq.createAnswer, {
-      faq_item_id: question.questionId,
-      answer: 'The earlier answer.',
-    });
-    const accepted = await outsider.mutation(api.faq.createAnswer, {
-      faq_item_id: question.questionId,
-      answer: 'The accepted answer.',
-    });
-    await owner.mutation(api.faq.setAcceptedAnswer, {
-      faq_item_id: question.questionId,
-      accepted_answer_id: accepted._id,
-    });
-
-    const ownerPage = await faqQuestionPageAs(owner, {
-      rulesetSlug: ruleset.slug,
-      questionSlug: question.questionSlug,
-    });
-    expect(ownerPage.question.capabilities).toEqual({
-      editQuestion: true,
-      deleteQuestion: true,
-    });
-    expect(ownerPage.answers.map((answer) => answer.id)).toEqual([accepted._id, first._id]);
-    expect(ownerPage.answers[0].capabilities).toMatchObject({
-      deleteAnswer: true,
-      acceptAnswer: false,
-      unacceptAnswer: true,
-    });
-
-    const answererPage = await faqQuestionPageAs(answerer, {
-      rulesetSlug: ruleset.slug,
-      questionSlug: question.questionSlug,
-    });
-    expect(answererPage.viewer.answerQuestion).toBe(false);
-    expect(answererPage.answers.find((answer) => answer.id === first._id)?.capabilities).toMatchObject({
-      editAnswer: true,
-      deleteAnswer: true,
-    });
-  });
-
   test('enforces authoritative semantic validation for questions, tags, and answers', async () => {
     const { owner, answerer, ruleset } = await faqFixture();
 

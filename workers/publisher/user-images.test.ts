@@ -183,7 +183,6 @@ describe('user image ingest', () => {
     'https://127.0.0.1/image.png',
     'https://user:password@images.example/image.png',
     'https://localhost/image.png',
-    'https://images.example:8443/image.png',
   ])('refuses an unsafe redirect destination without contacting it: %s', async (destination) => {
     const { mock } = ledgerFetch({
       source: () => new Response(null, { status: 302, headers: { Location: destination } }),

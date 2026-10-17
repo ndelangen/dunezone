@@ -6,12 +6,6 @@ import rasterLock from '../../../media/raster.lock.json';
 import { CURATED_PLANET_IMAGES } from './planetCatalogue';
 
 describe('curated planet image catalogue', () => {
-  it('exposes all ninety-eight planet illustrations', () => {
-    expect(CURATED_PLANET_IMAGES).toHaveLength(98);
-    expect(CURATED_PLANET_IMAGES.map(({ image }) => image)).toEqual(PLANET.options);
-    expect(new Set(CURATED_PLANET_IMAGES.map(({ id }) => id)).size).toBe(98);
-  });
-
   it('preserves original identifiers and groups every planet once', () => {
     expect(CURATED_PLANET_IMAGES.slice(0, 13)).toEqual(
       Array.from({ length: 13 }, (_, index) => {
@@ -24,6 +18,7 @@ describe('curated planet image catalogue', () => {
     );
     expect(collections).toHaveLength(11);
     expect(collections.flatMap(({ assets }) => assets).sort()).toEqual([...PLANET.options].sort());
+    expect(new Set(CURATED_PLANET_IMAGES.map(({ id }) => id)).size).toBe(CURATED_PLANET_IMAGES.length);
   });
 
   it('only references keys backed by media sources', () => {

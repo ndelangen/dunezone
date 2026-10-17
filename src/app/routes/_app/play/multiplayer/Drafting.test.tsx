@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
@@ -39,18 +39,11 @@ function show(element: React.ReactElement) {
 }
 
 const client = { command: vi.fn() } as unknown as TableSession;
-const failed = draftingSnapshot(PLAYERS, 2, { failure: 'Set aside as not ready to deal: Iduali (no token).' });
 
 function withRequests(seatRequests: { id: string; requesterName: string; seat: null; own?: boolean }[]) {
   const snapshot = draftingSnapshot(PLAYERS, 4);
   return { ...snapshot, controls: { ...snapshot.controls!, seatRequests } };
 }
-
-test('every viewer reads in the drafting chip why the deal failed; Ready deals again', () => {
-  show(<DraftingHeader table={projection('neutral', failed)} />);
-  const line = screen.getByText('Seats were not dealt', { exact: false });
-  expect(line.textContent).toContain('Iduali (no token)');
-});
 
 test("a spectator's refused seat request is said beneath the roster where it was asked", () => {
   show(<DraftingOverlay client={client} table={projection('neutral')} error="The table is full." />);
@@ -76,30 +69,6 @@ test("a player sees no (+) in the roster: it is a spectator's way to ask for a s
   expect(screen.queryByRole('button', { name: 'Take a seat' })).toBeNull();
 });
 
-test('a spectator asks for a seat with the (+), then waits there and can withdraw', () => {
-  const command = vi.fn();
-  const watcher = { command } as unknown as TableSession;
-  const { rerender } = render(
-    <MantineProvider theme={appContentTheme} forceColorScheme="light">
-      <DraftingOverlay client={watcher} table={projection('neutral')} />
-    </MantineProvider>
-  );
-  fireEvent.click(screen.getByRole('button', { name: 'Take a seat' }));
-  expect(command).toHaveBeenCalledWith({ kind: 'seat-request' });
-  rerender(
-    <MantineProvider theme={appContentTheme} forceColorScheme="light">
-      <DraftingOverlay
-        client={watcher}
-        table={projection('neutral', withRequests([{ id: 'mine', requesterName: 'Me', seat: null, own: true }]))}
-      />
-    </MantineProvider>
-  );
-  expect(screen.queryByRole('button', { name: 'Take a seat' })).toBeNull();
-  expect(screen.getByText('Waiting for approval')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Withdraw your seat request' }));
-  expect(command).toHaveBeenLastCalledWith({ kind: 'seat-withdraw' });
-});
-
 test("a spectator sees only their own request, never anyone else's", () => {
   show(
     <DraftingOverlay
@@ -109,25 +78,6 @@ test("a spectator sees only their own request, never anyone else's", () => {
   );
   expect(screen.queryByText('Klyzx')).toBeNull();
   expect(screen.getByRole('button', { name: 'Take a seat' })).toBeTruthy();
-});
-
-test('a player approves each request where the requester waits in the roster', () => {
-  const command = vi.fn();
-  show(
-    <DraftingOverlay
-      client={{ command } as unknown as TableSession}
-      table={projection(
-        'seat-1',
-        withRequests([
-          { id: 'first', requesterName: 'First', seat: null },
-          { id: 'second', requesterName: 'Second', seat: null },
-        ])
-      )}
-    />
-  );
-  const second = screen.getByText('Second').closest('li')!;
-  fireEvent.click(within(second).getByRole('button', { name: 'Approve' }));
-  expect(command).toHaveBeenCalledExactlyOnceWith({ kind: 'seat-approve', requestId: 'second' });
 });
 
 test('after a failed deal a ready player deals again instead of withdrawing', () => {

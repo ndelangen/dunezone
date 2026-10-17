@@ -97,6 +97,9 @@ describe('ruleset cover rehosting', () => {
     const [request, init] = fetchMock.mock.calls[0] ?? [];
     expect(request).toBe('https://worker.test/__user-images/ingest');
     expect(new Headers(init?.headers).get('Authorization')).toBeNull();
+    /* The Convex side bounds its own wait, so a Worker that has stopped answering cannot hold the save open. */
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+    expect(init?.signal?.aborted).toBe(false);
     const sent = JSON.parse(init?.body as string) as { source_url: string; token: string };
     expect(sent.source_url).toBe(SOURCE_URL);
     expect(sent.token).toMatch(/^[0-9a-f]{64}$/);
@@ -325,25 +328,6 @@ describe('ruleset cover rehosting', () => {
     /* No overlap is the whole point: a head window would return the same rows twice. */
     expect(firstIds.some((id) => secondIds.includes(id))).toBe(false);
     expect([...firstIds, ...secondIds].sort()).toEqual([ruleset._id, second._id, third._id].sort());
-  });
-
-  /*
-   * The Convex side bounds its own wait, so a Worker that has stopped answering cannot hold an author's
-   * save open to the platform ceiling.
-   * This asserts the wiring rather than the elapsed time: the deadline is real but waiting it out in a
-   * unit test would cost the deadline itself.
-   */
-  test('the ingest call carries its own deadline', async () => {
-    const { t, owner, ruleset } = await coverFixture();
-    stubIngestEnvironment();
-    const fetchMock = ingestWorkerSimulation(t);
-    vi.stubGlobal('fetch', fetchMock);
-
-    await owner.action(api.rulesetCovers.rehost, { id: ruleset._id, source_url: SOURCE_URL });
-
-    const [, init] = fetchMock.mock.calls[0] ?? [];
-    expect(init?.signal).toBeInstanceOf(AbortSignal);
-    expect(init?.signal?.aborted).toBe(false);
   });
 
   test('the backfill rehosts legacy rows and reports rows whose source fails', async () => {

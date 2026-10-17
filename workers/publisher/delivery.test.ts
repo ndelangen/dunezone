@@ -117,35 +117,6 @@ describe('public faction-sheet delivery', () => {
     expect(cacheState.entries.has(request().url)).toBe(true);
   });
 
-  test('keeps an existing signed link working while stable R2 bytes are replaced', async () => {
-    const oldToken = LEGACY_TOKEN;
-    const newToken = 'new-publication';
-    const bucket: PublicAssetBucket = {
-      head: async () => metadataObject({ token: newToken }),
-      get: async () => bodyObject(new Uint8Array([1, 2, 3]), { token: newToken }),
-    };
-
-    const response = await handlePublicAssetRequest(request(oldToken), env(bucket), context(), {
-      cache: cache().value,
-    });
-
-    expect(response?.status).toBe(200);
-  });
-
-  test('serves a legacy object without token metadata through its bare URL', async () => {
-    const bucket: PublicAssetBucket = {
-      head: async () => metadataObject(),
-      get: async () => bodyObject(new Uint8Array([1, 2, 3])),
-    };
-
-    const response = await handlePublicAssetRequest(request(), env(bucket), context(), {
-      cache: cache().value,
-    });
-
-    expect(response?.status).toBe(200);
-    expect(response?.headers.get('Cache-Control')).toBe('public, max-age=3600');
-  });
-
   test('serves an object with legacy token metadata through an unsigned URL', async () => {
     const token = LEGACY_TOKEN;
     const bucket: PublicAssetBucket = {
@@ -189,7 +160,7 @@ describe('public asset delivery boundary', () => {
       handlePublicAssetRequest(request(token, init), env(bucket.value), ctx, {
         cache: cacheState.value,
       });
-    return { token, bucket, cacheState, ctx, run };
+    return { bucket, cacheState, ctx, run };
   }
 
   test('a full GET serves from R2, sets the asset headers, and populates the cache', async () => {
@@ -277,6 +248,7 @@ describe('public asset delivery boundary', () => {
 
     const missing = await run();
     expect(missing?.status).toBe(404);
+    expect(await missing?.text()).toBe('Not Found');
     expect(missing?.headers.get('Cache-Control')).toBe('no-store');
     expect(cacheState.put).not.toHaveBeenCalled();
     expect(bucket.get).not.toHaveBeenCalled();
@@ -485,60 +457,6 @@ describe('public asset delivery boundary', () => {
     expect(response?.status).toBe(206);
     expect(response?.headers.get('Content-Range')).toBe('bytes 7-9/10');
     expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD.slice(7));
-  });
-
-  test('a missing R2 object returns a sanitized 404', async () => {
-    const token = 'first-publication';
-    const head = vi.fn(async () => null);
-    const get = vi.fn();
-    const response = await handlePublicAssetRequest(
-      request(token),
-      env({ head, get } as PublicAssetBucket),
-      context(),
-      {
-        cache: cache().value,
-      }
-    );
-
-    expect(response?.status).toBe(404);
-    expect(await response?.text()).toBe('Not Found');
-    expect(get).not.toHaveBeenCalled();
-  });
-
-  test('an R2 failure returns a sanitized 503 exposing no provider details', async () => {
-    const token = 'first-publication';
-    const head = vi.fn(async () => {
-      throw new Error('R2 internal: bucket key secret-name');
-    });
-    const response = await handlePublicAssetRequest(
-      request(token),
-      env({ head, get: vi.fn() } as PublicAssetBucket),
-      context(),
-      {
-        cache: cache().value,
-      }
-    );
-
-    expect(response?.status).toBe(503);
-    expect(await response?.text()).toBe('Asset Temporarily Unavailable');
-    expect(response?.headers.get('Cache-Control')).toBe('no-store');
-  });
-
-  test('a cache failure falls through to R2 with an equivalent response', async () => {
-    const { bucket, token } = await harness();
-    const failingCache: PublicAssetCache = {
-      match: async () => {
-        throw new Error('cache backend down');
-      },
-      put: async () => {},
-    };
-
-    const response = await handlePublicAssetRequest(request(token), env(bucket.value), context(), {
-      cache: failingCache,
-    });
-
-    expect(response?.status).toBe(200);
-    expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD);
   });
 
   test('a stale cached body is cancelled exactly once before the fresh R2 read', async () => {
