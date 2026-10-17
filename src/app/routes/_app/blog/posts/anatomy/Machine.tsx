@@ -5,8 +5,8 @@ import styles from './Machine.module.css';
 
 /*
  * The middle of the faction diagram: where the faction is kept, drawn as a cutaway of a copying machine rather than a database symbol.
- * The ingredients feed in at the top, a browser unit renders the record onto a turning drum, and the paper path carries it out of the bottom as a PDF.
- * Beside the path sit the storage cassettes: a roller retrieves the record from them, and the images the drum makes are filed back into them.
+ * The ingredients feed in at the top, a browser unit renders the record onto a cloud worker, and the paper path carries it out of the bottom as a PDF or an image.
+ * Beside the path sit the storage cassettes: a roller retrieves the record from them, and the images the cloud worker makes are filed back into them.
  * The diagram's lines meet the drawing at the feeder and the outlet, both on the centre line.
  */
 
@@ -124,18 +124,18 @@ export function Machine({ title, subtitle }: { title: string; subtitle: string }
         <Gear cx={170} cy={32} outer={8} teeth={8} />
         <Gear cx={190} cy={32} outer={8} teeth={8} reverse />
 
-        {/* The browser unit, writing the record onto the drum. */}
+        {/* The browser unit, writing the record onto the cloud worker. */}
         <rect x="138" y="48" width="84" height="20" rx="2" />
         <text x="180" y="61" className={styles.label} textAnchor="middle">
           BROWSER
         </text>
         <path d="M 168 68 L 180 88 M 192 68 L 180 88" className={styles.beam} />
 
-        {/* The drum, turning. */}
+        {/* The cloud worker, turning. */}
         <circle cx="180" cy="124" r="34" />
         <Gear cx={180} cy={124} outer={22} teeth={14} />
 
-        {/* The paper path, flowing from the feeder round the drum and out of the bottom. */}
+        {/* The paper path, flowing from the feeder round the cloud worker and out of the bottom. */}
         <path d="M 180 40 V 90 A 34 34 0 0 1 180 158 V 236" className={styles.flow} />
 
         {/* The record's plate. */}
@@ -177,21 +177,23 @@ export function Machine({ title, subtitle }: { title: string; subtitle: string }
           />
         ))}
 
-        {/* The PDF leaving through the bottom. */}
-        <g className={styles.sheetOut}>
-          <path d="M 168 236 H 187 L 192 241 V 254 H 168 Z M 187 236 V 241 H 192" className={styles.page} />
-          <text x="180" y="247.5" className={styles.pageLabel}>
-            PDF
-          </text>
-        </g>
+        {/* What leaves through the bottom: a PDF one round, an image the next. */}
+        {['PDF', 'IMG'].map((label) => (
+          <g key={label} className={styles.sheetOut}>
+            <path d="M 168 236 H 187 L 192 241 V 254 H 168 Z M 187 236 V 241 H 192" className={styles.page} />
+            <text x="180" y="247.5" className={styles.pageLabel}>
+              {label}
+            </text>
+          </g>
+        ))}
       </g>
 
       <Callout from={[222, 58]} to={[350, 60]} text="BROWSER RENDER" anchor="start" />
       <Callout from={[232, 96]} to={[350, 96]} text="RETRIEVAL" anchor="start" />
       <Callout from={[318, 150]} to={[350, 150]} text="STORAGE" anchor="start" />
       <Callout from={[210, 170]} to={[350, 200]} text="IMAGES SAVED" anchor="start" />
-      <Callout from={[168, 248]} to={[0, 250]} text="PDF PRINT" anchor="end" />
-      <Callout from={[146, 124]} to={[0, 124]} text="DRUM" anchor="end" />
+      <Callout from={[168, 248]} to={[0, 250]} text="PDF OR IMAGE" anchor="end" />
+      <Callout from={[148, 112]} to={[14, 96]} text="CLOUD WORKER" anchor="end" />
     </svg>
   );
 }

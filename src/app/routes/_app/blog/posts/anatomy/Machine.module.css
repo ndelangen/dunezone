@@ -119,8 +119,14 @@
   marker-end: var(--arrow);
 }
 
+/* Two sheets take turns at the outlet, so it gives out a PDF one round and an image the next. */
 .sheetOut {
-  animation: sheet-out 2.6s ease-in-out infinite;
+  opacity: 0;
+  animation: sheet-out 5.2s ease-in-out infinite;
+}
+
+.sheetOut + .sheetOut {
+  animation-delay: -2.6s;
 }
 
 @keyframes turn {
@@ -153,12 +159,13 @@
     transform: translateY(-12px);
   }
 
-  30%,
-  80% {
+  15%,
+  40% {
     opacity: 1;
     transform: translateY(0);
   }
 
+  50%,
   100% {
     opacity: 0;
     transform: translateY(4px);
@@ -172,6 +179,11 @@
   .flow,
   .beam,
   .sheetOut {
+    opacity: 1;
     animation: none;
+  }
+
+  .sheetOut + .sheetOut {
+    display: none;
   }
 }
