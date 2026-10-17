@@ -42,7 +42,7 @@
   list-style: none;
 }
 
-/* Each row arrives in turn once the figure is on screen, oldest first; until scripts run, every row simply shows. */
+/* Each row arrives in turn once the figure is on screen, oldest first; until scripts run, every row shows. */
 .row {
   --row: 0;
 
