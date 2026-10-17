@@ -187,6 +187,65 @@ export function TracingImageTrigger({ pressed, onToggle }: { pressed: boolean; o
   );
 }
 
+/** Where focus goes when the panel closes: its trigger, or More actions when the trigger lived in the now-closed overflow menu. */
+function focusTrigger(toolbar: HTMLElement | null) {
+  const trigger = toolbar?.querySelector<HTMLButtonElement>('[data-tracing-trigger] button');
+  (trigger ?? overflowMenuButton(toolbar))?.focus();
+}
+
+/** Whether a click landed on a toolbar button other than the tracing image trigger. */
+function isOtherToolbarButton(target: EventTarget) {
+  const button = target instanceof Element ? target.closest('button') : null;
+  return button != null && !button.closest('[data-tracing-trigger]');
+}
+
+/** Opacity, size and position, each a slider; 0,0 centres the image on the board. */
+function TracingImageSliders({
+  tracing,
+  patch,
+}: { tracing: TracingImage } & Pick<ReturnType<typeof useTracingImage>, 'patch'>) {
+  const [x, y] = tracing.offset;
+  const sliders = [
+    [
+      'Opacity',
+      0.1,
+      1,
+      0.05,
+      tracing.opacity,
+      `${Math.round(tracing.opacity * 100)}%`,
+      (opacity: number) => patch({ opacity }),
+    ],
+    [
+      'Size',
+      TRACING_SCALE.min,
+      TRACING_SCALE.max,
+      0.01,
+      tracing.scale,
+      `${Math.round(tracing.scale * 100)}%`,
+      (scale: number) => patch({ scale }),
+    ],
+    ['X', -BOARD_SIZE, BOARD_SIZE, 0.5, x, x.toFixed(1), (next: number) => patch({ offset: [next, y] })],
+    ['Y', -BOARD_SIZE, BOARD_SIZE, 0.5, y, y.toFixed(1), (next: number) => patch({ offset: [x, next] })],
+  ] as const;
+  return sliders.map(([title, min, max, step, value, shown, onChange]) => (
+    <ControlBlock
+      key={title}
+      title={title}
+      tool={<Text size="xs">{shown}</Text>}
+      input={
+        <Slider
+          thumbLabel={`Tracing image ${title.toLowerCase()}`}
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={onChange}
+        />
+      }
+    />
+  ));
+}
+
 /**
  * The tracing image panel, anchored to the whole toolbar rather than its trigger, like LoadExisting.
  * The trigger may live in the toolbar's overflow menu, and the panel must not open inside that menu's pane.
@@ -204,66 +263,15 @@ export function TracingImagePanel({
 }) {
   const { tracing, error, input, pick, patch, remove } = controls;
   const toolbar = useRef<HTMLDivElement>(null);
-  const change = (next: boolean) => {
-    onChange(next);
-    if (!next) {
-      /* The trigger may have lived in the closed overflow menu, so focus falls back to that menu's button rather than the page. */
-      requestAnimationFrame(() =>
-        (
-          toolbar.current?.querySelector<HTMLButtonElement>('[data-tracing-trigger] button') ??
-          overflowMenuButton(toolbar.current)
-        )?.focus()
-      );
-    }
-  };
-  const sliders = tracing
-    ? ([
-        [
-          'Opacity',
-          'Tracing image opacity',
-          0.1,
-          1,
-          0.05,
-          tracing.opacity,
-          `${Math.round(tracing.opacity * 100)}%`,
-          (opacity: number) => patch({ opacity }),
-        ],
-        [
-          'Size',
-          'Tracing image size',
-          TRACING_SCALE.min,
-          TRACING_SCALE.max,
-          0.01,
-          tracing.scale,
-          `${Math.round(tracing.scale * 100)}%`,
-          (scale: number) => patch({ scale }),
-        ],
-        [
-          'X',
-          'Tracing image x',
-          -BOARD_SIZE,
-          BOARD_SIZE,
-          0.5,
-          tracing.offset[0],
-          tracing.offset[0].toFixed(1),
-          (x: number) => patch({ offset: [x, tracing.offset[1]] }),
-        ],
-        [
-          'Y',
-          'Tracing image y',
-          -BOARD_SIZE,
-          BOARD_SIZE,
-          0.5,
-          tracing.offset[1],
-          tracing.offset[1].toFixed(1),
-          (y: number) => patch({ offset: [tracing.offset[0], y] }),
-        ],
-      ] as const)
-    : [];
   return (
     <Popover
       opened={opened}
-      onChange={change}
+      onChange={(next) => {
+        onChange(next);
+        if (!next) {
+          requestAnimationFrame(() => focusTrigger(toolbar.current));
+        }
+      }}
       position="bottom-end"
       width={320}
       shadow="md"
@@ -277,8 +285,7 @@ export function TracingImagePanel({
           ref={toolbar}
           onClickCapture={(event) => {
             /* Any other toolbar button closes the panel, so two of the toolbar's layers are never open at once. */
-            const button = event.target instanceof Element ? event.target.closest('button') : null;
-            if (button && !button.closest('[data-tracing-trigger]')) {
+            if (isOtherToolbarButton(event.target)) {
               onChange(false);
             }
           }}
@@ -305,16 +312,7 @@ export function TracingImagePanel({
               </Stack>
             }
           />
-          {sliders.map(([title, thumbLabel, min, max, step, value, shown, onChange]) => (
-            <ControlBlock
-              key={title}
-              title={title}
-              tool={<Text size="xs">{shown}</Text>}
-              input={
-                <Slider thumbLabel={thumbLabel} min={min} max={max} step={step} value={value} onChange={onChange} />
-              }
-            />
-          ))}
+          {tracing && <TracingImageSliders tracing={tracing} patch={patch} />}
         </Stack>
       </Popover.Dropdown>
     </Popover>
