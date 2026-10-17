@@ -71,7 +71,7 @@ const GROUPS: readonly { title: string; inputs: readonly InputId[] }[] = [
 
 const INPUT_ORDER: readonly InputId[] = GROUPS.flatMap((group) => group.inputs);
 
-const OUTPUT_ORDER: readonly OutputId[] = [
+export const OUTPUT_ORDER: readonly OutputId[] = [
   'sheet',
   'leaderTokens',
   'traitors',
@@ -196,7 +196,7 @@ const leaders = FactionRender.leaders.parse(FACTION);
 const traitors = FactionRender.traitors.parse(FACTION);
 const troops = FactionRender.troops.parse(FACTION);
 
-const OUTPUTS: Record<OutputId, { label: string; art: () => ReactNode }> = {
+export const OUTPUTS: Record<OutputId, { label: string; art: () => ReactNode }> = {
   sheet: {
     label: 'Faction sheet',
     art: () => (
