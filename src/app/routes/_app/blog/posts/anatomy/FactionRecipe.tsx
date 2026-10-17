@@ -3,7 +3,7 @@ import type { FactionInput } from '@shared/factions/schema';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import clsx from 'clsx';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { CSSProperties, ReactNode, RefObject } from 'react';
+import type { CSSProperties, PointerEvent, ReactNode, RefObject } from 'react';
 
 import styles from './FactionRecipe.module.css';
 import { HOUSE_ATREIDES } from './houseAtreides';
@@ -303,6 +303,18 @@ function useSelection(rootRef: RefObject<HTMLElement | null>) {
   };
 }
 
+/*
+ * Only a mouse hovers.
+ * A tap can send an enter with no leave after it, which would leave a tile lit after the reader picked another.
+ */
+function byMouse(handler: () => void) {
+  return (event: PointerEvent) => {
+    if (event.pointerType === 'mouse') {
+      handler();
+    }
+  };
+}
+
 function Tile({
   selection,
   label,
@@ -331,8 +343,8 @@ function Tile({
       style={zoom ? ({ '--zoom': zoom } as CSSProperties) : undefined}
       aria-pressed={pressed}
       onClick={() => onChoose(selection)}
-      onMouseEnter={() => onPoint(selection)}
-      onMouseLeave={() => onPoint(null)}
+      onPointerEnter={byMouse(() => onPoint(selection))}
+      onPointerLeave={byMouse(() => onPoint(null))}
     >
       <span className={isInput ? styles.inputArt : styles.outputArt} aria-hidden="true">
         {art}
