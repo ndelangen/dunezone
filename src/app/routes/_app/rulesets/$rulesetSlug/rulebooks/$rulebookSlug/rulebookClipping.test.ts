@@ -149,5 +149,12 @@ describe('Rulebook clipping', () => {
     revealRulebookLocatorTarget(visible, 800);
 
     expect(scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
+
+    scrollIntoView.mockClear();
+    visible.getBoundingClientRect = () => bounds(200, 300);
+
+    revealRulebookLocatorTarget(visible, 800);
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
   });
 });

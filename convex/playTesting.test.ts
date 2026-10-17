@@ -146,11 +146,21 @@ describe('isolated Play test controls', () => {
   });
 
   test.each(['total', 'inactivity'] as const)('can shorten %s expiry but cannot renew it', async (kind) => {
-    const { t, sessionId } = await fixture();
+    const { t, sessionId, refreshId } = await fixture();
     const first = await t.mutation(internal.playTesting.shortenSession, { sessionId, kind, expiresInMs: 1000 });
     const second = await t.mutation(internal.playTesting.shortenSession, { sessionId, kind, expiresInMs: 30_000 });
     expect(first.expiresAt).toBe(Date.now() + 1000);
     expect(second).toEqual(first);
+    /* Total expiry lives on the session and inactivity on its refresh token, so only that row moves. */
+    const stored = await t.run(async (ctx) => ({
+      session: (await ctx.db.get(sessionId))?.expirationTime,
+      refresh: (await ctx.db.get(refreshId))?.expirationTime,
+    }));
+    expect(stored).toEqual(
+      kind === 'total'
+        ? { session: first.expiresAt, refresh: Date.now() + 60_000 }
+        : { session: Date.now() + 60_000, refresh: first.expiresAt }
+    );
     await expect(t.mutation(internal.playTesting.shortenSession, { sessionId, kind, expiresInMs: -1 })).rejects.toThrow(
       'thirty seconds'
     );

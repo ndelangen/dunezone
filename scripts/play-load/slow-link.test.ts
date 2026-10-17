@@ -17,8 +17,8 @@ test('latency stays pipelined while the link caps wire throughput and restores q
   const address = echo.address();
   assert.ok(address && typeof address === 'object');
   const link = await slowLink(new URL(`http://127.0.0.1:${address.port}`), {
-    downlinkKbitPerSecond: 256,
-    roundTripMs: 500,
+    downlinkKbitPerSecond: 1024,
+    roundTripMs: 100,
   });
   const client = createConnection({ host: '127.0.0.1', port: Number(new URL(link.origin).port) });
   let received = 0;
@@ -28,7 +28,7 @@ test('latency stays pipelined while the link caps wire throughput and restores q
   });
   client.on('data', (chunk) => {
     received += chunk.length;
-    if (received === 65_536) {
+    if (received === 32_768) {
       completed();
     }
   });
@@ -36,21 +36,22 @@ test('latency stays pipelined while the link caps wire throughput and restores q
     await new Promise((resolve) => client.once('connect', resolve));
     link.constrain();
     const started = performance.now();
-    for (let index = 0; index < 128; index++) {
-      client.write(Buffer.alloc(512, index));
-      await new Promise((resolve) => setTimeout(resolve, 10));
+    /* The writes outpace the link, so 32 KiB at 1024 kbit/s takes 256 ms on the wire plus one 100 ms round trip. */
+    for (let index = 0; index < 32; index++) {
+      client.write(Buffer.alloc(1024, index));
+      await new Promise((resolve) => setTimeout(resolve, 2));
     }
     await done;
     const elapsed = performance.now() - started;
-    expect(elapsed).toBeGreaterThanOrEqual(2400);
-    expect(elapsed).toBeLessThan(5000);
-    expect(link.totals.downlinkBytes).toBe(65_536);
+    expect(elapsed).toBeGreaterThanOrEqual(330);
+    expect(elapsed).toBeLessThan(1000);
+    expect(link.totals.downlinkBytes).toBe(32_768);
     expect(link.totals.maxBufferedBytes).toBeLessThanOrEqual(131_072);
     const restored = new Promise((resolve) => client.once('data', resolve));
     client.write(Buffer.from('restored'));
     link.restore();
     await restored;
-    expect(received).toBe(65_544);
+    expect(received).toBe(32_776);
   } finally {
     client.destroy();
     await link.close();

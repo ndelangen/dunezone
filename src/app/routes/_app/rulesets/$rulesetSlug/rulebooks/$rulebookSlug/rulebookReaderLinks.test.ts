@@ -119,6 +119,13 @@ describe('Final Rulebook reading order', () => {
     expect(resolveFinalPageSelection(makePage(true, 2), 'Uncommitted: ? 2').status).toBe('stale');
     expect(resolveFinalPageSelection(makePage(true, 0), 'Uncommitted: 0').status).toBe('stale');
     expect(resolveFinalPageSelection(makePage(false, 2), 'Uncommitted: ? 2').status).toBe('stale');
+    /* The revealed side still projects its fallback strength and its troop, without the uncommitted count. */
+    expect(
+      resolveFinalPageSelection(
+        makePage(true, 2),
+        'Faction artwork unavailable 0 troop strength, 0 spice Troop artwork unavailable: 0 supported, 0 unsupported.'
+      ).status
+    ).toBe('matched');
   });
 
   test.each(['battle-step', 'battle-plans', 'piece-movement'] as const)(

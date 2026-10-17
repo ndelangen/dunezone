@@ -922,7 +922,13 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const beforeDenial = first.messages.length;
     await signOut(tabs, 'registration-b', ['registration-a', 'registration-b']);
     await eventually(() => peer.accountChecks().some((record) => !record.response.writableEnded), 'the account check');
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    /*
+     * The room answers a keepalive behind every frame it already queued for this socket, and a held player's sync would wait out the check.
+     * Once the answer lands, anything the denial sent the other player has landed too.
+     */
+    const keepalives = first.keepalives;
+    first.keepalive();
+    await eventually(() => first.keepalives > keepalives, 'the keepalive answer behind the denial');
     expect(first.messages.slice(beforeDenial)).toEqual([]);
     peer.releaseAccounts();
     const resumed = await eventually(

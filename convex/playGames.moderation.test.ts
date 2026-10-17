@@ -99,7 +99,17 @@ describe('server-owned game-name moderation', () => {
     );
     const provider = vi.fn(async () => answer(0.24));
     vi.stubGlobal('fetch', provider);
-    expect(await viewer.action(api.playGames.createGameWithName, request)).toMatchObject({ ok: true });
+    /* The retry waits out a real backoff, so the clock is advanced until the creation settles instead. */
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    let settled = false;
+    const pending = viewer.action(api.playGames.createGameWithName, request).finally(() => {
+      settled = true;
+    });
+    while (!settled) {
+      await vi.advanceTimersByTimeAsync(100);
+    }
+    vi.useRealTimers();
+    expect(await pending).toMatchObject({ ok: true });
     expect(provider).toHaveBeenCalledOnce();
     expect((await writes(t)).games).toHaveLength(1);
     expect((await writes(t)).reservations).toHaveLength(1);

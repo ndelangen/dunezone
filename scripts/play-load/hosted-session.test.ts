@@ -195,7 +195,9 @@ test('the coordinator waits until consecutive controller reads reach this cellâ€
   expect(session.initial.unsettledReads).toEqual(['404', '410', '200 for game previous-game']);
 
   fetch.mockImplementation(() => Promise.resolve(new Response('Not found.', { status: 404 })));
-  await expect(openHostedSession(filename, values, quickSettle)).rejects.toThrow('0 of 3 consecutive controller reads');
+  await expect(openHostedSession(filename, values, { ...quickSettle, timeoutMs: 20 })).rejects.toThrow(
+    '0 of 3 consecutive controller reads'
+  );
   /* A read that reaches this game is still held to the attestation, however many reads preceded it. */
   fetch.mockClear();
   fetch.mockImplementation(() => Promise.resolve(Response.json({ gameId: game.gameId, gitSha: 'other' })));

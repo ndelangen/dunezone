@@ -341,7 +341,7 @@ describe('FAQ lifecycle', () => {
   });
 
   test('clears acceptance when the accepted answer is deleted', async () => {
-    const { owner, answerer, ruleset } = await faqFixture();
+    const { t, owner, answerer, ruleset } = await faqFixture();
     const question = await owner.mutation(api.faq.createQuestion, {
       rulesetId: ruleset._id,
       question: 'What happens when the accepted answer is removed?',
@@ -355,6 +355,9 @@ describe('FAQ lifecycle', () => {
       faq_item_id: question.questionId,
       accepted_answer_id: answer._id,
     });
+    const acceptedAnswerId = async () =>
+      await t.run(async (ctx) => (await ctx.db.get('faq_items', question.questionId))?.accepted_answer_id);
+    expect(await acceptedAnswerId()).toBe(answer._id);
 
     await answerer.mutation(api.faq.deleteAnswer, { id: answer._id });
 
@@ -363,6 +366,8 @@ describe('FAQ lifecycle', () => {
       questionSlug: question.questionSlug,
     });
     expect(page.answers).toEqual([]);
+    /* The page cannot tell a dangling reference from a cleared one, so the stored question is read directly. */
+    expect(await acceptedAnswerId()).toBeNull();
   });
 
   test('deletes large answer sets in bounded aggregate-safe batches', async () => {
