@@ -122,3 +122,18 @@
   text-align: right;
   line-height: 1.25em;
 }
+
+/* Placed token instances share the map's box so their board coordinates land on the map. */
+.mapTokens {
+  position: absolute;
+  top: 235px;
+  height: 700px;
+  width: 700px;
+  left: 95px;
+  pointer-events: none;
+}
+
+.mapToken {
+  position: absolute;
+  filter: drop-shadow(0 4px 6px #000a);
+}
