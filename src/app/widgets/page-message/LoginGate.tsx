@@ -1,5 +1,6 @@
 import { Anchor, Text } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
+import { signInReturnFrom } from '@shared/authDestination';
+import { Link, useLocation } from '@tanstack/react-router';
 
 export interface LoginGateProps {
   /** What signing in would let the reader do, as the tail of "Log in to ...": "create a faction", "start a group", "view migration activity". */
@@ -13,12 +14,19 @@ export interface LoginGateProps {
  * Caller hands the verb phrase, since only the page knows what it is for;
  * this owns the sentence around it and the one destination, which is allowed to be hardcoded here for the same reason `ProfileLink`'s is, that the destination is the component's name.
  *
+ * The link carries the page the reader is on, so signing in brings them back to it;
+ * reading the route is why this is a widget rather than a kit block.
+ *
  * It exists because nine routes wrote this sentence and three of them spelled the link as a themed anchor while six left it as the browser's default blue one, so the same offer looked like two different things depending on where you met it.
  */
 export function LoginGate({ action }: LoginGateProps) {
+  const here = useLocation({ select: (location) => location.href });
   return (
     <Text>
-      <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to {action}.
+      <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" search={signInReturnFrom(here)} />}>
+        Log in
+      </Anchor>{' '}
+      to {action}.
     </Text>
   );
 }

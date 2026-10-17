@@ -2,7 +2,6 @@ import { Alert } from '@mantine/core';
 import { RectangleTokenAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -13,6 +12,7 @@ import { useCreateAsset } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import {
   INITIAL_RECTANGLE_DRAFT,
   RectangleProof,

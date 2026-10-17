@@ -1,12 +1,13 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Button, Stack, Text, TextInput } from '@mantine/core';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { signInReturnFrom } from '@shared/authDestination';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowRight } from 'lucide-react';
-import { useReducer } from 'react';
+import { useEffect, useReducer } from 'react';
 import type { SVGProps } from 'react';
 import { SiDiscord } from 'react-icons/si';
 
@@ -19,6 +20,8 @@ import styles from './login.module.css';
 
 export const Route = createFileRoute('/_app/auth/login')({
   head: () => pageHead('Sign in'),
+  /* A link from another page names it as `redirect`, and signing in returns there; anything off-site is dropped. */
+  validateSearch: (search: Record<string, unknown>) => signInReturnFrom(search.redirect),
   component: LoginPage,
 });
 
@@ -70,14 +73,14 @@ function reduceSignIn(state: SignInState, event: SignInEvent): SignInState {
   }
 }
 
-function SignInPanel({ providers }: { providers: ReturnType<typeof useSignInProviders> }) {
+function SignInPanel({ providers, returnTo }: { providers: ReturnType<typeof useSignInProviders>; returnTo: string }) {
   const { signIn } = useAuthActions();
   const [state, dispatch] = useReducer(reduceSignIn, { busy: null, error: null, email: '', password: '' });
   const localAuthEnabled = import.meta.env.VITE_E2E_LOCAL_AUTH === 'true';
   const socialLogin = async (provider: AuthProvider) => {
     dispatch({ kind: 'started', provider });
     try {
-      await signIn(provider, { redirectTo: '/' });
+      await signIn(provider, { redirectTo: returnTo });
     } catch (error) {
       dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'Sign-in could not start.' });
     } finally {
@@ -172,6 +175,15 @@ function ProviderMark({ provider }: { provider: AuthProvider }) {
 function LoginPage() {
   const profile = useCurrentProfile();
   const providers = useSignInProviders();
+  const { redirect: returnTo } = Route.useSearch();
+  const navigate = useNavigate();
+  const signedIn = Boolean(profile.data);
+  /* The password form signs in without leaving the page, and a reader who is already signed in has nothing to do here either, so both go back to the page they came from. */
+  useEffect(() => {
+    if (signedIn && returnTo) {
+      void navigate({ href: returnTo, replace: true });
+    }
+  }, [signedIn, returnTo, navigate]);
   return (
     <PageLayout>
       <PageLayout.Header size="immersive">
@@ -197,7 +209,7 @@ function LoginPage() {
           <>
             <PageTitle eyebrow="The spice must flow" title="Enter the deep desert" />
             <Text className={styles.lead}>Build factions, write your own rulesets and play Dune with friends.</Text>
-            <SignInPanel providers={providers} />
+            <SignInPanel providers={providers} returnTo={returnTo ?? '/'} />
           </>
         )}
       </PageLayout.Header>

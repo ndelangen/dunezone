@@ -23,7 +23,7 @@ export const ExampleCallout = meta.story({
       initialValue={{
         variant: 'example',
         title: 'A shipment',
-        text: 'Shipping three forces to a stronghold costs three spice.',
+        text: 'Shipping three troops to a stronghold costs three spice.',
       }}
     />
   ),

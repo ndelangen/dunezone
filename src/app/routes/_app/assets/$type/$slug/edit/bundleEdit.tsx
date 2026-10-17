@@ -1,7 +1,6 @@
 import { Alert, Popover } from '@mantine/core';
 import { BundleAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -20,6 +19,7 @@ import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_MEMORY } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft, BundleMemory } from '@app/widgets/bundle-editor/BundleEditor';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { BundleAsset as BundleAssetSchema } from '@game/data/objects';
 
 import {

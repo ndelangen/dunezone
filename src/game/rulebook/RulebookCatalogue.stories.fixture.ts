@@ -10,8 +10,8 @@ function writtenRuleBlocks(): RulebookBlockDraft[] {
     {
       id: 'TEXT',
       kind: 'text',
-      name: 'Moving your forces',
-      text: 'Choose one group of forces. Move them together to an adjacent territory.\n\n*The storm closes a boundary.* Forces cannot cross it.',
+      name: 'Moving your troops',
+      text: 'Choose one group of troops. Move them together to an adjacent territory.\n\n*The storm closes a boundary.* Troops cannot cross it.',
     },
     {
       id: 'L5ST',
@@ -19,8 +19,8 @@ function writtenRuleBlocks(): RulebookBlockDraft[] {
       style: 'numbered',
       itemOrder: ['choose', 'move'],
       itemsById: {
-        choose: { id: 'choose', name: 'Choose a group', text: 'Select forces in one territory.' },
-        move: { id: 'move', name: 'Choose a destination', text: 'Move your chosen forces together.' },
+        choose: { id: 'choose', name: 'Choose a group', text: 'Select troops in one territory.' },
+        move: { id: 'move', name: 'Choose a destination', text: 'Move your chosen troops together.' },
       },
     },
     {
@@ -28,14 +28,14 @@ function writtenRuleBlocks(): RulebookBlockDraft[] {
       kind: 'callout',
       variant: 'note',
       title: 'Occupancy',
-      text: 'Check the destination before moving your forces.',
+      text: 'Check the destination before moving your troops.',
     },
     {
       id: 'EXAM',
       kind: 'callout',
       variant: 'example',
       title: 'Example',
-      text: 'Three forces leave Arrakeen and arrive together in the Imperial Basin.',
+      text: 'Three troops leave Arrakeen and arrive together in the Imperial Basin.',
     },
     {
       id: 'QUTE',
@@ -48,8 +48,8 @@ function writtenRuleBlocks(): RulebookBlockDraft[] {
       id: 'QUES',
       kind: 'question-answer',
       topic: 'Moving together',
-      question: 'May forces from different sectors move together?',
-      answer: '*Yes.* Forces in the same territory form one group.',
+      question: 'May troops from different sectors move together?',
+      answer: '*Yes.* Troops in the same territory form one group.',
     },
   ];
 }

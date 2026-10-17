@@ -3,7 +3,6 @@ import { rulesetAboutSchema, rulesetNameSchema } from '@shared/rulesets/validati
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
@@ -18,6 +17,7 @@ import { useCreateRuleset } from '@db/rulesets';
 import { pageHead } from '@app/routes/pageTitle';
 import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/rulesets/create')({

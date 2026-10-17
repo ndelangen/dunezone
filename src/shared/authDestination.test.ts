@@ -1,6 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
-import { safeAuthDestination } from './oauthDestination';
+import { safeAuthDestination, signInReturnFrom } from './authDestination';
 
 test.each([
   '//evil.example',
@@ -20,3 +20,21 @@ test.each(['/profiles/central/edit?tab=methods#google', 'https://dune.zone/profi
     expect(safeAuthDestination(next)).toBe(destination.pathname + destination.search + destination.hash);
   }
 );
+
+test.each(['/factions?sort=recent#list', '/rulesets/base/faq?q=storm'])('returns to %s after sign-in', (href) => {
+  expect(signInReturnFrom(href)).toEqual({ redirect: href });
+});
+test.each([
+  '/',
+  '/?welcome=1',
+  '/auth/login',
+  '/auth/login?redirect=%2Ffactions',
+  '/auth',
+  '/auth/oauth',
+  '//evil.example',
+  'https://evil.example/factions',
+  7,
+  undefined,
+])('carries no return from %s', (href) => {
+  expect(signInReturnFrom(href)).toEqual({});
+});
