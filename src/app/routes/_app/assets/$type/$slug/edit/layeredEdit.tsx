@@ -161,9 +161,8 @@ function CardEditSession<Draft extends LayeredCardDraft>({
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
       load={{
         schema: config.schema,
-        /* The edited card keeps its name, so loading never moves it to another address. */
         onLoaded: header.releasing((data) => {
-          dispatch({ kind: 'replace', data: { ...data, name: state.data.name } });
+          dispatch({ kind: 'replace', data });
           setChapter('head');
         }),
       }}

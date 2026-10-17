@@ -13,7 +13,7 @@ import type { z } from 'zod';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
-import { assetLoadSource } from '@app/pickers/assetLoadSource';
+import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 
 import {
@@ -172,7 +172,7 @@ export function useCardSave(type: CardType, asset: CardAsset) {
 }
 
 /** The page around a card workbench: the warnings header, the toolbar, and the save, delete and group errors. */
-export function CardEditFrame<Draft>({
+export function CardEditFrame<Draft extends { name: string }>({
   type,
   asset,
   access,
@@ -191,27 +191,27 @@ export function CardEditFrame<Draft>({
   status: { isDirty: boolean; isNameBlank: boolean; saveState: AuthoringSaveState; invalid?: string };
   onSave: () => void;
   onReset: () => void;
-  /** Loading another card of this type into the draft; the card being edited is left out of the choices. */
+  /** Loading another card of this type into the draft; the card being edited is left out of the choices and keeps its name. */
   load: { schema: z.ZodType<Draft>; onLoaded: (draft: Draft) => void };
   saveError: Error | null;
   children: ReactNode;
 }) {
   const navigate = useNavigate();
   const deletion = useAssetDeletion(asset);
-  const loadSource = assetLoadSource({ type, schema: load.schema, excludeId: asset.id });
   const groupActions = useAssetGroupActions({ asset, access });
   return (
     <PageLayout>
       {headerSlot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={{
+          load={assetLoad({
             noun: type === 'board' ? 'board' : 'card',
-            mode: 'replace',
+            type,
+            schema: load.schema,
+            editing: asset,
             disabled: status.saveState === 'saving',
-            source: loadSource,
             onLoaded: (loaded) => load.onLoaded(loaded.data),
-          }}
+          })}
           status={status}
           copy={{
             saveLabel: 'Save card',

@@ -6,7 +6,7 @@ import type { z } from 'zod';
 
 import { loadAssetPage } from '@db/assets';
 import type { AssetPublicPage } from '@db/assets';
-import type { LoadChoice, LoadSource } from '@app/widgets/authoring/LoadExisting';
+import type { LoadChoice, LoadExistingProps, LoadSource } from '@app/widgets/authoring/LoadExisting';
 
 import { AssetPicker } from './AssetPicker';
 
@@ -40,6 +40,34 @@ export function assetLoadSource<Data>({
   return (report) => (
     <AssetLoadChoices type={type} schema={schema} excludeId={excludeId} presets={presets} report={report} />
   );
+}
+
+/**
+ * The toolbar's `load` for an Asset page, create or edit alike.
+ * On an edit page, `editing` leaves the edited Asset out of the choices, and the loaded data keeps its name, so loading never moves it to another address.
+ */
+export function assetLoad<Data extends { name: string }>({
+  noun,
+  type,
+  schema,
+  editing,
+  disabled,
+  onLoaded,
+}: {
+  noun: string;
+  type: AssetType;
+  schema: z.ZodType<Data>;
+  editing?: { id: string; name: string };
+  disabled: boolean;
+  onLoaded: (loaded: LoadedAsset<NoInfer<Data>>) => void;
+}): Omit<LoadExistingProps<LoadedAsset<Data>>, 'children'> {
+  return {
+    noun,
+    mode: editing ? 'replace' : 'create',
+    disabled,
+    source: assetLoadSource({ type, schema, excludeId: editing?.id }),
+    onLoaded: (loaded) => onLoaded(editing ? { ...loaded, data: { ...loaded.data, name: editing.name } } : loaded),
+  };
 }
 
 const UNUSABLE = { kind: 'error', message: 'This one could not be loaded. Choose another.' } as const;

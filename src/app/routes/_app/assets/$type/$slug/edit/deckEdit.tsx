@@ -16,7 +16,7 @@ import { useReducer, useState } from 'react';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
-import { assetLoadSource } from '@app/pickers/assetLoadSource';
+import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
 import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
@@ -252,26 +252,21 @@ function DeckEditSession({
     );
   };
 
-  const loadSource = assetLoadSource({ type: 'deck', schema: LoadedDeckDraft, excludeId: asset.id });
   return (
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={{
+          load={assetLoad({
             noun: 'deck',
-            mode: 'replace',
+            type: 'deck',
+            schema: LoadedDeckDraft,
+            editing: asset,
             disabled: saveState === 'saving',
-            source: loadSource,
             onLoaded: header.releasing((loaded) =>
-              /* The edited asset keeps its name, so loading never moves it to another address. */
-              dispatch({
-                kind: 'replace',
-                data: { ...loaded.data, name: state.data.name },
-                pick: loaded.source?.backDeck ?? null,
-              })
+              dispatch({ kind: 'replace', data: loaded.data, pick: loaded.source?.backDeck ?? null })
             ),
-          }}
+          })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save deck',

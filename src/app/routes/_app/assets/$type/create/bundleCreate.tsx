@@ -9,7 +9,7 @@ import { useReducer, useState } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
-import { assetLoadSource, clonedMembersOf } from '@app/pickers/assetLoadSource';
+import { assetLoad, clonedMembersOf } from '@app/pickers/assetLoadSource';
 import type { ClonedMembers } from '@app/pickers/assetLoadSource';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
@@ -128,21 +128,20 @@ export function BundleCreatePage() {
     );
   };
 
-  const loadSource = assetLoadSource({ type: 'bundle', schema: BundleAsset });
   return (
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={{
+          load={assetLoad({
             noun: 'bundle',
-            mode: 'create',
+            type: 'bundle',
+            schema: BundleAsset,
             disabled: saveState === 'saving',
-            source: loadSource,
             onLoaded: header.releasing((loaded) =>
               dispatch({ kind: 'replace', data: loaded.data, clonedFrom: clonedMembersOf(loaded) })
             ),
-          }}
+          })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save bundle',

@@ -13,7 +13,7 @@ import { useReducer, useState } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
-import { assetLoadSource } from '@app/pickers/assetLoadSource';
+import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
@@ -233,26 +233,21 @@ function TokenEditSession({
     );
   };
 
-  const loadSource = assetLoadSource({ type, schema: LoadedTokenDraft, excludeId: asset.id });
   return (
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={{
+          load={assetLoad({
             noun: 'token',
-            mode: 'replace',
+            type,
+            schema: LoadedTokenDraft,
+            editing: asset,
             disabled: saveState === 'saving',
-            source: loadSource,
             onLoaded: header.releasing((loaded) =>
-              /* The edited asset keeps its name, so loading never moves it to another address. */
-              dispatch({
-                kind: 'replace',
-                data: { ...loaded.data, name: state.data.name },
-                pick: loaded.source?.backToken ?? null,
-              })
+              dispatch({ kind: 'replace', data: loaded.data, pick: loaded.source?.backToken ?? null })
             ),
-          }}
+          })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save token',

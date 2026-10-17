@@ -13,7 +13,7 @@ import { useReducer, useState } from 'react';
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
-import { assetLoadSource } from '@app/pickers/assetLoadSource';
+import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
@@ -192,22 +192,19 @@ function BundleEditSession({
     );
   };
 
-  const loadSource = assetLoadSource({ type: 'bundle', schema: BundleAsset, excludeId: asset.id });
   return (
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={{
+          load={assetLoad({
             noun: 'bundle',
-            mode: 'replace',
+            type: 'bundle',
+            schema: BundleAsset,
+            editing: asset,
             disabled: saveState === 'saving',
-            source: loadSource,
-            onLoaded: header.releasing((loaded) =>
-              /* The edited asset keeps its name, so loading never moves it to another address. */
-              dispatch({ kind: 'replace', data: { ...loaded.data, name: state.data.name } })
-            ),
-          }}
+            onLoaded: header.releasing((loaded) => dispatch({ kind: 'replace', data: loaded.data })),
+          })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save bundle',

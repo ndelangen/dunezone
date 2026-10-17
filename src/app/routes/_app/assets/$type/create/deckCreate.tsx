@@ -10,7 +10,7 @@ import { useReducer, useState } from 'react';
 import { useCardbackPresets } from '@db/cardbackPresets';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
-import { assetLoadSource, clonedMembersOf } from '@app/pickers/assetLoadSource';
+import { assetLoad, clonedMembersOf } from '@app/pickers/assetLoadSource';
 import type { ClonedMembers } from '@app/pickers/assetLoadSource';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
 import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
@@ -157,17 +157,16 @@ export function DeckCreatePage() {
     );
   };
 
-  const loadSource = assetLoadSource({ type: 'deck', schema: LoadedDeckDraft });
   return (
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={{
+          load={assetLoad({
             noun: 'deck',
-            mode: 'create',
+            type: 'deck',
+            schema: LoadedDeckDraft,
             disabled: saveState === 'saving',
-            source: loadSource,
             onLoaded: header.releasing((loaded) =>
               dispatch({
                 kind: 'replace',
@@ -176,7 +175,7 @@ export function DeckCreatePage() {
                 clonedFrom: clonedMembersOf(loaded),
               })
             ),
-          }}
+          })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save deck',

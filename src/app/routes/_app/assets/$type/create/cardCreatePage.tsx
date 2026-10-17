@@ -9,7 +9,7 @@ import type { z } from 'zod';
 
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
-import { assetLoadSource } from '@app/pickers/assetLoadSource';
+import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 
 import { AssetEditorMessage, SaveErrorAlert } from '../../assetEditorStates';
@@ -57,7 +57,7 @@ export function useCardCreate(type: CardType) {
 }
 
 /** The page around a new card's workbench, shown once the viewer is known to be signed in. */
-export function CardCreateFrame<Draft>({
+export function CardCreateFrame<Draft extends { name: string }>({
   type,
   title,
   headerSlot,
@@ -104,19 +104,18 @@ export function CardCreateFrame<Draft>({
       break;
   }
 
-  const loadSource = assetLoadSource({ type, schema: load.schema });
   return (
     <PageLayout>
       {headerSlot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={{
+          load={assetLoad({
             noun: 'card',
-            mode: 'create',
+            type,
+            schema: load.schema,
             disabled: status.saveState === 'saving',
-            source: loadSource,
             onLoaded: (loaded) => load.onLoaded(loaded.data),
-          }}
+          })}
           status={status}
           copy={{
             saveLabel: 'Save card',

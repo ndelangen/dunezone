@@ -10,7 +10,7 @@ import { useReducer, useState } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
-import { assetLoadSource } from '@app/pickers/assetLoadSource';
+import { assetLoad } from '@app/pickers/assetLoadSource';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -143,25 +143,20 @@ export function RectangleCreatePage() {
     );
   };
 
-  const loadSource = assetLoadSource({ type: TYPE, schema: LoadedRectangleDraft });
   return (
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={{
+          load={assetLoad({
             noun: 'token',
-            mode: 'create',
+            type: TYPE,
+            schema: LoadedRectangleDraft,
             disabled: saveState === 'saving',
-            source: loadSource,
             onLoaded: header.releasing((loaded) =>
-              dispatch({
-                kind: 'replace',
-                data: loaded.data,
-                pick: loaded.source?.backToken ?? null,
-              })
+              dispatch({ kind: 'replace', data: loaded.data, pick: loaded.source?.backToken ?? null })
             ),
-          }}
+          })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save token',
