@@ -64,10 +64,16 @@ export function hiddenZonePieces(hand: readonly TablePiece[]): TablePiece[] {
   return [...laid.filter((piece) => piece.kind === 'card'), ...laid.filter((piece) => piece.kind !== 'card')];
 }
 
-/** Where a piece moved in from the inventory lands: a short cascade from the zone's left, so pieces moved in one after another stay apart. */
-export function nextHiddenZoneSpot(hand: readonly TablePiece[]): HiddenZoneSpot {
+/**
+ * Where a piece moved in from the inventory lands: a short cascade from the zone's left, so pieces moved in one after another stay apart.
+ * In a zone narrower than the standard patch the cascade shrinks to fit what the view shows, so its later steps are not all held at the right edge on top of each other.
+ */
+export function nextHiddenZoneSpot(
+  hand: readonly TablePiece[],
+  extent: HiddenZoneSpot = { x: 1, y: 1 }
+): HiddenZoneSpot {
   const count = hand.filter((piece) => piece.hiddenZone).length;
-  return { x: 0.14 + (count % 7) * 0.12, y: 0.3 + (count % 3) * 0.2 };
+  return { x: (0.14 + (count % 7) * 0.12) * Math.min(1, extent.x), y: 0.3 + (count % 3) * 0.2 };
 }
 
 /**

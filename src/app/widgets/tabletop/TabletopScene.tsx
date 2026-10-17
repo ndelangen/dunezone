@@ -9,6 +9,7 @@ import { peekersOf } from '@shared/play/peeking';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import { isPointerToken } from '@shared/play/pointerToken';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { widestTroopSupply } from '@shared/play/setupLayout';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
@@ -1263,7 +1264,14 @@ export function TabletopScene({
       })),
     []
   );
-  const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(stage, providedProgress, seatCount);
+  /* A custom faction with four or more troop kinds spreads its reserves wider than the stock framing reaches. */
+  const troopKinds = useTabletopSelector((table) => widestTroopSupply(table.state.pieces));
+  const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(
+    stage,
+    providedProgress,
+    seatCount,
+    troopKinds
+  );
   const areaRef = useRef<HTMLDivElement>(null);
   const painting = usePaintingArea(className);
 

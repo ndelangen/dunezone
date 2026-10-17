@@ -1,5 +1,5 @@
 import type { Vector3Tuple } from '@shared/play/model';
-import { SUPPLY_RESERVE_REACH } from '@shared/play/setupLayout';
+import { supplyReserveReach } from '@shared/play/setupLayout';
 import {
   BOTTOM_SHELF_POSITION,
   BOTTOM_SHELF_SIZE,
@@ -68,9 +68,11 @@ const TRACKER_BEACON_HANDLE_REACH = 0.5;
 
 export function mapViewFramingPoints(
   slots: readonly TrackerArcSlot[],
-  seatCount: TableSeatCount = DEFAULT_TABLE_SEAT_COUNT
+  seatCount: TableSeatCount = DEFAULT_TABLE_SEAT_COUNT,
+  troopKinds?: number
 ): Vector3Tuple[] {
   const points: Vector3Tuple[] = [];
+  const reserveReach = supplyReserveReach(troopKinds);
   appendCircleBoundary(points, [0, BOARD_RIM_SURFACE_Y, 0], BOARD_RIM_RADIUS, 96);
   tableSeatAngles(seatCount).forEach((angle) => {
     appendCircleBoundary(
@@ -82,12 +84,8 @@ export function mapViewFramingPoints(
     /* The troop reserves right behind each faction token, so the view never cuts a seat's supply off at the canvas's edge. */
     appendCircleBoundary(
       points,
-      [
-        Math.cos(angle) * SUPPLY_RESERVE_REACH.radius,
-        BOARD_RIM_SURFACE_Y + 0.001,
-        Math.sin(angle) * SUPPLY_RESERVE_REACH.radius,
-      ],
-      SUPPLY_RESERVE_REACH.halfWidth,
+      [Math.cos(angle) * reserveReach.radius, BOARD_RIM_SURFACE_Y + 0.001, Math.sin(angle) * reserveReach.radius],
+      reserveReach.halfWidth,
       48
     );
   });
