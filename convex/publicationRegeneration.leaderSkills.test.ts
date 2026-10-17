@@ -1,16 +1,13 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { GF9_LEADER_SKILLS } from '../src/shared/assets/gf9LeaderSkills';
 import { api, internal } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 test('renderer regeneration republishes live leader skills and skips deleted cards', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
   const live = await owner.mutation(api.assets.create, {
@@ -38,7 +35,7 @@ test('renderer regeneration republishes live leader skills and skips deleted car
 });
 
 test('one stored card its schema refuses is skipped rather than ending the scan for the rest', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
   const broken = await owner.mutation(api.assets.create, {

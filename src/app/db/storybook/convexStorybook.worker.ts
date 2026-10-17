@@ -7,7 +7,9 @@ import { createFunctionHandle, makeFunctionReference } from 'convex/server';
 import type { WithoutSystemFields } from 'convex/server';
 
 import type { Doc, Id, TableNames } from '../../../../convex/_generated/dataModel';
-import type { DatabaseWriter } from '../../../../convex/_generated/server';
+import type { DatabaseWriter, MutationCtx } from '../../../../convex/_generated/server';
+import { applicationTriggers } from '../../../../convex/lib/applicationTriggers';
+import { reconcileCatalogueEntry } from '../../../../convex/lib/catalogueEntries';
 import { syncFactionCard } from '../../../../convex/lib/factionCards';
 import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
@@ -124,6 +126,8 @@ async function insertDocument<TableName extends TableNames>(
 async function insertDocuments(world: World, documents: SeedDocument[], delay = 0) {
   await new Promise((resolve) => setTimeout(resolve, delay));
   await world.test.run(async (ctx) => {
+    /* Seeds go in raw, so the catalogue read models the triggers would keep are built here from what was seeded. */
+    const factionIds = new Set<string>();
     for (const document of documents) {
       const id = await insertDocument(ctx.db, document, world.references);
       if (document.key) {
@@ -133,7 +137,15 @@ async function insertDocuments(world: World, documents: SeedDocument[], delay = 
       if (document.table === 'factions') {
         const factionId = id as Id<'factions'>;
         await syncFactionCard(ctx, factionId, await ctx.db.get('factions', factionId));
+        factionIds.add(id);
+      } else if (document.table === 'ruleset_factions') {
+        factionIds.add((await ctx.db.get('ruleset_factions', id as Id<'ruleset_factions'>))!.faction_id);
       }
+    }
+    /* Wrapped, so each entry written here also lands in the catalogue's aggregate order, as an entry trigger would put it. */
+    const wrapped = applicationTriggers.wrapDB(ctx as unknown as MutationCtx);
+    for (const factionId of factionIds) {
+      await reconcileCatalogueEntry(wrapped, 'faction', factionId);
     }
   });
 }
@@ -143,6 +155,7 @@ async function createWorld(seed: SeedDocument[]): Promise<World> {
   world.test.registerComponent('statistics', aggregateSchema, aggregateModules);
   world.test.registerComponent('profileActivity', aggregateSchema, aggregateModules);
   world.test.registerComponent('profileDiscovery', aggregateSchema, aggregateModules);
+  world.test.registerComponent('catalogueOrder', aggregateSchema, aggregateModules);
   world.test.registerComponent('migrations', migrationsSchema, migrationsModules);
   world.test.registerComponent('rateLimiter', rateLimiterSchema, rateLimiterModules);
   await insertDocuments(world, seed);

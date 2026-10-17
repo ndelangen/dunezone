@@ -1,19 +1,14 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import rateLimiterTest from '@convex-dev/rate-limiter/test';
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { createPendingGame } from './lib/playProvisioningSchedule';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 function setup() {
-  const t = convexTest(schema, modules);
-  rateLimiterTest.register(t);
+  const t = applicationTest();
   return t;
 }
 

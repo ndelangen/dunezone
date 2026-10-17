@@ -1,6 +1,5 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCustomCard';
@@ -8,12 +7,11 @@ import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishing
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 async function setup() {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const [ownerId, adminId] = await t.run(async (ctx) => [
     await ctx.db.insert('users', { name: 'Owner' }),
     await ctx.db.insert('users', { name: 'Administrator', isAdmin: true }),

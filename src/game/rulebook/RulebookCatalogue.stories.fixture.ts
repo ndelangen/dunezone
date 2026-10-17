@@ -6,7 +6,7 @@ import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 
 function writtenRuleBlocks(): RulebookBlockDraft[] {
   return [
-    { id: 'HEAD', kind: 'section-heading', title: 'Shipment and movement', factionId: 'atreides' },
+    { id: 'HEAD', kind: 'section-heading', title: 'Shipment and Movement', factionId: 'atreides' },
     {
       id: 'TEXT',
       kind: 'text',

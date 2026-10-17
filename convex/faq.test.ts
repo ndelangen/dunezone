@@ -1,15 +1,11 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { faqQuestionPageAs } from './viewerAccess.test.fixture';
-
-const modules = import.meta.glob('./**/*.ts');
 
 function faqTest(
   transactionLimits?:
@@ -19,10 +15,7 @@ function faqTest(
         bytesWritten: number;
       }
 ) {
-  const t = transactionLimits ? convexTest({ schema, modules, transactionLimits }) : convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest({ transactionLimits });
   return t;
 }
 

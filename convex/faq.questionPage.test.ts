@@ -1,15 +1,13 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
+import type { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { faqQuestionPageAs } from './viewerAccess.test.fixture';
-
-const modules = import.meta.glob('./**/*.ts');
 
 type SeedResult = {
   askerId: Id<'users'>;
@@ -102,7 +100,7 @@ const locator = { rulesetSlug: 'advanced', questionSlug: '1' };
 
 describe('FAQ question page projection (api.faq.question)', () => {
   test('anonymous viewers get the page with no capabilities', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     await seedQuestionPage(t);
 
     const page = await faqQuestionPageAs(t, locator);
@@ -120,7 +118,7 @@ describe('FAQ question page projection (api.faq.question)', () => {
   });
 
   test('the page shows the newest answers, and the accepted one leads even when older than them', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedQuestionPage(t);
     await t.run(async (ctx) => {
       const question = (await ctx.db.query('faq_items').first())!;
@@ -143,7 +141,7 @@ describe('FAQ question page projection (api.faq.question)', () => {
   });
 
   test('the question owner moderates: edit, delete, accept, unaccept', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedQuestionPage(t);
 
     const page = await faqQuestionPageAs(t.withIdentity({ subject: seed.askerId }), locator);
@@ -162,7 +160,7 @@ describe('FAQ question page projection (api.faq.question)', () => {
   });
 
   test('an answer author owns only their answer and cannot answer twice', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedQuestionPage(t);
 
     const page = await faqQuestionPageAs(t.withIdentity({ subject: seed.answererId }), locator);
@@ -175,7 +173,7 @@ describe('FAQ question page projection (api.faq.question)', () => {
   });
 
   test('a missing author profile yields a null chip without corrupting the page', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedQuestionPage(t);
 
     const page = await faqQuestionPageAs(t, locator);
@@ -193,7 +191,7 @@ describe('FAQ question page projection (api.faq.question)', () => {
   });
 
   test('is the same answer for every viewer', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedQuestionPage(t);
 
     const anonymous = await t.query(api.faq.question, locator);
@@ -203,7 +201,7 @@ describe('FAQ question page projection (api.faq.question)', () => {
   });
 
   test('unknown locators throw', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     await seedQuestionPage(t);
 
     await expect(t.query(api.faq.question, { rulesetSlug: 'advanced', questionSlug: '99' })).rejects.toMatchObject({

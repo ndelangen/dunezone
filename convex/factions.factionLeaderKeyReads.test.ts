@@ -90,6 +90,10 @@ describe('faction reads across the Faction leader key rename', () => {
     expect(catalogue.factions).toHaveLength(2);
     catalogue.factions.forEach((row) => expectLeaderKey(row.slug, row.data));
 
+    const paged = await viewer.query(api.factions.catalogue, {});
+    expect(paged.cards).toHaveLength(2);
+    paged.cards.forEach((row) => expectLeaderKey(row.slug, row.data));
+
     const picker = await viewer.query(api.factions.listForLoadPicker, {});
     expect(picker.rows).toHaveLength(2);
     picker.rows.forEach((row) => expectLeaderKey(row.slug, row.data));

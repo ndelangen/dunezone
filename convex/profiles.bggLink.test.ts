@@ -1,20 +1,13 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 async function setup() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const { userId, sessionId } = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { account_state: 'active' });
     await ctx.db.insert('profiles', {

@@ -358,7 +358,7 @@ async function boardHms(canvasElement: HTMLElement) {
 }
 
 const hmsSandbox = {
-  args: { step: chapter('Shipment and movement'), seat: 'seat-1' },
+  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
   beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
     install(() =>
       sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1'), prepare: withHms })

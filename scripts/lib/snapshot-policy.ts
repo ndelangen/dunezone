@@ -163,6 +163,9 @@ export const snapshotPolicy = {
   counters: { drop: 'slug counters, which the allocators rebuild' },
   former_slugs: { drop: 'addresses renames left behind, which only old production links need' },
   migration_runs: { drop: 'migration status, which the local migration guard writes again' },
+  catalogue_entries: {
+    drop: 'catalogue read models, which the replayed catalogue backfill rebuilds from the kept rows',
+  },
   card_front_presets: {
     fields: { key: 'keep', style: 'keep', revision: 'keep', updated_at: 'keep' },
     rows: 'all',
@@ -324,6 +327,7 @@ export const installedComponents = {
   statistics: 'derived counts and the ids they count, which the loaders rebuild',
   profileDiscovery: 'a derived index, which the loaders rebuild',
   profileActivity: 'derived counts per user and the ids they count, which the loaders rebuild',
+  catalogueOrder: 'derived catalogue order, which the catalogue backfill rebuilds',
 } satisfies { [Name in keyof typeof components]: string };
 
 /**

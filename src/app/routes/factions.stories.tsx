@@ -24,6 +24,24 @@ const meta = preview.meta({
 
 export const Catalogue = meta.story({ args: { path: '/factions' } });
 
+/** Past one page the catalogue numbers its pages as real links, and `?page=2` opens the second page directly. */
+export const CataloguePaged = meta.story({
+  args: { path: '/factions?page=2' },
+  parameters: {
+    database: db((baseline) => {
+      for (let index = 1; index <= 30; index += 1) {
+        baseline.factions.push(faction({ name: `Sietch ${String(index).padStart(2, '0')}` }));
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText(/^25–31 of 31 factions$/)).resolves.toBeVisible();
+    const pages = await page.findByLabelText('Faction catalogue pages');
+    await expect(within(pages).getByRole('link', { name: '1' })).toHaveAttribute('href', '/factions');
+  },
+});
+
 /**
  * On a phone the faction list shows two columns and each card its compact caption.
  * The list reads its own width and the card its own, so neither needs the page.

@@ -116,6 +116,16 @@
       "requires": []
     },
     {
+      "id": "statistics_groups_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "statistics_assets_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
       "id": "profile_discovery_profiles_v1",
       "phase": "widen",
       "requires": []
@@ -375,6 +385,26 @@
       "id": "board_readiness_listing_v1",
       "phase": "widen",
       "requires": []
+    },
+    {
+      "id": "catalogue_entries_factions_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_prune_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_verify_v1",
+      "phase": "widen",
+      "requires": ["catalogue_entries_factions_v1", "catalogue_entries_prune_v1"]
+    },
+    {
+      "id": "catalogue_entries_verify_v2",
+      "phase": "widen",
+      "requires": ["catalogue_entries_factions_v1", "catalogue_entries_prune_v1"]
     },
     {
       "id": "faction_cards_v1",

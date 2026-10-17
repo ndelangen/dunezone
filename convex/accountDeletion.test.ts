@@ -1,26 +1,18 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
-import schema from './schema';
 
-const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-20T00:00:00.000Z';
 
 function setup() {
-  const t = convexTest(schema, modules);
-  migrationsTest.register(t);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileDiscovery');
-  aggregateTest.register(t, 'profileActivity');
+  const t = applicationTest();
   return t;
 }
 

@@ -207,7 +207,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     expect(restored.snapshot.roster).toEqual(before.snapshot.roster);
     expect(restored.snapshot.table.pieces).toEqual(before.snapshot.table.pieces);
   }
-  /** Advances play to the Mentat pause, which is never more than one round of phases away. */
+  /** Advances play to the Mentat Pause, which is never more than one round of phases away. */
   async function toMentat(connection: NativeConnection) {
     const atMentat = (snapshot: { phase: number }) => snapshot.phase % TABLE_PHASES.length === MENTAT;
     let { snapshot } = await syncView(connection);

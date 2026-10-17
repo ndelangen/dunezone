@@ -284,12 +284,12 @@ describe('The retained public log', { timeout: 20_000 }, () => {
       await next(owner, -1);
       game = await page(other, 'game');
       expect(texts(game).slice(0, 4)).toEqual([
-        'Returned to Spice blow.',
-        'CHOAM charity began.',
-        'Spice blow began.',
+        'Returned to Spice Blow.',
+        'CHOAM Charity began.',
+        'Spice Blow began.',
         'Turn 1 began.',
       ]);
-      expect(game.entries[0].context).toBe('Turn 1, Spice blow');
+      expect(game.entries[0].context).toBe('Turn 1, Spice Blow');
       expect(game.entries[3].context).toBe('Turn 1, Storm');
       expect(game.entries.slice(0, 4).every((entry) => entry.class === 'phase')).toBe(true);
       expect(game.entries.slice(4).map((entry) => entry.class)).toEqual(['prediction', 'prediction', 'phase', 'phase']);

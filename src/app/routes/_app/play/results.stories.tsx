@@ -23,7 +23,7 @@ const meta = preview.meta({
 const MENTAT_PAUSE = 8;
 const factionOf = (snapshot: GameSnapshot, index: number) => snapshot.roster!.seats[index]!.faction!;
 
-/* Turn 1 Mentat pause with every seat filled; the viewer's own faction holds a locked prediction if asked. */
+/* Turn 1 Mentat Pause with every seat filled; the viewer's own faction holds a locked prediction if asked. */
 function mentatSnapshot(viewerSeat: string, { prediction = false, card = false } = {}): GameSnapshot {
   const snapshot = playingSnapshot(viewerSeat === SPECTATOR_SEAT ? 'seat-2' : viewerSeat);
   snapshot.phase = MENTAT_PAUSE;
@@ -55,7 +55,7 @@ export const DetermineWinner = meta.story({
   beforeEach: install(() => productTransport('seat-2', mentatSnapshot('seat-2'))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    /* Determine winner is a plain control of the Mentat pause phase, in the Phase tab. */
+    /* Determine winner is a plain control of the Mentat Pause phase, in the Phase tab. */
     await openTab(page, 'Phase');
     await userEvent.click(await page.findByRole('button', { name: 'Determine winner' }));
     await expect(lastCommand()?.action).toEqual({ kind: 'result-open' });

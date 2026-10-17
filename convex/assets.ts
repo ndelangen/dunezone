@@ -1220,12 +1220,16 @@ export const correctGf9NexusDeck = internalMutation({
     if (members.length !== 12 || memberIds.size !== 12) {
       throw new ConvexError('GF9 Nexus Deck must still contain its twelve cards');
     }
+    /* Every card is checked before any is written, so a refusal never races writes already in flight. */
+    const rows = await Promise.all(members.map((member) => ctx.db.get('assets', member.to_asset_id)));
+    const cards = rows.map((row) => {
+      if (!row || row.is_deleted || row.type !== 'card-nexus' || row.owner_id !== ownerId) {
+        throw new ConvexError('The Nexus card no longer belongs to this deck');
+      }
+      return row;
+    });
     const results = await Promise.all(
-      members.map(async (member) => {
-        const row = await ctx.db.get('assets', member.to_asset_id);
-        if (!row || row.is_deleted || row.type !== 'card-nexus' || row.owner_id !== ownerId) {
-          throw new ConvexError('The Nexus card no longer belongs to this deck');
-        }
+      cards.map(async (row) => {
         const card = GF9_NEXUS_CARDS.find((stock) => slugify(stock.name) === row.slug);
         if (!card) {
           const name = typeof row.data.name === 'string' ? row.data.name : row.slug;

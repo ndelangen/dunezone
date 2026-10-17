@@ -87,7 +87,7 @@ export const gameSnapshotSchema = z.object({
   setup: setupStateSchema.optional(),
   predictions: predictionsSchema.optional(),
   removalVotes: z.array(removalVoteSchema).optional(),
-  /* Who is determining the winner during Mentat pause, then the declared result once finished. */
+  /* Who is determining the winner during Mentat Pause, then the declared result once finished. */
   ending: gameEndingSchema.nullable().optional(),
   result: gameResultSchema.nullable().optional(),
   controls: publicControlsSchema.optional(),
