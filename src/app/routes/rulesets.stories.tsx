@@ -12,7 +12,7 @@ const meta = preview.meta({
 });
 
 export const Directory = meta.story({ args: { path: '/rulesets' } });
-/** The slotted board shows under About, linking to its own page. */
+/** The slotted board shows below the Rulebooks, linking to its own page. */
 export const Detail = meta.story({
   args: { path: '/rulesets/classicrules' },
   play: async ({ canvasElement }) => {

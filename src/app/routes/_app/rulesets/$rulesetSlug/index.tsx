@@ -713,13 +713,13 @@ function RulesetDetailPage() {
                 </Surface>
               </Section>
 
-              <RulesetBoard board={page.board} />
-
               <RulesetRulebooks
                 rulebooks={page.rulebooks}
                 rulesetSlug={r.slug}
                 canEdit={viewerAccess.capabilities.edit}
               />
+
+              <RulesetBoard board={page.board} />
             </Stack>
           </ColumnsWithRailLayout.Primary>
 
