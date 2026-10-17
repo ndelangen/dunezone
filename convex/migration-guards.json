@@ -370,6 +370,21 @@
       "id": "rulebook_contents_hash_editions_v1",
       "phase": "widen",
       "requires": []
+    },
+    {
+      "id": "catalogue_entries_factions_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_prune_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_verify_v1",
+      "phase": "widen",
+      "requires": ["catalogue_entries_factions_v1", "catalogue_entries_prune_v1"]
     }
   ]
 }

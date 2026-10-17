@@ -1,7 +1,13 @@
 import type { Infer } from 'convex/values';
+import Fuse from 'fuse.js';
 
+import { FACTION_CATALOGUE_PAGE_SIZE, parseComplexityRange } from '../../src/shared/factions/catalogueSearch';
+import type { FactionCatalogueSort } from '../../src/shared/factions/catalogueSearch';
+import { complexityOutOfTen, effectiveComplexity } from '../../src/shared/factions/complexity';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
+import { catalogueNameKey, catalogueSearchText, catalogueTimestamp } from './catalogueEntryShape';
+import type { CatalogueEntryFields, CatalogueKind } from './catalogueEntryShape';
 import type { catalogueFactionValidator } from './collaborativeAccessValidators';
 import { parseStoredFactionForRead } from './factionInput';
 
@@ -195,4 +201,225 @@ function compareFactionIdentity(left: Pick<Doc<'factions'>, '_id'>, right: Pick<
 function parseTimestamp(value: string) {
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+/* A faction's links are curated by hand; this bound is a ceiling on nonsense, the same one the detail page reads with. */
+const FACTION_LINK_LIMIT = 500;
+
+/**
+ * What the catalogue searches and sorts on, read from the authored blob.
+ * A blob the full read refuses still lists under its raw name, so a legacy row never fails the save that touched it.
+ * The catalogue page that shows such a row fails loudly, as the unpaged catalogue did.
+ */
+function factionSearchFields(data: unknown) {
+  try {
+    const faction = parseStoredFactionForRead(data);
+    return {
+      name: faction.name,
+      names: [faction.name, faction.factionLeader.name, ...faction.leaders.map((leader) => leader.name)],
+      complexity: effectiveComplexity(faction.complexity),
+    };
+  } catch {
+    const raw = (data ?? {}) as { name?: unknown };
+    const name = typeof raw.name === 'string' ? raw.name : '';
+    return { name, names: [name], complexity: 0 };
+  }
+}
+
+/**
+ * The faction kind of `catalogue_entries`: one entry per live faction, faceted by every ruleset it is linked to.
+ * Which of those rulesets are live is resolved when the catalogue is read, so deleting a ruleset rewrites no entry.
+ */
+export const factionCatalogueKind: CatalogueKind = {
+  expected: async (ctx, sourceId) => {
+    const factionId = ctx.db.normalizeId('factions', sourceId);
+    const faction = factionId ? await ctx.db.get('factions', factionId) : null;
+    if (!faction || faction.is_deleted) {
+      return null;
+    }
+    const links = await ctx.db
+      .query('ruleset_factions')
+      .withIndex('by_faction', (q) => q.eq('faction_id', faction._id))
+      .take(FACTION_LINK_LIMIT);
+    const { name, names, complexity } = factionSearchFields(faction.data);
+    return {
+      kind: 'faction',
+      source_id: faction._id,
+      slug: faction.slug,
+      search_text: catalogueSearchText(names),
+      name_key: catalogueNameKey(name),
+      created_at: catalogueTimestamp(faction.created_at),
+      updated_at: catalogueTimestamp(faction.updated_at),
+      complexity,
+      facets: [...new Set(links.map((link) => link.ruleset_id))].sort(),
+    };
+  },
+  listedSourceIds: async (ctx, limit) => {
+    const rows = await ctx.db
+      .query('factions')
+      .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+      .take(limit);
+    return rows.map((row) => row._id);
+  },
+};
+
+/*
+ * The catalogue reads every faction entry in one bounded scan, about 200 bytes each.
+ * Past this many factions the catalogue moves to ordered indexes and an aggregate per order, keeping the same `?page=N` address.
+ */
+const CATALOGUE_ENTRY_LIMIT = 10_000;
+
+export type FactionCatalogueQuery = {
+  q?: string;
+  ruleset?: string;
+  complexity?: string;
+  sort?: FactionCatalogueSort;
+  page?: number;
+};
+
+type Ranked = { entry: CatalogueEntryFields; score: number };
+
+/** Name, then id: the order every other order falls back to, so equal keys never swap places between pages. */
+function compareEntryIdentity(left: CatalogueEntryFields, right: CatalogueEntryFields) {
+  if (left.name_key !== right.name_key) {
+    return left.name_key.localeCompare(right.name_key) || (left.name_key < right.name_key ? -1 : 1);
+  }
+  return left.source_id < right.source_id ? -1 : left.source_id > right.source_id ? 1 : 0;
+}
+
+function comparatorFor(sort: FactionCatalogueSort | 'relevance'): (left: Ranked, right: Ranked) => number {
+  switch (sort) {
+    case 'relevance':
+      return (left, right) => left.score - right.score || compareEntryIdentity(left.entry, right.entry);
+    case 'created':
+      return (left, right) =>
+        right.entry.created_at - left.entry.created_at || compareEntryIdentity(left.entry, right.entry);
+    case 'updated':
+      return (left, right) =>
+        right.entry.updated_at - left.entry.updated_at || compareEntryIdentity(left.entry, right.entry);
+    case 'complexity-asc':
+    case 'complexity-desc': {
+      const direction = sort === 'complexity-asc' ? 1 : -1;
+      return (left, right) =>
+        ((left.entry.complexity ?? 0) - (right.entry.complexity ?? 0)) * direction ||
+        compareEntryIdentity(left.entry, right.entry);
+    }
+    case 'name':
+      return (left, right) => compareEntryIdentity(left.entry, right.entry);
+  }
+}
+
+/** Typo-tolerant search over the faction, Faction leader and leader names, each name scored on its own. */
+function searchEntries(entries: CatalogueEntryFields[], query: string): Ranked[] {
+  return new Fuse(entries, {
+    keys: [{ name: 'names', getFn: (entry) => entry.search_text.split('\n') }],
+    ignoreLocation: true,
+    /* A short name and a long one score alike for the same match, so relevance does not favour terse names. */
+    ignoreFieldNorm: true,
+    threshold: 0.35,
+    includeScore: true,
+  })
+    .search(query)
+    .map((result) => ({ entry: result.item, score: result.score ?? 0 }));
+}
+
+/** Newest first among dated entries, ties to the lower id; the freshly updated pick changed since it was created and is never the new arrival. */
+function selectSpotlightEntries(entries: CatalogueEntryFields[]) {
+  const newest = (field: 'created_at' | 'updated_at', candidates: CatalogueEntryFields[]) =>
+    candidates.reduce<CatalogueEntryFields | null>(
+      (best, entry) =>
+        !best || entry[field] > best[field] || (entry[field] === best[field] && entry.source_id < best.source_id)
+          ? entry
+          : best,
+      null
+    );
+  const newArrival = newest(
+    'created_at',
+    entries.filter((entry) => entry.created_at > 0)
+  );
+  const freshlyUpdated = newest(
+    'updated_at',
+    entries.filter((entry) => entry !== newArrival && entry.created_at > 0 && entry.updated_at > entry.created_at)
+  );
+  return { newArrival, freshlyUpdated };
+}
+
+function normalizedPage(page: number | undefined) {
+  return page != null && Number.isSafeInteger(page) && page > 0 ? page : 1;
+}
+
+/**
+ * One page of the Faction catalogue, the same for every viewer.
+ * Filters, search and order run over the slim entries;
+ * only the visible page and the two spotlights read whole factions.
+ * A page past the end answers with no cards and the real page count, so the reader can be told where the catalogue ends.
+ */
+export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCatalogueQuery) {
+  const [entries, rulesets] = await Promise.all([
+    ctx.db
+      .query('catalogue_entries')
+      .withIndex('by_kind', (q) => q.eq('kind', 'faction'))
+      .take(CATALOGUE_ENTRY_LIMIT),
+    listActiveRulesetSummaries(ctx),
+  ]);
+  const activeRulesetById = new Map<string, FactionRulesetSummary>(rulesets.map((ruleset) => [ruleset.id, ruleset]));
+
+  const factionCountByRuleset = new Map<string, number>();
+  for (const entry of entries) {
+    for (const facet of entry.facets) {
+      factionCountByRuleset.set(facet, (factionCountByRuleset.get(facet) ?? 0) + 1);
+    }
+  }
+
+  /* An unknown or deleted ruleset narrows nothing; the route drops it from the address. */
+  const rulesetId = rulesets.find((ruleset) => ruleset.slug === query.ruleset)?.id;
+  const [low, high] = parseComplexityRange(query.complexity);
+  const filtered = entries.filter((entry) => {
+    if (rulesetId && !entry.facets.includes(rulesetId)) {
+      return false;
+    }
+    const score = complexityOutOfTen(entry.complexity ?? 0);
+    return score >= low && score <= high;
+  });
+
+  const text = query.q?.trim() ?? '';
+  const ranked = text ? searchEntries(filtered, text) : filtered.map((entry) => ({ entry, score: 0 }));
+  ranked.sort(comparatorFor(query.sort ?? (text ? 'relevance' : 'name')));
+
+  const total = ranked.length;
+  const pageCount = Math.max(1, Math.ceil(total / FACTION_CATALOGUE_PAGE_SIZE));
+  const page = normalizedPage(query.page);
+  const visible = ranked.slice((page - 1) * FACTION_CATALOGUE_PAGE_SIZE, page * FACTION_CATALOGUE_PAGE_SIZE);
+
+  const card = async (entry: CatalogueEntryFields | null) => {
+    const factionId = entry ? ctx.db.normalizeId('factions', entry.source_id) : null;
+    const row = factionId ? await ctx.db.get('factions', factionId) : null;
+    if (!entry || !row || row.is_deleted) {
+      return null;
+    }
+    return toCatalogueFaction(
+      row,
+      entry.facets
+        .map((facet) => activeRulesetById.get(facet))
+        .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
+        .sort(compareRulesets)
+    );
+  };
+  const spotlightEntries = selectSpotlightEntries(entries);
+  const [cards, newArrival, freshlyUpdated] = await Promise.all([
+    Promise.all(visible.map(({ entry }) => card(entry))),
+    card(spotlightEntries.newArrival),
+    card(spotlightEntries.freshlyUpdated),
+  ]);
+
+  return {
+    cards: cards.filter((faction) => faction != null),
+    total,
+    catalogueTotal: entries.length,
+    page,
+    pageCount,
+    pageSize: FACTION_CATALOGUE_PAGE_SIZE,
+    rulesets: rulesets.map((ruleset) => ({ ...ruleset, factionCount: factionCountByRuleset.get(ruleset.id) ?? 0 })),
+    spotlights: { newArrival, freshlyUpdated },
+  };
 }

@@ -4,9 +4,6 @@ import { describe, expect, test } from 'vitest';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 
-import { projectFactionCatalogue } from './catalogue';
-import { complexityRangeSearchValue, parseComplexityRange } from './catalogueSearch';
-
 function faction(
   id: string,
   name: string,
@@ -42,59 +39,7 @@ function faction(
   } as unknown as FactionCatalogueEntry;
 }
 
-describe('faction catalogue controls', () => {
-  test('fuzzy-searches faction, Faction leader, and supporting leader names before applying a ruleset', () => {
-    const classic = { id: 'classic', slug: 'classic', name: 'Classic' } as never;
-    const factions = [
-      faction('1', 'Atreides', { factionLeader: 'Duke Leto', rulesets: [classic] }),
-      faction('2', 'Fremen', { leaders: ['Chani'] }),
-    ];
-
-    expect(projectFactionCatalogue(factions, {}, 'Atredes').map((entry) => entry.data.name)).toEqual(['Atreides']);
-    expect(projectFactionCatalogue(factions, {}, 'Leto')).toHaveLength(1);
-    expect(projectFactionCatalogue(factions, {}, 'Chani')).toHaveLength(1);
-    expect(projectFactionCatalogue(factions, { ruleset: 'classic' }, 'Chani')).toEqual([]);
-  });
-
-  test('sorts dates newest-first, breaks ties by identity, and puts invalid dates last', () => {
-    const factions = [
-      faction('2', 'Beta', { created: '2026-07-20T00:00:00.000Z' }),
-      faction('3', 'Broken', { created: 'not-a-date' }),
-      faction('1', 'Alpha', { created: '2026-07-20T00:00:00.000Z' }),
-      faction('4', 'Newest', { created: '2026-07-21T00:00:00.000Z' }),
-    ];
-
-    expect(projectFactionCatalogue(factions, { sort: 'created' }).map((entry) => entry.data.name)).toEqual([
-      'Newest',
-      'Alpha',
-      'Beta',
-      'Broken',
-    ]);
-  });
-
-  test('filters and sorts by the effective complexity score', () => {
-    const factions = [
-      faction('1', 'Low', { complexity: 0.1 }),
-      faction('2', 'Middle', { complexity: 0.5 }),
-      faction('3', 'High', { complexity: 0.9 }),
-    ];
-
-    expect(
-      projectFactionCatalogue(factions, {
-        complexity: '5-10',
-        sort: 'complexity-desc',
-      }).map((entry) => entry.data.name)
-    ).toEqual(['High', 'Middle']);
-  });
-
-  test('round-trips canonical complexity ranges and rejects malformed ranges', () => {
-    expect(parseComplexityRange('3-8')).toEqual([3, 8]);
-    expect(complexityRangeSearchValue([3, 8])).toBe('3-8');
-    expect(parseComplexityRange('8-3')).toEqual([0, 10]);
-    expect(parseComplexityRange('3-11')).toEqual([0, 10]);
-    expect(complexityRangeSearchValue([0, 10])).toBeUndefined();
-  });
-
+describe('faction catalogue cards', () => {
   test('prioritizes the selected ruleset and summarizes the rest as +N', () => {
     const entry = faction('1', 'Atreides', {
       rulesets: [

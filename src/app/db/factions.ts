@@ -9,7 +9,8 @@ import {
 import type { CatalogueFactionData } from '@shared/factions/schema';
 import type { FactionInput } from '@shared/factions/schema';
 import { useQuery } from 'convex/react';
-import type { FunctionReturnType } from 'convex/server';
+import type { FunctionArgs, FunctionReturnType } from 'convex/server';
+import { useMemo, useState } from 'react';
 
 import { db } from '@db/core';
 import { loadPublicPage } from '@db/core/publicPage';
@@ -54,12 +55,6 @@ export type FactionEntry = Omit<FactionRow, 'data'> & {
   data: FactionData;
 };
 
-export type FactionRulesetSummary = {
-  id: Doc<'rulesets'>['_id'];
-  slug: string;
-  name: string;
-};
-
 /**
  * A catalogue-shaped faction: the fields `FactionCard` draws, not a whole faction (#642).
  * Reach for `FactionEntry` when you need the authored blob;
@@ -79,11 +74,18 @@ export type FactionCatalogueSpotlightData = {
 };
 
 /** Derived from the query's own return type, so the client never claims a field the server stopped sending. */
-export type FactionCatalogueRow = FunctionReturnType<typeof api.factions.cataloguePage>['factions'][number];
+export type FactionCatalogueRow = FactionCatalogueRaw['cards'][number];
 
-export type FactionCataloguePageData = {
-  factions: FactionCatalogueEntry[];
-  rulesets: FactionRulesetSummary[];
+type FactionCatalogueRaw = FunctionReturnType<typeof api.factions.catalogue>;
+
+/** What one catalogue page asks for: the route's search parameters, as `factions.catalogue` takes them. */
+export type FactionCatalogueArgs = FunctionArgs<typeof api.factions.catalogue>;
+
+/** A ruleset the catalogue can narrow to, with how many live factions it holds. */
+export type FactionCatalogueRuleset = FactionCatalogueRaw['rulesets'][number];
+
+export type FactionCataloguePageData = Omit<FactionCatalogueRaw, 'cards' | 'spotlights'> & {
+  cards: FactionCatalogueEntry[];
   spotlights: {
     newArrival: FactionCatalogueEntry | null;
     freshlyUpdated: FactionCatalogueEntry | null;
@@ -130,17 +132,10 @@ export function factionCatalogueRowsToEntries(rows: FactionCatalogueRow[]): Fact
   return rows.map(toFactionCatalogueEntry);
 }
 
-function toFactionCataloguePageData(raw: {
-  factions: FactionCatalogueRow[];
-  rulesets: FactionRulesetSummary[];
-  spotlights: {
-    newArrival: FactionCatalogueRow | null;
-    freshlyUpdated: FactionCatalogueRow | null;
-  };
-}): FactionCataloguePageData {
+function toFactionCataloguePageData(raw: FactionCatalogueRaw): FactionCataloguePageData {
   return {
-    factions: factionCatalogueRowsToEntries(raw.factions),
-    rulesets: raw.rulesets,
+    ...raw,
+    cards: factionCatalogueRowsToEntries(raw.cards),
     spotlights: {
       newArrival: raw.spotlights.newArrival ? toFactionCatalogueEntry(raw.spotlights.newArrival) : null,
       freshlyUpdated: raw.spotlights.freshlyUpdated ? toFactionCatalogueEntry(raw.spotlights.freshlyUpdated) : null,
@@ -173,8 +168,8 @@ function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageDa
 }
 
 /** The catalogue route's loader, paired with `useFactionCataloguePage` the same way. */
-export async function loadFactionCataloguePage(): Promise<FactionCataloguePageData> {
-  const raw = await db.query(api.factions.cataloguePage, {});
+export async function loadFactionCataloguePage(args: FactionCatalogueArgs): Promise<FactionCataloguePageData> {
+  const raw = await db.query(api.factions.catalogue, args);
   return toFactionCataloguePageData(raw);
 }
 
@@ -217,11 +212,27 @@ export function useFactionPageSlug(id: string) {
   return useLiveQuery(api.factions.pageSlug, { id });
 }
 
-/** The live catalogue, taking `loadFactionCataloguePage`'s result as `initialData`. */
-export function useFactionCataloguePage(options?: { initialData?: FactionCataloguePageData }) {
-  const liveData = useLiveQuery(api.factions.cataloguePage, {});
-  const normalized = liveData ? toFactionCataloguePageData(liveData) : undefined;
-  return toLiveQueryResult(normalized, () => options?.initialData);
+/**
+ * One live catalogue page, taking `loadFactionCataloguePage`'s result for the same arguments as `initialData`.
+ * The route loader answers for the new arguments before the page renders them, so its result comes first;
+ * without one, the previous answer stays on screen until the new one arrives, and `isPending` says it is not yet the one asked for.
+ */
+export function useFactionCataloguePage(
+  args: FactionCatalogueArgs,
+  options?: { initialData?: FactionCataloguePageData }
+) {
+  const liveData = useLiveQuery(api.factions.catalogue, args);
+  const [shown, setShown] = useState<FactionCatalogueRaw | undefined>(undefined);
+  /* Set during render, the documented way to remember the last answer without an effect. */
+  if (liveData !== undefined && liveData !== shown) {
+    setShown(liveData);
+  }
+  const normalized = useMemo(() => (shown ? toFactionCataloguePageData(shown) : undefined), [shown]);
+  const result = toLiveQueryResult(
+    liveData === undefined ? undefined : normalized,
+    () => options?.initialData ?? normalized
+  );
+  return result;
 }
 
 /** Normalized row from `api.factions.listForLoadPicker` (group label + owner username resolved server-side). */

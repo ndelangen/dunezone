@@ -28,6 +28,13 @@ import { accountStateOf } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { syncBoardReadiness } from './lib/boardReadiness';
+import {
+  CATALOGUE_KINDS,
+  catalogueDrift as catalogueDriftOf,
+  isCatalogueKindName,
+  reconcileCatalogueEntry,
+  sameCatalogueEntry,
+} from './lib/catalogueEntries';
 import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
@@ -59,6 +66,9 @@ type MigrationRef = FunctionReference<'mutation', 'internal'>;
 
 const MIGRATION_IDS: Record<string, MigrationRef> = {
   board_readiness_v1: internal.migrations.board_readiness_v1,
+  catalogue_entries_factions_v1: internal.migrations.catalogue_entries_factions_v1,
+  catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
+  catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
   faction_member_ids_v1: internal.migrations.faction_member_ids_v1,
   faction_member_ids_verify_v1: internal.migrations.faction_member_ids_verify_v1,
   groups_slug_v1: internal.migrations.groups_slug_v1,
@@ -1365,4 +1375,50 @@ export const board_readiness_v1 = migrations.define({
       await syncBoardReadiness(ctx, asset._id, asset);
     }
   },
+});
+
+/**
+ * Builds the Faction catalogue's entries from canonical factions, while live writes keep them current through triggers.
+ * Reconciling is idempotent, so every snapshot load can replay it over a catalogue that is already exact.
+ */
+export const catalogue_entries_factions_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileCatalogueEntry(ctx, 'faction', row._id);
+  },
+});
+
+/** Removes entries whose source is gone or unlisted, and duplicates, which a pass over the sources cannot see. */
+export const catalogue_entries_prune_v1 = migrations.define({
+  table: 'catalogue_entries',
+  batchSize: 50,
+  migrateOne: async (ctx, entry) => {
+    if (isCatalogueKindName(entry.kind)) {
+      await reconcileCatalogueEntry(ctx, entry.kind, entry.source_id);
+    } else {
+      await ctx.db.delete(entry._id);
+    }
+  },
+});
+
+/** Proves every entry equals what its canonical rows say now, so none has drifted or outlived its source. */
+export const catalogue_entries_verify_v1 = migrations.define({
+  table: 'catalogue_entries',
+  batchSize: 50,
+  migrateOne: async (ctx, entry) => {
+    if (!isCatalogueKindName(entry.kind)) {
+      throw new Error(`Catalogue entry ${entry._id} has the unknown kind ${entry.kind}.`);
+    }
+    const { _id, _creationTime, ...fields } = entry;
+    if (!sameCatalogueEntry(fields, await CATALOGUE_KINDS[entry.kind].expected(ctx, entry.source_id))) {
+      throw new Error(`Catalogue entry ${entry._id} for ${entry.kind} ${entry.source_id} has drifted from its source.`);
+    }
+  },
+});
+
+/** Read-only drift report for one catalogue kind, both ways, within one bounded scan of each side. */
+export const catalogueDrift = internalQuery({
+  args: { kind: v.literal('faction'), limit: v.optional(v.number()) },
+  handler: async (ctx, args) => await catalogueDriftOf(ctx, args.kind, args.limit ?? AUDIT_SCAN_LIMIT),
 });
