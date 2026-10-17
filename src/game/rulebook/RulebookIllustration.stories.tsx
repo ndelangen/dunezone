@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { projectRulebookDraftRenderBlock } from '@shared/rulebooks/projectRenderDocument';
-import { expect } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { RulebookBlockCanvas } from './RulebookBlockRenderer';
 import { techTokenAssets } from './RulebookCardGuides.stories.fixture';
@@ -34,6 +34,16 @@ export const MissingSource = meta.story({
       },
       (block) => (block.source = { status: 'unavailable', reference: { kind: 'asset', assetId: 'Storm marker' } })
     ),
+  /* The placeholder takes the artwork's place and the caption is kept. */
+  play: async ({ canvasElement }) => {
+    const block = canvasElement.querySelector<HTMLElement>('[data-rulebook-block-id="ASST"]')!;
+    const canvas = within(block);
+    await expect(canvas.getByRole('img', { name: 'Referenced source is unavailable' })).toHaveTextContent(
+      'Source unavailable'
+    );
+    await expect(canvas.getByText('The storm closes the boundary between its two sectors.')).toBeVisible();
+    await expect(block.querySelector('img')).toBeNull();
+  },
 });
 
 export const SmallToken = meta.story({

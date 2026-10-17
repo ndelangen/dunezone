@@ -2,6 +2,7 @@ import { Anchor } from '@mantine/core';
 import preview from '@sb/preview';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ArrowRight, Gamepad2, Printer, Trophy } from 'lucide-react';
+import { expect, within } from 'storybook/test';
 
 import { Bullets } from './Bullets';
 
@@ -47,6 +48,13 @@ export const InColumns = meta.story({
       </>
     ),
   },
+  play: async ({ canvasElement }) => {
+    const items = within(within(canvasElement).getByRole('list')).getAllByRole('listitem');
+    await expect(items).toHaveLength(3);
+    /* Three columns put every item on the first row. */
+    const tops = items.map((item) => item.getBoundingClientRect().top);
+    await expect(tops.every((top) => Math.abs(top - tops[0]!) < 1)).toBe(true);
+  },
 });
 
 /** A navigating list: every item is a link, so the items carry the spacing and the rules. */
@@ -70,6 +78,17 @@ export const AsNavigation = meta.story({
         ))}
       </>
     ),
+  },
+  play: async ({ canvasElement }) => {
+    const links = within(canvasElement).getAllByRole('link');
+    await expect(links.map((link) => link.textContent)).toEqual([
+      'Read the rules',
+      'Create and publish',
+      'Record the game',
+    ]);
+    for (const link of links) {
+      await expect(link.querySelector('svg.lucide-arrow-right')).toBeVisible();
+    }
   },
 });
 

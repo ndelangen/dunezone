@@ -47,6 +47,12 @@ const meta = preview.meta({
 
 export const Default = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvasElement.querySelector('[data-app-band]')).toBeVisible();
+    await expect(canvas.getByRole('main')).toBeVisible();
+    await expect(within(canvas.getByRole('contentinfo')).getByRole('navigation', { name: 'Footer' })).toBeVisible();
+  },
 });
 
 export const DefaultMobile = meta.story({

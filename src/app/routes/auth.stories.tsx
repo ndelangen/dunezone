@@ -33,7 +33,14 @@ export const LoginAfterUnfinishedSignIn = meta.story({
     ).resolves.toBeInTheDocument();
   },
 });
+/** A failed sign-in lands on the error page, which names the code the provider returned. */
 export const OAuthError = meta.story({
   args: { path: '/auth/error?error=oauth_failed' },
   parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'Sign-in error' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sorry, something went wrong.' })).toBeVisible();
+    await expect(page.getByText('Code error: oauth_failed')).toBeVisible();
+  },
 });

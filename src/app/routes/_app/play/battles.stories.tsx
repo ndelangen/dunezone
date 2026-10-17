@@ -634,6 +634,8 @@ export const WinnerCalledByOpponent = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByText('House Atreides says left side won')).toBeVisible());
+    await userEvent.click(page.getByRole('button', { name: 'Left side won' }));
+    await expect(lastCommand()?.action).toEqual({ kind: 'battle-outcome', battleId: 'story-battle', outcome: 'left' });
   },
 });
 

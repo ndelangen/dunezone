@@ -120,4 +120,12 @@ export const Loading = meta.story({
 
 export const Disabled = meta.story({
   args: { disabled: true },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const trigger = page.getByRole('button', { name: 'Assign group' });
+    await expect(trigger).toBeDisabled();
+    /* The disabled trigger takes no pointer events, so the click is forced past that check and still opens nothing. */
+    await userEvent.click(trigger, { pointerEventsCheck: 0 });
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  },
 });

@@ -1,5 +1,4 @@
 import preview from '@sb/preview';
-import { blankBoard, derive, defaults, CENTER } from '@shared/boards/geometry';
 import { homepageSnapshot } from '@shared/homepage/setup';
 import type { BoardCapture } from '@shared/play/capture';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
@@ -7,9 +6,12 @@ import { tableProgressFor } from '@shared/play/phases';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import type { RoomView } from '@shared/play/updates';
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { expect, spyOn, waitFor, within } from 'storybook/test';
+import type { MockInstance } from 'storybook/test';
 
 import { TableSession } from '@db/tabletop/TableSession';
 
+import { curvedBoard } from './curvedBoard.fixture';
 import { PointerSession } from './PointerSession';
 import { PointerSessionContext } from './PointerSessionContext';
 import { TableKeyboard } from './TableKeyboard';
@@ -79,31 +81,36 @@ function PreparedTable({ presentation, board }: { presentation: 'play' | 'previe
 
 const meta = preview.meta({ component: PreparedTable, parameters: { layout: 'fullscreen' } });
 export const Play = meta.story({ args: { presentation: 'play' } });
-export const Homepage = meta.story({ args: { presentation: 'preview' } });
+/** The homepage's preview draws the table without the play tools, so a visitor has nothing to select. */
+export const Homepage = meta.story({
+  args: { presentation: 'preview' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('img', { name: 'Game table' })).resolves.toBeInTheDocument();
+    await expect(page.queryByRole('button', { name: 'Selected piece actions' })).toBeNull();
+    await expect(page.queryByRole('alert')).toBeNull();
+  },
+});
 
-export const AuthoredArrakis = meta.story({ args: { presentation: 'play', board: arrakisBoardCapture } });
+/* Installed before the story renders, since the authored board can mount before the play starts. */
+let objectUrls: MockInstance<typeof URL.createObjectURL> | undefined;
 
-function curvedBoard(): BoardCapture {
-  const board = blankBoard();
-  Object.assign(board.nodes, { il: [207.53, 323.53], ir: [303.53, 323.53] });
-  board.edges.push(
-    { id: 'curve', a: 'w', b: 'e', kind: 'cubic', c1: [150, 30], c2: [350, 320] },
-    { id: 'island-a', a: 'il', b: 'ir', kind: 'arc', arc: [48, 48, 0, 0, 1] },
-    { id: 'island-b', a: 'ir', b: 'il', kind: 'arc', arc: [48, 48, 0, 0, 1] }
-  );
-  board.properties = Object.fromEntries(
-    derive(board).faces.map((face, index) => [
-      face.key,
-      defaults(
-        `Territory ${index + 1}`,
-        face.area < 8000 ? 'stronghold' : face.center[1] < CENTER[1] ? 'rock' : 'sand'
-      ),
-    ])
-  );
-  const island = Object.values(board.properties).find((p) => p.type === 'stronghold')!;
-  island.decals = [
-    { id: 'custom-art', artwork: '/vector/troop/atreides.svg', x: 255, y: 323, scale: 70, rotation: 35, outline: true },
-  ];
-  return { asset: { id: 'curves', slug: 'curves', name: 'Curves and island' }, definition: board };
-}
+/**
+ * The authored board is a lazy chunk that rasterises its artwork into an SVG object URL once it mounts.
+ * That URL is the one sign the chunk loaded and drew, since the board itself is pixels on the canvas.
+ */
+export const AuthoredArrakis = meta.story({
+  args: { presentation: 'play', board: arrakisBoardCapture },
+  beforeEach: () => {
+    objectUrls = spyOn(URL, 'createObjectURL');
+    return () => objectUrls?.mockRestore();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('img', { name: 'Game table' })).resolves.toBeInTheDocument();
+    await waitFor(() => expect(objectUrls).toHaveBeenCalledWith(expect.objectContaining({ type: 'image/svg+xml' })));
+    await expect(page.queryByRole('alert')).toBeNull();
+  },
+});
+
 export const CurvesAndIsland = meta.story({ args: { presentation: 'play', board: curvedBoard() } });

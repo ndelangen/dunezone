@@ -15,6 +15,11 @@ export const Preparing = meta.story({});
 /** The permanent file exists, so the words give way to a link that opens it in its own tab. */
 export const Ready = meta.story({
   args: { artifact: { status: 'ready' as const, href: '/published/rulebooks/example/editions/2/rulebook.html' } },
+  play: async ({ canvasElement }) => {
+    const link = within(canvasElement).getByRole('link', { name: 'Open Edition HTML' });
+    await expect(link).toHaveAttribute('href', '/published/rulebooks/example/editions/2/rulebook.html');
+    await expect(link).toHaveAttribute('target', '_blank');
+  },
 });
 
 /** Generation failed; the Edition itself is unaffected, so this stays a status beside it. */

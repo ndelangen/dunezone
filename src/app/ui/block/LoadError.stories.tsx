@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { expect, within } from 'storybook/test';
 
 import { LoadError } from './LoadError';
 
@@ -12,7 +13,12 @@ const meta = preview.meta({
 export const Failed = meta.story({});
 
 /** An error carrying no message of its own still says something rather than showing an empty alert. */
-export const FailedWithoutAMessage = meta.story({ args: { children: '' } });
+export const FailedWithoutAMessage = meta.story({
+  args: { children: '' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('alert')).toHaveTextContent('An unexpected error occurred.');
+  },
+});
 
 /**
  * The stale-tab case, which is the one the five routes used to swallow.

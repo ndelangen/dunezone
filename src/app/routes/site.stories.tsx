@@ -4,6 +4,7 @@ import { expect, userEvent, within } from 'storybook/test';
 import { db, ref } from '@db/storybook';
 
 import { expectRefused, withoutAdmins } from './adminPages.stories.fixture';
+import { expectWithinWidth } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -33,6 +34,12 @@ export const PublicationJobs = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('combobox', { name: 'Status' }, { timeout: 30_000 })).resolves.toBeVisible();
+    const [, job] = await page.findAllByRole('row', {}, { timeout: 30_000 });
+    await expect(within(job!).getByText('house-atreides')).toBeVisible();
+    await expect(within(job!).getByText('Pending')).toBeVisible();
+    /* The switch only flips once the backend has stored the new setting, so its label is the proof the mutation ran. */
+    await userEvent.click(page.getByRole('switch', { name: 'Enabled' }));
+    await expect(page.findByRole('switch', { name: 'Disabled' }, { timeout: 30_000 })).resolves.not.toBeChecked();
   },
 });
 
@@ -59,8 +66,23 @@ export const PublicationJobsNotAuthorized = meta.story({
     await expectRefused(canvasElement, 'You cannot view publication jobs', { role: 'combobox', name: 'Status' });
   },
 });
-export const FuturePlans = meta.story({ args: { path: '/future-plans' } });
-export const Privacy = meta.story({ args: { path: '/privacy' } });
+async function findTitledPage(canvasElement: HTMLElement, name: RegExp) {
+  const page = within(canvasElement.ownerDocument.body);
+  await expect(page.findByRole('heading', { level: 1, name }, { timeout: 30_000 })).resolves.toBeVisible();
+  return page;
+}
+
+const titled =
+  (name: RegExp) =>
+  async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    await findTitledPage(canvasElement, name);
+  };
+
+export const FuturePlans = meta.story({
+  args: { path: '/future-plans' },
+  play: titled(/^A map of what Dune Zone could become$/),
+});
+export const Privacy = meta.story({ args: { path: '/privacy' }, play: titled(/privacy/i) });
 
 /** The blog's numbered list of posts, newest first, each title opening its post. */
 export const Blog = meta.story({
@@ -132,6 +154,13 @@ export const BlogPostTabletopSimulator = meta.story({
 export const BlogPostPhone = meta.story({
   args: { path: '/blog/why-dune' },
   globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = await findTitledPage(canvasElement, /^Why Dune\?$/);
+    const video = await page.findByRole('button', { name: 'Play MCDM Plays Dune - Round 1' });
+    const figures = await page.findAllByRole('figure');
+    await expect(figures.length).toBeGreaterThan(1);
+    await expectWithinWidth(canvasElement, [video, ...figures]);
+  },
 });
 
 /** The hard-coded glossary: one Section per topic with a picture, every term reachable by its anchor and found by the word it replaces. */
@@ -151,6 +180,13 @@ export const Glossary = meta.story({
 export const GlossaryPhone = meta.story({
   args: { path: '/glossary' },
   globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = await findTitledPage(canvasElement, /glossary/i);
+    await expect(page.findByRole('heading', { name: 'Troop' }, { timeout: 30_000 })).resolves.toBeVisible();
+    const topics = [...canvasElement.ownerDocument.querySelectorAll('section[id^="topic-"]')];
+    await expect(topics.length).toBeGreaterThan(1);
+    await expectWithinWidth(canvasElement, topics);
+  },
 });
 
 export const Accounts = meta.story({

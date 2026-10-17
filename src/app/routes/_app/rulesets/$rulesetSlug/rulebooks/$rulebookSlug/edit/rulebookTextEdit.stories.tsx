@@ -46,6 +46,15 @@ export const NamedText = meta.story({
       initialValue={{ name: 'Ornithopters', text: 'Control Arrakeen or Carthag to move up to three territories.' }}
     />
   ),
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('textbox', { name: 'Name' })).toHaveValue('Ornithopters');
+    const previewBlock = canvasElement.querySelector<HTMLElement>('[data-rulebook-block-id="DEMO"]');
+    await expect(previewBlock).not.toBeNull();
+    /* The name runs in bold ahead of the text rather than standing as a heading of its own. */
+    const name = within(previewBlock!).getByText('Ornithopters');
+    await expect(Number(getComputedStyle(name).fontWeight)).toBeGreaterThanOrEqual(600);
+    await expect(within(previewBlock!).getByText(/Control Arrakeen or Carthag/)).toBeVisible();
+  },
 });
 
 export const RelatedRules = meta.story({

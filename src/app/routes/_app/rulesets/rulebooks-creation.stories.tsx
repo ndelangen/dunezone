@@ -5,6 +5,7 @@ import { expect, userEvent, within } from 'storybook/test';
 
 import { db } from '@db/storybook';
 
+import { expectWithinWidth } from '../../pagePlay';
 import {
   replaceWithFinalContents,
   rulebooksMeta,
@@ -28,9 +29,16 @@ export const Creation = meta.story({
   },
 });
 
+/** At 260 px the size and design choices stay inside the width. */
 export const CreationNarrow = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/create' },
   globals: { viewport: { value: 'contentNarrow' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('radio', { name: 'A4 210 × 297 mm' }, { timeout: 30_000 });
+    const choices = page.getAllByRole('radio').map((radio) => radio.closest('label') ?? radio);
+    await expectWithinWidth(canvasElement, choices);
+  },
 });
 
 export const CreateTallRestrained = meta.story({
