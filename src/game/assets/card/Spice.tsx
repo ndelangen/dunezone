@@ -1,6 +1,6 @@
 /* oxlint-disable jsx-a11y/alt-text -- Static decorative game-card layers, not content images. */
 import { useId } from 'react';
-import type { FC } from 'react';
+import type { ComponentProps, FC } from 'react';
 import type { z } from 'zod';
 
 import { backgroundPresets } from '../../data/backgrounds';
@@ -10,12 +10,23 @@ import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { FormattedText } from '../utils/FormattedText';
 import styles from './Card.module.css';
 import unique from './Spice.module.css';
+import { SpiceBoardMap } from './SpiceBoardMap';
 
 const edgeColor = '#000';
 const foreGroundColor = '#F8F6E2';
 const highLightColor = '#9E5F00';
 
-export const SpiceCard: FC<z.infer<typeof Spice>> = ({ name, subName, icon, text, amount, highlights, overlays }) => {
+/** `boardMap` draws an authored board in place of the legacy Arrakis vector; legacy cards keep their path until Stage 1.5. */
+export const SpiceCard: FC<z.infer<typeof Spice> & { boardMap?: ComponentProps<typeof SpiceBoardMap> }> = ({
+  name,
+  subName,
+  icon,
+  text,
+  amount,
+  highlights,
+  overlays,
+  boardMap,
+}) => {
   const resolveOverlay = useAssetResolver();
   const prefix = useId();
   const decalsFilter = `${prefix}decals-filter`;
@@ -32,66 +43,72 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({ name, subName, icon, text
       <div className={styles.title}>{name}</div>
       <div className={styles.subtitle}>{subName}</div>
 
-      <svg className={unique.map} viewBox="0 0 100 100" xmlSpace="preserve" fillRule="evenodd" clipRule="evenodd">
-        <use xlinkHref="/vector/background/map.svg#root" />
-      </svg>
+      {boardMap ? (
+        <SpiceBoardMap {...boardMap} />
+      ) : (
+        <>
+          <svg className={unique.map} viewBox="0 0 100 100" xmlSpace="preserve" fillRule="evenodd" clipRule="evenodd">
+            <use xlinkHref="/vector/background/map.svg#root" />
+          </svg>
 
-      <svg
-        className={unique.map_overlay}
-        viewBox="0 0 100 100"
-        xmlSpace="preserve"
-        fillRule="evenodd"
-        clipRule="evenodd"
-      >
-        <defs>
-          <filter id={decalsFilter}>
-            <feColorMatrix
-              result="CONTRASTED"
-              in="SourceAlpha"
-              type="matrix"
-              values="1 0 0 0 0
+          <svg
+            className={unique.map_overlay}
+            viewBox="0 0 100 100"
+            xmlSpace="preserve"
+            fillRule="evenodd"
+            clipRule="evenodd"
+          >
+            <defs>
+              <filter id={decalsFilter}>
+                <feColorMatrix
+                  result="CONTRASTED"
+                  in="SourceAlpha"
+                  type="matrix"
+                  values="1 0 0 0 0
               0 1 0 0 0
               0 0 1 0 0
               0 0 0 34 0"
-            />
-            <feMorphology in="CONTRASTED" result="DILATED0" operator="dilate" radius="1.03" />
-            <feMorphology in="CONTRASTED" result="DILATED1" operator="dilate" radius="0.62" />
-            <feMorphology in="CONTRASTED" result="DILATED2" operator="dilate" radius="0.21" />
-            <feFlood floodColor={foreGroundColor} floodOpacity="1" result="PINK0" />
-            <feFlood floodColor={edgeColor} floodOpacity="1" result="PINK1" />
-            <feFlood floodColor={highLightColor} floodOpacity="1" result="PINK2" />
-            <feComposite in="PINK0" in2="DILATED0" operator="in" result="OUTLINE0" />
-            <feComposite in="PINK1" in2="DILATED1" operator="in" result="OUTLINE1" />
-            <feComposite in="PINK2" in2="DILATED2" operator="in" result="OUTLINE2" />
-            <feMerge>
-              <feMergeNode in="OUTLINE0" />
-              <feMergeNode in="OUTLINE1" />
-              <feMergeNode in="OUTLINE2" />
-            </feMerge>
-          </filter>
-          <mask id={`${prefix}mask`}>
-            {highlights.map((territory) => (
-              <use key={territory} xlinkHref={`/vector/background/map.svg#${territory}`} />
+                />
+                <feMorphology in="CONTRASTED" result="DILATED0" operator="dilate" radius="1.03" />
+                <feMorphology in="CONTRASTED" result="DILATED1" operator="dilate" radius="0.62" />
+                <feMorphology in="CONTRASTED" result="DILATED2" operator="dilate" radius="0.21" />
+                <feFlood floodColor={foreGroundColor} floodOpacity="1" result="PINK0" />
+                <feFlood floodColor={edgeColor} floodOpacity="1" result="PINK1" />
+                <feFlood floodColor={highLightColor} floodOpacity="1" result="PINK2" />
+                <feComposite in="PINK0" in2="DILATED0" operator="in" result="OUTLINE0" />
+                <feComposite in="PINK1" in2="DILATED1" operator="in" result="OUTLINE1" />
+                <feComposite in="PINK2" in2="DILATED2" operator="in" result="OUTLINE2" />
+                <feMerge>
+                  <feMergeNode in="OUTLINE0" />
+                  <feMergeNode in="OUTLINE1" />
+                  <feMergeNode in="OUTLINE2" />
+                </feMerge>
+              </filter>
+              <mask id={`${prefix}mask`}>
+                {highlights.map((territory) => (
+                  <use key={territory} xlinkHref={`/vector/background/map.svg#${territory}`} />
+                ))}
+              </mask>
+            </defs>
+
+            <g filter={`url(#${decalsFilter})`}>
+              <rect width="100%" height="100%" mask={`url(#${prefix}mask)`} fill={edgeColor} />
+            </g>
+
+            <use xlinkHref="/vector/background/map.svg#sectors" />
+            {overlays?.map((overlay) => (
+              <image
+                key={`${overlay.image}-${overlay.offset[0]},${overlay.offset[1]}-${overlay.scale}`}
+                href={resolveOverlay(overlay.image)}
+                x={overlay.offset[0]}
+                y={overlay.offset[1]}
+                width={overlay.scale}
+                height={overlay.scale}
+              />
             ))}
-          </mask>
-        </defs>
-
-        <g filter={`url(#${decalsFilter})`}>
-          <rect width="100%" height="100%" mask={`url(#${prefix}mask)`} fill={edgeColor} />
-        </g>
-
-        <use xlinkHref="/vector/background/map.svg#sectors" />
-        {overlays?.map((overlay) => (
-          <image
-            key={`${overlay.image}-${overlay.offset[0]},${overlay.offset[1]}-${overlay.scale}`}
-            href={resolveOverlay(overlay.image)}
-            x={overlay.offset[0]}
-            y={overlay.offset[1]}
-            width={overlay.scale}
-            height={overlay.scale}
-          />
-        ))}
-      </svg>
+          </svg>
+        </>
+      )}
 
       <div className={unique.body}>
         <div>
