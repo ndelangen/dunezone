@@ -13,8 +13,9 @@ import { Fragment } from 'react';
 import { useAssetPage, useUpdateAsset } from '@db/assets';
 import type { AssetPublicPage } from '@db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { BoardEditor } from '@app/widgets/board-editor/BoardEditor';
-import { BoardLoad } from '@app/widgets/board-editor/BoardLoad';
+import { boardLoadSource } from '@app/widgets/board-editor/boardLoadSource';
 import { boardEditorReducer, initialBoardEditorState } from '@app/widgets/board-editor/state';
 import type { BoardEditorState, BoardEditorEvent } from '@app/widgets/board-editor/state';
 
@@ -110,53 +111,58 @@ function BoardSession({ asset, initialDraft, access }: CardEditSessionProps<Boar
   return (
     <PageLayout>
       <PageLayout.Toolbar>
-        <AuthoringToolbar
-          status={{
-            isDirty,
-            isNameBlank: !state.draft.name.trim(),
-            saveState: saving.isPending ? 'saving' : saving.error ? 'error' : saving.data ? 'saved' : 'idle',
-            invalid,
-          }}
-          copy={{ saveLabel: 'Save board', nameBlankMessage: 'Add a board name before saving.' }}
-          actions={{
-            onSave: save,
-            onReset: () => dispatch({ kind: 'replace', draft: state.baseline }),
-            onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type: 'board', slug: asset.slug } }),
-          }}
-          navigationActions={
-            <BoardLoad
-              disabled={saving.isPending}
-              onLoad={(draft) => dispatch({ kind: 'replace', draft: { ...draft, name: state.draft.name } })}
+        <LoadExisting
+          noun="board"
+          mode="replace"
+          disabled={saving.isPending}
+          source={boardLoadSource(asset.id)}
+          onLoaded={(loaded) => dispatch({ kind: 'replace', draft: { ...loaded.data, name: state.draft.name } })}
+        >
+          {(loadAction) => (
+            <AuthoringToolbar
+              status={{
+                isDirty,
+                isNameBlank: !state.draft.name.trim(),
+                saveState: saving.isPending ? 'saving' : saving.error ? 'error' : saving.data ? 'saved' : 'idle',
+                invalid,
+              }}
+              copy={{ saveLabel: 'Save board', nameBlankMessage: 'Add a board name before saving.' }}
+              actions={{
+                onSave: save,
+                onReset: () => dispatch({ kind: 'replace', draft: state.baseline }),
+                onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type: 'board', slug: asset.slug } }),
+              }}
+              auxiliaryActions={
+                <>
+                  {loadAction}
+                  <IconAction
+                    label="Undo"
+                    emphasis="standard"
+                    size="lg"
+                    icon={<Undo2 size={17} />}
+                    disabled={!state.editor.past.length}
+                    onClick={() => dispatch({ kind: 'editor', event: { type: 'history.undo' } })}
+                  />
+                  <IconAction
+                    label="Redo"
+                    emphasis="standard"
+                    size="lg"
+                    icon={<Redo2 size={17} />}
+                    disabled={!state.editor.future.length}
+                    onClick={() => dispatch({ kind: 'editor', event: { type: 'history.redo' } })}
+                  />
+                </>
+              }
+              accessActions={group.accessActions}
+              statuses={[group.status]}
+              destructiveActions={
+                access.viewerAccess.capabilities.delete ? (
+                  <ConfirmDeleteAction label="Delete board" pending={deletion.pending} onConfirm={deletion.confirm} />
+                ) : null
+              }
             />
-          }
-          auxiliaryActions={
-            <>
-              <IconAction
-                label="Undo"
-                emphasis="standard"
-                size="lg"
-                icon={<Undo2 size={17} />}
-                disabled={!state.editor.past.length}
-                onClick={() => dispatch({ kind: 'editor', event: { type: 'history.undo' } })}
-              />
-              <IconAction
-                label="Redo"
-                emphasis="standard"
-                size="lg"
-                icon={<Redo2 size={17} />}
-                disabled={!state.editor.future.length}
-                onClick={() => dispatch({ kind: 'editor', event: { type: 'history.redo' } })}
-              />
-            </>
-          }
-          accessActions={group.accessActions}
-          statuses={[group.status]}
-          destructiveActions={
-            access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete board" pending={deletion.pending} onConfirm={deletion.confirm} />
-            ) : null
-          }
-        />
+          )}
+        </LoadExisting>
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
         <Stack gap="sm">

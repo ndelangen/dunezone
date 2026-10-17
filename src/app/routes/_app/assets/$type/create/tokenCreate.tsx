@@ -1,6 +1,7 @@
-import { Alert, Text } from '@mantine/core';
+import { Alert, Stack, Text } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import type { AssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
@@ -11,18 +12,28 @@ import { useReducer, useState } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
+import { assetLoadSource } from '@app/pickers/assetLoadSource';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   initialTokenMemory,
   initialTokenDraft,
   TokenEditor,
+  TokenProof,
   tokenDraftWarnings,
 } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
 
+import { referencedTokenBackFace } from '../$slug/edit/referencedBackFace';
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
+
+/* A loaded token as a draft: the draft models a reference with no target as an explicit null, which the stored optional cannot say. */
+const LoadedTokenDraft = TokenAsset.transform((token): TokenDraft => ({
+  ...token,
+  back: token.back.mode === 'reference' ? { mode: 'reference', asset_id: token.back.asset_id ?? null } : token.back,
+}));
 
 /**
  * This page's authoring state, and the four things that happen to it.
@@ -63,7 +74,7 @@ function reduce(state: PageState, event: PageEvent): PageState {
  * The create page for every token shape.
  * A referenced backside cannot be set here: the relation needs an asset id, and there is none until the first save, so creation always starts from a custom back and the edit page offers the choice.
  */
-export function TokenCreatePage({ type }: { type: string }) {
+export function TokenCreatePage({ type }: { type: AssetType }) {
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
@@ -85,6 +96,7 @@ export function TokenCreatePage({ type }: { type: string }) {
   )[] = [...tokenDraftWarnings(state.data, type)];
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
+  const referencedBack = state.memory.pickedBack ? referencedTokenBackFace(state.memory.pickedBack.data) : null;
   const isNameBlank = !state.data.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
     ? 'saving'
@@ -136,22 +148,40 @@ export function TokenCreatePage({ type }: { type: string }) {
     );
   };
 
+  const loadSource = assetLoadSource({ type, schema: LoadedTokenDraft });
   return (
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
-        <AuthoringToolbar
-          status={{ isDirty, isNameBlank, saveState }}
-          copy={{
-            saveLabel: 'Save token',
-            nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
-          }}
-          actions={{
-            onSave: save,
-            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: null })),
-            onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
-          }}
-        />
+        <LoadExisting
+          noun="token"
+          mode="create"
+          disabled={saveState === 'saving'}
+          source={loadSource}
+          onLoaded={header.releasing((loaded) =>
+            dispatch({
+              kind: 'replace',
+              data: loaded.data,
+              pick: loaded.source?.backToken ?? null,
+            })
+          )}
+        >
+          {(loadAction) => (
+            <AuthoringToolbar
+              status={{ isDirty, isNameBlank, saveState }}
+              copy={{
+                saveLabel: 'Save token',
+                nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
+              }}
+              actions={{
+                onSave: save,
+                onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: null })),
+                onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
+              }}
+              auxiliaryActions={loadAction}
+            />
+          )}
+        </LoadExisting>
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
@@ -173,10 +203,27 @@ export function TokenCreatePage({ type }: { type: string }) {
             onSettle={header.settle}
             backPicker={() => (
               <Text size="xs" c="dimmed">
-                A token can point at an existing token only once it has been saved.
+                {state.memory.pickedBack
+                  ? `Wears the back of ${state.memory.pickedBack.name}. Choose another after saving.`
+                  : 'A token can point at an existing token only once it has been saved.'}
               </Text>
             )}
-            backProof={null}
+            backProof={
+              state.memory.pickedBack ? (
+                <Stack gap={4} align="center" w="100%">
+                  {referencedBack ? (
+                    <TokenProof face={referencedBack} type={type} />
+                  ) : (
+                    <Text size="xs" c="dimmed">
+                      Its stored back can no longer be read as an authored back, so it cannot be shown here.
+                    </Text>
+                  )}
+                  <Text size="xs" c="dimmed">
+                    Back, from {state.memory.pickedBack.name}
+                  </Text>
+                </Stack>
+              ) : null
+            }
           />
         </WorkbenchLayout>
       </PageLayout.Content>

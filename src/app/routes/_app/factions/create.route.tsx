@@ -9,12 +9,13 @@ import { useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { defaultFaction } from '@app/widgets/faction-editor/defaultFaction';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
-import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
+import { factionLoadSource } from '@app/widgets/faction-editor/factionLoadSource';
 import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPublicationStatus';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -77,38 +78,43 @@ function CreateFactionPage() {
     <PageLayout>
       {validationHeader.slot}
       <PageLayout.Toolbar>
-        <AuthoringToolbar
-          status={{
-            isDirty: authoring.editing.isDirty,
-            isNameBlank: authoring.editing.isNameBlank,
-            invalid: authoring.editing.invalid,
-            saveState: authoring.persistence.saveState,
-          }}
-          copy={{
-            saveLabel: 'Save faction',
-            nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
-          }}
-          actions={{
-            onSave: authoring.actions.submit,
-            onReset: validationHeader.releasing(authoring.actions.reset),
-            onBack: () => navigate({ to: '/factions' }),
-          }}
-          review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
-          centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
-          auxiliaryActions={
-            <FactionLoadPopover
-              disabled={createFaction.isPending}
-              onLoaded={validationHeader.releasing(authoring.actions.loadDraft)}
+        <LoadExisting
+          noun="faction"
+          mode="create"
+          disabled={createFaction.isPending}
+          source={factionLoadSource()}
+          onLoaded={validationHeader.releasing(authoring.actions.loadDraft)}
+        >
+          {(loadAction) => (
+            <AuthoringToolbar
+              status={{
+                isDirty: authoring.editing.isDirty,
+                isNameBlank: authoring.editing.isNameBlank,
+                invalid: authoring.editing.invalid,
+                saveState: authoring.persistence.saveState,
+              }}
+              copy={{
+                saveLabel: 'Save faction',
+                nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
+              }}
+              actions={{
+                onSave: authoring.actions.submit,
+                onReset: validationHeader.releasing(authoring.actions.reset),
+                onBack: () => navigate({ to: '/factions' }),
+              }}
+              review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
+              centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
+              auxiliaryActions={loadAction}
+              statuses={[
+                factionPublicationStatus(),
+                {
+                  icon: <TopicIcon topic="groups" size={16} />,
+                  label: 'Group assignment becomes available after the first save.',
+                },
+              ]}
             />
-          }
-          statuses={[
-            factionPublicationStatus(),
-            {
-              icon: <TopicIcon topic="groups" size={16} />,
-              label: 'Group assignment becomes available after the first save.',
-            },
-          ]}
-        />
+          )}
+        </LoadExisting>
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <FactionEditor

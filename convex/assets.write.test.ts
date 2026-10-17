@@ -447,6 +447,43 @@ describe('deck composition', () => {
   });
 });
 
+describe('creating a container from a loaded one', () => {
+  test('copies the source members with their counts and leaves the source untouched', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
+    await owner.mutation(api.assets.setMemberCount, { container_id: source.id, member_id: created.id, count: 3 });
+
+    const copy = await owner.mutation(api.assets.create, {
+      type: 'deck',
+      data: deckData('House Treachery'),
+      members_from: source.id,
+    });
+
+    expect(copy.slug).toBe('house-treachery-1');
+    const page = await assetPageAs(t, { type: 'deck', slug: copy.slug });
+    expect(page?.members).toEqual([expect.objectContaining({ count: 3 })]);
+    expect(page?.members[0]?.member.id).toBe(created.id);
+    const original = await assetPageAs(t, { type: 'deck', slug: 'house-treachery' });
+    expect(original?.members).toEqual([expect.objectContaining({ count: 3 })]);
+  });
+
+  test('refuses a source of another type, and a type that holds nothing', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
+
+    await expect(
+      owner.mutation(api.assets.create, { type: 'deck', data: deckData('Copy'), members_from: created.id })
+    ).rejects.toThrow('The deck to copy from no longer exists');
+    await expect(
+      owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl'), members_from: deck.id })
+    ).rejects.toThrow('has no members to copy');
+  });
+});
+
 describe('asset page bundle', () => {
   test('a card reports the decks holding it, a deck reports none, and both report their publication', async () => {
     const t = convexTest(schema, modules);

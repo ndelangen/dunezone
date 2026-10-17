@@ -12,18 +12,18 @@ export const Blank = meta.story({});
 export const Arrakis = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Load board' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Load existing board' }));
     await userEvent.click(await page.findByRole('button', { name: /^Arrakis$/ }));
-    await userEvent.click(await page.findByRole('button', { name: 'Load Arrakis' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Load board' }));
     await waitFor(() => expect(page.getAllByRole('tab')).toHaveLength(42));
   },
 });
 export const SaveAndReopen = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Load board' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Load existing board' }));
     await userEvent.click(await page.findByRole('button', { name: /^Arrakis$/ }));
-    await userEvent.click(await page.findByRole('button', { name: 'Load Arrakis' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Load board' }));
     await userEvent.clear(page.getByRole('textbox', { name: 'Board name' }));
     await userEvent.type(page.getByRole('textbox', { name: 'Board name' }), 'Authored Arrakis');
     await userEvent.click(page.getByRole('button', { name: 'Add sietch icon' }));
@@ -61,9 +61,9 @@ export const SaveAndReopen = meta.story({
 export const TerritoryNames = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Load board' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Load existing board' }));
     await userEvent.click(await page.findByRole('button', { name: /^Arrakis$/ }));
-    await userEvent.click(await page.findByRole('button', { name: 'Load Arrakis' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Load board' }));
     await userEvent.click(page.getByRole('tab', { name: 'Rock outcroppings' }));
     await expect(page.getByRole('textbox', { name: 'Territory name' })).toHaveValue('Rock outcroppings');
     await expect(page.getByRole('textbox', { name: 'Territory ID' })).toHaveValue('rock_outcroppings');
