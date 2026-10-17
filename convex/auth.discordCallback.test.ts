@@ -3,15 +3,11 @@
 
 import { generateKeyPairSync } from 'node:crypto';
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 beforeEach(() => {
   vi.stubEnv('AUTH_DISCORD_ID', 'test-discord-client');
@@ -25,18 +21,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function backend() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
-  return t;
-}
-
 async function discordCallback(
   issuer: string,
   expectedCallback = 'https://backend.convex.site/api/auth/callback/discord',
-  t = backend()
+  t = applicationTest()
 ) {
   const providerFetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
@@ -111,7 +99,7 @@ describe('Discord authorization callback', () => {
       'JWT_PRIVATE_KEY',
       generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ type: 'pkcs8', format: 'pem' }).toString()
     );
-    const t = backend();
+    const t = applicationTest();
     const deletedUserId = await t.run(async (raw) => {
       const ctx = applicationTriggers.wrapDB(raw);
       const userId = await ctx.db.insert('users', { name: 'Old name', account_state: 'deleted' });

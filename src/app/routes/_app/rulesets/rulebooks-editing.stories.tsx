@@ -169,7 +169,7 @@ export const CoverPresetsAndFooter = meta.story({
     await userEvent.click(await page.findByRole('radio', { name: 'Preset' }, { timeout: 30_000 }));
     await expect(page.queryByRole('switch', { name: 'Show cover footer' })).not.toBeInTheDocument();
     await userEvent.click(page.getByRole('combobox', { name: 'Cover preset' }));
-    await userEvent.click(await page.findByRole('option', { name: 'Worm cavern' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Shai-Hulud cavern' }));
     await expect(page.queryByRole('textbox', { name: 'Background image URL' })).not.toBeInTheDocument();
     const cover = page.getByRole('article', { name: 'Rulebook page: Dreamrules' });
     await expect(cover.querySelector('.rulebookCoverBackground')).toHaveAttribute(
@@ -192,7 +192,7 @@ export const CoverPresetsAndFooter = meta.story({
     await userEvent.click(page.getByRole('switch', { name: 'Show cover footer' }));
     await expect(page.getByRole('textbox', { name: 'Footer title' })).toHaveValue('House Atreides');
     await userEvent.click(page.getByRole('link', { name: 'Page details' }));
-    await expect(page.findByRole('combobox', { name: 'Cover preset' })).resolves.toHaveValue('Worm cavern');
+    await expect(page.findByRole('combobox', { name: 'Cover preset' })).resolves.toHaveValue('Shai-Hulud cavern');
     await expect(page.queryByRole('switch', { name: 'Show cover footer' })).not.toBeInTheDocument();
     await expect(cover.querySelector('.rulebookCoverFooter')).toHaveTextContent('House Atreides');
     await userEvent.click(page.getByRole('link', { name: 'Cover footer' }));
@@ -241,7 +241,7 @@ function withLiveReferenceRulebook(baseline: StorybookDatabase) {
         MAPA: {
           id: 'MAPA',
           source: { kind: 'board', boardId: 'arrakis' },
-          text: 'Place forces on the territories.',
+          text: 'Place troops on the territories.',
           quantity: 1,
         },
       },

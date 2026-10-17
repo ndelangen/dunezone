@@ -142,7 +142,7 @@ function CracksSection() {
           World Boardgaming Championships (WBC) rules
         </Anchor>
         , the original Avalon Hill rules, and the GF9 rules. The GF9 rule set left a lot of questions open. Working out
-        exactly how two abilities interacted was always a puzzle. Often the rulebook simply didn&rsquo;t say, and even
+        exactly how two advantages interacted was always a puzzle. Often the rulebook simply didn&rsquo;t say, and even
         when we asked the designers directly we sometimes got conflicting answers.
       </Paragraph>
       <FigureRow
@@ -155,7 +155,7 @@ function CracksSection() {
           },
           {
             imageKey: '/web/blog/why-dune/avalon-hill-set.jpg',
-            alt: 'An early Print and Play edition of Dune laid out on a table: board, shields, leader discs, combat wheels and cards',
+            alt: 'An early Print and Play edition of Dune laid out on a table: board, shields, leader discs, battle wheels and cards',
             aspect: 562 / 798,
             caption: "A Print & Play version of Ilya's art before GF9 published their edition.",
           },
@@ -228,7 +228,7 @@ function ImprovingSection() {
       </Surface>
       <Figure
         imageKey="/web/blog/why-dune/dream-rulebook.jpg"
-        alt="The cover of the Dream Rulebook: a sandworm rising beneath a rainbow sky and two moons"
+        alt="The cover of the Dream Rulebook: Shai-Hulud rising beneath a rainbow sky and two moons"
         aspect={1784 / 1792}
         caption={
           <>

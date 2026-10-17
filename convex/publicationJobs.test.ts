@@ -1,7 +1,6 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
@@ -10,6 +9,7 @@ import { ensureFactionComponentIds } from '../src/shared/factions/componentIdent
 import { assetPublishingFaction as legacyFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import { applicationTest } from './application.test.fixture';
 import schema from './schema';
 
 const assetPublishingFaction = ensureFactionComponentIds(legacyFaction);
@@ -18,10 +18,7 @@ const modules = import.meta.glob('./**/*.ts');
 const CACHE_TOKEN = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
 
 async function authenticatedTest(options: { admin?: boolean } = {}) {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const userId = await t.run(
     async (ctx) =>
       await ctx.db.insert('users', {
@@ -56,7 +53,7 @@ afterEach(() => {
 
 describe('Publication save coalescing', () => {
   test('takeWork output parses against the shared executor wire schema', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const empty = await t.mutation(internal.publicationJobs.takeWork, {});
     expect(() => takeWorkResultSchema.parse(empty)).not.toThrow();
   });
@@ -109,6 +106,28 @@ describe('Publication save coalescing', () => {
           factionId: faction._id,
           slug: 'publication-proof',
           faction: expect.objectContaining({ name: 'Publication proof' }),
+        },
+      }),
+    ]);
+
+    const [queued] = await jobsFor(t, faction._id);
+    if (!queued) {
+      throw new Error('Missing job');
+    }
+    await t.run(async (ctx) => await ctx.db.delete(queued._id));
+    await asUser.mutation(api.factions.update, {
+      id: faction._id,
+      data: { ...assetPublishingFaction, name: 'Publication proof revised' },
+    });
+
+    await expect(jobsFor(t, faction._id)).resolves.toEqual([
+      expect.objectContaining({
+        status: 'pending',
+        attempt_counter: 0,
+        asset_data: {
+          factionId: faction._id,
+          slug: 'publication-proof-revised',
+          faction: expect.objectContaining({ name: 'Publication proof revised' }),
         },
       }),
     ]);
@@ -396,56 +415,6 @@ describe('Publication regeneration and administration', () => {
       enqueued: 0,
     });
     expect(await jobsFor(t, faction._id)).toHaveLength(0);
-  });
-
-  test('restarting a Regeneration scan coalesces into the existing pending job', async () => {
-    const { t, asUser } = await authenticatedTest();
-    const faction = await createFaction(asUser);
-    const [saveJob] = await jobsFor(t, faction._id);
-    if (!saveJob) {
-      throw new Error('Missing save job');
-    }
-    await t.run(async (ctx) => await ctx.db.delete(saveJob._id));
-
-    for (let scan = 0; scan < 2; scan += 1) {
-      await t.mutation(internal.publicationRegeneration.scan, {
-        assetType: 'faction_sheet',
-        cursor: null,
-        scanned: 0,
-        enqueued: 0,
-      });
-    }
-
-    await expect(jobsFor(t, faction._id)).resolves.toHaveLength(1);
-  });
-
-  test('restoring and editing a soft-deleted faction schedules a fresh capture', async () => {
-    const { t, asUser } = await authenticatedTest();
-    const faction = await createFaction(asUser);
-    const [queued] = await jobsFor(t, faction._id);
-    if (!queued) {
-      throw new Error('Missing job');
-    }
-    await t.run(async (ctx) => await ctx.db.delete(queued._id));
-    await asUser.mutation(api.factions.softDelete, { id: faction._id });
-    await t.run(async (ctx) => await ctx.db.patch(faction._id, { is_deleted: false }));
-
-    await asUser.mutation(api.factions.update, {
-      id: faction._id,
-      data: { ...assetPublishingFaction, name: 'Restored faction' },
-    });
-
-    await expect(jobsFor(t, faction._id)).resolves.toEqual([
-      expect.objectContaining({
-        status: 'pending',
-        attempt_counter: 0,
-        asset_data: {
-          factionId: faction._id,
-          slug: 'restored-faction',
-          faction: expect.objectContaining({ name: 'Restored faction' }),
-        },
-      }),
-    ]);
   });
 
   test('initialization is disabled, equal revisions are inert, and only higher revisions scan', async () => {

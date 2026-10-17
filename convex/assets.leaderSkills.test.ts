@@ -1,18 +1,15 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { publisherCaptureSnapshotSchema } from '../src/shared/asset-publishing/publisher-snapshot';
 import { GF9_LEADER_SKILLS } from '../src/shared/assets/gf9LeaderSkills';
 import { api, internal } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
-
 test('leader skills save, publish their two abilities, and reopen with author access', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const outsiderId = await t.run((ctx) => ctx.db.insert('users', { name: 'Other' }));
   const owner = t.withIdentity({ subject: ownerId });
@@ -56,7 +53,7 @@ test('leader skills save, publish their two abilities, and reopen with author ac
 });
 
 test('GF9 installation creates exactly fourteen cards and one deck and preserves edits on repeat', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Stock owner', isAdmin: true }));
   const first = await t.mutation(internal.assets.seedGF9LeaderSkills, { ownerId });
   expect(first.created).toBe(15);
@@ -82,7 +79,7 @@ test('GF9 installation creates exactly fourteen cards and one deck and preserves
 });
 
 test('GF9 installation refuses occupied stock addresses and rolls back the whole set', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const adminId = await t.run((ctx) => ctx.db.insert('users', { name: 'Stock owner', isAdmin: true }));
   const otherId = await t.run((ctx) => ctx.db.insert('users', { name: 'Other' }));
   await t
@@ -98,7 +95,7 @@ test('GF9 installation refuses occupied stock addresses and rolls back the whole
 });
 
 test('GF9 installation refuses an unrelated same-owner card at a stock address', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { isAdmin: true }));
   await t
     .withIdentity({ subject: ownerId })
@@ -108,7 +105,7 @@ test('GF9 installation refuses an unrelated same-owner card at a stock address',
 });
 
 test('GF9 presentation refresh repairs untouched cards once and preserves edits, transfers and deletion', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Stock owner', isAdmin: true }));
   const otherId = await t.run((ctx) => ctx.db.insert('users', { name: 'Other' }));
   const installed = await t.mutation(internal.assets.seedGF9LeaderSkills, { ownerId });

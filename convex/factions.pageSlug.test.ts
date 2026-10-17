@@ -1,17 +1,14 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 test('a Play seat finds a live faction page by the id it carries, and nothing for a deleted or unknown faction', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const now = '2026-10-11T09:30:00.000Z';
   const { live, deleted } = await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', {});

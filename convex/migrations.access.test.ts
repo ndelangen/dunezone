@@ -1,18 +1,13 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 async function migrationAccessTest() {
-  const t = convexTest(schema, modules);
-  migrationsTest.register(t);
+  const t = applicationTest();
   const identities = await t.run(async (ctx) => {
     const memberId = await ctx.db.insert('users', { name: 'Member' });
     const adminId = await ctx.db.insert('users', { name: 'Admin', isAdmin: true });

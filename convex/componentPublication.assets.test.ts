@@ -1,20 +1,18 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { internal } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 const revision = '10000000-1000-4000-8000-100000000001';
 const geometry = { width: 900, height: 1263, parts: [{ key: 'body', x: 0.1, y: 0.4, width: 0.8, height: 0.5 }] };
 
 async function fixture() {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const assetId = await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Component author' });
     return ctx.db.insert('assets', {

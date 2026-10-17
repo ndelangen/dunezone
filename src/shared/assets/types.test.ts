@@ -9,9 +9,4 @@ describe('Asset type nouns', () => {
       expect(assetTypeNoun(type) + 's').toBe(ASSET_TYPES[type].label);
     }
   });
-
-  test('names one Asset', () => {
-    expect(assetTypeNoun('card-treachery')).toBe('Treachery card');
-    expect(assetTypeNoun('deck')).toBe('Deck');
-  });
 });

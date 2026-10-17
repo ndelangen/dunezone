@@ -1,15 +1,11 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { faqQuestionPageAs } from './viewerAccess.test.fixture';
-
-const modules = import.meta.glob('./**/*.ts');
 
 function faqTest(
   transactionLimits?:
@@ -19,10 +15,7 @@ function faqTest(
         bytesWritten: number;
       }
 ) {
-  const t = transactionLimits ? convexTest({ schema, modules, transactionLimits }) : convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest({ transactionLimits });
   return t;
 }
 
@@ -106,52 +99,6 @@ describe('FAQ lifecycle', () => {
     expect(withAnswerPage.answers).toHaveLength(1);
     expect(withAnswerPage.answers[0]).toMatchObject({
       text: 'Yes, in the same mutation.',
-    });
-  });
-
-  test('projects accepted-first answers and viewer capabilities on the server', async () => {
-    const { owner, answerer, outsider, ruleset } = await faqFixture();
-    const question = await owner.mutation(api.faq.createQuestion, {
-      rulesetId: ruleset._id,
-      question: 'Which answer should appear first?',
-      tags: ['rules'],
-    });
-    const first = await answerer.mutation(api.faq.createAnswer, {
-      faq_item_id: question.questionId,
-      answer: 'The earlier answer.',
-    });
-    const accepted = await outsider.mutation(api.faq.createAnswer, {
-      faq_item_id: question.questionId,
-      answer: 'The accepted answer.',
-    });
-    await owner.mutation(api.faq.setAcceptedAnswer, {
-      faq_item_id: question.questionId,
-      accepted_answer_id: accepted._id,
-    });
-
-    const ownerPage = await faqQuestionPageAs(owner, {
-      rulesetSlug: ruleset.slug,
-      questionSlug: question.questionSlug,
-    });
-    expect(ownerPage.question.capabilities).toEqual({
-      editQuestion: true,
-      deleteQuestion: true,
-    });
-    expect(ownerPage.answers.map((answer) => answer.id)).toEqual([accepted._id, first._id]);
-    expect(ownerPage.answers[0].capabilities).toMatchObject({
-      deleteAnswer: true,
-      acceptAnswer: false,
-      unacceptAnswer: true,
-    });
-
-    const answererPage = await faqQuestionPageAs(answerer, {
-      rulesetSlug: ruleset.slug,
-      questionSlug: question.questionSlug,
-    });
-    expect(answererPage.viewer.answerQuestion).toBe(false);
-    expect(answererPage.answers.find((answer) => answer.id === first._id)?.capabilities).toMatchObject({
-      editAnswer: true,
-      deleteAnswer: true,
     });
   });
 

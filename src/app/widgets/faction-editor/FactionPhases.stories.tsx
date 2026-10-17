@@ -16,7 +16,7 @@ const validPhase: Phase = {
   before: 'bidding',
   priority: 10,
   allPlayersMustBeReady: false,
-  instructions: 'Agree any shipment deals before the auction opens.',
+  instructions: 'Agree any shipment deals before bidding opens.',
 };
 
 function factionWith(phases: unknown[] | undefined): Faction {
@@ -98,7 +98,7 @@ export const SequenceSetupAndTurn = meta.story({
     const tie = "Another faction's phase here at the same priority goes in storm order.";
     await expect(sequenceRows(canvasElement, 'Setup')).toEqual(['Traitors', 'Desert omen', 'Starting troops']);
     await expect(sequenceRows(canvasElement, 'Each turn').slice(2, 5)).toEqual([
-      'CHOAM charity',
+      'CHOAM Charity',
       'Guild negotiations',
       'Bidding',
     ]);

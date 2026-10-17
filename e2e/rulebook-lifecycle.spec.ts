@@ -192,7 +192,7 @@ async function authorReferenceMatter(page: Page) {
   await page.getByRole('textbox', { name: 'Column 2 label', exact: true }).fill('Free revival');
   await page.getByRole('button', { name: 'Add row', exact: true }).click();
   await page.getByRole('textbox', { name: 'Row 1, Faction', exact: true }).fill('Fremen');
-  await page.getByRole('textbox', { name: 'Row 1, Free revival', exact: true }).fill('3 forces');
+  await page.getByRole('textbox', { name: 'Row 1, Free revival', exact: true }).fill('3 troops');
   await page.getByRole('textbox', { name: 'Note', exact: true }).fill('Free revival happens after battle.');
   await structure.getByRole('button', { name: 'Add Block', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Credits', exact: true }).click();
@@ -209,7 +209,7 @@ async function authorReferenceMatter(page: Page) {
   );
   const referencePage = page.getByRole('article', { name: 'Rulebook page: Quick reference' });
   await expect(referencePage.locator('th')).toHaveText(['Faction', 'Free revival']);
-  await expect(referencePage.locator('td')).toHaveText(['Fremen', '3 forces']);
+  await expect(referencePage.locator('td')).toHaveText(['Fremen', '3 troops']);
 }
 
 async function authorAssetExplainer(page: Page) {
@@ -288,9 +288,9 @@ test('a final-catalogue Rulebook saves fixed Pages and publishes written rules, 
   await expect(initialPage).toHaveAttribute('data-rulebook-design', 'illustrated');
 
   await page.goto(`${rulesetPath}/rulebooks/field-guide/edit#RULE/L5ST`);
-  await page.getByRole('textbox', { name: 'Item 1 name', exact: true }).fill('Choose your forces');
+  await page.getByRole('textbox', { name: 'Item 1 name', exact: true }).fill('Choose your troops');
   await page.getByRole('textbox', { name: 'Item 1', exact: true }).fill('Move the selected group together.');
-  await expect(initialPage.locator('ol')).toContainText('Choose your forces');
+  await expect(initialPage.locator('ol')).toContainText('Choose your troops');
 
   await structure.getByRole('button', { name: 'Add Page', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Narrow left / wide right', exact: true }).click();
@@ -317,7 +317,7 @@ test('a final-catalogue Rulebook saves fixed Pages and publishes written rules, 
   await page.goto(`${rulesetPath}/rulebooks/field-guide#${pageAnchor}`);
   await expect(battlePage).toContainText('When are losses removed?');
   await expect(battlePage.getByRole('heading', { level: 1 })).toHaveCount(0);
-  await expect(page.locator('[data-rulebook-page-number="1"] ol')).toContainText('Choose your forces');
+  await expect(page.locator('[data-rulebook-page-number="1"] ol')).toContainText('Choose your troops');
   const cardPage = page.getByRole('article', { name: 'Rulebook page: Treachery cards' });
   await expect(cardPage.getByRole('heading', { name: 'Lasgun and Shield', exact: true })).toBeVisible();
   await expect(cardPage).toContainText('Explain this Card before the first battle.');
@@ -331,7 +331,7 @@ test('a final-catalogue Rulebook saves fixed Pages and publishes written rules, 
   await expect(strongholdsPage.locator('[data-rulebook-explainer] li')).toHaveCount(2);
   const referencePage = page.getByRole('article', { name: 'Rulebook page: Quick reference' });
   await expect(referencePage.locator('th')).toHaveText(['Faction', 'Free revival']);
-  await expect(referencePage.locator('td')).toHaveText(['Fremen', '3 forces']);
+  await expect(referencePage.locator('td')).toHaveText(['Fremen', '3 troops']);
   await expect(referencePage).toContainText('Free revival happens after battle.');
   await expect(referencePage.getByRole('heading', { name: 'Rules compilation', exact: true })).toBeVisible();
   await expect(referencePage).toContainText('The editorsEditing');

@@ -10,7 +10,7 @@ export const BOTTOM_SHELF_SIZE: Vector3Tuple = [4.8, 0.12, 6.2];
 export const BOTTOM_SHELF_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y - BOTTOM_SHELF_SIZE[1] / 2, 8.55];
 const CARD_SLOT_RIM = 0.06;
 export const CARD_SLOT_GAP = 0.14;
-export const TABLE_TANKS_LABEL = 'BENE TLEILAXU TANKS';
+export const TABLE_TANKS_LABEL = 'TLEILAXU TANKS';
 export const TABLE_TANKS_LABEL_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y + 0.012, 6.2];
 
 const CARD_SLOT_ROWS = [-1.32, 0, 1.32] as const;

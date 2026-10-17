@@ -31,7 +31,7 @@ const movementLocator: RulebookTextLocator = {
     { kind: 'block', id: 'MVVE' },
   ],
   exact: 'Movement sequence',
-  suffix: 'Choose a force',
+  suffix: 'Choose a troop',
 };
 const movementLocatorParam = encodeRulebookTextLocator(movementLocator);
 const historicalOnlyLocator = encodeRulebookTextLocator({
@@ -516,7 +516,7 @@ export const BlockSelectedTextHighlightsAcrossContainers = meta.story({
       throw new Error('Rulebook reader Story requires a browser Window');
     }
     const heading = await page.findByRole('heading', { name: 'Movement sequence' }, { timeout: 30_000 });
-    const paragraph = page.getAllByText('Choose a force, choose an adjacent destination, then resolve the move.')[0];
+    const paragraph = page.getAllByText('Choose a troop, choose an adjacent destination, then resolve the move.')[0];
     const start = heading.firstChild;
     const end = paragraph?.firstChild;
     const locator = selectRulebookRange(storyWindow, start, end);

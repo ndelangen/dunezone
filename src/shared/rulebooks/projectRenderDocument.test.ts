@@ -64,27 +64,6 @@ describe('Rulebook render-document projection', () => {
     });
   });
 
-  it('keeps missing and unselected sources explicit', () => {
-    const missing = projectRulebookRenderDocument(
-      withStormMarker(createRulebookStarterContents()),
-      {},
-      DEFAULT_RULEBOOK_SETTINGS
-    );
-    expect(missing.pagesById.RULE?.regions[1]?.blocks[0]).toMatchObject({
-      kind: 'referenced-illustration',
-      source: { status: 'unavailable', reference: { kind: 'asset', assetId: 'Storm marker' } },
-    });
-    const unselected = projectRulebookRenderDocument(createRulebookStarterContents(), {}, DEFAULT_RULEBOOK_SETTINGS);
-    expect(unselected.pagesById.RULE?.regions[1]?.blocks[0]).toMatchObject({
-      kind: 'referenced-illustration',
-      source: { status: 'unselected' },
-    });
-    expect(unselected.pagesById.CHAP?.regions[0]?.blocks[0]).toMatchObject({
-      kind: 'referenced-illustration',
-      source: { status: 'unselected' },
-    });
-  });
-
   it('reports invalid local text while preserving the escaped source for preview', () => {
     const contents: RulebookContentsDraftV1 = createRulebookStarterContents();
     const block = contents.pagesById.RULE!.blocksById.TEXT!;

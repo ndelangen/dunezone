@@ -16,8 +16,8 @@ export const NumberedList = meta.story({
         style: 'numbered',
         itemOrder: ['AAAA', 'BBBB'],
         itemsById: {
-          AAAA: { id: 'AAAA', name: 'Ship forces', text: 'Pay spice to bring reserves to Dune.' },
-          BBBB: { id: 'BBBB', name: 'Move forces', text: 'Choose one group to move.' },
+          AAAA: { id: 'AAAA', name: 'Ship troops', text: 'Pay spice to bring reserves to Dune.' },
+          BBBB: { id: 'BBBB', name: 'Move troops', text: 'Choose one group to move.' },
         },
       }}
     />
@@ -33,7 +33,7 @@ export const NumberedList = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Reorder item 1' }));
     await userEvent.keyboard('[Space][ArrowDown][Space]');
     await waitFor(() => expect(listChange.mock.lastCall?.[0].itemOrder).toEqual(['BBBB', 'AAAA']));
-    await expect(listChange.mock.lastCall?.[0].itemsById.AAAA.name).toBe('Ship forces first');
+    await expect(listChange.mock.lastCall?.[0].itemsById.AAAA.name).toBe('Ship troops first');
     await expect(listChange.mock.lastCall?.[0].itemsById.AAAA.icon).toBe('/vector/icon/storrm_standalone.svg');
     await userEvent.click(canvas.getByLabelText('Clear artwork'));
     await expect(listChange.mock.lastCall?.[0].itemsById.AAAA.icon).toBeUndefined();

@@ -1,5 +1,4 @@
 import preview from '@sb/preview';
-import { waitForFrame } from '@sb/storyWaits';
 import { composeTurn, TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -39,7 +38,7 @@ function factionPhaseSnapshot(allPlayersMustBeReady: boolean): GameSnapshot {
             before: 'bidding',
             priority: 10,
             allPlayersMustBeReady,
-            instructions: 'Agree any shipment deals before the auction opens.',
+            instructions: 'Agree any shipment deals before bidding opens.',
           },
         ],
       },
@@ -54,7 +53,7 @@ function factionPhaseSnapshot(allPlayersMustBeReady: boolean): GameSnapshot {
   };
 }
 
-/** The shared phase at Turn 1 Storm: instructions and random storm placement; Determine winner joins them in Mentat pause (Play/Results). */
+/** The shared phase at Turn 1 Storm: instructions and random storm placement; Determine winner joins them in Mentat Pause (Play/Results). */
 export const StormPlacement = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
@@ -137,13 +136,9 @@ export const FactionPhase = meta.story({
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('region', { name: 'Guild negotiations' })).toBeInTheDocument());
     const phaseTab = page.getByRole('tab', { name: 'Phase' });
-    /* The tab names the phase in its description; the short tooltip's timing is the kit's TabGuidance story, since a slow frame here can outlast it. Resting on the tab brings the phase's instructions. */
+    /* The kit's TabGuidance story owns timed tooltip display, since a slow frame here can outlast it; this page checks that the tab receives the phase's description and its instructions as help. */
     await expect(phaseTab).toHaveAccessibleDescription(
-      expect.stringContaining('Guild negotiations, instructions and actions.')
-    );
-    await userEvent.hover(phaseTab);
-    await waitForFrame(() =>
-      expect(page.getByRole('tooltip')).toHaveTextContent('Agree any shipment deals before the auction opens.')
+      'Guild negotiations, instructions and actions. Agree any shipment deals before bidding opens. Previous changes the tracker only. Pieces and storm position stay as they are.'
     );
     const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
     await expect(within(header).getByText('Guild negotiations')).toBeVisible();

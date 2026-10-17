@@ -1,18 +1,15 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { publisherCaptureSnapshotSchema } from '../src/shared/asset-publishing/publisher-snapshot';
 import { GF9_STRONGHOLD_CARDS } from '../src/shared/assets/gf9StrongholdDeck';
 import { api, internal } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
-
 test('stronghold cards round-trip, publish their constrained face and enforce editing access', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const [ownerId, otherId] = await t.run(async (ctx) => [
     await ctx.db.insert('users', { name: 'Owner' }),
     await ctx.db.insert('users', { name: 'Other' }),
@@ -56,7 +53,7 @@ test('stronghold cards round-trip, publish their constrained face and enforce ed
 });
 
 test('the GF9 seed creates six cards and a one-copy deck, and leaves authored changes alone on a second run', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run(async (ctx) => {
     const id = await ctx.db.insert('users', { name: 'Owner' });
     await ctx.db.insert('profiles', {
@@ -100,7 +97,7 @@ test('the GF9 seed creates six cards and a one-copy deck, and leaves authored ch
 });
 
 test('stock corrections keep identities and authored content, and are safe to repeat', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { name: 'Owner' });
     await ctx.db.insert('profiles', {

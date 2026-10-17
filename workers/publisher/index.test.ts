@@ -209,7 +209,7 @@ describe('publisher Worker Publication flow', () => {
   });
 
   /* The retired /play/demo and /play/hosted pages stay application paths: the game route redirects them to the lobby. */
-  test.each(['/play', '/play/create', '/play/demo', '/play/hosted', '/__playground'])(
+  test.each(['/play', '/play/demo', '/play/hosted', '/__playground'])(
     'keeps %s in the application',
     async (pathname) => {
       const currentEnv = publisherEnv();

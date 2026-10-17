@@ -1,22 +1,21 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 
-import { convexTest } from 'convex-test';
+import type { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { ensureFactionMemberIds } from '../src/shared/factions/memberIdentity';
 import { internal } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { enqueueFactionLeaderPublications } from './lib/publication';
-import schema from './schema';
 
-const modules = import.meta.glob('./**/*.ts');
 const tokenA = '10000000-1000-4000-8000-100000000001';
 const tokenB = '10000000-1000-4000-8000-100000000002';
 
 async function fixture(active = true) {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const faction = ensureFactionMemberIds(structuredClone(assetPublishingFaction));
   const factionId = await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Component author' });

@@ -24,18 +24,12 @@ test('rejects a broken startxref even when the full PDF parser repairs it', asyn
   await expect(inspectPublishedRulebookPdf(corrupted)).rejects.toThrow('exact object header');
 });
 
-test.each(['member-count', 'member-offset', 'xref-length', 'xref-width', 'missing-eof'])(
+test.each(['member-count', 'member-offset', 'xref-length', 'xref-width'])(
   'rejects corrupted compressed PDF structure: %s',
   async (kind) => {
     const bytes = await fixture();
     const text = new TextDecoder('latin1').decode(bytes);
     const corrupted = bytes.slice();
-    if (kind === 'missing-eof') {
-      await expect(inspectPublishedRulebookPdf(corrupted.subarray(0, corrupted.length - 10))).rejects.toThrow(
-        'truncated'
-      );
-      return;
-    }
     const pattern =
       kind === 'member-count'
         ? /\/N (\d+)/

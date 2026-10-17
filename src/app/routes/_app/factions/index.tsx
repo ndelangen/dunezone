@@ -1,6 +1,24 @@
-import { Badge, Button, Group, InputBase, Popover, RangeSlider, Select, Stack, Text, Title } from '@mantine/core';
-import { Link, createFileRoute } from '@tanstack/react-router';
-import type { ErrorComponentProps } from '@tanstack/react-router';
+import {
+  Badge,
+  Button,
+  Group,
+  InputBase,
+  Pagination,
+  Popover,
+  RangeSlider,
+  Select,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
+import {
+  complexityRangeSearchValue,
+  parseComplexityRange,
+  parseFactionCatalogueSearch,
+} from '@shared/factions/catalogueSearch';
+import type { FactionCatalogueSearch, FactionComplexityRange } from '@shared/factions/catalogueSearch';
+import { Link, createFileRoute, notFound } from '@tanstack/react-router';
+import type { ErrorComponentProps, NotFoundRouteProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
@@ -19,43 +37,60 @@ import { ArrowDownAZ, ChevronsDown, Filter, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
-import type { FactionCatalogueEntry, FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
+import type { FactionCataloguePageData, FactionCatalogueRuleset } from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { publicPageHead } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-import { useFactionCatalogueSession } from './catalogue';
-import { complexityRangeSearchValue, parseComplexityRange, parseFactionCatalogueSearch } from './catalogueSearch';
-import type { FactionCatalogueSearch, FactionComplexityRange } from './catalogueSearch';
+import { factionCatalogueArgs, useFactionCatalogueSession } from './catalogue';
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/factions/')({
   ssr: true,
-  codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
+  codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent', 'notFoundComponent']],
   validateSearch: parseFactionCatalogueSearch,
-  loader: loadFactionCataloguePage,
+  loaderDeps: ({ search }) => factionCatalogueArgs(search),
+  loader: async ({ deps }) => {
+    const data = await loadFactionCataloguePage(deps);
+    /* A page past the end is an address that does not exist, so it answers 404 and points at the last page. */
+    if (data.page > data.pageCount) {
+      throw notFound({ data: { pageCount: data.pageCount } });
+    }
+    return data;
+  },
   pendingComponent: FactionCataloguePending,
   errorComponent: FactionCatalogueError,
-  head: () =>
-    publicPageHead({
-      name: 'Custom Dune board game factions',
-      pathname: '/factions',
+  notFoundComponent: FactionCataloguePastTheEnd,
+  head: ({ match }) => {
+    const search = parseFactionCatalogueSearch(match.search);
+    /* Only the plain listing's pages are worth a search engine's time; a search, filter or order is the same factions again. */
+    const refined = search.q != null || search.ruleset != null || search.complexity != null || search.sort != null;
+    const head = publicPageHead({
+      name:
+        search.page && !refined
+          ? `Custom Dune board game factions, page ${search.page}`
+          : 'Custom Dune board game factions',
+      pathname: search.page && !refined ? `/factions?page=${search.page}` : '/factions',
       description:
-        "Browse homebrew factions for Gale Force Nine's Dune board game: custom abilities, leaders and printable faction sheets. Create and share your own faction.",
-    }),
+        "Browse homebrew factions for Gale Force Nine's Dune board game: custom advantages, leaders and printable faction sheets. Create and share your own faction.",
+      match,
+    });
+    return refined ? { ...head, meta: [...(head.meta ?? []), { name: 'robots', content: 'noindex' }] } : head;
+  },
   component: FactionsPage,
 });
 
 function FactionsPage() {
   const loaderData = Route.useLoaderData();
-  const catalogue = useFactionCataloguePage({ initialData: loaderData });
+  const args = Route.useLoaderDeps();
+  const catalogue = useFactionCataloguePage(args, { initialData: loaderData });
   const data = catalogue.data;
-  const session = useFactionCatalogueSession(data);
+  const session = useFactionCatalogueSession(data?.rulesets);
 
   if (!data) {
     return <FactionCataloguePending />;
   }
-  const hasFactions = data.factions.length > 0;
+  const hasFactions = data.catalogueTotal > 0;
 
   return (
     <PageLayout>
@@ -70,19 +105,24 @@ function FactionsPage() {
             onCommitQuery={session.query.commit}
             search={session.search}
             rulesets={data.rulesets}
-            factions={data.factions}
-            visibleCount={session.visibleFactions.length}
-            totalCount={data.factions.length}
+            visibleCount={data.total}
+            visibleCountComplete={data.complete}
+            totalCount={data.catalogueTotal}
             onSearchChange={session.changeSearch}
           />
         ) : undefined}
       </PageLayout.Toolbar>
       <PageLayout.Content>
         {hasFactions ? (
-          session.visibleFactions.length > 0 ? (
-            <FactionList factions={session.visibleFactions} selectedRulesetSlug={session.search.ruleset} />
+          data.total === 0 ? (
+            <FilteredEmptyState complete={data.complete} onReset={session.reset} />
+          ) : data.cards.length === 0 ? (
+            <PastTheEnd pageCount={data.pageCount} />
           ) : (
-            <FilteredEmptyState onReset={session.reset} />
+            <Stack gap="lg" aria-busy={catalogue.isPending}>
+              <FactionList factions={data.cards} selectedRulesetSlug={session.search.ruleset} />
+              <CataloguePager data={data} />
+            </Stack>
           )
         ) : (
           <Surface padding="xl">
@@ -210,15 +250,18 @@ function ComplexityRangeSlider({
 function CatalogueRefine({
   search,
   rulesetOptions,
-  factions,
+  rulesets,
   visibleCount,
+  visibleCountComplete,
   totalCount,
   onSearchChange,
 }: {
   search: FactionCatalogueSearch;
   rulesetOptions: { value: string; label: string }[];
-  factions: FactionCatalogueEntry[];
+  rulesets: FactionCatalogueRuleset[];
   visibleCount: number;
+  /** False when a search matched more than one read can hold, so `visibleCount` is a lower bound. */
+  visibleCountComplete: boolean;
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
 }) {
@@ -227,9 +270,7 @@ function CatalogueRefine({
   const activeCount = (rulesetActive ? 1 : 0) + (rangeActive ? 1 : 0);
 
   const rulesetCount = (slug: string) =>
-    slug === 'all'
-      ? factions.length
-      : factions.filter((faction) => faction.rulesets.some((ruleset) => ruleset.slug === slug)).length;
+    slug === 'all' ? totalCount : (rulesets.find((ruleset) => ruleset.slug === slug)?.factionCount ?? 0);
 
   return (
     <Popover position="bottom" width={320} closeOnEscape trapFocus>
@@ -295,7 +336,9 @@ function CatalogueRefine({
 
             <Group gap="xs" justify="space-between">
               <Text size="xs" c="dimmed">
-                {visibleCount === totalCount ? `${totalCount} factions` : `${visibleCount} of ${totalCount} factions`}
+                {visibleCount === totalCount
+                  ? `${totalCount} factions`
+                  : `${countLabel(visibleCount, visibleCountComplete)} of ${totalCount} factions`}
               </Text>
               {activeCount > 0 ? (
                 <Button
@@ -321,8 +364,8 @@ function CatalogueToolbar({
   onCommitQuery,
   search,
   rulesets,
-  factions,
   visibleCount,
+  visibleCountComplete,
   totalCount,
   onSearchChange,
 }: {
@@ -330,9 +373,10 @@ function CatalogueToolbar({
   onDraftQueryChange: (value: string) => void;
   onCommitQuery: () => void;
   search: FactionCatalogueSearch;
-  rulesets: FactionRulesetSummary[];
-  factions: FactionCatalogueEntry[];
+  rulesets: FactionCatalogueRuleset[];
   visibleCount: number;
+  /** False when a search matched more than one read can hold, so `visibleCount` is a lower bound. */
+  visibleCountComplete: boolean;
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
 }) {
@@ -358,8 +402,9 @@ function CatalogueToolbar({
     <Select
       variant={joined ? 'unstyled' : 'default'}
       label={label}
-      value={search.sort ?? 'name'}
+      value={search.sort ?? (search.q ? 'relevance' : 'name')}
       data={[
+        ...(search.q ? [{ value: 'relevance', label: 'Best match' }] : []),
         { value: 'name', label: 'Alphabetical (A–Z)' },
         { value: 'created', label: 'Chronological (created)' },
         { value: 'updated', label: 'Chronological (updated)' },
@@ -367,7 +412,9 @@ function CatalogueToolbar({
         { value: 'complexity-desc', label: 'Complexity (high → low)' },
       ]}
       allowDeselect={false}
-      onChange={(value) => onSearchChange({ sort: value === 'name' ? undefined : value })}
+      onChange={(value) =>
+        onSearchChange({ sort: value === 'relevance' || (value === 'name' && !search.q) ? undefined : value })
+      }
       aria-label="Sort factions"
       leftSection={<ArrowDownAZ size={15} aria-hidden />}
     />
@@ -414,8 +461,9 @@ function CatalogueToolbar({
           <CatalogueRefine
             search={search}
             rulesetOptions={rulesetOptions}
-            factions={factions}
+            rulesets={rulesets}
             visibleCount={visibleCount}
+            visibleCountComplete={visibleCountComplete}
             totalCount={totalCount}
             onSearchChange={onSearchChange}
           />
@@ -436,16 +484,113 @@ function CatalogueToolbar({
   );
 }
 
-function FilteredEmptyState({ onReset }: { onReset: () => void }) {
+function FilteredEmptyState({ complete, onReset }: { complete: boolean; onReset: () => void }) {
   return (
     <Surface padding="xl">
       <Stack gap="sm" align="center">
         <Title order={2}>No factions found</Title>
         <Text c="dimmed">Try another search or reset the catalogue filters.</Text>
+        {complete ? null : (
+          <Text size="xs" c="dimmed" ta="center">
+            Only the first matches of this search were checked. Add a word to narrow it.
+          </Text>
+        )}
         <Button variant="default" onClick={onReset}>
           Reset filters &amp; search
         </Button>
       </Stack>
     </Surface>
+  );
+}
+
+/** The address of one page of the current search, filters and order; the first page has no number. */
+function pageSearch(page: number) {
+  return (previous: FactionCatalogueSearch): FactionCatalogueSearch => ({
+    ...previous,
+    page: page > 1 ? page : undefined,
+  });
+}
+
+/**
+ * Where the reader is in the results, and real links to the other pages, so a page can be opened, shared and crawled.
+ * Nothing to page through on a single page, though an incomplete search still says so.
+ */
+function CataloguePager({
+  data,
+}: {
+  data: Pick<FactionCataloguePageData, 'page' | 'pageCount' | 'pageSize' | 'total' | 'complete'>;
+}) {
+  if (data.pageCount <= 1) {
+    return data.complete ? null : <IncompleteNotice />;
+  }
+  const first = (data.page - 1) * data.pageSize + 1;
+  const last = Math.min(data.page * data.pageSize, data.total);
+  /* Clamped, so an edge control at the end of the range links to the page already shown rather than past it. */
+  const clamp = (page: number) => Math.min(Math.max(page, 1), data.pageCount);
+  const target = { first: 1, previous: clamp(data.page - 1), next: clamp(data.page + 1), last: data.pageCount };
+  const label = { first: 'First page', previous: 'Previous page', next: 'Next page', last: 'Last page' };
+  return (
+    <Stack gap="xs" align="center">
+      <Pagination
+        value={data.page}
+        total={data.pageCount}
+        withEdges
+        aria-label="Faction catalogue pages"
+        getItemProps={(page) => ({ component: Link, to: '/factions', search: pageSearch(page) })}
+        getControlProps={(control) => ({
+          component: Link,
+          to: '/factions',
+          search: pageSearch(target[control]),
+          'aria-label': label[control],
+        })}
+      />
+      <Text size="xs" c="dimmed">
+        {`${first}–${last} of ${countLabel(data.total, data.complete)} factions`}
+      </Text>
+      {data.complete ? null : <IncompleteNotice />}
+    </Stack>
+  );
+}
+
+/** A search reads a capped number of matches, so its results can stop short of every faction that matches. */
+function IncompleteNotice() {
+  return (
+    <Text size="xs" c="dimmed" ta="center">
+      This search matched more factions than can be checked at once. Add a word to narrow it.
+    </Text>
+  );
+}
+
+/** A count drawn from a capped read is a floor, and reads as one. */
+function countLabel(count: number, complete: boolean) {
+  return complete ? String(count) : `${count}+`;
+}
+
+/** A page past the end, from an old link or a catalogue that shrank: say where the results end and link there. */
+function PastTheEnd({ pageCount }: { pageCount: number }) {
+  return (
+    <Surface padding="xl">
+      <Stack gap="sm" align="center">
+        <Title order={2}>No factions on this page</Title>
+        <Text c="dimmed">
+          {pageCount === 1 ? 'These results fit on one page.' : `These results end on page ${pageCount}.`}
+        </Text>
+        <Button
+          variant="default"
+          renderRoot={(props) => <Link {...props} to="/factions" search={pageSearch(pageCount)} />}
+        >
+          {pageCount === 1 ? 'Go to the results' : `Go to page ${pageCount}`}
+        </Button>
+      </Stack>
+    </Surface>
+  );
+}
+
+function FactionCataloguePastTheEnd({ data }: NotFoundRouteProps) {
+  const pageCount = (data as { pageCount?: number } | undefined)?.pageCount ?? 1;
+  return (
+    <PageMessage title="Faction catalogue">
+      <PastTheEnd pageCount={pageCount} />
+    </PageMessage>
   );
 }
