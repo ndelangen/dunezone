@@ -11,6 +11,7 @@ import { playwright } from 'vite-plus/test/browser-playwright';
 
 import { convexPackageMocks } from './.storybook/convexPackageMocks.ts';
 import { pageStylesheetStaysWithItsStory } from './.storybook/pageStylesheet.ts';
+import { storyBoardFace } from './.storybook/storyBoardFace.ts';
 import { storyImagesWorker } from './.storybook/storyImagesWorker.ts';
 import {
   convexWorkerAliases,
@@ -89,6 +90,7 @@ export default defineConfig({
   },
   plugins: [
     storyImagesWorker(),
+    storyBoardFace(),
     ...convexWorkerServePlugins(),
     pageStylesheetStaysWithItsStory(),
     viteReact(),

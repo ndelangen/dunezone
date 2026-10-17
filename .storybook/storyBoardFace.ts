@@ -10,7 +10,8 @@ const BOARD_FACE = /^\/published\/boards\/[^/]+\/board\.jpg$/;
  * Answers every published board face with the Arrakis board, so a story drawing a slotted board shows real art.
  * Storybook ids are not production ids, so no story could name a real publication, and Storybook's only board is Arrakis.
  * The fixture is `BoardMap` drawing Arrakis, which is what the publisher captures (`PublisherCapture.tsx`).
- * The static build gets the same answer from `static/_redirects`.
+ * Both the Storybook builder and the story test runner register it;
+ * the static build gets the same answer from `static/_redirects`.
  */
 export function storyBoardFace(): Plugin {
   return {

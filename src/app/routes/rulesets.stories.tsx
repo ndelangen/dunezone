@@ -22,6 +22,9 @@ export const Detail = meta.story({
       'href',
       '/assets/board/arrakis-official'
     );
+    /* The face itself, not only the link: a missing publication would still render the link around the matte placeholder. */
+    const face = await board.findByRole('img', { name: 'Arrakis Official' }, { timeout: 30_000 });
+    await waitFor(() => expect((face as HTMLImageElement).naturalWidth).toBeGreaterThan(0), { timeout: 30_000 });
   },
 });
 /** A ruleset with no board keeps the section, drawn as the missing face with a line saying so. */
