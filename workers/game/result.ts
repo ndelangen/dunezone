@@ -11,7 +11,7 @@ import type { StoredSnapshot } from './state';
 /*
  * Determine winner, its declaration and Continue playing. Each is one seated player's act and
  * changes nothing on the table: the phase, pieces, spice reserves, hands and predictions stay as they are,
- * so continuing returns to Mentat pause of the same turn. Continuing clears readiness, so the players
+ * so continuing returns to Mentat Pause of the same turn. Continuing clears readiness, so the players
  * agree afresh before the phase moves on. The caller owns the transaction, the log rows and the
  * directory summary.
  */
@@ -77,7 +77,7 @@ function requireFittingFactions(snapshot: StoredSnapshot, action: Declaration) {
   }
 }
 
-/** An open sequence lives only in Mentat pause of play and only while its player holds a seat. */
+/** An open sequence lives only in Mentat Pause of play and only while its player holds a seat. */
 export function settleEnding<Snapshot extends StoredSnapshot>(
   snapshot: Snapshot,
   seatedUserIds: () => ReadonlySet<string>
@@ -96,7 +96,7 @@ function inMentat(snapshot: StoredSnapshot) {
 
 function requireMentat(snapshot: StoredSnapshot) {
   if (!inMentat(snapshot)) {
-    throw new GameRejection('Determine winner is available during Mentat pause.');
+    throw new GameRejection('Determine winner is available during Mentat Pause.');
   }
 }
 

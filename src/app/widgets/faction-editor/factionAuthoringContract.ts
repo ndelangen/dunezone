@@ -64,7 +64,7 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
   });
 
   if (isBlank(faction.rules.alliance.text)) {
-    warnings.push(warning('rules.alliance.text', 'alliance', 'Alliance', 'ability text', 'rules-alliance'));
+    warnings.push(warning('rules.alliance.text', 'alliance', 'Alliance', 'advantage text', 'rules-alliance'));
   }
 
   faction.troops.forEach((troop, index) => {

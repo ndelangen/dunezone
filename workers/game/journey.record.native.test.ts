@@ -199,7 +199,7 @@ async function startingTroops(journey: JourneyRecorder) {
   await journey.readyAll('Setup complete', 'Every faction has placed its troops and confirmed Ready.');
 }
 
-/* Turn 1 opens: the storm moves and the Spice blow places 8 spice on Broken Land. */
+/* Turn 1 opens: the storm moves and the Spice Blow places 8 spice on Broken Land. */
 async function stormAndSpice(journey: JourneyRecorder) {
   await journey.next(0, 'Turn 1: Storm', 'Setup ends and the first turn opens on the Storm phase.');
   for (let sector = 0; sector < 3; sector++) {
@@ -209,7 +209,7 @@ async function stormAndSpice(journey: JourneyRecorder) {
     kind: 'storm',
     direction: 1,
   });
-  await journey.next(0, 'Spice blow', 'The Spice blow phase opens.');
+  await journey.next(0, 'Spice Blow', 'The Spice Blow phase opens.');
   const spiceDeck = await journey.deck('deck:spice-deck');
   const before = new Set((await journey.hand(0)).map((piece) => piece.id));
   await journey.act(
@@ -250,7 +250,7 @@ async function stormAndSpice(journey: JourneyRecorder) {
 
 /* Bidding, where two factions buy a Treachery card each, then shipments that bring House Harkonnen into Arrakeen. */
 async function biddingAndShipment(journey: JourneyRecorder) {
-  await journey.next(0, 'CHOAM charity', 'The CHOAM charity phase opens.');
+  await journey.next(0, 'CHOAM Charity', 'The CHOAM Charity phase opens.');
   await journey.next(0, 'Bidding', 'The Bidding phase opens.');
   for (const [order, slug] of ['house-atreides', 'emperor'].entries()) {
     const index = journey.indexOf(slug);
@@ -269,7 +269,7 @@ async function biddingAndShipment(journey: JourneyRecorder) {
     );
   }
   await journey.next(0, 'Revival', 'The Revival phase opens.');
-  await journey.next(0, 'Shipment and movement', 'The Shipment and movement phase opens.');
+  await journey.next(0, 'Shipment and Movement', 'The Shipment and Movement phase opens.');
   for (const [slug, count, territory] of [
     ['house-harkonnen', 5, 'arrakeen'],
     ['spacing-guild', 3, 'imperial-basin'],
@@ -352,8 +352,8 @@ async function battle(journey: JourneyRecorder) {
 
 /* The turn ends and the creator declares House Atreides the winner. */
 async function finish(journey: JourneyRecorder) {
-  await journey.next(0, 'Spice collection', 'The Spice collection phase opens.');
-  await journey.next(0, 'Mentat pause', 'The Mentat pause ends the turn.');
+  await journey.next(0, 'Spice Collection', 'The Spice Collection phase opens.');
+  await journey.next(0, 'Mentat Pause', 'The Mentat Pause ends the turn.');
   await journey.act(0, { kind: 'result-open' }, 'Determining the winner', `${PLAYERS[0]} opens the result.`);
   await journey.act(
     0,

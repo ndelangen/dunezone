@@ -42,7 +42,7 @@ export async function verifyResults({
   for (const who of everyone) {
     await openTab(who, 'Phase');
   }
-  /* Determine winner is offered only during Mentat pause, where the turn's phases end. */
+  /* Determine winner is offered only during Mentat Pause, where the turn's phases end. */
   while (phaseAt(requireView(a).snapshot.phase).id !== 'mentat-pause') {
     assert.equal(await button(a, 'Determine winner').count(), 0);
     await act(a, 'Next phase');
@@ -51,7 +51,7 @@ export async function verifyResults({
   await button(a, 'Determine winner').waitFor();
   await button(b, 'Determine winner').waitFor();
   assert.equal(await button(observer, 'Determine winner').count(), 0);
-  passed('Determine winner appears for both players at Mentat pause and never for a spectator');
+  passed('Determine winner appears for both players at Mentat Pause and never for a spectator');
 
   await act(a, 'Determine winner');
   await converged(everyone);
@@ -141,7 +141,7 @@ export async function verifyResults({
     await openTab(who, 'Phase');
     await button(who, 'Determine winner').waitFor();
   }
-  passed('Continue playing drops the result and resumes the same turn at Mentat pause');
+  passed('Continue playing drops the result and resumes the same turn at Mentat Pause');
 
   /* The observer's lobby still shows Ongoing, so the game returns to it live, without its result. */
   await lobbyCard(observer.page).waitFor({ timeout: 20_000 });

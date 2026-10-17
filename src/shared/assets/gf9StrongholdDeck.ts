@@ -4,7 +4,7 @@ import type { DeckAsset, StrongholdCardAsset } from './schema';
 import { STRONGHOLD_BACKGROUND } from './strongholdCardTemplate';
 
 const descriptions = [
-  ['Arrakeen', 'arrakeen', 'The Spice Bank pays 2 spice toward your force support in each battle here.'],
+  ['Arrakeen', 'arrakeen', 'The Spice Bank pays 2 spice toward your troop support in each battle here.'],
   [
     'Carthag',
     'carthag',

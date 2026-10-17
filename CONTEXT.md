@@ -142,7 +142,7 @@ What one troop face contributes to a battle plan: its strength, its supported st
 The amount of spice a faction begins the game with. Starting spice is a structured setup value, distinct from the faction's free-form starting instructions.
 
 **Faction Special Karama**:
-The default name of a faction's special rule section. A faction may instead name it Fate. The optional choice belongs to the faction and follows it onto its page, Play details, sheet and PDF. It changes the section name alone; the ability title and authored rule text remain separate. A missing choice means Faction Special Karama without a backfill of existing faction definitions.
+The default name of a faction's special rule section. A faction may instead name it Fate. The optional choice belongs to the faction and follows it onto its page, Play details, sheet and PDF. It changes the section name alone; the rule title and authored rule text remain separate. A missing choice means Faction Special Karama without a backfill of existing faction definitions.
 
 **Background definition**:
 How soft or crisp the selected pattern appears in a faction's composed background.
@@ -299,7 +299,7 @@ Convex's record that a Play game exists and what the lobby may show of it: its s
 _Avoid_: Game list database, index
 
 **Stage**:
-Where a Real game is in its life: drafting, swapping, setup, play, finished or discarded. The delivered table controls belong to play; earlier stages refuse them, and a finished game leaves the table as it was, with only a locked prediction's reveal still open. A seated player enters finished by Determine winner during Mentat pause and its declaration; Continue playing returns to play at the same turn. A phase is a step inside play, never a Stage.
+Where a Real game is in its life: drafting, swapping, setup, play, finished or discarded. The delivered table controls belong to play; earlier stages refuse them, and a finished game leaves the table as it was, with only a locked prediction's reveal still open. A seated player enters finished by Determine winner during Mentat Pause and its declaration; Continue playing returns to play at the same turn. A phase is a step inside play, never a Stage.
 _Avoid_: Status, state, mode
 
 **Faction Extra**:

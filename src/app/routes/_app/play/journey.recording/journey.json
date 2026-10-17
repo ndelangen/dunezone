@@ -265,8 +265,8 @@
       "stored": { "$": "GHD1hDZaLlc9" }
     },
     {
-      "title": "Spice blow",
-      "detail": "The Spice blow phase opens.",
+      "title": "Spice Blow",
+      "detail": "The Spice Blow phase opens.",
       "actor": "seat-1",
       "action": { "kind": "phase", "direction": 1 },
       "logSequence": 10,
@@ -323,8 +323,8 @@
       "stored": { "$": "XOuOGc_AxcTi" }
     },
     {
-      "title": "CHOAM charity",
-      "detail": "The CHOAM charity phase opens.",
+      "title": "CHOAM Charity",
+      "detail": "The CHOAM Charity phase opens.",
       "actor": "seat-1",
       "action": { "kind": "phase", "direction": 1 },
       "logSequence": 12,
@@ -390,8 +390,8 @@
       "stored": { "$": "NH6g-IOPe-cz" }
     },
     {
-      "title": "Shipment and movement",
-      "detail": "The Shipment and movement phase opens.",
+      "title": "Shipment and Movement",
+      "detail": "The Shipment and Movement phase opens.",
       "actor": "seat-1",
       "action": { "kind": "phase", "direction": 1 },
       "logSequence": 17,
@@ -538,8 +538,8 @@
       "stored": { "$": "F0tUZDunJ9jw" }
     },
     {
-      "title": "Spice collection",
-      "detail": "The Spice collection phase opens.",
+      "title": "Spice Collection",
+      "detail": "The Spice Collection phase opens.",
       "actor": "seat-1",
       "action": { "kind": "phase", "direction": 1 },
       "logSequence": 20,
@@ -547,8 +547,8 @@
       "stored": { "$": "qbQfe_ASao0B" }
     },
     {
-      "title": "Mentat pause",
-      "detail": "The Mentat pause ends the turn.",
+      "title": "Mentat Pause",
+      "detail": "The Mentat Pause ends the turn.",
       "actor": "seat-1",
       "action": { "kind": "phase", "direction": 1 },
       "logSequence": 21,
@@ -20907,7 +20907,7 @@
       "boardLayout": 2
     },
     "EHxP2T0MLYGx": [
-      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice blow.", "status": "accepted" },
+      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice Blow.", "status": "accepted" },
       { "id": "evt-112", "command": "storm.move", "message": "Storm advanced to sector 3.", "status": "accepted" },
       { "id": "evt-111", "command": "storm.move", "message": "Storm advanced to sector 4.", "status": "accepted" },
       { "id": "evt-110", "command": "storm.move", "message": "Storm advanced to sector 5.", "status": "accepted" },
@@ -21513,7 +21513,7 @@
         "message": "One card was dealt to Bene Gesserit.",
         "status": "accepted"
       },
-      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice blow.", "status": "accepted" },
+      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice Blow.", "status": "accepted" },
       { "id": "evt-112", "command": "storm.move", "message": "Storm advanced to sector 3.", "status": "accepted" },
       { "id": "evt-111", "command": "storm.move", "message": "Storm advanced to sector 4.", "status": "accepted" },
       { "id": "evt-110", "command": "storm.move", "message": "Storm advanced to sector 5.", "status": "accepted" },
@@ -23036,7 +23036,7 @@
         "message": "One card was dealt to Bene Gesserit.",
         "status": "accepted"
       },
-      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice blow.", "status": "accepted" },
+      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice Blow.", "status": "accepted" },
       { "id": "evt-112", "command": "storm.move", "message": "Storm advanced to sector 3.", "status": "accepted" },
       { "id": "evt-111", "command": "storm.move", "message": "Storm advanced to sector 4.", "status": "accepted" },
       { "id": "evt-110", "command": "storm.move", "message": "Storm advanced to sector 5.", "status": "accepted" },
@@ -23715,7 +23715,7 @@
         "message": "One card was dealt to Bene Gesserit.",
         "status": "accepted"
       },
-      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice blow.", "status": "accepted" },
+      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice Blow.", "status": "accepted" },
       { "id": "evt-112", "command": "storm.move", "message": "Storm advanced to sector 3.", "status": "accepted" },
       { "id": "evt-111", "command": "storm.move", "message": "Storm advanced to sector 4.", "status": "accepted" },
       { "id": "evt-110", "command": "storm.move", "message": "Storm advanced to sector 5.", "status": "accepted" },
@@ -24457,7 +24457,7 @@
         "message": "One card was dealt to Bene Gesserit.",
         "status": "accepted"
       },
-      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice blow.", "status": "accepted" },
+      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice Blow.", "status": "accepted" },
       { "id": "evt-112", "command": "storm.move", "message": "Storm advanced to sector 3.", "status": "accepted" },
       { "id": "evt-111", "command": "storm.move", "message": "Storm advanced to sector 4.", "status": "accepted" },
       { "id": "evt-110", "command": "storm.move", "message": "Storm advanced to sector 5.", "status": "accepted" }
@@ -25141,7 +25141,7 @@
       "boardLayout": 2
     },
     "Fjn-M5DMejAM": [
-      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM charity.", "status": "accepted" },
+      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM Charity.", "status": "accepted" },
       {
         "id": "evt-117",
         "command": "piece.move",
@@ -25156,7 +25156,7 @@
         "message": "One card was dealt to Bene Gesserit.",
         "status": "accepted"
       },
-      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice blow.", "status": "accepted" },
+      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice Blow.", "status": "accepted" },
       { "id": "evt-112", "command": "storm.move", "message": "Storm advanced to sector 3.", "status": "accepted" },
       { "id": "evt-111", "command": "storm.move", "message": "Storm advanced to sector 4.", "status": "accepted" }
     ],
@@ -25764,7 +25764,7 @@
     },
     "kmmgrII2kLSd": [
       { "id": "evt-119", "command": "phase.advance", "message": "Turn 1: Bidding.", "status": "accepted" },
-      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM charity.", "status": "accepted" },
+      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM Charity.", "status": "accepted" },
       {
         "id": "evt-117",
         "command": "piece.move",
@@ -25779,7 +25779,7 @@
         "message": "One card was dealt to Bene Gesserit.",
         "status": "accepted"
       },
-      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice blow.", "status": "accepted" },
+      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice Blow.", "status": "accepted" },
       { "id": "evt-112", "command": "storm.move", "message": "Storm advanced to sector 3.", "status": "accepted" }
     ],
     "S6PjZ_R1iIfw": {
@@ -26447,7 +26447,7 @@
         "status": "accepted"
       },
       { "id": "evt-119", "command": "phase.advance", "message": "Turn 1: Bidding.", "status": "accepted" },
-      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM charity.", "status": "accepted" },
+      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM Charity.", "status": "accepted" },
       {
         "id": "evt-117",
         "command": "piece.move",
@@ -26462,7 +26462,7 @@
         "message": "One card was dealt to Bene Gesserit.",
         "status": "accepted"
       },
-      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice blow.", "status": "accepted" }
+      { "id": "evt-113", "command": "phase.advance", "message": "Turn 1: Spice Blow.", "status": "accepted" }
     ],
     "SRep_KJK1TsK": {
       "d1da68a1-f123-486b-ae1a-96e59cb0e6d1": 32,
@@ -27361,7 +27361,7 @@
         "status": "accepted"
       },
       { "id": "evt-119", "command": "phase.advance", "message": "Turn 1: Bidding.", "status": "accepted" },
-      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM charity.", "status": "accepted" },
+      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM Charity.", "status": "accepted" },
       {
         "id": "evt-117",
         "command": "piece.move",
@@ -28068,7 +28068,7 @@
         "status": "accepted"
       },
       { "id": "evt-119", "command": "phase.advance", "message": "Turn 1: Bidding.", "status": "accepted" },
-      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM charity.", "status": "accepted" },
+      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM Charity.", "status": "accepted" },
       {
         "id": "evt-117",
         "command": "piece.move",
@@ -28926,7 +28926,7 @@
         "status": "accepted"
       },
       { "id": "evt-119", "command": "phase.advance", "message": "Turn 1: Bidding.", "status": "accepted" },
-      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM charity.", "status": "accepted" },
+      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM Charity.", "status": "accepted" },
       {
         "id": "evt-117",
         "command": "piece.move",
@@ -29590,7 +29590,7 @@
         "status": "accepted"
       },
       { "id": "evt-119", "command": "phase.advance", "message": "Turn 1: Bidding.", "status": "accepted" },
-      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM charity.", "status": "accepted" },
+      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM Charity.", "status": "accepted" },
       {
         "id": "evt-117",
         "command": "piece.move",
@@ -30153,7 +30153,7 @@
       {
         "id": "evt-125",
         "command": "phase.advance",
-        "message": "Turn 1: Shipment and movement.",
+        "message": "Turn 1: Shipment and Movement.",
         "status": "accepted"
       },
       { "id": "evt-124", "command": "phase.advance", "message": "Turn 1: Revival.", "status": "accepted" },
@@ -30177,7 +30177,7 @@
         "status": "accepted"
       },
       { "id": "evt-119", "command": "phase.advance", "message": "Turn 1: Bidding.", "status": "accepted" },
-      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM charity.", "status": "accepted" }
+      { "id": "evt-118", "command": "phase.advance", "message": "Turn 1: CHOAM Charity.", "status": "accepted" }
     ],
     "mwpYfOhp8UPj": {
       "seats": ["seat-1", "seat-2", "seat-3", "seat-4", "seat-5", "seat-6"],
@@ -30800,7 +30800,7 @@
       {
         "id": "evt-125",
         "command": "phase.advance",
-        "message": "Turn 1: Shipment and movement.",
+        "message": "Turn 1: Shipment and Movement.",
         "status": "accepted"
       },
       { "id": "evt-124", "command": "phase.advance", "message": "Turn 1: Revival.", "status": "accepted" },
@@ -31548,7 +31548,7 @@
       {
         "id": "evt-125",
         "command": "phase.advance",
-        "message": "Turn 1: Shipment and movement.",
+        "message": "Turn 1: Shipment and Movement.",
         "status": "accepted"
       },
       { "id": "evt-124", "command": "phase.advance", "message": "Turn 1: Revival.", "status": "accepted" },
@@ -32209,7 +32209,7 @@
       {
         "id": "evt-125",
         "command": "phase.advance",
-        "message": "Turn 1: Shipment and movement.",
+        "message": "Turn 1: Shipment and Movement.",
         "status": "accepted"
       },
       { "id": "evt-124", "command": "phase.advance", "message": "Turn 1: Revival.", "status": "accepted" },
@@ -38749,7 +38749,7 @@
       "boardLayout": 2
     },
     "nO2URHlSIm4i": [
-      { "id": "evt-131", "command": "phase.advance", "message": "Turn 1: Spice collection.", "status": "accepted" },
+      { "id": "evt-131", "command": "phase.advance", "message": "Turn 1: Spice Collection.", "status": "accepted" },
       { "id": "evt-130", "command": "phase.advance", "message": "Turn 1: Battle.", "status": "accepted" },
       {
         "id": "evt-129",
@@ -38778,7 +38778,7 @@
       {
         "id": "evt-125",
         "command": "phase.advance",
-        "message": "Turn 1: Shipment and movement.",
+        "message": "Turn 1: Shipment and Movement.",
         "status": "accepted"
       },
       { "id": "evt-124", "command": "phase.advance", "message": "Turn 1: Revival.", "status": "accepted" }
@@ -39315,8 +39315,8 @@
       "boardLayout": 2
     },
     "3XJqMUmwdgK4": [
-      { "id": "evt-132", "command": "phase.advance", "message": "Turn 1: Mentat pause.", "status": "accepted" },
-      { "id": "evt-131", "command": "phase.advance", "message": "Turn 1: Spice collection.", "status": "accepted" },
+      { "id": "evt-132", "command": "phase.advance", "message": "Turn 1: Mentat Pause.", "status": "accepted" },
+      { "id": "evt-131", "command": "phase.advance", "message": "Turn 1: Spice Collection.", "status": "accepted" },
       { "id": "evt-130", "command": "phase.advance", "message": "Turn 1: Battle.", "status": "accepted" },
       {
         "id": "evt-129",
@@ -39342,7 +39342,7 @@
         "message": "5 troops taken from House Harkonnen troops.",
         "status": "accepted"
       },
-      { "id": "evt-125", "command": "phase.advance", "message": "Turn 1: Shipment and movement.", "status": "accepted" }
+      { "id": "evt-125", "command": "phase.advance", "message": "Turn 1: Shipment and Movement.", "status": "accepted" }
     ],
     "_OHsiCsfZC-x": {
       "seats": ["seat-1", "seat-2", "seat-3", "seat-4", "seat-5", "seat-6"],
@@ -40923,28 +40923,28 @@
         "sequence": 23,
         "class": "phase",
         "text": "Twaffle declared the result: House Atreides won.",
-        "context": "Turn 1, Mentat pause",
+        "context": "Turn 1, Mentat Pause",
         "at": 1791747496115
       },
       {
         "sequence": 22,
         "class": "phase",
         "text": "Twaffle started determining the winner.",
-        "context": "Turn 1, Mentat pause",
+        "context": "Turn 1, Mentat Pause",
         "at": 1791747495962
       },
       {
         "sequence": 21,
         "class": "phase",
-        "text": "Mentat pause began.",
-        "context": "Turn 1, Mentat pause",
+        "text": "Mentat Pause began.",
+        "context": "Turn 1, Mentat Pause",
         "at": 1791747495831
       },
       {
         "sequence": 20,
         "class": "phase",
-        "text": "Spice collection began.",
-        "context": "Turn 1, Spice collection",
+        "text": "Spice Collection began.",
+        "context": "Turn 1, Spice Collection",
         "at": 1791747493675
       },
       {
@@ -40958,8 +40958,8 @@
       {
         "sequence": 17,
         "class": "phase",
-        "text": "Shipment and movement began.",
-        "context": "Turn 1, Shipment and movement",
+        "text": "Shipment and Movement began.",
+        "context": "Turn 1, Shipment and Movement",
         "at": 1791747482090
       },
       { "sequence": 16, "class": "phase", "text": "Revival began.", "context": "Turn 1, Revival", "at": 1791747479902 },
@@ -40981,22 +40981,22 @@
       {
         "sequence": 12,
         "class": "phase",
-        "text": "CHOAM charity began.",
-        "context": "Turn 1, CHOAM charity",
+        "text": "CHOAM Charity began.",
+        "context": "Turn 1, CHOAM Charity",
         "at": 1791747474816
       },
       {
         "sequence": 11,
         "class": "spice",
         "text": "Twaffle took 8 spice from the Spice Bank to the table.",
-        "context": "Turn 1, Spice blow",
+        "context": "Turn 1, Spice Blow",
         "at": 1791747472030
       },
       {
         "sequence": 10,
         "class": "phase",
-        "text": "Spice blow began.",
-        "context": "Turn 1, Spice blow",
+        "text": "Spice Blow began.",
+        "context": "Turn 1, Spice Blow",
         "at": 1791747471376
       },
       { "sequence": 9, "class": "phase", "text": "Turn 1 began.", "context": "Turn 1, Storm", "at": 1791747468326 },

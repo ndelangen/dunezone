@@ -137,12 +137,12 @@ function FateFields({ form }: { form: FactionFormApi }) {
             <form.Field name="rules.fate.title">
               {(field) => (
                 <ControlBlock
-                  title="Ability title (optional)"
+                  title="Rule title (optional)"
                   description="Leave blank when this rule does not need a separate title."
                   input={
                     <TextInput
                       id="rules-fate-title"
-                      aria-label="Ability title (optional)"
+                      aria-label="Rule title (optional)"
                       value={field.state.value ?? ''}
                       onBlur={field.handleBlur}
                       onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}

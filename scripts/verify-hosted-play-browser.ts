@@ -969,7 +969,7 @@ const TAB_GROUPS: Record<string, string> = {
 /** Shows the group holding a dock tab until the tab stays, outlasting a phase opening its own tab. */
 async function revealTab(who: HostedPeer, name: string, tab: Locator) {
   /*
-   * The dock opens a phase's own tab once as the phase begins (Spice for Spice collection, Hand for Bidding), and that
+   * The dock opens a phase's own tab once as the phase begins (Spice for Spice Collection, Hand for Bidding), and that
    * can land just after this looks, moving the dock to another group. So the group is clicked again until the tab stays.
    */
   const deadline = Date.now() + 30_000;
@@ -1968,7 +1968,7 @@ async function verifyRegular() {
 
   await sharedPhaseFlow(a, b);
   await sharedTrackerFlow(a, b);
-  /* The live table sits at Mentat pause, whose advance is gated on readiness (#1139); readiness
+  /* The live table sits at Mentat Pause, whose advance is gated on readiness (#1139); readiness
      is declared before the other player enters read-only playback, where Ready is disabled. */
   await readyBeforeAdvance(a, b);
   const beforePlayback = await verifyCheckpointPlayback(a, b);
