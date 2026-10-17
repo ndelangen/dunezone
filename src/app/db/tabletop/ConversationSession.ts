@@ -59,12 +59,12 @@ export class ConversationSession {
     if (this.context?.factionId !== factionId || this.context.userId !== viewer.userId) {
       this.clear();
     }
-    this.context = {
+    this.context = stableContext(this.context, {
       userId: viewer.userId,
       factionId,
       factionName: factionName(snapshot, factionId),
       peers: otherFactions(snapshot, factionId),
-    };
+    });
     this.online = true;
     this.flush();
   }
@@ -329,8 +329,9 @@ export class ConversationSession {
     return this.monotonicNow() - at >= 15_000;
   }
 
+  /* Messages with nothing left to send keep the list they are in, so a snapshot that sends nothing leaves the view as it was. */
   private flush() {
-    if (!this.online) {
+    if (!this.online || !this.pending.some((entry) => entry.delivery.state === 'unsent')) {
       return;
     }
     this.pending = this.pending.map((entry) => this.sendPending(entry));
@@ -341,6 +342,21 @@ export class ConversationSession {
     }
     return this.send(entry.request) ? { ...entry, delivery: { state: 'sent', at: this.monotonicNow() } } : entry;
   }
+}
+
+/* The context as it was when every field and peer reads the same, so each snapshot that changes none of them keeps the view's context. */
+function stableContext(previous: Context | null, next: Context): Context {
+  if (
+    !previous ||
+    previous.userId !== next.userId ||
+    previous.factionId !== next.factionId ||
+    previous.factionName !== next.factionName ||
+    previous.peers.length !== next.peers.length ||
+    previous.peers.some((peer, index) => peer.id !== next.peers[index]!.id || peer.name !== next.peers[index]!.name)
+  ) {
+    return next;
+  }
+  return previous;
 }
 
 function merge(previous: ConversationMessage[], incoming: ConversationMessage[]) {

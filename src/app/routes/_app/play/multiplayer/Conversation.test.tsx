@@ -115,3 +115,40 @@ test('only messages from the other faction that arrive after the history loaded 
   act(() => publish(view([message(6, 'Fremen', 'own', 'Mine'), message(7, 'Atreides', 'peer', 'Deal?')])));
   expect(status.textContent).toBe('Atreides: Deal?');
 });
+
+test("a message's time follows the server clock's tick into minutes and hours", () => {
+  vi.useFakeTimers();
+  let now = 0;
+  const client = clientWith({
+    context: { factionId: 'own' } as ConversationView['context'],
+    online: true,
+    summaries: [],
+    pages: { peer: { entries: [message(1, 'Atreides', 'peer', 'Hello')], more: false, load: { state: 'idle' } } },
+    pending: [],
+  });
+  render(
+    <MantineProvider theme={appContentTheme}>
+      <ServerClockContext.Provider value={() => now}>
+        <Conversation client={client} peerId="peer" />
+      </ServerClockContext.Provider>
+    </MantineProvider>
+  );
+  const time = () => document.querySelector('time')?.textContent;
+  expect(time()).toBe('Just now');
+  now = 59_000;
+  act(() => {
+    vi.advanceTimersByTime(1000);
+  });
+  expect(time()).toBe('Just now');
+  now = 61_000;
+  act(() => {
+    vi.advanceTimersByTime(1000);
+  });
+  expect(time()).toBe('1 minute ago');
+  now = 2 * 3_600_000;
+  act(() => {
+    vi.advanceTimersByTime(1000);
+  });
+  expect(time()).toBe('2 hours ago');
+  vi.useRealTimers();
+});

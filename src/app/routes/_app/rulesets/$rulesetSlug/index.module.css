@@ -52,3 +52,9 @@
   font-size: var(--mantine-font-size-xs);
   font-weight: 700;
 }
+
+/* The board is round and detailed, so it gets most of the column without dwarfing the Rulebooks above it. */
+.boardFace {
+  display: block;
+  width: min(100%, 24rem);
+}

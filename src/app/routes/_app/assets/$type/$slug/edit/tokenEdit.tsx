@@ -1,8 +1,8 @@
-import { Alert, Button, Group, Popover, Stack, Text } from '@mantine/core';
+import { Alert, Button, Group, Popover, Text } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import type { AssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -16,6 +16,7 @@ import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { initialTokenMemory, TokenEditor, TokenProof, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenWarning, TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
 
@@ -28,9 +29,19 @@ import {
   assetNameField,
   AssetEditorViewerPending,
 } from '../../../assetEditorStates';
+import { LoadedTokenDraft, tokenLoad } from '../../../loadedDrafts';
 import { referencedTokenBackFace } from './referencedBackFace';
+import { referencedBackProof } from './ReferencedBackProof';
 
-export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: string; loaderData: AssetPublicPage }) {
+export function TokenEditPage({
+  type,
+  slug,
+  loaderData,
+}: {
+  type: AssetType;
+  slug: string;
+  loaderData: AssetPublicPage;
+}) {
   const query = useAssetPage(type, slug, { initialData: loaderData });
   const data = query.data;
   const label = isAssetType(type) ? ASSET_TYPES[type].shortLabel.toLowerCase() : 'token';
@@ -142,7 +153,7 @@ function TokenEditSession({
     viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
     assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
   };
-  type: string;
+  type: AssetType;
   asset: NonNullable<AssetPageData>['asset'];
   backToken: NonNullable<AssetPageData>['backToken'];
   /** The server judged the stored reference dangling; the routes only relay the complaint. */
@@ -179,7 +190,6 @@ function TokenEditSession({
       : []),
   ];
   /* The proof draws what was picked, which is the target's authored back, never its front; the shared reader carries the distrust. */
-  const referencedBack = state.memory.pickedBack ? referencedTokenBackFace(state.memory.pickedBack.data) : null;
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
   const isNameBlank = !state.data.name.trim();
@@ -226,6 +236,7 @@ function TokenEditSession({
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          load={tokenLoad({ type, schema: LoadedTokenDraft, editing: asset, saveState, header, dispatch })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save token',
@@ -311,22 +322,9 @@ function TokenEditSession({
                 </Popover>
               </Group>
             )}
-            backProof={
-              state.memory.pickedBack ? (
-                <Stack gap={4} align="center" w="100%">
-                  {referencedBack ? (
-                    <TokenProof face={referencedBack} type={type} />
-                  ) : (
-                    <Text size="xs" c="dimmed">
-                      Its stored back can no longer be read as an authored back, so it cannot be shown here.
-                    </Text>
-                  )}
-                  <Text size="xs" c="dimmed">
-                    Back, from {state.memory.pickedBack.name}
-                  </Text>
-                </Stack>
-              ) : null
-            }
+            backProof={referencedBackProof(state.memory.pickedBack, referencedTokenBackFace, (face) => (
+              <TokenProof face={face} type={type} />
+            ))}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

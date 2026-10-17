@@ -2,7 +2,6 @@ import { Alert, Menu, Popover } from '@mantine/core';
 import { DeckAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -16,6 +15,7 @@ import { useReducer, useState } from 'react';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
+import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
 import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
@@ -30,6 +30,7 @@ import type {
   DeckWarning,
 } from '@app/widgets/deck-editor/DeckEditor';
 import { deckDraftWarnings, DeckEditor, initialDeckMemory } from '@app/widgets/deck-editor/DeckEditor';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import {
@@ -41,6 +42,7 @@ import {
   assetNameField,
   AssetEditorViewerPending,
 } from '../../../assetEditorStates';
+import { LoadedDeckDraft } from '../../../loadedDrafts';
 
 /**
  * Every card type a deck may hold, derived so it grows with the registry rather than with this file.
@@ -255,6 +257,16 @@ function DeckEditSession({
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          load={assetLoad({
+            noun: 'deck',
+            type: 'deck',
+            schema: LoadedDeckDraft,
+            editing: asset,
+            disabled: saveState === 'saving',
+            onLoaded: header.releasing((loaded) =>
+              dispatch({ kind: 'replace', data: loaded.data, pick: loaded.source?.backDeck ?? null })
+            ),
+          })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save deck',

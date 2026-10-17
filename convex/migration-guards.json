@@ -370,6 +370,21 @@
       "id": "rulebook_contents_hash_editions_v1",
       "phase": "widen",
       "requires": []
+    },
+    {
+      "id": "board_readiness_listing_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "faction_cards_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "faction_cards_ready",
+      "phase": "narrow",
+      "requires": ["faction_cards_v1"]
     }
   ]
 }

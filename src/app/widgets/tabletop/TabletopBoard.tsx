@@ -1,6 +1,7 @@
 /* @jsxImportSource ./three-jsx */
 import { useTexture } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import { retainedArrakisBoard } from '@shared/boards/geometry';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import {
@@ -49,11 +50,13 @@ import { ignoreRaycast } from './ignoreRaycast';
 import { PhaseSymbol } from './PhaseSymbol';
 import { useSharedMeshes } from './sharedMeshes';
 import { SoftShadow } from './SoftShadow';
+import { loadSpiceBank } from './tableChunks';
 import { TableFurniture } from './TableFurniture';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
+import { TerritoryTints } from './TerritoryTints';
 import { TurnTracker } from './TurnTracker';
-const SpiceBank = lazy(() => import('./SpiceBank').then((module) => ({ default: module.SpiceBank })));
+const SpiceBank = lazy(() => loadSpiceBank().then((module) => ({ default: module.SpiceBank })));
 useTexture.preload(stormMarkerUrl);
 
 /* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */
@@ -420,7 +423,15 @@ function BoardPaint({ board }: { board: GameSnapshot['board'] }) {
   );
 }
 
-function BoardMap({ animate = false, board }: { animate?: boolean; board: GameSnapshot['board'] }) {
+function BoardMap({
+  animate = false,
+  board,
+  tints,
+}: {
+  animate?: boolean;
+  board: GameSnapshot['board'];
+  tints?: GameSnapshot['tints'];
+}) {
   const invalidate = useThree((state) => state.invalidate);
   const group = useRef<Group>(null);
   const motion = useMotionAllowed();
@@ -447,6 +458,7 @@ function BoardMap({ animate = false, board }: { animate?: boolean; board: GameSn
       */}
       <group position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}>
         <BoardPaint board={board} />
+        {tints?.length ? <TerritoryTints board={board?.definition ?? retainedArrakisBoard()} tints={tints} /> : null}
       </group>
     </group>
   );
@@ -454,6 +466,7 @@ function BoardMap({ animate = false, board }: { animate?: boolean; board: GameSn
 
 export function TabletopBoard({
   board,
+  tints,
   seatCount,
   stormSectorIndex,
   stage,
@@ -464,6 +477,7 @@ export function TabletopBoard({
   onClick,
 }: {
   board?: GameSnapshot['board'];
+  tints?: GameSnapshot['tints'];
   seatCount: TableSeatCount;
   stormSectorIndex?: number;
   stage: GameSnapshot['stage'];
@@ -480,7 +494,7 @@ export function TabletopBoard({
       <BoardRim seatCount={seatCount} />
       <BoardRimShadow />
       {/* The storm's texture must suspend inside its boundary so it cannot hide an already-painted board. */}
-      {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} board={board} />}
+      {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} board={board} tints={tints} />}
       <Suspense fallback={<ArtworkPending />}>
         {boardFurnitureFor(stage).storm && stormSectorIndex !== undefined && (
           <StormSectorHighlight sectorIndex={stormSectorIndex} />

@@ -4,7 +4,6 @@ import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/prof
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -28,6 +27,7 @@ import type { SchemePreference } from '@app/styles/colorScheme';
 import { setMotionOverride, useMotionPreference } from '@app/styles/motion';
 import type { MotionPreference } from '@app/styles/motion';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'sign-in' | 'account';

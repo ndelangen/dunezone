@@ -8,30 +8,10 @@ import {
 import type { RulebookContentsV1 } from '../../src/shared/rulebooks/contents';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
+import { canonicalJson } from './canonicalJson';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 type EditionIdentity = Pick<Doc<'rulebook_editions'>, '_id'>;
-
-/**
- * Renders Contents so that two equal documents render identically, whatever order their keys were written in.
- *
- * Keys sort by code unit rather than by `localeCompare`, which is collation: it answers with the host's ICU data and may call two distinct strings equal, and a comparator that returns 0 for distinct keys leaves their relative order to whichever one was inserted first.
- * That would let one document out-sort its own twin.
- * A key whose value is `undefined` is left out, because Convex cannot store one, so the stored copy of a document never carries it.
- */
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map(canonicalJson).join(',')}]`;
-  }
-  if (value && typeof value === 'object') {
-    return `{${Object.entries(value)
-      .filter(([, child]) => child !== undefined)
-      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-      .map(([key, child]) => `${JSON.stringify(key)}:${canonicalJson(child)}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
 
 export function rulebookContentsMatch(left: unknown, right: unknown) {
   return canonicalJson(left) === canonicalJson(right);
@@ -39,7 +19,7 @@ export function rulebookContentsMatch(left: unknown, right: unknown) {
 
 /**
  * The version every stored Contents hash starts with.
- * A stored hash depends on everything between the stored value and the canonical JSON: the draft and Edition schemas in `src/shared/rulebooks/contents.ts` (their defaults, stripped keys and transforms), `canonicalRulebookCoverControlValues`, and `canonicalJson` here.
+ * A stored hash depends on everything between the stored value and the canonical JSON: the draft and Edition schemas in `src/shared/rulebooks/contents.ts` (their defaults, stripped keys and transforms), `canonicalRulebookCoverControlValues`, and `canonicalJson` in `./canonicalJson`.
  * Change the version whenever any of those changes what it outputs for a stored document, so a hash written under the old rules is never compared with one written under the new.
  * A hash with any other prefix makes the editor fall back to comparing the documents themselves.
  * Production does not rerun a finished migration, so a new version ships with new `rulebook_contents_hash_*` migration ids that rewrite every row.

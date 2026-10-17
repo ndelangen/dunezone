@@ -201,3 +201,21 @@ test('offers history retry after a response is lost and ignores the late page', 
   } as ServerMessage);
   expect(client.getSnapshot().conversations.pages.two?.entries).toEqual([]);
 });
+
+test('a snapshot that changes nothing the conversations show keeps their view, and a renamed peer replaces it', async () => {
+  const client = await connect();
+  client.conversations.submit({ peerId: 'two', text: 'A plan' });
+  const shown = client.getSnapshot().conversations;
+  const view = (next: GameSnapshot) =>
+    socket().deliver({ type: 'view', viewer, epoch: 'epoch', snapshot: next, carries: [], pointers: [] });
+
+  view({ ...structuredClone(snapshot), revision: 1 });
+  expect(client.getSnapshot().conversations).toBe(shown);
+
+  const renamed = structuredClone(snapshot);
+  renamed.roster!.seats[1]!.faction!.name = 'Renamed';
+  view({ ...renamed, revision: 2 });
+  expect(client.getSnapshot().conversations).not.toBe(shown);
+  expect(client.getSnapshot().conversations.context?.peers).toEqual([{ id: 'two', name: 'Renamed', color: 'blue' }]);
+  expect(client.getSnapshot().conversations.pending).toBe(shown.pending);
+});

@@ -40,6 +40,7 @@ export async function openControl(page: Page, tab: string, subtab?: string) {
     Alliances: 'Game',
     Result: 'Game',
     'Shared inventory': 'Table',
+    'Territory tints': 'Table',
     Settings: 'Table',
     'Game log': 'History',
     Audit: 'History',

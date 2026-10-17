@@ -3,7 +3,7 @@ import type { CommitMessage, PieceAction } from '../../src/shared/play/protocol'
 import { isSetupAction } from '../../src/shared/play/setup';
 import type { ActorDirectory } from './actors';
 import type { Patch } from './history';
-import { applyPatch, diff } from './history';
+import { applyPatch, applyPatchInPlace, diff } from './history';
 import type { SpiceLedger } from './spiceLedger';
 import type { StoredSnapshot } from './state';
 import { storedSnapshotSchema } from './state';
@@ -153,23 +153,55 @@ export class SessionHistory {
     const checkpoint = this.storage.sql
       .exec<HistoryRow>("SELECT * FROM history WHERE kind='checkpoint' AND step<=? ORDER BY step DESC LIMIT 1", step)
       .one();
-    let snapshot = storedSnapshotSchema.parse(JSON.parse(checkpoint.data));
+    const rows = this.storage.sql
+      .exec<HistoryRow>('SELECT * FROM history WHERE step>? AND step<=? ORDER BY step', checkpoint.step, step)
+      .toArray();
     let restoredStep = checkpoint.step;
-    for (const row of this.storage.sql.exec<HistoryRow>(
-      'SELECT * FROM history WHERE step>? AND step<=? ORDER BY step',
-      checkpoint.step,
-      step
-    )) {
-      if (row.step !== restoredStep + 1 || row.base_revision !== snapshot.revision) {
+    for (const row of rows) {
+      if (row.step !== restoredStep + 1) {
         throw new Error('History is incomplete.');
       }
-      snapshot = this.restorePatch(snapshot, row);
       restoredStep = row.step;
     }
     if (restoredStep !== step) {
       throw new Error('History is incomplete.');
     }
-    return this.spiceLedger.project(this.actors.publicSnapshot(snapshot));
+    return this.spiceLedger.project(this.actors.publicSnapshot(this.replay(checkpoint, rows)));
+  }
+
+  /**
+   * The checkpoint with every patch row after it applied in turn to one copy, read through the schema once at the end.
+   * A patch written across a release that added a default can reach into a part only a read fills in;
+   * such a chain is replayed by reading each step through the schema, as every restore once did.
+   */
+  private replay(checkpoint: HistoryRow, rows: HistoryRow[]): StoredSnapshot {
+    try {
+      return this.replayInPlace(checkpoint, rows);
+    } catch {
+      return this.replayPerStep(checkpoint, rows);
+    }
+  }
+
+  private replayInPlace(checkpoint: HistoryRow, rows: HistoryRow[]): StoredSnapshot {
+    let snapshot = storedSnapshotSchema.parse(JSON.parse(checkpoint.data));
+    for (const row of rows) {
+      assertBase(snapshot, row);
+      /* The parsed checkpoint and the freshly read rows belong to this restore alone, so they change in place. */
+      snapshot = applyPatchInPlace(snapshot, JSON.parse(row.data) as Patch[]);
+      if (snapshot.revision !== row.revision) {
+        throw new Error('History is incomplete.');
+      }
+    }
+    return storedSnapshotSchema.parse(snapshot);
+  }
+
+  private replayPerStep(checkpoint: HistoryRow, rows: HistoryRow[]): StoredSnapshot {
+    let snapshot = storedSnapshotSchema.parse(JSON.parse(checkpoint.data));
+    for (const row of rows) {
+      assertBase(snapshot, row);
+      snapshot = this.restorePatch(snapshot, row);
+    }
+    return snapshot;
   }
 
   private restorePatch(snapshot: StoredSnapshot, row: HistoryRow): StoredSnapshot {
@@ -178,5 +210,11 @@ export class SessionHistory {
       throw new Error('History is incomplete.');
     }
     return next;
+  }
+}
+
+function assertBase(snapshot: StoredSnapshot, row: HistoryRow) {
+  if (row.base_revision !== snapshot.revision) {
+    throw new Error('History is incomplete.');
   }
 }

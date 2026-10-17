@@ -89,6 +89,25 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   'alliance-decline': () => [[bob, { kind: 'alliance-decline', factionId: 'harkonnen', offer: 0 }]],
   'alliance-break': () => [[bob, { kind: 'alliance-break', factionId: 'harkonnen' }]],
   'last-turn': () => [[bob, { kind: 'last-turn', turn: 8 }]],
+  'tint-create': () => [
+    [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: ['carthag'] }],
+  ],
+  'tint-paint': () => [
+    [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: [] }],
+    [bob, { kind: 'tint-paint', tintId: 'tint-a', territory: 'carthag', name: 'Carthag', painted: true }],
+  ],
+  'tint-set': () => [
+    [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: [] }],
+    [bob, { kind: 'tint-set', tintId: 'tint-a', setting: 'hidden', on: true }],
+  ],
+  'tint-color': () => [
+    [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: [] }],
+    [bob, { kind: 'tint-color', tintId: 'tint-a', color: '#1b1b1b' }],
+  ],
+  'tint-remove': () => [
+    [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: [] }],
+    [bob, { kind: 'tint-remove', tintId: 'tint-a' }],
+  ],
   'hand-take': () => [[bob, { kind: 'hand-take', pieceId: DECK }]],
   /* A card from a hand played onto the deck. */
   'hand-play': (room) => [

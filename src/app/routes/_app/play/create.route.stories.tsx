@@ -38,7 +38,8 @@ export const SignedOut = meta.story({
     ).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toHaveAttribute(
       'href',
-      '/auth/login'
+      /* Signing in returns the reader to the page they asked from. */
+      '/auth/login?redirect=%2Fplay%2Fcreate'
     );
     await expect(page.queryByRole('button', { name: 'Create game' })).toBeNull();
   },

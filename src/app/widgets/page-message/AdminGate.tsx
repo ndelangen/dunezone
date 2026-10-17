@@ -1,11 +1,11 @@
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { PageHeaderSize } from '@ui/layout/PageLayout';
 import type { ReactNode } from 'react';
 
 import type { SessionViewer } from '@db/profiles';
 
+import { LoginGate } from './LoginGate';
 import { PageMessage } from './PageMessage';
 
 export interface AdminGateProps {

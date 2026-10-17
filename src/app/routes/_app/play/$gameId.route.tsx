@@ -1,6 +1,5 @@
 import { Button } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -10,6 +9,7 @@ import type { ReactNode } from 'react';
 import { useGameAccess } from '@db/play';
 import { forgetStoredPlayTable } from '@db/playTables';
 import { pageHead } from '@app/routes/pageTitle';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { GameLink } from './GameLink';
@@ -18,7 +18,17 @@ import { GameRuntimeContext } from './multiplayer/gameRuntime';
 import { TableWait } from './TableWait';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
-const loadHostedTable = () => import('./multiplayer/HostedTable');
+/*
+ * The table's own lazy parts start alongside its bundle, so they do not wait for it to render.
+ * Their list is fetched too, rather than imported, since this route's loader is part of every page's entry.
+ */
+const loadHostedTable = () => {
+  import('@app/widgets/tabletop/tableChunks').then(
+    ({ preloadTableChunks }) => preloadTableChunks(),
+    () => {}
+  );
+  return import('./multiplayer/HostedTable');
+};
 const HostedTable = lazy(loadHostedTable);
 
 /*

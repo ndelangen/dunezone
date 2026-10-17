@@ -1,7 +1,8 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Menu } from '@mantine/core';
+import { signInReturnFrom } from '@shared/authDestination';
 import type { LinkProps } from '@tanstack/react-router';
-import { Link } from '@tanstack/react-router';
+import { Link, useLocation } from '@tanstack/react-router';
 import type { RefObject } from 'react';
 import { useLayoutEffect, useRef, useState } from 'react';
 
@@ -48,6 +49,7 @@ export interface SiteNavigationProps {
 export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
   const profile = useCurrentProfile();
   const { signOut } = useAuthActions();
+  const here = useLocation({ select: (location) => location.href });
   const groupRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const visibleCount = useVisibleLinkCount(groupRef, measureRef, links);
@@ -157,7 +159,7 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
             </Menu>
           </>
         ) : (
-          <Link to="/auth/login" activeProps={{ className: styles.activeLink }}>
+          <Link to="/auth/login" search={signInReturnFrom(here)} activeProps={{ className: styles.activeLink }}>
             Login
           </Link>
         )}

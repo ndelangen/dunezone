@@ -486,13 +486,18 @@ html[data-motion="reduce"] :where(.dune-play-shell) *::after {
 
 /*
  * Three columns (a viewer's choice in the game menu): the controls, the table, and the players side by side.
- * The header's chips still float across the top, so each side column starts below them.
+ * The header's chips float over the table's column only, so each side column runs to the top.
  */
 :where(.dune-play-shell) .seated-controls-panel--column {
   top: 0;
   min-height: 0;
-  padding: calc(var(--play-header-height) + var(--space-xs)) var(--space-sm) var(--space-sm);
+  padding: var(--space-sm);
   box-shadow: none;
+}
+
+/* The table's column can be narrow, so its two chip groups wrap rather than overlap. */
+:where(.dune-play-shell)[data-table-layout="columns"] .seated-header {
+  flex-wrap: wrap;
 }
 
 :where(.dune-play-shell) .seated-controls-panel--column .seated-controls-tabs {
