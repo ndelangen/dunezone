@@ -82,7 +82,12 @@ export function loadFaceTexture(key: string, onLoad: (texture: Texture) => void,
   }
   /* A browser that cannot scale here after all (no 2D context, or out of canvas memory) draws the published image instead. */
   tableCardFace(href).then(
-    (canvas) => onLoad(new CanvasTexture(canvas)),
+    (canvas) => {
+      const texture = new CanvasTexture(canvas);
+      /* A scaled face keeps the published image it came from, which the hosted verification looks for. */
+      texture.userData.publishedHref = href;
+      onLoad(texture);
+    },
     () => new TextureLoader().load(href, onLoad, undefined, onError)
   );
 }
