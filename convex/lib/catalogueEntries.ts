@@ -44,23 +44,29 @@ async function entriesFor(ctx: QueryCtx, kind: CatalogueKindName, sourceId: stri
 }
 
 /**
+ * Deletes every entry of a source beyond the one kept (all of them when `keep` is false) and returns the kept one.
+ * Duplicates are drift;
+ * a full window may hide more behind it, so the window is re-read until it is not full.
+ */
+async function removeExtraEntries(ctx: MutationCtx, kind: CatalogueKindName, sourceId: string, keep: boolean) {
+  for (;;) {
+    const entries = await entriesFor(ctx, kind, sourceId);
+    for (const stale of keep ? entries.slice(1) : entries) {
+      await ctx.db.delete(stale._id);
+    }
+    if (entries.length < DUPLICATE_ENTRY_LIMIT) {
+      return keep ? entries[0] : undefined;
+    }
+  }
+}
+
+/**
  * Brings one source's entry in line with its canonical rows: insert, replace or delete, writing only when something differs.
  * Idempotent and order-free, so the triggers, the backfill and any repair all call it.
  */
 export async function reconcileCatalogueEntry(ctx: MutationCtx, kind: CatalogueKindName, sourceId: string) {
   const expected = await CATALOGUE_KINDS[kind].expected(ctx, sourceId);
-  let entries = await entriesFor(ctx, kind, sourceId);
-  /* Duplicates are drift; a full window may hide more behind it, so the window is re-read until it holds at most the one entry kept. */
-  for (;;) {
-    for (const stale of expected ? entries.slice(1) : entries) {
-      await ctx.db.delete(stale._id);
-    }
-    if (entries.length < DUPLICATE_ENTRY_LIMIT) {
-      break;
-    }
-    entries = await entriesFor(ctx, kind, sourceId);
-  }
-  const kept = expected ? entries[0] : undefined;
+  const kept = await removeExtraEntries(ctx, kind, sourceId, expected !== null);
   if (!expected) {
     return;
   }
@@ -124,6 +130,26 @@ export type CatalogueDrift = {
   orphaned: Id<'catalogue_entries'>[];
 };
 
+async function recordSourceDrift(ctx: QueryCtx, kind: CatalogueKindName, sourceIds: string[], drift: CatalogueDrift) {
+  for (const sourceId of sourceIds) {
+    for (const found of await catalogueSourceDrift(ctx, kind, sourceId)) {
+      if (found !== 'orphaned') {
+        drift[found].push(sourceId);
+      }
+    }
+  }
+}
+
+async function orphanedEntries(ctx: QueryCtx, kind: CatalogueKindName, entries: Doc<'catalogue_entries'>[]) {
+  const orphaned: Id<'catalogue_entries'>[] = [];
+  for (const entry of entries) {
+    if ((await catalogueSourceDrift(ctx, kind, entry.source_id)).includes('orphaned')) {
+      orphaned.push(entry._id);
+    }
+  }
+  return orphaned;
+}
+
 /**
  * Compares one kind's entries with the canonical rows, both ways, within one bounded scan of each.
  * Every sampled source and every sampled entry is checked by its own source id, so the two scans need not cover the same rows.
@@ -143,17 +169,7 @@ export async function catalogueDrift(ctx: QueryCtx, kind: CatalogueKindName, lim
     duplicated: [],
     orphaned: [],
   };
-  for (const sourceId of sourceIds) {
-    for (const found of await catalogueSourceDrift(ctx, kind, sourceId)) {
-      if (found !== 'orphaned') {
-        drift[found].push(sourceId);
-      }
-    }
-  }
-  for (const entry of entries) {
-    if ((await catalogueSourceDrift(ctx, kind, entry.source_id)).includes('orphaned')) {
-      drift.orphaned.push(entry._id);
-    }
-  }
+  await recordSourceDrift(ctx, kind, sourceIds, drift);
+  drift.orphaned = await orphanedEntries(ctx, kind, entries);
   return drift;
 }
