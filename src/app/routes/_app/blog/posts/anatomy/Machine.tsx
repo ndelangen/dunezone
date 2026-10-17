@@ -1,14 +1,18 @@
+import type { CSSProperties } from 'react';
 import { useId } from 'react';
 
 import styles from './Machine.module.css';
 
 /*
- * The middle of the faction diagram: the place the faction is kept, drawn as a blueprint of a small machine rather than a database symbol, so a reader without a programming background sees "it goes in here, and everything comes out of here".
- * Ingredients drop into the intake on top, the screen shows the one record it holds, and the assets leave through the outlet below; the diagram's lines meet the intake and the outlet at the drawing's centre line.
+ * The middle of the faction diagram: where the faction is kept, drawn as a cutaway of a copying machine rather than a database symbol.
+ * The ingredients feed in at the top, a browser unit renders the record onto a turning drum, and the paper path carries it out of the bottom as a PDF.
+ * Beside the path sit the storage cassettes: a roller retrieves the record from them, and the images the drum makes are filed back into them.
+ * The diagram's lines meet the drawing at the feeder and the outlet, both on the centre line.
  */
 
-const WIDTH = 360;
-const HEIGHT = 230;
+const LEFT = -80;
+const WIDTH = 520;
+const HEIGHT = 258;
 
 /** A gear outline: `teeth` flat-topped teeth between radius `inner` and `outer`, as one closed path around (`cx`, `cy`). */
 function gearPath(cx: number, cy: number, outer: number, inner: number, teeth: number): string {
@@ -29,7 +33,7 @@ function gearPath(cx: number, cy: number, outer: number, inner: number, teeth: n
   return `M ${points.join(' L ')} Z`;
 }
 
-export function Gear({
+function Gear({
   cx,
   cy,
   outer,
@@ -44,7 +48,7 @@ export function Gear({
 }) {
   return (
     <g className={reverse ? styles.gearReverse : styles.gear} style={{ transformOrigin: `${cx}px ${cy}px` }}>
-      <path d={gearPath(cx, cy, outer, outer - 5, teeth)} />
+      <path d={gearPath(cx, cy, outer, outer - Math.min(5, outer * 0.3), teeth)} />
       <circle cx={cx} cy={cy} r={outer * 0.45} className={styles.thin} />
       <circle cx={cx} cy={cy} r={outer * 0.14} />
       <path
@@ -56,7 +60,7 @@ export function Gear({
 }
 
 /** A label off to the side, joined to the part it names by a leader line ending in a dot. */
-export function Callout({
+function Callout({
   from,
   to,
   text,
@@ -80,95 +84,114 @@ export function Callout({
   );
 }
 
+/** A picture glyph: a frame with a sun and a dune, the sign for a saved image. */
+function Picture({ x, y, size }: { x: number; y: number; size: number }) {
+  return (
+    <g className={styles.thin}>
+      <rect x={x} y={y} width={size} height={size * 0.75} rx="1" />
+      <circle cx={x + size * 0.7} cy={y + size * 0.25} r={size * 0.09} />
+      <path
+        d={`M ${x + 1} ${y + size * 0.7} Q ${x + size * 0.35} ${y + size * 0.3}, ${x + size - 1} ${y + size * 0.68}`}
+      />
+    </g>
+  );
+}
+
 export function Machine({ title, subtitle }: { title: string; subtitle: string }) {
-  const id = useId();
-  const grid = `${id}-grid`;
+  const arrow = `${useId()}-arrow`;
 
   return (
     <svg
       className={styles.machine}
-      viewBox={`-80 0 ${WIDTH + 160} ${HEIGHT}`}
+      viewBox={`${LEFT} 0 ${WIDTH} ${HEIGHT}`}
       role="img"
       aria-label={`${title}: ${subtitle}`}
-      style={{ aspectRatio: `${WIDTH + 160} / ${HEIGHT}` }}
+      style={{ aspectRatio: `${WIDTH} / ${HEIGHT}`, '--arrow': `url(#${arrow})` } as CSSProperties}
     >
       <defs>
-        <pattern id={grid} width="10" height="10" patternUnits="userSpaceOnUse">
-          <path d="M 10 0 H 0 V 10" className={styles.gridLine} />
-        </pattern>
+        <marker id={arrow} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M 0 0 L 8 4 L 0 8 Z" className={styles.dot} />
+        </marker>
       </defs>
 
-      {/* Blueprint paper behind the body, with a fine grid. */}
-      <rect x="20" y="40" width="320" height="164" rx="12" className={styles.paper} />
-      <rect x="20" y="40" width="320" height="164" rx="12" fill={`url(#${grid})`} />
-
       <g className={styles.ink}>
-        {/* The intake the ingredients drop into, on a short neck into the body. */}
-        <path d="M 128 2 H 232 L 208 30 H 152 Z" />
-        <path d="M 160 30 V 40 M 200 30 V 40" />
-        <path d="M 140 8 H 220" className={styles.hidden} />
+        {/* The housing, open at the top and bottom where the paper path runs, with its inner wall as a hidden line. */}
+        <path d="M 156 18 H 30 V 232 H 168 M 192 232 H 330 V 18 H 204" />
+        <path d="M 156 18 L 140 0 M 204 18 L 220 0" />
+        <path d="M 36 24 H 324 V 226 H 36 Z" className={styles.hidden} />
 
-        {/* The body, with an inner panel line and fixings. */}
-        <rect x="20" y="40" width="320" height="164" rx="12" />
-        <rect x="28" y="48" width="304" height="148" rx="8" className={styles.thin} />
-        {(
-          [
-            [34, 54],
-            [326, 54],
-            [34, 190],
-            [326, 190],
-          ] as const
-        ).map(([cx, cy]) => (
-          <g key={`${cx}-${cy}`} className={styles.thin}>
-            <circle cx={cx} cy={cy} r="3" />
-            <path d={`M ${cx - 2} ${cy} H ${cx + 2}`} />
-          </g>
-        ))}
+        {/* Feed rollers. */}
+        <Gear cx={170} cy={32} outer={8} teeth={8} />
+        <Gear cx={190} cy={32} outer={8} teeth={8} reverse />
 
-        {/* Gears turning on either side, with the shafts that join them drawn as hidden lines. */}
-        <path d="M 62 102 L 86 150 M 300 98 L 292 148" className={styles.hidden} />
-        <Gear cx={62} cy={102} outer={26} teeth={12} />
-        <Gear cx={86} cy={150} outer={16} teeth={8} reverse />
-        <Gear cx={300} cy={98} outer={20} teeth={10} reverse />
-        <Gear cx={292} cy={148} outer={24} teeth={11} />
+        {/* The browser unit, writing the record onto the drum. */}
+        <rect x="138" y="48" width="84" height="20" rx="2" />
+        <text x="180" y="61" className={styles.label} textAnchor="middle">
+          BROWSER
+        </text>
+        <path d="M 168 68 L 180 88 M 192 68 L 180 88" className={styles.beam} />
 
-        {/* The screen with the one record it holds. */}
-        <rect x="112" y="62" width="136" height="78" rx="4" />
-        <rect x="118" y="68" width="124" height="66" rx="2" className={styles.thin} />
-        <text x="180" y="86" className={styles.screenSmall}>
+        {/* The drum, turning. */}
+        <circle cx="180" cy="124" r="34" />
+        <Gear cx={180} cy={124} outer={22} teeth={14} />
+
+        {/* The paper path, flowing from the feeder round the drum and out of the bottom. */}
+        <path d="M 180 40 V 90 A 34 34 0 0 1 180 158 V 236" className={styles.flow} />
+
+        {/* The record's plate. */}
+        <rect x="48" y="176" width="112" height="42" rx="3" />
+        <text x="104" y="191" className={styles.plateSmall}>
           {subtitle.toUpperCase()}
         </text>
-        <text x="180" y="110" className={styles.screenTitle}>
+        <text x="104" y="208" className={styles.plateTitle}>
           {title.toUpperCase()}
         </text>
-        <path d="M 152 120 H 206" className={styles.thin} />
-        <rect x="210" y="116" width="5" height="7" className={styles.cursor} />
 
-        {/* Indicator lamps and a dial. */}
-        {[140, 158, 176, 194, 212].map((cx, index) => (
+        {/* Storage cassettes, with the pick-up roller that retrieves the record for the browser. */}
+        {['RECORDS', 'IMAGES', 'PRINTS'].map((label, index) => {
+          const y = 110 + index * 34;
+          return (
+            <g key={label}>
+              <path d={`M 240 ${y} H 318 V ${y + 28} H 240 Z M 240 ${y + 6} L 250 ${y}`} />
+              <text x="256" y={y + 18} className={styles.label}>
+                {label}
+              </text>
+              {label === 'IMAGES' && <Picture x={298} y={y + 8} size={14} />}
+            </g>
+          );
+        })}
+        <Gear cx={236} cy={100} outer={9} teeth={8} reverse />
+        <path d="M 230 92 C 222 70, 226 58, 222 58" className={styles.returnPath} />
+
+        {/* Images peel off the paper path back into storage. */}
+        <path d="M 186 168 C 200 180, 214 160, 238 160" className={styles.returnPath} />
+
+        {[0, 1, 2].map((lamp) => (
           <circle
-            key={cx}
-            cx={cx}
-            cy="160"
-            r="4"
+            key={lamp}
+            cx={56 + lamp * 10}
+            cy="40"
+            r="2.6"
             className={styles.lamp}
-            style={{ animationDelay: `${index * 0.22}s` }}
+            style={{ animationDelay: `${lamp * 0.3}s` }}
           />
         ))}
-        <circle cx="236" cy="168" r="11" />
-        <path d="M 236 168 L 243 162" className={styles.needle} style={{ transformOrigin: '236px 168px' }} />
-        <path d="M 120 178 H 214 M 120 184 H 190" className={styles.hidden} />
 
-        {/* The outlet the assets leave through. */}
-        <path d="M 160 204 V 214 M 200 204 V 214" />
-        <path d="M 146 214 H 214 L 206 228 H 154 Z" />
+        {/* The PDF leaving through the bottom. */}
+        <g className={styles.sheetOut}>
+          <path d="M 168 236 H 187 L 192 241 V 254 H 168 Z M 187 236 V 241 H 192" className={styles.page} />
+          <text x="180" y="247.5" className={styles.pageLabel}>
+            PDF
+          </text>
+        </g>
       </g>
 
-      <Callout from={[230, 10]} to={[262, 16]} text="INTAKE" anchor="start" />
-      <Callout from={[112, 75]} to={[6, 30]} text="ONE RECORD" anchor="end" />
-      <Callout from={[45, 85]} to={[6, 140]} text="DRIVE" anchor="end" />
-      <Callout from={[216, 160]} to={[362, 150]} text="STATUS" anchor="start" />
-      <Callout from={[206, 222]} to={[262, 228]} text="OUTLET" anchor="start" />
+      <Callout from={[222, 58]} to={[350, 60]} text="BROWSER RENDER" anchor="start" />
+      <Callout from={[232, 96]} to={[350, 96]} text="RETRIEVAL" anchor="start" />
+      <Callout from={[318, 150]} to={[350, 150]} text="STORAGE" anchor="start" />
+      <Callout from={[210, 170]} to={[350, 200]} text="IMAGES SAVED" anchor="start" />
+      <Callout from={[168, 248]} to={[0, 250]} text="PDF PRINT" anchor="end" />
+      <Callout from={[146, 124]} to={[0, 124]} text="DRUM" anchor="end" />
     </svg>
   );
 }

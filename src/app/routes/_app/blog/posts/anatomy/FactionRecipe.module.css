@@ -341,7 +341,7 @@
 
 /* The machine that keeps the record, between the ingredients and the assets. */
 .hub {
-  width: min(36rem, 100%);
+  width: min(40rem, 100%);
   margin-block: var(--space-xl) var(--space-md);
 }
 

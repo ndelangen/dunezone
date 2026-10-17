@@ -18,7 +18,7 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { card, disc, page, shield } from '@game/data/sizes';
 
 import styles from './FactionRecipe.module.css';
-import { MACHINE_OPTIONS } from './MachineOptions';
+import { Machine } from './Machine';
 
 /*
  * The post's main figure, in three bands: what an author enters and picks in the faction editor, the one faction record the database keeps, and the assets the site draws from that record.
@@ -358,15 +358,6 @@ function useTour(rootRef: RefObject<HTMLElement | null>, paused: boolean) {
   return step < 0 ? null : (INPUT_ORDER[step] ?? null);
 }
 
-/* While Norbert picks one of the five machines, `?machine=1` to `?machine=5` on the page shows each; the first is the default. */
-function ChosenMachine(props: { title: string; subtitle: string }) {
-  const [choice] = useState(() =>
-    typeof window === 'undefined' ? 0 : Number(new URLSearchParams(window.location.search).get('machine') ?? 1) - 1
-  );
-  const Chosen = MACHINE_OPTIONS[choice] ?? MACHINE_OPTIONS[0];
-  return <Chosen {...props} />;
-}
-
 export function FactionRecipe() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [lines, setLines] = useState<Line[]>([]);
@@ -464,7 +455,7 @@ export function FactionRecipe() {
         ))}
       </div>
       <div className={styles.hub} data-hub>
-        <ChosenMachine title={`House ${FACTION.name}`} subtitle="Faction record" />
+        <Machine title={`House ${FACTION.name}`} subtitle="Faction record" />
       </div>
       <div className={styles.outputs}>
         {OUTPUT_ORDER.map((id) => (
