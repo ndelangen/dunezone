@@ -57,10 +57,28 @@
   display: flex;
 }
 
+/* All five traitors fanned from one corner, each turned a little further than the last. */
+.fan > * {
+  --index: 0;
+
+  transform: rotate(calc((var(--index) - 2) * 6deg));
+  transform-origin: bottom center;
+}
+
 .fan > * + * {
-  margin-inline-start: calc(var(--output-height) * -0.85);
-  transform: rotate(7deg);
-  transform-origin: bottom left;
+  margin-inline-start: calc(var(--output-height) * -0.62);
+}
+
+/* The sheet's two pages side by side, the second slightly over the first. */
+.pages {
+  display: flex;
+  align-items: flex-start;
+}
+
+.pages > * + * {
+  margin-inline-start: calc(var(--output-height) * -0.15);
+  margin-block-start: calc(var(--output-height) * 0.3);
+  transform: rotate(4deg);
 }
 
 .troops {

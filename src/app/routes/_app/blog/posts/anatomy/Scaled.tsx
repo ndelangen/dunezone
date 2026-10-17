@@ -35,3 +35,8 @@ export function Scaled({
 export function SheetFrame({ children }: { children: ReactNode }) {
   return <span className={styles.sheet}>{children}</span>;
 }
+
+/* The shield cut out along its frame, the way the printed shield stands on the table, rather than as the full rectangle it is drawn on. */
+export function ShieldCutout({ children }: { children: ReactNode }) {
+  return <span className={styles.shieldCutout}>{children}</span>;
+}

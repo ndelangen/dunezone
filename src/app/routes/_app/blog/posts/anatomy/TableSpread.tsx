@@ -12,7 +12,7 @@ import { TraitorCard } from '@game/assets/faction/traitor/Traitor';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { card, disc, page, shield } from '@game/data/sizes';
 
-import { Scaled, SheetFrame } from './Scaled';
+import { Scaled, SheetFrame, ShieldCutout } from './Scaled';
 import { SMUGGLERS } from './smugglers';
 import styles from './TableSpread.module.css';
 
@@ -42,15 +42,21 @@ export function TableSpread() {
     <figure className={styles.root}>
       <div className={styles.table}>
         <Placed area="sheet" tilt={-3}>
-          <Scaled size={page} scale={2.6}>
-            <SheetFrame>
-              <FactionSheetPagePreview faction={FACTION} pageNumber={1} />
-            </SheetFrame>
-          </Scaled>
+          <span className={styles.pages}>
+            {([1, 2] as const).map((pageNumber) => (
+              <Scaled key={pageNumber} size={page} scale={2.6}>
+                <SheetFrame>
+                  <FactionSheetPagePreview faction={FACTION} pageNumber={pageNumber} />
+                </SheetFrame>
+              </Scaled>
+            ))}
+          </span>
         </Placed>
         <Placed area="shield" tilt={1.5}>
           <Scaled size={shield} scale={1.3}>
-            <Shield {...FactionRender.shield.parse(FACTION)} />
+            <ShieldCutout>
+              <Shield {...FactionRender.shield.parse(FACTION)} />
+            </ShieldCutout>
           </Scaled>
         </Placed>
         <Placed area="leaders" tilt={0}>
@@ -66,10 +72,12 @@ export function TableSpread() {
         </Placed>
         <Placed area="traitors" tilt={-6}>
           <span className={styles.fan}>
-            {traitors.slice(0, 3).map((traitor) => (
-              <Scaled key={traitor.name} size={card} scale={1.25}>
-                <TraitorCard {...traitor} />
-              </Scaled>
+            {traitors.map((traitor, index) => (
+              <span key={traitor.name} style={{ '--index': index } as CSSProperties}>
+                <Scaled size={card} scale={1.25}>
+                  <TraitorCard {...traitor} />
+                </Scaled>
+              </span>
             ))}
           </span>
         </Placed>
@@ -79,7 +87,7 @@ export function TableSpread() {
           </Scaled>
         </Placed>
         <Placed area="token" tilt={0}>
-          <Scaled size={disc} scale={1.05} round>
+          <Scaled size={disc} scale={1.7} round>
             <Token {...FactionRender.token.parse(FACTION)} />
           </Scaled>
         </Placed>

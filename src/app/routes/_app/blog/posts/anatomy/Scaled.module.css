@@ -21,3 +21,20 @@
   height: 100%;
   overflow: hidden;
 }
+
+/* The outer edge of the shield's frame, traced from its base image, so the marble around it falls away. */
+.shieldCutout {
+  display: block;
+  clip-path: polygon(
+    21.5% 6.9%,
+    78% 6.9%,
+    79.3% 21%,
+    92% 28.3%,
+    97.3% 81.8%,
+    73.4% 93%,
+    25.8% 93%,
+    2.7% 82.1%,
+    7.8% 28.5%,
+    20.3% 20.6%
+  );
+}

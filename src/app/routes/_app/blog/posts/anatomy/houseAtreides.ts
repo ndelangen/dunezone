@@ -3,7 +3,7 @@ import { FactionInputSchema } from '@shared/factions/schema';
 import type { FactionInput } from '@shared/factions/schema';
 
 /*
- * House Atreides as dune.zone shows it at /factions/house-atreides, copied on 2026-10-17, so the post's figures match the faction page.
+ * House Atreides as dune.zone shows it at /factions/house-atreides, copied on 2026-10-17 and refreshed the same evening, so the post's figures match the faction page.
  * It is a copy rather than a live read, because a blog post is a fixed piece of writing and should not change when the faction does.
  * Images are the media pipeline's source keys for the files the page serves; the rule text keeps the page's own wording, typos included.
  * The background's invert, definition and influence, the theme colour and the troop's description come from the stored faction, which the page does not show.
@@ -39,8 +39,8 @@ export const HOUSE_ATREIDES: FactionInput = FactionInputSchema.parse(
       },
     ],
     rules: {
-      startText: '10 forces in Arrakeen and 10 in reserves. Start with 10 spice.',
-      revivalText: '2 forces.',
+      startText: '10 troops in Arrakeen and 10 in reserves. Start with 10 spice.',
+      revivalText: '2 troops.',
       spiceCount: 10,
       advantages: [
         { text: 'You have limited Prescience.' },
@@ -58,12 +58,12 @@ export const HOUSE_ATREIDES: FactionInput = FactionInputSchema.parse(
           title: 'Battle Prescience',
           text: 'During battle (step 2.2) you may force your opponent to reveal 1 part of their Battle Plan early (Weapon, Defense, Dial + whether Mercenaries is being played, or Leader).',
           karama:
-            '(Combat step 2.2) Atreides may not force their opponent to reveal any part of their battle plan this phase. May be done after Atreides ask, before the target answers.',
+            '(Battle step 2.2) Atreides may not force their opponent to reveal any part of their battle plan this phase. May be done after Atreides ask, before the target answers.',
         },
         {
           title: 'Kwisatz Haderach',
-          text: 'Once you have lost 7 or more total forces in battles you gain the Kwiatz Haderach token that can be played alongside leaders in battles in one territory per turn.\nThe token adds +2 to leader strength, and the leader cannot be called traitor. The token can only be lost in a lazgun-shield explosion, after which it can be revived like a normal leader.',
-          karama: '(Combat step 2.3) Atreides may not play the Kwisatz Haderach token in any battle this phase.',
+          text: 'Once you have lost 7 or more total troops in battles you gain the Kwisatz Haderach token that can be played alongside leaders in battles in one territory per turn.\nThe token adds +2 to leader strength, and the leader cannot be called traitor. The token can only be lost in a lazgun-shield explosion, after which it can be revived like a normal leader.',
+          karama: '(Battle step 2.3) Atreides may not play the Kwisatz Haderach token in any battle this phase.',
         },
         {
           title: "Leto's Tithe",
@@ -75,7 +75,7 @@ export const HOUSE_ATREIDES: FactionInput = FactionInputSchema.parse(
       fate: {
         label: 'karama',
         title: 'Arrakis Fiefdom',
-        text: "Play your fate card at any time before Ship & Move Phase to obtain the Carryall Tech Token, which you cannot lose. The token triggers when a spice mine sends troops to reserves. You may also spawn a 3 spice mine on any sand territory that doesn't have a Spice Blow marker.",
+        text: "Play your fate card at any time before Shipment and Movement Phase to obtain the Carryall Tech Token, which you cannot lose. The token triggers when a spice mine sends troops to reserves. You may also spawn a 3 spice mine on any sand territory that doesn't have a Spice Blow marker.",
       },
     },
   })

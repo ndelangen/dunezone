@@ -12,7 +12,7 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { card, disc, page, shield } from '@game/data/sizes';
 
 import styles from './outputs.module.css';
-import { Scaled, SheetFrame } from './Scaled';
+import { Scaled, SheetFrame, ShieldCutout } from './Scaled';
 
 /*
  * The assets a faction is drawn into, each as the site's own renderer fed through `FactionRender`, so the figures draw what the site draws.
@@ -39,11 +39,15 @@ export function outputsFor(faction: FactionInput): Record<OutputId, { label: str
     sheet: {
       label: 'Faction sheet',
       art: () => (
-        <Scaled size={page} scale={1.15}>
-          <SheetFrame>
-            <FactionSheetPagePreview faction={faction} pageNumber={1} />
-          </SheetFrame>
-        </Scaled>
+        <span className={styles.pages}>
+          {([1, 2] as const).map((pageNumber) => (
+            <Scaled key={pageNumber} size={page} scale={1.15}>
+              <SheetFrame>
+                <FactionSheetPagePreview faction={faction} pageNumber={pageNumber} />
+              </SheetFrame>
+            </Scaled>
+          ))}
+        </span>
       ),
     },
     leaderTokens: {
@@ -62,7 +66,7 @@ export function outputsFor(faction: FactionInput): Record<OutputId, { label: str
       label: 'Traitor cards',
       art: () => (
         <span className={styles.fan}>
-          {traitors.slice(-3).map((traitor) => (
+          {traitors.map((traitor) => (
             <Scaled key={traitor.name} size={card}>
               <TraitorCard {...traitor} />
             </Scaled>
@@ -82,7 +86,7 @@ export function outputsFor(faction: FactionInput): Record<OutputId, { label: str
     token: {
       label: 'Faction token',
       art: () => (
-        <Scaled size={disc} scale={1.05} round>
+        <Scaled size={disc} scale={1.25} round>
           <Token {...FactionRender.token.parse(faction)} />
         </Scaled>
       ),
@@ -99,7 +103,9 @@ export function outputsFor(faction: FactionInput): Record<OutputId, { label: str
       label: 'Shield',
       art: () => (
         <Scaled size={shield}>
-          <Shield {...FactionRender.shield.parse(faction)} />
+          <ShieldCutout>
+            <Shield {...FactionRender.shield.parse(faction)} />
+          </ShieldCutout>
         </Scaled>
       ),
     },

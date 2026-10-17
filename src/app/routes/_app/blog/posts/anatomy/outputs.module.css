@@ -1,6 +1,7 @@
 /* Several pieces of one kind overlapping, as a stack of tokens or a fan of cards. */
 .stack,
-.fan {
+.fan,
+.pages {
   display: flex;
 }
 
@@ -10,4 +11,10 @@
 
 .fan > * + * {
   margin-inline-start: calc(var(--output-height) * -0.45);
+}
+
+/* The sheet's two pages, the second laid half over the first. */
+.pages > * + * {
+  margin-inline-start: calc(var(--output-height) * -0.2);
+  margin-block-start: calc(var(--output-height) * 0.12);
 }
