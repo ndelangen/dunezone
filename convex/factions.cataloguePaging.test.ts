@@ -71,7 +71,7 @@ describe('faction catalogue query', () => {
     ]);
   });
 
-  test('searches faction, Faction leader and leader names by word, the last word as a prefix', async () => {
+  test('searches faction, Faction leader and leader names by every word, the last word as a prefix', async () => {
     const { names } = await catalogueWith(
       [
         { name: 'Atreides', factionLeader: 'Duke Leto', rulesets: ['classic'] },
@@ -86,6 +86,10 @@ describe('faction catalogue query', () => {
     expect((await names({ q: 'atre' })).sort(compareCodeUnits)).toEqual(['Atreides', 'House Atreides Remnant']);
     expect(await names({ q: 'Atredes' })).toEqual([]);
     expect(await names({ q: 'Leto' })).toEqual(['Atreides']);
+    /* Every word must match, not any: Convex search alone would also return every other House. */
+    expect(await names({ q: 'House Atreides' })).toEqual(['House Atreides Remnant']);
+    expect(await names({ q: 'Duke Le' })).toEqual(['Atreides']);
+    expect(await names({ q: 'Duke Stilgar' })).toEqual([]);
     expect(await names({ q: 'Stilgar' })).toEqual(['Fremen']);
     expect(await names({ q: 'Chani', ruleset: 'classic' })).toEqual([]);
     expect(await names({ q: 'Atreides', sort: 'name' })).toEqual(['Atreides', 'House Atreides Remnant']);

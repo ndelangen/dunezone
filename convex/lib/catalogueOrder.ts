@@ -225,6 +225,27 @@ async function aggregatePage(ctx: QueryCtx, request: CataloguePageRequest, offse
   return { entries: entries.filter((entry) => entry !== null), total, exact: true };
 }
 
+function searchWords(text: string): string[] {
+  return [...(text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [])];
+}
+
+/**
+ * Convex search returns entries matching any word of the query;
+ * the catalogue keeps those matching every word, the last as a prefix, as a reader expects.
+ * A query with no word at all matches everything, as the search index would return nothing to filter.
+ */
+function matchesEveryWord(query: string) {
+  const words = searchWords(query);
+  const last = words.pop();
+  return (entry: Entry) => {
+    const entryWords = searchWords(entry.search_text);
+    return (
+      words.every((word) => entryWords.includes(word)) &&
+      (last === undefined || entryWords.some((word) => word.startsWith(last)))
+    );
+  };
+}
+
 /** At most `CATALOGUE_BOUNDED_READ` matches, from the search index or the complexity index, ordered and paged in memory. */
 async function boundedPage(ctx: QueryCtx, request: CataloguePageRequest, offset: number) {
   const { kind, partition, sort, direction, pageSize, search } = request;
@@ -246,9 +267,10 @@ async function boundedPage(ctx: QueryCtx, request: CataloguePageRequest, offset:
             .lte('complexity_score', range?.[1] ?? 10)
         )
         .take(CATALOGUE_BOUNDED_READ);
-  const matches = range
+  const inRange = range
     ? read.filter((entry) => entry.complexity_score >= range[0] && entry.complexity_score <= range[1])
     : read;
+  const matches = search ? inRange.filter(matchesEveryWord(search.text)) : inRange;
   if (!search?.relevance) {
     matches.sort(compareBy(sort, direction));
   }
