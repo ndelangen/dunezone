@@ -36,7 +36,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
     date: '2026-10-18',
     author: 'Central419',
     summary:
-      'How the leader tokens and cards on dune.zone are drawn, layer by layer, from GIMP files I made in 2021 to SVG masks and photo textures, traced through the git history of my old projects.',
+      'How I built the leader tokens and cards on dune.zone, from images cut out in GIMP in 2021 to the SVG layers, masks and textures that draw them today.',
     cover: {
       key: '/web/blog/drawing-dune-tokens-and-cards/exploded-layers.jpg',
       alt: 'A treachery card back and a leader token pulled apart into their layers, floating one above the other',
