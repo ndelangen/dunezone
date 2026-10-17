@@ -5,181 +5,67 @@ import { expect } from 'storybook/test';
 import { CardGallery, GalleryCard } from './CardGallery.stories.fixture';
 import { SpiceCard } from './Spice';
 
+type SpiceCardProps = ComponentProps<typeof SpiceCard>;
+type Territory = SpiceCardProps['highlights'][number];
+
+function mine(name: string, territory: Territory, amount: number): SpiceCardProps {
+  return { name, subName: 'Spice mine', icon: 'spice-mine', highlights: [territory], amount };
+}
+
+function blow(name: string, territory: Territory, amount: number): SpiceCardProps {
+  return { name, subName: 'Spice blow', icon: 'spice', highlights: [territory], amount };
+}
+
+function discovery(name: string, highlights: Territory[], text: string): SpiceCardProps {
+  return { name, subName: 'Spice blow - Discovery', icon: 'spice', highlights, amount: 6, text };
+}
+
 /** The territory cards of the deck, each highlighting its own territory; a wrong id draws an empty highlight only the eye catches. */
-const SPICE_DECK: ComponentProps<typeof SpiceCard>[] = [
-  {
-    name: 'Gara Kulon',
-    subName: 'Spice mine',
-    icon: 'spice-mine',
-    highlights: ['gara-kulon'],
-    amount: 5,
-  },
-  {
-    name: 'Cielago East',
-    subName: 'Spice mine',
-    icon: 'spice-mine',
-    highlights: ['cielago-east'],
-    amount: 5,
-  },
-  {
-    name: 'Cielago West',
-    subName: 'Spice mine',
-    icon: 'spice-mine',
-    highlights: ['cielago-west'],
-    amount: 4,
-  },
-  {
-    name: 'Bight of the Cliff',
-    subName: 'Spice mine',
-    icon: 'spice-mine',
-    highlights: ['bight-of-the-cliff'],
-    amount: 4,
-  },
-  {
-    name: 'Broken Land',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['broken-land'],
-    amount: 8,
-  },
-  {
-    name: 'Cielago North',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['cielago-north'],
-    amount: 8,
-  },
-  {
-    name: 'Cielago South',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['cielago-south'],
-    amount: 12,
-  },
-  {
-    name: 'Funeral Plain',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['funeral-plain'],
-    amount: 6,
-  },
-  {
-    name: 'Habbanya Erg',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['habbanya-erg'],
-    amount: 8,
-  },
-  {
-    name: 'Habbanya Ridge Flat',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['habbanya-ridge-flat'],
-    amount: 10,
-  },
-  {
-    name: 'Hagga Basin',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['hagga-basin'],
-    amount: 6,
-  },
-  {
-    name: 'Old Gap',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['old-gap'],
-    amount: 6,
-  },
-  {
-    name: 'Red Chasm',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['red-chasm'],
-    amount: 8,
-  },
-  {
-    name: 'Rock Outcroppings',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['rock-outcroppings'],
-    amount: 6,
-  },
-  {
-    name: 'Sihaya Ridge',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['sihaya-ridge'],
-    amount: 6,
-  },
-  {
-    name: 'South Mesa',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['south-mesa'],
-    amount: 10,
-  },
-  {
-    name: 'The Great Flat',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['the-great-flat'],
-    amount: 10,
-  },
-  {
-    name: 'The Minor Erg',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['the-minor-erg'],
-    amount: 8,
-  },
-  {
-    name: 'Wind Pass North',
-    subName: 'Spice blow',
-    icon: 'spice',
-    highlights: ['wind-pass-north'],
-    amount: 6,
-  },
-  {
-    name: 'Funeral Plain',
-    subName: 'Spice blow - Discovery',
-    icon: 'spice',
-    highlights: ['funeral-plain', 'pasty-mesa'],
-    amount: 6,
-    text: `**Smuggler token** on Pasty Mesa\n+\n**6 spice** on Funeral Plain`,
-  },
-  {
-    name: 'Hagga Basin',
-    subName: 'Spice blow - Discovery',
-    icon: 'spice',
-    highlights: ['hagga-basin', 'gara-kulon'],
-    amount: 6,
-    text: `**Hiereg token** on Gara Kulon\n+\n**6 spice** on Hagga Basin`,
-  },
-  {
-    name: 'Old Gap',
-    subName: 'Spice blow - Discovery',
-    icon: 'spice',
-    highlights: ['old-gap', 'false-wall-west'],
-    amount: 6,
-    text: `**Smuggler token** on False Wall West\n+\n**6 spice** on Old Gap`,
-  },
-  {
-    name: 'Rock Outcroppings',
-    subName: 'Spice blow - Discovery',
-    icon: 'spice',
-    highlights: ['rock-outcroppings', 'meridian'],
-    amount: 6,
-    text: `**Hiereg token** on Meridian\n+\n**6 spice** on Rock Outcroppings`,
-  },
-  {
-    name: 'Sihaya Ridge',
-    subName: 'Spice blow - Discovery',
-    icon: 'spice',
-    highlights: ['sihaya-ridge', 'cielago-east'],
-    amount: 6,
-    text: `**Hiereg token** on Cielago East\n+\n**6 spice** on Sihaya Ridge`,
-  },
+const SPICE_DECK: SpiceCardProps[] = [
+  mine('Gara Kulon', 'gara-kulon', 5),
+  mine('Cielago East', 'cielago-east', 5),
+  mine('Cielago West', 'cielago-west', 4),
+  mine('Bight of the Cliff', 'bight-of-the-cliff', 4),
+  blow('Broken Land', 'broken-land', 8),
+  blow('Cielago North', 'cielago-north', 8),
+  blow('Cielago South', 'cielago-south', 12),
+  blow('Funeral Plain', 'funeral-plain', 6),
+  blow('Habbanya Erg', 'habbanya-erg', 8),
+  blow('Habbanya Ridge Flat', 'habbanya-ridge-flat', 10),
+  blow('Hagga Basin', 'hagga-basin', 6),
+  blow('Old Gap', 'old-gap', 6),
+  blow('Red Chasm', 'red-chasm', 8),
+  blow('Rock Outcroppings', 'rock-outcroppings', 6),
+  blow('Sihaya Ridge', 'sihaya-ridge', 6),
+  blow('South Mesa', 'south-mesa', 10),
+  blow('The Great Flat', 'the-great-flat', 10),
+  blow('The Minor Erg', 'the-minor-erg', 8),
+  blow('Wind Pass North', 'wind-pass-north', 6),
+  discovery(
+    'Funeral Plain',
+    ['funeral-plain', 'pasty-mesa'],
+    `**Smuggler token** on Pasty Mesa\n+\n**6 spice** on Funeral Plain`
+  ),
+  discovery(
+    'Hagga Basin',
+    ['hagga-basin', 'gara-kulon'],
+    `**Hiereg token** on Gara Kulon\n+\n**6 spice** on Hagga Basin`
+  ),
+  discovery(
+    'Old Gap',
+    ['old-gap', 'false-wall-west'],
+    `**Smuggler token** on False Wall West\n+\n**6 spice** on Old Gap`
+  ),
+  discovery(
+    'Rock Outcroppings',
+    ['rock-outcroppings', 'meridian'],
+    `**Hiereg token** on Meridian\n+\n**6 spice** on Rock Outcroppings`
+  ),
+  discovery(
+    'Sihaya Ridge',
+    ['sihaya-ridge', 'cielago-east'],
+    `**Hiereg token** on Cielago East\n+\n**6 spice** on Sihaya Ridge`
+  ),
 ];
 
 const meta = preview.meta({
