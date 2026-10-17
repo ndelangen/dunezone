@@ -214,6 +214,12 @@ describe('flip affordances', () => {
       }
 
       expect(affordancesFor(state).some((affordance) => affordance.commandType === 'piece.flip')).toBe(false);
+      if (constraint === 'locked') {
+        /* A locked piece offers nothing but its unlock. */
+        expect(affordancesFor(state).map(({ commandType, label }) => ({ commandType, label }))).toEqual([
+          { commandType: 'piece.lock', label: 'Unlock piece' },
+        ]);
+      }
     }
   );
 });

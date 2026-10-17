@@ -29,9 +29,14 @@ test('only an Administrator saves presets, with a revision check against concurr
 
 test('disc tint survives saving, loading and publication for presets and authored deck backs', async () => {
   const { t, admin, author } = await fixture();
-  await t.mutation(internal.publicationAdmin.initialize, {
+  /*
+   * The fixture already initialized the settings, so a second initialize answers with the stored revisions and ignores its own.
+   * Deck backs publish without a deck revision, so the tint below still reaches both publications.
+   */
+  const settings = await t.mutation(internal.publicationAdmin.initialize, {
     rendererRevisions: { deck: 2, 'cardback-preset': 1 },
   });
+  expect(settings.rendererRevisions).toEqual({ 'cardback-preset': 1 });
   const tinted = { ...cardback, emblemBackground: { color: '#4466aa', intensity: 0.35 } };
   await admin.mutation(api.cardbackPresets.save, { key: 'traitor', cardback: tinted, revision: 0 });
   const deck = await author.mutation(api.assets.create, {

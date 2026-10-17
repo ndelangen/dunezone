@@ -97,6 +97,11 @@ describe('faction reads across the Faction leader key rename', () => {
     const picker = await viewer.query(api.factions.listForLoadPicker, {});
     expect(picker.rows).toHaveLength(2);
     picker.rows.forEach((row) => expectLeaderKey(row.slug, row.data));
+    /* The picker labels each row with its group's name and its owner's username, read beside the faction data. */
+    expect(picker.rows.map((row) => ({ groupLabel: row.groupLabel, ownerUsername: row.ownerUsername }))).toEqual([
+      { groupLabel: 'Leaders Group', ownerUsername: 'Owner' },
+      { groupLabel: 'Leaders Group', ownerUsername: 'Owner' },
+    ]);
 
     const homepage = await viewer.query(api.homepage.get, {});
     expect(homepage.spotlights.newArrival?.data).not.toHaveProperty('hero');

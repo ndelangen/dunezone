@@ -374,6 +374,15 @@ test('two retained answers to one question remain readable and do not allow a th
   const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
   await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
   await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  await t.run(async (ctx) => {
+    /* The merge moves the question and the source's answer to the target, so both answers now belong to one account. */
+    await expect(ctx.db.get('faq_items', questionId)).resolves.toMatchObject({ asked_by: target.userId });
+    const answers = await ctx.db
+      .query('faq_answers')
+      .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', questionId))
+      .collect();
+    expect(answers.map((answer) => answer.answered_by)).toEqual([target.userId, target.userId]);
+  });
   const page = await admin.query(api.faq.question, { rulesetSlug: 'rules', questionSlug: '1' });
   expect(page).not.toBeNull();
   await expect(

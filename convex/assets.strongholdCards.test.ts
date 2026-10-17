@@ -45,7 +45,9 @@ test('stronghold cards round-trip, publish their constrained face and enforce ed
     { text: 'a'.repeat(1201) },
     { decals: [{ ...data.decals[0], id: 'https://example.com/art.svg' }] },
   ]) {
-    await expect(owner.mutation(api.assets.update, { id: created.id, data: { ...data, ...extra } })).rejects.toThrow();
+    await expect(owner.mutation(api.assets.update, { id: created.id, data: { ...data, ...extra } })).rejects.toThrow(
+      'The stronghold card contains invalid fields'
+    );
   }
   const changed = { ...data, name: 'Custom stronghold', text: 'Win tied battles here.' };
   await owner.mutation(api.assets.update, { id: created.id, data: changed });

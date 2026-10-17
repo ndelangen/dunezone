@@ -71,7 +71,18 @@ describe('account lifecycle widen rollout', () => {
         created_at: now,
         updated_at: now,
       });
-      return { userId, profileId };
+      /* An active neighbour proves discovery still answers, so the pending profile is filtered out rather than the whole list coming back empty. */
+      const activeUserId = await ctx.db.insert('users', { account_state: 'active' });
+      const activeProfileId = await ctx.db.insert('profiles', {
+        user_id: activeUserId,
+        username: 'ActiveUser',
+        avatar_url: 'https://example.com/active.png',
+        account_state: 'active',
+        slug: 'active-user',
+        created_at: '2026-08-19T00:00:00.000Z',
+        updated_at: now,
+      });
+      return { userId, profileId, activeProfileId };
     });
 
     const pending = t.withIdentity({ subject: ids.userId });
@@ -82,7 +93,15 @@ describe('account lifecycle widen rollout', () => {
     });
     await expect(pending.mutation(api.profiles.bootstrapCurrent, {})).rejects.toThrow(/Not authenticated/);
     await expect(t.query(api.profiles.pageBySlug, { slug: 'pending-user' })).rejects.toThrow(/not found/);
-    await expect(t.query(api.profiles.newestDiscoverable, {})).resolves.toEqual([]);
+    await expect(t.query(api.profiles.newestDiscoverable, {})).resolves.toEqual([
+      {
+        id: ids.activeProfileId,
+        slug: 'active-user',
+        username: 'ActiveUser',
+        avatarUrl: 'https://example.com/active.png',
+        createdAt: '2026-08-19T00:00:00.000Z',
+      },
+    ]);
 
     const activeUserId = await t.run(async (ctx) => await ctx.db.insert('users', {}));
     await t.withIdentity({ subject: activeUserId }).mutation(api.profiles.bootstrapCurrent, {});
