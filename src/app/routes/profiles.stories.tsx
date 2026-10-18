@@ -24,6 +24,41 @@ export const Directory = meta.story({
     );
   },
 });
+
+/** More profiles than one page holds, so the directory pages them and a search narrows them. */
+export const DirectoryPagesAndSearch = meta.story({
+  args: { path: '/profiles?page=2' },
+  parameters: {
+    database: db((baseline) => {
+      for (let index = 1; index <= 30; index++) {
+        const number = String(index).padStart(2, '0');
+        baseline.users.push({ $key: `fremen-${number}`, name: `Fremen ${number}` });
+        baseline.profiles.push({
+          user_id: ref(`fremen-${number}`),
+          username: `Fremen ${number}`,
+          slug: `fremen-${number}`,
+          avatar_url: null,
+          account_state: 'active',
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+        });
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    /* A to Z, the viewer sorts after every Fremen, so page two holds the last seven of the thirty-one. */
+    await expect(main.findByRole('link', { name: /Fremen 25/ }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(main.getByRole('link', { name: /storybook-viewer/ })).toBeVisible();
+    await expect(main.queryByRole('link', { name: /Fremen 24/ })).toBeNull();
+    await expect(page.getByRole('link', { name: 'First page' })).toHaveAttribute('href', '/profiles');
+
+    await userEvent.type(page.getByRole('textbox', { name: 'Search profiles' }), 'Fremen 07');
+    await expect(main.findByRole('link', { name: /Fremen 07/ }, { timeout: 30_000 })).resolves.toBeVisible();
+    await waitFor(() => expect(main.queryByRole('link', { name: /storybook-viewer/ })).toBeNull());
+  },
+});
 /**
  * A contributor page, whose FAQ activity cites rulesets by their covers.
  *

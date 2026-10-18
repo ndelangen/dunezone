@@ -65,6 +65,9 @@ export const catalogue_order_prune = internalMutation({
 
 /** Read-only drift report for one catalogue kind, both ways, within one bounded scan of each side. */
 export const catalogueDrift = internalQuery({
-  args: { kind: v.union(v.literal('faction'), v.literal('asset')), limit: v.optional(v.number()) },
+  args: {
+    kind: v.union(v.literal('faction'), v.literal('asset'), v.literal('profile'), v.literal('faq')),
+    limit: v.optional(v.number()),
+  },
   handler: async (ctx, args) => await catalogueDriftOf(ctx, args.kind, args.limit ?? AUDIT_SCAN_LIMIT),
 });

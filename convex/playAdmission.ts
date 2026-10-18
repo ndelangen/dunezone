@@ -11,6 +11,10 @@ import {
   playReconcileAccountsRequestSchema,
   playReconcileAccountsResultSchema,
   playRedeemTicketRequestSchema,
+  playSeatLimitRequestSchema,
+  playSeatLimitResultSchema,
+  playSeatPassRequestSchema,
+  playSeatPassResultSchema,
   playTicketResultSchema,
   playWatchAuthorizationsRequestSchema,
   playWatchAuthorizationsResultSchema,
@@ -33,6 +37,7 @@ import {
 } from './lib/playAuthorization';
 import { playerSummary } from './lib/playerSummary';
 import { playRateLimiter, playTicketQuota } from './lib/playRateLimits';
+import { enrol, enrolment, seatPassFor } from './lib/playSeatPass';
 import { atPlaySeatLimit } from './lib/playSeats';
 import { isSyntheticBackend } from './lib/playSynthetic';
 
@@ -68,6 +73,47 @@ export const issueTicket = mutation({
     await ctx.scheduler.runAt(expiresAt, internal.playAdmission.expireTicket, { ticketId });
     return { ok: true as const, ticket, expiresInMs: expiresAt - now };
   },
+});
+
+/** A mutation may read the clock, so its pass runs a full lifetime from now. */
+async function mutationPass(
+  ctx: MutationCtx,
+  input: unknown,
+  enrolFirst: boolean
+): Promise<ReturnType<typeof playSeatPassResultSchema.parse>> {
+  const session = await livePlaySession(ctx);
+  if (!session) {
+    return { ok: false as const, reason: 'not_authorized' as const };
+  }
+  const limited = await playTicketQuota(ctx, session.userId);
+  if (limited) {
+    return limited;
+  }
+  const request = playSeatPassRequestSchema.safeParse(input);
+  const gameId = request.success ? ctx.db.normalizeId('play_games', request.data.gameId) : null;
+  const game = gameId ? await ctx.db.get(gameId) : null;
+  if (game?.state !== 'ready' || !admitsPlayers(game)) {
+    return { ok: false as const, reason: 'unavailable' as const };
+  }
+  if (enrolFirst ? !(await enrol(ctx, game._id, session.userId)) : !(await enrolment(ctx, game._id, session.userId))) {
+    return { ok: false as const, reason: 'not_authorized' as const };
+  }
+  const pass = await seatPassFor(ctx, game, session, Date.now());
+  return pass ? { ok: true as const, pass } : { ok: false as const, reason: 'not_authorized' as const };
+}
+
+/** Enrols the signed-in account at a game it opens for the first time, so deletion and merges reach the room, and returns its first pass. */
+export const enrolPlayer = mutation({
+  args: zodToConvex(playSeatPassRequestSchema),
+  returns: zodToConvex(playSeatPassResultSchema),
+  handler: async (ctx, args) => await mutationPass(ctx, args, true),
+});
+
+/** A fresh pass for an enrolled account whose held one nears its end before the game query brought a new one. */
+export const renewSeatPass = mutation({
+  args: zodToConvex(playSeatPassRequestSchema),
+  returns: zodToConvex(playSeatPassResultSchema),
+  handler: async (ctx, args) => await mutationPass(ctx, args, false),
 });
 
 async function expirePlayRecord(ctx: MutationCtx, id: Id<'play_tickets'> | Id<'play_auth_registrations'>) {
@@ -350,5 +396,17 @@ export const ackAccountDeletion = mutation({
   handler: async (ctx, args) => {
     await acknowledgeDeletion(ctx, args);
     return null;
+  },
+});
+
+/** Whether the account behind a game actor holds the seat limit in other games; an unknown account reads as at it, so the room refuses. */
+export const seatLimitReached = readyGameQuery({
+  args: zodToConvex(playSeatLimitRequestSchema),
+  returns: zodToConvex(playSeatLimitResultSchema),
+  schema: playSeatLimitRequestSchema,
+  handler: async (ctx, { game, args }) => {
+    const id = ctx.db.normalizeId('users', args.userId);
+    const user = id ? await canonicalAccount(ctx, id) : null;
+    return { ok: true as const, reached: user ? await atPlaySeatLimit(ctx, user._id, game._id) : true };
   },
 });

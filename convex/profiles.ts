@@ -1,11 +1,17 @@
 import { v } from 'convex/values';
 
+import {
+  PROFILE_CATALOGUE_PAGE_SIZE,
+  PROFILE_CATALOGUE_QUERY_LIMIT,
+  PROFILE_CATALOGUE_SORTS,
+} from '../src/shared/profiles/catalogueSearch';
 import { profileUserEditFormSchema } from '../src/shared/profiles/validation';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { mutation, publicQuery, viewerQuery } from './functions';
 import { isActiveProfile, isPublicProfile, optionalActiveUserId } from './lib/accountLifecycle';
 import { accountMethods, authMethodValidator } from './lib/accountMethods';
+import { ALL_PARTITION, countCataloguePartitions, selectCataloguePage } from './lib/catalogueOrder';
 import {
   assignedGroupSummaryValidator,
   profilePageValidator,
@@ -17,6 +23,7 @@ import { requireAuthUserId } from './lib/policy';
 import { loadProfileActivityCounts } from './lib/profileActivity';
 import { scheduleAvatarRehostIfPending } from './lib/profileAvatar';
 import { ensureProfileForUser } from './lib/profileBootstrap';
+import { profileCatalogueOrderOf, profileListName } from './lib/profileCatalogue';
 import { loadProfilePageBySlug } from './lib/profileDetail';
 import { discoverableProfileValidator, loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
 import { allocateProfileSlug } from './lib/profileSlugs';
@@ -197,6 +204,7 @@ const profileListEntryValidator = profileValidator.extend({
   }),
 });
 
+/** The directory before `catalogue`; kept one release for bundles that still ask for it. */
 export const list = publicQuery({
   args: {},
   returns: v.array(profileListEntryValidator),
@@ -219,6 +227,94 @@ export const list = publicQuery({
         answerCount: 0,
       },
     }));
+  },
+});
+
+const profileDirectoryEntryValidator = v.object({
+  id: v.id('profiles'),
+  slug: v.string(),
+  name: v.string(),
+  image: v.union(v.string(), v.null()),
+  activity: v.object({
+    groupCount: v.number(),
+    factionCount: v.number(),
+    questionCount: v.number(),
+    answerCount: v.number(),
+  }),
+});
+
+/**
+ * One page of the profile directory: the aggregate counts the directory and finds the page's first profile;
+ * a search uses Convex's search index over username and slug.
+ * Only the page's own profiles and their activity counts are read, so a page costs the same however many profiles there are.
+ * Replaces `list`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
+ */
+export const catalogue = publicQuery({
+  args: {
+    q: v.optional(v.string()),
+    sort: v.optional(v.union(...PROFILE_CATALOGUE_SORTS.map((sort) => v.literal(sort)))),
+    page: v.optional(v.number()),
+  },
+  returns: v.object({
+    entries: v.array(profileDirectoryEntryValidator),
+    /** Profiles matching the search, across every page. */
+    total: v.number(),
+    /** Listed profiles, before any search. */
+    directoryTotal: v.number(),
+    /** False when a search matched more entries than one query reads, so `total` is a floor. */
+    complete: v.boolean(),
+    /** The page these rows are, which may lie past `pageCount`, with no rows. */
+    page: v.number(),
+    pageCount: v.number(),
+    pageSize: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const text = args.q?.slice(0, PROFILE_CATALOGUE_QUERY_LIMIT).trim() ?? '';
+    const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
+    const [selection, [directoryCount = 0]] = await Promise.all([
+      selectCataloguePage(ctx, {
+        kind: 'profile',
+        partition: ALL_PARTITION,
+        ...profileCatalogueOrderOf(args.sort),
+        page,
+        pageSize: PROFILE_CATALOGUE_PAGE_SIZE,
+        search: text ? { text, relevance: !args.sort } : undefined,
+      }),
+      /* Without a search the page's own count is the directory's, so only a search counts again. */
+      text ? countCataloguePartitions(ctx, 'profile', [ALL_PARTITION]) : Promise.resolve([]),
+    ]);
+
+    const profiles = [];
+    for (const entry of selection.entries) {
+      const profileId = ctx.db.normalizeId('profiles', entry.source_id);
+      const profile = profileId ? await ctx.db.get('profiles', profileId) : null;
+      if (!profile || !isPublicProfile(profile)) {
+        /* Drift: the page comes up one row short until the backfill or the profile's next save. */
+        console.warn(`Catalogue entry for profile ${entry.source_id} has no public profile.`);
+        continue;
+      }
+      profiles.push(profile);
+    }
+    const activity = await loadProfileActivityCounts(
+      ctx,
+      profiles.map((profile) => profile.user_id)
+    );
+
+    return {
+      entries: profiles.map((profile, index) => ({
+        id: profile._id,
+        slug: profile.slug,
+        name: profileListName(profile),
+        image: profile.avatar?.url ?? profile.avatar_url,
+        activity: activity[index] ?? { groupCount: 0, factionCount: 0, questionCount: 0, answerCount: 0 },
+      })),
+      total: selection.total,
+      directoryTotal: text ? directoryCount : selection.total,
+      complete: selection.exact,
+      page,
+      pageCount: Math.max(1, Math.ceil(selection.total / PROFILE_CATALOGUE_PAGE_SIZE)),
+      pageSize: PROFILE_CATALOGUE_PAGE_SIZE,
+    };
   },
 });
 

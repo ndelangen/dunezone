@@ -91,7 +91,7 @@ describe('The hosted fixture room retires on request', () => {
     expect(await runtime.offline('SELECT data FROM metadata')).toEqual([{ data: 'not json' }]);
   });
 
-  it('never retires a real game', async () => {
+  const realGame = () => {
     peer.game = {
       rulesetId: 'ruleset-one',
       minimumPlayers: 4,
@@ -102,9 +102,30 @@ describe('The hosted fixture room retires on request', () => {
       ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
       slots: [],
     });
+  };
+
+  it('never retires a real game', async () => {
+    realGame();
     runtime = await createRuntime(peer, 'game');
     expect((await provision(runtime)).status).toBe(200);
     expect((await post('retire', CREDENTIALS)).status).toBe(403);
     expect(await runtime.exec<{ id: number }>('SELECT id FROM metadata')).toEqual([{ id: 1 }]);
+  });
+
+  it('retires a real game Convex never confirmed, which stored its creator', async () => {
+    realGame();
+    peer.holdConfirmations = true;
+    runtime = await createRuntime(peer, 'game');
+    const provisioning = provision(runtime);
+    const confirmation = await eventually(
+      () => peer.requests.find((request) => request.function === 'playProvisioning:confirmProvisioning'),
+      'the confirmation request'
+    );
+    confirmation.release({ ok: false });
+    expect((await provisioning).status).toBe(403);
+    expect(await runtime.offline('SELECT id FROM metadata')).toEqual([{ id: 1 }]);
+    expect((await post('retire', { ...CREDENTIALS, secret: 'b'.repeat(64) })).status).toBe(403);
+    expect((await post('retire', CREDENTIALS)).status).toBe(200);
+    expect(await storedTables()).toEqual([]);
   });
 });

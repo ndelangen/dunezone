@@ -116,6 +116,25 @@ export const playTicketResultSchema = z.union([
     retryAfterMs: z.number().nonnegative().optional(),
   }),
 ]);
+/*
+ * Enrolling and renewing both answer with a fresh seat pass.
+ * Enrolling happens once per account per game; renewing only when a held pass nears its end with no fresher one from the game query.
+ */
+export const playSeatPassRequestSchema = z.strictObject({ gameId: identifierSchema });
+export const playSeatPassResultSchema = z.union([
+  z.object({ ok: z.literal(true), pass: z.string().max(4096) }),
+  z.object({
+    ok: z.literal(false),
+    reason: z.enum(['not_authorized', 'unavailable', 'rate_limited']),
+    retryAfterMs: z.number().nonnegative().optional(),
+  }),
+]);
+/* The room asks once per seat request whether the requester already holds the seat limit elsewhere; a pass carries no such flag. */
+export const playSeatLimitRequestSchema = z.strictObject({ ...gameCredentialFields, userId: identifierSchema });
+export const playSeatLimitResultSchema = z.union([
+  refusedSchema,
+  z.object({ ok: z.literal(true), reached: z.boolean() }),
+]);
 export const playRedeemTicketRequestSchema = z.strictObject({
   ...gameCredentialFields,
   ticket: playCredentialSchema,
@@ -182,6 +201,21 @@ export const playAccountDeletionRequestSchema = z.strictObject({
   userId: identifierSchema,
   deletionOperationId: identifierSchema,
 });
+/*
+ * An account-wide sign-out reaching a room: every pass of `principalId` from a session created at or before `through` stops working there.
+ * Convex retries it until the room acknowledges, and the room stores the cutoff before it answers.
+ */
+export const playSessionCutoffRequestSchema = z.strictObject({
+  ...gameCredentialFields,
+  eventId: identifierSchema,
+  principalId: identifierSchema,
+  through: timestampSchema,
+});
+export const playAckSessionCutoffRequestSchema = z.strictObject({
+  ...gameCredentialFields,
+  eventId: identifierSchema,
+  through: timestampSchema,
+});
 export const playAckAccountDeletionRequestSchema = z.strictObject({
   ...gameCredentialFields,
   eventId: identifierSchema,
@@ -231,5 +265,13 @@ export const playGameAddressAccessSchema = z.union([
   playGameAccessSchema.options[1],
   playGameAccessSchema.options[2].extend(gameAddress),
   playGameAccessSchema.options[3].extend(gameAddress),
-  playGameAccessSchema.options[4].extend(gameAddress),
+  playGameAccessSchema.options[4].extend({
+    ...gameAddress,
+    /*
+     * The viewer's seat pass for this game, renewed whenever the query re-runs (each sign-in refresh does).
+     * Null until the account is enrolled here, which the page asks for once with `playAdmission.enrolPlayer`.
+     * Absent from a deployment that predates passes.
+     */
+    pass: z.string().max(4096).nullable().optional(),
+  }),
 ]);

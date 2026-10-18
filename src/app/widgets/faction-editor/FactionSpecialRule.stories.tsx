@@ -65,7 +65,7 @@ export const Mobile = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('combobox', { name: 'Faction editor sections' }));
-    await userEvent.click(screen.getByRole('option', { name: /^Rules/ }));
+    await userEvent.click(await screen.findByRole('option', { name: /^Rules/ }));
     await expect(canvas.getByRole('radio', { name: 'Faction Special Karama' })).toBeVisible();
     await userEvent.click(canvas.getByRole('radio', { name: /^Fate$/ }));
     await expect(canvas.getByRole('radio', { name: /^Fate$/ })).toBeChecked();

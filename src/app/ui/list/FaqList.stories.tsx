@@ -61,10 +61,8 @@ const meta = preview.meta({
   args: {
     items: faqItems,
     rulesetSlug: 'dreamrules',
-    searchQuery: '',
     onOpenQuestion: fn(),
     emptyLabel: 'No FAQ items yet.',
-    noMatchesLabel: 'No questions match your search.',
   },
 });
 
@@ -86,18 +84,5 @@ export const NoItems = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('No FAQ items yet.')).toBeVisible();
-    await expect(canvas.queryByText('No questions match your search.')).not.toBeInTheDocument();
-  },
-});
-
-/** Questions exist, but the reader's search excludes them all, which reads differently from having none. */
-export const NoFilteredMatches = meta.story({
-  args: {
-    searchQuery: 'ornithopter timing',
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByText('No questions match your search.')).toBeVisible();
-    await expect(canvas.queryByRole('link')).not.toBeInTheDocument();
   },
 });

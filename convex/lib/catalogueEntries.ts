@@ -15,6 +15,8 @@ import {
   registerCatalogueOrderTriggers,
 } from './catalogueOrder';
 import { factionCatalogueKind } from './factionCatalogue';
+import { faqCatalogueKind } from './faqCatalogue';
+import { profileCatalogueKind } from './profileCatalogue';
 
 /**
  * Catalogue read models (`catalogue_entries`): one slim row per listed entity per list it is in, rebuilt from the canonical rows at will.
@@ -25,6 +27,8 @@ import { factionCatalogueKind } from './factionCatalogue';
 export const CATALOGUE_KINDS = {
   faction: factionCatalogueKind,
   asset: assetCatalogueKind,
+  profile: profileCatalogueKind,
+  faq: faqCatalogueKind,
 } as const satisfies Record<string, CatalogueKind>;
 
 export type CatalogueKindName = keyof typeof CATALOGUE_KINDS;
@@ -155,6 +159,7 @@ function ownerSearchName(profile: Doc<'profiles'> | null) {
  * which linked rulesets are live is resolved when the catalogue is read, so a ruleset's own writes reach no entry.
  * An asset's entries read the asset and its owner's name;
  * one owner can hold more assets than a transaction should rewrite, so a rename is carried to them in scheduled pages.
+ * A profile's entry reads the profile alone, and a question's the question alone.
  */
 export function registerCatalogueTriggers(triggers: Triggers<DataModel, MutationCtx>) {
   triggers.register('factions', async (ctx, change) => {
@@ -171,6 +176,7 @@ export function registerCatalogueTriggers(triggers: Triggers<DataModel, Mutation
     await reconcileCatalogueEntry(ctx, 'asset', change.id);
   });
   triggers.register('profiles', async (ctx, change) => {
+    await reconcileCatalogueEntry(ctx, 'profile', change.id);
     const before = change.oldDoc;
     const after = change.newDoc;
     /* A new profile's owner holds no assets yet: a user cannot create one before their profile exists. */
@@ -182,6 +188,9 @@ export function registerCatalogueTriggers(triggers: Triggers<DataModel, Mutation
         await ctx.scheduler.runAfter(0, internal.catalogueMaintenance.reconcileOwnerAssets, { ownerId, cursor: null });
       }
     }
+  });
+  triggers.register('faq_items', async (ctx, change) => {
+    await reconcileCatalogueEntry(ctx, 'faq', change.id);
   });
   registerCatalogueOrderTriggers(triggers, (kind) => (isCatalogueKindName(kind) ? CATALOGUE_KINDS[kind].sorts : []));
 }
