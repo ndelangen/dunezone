@@ -1,3 +1,4 @@
+import { TextInput } from '@mantine/core';
 import preview from '@sb/preview';
 import { publishingSpiceCard } from '@shared/assets/fixtures/publishingSpiceCard';
 import { spiceBoardLink, spiceBoardTokens } from '@shared/assets/fixtures/spiceBoardCard';
@@ -37,10 +38,10 @@ const meta = preview.meta({
     </WorkbenchLayout>
   ),
   args: {
-    nameField: <input aria-label="Name" readOnly value="Arsunt" />,
+    nameField: <TextInput aria-label="Name" readOnly value="Arsunt" />,
     draft: publishingSpiceCard,
     patch: fn(),
-    chapter: 'head' as const,
+    chapter: 'identity' as const,
     onChapterChange: fn(),
     onSettle: fn(),
     boardPicker: pickOne('Pick Arrakis', 'arrakis-board'),
@@ -69,11 +70,11 @@ function LiveEditor({ initial, ...props }: ComponentProps<typeof SpiceCardEditor
   );
 }
 
-/** The point on screen over a territory's centre on the proof's map. */
 /** The rail proof: the one card the editing surface sits on, not the look choice's previews. */
 const proofOf = (canvasElement: HTMLElement) =>
   canvasElement.querySelector<HTMLElement>('[class*="mapEdit"]')!.parentElement!;
 
+/** The point on screen over a territory's centre on the proof's map. */
 function territoryOnScreen(canvasElement: HTMLElement, id: string) {
   const surface = canvasElement.querySelector('[data-brush]')!.getBoundingClientRect();
   const face = boardTerritoryList(BOARD).find((territory) => territory.id === id)!.face;
@@ -81,13 +82,18 @@ function territoryOnScreen(canvasElement: HTMLElement, id: string) {
   return { x: surface.left + (x / 487.06) * surface.width, y: surface.top + (y / 487.06) * surface.height };
 }
 
-/** The Head chapter: name, type line and the icon choice, beside the live proof. */
-export const Head = meta.story({
+/** The Identity chapter: name, type line and the icon, any vector, beside the live proof. */
+export const Identity = meta.story({
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
     await expect(canvas.getByRole('textbox', { name: 'Type' })).toHaveValue('Spice blow');
-    await userEvent.click(canvas.getByText('Spice mine'));
-    await expect(args.patch).toHaveBeenLastCalledWith({ icon: 'spice-mine' });
+    const icon = canvas.getByRole('combobox', { name: 'Icon' });
+    await userEvent.click(icon);
+    await userEvent.type(icon, 'shield');
+    const shields = await page.findAllByRole('option', { name: /^Shield$/ });
+    await userEvent.click(shields.find((option) => option.getAttribute('value') === '/vector/icon/shield.svg')!);
+    await expect(args.patch).toHaveBeenLastCalledWith({ icon: '/vector/icon/shield.svg' });
   },
 });
 
@@ -103,13 +109,13 @@ export const Territories = meta.story({
   },
 });
 
-/** The Body chapter: the amount is a whole number of at least one, and an empty body prints the standard sentence. */
+/** The Body chapter: the amount is a whole number of at least one, and the body starts as the standard sentence. */
 export const Body = meta.story({
   args: { chapter: 'body' as const },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('textbox', { name: 'Body' })).toHaveValue('');
-    /* The proof prints the renderer's own sentence, whose amount is marked up. */
+    await expect(canvas.getByRole('textbox', { name: 'Body' })).toHaveValue('Add *6 spice* to\nArsunt');
+    /* The proof prints the same sentence, whose amount is marked up. */
     await expect(canvas.getByText('6 spice')).toBeVisible();
     const amount = canvas.getByRole('textbox', { name: 'Amount' });
     await userEvent.tripleClick(amount);
@@ -120,7 +126,7 @@ export const Body = meta.story({
 
 /** A fresh card warns about its missing name and territory rather than refusing to draw. */
 export const Blank = meta.story({
-  args: { draft: INITIAL_SPICE_DRAFT, nameField: <input aria-label="Name" readOnly value="" /> },
+  args: { draft: INITIAL_SPICE_DRAFT, nameField: <TextInput aria-label="Name" readOnly value="" /> },
   play: async () => {
     await expect(spiceDraftWarnings(INITIAL_SPICE_DRAFT).map(({ missing }) => missing)).toEqual([
       'a name',
@@ -156,7 +162,7 @@ export const SavedBoard = meta.story({
 
 /** Each look is drawn on the card itself; picking one sets it on the link, and the strength slider shows for every look but Plain. */
 export const BoardLook = meta.story({
-  args: { chapter: 'map' as const, draft: onBoard },
+  args: { chapter: 'look' as const, draft: onBoard },
   render: (args) => <LiveEditor {...args} initial={onBoard} />,
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
@@ -175,7 +181,7 @@ export const BoardLook = meta.story({
 
 /** Opening a placed token shows its sliders; a new token lands in the middle of the map, open. */
 export const PlacedTokens = meta.story({
-  args: { chapter: 'map' as const, draft: onBoard },
+  args: { chapter: 'tokens' as const, draft: onBoard },
   render: (args) => <LiveEditor {...args} initial={onBoard} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

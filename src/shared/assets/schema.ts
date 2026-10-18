@@ -86,7 +86,11 @@ export const SpiceBoardLink = z.strictObject({
 export const Spice = z.strictObject({
   name: z.string(),
   subName: z.string(),
-  icon: z.enum(['spice-mine', 'spice'] as const),
+  /** A classic card's icon key, or any vector a newer card picked. */
+  icon: z.union([
+    z.enum(['spice-mine', 'spice'] as const),
+    ALL.refine((image) => image.startsWith('/vector/') && image.endsWith('.svg'), { message: 'Pick a vector icon.' }),
+  ]),
   highlights: z.array(
     z.enum([
       //sand

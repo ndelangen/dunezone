@@ -9,7 +9,7 @@ import { boardTerritoryAt } from '@shared/boards/territories';
 import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { TINT_STICKER_ARTWORK, tintPaint } from '@shared/boards/tints';
 import { useId, useRef } from 'react';
-import type { CSSProperties, PointerEvent } from 'react';
+import type { PointerEvent } from 'react';
 import type { z } from 'zod';
 
 import { BOARD_ARTWORK } from '../board/artwork';
@@ -282,19 +282,26 @@ export function SpiceBoardMap({
   const stickerFilter = `${useId().replaceAll(':', '')}-sticker`;
   const territories = boardTerritoryList(board);
   const viewBox = `0 0 ${SPICE_BOARD_SIZE} ${SPICE_BOARD_SIZE}`;
+  const artwork = <BoardArtwork board={board} faces={territories.map(({ face }) => face)} artwork={BOARD_ARTWORK} />;
 
   return (
     <>
-      <svg
-        className={unique.map}
-        data-look={look.style}
-        style={{ '--look-strength': look.strength } as CSSProperties}
-        viewBox={viewBox}
-        fillRule="evenodd"
-        clipRule="evenodd"
-      >
-        <BoardArtwork board={board} faces={territories.map(({ face }) => face)} artwork={BOARD_ARTWORK} />
+      <svg className={unique.map} data-look={look.style} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
+        {artwork}
       </svg>
+      {/* The board as it is, faded over the look: full strength shows only the look, none only the board. */}
+      {look.style === 'plain' || look.strength >= 1 ? null : (
+        <svg
+          className={unique.map}
+          data-look="plain"
+          style={{ opacity: 1 - look.strength }}
+          viewBox={viewBox}
+          fillRule="evenodd"
+          clipRule="evenodd"
+        >
+          {artwork}
+        </svg>
+      )}
       <svg className={unique.map_overlay} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
         <defs>
           {/* The board's glyph colours: near-black ink inside a pale outline. */}

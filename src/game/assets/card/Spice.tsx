@@ -13,6 +13,7 @@ import styles from './Card.module.css';
 import unique from './Spice.module.css';
 import { SpiceBoardMap } from './SpiceBoardMap';
 import type { SpiceMapEditing } from './SpiceBoardMap';
+import { spiceIconSrc, standardSpiceText } from './spiceText';
 
 const edgeColor = '#000';
 const foreGroundColor = '#F8F6E2';
@@ -41,8 +42,8 @@ export const SpiceCard: FC<
       <div className={styles.head_shade} />
       <div className={`${styles.shape} ${unique.shape}`} />
       <BackgroundRenderer className={`${styles.type} ${unique.type}`} background={backgroundPresets.stripedSpice}>
-        <img src={`/vector/icon/${icon}.svg`} alt="" className={unique.typeOverlay} />
-        <img src={`/vector/icon/${icon}.svg`} alt="" className={unique.typeShade} />
+        <img src={spiceIconSrc(icon)} alt="" className={unique.typeOverlay} />
+        <img src={spiceIconSrc(icon)} alt="" className={unique.typeShade} />
       </BackgroundRenderer>
       <div className={styles.title}>{name}</div>
       <div className={styles.subtitle}>{subName}</div>
@@ -127,14 +128,7 @@ export const SpiceCard: FC<
 
       <div className={unique.body}>
         <div>
-          <FormattedText
-            value={
-              text ||
-              (icon === 'spice-mine'
-                ? `Place a *spice mine* of ${amount} on\n${name}`
-                : `Add *${amount} spice* to\n${name}`)
-            }
-          />
+          <FormattedText value={text || standardSpiceText({ icon, amount, name })} />
         </div>
       </div>
 

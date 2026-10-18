@@ -77,17 +77,16 @@ div.shape {
   filter: none;
 }
 
-/* The classic map's look, its colour drained by the strength. */
+/* The classic map's look; the strength fades the plain board over it. */
 .map[data-look="burnt"] {
   mix-blend-mode: color-burn;
-  filter: saturate(calc(1 - 0.9 * var(--look-strength)));
+  filter: saturate(0.1);
 }
 
 /* Toned brown and laid into the parchment's own grain. */
 .map[data-look="sepia"] {
   mix-blend-mode: multiply;
-  filter: sepia(var(--look-strength)) contrast(calc(1 - 0.3 * var(--look-strength)))
-    brightness(calc(1 + 0.1 * var(--look-strength)));
+  filter: sepia(1) contrast(0.7) brightness(1.1);
 }
 
 .map_overlay {

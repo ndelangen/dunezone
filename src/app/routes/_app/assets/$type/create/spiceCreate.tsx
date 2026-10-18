@@ -37,7 +37,7 @@ function reduce(state: SpiceState, event: SpiceEvent): SpiceState {
 /** The spice card create page. Mounted by the generic `$type/create` route when the type is `card-spice`. */
 export function SpiceCreatePage() {
   const saving = useCardCreate('card-spice');
-  const [chapter, setChapter] = useState<SpiceChapter>('head');
+  const [chapter, setChapter] = useState<SpiceChapter>('identity');
   const [state, dispatch] = useReducer(reduce, { data: INITIAL_SPICE_DRAFT, baseline: INITIAL_SPICE_DRAFT });
   const patch = (update: Partial<SpiceDraft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({
@@ -69,7 +69,7 @@ export function SpiceCreatePage() {
         schema: SpiceAsset,
         onLoaded: header.releasing((data) => {
           dispatch({ kind: 'replace', data });
-          setChapter('head');
+          setChapter('identity');
         }),
       }}
       saveError={saving.error}

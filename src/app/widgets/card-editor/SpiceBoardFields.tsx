@@ -374,7 +374,7 @@ function LookChoice({
       {look.style === 'plain' ? null : (
         <ControlBlock
           title="Strength"
-          description="How far the look pulls the board's colours towards the parchment."
+          description="Lower it to let the board's own colours through the look."
           input={
             <Slider
               aria-label="Look strength"
@@ -441,17 +441,15 @@ function BoardChoice({
 }
 
 /**
- * The Map chapter of a card on a saved board: the board, its tints, painted on the card's own map with Play's controls, and its placed tokens.
+ * The Map chapter: the board the card draws, and on a saved board its tints, painted on the card's own map with Play's controls.
  * A card on the classic map shows the board choice above `classic`, the legacy highlight list.
  */
-export function SpiceBoardFields({
+export function SpiceMapFields({
   draft,
   onLink,
   read,
   focus,
   boardPicker,
-  tokenPicker,
-  lookPreview,
   classic,
 }: Readonly<{
   draft: { board?: Link; highlights: Parameters<typeof legacyHighlightTint>[0]; subName: string };
@@ -459,11 +457,8 @@ export function SpiceBoardFields({
   read: SpiceBoardRead;
   focus: SpiceMapFocus;
   boardPicker: AssetPick;
-  tokenPicker: AssetPick;
-  lookPreview: SpiceLookPreview;
   classic: ReactNode;
 }>) {
-  const [pickingToken, setPickingToken] = useState(false);
   const link = draft.board;
   const choice = (
     <BoardChoice
@@ -502,11 +497,6 @@ export function SpiceBoardFields({
   const missing = board ? missingTintTerritories(board, link.tints) : [];
   const setTint = (id: string, update: (tint: Tint) => Tint) =>
     onLink({ ...link, tints: link.tints.map((tint) => (tint.id === id ? update(tint) : tint)) });
-  const setToken = (layerId: string, update: Partial<Placement>) =>
-    onLink({
-      ...link,
-      tokens: link.tokens.map((token) => (token.layerId === layerId ? { ...token, ...update } : token)),
-    });
 
   return (
     <>
@@ -516,7 +506,6 @@ export function SpiceBoardFields({
           {missing.join(', ')}. These stay on the card and show again on a board that has them.
         </Alert>
       ) : null}
-      <LookChoice look={link.look ?? DEFAULT_LOOK} preview={lookPreview} onLook={(look) => onLink({ ...link, look })} />
       <ControlBlock
         title="Tints"
         description="Turn on a tint's paintbrush, then click territories on the card to add or remove them. Escape stops painting."
@@ -546,57 +535,88 @@ export function SpiceBoardFields({
           </Stack>
         }
       />
-      <ControlBlock
-        title="Tokens"
-        description="Token assets on the card's map. Drag one on the card, or open it here for its sliders. They stay where they are when the board changes."
-        input={
-          <Stack gap="xs">
-            {read?.error ? <Alert color="red">{read.error}</Alert> : null}
-            {link.tokens.map((token) => {
-              return (
-                <TokenRow
-                  key={token.layerId}
-                  token={token}
-                  asset={read?.tokens[token.asset_id]}
-                  open={focus.token === token.layerId}
-                  onOpen={() => focus.setToken(focus.token === token.layerId ? null : token.layerId)}
-                  onChange={(update) => setToken(token.layerId, update)}
-                  onRemove={() => onLink({ ...link, tokens: link.tokens.filter((t) => t.layerId !== token.layerId) })}
-                />
-              );
-            })}
-            <Group>
-              <Button
-                variant="default"
-                size="compact-sm"
-                disabled={link.tokens.length >= SPICE_MAX_TOKENS}
-                onClick={() => setPickingToken(true)}
-              >
-                Add a token
-              </Button>
-            </Group>
-            {pickingToken
-              ? tokenPicker(
-                  (asset_id) => {
-                    const layerId = newId('token');
-                    const placed = {
-                      layerId,
-                      asset_id,
-                      x: BOARD_CENTER,
-                      y: BOARD_CENTER,
-                      size: NEW_TOKEN_SIZE,
-                      rotation: 0,
-                    };
-                    onLink({ ...link, tokens: [...link.tokens, placed] });
-                    focus.setToken(layerId);
-                    setPickingToken(false);
-                  },
-                  () => setPickingToken(false)
-                )
-              : null}
-          </Stack>
-        }
-      />
     </>
+  );
+}
+
+/** The Look chapter of a card on a saved board: how the board sits in the parchment. */
+export function SpiceLookFields({
+  link,
+  onLink,
+  preview,
+}: Readonly<{ link: Link; onLink: (link: Link) => void; preview: SpiceLookPreview }>) {
+  return <LookChoice look={link.look ?? DEFAULT_LOOK} preview={preview} onLook={(look) => onLink({ ...link, look })} />;
+}
+
+/** The Tokens chapter of a card on a saved board: token assets placed freely on its map, dragged on the card or set with sliders. */
+export function SpiceTokenFields({
+  link,
+  onLink,
+  read,
+  focus,
+  tokenPicker,
+}: Readonly<{
+  link: Link;
+  onLink: (link: Link) => void;
+  read: SpiceBoardRead;
+  focus: SpiceMapFocus;
+  tokenPicker: AssetPick;
+}>) {
+  const [pickingToken, setPickingToken] = useState(false);
+  const setToken = (layerId: string, update: Partial<Placement>) =>
+    onLink({
+      ...link,
+      tokens: link.tokens.map((token) => (token.layerId === layerId ? { ...token, ...update } : token)),
+    });
+  return (
+    <ControlBlock
+      title="Tokens"
+      description="Token assets on the card's map. Drag one on the card, or open it here for its sliders. They stay where they are when the board changes."
+      input={
+        <Stack gap="xs">
+          {read?.error ? <Alert color="red">{read.error}</Alert> : null}
+          {link.tokens.map((token) => (
+            <TokenRow
+              key={token.layerId}
+              token={token}
+              asset={read?.tokens[token.asset_id]}
+              open={focus.token === token.layerId}
+              onOpen={() => focus.setToken(focus.token === token.layerId ? null : token.layerId)}
+              onChange={(update) => setToken(token.layerId, update)}
+              onRemove={() => onLink({ ...link, tokens: link.tokens.filter((t) => t.layerId !== token.layerId) })}
+            />
+          ))}
+          <Group>
+            <Button
+              variant="default"
+              size="compact-sm"
+              disabled={link.tokens.length >= SPICE_MAX_TOKENS}
+              onClick={() => setPickingToken(true)}
+            >
+              Add a token
+            </Button>
+          </Group>
+          {pickingToken
+            ? tokenPicker(
+                (asset_id) => {
+                  const layerId = newId('token');
+                  const placed = {
+                    layerId,
+                    asset_id,
+                    x: BOARD_CENTER,
+                    y: BOARD_CENTER,
+                    size: NEW_TOKEN_SIZE,
+                    rotation: 0,
+                  };
+                  onLink({ ...link, tokens: [...link.tokens, placed] });
+                  focus.setToken(layerId);
+                  setPickingToken(false);
+                },
+                () => setPickingToken(false)
+              )
+            : null}
+        </Stack>
+      }
+    />
   );
 }
