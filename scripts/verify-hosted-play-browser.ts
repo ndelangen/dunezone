@@ -445,9 +445,15 @@ async function peer(label: string, context?: BrowserContext): Promise<HostedPeer
       const payload: unknown = JSON.parse(frame.payload.toString());
       const message = (values.flow === 'homepage' ? homepageMessageSchema : clientMessageSchema).parse(payload);
       state.sent.push(
-        message.type === 'admit' || message.type === 'authenticate'
+        message.type === 'authenticate'
           ? { type: message.type, ticketLength: message.ticket.length }
-          : message
+          : message.type === 'admit'
+            ? {
+                type: message.type,
+                ticketLength: (message.pass ?? message.ticket ?? '').length,
+                credential: message.pass === undefined ? 'ticket' : 'pass',
+              }
+            : message
       );
     });
     socket.on('framereceived', (frame: { payload: { toString: () => string } }) => {
@@ -653,7 +659,9 @@ async function admitted(who: HostedPeer) {
     'The UI did not receive an authorized snapshot.'
   );
   assert.equal(who.sent[0].type, 'admit');
-  assert.equal(who.sent[0].ticketLength, 64);
+  /* The page enters with its seat pass; the credential itself never reaches the report. */
+  assert.equal(who.sent[0].credential, 'pass');
+  assert.ok(who.sent[0].ticketLength > 0);
   if (requireView(who).snapshot.stage === 'play') {
     await who.page.getByRole('group', { name: 'Table view' }).waitFor();
     await tableLoaded(who);

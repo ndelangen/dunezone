@@ -1,7 +1,10 @@
 import type { Triggers } from 'convex-helpers/server/triggers';
 
+import { internal } from '../_generated/api';
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { isActiveProfile } from './accountLifecycle';
+import { assetCatalogueKind } from './assetCatalogue';
 import { canonicalJson } from './canonicalJson';
 import type { CatalogueEntryFields, CatalogueKind } from './catalogueEntryShape';
 import {
@@ -12,6 +15,8 @@ import {
   registerCatalogueOrderTriggers,
 } from './catalogueOrder';
 import { factionCatalogueKind } from './factionCatalogue';
+import { faqCatalogueKind } from './faqCatalogue';
+import { profileCatalogueKind } from './profileCatalogue';
 
 /**
  * Catalogue read models (`catalogue_entries`): one slim row per listed entity per list it is in, rebuilt from the canonical rows at will.
@@ -21,6 +26,9 @@ import { factionCatalogueKind } from './factionCatalogue';
  */
 export const CATALOGUE_KINDS = {
   faction: factionCatalogueKind,
+  asset: assetCatalogueKind,
+  profile: profileCatalogueKind,
+  faq: faqCatalogueKind,
 } as const satisfies Record<string, CatalogueKind>;
 
 export type CatalogueKindName = keyof typeof CATALOGUE_KINDS;
@@ -140,10 +148,18 @@ export async function catalogueSourceDrift(
   return [...drift];
 }
 
+/** What an asset entry reads off its owner's profile: the name it is searched by, and only while the profile is active. */
+function ownerSearchName(profile: Doc<'profiles'> | null) {
+  return profile && isActiveProfile(profile) ? (profile.username ?? null) : null;
+}
+
 /**
  * Every writer of a kind's source tables keeps its entries exact in its own transaction, and every entry write keeps the aggregate order exact in turn.
  * A faction's entries read the faction and its links;
  * which linked rulesets are live is resolved when the catalogue is read, so a ruleset's own writes reach no entry.
+ * An asset's entries read the asset and its owner's name;
+ * one owner can hold more assets than a transaction should rewrite, so a rename is carried to them in scheduled pages.
+ * A profile's entry reads the profile alone, and a question's the question alone.
  */
 export function registerCatalogueTriggers(triggers: Triggers<DataModel, MutationCtx>) {
   triggers.register('factions', async (ctx, change) => {
@@ -155,6 +171,26 @@ export function registerCatalogueTriggers(triggers: Triggers<DataModel, Mutation
         await reconcileCatalogueEntry(ctx, 'faction', factionId);
       }
     }
+  });
+  triggers.register('assets', async (ctx, change) => {
+    await reconcileCatalogueEntry(ctx, 'asset', change.id);
+  });
+  triggers.register('profiles', async (ctx, change) => {
+    await reconcileCatalogueEntry(ctx, 'profile', change.id);
+    const before = change.oldDoc;
+    const after = change.newDoc;
+    /* A new profile's owner holds no assets yet: a user cannot create one before their profile exists. */
+    if (!before || (before.user_id === after?.user_id && ownerSearchName(before) === ownerSearchName(after))) {
+      return;
+    }
+    for (const ownerId of new Set([before?.user_id, after?.user_id])) {
+      if (ownerId) {
+        await ctx.scheduler.runAfter(0, internal.catalogueMaintenance.reconcileOwnerAssets, { ownerId, cursor: null });
+      }
+    }
+  });
+  triggers.register('faq_items', async (ctx, change) => {
+    await reconcileCatalogueEntry(ctx, 'faq', change.id);
   });
   registerCatalogueOrderTriggers(triggers, (kind) => (isCatalogueKindName(kind) ? CATALOGUE_KINDS[kind].sorts : []));
 }

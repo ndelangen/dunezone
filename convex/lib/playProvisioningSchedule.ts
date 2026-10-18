@@ -37,6 +37,14 @@ export async function insertPendingGame(
     created_at: Date.now(),
   });
   await ctx.scheduler.runAt(expiresAt, internal.playProvisioning.expireProvisioning, { gameId });
+  /* The creator is seated from creation, so they are enrolled with it: deletion and merges reach the room through this row. */
+  if (gameFields.creator_id) {
+    await ctx.db.insert('play_game_accounts', {
+      game_id: gameId,
+      user_id: gameFields.creator_id,
+      actor_user_ids: [gameFields.creator_id],
+    });
+  }
   return { gameId, secret, attemptId, expiresAt };
 }
 

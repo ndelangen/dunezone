@@ -13,6 +13,7 @@ import type { playWatchAuthorizationsRequestSchema } from '../../src/shared/play
 import { GameRejection } from '../../src/shared/play/rejection';
 import { DependencyFailure } from './diagnostics';
 import type { GameDiagnostics } from './diagnostics';
+import type { ConvexCall } from './roomSummary';
 
 /**
  * Convex did not answer: the request timed out or was aborted, the network failed, or the deployment answered with a redirect or a server error other than a function's own failure.
@@ -25,12 +26,27 @@ const FUNCTION_FAILED_STATUS = 560;
 /* Request timeout and rate limiting: Convex is busy, not refusing. */
 const BUSY_STATUSES = new Set([408, 429]);
 
-export function gameHttpClient(url: string): ConvexHttpClient {
+/** Told of every request a room's client makes, by function path, so a room can account for its Convex use. */
+export type ConvexObserver = (call: ConvexCall) => void;
+
+/* The HTTP client posts `{ path, args, format }`; only the path is read, never the arguments. */
+function functionPath(body: unknown) {
+  try {
+    const path: unknown = typeof body === 'string' ? (JSON.parse(body) as { path?: unknown }).path : undefined;
+    return typeof path === 'string' ? path : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+export function gameHttpClient(url: string, observe?: ConvexObserver): ConvexHttpClient {
   return new ConvexHttpClient(url, {
     logger: false,
     fetch: async (input, init) => {
       const startedAt = Date.now();
       const signal = AbortSignal.timeout(PLAY_REQUEST_TIMEOUT_MS);
+      const settle = (ok: boolean) =>
+        observe?.({ path: functionPath(init?.body), durationMs: Math.max(0, Date.now() - startedAt), ok });
       try {
         const response = await fetch(input, {
           ...init,
@@ -50,12 +66,15 @@ export function gameHttpClient(url: string): ConvexHttpClient {
         }
         /* Read inside the timeout, so a body that stalls counts as Convex not answering. */
         const body = await response.arrayBuffer();
+        /* A function failure (560) or a refused request reaches the caller as an error, so it counts as a failed call here too. */
+        settle(response.ok);
         return new Response(body, {
           status: response.status,
           statusText: response.statusText,
           headers: response.headers,
         });
       } catch (error) {
+        settle(false);
         throw error instanceof ConvexUnavailable
           ? error
           : new ConvexUnavailable(
@@ -98,6 +117,7 @@ type ValidationRequest = AuthorizationObservation & {
 /** Production values come from the shared constants; tests pass shorter lifetimes. */
 type WatchDurations = { leaseMs: number; renewalMs: number; recoveryMs: number };
 const watch = api.playAdmission.watchAuthorizations;
+const LIVE_WATCH_PATH = 'playAdmission:watchAuthorizations';
 
 function samePrincipal(left: Principal, right: Pick<AuthorizationValue, 'userId' | 'sessionId'>) {
   return left.userId === right.userId && left.sessionId === right.sessionId;
@@ -245,7 +265,8 @@ export class AuthorizationWatch {
     private readonly credentials: { gameId: string; secret: string },
     private readonly changed: () => void,
     private readonly diagnostics?: GameDiagnostics,
-    durations: Partial<WatchDurations> = {}
+    durations: Partial<WatchDurations> = {},
+    private readonly observeConvex?: ConvexObserver
   ) {
     this.leaseMs = durations.leaseMs ?? PLAY_AUTH_LEASE_MS;
     this.renewalMs = durations.renewalMs ?? PLAY_AUTH_RENEWAL_MS;
@@ -407,6 +428,8 @@ export class AuthorizationWatch {
         if (!this.isConnectedGeneration(batch.generation)) {
           return;
         }
+        /* Each answer on the live subscription is a query Convex ran, though it arrives on the socket rather than a request. */
+        this.observeConvex?.({ path: `${LIVE_WATCH_PATH} (live)`, durationMs: 0, ok: true });
         this.generationAnswered = true;
         this.observation++;
         this.observe(raw, { batch });
@@ -418,6 +441,7 @@ export class AuthorizationWatch {
       },
       (error) => {
         if (batch.generation === this.generation) {
+          this.observeConvex?.({ path: `${LIVE_WATCH_PATH} (live)`, durationMs: 0, ok: false });
           this.diagnostics?.report('authorization-watch', error);
           this.suspend();
         }
@@ -526,7 +550,10 @@ export class AuthorizationWatch {
 
   private async validateRequest(request: ValidationRequest) {
     try {
-      const result: unknown = await gameHttpClient(this.url).query(watch, this.queryArguments(request.batch));
+      const result: unknown = await gameHttpClient(this.url, this.observeConvex).query(
+        watch,
+        this.queryArguments(request.batch)
+      );
       if (!this.acceptsResponse(request)) {
         return;
       }

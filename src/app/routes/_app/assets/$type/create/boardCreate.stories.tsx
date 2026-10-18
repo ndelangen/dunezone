@@ -5,6 +5,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { loadAssetPage } from '@db/assets';
 
+import arrakisMapSvg from '../../../../../widgets/tabletop/assets/arrakis-map.svg?raw';
 import { pageStoryMeta } from '../../../../storybookConfig';
 
 const meta = preview.meta({ ...pageStoryMeta, title: 'Assets/Board editor', args: { path: '/assets/board/create' } });
@@ -71,6 +72,40 @@ export const SaveAndReopen = meta.story({
         .find((territory) => territory.id === 'arrakeen')
         ?.decals.map((decal) => decal.artwork)
     ).toEqual(['/vector/icon/seitch.svg', '/vector/icon/arrakis-city.svg']);
+  },
+});
+
+/**
+ * A picked picture sits over the drawing as a tracing guide, placed and sized with sliders.
+ * It is held as a local object URL, so it is never uploaded or saved, and the canvas says it is not part of the board.
+ */
+export const TracingImage = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Tracing image' }, { timeout: 30_000 }));
+    const dialog = within(await page.findByRole('dialog', { name: 'Tracing image' }));
+    const input = canvasElement.ownerDocument.querySelector<HTMLInputElement>('input[type="file"][accept="image/*"]')!;
+    await userEvent.upload(input, new File([arrakisMapSvg], 'arrakis-map.svg', { type: 'image/svg+xml' }));
+    await waitFor(() => expect(dialog.getByText('arrakis-map.svg')).toBeVisible());
+    await expect(page.findByText('Tracing image · not part of your board')).resolves.toBeVisible();
+    await expect(canvasElement.ownerDocument.querySelector('[data-tracing-image]')?.getAttribute('href')).toMatch(
+      /^blob:/
+    );
+    const image = canvasElement.ownerDocument.querySelector('[data-tracing-image]')!;
+    const x = Number(image.getAttribute('x'));
+    const thumb = dialog.getByRole('slider', { name: 'Tracing image x' });
+    thumb.focus();
+    await userEvent.keyboard('[ArrowRight]');
+    await waitFor(() => expect(Number(image.getAttribute('x'))).toBeGreaterThan(x));
+    /* Removing and picking the same file again brings the image back. */
+    await userEvent.click(dialog.getByRole('button', { name: 'Remove tracing image' }));
+    await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-tracing-image]')).toBeNull());
+    await userEvent.upload(input, new File([arrakisMapSvg], 'arrakis-map.svg', { type: 'image/svg+xml' }));
+    await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-tracing-image]')).not.toBeNull());
+    /* Escape closes the panel and hands focus back to its trigger. */
+    (await dialog.findByRole('slider', { name: 'Tracing image x' })).focus();
+    await userEvent.keyboard('[Escape]');
+    await waitFor(() => expect(page.getByRole('button', { name: 'Tracing image' })).toHaveFocus());
   },
 });
 

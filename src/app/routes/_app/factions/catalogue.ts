@@ -1,14 +1,12 @@
 import { parseFactionCatalogueSearch } from '@shared/factions/catalogueSearch';
 import type { FactionCatalogueSearch } from '@shared/factions/catalogueSearch';
 import { getRouteApi, useLocation, useRouter } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 
 import type { FactionCatalogueArgs, FactionCatalogueRuleset } from '@db/factions';
+import { useSearchDraft } from '@app/routes/searchDraft';
 
 const factionCatalogueRoute = getRouteApi('/_app/factions/');
-
-/** How long the search box waits after the last keystroke before the search becomes the page's address. */
-const QUERY_COMMIT_DELAY_MS = 300;
 
 /**
  * The page query's arguments for a parsed address, shared by the loader's deps and the live hook so both ask the identical question.
@@ -60,15 +58,11 @@ export function useFactionCatalogueSession(rulesets: FactionCatalogueRuleset[] |
   const location = useLocation();
   const search = parseFactionCatalogueSearch(location.search ?? {});
   const rawSearch = location.searchStr;
-  const committedQuery = search.q ?? '';
-  const [draftQuery, setDraftQuery] = useState(committedQuery);
-  const [seededQuery, setSeededQuery] = useState(committedQuery);
-  /* Reset during render, the search box's pattern: the URL is the committed value, and a back button
-     that restores an older query must not paint the previous one first. */
-  if (committedQuery !== seededQuery) {
-    setSeededQuery(committedQuery);
-    setDraftQuery(committedQuery);
-  }
+  const commitQuery = useCallback(
+    (q: string) => void navigate({ to: '.', search: (previous) => nextSearch(previous, { q }), replace: true }),
+    [navigate]
+  );
+  const query = useSearchDraft(search.q ?? '', commitQuery);
 
   useEffect(() => {
     if (!rulesets) {
@@ -86,35 +80,14 @@ export function useFactionCatalogueSession(rulesets: FactionCatalogueRuleset[] |
   const changeSearch = (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => {
     void navigate({ to: '.', search: (previous) => nextSearch(previous, patch), replace: true });
   };
-  const commitQuery = () => {
-    if (draftQuery.trim() !== committedQuery) {
-      changeSearch({ q: draftQuery });
-    }
-  };
-
-  /* Typing settles into the address after a pause, as Enter and leaving the field already do. */
-  useEffect(() => {
-    if (draftQuery.trim() === committedQuery) {
-      return;
-    }
-    const timer = setTimeout(
-      () => void navigate({ to: '.', search: (previous) => nextSearch(previous, { q: draftQuery }), replace: true }),
-      QUERY_COMMIT_DELAY_MS
-    );
-    return () => clearTimeout(timer);
-  }, [committedQuery, draftQuery, navigate]);
 
   return {
     search,
     args: factionCatalogueArgs(search),
-    query: {
-      value: draftQuery,
-      change: setDraftQuery,
-      commit: commitQuery,
-    },
+    query,
     changeSearch,
     reset: () => {
-      setDraftQuery('');
+      query.change('');
       changeSearch({ q: undefined, ruleset: undefined, complexity: undefined });
     },
   };

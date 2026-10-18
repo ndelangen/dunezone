@@ -1,0 +1,3 @@
+.tagSegment :is(input, button) {
+  padding-inline: var(--space-sm);
+}

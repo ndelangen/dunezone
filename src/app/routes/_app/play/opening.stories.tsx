@@ -112,8 +112,9 @@ export const Preparing = meta.story({
   parameters: parameters('pending'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const status = await page.findByText('Preparing the table', {}, { timeout: 30_000 });
-    await waitFor(() => expect(finishTransitions(status)).toBeVisible());
+    await page.findByText('Preparing the table', {}, { timeout: 30_000 });
+    /* The page moves from the game's id to its slug and draws the status again, so each check finds it afresh. */
+    await waitFor(() => expect(finishTransitions(page.getByText('Preparing the table'))).toBeVisible());
     /* The status precedes the ClientOnly share control's first committed render. */
     await expect(page.findByRole('button', { name: 'Copy game link' })).resolves.toBeVisible();
     await expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
@@ -128,8 +129,14 @@ export const CatalogueRefused = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('This game could not be prepared', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.getByText(/Publish every member and back/)).toBeVisible();
+    /* The page moves from the game's id to its slug and draws the message again, so the wait finds it afresh each time. */
+    await waitFor(
+      async () => {
+        await expect(page.getByText('This game could not be prepared')).toBeVisible();
+        await expect(page.getByText(/Publish every member and back/)).toBeVisible();
+      },
+      { timeout: 30_000 }
+    );
     await expect(page.queryByText('Preparing the table')).toBeNull();
     await expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
   },
@@ -139,9 +146,11 @@ export const ProvisionTimedOut = meta.story({
   parameters: parameters('expired'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByText('The table was not ready in time. Create the game again from the lobby.', {}, { timeout: 30_000 })
-    ).resolves.toBeVisible();
+    await waitFor(
+      () =>
+        expect(page.getByText('The table was not ready in time. Create the game again from the lobby.')).toBeVisible(),
+      { timeout: 30_000 }
+    );
   },
 });
 

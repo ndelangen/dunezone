@@ -6,11 +6,9 @@ import { convexTest } from 'convex-test';
 import { createFunctionHandle, makeFunctionReference } from 'convex/server';
 import type { WithoutSystemFields } from 'convex/server';
 
-import type { Doc, Id, TableNames } from '../../../../convex/_generated/dataModel';
+import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 import type { DatabaseWriter, MutationCtx } from '../../../../convex/_generated/server';
 import { applicationTriggers } from '../../../../convex/lib/applicationTriggers';
-import { reconcileCatalogueEntry } from '../../../../convex/lib/catalogueEntries';
-import { syncFactionCard } from '../../../../convex/lib/factionCards';
 import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
@@ -126,26 +124,13 @@ async function insertDocument<TableName extends TableNames>(
 async function insertDocuments(world: World, documents: SeedDocument[], delay = 0) {
   await new Promise((resolve) => setTimeout(resolve, delay));
   await world.test.run(async (ctx) => {
-    /* Seeds go in raw, so the catalogue read models the triggers would keep are built here from what was seeded. */
-    const factionIds = new Set<string>();
+    /* Seeds write through the application's triggers, so every read model a real write keeps is derived the same way here. */
+    const wrapped = applicationTriggers.wrapDB(ctx as unknown as MutationCtx);
     for (const document of documents) {
-      const id = await insertDocument(ctx.db, document, world.references);
+      const id = await insertDocument(wrapped.db, document, world.references);
       if (document.key) {
         world.references.set(document.key, id);
       }
-      /* A seed insert skips the write triggers, so the card a faction list reads is derived here as a faction write would derive it. */
-      if (document.table === 'factions') {
-        const factionId = id as Id<'factions'>;
-        await syncFactionCard(ctx, factionId, await ctx.db.get('factions', factionId));
-        factionIds.add(id);
-      } else if (document.table === 'ruleset_factions') {
-        factionIds.add((await ctx.db.get('ruleset_factions', id as Id<'ruleset_factions'>))!.faction_id);
-      }
-    }
-    /* Wrapped, so each entry written here also lands in the catalogue's aggregate order, as an entry trigger would put it. */
-    const wrapped = applicationTriggers.wrapDB(ctx as unknown as MutationCtx);
-    for (const factionId of factionIds) {
-      await reconcileCatalogueEntry(wrapped, 'faction', factionId);
     }
   });
 }
@@ -444,6 +429,11 @@ self.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {
         error: error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error),
       };
     }
-    self.postMessage(response);
+    try {
+      self.postMessage(response);
+    } catch (error) {
+      /* A result the browser cannot clone must still answer, or the caller waits forever. */
+      self.postMessage({ id: request.id, ok: false, error: error instanceof Error ? error.message : String(error) });
+    }
   });
 });

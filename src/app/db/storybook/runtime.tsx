@@ -37,12 +37,13 @@ import type {
 type WithoutId<Request> = Request extends unknown ? Omit<Request, 'id'> : never;
 type WorkerRequestPayload = WithoutId<WorkerRequest>;
 
-export class ConvexStorybookWorkerClient {
+/** The worker itself. Stories never hold one directly, so a pooled worker can serve the next story without the last one reaching it. */
+export class ConvexStorybookWorker {
   private readonly worker = new Worker(new URL('./convexStorybook.worker.ts', import.meta.url), { type: 'module' });
   private readonly pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
-  private readonly listeners = new Set<() => void>();
   private nextId = 1;
-  private revision = 0;
+  /** False once the worker crashed or stopped, so it is never handed to another story. */
+  healthy = true;
 
   constructor() {
     this.worker.addEventListener('message', (event: MessageEvent<WorkerResponse>) => {
@@ -59,9 +60,44 @@ export class ConvexStorybookWorkerClient {
       }
     });
     this.worker.addEventListener('error', (event) => {
+      this.healthy = false;
       this.rejectPending(new Error(event.message));
     });
   }
+
+  async request(request: WorkerRequestPayload): Promise<unknown> {
+    if (!this.healthy) {
+      throw new Error('The Convex Storybook worker stopped.');
+    }
+    const id = this.nextId;
+    this.nextId += 1;
+    return await new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      this.worker.postMessage({ ...request, id } satisfies WorkerRequest);
+    });
+  }
+
+  terminate() {
+    this.healthy = false;
+    this.worker.terminate();
+    this.rejectPending(new Error('The Convex Storybook worker stopped.'));
+  }
+
+  private rejectPending(error: Error) {
+    for (const pending of this.pending.values()) {
+      pending.reject(error);
+    }
+    this.pending.clear();
+  }
+}
+
+/** One story's session on a worker. Once retired it refuses every call, so a late handler from a finished story cannot write into the next story's database. */
+export class ConvexStorybookWorkerClient {
+  private readonly listeners = new Set<() => void>();
+  private revision = 0;
+  private retired = false;
+
+  constructor(private readonly worker = new ConvexStorybookWorker()) {}
 
   query = async <Query extends FunctionReference<'query'> | FunctionReference_future<'query'>>(
     fn: Query,
@@ -141,8 +177,6 @@ export class ConvexStorybookWorkerClient {
   runContextConformance = async () =>
     (await this.request({ operation: 'contextConformance' })) as ContextConformanceResult;
 
-  waitForIdle = async () => await this.request({ operation: 'ping' });
-
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -150,9 +184,15 @@ export class ConvexStorybookWorkerClient {
 
   getRevision = () => this.revision;
 
+  /** Ends this session and hands back its worker, which the next story reseeds before using. */
+  retire(): ConvexStorybookWorker {
+    this.retired = true;
+    return this.worker;
+  }
+
   terminate() {
+    this.retired = true;
     this.worker.terminate();
-    this.rejectPending(new Error('The Convex Storybook worker stopped.'));
   }
 
   private notifyQueries() {
@@ -163,19 +203,10 @@ export class ConvexStorybookWorkerClient {
   }
 
   private async request(request: WorkerRequestPayload): Promise<unknown> {
-    const id = this.nextId;
-    this.nextId += 1;
-    return await new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.worker.postMessage({ ...request, id } satisfies WorkerRequest);
-    });
-  }
-
-  private rejectPending(error: Error) {
-    for (const pending of this.pending.values()) {
-      pending.reject(error);
+    if (this.retired) {
+      throw new Error('This story has finished, so its Convex Storybook database is gone.');
     }
-    this.pending.clear();
+    return await this.worker.request(request);
   }
 }
 

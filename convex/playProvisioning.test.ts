@@ -114,6 +114,15 @@ describe('Play provisioning', () => {
       state: 'expired',
       provision_error: reason,
     });
+    /* A game that never opened enrols nobody, so deletion and merges stop routing to it. */
+    expect(
+      await t.run(async (ctx) =>
+        ctx.db
+          .query('play_game_accounts')
+          .withIndex('by_game_id_user_id', (q) => q.eq('game_id', game._id))
+          .collect()
+      )
+    ).toEqual([]);
     expect(
       await t.mutation(api.playProvisioning.failProvisioning, { ...credentials, reason: 'Another refusal' })
     ).toEqual({ ok: false });

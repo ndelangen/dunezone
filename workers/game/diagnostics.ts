@@ -10,6 +10,8 @@ type Operation =
   | 'directory'
   | 'fixture-deck'
   | 'account-deletion'
+  | 'session-cutoff'
+  | 'seat-limit'
   | 'account-reconciliation'
   | 'admission'
   | 'authorization-watch'
@@ -28,7 +30,7 @@ type Operation =
 const REPEAT_INTERVAL_MS = 60_000;
 
 /** Why the Worker refused an admission; the browser shows every refusal as a login that lost access. */
-export type AdmissionRefusal = 'duplicate' | 'ticket' | 'unreconciled' | 'capacity' | 'unusable-answer';
+export type AdmissionRefusal = 'duplicate' | 'ticket' | 'pass' | 'unreconciled' | 'capacity' | 'unusable-answer';
 
 function errorKind(error: unknown) {
   if (error instanceof TypeError) {

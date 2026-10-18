@@ -246,6 +246,15 @@ function matchesEveryWord(query: string) {
   };
 }
 
+/* Convex full-text search refuses a query of more than this many terms. */
+const SEARCH_TERM_LIMIT = 16;
+
+/** The query as the search index takes it: its first terms only, so a long query narrows by those and the every-word filter checks the rest. */
+function searchIndexText(text: string) {
+  const words = searchWords(text);
+  return words.length > SEARCH_TERM_LIMIT ? words.slice(0, SEARCH_TERM_LIMIT).join(' ') : text;
+}
+
 /** At most `CATALOGUE_BOUNDED_READ` candidates, from the search index or else the complexity index. */
 async function readBounded(ctx: QueryCtx, request: CataloguePageRequest) {
   const { kind, partition, search } = request;
@@ -254,7 +263,7 @@ async function readBounded(ctx: QueryCtx, request: CataloguePageRequest) {
   return search
     ? await query
         .withSearchIndex('search_text', (q) =>
-          q.search('search_text', search.text).eq('kind', kind).eq('partition', partition)
+          q.search('search_text', searchIndexText(search.text)).eq('kind', kind).eq('partition', partition)
         )
         .take(CATALOGUE_BOUNDED_READ)
     : await query

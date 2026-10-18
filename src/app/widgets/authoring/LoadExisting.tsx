@@ -46,7 +46,7 @@ export interface LoadExistingProps<Draft> {
 const OVERFLOW_MENU_BUTTON = 'button[aria-label="More actions"]';
 
 /** The toolbar's overflow menu button, where focus returns when the trigger that opened the popover lived in that menu. */
-function overflowMenuButton(toolbar: HTMLElement | null) {
+export function overflowMenuButton(toolbar: HTMLElement | null) {
   return toolbar?.querySelector<HTMLButtonElement>(OVERFLOW_MENU_BUTTON) ?? null;
 }
 
