@@ -313,14 +313,16 @@ export type CatalogueSearchRequest = {
   kind: string;
   partition: string;
   /**
-   * Searches several lists at once instead of `partition`, each read up to an equal share of the bound and taken in turn, so one list's matches never crowd out another's;
+   * Searches several lists at once instead of `partition`, taken in turn, so one list's matches never crowd out another's;
    * the lists must not share an entry.
    */
   partitions?: string[];
   text: string;
   /** How many matches to return, in relevance order; a reader asks for more by asking again with a larger limit. */
   limit: number;
-  /** Keeps only the matches it returns, in their order, such as those whose owner still exists. */
+  /** An inclusive range of `complexity_score`, 0 to 10. */
+  complexity?: [number, number];
+  /** Keeps only the matches it returns, in their order, such as those whose owner still exists; it sees each match once. */
   keep?: (matches: Entry[]) => Promise<Entry[]>;
 };
 
@@ -328,34 +330,64 @@ export type CatalogueSearchSelection = {
   entries: Entry[];
   /** Whether a larger limit would return more matches. */
   hasMore: boolean;
+  /** Whether a list stopped at its share of the bound with more of the index unread, so matches past it may exist that no limit reaches. */
+  capped: boolean;
 };
 
-/* What one search read takes beyond the matches it wants, for those the every-word filter or `keep` drops. */
+/* How many candidates one pull reads per match still wanted, for those the filters drop. */
 const SEARCH_READ_HEADROOM = 2;
 
-/** The search's matches in one list, reading more of the index only while too few survive the filters, up to `cap`. */
-async function searchMatches(
-  ctx: QueryCtx,
+type SearchList = {
+  rows: AsyncIterator<Entry>;
+  read: number;
+  kept: Entry[];
+  done: boolean;
+  capped: boolean;
+};
+
+function openSearchList(ctx: QueryCtx, request: CatalogueSearchRequest, partition: string): SearchList {
+  const rows = ctx.db
+    .query('catalogue_entries')
+    .withSearchIndex('search_text', (q) =>
+      q.search('search_text', searchIndexText(request.text)).eq('kind', request.kind).eq('partition', partition)
+    )
+    [Symbol.asyncIterator]();
+  return { rows, read: 0, kept: [], done: false, capped: false };
+}
+
+function searchFilter(request: CatalogueSearchRequest) {
+  const words = matchesEveryWord(request.text);
+  const [low, high] = request.complexity ?? [0, 10];
+  return (entry: Entry) => entry.complexity_score >= low && entry.complexity_score <= high && words(entry);
+}
+
+/** Reads on in one list, never again from its start, until it keeps `wanted` matches, runs out, or reaches `cap` candidates. */
+async function pullSearchList(
+  list: SearchList,
   request: CatalogueSearchRequest,
-  partition: string,
+  matches: (entry: Entry) => boolean,
   wanted: number,
   cap: number
 ) {
-  const matches = matchesEveryWord(request.text);
-  let take = Math.min(cap, wanted * SEARCH_READ_HEADROOM);
-  for (;;) {
-    const read = await ctx.db
-      .query('catalogue_entries')
-      .withSearchIndex('search_text', (q) =>
-        q.search('search_text', searchIndexText(request.text)).eq('kind', request.kind).eq('partition', partition)
-      )
-      .take(take);
-    const matched = read.filter(matches);
-    const kept = request.keep ? await request.keep(matched) : matched;
-    if (kept.length >= wanted || read.length < take || take >= cap) {
-      return kept;
+  while (!list.done && list.kept.length < wanted) {
+    const batch = Math.min(cap - list.read, (wanted - list.kept.length) * SEARCH_READ_HEADROOM);
+    const matched: Entry[] = [];
+    for (let index = 0; index < batch; index += 1) {
+      const next = await list.rows.next();
+      if (next.done) {
+        list.done = true;
+        break;
+      }
+      list.read += 1;
+      if (matches(next.value)) {
+        matched.push(next.value);
+      }
     }
-    take = Math.min(cap, take * 2);
+    list.kept.push(...(request.keep ? await request.keep(matched) : matched));
+    if (!list.done && list.read >= cap) {
+      list.done = true;
+      list.capped = true;
+    }
   }
 }
 
@@ -366,20 +398,42 @@ function interleave(lists: Entry[][]) {
 }
 
 /**
- * The first `limit` matches of a text search, best first, and whether there are more: no count and no pages, so it reads only as much of the search index as the limit needs.
- * Each list reads at most its share of `CATALOGUE_BOUNDED_READ`;
- * a match past that is never returned.
+ * The lists taken in turn, but only as far as every unfinished list has read, so a larger limit only ever adds rows after these and Load more never reorders what is shown.
+ */
+function settledMatches(lists: SearchList[]) {
+  const open = lists.filter((list) => !list.done);
+  const rounds = open.length > 0 ? Math.min(...open.map((list) => list.kept.length)) : Infinity;
+  return interleave(lists.map((list) => list.kept.slice(0, rounds))).flat();
+}
+
+/**
+ * The first `limit` matches of a text search in relevance order, and whether there are more: no count, no pages and no other sort, so it reads only as much of the search index as the limit needs.
+ * A sorted search stays on `selectCataloguePage`, which must read its whole bound.
+ * Several lists split the limit between them and read on only while too few rows are settled;
+ * each reads at most its share of `CATALOGUE_BOUNDED_READ`, and `capped` says when that share cut a list short.
  */
 export async function selectCatalogueSearch(
   ctx: QueryCtx,
   request: CatalogueSearchRequest
 ): Promise<CatalogueSearchSelection> {
-  const partitions = request.partitions ?? [request.partition];
-  const cap = Math.max(1, Math.floor(CATALOGUE_BOUNDED_READ / Math.max(1, partitions.length)));
+  const partitions = [...new Set(request.partitions ?? [request.partition])];
+  const cap = Math.max(1, Math.floor(CATALOGUE_BOUNDED_READ / partitions.length));
   const limit = Math.min(CATALOGUE_BOUNDED_READ, Math.max(1, Math.floor(request.limit)));
+  const matches = searchFilter(request);
   /* One more than the limit says whether there are more. */
-  const wanted = Math.min(cap, limit + 1);
-  const lists = await Promise.all(partitions.map((partition) => searchMatches(ctx, request, partition, wanted, cap)));
-  const matches = interleave(lists).flat();
-  return { entries: matches.slice(0, limit), hasMore: matches.length > limit };
+  const wanted = limit + 1;
+  const lists = partitions.map((partition) => openSearchList(ctx, request, partition));
+  let share = Math.ceil(wanted / lists.length);
+  for (;;) {
+    await Promise.all(lists.map((list) => pullSearchList(list, request, matches, share, cap)));
+    const settled = settledMatches(lists);
+    if (settled.length >= wanted || lists.every((list) => list.done)) {
+      return {
+        entries: settled.slice(0, limit),
+        hasMore: settled.length > limit,
+        capped: lists.some((list) => list.capped),
+      };
+    }
+    share *= 2;
+  }
 }

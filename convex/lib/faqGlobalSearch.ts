@@ -5,12 +5,7 @@ import { FAQ_CATALOGUE_PAGE_SIZE, FAQ_CATALOGUE_QUERY_LIMIT } from '../../src/sh
 import { FAQ_SEARCH_RULESET_LIMIT } from '../../src/shared/faq/globalSearch';
 import type { Doc } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
-import {
-  ALL_PARTITION,
-  CATALOGUE_BOUNDED_READ,
-  countCataloguePartitions,
-  selectCatalogueSearch,
-} from './catalogueOrder';
+import { ALL_PARTITION, countCataloguePartitions, selectCatalogueSearch } from './catalogueOrder';
 import { faqListItemValidator } from './collaborativeAccessValidators';
 import { faqEntryRulesetId, faqRulesetPartition } from './faqCatalogue';
 import { faqItemsOfEntries, projectFaqListItems } from './faqRulesetList';
@@ -39,6 +34,8 @@ export const globalFaqPageValidator = v.object({
   items: v.array(faqListItemValidator.extend({ ruleset: rulesetCitation })),
   /** Whether a larger limit would show more questions. */
   hasMore: v.boolean(),
+  /** Whether more questions may match than one search shows, so the reader should add a word rather than load more. */
+  capped: v.boolean(),
   /** The limit these rows answer, after clamping. */
   limit: v.number(),
 });
@@ -115,10 +112,13 @@ async function citeRulesets(items: Awaited<ReturnType<typeof projectFaqListItems
   });
 }
 
-/** The rows a search asks for: a whole number of pages, at least one, at most what one search reads. */
+/* The most questions one search shows: each row reads its answers and asker, so a reactive answer stays small, and a reader past it is better served by another word. */
+const FAQ_SEARCH_ROW_CEILING = FAQ_CATALOGUE_PAGE_SIZE * 10;
+
+/** The rows a search asks for: at least one, at most the ceiling. */
 function rowLimit(limit: number | undefined) {
   const rows = limit !== undefined && Number.isSafeInteger(limit) && limit > 0 ? limit : FAQ_CATALOGUE_PAGE_SIZE;
-  return Math.min(CATALOGUE_BOUNDED_READ, rows);
+  return Math.min(FAQ_SEARCH_ROW_CEILING, rows);
 }
 
 /**
@@ -136,7 +136,7 @@ export async function loadGlobalFaqPage(ctx: QueryCtx, args: { q?: string; rules
     limit,
   };
   if (!text) {
-    return { ...base, items: [], hasMore: false };
+    return { ...base, items: [], hasMore: false, capped: false };
   }
 
   const rulesetOf = rulesetReader(ctx, picked);
@@ -149,5 +149,11 @@ export async function loadGlobalFaqPage(ctx: QueryCtx, args: { q?: string; rules
     keep: picked.length > 0 ? undefined : keepLiveRulesets(rulesetOf),
   });
   const items = await projectFaqListItems(ctx, await faqItemsOfEntries(ctx, selection.entries));
-  return { ...base, items: await citeRulesets(items, rulesetOf), hasMore: selection.hasMore };
+  const atCeiling = selection.hasMore && limit >= FAQ_SEARCH_ROW_CEILING;
+  return {
+    ...base,
+    items: await citeRulesets(items, rulesetOf),
+    hasMore: selection.hasMore && !atCeiling,
+    capped: selection.capped || atCeiling,
+  };
 }

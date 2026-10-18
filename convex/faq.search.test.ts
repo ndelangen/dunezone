@@ -93,7 +93,14 @@ describe('the global FAQ', () => {
     await seedRulesets(t, { Basic: ['Does the storm move?'], Advanced: ['Can I ship?', 'Can I revive?'], Empty: [] });
 
     const page = await t.query(api.faq.search, {});
-    expect(page).toEqual({ searched: false, items: [], hasMore: false, limit: FAQ_CATALOGUE_PAGE_SIZE, selected: [] });
+    expect(page).toEqual({
+      searched: false,
+      items: [],
+      hasMore: false,
+      capped: false,
+      limit: FAQ_CATALOGUE_PAGE_SIZE,
+      selected: [],
+    });
     const options = await t.query(api.faq.rulesetOptions, {});
     expect(options.map(({ slug, questions }) => [slug, questions])).toEqual([
       ['advanced', 2],
@@ -165,7 +172,7 @@ describe('the global FAQ', () => {
       first.items.map((item) => item._id)
     );
     expect((await t.query(api.faq.search, { q: 'spice', limit: 0 })).limit).toBe(FAQ_CATALOGUE_PAGE_SIZE);
-    expect((await t.query(api.faq.search, { q: 'spice', limit: 1e9 })).limit).toBe(CATALOGUE_BOUNDED_READ);
+    expect((await t.query(api.faq.search, { q: 'spice', limit: 1e9 })).limit).toBe(FAQ_CATALOGUE_PAGE_SIZE * 10);
   });
 
   test("reads further when a deleted ruleset's matches fill the first read", async () => {
@@ -205,5 +212,28 @@ describe('the global FAQ', () => {
         .toSorted()
     ).toEqual(['basic', 'busy']);
     expect(withBusy.hasMore).toBe(true);
+    /* Loading more across lists of very different sizes only adds rows after those already shown. */
+    const withBusyMore = await t.query(api.faq.search, {
+      q: 'storm',
+      rulesets: ['basic', 'busy'],
+      limit: FAQ_CATALOGUE_PAGE_SIZE * 2,
+    });
+    expect(withBusyMore.items.slice(0, FAQ_CATALOGUE_PAGE_SIZE).map((item) => item._id)).toEqual(
+      withBusy.items.map((item) => item._id)
+    );
+
+    /* Past the most one search shows, the reader is asked for another word rather than offered more. */
+    const longest = await t.query(api.faq.search, { q: 'storm', limit: FAQ_CATALOGUE_PAGE_SIZE * 10 });
+    expect(longest).toMatchObject({ hasMore: false, capped: true });
+    expect(longest.items).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE * 10);
+    /* A search whose every candidate fails the every-word filter stops at the bound and says it may have missed some. */
+    expect(await t.query(api.faq.search, { q: 'storm nowhere', rulesets: ['busy'] })).toMatchObject({
+      items: [],
+      hasMore: false,
+      capped: true,
+    });
+    expect(await t.query(api.faq.search, { q: 'storm', rulesets: ['basic', 'expansion'] })).toMatchObject({
+      capped: false,
+    });
   }, 60_000);
 });
