@@ -84,6 +84,38 @@ function rulesetReader(ctx: QueryCtx) {
   };
 }
 
+type RulesetReader = ReturnType<typeof rulesetReader>;
+
+/** Whether an entry's question sits in a live ruleset, and in one of the picked ones when any are. */
+async function inSearchedRuleset(entry: Doc<'catalogue_entries'>, pickedIds: Set<string>, rulesetOf: RulesetReader) {
+  const id = faqEntryRulesetId(entry.facets);
+  const allowed = id !== undefined && (pickedIds.size === 0 || pickedIds.has(id));
+  const ruleset = allowed ? await rulesetOf(id) : null;
+  return ruleset !== null && !ruleset.is_deleted;
+}
+
+/** The matches whose questions sit in a searched ruleset, in their order. */
+function keepSearchedRulesets(picked: Doc<'rulesets'>[], rulesetOf: RulesetReader) {
+  const pickedIds = new Set<string>(picked.map((ruleset) => ruleset._id));
+  return async (matches: Doc<'catalogue_entries'>[]) => {
+    const kept = await Promise.all(matches.map((entry) => inSearchedRuleset(entry, pickedIds, rulesetOf)));
+    return matches.filter((_, index) => kept[index]);
+  };
+}
+
+/** Each question with the ruleset it belongs to; a question whose ruleset is gone is left out. */
+async function citeRulesets(items: Awaited<ReturnType<typeof projectFaqListItems>>, rulesetOf: RulesetReader) {
+  const rulesets = await Promise.all(items.map(async (item) => await rulesetOf(item.ruleset_id)));
+  return items.flatMap((item, index) => {
+    const ruleset = rulesets[index];
+    return ruleset ? [{ ...item, ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug } }] : [];
+  });
+}
+
+function pageNumber(page: number | undefined) {
+  return page !== undefined && Number.isSafeInteger(page) && page > 1 ? page : 1;
+}
+
 /**
  * One page of questions matching a search across rulesets, best match first, the same for every viewer.
  * One picked ruleset searches its own list;
@@ -92,8 +124,8 @@ function rulesetReader(ctx: QueryCtx) {
  */
 export async function loadGlobalFaqPage(ctx: QueryCtx, args: { q?: string; rulesets?: string[]; page?: number }) {
   const picked = await loadPickedRulesets(ctx, args.rulesets ?? []);
-  const text = args.q?.slice(0, FAQ_CATALOGUE_QUERY_LIMIT).trim() ?? '';
-  const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
+  const text = (args.q ?? '').slice(0, FAQ_CATALOGUE_QUERY_LIMIT).trim();
+  const page = pageNumber(args.page);
   const base = {
     selected: picked.map((ruleset) => ruleset.slug).sort(),
     searched: text !== '',
@@ -105,42 +137,25 @@ export async function loadGlobalFaqPage(ctx: QueryCtx, args: { q?: string; rules
   }
 
   const rulesetOf = rulesetReader(ctx);
-  const pickedIds = new Set<string>(picked.map((ruleset) => ruleset._id));
-  const keep = async (matches: Doc<'catalogue_entries'>[]) => {
-    const live = await Promise.all(
-      matches.map(async (entry) => {
-        const id = faqEntryRulesetId(entry.facets);
-        if (!id || (pickedIds.size > 0 && !pickedIds.has(id))) {
-          return false;
-        }
-        const ruleset = await rulesetOf(id);
-        return ruleset !== null && !ruleset.is_deleted;
-      })
-    );
-    return matches.filter((_, index) => live[index]);
-  };
+  const own = picked.length === 1 ? picked[0]! : null;
   /*
    * Relevance decides the order while searching; the sort is only the catalogue's required order and never applies here.
    * A ruleset of its own is searched in its own list, so its matches are never crowded out by other rulesets'.
    */
   const selection = await selectCataloguePage(ctx, {
     kind: 'faq',
-    partition: picked.length === 1 ? faqRulesetPartition(picked[0]!._id) : ALL_PARTITION,
+    partition: own ? faqRulesetPartition(own._id) : ALL_PARTITION,
     sort: 'created',
     direction: 'desc',
     page,
     pageSize: FAQ_CATALOGUE_PAGE_SIZE,
     search: { text, relevance: true },
-    keep: picked.length === 1 ? undefined : keep,
+    keep: own ? undefined : keepSearchedRulesets(picked, rulesetOf),
   });
   const items = await projectFaqListItems(ctx, await faqItemsOfEntries(ctx, selection.entries));
-  const rulesets = await Promise.all(items.map(async (item) => await rulesetOf(item.ruleset_id)));
   return {
     ...base,
-    items: items.flatMap((item, index) => {
-      const ruleset = rulesets[index];
-      return ruleset ? [{ ...item, ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug } }] : [];
-    }),
+    items: await citeRulesets(items, rulesetOf),
     total: selection.total,
     complete: selection.exact,
     pageCount: Math.max(1, Math.ceil(selection.total / FAQ_CATALOGUE_PAGE_SIZE)),
