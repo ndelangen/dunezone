@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import type { Board } from './schema';
-import { territoryId } from './schema';
+import { propertyId } from './schema';
 import { tintColorSchema, tintStampsSchema, tintTerritorySchema } from './tints';
 
 /*
@@ -67,7 +67,7 @@ export function paintTint(
         ...(board && types.size
           ? Object.values(board.properties)
               .filter((property) => types.has(property.type))
-              .map((property) => territoryId(property.name))
+              .map((property) => propertyId(property))
           : []),
       ]),
     ];

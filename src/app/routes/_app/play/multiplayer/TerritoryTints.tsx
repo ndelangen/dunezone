@@ -1,6 +1,6 @@
 import { ActionIcon, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
-import { territoryId } from '@shared/boards/schema';
+import { propertyId } from '@shared/boards/schema';
 import { fitsTintCommand, MAX_TINTS, tintSetting } from '@shared/play/territoryTints';
 import type { TerritoryTint, TerritoryTintAction } from '@shared/play/territoryTints';
 import { Section } from '@ui/block/Section';
@@ -237,7 +237,7 @@ export function TerritoryTints({ client, table }: Props) {
   const board = table.snapshot.board?.definition ?? retainedArrakisBoard();
   const presets = useMemo(() => territoryTintPresets(board), [board]);
   const names = useMemo(
-    () => new Map(Object.values(board.properties).map((property) => [territoryId(property.name), property.name])),
+    () => new Map(Object.values(board.properties).map((property) => [propertyId(property), property.name])),
     [board]
   );
   const canEdit = table.canInteract && !!table.snapshot.bank;
