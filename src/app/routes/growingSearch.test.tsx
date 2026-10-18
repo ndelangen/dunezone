@@ -39,3 +39,20 @@ test('load more keeps the previous answer while loading and resets for a new sea
   expect(result.current.limit).toBe(2);
   expect(result.current.data).toBe(first);
 });
+
+test('a settled null answer stays null while a later answer is loading', () => {
+  type Data = string[] | null;
+  const initial = ['Atreides'];
+  const { result, rerender } = renderHook(
+    ({ live }: { live: Data | undefined }) => {
+      const search = useGrowingLimit({ query: '' }, 2);
+      return useGrowingSearch<Data>({ search, live, initial, rows: (data) => data?.length ?? 0 });
+    },
+    { initialProps: { live: initial as Data | undefined } }
+  );
+  expect(result.current.data).toBe(initial);
+  rerender({ live: null });
+  expect(result.current.data).toBeNull();
+  rerender({ live: undefined });
+  expect(result.current.data).toBeNull();
+});

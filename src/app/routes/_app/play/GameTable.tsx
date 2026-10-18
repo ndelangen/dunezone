@@ -542,7 +542,7 @@ function useControlsSelection(
   }
   /* A group opens on its remembered child while that child still exists, else on its first, so a closed tab such as Result is never chosen again. */
   const choose = ([key, requestedChild]: string[]) => {
-    const child = requestedChild === undefined ? selection.remembered[key!] : requestedChild;
+    const child = requestedChild ?? selection.remembered[key!];
     const subtabs = tabs.find((tab) => tab.key === key)?.subtabs;
     const leaf = subtabs?.some((tab) => tab.key === child) ? child : subtabs?.[0]?.key;
     select({ type: 'destination-selected', path: leaf ? [key!, leaf] : [key!] });

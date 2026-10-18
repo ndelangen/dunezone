@@ -1,9 +1,3 @@
-import {
-  useMutation as convexUseMutation,
-  usePaginatedQuery as convexUsePaginatedQuery,
-  useQuery as convexUseQuery,
-  useQueries as convexUseQueries,
-} from 'convex/react';
 import type {
   PaginatedQueryArgs,
   PaginatedQueryItem,
@@ -281,11 +275,7 @@ export function useConvexStorybookQueries(queries: StorybookQueries): Record<str
     Object.entries(requests).map(([key, request]) => {
       const answer = result?.scope === scope ? result.answers[key] : undefined;
       const signature = JSON.stringify([request.name, convexToJson(request.args)]);
-      if (
-        !answer ||
-        answer.signature !== signature ||
-        (answer.value instanceof Error && answer.revision !== revision)
-      ) {
+      if (answer?.signature !== signature || (answer.value instanceof Error && answer.revision !== revision)) {
         return [key, undefined];
       }
       return [key, answer.value];
@@ -464,5 +454,10 @@ export const convexStorybookReferences = {
   rulesetsList: api.rulesets.list,
 };
 
-export { convexUseMutation, convexUsePaginatedQuery, convexUseQuery, convexUseQueries };
+export {
+  useMutation as convexUseMutation,
+  usePaginatedQuery as convexUsePaginatedQuery,
+  useQuery as convexUseQuery,
+  useQueries as convexUseQueries,
+} from 'convex/react';
 export type { FunctionArgs, FunctionReference, FunctionReturnType };

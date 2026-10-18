@@ -21,7 +21,11 @@ export function useGrowingLimit(args: unknown, step: number) {
 function useShownAnswer<Data>(key: string, live: Data | undefined, initial: Data) {
   const [shown, setShown] = useState({ key, data: initial });
   if (shown.key !== key || (live !== undefined && live !== shown.data)) {
-    setShown({ key, data: live === undefined ? initial : live });
+    if (live === undefined) {
+      setShown({ key, data: initial });
+    } else {
+      setShown({ key, data: live });
+    }
   }
   return live ?? (shown.key === key ? shown.data : initial);
 }
