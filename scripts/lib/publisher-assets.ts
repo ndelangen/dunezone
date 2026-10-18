@@ -28,7 +28,11 @@ function shellSecurityHeaders(template: string, shell: string, convexUrl: string
   }
   const scripts = [...shell.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
     .filter(([, attributes, source]) => !/\bsrc\s*=/i.test(attributes) && source.length > 0)
-    .map(([, , source]) => `'sha256-${createHash('sha256').update(source).digest('base64')}'`);
+    /* HTML parsing normalizes line endings and replaces NULLs before CSP hashes script text. */
+    .map(
+      ([, , source]) =>
+        `'sha256-${createHash('sha256').update(source.replace(/\r\n?/g, '\n').replaceAll('\0', '\uFFFD')).digest('base64')}'`
+    );
   const policy = applicationContentSecurityPolicy(convexUrl, [...new Set(scripts)]);
   const result = template.replace('__APPLICATION_CSP__', policy);
   if (result.split('\n').some((line) => line.length > 2000)) {

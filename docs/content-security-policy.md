@@ -32,8 +32,7 @@ execution paths, so those are not granted extra permission.
 
 ## Inline scripts and caching
 
-Assembly normalizes the SPA shell's volatile hydration timestamp, then hashes its exact inline script
-bytes. `_headers` is a template populated with those hashes and the configured Convex origin. A missing
+Assembly normalizes the SPA shell's volatile hydration timestamp, then hashes its inline script text after HTML parsing normalizes line endings and NULL characters. `_headers` is a template populated with those hashes and the configured Convex origin. A missing
 backend URL fails assembly. The completed header must fit Cloudflare's 2,000-character line limit.
 
 A public SSR cache miss generates a random render nonce. An anonymous request carries it to the
@@ -53,7 +52,7 @@ external request channel if an attacker already controls script execution.
 `scripts/application-security.browser.test.ts` exercises native HTMLRewriter, the real edge cache and
 Chromium. It checks trusted nonce and hash startup, fresh nonces on cache hits, same-origin scripts,
 the configured backend, and blocked injected scripts, event handlers, `eval` and foreign connections.
-`publisher:application-runtime:verify` checks nonces on every script in assembled public responses and
+`publisher:application-runtime:verify` checks nonces on executable scripts in assembled public responses and
 compares cached HTML after normalizing only its delivery nonce. Publisher assembly tests cover the
 static hash and connection policy.
 

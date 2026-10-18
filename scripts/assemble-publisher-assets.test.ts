@@ -44,14 +44,16 @@ afterEach(() => {
 describe('publisher Static Assets assembly', () => {
   test('hashes normalized inline scripts and limits connections to the configured backend', () => {
     const { app, publisher, headers } = fixture();
-    writeFileSync(headers, '/*\n  Content-Security-Policy: __APPLICATION_CSP__\n');
+    writeFileSync(headers, readFileSync(path.resolve(import.meta.dirname, '../workers/publisher/_headers')));
     writeFileSync(
       path.join(app, '_shell.html'),
-      '<head></head><script>window.start=1</script><script src="/public/app-hash.js"></script>'
+      '<head></head><script>window.start=1\r\nwindow.text="x\0y"</script><script src="/public/app-hash.js"></script>'
     );
     assemblePublisherAssets(app, publisher, headers, 'https://test.eu-west-1.convex.cloud');
     const policy = readFileSync(path.join(publisher, '_headers'), 'utf8');
-    expect(policy).toContain(`'sha256-${createHash('sha256').update('window.start=1').digest('base64')}'`);
+    expect(policy).toContain(
+      `'sha256-${createHash('sha256').update('window.start=1\nwindow.text="x\uFFFDy"').digest('base64')}'`
+    );
     expect(policy).toContain(
       "connect-src 'self' https://test.eu-west-1.convex.cloud wss://test.eu-west-1.convex.cloud"
     );

@@ -307,7 +307,11 @@ try {
       assert.equal(png.headers.get('Content-Type'), 'image/png');
       assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
       const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search);
-      assert.equal(imageHit.headers.get('X-Public-Cache'), 'hit');
+      assert.equal(
+        imageHit.headers.get('X-Public-Cache'),
+        'hit',
+        `${pathname}: ${JSON.stringify(Object.fromEntries(imageHit.headers))}`
+      );
       assert.equal(imageHit.headers.get('X-Public-Renders'), '0');
       assert.equal(imageHit.headers.get('X-Public-Artwork-Reads'), '0');
       await imageHit.arrayBuffer();
