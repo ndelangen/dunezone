@@ -155,7 +155,7 @@ snapshot` workflow uploaded from `main`, using the GitHub CLI (`gh auth login` f
 artifact of that name from any other workflow, event, branch or fork, and one from a run that did
 not succeed. The download goes to the launch's private temporary directory, and the launch deletes
 it as soon as the import finishes or fails. Nothing is cached between launches. The workflow runs weekly and
-keeps each upload for eight days, so the newest is at most a week old, and it uploads only while its `SNAPSHOT_UPLOAD` switch is `"true"`. With no
+keeps each upload for eight days, so the newest is usually under a week old (a failed Monday run leaves none until it is dispatched by hand), and it uploads only while its `SNAPSHOT_UPLOAD` switch is `"true"`. With no
 artifact, or when GitHub cannot be reached, the launch stops before Docker starts and points at
 `--data=fixture`.
 
@@ -233,8 +233,8 @@ policy and anonymiser (`scripts/lib/snapshot-*.ts`, `scripts/snapshot-*.ts`),
 reaches dev on the merge that makes it. A merge whose only such change is a migration
 (`convex/migrations*.ts` or `convex/migration-guards.json`) reloads nothing: dev runs the new
 migrations on its existing data, as the deploy does on production, which spares a production
-export. If that migrate step fails, the next merge will not retry it: re-run the failed job on the
-`deploy-main` run, or run `bun run provision dev --stage migrate` with the dev deploy key.
+export. When the code push or that migrate step fails, for instance because the schema narrowed through a
+validator it imports, the job falls back to the full rebuild.
 `scripts/dev-rebuild-decision.ts` holds the list. Ordinary
 merges leave your dev session and any dev-side experiments intact.
 

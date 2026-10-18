@@ -42,7 +42,7 @@ function isMigrationFile(file: string): boolean {
 
 /**
  * True when the merge's data-relevant files are all migration files.
- * The schema is unchanged, so dev's data still satisfies it, and running the new migrations on dev reshapes that data the way the deploy reshapes production's.
+ * `convex/schema.ts` is unchanged, so dev's data usually still satisfies it (the workflow falls back to a rebuild when a push or migration is refused), and running the new migrations on dev reshapes that data the way the deploy reshapes production's.
  * That saves a full production export for each such merge.
  */
 export function needsOnlyMigrations(changedFiles: readonly string[]): boolean {

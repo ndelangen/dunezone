@@ -30,6 +30,7 @@ describe('anonymised snapshot job', () => {
     const crons = [...triggers.matchAll(/- cron: "(.+)"/g)].map(([, cron]) => cron!.split(' '));
     expect(crons).toHaveLength(1);
     expect(crons[0]!.slice(0, 2)).toEqual([expect.stringMatching(/^\d+$/), expect.stringMatching(/^\d+$/)]);
+    expect(crons[0]!.slice(2)).toEqual(['*', '*', '1']);
     expect(workflow).toContain("if: github.ref == 'refs/heads/main'\n    environment: production\n");
     expect(workflow.match(/secrets\./g)).toHaveLength(1);
     expect(steps[stepNamed('Export production, anonymise it and scan the snapshot')]).toContain(

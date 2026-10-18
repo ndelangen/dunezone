@@ -28,13 +28,25 @@ describe('dev rebuild workflow', () => {
     expect(steps.at(-1)).toContain(`if: always()\n        run: rm -rf "\${RUNNER_TEMP:?}/${JOB_DIRECTORY}"\n`);
   });
 
-  test('a migration-only merge pushes code, then migrates dev with the dev key', () => {
+  test('a migration-only merge pushes code, then migrates dev, and falls back to a fresh export when either step fails', () => {
     const push = stepNamed('Push main to the dev deployment');
     const migrate = stepNamed("Run the new migrations on dev's data");
+    const data = stepNamed('Decide whether dev is rebuilt from a fresh export');
 
-    expect(migrate).toContain("if: steps.decision.outputs.migrate == 'true'\n");
+    expect(push).toContain("continue-on-error: ${{ steps.decision.outputs.migrate == 'true' }}\n");
+    expect(migrate).toContain("if: steps.decision.outputs.migrate == 'true' && steps.push.outcome == 'success'\n");
+    expect(migrate).toContain('continue-on-error: true\n');
     expect(migrate).toContain('run: bun run provision dev --stage migrate\n');
     expect(migrate).toContain('CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}');
     expect(steps.indexOf(migrate!)).toBe(steps.indexOf(push!) + 1);
+    expect(data).toContain(
+      "steps.decision.outputs.migrate == 'true' && (steps.push.outcome == 'failure' || steps.migrate.outcome == 'failure')"
+    );
+    for (const name of [
+      'Export production, anonymise it and scan the snapshot',
+      'Rebuild dev from the anonymised snapshot',
+    ]) {
+      expect(stepNamed(name)).toContain("if: steps.data.outputs.rebuild == 'true'\n");
+    }
   });
 });
