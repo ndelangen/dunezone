@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 import type { FactionCatalogueEntry } from '@db/factions';
 
 import { FactionCard } from '../block/FactionCard';
@@ -8,8 +6,6 @@ import styles from './FactionList.module.css';
 export type FactionListProps = {
   factions: FactionCatalogueEntry[];
   selectedRulesetSlug?: string;
-  /** A control for each card's action slot, such as a maintainer's menu; see `FactionCard`'s `action`. */
-  cardAction?: (faction: FactionCatalogueEntry) => ReactNode;
   className?: string;
 };
 
@@ -23,17 +19,12 @@ export type FactionListProps = {
  * The tiles are self-framed, so this must sit in a `Section`, never on a `Card`'s pane.
  * Callers own the empty case.
  */
-export function FactionList({ factions, selectedRulesetSlug, cardAction, className }: FactionListProps) {
+export function FactionList({ factions, selectedRulesetSlug, className }: FactionListProps) {
   return (
     <div className={[styles.list, className].filter(Boolean).join(' ')}>
       <div className={styles.grid}>
         {factions.map((faction) => (
-          <FactionCard
-            key={faction._id}
-            faction={faction}
-            selectedRulesetSlug={selectedRulesetSlug}
-            action={cardAction?.(faction)}
-          />
+          <FactionCard key={faction._id} faction={faction} selectedRulesetSlug={selectedRulesetSlug} />
         ))}
       </div>
     </div>
