@@ -51,7 +51,10 @@ type RulesetSlottedAsset = { slot: string; asset: { id: string; type: string; sl
 export type RulesetDetailPublicPage = RulesetPageData & {
   assignedGroup: AssignedGroupSummary | null;
   owner: ProfileSummary | null;
+  /** The newest few questions; the rest are on the ruleset's FAQ page. */
   faqItems: FaqItemWithDetails[];
+  /** Every question the ruleset has, and how many have an accepted answer. */
+  faqCounts: { questions: number; answered: number };
   assetSlots: RulesetSlottedAsset[];
   /** The slotted board with its publication, or null when the slot is empty. */
   board: { id: string; type: string; slug: string; name: string; previewHref: string | null } | null;
@@ -86,6 +89,7 @@ function normalizeRulesetDetailPage(
     assignedGroup: raw.assignedGroup,
     owner: raw.owner,
     faqItems: mapFaqItemsFromConvex(raw.faqItems),
+    faqCounts: raw.faqCounts,
     assetSlots: raw.assetSlots,
     board: raw.board,
     rulebooks: raw.rulebooks,

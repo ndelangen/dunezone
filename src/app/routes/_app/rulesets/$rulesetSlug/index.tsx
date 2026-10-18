@@ -1,10 +1,24 @@
-import { Alert, Avatar, Badge, Box, Menu, Popover, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import {
+  Alert,
+  Avatar,
+  Badge,
+  Box,
+  Button,
+  Menu,
+  Popover,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+  Tooltip,
+} from '@mantine/core';
+import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import { getRulebookSize } from '@shared/rulebooks/settings';
-import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router';
+import { Link, createFileRoute, notFound, redirect, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { LoadError } from '@ui/block/LoadError';
@@ -28,6 +42,7 @@ import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   CircleHelp,
   EllipsisVertical,
@@ -383,14 +398,19 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   ssr: true,
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
   validateSearch: (params: Record<string, unknown>): { q?: string; tag?: FaqTag; notice?: RouteNoticeCode } => {
-    const q = params?.q;
-    const tag = params?.tag;
     const notice = params?.notice;
-    return {
-      ...(typeof q === 'string' ? { q } : {}),
-      ...(typeof tag === 'string' && FAQ_TAG_VALUES.includes(tag as FaqTag) ? { tag: tag as FaqTag } : {}),
-      ...(isRouteNoticeCode(notice) ? { notice } : {}),
-    };
+    return { ...parseFaqCatalogueSearch(params), ...(isRouteNoticeCode(notice) ? { notice } : {}) };
+  },
+  /* The FAQ's search moved to its own page; an older link that searched here lands there. */
+  beforeLoad: ({ search, params }) => {
+    if (search.q != null || search.tag != null) {
+      throw redirect({
+        to: '/rulesets/$rulesetSlug/faq',
+        params,
+        search: { q: search.q, tag: search.tag },
+        replace: true,
+      });
+    }
   },
   loader: async ({ params, location }) => {
     const detailPage = await loadRulesetDetailPage(params.rulesetSlug);
@@ -452,6 +472,7 @@ function RulesetDetailPage() {
   const addFaction = useAddRulesetFaction();
   const removeFaction = useRemoveRulesetFaction();
   const routeNotice = resolveRouteNotice(search.notice);
+  const [faqDraft, setFaqDraft] = useState('');
 
   useLivePageTitle(page?.ruleset.name, 'Ruleset');
 
@@ -469,7 +490,7 @@ function RulesetDetailPage() {
   const r = page.ruleset;
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
-  const answeredFaqCount = page.faqItems.filter((item) => item.accepted_answer_id != null).length;
+  const { questions: faqCount, answered: answeredFaqCount } = page.faqCounts;
   const mutationError =
     deleteRuleset.error?.message ??
     setRulesetGroup.error?.message ??
@@ -503,8 +524,8 @@ function RulesetDetailPage() {
     {
       key: 'questions',
       icon: <CircleHelp size={17} aria-hidden />,
-      value: page.faqItems.length,
-      label: `${page.faqItems.length} ${page.faqItems.length === 1 ? 'question' : 'questions'}`,
+      value: faqCount,
+      label: `${faqCount} ${faqCount === 1 ? 'question' : 'questions'}`,
     },
     {
       key: 'answered',
@@ -530,22 +551,12 @@ function RulesetDetailPage() {
     });
   };
 
-  const handleFaqSearchChange = (value: string) => {
+  /* The ruleset's page shows the newest questions only; searching or narrowing them happens on the FAQ's own page. */
+  const openFaq = (patch: { q?: string; tag?: FaqTag }) => {
     void navigate({
-      to: '.',
-      search: (prev) => ({ ...prev, q: value.trim() || undefined }),
-      replace: true,
-    });
-  };
-
-  const handleFaqTagChange = (value: string | null) => {
-    void navigate({
-      to: '.',
-      search: (prev) => ({
-        ...prev,
-        tag: value == null || value === '__all__' ? undefined : (value as FaqTag),
-      }),
-      replace: true,
+      to: '/rulesets/$rulesetSlug/faq',
+      params: { rulesetSlug: r.slug },
+      search: parseFaqCatalogueSearch({ q: faqDraft, ...patch }),
     });
   };
 
@@ -731,8 +742,14 @@ function RulesetDetailPage() {
               description="Browse community questions and accepted answers."
             >
               <TextInput
-                value={search.q ?? ''}
-                onChange={(event) => handleFaqSearchChange(event.currentTarget.value)}
+                value={faqDraft}
+                onChange={(event) => setFaqDraft(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    openFaq({});
+                  }
+                }}
                 placeholder="Search questions…"
                 aria-label="Search FAQ questions"
                 leftSection={<Search size={16} aria-hidden />}
@@ -744,8 +761,10 @@ function RulesetDetailPage() {
                 classNames={{ wrapper: styles.faqFilterWrapper }}
                 rightSection={
                   <Select
-                    value={search.tag ?? '__all__'}
-                    onChange={handleFaqTagChange}
+                    value="__all__"
+                    onChange={(value) =>
+                      openFaq({ tag: value === '__all__' || value == null ? undefined : (value as FaqTag) })
+                    }
                     data={[
                       { value: '__all__', label: 'All tags' },
                       ...FAQ_TAG_VALUES.map((tag) => ({
@@ -769,11 +788,8 @@ function RulesetDetailPage() {
               />
               <FaqList
                 emptyLabel="No FAQ items yet."
-                noMatchesLabel="No questions match your search."
                 items={page.faqItems}
                 rulesetSlug={r.slug}
-                searchQuery={search.q ?? ''}
-                selectedTag={search.tag}
                 onOpenQuestion={(questionSlug) =>
                   navigate({
                     to: '/rulesets/$rulesetSlug/faq/$questionSlug',
@@ -781,6 +797,19 @@ function RulesetDetailPage() {
                   })
                 }
               />
+              {faqCount > page.faqItems.length ? (
+                <Box>
+                  <Button
+                    variant="default"
+                    rightSection={<ArrowRight size={16} aria-hidden />}
+                    renderRoot={(props) => (
+                      <Link {...props} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug: r.slug }} />
+                    )}
+                  >
+                    All {faqCount} questions
+                  </Button>
+                </Box>
+              ) : null}
             </Section>
           </ColumnsWithRailLayout.Secondary>
 

@@ -163,7 +163,7 @@ const faqAnswerValidator = docValidator('faq_answers');
 
 const faqItemValidator = docValidator('faq_items');
 
-const faqListItemValidator = faqItemValidator.extend({
+export const faqListItemValidator = faqItemValidator.extend({
   faq_answers: v.array(faqAnswerValidator),
   asker_profile: v.union(profileSummaryValidator, v.null()),
 });
@@ -213,7 +213,9 @@ export const rulesetAssetSlotValidator = v.object({
 export const rulesetPublicDetailPageValidator = v.union(
   rulesetPageValidator.extend({
     assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
+    /** The newest few questions; the rest are on the ruleset's FAQ page. */
     faqItems: v.array(faqListItemValidator),
+    faqCounts: v.object({ questions: v.number(), answered: v.number() }),
     owner: v.union(profileSummaryValidator, v.null()),
     assetSlots: v.array(rulesetAssetSlotValidator),
     board: v.union(

@@ -1,7 +1,7 @@
 import { faqQuestionPageForViewer } from '@shared/faq/questionPageAccess';
 import type { FaqTag } from '@shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '@shared/faq/validation';
-import type { FunctionReturnType } from 'convex/server';
+import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { useMemo } from 'react';
 
 import { db } from '@db/core';
@@ -83,6 +83,22 @@ function voidCommand<TVariables, TResult>(
     },
     ...commandState(mutation),
   };
+}
+
+/** What `api.faq.rulesetFaq` gives a ruleset's FAQ page, the same for every viewer; null for an unknown ruleset. */
+export type RulesetFaqPageData = FunctionReturnType<typeof api.faq.rulesetFaq>;
+/** What one ruleset FAQ page asks for: the ruleset and the route's search parameters, as `faq.rulesetFaq` takes them. */
+export type RulesetFaqArgs = FunctionArgs<typeof api.faq.rulesetFaq>;
+
+/** The ruleset FAQ route's loader, paired with `useRulesetFaqPage`; a searched page is not held, as each search is its own subscription. */
+export async function loadRulesetFaqPage(args: RulesetFaqArgs): Promise<RulesetFaqPageData> {
+  return await db.query(api.faq.rulesetFaq, args, { hold: !args.q });
+}
+
+/** One live ruleset FAQ page, taking `loadRulesetFaqPage`'s result for the same arguments as `initialData`. */
+export function useRulesetFaqPage(args: RulesetFaqArgs, options?: { initialData?: RulesetFaqPageData }) {
+  const liveData = useLiveQuery(api.faq.rulesetFaq, args, { hold: !args.q });
+  return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
 /** The question route's loader, paired with `useFaqQuestionPage`. */

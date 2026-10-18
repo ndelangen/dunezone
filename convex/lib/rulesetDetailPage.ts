@@ -3,7 +3,10 @@ import type { QueryCtx } from '../types';
 import { ownPublishedFace } from './assetBacks';
 import { assignedGroupSummary } from './collaborativeAccess';
 import { catalogueFactionFromCard, toCatalogueFaction } from './factionCatalogue';
-import { loadFaqItemsForRuleset } from './faqRulesetList';
+import { FAQ_PREVIEW_SIZE } from '../../src/shared/faq/catalogueSearch';
+import { countCataloguePartitions } from './catalogueOrder';
+import { faqAnsweredPartition, faqRulesetPartition } from './faqCatalogue';
+import { loadNewestFaqItems } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
 import { listRulesetRulebooks } from './rulebookList';
 import { readRulesetAssetSlots } from './rulesetSlots';
@@ -70,6 +73,15 @@ function rulesetBoardFace(slots: Awaited<ReturnType<typeof readRulesetAssetSlots
   return entry ? { ...entry.asset, previewHref: ownPublishedFace(entry.doc) } : null;
 }
 
+/** How many questions a ruleset has, and how many of them have an accepted answer, from its FAQ lists' counts. */
+async function rulesetFaqCounts(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const [questions = 0, answered = 0] = await countCataloguePartitions(ctx, 'faq', [
+    faqRulesetPartition(rulesetId),
+    faqAnsweredPartition(rulesetId),
+  ]);
+  return { questions, answered };
+}
+
 /** The ruleset detail page, the same for every viewer: behind `api.rulesets.detailPage`. Null for an unknown slug. */
 export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: string) {
   const row = await loadPublicRulesetBySlug(ctx, slug);
@@ -81,7 +93,8 @@ export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: str
     ruleset: row,
     factions: await listPublicRulesetFactions(ctx, row._id),
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
-    faqItems: await loadFaqItemsForRuleset(ctx, row._id),
+    faqItems: await loadNewestFaqItems(ctx, row._id, FAQ_PREVIEW_SIZE),
+    faqCounts: await rulesetFaqCounts(ctx, row._id),
     owner: await profileSummary(ctx, row.owner_id),
     assetSlots: slots.map(({ slot, asset }) => ({ slot, asset })),
     board: rulesetBoardFace(slots),

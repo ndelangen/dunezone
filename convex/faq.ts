@@ -1,13 +1,22 @@
 import { v } from 'convex/values';
 
+import {
+  FAQ_CATALOGUE_PAGE_SIZE,
+  FAQ_CATALOGUE_QUERY_LIMIT,
+} from '../src/shared/faq/catalogueSearch';
 import type { FAQ_TAG_VALUES } from '../src/shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared/faq/validation';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
+import { countCataloguePartitions, selectCataloguePage } from './lib/catalogueOrder';
+import { faqListItemValidator } from './lib/collaborativeAccessValidators';
+import { faqRulesetPartition, faqTagPartition } from './lib/faqCatalogue';
 import { faqQuestionPublicPageValidator, loadFaqQuestionPublicPage, loadViewerAnswered } from './lib/faqQuestionPage';
+import { projectFaqListItems } from './lib/faqRulesetList';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
+import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
 import { nowIso } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -94,6 +103,82 @@ async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets
     candidate += 1;
   }
 }
+
+/**
+ * One page of a ruleset's FAQ, newest first or by best match while searching, one cached answer for every viewer.
+ * Null for an unknown ruleset.
+ */
+export const rulesetFaq = publicQuery({
+  args: {
+    rulesetSlug: v.string(),
+    q: v.optional(v.string()),
+    tag: v.optional(faqTagValidator),
+    page: v.optional(v.number()),
+  },
+  returns: v.union(
+    v.object({
+      ruleset: v.object({ id: v.id('rulesets'), name: v.string(), slug: v.string() }),
+      items: v.array(faqListItemValidator),
+      /** Questions matching the search and tag, across every page. */
+      total: v.number(),
+      /** The ruleset's questions, before any search or tag. */
+      rulesetTotal: v.number(),
+      /** False when a search matched more questions than one query reads, so `total` is a floor. */
+      complete: v.boolean(),
+      /** The page these rows are, which may lie past `pageCount`, with no rows. */
+      page: v.number(),
+      pageCount: v.number(),
+      pageSize: v.number(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const ruleset = await loadPublicRulesetBySlug(ctx, args.rulesetSlug);
+    if (!ruleset) {
+      return null;
+    }
+    const text = args.q?.slice(0, FAQ_CATALOGUE_QUERY_LIMIT).trim() ?? '';
+    const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
+    const allPartition = faqRulesetPartition(ruleset._id);
+    const partition = args.tag ? faqTagPartition(ruleset._id, args.tag) : allPartition;
+    const [selection, [rulesetCount = 0]] = await Promise.all([
+      selectCataloguePage(ctx, {
+        kind: 'faq',
+        partition,
+        sort: 'created',
+        direction: 'desc',
+        page,
+        pageSize: FAQ_CATALOGUE_PAGE_SIZE,
+        search: text ? { text, relevance: true } : undefined,
+      }),
+      /* The unrefined page's own count is the ruleset's, so only a search or a tag counts again. */
+      text || args.tag ? countCataloguePartitions(ctx, 'faq', [allPartition]) : Promise.resolve([]),
+    ]);
+
+    const items = [];
+    for (const entry of selection.entries) {
+      const itemId = ctx.db.normalizeId('faq_items', entry.source_id);
+      const item = itemId ? await ctx.db.get('faq_items', itemId) : null;
+      if (!item) {
+        /* Drift: the page comes up one row short until the backfill or the question's next save. */
+        console.warn(`Catalogue entry for FAQ item ${entry.source_id} has no question.`);
+        continue;
+      }
+      items.push(item);
+    }
+
+    return {
+      ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
+      items: await projectFaqListItems(ctx, items),
+      total: selection.total,
+      rulesetTotal: text || args.tag ? rulesetCount : selection.total,
+      complete: selection.exact,
+      page,
+      pageCount: Math.max(1, Math.ceil(selection.total / FAQ_CATALOGUE_PAGE_SIZE)),
+      pageSize: FAQ_CATALOGUE_PAGE_SIZE,
+    };
+  },
+});
 
 /** The FAQ question page, one cached answer for every viewer. The browser combines its authorship facts with the viewer. */
 export const question = publicQuery({
