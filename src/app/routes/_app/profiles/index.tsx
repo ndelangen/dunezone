@@ -151,6 +151,11 @@ function ProfilesPage() {
               <Text c="dimmed" ta="center">
                 No profile matches this search.
               </Text>
+              {data.complete ? null : (
+                <Text size="xs" c="dimmed" ta="center">
+                  Only the first matches of this search were checked. Add a word to narrow it.
+                </Text>
+              )}
             </Stack>
           </Surface>
         ) : data.entries.length === 0 ? (

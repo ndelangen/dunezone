@@ -8,6 +8,7 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { CATALOGUE_BOUNDED_READ } from './lib/catalogueOrder';
 
 type Profile = {
   username: string | null;
@@ -37,6 +38,22 @@ async function seedProfiles(t: ReturnType<typeof applicationTest>, profiles: Pro
       );
     }
     return ids;
+  });
+}
+
+/* A profile written past the triggers, as one written before the directory existed was, so it has no entry yet. */
+async function seedUntracked(t: ReturnType<typeof applicationTest>, username: string, slug: string) {
+  return await t.run(async (ctx) => {
+    const userId = await ctx.db.insert('users', {});
+    return await ctx.db.insert('profiles', {
+      user_id: userId,
+      username,
+      avatar_url: null,
+      account_state: 'active',
+      slug,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
   });
 }
 
@@ -107,6 +124,23 @@ describe('the profile directory', () => {
     expect((await t.query(api.profiles.catalogue, { q: 'harkonnen' })).total).toBe(0);
   });
 
+  test('says a search is incomplete when it read its whole budget of candidates and none matched every word', async () => {
+    const t = applicationTest();
+    await seedProfiles(
+      t,
+      Array.from({ length: CATALOGUE_BOUNDED_READ + 1 }, (_, index) => ({
+        username: `Fremen ${index}`,
+        slug: `fremen-${index}`,
+      }))
+    );
+
+    await expect(t.query(api.profiles.catalogue, { q: 'fremen harkonnen' })).resolves.toMatchObject({
+      entries: [],
+      total: 0,
+      complete: false,
+    });
+  }, 120_000);
+
   test('follows a rename and an account deletion, and leaves no drift', async () => {
     const t = applicationTest();
     const [stilgar] = await seedProfiles(t, [
@@ -129,25 +163,30 @@ describe('the profile directory', () => {
     expect(drift).toMatchObject({ missing: [], stale: [], duplicated: [], unordered: [], orphaned: [] });
   });
 
-  test('backfills profiles written before the directory existed', async () => {
+  test('backfills profiles written before the directory existed, and verification refuses a gap', async () => {
     const t = applicationTest();
-    const profileId = await t.run(async (ctx) => {
-      const userId = await ctx.db.insert('users', {});
-      return await ctx.db.insert('profiles', {
-        user_id: userId,
-        username: 'Old Timer',
-        avatar_url: null,
-        account_state: 'active',
-        slug: 'old-timer',
-        created_at: '2026-01-01T00:00:00.000Z',
-        updated_at: '2026-01-01T00:00:00.000Z',
-      });
-    });
+    const profileId = await seedUntracked(t, 'Old Timer', 'old-timer');
     expect((await t.query(api.profiles.catalogue, {})).total).toBe(0);
 
     await t.mutation(internal.migrations.catalogue_entries_profiles_v1, {});
-    expect(names(await t.query(api.profiles.catalogue, {}))).toEqual(['Old Timer']);
     await t.mutation(internal.migrations.catalogue_entries_profiles_verify_v1, {});
+    await t.finishAllScheduledFunctions(() => undefined);
     expect((await t.query(api.profiles.catalogue, {})).entries.map((entry) => entry.id)).toEqual([profileId]);
+    await expect(
+      t.query(internal.migrations.assertReadyForNarrow, {
+        required: ['catalogue_entries_profiles_v1', 'catalogue_entries_profiles_verify_v1'],
+      })
+    ).resolves.toMatchObject({ ok: true });
+  });
+
+  test('verification fails while a public profile has no directory entry', async () => {
+    const t = applicationTest();
+    await seedUntracked(t, 'Unlisted', 'unlisted');
+
+    await t.mutation(internal.migrations.catalogue_entries_profiles_verify_v1, {});
+    await t.finishAllScheduledFunctions(() => undefined);
+    await expect(
+      t.query(internal.migrations.assertReadyForNarrow, { required: ['catalogue_entries_profiles_verify_v1'] })
+    ).rejects.toThrow(/catalogue_entries_profiles_verify_v1\(failed/);
   });
 });
