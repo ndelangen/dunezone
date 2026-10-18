@@ -323,7 +323,10 @@ try {
       const asset = await worker.fetch(script);
       assert.equal(asset.status, 200, script);
       assert.match(asset.headers.get('Content-Type') ?? '', /javascript/, script);
-      await asset.body?.cancel();
+      /* Cancelling a compressed asset logs a broken pipe from workerd on Linux.
+       * Read the complete delivery so a truncated hydration entry also fails verification.
+       */
+      await asset.arrayBuffer();
     }
   }
   assert.ok(rulebookPage, 'No Ruleset has a published Rulebook link');
