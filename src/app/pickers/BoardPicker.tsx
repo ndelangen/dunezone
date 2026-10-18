@@ -65,7 +65,7 @@ export function BoardPicker({ label, value, fixed, selected, onPick }: Readonly<
         ]}
         getPreviewSrc={(id) => previews.get(id)}
         previewSize={36}
-        comboboxProps={{ onOpen: () => setOpen(true), onClose: () => setOpen(false) }}
+        onDropdownChange={setOpen}
         onChange={(id) => {
           if (id && id !== LOADING) {
             onPick(id);
