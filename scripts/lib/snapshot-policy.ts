@@ -233,7 +233,7 @@ export const snapshotPolicy = {
     rows: 'all',
   },
   ruleset_factions: {
-    fields: { ruleset_id: { parent: 'rulesets' }, faction_id: { parent: 'factions' } },
+    fields: { ruleset_id: { parent: 'rulesets' }, faction_id: { parent: 'factions' }, position: 'keep' },
     rows: 'all',
   },
   rulebooks: {
