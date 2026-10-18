@@ -126,6 +126,23 @@ test('an old renewal refusal cannot deny a connection admitted with a fresh sess
   expect(replacement.readyState).toBe(1);
 });
 
+test('an old successful renewal cannot publish its pass over a replacement session', async () => {
+  const gameId = 'successful-old-renewal';
+  const { subscription, socket, renewal } = await admittedGame(gameId);
+  socket.close();
+  const fresh = await seatPass(Date.now() + 60 * 60_000, { sessionId: 'fresh-session' });
+  rememberSeatPass(gameId, fresh);
+  await vi.advanceTimersByTimeAsync(1000);
+  const replacement = Socket.instances.at(-1)!;
+  replacement.open();
+  replacement.deliver(authorizedView());
+  renewal.resolve({ ok: true, pass: await seatPass(Date.now() + 61 * 60_000) });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(await requestPlayAdmission(gameId)).toEqual({ ok: true, pass: fresh });
+  expect(replacement.sent.filter((message) => message.type === 'pass')).toEqual([]);
+  expect(subscription.ready).toBe(true);
+});
+
 test('a failed renewal of an older pass cannot replace the fresh pass renewal timer on the same socket', async () => {
   const gameId = 'replaced-renewal';
   const { subscription, socket, renewal } = await admittedGame(gameId);
