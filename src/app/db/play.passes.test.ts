@@ -1,6 +1,6 @@
 import { signSeatPass } from '@shared/play/seatPass';
 import { getFunctionName } from 'convex/server';
-import { beforeEach, expect, test, vi } from 'vite-plus/test';
+import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 const mocks = vi.hoisted(() => ({ mutation: vi.fn() }));
 
@@ -8,7 +8,7 @@ vi.mock('@db/core', () => ({ db: { mutation: mocks.mutation } }));
 
 import { rememberSeatPass, requestPlayAdmission, watchSeatPass } from './play';
 
-function seatPass(exp: number) {
+function seatPass(exp: number, identity: { principalId?: string; actorId?: string } = {}) {
   return signSeatPass('a'.repeat(64), {
     v: 1,
     gameId: 'game',
@@ -21,12 +21,16 @@ function seatPass(exp: number) {
     displayName: 'Player',
     avatarUrl: null,
     profileSlug: null,
+    ...identity,
   });
 }
 const called = () => mocks.mutation.mock.calls.map(([reference]) => getFunctionName(reference));
 
 beforeEach(() => {
   mocks.mutation.mockReset();
+});
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 test('waits for the game query, enrols an account that has no pass yet and keeps the longer-lived pass', async () => {
@@ -67,4 +71,23 @@ test('falls back to a ticket when the deployment sends no pass', async () => {
   rememberSeatPass('legacy', undefined);
   expect(await requestPlayAdmission('legacy')).toMatchObject({ ok: true, ticket: 'a'.repeat(64) });
   expect(called()).toEqual(['playAdmission:issueTicket']);
+});
+
+test('lets the room force a renewal once a minute has passed since Convex signed the held pass', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  const renewed = await seatPass(Date.now() + 60_000);
+  mocks.mutation.mockResolvedValue({ ok: true, pass: renewed });
+  rememberSeatPass('forced', null);
+  await requestPlayAdmission('forced');
+  vi.setSystemTime(Date.now() + 61_000);
+  await requestPlayAdmission('forced', { renew: true });
+  expect(called()).toEqual(['playAdmission:enrolPlayer', 'playAdmission:renewSeatPass']);
+});
+
+test('replaces the held pass with one for another account or actor even when it ends sooner', async () => {
+  const exp = Date.now() + 60 * 60_000;
+  rememberSeatPass('merged', await seatPass(exp));
+  const merged = await seatPass(exp - 1000, { actorId: 'other-actor' });
+  rememberSeatPass('merged', merged);
+  expect(await requestPlayAdmission('merged')).toEqual({ ok: true, pass: merged });
 });

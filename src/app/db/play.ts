@@ -83,7 +83,14 @@ async function requestPlayTicket(gameId: string) {
 /* `legacy` is a marker no encoded pass can equal, since a pass always holds a dot. */
 type HeldPass = string | null;
 const LEGACY = 'legacy';
-type PassEntry = { held?: HeldPass; renewed?: string; listeners: Set<(pass: string) => void>; waiters: (() => void)[] };
+type PassEntry = {
+  held?: HeldPass;
+  renewed?: { pass: string; at: number };
+  listeners: Set<(pass: string) => void>;
+  waiters: (() => void)[];
+};
+/* How long a pass Convex just signed is used as it is, whatever this browser's clock says, so a skewed clock cannot renew in a loop. */
+const JUST_RENEWED_MS = 60_000;
 const passes = new Map<string, PassEntry>();
 
 function passEntry(gameId: string) {
@@ -95,10 +102,21 @@ function passEntry(gameId: string) {
   return entry;
 }
 
-/* The game query and a renewal can each deliver a pass; the one that lasts longer wins, so a query re-run never replaces a fresher renewal. */
+function identityOf(pass: string) {
+  const payload = peekSeatPass(pass);
+  return payload ? `${payload.principalId}/${payload.actorId}/${payload.sessionId}` : null;
+}
+
+/*
+ * The game query and a renewal can each deliver a pass for the same identity; the one that lasts longer wins, so a query re-run never replaces a fresher renewal.
+ * A pass for another account, actor or session always replaces the held one, as after a merge or a switch of account.
+ */
 function outlasts(next: HeldPass, held: HeldPass | undefined) {
   if (typeof held !== 'string' || held === LEGACY || typeof next !== 'string' || next === LEGACY) {
     return next !== held;
+  }
+  if (identityOf(next) !== identityOf(held)) {
+    return true;
   }
   return next !== held && (peekSeatPass(next)?.exp ?? 0) > (peekSeatPass(held)?.exp ?? 0);
 }
@@ -143,7 +161,7 @@ function nearExpiry(pass: string) {
 
 /**
  * What the game socket admits with: the held pass while it has time left, a fresh one from Convex when it nears its end or the account is not enrolled yet, or a single-use ticket from a deployment without passes.
- * A pass Convex just renewed is used as it is even if this browser's clock calls it near its end, so a skewed clock never renews in a loop.
+ * A pass Convex signed in the last minute is used as it is even if this browser's clock calls it near its end, so a skewed clock never renews in a loop.
  */
 export async function requestPlayAdmission(gameId: string, { renew = false }: { renew?: boolean } = {}) {
   const entry = passEntry(gameId);
@@ -153,14 +171,15 @@ export async function requestPlayAdmission(gameId: string, { renew = false }: { 
     return await requestPlayTicket(gameId);
   }
   /* `renew` is the room saying the pass ran out, which outranks this browser's clock unless Convex only just signed it. */
-  if (held !== null && (held === entry.renewed || (!renew && !nearExpiry(held)))) {
+  const justRenewed = held === entry.renewed?.pass && Date.now() - entry.renewed.at < JUST_RENEWED_MS;
+  if (held !== null && (justRenewed || (!renew && !nearExpiry(held)))) {
     return { ok: true as const, pass: held };
   }
   const result = await db.mutation(held === null ? api.playAdmission.enrolPlayer : api.playAdmission.renewSeatPass, {
     gameId,
   });
   if (result.ok) {
-    entry.renewed = result.pass;
+    entry.renewed = { pass: result.pass, at: Date.now() };
     holdPass(gameId, result.pass);
   }
   return result;

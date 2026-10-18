@@ -600,3 +600,21 @@ test('a socket closed for an expired pass reconnects with a renewed one', async 
   expect(requestTicket).toHaveBeenCalledTimes(2);
   expect(requestTicket.mock.lastCall?.[1]).toEqual({ renew: true });
 });
+
+test('a renewal the room asked for retries after a busy answer, waiting as long as Convex says', async () => {
+  const pass = await seatPass(Date.now() + 60 * 60_000);
+  const requestTicket = vi.fn(async (_gameId: string, _options?: { renew?: boolean }) => ({ ok: true as const, pass }));
+  const subscription = new GameSubscription('game', requestTicket, runtime, () => () => true);
+  stops.push(subscription.subscribe(vi.fn()));
+  await vi.advanceTimersByTimeAsync(0);
+  const socket = Socket.instances.at(-1)!;
+  socket.open();
+  socket.deliver(initial());
+  requestTicket.mockResolvedValueOnce({ ok: false, reason: 'rate_limited', retryAfterMs: 5000 } as never);
+  const before = requestTicket.mock.calls.length;
+  socket.deliver({ type: 'admission', status: 'pass-expired' });
+  await vi.advanceTimersByTimeAsync(4999);
+  expect(requestTicket).toHaveBeenCalledTimes(before + 1);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(requestTicket).toHaveBeenCalledTimes(before + 2);
+});

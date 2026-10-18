@@ -29,6 +29,8 @@ import type { GameRuntime, GameSocket } from './gameRuntime';
 import { TableTelemetry, TELEMETRY_REPORT_MS } from './tableTelemetry';
 
 const UNREACHABLE = 'The table could not be reached. Reconnecting...';
+/* Renewal retries after a refused or failed attempt, doubling from a second, about a minute in all. */
+const PASS_RENEWAL_ATTEMPTS = 6;
 
 type TicketResult = Awaited<ReturnType<typeof requestPlayAdmission>>;
 type Credential = { ticket: string } | { pass: string };
@@ -201,15 +203,30 @@ export class GameSubscription {
     );
   }
 
-  /* Asking for admission renews a pass near its end; the fresh one reaches the socket through the pass watch. */
-  private async renewPass() {
+  /*
+   * Asking for admission renews a pass near its end; the fresh one reaches the socket through the pass watch, which also cancels any retry.
+   * A busy or failed renewal tries again, after Convex's wait when it names one, since the room announces an expired pass only once.
+   */
+  private async renewPass(attempt = 0) {
     if (!this.listener) {
       return;
     }
+    let retryAfterMs: number | undefined;
     try {
-      await this.requestTicket(this.gameId, { renew: true });
+      const result = await this.requestTicket(this.gameId, { renew: true });
+      if (result.ok || result.reason === 'not_authorized') {
+        return;
+      }
+      retryAfterMs = result.retryAfterMs;
     } catch {
-      /* The room holds the table once the pass ends and the page tries again then. */
+      /* Convex did not answer; the retry below asks again. */
+    }
+    if (attempt < PASS_RENEWAL_ATTEMPTS) {
+      clearTimeout(this.passTimer);
+      this.passTimer = setTimeout(
+        () => void this.renewPass(attempt + 1),
+        Math.max(retryAfterMs ?? 0, 1000 * 2 ** attempt)
+      );
     }
   }
 
