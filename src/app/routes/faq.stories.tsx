@@ -14,7 +14,7 @@ const meta = preview.meta({
 /**
  * A second ruleset with its own questions, so a search reaches across rulesets.
  * Every question names the storm, so one search finds them all;
- * the ClassicRules ones are numbered so paging has something to page.
+ * the ClassicRules ones are numbered so there is more to load than one answer shows.
  */
 function seedRulesets(baseline: StorybookDatabase, classicQuestions: number) {
   baseline.rulesets.push(ruleset({ name: 'Dreamrules' }));
@@ -50,6 +50,11 @@ function seedRulesets(baseline: StorybookDatabase, classicQuestions: number) {
   return baseline;
 }
 
+/** The list's rows, each named by the question it opens. */
+function questionRows(main: ReturnType<typeof within>) {
+  return main.getAllByRole('link', { name: /^Open question: / });
+}
+
 /** Before any search: how the FAQ works, told as one exchange, and the way to the rulesets to ask on. */
 export const Explainer = meta.story({
   args: { path: '/faq' },
@@ -77,25 +82,30 @@ export const ExplainerStill = meta.story({
   },
 });
 
-/** A search across two picked rulesets: every result says which ruleset it belongs to and links into that ruleset's FAQ. */
+/**
+ * A search across two picked rulesets: every result says which ruleset it belongs to and links into that ruleset's FAQ.
+ * The matches outnumber what one answer shows, so the list ends in "Load more" with no count and no pages.
+ */
 export const SearchResults = meta.story({
   args: { path: '/faq?q=storm&rulesets=classicrules,dreamrules' },
-  parameters: { database: db((baseline) => seedRulesets(baseline, 3)) },
+  parameters: { database: db((baseline) => seedRulesets(baseline, 24)) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
     await expect(
       main.findByRole('link', { name: 'Can I ship troops into the storm?' }, { timeout: 30_000 })
     ).resolves.toHaveAttribute('href', '/rulesets/dreamrules/faq/storm-and-shipment');
-    await expect(main.getByRole('link', { name: 'Storm question 03?' })).toHaveAttribute(
+    await expect(main.getByRole('link', { name: 'Does the storm kill troops in a stronghold?' })).toHaveAttribute(
       'href',
-      '/rulesets/classicrules/faq/storm-question-03'
+      '/rulesets/dreamrules/faq/storm-over-a-stronghold'
     );
-    await expect(main.getByRole('link', { name: 'When does the storm move?' })).toBeVisible();
     await expect(main.getAllByRole('link', { name: 'Dreamrules' })[0]).toHaveAttribute(
       'href',
       '/rulesets/dreamrules/faq'
     );
+    await expect(questionRows(main)).toHaveLength(24);
+    await expect(main.getByRole('button', { name: 'Load more' })).toBeVisible();
+    await expect(main.queryByText(/of \d+ questions/)).toBeNull();
     await expect(page.getByRole('textbox', { name: 'Search FAQ questions' })).toHaveValue('storm');
     /* The toolbar's select has room for one pill, so the second pick folds into a count. */
     await expect(page.getByText('ClassicRules', { selector: '.mantine-Pill-label' })).toBeVisible();
@@ -129,36 +139,33 @@ export const PickedRulesetWithoutQuestions = meta.story({
   },
 });
 
-/** Every page of results has its own address, and dropping a ruleset from the pick starts the search again from its first page. */
-export const SearchPages = meta.story({
-  args: { path: '/faq?q=storm&page=2' },
+/** "Load more" lengthens the list in place until every match is shown; picking a ruleset starts the search again at its first matches. */
+export const LoadMore = meta.story({
+  args: { path: '/faq?q=storm' },
   parameters: { database: db((baseline) => seedRulesets(baseline, 24)) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
-    await expect(page.findByText(/^25–27 of 27 questions$/, {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.getByRole('link', { name: 'First page' })).toHaveAttribute('href', '/faq?q=storm');
-    await expect(main.getAllByRole('link', { name: /storm/i }).length).toBeGreaterThan(0);
+    const loadMore = await main.findByRole('button', { name: 'Load more' }, { timeout: 30_000 });
+    await expect(questionRows(main)).toHaveLength(24);
+
+    await userEvent.click(loadMore);
+    await waitFor(() => expect(questionRows(main)).toHaveLength(27), { timeout: 30_000 });
+    await expect(main.getByRole('link', { name: 'Storm question 03?' })).toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/faq/storm-question-03'
+    );
+    await expect(main.getByRole('link', { name: 'When does the storm move?' })).toBeVisible();
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
 
     await userEvent.click(page.getByRole('combobox', { name: 'Rulesets' }));
     await userEvent.click(await page.findByRole('option', { name: /Dreamrules/ }));
-    /* Two questions fit on one page, so the pager and its count go; the first page is back. */
-    await expect(
-      main.findByRole('link', { name: 'Can I ship troops into the storm?' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    await waitFor(() => expect(main.queryByRole('link', { name: 'When does the storm move?' })).toBeNull());
-    await expect(page.queryByRole('link', { name: 'First page' })).toBeNull();
-  },
-});
-
-/** A page past the end answers as one that does not exist, and says where the results end. */
-export const PastTheEnd = meta.story({
-  args: { path: '/faq?q=storm&page=9' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByRole('heading', { name: 'Nothing on this page' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    await expect(page.getByRole('link', { name: 'Go to the results' })).toHaveAttribute('href', '/faq?q=storm');
+    /* Two questions are all that match in Dreamrules, so the list is short again and there is no more to load. */
+    await waitFor(() => expect(main.queryByRole('link', { name: 'When does the storm move?' })).toBeNull(), {
+      timeout: 30_000,
+    });
+    await expect(main.getByRole('link', { name: 'Can I ship troops into the storm?' })).toBeVisible();
+    await expect(questionRows(main)).toHaveLength(2);
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
 });

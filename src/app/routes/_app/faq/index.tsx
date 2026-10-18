@@ -1,45 +1,52 @@
 import { Button, MultiSelect, Pill, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
+import { FAQ_CATALOGUE_PAGE_SIZE } from '@shared/faq/catalogueSearch';
 import { globalFaqRulesetSlugs, parseGlobalFaqSearch } from '@shared/faq/globalSearch';
 import type { GlobalFaqSearch } from '@shared/faq/globalSearch';
-import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
-import type { NotFoundRouteProps } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FaqWalkthrough } from '@ui/block/FaqWalkthrough';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
-import { CataloguePager } from '@ui/control/CataloguePager';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 import { loadGlobalFaqPage, loadGlobalFaqRulesetOptions, useGlobalFaqPage, useGlobalFaqRulesetOptions } from '@db/faq';
-import type { GlobalFaqPageData, GlobalFaqRulesetOptions } from '@db/faq';
+import type { GlobalFaqArgs, GlobalFaqPageData, GlobalFaqRulesetOptions } from '@db/faq';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
-import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
 
 const PAGE_NAME = 'Community FAQ';
 
-/** The page query's arguments for a parsed address; every key is spelled out so the loader deps compare equal however the address was written. */
+/** How many matches a search shows at first, and how many more each "Load more" asks for. */
+const FAQ_SEARCH_STEP = FAQ_CATALOGUE_PAGE_SIZE;
+
+/** What the page asks of the search for a parsed address; every key is spelled out so the loader deps compare equal however the address was written. */
 function faqDeps(search: GlobalFaqSearch) {
-  return { q: search.q, rulesets: globalFaqRulesetSlugs(search), page: search.page };
+  return { q: search.q, rulesets: globalFaqRulesetSlugs(search) };
 }
 
-/** The search parameters a change writes: any change but a page turn starts again from the first page. */
+type FaqDeps = ReturnType<typeof faqDeps>;
+
+/** The search's arguments at one limit, with the limit always spelled out so the loader and the page share one subscription. */
+function faqArgs(deps: FaqDeps, limit: number): GlobalFaqArgs {
+  return { ...deps, limit };
+}
+
+/**
+ * Before anything is searched the page shows how the FAQ works, not results, so it asks the search for nothing: the plain `/faq` makes one query, for the ruleset picker, and the answer it would have got is known here.
+ */
+function unsearched(deps: FaqDeps): GlobalFaqPageData {
+  return { selected: deps.rulesets, searched: false, items: [], hasMore: false, limit: FAQ_SEARCH_STEP };
+}
+
+/** The search parameters a change writes. */
 function nextSearch(previous: Record<string, unknown>, patch: Partial<Record<keyof GlobalFaqSearch, unknown>>) {
-  return parseGlobalFaqSearch({ ...previous, page: undefined, ...patch });
-}
-
-/** The address of one page of the current search and rulesets; the first page has no number. */
-function pageSearch(page: number) {
-  return (previous: GlobalFaqSearch): GlobalFaqSearch => ({
-    ...previous,
-    page: page > 1 ? page : undefined,
-  });
+  return parseGlobalFaqSearch({ ...previous, ...patch });
 }
 
 /**
@@ -57,19 +64,16 @@ function noindex<T extends { meta?: unknown[] }>(head: T) {
 
 export const Route = createFileRoute('/_app/faq/')({
   ssr: true,
-  codeSplitGroupings: [['component', 'notFoundComponent']],
   validateSearch: parseGlobalFaqSearch,
   loaderDeps: ({ search }) => faqDeps(search),
   loader: async ({ deps }) => {
     /* The picker's options are one held answer for every search, so the page's own query stays the one that changes. */
-    const [page, rulesets] = await Promise.all([loadGlobalFaqPage(deps), loadGlobalFaqRulesetOptions()]);
-    /* A page past the end is an address that does not exist, so it answers 404 and points at the last page. */
-    if (page.page > page.pageCount) {
-      throw notFound({ data: { pageCount: page.pageCount } });
-    }
+    const [page, rulesets] = await Promise.all([
+      deps.q ? loadGlobalFaqPage(faqArgs(deps, FAQ_SEARCH_STEP)) : unsearched(deps),
+      loadGlobalFaqRulesetOptions(),
+    ]);
     return { page, rulesets };
   },
-  notFoundComponent: GlobalFaqNotFound,
   head: ({ match }) => {
     const search = parseGlobalFaqSearch(match.search);
     const head = publicPageHead({
@@ -90,8 +94,6 @@ function GlobalFaqPage() {
   const deps = Route.useLoaderDeps();
   const navigate = Route.useNavigate();
   const loaderData = Route.useLoaderData();
-  const live = useGlobalFaqPage(deps, { initialData: loaderData.page });
-  const data = live.data ?? loaderData.page;
   const liveRulesets = useGlobalFaqRulesetOptions({ initialData: loaderData.rulesets });
   const rulesets = liveRulesets.data ?? loaderData.rulesets;
 
@@ -127,20 +129,20 @@ function GlobalFaqPage() {
               refine={{
                 label: 'Refine questions',
                 content: (
-                  <RulesetSelect label="Rulesets" options={rulesets} value={data.selected} onChange={changeRulesets} />
+                  <RulesetSelect label="Rulesets" options={rulesets} value={deps.rulesets} onChange={changeRulesets} />
                 ),
-                active: data.selected.length,
+                active: deps.rulesets.length,
               }}
             >
-              <RulesetSelect options={rulesets} value={data.selected} onChange={changeRulesets} />
+              <RulesetSelect options={rulesets} value={deps.rulesets} onChange={changeRulesets} />
             </SearchRefine>
           </Toolbar.Center>
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="xl">
-          {data.searched ? (
-            <FaqResults data={data} pending={live.isPending} />
+          {deps.q ? (
+            <FaqResults deps={deps} initial={loaderData.page} />
           ) : (
             <Section
               title="How the FAQ works"
@@ -269,46 +271,59 @@ function AskOnRuleset() {
   );
 }
 
-/** The page's questions and pager, or why there are none: nothing matches, or the address is past the last page. */
-function FaqResults({ data, pending }: { data: GlobalFaqPageData; pending: boolean }) {
+/** One search and its rulesets, as one string, so a change to either is one change. */
+function searchKey(deps: FaqDeps) {
+  return JSON.stringify([deps.q, deps.rulesets]);
+}
+
+/**
+ * The best matches of a search, live, and a "Load more" that asks for a longer list while there is one.
+ * The limit is the page's own, not the address's: it starts again whenever the search or its rulesets change.
+ * The last answer stays on screen while a longer list loads, so the rows and the button keep their place.
+ */
+function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageData }) {
+  const key = searchKey(deps);
+  const [grown, setGrown] = useState({ key, limit: FAQ_SEARCH_STEP });
+  const limit = grown.key === key ? grown.limit : FAQ_SEARCH_STEP;
+  const live = useGlobalFaqPage(faqArgs(deps, limit));
+  const [shown, setShown] = useState({ key, data: initial });
+  if (live.data !== undefined && live.data !== shown.data) {
+    setShown({ key, data: live.data });
+  }
+  const data = live.data ?? (shown.key === key ? shown.data : initial);
+  const loading = live.data === undefined && limit > FAQ_SEARCH_STEP;
   const openQuestion = useNavigate();
+
+  if (data.items.length === 0) {
+    return <NothingMatches />;
+  }
   return (
-    <>
-      {data.total === 0 ? (
-        <NothingMatches complete={data.complete} />
-      ) : data.page > 1 && data.items.length === 0 ? (
-        <Surface padding="xl">
-          <PastTheEnd pageCount={data.pageCount} />
-        </Surface>
-      ) : (
-        <Stack gap="lg" aria-busy={pending}>
-          <FaqList
-            emptyLabel="No questions match."
-            items={data.items}
-            onOpenQuestion={(questionSlug, rulesetSlug) =>
-              openQuestion({
-                to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-                params: { rulesetSlug, questionSlug },
-              })
-            }
-          />
-          <CataloguePager
-            page={data.page}
-            pageCount={data.pageCount}
-            pageSize={data.pageSize}
-            total={data.total}
-            complete={data.complete}
-            noun="questions"
-            label="FAQ pages"
-            pageLinkProps={(page) => ({ component: Link, to: '/faq', search: pageSearch(page) })}
-          />
-        </Stack>
-      )}
-    </>
+    <Stack gap="lg" aria-busy={loading}>
+      <FaqList
+        emptyLabel="No questions match."
+        items={data.items}
+        onOpenQuestion={(questionSlug, rulesetSlug) =>
+          openQuestion({
+            to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+            params: { rulesetSlug, questionSlug },
+          })
+        }
+      />
+      {data.hasMore ? (
+        <Button
+          variant="default"
+          className={styles.loadMore}
+          loading={loading}
+          onClick={() => setGrown({ key, limit: limit + FAQ_SEARCH_STEP })}
+        >
+          Load more
+        </Button>
+      ) : null}
+    </Stack>
   );
 }
 
-function NothingMatches({ complete }: { complete: boolean }) {
+function NothingMatches() {
   return (
     <Surface padding="xl">
       <Stack gap="xs" align="center">
@@ -316,37 +331,7 @@ function NothingMatches({ complete }: { complete: boolean }) {
         <Text c="dimmed" ta="center">
           No question matches this search in the rulesets picked.
         </Text>
-        {complete ? null : (
-          <Text size="xs" c="dimmed" ta="center">
-            Only the first matches of this search were checked. Add a word to narrow it.
-          </Text>
-        )}
       </Stack>
     </Surface>
-  );
-}
-
-/** A page past the end of a search, from an old link or matches that went away: say where its results end and link there, with the same search. */
-function PastTheEnd({ pageCount }: { pageCount: number }) {
-  return (
-    <Stack gap="sm" align="center">
-      <Title order={2}>Nothing on this page</Title>
-      <Text c="dimmed">
-        {pageCount === 1 ? 'This search fits on one page.' : `This search ends on page ${pageCount}.`}
-      </Text>
-      <Button variant="default" renderRoot={(props) => <Link {...props} to="/faq" search={pageSearch(pageCount)} />}>
-        {pageCount === 1 ? 'Go to the results' : `Go to page ${pageCount}`}
-      </Button>
-    </Stack>
-  );
-}
-
-/** A page past the end of a search, which carries where its results end. */
-function GlobalFaqNotFound({ data }: NotFoundRouteProps) {
-  const pageCount = (data as { pageCount?: number } | undefined)?.pageCount ?? 1;
-  return (
-    <PageMessage title={PAGE_NAME}>
-      <PastTheEnd pageCount={pageCount} />
-    </PageMessage>
   );
 }

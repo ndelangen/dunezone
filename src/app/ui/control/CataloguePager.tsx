@@ -51,7 +51,7 @@ export function CataloguePager({
         getControlProps={(control) => ({ ...pageLinkProps(target[control]), 'aria-label': controlLabel[control] })}
       />
       <Text size="xs" c="dimmed">
-        {complete ? `${first}–${last} of ${total} ${noun}` : `${first}–${last} of the first ${total} matching ${noun}`}
+        {`${first}–${last} of ${catalogueCountLabel(total, complete)} ${noun}`}
       </Text>
       {complete ? null : <IncompleteNotice noun={noun} />}
     </Stack>
