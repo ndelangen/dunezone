@@ -119,9 +119,8 @@ function useAssignCommit({
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : `Could not assign the ${noun}. Try again.`);
-    } finally {
-      setIsAssigning(false);
     }
+    setIsAssigning(false);
   };
 
   return { error, isAssigning, commit };

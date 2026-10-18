@@ -18,7 +18,7 @@ import type { Ref } from 'react';
 
 import { loadProfileDirectoryPage, useProfileDirectoryPage } from '@db/profiles';
 import type { ProfileDirectoryArgs, ProfileDirectoryEntry, ProfileDirectoryPageData } from '@db/profiles';
-import { useFocusFirstNewRow, useGrowingSearch } from '@app/routes/growingSearch';
+import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -115,11 +115,12 @@ function ProfilesPage() {
   const deps = Route.useLoaderDeps();
   const navigate = Route.useNavigate();
   const loaderData = Route.useLoaderData();
+  const growing = useGrowingLimit(deps, SEARCH_STEP);
+  const live = useDirectoryRows(deps, growing.limit);
   const { data, loading, loaded, grown, loadMore } = useGrowingSearch({
-    args: deps,
-    step: SEARCH_STEP,
+    search: growing,
     initial: loaderData,
-    useLive: useDirectoryRows,
+    live,
     rows: (page) => page.entries.length,
   });
   const list = useRef<HTMLDivElement>(null);
