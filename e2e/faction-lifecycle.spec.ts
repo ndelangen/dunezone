@@ -211,10 +211,8 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
 
     await search.press('Enter');
     await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(importedLeaderName);
-
-    await page.getByRole('combobox', { name: 'Sort factions' }).click();
-    await page.getByRole('option', { name: 'Chronological (updated)' }).click();
-    await expect.poll(() => new URL(page.url()).searchParams.get('sort')).toBe('updated');
+    /* A search is always its best matches; ordering belongs to browsing. */
+    await expect(page.getByRole('combobox', { name: 'Sort factions' })).toBeDisabled();
 
     await page.getByRole('button', { name: /^Refine/ }).click();
     await page
@@ -227,6 +225,10 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
 
     await expect(updatedFaction).toBeVisible();
     await expect(otherFaction).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.toString()).toBe('');
+
+    await page.getByRole('combobox', { name: 'Sort factions' }).click();
+    await page.getByRole('option', { name: 'Chronological (updated)' }).click();
     await expect.poll(() => new URL(page.url()).searchParams.toString()).toBe('sort=updated');
 
     await page.goBack();
