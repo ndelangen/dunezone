@@ -167,7 +167,8 @@ export type CataloguePageRequest = {
   complexity?: [number, number];
   /**
    * Searches several lists at once instead of `partition`, each read up to an equal share of the bound and taken in turn, so one list's matches never crowd out another's;
-   * the lists must not share an entry. It applies to a search only.
+   * the lists must not share an entry.
+   * It applies to a search only.
    */
   partitions?: string[];
   /** Keeps only the matches it returns, such as those in one of several lists, in their order; the aggregate cannot count these, so the page is bounded. */
