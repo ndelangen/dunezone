@@ -19,7 +19,8 @@
   padding-block: var(--space-md);
   border: 0;
   border-radius: var(--radius-md);
-  background-color: var(--color-paper);
+  --provider-bg: var(--color-paper);
+  background-color: var(--provider-bg);
   color: var(--color-ink);
   box-shadow: 0 10px 30px rgb(0 0 0 / 35%);
   transition:
@@ -28,7 +29,7 @@
 }
 
 .provider:hover:not(:disabled) {
-  background-color: var(--color-paper);
+  background-color: var(--provider-bg);
   transform: translateY(-1px);
   box-shadow: 0 14px 34px rgb(0 0 0 / 45%);
 }
@@ -36,7 +37,8 @@
 /* Discord's own blurple, as Google keeps its four colours in its mark. */
 .provider[data-provider="discord"],
 .provider[data-provider="discord"]:hover:not(:disabled) {
-  background-color: #5865f2;
+  --provider-bg: #5865f2;
+  background-color: var(--provider-bg);
   color: white;
 }
 
@@ -49,19 +51,17 @@
   opacity: 0.75;
 }
 
-/* The label stacks its two lines and keeps the button's own text size for the first. */
-.providerLabel {
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  text-box-trim: none;
-  line-height: 1.25;
-}
-
-/* The hint takes the button's ink at reduced strength, so it reads on paper and on blurple alike. */
+/*
+ * The last-used mark rides the top right corner of the provider's own mark, out of the flow, so the button keeps its size and its label stays put.
+ * It wears the button's own ink and a backing of the button's own fill, so it reads on paper and on blurple alike without merging into the logo.
+ */
 .lastUsed {
-  font-size: var(--mantine-font-size-sm);
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  opacity: 0.72;
+  position: absolute;
+  top: calc(50% - 18px);
+  inset-inline-start: calc(var(--button-padding-x) + 14px);
+  display: inline-flex;
+  padding: 1px;
+  border-radius: 50%;
+  background-color: var(--provider-bg);
+  opacity: 0.85;
 }

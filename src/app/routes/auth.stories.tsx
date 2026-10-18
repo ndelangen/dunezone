@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, waitFor, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { pageStoryMeta } from './storybookConfig';
 
@@ -38,7 +38,7 @@ const lastSignedInWithDiscord = () => {
   localStorage.setItem('dunezone-last-sign-in', 'discord');
   return () => localStorage.removeItem('dunezone-last-sign-in');
 };
-/** The provider this browser last signed in with says so inside its button, so a returning reader does not start a second account with the other one. */
+/** The provider this browser last signed in with carries a small mark beside its arrow, so a returning reader does not start a second account with the other one; the words reach assistive tech through the button's name. */
 export const LoginLastUsed = meta.story({
   args: { path: '/auth/login' },
   parameters: { identity: null },
@@ -52,7 +52,7 @@ export const LoginLastUsed = meta.story({
     );
   },
 });
-/** On a phone the hint still fits inside the button, which is why it is a second line rather than a badge beside the arrow. */
+/** On a phone the mark still fits beside the arrow without clipping the label. */
 export const LoginLastUsedMobile = meta.story({
   args: { path: '/auth/login' },
   parameters: { identity: null },
@@ -61,8 +61,7 @@ export const LoginLastUsedMobile = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const discord = await page.findByRole('button', { name: /^Continue with Discord/ }, { timeout: 30_000 });
-    /* The page's words fade in after the band, so the hint is waited for rather than read at once. */
-    await waitFor(() => expect(page.getByText('Last used')).toBeVisible(), { timeout: 30_000 });
+    await expect(discord).toHaveAccessibleName('Continue with Discord Last used');
     await expect(discord.scrollWidth).toBeLessThanOrEqual(discord.clientWidth);
     await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   },

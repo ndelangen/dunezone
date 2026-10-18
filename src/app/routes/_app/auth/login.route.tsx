@@ -1,5 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Button, Stack, Text, TextInput } from '@mantine/core';
+import { Button, Stack, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import type { SignInReturn } from '@shared/authDestination';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
@@ -7,7 +7,7 @@ import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, History } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 import type { SVGProps } from 'react';
 import { SiDiscord } from 'react-icons/si';
@@ -189,7 +189,6 @@ function SignInPanel({
             fullWidth
             justify="space-between"
             leftSection={<ProviderMark provider={method.provider} />}
-            classNames={{ label: styles.providerLabel }}
             rightSection={
               method.available ? <ArrowRight size={18} aria-hidden /> : <span aria-hidden>Unavailable</span>
             }
@@ -198,8 +197,17 @@ function SignInPanel({
             onClick={() => void socialLogin(method.provider)}
           >
             Continue with {authProviderNames[method.provider]}
-            {/* A second line inside the button rather than a badge beside the arrow, which a phone's width cannot hold. */}
-            {lastUsed === method.provider && <span className={styles.lastUsed}>Last used</span>}
+            {/* A mark on the provider's logo, placed out of the flow so the button keeps its size and its label stays put; the words reach assistive tech through the name. */}
+            {lastUsed === method.provider && (
+              <>
+                <VisuallyHidden> Last used</VisuallyHidden>
+                <Tooltip label="Last used" withArrow>
+                  <span className={styles.lastUsed}>
+                    <History size={13} aria-hidden />
+                  </span>
+                </Tooltip>
+              </>
+            )}
           </Button>
         ))
       ) : (
