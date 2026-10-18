@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/tes
 import { ASSET_CATALOGUE_PAGE_SIZE } from '../src/shared/assets/catalogueSearch';
 import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { storedProfileAvatar } from './profiles.test.fixture';
 
 const tokenFace = () => ({
   image: '/vector/icon/projectile.svg',
@@ -31,8 +32,6 @@ const tokenData = (name: string) => ({
   back: { mode: 'custom', face: tokenFace() },
 });
 
-const AVATAR = 'https://example.com/avatar.png';
-
 /* A profile written raw, as sign-up leaves it, so the owner has a name to be found by. */
 async function seedOwner(t: ReturnType<typeof applicationTest>, username: string) {
   return await t.run(async (ctx) => {
@@ -41,7 +40,7 @@ async function seedOwner(t: ReturnType<typeof applicationTest>, username: string
       user_id: userId,
       username,
       slug: username.toLowerCase(),
-      avatar_url: AVATAR,
+      ...storedProfileAvatar,
       account_state: 'active',
       created_at: '2026-10-10T00:00:00.000Z',
       updated_at: '2026-10-10T00:00:00.000Z',
@@ -135,7 +134,7 @@ describe('the asset type catalogue', () => {
 
     await t.withIdentity({ subject: stilgar }).mutation(api.profiles.updateCurrent, {
       username: 'NaibOfTabr',
-      avatar_url: AVATAR,
+      avatar_url: storedProfileAvatar.avatar_url,
     });
     await t.finishAllScheduledFunctions(() => vi.runAllTimers());
     expect(names(await search('naibof'))).toEqual(['Lasgun']);

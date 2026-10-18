@@ -114,6 +114,8 @@ async function waitForServer(process: ReturnType<typeof Bun.spawn>) {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     invariant(process.exitCode === null, `Wrangler stopped before ${origin} became ready.`);
     try {
+      /* This readiness probe uses only the fixed loopback Wrangler origin declared above. */
+      /* nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request */
       const response = await fetch(origin);
       if (response.ok) {
         return;
@@ -184,6 +186,8 @@ async function verifyHeaders(workerPath: string) {
   invariant(worker.status === 200, `${workerPath} returned HTTP ${worker.status}.`);
   assertWorkerCsp(worker.headers.get('Content-Security-Policy'));
   /* Rasters come from the application Worker, which marks every R2 answer with its SHA-256; a static copy carries no such header. */
+  /* The static-asset probe uses the same fixed loopback Wrangler origin. */
+  /* nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request */
   const raster = await fetch(`${origin}/image/texture/054.jpg`);
   invariant(raster.status === 200, `/image/texture/054.jpg returned HTTP ${raster.status}.`);
   invariant(raster.headers.has('X-Media-SHA256'), 'The Storybook Worker answered a raster from a static copy.');

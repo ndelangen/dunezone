@@ -8,6 +8,7 @@ import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishin
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api } from './_generated/api';
+import { storedProfileAvatar } from './profiles.test.fixture';
 import { rulesetOwner, VALID_ABOUT } from './rulesets.test.fixture';
 
 async function world() {
@@ -78,9 +79,10 @@ describe('former addresses', () => {
   test('a profile old address still answers when a newer profile that left it is deleted', async () => {
     const { t, owner } = await world();
     const before = await owner.mutation(api.profiles.bootstrapCurrent, {});
+    await t.run((ctx) => ctx.db.patch(before._id, storedProfileAvatar));
     await owner.mutation(api.profiles.updateCurrent, {
       username: 'Stilgar',
-      avatar_url: 'https://example.com/avatar.png',
+      avatar_url: storedProfileAvatar.avatar_url,
     });
     /* Another profile took the address, left it in turn, then was deleted. */
     await t.run(async (ctx) => {

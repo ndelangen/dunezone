@@ -21,7 +21,7 @@ import type { Ref } from 'react';
 import { loadRulesetFaqPage, useRulesetFaqPage } from '@db/faq';
 import type { RulesetFaqArgs, RulesetFaqBrowseData, RulesetFaqPageData, RulesetFaqSearchData } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
-import { useFocusFirstNewRow, useGrowingSearch } from '@app/routes/growingSearch';
+import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -136,11 +136,12 @@ function RulesetFaqPage() {
   const deps = Route.useLoaderDeps();
   const navigate = Route.useNavigate();
   const loaderData = Route.useLoaderData();
+  const growing = useGrowingLimit({ rulesetSlug, ...deps }, SEARCH_STEP);
+  const live = useFaqRows({ rulesetSlug, ...deps }, growing.limit);
   const { data, loading, loaded, grown, loadMore } = useGrowingSearch({
-    args: { rulesetSlug, ...deps },
-    step: SEARCH_STEP,
+    search: growing,
     initial: loaderData,
-    useLive: useFaqRows,
+    live,
     rows: (page) => page.items.length,
   });
   const list = useRef<HTMLDivElement>(null);

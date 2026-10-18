@@ -179,6 +179,9 @@ index 48b30e6..245572a 100644
  
  			// if a texture is not ready for use, it falls back to a default texture so it's possible
  			// to use it for rendering. If a texture in this state is disposed, it's important to
+@@ -64385 +64468 @@
+-		this.setAnimationLoop( null );
++		this._animation?.setAnimationLoop( null );
 @@ -69878,6 +69961,25 @@ class WebGLAttributeUtils {
  
  		const attributeData = backend.get( attribute );
@@ -386,6 +389,9 @@ index e96c4ae..a89476e 100644
  
  			// if a texture is not ready for use, it falls back to a default texture so it's possible
  			// to use it for rendering. If a texture in this state is disposed, it's important to
+@@ -64385 +64468 @@
+-		this.setAnimationLoop( null );
++		this._animation?.setAnimationLoop( null );
 @@ -69878,6 +69961,25 @@ class WebGLAttributeUtils {
  
  		const attributeData = backend.get( attribute );
@@ -675,3 +681,9 @@ index 5e2cf31..4abfb6f 100644
  		gl.deleteBuffer( attributeData.bufferGPU );
  
  		backend.delete( attribute );
+diff --git a/src/renderers/common/Renderer.js b/src/renderers/common/Renderer.js
+--- a/src/renderers/common/Renderer.js
++++ b/src/renderers/common/Renderer.js
+@@ -2724 +2724 @@
+-		this.setAnimationLoop( null );
++		this._animation?.setAnimationLoop( null );

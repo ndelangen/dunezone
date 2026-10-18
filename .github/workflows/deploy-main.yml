@@ -51,7 +51,7 @@ jobs:
   # "Re-run failed jobs" keeps this job's first answer and deploys that run's commit whatever
   # production serves by then.
   release_gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     # Job permissions replace the workflow's, so contents: read is restated, and actions: read lets
     # the gate list this workflow's runs for its commit.
@@ -87,7 +87,7 @@ jobs:
     # dev_rebuild needs this job, so it follows the same answer.
     if: needs.release_gate.outputs.deploy != 'false'
     environment: production
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The contract test budgets migrations, both active-version gates, narrowing and release work.
     # It also reserves ten minutes for checkout, dependency setup and step overhead.
     timeout-minutes: 120

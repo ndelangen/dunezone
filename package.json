@@ -22,7 +22,7 @@
     "app:dev": "bash ./scripts/app-dev.sh",
     "app:preview": "vp preview",
     "build-storybook": "storybook build",
-    "check": "bun run lint && bun run format:check && bun run publisher:manifest:verify-changed",
+    "check": "bun run lint && bun run format:check && bun run check:react-compiler && bun run publisher:manifest:verify-changed",
     "check:app-layout": "node scripts/assert-app-layout.ts",
     "check:breakpoints": "node scripts/assert-breakpoints.ts",
     "check:convex-skip": "node scripts/assert-no-convex-skip-in-domain-db.ts",
@@ -30,6 +30,7 @@
     "check:css-vars": "node scripts/assert-css-custom-properties-defined.ts",
     "check:e2e-shards": "node scripts/assert-e2e-shards-cover.ts",
     "check:prose": "node scripts/assert-no-ai-tells.ts",
+    "check:react-compiler": "bun run scripts/assert-react-compiler.ts",
     "cloudflare:drift-check": "bun run ./scripts/cloudflare-live-drift.ts",
     "convex:deploy": "convex deploy",
     "convex:dev": "bun run migrations:dev-strict && convex dev",
@@ -152,6 +153,7 @@
     "@cloudflare/workers-types": "5.20261006.1",
     "@codecov/bundler-plugin-core": "^2.0.1",
     "@edge-runtime/vm": "^5.0.0",
+    "@floating-ui/dom": "1.8.0",
     "@playwright/test": "1.63.0",
     "@rolldown/plugin-babel": "0.2.4",
     "@sinonjs/fake-timers": "15.4.0",
@@ -245,6 +247,8 @@
     "@storybook/tanstack-react@10.6.1": "patches/@storybook%2Ftanstack-react@10.6.1.patch",
     "three@0.186.1": "patches/three@0.186.1.patch",
     "@react-three/fiber@10.0.0-alpha.5": "patches/@react-three%2Ffiber@10.0.0-alpha.5.patch",
-    "convex@1.46.0": "patches/convex@1.46.0.patch"
+    "convex@1.46.0": "patches/convex@1.46.0.patch",
+    "@floating-ui/dom@1.8.0": "patches/@floating-ui%2Fdom@1.8.0.patch",
+    "@storybook/react@10.6.1": "patches/@storybook%2Freact@10.6.1.patch"
   }
 }

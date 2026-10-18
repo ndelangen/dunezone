@@ -14,9 +14,11 @@ import {
   convexUseMutation,
   convexUsePaginatedQuery,
   convexUseQuery,
+  convexUseQueries,
   useConvexStorybookMutation,
   useConvexStorybookPaginatedQuery,
   useConvexStorybookQuery,
+  useConvexStorybookQueries,
 } from './runtime';
 
 type WorkerState =
@@ -134,6 +136,7 @@ export function StorybookDatabaseProvider({
   mocked(applicationDb.mutation).mockImplementation(((fn, args) =>
     state.client.mutation(fn, args, identity)) as typeof applicationDb.mutation);
   mocked(convexUseQuery).mockImplementation(useConvexStorybookQuery as typeof convexUseQuery);
+  mocked(convexUseQueries).mockImplementation(useConvexStorybookQueries as typeof convexUseQueries);
   mocked(convexUseMutation).mockImplementation(useConvexStorybookMutation as typeof convexUseMutation);
   mocked(convexUsePaginatedQuery).mockImplementation(
     useConvexStorybookPaginatedQuery as typeof convexUsePaginatedQuery
@@ -170,6 +173,9 @@ export function useStorybookDatabaseClient() {
  */
 export function convexNeverAnswers(Story: ComponentType) {
   mocked(convexUseQuery).mockImplementation((() => undefined) as typeof convexUseQuery);
+  mocked(convexUseQueries).mockImplementation((queries) =>
+    Object.fromEntries(Object.keys(queries).map((key) => [key, undefined]))
+  );
   return <Story />;
 }
 

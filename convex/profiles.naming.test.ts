@@ -5,6 +5,7 @@ import { expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { storedProfileAvatar } from './profiles.test.fixture';
 import { rulesetTest } from './rulesets.test.fixture';
 
 test('profile edits preserve a folded OAuth address and share collision allocation without changing validation', async () => {
@@ -16,7 +17,7 @@ test('profile edits preserve a folded OAuth address and share collision allocati
     await ctx.db.insert('profiles', {
       user_id: id,
       username: '𝓝𝓸𝓻𝓫𝓮𝓻𝓽',
-      avatar_url: null,
+      ...storedProfileAvatar,
       account_state: 'active',
       slug: 'norbert-900',
       created_at: now,
@@ -38,7 +39,7 @@ test('profile edits preserve a folded OAuth address and share collision allocati
   const update = async (username: string) =>
     await owner.mutation(api.profiles.updateCurrent, {
       username,
-      avatar_url: 'https://example.com/avatar.png',
+      avatar_url: storedProfileAvatar.avatar_url,
     });
   expect((await update('Norbert')).profile.slug).toBe('norbert-900');
   expect((await update('Paulson')).profile.slug).toBe('paulson-1');

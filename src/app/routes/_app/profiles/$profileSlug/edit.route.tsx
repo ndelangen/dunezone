@@ -646,9 +646,8 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
       await signIn(provider, { redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect` });
     } catch (error) {
       dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'The sign-in could not start.' });
-    } finally {
-      dispatch({ kind: 'settled' });
     }
+    dispatch({ kind: 'settled' });
   };
   const remove = async (provider: AuthProvider) => {
     dispatch({ kind: 'started', provider });
@@ -660,9 +659,8 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
         kind: 'failed',
         message: error instanceof Error ? error.message : 'The sign-in method could not be disconnected.',
       });
-    } finally {
-      dispatch({ kind: 'settled' });
     }
+    dispatch({ kind: 'settled' });
   };
   /* The server ends every session first, this one included; clearing this browser's tokens then only makes the page agree. */
   const signOutEverywhere = async () => {
@@ -675,9 +673,8 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
         kind: 'failed',
         message: error instanceof Error ? error.message : 'The sign-out could not finish.',
       });
-    } finally {
-      dispatch({ kind: 'settled' });
     }
+    dispatch({ kind: 'settled' });
   };
   return (
     <Stack gap="md">

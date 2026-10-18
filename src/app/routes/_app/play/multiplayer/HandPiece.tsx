@@ -17,12 +17,13 @@ export function pieceName(piece: TablePiece) {
 export function PieceImage({
   piece,
   width = 60,
-  height = piece.kind === 'card' ? 80 : 60,
+  height: requestedHeight,
 }: {
   piece: TablePiece;
   width?: number;
   height?: number;
 }) {
+  const height = requestedHeight ?? (piece.kind === 'card' ? 80 : 60);
   const front = piece.items[0]?.artwork?.front;
   const radius = isBattleLeader(piece) ? '50%' : undefined;
   if (front) {

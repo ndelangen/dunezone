@@ -198,13 +198,15 @@ const acrossBoard = (value: number) => `${Math.round((value / BOARD_FRAME_SIZE) 
 
 const degrees = (value: number) => `${Math.round(value)}°`;
 
+const formatRounded = (current: number) => String(Math.round(current));
+
 function TokenSlider({
   label,
   value,
   min,
   max,
   step,
-  format = (current) => String(Math.round(current)),
+  format = formatRounded,
   onChange,
 }: Readonly<{
   label: string;

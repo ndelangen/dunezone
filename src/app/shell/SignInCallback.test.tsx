@@ -33,10 +33,11 @@ async function land(href: string) {
     root.render(<SignInCallback />);
   });
   await act(async () => {});
-  root.unmount();
+  await act(async () => root.unmount());
 }
 
 beforeEach(() => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   vi.resetModules();
   mocks.signIn.mockReset().mockResolvedValue({ signingIn: true });
   mocks.navigate.mockReset();
@@ -46,6 +47,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   localStorage.clear();
 });
 

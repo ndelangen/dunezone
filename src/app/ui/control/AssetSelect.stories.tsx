@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { ALL, LEADERS, LOGO } from '@shared/assetIds';
 import { resolveAsset } from '@shared/media/resolveAsset';
+import { act } from '@testing-library/react/pure';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -178,7 +179,8 @@ export const IconPicker = meta.story({
     const search = await screen.findByRole('textbox', { name: 'Search artwork' });
     await expect(search).toHaveFocus();
     await userEvent.type(search, 'ocean');
-    await userEvent.click(await screen.findByRole('option', { name: 'Ocean emblem' }));
+    const ocean = await screen.findByRole('option', { name: 'Ocean emblem' });
+    await act(async () => ocean.click());
     await expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     await waitFor(() => expect(canvas.getByRole('button', { name: 'Add decal' })).toHaveFocus());
   },

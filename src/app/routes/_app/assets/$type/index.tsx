@@ -22,7 +22,7 @@ import type { Ref } from 'react';
 
 import { loadAssetBrowsePage, useAssetBrowsePage } from '@app/db/assets';
 import type { AssetBrowseArgs, AssetBrowseEntry, AssetBrowsePageData } from '@app/db/assets';
-import { useFocusFirstNewRow, useGrowingSearch } from '@app/routes/growingSearch';
+import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
@@ -134,11 +134,12 @@ function AssetTypePage() {
   const loaderData = Route.useLoaderData();
   const validType = isAssetType(type) ? type : 'card-treachery';
   const definition: AssetTypeDefinition = ASSET_TYPES[validType];
+  const growing = useGrowingLimit({ type: validType, ...deps }, SEARCH_STEP);
+  const live = useTypeRows({ type: validType, ...deps }, growing.limit);
   const { data, loading, loaded, grown, loadMore } = useGrowingSearch({
-    args: { type: validType, ...deps },
-    step: SEARCH_STEP,
+    search: growing,
     initial: loaderData,
-    useLive: useTypeRows,
+    live,
     rows: (page) => page.entries.length,
   });
   const grid = useRef<HTMLDivElement>(null);

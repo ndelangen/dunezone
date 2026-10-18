@@ -55,7 +55,7 @@ describe('AssignPopover', () => {
     const mounted = vi.fn();
     function Probe() {
       mounted();
-      return <span>pane content</span>;
+      return <button type="button">pane content</button>;
     }
 
     container = document.createElement('div');
@@ -64,7 +64,7 @@ describe('AssignPopover', () => {
 
     await act(async () => {
       root?.render(
-        <MantineProvider theme={appContentTheme} forceColorScheme="light">
+        <MantineProvider env="test" theme={appContentTheme} forceColorScheme="light">
           <AssignPopover noun="group" icon={<Users size={17} aria-hidden />} disabled={false}>
             <Probe />
           </AssignPopover>
@@ -107,7 +107,7 @@ describe('AssignPopover', () => {
 
     await act(async () => {
       root?.render(
-        <MantineProvider theme={appContentTheme} forceColorScheme="light">
+        <MantineProvider env="test" theme={appContentTheme} forceColorScheme="light">
           <AssignPopover noun="group" icon={<Users size={17} aria-hidden />} disabled={false}>
             <AssignOptions options={[groupOption]} onAssign={vi.fn(async () => undefined)} />
           </AssignPopover>
@@ -159,7 +159,7 @@ describe('AssignPopover', () => {
 
     await act(async () => {
       root?.render(
-        <MantineProvider theme={appContentTheme} forceColorScheme="light">
+        <MantineProvider env="test" theme={appContentTheme} forceColorScheme="light">
           <AssignPopover noun="group" icon={<Users size={17} aria-hidden />} disabled={false}>
             <AssignOptions options={[]} loading onAssign={vi.fn(async () => undefined)} />
           </AssignPopover>
@@ -188,7 +188,7 @@ describe('AssignPopover', () => {
 
     await act(async () => {
       root?.render(
-        <MantineProvider theme={appContentTheme} forceColorScheme="light">
+        <MantineProvider env="test" theme={appContentTheme} forceColorScheme="light">
           <AssignPopover noun="group" icon={<Users size={17} aria-hidden />} disabled={false}>
             <AssignOptions options={[groupOption]} onAssign={onAssign} />
           </AssignPopover>
@@ -224,7 +224,7 @@ describe('AssignPopover', () => {
 
     await act(async () => {
       root?.render(
-        <MantineProvider theme={appContentTheme} forceColorScheme="light">
+        <MantineProvider env="test" theme={appContentTheme} forceColorScheme="light">
           <AssignPopover noun="group" icon={<Users size={17} aria-hidden />} disabled={false}>
             <AssignOptions
               options={[groupOption]}
@@ -265,7 +265,7 @@ describe('AssignPopover', () => {
 
     await act(async () => {
       root?.render(
-        <MantineProvider theme={appContentTheme} forceColorScheme="light">
+        <MantineProvider env="test" theme={appContentTheme} forceColorScheme="light">
           <AssignPopover noun="group" icon={<Users size={17} aria-hidden />} disabled={false}>
             <AssignOptions
               options={[groupOption, { value: 'group-2', label: 'Spice Cartel (spice-cartel)' }]}

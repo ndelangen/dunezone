@@ -9,18 +9,13 @@ import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphics
 import { useTableLighting } from './tableLighting';
 import { useTableGraphics } from './useTableGraphics';
 
-/**
- * Frees the renderer, and with it the canvas's WebGL context or GPU device, once the table's canvas has left the page.
- * R3F does this on unmount only for its legacy WebGLRenderer, so every remount of the table (a reconnect, a reload of the view) otherwise left a live context behind until the browser ran out of them.
- * A canvas still on the page is a remount of this component alone, as R3F's own teardown assumes, and keeps its renderer.
- */
-function ReleaseRendererOnUnmount() {
+/** Releases the table's shared shapes before Fiber disposes the renderer after root teardown. */
+function ReleaseSharedMeshesOnUnmount() {
   const renderer = useThree((state) => state.renderer);
   useEffect(
     () => () => {
       if (!renderer.domElement.isConnected) {
         releaseSharedMeshes(renderer);
-        void renderer.dispose();
       }
     },
     [renderer]
@@ -105,7 +100,7 @@ export function TabletopCanvas({
             }}
             onCreated={presentation === 'play' ? onSceneReady : undefined}
           >
-            <ReleaseRendererOnUnmount />
+            <ReleaseSharedMeshesOnUnmount />
             <TableLights />
             {presentation === 'preview' && <PaintedFrames onReady={ready} />}
             {children}

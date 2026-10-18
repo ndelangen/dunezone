@@ -96,6 +96,8 @@ function useCornerTicks(half: number, arm: number, thickness: number) {
   return geometry;
 }
 
+const FULL_TURN = Math.PI * 2;
+
 function Ring({
   inner,
   outer,
@@ -103,7 +105,7 @@ function Ring({
   opacity = 1,
   color,
   start = 0,
-  length = Math.PI * 2,
+  length = FULL_TURN,
 }: Readonly<{
   inner: number;
   outer: number;

@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import { MantineProvider, Popover } from '@mantine/core';
-import { act, cleanup, render } from '@testing-library/react';
+import { cleanup, render } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
@@ -68,7 +68,7 @@ test('the seat story opens a real popover while native frames stay withheld', as
     });
   /* Time runs on until the helper settles, up to its own 30 s bound. */
   for (let elapsed = 0; !finished && elapsed < 30_100; elapsed += 50) {
-    await act(() => vi.advanceTimersByTimeAsync(50));
+    await vi.advanceTimersByTimeAsync(50);
   }
   expect(await outcome).toBe('All 6 seats are taken');
 });

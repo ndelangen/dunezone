@@ -49,7 +49,7 @@ import type {
   FactionCatalogueSearchData,
 } from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { useFocusFirstNewRow, useGrowingSearch } from '@app/routes/growingSearch';
+import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -110,11 +110,12 @@ export const Route = createFileRoute('/_app/factions/')({
 function FactionsPage() {
   const loaderData = Route.useLoaderData();
   const args = Route.useLoaderDeps();
+  const growing = useGrowingLimit(args, SEARCH_STEP);
+  const live = useCatalogueRows(args, growing.limit);
   const { data, loading, loaded, grown, loadMore } = useGrowingSearch({
-    args,
-    step: SEARCH_STEP,
+    search: growing,
     initial: loaderData,
-    useLive: useCatalogueRows,
+    live,
     rows: (page) => page.cards.length,
   });
   const session = useFactionCatalogueSession(data.rulesets);

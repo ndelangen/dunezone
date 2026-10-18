@@ -29,7 +29,8 @@ export function ScenePings() {
     let next = 0;
     const timers = new Set<ReturnType<typeof setTimeout>>();
     const stop = subscribePings((ping) => {
-      const key = next++;
+      const key = next;
+      next += 1;
       playPingSound(ping.sound);
       setPings((shown) => [...shown.slice(1 - MOST_PINGS), { ...ping, key }]);
       const timer = setTimeout(() => {
@@ -68,7 +69,9 @@ function PingRipple({ ping }: { ping: ShownPing }) {
   useEffect(() => invalidate(), [invalidate]);
   useFrame(() => {
     const now = performance.now();
-    started.current ??= now;
+    if (started.current === null) {
+      started.current = now;
+    }
     const elapsed = now - started.current;
     const ripple = rippleAt(elapsed);
     if (ring.current) {

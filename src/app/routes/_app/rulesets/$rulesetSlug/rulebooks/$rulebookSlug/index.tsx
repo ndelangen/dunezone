@@ -817,6 +817,8 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
               {published ? (
                 <div data-published-rulebook>
                   <style>{published.css}</style>
+                  {/* Only publisher-generated artifacts parsed by parsePublishedRulebook reach this sink. */}
+                  {/* nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml */}
                   <div dangerouslySetInnerHTML={{ __html: published.markup }} />
                 </div>
               ) : (

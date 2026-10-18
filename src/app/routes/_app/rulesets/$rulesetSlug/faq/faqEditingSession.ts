@@ -118,6 +118,4 @@ export function createFaqEditingSession(ports: FaqEditingPorts) {
   };
 }
 
-export type FaqEditingSession = ReturnType<typeof createFaqEditingSession>;
-
 export const INITIAL_FAQ_EDITING_STATE = INITIAL;

@@ -1,8 +1,3 @@
-import {
-  useMutation as convexUseMutation,
-  usePaginatedQuery as convexUsePaginatedQuery,
-  useQuery as convexUseQuery,
-} from 'convex/react';
 import type {
   PaginatedQueryArgs,
   PaginatedQueryItem,
@@ -230,6 +225,64 @@ function useStableConvexValue<Value>(value: Value) {
   return useMemo(() => jsonToConvex(JSON.parse(serialized)) as Value, [serialized]);
 }
 
+type StorybookQueries = Record<
+  string,
+  {
+    query: FunctionReference<'query'> | FunctionReference_future<'query'>;
+    args: Record<string, ConvexValue>;
+  }
+>;
+
+/** Query failures stay beside their own keys, as in Convex's useQueries, so a held page can keep its last answer. */
+export function useConvexStorybookQueries(queries: StorybookQueries): Record<string, unknown> {
+  const { client, identity } = useConvexStorybookWorkerSession();
+  const revision = useSyncExternalStore(client.subscribe, client.getRevision, client.getRevision);
+  const requests = useStableConvexValue(
+    Object.fromEntries(
+      Object.entries(queries).map(([key, request]) => [
+        key,
+        { name: getFunctionName(request.query), args: request.args },
+      ])
+    )
+  );
+  const scope = useMemo(() => ({ client, identity }), [client, identity]);
+  type Answer = { signature: string; revision: number; value: unknown };
+  const [result, setResult] = useState<{ scope: typeof scope; answers: Record<string, Answer> }>();
+  useEffect(() => {
+    let active = true;
+    for (const [key, request] of Object.entries(requests)) {
+      const signature = JSON.stringify([request.name, convexToJson(request.args)]);
+      const receive = (value: unknown) => {
+        if (active) {
+          setResult((previous) => ({
+            scope,
+            answers: {
+              ...(previous?.scope === scope ? previous.answers : {}),
+              [key]: { signature, revision, value },
+            },
+          }));
+        }
+      };
+      void client
+        .query(makeFunctionReference<'query'>(request.name), request.args, identity)
+        .then(receive, (error: unknown) => receive(error instanceof Error ? error : new Error(String(error))));
+    }
+    return () => {
+      active = false;
+    };
+  }, [client, identity, requests, revision, scope]);
+  return Object.fromEntries(
+    Object.entries(requests).map(([key, request]) => {
+      const answer = result?.scope === scope ? result.answers[key] : undefined;
+      const signature = JSON.stringify([request.name, convexToJson(request.args)]);
+      if (answer?.signature !== signature || (answer.value instanceof Error && answer.revision !== revision)) {
+        return [key, undefined];
+      }
+      return [key, answer.value];
+    })
+  );
+}
+
 export function useConvexStorybookQuery<Query extends FunctionReference<'query'> | FunctionReference_future<'query'>>(
   query: Query,
   args: FunctionArgs<Query>
@@ -401,5 +454,10 @@ export const convexStorybookReferences = {
   rulesetsList: api.rulesets.list,
 };
 
-export { convexUseMutation, convexUsePaginatedQuery, convexUseQuery };
+export {
+  useMutation as convexUseMutation,
+  usePaginatedQuery as convexUsePaginatedQuery,
+  useQuery as convexUseQuery,
+  useQueries as convexUseQueries,
+} from 'convex/react';
 export type { FunctionArgs, FunctionReference, FunctionReturnType };

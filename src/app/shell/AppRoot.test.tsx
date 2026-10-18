@@ -18,7 +18,18 @@ function chrome(children: ReactNode) {
 }
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, search: _search, ...rest }: { children: ReactNode; to: string; search?: unknown }) => (
+  Link: ({
+    children,
+    to,
+    search: _search,
+    activeProps: _activeProps,
+    ...rest
+  }: {
+    children: ReactNode;
+    to: string;
+    search?: unknown;
+    activeProps?: unknown;
+  }) => (
     <a href={to} {...rest}>
       {children}
     </a>
@@ -53,6 +64,7 @@ class ResizeObserverStub {
 
 describe('AppRoot page header', () => {
   beforeEach(() => {
+    vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
     vi.stubGlobal('ResizeObserver', ResizeObserverStub);
   });
 

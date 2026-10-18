@@ -130,10 +130,12 @@ function SignInPanel({
     event.preventDefault();
     dispatch({ kind: 'started', provider: 'password' });
     const email = state.email.trim().toLowerCase();
+    if (!email || !state.password) {
+      dispatch({ kind: 'failed', message: 'Email and password are required.' });
+      dispatch({ kind: 'settled' });
+      return;
+    }
     try {
-      if (!email || !state.password) {
-        throw new Error('Email and password are required.');
-      }
       try {
         await signIn('password', { flow: 'signIn', email, password: state.password });
       } catch {
@@ -141,9 +143,8 @@ function SignInPanel({
       }
     } catch (error) {
       dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'Sign-in could not start.' });
-    } finally {
-      dispatch({ kind: 'settled' });
     }
+    dispatch({ kind: 'settled' });
   };
   return (
     <Stack gap="sm" className={styles.actions}>

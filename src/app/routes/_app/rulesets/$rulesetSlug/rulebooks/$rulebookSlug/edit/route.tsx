@@ -2672,6 +2672,10 @@ function artifactStatus(kind: RulebookEditionArtifactKind, status: ArtifactStatu
   }
 }
 
+function saveResponseEvent(kind: 'saved' | 'stale', saved: Parameters<typeof createRulebookEditorStateManager>[0]) {
+  return kind === 'saved' ? { kind: 'save-succeeded' as const, saved } : { kind: 'save-stale' as const, latest: saved };
+}
+
 type DraftReferences = ReturnType<typeof collectRulebookReferenceIds>;
 
 function RulebookEditorSession({
@@ -2802,9 +2806,7 @@ function RulebookEditorSession({
       sendView({
         kind: 'result',
         notice: response.kind,
-        result: manager.dispatch(
-          response.kind === 'saved' ? { kind: 'save-succeeded', saved } : { kind: 'save-stale', latest: saved }
-        ),
+        result: manager.dispatch(saveResponseEvent(response.kind, saved)),
       });
     } catch (error) {
       dispatch({
