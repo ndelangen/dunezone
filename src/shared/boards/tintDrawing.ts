@@ -30,8 +30,8 @@ export const tintDrawingSchema = z.strictObject({
   id: z.string(),
   color: z.string(),
   opacity: z.number().min(0).max(1),
-  /** One entry per territory: its area, and its own line without the stretch along the board's rim. */
-  fills: z.array(z.strictObject({ d: z.string(), edge: z.string() })).max(128),
+  /** One entry per territory, up to the 512 a board may hold: its area, and its own line without the stretch along the board's rim. */
+  fills: z.array(z.strictObject({ d: z.string(), edge: z.string() })).max(512),
   /** Set for an outline-only tint: one double line round its territories taken together. */
   outline: z.string().optional(),
   /** How opaque the outline is; a drawing without one predates outline opacity and draws it solid. */

@@ -22,7 +22,7 @@ const SAVED_BOARDS = 'Saved boards';
 const LOADING = '__loading';
 const BOARD_TYPES = ['board'];
 
-/** Reads the saved boards once mounted, which the field does the first time it opens, and hands them up. */
+/** Reads the saved boards while mounted, which the field does while it is open, and hands them up. */
 function SavedBoards({ onBoards }: { onBoards: (boards: readonly BoardChoice[]) => void }) {
   const catalogue = useAssetsByTypes(BOARD_TYPES);
   useEffect(() => {
@@ -38,11 +38,12 @@ function SavedBoards({ onBoards }: { onBoards: (boards: readonly BoardChoice[]) 
 /**
  * The board a Spice card or a Rulebook scene draws, chosen the way artwork is: one field with each board's face beside its name.
  * `fixed` are the boards offered without a read, such as the maintained map;
- * saved boards load the first time the field opens, so an editor that never opens it holds no subscription.
- * `selected` keeps the chosen saved board named and pictured before then.
+ * saved boards are read only while the field is open, so a closed field holds no subscription;
+ * the last list read stays offered after closing.
+ * `selected` keeps the chosen saved board named and pictured before the first read.
  */
 export function BoardPicker({ label, value, fixed, selected, onPick }: Readonly<BoardPickerProps>) {
-  const [wanted, setWanted] = useState(false);
+  const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState<readonly BoardChoice[]>();
   const offered = new Set([...fixed, ...(saved ?? [])].map((board) => board.id));
   /* The chosen board stays listed, so the field keeps naming it, even when the catalogue does not hold it. */
@@ -51,20 +52,20 @@ export function BoardPicker({ label, value, fixed, selected, onPick }: Readonly<
   const previews = new Map(boards.map((board) => [board.id, board.previewSrc]));
   return (
     <>
-      {wanted ? <SavedBoards onBoards={setSaved} /> : null}
+      {open ? <SavedBoards onBoards={setSaved} /> : null}
       <AssetSelect
         aria-label={label}
         value={value}
         allowDeselect={false}
         data={[
           ...boards.map((board) => ({ value: board.id, label: board.name, collection: board.collection })),
-          ...(wanted && !saved
+          ...(open && !saved
             ? [{ value: LOADING, label: 'Loading saved boards...', collection: SAVED_BOARDS, disabled: true }]
             : []),
         ]}
         getPreviewSrc={(id) => previews.get(id)}
         previewSize={36}
-        comboboxProps={{ onOpen: () => setWanted(true) }}
+        comboboxProps={{ onOpen: () => setOpen(true), onClose: () => setOpen(false) }}
         onChange={(id) => {
           if (id && id !== LOADING) {
             onPick(id);
