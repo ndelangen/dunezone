@@ -8,6 +8,8 @@ const FRAME = 487.06;
 const MAX_PARTS = 128;
 const MAX_PATHS = 128;
 const MAX_PATH_LENGTH = 20_000;
+/* Component geometry labels are capped shorter than saved board territory names; a longer name is cut rather than failing the whole board. */
+const MAX_LABEL_LENGTH = 120;
 
 /* The maintained Arrakis geometry names its territory groups so; a saved board's groups take the same keys, so a Rulebook highlight authored on one draws on the other. */
 const TYPE_GROUPS = { stronghold: 'strongholds', rock: 'rock', sand: 'sand', polar: 'polar' } as const;
@@ -40,7 +42,12 @@ function part(key: string, label: string, faces: readonly Face[]) {
     .filter((d) => d.length <= MAX_PATH_LENGTH)
     .slice(0, MAX_PATHS)
     .map((d) => ({ d, transform }));
-  return { key, label, ...bounds(faces), ...(paths.length ? { highlight: { paths } } : {}) };
+  return {
+    key,
+    label: label.slice(0, MAX_LABEL_LENGTH),
+    ...bounds(faces),
+    ...(paths.length ? { highlight: { paths } } : {}),
+  };
 }
 
 /**

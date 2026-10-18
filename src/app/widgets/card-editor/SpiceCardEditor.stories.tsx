@@ -160,6 +160,33 @@ export const SavedBoard = meta.story({
   },
 });
 
+const onStrongholds: SpiceDraft = {
+  ...onBoard,
+  board: {
+    ...spiceBoardLink,
+    tints: [{ id: 'highlights', name: 'Strongholds', color: '#9e5f00', territories: [], types: ['stronghold'] }],
+  },
+};
+
+/** A tint carried over from a classic card's region covers a territory type; the brush can still take one of its territories away. */
+export const CarriedRegion = meta.story({
+  args: { chapter: 'map' as const, draft: onStrongholds },
+  render: (args) => <LiveEditor {...args} initial={onStrongholds} />,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const covered = () => proofOf(canvasElement).querySelectorAll('[data-tint="highlights"] > g');
+    await expect(covered()).toHaveLength(5);
+    await userEvent.click(canvas.getByRole('button', { name: 'Paint Strongholds' }));
+    const { x, y } = territoryOnScreen(canvasElement, 'arrakeen');
+    const surface = canvasElement.querySelector('[data-brush]')!;
+    await userEvent.pointer({ keys: '[MouseLeft]', target: surface, coords: { clientX: x, clientY: y } });
+    await waitFor(() => expect(covered()).toHaveLength(4));
+    const tint = (args.patch as ReturnType<typeof fn>).mock.lastCall![0].board.tints[0];
+    await expect(tint.types).toBeUndefined();
+    await expect(tint.territories).not.toContain('arrakeen');
+  },
+});
+
 /** Each look is drawn on the card itself; picking one sets it on the link, and the strength slider shows for every look but Plain. */
 export const BoardLook = meta.story({
   args: { chapter: 'look' as const, draft: onBoard },

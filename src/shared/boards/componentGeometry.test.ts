@@ -19,3 +19,10 @@ test('a saved Arrakis board gives a Rulebook every territory and group key the m
     expect(part.y + part.height).toBeLessThanOrEqual(1.000001);
   }
 });
+
+test('a territory name longer than a geometry label still gives a valid geometry', () => {
+  const board = arrakisBoard();
+  const [key, property] = Object.entries(board.properties)[0]!;
+  const long = { ...board, properties: { ...board.properties, [key]: { ...property, name: `A${'!'.repeat(120)}` } } };
+  expect(componentGeometrySchema.safeParse(boardComponentGeometry(long, 1948, 1948)).success).toBe(true);
+});

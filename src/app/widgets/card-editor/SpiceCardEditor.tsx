@@ -1,4 +1,6 @@
 import { MultiSelect, NumberInput, Stack, TextInput } from '@mantine/core';
+import type { Board } from '@shared/boards/schema';
+import { territoryId } from '@shared/boards/schema';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -85,20 +87,40 @@ const HIGHLIGHT_OPTIONS = [
 
 type Patch = (update: Partial<SpiceDraft>) => void;
 
-/** The draft's link with one tint's territory added or taken away, or one token moved: what the proof's brush and drag ask for. */
-function paintTerritory(link: NonNullable<SpiceDraft['board']>, tintId: string, territory: string) {
+/**
+ * The draft's link with one tint's territory added or taken away: what the proof's brush asks for.
+ * A tint carried over from a classic card's region names territory types;
+ * painting by hand spells those out as the board's territories first, so the brush can take any of them away.
+ */
+function paintTerritory(
+  link: NonNullable<SpiceDraft['board']>,
+  board: Board | undefined,
+  tintId: string,
+  territory: string
+) {
   return {
     ...link,
-    tints: link.tints.map((tint) =>
-      tint.id === tintId
-        ? {
-            ...tint,
-            territories: tint.territories.includes(territory)
-              ? tint.territories.filter((id) => id !== territory)
-              : [...tint.territories, territory],
-          }
-        : tint
-    ),
+    tints: link.tints.map((tint) => {
+      if (tint.id !== tintId) {
+        return tint;
+      }
+      const types = new Set<string>(tint.types ?? []);
+      const covered = [
+        ...new Set([
+          ...tint.territories,
+          ...(board && types.size
+            ? Object.values(board.properties)
+                .filter((property) => types.has(property.type))
+                .map((property) => territoryId(property.name))
+            : []),
+        ]),
+      ];
+      const { types: _types, ...rest } = tint;
+      return {
+        ...(board ? rest : tint),
+        territories: covered.includes(territory) ? covered.filter((id) => id !== territory) : [...covered, territory],
+      };
+    }),
   };
 }
 
@@ -134,7 +156,7 @@ function FillCard({
           link
             ? {
                 onTerritory: brush
-                  ? (territory) => patch({ board: paintTerritory(link, brush, territory) })
+                  ? (territory) => patch({ board: paintTerritory(link, read?.board ?? undefined, brush, territory) })
                   : undefined,
                 onTokenMove: placing
                   ? (layerId, x, y) =>

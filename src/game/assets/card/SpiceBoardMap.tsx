@@ -36,8 +36,16 @@ const STICKER_SMALLEST = 0.14 * TABLE_UNIT;
 const STICKER_INK = '#1a0b00';
 const STICKER_OUTLINE = '#fffed8';
 
+/* Deriving a board's faces takes tens of milliseconds and the editor redraws on every token drag step, so faces are kept per board object. */
+const territoryCache = new WeakMap<Board, Territory[]>();
+
 export function boardTerritoryList(board: Board): Territory[] {
-  return derive(board).faces.map((face) => ({ id: territoryId(board.properties[face.key].name), face }));
+  let territories = territoryCache.get(board);
+  if (!territories) {
+    territories = derive(board).faces.map((face) => ({ id: territoryId(board.properties[face.key].name), face }));
+    territoryCache.set(board, territories);
+  }
+  return territories;
 }
 
 /** The board's territories a tint covers: those it names, and every current one of a type it names. */
