@@ -27,4 +27,14 @@ describe('dev rebuild workflow', () => {
     expect(steps.filter((step) => step.includes('--stage data'))).toEqual([rebuild]);
     expect(steps.at(-1)).toContain(`if: always()\n        run: rm -rf "\${RUNNER_TEMP:?}/${JOB_DIRECTORY}"\n`);
   });
+
+  test('a migration-only merge pushes code, then migrates dev with the dev key', () => {
+    const push = stepNamed('Push main to the dev deployment');
+    const migrate = stepNamed("Run the new migrations on dev's data");
+
+    expect(migrate).toContain("if: steps.decision.outputs.migrate == 'true'\n");
+    expect(migrate).toContain('run: bun run provision dev --stage migrate\n');
+    expect(migrate).toContain('CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}');
+    expect(steps.indexOf(migrate!)).toBe(steps.indexOf(push!) + 1);
+  });
 });

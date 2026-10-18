@@ -44,7 +44,7 @@ describe('anonymised snapshot job', () => {
     expect(steps.filter((step) => step.includes('actions/upload-artifact@'))).toEqual([steps[upload]]);
     expect(steps[upload]).toContain("if: success() && env.SNAPSHOT_UPLOAD == 'true'\n");
     expect(steps[upload]).toContain(`path: \${{ runner.temp }}/${JOB_DIRECTORY}/${SNAPSHOT_FILE}\n`);
-    expect(steps[upload]).toContain('retention-days: 1\n');
+    expect(steps[upload]).toContain('retention-days: 8\n');
     expect(cleanup).toBe(steps.length - 1);
     expect(steps[cleanup]).toContain(`if: always()\n        run: rm -rf "\${RUNNER_TEMP:?}/${JOB_DIRECTORY}"\n`);
   });

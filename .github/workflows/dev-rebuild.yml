@@ -62,6 +62,14 @@ jobs:
         env:
           CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}
 
+      # A migration-only merge leaves the schema as it was, so dev's data still fits the code just pushed.
+      # Dev then runs the migrations the merge added, as the deploy did on production, instead of exporting production again.
+      - name: Run the new migrations on dev's data
+        if: steps.decision.outputs.migrate == 'true'
+        run: bun run provision dev --stage migrate
+        env:
+          CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}
+
       # The snapshot job's own script, and the only step that holds the production key. It reads the raw export
       # into memory, deletes it before anonymising, and writes the scanned snapshot under RUNNER_TEMP.
       - name: Export production, anonymise it and scan the snapshot

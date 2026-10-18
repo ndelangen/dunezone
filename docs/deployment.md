@@ -601,7 +601,7 @@ Auth, command, projection and browser tests remain separate delivery evidence.
 
 ## Anonymised snapshot
 
-`.github/workflows/anonymised-snapshot.yml` runs once a day and on manual dispatch, from `main`
+`.github/workflows/anonymised-snapshot.yml` runs once a week (Mondays) and on manual dispatch, from `main`
 only, in the `production` environment (#1559). Its one step runs `scripts/anonymised-snapshot.ts`,
 which exports production the way `dev-rebuild.yml` does, anonymises the export through
 `scripts/snapshot-anonymise.ts`, and scans the written snapshot.
@@ -614,7 +614,7 @@ repository are public.
 
 The upload step runs when `SNAPSHOT_UPLOAD` in the workflow is `"true"`, which it has been since
 Norbert approved it after a dry-run report on 30 September 2026 (#1559). It uploads the snapshot
-file alone as the `anonymised-snapshot` artifact, kept for one day, which any signed-in GitHub
+file alone as the `anonymised-snapshot` artifact, kept for eight days (Norbert, 18 October 2026: weekly runs, so local data can be up to a week old), which any signed-in GitHub
 account can download. Setting the value back to `"false"` makes every run a dry run again.
 
 Two consumers load the snapshot, and both check the file before they clear or import anything.

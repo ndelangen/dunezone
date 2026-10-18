@@ -13,8 +13,8 @@ const SNAPSHOT_PIPELINE_FILES: ReadonlySet<string> = new Set([
  * Decides whether a merge needs the dev deployment's data rebuilt from the anonymised snapshot (#1559).
  *
  * Two kinds of change qualify.
- * The first can invalidate or reshape dev's existing data: the schema itself, and the migrations that reshape data within a schema (cloud dev runs no migrations of its own;
- * the rebuild replaced them, so a migration that never reached dev's data is a stale-data bug).
+ * The first can invalidate or reshape dev's existing data: the schema itself, and the migrations that reshape data within a schema (a migration that never reached dev's data is a stale-data bug).
+ * A merge whose only such files are migrations does not rebuild: dev runs the new migrations on its own data instead (`needsOnlyMigrations`), which spares a production export.
  * The second changes what the snapshot keeps or how it is made, loaded and checked: the snapshot policy, the anonymiser, the rebuild contract and the rebuild workflow.
  * Dev holds what the last rebuild made, so a tightened policy reaches dev only through a rebuild.
  *
@@ -35,8 +35,25 @@ export function needsDataRebuild(changedFiles: readonly string[]): boolean {
   });
 }
 
+/** The files that only add or change migrations: dev can run those on the data it holds, as production does. */
+function isMigrationFile(file: string): boolean {
+  return file === 'convex/migration-guards.json' || /^convex\/migrations.*\.ts$/.test(file);
+}
+
+/**
+ * True when the merge's data-relevant files are all migration files.
+ * The schema is unchanged, so dev's data still satisfies it, and running the new migrations on dev reshapes that data the way the deploy reshapes production's.
+ * That saves a full production export for each such merge.
+ */
+export function needsOnlyMigrations(changedFiles: readonly string[]): boolean {
+  const relevant = changedFiles.filter((file) => needsDataRebuild([file]));
+  return relevant.length > 0 && relevant.every(isMigrationFile);
+}
+
 type Decision = {
   rebuild: boolean;
+  /** Push the code, then run the migrations the merge added on dev's existing data. */
+  migrate: boolean;
   reason: string;
 };
 
@@ -63,20 +80,27 @@ function changedFiles(base: string, head: string): string[] {
 
 export function decide(base: string, head: string, force: boolean): Decision {
   if (force) {
-    return { rebuild: true, reason: 'rebuild was forced' };
+    return { rebuild: true, migrate: false, reason: 'rebuild was forced' };
   }
   // Unknown history (first push, force push, manual run) errs toward rebuilding.
   if (base.length === 0 || /^0+$/.test(base)) {
-    return { rebuild: true, reason: 'no base commit to compare against' };
+    return { rebuild: true, migrate: false, reason: 'no base commit to compare against' };
   }
   if (!commitIsPresent(base)) {
-    return { rebuild: true, reason: `base commit ${base} is missing from this checkout` };
+    return { rebuild: true, migrate: false, reason: `base commit ${base} is missing from this checkout` };
   }
   const files = changedFiles(base, head);
-  if (needsDataRebuild(files)) {
-    return { rebuild: true, reason: 'schema, migration or snapshot files changed' };
+  if (needsOnlyMigrations(files)) {
+    return { rebuild: false, migrate: true, reason: 'only migration files changed' };
   }
-  return { rebuild: false, reason: `no schema, migration or snapshot changes across ${files.length} files` };
+  if (needsDataRebuild(files)) {
+    return { rebuild: true, migrate: false, reason: 'schema or snapshot files changed' };
+  }
+  return {
+    rebuild: false,
+    migrate: false,
+    reason: `no schema, migration or snapshot changes across ${files.length} files`,
+  };
 }
 
 if (import.meta.main) {
@@ -85,8 +109,13 @@ if (import.meta.main) {
     process.env.DEV_REBUILD_HEAD?.trim() || 'HEAD',
     process.env.DEV_REBUILD_FORCE === 'true'
   );
-  console.log(decision.rebuild ? `Rebuilding dev data: ${decision.reason}.` : `Keeping dev data: ${decision.reason}.`);
+  const verdict = decision.rebuild
+    ? 'Rebuilding dev data'
+    : decision.migrate
+      ? 'Migrating dev data in place'
+      : 'Keeping dev data';
+  console.log(`${verdict}: ${decision.reason}.`);
   if (process.env.GITHUB_OUTPUT) {
-    appendFileSync(process.env.GITHUB_OUTPUT, `rebuild=${decision.rebuild}\n`);
+    appendFileSync(process.env.GITHUB_OUTPUT, `rebuild=${decision.rebuild}\nmigrate=${decision.migrate}\n`);
   }
 }
